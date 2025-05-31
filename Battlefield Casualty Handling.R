@@ -4,6 +4,9 @@ library(simmer.plot)
 library(ggplot2)
 library(scales)
 
+# Create the simulation environment
+env <- simmer("Battlefield Casualty Handling")
+
 # Constants
 # Duration of a day in simulation time units (minutes)
 day_min <- 1440
@@ -17,10 +20,6 @@ PMV_Amb_count <- team_count * 2
 # Number of 40M available (count is a multiple of treatment teams available)
 HX2_40M_count <- team_count
 
-
-# Create the simulation environment
-env <- simmer("Battlefield Casualty Handling")
-
 # Function to generate names of treatment team resources based on team ID
 team_resources <- function(team_id) {
   c(paste0("c_medic_1_t", team_id),
@@ -30,33 +29,45 @@ team_resources <- function(team_id) {
     paste0("c_doctor_t", team_id))
 }
 
-# # Add two identical treatment teams with one of each resource per team
+# Establish a list of all team resources
+all_team_resources <- list()
+
+# Add identical treatment teams with one of each resource per team
 for (team in 1:team_count) {
   for (res in team_resources(team)) {
     env %>% add_resource(res, 1)
   }
+  # Add team resource lists to the all_team_resources list
+  all_team_resources <- append(all_team_resources, list(team_resources(team)))
 }
 
+# List of team medics used for medic specific tasking
+team_medics <- function(team_id) {
+  c(paste0("c_medic_1_t", team_id), paste0("c_medic_2_t", team_id), paste0("c_medic_3_t", team_id))
+}
+
+# List of team clinicians used for clinician specific tasking
+team_clinicians <- function(team_id) {
+  c(paste0("c_nurse_t", team_id), paste0("c_doctor_t", team_id))
+}
+
+# Add HX2_40M resources to environment
 for (i in 1:HX2_40M_count) {
   env %>%
     add_resource(paste0("t_HX2_40M", i), 50)
 }
 
+# Add PMV_Amb resources to environment
 for (i in 1:PMV_Amb_count) {
   env %>%
     add_resource(paste0("t_PMV_Amb", i), 4)
 }
 
-# Resources used for treating KIA patients
-kia_resources <- function(team_id) {
-  c(paste0("c_medic_1_t", team_id), paste0("c_medic_2_t", team_id), paste0("c_medic_3_t", team_id))
-}
-
 # Treatment logic for KIA casualties
 treat_kia <- function(team) {
-  team_res <- kia_resources(team)
+  medics <- team_medics(team)
   trajectory(paste("KIA Team", team)) %>%
-    select(team_res, policy = "shortest-queue") %>%
+    select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
     timeout(function() rnorm(1, 15)) %>%
     release_selected()
@@ -77,8 +88,8 @@ transport_kia <- function() {
 
 # Treatment logic for WIA casualties
 treat_wia <- function(team) {
-  medics <- c(paste0("c_medic_1_t", team), paste0("c_medic_2_t", team), paste0("c_medic_3_t", team))
-  clinicians <- c(paste0("c_nurse_t", team), paste0("c_doctor_t", team))
+  medics <- team_medics(team)
+  clinicians <- team_clinicians(team)
   
   trajectory(paste("WIA Team", team)) %>%
     select(medics, policy = "shortest-queue") %>%
@@ -114,7 +125,9 @@ transport_wia <- function() {
 
 # Main casualty trajectory
 casualty <- trajectory("Casualty") %>%
-  set_attribute("team", function() sample(1:team_count, 1)) %>%  # Randomly assign to team
+  # Randomly assign to team
+  set_attribute("team", function() sample(1:team_count, 1)) %>% 
+  # Assign casualty priority based on historical statistical outcomes
   set_attribute("priority", function() {  # Assign priority only if WIA or DNBI
     if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
       sample(1:3, 1, prob = c(0.65, 0.2, 0.15))
@@ -122,17 +135,20 @@ casualty <- trajectory("Casualty") %>%
       NA
     }
   }) %>%
+  # Branch based on casualty type (wia and dnbi branch 1; kia branch 2)
   branch(
     option = function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) 1 else 2
     },
     continue = TRUE,
     trajectory("WIA/DNBI Branch") %>%
+      # if wia/dnbi call the treat_wia sub-trajectory
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
         lapply(1:team_count, treat_wia)
       ) %>%
+      # if the casualty is priority 1 or 2 call the transport_wia sub-trajectory
       branch(
         option = function() {
           prio <- get_attribute(env, "priority")
@@ -140,8 +156,9 @@ casualty <- trajectory("Casualty") %>%
         },
         continue = TRUE,
         transport_wia(),
-        trajectory("No Transport")
+        trajectory("Monitor WIA recovery")
       ),
+    # elseif kia follow the treat_kia, then transport_kia sub-trajectories
     trajectory("KIA Branch") %>%
       branch(
         option = function() get_attribute(env, "team"),
@@ -176,6 +193,8 @@ env %>% run(until = 30 * day_min)
 
 #### VISUALISATIONS ####
 
+plot(casualty)
+
 # Get arrival logs and annotate with casualty type
 arrivals <- get_mon_arrivals(env)
 arrivals$day <- floor(arrivals$start_time / day_min)
@@ -194,11 +213,6 @@ ggplot(arrivals, aes(x = day, fill = type)) +
 
 # Plot resource usage
 resources <- get_mon_resources(env)
-
-all_team_resources <- lapply(1:team_count, team_resources)
-
-# Plot resource usage for each team
-resource_usage_plots <- list()
 
 # Generate and display usage plots for clinical resources by team
 for (team in 1:team_count) {

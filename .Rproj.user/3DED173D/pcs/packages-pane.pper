@@ -1,7 +1,0 @@
-{
-    "installOptions": {
-        "installDependencies": true,
-        "installFromRepository": true,
-        "libraryPath": "C:/Users/natha/anaconda3/envs/rstudio/lib/R/library"
-    }
-}

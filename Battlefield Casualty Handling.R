@@ -5,6 +5,7 @@ library(simmer.bricks)
 library(simmer.plot)
 library(ggplot2)
 library(scales)
+library(reshape2)
 
 # Create the simulation environment
 env <- simmer("Battlefield Casualty Handling")
@@ -13,14 +14,19 @@ env <- simmer("Battlefield Casualty Handling")
 # Duration of a day in simulation time units (minutes)
 day_min <- 1440
 # Total population affected by the simulation
-population_cbt <- 2250
-population_spt <- 1000
+population_cbt <- 2500
+population_spt <- 1250
+total_population <- population_cbt + population_spt
+# Calculate Combat Ineffective (CIE) threshold
+cie_threshold <- (2/3) * total_population
 # Number of treatment teams available
 team_count <- 8
 # Number of PMV_Amb available (count is a multiple of treatment teams available)
 PMV_Amb_count <- team_count * 2
 # Number of 40M available (count is a multiple of treatment teams available)
 HX2_40M_count <- team_count
+# Number of R2B teams available
+r2b_count <- 1
 
 ## Treatment Team Resources ##
 
@@ -71,6 +77,9 @@ for (i in 1:PMV_Amb_count) {
 
 ## R2B Resources ##
 
+# Establish a list of all R2B resources
+all_r2b_resources <- list()
+
 # Generate R2B teams
 r2b_surgical_resources <- function(team_id) {
   c(paste0("c_r2b_surg_anesthetist_t", team_id),
@@ -107,6 +116,40 @@ r2b_evacuation_resources <- function(team_id) {
 r2b_bed_resources <- function(team_id) {
   c(paste0("b_r2b_icu_1_t", team_id),
     paste0("b_r2b_icu_2_t", team_id))
+}
+
+# Add R2B teams to the environment
+for (i in 1:r2b_count) {
+  for (res in r2b_surgical_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_surgical_resources(i)))
+  for (res in r2b_emergency_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_emergency_resources(i)))
+  for (res in r2b_diagnostic_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_diagnostic_resources(i)))
+  for (res in r2b_icu_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_icu_resources(i)))
+  for (res in r2b_evacuation_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_evacuation_resources(i)))
+  for (res in r2b_bed_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  all_r2b_resources <- append(all_r2b_resources, list(r2b_bed_resources(i)))
 }
 
 ### ROLE 1 HANDLING ###
@@ -220,7 +263,14 @@ casualty <- trajectory("Casualty") %>%
         },
         continue = TRUE,
         transport_wia(),
-        trajectory("Monitor WIA recovery")
+        # Branch: if P3, schedule return to force
+        trajectory("Monitor Recovery") %>%
+          #timeout(function() 3 * day_min) %>%  # 3 days recovery
+          timeout(function() {
+            recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 5  # range 0–5, average ~2
+            recovery_days * day_min  # convert days to minutes
+          }) %>%
+          set_attribute("return_day", function() now(env))  # mark return time
       ),
     # elseif kia follow the treat_kia, then transport_kia sub-trajectories
     trajectory("KIA Branch") %>%
@@ -257,8 +307,9 @@ env %>% run(until = 30 * day_min)
 
 #### VISUALISATIONS ####
 
-plot(casualty)
-
+##############################################
+## Daily Casualties by Type (WIA/KIA/DNBI)  ##
+##############################################
 # Get arrival logs and annotate with casualty type
 arrivals <- get_mon_arrivals(env)
 arrivals$day <- floor(arrivals$start_time / day_min)
@@ -275,6 +326,9 @@ ggplot(arrivals, aes(x = day, fill = type)) +
   scale_fill_manual(values = c("WIA" = "steelblue", "KIA" = "darkred", "DNBI" = "seagreen")) +
   theme_minimal()
 
+##############################################
+## Resource Usage Plots                     ##
+##############################################
 # Plot resource usage
 resources <- get_mon_resources(env)
 
@@ -300,6 +354,9 @@ plot(resources, metric = "usage", transport_resources) +
 
 resources <- resources[!grepl("^t_", resources$resource), ]  # Exclude transport resources
 
+##############################################
+## Daily Casualties by Priority             ##
+##############################################
 # Extract priority values from attributes and merge with arrival data
 attributes <- get_mon_attributes(env)
 priority <- attributes[attributes$key == "priority", ]
@@ -317,14 +374,70 @@ ggplot(arrivals, aes(x = day, fill = priority)) +
   labs(title = "Daily Casualties by Priority", x = "Day", y = "Count", fill = "Priority") +
   theme_minimal()
 
+##############################################
+## Cumulative Casualty and Force Loss Graph ##
+##############################################
+# Step 1: Build daily casualty counts
+daily_counts <- as.data.frame(table(arrivals$day))
+colnames(daily_counts) <- c("day", "daily_count")
+daily_counts$day <- as.numeric(as.character(daily_counts$day))
+daily_counts$cumulative_total <- cumsum(daily_counts$daily_count)
+
+# Step 2: Get return to duty attributes
+attributes <- get_mon_attributes(env)
+returns <- attributes[attributes$key == "return_day", ]
+returns$return_day <- floor(returns$value / day_min)  # Rename before merge
+
+# Step 3: Merge return days into arrivals
+arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
+
+# Step 4: Count daily returns to duty
+daily_returns <- as.data.frame(table(arrivals$return_day))
+colnames(daily_returns) <- c("day", "daily_returns")
+daily_returns$day <- as.numeric(as.character(daily_returns$day))
+
+# Step 5: Merge returns into casualty table
+daily_counts <- merge(daily_counts, daily_returns, by = "day", all.x = TRUE)
+daily_counts$daily_returns[is.na(daily_counts$daily_returns)] <- 0  # Replace NA with 0
+
+# Step 6: Compute cumulative returns and loss
+daily_counts$cumulative_returns <- cumsum(daily_counts$daily_returns)
+daily_counts$cumulative_loss <- daily_counts$cumulative_total - daily_counts$cumulative_returns
+
+# Step 7: Convert to long format for plotting
+plot_data <- data.frame(
+  day = daily_counts$day,
+  `Total Casualties` = daily_counts$cumulative_total,
+  `Force Loss` = daily_counts$cumulative_loss
+)
+
+plot_data_long <- melt(plot_data, id.vars = "day", variable.name = "Metric", value.name = "Count")
+
+# Step 8: Plot
+ggplot(plot_data_long, aes(x = day, y = Count, color = Metric)) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = cie_threshold, ymax = total_population,
+           fill = "red", alpha = 0.2) +
+  geom_hline(yintercept = cie_threshold, linetype = "dashed", color = "red", size = 1) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  scale_y_continuous(limits = c(0, total_population)) +
+  labs(
+    title = "Cumulative Casualties vs Force Loss Over Time",
+    x = "Day",
+    y = "Personnel",
+    color = "Metric"
+  ) +
+  theme_minimal()
+
+##############################################
+## Composite Utilisation and Casualty Load  ##
+##############################################
 # Compute resource usage per team/role/day
 resources <- resources[order(resources$resource, resources$time), ]
 resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x) c(diff(x), 0))
 resources$busy_time <- resources$server * resources$time_diff
 resources$day <- floor(resources$time / day_min)
-# resources$team <- ifelse(grepl("_t1$", resources$resource), "Team 1", "Team 2")
 resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
-# resources$role <- sub("_t[12]$", "", resources$resource)
 resources$role <- sub("_t\\d+$", "", resources$resource)
 
 agg_resources <- aggregate(busy_time ~ team + role + day, data = resources, sum)
@@ -407,6 +520,9 @@ ggplot(plot_data, aes(x = day)) +
     axis.text = element_text(color = "black")
   )
 
+##############################################
+## Casualty Breakdown by Source and Type    ##
+##############################################
 # Categorize casualties by source: combat vs support
 arrivals$source <- ifelse(
   grepl("_cbt", arrivals$name), "Combat",

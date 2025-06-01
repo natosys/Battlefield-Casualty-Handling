@@ -80,17 +80,19 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 ```mermaid
 flowchart TD
-    Start(["Start"]) --> TeamAssgn("<b>Assign to Team</b> <br> <small>1 to team_count</small>")
-    TeamAssign --> Decision1 -- Yes (WIA/DNBI) --> PriorityAssign("Assign Priority <br> <small> P1:65% P2:20% P3:15%</small>")
+    Start(["Start"]) --> TeamAssign("<b>Assign to Team</b> <br> <small>1 to team_count</small>")
+    TeamAssign --> WIACheck{WIA/DNBI?}
+    WIACheck -- Yes (WIA/DNBI) --> PriorityAssign("Assign Priority <br> <small> P1:65% P2:20% P3:15%</small>")
     PriorityAssign --> TreatWIA("<b>Treat WIA</b> <br> <small>Resources: 3 x medic, nurse, doctor using 1 medic and 1 clinician (nurse/doctor)<br> Duration: P1:rlnorm(120, 0.125), P2:rlnorm(60, 0.25), P3:rlnorm(20, 0.5)</small>")
     TreatWIA --> PriorityCheck{"P1 or P2?"}
     PriorityCheck -- Yes (P1/P2) --> TransportWIA("<b>Transport WIA</b> <br> <small>Resources: 16 x PMV_Amb <br> Duration: rlnorm(30, 0.5)</small>")
     PriorityCheck -- No (P3) --> MonitorWIA("<b>Monitor WIA Recovery</b?")
-    Decision1 -- No (KIA) --> TreatKIA("<b>Treat KIA</b> <br> <small>Resources: 3 x medic, using 1 medic <br> Duration: rlnorm(30, 0.5)</small>")
+    WIACheck -- No (KIA) --> TreatKIA("<b>Treat KIA</b> <br> <small>Resources: 3 x medic, using 1 medic <br> Duration: rlnorm(30, 0.5)</small>")
     TreatKIA --> TransportKIA("<b>Transport KIA</b> <br> <small>Resources: 8 x HX_40M <br> Duration: rlnorm(30, 0.5)</small>")
     TransportWIA --> End(["End"])
     MonitorWIA --> End
     TransportKIA --> End
+
 
 ```
 

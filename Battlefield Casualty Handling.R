@@ -344,11 +344,6 @@ total_casualties <- aggregate(casualties ~ team, data = casualty_counts, sum)
 plot_data <- merge(plot_data, total_casualties, by = "team", suffixes = c("", "_total"))
 plot_data$casualty_percent_of_total <- round((plot_data$casualties / plot_data$casualties_total) * 100, 2)
 
-# Prepare for Daily Resource Utilisation by Team with Casualty Load Plot
-# Base roles and colors
-# roles <- c("c_r1_medic_1", "c_r1_medic_2", "c_r1_medic_3", "c_r1_nurse", "c_r1_doctor")
-# base_colors <- c("#1b9e77", "#d95f02", "#d9ff02", "#7570b3", "#e7298a")
-
 # Final composite plot: utilization + casualty load
 ggplot(plot_data, aes(x = day)) +
   facet_wrap(~ team) +

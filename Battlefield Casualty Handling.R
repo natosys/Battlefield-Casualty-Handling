@@ -1,3 +1,5 @@
+### ENVIRONMENT SETUP ###
+
 library(simmer)
 library(simmer.bricks)
 library(simmer.plot)
@@ -14,19 +16,21 @@ day_min <- 1440
 population_cbt <- 2250
 population_spt <- 1000
 # Number of treatment teams available
-team_count <- 6
+team_count <- 8
 # Number of PMV_Amb available (count is a multiple of treatment teams available)
 PMV_Amb_count <- team_count * 2
 # Number of 40M available (count is a multiple of treatment teams available)
 HX2_40M_count <- team_count
 
-# Function to generate names of treatment team resources based on team ID
+## Treatment Team Resources ##
+
+# Generate names of treatment team resources based on team ID
 team_resources <- function(team_id) {
-  c(paste0("c_medic_1_t", team_id),
-    paste0("c_medic_2_t", team_id),
-    paste0("c_medic_3_t", team_id),
-    paste0("c_nurse_t", team_id),
-    paste0("c_doctor_t", team_id))
+  c(paste0("c_r1_medic_1_t", team_id),
+    paste0("c_r1_medic_2_t", team_id),
+    paste0("c_r1_medic_3_t", team_id),
+    paste0("c_r1_nurse_t", team_id),
+    paste0("c_r1_doctor_t", team_id))
 }
 
 # Establish a list of all team resources
@@ -43,13 +47,15 @@ for (team in 1:team_count) {
 
 # List of team medics used for medic specific tasking
 team_medics <- function(team_id) {
-  c(paste0("c_medic_1_t", team_id), paste0("c_medic_2_t", team_id), paste0("c_medic_3_t", team_id))
+  c(paste0("c_r1_medic_1_t", team_id), paste0("c_r1_medic_2_t", team_id), paste0("c_r1_medic_3_t", team_id))
 }
 
 # List of team clinicians used for clinician specific tasking
 team_clinicians <- function(team_id) {
-  c(paste0("c_nurse_t", team_id), paste0("c_doctor_t", team_id))
+  c(paste0("c_r1_nurse_t", team_id), paste0("c_r1_doctor_t", team_id))
 }
+
+## Treatment Team Transport Resources ##
 
 # Add HX2_40M resources to environment
 for (i in 1:HX2_40M_count) {
@@ -62,6 +68,48 @@ for (i in 1:PMV_Amb_count) {
   env %>%
     add_resource(paste0("t_PMV_Amb", i), 4)
 }
+
+## R2B Resources ##
+
+# Generate R2B teams
+r2b_surgical_resources <- function(team_id) {
+  c(paste0("c_r2b_surg_anesthetist_t", team_id),
+    paste0("c_r2b_surg_surgeon_1_t", team_id),
+    paste0("c_r2b_surg_surgeon_2_t", team_id),
+    paste0("c_r2b_surg_medic_t", team_id))
+}
+
+r2b_emergency_resources <- function(team_id) {
+  c(paste0("c_r2b_emerg_facem_t", team_id),
+    paste0("c_r2b_emerg_nurse_1_t", team_id),
+    paste0("c_r2b_emerg_nurse_2_t", team_id),
+    paste0("c_r2b_emerg_nurse_3_t", team_id),
+    paste0("c_r2b_emerg_medic_t"))
+}
+
+r2b_diagnostic_resources <- function(team_id) {
+  c(paste0("c_r2b_diag_radiologist_t", team_id),
+    paste0("c_r2b_diag_so_t", team_id))
+}
+
+r2b_icu_resources <- function(team_id) {
+  c(paste0("c_r2b_icu_nurse_1_t", team_id),
+    paste0("c_r2b_icu_nurse_2_t", team_id),
+    paste0("c_r2b_icu_medic_1_t", team_id),
+    paste0("c_r2b_icu_medic_2_t", team_id))
+}
+
+r2b_evacuation_resources <- function(team_id) {
+  c(paste0("c_r2b_evac_medic_1_t", team_id),
+    paste0("c_r2b_evac_medic_2_t", team_id))
+}
+
+r2b_bed_resources <- function(team_id) {
+  c(paste0("b_r2b_icu_1_t", team_id),
+    paste0("b_r2b_icu_2_t", team_id))
+}
+
+### ROLE 1 HANDLING ###
 
 # Treatment logic for KIA casualties
 treat_kia <- function(team) {
@@ -122,6 +170,22 @@ transport_wia <- function() {
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
     release_selected()
 }
+
+### ROLE 2 HANDLING ###
+
+## R2B
+# Surgical: 1 x Anesthetist, 2 x Surgeon, 4 x Nurse
+# Emergency: 1 x FACEM, 3 x Nurse, 1 x Medic
+# Diagnostic: 1 x Radiologist, 1 x Scientific Officer
+# ICU: 2 x Nurse, 2 x Medic
+# Evac: 2 x Medic, 1 x Driver
+# resus for 2 pri 1 cas simultaneously
+# 1 op table can perform 5 surgeries in 24 h or operate for 12 h
+# 2 ICU beds 5 holding beds
+
+r2b <- trajectory("Emergency and Surgery Handling")
+# Do something here
+### CORE TRAJECTORY ###
 
 # Main casualty trajectory
 casualty <- trajectory("Casualty") %>%
@@ -282,8 +346,8 @@ plot_data$casualty_percent_of_total <- round((plot_data$casualties / plot_data$c
 
 # Prepare for Daily Resource Utilisation by Team with Casualty Load Plot
 # Base roles and colors
-roles <- c("c_medic_1", "c_medic_2", "c_medic_3", "c_nurse", "c_doctor")
-base_colors <- c("#1b9e77", "#d95f02", "#d9ff02", "#7570b3", "#e7298a")
+# roles <- c("c_r1_medic_1", "c_r1_medic_2", "c_r1_medic_3", "c_r1_nurse", "c_r1_doctor")
+# base_colors <- c("#1b9e77", "#d95f02", "#d9ff02", "#7570b3", "#e7298a")
 
 # Final composite plot: utilization + casualty load
 ggplot(plot_data, aes(x = day)) +
@@ -330,11 +394,11 @@ ggplot(plot_data, aes(x = day)) +
     color = "Resource Role"
   ) +
   scale_color_manual(values = c(
-    "c_medic_1" = "#1b9e77",
-    "c_medic_2" = "#d95f02",
-    "c_medic_3" = "#d9ff02",
-    "c_nurse" = "#7570b3",
-    "c_doctor" = "#e7298a"
+    "c_r1_medic_1" = "#1b9e77",
+    "c_r1_medic_2" = "#d95f02",
+    "c_r1_medic_3" = "#d9ff02",
+    "c_r1_nurse" = "#7570b3",
+    "c_r1_doctor" = "#e7298a"
   )) +
   
   # Theme customization

@@ -82,12 +82,12 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 flowchart TD
  Start([Start]) --> Decision1{WIA/DNBI?}
  Decision1 -- Yes --> TeamBranch[Assign to Team]
- TeamBranch --> Treat[Call treat_wia()]
+ TeamBranch --> Treat[Call treat_wia]
  Treat --> PriorityCheck{Priority 1 or 2?}
- PriorityCheck -- Yes --> Transport[Call transport_wia()]
+ PriorityCheck -- Yes --> Transport[Call transport_wia]
  PriorityCheck -- No --> Monitor[Monitor WIA recovery]
- Decision1 -- No (KIA) --> KIA_Treat[Call treat_kia()]
- KIA_Treat --> KIA_Transport[Call transport_kia()]
+ Decision1 -- No (KIA) --> KIA_Treat[Call treat_kia]
+ KIA_Treat --> KIA_Transport[Call transport_kia]
  Transport --> End([End])
  Monitor --> End
  KIA_Transport --> End

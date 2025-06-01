@@ -46,9 +46,9 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 - **Treatment Team**. Treatment teams have access to battlegroup vehicle assets to effect casualty evacuations. The treatment teams have access to:
   
-  - `2` PMV Ambulances per treatment team (for a total of `12`), used for the transport of Wounded In Action (WIA) and Disease and Non-Battle Injury (DNBI) to the R2B (where required)
+  - `2` PMV Ambulances per treatment team (for a total of `16`), used for the transport of Wounded In Action (WIA) and Disease and Non-Battle Injury (DNBI) to the R2B (where required)
   
-  - `1` HX2 40 M per treatment team (for a total of `6`), used for the transport of Killed In Action (KIA) to the mortuary (at R2E)
+  - `1` HX2 40 M per treatment team (for a total of `8`), used for the transport of Killed In Action (KIA) to the mortuary (at R2E)
   
   Transport resources are shared across all treatment teams.
 

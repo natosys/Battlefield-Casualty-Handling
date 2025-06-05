@@ -10,7 +10,7 @@ library(reshape2)
 # Create the simulation environment
 env <- simmer("Battlefield Casualty Handling")
 
-# Constants
+## Constants ##
 # Duration of a day in simulation time units (minutes)
 day_min <- 1440
 # Total population affected by the simulation
@@ -113,49 +113,71 @@ r2b_evacuation_resources <- function(team_id) {
     paste0("c_r2b_evac_medic_2_t", team_id))
 }
 
-r2b_bed_resources <- function(team_id) {
+r2b_icu_bed_resources <- function(team_id) {
   c(paste0("b_r2b_icu_1_t", team_id),
     paste0("b_r2b_icu_2_t", team_id))
 }
 
+r2b_hold_bed_resources <- function(team_id) {
+  c(paste0("b_r2b_hold_1_t", team_id),
+    paste0("b_r2b_hold_2_t", team_id),
+    paste0("b_r2b_hold_3_t", team_id),
+    paste0("b_r2b_hold_4_t", team_id),
+    paste0("b_r2b_hold_5_t", team_id))
+}
+
 # Add R2B teams to the environment
 for (i in 1:r2b_count) {
+  this_r2b_resources <- list()
   for (res in r2b_surgical_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_surgical_resources(i)))
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_surgical_resources(i)))
+  this_r2b_resources[["r2b_surgical_resources"]] <- r2b_surgical_resources(i)
   for (res in r2b_emergency_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_emergency_resources(i)))
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_emergency_resources(i)))
+  this_r2b_resources[["r2b_emergency_resources"]] <- r2b_emergency_resources(i)
   for (res in r2b_diagnostic_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_diagnostic_resources(i)))
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_diagnostic_resources(i)))
+  this_r2b_resources[["r2b_diagnostic_resources"]] <- r2b_diagnostic_resources(i)
   for (res in r2b_icu_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_icu_resources(i)))
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_icu_resources(i)))
+  this_r2b_resources[["r2b_icu_resources"]] <- r2b_icu_resources(i)
   for (res in r2b_evacuation_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_evacuation_resources(i)))
-  for (res in r2b_bed_resources(i)) {
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_evacuation_resources(i)))
+  this_r2b_resources[["r2b_evacuation_resources"]] <- r2b_evacuation_resources(i)
+  for (res in r2b_icu_bed_resources(i)) {
     env %>% add_resource(res, 1)
   }
   # Add team resource lists to the all_team_resources list
-  all_r2b_resources <- append(all_r2b_resources, list(r2b_bed_resources(i)))
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_icu_bed_resources(i)))
+  this_r2b_resources[["r2b_icu_bed_resources"]] <- r2b_icu_bed_resources(i)
+  for (res in r2b_hold_bed_resources(i)) {
+    env %>% add_resource(res, 1)
+  }
+  # Add team resource lists to the all_team_resources list
+  # all_r2b_resources <- append(all_r2b_resources, list(r2b_hold_bed_resources(i)))
+  this_r2b_resources[["r2b_hold_bed_resources"]] <- r2b_hold_bed_resources(i)
+  all_r2b_resources <- append(all_r2b_resources, list(this_r2b_resources))
 }
 
 ### ROLE 1 HANDLING ###
 
 # Treatment logic for KIA casualties
-treat_kia <- function(team) {
+r1_treat_kia <- function(team) {
   medics <- team_medics(team)
   trajectory(paste("KIA Team", team)) %>%
     select(medics, policy = "shortest-queue") %>%
@@ -165,7 +187,7 @@ treat_kia <- function(team) {
 }
 
 # Transport KIA to mortuary (collocated with Role 2 facility)
-transport_kia <- function() {
+r1_transport_kia <- function() {
   # Dynamically identify all HX2_40M resources in the environment
   ambulances <- get_resources(env)[grepl("^t_HX2_40M", get_resources(env))]
   
@@ -178,7 +200,7 @@ transport_kia <- function() {
 }
 
 # Treatment logic for WIA casualties
-treat_wia <- function(team) {
+r1_treat_wia <- function(team) {
   medics <- team_medics(team)
   clinicians <- team_clinicians(team)
   
@@ -202,7 +224,7 @@ treat_wia <- function(team) {
 }
 
 # Transport WIA/DNBI to Role 2 using one of the PMV_Amb resources
-transport_wia <- function() {
+r1_transport_wia <- function() {
   # Dynamically identify all PMV_Amb resources in the environment
   ambulances <- get_resources(env)[grepl("^t_PMV_Amb", get_resources(env))]
   
@@ -214,20 +236,81 @@ transport_wia <- function() {
     release_selected()
 }
 
-### ROLE 2 HANDLING ###
+## TEST CODE
+seize_resources <- function(trj, resources) {
+  for (res in resources) {
+    trj <- trj %>% seize(res, 1)
+  }
+  trj
+}
 
-## R2B
-# Surgical: 1 x Anesthetist, 2 x Surgeon, 4 x Nurse
-# Emergency: 1 x FACEM, 3 x Nurse, 1 x Medic
-# Diagnostic: 1 x Radiologist, 1 x Scientific Officer
-# ICU: 2 x Nurse, 2 x Medic
-# Evac: 2 x Medic, 1 x Driver
-# resus for 2 pri 1 cas simultaneously
-# 1 op table can perform 5 surgeries in 24 h or operate for 12 h
-# 2 ICU beds 5 holding beds
+release_resources <- function(trj, resources) {
+  for (res in resources) {
+    trj <- trj %>% release(res, 1)
+  }
+  trj
+}
 
-r2b <- trajectory("Emergency and Surgery Handling")
-# Do something here
+### ROLE 2 BASIC HANDLING ###
+r2b_treat_wia <- function(team_id = 1) {
+  # If available go to emergency
+    # If required & if available go to surgery
+      # If survive
+        # If transport available, transport to r2e
+        # ElseIf place in holding bed
+      # ElseIf transport kia to mortuary
+    # ElseIf if available go to holding and wait for surgery
+  # ElseIf if available go to holding and wait for emergency
+  beds <- all_r2b_resources[[team_id]][["r2b_icu_bed_resources"]]
+  emergency_team <- all_r2b_resources[[team_id]][["r2b_emergency_resources"]]
+  surgical_team <- all_r2b_resources[[team_id]][["r2b_surgical_resources"]]
+  evacuation_team <- all_r2b_resources[[team_id]][["r2b_evacuation_resources"]]
+
+  trajectory("R2B Casualty Handling") %>%
+
+    # Attempt to seize an ICU bed
+    select(beds, policy = "shortest-queue", id="icu_bed") %>%
+    seize_selected() %>%
+
+    # Seize an Emergency team
+    seize_resources(emergency_team) %>%
+    timeout(function() rlnorm(1, log(30), 0.25)) %>%
+    release_resources(emergency_team)
+  
+    # release the seized ICU bed
+    release_selected(id="icu_bed")
+
+    # Decide if surgery is required
+    # branch(
+    #   option = function() get_attribute(env, "priority") <= 2,  # Priorities 1 and 2 need surgery
+    #   continue = TRUE,
+    #   trajectory() %>%
+    #     seize_resources(surgical_team) %>%
+    #     timeout(function() rlnorm(1, log(30), 0.25)) %>%
+    #     release_resources(surgical_team) %>%
+    #     
+    #     ## RELEASE ICU BED HERE
+    #     
+    #     # Surgery survival check
+    #     branch(
+    #       option = function() runif(1) < 0.9,  # 90% survival rate example
+    #       continue = TRUE,
+    # 
+    #       # If survived
+    #       trajectory() %>%
+    #         # Try to evacuate
+    #         seize_resources(evacuation_team) %>%
+    #         timeout(function() rlnorm(1, log(30), 0.25)) %>%
+    #         release_resources(evacuation_team),
+    # 
+    #       # If died
+    #       trajectory() %>%
+    #         set_attribute("dow", 1) %>% # Died of Wounds
+    #         timeout(5)  # Mortuary processing time
+    #     )
+    # )
+}
+  
 ### CORE TRAJECTORY ###
 
 # Main casualty trajectory
@@ -253,7 +336,7 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
-        lapply(1:team_count, treat_wia)
+        lapply(1:team_count, r1_treat_wia)
       ) %>%
       # if the casualty is priority 1 or 2 call the transport_wia sub-trajectory
       branch(
@@ -262,7 +345,7 @@ casualty <- trajectory("Casualty") %>%
           if (!is.na(prio) && prio %in% c(1, 2)) 1 else 2
         },
         continue = TRUE,
-        transport_wia(),
+        r1_transport_wia() %>% join(r2b_treat_wia()), ### Update for dynamic team_id assignment when more than one R2B available
         # Branch: if P3, schedule return to force
         trajectory("Monitor Recovery") %>%
           #timeout(function() 3 * day_min) %>%  # 3 days recovery
@@ -278,7 +361,7 @@ casualty <- trajectory("Casualty") %>%
         option = function() get_attribute(env, "team"),
         continue = TRUE,
         lapply(1:team_count, function(i) {
-          treat_kia(i) %>% join(transport_kia())
+          r1_treat_kia(i) %>% join(r1_transport_kia())
         })
       )
   )

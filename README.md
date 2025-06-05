@@ -1,4 +1,12 @@
-[!WARNING] Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates. 
+> :warning: Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates. 
+
+
+
+> [!Note]
+> 
+> Useful information
+
+
 
 # Battlefield Casualty Handling
 

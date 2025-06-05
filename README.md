@@ -1,10 +1,6 @@
-> :warning: Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates. 
-
-
-
-> [!Note]
+>  [!Caution]
 > 
-> Useful information
+> Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates.
 
 
 

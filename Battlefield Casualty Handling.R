@@ -267,48 +267,47 @@ r2b_treat_wia <- function(team_id = 1) {
   evacuation_team <- all_r2b_resources[[team_id]][["r2b_evacuation_resources"]]
 
   trajectory("R2B Casualty Handling") %>%
-
     # Attempt to seize an ICU bed
-    select(beds, policy = "shortest-queue", id="icu_bed") %>%
-    seize_selected() %>%
-
+    select(beds, policy = "shortest-queue", id = 1) %>%  # assign numeric ID
+    ## NEED TO SEIZE AVAILABLE OR BRANCH TO HOLDING THEN BRANCH TO EVAC
+    seize_selected(id = 1) %>%
+    
     # Seize an Emergency team
     seize_resources(emergency_team) %>%
     timeout(function() rlnorm(1, log(30), 0.25)) %>%
-    release_resources(emergency_team)
-  
-    # release the seized ICU bed
-    release_selected(id="icu_bed")
+    release_resources(emergency_team) %>%
 
     # Decide if surgery is required
-    # branch(
-    #   option = function() get_attribute(env, "priority") <= 2,  # Priorities 1 and 2 need surgery
-    #   continue = TRUE,
-    #   trajectory() %>%
-    #     seize_resources(surgical_team) %>%
-    #     timeout(function() rlnorm(1, log(30), 0.25)) %>%
-    #     release_resources(surgical_team) %>%
-    #     
-    #     ## RELEASE ICU BED HERE
-    #     
-    #     # Surgery survival check
-    #     branch(
-    #       option = function() runif(1) < 0.9,  # 90% survival rate example
-    #       continue = TRUE,
-    # 
-    #       # If survived
-    #       trajectory() %>%
-    #         # Try to evacuate
-    #         seize_resources(evacuation_team) %>%
-    #         timeout(function() rlnorm(1, log(30), 0.25)) %>%
-    #         release_resources(evacuation_team),
-    # 
-    #       # If died
-    #       trajectory() %>%
-    #         set_attribute("dow", 1) %>% # Died of Wounds
-    #         timeout(5)  # Mortuary processing time
-    #     )
-    # )
+    branch(
+      ## SHOULD BE REVISED TO % REQUIRING SURGERY IN ORIGINAL MODEL
+      option = function() get_attribute(env, "priority") <= 2,  # Priorities 1 and 2 need surgery
+      continue = TRUE,
+      trajectory() %>%
+        seize_resources(surgical_team) %>%
+        timeout(function() rlnorm(1, log(30), 0.25)) %>%
+        release_resources(surgical_team) %>%
+        
+        # release the seized ICU bed
+        release_selected(id = 1) %>% # release by numeric ID
+
+        # Surgery survival check
+        branch(
+          option = function() runif(1) < 0.9,  # 90% survival rate example
+          continue = TRUE,
+
+          # If survived
+          trajectory() %>%
+            # Try to evacuate
+            seize_resources(evacuation_team) %>%
+            timeout(function() rlnorm(1, log(30), 0.25)) %>%
+            release_resources(evacuation_team),
+
+          # If died
+          trajectory() %>%
+            set_attribute("dow", 1) %>% # Died of Wounds
+            timeout(5)  # Mortuary processing time
+        )
+    )
 }
   
 ### CORE TRAJECTORY ###
@@ -521,14 +520,16 @@ resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x)
 resources$busy_time <- resources$server * resources$time_diff
 resources$day <- floor(resources$time / day_min)
 resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
-resources$role <- sub("_t\\d+$", "", resources$resource)
+resources$role <- sub("^[a-zA-Z]_((r[0-9]+[a-z]*_[a-z]+(_[0-9]+)?)).*", "\\1", resources$resource)
+resources$resource_type <- sub("^([cbt])_.*", "\\1", resources$resource)
 
-agg_resources <- aggregate(busy_time ~ team + role + day, data = resources, sum)
+resources_r1 <- resources[grepl("r1", resources$resource), ]
+
+agg_resources <- aggregate(busy_time ~ team + role + day, data = resources_r1, sum)
 agg_resources$percent_seized <- round((agg_resources$busy_time / day_min) * 100, 2)
 
 # Count casualties per team per day
 arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
-# arrivals$team <- factor(arrivals$team, labels = c("Team 1", "Team 2"))
 arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:team_count))
 casualty_counts <- as.data.frame(table(arrivals$team, arrivals$day))
 colnames(casualty_counts) <- c("team", "day", "casualties")
@@ -585,11 +586,11 @@ ggplot(plot_data, aes(x = day)) +
     color = "Resource Role"
   ) +
   scale_color_manual(values = c(
-    "c_r1_medic_1" = "#1b9e77",
-    "c_r1_medic_2" = "#d95f02",
-    "c_r1_medic_3" = "#d9ff02",
-    "c_r1_nurse" = "#7570b3",
-    "c_r1_doctor" = "#e7298a"
+    "r1_medic_1" = "#1b9e77",
+    "r1_medic_2" = "#d95f02",
+    "r1_medic_3" = "#d9ff02",
+    "r1_nurse" = "#7570b3",
+    "r1_doctor" = "#e7298a"
   )) +
   
   # Theme customization

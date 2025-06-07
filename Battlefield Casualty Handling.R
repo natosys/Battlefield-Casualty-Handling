@@ -6,6 +6,7 @@ library(simmer.plot)
 library(ggplot2)
 library(scales)
 library(reshape2)
+library(truncnorm)
 
 # Create the simulation environment
 env <- simmer("Battlefield Casualty Handling")
@@ -256,25 +257,22 @@ r2b_treat_wia <- function(team_id = 1) {
     set_attribute("r2b_treated", team_id) %>%
     
     # Seize a holding bed (always)
-    select(holding_beds, policy = "random-available", id = 1) %>%
+    select(holding_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
-    # seize(holding_beds, 1) %>%
     log_("Holding bed seized") %>%
     
     # Wait in ICU queue (while occupying holding bed)
     select(icu_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-    # seize(icu_beds, 1) %>%
     log_("ICU bed seized") %>%
     
     # Release holding bed after ICU becomes available
     release_selected(id = 1) %>%
-    # release(holding_beds, 1) %>%
     log_("Holding bed released") %>%
     
     # Emergency care
     seize_resources(emergency_team) %>%
-    timeout(function() rlnorm(1, log(30), 0.25)) %>%
+    timeout(function() rlnorm(1, log(45), 0.33)) %>%
     release_resources(emergency_team) %>%
     
     # Branch: if priority ≤ 2 → surgery
@@ -283,9 +281,8 @@ r2b_treat_wia <- function(team_id = 1) {
       continue = TRUE,
       trajectory("Surgery and Outcome") %>%
         seize_resources(surgical_team) %>%
-        timeout(function() rlnorm(1, log(30), 0.25)) %>%
+        timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
         release_resources(surgical_team) %>%
-        # release(icu_beds, 1) %>%
         release_selected(id = 2) %>%
         
         # Survival check
@@ -302,7 +299,6 @@ r2b_treat_wia <- function(team_id = 1) {
         )
     )
 }
-
   
 ### CORE TRAJECTORY ###
 
@@ -331,22 +327,26 @@ casualty <- trajectory("Casualty") %>%
         continue = TRUE,
         lapply(1:team_count, r1_treat_wia)
       ) %>%
-      # if the casualty is priority 1 or 2 call the transport_wia sub-trajectory
+      # if the casualty is priority 1 or 2 95% and 90% are transported to r2b for processing
       branch(
         option = function() {
           prio <- get_attribute(env, "priority")
-          if (!is.na(prio) && prio %in% c(1, 2)) 1 else 2
+          if (is.na(prio)) return(2)  # Default to recovery if priority is not set
+          
+          if (prio == 1 && runif(1) < 0.95) return(1)  # 95% of P1 to R2B
+          if (prio == 2 && runif(1) < 0.90) return(1)  # 90% of P2 to R2B
+          return(2)  # Otherwise recover
         },
         continue = TRUE,
-        r1_transport_wia() %>% join(r2b_treat_wia()), ### Update for dynamic team_id assignment when more than one R2B available
-        # Branch: if P3, schedule return to force
+        r1_transport_wia() %>% join(r2b_treat_wia()),
+        
+        # Branch: if not going to R2B, schedule return to force
         trajectory("Monitor Recovery") %>%
-          #timeout(function() 3 * day_min) %>%  # 3 days recovery
           timeout(function() {
             recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 5  # range 0–5, average ~2
-            recovery_days * day_min  # convert days to minutes
+            recovery_days * day_min
           }) %>%
-          set_attribute("return_day", function() now(env))  # mark return time
+          set_attribute("return_day", function() now(env))
       ),
     # elseif kia follow the treat_kia, then transport_kia sub-trajectories
     trajectory("KIA Branch") %>%
@@ -645,10 +645,21 @@ ggplot(casualty_breakdown, aes(x = Source, y = Count, fill = Type)) +
 # Filter for R2B resources only
 resources_r2b <- resources[grepl("r2b", resources$resource), ]
 
-## Filter down to clinical teams only (remove beds etc)
+# Exclude resource from graphing (while they are managed as a group)
+excluded_resources <- c(
+  "c_r2b_emerg_medic_t1",
+  "c_r2b_emerg_nurse_1_t1",
+  "c_r2b_emerg_nurse_2_t1",
+  "c_r2b_emerg_nurse_3_t1",
+  "c_r2b_evac_medic_2_t1",
+  "c_r2b_surg_medic_t1",
+  "c_r2b_surg_surgeon_1_t1",
+  "c_r2b_surg_surgeon_2_t1"
+)
+resources_r2b <- resources_r2b[!resources_r2b$resource %in% excluded_resources, ]
+
 
 # Aggregate daily busy time per role and team
-# agg_resources_r2b <- aggregate(busy_time ~ team + role + day, data = resources_r2b, sum)
 agg_resources_r2b <- aggregate(busy_time ~ team + resource + day, data = resources_r2b, sum)
 agg_resources_r2b$percent_seized <- round((agg_resources_r2b$busy_time / day_min) * 100, 2)
 
@@ -683,7 +694,6 @@ total_casualties_r2b <- aggregate(casualties ~ team, data = casualty_counts_r2b,
 plot_data_r2b <- merge(plot_data_r2b, total_casualties_r2b, by = "team", suffixes = c("", "_total"))
 plot_data_r2b$casualty_percent_of_total <- round((plot_data_r2b$casualties / plot_data_r2b$casualties_total) * 100, 2)
 
-
 # R2B Utilization + Casualty Load Plot
 ggplot(plot_data_r2b, aes(x = day)) +
   facet_wrap(~ team) +
@@ -712,7 +722,7 @@ ggplot(plot_data_r2b, aes(x = day)) +
   # Axis settings
   scale_y_continuous(
     name = "Resource Utilization (%)",
-    limits = c(0, 100),
+    # limits = c(0, 100),
     labels = scales::percent_format(scale = 1),
     sec.axis = sec_axis(
       transform = ~ .,
@@ -728,26 +738,40 @@ ggplot(plot_data_r2b, aes(x = day)) +
     x = "Day",
     color = "Resource Role"
   ) +
-  scale_color_manual(values = c(
-    "b_r2b_icu_1_t1" = "#a6cee3",
-    "b_r2b_icu_2_t1" = "#fb9a99",
-    "b_r2b_hold_1_t1" = "#b2df8a",
-    "b_r2b_hold_2_t1" = "#fdbf6f",
-    "b_r2b_hold_3_t1" = "#cab2d6",
-    "b_r2b_hold_4_t1" =  "#1f78b4",
-    "b_r2b_hold_5_t1" =  "#33a02c",
-    "c_r2b_emerg_facem_t1" = "#6a3d9a",
-    "c_r2b_emerg_medic_t1" = "#b15928",
-    "c_r2b_emerg_nurse_1_t1" = "#8dd3c7",
-    "c_r2b_emerg_nurse_2_t1" = "#80b1d3",
-    "c_r2b_emerg_nurse_3_t1" = "#b3de69",
-    "c_r2b_evac_medic_1_t1" = "#fdb462",
-    "c_r2b_evac_medic_2_t1" = "#bebada",
-    "c_r2b_surg_anesthetist_t1" = "#fccde5",
-    "c_r2b_surg_medic_t1" = "#ccebc5",
-    "c_r2b_surg_surgeon_1_t1" = "#ffffb3",
-    "c_r2b_surg_surgeon_2_t1" = "#d9d9d9"
-  )) +
+  scale_color_manual(
+    values = c(
+      "b_r2b_icu_1_t1" = "#a6cee3",
+      "b_r2b_icu_2_t1" = "#fb9a99",
+      "b_r2b_hold_1_t1" = "#b2df8a",
+      "b_r2b_hold_2_t1" = "#fdbf6f",
+      "b_r2b_hold_3_t1" = "#cab2d6",
+      "b_r2b_hold_4_t1" =  "#1f78b4",
+      "b_r2b_hold_5_t1" =  "#33a02c",
+      "c_r2b_emerg_facem_t1" = "#6a3d9a",
+      # "c_r2b_emerg_medic_t1" = "#b15928",
+      # "c_r2b_emerg_nurse_1_t1" = "#8dd3c7",
+      # "c_r2b_emerg_nurse_2_t1" = "#80b1d3",
+      # "c_r2b_emerg_nurse_3_t1" = "#b3de69",
+      "c_r2b_evac_medic_1_t1" = "#fdb462",
+      # "c_r2b_evac_medic_2_t1" = "#bebada",
+      "c_r2b_surg_anesthetist_t1" = "#fccde5"
+      # "c_r2b_surg_medic_t1" = "#ccebc5",
+      # "c_r2b_surg_surgeon_1_t1" = "#ffffb3",
+      # "c_r2b_surg_surgeon_2_t1" = "#d9d9d9"
+    ),
+    labels = c(
+      "b_r2b_icu_1_t1" = "ICU Bed 1",
+      "b_r2b_icu_2_t1" = "ICU Bed 2",
+      "b_r2b_hold_1_t1" = "Holding Bed 1",
+      "b_r2b_hold_2_t1" = "Holding Bed 2",
+      "b_r2b_hold_3_t1" = "Holding Bed 3",
+      "b_r2b_hold_4_t1" = "Holding Bed 4",
+      "b_r2b_hold_5_t1" = "Holding Bed 5",
+      "c_r2b_emerg_facem_t1" = "Emergency Team",
+      "c_r2b_evac_medic_1_t1" = "Evacuation Team",
+      "c_r2b_surg_anesthetist_t1" = "Surgical Team"
+    )
+  ) +
 
   # Theme
   theme_minimal() +

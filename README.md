@@ -46,7 +46,31 @@ The code simulates a deployed combat brigade based on the Australian combat and 
   
   - `1` Doctor
 
-- **R2B**. 
+- **R2B**. The R2B is a forward-deployed, damage control surgical facility designed to stabilize and prepare casualties for evacuation. It includes medical, surgical, nursing, and bed management capabilities.
+
+- The R2B is made up of the following personnel resources:
+  
+  - Emergency Team
+    
+    - `1` FACEM (Emergency Physician)
+    - `1` Medic
+    - `3` Nurses
+  
+  - Surgical Team
+    
+    - `2`Surgeons
+    - `1` Anesthetist
+    - `1` Medic
+  
+  - Evacuation Team
+    
+    - `2` Medics
+
+- The R2B has the following bed capacity:
+  
+  - `2` ICU beds
+  
+  - `5` Holding beds
 
 **Transport Resources**. Transport resources are typically drawn from the supported call-sign or a CSS element. the following transport resources are available by echelon:
 
@@ -58,7 +82,19 @@ The code simulates a deployed combat brigade based on the Australian combat and 
   
   Transport resources are shared across all treatment teams.
 
-- **R2B**.  
+- **R2B**.  The R2b has `1` dedicated evacuation team operating a PMV Ambulance. In addition to the dedicated resource of the R2B, the R2B has access to the following resources:
+  
+  - ...
+
+**Bed Resources**. Not all health elements have dedicated bed resources.
+
+- **Treatment Team**. No dedicated bed resources.
+
+- **R2B**. The R2B has the following bed capacity:
+  
+  - `2` ICU beds
+  
+  - `5` Holding beds
 
 ---
 

@@ -2,8 +2,6 @@
 > 
 > Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates.
 
-
-
 # Battlefield Casualty Handling
 
 ## 📘 Introduction
@@ -65,6 +63,9 @@ The code simulates a deployed combat brigade based on the Australian combat and 
   - Evacuation Team
     
     - `2` Medics
+  - Diagnostic Team
+    - `1` Radiologist
+    - `1` Scientific Officer
 
 - The R2B has the following bed capacity:
   
@@ -86,11 +87,11 @@ The code simulates a deployed combat brigade based on the Australian combat and 
   
   - ...
 
-**Bed Resources**. Not all health elements have dedicated bed resources.
+**Bed Resources**. Beds are finite resources and are seized by patients during treatment and recovery phases, influencing throughput and capacity under casualty load. Not all health elements have dedicated bed resources.
 
 - **Treatment Team**. No dedicated bed resources.
 
-- **R2B**. The R2B has the following bed capacity:
+- **R2B**. R2B includes limited inpatient capacity to stabilize casualties prior to evacuation or return to duty. The R2B has the following bed capacity:
   
   - `2` ICU beds
   
@@ -174,7 +175,7 @@ flowchart TD
   
   - Only Priority 1 & 2 trigger **transport to Role 2** via PMV_Amb
   
-  - Priority 3 enters a placeholder recovery trajectory
+  - Priority 3 enters a recovery trajectory taking between 0 and 5 days to recover with an average of 2 days to recover and return to the force.
 
 ---
 

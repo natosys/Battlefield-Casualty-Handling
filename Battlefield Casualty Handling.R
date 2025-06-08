@@ -275,10 +275,17 @@ r2b_treat_wia <- function(team_id = 1) {
     timeout(function() rlnorm(1, log(45), 0.33)) %>%
     release_resources(emergency_team) %>%
     
-    # Branch: if priority ≤ 2 → surgery
+    # Branch: if priority ≤ 2 → probabilistically enter surgery
     branch(
-      option = function() get_attribute(env, "priority") <= 2,
+      option = function() {
+        prio <- get_attribute(env, "priority")
+        if (prio == 1 && runif(1) < 0.95) return(1)
+        if (prio == 2 && runif(1) < 0.90) return(1)
+        return(2)  # Not selected for surgery
+      },
       continue = TRUE,
+      
+      # Trajectory 1: Surgery and Outcome
       trajectory("Surgery and Outcome") %>%
         seize_resources(surgical_team) %>%
         timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
@@ -296,7 +303,14 @@ r2b_treat_wia <- function(team_id = 1) {
           trajectory("Died of Wounds") %>%
             set_attribute("dow", 1) %>%
             timeout(5)
-        )
+        ),
+      
+      # Trajectory 2: No Surgery – Evacuate After ICU
+      trajectory("No Surgery – Evacuate After ICU") %>%
+        release_selected(id = 2) %>%
+        seize_resources(evacuation_team) %>%
+        timeout(function() rlnorm(1, log(30), 0.25)) %>%
+        release_resources(evacuation_team)
     )
 }
   

@@ -63,7 +63,9 @@ The code simulates a deployed combat brigade based on the Australian combat and 
   - Evacuation Team
     
     - `2` Medics
+  
   - Diagnostic Team
+    
     - `1` Radiologist
     - `1` Scientific Officer
 
@@ -124,17 +126,65 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 ```mermaid
 flowchart TD
     Start(["Start"]) --> TeamAssign("<b>Assign to Team</b> <br> <small>1 to team_count</small>")
-    TeamAssign --> WIACheck{WIA/DNBI?}
-    WIACheck -- Yes (WIA/DNBI) --> PriorityAssign("Assign Priority <br> <small> P1:65% P2:20% P3:15%</small>")
-    PriorityAssign --> TreatWIA("<b>Treat WIA</b> <br> <small>Resources: 3 x medic, nurse, doctor using 1 medic and 1 clinician (nurse/doctor)<br> Duration: P1:rlnorm(120, 0.125), P2:rlnorm(60, 0.25), P3:rlnorm(20, 0.5)</small>")
-    TreatWIA --> PriorityCheck{"P1 or P2?"}
-    PriorityCheck -- Yes (P1/P2) --> TransportWIA("<b>Transport WIA</b> <br> <small>Resources: 16 x PMV_Amb <br> Duration: rlnorm(30, 0.5)</small>")
-    PriorityCheck -- No (P3) --> MonitorWIA("<b>Monitor WIA Recovery</b?")
-    WIACheck -- No (KIA) --> TreatKIA("<b>Treat KIA</b> <br> <small>Resources: 3 x medic, using 1 medic <br> Duration: rlnorm(30, 0.5)</small>")
-    TreatKIA --> TransportKIA("<b>Transport KIA</b> <br> <small>Resources: 8 x HX_40M <br> Duration: rlnorm(30, 0.5)</small>")
-    TransportWIA --> End(["End"])
+    
+    subgraph role1 [Role 1 Treatment Team]
+        TeamAssign --> WIACheck{WIA/DNBI?}
+        WIACheck -- Yes (WIA/DNBI) --> PriorityAssign("Assign Priority <br> <small> P1:65% P2:20% P3:15%</small>")
+        PriorityAssign --> TreatWIA("<b>Treat WIA</b> <br> <small>Resources: 3 x medic, nurse, doctor using 1 medic and 1 clinician (nurse/doctor)<br> Duration: P1:rlnorm(120, 0.125), P2:rlnorm(60, 0.25), P3:rlnorm(20, 0.5)</small>")
+        TreatWIA --> PriorityCheck{"P1 or P2?"}
+        PriorityCheck -- Yes (P1/P2) --> TransportWIA("<b>Transport WIA</b> <br> <small>Resources: 16 x PMV_Amb <br> Duration: rlnorm(30, 0.5)</small>")
+        PriorityCheck -- No (P3) --> MonitorWIA("<b>Monitor WIA Recovery</b?")
+        WIACheck -- No (KIA) --> TreatKIA("<b>Treat KIA</b> <br> <small>Resources: 3 x medic, using 1 medic <br> Duration: rlnorm(30, 0.5)</small>")
+        TreatKIA --> TransportKIA("<b>Transport KIA</b> <br> <small>Resources: 8 x HX_40M <br> Duration: rlnorm(30, 0.5)</small>")
+    end
+    
     MonitorWIA --> End
     TransportKIA --> End
+
+    subgraph r2b [Role 2 Basic]
+
+        TransportWIA --> bedCheck{"ICU Bed Available?"}
+        bedCheck -- Yes (ICU) --> SeizeICU
+        bedCheck -- No (Holding) --> hold["Seize Holding Bed (shortest-queue)"]
+        
+        hold --> waitForICU["Wait for ICU"]
+        waitForICU --> SeizeICU["Seize ICU Bed (shortest-queue)"]
+        SeizeICU --> ReleaseHold["Release Holding Bed"]
+        ReleaseHold --> EmergencyCare["Seize Emergency Team"]
+        EmergencyCare --> EmergencyDuration["Timeout ~ Emergency care (lnorm ~45min)"]
+        EmergencyDuration --> ReleaseEmergency["Release Emergency Team"]
+        
+        ReleaseEmergency --> surgeryCheck{"Require Surgery?"}
+        
+        surgeryCheck -- P1 95%; P2 90% --> SeizeSurgery
+        surgeryCheck -- P1 5%; P2 10% --> NoSurgeryPath
+    
+
+        subgraph SurgeryPath [Surgery and Outcome]
+            
+            SeizeSurgery["Seize Surgical Team"] --> SurgeryDuration["Timeout ~ Surgery (truncnorm 60–180 min)"]
+            SurgeryDuration --> ReleaseSurgery["Release Surgical Team"]
+            ReleaseSurgery --> ReleaseICU["Release ICU Bed"]
+            ReleaseICU --> SurvivalCheck{"Survives? (90%)"}
+
+            SurvivalCheck -- Yes --> EvacuatedSurgery["Evacuated after Surgery"]
+            SurvivalCheck -- No --> DOW["Set dow = 1"] --> TimeoutDOW["Timeout 5 min"]
+        end
+
+        subgraph NoSurgeryPath [No Surgery – Evacuate After ICU]
+            ReleaseICU2["Release ICU Bed"]
+            ReleaseICU2 --> SeizeEvacNoSurg["Seize Evacuation Team"]
+            SeizeEvacNoSurg --> TimeoutEvacNoSurg["Timeout ~ Evac (lnorm ~30min)"]
+            TimeoutEvacNoSurg --> ReleaseEvacNoSurg["Release Evacuation Team"]
+        end
+
+        EvacuatedSurgery --> SeizeEvacSurg["Seize Evacuation Team"]
+        SeizeEvacSurg --> TimeoutEvacSurg["Timeout ~ Evac (lnorm ~30min)"]
+        TimeoutEvacSurg --> ReleaseEvacSurg["Release Evacuation Team"]
+
+        ReleaseEvacSurg --> End
+    end
+
 ```
 
 [Online FlowChart &amp; Diagrams Editor - Mermaid Live Editor](https://mermaid.live/edit#pako:eNqVVP9vojAU_1ealyyRhCkFYUiMxpuXnDEuZLfcVy6mQqdk0JoCu3nG__0KBZWZy278QN-3vn4-7712DyGPKHjwmPDf4YaIHD1MA4bk9zmXWudnAJUQwC8NXV-P0AMl6STL4jXrBDBcjZSMcl55hr3VCA1XQv6ylCTJCJeeXHqWIS9YPuwpcwCaOuWUrsr-dTa53dDwaS-F3vTuw2x8UHGNQ0ah7zRDnSZAofJFzEWc747I6pyNvYUJ-dhz7Cvkm55pyMXysH11gaydUnEXlOTyYMW80kpgF6TvacYLEdLMQxZ6QSmN4lBHrBAZ1VHEw5wLVGQxWyOsnIiwSMphErM4jAlDnSq4p2K1Kve0ECSPOfNK-CJhXKQdbBo6MrrYtDW9pFObncqqjFZjVKG2dtmCmlWrkKoLAfgYSbC-OQ7g0K5Lux0-7vlmPSGCsGzLxXmlastb1cKOLJe_-LKcpCv0inVNw_oXjQtcd1zCshSmBWexrOQRUa2XeNA9DfkzFTsJbHzMdj5vZaL5bKKdZmDenoH5f89Au-vvZNgc3a7y_LLKb-BxJZ5P35Z9Y_F-BKfWVig-sqh8IuRSPhAq6FTrJuTV5vm5J2Cgw1rEEXi5KKgOKRUpKVXYl_sCyDc0pQF4UoyIeAogYAe5Z0vYD87TZpvgxXoD3iNJ5CWDYhuRnE5jshYkPVoFZREVt-VDBJ7pYrPKAt4eXqRuuvIiOXgwuLFdu29YNzrsQD4UXYwtx7b6huGatoMPOvypzjW6LrYMyzXdgd13Bo7jHP4CLfKgpA)

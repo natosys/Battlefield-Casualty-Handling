@@ -41,21 +41,16 @@ r2b_count <- element_list$qty[element_list$elm == "r2b"]
 expanded_resources <- do.call(rbind, lapply(seq_len(nrow(element_list)), function(i) {
   elm <- element_list$elm[i]
   team_qty <- element_list$qty[i]
-  
   # Subset matching resources
   matching_resources <- resource_map[resource_map$elm == elm, ]
-  
   # For each team
   do.call(rbind, lapply(seq_len(team_qty), function(team_number) {
-    
     # For each resource, replicate according to its own qty
     do.call(rbind, lapply(seq_len(nrow(matching_resources)), function(r) {
       this_resource <- matching_resources[r, ]
       res_qty <- this_resource$qty
-      
       # replicate row res_qty times, add suffix and team number
       replicated <- this_resource[rep(1, res_qty), ]
-      
       # Create resource_name with suffix and team
       # Collect components (excluding NA)
       components <- c(
@@ -64,25 +59,19 @@ expanded_resources <- do.call(rbind, lapply(seq_len(nrow(element_list)), functio
         this_resource$sub_elm,
         this_resource$name
       )
-      
       # Remove NA components
       components <- components[!is.na(components)]
-      
       # Now construct resource_name
       replicated$resource_name <- paste0(
         paste(components, collapse = "_"), "_",
         seq_len(res_qty), "_t", team_number
       )
-      
       replicated$team <- team_number
-      
       replicated
     }))
   }))
 }))
-
 rownames(expanded_resources) <- NULL
-
 resource_map$resource_name <- apply(resource_map, 1, function(row) {
   paste(row[!is.na(row)], collapse = "_")
 })
@@ -108,106 +97,65 @@ by_team <- split(r2b_resources, r2b_resources$team)
 r2b_teams <- lapply(by_team, function(team_df) {
   # Initial grouping by sub_elm
   nested <- split(team_df$resource_name, team_df$sub_elm)
-  
   # Filter bed-type rows
   bed_rows <- team_df[team_df$type == "b", ]
-  
   # Group bed resources by name (e.g. icu, hold) and store under "name_bed"
   if (nrow(bed_rows) > 0) {
     bed_groups <- split(bed_rows$resource_name, bed_rows$name)
-    
     for (bed_name in names(bed_groups)) {
       key <- paste0(bed_name, "_bed")
       nested[[key]] <- bed_groups[[bed_name]]
     }
   }
-  
   return(nested)
 })
 
-# Establish a list of all team resources
-all_team_resources <- list()
-
-## Treatment Team Transport Resources ##
-
+## Transport Resources ##
 # Add HX2_40M resources to environment
 for (i in 1:HX2_40M_count) {
-  env %>%
-    add_resource(paste0("t_HX2_40M", i), 50)
+  env %>% add_resource(paste0("t_HX2_40M", i), 50)
 }
-
 # Add PMV_Amb resources to environment
 for (i in 1:PMV_Amb_count) {
-  env %>%
-    add_resource(paste0("t_PMV_Amb", i), 4)
+  env %>% add_resource(paste0("t_PMV_Amb", i), 4)
 }
 
 ## R2B Resources ##
-
-# Establish a list of all R2B resources
-all_r2b_resources <- list()
-
 for (i in 1:r1_count) {
-  this_team <- list()
   for (item in resource_list) {
     type <- item$type
     elm <- item$elm
     sub_elm <- item$sub_elm
     name <- item$name
     qty <- as.integer(item$qty)
-    
     for (j in seq_len(item$qty)) {
       if (type =="c" && elm == "r1") {
         resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
         env %>% add_resource(resource_name, capacity = 1)
-        
-        this_team <- append(this_team, resource_name)
       }
     }
   }
-  all_team_resources <- append(all_team_resources, list(this_team))
 }
 
 # Add R2B teams to the environment
 for (i in 1:r2b_count) {
-  this_r2b_resources <- list()
-
   for (item in resource_list) {
     type <- item$type
     elm <- item$elm
     sub_elm <- item$sub_elm
     name <- item$name
     qty <- as.integer(item$qty)
-    
     for (j in seq_len(item$qty)) {
       if (type == "b") {
         resource_name <- paste(type, elm, name, j, paste0("t", i), sep = "_")
-        this_r2b_resources[[paste(elm, name, "bed_resources", sep = "_")]] <- c(this_r2b_resources[[paste(elm, name, "bed_resources", sep = "_")]], resource_name)
       }
       else if (type =="c" && elm == "r2b") {
         resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
-        
-        if (sub_elm == "evac") {
-          this_r2b_resources[["r2b_evacuation_resources"]] <- c(this_r2b_resources[["r2b_evacuation_resources"]], resource_name)
-        }
-        else if (sub_elm == "icu") {
-          this_r2b_resources[["r2b_icu_resources"]] <- c(this_r2b_resources[["r2b_icu_resources"]], resource_name)
-        }
-        else if (sub_elm == "diag") {
-          this_r2b_resources[["r2b_diagnostic_resources"]] <- c(this_r2b_resources[["r2b_diagnostic_resources"]], resource_name)
-        }
-        else if (sub_elm == "emerg") {
-          this_r2b_resources[["r2b_emergency_resources"]] <- c(this_r2b_resources[["r2b_emergency_resources"]], resource_name)
-        }
-        else if (sub_elm == "surg") {
-          this_r2b_resources[["r2b_surgical_resources"]] <- c(this_r2b_resources[["r2b_surgical_resources"]], resource_name)
-        }
       }
       env %>% add_resource(resource_name, capacity = 1)
       
     }
   }
-  all_r2b_resources <- append(all_r2b_resources, list(this_r2b_resources))
 }
 
 ### ROLE 1 HANDLING ###
@@ -289,15 +237,10 @@ release_resources <- function(trj, resources) {
 ### ROLE 2 BASIC HANDLING ###
 r2b_treat_wia <- function(team_id) {
   # Resource handles
-  # icu_beds <- all_r2b_resources[[team_id]][["r2b_icu_bed_resources"]]
   icu_beds <- r2b_teams[[team_id]][["icu_bed"]]
-  # holding_beds <- all_r2b_resources[[team_id]][["r2b_hold_bed_resources"]]
   holding_beds <- r2b_teams[[team_id]][["hold_bed"]]
-  # emergency_team <- all_r2b_resources[[team_id]][["r2b_emergency_resources"]]
   emergency_team <- r2b_teams[[team_id]][["emerg"]]
-  # surgical_team <- all_r2b_resources[[team_id]][["r2b_surgical_resources"]]
   surgical_team <- r2b_teams[[team_id]][["surg"]]
-  # evacuation_team <- all_r2b_resources[[team_id]][["r2b_evacuation_resources"]]
   evacuation_team <- r2b_teams[[team_id]][["evac"]]
   
   trajectory("R2B Casualty Handling") %>%
@@ -505,7 +448,7 @@ resources <- get_mon_resources(env)
 
 # Generate and display usage plots for clinical resources by team
 for (team in 1:r1_count) {
-  clinical_resources_team <- all_team_resources[[team]]
+  clinical_resources_team <- r1_teams[[team]]
   
   # Filter resources to include only those relevant to this team
   team_resources_filtered <- resources[resources$resource %in% clinical_resources_team, ]
@@ -520,8 +463,6 @@ for (team in 1:r1_count) {
 # Generate and display usage plots for r2b clinical resources by team
 for (team in 1:r2b_count) {
   clinical_resources_team <- r2b_teams[[team]][["surg"]]
-  # clinical_resources_team <- all_r2b_resources[[team]][["r2b_surgical_resources"]]
-  # clinical_resources_team <- all_r2b_resources[[team]][["r2b_hold_bed_resources"]]
   
   # Filter resources to include only those relevant to this team
   team_resources_filtered <- resources[resources$resource %in% clinical_resources_team, ]

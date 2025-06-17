@@ -7,6 +7,7 @@ library(ggplot2)
 library(scales)
 library(reshape2)
 library(truncnorm)
+library(jsonlite)
 
 # Create the simulation environment
 env <- simmer("Battlefield Casualty Handling")
@@ -20,47 +21,112 @@ population_spt <- 1250
 total_population <- population_cbt + population_spt
 # Calculate Combat Ineffective (CIE) threshold
 cie_threshold <- (2/3) * total_population
-# Number of treatment teams available
-team_count <- 8
+
+# Import Resource and Element Lists
+# elements.json and resources.json is where the elements and resources for those
+# elements are defined for the simulation.
+element_list <- fromJSON("elements.json", simplifyDataFrame = TRUE)
+resource_list <- fromJSON("resources.json", simplifyDataFrame = FALSE)
+resource_map <- fromJSON("resources.json", simplifyDataFrame = TRUE)
+
+# Number of R1 treatment teams available
+r1_count <- element_list$qty[element_list$elm == "r1"]
 # Number of PMV_Amb available (count is a multiple of treatment teams available)
-PMV_Amb_count <- team_count * 2
+PMV_Amb_count <- r1_count * 2
 # Number of 40M available (count is a multiple of treatment teams available)
-HX2_40M_count <- team_count
+HX2_40M_count <- r1_count
 # Number of R2B teams available
-r2b_count <- 2
+r2b_count <- element_list$qty[element_list$elm == "r2b"]
 
-## Treatment Team Resources ##
+expanded_resources <- do.call(rbind, lapply(seq_len(nrow(element_list)), function(i) {
+  elm <- element_list$elm[i]
+  team_qty <- element_list$qty[i]
+  
+  # Subset matching resources
+  matching_resources <- resource_map[resource_map$elm == elm, ]
+  
+  # For each team
+  do.call(rbind, lapply(seq_len(team_qty), function(team_number) {
+    
+    # For each resource, replicate according to its own qty
+    do.call(rbind, lapply(seq_len(nrow(matching_resources)), function(r) {
+      this_resource <- matching_resources[r, ]
+      res_qty <- this_resource$qty
+      
+      # replicate row res_qty times, add suffix and team number
+      replicated <- this_resource[rep(1, res_qty), ]
+      
+      # Create resource_name with suffix and team
+      # Collect components (excluding NA)
+      components <- c(
+        this_resource$type,
+        this_resource$elm,
+        this_resource$sub_elm,
+        this_resource$name
+      )
+      
+      # Remove NA components
+      components <- components[!is.na(components)]
+      
+      # Now construct resource_name
+      replicated$resource_name <- paste0(
+        paste(components, collapse = "_"), "_",
+        seq_len(res_qty), "_t", team_number
+      )
+      
+      replicated$team <- team_number
+      
+      replicated
+    }))
+  }))
+}))
 
-# Generate names of treatment team resources based on team ID
-team_resources <- function(team_id) {
-  c(paste0("c_r1_medic_1_t", team_id),
-    paste0("c_r1_medic_2_t", team_id),
-    paste0("c_r1_medic_3_t", team_id),
-    paste0("c_r1_nurse_t", team_id),
-    paste0("c_r1_doctor_t", team_id))
-}
+rownames(expanded_resources) <- NULL
+
+resource_map$resource_name <- apply(resource_map, 1, function(row) {
+  paste(row[!is.na(row)], collapse = "_")
+})
+
+# Filter for r1 only
+r1_resources <- expanded_resources[expanded_resources$elm == "r1", ]
+# Split into a nested list by team
+r1_teams <- split(r1_resources$resource_name, r1_resources$team)
+# Filter for r1 clinicians only
+r1_clinician_resources <- expanded_resources[expanded_resources$elm == "r1" & expanded_resources$sub_elm == "clinician", ]
+# Split into a nested list by team
+r1_teams_clinicians <- split(r1_clinician_resources$resource_name, r1_clinician_resources$team)
+# Filter for r1 technicians only
+r1_technician_resources <- expanded_resources[expanded_resources$elm == "r1" & expanded_resources$sub_elm == "technician", ]
+# Split into a nested list by team
+r1_teams_technicians <- split(r1_technician_resources$resource_name, r1_technician_resources$team)
+
+# Filter for r2b only
+r2b_resources <- expanded_resources[expanded_resources$elm == "r2b", ]
+# Split by team
+by_team <- split(r2b_resources, r2b_resources$team)
+# Build nested list per team
+r2b_teams <- lapply(by_team, function(team_df) {
+  # Initial grouping by sub_elm
+  nested <- split(team_df$resource_name, team_df$sub_elm)
+  
+  # Filter bed-type rows
+  bed_rows <- team_df[team_df$type == "b", ]
+  
+  # Group bed resources by name (e.g. icu, hold) and store under "name_bed"
+  if (nrow(bed_rows) > 0) {
+    bed_groups <- split(bed_rows$resource_name, bed_rows$name)
+    
+    for (bed_name in names(bed_groups)) {
+      key <- paste0(bed_name, "_bed")
+      nested[[key]] <- bed_groups[[bed_name]]
+    }
+  }
+  
+  return(nested)
+})
 
 # Establish a list of all team resources
 all_team_resources <- list()
-
-# Add identical treatment teams with one of each resource per team
-for (team in 1:team_count) {
-  for (res in team_resources(team)) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  all_team_resources <- append(all_team_resources, list(team_resources(team)))
-}
-
-# List of team medics used for medic specific tasking
-team_medics <- function(team_id) {
-  c(paste0("c_r1_medic_1_t", team_id), paste0("c_r1_medic_2_t", team_id), paste0("c_r1_medic_3_t", team_id))
-}
-
-# List of team clinicians used for clinician specific tasking
-team_clinicians <- function(team_id) {
-  c(paste0("c_r1_nurse_t", team_id), paste0("c_r1_doctor_t", team_id))
-}
 
 ## Treatment Team Transport Resources ##
 
@@ -81,90 +147,66 @@ for (i in 1:PMV_Amb_count) {
 # Establish a list of all R2B resources
 all_r2b_resources <- list()
 
-# Generate R2 teams
-r2b_surgical_resources <- function(team_id, type) {
-  c(paste0("c_r2", type, "_surg_anesthetist_t", team_id),
-    paste0("c_r2", type, "_surg_surgeon_1_t", team_id),
-    paste0("c_r2", type, "_surg_surgeon_2_t", team_id),
-    paste0("c_r2", type, "_surg_medic_t", team_id))
-}
-
-r2b_emergency_resources <- function(team_id, type) {
-  c(paste0("c_r2", type, "_emerg_facem_t", team_id),
-    paste0("c_r2", type, "_emerg_nurse_1_t", team_id),
-    paste0("c_r2", type, "_emerg_nurse_2_t", team_id),
-    paste0("c_r2", type, "_emerg_nurse_3_t", team_id),
-    paste0("c_r2", type, "_emerg_medic_t", team_id))
-}
-
-r2b_diagnostic_resources <- function(team_id, type) {
-  c(paste0("c_r2", type, "_diag_radiologist_t", team_id),
-    paste0("c_r2", type, "_diag_so_t", team_id))
-}
-
-r2b_icu_resources <- function(team_id, type) {
-  c(paste0("c_r2", type, "_icu_nurse_1_t", team_id),
-    paste0("c_r2", type, "_icu_nurse_2_t", team_id),
-    paste0("c_r2", type, "_icu_medic_1_t", team_id),
-    paste0("c_r2", type, "_icu_medic_2_t", team_id))
-}
-
-r2b_evacuation_resources <- function(team_id, type) {
-  c(paste0("c_r2", type, "_evac_medic_1_t", team_id),
-    paste0("c_r2", type, "_evac_medic_2_t", team_id))
-}
-
-r2b_icu_bed_resources <- function(team_id, type) {
-  c(paste0("b_r2b_icu_1_t", team_id),
-    paste0("b_r2b_icu_2_t", team_id))
-}
-
-r2b_hold_bed_resources <- function(team_id, type) {
-  c(paste0("b_r2", type, "_hold_1_t", team_id),
-    paste0("b_r2", type, "_hold_2_t", team_id),
-    paste0("b_r2", type, "_hold_3_t", team_id),
-    paste0("b_r2", type, "_hold_4_t", team_id),
-    paste0("b_r2", type, "_hold_5_t", team_id))
+for (i in 1:r1_count) {
+  this_team <- list()
+  for (item in resource_list) {
+    type <- item$type
+    elm <- item$elm
+    sub_elm <- item$sub_elm
+    name <- item$name
+    qty <- as.integer(item$qty)
+    
+    for (j in seq_len(item$qty)) {
+      if (type =="c" && elm == "r1") {
+        resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
+        env %>% add_resource(resource_name, capacity = 1)
+        
+        this_team <- append(this_team, resource_name)
+      }
+    }
+  }
+  all_team_resources <- append(all_team_resources, list(this_team))
 }
 
 # Add R2B teams to the environment
 for (i in 1:r2b_count) {
   this_r2b_resources <- list()
-  for (res in r2b_surgical_resources(i, "b")) {
-    env %>% add_resource(res, 1)
+
+  for (item in resource_list) {
+    type <- item$type
+    elm <- item$elm
+    sub_elm <- item$sub_elm
+    name <- item$name
+    qty <- as.integer(item$qty)
+    
+    for (j in seq_len(item$qty)) {
+      if (type == "b") {
+        resource_name <- paste(type, elm, name, j, paste0("t", i), sep = "_")
+        this_r2b_resources[[paste(elm, name, "bed_resources", sep = "_")]] <- c(this_r2b_resources[[paste(elm, name, "bed_resources", sep = "_")]], resource_name)
+      }
+      else if (type =="c" && elm == "r2b") {
+        resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
+        
+        if (sub_elm == "evac") {
+          this_r2b_resources[["r2b_evacuation_resources"]] <- c(this_r2b_resources[["r2b_evacuation_resources"]], resource_name)
+        }
+        else if (sub_elm == "icu") {
+          this_r2b_resources[["r2b_icu_resources"]] <- c(this_r2b_resources[["r2b_icu_resources"]], resource_name)
+        }
+        else if (sub_elm == "diag") {
+          this_r2b_resources[["r2b_diagnostic_resources"]] <- c(this_r2b_resources[["r2b_diagnostic_resources"]], resource_name)
+        }
+        else if (sub_elm == "emerg") {
+          this_r2b_resources[["r2b_emergency_resources"]] <- c(this_r2b_resources[["r2b_emergency_resources"]], resource_name)
+        }
+        else if (sub_elm == "surg") {
+          this_r2b_resources[["r2b_surgical_resources"]] <- c(this_r2b_resources[["r2b_surgical_resources"]], resource_name)
+        }
+      }
+      env %>% add_resource(resource_name, capacity = 1)
+      
+    }
   }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_surgical_resources"]] <- r2b_surgical_resources(i, "b")
-  for (res in r2b_emergency_resources(i, "b")) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_emergency_resources"]] <- r2b_emergency_resources(i, "b")
-  for (res in r2b_diagnostic_resources(i, "b")) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_diagnostic_resources"]] <- r2b_diagnostic_resources(i, "b")
-  for (res in r2b_icu_resources(i, "b")) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_icu_resources"]] <- r2b_icu_resources(i, "b")
-  for (res in r2b_evacuation_resources(i, "b")) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_evacuation_resources"]] <- r2b_evacuation_resources(i, "b")
-  for (res in r2b_icu_bed_resources(i, "b")) {
-    env %>% add_resource(res, capacity = 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_icu_bed_resources"]] <- r2b_icu_bed_resources(i, "b")
-  for (res in r2b_hold_bed_resources(i, "b")) {
-    env %>% add_resource(res, 1)
-  }
-  # Add team resource lists to the all_team_resources list
-  this_r2b_resources[["r2b_hold_bed_resources"]] <- r2b_hold_bed_resources(i, "b")
   all_r2b_resources <- append(all_r2b_resources, list(this_r2b_resources))
 }
 
@@ -172,7 +214,7 @@ for (i in 1:r2b_count) {
 
 # Treatment logic for KIA casualties
 r1_treat_kia <- function(team) {
-  medics <- team_medics(team)
+  medics <- r1_teams_technicians[[team]]
   trajectory(paste("KIA Team", team)) %>%
     select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
@@ -195,8 +237,8 @@ r1_transport_kia <- function() {
 
 # Treatment logic for WIA casualties
 r1_treat_wia <- function(team) {
-  medics <- team_medics(team)
-  clinicians <- team_clinicians(team)
+  medics <- r1_teams_technicians[[team]]
+  clinicians <- r1_teams_clinicians[[team]]
   
   trajectory(paste("WIA Team", team)) %>%
     select(medics, policy = "shortest-queue") %>%
@@ -247,11 +289,16 @@ release_resources <- function(trj, resources) {
 ### ROLE 2 BASIC HANDLING ###
 r2b_treat_wia <- function(team_id) {
   # Resource handles
-  icu_beds <- all_r2b_resources[[team_id]][["r2b_icu_bed_resources"]]
-  holding_beds <- all_r2b_resources[[team_id]][["r2b_hold_bed_resources"]]
-  emergency_team <- all_r2b_resources[[team_id]][["r2b_emergency_resources"]]
-  surgical_team <- all_r2b_resources[[team_id]][["r2b_surgical_resources"]]
-  evacuation_team <- all_r2b_resources[[team_id]][["r2b_evacuation_resources"]]
+  # icu_beds <- all_r2b_resources[[team_id]][["r2b_icu_bed_resources"]]
+  icu_beds <- r2b_teams[[team_id]][["icu_bed"]]
+  # holding_beds <- all_r2b_resources[[team_id]][["r2b_hold_bed_resources"]]
+  holding_beds <- r2b_teams[[team_id]][["hold_bed"]]
+  # emergency_team <- all_r2b_resources[[team_id]][["r2b_emergency_resources"]]
+  emergency_team <- r2b_teams[[team_id]][["emerg"]]
+  # surgical_team <- all_r2b_resources[[team_id]][["r2b_surgical_resources"]]
+  surgical_team <- r2b_teams[[team_id]][["surg"]]
+  # evacuation_team <- all_r2b_resources[[team_id]][["r2b_evacuation_resources"]]
+  evacuation_team <- r2b_teams[[team_id]][["evac"]]
   
   trajectory("R2B Casualty Handling") %>%
     set_attribute("r2b_treated", team_id) %>%
@@ -316,7 +363,7 @@ r2b_treat_wia <- function(team_id) {
   
 ### CORE TRAJECTORY ###
 casualty <- trajectory("Casualty") %>%
-  set_attribute("team", function() sample(1:team_count, 1)) %>% 
+  set_attribute("team", function() sample(1:r1_count, 1)) %>% 
   set_attribute("priority", function() {
     if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
       sample(1:3, 1, prob = c(0.65, 0.2, 0.15))
@@ -338,7 +385,7 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
-        lapply(1:team_count, r1_treat_wia)
+        lapply(1:r1_count, r1_treat_wia)
       ) %>%
       
       # Branch to DoW or continue
@@ -357,7 +404,7 @@ casualty <- trajectory("Casualty") %>%
           branch(
             option = function() get_attribute(env, "team"),
             continue = TRUE,
-            lapply(1:team_count, function(i) {
+            lapply(1:r1_count, function(i) {
               r1_treat_kia(i) %>% join(r1_transport_kia())
             })
           ),
@@ -401,7 +448,7 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
-        lapply(1:team_count, function(i) {
+        lapply(1:r1_count, function(i) {
           r1_treat_kia(i) %>% join(r1_transport_kia())
         })
       )
@@ -457,7 +504,7 @@ ggplot(arrivals, aes(x = day, fill = type)) +
 resources <- get_mon_resources(env)
 
 # Generate and display usage plots for clinical resources by team
-for (team in 1:team_count) {
+for (team in 1:r1_count) {
   clinical_resources_team <- all_team_resources[[team]]
   
   # Filter resources to include only those relevant to this team
@@ -472,7 +519,8 @@ for (team in 1:team_count) {
 
 # Generate and display usage plots for r2b clinical resources by team
 for (team in 1:r2b_count) {
-  clinical_resources_team <- all_r2b_resources[[team]][["r2b_surgical_resources"]]
+  clinical_resources_team <- r2b_teams[[team]][["surg"]]
+  # clinical_resources_team <- all_r2b_resources[[team]][["r2b_surgical_resources"]]
   # clinical_resources_team <- all_r2b_resources[[team]][["r2b_hold_bed_resources"]]
   
   # Filter resources to include only those relevant to this team
@@ -577,7 +625,8 @@ resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x)
 resources$busy_time <- resources$server * resources$time_diff
 resources$day <- floor(resources$time / day_min)
 resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
-resources$role <- sub("^[a-zA-Z]_((r[0-9]+[a-z]*_[a-z]+(_[0-9]+)?)).*", "\\1", resources$resource)
+# resources$role <- sub("^[a-zA-Z]_((r[0-9]+[a-z]*_[a-z]+(_[0-9]+)?)).*", "\\1", resources$resource)
+resources$role <- sub("^[a-zA-Z]_(r[0-9]+[a-z]*_).*?_(\\w+_[0-9]+).*", "\\1\\2", resources$resource)
 resources$resource_type <- sub("^([cbt])_.*", "\\1", resources$resource)
 
 resources_r1 <- resources[grepl("r1", resources$resource), ]
@@ -587,7 +636,7 @@ agg_resources$percent_seized <- round((agg_resources$busy_time / day_min) * 100,
 
 # Count casualties per team per day
 arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
-arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:team_count))
+arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:r1_count))
 casualty_counts <- as.data.frame(table(arrivals$team, arrivals$day))
 colnames(casualty_counts) <- c("team", "day", "casualties")
 casualty_counts$day <- as.numeric(as.character(casualty_counts$day))
@@ -646,8 +695,8 @@ ggplot(plot_data, aes(x = day)) +
     "r1_medic_1" = "#1b9e77",
     "r1_medic_2" = "#d95f02",
     "r1_medic_3" = "#d9ff02",
-    "r1_nurse" = "#7570b3",
-    "r1_doctor" = "#e7298a"
+    "r1_nurse_1" = "#7570b3",
+    "r1_doctor_1" = "#e7298a"
   )) +
   
   # Theme customization
@@ -695,21 +744,21 @@ resources_r2b <- resources[grepl("r2b", resources$resource), ]
 
 # Exclude resource from graphing (while they are managed as a group)
 excluded_resources <- c(
-  "c_r2b_emerg_medic_t1",
+  "c_r2b_emerg_medic_1_t1",
   "c_r2b_emerg_nurse_1_t1",
   "c_r2b_emerg_nurse_2_t1",
   "c_r2b_emerg_nurse_3_t1",
   "c_r2b_evac_medic_2_t1",
-  "c_r2b_surg_medic_t1",
+  "c_r2b_surg_medic_1_t1",
   "c_r2b_surg_surgeon_1_t1",
   "c_r2b_surg_surgeon_2_t1",
   
-  "c_r2b_emerg_medic_t2",
+  "c_r2b_emerg_medic_1_t2",
   "c_r2b_emerg_nurse_1_t2",
   "c_r2b_emerg_nurse_2_t2",
   "c_r2b_emerg_nurse_3_t2",
   "c_r2b_evac_medic_2_t2",
-  "c_r2b_surg_medic_t2",
+  "c_r2b_surg_medic_1_t2",
   "c_r2b_surg_surgeon_1_t2",
   "c_r2b_surg_surgeon_2_t2"
 )
@@ -806,9 +855,9 @@ ggplot(plot_data_r2b, aes(x = day)) +
       "b_r2b_hold_3" = "#cab2d6",
       "b_r2b_hold_4" =  "#1f78b4",
       "b_r2b_hold_5" =  "#33a02c",
-      "c_r2b_emerg_facem" = "#6a3d9a",
+      "c_r2b_emerg_facem_1" = "#6a3d9a",
       "c_r2b_evac_medic_1" = "#fdb462",
-      "c_r2b_surg_anesthetist" = "#fccde5"
+      "c_r2b_surg_anesthetist_1" = "#fccde5"
     ),
     labels = c(
       "b_r2b_icu_1" = "ICU Bed 1",
@@ -818,9 +867,9 @@ ggplot(plot_data_r2b, aes(x = day)) +
       "b_r2b_hold_3" = "Holding Bed 3",
       "b_r2b_hold_4" = "Holding Bed 4",
       "b_r2b_hold_5" = "Holding Bed 5",
-      "c_r2b_emerg_facem" = "Emergency Team",
+      "c_r2b_emerg_facem_1" = "Emergency Team",
       "c_r2b_evac_medic_1" = "Evacuation Team",
-      "c_r2b_surg_anesthetist" = "Surgical Team"
+      "c_r2b_surg_anesthetist_1" = "Surgical Team"
     )
   ) +
 

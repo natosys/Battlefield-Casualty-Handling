@@ -142,22 +142,20 @@ flowchart TD
     TransportKIA --> End
 
     subgraph r2b [Role 2 Basic]
-
         TransportWIA --> bedCheck{"ICU Bed Available?"}
-        bedCheck -- Yes (ICU) --> SeizeICU
-        bedCheck -- No (Holding) --> hold["Seize Holding Bed (shortest-queue)"]
+        bedCheck -- Yes (ICU) --> icu
+        bedCheck -- No (Holding) --> hold["Occupy Holding Bed </br> (shortest-queue)"]
         
         hold --> waitForICU["Wait for ICU"]
-        waitForICU --> SeizeICU["Seize ICU Bed (shortest-queue)"]
-        SeizeICU --> ReleaseHold["Release Holding Bed"]
-        ReleaseHold --> EmergencyCare["Seize Emergency Team"]
+        waitForICU --> icu["Occupy ICU Bed </br> (shortest-queue)"]
+        icu --> EmergencyCare["Emergency Treatment (ATLS)"]
         EmergencyCare --> EmergencyDuration["Timeout ~ Emergency care (lnorm ~45min)"]
         EmergencyDuration --> ReleaseEmergency["Release Emergency Team"]
         
         ReleaseEmergency --> surgeryCheck{"Require Surgery?"}
         
         surgeryCheck -- P1 95%; P2 90% --> SeizeSurgery
-        surgeryCheck -- P1 5%; P2 10% --> NoSurgeryPath
+        surgeryCheck -- P1 5%; P2 10% --> SeizeEvacSurg
     
 
         subgraph SurgeryPath [Surgery and Outcome]
@@ -166,25 +164,22 @@ flowchart TD
             SurgeryDuration --> ReleaseSurgery["Release Surgical Team"]
             ReleaseSurgery --> ReleaseICU["Release ICU Bed"]
             ReleaseICU --> SurvivalCheck{"Survives? (90%)"}
-
-            SurvivalCheck -- Yes --> EvacuatedSurgery["Evacuated after Surgery"]
-            SurvivalCheck -- No --> DOW["Set dow = 1"] --> TimeoutDOW["Timeout 5 min"]
         end
 
-        subgraph NoSurgeryPath [No Surgery – Evacuate After ICU]
-            ReleaseICU2["Release ICU Bed"]
-            ReleaseICU2 --> SeizeEvacNoSurg["Seize Evacuation Team"]
-            SeizeEvacNoSurg --> TimeoutEvacNoSurg["Timeout ~ Evac (lnorm ~30min)"]
-            TimeoutEvacNoSurg --> ReleaseEvacNoSurg["Release Evacuation Team"]
-        end
+        SurvivalCheck -- No --> DOW["Set dow = 1"] --> TimeoutDOW["Timeout 5 min"]
+        SurvivalCheck -- Yes --> SeizeEvacSurg
+        
 
-        EvacuatedSurgery --> SeizeEvacSurg["Seize Evacuation Team"]
+        SeizeEvacSurg["Seize Evacuation Team"]
         SeizeEvacSurg --> TimeoutEvacSurg["Timeout ~ Evac (lnorm ~30min)"]
         TimeoutEvacSurg --> ReleaseEvacSurg["Release Evacuation Team"]
-
-        ReleaseEvacSurg --> End
     end
 
+TimeoutDOW --> End
+ReleaseEvacSurg --> EndEnd    end
+
+TimeoutDOW --> End
+ReleaseEvacSurg --> End
 ```
 
 [Online FlowChart &amp; Diagrams Editor - Mermaid Live Editor](https://mermaid.live/edit#pako:eNqVVP9vojAU_1ealyyRhCkFYUiMxpuXnDEuZLfcVy6mQqdk0JoCu3nG__0KBZWZy278QN-3vn4-7712DyGPKHjwmPDf4YaIHD1MA4bk9zmXWudnAJUQwC8NXV-P0AMl6STL4jXrBDBcjZSMcl55hr3VCA1XQv6ylCTJCJeeXHqWIS9YPuwpcwCaOuWUrsr-dTa53dDwaS-F3vTuw2x8UHGNQ0ah7zRDnSZAofJFzEWc747I6pyNvYUJ-dhz7Cvkm55pyMXysH11gaydUnEXlOTyYMW80kpgF6TvacYLEdLMQxZ6QSmN4lBHrBAZ1VHEw5wLVGQxWyOsnIiwSMphErM4jAlDnSq4p2K1Kve0ECSPOfNK-CJhXKQdbBo6MrrYtDW9pFObncqqjFZjVKG2dtmCmlWrkKoLAfgYSbC-OQ7g0K5Lux0-7vlmPSGCsGzLxXmlastb1cKOLJe_-LKcpCv0inVNw_oXjQtcd1zCshSmBWexrOQRUa2XeNA9DfkzFTsJbHzMdj5vZaL5bKKdZmDenoH5f89Au-vvZNgc3a7y_LLKb-BxJZ5P35Z9Y_F-BKfWVig-sqh8IuRSPhAq6FTrJuTV5vm5J2Cgw1rEEXi5KKgOKRUpKVXYl_sCyDc0pQF4UoyIeAogYAe5Z0vYD87TZpvgxXoD3iNJ5CWDYhuRnE5jshYkPVoFZREVt-VDBJ7pYrPKAt4eXqRuuvIiOXgwuLFdu29YNzrsQD4UXYwtx7b6huGatoMPOvypzjW6LrYMyzXdgd13Bo7jHP4CLfKgpA)

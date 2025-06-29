@@ -22,9 +22,19 @@ total_population <- population_cbt + population_spt
 # Calculate Combat Ineffective (CIE) threshold
 cie_threshold <- (2/3) * total_population
 
+# Casualty arrival rates
+wia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 6.86) / day_min)
+kia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 1.63) / day_min)
+dnbi_mean_cbt <- 2.04 - log(population_cbt / (1000 * 1440))
+dnbi_stddev_cbt <- 1.89
+dnbi_rate_cbt <- function() rlnorm(1, dnbi_mean_cbt, dnbi_stddev_cbt)
+dnbi_mean_spt <- 0.94 - log(population_spt / (1000 * 1440))
+dnbi_stddev_spt <- 0.56
+dnbi_rate_spt <- function() rlnorm(1, dnbi_mean_spt, dnbi_stddev_spt)
+
 # Import Resource and Element Lists
-# elements.json and resources.json is where the elements and resources for those
-# elements are defined for the simulation.
+# elements.json and resources.json is where the elements (role facility) and 
+# resources for those elements are defined for the simulation.
 element_list <- fromJSON("elements.json", simplifyDataFrame = TRUE)
 resource_list <- fromJSON("resources.json", simplifyDataFrame = FALSE)
 resource_map <- fromJSON("resources.json", simplifyDataFrame = TRUE)
@@ -234,76 +244,105 @@ release_resources <- function(trj, resources) {
   trj
 }
 
+### ROLE 2 ENHANCED HANDLING ###
+r2e_treat_wia <- function() {
+  trajectory("R2E Treatment (Fallback)") %>%
+    timeout(function() {
+      # Use <<- to modify global patient_count
+      patient_count <<- patient_count + 1
+      message(paste("Patient", patient_count, "sent to R2E."))
+      rlnorm(1, log(90), 0.3)  # Treatment duration
+    })
+}
+
 ### ROLE 2 BASIC HANDLING ###
+select_available_r2b_team <- function(env) {
+  # for (i in 1:r2b_count) {
+  for (i in sample(1:r2b_count)) {  # <-- randomize the order
+    beds <- r2b_teams[[i]][["hold_bed"]]
+    
+    total_capacity <- 0
+    total_in_use <- 0
+    
+    for (bed in beds) {
+      cap <- get_capacity(env, bed)
+      use <- get_server_count(env, bed)
+      
+      if (!is.null(cap) && !is.null(use)) {
+        total_capacity <- total_capacity + cap
+        total_in_use <- total_in_use + use
+      }
+    }
+    
+    if (total_in_use < (total_capacity-1)) {
+      return(i)  # Found an R2B team with available holding bed
+    }
+  }
+  
+  return(-1)  # No available R2B teams
+}
+
+patient_count <- 0
+
 r2b_treat_wia <- function(team_id) {
-  # Resource handles
-  icu_beds <- r2b_teams[[team_id]][["icu_bed"]]
-  holding_beds <- r2b_teams[[team_id]][["hold_bed"]]
+  hold_beds <- r2b_teams[[team_id]][["hold_bed"]]
+  resus_beds <- r2b_teams[[team_id]][["resus_bed"]]
+  ot_beds <- r2b_teams[[team_id]][["ot_bed"]]
   emergency_team <- r2b_teams[[team_id]][["emerg"]]
-  surgical_team <- r2b_teams[[team_id]][["surg"]]
   evacuation_team <- r2b_teams[[team_id]][["evac"]]
   
-  trajectory("R2B Casualty Handling") %>%
+  # Fallback path: Wait in a hold bed for evacuation
+  wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
+    select(hold_beds, policy = "shortest-queue", id = 3) %>%
+    seize_selected(id = 3) %>%
+    # Wait until evacuation team is available
+    seize_resources(evacuation_team) %>%
+    # RELEASE hold bed *before* evacuation begins
+    release_selected(id = 3) %>%
+    # Now evacuate (bed is already freed)
+    timeout(function() rlnorm(1, log(30), 0.2)) %>%
+    release_resources(evacuation_team) %>%
+    release_selected(id = 2)  # OT bed
+  
+  trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
     
-    # Seize a holding bed (always)
-    select(holding_beds, policy = "shortest-queue", id = 1) %>%
+    # Step 1: Initial hold bed
+    select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
-    log_("Holding bed seized") %>%
     
-    # Wait in ICU queue (while occupying holding bed)
-    select(icu_beds, policy = "shortest-queue", id = 2) %>%
+    # Step 2: Transfer to Resus
+    select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-    log_("ICU bed seized") %>%
+    release_selected(id = 1) %>%  # Release hold bed immediately
     
-    # Release holding bed after ICU becomes available
-    release_selected(id = 1) %>%
-    log_("Holding bed released") %>%
-    
-    # Emergency care
+    # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
-    timeout(function() rlnorm(1, log(45), 0.33)) %>%
+    timeout(function() rlnorm(1, log(45), 0.3)) %>%
     release_resources(emergency_team) %>%
     
-    # Branch: if priority ≤ 2 → enter surgery based on probabilistic requirement
+    ### ADD SURGERY ###
+    
+    # Step 4: Try immediate evac, fallback if not possible
     branch(
       option = function() {
-        prio <- get_attribute(env, "priority")
-        if (prio == 1 && runif(1) < 0.95) return(1)
-        if (prio == 2 && runif(1) < 0.90) return(1)
-        return(2)  # Not selected for surgery
+        usage <- sum(get_server_count(env, resources = evacuation_team))
+        cap <- sum(get_capacity(env, resources = evacuation_team))
+        if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+        return(2)
       },
       continue = TRUE,
-      
-      # Trajectory 1: Surgery and Outcome
-      trajectory("Surgery and Outcome") %>%
-        seize_resources(surgical_team) %>%
-        timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
-        release_resources(surgical_team) %>%
-        release_selected(id = 2) %>%
-        
-        # Survival check
-        branch(
-          option = function() runif(1) < 0.9,
-          continue = TRUE,
-          trajectory("Evacuated") %>%
-            seize_resources(evacuation_team) %>%
-            timeout(function() rlnorm(1, log(30), 0.25)) %>%
-            release_resources(evacuation_team),
-          trajectory("Died of Wounds") %>%
-            set_attribute("dow", 1) %>%
-            timeout(5)
-        ),
-      
-      # Trajectory 2: No Surgery – Evacuate After ICU
-      trajectory("No Surgery – Evacuate After ICU") %>%
-        release_selected(id = 2) %>%
+      # Path 1: immediate evac
+      trajectory("Immediate Evac") %>%
         seize_resources(evacuation_team) %>%
-        timeout(function() rlnorm(1, log(30), 0.25)) %>%
-        release_resources(evacuation_team)
+        timeout(function() rlnorm(1, log(30), 0.2)) %>%
+        release_resources(evacuation_team) %>%
+        release_selected(id = 2),  # OT bed
+      # Path 2: fallback
+      wait_for_evac
     )
 }
-  
+
 ### CORE TRAJECTORY ###
 casualty <- trajectory("Casualty") %>%
   set_attribute("team", function() sample(1:r1_count, 1)) %>% 
@@ -312,6 +351,21 @@ casualty <- trajectory("Casualty") %>%
       sample(1:3, 1, prob = c(0.65, 0.2, 0.15))
     } else {
       NA
+    }
+  }) %>%  set_attribute("surgery", function() {
+    prio <- get_attribute(env, "priority")
+    name <- get_name(env)
+    
+    if (is.na(prio)) return(0)
+    
+    if (prio == 1) return(as.numeric(runif(1) < 0.9))
+    if (prio == 2) return(as.numeric(runif(1) < 0.8))
+    
+    # For priority 3
+    if (startsWith(name, "dnbi")) {
+      return(as.numeric(runif(1) < 0.4))
+    } else {
+      return(as.numeric(runif(1) < 0.6))
     }
   }) %>%
   
@@ -367,13 +421,36 @@ casualty <- trajectory("Casualty") %>%
             # Path: To R2B
             # r1_transport_wia() %>% join(r2b_treat_wia()),
             # Path: To R2B
-            trajectory("Transport to R2B") %>%
-              set_attribute("r2b", function() sample(1:r2b_count, 1)) %>%
+            # trajectory("Transport to R2B") %>%
+            #   set_attribute("r2b", function() sample(1:r2b_count, 1)) %>%
+            #   join(r1_transport_wia()) %>%
+            #   branch(
+            #     option = function() get_attribute(env, "r2b"),
+            #     continue = TRUE,
+            #     lapply(1:r2b_count, function(i) r2b_treat_wia(i))
+            #   ),
+            trajectory("Transport to R2b") %>%
+              set_attribute("r2b", function() select_available_r2b_team(env)) %>%
+              # set_attribute("r2b", function() sample(1:r2b_count, 1))  %>% # force random R2B assignment
               join(r1_transport_wia()) %>%
+              
               branch(
-                option = function() get_attribute(env, "r2b"),
+                option = function() {
+                  r2b <- get_attribute(env, "r2b")
+                  if (r2b > 0) return(1) else return(2)
+                },
                 continue = TRUE,
-                lapply(1:r2b_count, function(i) r2b_treat_wia(i))
+                
+                # R2B Path
+                trajectory("To R2B") %>%
+                  branch(
+                    option = function() get_attribute(env, "r2b"),
+                    continue = TRUE,
+                    lapply(1:r2b_count, r2b_treat_wia)
+                  ),
+                
+                # Fallback to R2E
+                r2e_treat_wia()
               ),
             
             # Path: Recover at Role 1
@@ -397,16 +474,6 @@ casualty <- trajectory("Casualty") %>%
       )
   )
 
-# Casualty arrival rates
-wia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 6.86) / day_min)
-kia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 1.63) / day_min)
-dnbi_mean_cbt <- 2.04 - log(population_cbt / (1000 * 1440))
-dnbi_stddev_cbt <- 1.89
-dnbi_rate_cbt <- function() rlnorm(1, dnbi_mean_cbt, dnbi_stddev_cbt)
-dnbi_mean_spt <- 0.94 - log(population_spt / (1000 * 1440))
-dnbi_stddev_spt <- 0.56
-dnbi_rate_spt <- function() rlnorm(1, dnbi_mean_spt, dnbi_stddev_spt)
-
 # Add casualty generators to simulation
 env %>%
   add_generator("wia_cbt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
@@ -419,11 +486,8 @@ env %>%
 # Run the simulation for 30 days
 env %>% run(until = 30 * day_min)
 
-#### VISUALISATIONS ####
+#### DATA FORMATTING ####
 
-##############################################
-## Daily Casualties by Type (WIA/KIA/DNBI)  ##
-##############################################
 # Get arrival logs and annotate with casualty type
 arrivals <- get_mon_arrivals(env)
 arrivals$day <- floor(arrivals$start_time / day_min)
@@ -432,6 +496,16 @@ arrivals$type <- ifelse(
   ifelse(grepl("^kia", arrivals$name), "KIA", "DNBI")
 )
 
+# resources <- get_mon_resources(env)
+all_resources <- get_mon_resources(env)
+transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
+resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
+
+#### VISUALISATIONS ####
+
+##############################################
+## Daily Casualties by Type (WIA/KIA/DNBI)  ##
+##############################################
 # Plot daily WIA, KIA and DNBI totals
 ggplot(arrivals, aes(x = day, fill = type)) +
   geom_histogram(binwidth = 1, color = "black", position = "stack") +
@@ -443,15 +517,12 @@ ggplot(arrivals, aes(x = day, fill = type)) +
 ##############################################
 ## Resource Usage Plots                     ##
 ##############################################
-# Plot resource usage
-resources <- get_mon_resources(env)
-
 # Generate and display usage plots for clinical resources by team
 for (team in 1:r1_count) {
   clinical_resources_team <- r1_teams[[team]]
   
   # Filter resources to include only those relevant to this team
-  team_resources_filtered <- resources[resources$resource %in% clinical_resources_team, ]
+  team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_team, ]
   
   team_plot <- plot(team_resources_filtered, metric = "usage") +
     ggtitle(paste("Resource Usage Over Time - Team", team)) +
@@ -462,10 +533,10 @@ for (team in 1:r1_count) {
 
 # Generate and display usage plots for r2b clinical resources by team
 for (team in 1:r2b_count) {
-  clinical_resources_team <- r2b_teams[[team]][["surg"]]
+  clinical_resources_team <- r2b_teams[[team]][["emerg"]]
   
   # Filter resources to include only those relevant to this team
-  team_resources_filtered <- resources[resources$resource %in% clinical_resources_team, ]
+  team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_team, ]
   
   team_plot <- plot(team_resources_filtered, metric = "usage") +
     ggtitle(paste("R2B Resource Usage Over Time - Team", team)) +
@@ -474,13 +545,9 @@ for (team in 1:r2b_count) {
   print(team_plot)
 }
 
-transport_resources <- unique(resources$resource[grepl("^t_", resources$resource)])
-
-plot(resources, metric = "usage", transport_resources) +
+plot(all_resources, metric = "usage", transport_resources) +
   ggtitle("Transport Resource Usage Over Time") +
   theme_minimal()
-
-resources <- resources[!grepl("^t_", resources$resource), ]  # Exclude transport resources
 
 ##############################################
 ## Daily Casualties by Priority             ##
@@ -566,7 +633,6 @@ resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x)
 resources$busy_time <- resources$server * resources$time_diff
 resources$day <- floor(resources$time / day_min)
 resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
-# resources$role <- sub("^[a-zA-Z]_((r[0-9]+[a-z]*_[a-z]+(_[0-9]+)?)).*", "\\1", resources$resource)
 resources$role <- sub("^[a-zA-Z]_(r[0-9]+[a-z]*_).*?_(\\w+_[0-9]+).*", "\\1\\2", resources$resource)
 resources$resource_type <- sub("^([cbt])_.*", "\\1", resources$resource)
 
@@ -789,6 +855,9 @@ ggplot(plot_data_r2b, aes(x = day)) +
   ) +
   scale_color_manual(
     values = c(
+      "b_r2b_ot_1" = "#ffff99",
+      "b_r2b_resus_1" = "#b3ffff",
+      "b_r2b_resus_2" = "#fcae91",
       "b_r2b_icu_1" = "#a6cee3",
       "b_r2b_icu_2" = "#fb9a99",
       "b_r2b_hold_1" = "#b2df8a",
@@ -801,6 +870,9 @@ ggplot(plot_data_r2b, aes(x = day)) +
       "c_r2b_surg_anesthetist_1" = "#fccde5"
     ),
     labels = c(
+      "b_r2b_ot_1" = "Operating Theatre 1",
+      "b_r2b_resus_1" = "Resus Bed 1",
+      "b_r2b_resus_2" = "Resus Bed 2",
       "b_r2b_icu_1" = "ICU Bed 1",
       "b_r2b_icu_2" = "ICU Bed 2",
       "b_r2b_hold_1" = "Holding Bed 1",
@@ -834,3 +906,13 @@ colnames(dow_subset) <- c("name", "dow")
 
 # Merge with arrivals on 'name'
 arrivals <- merge(arrivals, dow_subset, by = "name", all.x = TRUE)
+
+# Extract surgery attributes
+surgery <- attributes[attributes$key == "surgery", ]
+
+# Ensure surgery only contains necessary columns
+surgery_extract <- surgery[, c("name", "value")]
+colnames(surgery_extract) <- c("name", "surgery")
+
+# Merge into arrivals table
+arrivals <- merge(arrivals, surgery_extract, by = "name", all.x = TRUE)

@@ -290,19 +290,16 @@ r2b_treat_wia <- function(team_id) {
   ot_beds <- r2b_teams[[team_id]][["ot_bed"]]
   emergency_team <- r2b_teams[[team_id]][["emerg"]]
   evacuation_team <- r2b_teams[[team_id]][["evac"]]
+  surg_team <- r2b_teams[[team_id]][["surg"]]
   
   # Fallback path: Wait in a hold bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
     select(hold_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
-    # Wait until evacuation team is available
     seize_resources(evacuation_team) %>%
-    # RELEASE hold bed *before* evacuation begins
     release_selected(id = 3) %>%
-    # Now evacuate (bed is already freed)
     timeout(function() rlnorm(1, log(30), 0.2)) %>%
-    release_resources(evacuation_team) %>%
-    release_selected(id = 2)  # OT bed
+    release_resources(evacuation_team)
   
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
@@ -314,14 +311,50 @@ r2b_treat_wia <- function(team_id) {
     # Step 2: Transfer to Resus
     select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-    release_selected(id = 1) %>%  # Release hold bed immediately
+    release_selected(id = 1) %>%
     
     # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
     timeout(function() rlnorm(1, log(45), 0.3)) %>%
     release_resources(emergency_team) %>%
+    release_selected(id = 2) %>%
     
-    ### ADD SURGERY ###
+    ### SURGERY ###
+    branch(
+      option = function() {
+        needs_surg <- get_attribute(env, "surgery")
+        if (!is.na(needs_surg) && needs_surg == 1) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      
+      # Branch 1: Needs surgery
+      trajectory("Needs Surgery") %>%
+        branch(
+          option = function() {
+            usage <- sum(get_server_count(env, resources = ot_beds))
+            cap <- sum(get_capacity(env, resources = ot_beds))
+            if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+            return(2)
+          },
+          continue = TRUE,
+          
+          # Sub-branch 1: OT bed available → Surgery
+          trajectory("Surgery Path") %>%
+            select(ot_beds, policy = "shortest-queue", id = 4) %>%
+            seize_selected(id = 4) %>%
+            seize_resources(surg_team) %>%
+            timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
+            release_resources(surg_team) %>%
+            release_selected(id = 4),
+          
+          # Sub-branch 2: No OT bed → Skip surgery
+          trajectory("No OT Available – Skip Surgery")
+        ),
+      
+      # Branch 2: No surgery required
+      trajectory("No Surgery Required")
+    ) %>%
     
     # Step 4: Try immediate evac, fallback if not possible
     branch(
@@ -332,16 +365,16 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      # Path 1: immediate evac
+      
       trajectory("Immediate Evac") %>%
         seize_resources(evacuation_team) %>%
         timeout(function() rlnorm(1, log(30), 0.2)) %>%
-        release_resources(evacuation_team) %>%
-        release_selected(id = 2),  # OT bed
-      # Path 2: fallback
+        release_resources(evacuation_team),
+      
       wait_for_evac
     )
 }
+
 
 ### CORE TRAJECTORY ###
 casualty <- trajectory("Casualty") %>%
@@ -419,16 +452,6 @@ casualty <- trajectory("Casualty") %>%
             continue = TRUE,
             
             # Path: To R2B
-            # r1_transport_wia() %>% join(r2b_treat_wia()),
-            # Path: To R2B
-            # trajectory("Transport to R2B") %>%
-            #   set_attribute("r2b", function() sample(1:r2b_count, 1)) %>%
-            #   join(r1_transport_wia()) %>%
-            #   branch(
-            #     option = function() get_attribute(env, "r2b"),
-            #     continue = TRUE,
-            #     lapply(1:r2b_count, function(i) r2b_treat_wia(i))
-            #   ),
             trajectory("Transport to R2b") %>%
               set_attribute("r2b", function() select_available_r2b_team(env)) %>%
               # set_attribute("r2b", function() sample(1:r2b_count, 1))  %>% # force random R2B assignment

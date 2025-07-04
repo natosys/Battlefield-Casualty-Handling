@@ -248,63 +248,10 @@ release_resources <- function(trj, resources) {
 r2e_treat_wia <- function() {
   trajectory("R2E Treatment (Fallback)") %>%
     log_("r2e_treat_wia") %>%
-    set_attribute("r2e_handling", 1) %>%
-    timeout(function() {
-      # Use <<- to modify global patient_count
-      patient_count <<- patient_count + 1
-      rlnorm(1, log(90), 0.3)  # Treatment duration
-    })
+    set_attribute("r2e_handling", 1)
 }
 
 ### ROLE 2 BASIC HANDLING ###
-# select_available_r2b_team <- function(env) {
-#   # for (i in 1:r2b_count) {
-#   for (i in sample(1:r2b_count)) {  # <-- randomize the order
-#     beds <- r2b_teams[[i]][["hold_bed"]]
-#     
-#     total_capacity <- 0
-#     total_in_use <- 0
-#     
-#     for (bed in beds) {
-#       cap <- get_capacity(env, bed)
-#       use <- get_server_count(env, bed)
-#       
-#       if (!is.null(cap) && !is.null(use)) {
-#         total_capacity <- total_capacity + cap
-#         total_in_use <- total_in_use + use
-#       }
-#     }
-#     
-#     if (total_in_use < (total_capacity)) {
-#       return(i)  # Found an R2B team with available holding bed
-#     }
-#   }
-#   
-#   cat("No available R2B team found.\n")
-#   return(-1)  # No available R2B teams
-# }
-# select_available_r2b_team <- function(env) {
-#   for (i in sample(1:r2b_count)) {  # Randomize order
-#     ot_beds <- r2b_teams[[i]][["ot_bed"]]
-#     
-#     queued <- 0
-#     for (bed in ot_beds) {
-#       qlen <- get_queue_count(env, bed)
-#       if (!is.null(qlen)) {
-#         queued <- queued + qlen
-#       }
-#     }
-#     
-#     cat(sprintf("R2B %d: queued for OT = %d\n", i, queued))
-#     
-#     if (queued <= 1) {
-#       return(i)  # One queued → R2B is available
-#     }
-#   }
-#   
-#   cat("No available R2B team found (all have OT queues).\n")
-#   return(-1)
-# }
 select_available_r2b_team <- function(env) {
   for (i in sample(1:r2b_count)) {
     usage <- sum(sapply(r2b_teams[[i]][["ot_bed"]], function(b) get_server_count(env, b)))
@@ -355,7 +302,7 @@ r2b_treat_wia <- function(team_id) {
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
     
-    ### SURGERY ###
+    # Step 4: Surgery
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
@@ -385,7 +332,7 @@ r2b_treat_wia <- function(team_id) {
             release_resources(surg_team) %>%
             release_selected(id = 4),
           
-          # Sub-branch 2: No OT bed → Skip surgery
+          # Sub-branch 2: No OT bed available → Skip surgery (and proceed to evac)
           trajectory("No OT Available – Skip Surgery")
         ),
       
@@ -404,8 +351,10 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
       
       trajectory("Immediate Evac") %>%
+        set_attribute("r2b_to_r2e", 1) %>%
         seize_resources(evacuation_team) %>%
         timeout(function() rlnorm(1, log(30), 0.2)) %>%
+        join(r2e_treat_wia()) %>%
         release_resources(evacuation_team),
       
       join(wait_for_evac)
@@ -491,7 +440,6 @@ casualty <- trajectory("Casualty") %>%
             # Path: To R2B
             trajectory("Transport to R2b") %>%
               set_attribute("r2b", function() select_available_r2b_team(env)) %>%
-              # set_attribute("r2b", function() sample(1:r2b_count, 1))  %>% # force random R2B assignment
               join(r1_transport_wia()) %>%
               
               branch(
@@ -511,7 +459,6 @@ casualty <- trajectory("Casualty") %>%
                   ),
                 
                 # Fallback to R2E
-                # join(r2e_treat_wia())
                 trajectory("Bypass R2B → To R2E") %>%
                   set_attribute("r2b_bypassed", 1) %>%
                   join(r2e_treat_wia())
@@ -633,6 +580,41 @@ ggplot(arrivals, aes(x = day, fill = priority)) +
   labs(title = "Daily Casualties by Priority", x = "Day", y = "Count", fill = "Priority") +
   theme_minimal()
 
+########################################
+## Build Arrivals Table               ##
+########################################
+# Utility function to extract and merge an attribute into the arrivals table
+merge_attribute <- function(attr_name, arrivals, attributes) {
+  subset <- attributes[attributes$key == attr_name, c("name", "value")]
+  colnames(subset) <- c("name", attr_name)
+  merge(arrivals, subset, by = "name", all.x = TRUE)
+}
+
+# List of attributes to merge
+attribute_keys <- c("priority", "r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
+
+# Apply the function for each attribute
+for (attr in attribute_keys) {
+  arrivals <- merge_attribute(attr, arrivals, attributes)
+}
+
+arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
+arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:r1_count))
+
+# Categorize casualties by source: combat vs support
+arrivals$source <- ifelse(
+  grepl("_cbt", arrivals$name), "Combat",
+  ifelse(grepl("_spt", arrivals$name), "Support", "Unknown")
+)
+
+# Get return to duty attributes
+attributes <- get_mon_attributes(env)
+returns <- attributes[attributes$key == "return_day", ]
+returns$return_day <- floor(returns$value / day_min)  # Rename before merge
+
+# Merge return days into arrivals
+arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
+
 ##############################################
 ## Cumulative Casualty and Force Loss Graph ##
 ##############################################
@@ -642,28 +624,20 @@ colnames(daily_counts) <- c("day", "daily_count")
 daily_counts$day <- as.numeric(as.character(daily_counts$day))
 daily_counts$cumulative_total <- cumsum(daily_counts$daily_count)
 
-# Step 2: Get return to duty attributes
-attributes <- get_mon_attributes(env)
-returns <- attributes[attributes$key == "return_day", ]
-returns$return_day <- floor(returns$value / day_min)  # Rename before merge
-
-# Step 3: Merge return days into arrivals
-arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
-
-# Step 4: Count daily returns to duty
+# Step 2: Count daily returns to duty
 daily_returns <- as.data.frame(table(arrivals$return_day))
 colnames(daily_returns) <- c("day", "daily_returns")
 daily_returns$day <- as.numeric(as.character(daily_returns$day))
 
-# Step 5: Merge returns into casualty table
+# Step 3: Merge returns into casualty table
 daily_counts <- merge(daily_counts, daily_returns, by = "day", all.x = TRUE)
 daily_counts$daily_returns[is.na(daily_counts$daily_returns)] <- 0  # Replace NA with 0
 
-# Step 6: Compute cumulative returns and loss
+# Step 4: Compute cumulative returns and loss
 daily_counts$cumulative_returns <- cumsum(daily_counts$daily_returns)
 daily_counts$cumulative_loss <- daily_counts$cumulative_total - daily_counts$cumulative_returns
 
-# Step 7: Convert to long format for plotting
+# Step 5: Convert to long format for plotting
 plot_data <- data.frame(
   day = daily_counts$day,
   `Total Casualties` = daily_counts$cumulative_total,
@@ -672,7 +646,7 @@ plot_data <- data.frame(
 
 plot_data_long <- melt(plot_data, id.vars = "day", variable.name = "Metric", value.name = "Count")
 
-# Step 8: Plot
+# Step 6: Plot
 ggplot(plot_data_long, aes(x = day, y = Count, color = Metric)) +
   annotate("rect", xmin = -Inf, xmax = Inf, ymin = cie_threshold, ymax = total_population,
            fill = "red", alpha = 0.2) +
@@ -706,8 +680,6 @@ agg_resources <- aggregate(busy_time ~ team + role + day, data = resources_r1, s
 agg_resources$percent_seized <- round((agg_resources$busy_time / day_min) * 100, 2)
 
 # Count casualties per team per day
-arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
-arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:r1_count))
 casualty_counts <- as.data.frame(table(arrivals$team, arrivals$day))
 colnames(casualty_counts) <- c("team", "day", "casualties")
 casualty_counts$day <- as.numeric(as.character(casualty_counts$day))
@@ -784,12 +756,6 @@ ggplot(plot_data, aes(x = day)) +
 ##############################################
 ## Casualty Breakdown by Source and Type    ##
 ##############################################
-# Categorize casualties by source: combat vs support
-arrivals$source <- ifelse(
-  grepl("_cbt", arrivals$name), "Combat",
-  ifelse(grepl("_spt", arrivals$name), "Support", "Unknown")
-)
-
 # Summarize total casualties by source and type
 casualty_breakdown <- as.data.frame(table(arrivals$source, arrivals$type))
 colnames(casualty_breakdown) <- c("Source", "Type", "Count")
@@ -835,17 +801,28 @@ excluded_resources <- c(
 )
 resources_r2b <- resources_r2b[!resources_r2b$resource %in% excluded_resources, ]
 
-
 # Aggregate daily busy time per role and team
 agg_resources_r2b <- aggregate(busy_time ~ team + resource + day, data = resources_r2b, sum)
 agg_resources_r2b$percent_seized <- round((agg_resources_r2b$busy_time / day_min) * 100, 2)
 
-# Filter only the 'r2b_treated' attributes
-r2b_flags <- attributes[attributes$key == "r2b_treated", c("name", "value")]
-
-colnames(r2b_flags)[colnames(r2b_flags) == "value"] <- "r2b_treated"
-
-arrivals <- merge(arrivals, r2b_flags, by = "name", all.x = TRUE)
+# ########################################
+# ## Build Arrivals Table               ##
+# ########################################
+# # Utility function to extract and merge an attribute into the arrivals table
+# merge_attribute <- function(attr_name, arrivals, attributes) {
+#   subset <- attributes[attributes$key == attr_name, c("name", "value")]
+#   colnames(subset) <- c("name", attr_name)
+#   merge(arrivals, subset, by = "name", all.x = TRUE)
+# }
+# 
+# # List of attributes to merge
+# attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
+# 
+# # Apply the function for each attribute
+# for (attr in attribute_keys) {
+#   arrivals <- merge_attribute(attr, arrivals, attributes)
+# }
+# ########################################
 
 casualty_counts_r2b <- arrivals[!is.na(arrivals$r2b_treated), ]
 
@@ -961,58 +938,9 @@ ggplot(plot_data_r2b, aes(x = day)) +
     axis.text = element_text(color = "black")
   )
 
-# Extract only the 'dow' attribute
-dow <- attributes[attributes$key == "dow", ]
-
-# Ensure dow only contains necessary columns
-dow_subset <- dow[, c("name", "value")]
-colnames(dow_subset) <- c("name", "dow")
-
-# Merge with arrivals on 'name'
-arrivals <- merge(arrivals, dow_subset, by = "name", all.x = TRUE)
-
-# Extract surgery attributes
-surgery <- attributes[attributes$key == "surgery", ]
-
-# Ensure surgery only contains necessary columns
-surgery_extract <- surgery[, c("name", "value")]
-colnames(surgery_extract) <- c("name", "surgery")
-
-# Merge into arrivals table
-arrivals <- merge(arrivals, surgery_extract, by = "name", all.x = TRUE)
-
-# Extract surgery at r2b attributes
-r2b_surgery <- attributes[attributes$key == "r2b_surgery", ]
-
-# Ensure surgery at r2b only contains necessary columns
-r2b_surgery_extract <- r2b_surgery[, c("name", "value")]
-colnames(r2b_surgery_extract) <- c("name", "r2b_surgery")
-
-# Merge into arrivals table
-arrivals <- merge(arrivals, r2b_surgery_extract, by = "name", all.x = TRUE)
-
-###
-# Extract only the 'r2e_handling' attribute
-r2e_handling <- attributes[attributes$key == "r2e_handling", ]
-
-# Ensure r2e_handling only contains necessary columns
-r2e_handling_subset <- r2e_handling[, c("name", "value")]
-colnames(r2e_handling_subset) <- c("name", "r2e_handling")
-
-# Merge with arrivals on 'name'
-arrivals <- merge(arrivals, r2e_handling_subset, by = "name", all.x = TRUE)
-###
-# Extract only the 'r2b_bypassed' attribute
-r2b_bypassed <- attributes[attributes$key == "r2b_bypassed", ]
-
-# Ensure dow only contains necessary columns
-r2b_bypassed_subset <- r2b_bypassed[, c("name", "value")]
-colnames(r2b_bypassed_subset) <- c("name", "r2b_bypassed")
-
-# Merge with arrivals on 'name'
-arrivals <- merge(arrivals, r2b_bypassed_subset, by = "name", all.x = TRUE)
-###
-
+########################################
+## R2B Surgeries Per Day              ##
+########################################
 # Filter only rows where surgery occurred
 surgery_rows <- arrivals[!is.na(arrivals$r2b_surgery) & arrivals$r2b_surgery == 1, ]
 
@@ -1037,26 +965,40 @@ ggplot(surgery_df, aes(x = day, y = surgeries, fill = r2b_team)) +
     y = "Number of Surgeries",
     fill = "R2B Team"
   ) +
+  scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
   theme_minimal()
 
-# Convert simulation time to days (assuming start_time is in minutes)
-arrivals$r2e_day <- floor(arrivals$start_time / (60 * 24))
+########################################
+## Casualties Handled by R2E          ##
+########################################
+# Filter R2E-handled casualties
+r2e_cases <- arrivals[!is.na(arrivals$r2e_handling), ]
 
-# Filter: only those handled by R2E
-r2b_bypassed <- arrivals[!is.na(arrivals$r2b_bypassed) & arrivals$r2b_bypassed == 1, ]
+# Mark bypass status
+r2e_cases$r2b_bypassed[is.na(r2e_cases$r2b_bypassed)] <- 0
+r2e_cases$r2e_path <- ifelse(r2e_cases$r2b_bypassed == 1, "Direct from R1", "From R2B")
 
-# Aggregate counts per day
-r2b_bypassed_counts <- as.data.frame(table(r2b_bypassed$r2e_day))
-colnames(r2b_bypassed_counts) <- c("Day", "Count")
-r2b_bypassed_counts$Day <- as.numeric(as.character(r2b_bypassed_counts$Day))
+# Calculate simulation day
+r2e_cases$day <- floor(r2e_cases$start_time / 1440) + 1
 
-# Plot with ggplot2
-ggplot(r2b_bypassed_counts, aes(x = Day, y = Count)) +
-  geom_col(fill = "firebrick", color = "black") +
-  scale_y_continuous(breaks = function(x) seq(0, ceiling(max(x)), by = 1)) +
+# Tabulate counts
+counts_table <- table(r2e_cases$day, r2e_cases$r2e_path)
+counts_df <- as.data.frame(counts_table)
+colnames(counts_df) <- c("day", "path", "count")
+counts_df$day <- as.numeric(as.character(counts_df$day))
+
+# Calculate max stacked total per day
+total_per_day <- aggregate(count ~ day, data = counts_df, sum)
+max_total <- max(total_per_day$count)
+
+# Plot
+ggplot(counts_df, aes(x = day, y = count, fill = path)) +
+  geom_bar(stat = "identity") +
   labs(
-    title = "Casualties Sent Directly to R2E per Day",
+    title = "Casualties Handled by R2E per Day",
     x = "Day",
-    y = "Number of Casualties"
+    y = "Number of Casualties",
+    fill = "Source of Casualty"
   ) +
-  theme_minimal(base_size = 14)
+  scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
+  theme_minimal()

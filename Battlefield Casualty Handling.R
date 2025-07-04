@@ -247,39 +247,74 @@ release_resources <- function(trj, resources) {
 ### ROLE 2 ENHANCED HANDLING ###
 r2e_treat_wia <- function() {
   trajectory("R2E Treatment (Fallback)") %>%
+    log_("r2e_treat_wia") %>%
+    set_attribute("r2e_handling", 1) %>%
     timeout(function() {
       # Use <<- to modify global patient_count
       patient_count <<- patient_count + 1
-      message(paste("Patient", patient_count, "sent to R2E."))
       rlnorm(1, log(90), 0.3)  # Treatment duration
     })
 }
 
 ### ROLE 2 BASIC HANDLING ###
+# select_available_r2b_team <- function(env) {
+#   # for (i in 1:r2b_count) {
+#   for (i in sample(1:r2b_count)) {  # <-- randomize the order
+#     beds <- r2b_teams[[i]][["hold_bed"]]
+#     
+#     total_capacity <- 0
+#     total_in_use <- 0
+#     
+#     for (bed in beds) {
+#       cap <- get_capacity(env, bed)
+#       use <- get_server_count(env, bed)
+#       
+#       if (!is.null(cap) && !is.null(use)) {
+#         total_capacity <- total_capacity + cap
+#         total_in_use <- total_in_use + use
+#       }
+#     }
+#     
+#     if (total_in_use < (total_capacity)) {
+#       return(i)  # Found an R2B team with available holding bed
+#     }
+#   }
+#   
+#   cat("No available R2B team found.\n")
+#   return(-1)  # No available R2B teams
+# }
+# select_available_r2b_team <- function(env) {
+#   for (i in sample(1:r2b_count)) {  # Randomize order
+#     ot_beds <- r2b_teams[[i]][["ot_bed"]]
+#     
+#     queued <- 0
+#     for (bed in ot_beds) {
+#       qlen <- get_queue_count(env, bed)
+#       if (!is.null(qlen)) {
+#         queued <- queued + qlen
+#       }
+#     }
+#     
+#     cat(sprintf("R2B %d: queued for OT = %d\n", i, queued))
+#     
+#     if (queued <= 1) {
+#       return(i)  # One queued → R2B is available
+#     }
+#   }
+#   
+#   cat("No available R2B team found (all have OT queues).\n")
+#   return(-1)
+# }
 select_available_r2b_team <- function(env) {
-  # for (i in 1:r2b_count) {
-  for (i in sample(1:r2b_count)) {  # <-- randomize the order
-    beds <- r2b_teams[[i]][["hold_bed"]]
-    
-    total_capacity <- 0
-    total_in_use <- 0
-    
-    for (bed in beds) {
-      cap <- get_capacity(env, bed)
-      use <- get_server_count(env, bed)
-      
-      if (!is.null(cap) && !is.null(use)) {
-        total_capacity <- total_capacity + cap
-        total_in_use <- total_in_use + use
-      }
-    }
-    
-    if (total_in_use < (total_capacity-1)) {
-      return(i)  # Found an R2B team with available holding bed
+  for (i in sample(1:r2b_count)) {
+    usage <- sum(sapply(r2b_teams[[i]][["ot_bed"]], function(b) get_server_count(env, b)))
+    if (usage == 0) {
+      cat(sprintf("✔ R2B %d selected (OT not in use)\n", i))
+      return(i)
     }
   }
-  
-  return(-1)  # No available R2B teams
+  cat("✖ No R2B available (OT beds in use)\n")
+  return(-1)
 }
 
 patient_count <- 0
@@ -294,6 +329,7 @@ r2b_treat_wia <- function(team_id) {
   
   # Fallback path: Wait in a hold bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
+    log_("wait_for_evac") %>%
     select(hold_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
     seize_resources(evacuation_team) %>%
@@ -345,6 +381,7 @@ r2b_treat_wia <- function(team_id) {
             seize_selected(id = 4) %>%
             seize_resources(surg_team) %>%
             timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
+            set_attribute("r2b_surgery", 1) %>%
             release_resources(surg_team) %>%
             release_selected(id = 4),
           
@@ -371,7 +408,7 @@ r2b_treat_wia <- function(team_id) {
         timeout(function() rlnorm(1, log(30), 0.2)) %>%
         release_resources(evacuation_team),
       
-      wait_for_evac
+      join(wait_for_evac)
     )
 }
 
@@ -460,6 +497,7 @@ casualty <- trajectory("Casualty") %>%
               branch(
                 option = function() {
                   r2b <- get_attribute(env, "r2b")
+                  cat("Selected R2B:", r2b, "\n")  # This prints to the console
                   if (r2b > 0) return(1) else return(2)
                 },
                 continue = TRUE,
@@ -473,7 +511,10 @@ casualty <- trajectory("Casualty") %>%
                   ),
                 
                 # Fallback to R2E
-                r2e_treat_wia()
+                # join(r2e_treat_wia())
+                trajectory("Bypass R2B → To R2E") %>%
+                  set_attribute("r2b_bypassed", 1) %>%
+                  join(r2e_treat_wia())
               ),
             
             # Path: Recover at Role 1
@@ -939,3 +980,83 @@ colnames(surgery_extract) <- c("name", "surgery")
 
 # Merge into arrivals table
 arrivals <- merge(arrivals, surgery_extract, by = "name", all.x = TRUE)
+
+# Extract surgery at r2b attributes
+r2b_surgery <- attributes[attributes$key == "r2b_surgery", ]
+
+# Ensure surgery at r2b only contains necessary columns
+r2b_surgery_extract <- r2b_surgery[, c("name", "value")]
+colnames(r2b_surgery_extract) <- c("name", "r2b_surgery")
+
+# Merge into arrivals table
+arrivals <- merge(arrivals, r2b_surgery_extract, by = "name", all.x = TRUE)
+
+###
+# Extract only the 'r2e_handling' attribute
+r2e_handling <- attributes[attributes$key == "r2e_handling", ]
+
+# Ensure r2e_handling only contains necessary columns
+r2e_handling_subset <- r2e_handling[, c("name", "value")]
+colnames(r2e_handling_subset) <- c("name", "r2e_handling")
+
+# Merge with arrivals on 'name'
+arrivals <- merge(arrivals, r2e_handling_subset, by = "name", all.x = TRUE)
+###
+# Extract only the 'r2b_bypassed' attribute
+r2b_bypassed <- attributes[attributes$key == "r2b_bypassed", ]
+
+# Ensure dow only contains necessary columns
+r2b_bypassed_subset <- r2b_bypassed[, c("name", "value")]
+colnames(r2b_bypassed_subset) <- c("name", "r2b_bypassed")
+
+# Merge with arrivals on 'name'
+arrivals <- merge(arrivals, r2b_bypassed_subset, by = "name", all.x = TRUE)
+###
+
+# Filter only rows where surgery occurred
+surgery_rows <- arrivals[!is.na(arrivals$r2b_surgery) & arrivals$r2b_surgery == 1, ]
+
+# Convert simulation time (in minutes) to days
+surgery_rows$day <- floor(surgery_rows$start_time / 1440)
+
+# Tabulate counts of surgeries by day and team
+surgery_counts <- table(surgery_rows$day, surgery_rows$r2b_treated)
+surgery_df <- as.data.frame(surgery_counts)
+colnames(surgery_df) <- c("day", "r2b_team", "surgeries")
+
+# Ensure proper types
+surgery_df$day <- as.numeric(as.character(surgery_df$day))
+surgery_df$r2b_team <- as.factor(surgery_df$r2b_team)
+
+# Create the stacked bar plot
+ggplot(surgery_df, aes(x = day, y = surgeries, fill = r2b_team)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "R2B Surgeries Per Day",
+    x = "Day",
+    y = "Number of Surgeries",
+    fill = "R2B Team"
+  ) +
+  theme_minimal()
+
+# Convert simulation time to days (assuming start_time is in minutes)
+arrivals$r2e_day <- floor(arrivals$start_time / (60 * 24))
+
+# Filter: only those handled by R2E
+r2b_bypassed <- arrivals[!is.na(arrivals$r2b_bypassed) & arrivals$r2b_bypassed == 1, ]
+
+# Aggregate counts per day
+r2b_bypassed_counts <- as.data.frame(table(r2b_bypassed$r2e_day))
+colnames(r2b_bypassed_counts) <- c("Day", "Count")
+r2b_bypassed_counts$Day <- as.numeric(as.character(r2b_bypassed_counts$Day))
+
+# Plot with ggplot2
+ggplot(r2b_bypassed_counts, aes(x = Day, y = Count)) +
+  geom_col(fill = "firebrick", color = "black") +
+  scale_y_continuous(breaks = function(x) seq(0, ceiling(max(x)), by = 1)) +
+  labs(
+    title = "Casualties Sent Directly to R2E per Day",
+    x = "Day",
+    y = "Number of Casualties"
+  ) +
+  theme_minimal(base_size = 14)

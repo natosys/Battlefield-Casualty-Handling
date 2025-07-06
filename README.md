@@ -26,17 +26,32 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 Casualties are generated based on rates outlined in [[1]](#References) with the following application:
 
-1) **Disease and Non-Battle Injury (DNBI)**. lognorm(2.04, 1.89); based on Vietnman DNBI rates for combat troop ([[1]](#References), table A.5, p 31).  
-   Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
-2) **Wounded In Action (WIA)**. expon(6.86); based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32).  
-3) **Killed In Action (KIA)**. expon(1.63); based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33).
+- **Disease and Non-Battle Injury (DNBI)**. lognorm(2.04, 1.89); based on Vietnman DNBI rates for combat troop ([[1]](#References), table A.5, p 31).  
+  Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
 
-These rates were converted from daily to per minute rates using the following algorithm:
+- **Wounded In Action (WIA)**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
+
+$$
+\lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
+$$
+
+1) $\lambda_{min}$ is the rate per minute.
+2) $\alpha_{pop}$ is the population of combat forces.
+3) $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
+4) $T_{min}=1440$ is the number of minutes in a day.
+5) $\alpha_{pop}=2250$ is the population of combat forces.
+
+$$
+\lambda_{\text{min}} = (\frac{2250}{1000})\times(\frac{6.86}{1440})
+$$
+
+$$
+\lambda_{min}=0.01071875
+$$
 
 
 
-The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
-
+- The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
 1. **Priority 1**. 65% of casualties with 90% requiring surgery.
 
 2. **Priority 2**. 20% of casualties with 80% requiring surgery.
@@ -46,10 +61,7 @@ The following casualty priority rates were used with the rates requiring surgery
    1. 40% of DNBI requiring surgery.
    
    2. 60% of other priority 3 casualties requiring surgery. 
-
-
-
-Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
+- Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
 
 ---
 
@@ -74,7 +86,9 @@ Per [[3]](#References), of those admitted to MTFs, the distribution for return t
     - `2` Surgeons
     - `1` Anesthetist
     - `1` Medic
+  
   - Emergency Team
+    
     - `1` FACEM (Emergency Physician)
     - `1` Medic
     - `3` Nurses
@@ -82,15 +96,21 @@ Per [[3]](#References), of those admitted to MTFs, the distribution for return t
   - Evacuation Team
     
     - `2` Medics
+
 - **R2E Heavy**. The R2E Heavy is a large field hospital, capable only of static deployments. It is capable of limited major surgery, stabilisation and recovery of casualties. It includes medical, surgical, nursing and bed management capabilities.
+
 - The R2E Heavy is made up of the following personnel resources:
+  
   - `3` Surgical Teams
+  
   - `3` Emergency Teams
+    
     - `1` FACEM
     - `1` Medic
     - `3` Nurses
   
   - `3` ICU Teams
+  
   - `3` Evacuation Teams
 
 **Transport Resources**. Transport resources are typically drawn from the supported call-sign or a CSS element. the following transport resources are available by echelon:

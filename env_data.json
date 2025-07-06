@@ -1,0 +1,239 @@
+{
+  "env": "env",
+  "pops": 
+    [
+      {
+        "name": "combat",
+        "count": 2500
+      },
+      {
+        "name": "support",
+        "count": 1250
+      }
+    ],
+  "elms": 
+    [
+      {
+        "elm": "r1",
+        "qty": 6,
+        "sub_elms": 
+          [
+            {
+              "sub_elm": null,
+              "qty": 1,
+              "resources": 
+                [
+                  {
+                    "resource": "medic",
+                    "type": "technician",
+                    "qty": 3
+                  },
+                  {
+                    "resource": "nurse",
+                    "type": "clinician",
+                    "qty": 1
+                  },
+                  {
+                    "resource": "doctor",
+                    "type": "clinician",
+                    "qty": 1
+                  }
+                ]
+            }
+          ]
+      },
+      {
+        "elm": "r2b",
+        "qty": 2,
+        "sub_elms":
+          [
+            {
+              "sub_elm": "surg",
+              "qty": 1,
+              "resources": 
+                [
+                  {
+                    "name": "anesthetist",
+                    "qty": 1
+                  },
+                  {
+                    "name": "surgeon",
+                    "qty": 2
+                  },
+                  {
+                    "name": "medic",
+                    "qty": 1
+                  }
+                ]
+            },
+            {
+              "sub_elm": "emerg",
+              "qty": 1,
+              "resources":
+                [
+                  {
+                    "name": "facem",
+                    "qty": 1
+                  },
+                  {
+                    "name": "nurse",
+                    "qty": 3
+                  },
+                  {
+                    "name": "medic",
+                    "qty": 1
+                  }
+                ]
+            },
+            {
+              "sub_elm": "icu",
+              "qty": 1,
+              "resources":
+                [
+                  {
+                    "name": "nurse",
+                    "qty": 2
+                  },
+                  {
+                    "name": "medic",
+                    "qty": 2
+                  }
+                ]
+            },
+            {
+              "sub_elm": "evac",
+              "qty": 1,
+              "resources":
+                [
+                  {
+                    "name": "medic",
+                    "qty": 2
+                  }
+                ]
+            }
+          ],
+        "beds": 
+          [
+            {
+              "name": "ot",
+              "qty": 1
+            },
+            {
+              "name": "resus",
+              "qty": 2
+            },
+            {
+              "name": "icu",
+              "qty": 2
+            },
+            {
+              "name": "hold",
+              "qty": 5
+            }
+          ]
+      },
+      {
+        "elm": "r2eheavy",
+        "qty": 1,
+        "sub_elms": 
+          [
+            {
+              "sub_elm": "surg",
+              "qty": 3,
+              "resources": 
+                [
+                  {
+                    "name": "anesthetist",
+                    "qty": 1
+                  },
+                  {
+                    "name": "surgeon",
+                    "qty": 2
+                  },
+                  {
+                    "name": "nurse",
+                    "qty": 4
+                  }
+                ]
+            },
+            {
+              "sub_elm": "emerg",
+              "qty": 3,
+              "resources":
+                [
+                  {
+                    "name": "facem",
+                    "qty": 1
+                  },
+                  {
+                    "name": "nurse",
+                    "qty": 3
+                  },
+                  {
+                    "name": "medic",
+                    "qty": 1
+                  }
+                ]
+            },
+            {
+              "sub_elm": "icu",
+              "qty": 3,
+              "resources":
+                [
+                  {
+                    "name": "intensivist",
+                    "qty": 1
+                  },
+                  {
+                    "name": "nurse",
+                    "qty": 4
+                  }
+                ]
+            },
+            {
+              "sub_elm": "evac",
+              "qty": 3,
+              "resources":
+                [
+                  {
+                    "name": "medic",
+                    "qty": 2
+                  }
+                ]
+            }
+          ],
+        "beds":
+          [
+            {
+              "name": "ot",
+              "qty": 2
+            },
+            {
+              "name": "resus",
+              "qty": 4
+            },
+            {
+              "name": "icu",
+              "qty": 4
+            },
+            {
+              "name": "hold",
+              "qty": 30
+            }
+          ]
+      }
+    ],
+  "transports":
+    [
+      {
+        "name": "PMVAmb",
+        "capacity": 4,
+        "qty": 12
+      },
+      {
+        "name": "HX240M",
+        "capacity": 50,
+        "qty": 6
+      }
+    ]
+}

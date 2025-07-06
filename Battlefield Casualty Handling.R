@@ -9,161 +9,65 @@ library(reshape2)
 library(truncnorm)
 library(jsonlite)
 
+source("data_import.R")
+
 # Create the simulation environment
 env <- simmer("Battlefield Casualty Handling")
 
+env_data <- load_elms("env_data.json")
+
 ## Constants ##
+# Counts of different element types (r1, r2b, r2eheavy, etc)
+counts <- sapply(env_data$elms, length)
 # Duration of a day in simulation time units (minutes)
 day_min <- 1440
-# Total population affected by the simulation
-population_cbt <- 2500
-population_spt <- 1250
-total_population <- population_cbt + population_spt
+total_population <- env_data$pops$combat + env_data$pops$support
 # Calculate Combat Ineffective (CIE) threshold
 cie_threshold <- (2/3) * total_population
 
 # Casualty arrival rates
-wia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 6.86) / day_min)
-kia_rate_cbt <- function() rexp(1, rate = (population_cbt / 1000 * 1.63) / day_min)
-dnbi_mean_cbt <- 2.04 - log(population_cbt / (1000 * 1440))
+wia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 6.86) / day_min)
+kia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 1.63) / day_min)
+dnbi_mean_cbt <- 2.04 - log(env_data$pops$combat / (1000 * 1440))
 dnbi_stddev_cbt <- 1.89
 dnbi_rate_cbt <- function() rlnorm(1, dnbi_mean_cbt, dnbi_stddev_cbt)
-dnbi_mean_spt <- 0.94 - log(population_spt / (1000 * 1440))
+dnbi_mean_spt <- 0.94 - log(env_data$pops$support / (1000 * 1440))
 dnbi_stddev_spt <- 0.56
 dnbi_rate_spt <- function() rlnorm(1, dnbi_mean_spt, dnbi_stddev_spt)
 
-# Import Resource and Element Lists
-# elements.json and resources.json is where the elements (role facility) and 
-# resources for those elements are defined for the simulation.
-element_list <- fromJSON("elements.json", simplifyDataFrame = TRUE)
-resource_list <- fromJSON("resources.json", simplifyDataFrame = FALSE)
-resource_map <- fromJSON("resources.json", simplifyDataFrame = TRUE)
-
-# Number of R1 treatment teams available
-r1_count <- element_list$qty[element_list$elm == "r1"]
-# Number of PMV_Amb available (count is a multiple of treatment teams available)
-PMV_Amb_count <- r1_count * 2
-# Number of 40M available (count is a multiple of treatment teams available)
-HX2_40M_count <- r1_count
-# Number of R2B teams available
-r2b_count <- element_list$qty[element_list$elm == "r2b"]
-
-expanded_resources <- do.call(rbind, lapply(seq_len(nrow(element_list)), function(i) {
-  elm <- element_list$elm[i]
-  team_qty <- element_list$qty[i]
-  # Subset matching resources
-  matching_resources <- resource_map[resource_map$elm == elm, ]
-  # For each team
-  do.call(rbind, lapply(seq_len(team_qty), function(team_number) {
-    # For each resource, replicate according to its own qty
-    do.call(rbind, lapply(seq_len(nrow(matching_resources)), function(r) {
-      this_resource <- matching_resources[r, ]
-      res_qty <- this_resource$qty
-      # replicate row res_qty times, add suffix and team number
-      replicated <- this_resource[rep(1, res_qty), ]
-      # Create resource_name with suffix and team
-      # Collect components (excluding NA)
-      components <- c(
-        this_resource$type,
-        this_resource$elm,
-        this_resource$sub_elm,
-        this_resource$name
-      )
-      # Remove NA components
-      components <- components[!is.na(components)]
-      # Now construct resource_name
-      replicated$resource_name <- paste0(
-        paste(components, collapse = "_"), "_",
-        seq_len(res_qty), "_t", team_number
-      )
-      replicated$team <- team_number
-      replicated
-    }))
-  }))
-}))
-rownames(expanded_resources) <- NULL
-resource_map$resource_name <- apply(resource_map, 1, function(row) {
-  paste(row[!is.na(row)], collapse = "_")
+# Separate by team index
+r1_teams_technicians <- lapply(env_data$elms$r1, function(team) {
+  team[grepl("_technician_", team)]
 })
-
-# Filter for r1 only
-r1_resources <- expanded_resources[expanded_resources$elm == "r1", ]
-# Split into a nested list by team
-r1_teams <- split(r1_resources$resource_name, r1_resources$team)
-# Filter for r1 clinicians only
-r1_clinician_resources <- expanded_resources[expanded_resources$elm == "r1" & expanded_resources$sub_elm == "clinician", ]
-# Split into a nested list by team
-r1_teams_clinicians <- split(r1_clinician_resources$resource_name, r1_clinician_resources$team)
-# Filter for r1 technicians only
-r1_technician_resources <- expanded_resources[expanded_resources$elm == "r1" & expanded_resources$sub_elm == "technician", ]
-# Split into a nested list by team
-r1_teams_technicians <- split(r1_technician_resources$resource_name, r1_technician_resources$team)
-
-# Filter for r2b only
-r2b_resources <- expanded_resources[expanded_resources$elm == "r2b", ]
-# Split by team
-by_team <- split(r2b_resources, r2b_resources$team)
-# Build nested list per team
-r2b_teams <- lapply(by_team, function(team_df) {
-  # Initial grouping by sub_elm
-  nested <- split(team_df$resource_name, team_df$sub_elm)
-  # Filter bed-type rows
-  bed_rows <- team_df[team_df$type == "b", ]
-  # Group bed resources by name (e.g. icu, hold) and store under "name_bed"
-  if (nrow(bed_rows) > 0) {
-    bed_groups <- split(bed_rows$resource_name, bed_rows$name)
-    for (bed_name in names(bed_groups)) {
-      key <- paste0(bed_name, "_bed")
-      nested[[key]] <- bed_groups[[bed_name]]
-    }
-  }
-  return(nested)
+r1_teams_clinicians <- lapply(env_data$elms$r1, function(team) {
+  team[grepl("_clinician_", team)]
 })
 
 ## Transport Resources ##
 # Add HX2_40M resources to environment
-for (i in 1:HX2_40M_count) {
+for (i in 1:length(env_data$transports$HX240M)) {
   env %>% add_resource(paste0("t_HX2_40M", i), 50)
 }
 # Add PMV_Amb resources to environment
-for (i in 1:PMV_Amb_count) {
+for (i in 1:length(env_data$transports$PMVAmb)) {
   env %>% add_resource(paste0("t_PMV_Amb", i), 4)
 }
 
-## R2B Resources ##
-for (i in 1:r1_count) {
-  for (item in resource_list) {
-    type <- item$type
-    elm <- item$elm
-    sub_elm <- item$sub_elm
-    name <- item$name
-    qty <- as.integer(item$qty)
-    for (j in seq_len(item$qty)) {
-      if (type =="c" && elm == "r1") {
-        resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
-        env %>% add_resource(resource_name, capacity = 1)
+# Add all canonical resources from elms
+for (elm_type in names(env_data$elms)) {
+  for (team in env_data$elms[[elm_type]]) {
+    if (is.character(team)) {
+      # r1 case: flat vector
+      for (res_name in team) {
+        env <- env %>% add_resource(res_name)
       }
-    }
-  }
-}
-
-# Add R2B teams to the environment
-for (i in 1:r2b_count) {
-  for (item in resource_list) {
-    type <- item$type
-    elm <- item$elm
-    sub_elm <- item$sub_elm
-    name <- item$name
-    qty <- as.integer(item$qty)
-    for (j in seq_len(item$qty)) {
-      if (type == "b") {
-        resource_name <- paste(type, elm, name, j, paste0("t", i), sep = "_")
+    } else if (is.list(team)) {
+      # r2b, r2eheavy: named sublists
+      for (section in team) {
+        for (res_name in section) {
+          env <- env %>% add_resource(res_name)
+        }
       }
-      else if (type =="c" && elm == "r2b") {
-        resource_name <- paste(type, elm, sub_elm, name, j, paste0("t", i), sep = "_")
-      }
-      env %>% add_resource(resource_name, capacity = 1)
-      
     }
   }
 }
@@ -253,8 +157,8 @@ r2e_treat_wia <- function() {
 
 ### ROLE 2 BASIC HANDLING ###
 select_available_r2b_team <- function(env) {
-  for (i in sample(1:r2b_count)) {
-    usage <- sum(sapply(r2b_teams[[i]][["ot_bed"]], function(b) get_server_count(env, b)))
+  for (i in sample(1:counts[["r2b"]])) {
+    usage <- sum(sapply(env_data$elms$r2b[[i]][["ot_bed"]], function(b) get_server_count(env, b)))
     if (usage == 0) {
       cat(sprintf("✔ R2B %d selected (OT not in use)\n", i))
       return(i)
@@ -264,15 +168,14 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
-patient_count <- 0
-
 r2b_treat_wia <- function(team_id) {
-  hold_beds <- r2b_teams[[team_id]][["hold_bed"]]
-  resus_beds <- r2b_teams[[team_id]][["resus_bed"]]
-  ot_beds <- r2b_teams[[team_id]][["ot_bed"]]
-  emergency_team <- r2b_teams[[team_id]][["emerg"]]
-  evacuation_team <- r2b_teams[[team_id]][["evac"]]
-  surg_team <- r2b_teams[[team_id]][["surg"]]
+  hold_beds <- env_data$elms$r2b[[team_id]][["hold_bed"]]
+  resus_beds <- env_data$elms$r2b[[team_id]][["resus_bed"]]
+  ot_beds <- env_data$elms$r2b[[team_id]][["ot_bed"]]
+  icu_beds <- env_data$elms$r2b[[team_id]][["icu_bed"]]
+  emergency_team <- env_data$elms$r2b[[team_id]][["emerg"]]
+  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]]
+  surg_team <- env_data$elms$r2b[[team_id]][["surg"]]
   
   # Fallback path: Wait in a hold bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
@@ -283,6 +186,7 @@ r2b_treat_wia <- function(team_id) {
     release_selected(id = 3) %>%
     timeout(function() rlnorm(1, log(30), 0.2)) %>%
     release_resources(evacuation_team)
+  ### ^^^ possibly should occupy ICU for period of time instead 
   
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
@@ -337,7 +241,21 @@ r2b_treat_wia <- function(team_id) {
         ),
       
       # Branch 2: No surgery required
-      trajectory("No Surgery Required")
+      trajectory("R2B No Surgery") # %>%
+        # If no surgery is required progress to evac/fallback
+        # log_(function() {
+        #   paste0("r2b recovery: ", get_attribute(env, "surgery"))
+        # }) %>%
+        # ## split between ICU and holding beds depending on patient
+        # ## recover in location otherwise ship to r2e for recovery
+        # select(hold_beds, policy = "shortest-queue", id = 5) %>%
+        # seize_selected(id = 5) %>%
+        # timeout(function() {
+        #   recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 5
+        #   recovery_days * day_min
+        # }) %>%
+        # release_selected(id = 5) %>%
+        # set_attribute("return_day", function() now(env))
     ) %>%
     
     # Step 4: Try immediate evac, fallback if not possible
@@ -364,7 +282,7 @@ r2b_treat_wia <- function(team_id) {
 
 ### CORE TRAJECTORY ###
 casualty <- trajectory("Casualty") %>%
-  set_attribute("team", function() sample(1:r1_count, 1)) %>% 
+  set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>% 
   set_attribute("priority", function() {
     if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
       sample(1:3, 1, prob = c(0.65, 0.2, 0.15))
@@ -401,7 +319,7 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
-        lapply(1:r1_count, r1_treat_wia)
+        lapply(1:counts[["r1"]], r1_treat_wia)
       ) %>%
       
       # Branch to DoW or continue
@@ -420,7 +338,7 @@ casualty <- trajectory("Casualty") %>%
           branch(
             option = function() get_attribute(env, "team"),
             continue = TRUE,
-            lapply(1:r1_count, function(i) {
+            lapply(1:counts[["r1"]], function(i) {
               r1_treat_kia(i) %>% join(r1_transport_kia())
             })
           ),
@@ -455,7 +373,7 @@ casualty <- trajectory("Casualty") %>%
                   branch(
                     option = function() get_attribute(env, "r2b"),
                     continue = TRUE,
-                    lapply(1:r2b_count, r2b_treat_wia)
+                    lapply(1:counts[["r2b"]], r2b_treat_wia)
                   ),
                 
                 # Fallback to R2E
@@ -479,7 +397,7 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() get_attribute(env, "team"),
         continue = TRUE,
-        lapply(1:r1_count, function(i) {
+        lapply(1:counts[["r1"]], function(i) {
           r1_treat_kia(i) %>% join(r1_transport_kia())
         })
       )
@@ -499,6 +417,11 @@ env %>% run(until = 30 * day_min)
 
 #### DATA FORMATTING ####
 
+# resources <- get_mon_resources(env)
+all_resources <- get_mon_resources(env)
+transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
+resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
+
 # Get arrival logs and annotate with casualty type
 arrivals <- get_mon_arrivals(env)
 arrivals$day <- floor(arrivals$start_time / day_min)
@@ -507,62 +430,6 @@ arrivals$type <- ifelse(
   ifelse(grepl("^kia", arrivals$name), "KIA", "DNBI")
 )
 
-# resources <- get_mon_resources(env)
-all_resources <- get_mon_resources(env)
-transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
-resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
-
-#### VISUALISATIONS ####
-
-##############################################
-## Daily Casualties by Type (WIA/KIA/DNBI)  ##
-##############################################
-# Plot daily WIA, KIA and DNBI totals
-ggplot(arrivals, aes(x = day, fill = type)) +
-  geom_histogram(binwidth = 1, color = "black", position = "stack") +
-  scale_x_continuous(breaks = seq(0, max(arrivals$day), by = 2)) +
-  labs(title = "Daily Casualties by Type", x = "Day", y = "Count", fill = "Type") +
-  scale_fill_manual(values = c("WIA" = "steelblue", "KIA" = "darkred", "DNBI" = "seagreen")) +
-  theme_minimal()
-
-##############################################
-## Resource Usage Plots                     ##
-##############################################
-# Generate and display usage plots for clinical resources by team
-for (team in 1:r1_count) {
-  clinical_resources_team <- r1_teams[[team]]
-  
-  # Filter resources to include only those relevant to this team
-  team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_team, ]
-  
-  team_plot <- plot(team_resources_filtered, metric = "usage") +
-    ggtitle(paste("Resource Usage Over Time - Team", team)) +
-    theme_minimal()
-  
-  print(team_plot)
-}
-
-# Generate and display usage plots for r2b clinical resources by team
-for (team in 1:r2b_count) {
-  clinical_resources_team <- r2b_teams[[team]][["emerg"]]
-  
-  # Filter resources to include only those relevant to this team
-  team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_team, ]
-  
-  team_plot <- plot(team_resources_filtered, metric = "usage") +
-    ggtitle(paste("R2B Resource Usage Over Time - Team", team)) +
-    theme_minimal()
-  
-  print(team_plot)
-}
-
-plot(all_resources, metric = "usage", transport_resources) +
-  ggtitle("Transport Resource Usage Over Time") +
-  theme_minimal()
-
-##############################################
-## Daily Casualties by Priority             ##
-##############################################
 # Extract priority values from attributes and merge with arrival data
 attributes <- get_mon_attributes(env)
 priority <- attributes[attributes$key == "priority", ]
@@ -573,15 +440,8 @@ arrivals <- merge(arrivals, priority_latest, by = "name", all.x = TRUE)
 arrivals$priority <- ifelse(is.na(arrivals$priority), 5, arrivals$priority)  # Assign 5 = KIA
 arrivals$priority <- factor(arrivals$priority, levels = c(1, 2, 3, 5), labels = c("P1", "P2", "P3", "KIA"))
 
-# Plot daily casualties by priority
-ggplot(arrivals, aes(x = day, fill = priority)) +
-  geom_histogram(binwidth = 1, color = "black", position = "stack") +
-  scale_fill_manual(values = c("P1" = "#d73027", "P2" = "#fc8d59", "P3" = "#91bfdb", "KIA" = "black")) +
-  labs(title = "Daily Casualties by Priority", x = "Day", y = "Count", fill = "Priority") +
-  theme_minimal()
-
 ########################################
-## Build Arrivals Table               ##
+## Build Arrivals Table Data          ##
 ########################################
 # Utility function to extract and merge an attribute into the arrivals table
 merge_attribute <- function(attr_name, arrivals, attributes) {
@@ -591,7 +451,7 @@ merge_attribute <- function(attr_name, arrivals, attributes) {
 }
 
 # List of attributes to merge
-attribute_keys <- c("priority", "r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
+attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
 
 # Apply the function for each attribute
 for (attr in attribute_keys) {
@@ -599,7 +459,7 @@ for (attr in attribute_keys) {
 }
 
 arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
-arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:r1_count))
+arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:counts[["r1"]]))
 
 # Categorize casualties by source: combat vs support
 arrivals$source <- ifelse(
@@ -615,9 +475,9 @@ returns$return_day <- floor(returns$value / day_min)  # Rename before merge
 # Merge return days into arrivals
 arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
 
-##############################################
-## Cumulative Casualty and Force Loss Graph ##
-##############################################
+########################################
+## Build Cumulative Losses Table Data ##
+########################################
 # Step 1: Build daily casualty counts
 daily_counts <- as.data.frame(table(arrivals$day))
 colnames(daily_counts) <- c("day", "daily_count")
@@ -638,33 +498,14 @@ daily_counts$cumulative_returns <- cumsum(daily_counts$daily_returns)
 daily_counts$cumulative_loss <- daily_counts$cumulative_total - daily_counts$cumulative_returns
 
 # Step 5: Convert to long format for plotting
-plot_data <- data.frame(
+cumulative_counts <- data.frame(
   day = daily_counts$day,
   `Total Casualties` = daily_counts$cumulative_total,
   `Force Loss` = daily_counts$cumulative_loss
 )
 
-plot_data_long <- melt(plot_data, id.vars = "day", variable.name = "Metric", value.name = "Count")
+cumulative_counts_long <- melt(cumulative_counts, id.vars = "day", variable.name = "Metric", value.name = "Count")
 
-# Step 6: Plot
-ggplot(plot_data_long, aes(x = day, y = Count, color = Metric)) +
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = cie_threshold, ymax = total_population,
-           fill = "red", alpha = 0.2) +
-  geom_hline(yintercept = cie_threshold, linetype = "dashed", color = "red", size = 1) +
-  geom_line(size = 1.2) +
-  geom_point(size = 2) +
-  scale_y_continuous(limits = c(0, total_population)) +
-  labs(
-    title = "Cumulative Casualties vs Force Loss Over Time",
-    x = "Day",
-    y = "Personnel",
-    color = "Metric"
-  ) +
-  theme_minimal()
-
-##############################################
-## Composite Utilisation and Casualty Load  ##
-##############################################
 # Compute resource usage per team/role/day
 resources <- resources[order(resources$resource, resources$time), ]
 resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x) c(diff(x), 0))
@@ -685,320 +526,10 @@ colnames(casualty_counts) <- c("team", "day", "casualties")
 casualty_counts$day <- as.numeric(as.character(casualty_counts$day))
 
 # Merge utilization and casualty data for plotting
-plot_data <- merge(agg_resources, casualty_counts, by = c("team", "day"), all.x = TRUE)
+utilisation_data <- merge(agg_resources, casualty_counts, by = c("team", "day"), all.x = TRUE)
 total_casualties <- aggregate(casualties ~ team, data = casualty_counts, sum)
-plot_data <- merge(plot_data, total_casualties, by = "team", suffixes = c("", "_total"))
-plot_data$casualty_percent_of_total <- round((plot_data$casualties / plot_data$casualties_total) * 100, 2)
-
-# Final composite plot: utilization + casualty load
-ggplot(plot_data, aes(x = day)) +
-  facet_wrap(~ team) +
-  
-  # Bar plot for casualty load behind lines
-  geom_bar(
-    aes(y = casualty_percent_of_total),
-    stat = "identity",
-    fill = "gray50",
-    alpha = 0.3,
-    width = 0.6
-  ) +
-  
-  # Red/amber shaded risk zones
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 66, ymax = 100, fill = "red", alpha = 0.3) +
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 50, ymax = 66, fill = "orange", alpha = 0.3) +
-  
-  # Resource utilization trends
-  geom_line(aes(y = percent_seized, color = role), linewidth = 1) +
-  geom_point(aes(y = percent_seized, color = role), size = 2) +
-  
-  # Dashed reference lines
-  geom_hline(yintercept = 66, linetype = "dashed", color = "red", linewidth = 1) +
-  geom_hline(yintercept = 50, linetype = "dashed", color = "orange", linewidth = 1) +
-  
-  # Y-axis for utilization and casualties
-  scale_y_continuous(
-    name = "Resource Utilization (%)",
-    limits = c(0, 100),
-    labels = scales::percent_format(scale = 1),
-    sec.axis = sec_axis(
-      transform = ~ .,
-      name = "Daily Casualties (% of Team Total)",
-      labels = scales::percent_format(scale = 1)
-    ),
-    expand = expansion(mult = c(0, 0.05))
-  ) +
-  
-  # Plot title and legend formatting
-  labs(
-    title = "Daily Resource Utilization by Team with Casualty Load",
-    x = "Day",
-    color = "Resource Role"
-  ) +
-  scale_color_manual(values = c(
-    "r1_medic_1" = "#1b9e77",
-    "r1_medic_2" = "#d95f02",
-    "r1_medic_3" = "#d9ff02",
-    "r1_nurse_1" = "#7570b3",
-    "r1_doctor_1" = "#e7298a"
-  )) +
-  
-  # Theme customization
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    panel.background = element_rect(fill = "transparent", color = NA),
-    panel.grid.major = element_line(color = "gray80", linewidth = 0.5),
-    panel.grid.minor = element_line(color = "gray80", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.7),
-    axis.text = element_text(color = "black")
-  )
-
-##############################################
-## Casualty Breakdown by Source and Type    ##
-##############################################
-# Summarize total casualties by source and type
-casualty_breakdown <- as.data.frame(table(arrivals$source, arrivals$type))
-colnames(casualty_breakdown) <- c("Source", "Type", "Count")
-
-# Plot: Casualty breakdown by source and type
-ggplot(casualty_breakdown, aes(x = Source, y = Count, fill = Type)) +
-  geom_bar(stat = "identity", position = "stack", color = "black") +
-  scale_fill_manual(values = c("WIA" = "steelblue", "KIA" = "darkred", "DNBI" = "seagreen")) +
-  labs(
-    title = "Casualty Breakdown by Source",
-    x = "Casualty Source",
-    y = "Total Count",
-    fill = "Casualty Type"
-  ) +
-  theme_minimal()
-
-########################################
-## R2B Composite Utilisation per Day  ##
-########################################
-
-# Filter for R2B resources only
-resources_r2b <- resources[grepl("r2b", resources$resource), ]
-
-# Exclude resource from graphing (while they are managed as a group)
-excluded_resources <- c(
-  "c_r2b_emerg_medic_1_t1",
-  "c_r2b_emerg_nurse_1_t1",
-  "c_r2b_emerg_nurse_2_t1",
-  "c_r2b_emerg_nurse_3_t1",
-  "c_r2b_evac_medic_2_t1",
-  "c_r2b_surg_medic_1_t1",
-  "c_r2b_surg_surgeon_1_t1",
-  "c_r2b_surg_surgeon_2_t1",
-  
-  "c_r2b_emerg_medic_1_t2",
-  "c_r2b_emerg_nurse_1_t2",
-  "c_r2b_emerg_nurse_2_t2",
-  "c_r2b_emerg_nurse_3_t2",
-  "c_r2b_evac_medic_2_t2",
-  "c_r2b_surg_medic_1_t2",
-  "c_r2b_surg_surgeon_1_t2",
-  "c_r2b_surg_surgeon_2_t2"
-)
-resources_r2b <- resources_r2b[!resources_r2b$resource %in% excluded_resources, ]
-
-# Aggregate daily busy time per role and team
-agg_resources_r2b <- aggregate(busy_time ~ team + resource + day, data = resources_r2b, sum)
-agg_resources_r2b$percent_seized <- round((agg_resources_r2b$busy_time / day_min) * 100, 2)
-
-# ########################################
-# ## Build Arrivals Table               ##
-# ########################################
-# # Utility function to extract and merge an attribute into the arrivals table
-# merge_attribute <- function(attr_name, arrivals, attributes) {
-#   subset <- attributes[attributes$key == attr_name, c("name", "value")]
-#   colnames(subset) <- c("name", attr_name)
-#   merge(arrivals, subset, by = "name", all.x = TRUE)
-# }
-# 
-# # List of attributes to merge
-# attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
-# 
-# # Apply the function for each attribute
-# for (attr in attribute_keys) {
-#   arrivals <- merge_attribute(attr, arrivals, attributes)
-# }
-# ########################################
-
-casualty_counts_r2b <- arrivals[!is.na(arrivals$r2b_treated), ]
-
-# Create the table
-casualty_counts_r2b <- as.data.frame(table(
-  r2b_treated = arrivals$r2b_treated[!is.na(arrivals$r2b_treated)],
-  day = arrivals$day[!is.na(arrivals$r2b_treated)]
-))
-
-# Prepend "Team" to the r2b_treated values
-casualty_counts_r2b$r2b_treated <- paste("Team", as.character(casualty_counts_r2b$r2b_treated))
-
-# Convert day to numeric
-casualty_counts_r2b$day <- as.numeric(as.character(casualty_counts_r2b$day))
-
-# Rename column to match agg_resources_r2b
-colnames(casualty_counts_r2b)[colnames(casualty_counts_r2b) == "r2b_treated"] <- "team"
-colnames(casualty_counts_r2b)[colnames(casualty_counts_r2b) == "Freq"] <- "casualties"
-
-# Merge utilization and casualty data for plotting
-plot_data_r2b <- merge(agg_resources_r2b, casualty_counts_r2b, by = c("team", "day"), all.x = TRUE)
-total_casualties_r2b <- aggregate(casualties ~ team, data = casualty_counts_r2b, sum)
-plot_data_r2b <- merge(plot_data_r2b, total_casualties_r2b, by = "team", suffixes = c("", "_total"))
-plot_data_r2b$casualty_percent_of_total <- round((plot_data_r2b$casualties / plot_data_r2b$casualties_total) * 100, 2)
-plot_data_r2b$role <- sub("_t.*$", "", plot_data_r2b$resource)
+utilisation_data <- merge(utilisation_data, total_casualties, by = "team", suffixes = c("", "_total"))
+utilisation_data$casualty_percent_of_total <- round((utilisation_data$casualties / utilisation_data$casualties_total) * 100, 2)
 
 
-# R2B Utilization + Casualty Load Plot
-ggplot(plot_data_r2b, aes(x = day)) +
-  facet_wrap(~ team) +
-
-  # Bar plot for casualty load
-  geom_bar(
-    aes(y = casualty_percent_of_total),
-    stat = "identity",
-    fill = "gray50",
-    alpha = 0.3,
-    width = 0.6
-  ) +
-
-  # Risk zones
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 66, ymax = 100, fill = "red", alpha = 0.3) +
-  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 50, ymax = 66, fill = "orange", alpha = 0.3) +
-
-  # Utilization trends
-  geom_line(aes(y = percent_seized, color = role), linewidth = 1) +
-  geom_point(aes(y = percent_seized, color = role), size = 2) +
-
-  # Dashed reference lines
-  geom_hline(yintercept = 66, linetype = "dashed", color = "red", linewidth = 1) +
-  geom_hline(yintercept = 50, linetype = "dashed", color = "orange", linewidth = 1) +
-
-  # Axis settings
-  scale_y_continuous(
-    name = "Resource Utilization (%)",
-    # limits = c(0, 100),
-    labels = scales::percent_format(scale = 1),
-    sec.axis = sec_axis(
-      transform = ~ .,
-      name = "Daily Casualties (% of Team Total)",
-      labels = scales::percent_format(scale = 1)
-    ),
-    expand = expansion(mult = c(0, 0.05))
-  ) +
-
-  # Titles and colors
-  labs(
-    title = "R2B Daily Resource Utilization by Team with Casualty Load",
-    x = "Day",
-    color = "Resource Role"
-  ) +
-  scale_color_manual(
-    values = c(
-      "b_r2b_ot_1" = "#ffff99",
-      "b_r2b_resus_1" = "#b3ffff",
-      "b_r2b_resus_2" = "#fcae91",
-      "b_r2b_icu_1" = "#a6cee3",
-      "b_r2b_icu_2" = "#fb9a99",
-      "b_r2b_hold_1" = "#b2df8a",
-      "b_r2b_hold_2" = "#fdbf6f",
-      "b_r2b_hold_3" = "#cab2d6",
-      "b_r2b_hold_4" =  "#1f78b4",
-      "b_r2b_hold_5" =  "#33a02c",
-      "c_r2b_emerg_facem_1" = "#6a3d9a",
-      "c_r2b_evac_medic_1" = "#fdb462",
-      "c_r2b_surg_anesthetist_1" = "#fccde5"
-    ),
-    labels = c(
-      "b_r2b_ot_1" = "Operating Theatre 1",
-      "b_r2b_resus_1" = "Resus Bed 1",
-      "b_r2b_resus_2" = "Resus Bed 2",
-      "b_r2b_icu_1" = "ICU Bed 1",
-      "b_r2b_icu_2" = "ICU Bed 2",
-      "b_r2b_hold_1" = "Holding Bed 1",
-      "b_r2b_hold_2" = "Holding Bed 2",
-      "b_r2b_hold_3" = "Holding Bed 3",
-      "b_r2b_hold_4" = "Holding Bed 4",
-      "b_r2b_hold_5" = "Holding Bed 5",
-      "c_r2b_emerg_facem_1" = "Emergency Team",
-      "c_r2b_evac_medic_1" = "Evacuation Team",
-      "c_r2b_surg_anesthetist_1" = "Surgical Team"
-    )
-  ) +
-
-  # Theme
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    panel.background = element_rect(fill = "transparent", color = NA),
-    panel.grid.major = element_line(color = "gray80", linewidth = 0.5),
-    panel.grid.minor = element_line(color = "gray80", linewidth = 0.3),
-    axis.ticks = element_line(color = "black", linewidth = 0.7),
-    axis.text = element_text(color = "black")
-  )
-
-########################################
-## R2B Surgeries Per Day              ##
-########################################
-# Filter only rows where surgery occurred
-surgery_rows <- arrivals[!is.na(arrivals$r2b_surgery) & arrivals$r2b_surgery == 1, ]
-
-# Convert simulation time (in minutes) to days
-surgery_rows$day <- floor(surgery_rows$start_time / 1440)
-
-# Tabulate counts of surgeries by day and team
-surgery_counts <- table(surgery_rows$day, surgery_rows$r2b_treated)
-surgery_df <- as.data.frame(surgery_counts)
-colnames(surgery_df) <- c("day", "r2b_team", "surgeries")
-
-# Ensure proper types
-surgery_df$day <- as.numeric(as.character(surgery_df$day))
-surgery_df$r2b_team <- as.factor(surgery_df$r2b_team)
-
-# Create the stacked bar plot
-ggplot(surgery_df, aes(x = day, y = surgeries, fill = r2b_team)) +
-  geom_bar(stat = "identity") +
-  labs(
-    title = "R2B Surgeries Per Day",
-    x = "Day",
-    y = "Number of Surgeries",
-    fill = "R2B Team"
-  ) +
-  scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
-  theme_minimal()
-
-########################################
-## Casualties Handled by R2E          ##
-########################################
-# Filter R2E-handled casualties
-r2e_cases <- arrivals[!is.na(arrivals$r2e_handling), ]
-
-# Mark bypass status
-r2e_cases$r2b_bypassed[is.na(r2e_cases$r2b_bypassed)] <- 0
-r2e_cases$r2e_path <- ifelse(r2e_cases$r2b_bypassed == 1, "Direct from R1", "From R2B")
-
-# Calculate simulation day
-r2e_cases$day <- floor(r2e_cases$start_time / 1440) + 1
-
-# Tabulate counts
-counts_table <- table(r2e_cases$day, r2e_cases$r2e_path)
-counts_df <- as.data.frame(counts_table)
-colnames(counts_df) <- c("day", "path", "count")
-counts_df$day <- as.numeric(as.character(counts_df$day))
-
-# Calculate max stacked total per day
-total_per_day <- aggregate(count ~ day, data = counts_df, sum)
-max_total <- max(total_per_day$count)
-
-# Plot
-ggplot(counts_df, aes(x = day, y = count, fill = path)) +
-  geom_bar(stat = "identity") +
-  labs(
-    title = "Casualties Handled by R2E per Day",
-    x = "Day",
-    y = "Number of Casualties",
-    fill = "Source of Casualty"
-  ) +
-  scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
-  theme_minimal()
+source("visualisations.R")

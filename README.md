@@ -27,7 +27,8 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 Casualties are generated based on rates outlined in [[1]](#References) with the following application:
 
 - **Disease and Non-Battle Injury (DNBI)**. lognorm(2.04, 1.89); based on Vietnman DNBI rates for combat troop ([[1]](#References), table A.5, p 31).  
-  Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
+
+- Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
 
 - **Wounded In Action (WIA)**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
 
@@ -35,11 +36,17 @@ $$
 \lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
 $$
 
-1) $\lambda_{min}$ is the rate per minute.
-2) $\alpha_{pop}$ is the population of combat forces.
-3) $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
-4) $T_{min}=1440$ is the number of minutes in a day.
-5) $\alpha_{pop}=2250$ is the population of combat forces.
+- Where:
+  
+  - $\lambda_{min}$ is the rate per minute.
+  
+  - $\alpha_{pop}$ is the population of combat forces.
+  
+  - $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
+  
+  - $T_{min}=1440$ is the number of minutes in a day.
+  
+  - $\alpha_{pop}=2250$ is the population of combat forces.
 
 $$
 \lambda_{\text{min}} = (\frac{2250}{1000})\times(\frac{6.86}{1440})
@@ -52,15 +59,17 @@ $$
 
 
 - The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
-1. **Priority 1**. 65% of casualties with 90% requiring surgery.
+  
+  - **Priority 1**. 65% of casualties with 90% requiring surgery.
+  
+  - **Priority 2**. 20% of casualties with 80% requiring surgery.
+  
+  - **Priority 3**. 15% of casualties with:
+    
+    - 40% of DNBI requiring surgery.
+    
+    - 60% of other priority 3 casualties requiring surgery. 
 
-2. **Priority 2**. 20% of casualties with 80% requiring surgery.
-
-3. **Priority 3**. 15% of casualties with:
-   
-   1. 40% of DNBI requiring surgery.
-   
-   2. 60% of other priority 3 casualties requiring surgery. 
 - Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
 
 ---

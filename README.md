@@ -196,17 +196,16 @@ Transport resources are shared across all treatment teams.
 
 ```mermaid
 flowchart TD
-    Start(["Start"]) --> TeamAssign("<b>Assign to Team</b> <br> <small>1 to team_count</small>")
+    Start(["Start"]) --> TeamAssign("Assign to R1")
 
     subgraph role1 [Role 1 Treatment Team]
         TeamAssign --> WIACheck{WIA/DNBI?}
-        WIACheck -- Yes (WIA/DNBI) --> PriorityAssign("Assign Priority <br> <small> P1:65% P2:20% P3:15%</small>")
-        PriorityAssign --> TreatWIA("<b>Treat WIA</b> <br> <small>Resources: 3 x medic, nurse, doctor using 1 medic and 1 clinician (nurse/doctor)<br> Duration: P1:rlnorm(120, 0.125), P2:rlnorm(60, 0.25), P3:rlnorm(20, 0.5)</small>")
+        WIACheck -- Yes (WIA/DNBI) --> TreatWIA("Treat WIA")
         TreatWIA --> PriorityCheck{"P1 or P2?"}
-        PriorityCheck -- Yes (P1/P2) --> TransportWIA("<b>Transport WIA</b> <br> <small>Resources: 16 x PMV_Amb <br> Duration: rlnorm(30, 0.5)</small>")
-        PriorityCheck -- No (P3) --> MonitorWIA("<b>Monitor WIA Recovery</b?")
-        WIACheck -- No (KIA) --> TreatKIA("<b>Treat KIA</b> <br> <small>Resources: 3 x medic, using 1 medic <br> Duration: rlnorm(30, 0.5)</small>")
-        TreatKIA --> TransportKIA("<b>Transport KIA</b> <br> <small>Resources: 8 x HX_40M <br> Duration: rlnorm(30, 0.5)</small>")
+        PriorityCheck -- Yes (P1/P2) --> TransportWIA("Transport WIA")
+        PriorityCheck -- No (P3) --> MonitorWIA("Monitor WIA Recovery")
+        WIACheck -- No (KIA) --> TreatKIA("Treat KIA")
+        TreatKIA --> TransportKIA("Transport KIA")
     end
 
     MonitorWIA --> End
@@ -215,12 +214,12 @@ flowchart TD
     subgraph r2b [Role 2 Basic]
         TransportWIA --> bedCheck{"ICU Bed Available?"}
         bedCheck -- Yes (ICU) --> icu
-        bedCheck -- No (Holding) --> hold["Occupy Holding Bed </br> (shortest-queue)"]
+        bedCheck -- No (Holding) --> hold["Occupy Holding Bed"]
 
         hold --> waitForICU["Wait for ICU"]
-        waitForICU --> icu["Occupy ICU Bed </br> (shortest-queue)"]
+        waitForICU --> icu["Occupy ICU Bed"]
         icu --> EmergencyCare["Emergency Treatment (ATLS)"]
-        EmergencyCare --> EmergencyDuration["Timeout ~ Emergency care (lnorm ~45min)"]
+        EmergencyCare --> EmergencyDuration["Emergency care"]
         EmergencyDuration --> ReleaseEmergency["Release Emergency Team"]
 
         ReleaseEmergency --> surgeryCheck{"Require Surgery?"}
@@ -247,7 +246,7 @@ flowchart TD
     end
 
 TimeoutDOW --> End
-ReleaseEvacSurg --> EndEnd    end
+ReleaseEvacSurg --> End
 
 TimeoutDOW --> End
 ReleaseEvacSurg --> End

@@ -30,7 +30,9 @@ Casualties are generated based on rates outlined in [[1]](#References) with the 
 
 - Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
 
-- **Wounded In Action (WIA)**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
+- **Wounded In Action (WIA)**. 
+  
+  - **Combat Casualties**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
 
 $$
 \lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
@@ -56,7 +58,16 @@ $$
 \lambda_{min}=0.01071875
 $$
 
+- **Support Casualties**. Based on ?? support troop WIA rates ([[1]](#References), ??), the 
 
+$$
+\lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
+$$
+
+- Where:
+  - aaa
+  - bbb
+  - ccc
 
 - The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
   
@@ -71,6 +82,8 @@ $$
     - 60% of other priority 3 casualties requiring surgery. 
 
 - Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
+
+- ddd
 
 ---
 

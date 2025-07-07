@@ -1,5 +1,8 @@
 ### ENVIRONMENT SETUP ###
 
+rm()
+set.seed(42)
+
 library(simmer)
 library(simmer.bricks)
 library(simmer.plot)
@@ -158,13 +161,14 @@ r2e_treat_wia <- function() {
 ### ROLE 2 BASIC HANDLING ###
 select_available_r2b_team <- function(env) {
   for (i in sample(1:counts[["r2b"]])) {
-    usage <- sum(sapply(env_data$elms$r2b[[i]][["ot_bed"]], function(b) get_server_count(env, b)))
-    if (usage == 0) {
-      cat(sprintf("✔ R2B %d selected (OT not in use)\n", i))
+    queue_length <- sum(sapply(env_data$elms$r2b[[i]][["ot_bed"]],
+                               function(b) get_queue_count(env, b)))
+    if (queue_length == 0) {
+      cat(sprintf("✔ R2B %d selected (OT queue is empty)\n", i))
       return(i)
     }
   }
-  cat("✖ No R2B available (OT beds in use)\n")
+  cat("✖ No R2B available (OT queues not empty)\n")
   return(-1)
 }
 
@@ -177,16 +181,17 @@ r2b_treat_wia <- function(team_id) {
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]]
   surg_team <- env_data$elms$r2b[[team_id]][["surg"]]
   
-  # Fallback path: Wait in a hold bed for evacuation
+  # Fallback path: Wait in an ICU bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
     log_("wait_for_evac") %>%
-    select(hold_beds, policy = "shortest-queue", id = 3) %>%
+    select(icu_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
     seize_resources(evacuation_team) %>%
     release_selected(id = 3) %>%
     timeout(function() rlnorm(1, log(30), 0.2)) %>%
+    # Patient arrives at next location here and other process initiates
+    timeout(function() rlnorm(1, log(30), 0.2)) %>%
     release_resources(evacuation_team)
-  ### ^^^ possibly should occupy ICU for period of time instead 
   
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
@@ -241,21 +246,15 @@ r2b_treat_wia <- function(team_id) {
         ),
       
       # Branch 2: No surgery required
-      trajectory("R2B No Surgery") # %>%
-        # If no surgery is required progress to evac/fallback
-        # log_(function() {
-        #   paste0("r2b recovery: ", get_attribute(env, "surgery"))
-        # }) %>%
-        # ## split between ICU and holding beds depending on patient
-        # ## recover in location otherwise ship to r2e for recovery
-        # select(hold_beds, policy = "shortest-queue", id = 5) %>%
-        # seize_selected(id = 5) %>%
-        # timeout(function() {
-        #   recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 5
-        #   recovery_days * day_min
-        # }) %>%
-        # release_selected(id = 5) %>%
-        # set_attribute("return_day", function() now(env))
+      trajectory("R2B No Surgery") %>%
+        select(hold_beds, policy = "first-available", id = 5) %>%
+        seize_selected(id = 5) %>%
+        timeout(function() {
+          recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 3
+          recovery_days * day_min
+        }) %>%
+        set_attribute("return_day", function() now(env)) %>%
+        release_selected(id = 5)
     ) %>%
     
     # Step 4: Try immediate evac, fallback if not possible
@@ -417,7 +416,6 @@ env %>% run(until = 30 * day_min)
 
 #### DATA FORMATTING ####
 
-# resources <- get_mon_resources(env)
 all_resources <- get_mon_resources(env)
 transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
 resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
@@ -531,5 +529,5 @@ total_casualties <- aggregate(casualties ~ team, data = casualty_counts, sum)
 utilisation_data <- merge(utilisation_data, total_casualties, by = "team", suffixes = c("", "_total"))
 utilisation_data$casualty_percent_of_total <- round((utilisation_data$casualties / utilisation_data$casualties_total) * 100, 2)
 
-
 source("visualisations.R")
+source("r2b_visualisation.R")

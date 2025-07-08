@@ -96,10 +96,13 @@ $$
 These are then converted to lognormal distribution parameters for use in the simulation using the formua below.
 
 $$
-\mu = \ln\left(\frac{m_N^2}{\sqrt{s_N^2 + m_N^2}}\right), \quad
+\mu = \ln\left(\frac{m_N^2}{\sqrt{s_N^2 + m_N^2}}\right), \quad 
 \sigma = \sqrt{\ln\left(1 + \frac{s_N^2}{m_N^2}\right)}
-
 $$
+
+
+
+
 
 Where:
 

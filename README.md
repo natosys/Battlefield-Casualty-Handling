@@ -71,6 +71,10 @@ $$
 **Support Casualties**. [1], table A.2 p29 - lognorm(0.94, 0.56) (Okinawa)
 
 $$
+\text{Mean}_{\text{per min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816
+$$
+
+$$
 \text{m}_{\text{per min}} = \frac{\text{m}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
 $$
 

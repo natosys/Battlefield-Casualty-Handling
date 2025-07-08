@@ -193,10 +193,6 @@ source_type_plot <- ggplot(casualty_breakdown, aes(x = Source, y = Count, fill =
 
 print(source_type_plot)
 
-#################################
-
-
-
 ########################################
 ## R2B Surgeries Per Day              ##
 ########################################

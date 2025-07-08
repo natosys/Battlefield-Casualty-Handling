@@ -152,7 +152,16 @@ release_resources <- function(trj, resources) {
 }
 
 ### ROLE 2 ENHANCED HANDLING ###
-r2e_treat_wia <- function() {
+r2e_treat_wia <- function(team_id) {
+  hold_beds <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
+  resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
+  ot_beds <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
+  icu_beds <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
+  emergency_team <- env_data$elms$r2eheavy[[team_id]][["emerg"]]
+  evacuation_team <- env_data$elms$r2eheavy[[team_id]][["evac"]]
+  surg_team <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+  icu_team <- env_data$elms$r2eheavy[[team_id]][["icu"]]
+  
   trajectory("R2E Treatment (Fallback)") %>%
     log_("r2e_treat_wia") %>%
     set_attribute("r2e_handling", 1)
@@ -161,14 +170,19 @@ r2e_treat_wia <- function() {
 ### ROLE 2 BASIC HANDLING ###
 select_available_r2b_team <- function(env) {
   for (i in sample(1:counts[["r2b"]])) {
-    queue_length <- sum(sapply(env_data$elms$r2b[[i]][["ot_bed"]],
-                               function(b) get_queue_count(env, b)))
-    if (queue_length == 0) {
-      cat(sprintf("✔ R2B %d selected (OT queue is empty)\n", i))
+    ot_beds <- env_data$elms$r2b[[i]]$ot_bed
+    bed_usage <- sapply(ot_beds, function(b) get_server_count(env, b))
+    total_in_use <- sum(bed_usage)
+    
+    cat(sprintf("Team %d OT usage: %s → total in use = %d\n", i, toString(bed_usage), total_in_use))
+    
+    if (total_in_use == 0) {
+      cat(sprintf("✔ R2B %d selected (OT beds are free)\n", i))
       return(i)
     }
   }
-  cat("✖ No R2B available (OT queues not empty)\n")
+  
+  cat("✖ No R2B team available (all OT beds are in use)\n")
   return(-1)
 }
 
@@ -180,13 +194,16 @@ r2b_treat_wia <- function(team_id) {
   emergency_team <- env_data$elms$r2b[[team_id]][["emerg"]]
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]]
   surg_team <- env_data$elms$r2b[[team_id]][["surg"]]
+  icu_team <- env_data$elms$r2b[[team_id]][["icu"]]
   
   # Fallback path: Wait in an ICU bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
     log_("wait_for_evac") %>%
     select(icu_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
+    seize_resources(icu_team) %>%
     seize_resources(evacuation_team) %>%
+    release_resources(icu_team) %>%
     release_selected(id = 3) %>%
     timeout(function() rlnorm(1, log(30), 0.2)) %>%
     # Patient arrives at next location here and other process initiates
@@ -271,7 +288,13 @@ r2b_treat_wia <- function(team_id) {
         set_attribute("r2b_to_r2e", 1) %>%
         seize_resources(evacuation_team) %>%
         timeout(function() rlnorm(1, log(30), 0.2)) %>%
-        join(r2e_treat_wia()) %>%
+        
+        branch(
+          option = function() sample(1:counts[["r2eheavy"]], 1),
+          continue = TRUE,
+          lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
+        ) %>%
+        
         release_resources(evacuation_team),
       
       join(wait_for_evac)
@@ -378,7 +401,11 @@ casualty <- trajectory("Casualty") %>%
                 # Fallback to R2E
                 trajectory("Bypass R2B → To R2E") %>%
                   set_attribute("r2b_bypassed", 1) %>%
-                  join(r2e_treat_wia())
+                  branch(
+                    option = function() sample(1:counts[["r2eheavy"]], 1),
+                    continue = TRUE,
+                    lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
+                  )
               ),
             
             # Path: Recover at Role 1

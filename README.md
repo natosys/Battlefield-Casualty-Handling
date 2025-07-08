@@ -22,33 +22,29 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 ---
 
-## 🤕 Casualty Rates
+## 🤕 Casualties
 
-Casualties are generated based on rates outlined in [[1]](#References) with the following application:
+Casualties are generated based on rates outlined in [[1]](#References) with the implementation outlined below.
 
-- **Disease and Non-Battle Injury (DNBI)**. lognorm(2.04, 1.89); based on Vietnman DNBI rates for combat troop ([[1]](#References), table A.5, p 31).  
+### Wounded In Action (WIA)
 
-- Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).  
-
-- **Wounded In Action (WIA)**. 
-  
-  - **Combat Casualties**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
+**Combat Casualties**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
 
 $$
 \lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
 $$
 
-- Where:
-  
-  - $\lambda_{min}$ is the rate per minute.
-  
-  - $\alpha_{pop}$ is the population of combat forces.
-  
-  - $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
-  
-  - $T_{min}=1440$ is the number of minutes in a day.
-  
-  - $\alpha_{pop}=2250$ is the population of combat forces.
+Where:
+
+- $\lambda_{min}$ is the rate per minute.
+
+- $\alpha_{pop}$ is the population of combat forces.
+
+- $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
+
+- $T_{min}=1440$ is the number of minutes in a day.
+
+- $\alpha_{pop}=2250$ is the population of combat forces.
 
 $$
 \lambda_{\text{min}} = (\frac{2250}{1000})\times(\frac{6.86}{1440})
@@ -58,28 +54,90 @@ $$
 \lambda_{min}=0.01071875
 $$
 
-- **Support Casualties**. Based on ?? support troop WIA rates ([[1]](#References), ??), the 
+### Killed In Action (KIA)
+
+**Combat Casualties**. Based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33), the $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
 
 $$
-\lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
+\lambda_{min}=0.002546875
 $$
 
-- Where:
-  - aaa
-  - bbb
-  - ccc
 
-- The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
+
+### Disease and Non-Battle Injury (DNBI)
+
+**Combat Casualties**. [1], table A.5 p31 - lognorm(2.04, 1.89) (Vietnam)
+
+**Support Casualties**. [1], table A.2 p29 - lognorm(0.94, 0.56) (Okinawa)
+
+$$
+\text{m}_{\text{per min}} = \frac{\text{m}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}, \quad
+\text{SD}_{\text{per min}} = \frac{\text{SD}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
+$$
+
+Where:
+
+- $m_{\text{per min}}$ is the mean per minute.
+
+- $m_{\text{per day}}$ is the mean per day.
+
+- $\alpha_{pop}$ is the population of combat forces.
+
+- $\text{SD}_{\text{per min}}$ is the standard deviation per minute.
+
+$$
+\text{Mean}_{\text{per min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816
+$$
+
+$$
+\text{SD}_{\text{per min}} = \frac{0.56}{1440} \times \frac{1250}{1000} \approx 0.0004861
+$$
+
+These are then converted to lognormal distribution parameters for use in the simulation using the formua below.
+
+$$
+\mu = \ln\left(\frac{m_N^2}{\sqrt{s_N^2 + m_N^2}}\right), \quad
+\sigma = \sqrt{\ln\left(1 + \frac{s_N^2}{m_N^2}\right)}
+
+$$
+
+Where:
+
+- $\mu$ ...
+- $m_{N}$ ...
+- $s_{N}$ ...
+- $\sigma$ ...
+
+$$
+f(x; \mu, \sigma) = \frac{1}{x \sigma \sqrt{2\pi}} \exp\left( -\frac{(\ln x - \mu)^2}{2\sigma^2} \right), \quad x > 0
+$$
+
+$$
+{1000}
+
+$$
+
+
+
+Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).
+
+## Casualty Priorities
+
+The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
+
+- **Priority 1**. 65% of casualties with 90% requiring surgery.
+
+- **Priority 2**. 20% of casualties with 80% requiring surgery.
+
+- **Priority 3**. 15% of casualties with:
   
-  - **Priority 1**. 65% of casualties with 90% requiring surgery.
+  - 40% of DNBI requiring surgery.
   
-  - **Priority 2**. 20% of casualties with 80% requiring surgery.
-  
-  - **Priority 3**. 15% of casualties with:
-    
-    - 40% of DNBI requiring surgery.
-    
-    - 60% of other priority 3 casualties requiring surgery. 
+  - 60% of other priority 3 casualties requiring surgery. 
+
+## Return to Duty
+
+- Priority 3 are returned to duty from R1. Priority 1 and 2 that do not require surgery are RTF post recovery from emergency treatment at r2b.
 
 - Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
 
@@ -87,7 +145,7 @@ $$
 
 ---
 
-## 👨‍⚕️Resource Initialisation
+## 👨‍⚕️Resources
 
 **Health Teams**. The health architecture is made up of the following health teams:
 

@@ -62,8 +62,6 @@ $$
 \lambda_{min}=0.002546875
 $$
 
-
-
 ### Disease and Non-Battle Injury (DNBI)
 
 **Combat Casualties**. [1], table A.5 p31 - lognorm(2.04, 1.89) (Vietnam)
@@ -71,7 +69,7 @@ $$
 **Support Casualties**. [1], table A.2 p29 - lognorm(0.94, 0.56) (Okinawa)
 
 $$
-\text{Mean}_{\text{per min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816
+\text{Mean}_{\text{per min}} = \frac{m_{\text{per day}}}{1440} \times \frac{\alpha_{pop}}{1000}
 $$
 
 $$
@@ -117,8 +115,6 @@ Where:
 $$
 f(x; \mu, \sigma) = \frac{1}{x \sigma \sqrt{2\pi}} \exp\left( -\frac{(\ln x - \mu)^2}{2\sigma^2} \right), \quad x > 0
 $$
-
-
 
 Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).
 

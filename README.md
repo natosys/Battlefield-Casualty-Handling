@@ -77,7 +77,7 @@ $$
 \text{SD}_{\text{per min}} = \frac{\text{SD}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
 $$
 
-
+f
 
 Where:
 

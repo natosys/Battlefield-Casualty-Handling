@@ -70,13 +70,13 @@ $$
 
 **Support Casualties**. [1], table A.2 p29 - lognorm(0.94, 0.56) (Okinawa)
 
-f
-
 $$
-\text{m}_{\text{per min}} = \frac{\text{m}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}, \quad \text{SD}_{\text{per min}} = \frac{\text{SD}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
+\text{m}_{\text{per min}} = \frac{\text{m}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
 $$
 
-f
+$$
+\text{SD}_{\text{per min}} = \frac{\text{SD}_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
+$$
 
 Where:
 

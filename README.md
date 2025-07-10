@@ -1,8 +1,4 @@
->  [!Caution]
-> 
-> Calculation of per minute rate must be verified. It is currently significantly under-representing DNBI case rates.
-
-# Battlefield Casualty Handling
+# Battlefield Casualty Handling Simulation
 
 ## 📘 Introduction
 
@@ -28,6 +24,8 @@ Casualties are generated based on rates outlined in [[1]](#References) with the 
 
 ### Wounded In Action (WIA)
 
+#### Combat Casualties
+
 **Combat Casualties**. Combat WIA casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
 
 $$
@@ -50,66 +48,126 @@ $$
 \lambda_{\text{min}} = \left(\frac{2250}{1000}\right)\times\left(\frac{6.86}{1440}\right) \approx 0.01071875
 $$
 
+#### Support Casualties
+
+Not yet implemented.
+
 ### Killed In Action (KIA)
 
-**Combat Casualties**. Combat KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
+#### Combat Casualties
+
+Combat KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
 
 $$
 \lambda_{min}=0.002546875
 $$
 
+#### Support Casualties
+
+Not yet implemented.
+
 ### Disease and Non-Battle Injury (DNBI)
 
-**Combat Casualties**. [1], table A.5 p31 - lognorm(2.04, 1.89) (Vietnam)
+For simulation efficiency arrival times for DNBI cases were pre-computed and then introduced deterministically to the simulation environment for processing. The function simulates the timing of DNBI casualty arrivals using a lognormal distribution to reflect daily variability, then transforms that data into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 
-**Support Casualties**. Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[1]](#References), table A.2 p29). The $m_\text{day}$ and $SD_\text{day}$ were then converted to a per minute per support population ($m_\text{min}$ and $SD_\text{min}$), before being converted $\mu_{log}$ and $\sigma_{log}$ for use in the simulation as a proximation for case generation.
+#### 1. Lognormal Parameterisation
+
+Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
+
+
+
+Mean (log-space):
 
 $$
-\text{m}\_{\text{min}} = \left(\frac{\text{m}\_{\text{day}}}{1440}\right) \times \left(\frac{\alpha_\text{pop}}{1000}\right), \quad 
-\text{SD}\_{\text{min}} = \left(\frac{\text{SD}\_{\text{day}}}{1440}\right) \times \left(\frac{\alpha_\text{pop}}{1000}\right)
+\mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)
 $$
+
+
+
+Standard deviation (log-space):
+
+$$
+\sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}
+$$
+
+
 
 Where:
 
-- $m_{\text{min}}$ is the mean per minute.
+- $\mu$ = expected number of DNBI casualties per day
+- $\sigma$ = daily standard deviation
 
-- $m_{\text{day}}$ is the mean per day.
 
-- $\alpha_{pop}$ is the population of combat forces.
 
-- $\text{SD}_{\text{min}}$ is the standard deviation per minute.
+#### 2. Per-Minute Rate Sampling and Scaling
 
-$$
-\text{m}_{\text{min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816, \quad
-\text{SD}_{\text{min}} = \frac{0.56}{1440} \times \frac{1250}{1000} \approx 0.0004861
-$$
+Draws  lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
 
-These are then converted to lognormal distribution parameters for use in the simulation using the formua below.
+
+
+For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute DNBI rate is computed as:
 
 $$
-\mu_{log} = \ln\left(\frac{m_{min}^2}{\sqrt{SD_{min}^2 + m_{min}^2}}\right), \quad 
-\sigma_{log} = \sqrt{\ln\left(1 + \frac{SD_{min}^2}{m_{min}^2}\right)}
+r_i = \min\left(x_i, \text{cap}\right) \times \frac{P}{1000 \times 1440}
 $$
+
+
 
 Where:
 
-- $\mu_{log}$ is the mean of the lognormal distribution.
+- $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$
+- $\mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)$
+- $\sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}$
+- $\mu, \sigma$ = daily mean and standard deviation
+- $\text{cap}$ = upper bound (e.g., 5) to prevent extreme values
+- $P$ = population size (support or combat)
+- $r_i$ = scaled and capped casualty rate for minute i
 
-- $\sigma_{log}$ is the standard deviation per minute
-
-For simulation efficiency arrival times for DNBI cases were pre-computed and then introduced deterministically to the simulation environment for processing. 
 
 
+#### 3. Arrival Detection via Cumulative Sum
 
-The function simulates the timing of DNBI casualty arrivals across a specified number of days, using a lognormal distribution to reflect daily variability, then transforms that data into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds.
+Accumulates per-minute rates and detects new arrivals based on when the cumulative total crosses each whole casualty threshold.
 
-Core Steps:
 
-1. **Lognormal Parameterization**. Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
-2. **Per-Minute Rate Sampling**. Draws `n_minutes` lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers.
-3. **Rate Scaling**. Scales the sampled rates according to population size and temporal resolution (per minute per 1,000 personnel).
-4. **Arrival Detection via Cumulative Sum**. Accumulates per-minute rates and detects new arrivals based on when the cumulative total crosses each whole casualty threshold.
-5. **Temporal Randomization**. Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+
+Let $R = \{r_1, r_2, \dots, r_N\}$ be the per-minute rates. Then the cumulative sum is:
+
+$$
+C_i = \sum_{j=1}^{i} r_j
+$$
+
+An arrival is triggered at time i if:
+
+$$
+\lfloor C_i \rfloor > \lfloor C_{i-1} \rfloor
+$$
+
+This captures each increment in the expected arrival count.
+
+
+
+#### 4. Temporal Randomisation
+
+Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+
+
+
+#### Combat Casualties
+
+Combat DNBI casualty generation has been based on Vietnam combat troop DNBI rates ([[1]](#References), table A.5 p31).
+
+$$
+\mu = 2.04, \quad \sigma = 1.89
+$$
+
+#### Support Casualties
+
+Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[1]](#References), table A.2 p29).
+
+$$
+\mu = 0.94, \sigma = 0.56
+$$
 
 
 

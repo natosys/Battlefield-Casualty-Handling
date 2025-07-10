@@ -27,16 +27,46 @@ day_min <- 1440
 total_population <- env_data$pops$combat + env_data$pops$support
 # Calculate Combat Ineffective (CIE) threshold
 cie_threshold <- (2/3) * total_population
+n_days <- 30
 
 # Casualty arrival rates
 wia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 6.86) / day_min)
 kia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 1.63) / day_min)
-dnbi_mean_cbt <- 2.04 - log(env_data$pops$combat / (1000 * 1440))
-dnbi_stddev_cbt <- 1.89
-dnbi_rate_cbt <- function() rlnorm(1, dnbi_mean_cbt, dnbi_stddev_cbt)
-dnbi_mean_spt <- 0.94 - log(env_data$pops$support / (1000 * 1440))
-dnbi_stddev_spt <- 0.56
-dnbi_rate_spt <- function() rlnorm(1, dnbi_mean_spt, dnbi_stddev_spt)
+
+generate_dnbi_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  
+  n_minutes <- day_min * n_days
+  
+  # Step 1: Convert mean/SD to log-space
+  mu_log <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
+  sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
+  
+  # Step 2: Generate capped per-minute rates
+  rates <- pmin(rlnorm(n_minutes, meanlog = mu_log, sdlog = sigma_log), cap)
+  rates <- rates / 1440 * pop / 1000
+  
+  # Step 3: Compute cumulative arrivals
+  cumulative <- cumsum(rates)
+  
+  # Step 4: Extract timestamps where arrivals occur
+  arrival_idx <- which(floor(cumulative) > floor(cumulative - rates))
+  
+  # Step 5: Add random jitter within minute and sort
+  arrival_times <- sort(arrival_idx + runif(length(arrival_idx), 0, 1))
+  
+  return(arrival_times)
+}
+
+dnbi_rate_spt <- generate_dnbi_arrivals(mean_daily = 0.94,
+                                            sd_daily = 0.56,
+                                            pop = env_data$pops$support,
+                                            n_days)
+
+dnbi_rate_cbt <- generate_dnbi_arrivals(mean_daily = 2.04,
+                                            sd_daily = 1.89,
+                                            pop = env_data$pops$combat,
+                                            n_days)
 
 # Separate by team index
 r1_teams_technicians <- lapply(env_data$elms$r1, function(team) {
@@ -433,13 +463,13 @@ casualty <- trajectory("Casualty") %>%
 env %>%
   add_generator("wia_cbt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
   add_generator("kia_cbt", casualty, distribution = kia_rate_cbt, mon = 2) %>%
-  add_generator("dnbi_cbt", casualty, distribution = dnbi_rate_cbt, mon = 2) %>%
+  add_generator("dnbi_cbt", casualty, distribution = at(dnbi_rate_cbt), mon = 2) %>%
   add_generator("wia_spt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
   add_generator("kia_spt", casualty, distribution = kia_rate_cbt, mon = 2) %>%
-  add_generator("dnbi_spt", casualty, distribution = dnbi_rate_spt, mon = 2)
+  add_generator("dnbi_spt", casualty, distribution = at(dnbi_rate_spt), mon = 2)
 
 # Run the simulation for 30 days
-env %>% run(until = 30 * day_min)
+env %>% run(until = n_days * day_min)
 
 #### DATA FORMATTING ####
 

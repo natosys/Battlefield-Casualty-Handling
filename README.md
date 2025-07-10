@@ -28,10 +28,10 @@ Casualties are generated based on rates outlined in [[1]](#References) with the 
 
 ### Wounded In Action (WIA)
 
-**Combat Casualties**. Based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32), the $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate):
+**Combat Casualties**. Combat WIA casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
 
 $$
-\lambda_{\text{min}} = (\frac{\alpha_\text{pop}}{1000})\times(\frac{\lambda_{\text{daily}}}{T_{min}})
+\lambda_{\text{min}} = \left(\frac{\alpha_\text{pop}}{1000}\right)\times\left(\frac{\lambda_{\text{daily}}}{T_{min}}\right)
 $$
 
 Where:
@@ -47,16 +47,12 @@ Where:
 - $\alpha_{pop}=2250$ is the population of combat forces.
 
 $$
-\lambda_{\text{min}} = (\frac{2250}{1000})\times(\frac{6.86}{1440})
-$$
-
-$$
-\lambda_{min}=0.01071875
+\lambda_{\text{min}} = \left(\frac{2250}{1000}\right)\times\left(\frac{6.86}{1440}\right) \approx 0.01071875
 $$
 
 ### Killed In Action (KIA)
 
-**Combat Casualties**. Based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33), the $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
+**Combat Casualties**. Combat KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
 
 $$
 \lambda_{min}=0.002546875
@@ -66,47 +62,56 @@ $$
 
 **Combat Casualties**. [1], table A.5 p31 - lognorm(2.04, 1.89) (Vietnam)
 
-**Support Casualties**. [1], table A.2 p29 - lognorm(0.94, 0.56) (Okinawa)
+**Support Casualties**. Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[1]](#References), table A.2 p29). The $m_\text{day}$ and $SD_\text{day}$ were then converted to a per minute per support population ($m_\text{min}$ and $SD_\text{min}$), before being converted $\mu_{log}$ and $\sigma_{log}$ for use in the simulation as a proximation for case generation.
 
 $$
-\text{m}\_{\text{per min}} = \frac{\text{m}\_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}, \quad \text{SD}\_{\text{per min}} = \frac{\text{SD}\_{\text{per day}}}{1440} \times \frac{\alpha_\text{pop}}{1000}
+\text{m}\_{\text{min}} = \left(\frac{\text{m}\_{\text{day}}}{1440}\right) \times \left(\frac{\alpha_\text{pop}}{1000}\right), \quad 
+\text{SD}\_{\text{min}} = \left(\frac{\text{SD}\_{\text{day}}}{1440}\right) \times \left(\frac{\alpha_\text{pop}}{1000}\right)
 $$
 
 Where:
 
-- $m_{\text{per min}}$ is the mean per minute.
+- $m_{\text{min}}$ is the mean per minute.
 
-- $m_{\text{per day}}$ is the mean per day.
+- $m_{\text{day}}$ is the mean per day.
 
 - $\alpha_{pop}$ is the population of combat forces.
 
-- $\text{SD}_{\text{per min}}$ is the standard deviation per minute.
+- $\text{SD}_{\text{min}}$ is the standard deviation per minute.
 
 $$
-\text{Mean}_{\text{per min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816
-$$
-
-$$
-\text{SD}_{\text{per min}} = \frac{0.56}{1440} \times \frac{1250}{1000} \approx 0.0004861
+\text{m}_{\text{min}} = \frac{0.94}{1440} \times \frac{1250}{1000} \approx 0.000816, \quad
+\text{SD}_{\text{min}} = \frac{0.56}{1440} \times \frac{1250}{1000} \approx 0.0004861
 $$
 
 These are then converted to lognormal distribution parameters for use in the simulation using the formua below.
 
 $$
-\mu = \ln\left(\frac{m_N^2}{\sqrt{s_N^2 + m_N^2}}\right), \quad 
-\sigma = \sqrt{\ln\left(1 + \frac{s_N^2}{m_N^2}\right)}
+\mu_{log} = \ln\left(\frac{m_{min}^2}{\sqrt{SD_{min}^2 + m_{min}^2}}\right), \quad 
+\sigma_{log} = \sqrt{\ln\left(1 + \frac{SD_{min}^2}{m_{min}^2}\right)}
 $$
 
 Where:
 
-- $\mu$ ...
-- $m_{N}$ ...
-- $s_{N}$ ...
-- $\sigma$ ...
+- $\mu_{log}$ is the mean of the lognormal distribution.
 
-$$
-f(x; \mu, \sigma) = \frac{1}{x \sigma \sqrt{2\pi}} \exp\left( -\frac{(\ln x - \mu)^2}{2\sigma^2} \right), \quad x > 0
-$$
+- $\sigma_{log}$ is the standard deviation per minute
+
+For simulation efficiency arrival times for DNBI cases were pre-computed and then introduced deterministically to the simulation environment for processing. 
+
+
+
+The function simulates the timing of DNBI casualty arrivals across a specified number of days, using a lognormal distribution to reflect daily variability, then transforms that data into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds.
+
+Core Steps:
+
+1. **Lognormal Parameterization**. Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
+2. **Per-Minute Rate Sampling**. Draws `n_minutes` lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers.
+3. **Rate Scaling**. Scales the sampled rates according to population size and temporal resolution (per minute per 1,000 personnel).
+4. **Arrival Detection via Cumulative Sum**. Accumulates per-minute rates and detects new arrivals based on when the cumulative total crosses each whole casualty threshold.
+5. **Temporal Randomization**. Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+
+
 
 Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).
 

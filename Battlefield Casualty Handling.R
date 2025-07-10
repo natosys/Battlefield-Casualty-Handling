@@ -31,7 +31,9 @@ n_days <- 30
 
 # Casualty arrival rates
 wia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 6.86) / day_min)
+wia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 6.86) / day_min)
 kia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 1.63) / day_min)
+kia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 1.63) / day_min)
 
 generate_dnbi_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
@@ -464,8 +466,8 @@ env %>%
   add_generator("wia_cbt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
   add_generator("kia_cbt", casualty, distribution = kia_rate_cbt, mon = 2) %>%
   add_generator("dnbi_cbt", casualty, distribution = at(dnbi_rate_cbt), mon = 2) %>%
-  add_generator("wia_spt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
-  add_generator("kia_spt", casualty, distribution = kia_rate_cbt, mon = 2) %>%
+  add_generator("wia_spt", casualty, distribution = wia_rate_spt, mon = 2) %>%
+  add_generator("kia_spt", casualty, distribution = kia_rate_spt, mon = 2) %>%
   add_generator("dnbi_spt", casualty, distribution = at(dnbi_rate_spt), mon = 2)
 
 # Run the simulation for 30 days

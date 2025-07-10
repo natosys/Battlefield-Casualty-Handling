@@ -34,9 +34,9 @@ $$
 
 Where:
 
-- $\lambda_{min}$ is the rate per minute.
+- $\lambda_{min}$ = the rate per minute.
 
-- $\alpha_{pop}$ is the population of combat forces.
+- $\alpha_{pop}$ = the population of combat forces.
 
 - $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
 
@@ -48,9 +48,15 @@ $$
 \lambda_{\text{min}} = \left(\frac{2250}{1000}\right)\times\left(\frac{6.86}{1440}\right) \approx 0.01071875
 $$
 
+The $\lambda_{min}$ was then used in an exponential rate generator for the simulation.
+
+$$
+f(x; \lambda_{min}) = \lambda e^{-\lambda x}, \quad x \geq 0
+$$
+
 #### Support Casualties
 
-Not yet implemented.
+Support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).  
 
 ### Killed In Action (KIA)
 
@@ -64,7 +70,7 @@ $$
 
 #### Support Casualties
 
-Not yet implemented.
+As in the case for WIA, KIA support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).
 
 ### Disease and Non-Battle Injury (DNBI)
 
@@ -74,15 +80,11 @@ For simulation efficiency arrival times for DNBI cases were pre-computed and the
 
 Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
 
-
-
 Mean (log-space):
 
 $$
 \mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)
 $$
-
-
 
 Standard deviation (log-space):
 
@@ -90,28 +92,20 @@ $$
 \sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}
 $$
 
-
-
 Where:
 
 - $\mu$ = expected number of DNBI casualties per day
 - $\sigma$ = daily standard deviation
 
-
-
 #### 2. Per-Minute Rate Sampling and Scaling
 
 Draws  lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
-
-
 
 For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute DNBI rate is computed as:
 
 $$
 r_i = \min\left(x_i, \text{cap}\right) \times \frac{P}{1000 \times 1440}
 $$
-
-
 
 Where:
 
@@ -123,13 +117,9 @@ Where:
 - $P$ = population size (support or combat)
 - $r_i$ = scaled and capped casualty rate for minute i
 
-
-
 #### 3. Arrival Detection via Cumulative Sum
 
 Accumulates per-minute rates and detects new arrivals based on when the cumulative total crosses each whole casualty threshold.
-
-
 
 Let $R = \{r_1, r_2, \dots, r_N\}$ be the per-minute rates. Then the cumulative sum is:
 
@@ -145,13 +135,9 @@ $$
 
 This captures each increment in the expected arrival count.
 
-
-
 #### 4. Temporal Randomisation
 
 Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
-
-
 
 #### Combat Casualties
 
@@ -168,8 +154,6 @@ Support DNBI casualty generation has been based on Okinawa support troop DNBI ra
 $$
 \mu = 0.94, \sigma = 0.56
 $$
-
-
 
 Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).
 
@@ -424,3 +408,15 @@ ReleaseEvacSurg --> End
 [2] Land Warfare Publication 0-5-2 Staff Officers Aide-Memoir 2018.
 
 [3] https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/
+
+[4] Kuhn, Ground Forces Battle Casualty Rate Patterns https://apps.dtic.mil/sti/html/tr/ADA304910/
+
+[5] https://www.thefreelibrary.com/Casualty%2Bestimation%2Bin%2Bmodern%2Bwarfare.-a0110459243
+
+
+
+Resources
+
+Possible information on casualty flow and handling considerations for inclusion in simulations:
+
+https://pure.southwales.ac.uk/ws/portalfiles/portal/987130/1_3_Bricknell_Paper_3_Casualty_Estimation_final_PhD.pdf

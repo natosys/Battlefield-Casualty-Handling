@@ -234,33 +234,45 @@ print(r2b_daily_surgeries)
 # Filter R2E-handled casualties
 r2e_cases <- arrivals[!is.na(arrivals$r2e_handling), ]
 
-# Mark bypass status
+# Fill missing values safely
 r2e_cases$r2b_bypassed[is.na(r2e_cases$r2b_bypassed)] <- 0
-r2e_cases$r2e_path <- ifelse(r2e_cases$r2b_bypassed == 1, "Direct from R1", "From R2B")
+r2e_cases$r2b_surgery[is.na(r2e_cases$r2b_surgery)] <- 0
+r2e_cases$surgery[is.na(r2e_cases$surgery)] <- 0  # assuming 1 if surgery required
+
+# Classify surgical pathway into R2E
+r2e_cases$r2e_path <- ifelse(
+  r2e_cases$r2b_bypassed == 1, "Direct from R1",
+  ifelse(r2e_cases$r2b_surgery == 1, "From R2B – With Surgery",
+         ifelse(r2e_cases$surgery == 1, "From R2B – Needed Surgery",
+                "From R2B – Did Not Need Surgery")
+  )
+)
 
 # Calculate simulation day
 r2e_cases$day <- floor(r2e_cases$start_time / 1440) + 1
 
-# Tabulate counts
-counts_table <- table(r2e_cases$day, r2e_cases$r2e_path)
-counts_df <- as.data.frame(counts_table)
+# Tabulate counts by day and path
+counts_df <- as.data.frame(table(r2e_cases$day, r2e_cases$r2e_path))
 colnames(counts_df) <- c("day", "path", "count")
 counts_df$day <- as.numeric(as.character(counts_df$day))
 
-# Calculate max stacked total per day
-total_per_day <- aggregate(count ~ day, data = counts_df, sum)
-max_total <- max(total_per_day$count)
+# Calculate max stacked count per day
+max_total <- max(aggregate(count ~ day, data = counts_df, sum)$count)
 
-# Plot
-r2e_cases <- ggplot(counts_df, aes(x = day, y = count, fill = path)) +
+# Build plot
+ggplot(counts_df, aes(x = day, y = count, fill = path)) +
   geom_bar(stat = "identity") +
   labs(
     title = "Casualties Handled by R2E per Day",
     x = "Day",
     y = "Number of Casualties",
-    fill = "Source of Casualty"
+    fill = "Source and Surgical Path"
   ) +
+  scale_fill_manual(values = c(
+    "Direct from R1"                  = "gray60",
+    "From R2B – Did Not Need Surgery" = "#1E88E5",
+    "From R2B – Needed Surgery"       = "#FDD835",
+    "From R2B – With Surgery"         = "#E53935"
+  )) +
   scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
   theme_minimal()
-
-print(r2e_cases)

@@ -51,6 +51,29 @@ bed_use$bed_type <- factor(bed_use$bed_type, levels = severity_levels)
 bed_use <- bed_use[order(bed_use$team, bed_use$bed_type, bed_use$resource_readable), ]
 bed_use$resource_readable <- factor(bed_use$resource_readable, levels = unique(bed_use$resource_readable))
 
+##### ***
+  # Extract off-duty intervals for each ot_bed
+  ot_bed_roster <- data.frame()
+
+for (i in seq_along(env_data$elms$r2b)) {
+  bed_name <- env_data$elms$r2b[[i]]$ot_bed
+  start_hour <- (i %% 2) * 12  # same stagger logic
+  
+  off_start <- (start_hour + 12) %% 24
+  ot_bed_roster <- rbind(ot_bed_roster, data.frame(
+    resource = bed_name,
+    team = paste("Team", i),
+    off_start_day = seq(0, max(bed_use$end_day), by = 1),
+    off_start_hour = off_start,
+    duration_hours = 12
+  ))
+}
+
+# Expand into day-level shading intervals
+ot_bed_roster$start_day <- ot_bed_roster$off_start_day + ot_bed_roster$off_start_hour / 24
+ot_bed_roster$end_day   <- ot_bed_roster$start_day + ot_bed_roster$duration_hours / 24
+##### ***
+
 resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
 
 # Compute resource usage per team/role/day
@@ -214,8 +237,47 @@ day_breaks <- seq(0, max(utilisation_data_r2b$day), by = 1)
 ########################################
 
 # Function for bed Gantt plot by team (if not already defined)
+# bed_plot_by_team <- function(team_label) {
+#   ggplot(subset(bed_use, team == team_label)) +
+#     geom_segment(
+#       aes(x = start_day, xend = end_day, y = resource_readable, yend = resource_readable, color = bed_type),
+#       linewidth = 4
+#     ) +
+#     scale_x_continuous(
+#       breaks = seq(0, ceiling(max(bed_use$end_day)), by = 1),
+#       expand = expansion(mult = c(0, 0))
+#     ) +
+#     coord_cartesian(xlim = range(day_breaks)) +
+#     geom_vline(
+#       xintercept = day_breaks,
+#       linetype = "dotted",
+#       color = "gray20",
+#       linewidth = 0.4
+#     ) +
+#     scale_color_manual(
+#       name = "Bed Occupancy",
+#       values = c(
+#         "OT" = "firebrick",
+#         "ICU" = "darkorange",
+#         "Resus" = "goldenrod",
+#         "Holding" = "khaki3"
+#       )
+#     ) +
+#     labs(title = paste(team_label, "Bed Occupancy"), y = NULL, x = NULL) +
+#     theme_minimal() +
+#     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+# }
 bed_plot_by_team <- function(team_label) {
-  ggplot(subset(bed_use, team == team_label)) +
+  bed_subset <- subset(bed_use, team == team_label)
+  roster_subset <- subset(ot_bed_roster, team == team_label)
+  
+  ggplot(bed_subset) +
+    # Add shaded OT bed downtime
+    geom_rect(data = roster_subset,
+              aes(xmin = start_day, xmax = end_day, ymin = -Inf, ymax = Inf),
+              fill = "gray85", alpha = 0.4) +
+    
+    # Bed occupancy segments
     geom_segment(
       aes(x = start_day, xend = end_day, y = resource_readable, yend = resource_readable, color = bed_type),
       linewidth = 4

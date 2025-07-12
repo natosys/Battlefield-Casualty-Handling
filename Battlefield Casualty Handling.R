@@ -1,6 +1,7 @@
 ### ENVIRONMENT SETUP ###
 
-rm()
+rm(list = ls())
+gc()
 set.seed(42)
 
 library(simmer)
@@ -78,32 +79,61 @@ r1_teams_clinicians <- lapply(env_data$elms$r1, function(team) {
   team[grepl("_clinician_", team)]
 })
 
-## Transport Resources ##
-# Add HX2_40M resources to environment
-for (i in 1:length(env_data$transports$HX240M)) {
-  env %>% add_resource(paste0("t_HX2_40M", i), 50)
-}
-# Add PMV_Amb resources to environment
-for (i in 1:length(env_data$transports$PMVAmb)) {
-  env %>% add_resource(paste0("t_PMV_Amb", i), 4)
-}
+### SCHEDULING FOR ROLE 2B SURGERY AND OT BEDS ###
+ot_shift_1 <- simmer::schedule(c(0, 720), c(1, 0), period = 1440)
+ot_shift_2 <- simmer::schedule(c(720, 1440), c(1, 0), period = 1440)
 
-# Add all canonical resources from elms
+surg_counter <- 0  # Used to stagger shifts
+
+### RESOURCE ALLOCATION ###
 for (elm_type in names(env_data$elms)) {
   for (team in env_data$elms[[elm_type]]) {
+    
     if (is.character(team)) {
-      # r1 case: flat vector
+      # R1 flat teams—no scheduling
       for (res_name in team) {
         env <- env %>% add_resource(res_name)
       }
+      
     } else if (is.list(team)) {
-      # r2b, r2eheavy: named sublists
-      for (section in team) {
-        for (res_name in section) {
-          env <- env %>% add_resource(res_name)
+      # Apply scheduling only for R2B teams
+      apply_schedule <- elm_type == "r2b"
+      
+      if (apply_schedule) {
+        # Assign team shift once per team
+        team_shift <- if (surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
+        shift_label <- ifelse(surg_counter %% 2 == 1, "Shift 1", "Shift 2")
+        
+        for (section_name in names(team)) {
+          section <- team[[section_name]]
+          
+          for (res_name in section) {
+            if (section_name %in% c("surg", "ot_bed")) {
+              env <- env %>% add_resource(res_name, team_shift)
+            } else {
+              env <- env %>% add_resource(res_name)
+            }
+          }
+        }
+        
+        surg_counter <- surg_counter + 1
+        
+      } else {
+        # For R2E or other teams: no scheduling applied
+        for (section in team) {
+          for (res_name in section) {
+            env <- env %>% add_resource(res_name)
+          }
         }
       }
     }
+  }
+}
+
+# Add all transport resources
+for (transport_type in names(env_data$transports)) {
+  for (res_name in env_data$transports[[transport_type]]) {
+    env <- env %>% add_resource(res_name)
   }
 }
 
@@ -122,10 +152,10 @@ r1_treat_kia <- function(team) {
 # Transport KIA to mortuary (collocated with Role 2 facility)
 r1_transport_kia <- function() {
   # Dynamically identify all HX2_40M resources in the environment
-  ambulances <- get_resources(env)[grepl("^t_HX2_40M", get_resources(env))]
+  # ambulances <- get_resources(env)[grepl("^t_HX2_40M", get_resources(env))]
   
   trajectory("Transport KIA") %>%
-    select(ambulances, policy = "shortest-queue") %>%
+    select(env_data$transports$HX240M, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
@@ -159,10 +189,10 @@ r1_treat_wia <- function(team) {
 # Transport WIA/DNBI to Role 2 using one of the PMV_Amb resources
 r1_transport_wia <- function() {
   # Dynamically identify all PMV_Amb resources in the environment
-  ambulances <- get_resources(env)[grepl("^t_PMV_Amb", get_resources(env))]
+  # ambulances <- get_resources(env)[grepl("^t_PMV_Amb", get_resources(env))]
   
   trajectory("Transport WIA") %>%
-    select(ambulances, policy = "shortest-queue") %>%
+    select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
@@ -343,7 +373,16 @@ casualty <- trajectory("Casualty") %>%
     } else {
       NA
     }
-  }) %>%  set_attribute("surgery", function() {
+  }) %>%
+  set_attribute("nbi", function() {
+    name <- get_name(env)
+    if (startsWith(name, "dnbi")) {
+      return(as.numeric(runif(1) < 0.17))
+    } else {
+      return(NA)
+    }
+  }) %>%
+  set_attribute("surgery", function() {
     prio <- get_attribute(env, "priority")
     name <- get_name(env)
     
@@ -359,6 +398,7 @@ casualty <- trajectory("Casualty") %>%
       return(as.numeric(runif(1) < 0.6))
     }
   }) %>%
+  
   
   branch(
     option = function() {

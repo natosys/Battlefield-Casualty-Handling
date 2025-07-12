@@ -20,13 +20,11 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 ## 🤕 Casualties
 
-Casualties are generated based on rates outlined in [[1]](#References) with the implementation outlined below.
+Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
 
 ### Wounded In Action (WIA)
 
-#### Combat Casualties
-
-Combat WIA casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
+Casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
 
 $$
 \lambda_{\text{min}} = \left(\frac{\alpha_\text{pop}}{1000}\right)\times\left(\frac{\lambda_{\text{daily}}}{T_{min}}\right)
@@ -54,21 +52,15 @@ $$
 f(x; \lambda_{min}) = \lambda e^{-\lambda x}, \quad x \geq 0
 $$
 
-#### Support Casualties
-
 Support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).  
 
 ### Killed In Action (KIA)
 
-#### Combat Casualties
-
-Combat KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
+KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
 
 $$
 \lambda_{min}=0.002546875
 $$
-
-#### Support Casualties
 
 As in the case for WIA, KIA support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).
 
@@ -155,7 +147,9 @@ $$
 \mu = 0.94, \sigma = 0.56
 $$
 
-Of DNBI cases, 17% allocated to NBI with the remainder disease or battle fatigue ([[1]](#References), pp 22-23).
+#### DNBI Sub-Categorisation
+
+DNBI cases were further sub-categorised as either NBI or disease/battle fatigue with 17% of DNBI cases being allocated as NBI and the remainder disease or battle fatigue (per [[1]](#References), pp 22-23).
 
 ## Casualty Priorities
 

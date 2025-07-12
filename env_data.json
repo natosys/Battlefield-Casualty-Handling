@@ -228,12 +228,12 @@
       {
         "name": "PMVAmb",
         "capacity": 4,
-        "qty": 12
+        "qty": 3
       },
       {
         "name": "HX240M",
         "capacity": 50,
-        "qty": 6
+        "qty": 4
       }
     ]
 }

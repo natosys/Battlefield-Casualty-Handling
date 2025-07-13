@@ -151,9 +151,6 @@ r1_treat_kia <- function(team) {
 
 # Transport KIA to mortuary (collocated with Role 2 facility)
 r1_transport_kia <- function() {
-  # Dynamically identify all HX2_40M resources in the environment
-  # ambulances <- get_resources(env)[grepl("^t_HX2_40M", get_resources(env))]
-  
   trajectory("Transport KIA") %>%
     select(env_data$transports$HX240M, policy = "shortest-queue") %>%
     seize_selected() %>%
@@ -188,15 +185,27 @@ r1_treat_wia <- function(team) {
 
 # Transport WIA/DNBI to Role 2 using one of the PMV_Amb resources
 r1_transport_wia <- function() {
-  # Dynamically identify all PMV_Amb resources in the environment
-  # ambulances <- get_resources(env)[grepl("^t_PMV_Amb", get_resources(env))]
-  
   trajectory("Transport WIA") %>%
     select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
     release_selected()
+}
+
+r2b_transport_wia <- function() {
+  trajectory("R2B to R2E Heavy transport") %>%
+    log_("R2B to R2E Heavy Transport - start") %>%
+    select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
+    seize_selected(id = 7) %>%
+    set_attribute("r2b_r2e_transport_start", function() now(env)) %>%
+    
+    # Simulate full round-trip transport time (e.g., 30 min each way)
+    timeout(function() {
+      rlnorm(1, log(30), 0.3)
+    }) %>%
+    
+    release_selected(id = 7)
 }
 
 seize_resources <- function(trj, resources) {
@@ -214,6 +223,12 @@ release_resources <- function(trj, resources) {
 }
 
 ### ROLE 2 ENHANCED HANDLING ###
+select_r2e_team <- function() {
+  selected <- sample(1:length(env_data$elms$r2eheavy), 1)
+  cat(sprintf("⚠ Randomly selected R2E team %d (no capacity check)\n", selected))
+  return(selected)
+}
+
 r2e_treat_wia <- function(team_id) {
   hold_beds <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -226,7 +241,47 @@ r2e_treat_wia <- function(team_id) {
   
   trajectory("R2E Treatment (Fallback)") %>%
     log_("r2e_treat_wia") %>%
-    set_attribute("r2e_handling", 1)
+    set_attribute("r2e_handling", 1) %>%
+    
+    # Step 1: Initial hold bed
+    log_("Initially occupy R2E holding bed") %>%
+    select(hold_beds, policy = "shortest-queue", id = 1) %>%
+    seize_selected(id = 1) %>%
+    
+    # Step 2: Transfer to Resus
+    log_("Occupy R2E Resus bed") %>%
+    select(resus_beds, policy = "shortest-queue", id = 2) %>%
+    seize_selected(id = 2) %>%
+    release_selected(id = 1) %>%
+
+    # Step 3: Emergency treatment
+    seize_resources(emergency_team) %>%
+    log_("Emergency treatment in R2E Resus") %>%
+    branch(
+      option = function() {
+        attr <- get_attribute(env, "r2b_resus")
+        if (!is.na(attr) && attr == 1) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      
+      # Shorter resus time if previously resus at R2B
+      trajectory() %>%
+        timeout(function() rlnorm(1, log(15), 0.3)) %>%
+        release_resources(emergency_team) %>%
+        release_selected(id = 2),
+      
+      # Longer resus time otherwise
+      trajectory() %>%
+        timeout(function() rlnorm(1, log(45), 0.3)) %>%
+        set_attribute("r2e_resus", 1) %>%
+        release_resources(emergency_team) %>%
+        release_selected(id = 2)
+    )
+
+    # Else If the patient went through R2B Resus but not surgery then spend 15 min checking then send to Surgery
+    # Else spend 45 min in resus and send to surgery
+    # Step 4: Surgery
 }
 
 ### ROLE 2 BASIC HANDLING ###
@@ -287,6 +342,7 @@ r2b_treat_wia <- function(team_id) {
     # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
     timeout(function() rlnorm(1, log(45), 0.3)) %>%
+    set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
     
@@ -346,19 +402,22 @@ r2b_treat_wia <- function(team_id) {
       },
       continue = TRUE,
       
+      # Path 1: Immediate evacuation possible
       trajectory("Immediate Evac") %>%
         set_attribute("r2b_to_r2e", 1) %>%
+        set_attribute("r2e", function() select_r2e_team()) %>%
         seize_resources(evacuation_team) %>%
         timeout(function() rlnorm(1, log(30), 0.2)) %>%
-        
+        log_("Immediate evacuation to R2E Heavy") %>%
+        release_resources(evacuation_team) %>%
+        log_("Resources Released") %>%
         branch(
-          option = function() sample(1:counts[["r2eheavy"]], 1),
+          option = function() get_attribute(env, "r2e"),
           continue = TRUE,
-          lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
-        ) %>%
-        
-        release_resources(evacuation_team),
+          lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
+        ),
       
+      # Path 2: Immediate evacuation not possible → Wait in ICU
       join(wait_for_evac)
     )
 }

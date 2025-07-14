@@ -15,16 +15,21 @@ for (team in seq_len(counts[["r1"]])) {
   print(team_plot)  # Force plot to render
 }
 
-# Generate and display usage plots for r2b clinical resources by team
+# Generate and display usage plots for r2b clinical (emerg) resources by team and subteam
 for (team in seq_len(counts[["r2b"]])) {
-  clinical_resources_team <- env_data$elms$r2b[[team]][["emerg"]]
-  team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_team, ]
+  subteams <- env_data$elms$r2b[[team]][["emerg"]]
   
-  team_plot <- plot(team_resources_filtered, metric = "usage") +
-    ggtitle(paste("R2B Emergency Resource Usage - Team", team)) +
-    theme_minimal()
-  
-  print(team_plot)  # Force plot to render
+  for (subteam_id in seq_along(subteams)) {
+    clinical_resources_subteam <- subteams[[subteam_id]]
+    
+    team_resources_filtered <- all_resources[all_resources$resource %in% clinical_resources_subteam, ]
+    
+    team_plot <- plot(team_resources_filtered, metric = "usage") +
+      ggtitle(paste("R2B Emergency Resource Usage - Team", team, "Subteam", subteam_id)) +
+      theme_minimal()
+    
+    print(team_plot)  # Render the plot
+  }
 }
 
 transport_plot <- plot(all_resources, metric = "usage", transport_resources) +

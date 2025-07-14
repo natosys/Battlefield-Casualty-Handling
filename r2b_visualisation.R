@@ -95,10 +95,10 @@ resources_r2b$end <- resources_r2b$start + resources_r2b$time_diff
 
 # Exclude resource from graphing (while they are managed as a group)
 base_roles <- c(
-  "c_r2b_emerg_facem_1",
-  "c_r2b_evac_medic_1",
-  "c_r2b_surg_surgeon_1",
-  "c_r2b_icu_nurse_1"
+  "c_r2b_emerg_1_facem_1",
+  "c_r2b_evac_1_medic_1",
+  "c_r2b_surg_1_surgeon_1",
+  "c_r2b_icu_1_nurse_1"
 )
 team_ids <- unique(sub(".*(_t\\d+)$", "\\1", resources_r2b$resource))
 included_resources <- as.vector(outer(base_roles, team_ids, paste0))
@@ -335,16 +335,16 @@ util_plot_by_team <- function(team_label) {
     scale_fill_manual(
       name = "Daily Resource Usage",
       values = c(
-        "c_r2b_surg_surgeon_1" = "#33a02c",
-        "c_r2b_emerg_facem_1" = "#fb9a99",
-        "c_r2b_icu_nurse_1" = "#ff7f00",
-        "c_r2b_evac_medic_1" = "#6a3d9a"
+        "c_r2b_surg_1_surgeon_1" = "#33a02c",
+        "c_r2b_emerg_1_facem_1" = "#fb9a99",
+        "c_r2b_icu_1_nurse_1" = "#ff7f00",
+        "c_r2b_evac_1_medic_1" = "#6a3d9a"
       ),
       labels = c(
-        "c_r2b_surg_surgeon_1" = "Surgical Team",
-        "c_r2b_emerg_facem_1" = "Emergency Team",
-        "c_r2b_icu_nurse_1" = "ICU Team",
-        "c_r2b_evac_medic_1" = "Evacuation Team"
+        "c_r2b_surg_1_surgeon_1" = "Surgical Team",
+        "c_r2b_emerg_1_facem_1" = "Emergency Team",
+        "c_r2b_icu_1_nurse_1" = "ICU Team",
+        "c_r2b_evac_1_medic_1" = "Evacuation Team"
       )
     ) +
     scale_y_continuous(

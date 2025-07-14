@@ -222,6 +222,17 @@ release_resources <- function(trj, resources) {
   trj
 }
 
+select_subteam <- function(elm_type, team_id, subteam_type) {
+  subteams <- env_data$elms[[elm_type]][[team_id]][[subteam_type]]
+  
+  if (is.null(subteams) || length(subteams) == 0) {
+    stop(sprintf("No subteams of type '%s' found for %s team %d", subteam_type, elm_type, team_id))
+  }
+  
+  index <- sample(seq_along(subteams), 1)
+  return(subteams[[index]])
+}
+
 ### ROLE 2 ENHANCED HANDLING ###
 select_r2e_team <- function() {
   selected <- sample(1:length(env_data$elms$r2eheavy), 1)
@@ -234,10 +245,12 @@ r2e_treat_wia <- function(team_id) {
   resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
   ot_beds <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
   icu_beds <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
-  emergency_team <- env_data$elms$r2eheavy[[team_id]][["emerg"]]
-  evacuation_team <- env_data$elms$r2eheavy[[team_id]][["evac"]]
-  surg_team <- env_data$elms$r2eheavy[[team_id]][["surg"]]
-  icu_team <- env_data$elms$r2eheavy[[team_id]][["icu"]]
+  emergency_teams <- env_data$elms$r2eheavy[[team_id]][["emerg"]]
+  evacuation_teams <- env_data$elms$r2eheavy[[team_id]][["evac"]]
+  surg_teams <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+  icu_teams <- env_data$elms$r2eheavy[[team_id]][["icu"]]
+  
+  emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
   
   trajectory("R2E Treatment (Fallback)") %>%
     log_("r2e_treat_wia") %>%
@@ -279,9 +292,8 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 2)
     )
 
-    # Else If the patient went through R2B Resus but not surgery then spend 15 min checking then send to Surgery
-    # Else spend 45 min in resus and send to surgery
-    # Step 4: Surgery
+  # Step 4: Surgery
+  # if surgery == 1 && r2b_surgery != 1 then do surgery
 }
 
 ### ROLE 2 BASIC HANDLING ###
@@ -308,10 +320,10 @@ r2b_treat_wia <- function(team_id) {
   resus_beds <- env_data$elms$r2b[[team_id]][["resus_bed"]]
   ot_beds <- env_data$elms$r2b[[team_id]][["ot_bed"]]
   icu_beds <- env_data$elms$r2b[[team_id]][["icu_bed"]]
-  emergency_team <- env_data$elms$r2b[[team_id]][["emerg"]]
-  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]]
-  surg_team <- env_data$elms$r2b[[team_id]][["surg"]]
-  icu_team <- env_data$elms$r2b[[team_id]][["icu"]]
+  emergency_team <- env_data$elms$r2b[[team_id]][["emerg"]][[1]]
+  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
+  surg_team <- env_data$elms$r2b[[team_id]][["surg"]][[1]]
+  icu_team <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
   
   # Fallback path: Wait in an ICU bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%

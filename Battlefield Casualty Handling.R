@@ -145,7 +145,7 @@ r1_treat_kia <- function(team) {
   trajectory(paste("KIA Team", team)) %>%
     set_attribute("r1_treated", team) %>%
     set_attribute("mortuary_treated", 1) %>%
-    select(medics, policy = "shortest-queue") %>%
+    simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
     timeout(function() rnorm(1, 15)) %>%
     release_selected()
@@ -154,7 +154,7 @@ r1_treat_kia <- function(team) {
 # Transport KIA to mortuary (collocated with Role 2 facility)
 r1_transport_kia <- function() {
   trajectory("Transport KIA") %>%
-    select(env_data$transports$HX240M, policy = "shortest-queue") %>%
+    simmer::select(env_data$transports$HX240M, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
@@ -168,9 +168,9 @@ r1_treat_wia <- function(team) {
   
   trajectory(paste("WIA Team", team)) %>%
     set_attribute("r1_treated", team) %>%
-    select(medics, policy = "shortest-queue") %>%
+    simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
-    select(clinicians, policy = "shortest-queue") %>%
+    simmer::select(clinicians, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("treatment_start_time", function() now(env)) %>%  # Track treatment start time
     timeout(function() {  # Set treatment duration based on priority
@@ -189,7 +189,7 @@ r1_treat_wia <- function(team) {
 # Transport WIA/DNBI to Role 2 using one of the PMV_Amb resources
 r1_transport_wia <- function() {
   trajectory("Transport WIA") %>%
-    select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
+    simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
     timeout(function() rlnorm(1, log(30), 0.5)) %>%
@@ -199,7 +199,7 @@ r1_transport_wia <- function() {
 r2b_transport_wia <- function() {
   trajectory("R2B to R2E Heavy transport") %>%
     log_("R2B to R2E Heavy Transport - start") %>%
-    select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
+    simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
     seize_selected(id = 7) %>%
     set_attribute("r2b_r2e_transport_start", function() now(env)) %>%
     
@@ -261,11 +261,11 @@ r2e_treat_wia <- function(team_id) {
     set_attribute("r2e_handling", 1) %>%
     
     # Step 1: Initial hold bed
-    select(hold_beds, policy = "shortest-queue", id = 1) %>%
+    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
     
     # Step 2: Transfer to Resus
-    select(resus_beds, policy = "shortest-queue", id = 2) %>%
+    simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
 
@@ -294,7 +294,7 @@ r2e_treat_wia <- function(team_id) {
     ) %>%
   
     # Step 4: hold bed
-    select(hold_beds, policy = "shortest-queue", id = 3) %>%
+    simmer::select(hold_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
 
     # Step 5: Surgery if required
@@ -308,7 +308,7 @@ r2e_treat_wia <- function(team_id) {
       
       # Branch 1: Needs surgery → Seize OT bed and perform surgery
       trajectory("R2E Surgery") %>%
-        select(ot_beds, policy = "shortest-queue", id = 4) %>%
+        simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
         release_selected(id = 3) %>%  # Release hold bed after OT is secured
         seize_resources(surg_team) %>%
@@ -328,7 +328,7 @@ r2e_treat_wia <- function(team_id) {
       # Branch 1: Recover at R2E Heavy
       trajectory("Recover at R2E") %>%
         log_("Selecting hold bed for recovery") %>%
-        select(hold_beds, policy = "shortest-queue", id = 5) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
         log_("Recovering at R2E Heavy") %>%
         timeout(function() {
@@ -340,6 +340,7 @@ r2e_treat_wia <- function(team_id) {
       
       # Branch 2: Strategic AME
       trajectory("Strategic Evac") %>%
+        set_attribute("r2e_evac", 1) %>%
         log_("Commencing strategic evacuation from R2E Heavy")
     )
 }
@@ -376,7 +377,7 @@ r2b_treat_wia <- function(team_id) {
   # Fallback path: Wait in an ICU bed for evacuation
   wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
     log_("wait_for_evac") %>%
-    select(icu_beds, policy = "shortest-queue", id = 3) %>%
+    simmer::select(icu_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
     seize_resources(icu_team) %>%
     seize_resources(evacuation_team) %>%
@@ -391,11 +392,11 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_treated", team_id) %>%
     
     # Step 1: Initial hold bed
-    select(hold_beds, policy = "shortest-queue", id = 1) %>%
+    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
     
     # Step 2: Transfer to Resus
-    select(resus_beds, policy = "shortest-queue", id = 2) %>%
+    simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
     
@@ -428,7 +429,7 @@ r2b_treat_wia <- function(team_id) {
           
           # Sub-branch 1: OT bed available → Surgery
           trajectory("Surgery Path") %>%
-            select(ot_beds, policy = "shortest-queue", id = 4) %>%
+            simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
             seize_selected(id = 4) %>%
             seize_resources(surg_team) %>%
             timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
@@ -442,7 +443,7 @@ r2b_treat_wia <- function(team_id) {
       
       # Branch 2: No surgery required
       trajectory("R2B No Surgery") %>%
-        select(hold_beds, policy = "first-available", id = 5) %>%
+        simmer::select(hold_beds, policy = "first-available", id = 5) %>%
         seize_selected(id = 5) %>%
         timeout(function() {
           recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 3
@@ -749,3 +750,5 @@ utilisation_data$casualty_percent_of_total <- round((utilisation_data$casualties
 
 source("visualisations.R")
 source("r2b_visualisation.R")
+source("r2e_visualisation.R")
+source("sankey_flow.R")

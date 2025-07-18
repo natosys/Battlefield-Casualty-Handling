@@ -1,44 +1,4 @@
-# library(dplyr)
-# library(tidyr)
-# library(networkD3)
-# 
-# # Step 1: Extract attributes into wide format
-# flow_data <- get_mon_attributes(env) %>%
-#   filter(key %in% c("r1_treated", "r2b_treated", "r2e_treated", "return_day", "mortuary_treated")) %>%
-#   pivot_wider(names_from = key, values_from = value)
-# 
-# # Step 2: Build long-format flow table
-# links_raw <- flow_data %>%
-#   select(r1_treated, r2b_treated, r2e_treated) %>%
-#   mutate(
-#     r1_to_r2b = paste(r1_treated, r2b_treated, sep = " → "),
-#     r2b_to_r2e = paste(r2b_treated, r2e_treated, sep = " → ")
-#   ) %>%
-#   select(r1_to_r2b, r2b_to_r2e) %>%
-#   pivot_longer(cols = everything(), names_to = "transition", values_to = "link") %>%
-#   count(link)
-# 
-# # Step 3: Extract nodes and map to indices
-# nodes <- data.frame(name = unique(unlist(strsplit(links_raw$link, " → "))))
-# get_index <- function(label) match(label, nodes$name) - 1
-# 
-# # Step 4: Build links table
-# links <- links_raw %>%
-#   separate(link, into = c("source", "target"), sep = " → ") %>%
-#   mutate(
-#     source_id = get_index(source),
-#     target_id = get_index(target)
-#   ) %>%
-#   select(source_id, target_id, value = n)
-# 
-# # Step 5: Plot Sankey diagram
-# sankeyNetwork(Links = links, Nodes = nodes,
-#               Source = "source_id", Target = "target_id",
-#               Value = "value", NodeID = "name",
-#               fontSize = 12, nodeWidth = 30)
-
 library(ggplot2)
-# library(ggsankeyfier)
 library(dplyr)
 library(tidyr)
 library(plotly)
@@ -47,7 +7,7 @@ library(plotly)
 # Extract and reshape attributes
 flow_data <- get_mon_attributes(env) %>%
   as.data.frame() %>%
-  filter(key %in% c("r1_treated", "r2b_treated", "r2e_treated", "return_day", "mortuary_treated")) %>%
+  filter(key %in% c("r1_treated", "r2b_treated", "r2e_treated", "return_day", "mortuary_treated", "r2e_evac")) %>%
   pivot_wider(names_from = key, values_from = value) %>%
   mutate(across(everything(), as.character))
 
@@ -63,7 +23,7 @@ flow_data <- flow_data %>%
   rename(return_to_force = return_day)
 
 # Define the ordered stages
-stage_cols <- c("r1_treated", "r2b_treated", "r2e_treated", "return_to_force", "mortuary_treated")
+stage_cols <- c("r1_treated", "r2b_treated", "r2e_treated", "return_to_force", "mortuary_treated", "r2e_evac")
 
 # Reshape to long format
 long_flow <- flow_data %>%
@@ -111,6 +71,9 @@ flow_counts$target <- gsub("return_to_force", "Return to Force", flow_counts$tar
 flow_counts$source <- gsub("Mortuary 1", "Mortuary", flow_counts$source)
 flow_counts$target <- gsub("Mortuary 1", "Mortuary", flow_counts$target)
 
+flow_counts$source <- gsub("r2e_evac 1", "Evacuation", flow_counts$source)
+flow_counts$target <- gsub("r2e_evac 1", "Evacuation", flow_counts$target)
+
 flow_counts$source <- gsub("Return to Force 1", "Return to Force", flow_counts$source)
 flow_counts$target <- gsub("Return to Force 1", "Return to Force", flow_counts$target)
 
@@ -135,7 +98,7 @@ fig <- plotly::plot_ly(
 fig <- plotly::layout(fig, title = "Casualty Flow Sankey Diagram", font = list(size = 12))
 
 # Display the plot
-fig
+print(fig)
 
 # Extract node type by removing trailing numbers
 extract_type <- function(x) sub(" [0-9]+$", "", x)
@@ -169,4 +132,4 @@ fig <- plotly::plot_ly(
 )
 
 fig <- plotly::layout(fig, title = list(text = "Simplified Casualty Flow by Node Type"), font = list(size = 12))
-fig
+print(fig)

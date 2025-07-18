@@ -143,6 +143,8 @@ for (transport_type in names(env_data$transports)) {
 r1_treat_kia <- function(team) {
   medics <- r1_teams_technicians[[team]]
   trajectory(paste("KIA Team", team)) %>%
+    set_attribute("r1_treated", team) %>%
+    set_attribute("mortuary_treated", 1) %>%
     select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
     timeout(function() rnorm(1, 15)) %>%
@@ -165,6 +167,7 @@ r1_treat_wia <- function(team) {
   clinicians <- r1_teams_clinicians[[team]]
   
   trajectory(paste("WIA Team", team)) %>%
+    set_attribute("r1_treated", team) %>%
     select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
     select(clinicians, policy = "shortest-queue") %>%
@@ -251,25 +254,23 @@ r2e_treat_wia <- function(team_id) {
   icu_teams <- env_data$elms$r2eheavy[[team_id]][["icu"]]
   
   emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
+  surg_team <- select_subteam("r2eheavy", team_id, "surg")
   
   trajectory("R2E Treatment (Fallback)") %>%
-    log_("r2e_treat_wia") %>%
+    set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
     
     # Step 1: Initial hold bed
-    log_("Initially occupy R2E holding bed") %>%
     select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
     
     # Step 2: Transfer to Resus
-    log_("Occupy R2E Resus bed") %>%
     select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
 
     # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
-    log_("Emergency treatment in R2E Resus") %>%
     branch(
       option = function() {
         attr <- get_attribute(env, "r2b_resus")
@@ -290,10 +291,57 @@ r2e_treat_wia <- function(team_id) {
         set_attribute("r2e_resus", 1) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
-    )
+    ) %>%
+  
+    # Step 4: hold bed
+    select(hold_beds, policy = "shortest-queue", id = 3) %>%
+    seize_selected(id = 3) %>%
 
-  # Step 4: Surgery
-  # if surgery == 1 && r2b_surgery != 1 then do surgery
+    # Step 5: Surgery if required
+    branch(
+      option = function() {
+        needs_surg <- get_attribute(env, "surgery")
+        if (!is.na(needs_surg) && needs_surg == 1) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      
+      # Branch 1: Needs surgery → Seize OT bed and perform surgery
+      trajectory("R2E Surgery") %>%
+        select(ot_beds, policy = "shortest-queue", id = 4) %>%
+        seize_selected(id = 4) %>%
+        release_selected(id = 3) %>%  # Release hold bed after OT is secured
+        seize_resources(surg_team) %>%
+        timeout(function() runif(1, min = 2 * 60, max = 4 * 60)) %>%
+        release_resources(surg_team) %>%
+        release_selected(id = 4),
+      
+      # Branch 2: No surgery needed → stay in hold bed, no OT required
+      trajectory("No Surgery Needed")
+    ) %>%
+    
+    # Step 7: Evacuate or retain for recovery
+    branch(
+      option = function() sample(1:2, 1, prob = c(0.05, 0.95)),  # 25% recover, 75% evac
+      continue = TRUE,
+      
+      # Branch 1: Recover at R2E Heavy
+      trajectory("Recover at R2E") %>%
+        log_("Selecting hold bed for recovery") %>%
+        select(hold_beds, policy = "shortest-queue", id = 5) %>%
+        seize_selected(id = 5) %>%
+        log_("Recovering at R2E Heavy") %>%
+        timeout(function() {
+          recovery_time <- rnorm(1, mean = 8 * day_min, sd = 2 * day_min)
+          max(0, recovery_time)  # Prevent negative time
+        }) %>%
+        release_selected(id = 5) %>%
+        log_("Recovery complete – hold bed released"),
+      
+      # Branch 2: Strategic AME
+      trajectory("Strategic Evac") %>%
+        log_("Commencing strategic evacuation from R2E Heavy")
+    )
 }
 
 ### ROLE 2 BASIC HANDLING ###

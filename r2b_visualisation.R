@@ -19,6 +19,8 @@ bed_log$end <- bed_log$time + bed_log$time_diff
 # Keep only rows where server > 0 (i.e., bed in use)
 bed_use <- subset(bed_log, server > 0 & time_diff > 0)
 bed_use$team <- sub(".*_t(\\d+)$", "Team \\1", bed_use$resource)
+# Keep only R2B beds
+bed_use <- bed_use[grepl("^b_r2b_", bed_use$resource), ]
 
 # Transform start/end from minutes to days
 bed_use$start_day <- bed_use$start / day_min
@@ -302,7 +304,7 @@ bed_plot_by_team <- function(team_label) {
         "Holding" = "khaki3"
       )
     ) +
-    labs(title = paste(team_label, "Bed Occupancy"), y = NULL, x = NULL) +
+    labs(title = paste("R2B ", team_label, "Bed Occupancy"), y = NULL, x = NULL) +
     theme_minimal() +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 }
@@ -352,7 +354,7 @@ util_plot_by_team <- function(team_label) {
       # sec.axis = sec_axis(~ ., name = "Daily Casualties (%)"),
       labels = scales::percent_format(scale = 1)
     ) +
-    labs(title = paste(team_label, "Daily Resource Utilization"), x = "Day") +
+    labs(title = paste("R2B ", team_label, "Daily Resource Utilization"), x = "Day") +
     theme_minimal()
 }
 

@@ -265,7 +265,7 @@ counts_df$day <- as.numeric(as.character(counts_df$day))
 max_total <- max(aggregate(count ~ day, data = counts_df, sum)$count)
 
 # Build plot
-ggplot(counts_df, aes(x = day, y = count, fill = path)) +
+r2e_daily_surgeries <- ggplot(counts_df, aes(x = day, y = count, fill = path)) +
   geom_bar(stat = "identity") +
   labs(
     title = "Casualties Handled by R2E per Day",
@@ -281,3 +281,5 @@ ggplot(counts_df, aes(x = day, y = count, fill = path)) +
   )) +
   scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
   theme_minimal()
+
+print(r2e_daily_surgeries)

@@ -395,6 +395,16 @@ ReleaseEvacSurg --> End
 
 ---
 
+DOW: 5% of total [6]
+
+---
+
+[Sankey flow diagram]([plotly-logomark](https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
+
+![image info](sankey.png)
+
+---
+
 # References
 
 [1] Blood, C., Zouris, J.M. and Rotblatt, D. (1997) Using the Ground Forces Casualty Forecasting System (FORECAS) to Project Casualty Sustainment. Accessed 23 Mar 2025 (Available at: [https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf](https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf)).
@@ -407,7 +417,7 @@ ReleaseEvacSurg --> End
 
 [5] https://www.thefreelibrary.com/Casualty%2Bestimation%2Bin%2Bmodern%2Bwarfare.-a0110459243
 
-
+[6] https://apps.dtic.mil/sti/pdfs/ADA480496.pdf
 
 Resources
 

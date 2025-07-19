@@ -17,7 +17,7 @@ for (team in seq_len(counts[["r1"]])) {
 
 # Generate and display usage plots for r2b clinical (emerg) resources by team and subteam
 for (team in seq_len(counts[["r2b"]])) {
-  subteams <- env_data$elms$r2b[[team]][["emerg"]]
+  subteams <- env_data$elms$r2b[[team]][["surg"]]
   
   for (subteam_id in seq_along(subteams)) {
     clinical_resources_subteam <- subteams[[subteam_id]]

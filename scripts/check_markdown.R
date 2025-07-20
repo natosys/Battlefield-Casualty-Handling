@@ -99,7 +99,7 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
 # }
 enforce_return_links <- function(file_path, mode = c("verify", "replace"),
                                  top_anchor = "#contents",
-                                 return_text = "<small>[Return to Top](#table-of-contents)</small>",
+                                 return_text = "<small>[Return to Top](#contents)</small>",
                                  log_path = "log.log") {
   mode <- match.arg(mode)
   lines <- readLines(file_path)

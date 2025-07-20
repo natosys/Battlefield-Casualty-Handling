@@ -1,5 +1,53 @@
 # Battlefield Casualty Handling Simulation
 
+
+
+- [📘 Introduction](#introduction)
+- [🌍 Context](#context)
+- [🧰 Resource Descriptions](#resourcedescriptions)
+  - [🏥Health Teams](#healthteams)
+    - [Role 1 (R1) Treatment Team](#role1r1treatmentteam)
+    - [Role 2 Basic (R2B)](#role2basicr2b)
+    - [Role 2 Enhanced Heavy (R2E Heavy)](#role2enhancedheavyr2eheavy)
+  - [🛏️ Bed Types](#bedtypes)
+    - [Operating Theatre (OT)](#operatingtheatreot)
+    - [Resuscitation (Resus) (alternatively Emergency)](#resuscitationresusalternativelyemergency)
+    - [Intensive Care Unit (ICU)](#intensivecareuniticu)
+    - [Holding (Hold)](#holdinghold)
+  - [🚑 Transport Assets](#transportassets)
+    - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protectedmobilityvehicleambulancepmvambulance)
+    - [HX2 40M](#hx240m)
+- [📊 Environment Data Summary](#environmentdatasummary)
+  - [👥 Population Groups](#populationgroups)
+  - [🚑 Transport Resources](#transportresources)
+  - [🏥 Medical Resources](#medicalresources)
+- [🤕 Casualties](#casualties)
+  - [Casualty Generation](#casualtygeneration)
+    - [1. Lognormal Parameterisation](#1lognormalparameterisation)
+    - [2. Per-Minute Rate Sampling and Scaling](#2perminuteratesamplingandscaling)
+    - [3. Arrival Detection via Cumulative Sum](#3arrivaldetectionviacumulativesum)
+    - [4. Temporal Randomisation](#4temporalrandomisation)
+  - [Wounded In Action (WIA)](#woundedinactionwia)
+    - [Combat Casualties](#combatcasualties)
+    - [Support Casualties](#supportcasualties)
+  - [Killed In Action (KIA)](#killedinactionkia)
+    - [Combat Casualties](#combatcasualties)
+    - [Support Casualties](#supportcasualties)
+  - [Disease and Non-Battle Injury (DNBI)](#diseaseandnonbattleinjurydnbi)
+    - [Combat Casualties](#combatcasualties)
+    - [Support Casualties](#supportcasualties)
+    - [DNBI Sub-Categorisation](#dnbisubcategorisation)
+- [Casualty Priorities](#casualtypriorities)
+- [Return to Duty](#returntoduty)
+- [Died of Wounds](#diedofwounds)
+
+- [Simulation Design](#simulationdesign)
+  - [🔧Simulation Environment Setup](#simulationenvironmentsetup)
+    - [🧬 **Casualty Trajectory Logic**](#casualtytrajectorylogic)
+    - [💀 **KIA (Killed in Action) Handling**](#kiakilledinactionhandling)
+    - [🤕 **WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling**](#wiawoundedinactiondnbidiseasenonbattleinjuryhandling)
+- [References](#references)
+
 ## 📘 Introduction
 
 This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
@@ -14,7 +62,7 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 2. Artillery support is assigned with battery's assigned Direct Support (DS) to the infantry battlegroups and are placed with the capacity to provide support to their supported call-signs. The Brigade Headquarters (HQ) has established a HQ-Forward and HQ-Main. The HQ-Forward is placed one tactical bound behind the forward battlegroups. `1` additional treatment team has been establsihed to provide close health support to the artillery unit and HQ-Forward. `1` Role 2 - Basic (R2B) has been established in vicinity of the HQ-Forward to support damage control (DAMCON) and stabilise casualties prior to evacuation to higher level care.
 
-3. The Combat Service Support Battalion (CSSB) has established the Brigade Maintenance Area (BMA). One further treatment team has been established to provide close health support within the BMA. To provide surgical capability to the brigade a Role 2 - Enhanced Heavy (R2E Heavy) hospital has been established within the BMA.
+3. The Combat Service Support Battalion (CSSB) has established the Brigade Maintenance Area (BMA). One further treatment team has been established to provide close health support within the BMA. To provide surgical capability to the brigade `1` Role 2 - Enhanced Heavy (R2E Heavy) hospital has been established within the BMA.
 
 ---
 
@@ -38,7 +86,7 @@ A R2E Heavy facility delivers advanced surgical and critical care capabilities i
 
 The R2E Heavy is a static field hospital with designed to handle complex trauma, prolonged care, and high casualty volumes—bridging the gap between battlefield stabilization and full hospital-level treatment.
 
-### 🛏️ Beds Types
+### 🛏️ Bed Types
 
 #### Operating Theatre (OT)
 
@@ -139,57 +187,15 @@ The following table summarises the medical elements configured in `env_data.json
 
 Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
 
-Comparison of casualty rates to estimates from Ukrainian conflict:
+Initially, WIA and KIA rates from US historical analysis of the Battle of Okinawa were used [[1]](#References), producing approximately 30 casualties per day for a force size of 3,750—yielding a casualty rate of ~0.8%. By comparison, Russia’s estimated 700–1,100 daily casualties from a committed force of 450,000–600,000 in Ukraine imply a lower casualty rate of ~0.2% [[7]](#References).
 
-Russian casualties of between 700 - 1100 casualties per day and troop commitment of 450,000 - 600,000 to the battlefront providing a daily casualty rate of ~0.2% [[7]](#References). The casualty generators used in this simulation produce a daily casualty rate of ~0.8% (of total force committed to the battlefront) with a casualty rate of approximately 30 per day for a committed force of 3750. As a result this was revised...?
+Given this discrepancy, a planning baseline was re-evaluated using historical data from the Falklands War, which suggests a casualty rate of ~0.37% [[1]](#References). This adjustment accounts for both the likely under-reporting in Russian casualty estimates—particularly of non-critical wounded personnel—and over three years of varied combat intensity in Ukraine, with seasonal fluctuations in operational tempo (source TBD).
 
+Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitable estimate for operational planning.
 
+### Casualty Generation
 
-### Wounded In Action (WIA)
-
-Casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
-
-$$
-\lambda_{\text{min}} = \left(\frac{\alpha_\text{pop}}{1000}\right)\times\left(\frac{\lambda_{\text{daily}}}{T_{min}}\right)
-$$
-
-Where:
-
-- $\lambda_{min}$ = the rate per minute.
-
-- $\alpha_{pop}$ = the population of combat forces.
-
-- $\lambda_{\text{daily}}=6.86$ is the WIA rate per day per 1000 population.
-
-- $T_{min}=1440$ is the number of minutes in a day.
-
-- $\alpha_{pop}=2250$ is the population of combat forces.
-
-$$
-\lambda_{\text{min}} = \left(\frac{2250}{1000}\right)\times\left(\frac{6.86}{1440}\right) \approx 0.01071875
-$$
-
-The $\lambda_{min}$ was then used in an exponential rate generator for the simulation.
-
-$$
-f(x; \lambda_{min}) = \lambda e^{-\lambda x}, \quad x \geq 0
-$$
-
-Support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).  
-
-### Killed In Action (KIA)
-
-KIA casualty generation has been based on Okinawa combat troop KIA rates ([[1]](#References), table A.9, p 33). The $\lambda_{day}=1.63$ KIA rate was converted from a per day to $\lambda_{min}$ using the same process outlined above providing:
-
-$$
-\lambda_{min}=0.002546875
-$$
-
-As in the case for WIA, KIA support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).
-
-### Disease and Non-Battle Injury (DNBI)
-
-For simulation efficiency arrival times for DNBI cases were pre-computed and then introduced deterministically to the simulation environment for processing. The function simulates the timing of DNBI casualty arrivals using a lognormal distribution to reflect daily variability, then transforms that data into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
+For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. The function simulates the timing of casualty arrivals using a lognormal distribution to reflect daily variability, transformed into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 
 #### 1. Lognormal Parameterisation
 
@@ -209,12 +215,12 @@ $$
 
 Where:
 
-- $\mu$ = expected number of DNBI casualties per day
-- $\sigma$ = daily standard deviation
+- \mu = expected number of DNBI casualties per day
+- \sigma = daily standard deviation
 
 #### 2. Per-Minute Rate Sampling and Scaling
 
-Draws  lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
+Draws lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
 
 For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute DNBI rate is computed as:
 
@@ -236,7 +242,7 @@ Where:
 
 Accumulates per-minute rates and detects new arrivals based on when the cumulative total crosses each whole casualty threshold.
 
-Let $R = \{r_1, r_2, \dots, r_N\}$ be the per-minute rates. Then the cumulative sum is:
+Let R = \{r_1, r_2, \dots, r_N\} be the per-minute rates. Then the cumulative sum is:
 
 $$
 C_i = \sum_{j=1}^{i} r_j
@@ -253,6 +259,36 @@ This captures each increment in the expected arrival count.
 #### 4. Temporal Randomisation
 
 Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+
+### Wounded In Action (WIA)
+
+#### Combat Casualties
+
+Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[1]](#References), table A.8 p32).
+
+$$
+\mu = 1.77, \quad \sigma = 3.56
+$$
+
+#### Support Casualties
+
+Support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[4]](#References) and [[5]](#References) p 2-4).
+
+### Killed In Action (KIA)
+
+#### Combat Casualties
+
+Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[1]](#References), table A.8 p32).
+
+$$
+\mu = 0.68, \quad \sigma = 1.39
+$$
+
+#### Support Casualties
+
+Similar to WIA, support casualty KIA employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250) (see [[4]](#References) and [[5]](#References) p 2-4).
+
+### Disease and Non-Battle Injury (DNBI)
 
 #### Combat Casualties
 

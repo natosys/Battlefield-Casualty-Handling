@@ -40,17 +40,7 @@ cie_threshold <- (2/3) * total_population
 n_days <- 30
 
 ##############################################
-## CASUALTY RATES                           ##
-##############################################
-
-#' Injury and fatality arrival functions (per minute rates)
-wia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 6.86) / day_min)
-wia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 6.86) / day_min)
-kia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 1.63) / day_min)
-kia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 1.63) / day_min)
-
-##############################################
-## DNBI RATE GENERATION                     ##
+## CASUALTY RATE GENERATION                 ##
 ##############################################
 
 #' Generate Lognorm arrival timestamps using capped log-normal rates
@@ -95,13 +85,27 @@ dnbi_rate_cbt <- generate_ln_arrivals(mean_daily = 2.04,
                                             pop = env_data$pops$combat,
                                             n_days)
 
-#' Create R1 clinician and technician subteam lists
-r1_teams_technicians <- lapply(env_data$elms$r1, function(team) {
-  team[grepl("_technician_", team)]
-})
-r1_teams_clinicians <- lapply(env_data$elms$r1, function(team) {
-  team[grepl("_clinician_", team)]
-})
+# Generate WIA casualty rates
+wia_rate_cbt <- generate_ln_arrivals(mean_daily = 1.77,
+                                            sd_daily = 3.56,
+                                            pop = env_data$pops$combat,
+                                            n_days)
+
+wia_rate_spt <- generate_ln_arrivals(mean_daily = 1.77,
+                                            sd_daily = 3.56,
+                                            pop = env_data$pops$support,
+                                            n_days)
+
+# Generate KIA casualty rates
+kia_rate_cbt <- generate_ln_arrivals(mean_daily = 0.68,
+                                            sd_daily = 1.39,
+                                            pop = env_data$pops$combat,
+                                            n_days)
+
+kia_rate_spt <- generate_ln_arrivals(mean_daily = 0.68,
+                                            sd_daily = 1.39,
+                                            pop = env_data$pops$support,
+                                            n_days)
 
 ##############################################
 ## RESOURCE SCHEDULES                       ##
@@ -168,6 +172,14 @@ for (transport_type in names(env_data$transports)) {
     env <- env %>% add_resource(res_name)
   }
 }
+
+#' Create R1 clinician and technician subteam lists
+r1_teams_technicians <- lapply(env_data$elms$r1, function(team) {
+  team[grepl("_technician_", team)]
+})
+r1_teams_clinicians <- lapply(env_data$elms$r1, function(team) {
+  team[grepl("_clinician_", team)]
+})
 
 ##############################################
 ## HELPER FUNCTIONS                         ##
@@ -1019,11 +1031,11 @@ casualty <- trajectory("Casualty") %>%
 ##############################################
 # Add casualty generators to simulation
 env %>%
-  add_generator("wia_cbt", casualty, distribution = wia_rate_cbt, mon = 2) %>%
-  add_generator("kia_cbt", casualty, distribution = kia_rate_cbt, mon = 2) %>%
+  add_generator("wia_cbt", casualty, distribution = at(wia_rate_cbt), mon = 2) %>%
+  add_generator("kia_cbt", casualty, distribution = at(kia_rate_cbt), mon = 2) %>%
   add_generator("dnbi_cbt", casualty, distribution = at(dnbi_rate_cbt), mon = 2) %>%
-  add_generator("wia_spt", casualty, distribution = wia_rate_spt, mon = 2) %>%
-  add_generator("kia_spt", casualty, distribution = kia_rate_spt, mon = 2) %>%
+  add_generator("wia_spt", casualty, distribution = at(wia_rate_spt), mon = 2) %>%
+  add_generator("kia_spt", casualty, distribution = at(kia_rate_spt), mon = 2) %>%
   add_generator("dnbi_spt", casualty, distribution = at(dnbi_rate_spt), mon = 2)
 
 # Run the simulation for 30 days

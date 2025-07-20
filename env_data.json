@@ -44,7 +44,7 @@
       },
       {
         "elm": "r2b",
-        "qty": 2,
+        "qty": 1,
         "sub_elms":
           [
             {
@@ -134,7 +134,7 @@
       },
       {
         "elm": "r2eheavy",
-        "qty": 2,
+        "qty": 1,
         "sub_elms": 
           [
             {

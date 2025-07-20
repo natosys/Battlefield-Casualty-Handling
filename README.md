@@ -1,50 +1,65 @@
 # Battlefield Casualty Handling Simulation
 
-- [Battlefield Casualty Handling Simulation](#battlefield-casualty-handling-simulation)
-  - [📘 Introduction](#-introduction)
-  - [🌍 Context](#-context)
-  - [🧰 Resource Descriptions](#-resource-descriptions)
-    - [🏥Health Teams](#health-teams)
-      - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
-      - [Role 2 Basic (R2B)](#role-2-basic-r2b)
-      - [Role 2 Enhanced Heavy (R2E Heavy)](#role-2-enhanced-heavy-r2e-heavy)
-    - [🛏️ Bed Types](#-bed-types)
-      - [Operating Theatre (OT)](#operating-theatre-ot)
-      - [Resuscitation (Resus) (alternatively Emergency)](#resuscitation-resus-alternatively-emergency)
-      - [Intensive Care Unit (ICU)](#intensive-care-unit-icu)
-      - [Holding (Hold)](#holding-hold)
-    - [🚑 Transport Assets](#-transport-assets)
-      - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
-      - [HX2 40M](#hx2-40m)
-  - [📊 Environment Data Summary](#-environment-data-summary)
-    - [👥 Population Groups](#-population-groups)
-    - [🚑 Transport Resources](#-transport-resources)
-    - [🏥 Medical Resources](#-medical-resources)
-  - [🤕 Casualties](#-casualties)
-    - [Casualty Generation](#casualty-generation)
-      - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
-      - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
-      - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
-      - [4. Temporal Randomisation](#4-temporal-randomisation)
-    - [Wounded In Action (WIA)](#wounded-in-action-wia)
-      - [Combat Casualties](#combat-casualties)
-      - [Support Casualties](#support-casualties)
-    - [Killed In Action (KIA)](#killed-in-action-kia)
-      - [Combat Casualties](#combat-casualties)
-      - [Support Casualties](#support-casualties)
-    - [Disease and Non-Battle Injury (DNBI)](#disease-and-nonbattle-injury-dnbi)
-      - [Combat Casualties](#combat-casualties)
-      - [Support Casualties](#support-casualties)
-      - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
-  - [Casualty Priorities](#casualty-priorities)
-  - [Return to Duty](#return-to-duty)
-  - [Died of Wounds](#died-of-wounds)
-- [Simulation Design](#simulation-design)
-  - [🔧Simulation Environment Setup](#simulation-environment-setup)
-    - [🧬 **Casualty Trajectory Logic**](#-casualty-trajectory-logic)
-    - [💀 **KIA (Killed in Action) Handling**](#-kia-killed-in-action-handling)
-    - [🤕 **WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling**](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
-- [References](#references)
+<!-- TOC START -->
+
+- [📘 Introduction](#-introduction)
+
+- [🌍 Context](#-context)
+
+- [🧰 Resource Descriptions](#-resource-descriptions)
+  
+  - [🏥Health Teams](#health-teams)
+    - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
+    - [Role 2 Basic (R2B)](#role-2-basic-r2b)
+    - [Role 2 Enhanced Heavy (R2E Heavy)](#role-2-enhanced-heavy-r2e-heavy)
+  - [🛏️ Bed Types](#-bed-types)
+    - [Operating Theatre (OT)](#operating-theatre-ot)
+    - [Resuscitation (Resus) (alternatively Emergency)](#resuscitation-resus-alternatively-emergency)
+    - [Intensive Care Unit (ICU)](#intensive-care-unit-icu)
+    - [Holding (Hold)](#holding-hold)
+  - [🚑 Transport Assets](#-transport-assets)
+    - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
+    - [HX2 40M](#hx2-40m)
+
+- [📊 Environment Data Summary](#-environment-data-summary)
+  
+  - [👥 Population Groups](#-population-groups)
+  - [🚑 Transport Resources](#-transport-resources)
+  - [🏥 Medical Resources](#-medical-resources)
+
+- [🤕 Casualties](#-casualties)
+  
+  - [Casualty Generation](#casualty-generation)
+    - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
+    - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
+    - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
+    - [4. Temporal Randomisation](#4-temporal-randomisation)
+  - [Wounded In Action (WIA)](#wounded-in-action-wia)
+    - [Combat Casualties](#combat-casualties)
+    - [Support Casualties](#support-casualties)
+  - [Killed In Action (KIA)](#killed-in-action-kia)
+    - [Combat Casualties](#combat-casualties)
+    - [Support Casualties](#support-casualties)
+  - [Disease and Non-Battle Injury (DNBI)](#disease-and-nonbattle-injury-dnbi)
+    - [Combat Casualties](#combat-casualties)
+    - [Support Casualties](#support-casualties)
+    - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
+
+- [Casualty Priorities](#casualty-priorities)
+
+- [Return to Duty](#return-to-duty)
+
+- [Died of Wounds](#died-of-wounds)
+
+- [🔧Simulation Environment Setup](#simulation-environment-setup)
+  
+  - [🧬 Casualty Trajectory Logic](#-casualty-trajectory-logic)
+  
+  - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
+  
+  - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
+    
+    <!-- TOC END -->
 
 ## 📘 Introduction
 
@@ -346,7 +361,7 @@ The following casualty priority rates were used with the rates requiring surgery
 
 ---
 
-### 🧬 **Casualty Trajectory Logic**
+### 🧬 Casualty Trajectory Logic
 
 - Each casualty is assigned:
   
@@ -430,7 +445,7 @@ ReleaseEvacSurg --> End
 
 ---
 
-### 💀 **KIA (Killed in Action) Handling**
+### 💀 KIA (Killed in Action) Handling
 
 - **Treatment (`treat_kia()`):**
   
@@ -446,7 +461,7 @@ ReleaseEvacSurg --> End
 
 ---
 
-### 🤕 **WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling**
+### 🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling
 
 - **Treatment (`treat_wia()`):**
   

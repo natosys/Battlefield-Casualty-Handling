@@ -108,16 +108,21 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   missing_count <- 0
   patched_headings <- c()
   
-  # Pattern for detecting ANY return-to-top link
+  # Pattern to detect ALL return-to-top links
   generic_return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
   
+  # Define canonical version to preserve
+  canonical_return <- "<small>[Return to Top](#contents)</small>"
+
   while (i <= length(lines)) {
     line <- lines[i]
     
-    # If line matches generic return-to-top, skip it
     if (grepl(generic_return_pattern, line, perl = TRUE)) {
-      i <- i + 1
-      next
+      # Skip line ONLY if it's not already standardized
+      if (trimws(line) != canonical_return) {
+        i <- i + 1
+        next  # Remove nonstandard return-to-top
+      }
     }
     
     new_lines <- c(new_lines, line)

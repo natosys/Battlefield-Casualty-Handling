@@ -1,6 +1,7 @@
 # Battlefield Casualty Handling Simulation
 
 ## Contents
+<small>[Return to Top](#contents)</small>
 
 
 <!-- TOC START -->
@@ -54,12 +55,14 @@
 ---
 
 ## 📘 Introduction
+<small>[Return to Top](#contents)</small>
 
 
 
 This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
 
 ## 🌍 Context
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -76,6 +79,7 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 ---
 
 ## 🧰 Resource Descriptions
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -163,6 +167,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 ---
 
 ## 📊 Environment Data Summary
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -197,6 +202,7 @@ The following table summarises the medical elements configured in `env_data.json
 ---
 
 ## 🤕 Casualties
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -326,6 +332,7 @@ $$
 DNBI cases were further sub-categorised as either NBI or disease/battle fatigue with 17% of DNBI cases being allocated as NBI and the remainder disease or battle fatigue (per [[1]](#References), pp 22-23).
 
 ## Casualty Priorities
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -342,6 +349,7 @@ The following casualty priority rates were used with the rates requiring surgery
   - 60% of other priority 3 casualties requiring surgery. 
 
 ## Return to Duty
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -352,6 +360,7 @@ The following casualty priority rates were used with the rates requiring surgery
 - ddd
 
 ## Died of Wounds
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -360,6 +369,7 @@ The following casualty priority rates were used with the rates requiring surgery
 ---
 
 ## Simulation Design
+<small>[Return to Top](#contents)</small>
 
 
 
@@ -504,6 +514,7 @@ DOW: 5% of total [6]
 ---
 
 ## References
+<small>[Return to Top](#contents)</small>
 
 
 

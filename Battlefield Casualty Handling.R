@@ -2,7 +2,7 @@
 ## ENVIRONMENT SETUP                        ##
 ##############################################
 
-# Clear workspace and set seed for reproducibility
+#' Clears workspace and initializes libraries
 rm(list = ls())
 gc()
 set.seed(42)
@@ -42,12 +42,24 @@ n_days <- 30
 ##############################################
 ## CASUALTY RATES                           ##
 ##############################################
+
+#' Injury and fatality arrival functions (per minute rates)
 wia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 6.86) / day_min)
 wia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 6.86) / day_min)
 kia_rate_cbt <- function() rexp(1, rate = (env_data$pops$combat / 1000 * 1.63) / day_min)
 kia_rate_spt <- function() rexp(1, rate = (env_data$pops$support / 1000 * 1.63) / day_min)
 
-generate_dnbi_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
+##############################################
+## DNBI RATE GENERATION                     ##
+##############################################
+
+#' Generate Lognorm arrival timestamps using capped log-normal rates
+#' @param mean_daily expected daily rate
+#' @param sd_daily standard deviation of daily rate
+#' @param pop size of target population
+#' @param n_days duration in days
+#' @return vector of arrival times in simulation minutes
+generate_ln_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   
   n_minutes <- day_min * n_days
@@ -72,17 +84,18 @@ generate_dnbi_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, s
   return(arrival_times)
 }
 
-dnbi_rate_spt <- generate_dnbi_arrivals(mean_daily = 0.94,
+# Generate DNBI arrivals
+dnbi_rate_spt <- generate_ln_arrivals(mean_daily = 0.94,
                                             sd_daily = 0.56,
                                             pop = env_data$pops$support,
                                             n_days)
 
-dnbi_rate_cbt <- generate_dnbi_arrivals(mean_daily = 2.04,
+dnbi_rate_cbt <- generate_ln_arrivals(mean_daily = 2.04,
                                             sd_daily = 1.89,
                                             pop = env_data$pops$combat,
                                             n_days)
 
-# Create 
+#' Create R1 clinician and technician subteam lists
 r1_teams_technicians <- lapply(env_data$elms$r1, function(team) {
   team[grepl("_technician_", team)]
 })
@@ -93,15 +106,18 @@ r1_teams_clinicians <- lapply(env_data$elms$r1, function(team) {
 ##############################################
 ## RESOURCE SCHEDULES                       ##
 ##############################################
+
+#' Define operating theatre resource schedules
 ot_shift_1 <- simmer::schedule(c(0, 720), c(1, 0), period = 1440)
 ot_shift_2 <- simmer::schedule(c(720, 1440), c(1, 0), period = 1440)
 
-surg_counter <- 0  # Used to stagger shifts
+surg_counter <- 0  # Used to alternate team scheduling
 
 ##############################################
-## IMPLEMENT RESOURCES                      ##
+## RESOURCE IMPLEMENTATION                  ##
 ##############################################
-# Add all clinical and bed resources
+
+#' Adds clinical and bed resources with optional scheduling
 for (elm_type in names(env_data$elms)) {
   for (team in env_data$elms[[elm_type]]) {
     
@@ -116,7 +132,7 @@ for (elm_type in names(env_data$elms)) {
       apply_schedule <- elm_type == "r2b"
       
       if (apply_schedule) {
-        # Assign team shift once per team
+        # Apply OT scheduling only for R2B teams
         team_shift <- if (surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
         shift_label <- ifelse(surg_counter %% 2 == 1, "Shift 1", "Shift 2")
         
@@ -146,7 +162,7 @@ for (elm_type in names(env_data$elms)) {
   }
 }
 
-# Add all transport resources
+#' Adds vehicle and transport resources
 for (transport_type in names(env_data$transports)) {
   for (res_name in env_data$transports[[transport_type]]) {
     env <- env %>% add_resource(res_name)
@@ -156,7 +172,17 @@ for (transport_type in names(env_data$transports)) {
 ##############################################
 ## HELPER FUNCTIONS                         ##
 ##############################################
-# Seize group resources
+
+#' Seizes one unit of each resource in the provided list
+#'
+#' @param trj a simmer trajectory object
+#' @param resources a character vector of resource names to be seized
+#'
+#' @return the modified trajectory with seize activities appended
+#'
+#' @details This helper function is used to acquire multiple resources simultaneously. 
+#'          Commonly applied during casualty intake, surgery preparation, or 
+#'          evacuation staging phases where grouped resource allocation is required.
 seize_resources <- function(trj, resources) {
   for (res in resources) {
     trj <- trj %>% seize(res, 1)
@@ -164,7 +190,16 @@ seize_resources <- function(trj, resources) {
   trj
 }
 
-# Release group resources
+#' Releases one unit of each resource in the provided list
+#'
+#' @param trj a simmer trajectory object
+#' @param resources a character vector of resource names to be released
+#'
+#' @return the modified trajectory with release activities appended
+#' 
+#' @details This utility is used to efficiently release multiple resources
+#'          that were previously seized within a trajectory.
+#'          Commonly applied after recovery, surgery, or casualty handoff phases.
 release_resources <- function(trj, resources) {
   for (res in resources) {
     trj <- trj %>% release(res, 1)
@@ -172,7 +207,18 @@ release_resources <- function(trj, resources) {
   trj
 }
 
-# Select a sub-team for resource allocation
+#' Randomly selects one subteam of the specified type from the given team
+#'
+#' @param elm_type element type (e.g. "r1", "r2b", "r2eheavy") identifying the unit category
+#' @param team_id index of the team within the specified element type
+#' @param subteam_type string identifying the subteam type to select (e.g. "surg", "evac")
+#'
+#' @return the name of a randomly selected subteam as a character string
+#'
+#' @details This function accesses nested team data stored in `env_data$elms`, then randomly selects
+#'          one member from the specified subteam type (e.g. within a modular R2B or R2E team).
+#'          It throws an error if no such subteam exists or the list is empty.
+#'          Commonly used for resource allocation, staffing, or routing logic within simulation trajectories.
 select_subteam <- function(elm_type, team_id, subteam_type) {
   subteams <- env_data$elms[[elm_type]][[team_id]][[subteam_type]]
   
@@ -184,7 +230,19 @@ select_subteam <- function(elm_type, team_id, subteam_type) {
   return(subteams[[index]])
 }
 
-# Select an R2B team based on available OT beds
+#' Selects a randomly ordered R2B team with at least one free OT bed
+#'
+#' @param env the simmer simulation environment object
+#'
+#' @return the index of the selected R2B team (integer), or -1 if none are available
+#'
+#' @details Iterates through R2B teams in randomized order and checks current usage
+#'          of their associated operating theatre (OT) beds using `get_server_count()`.
+#'          Returns the first team whose OT beds are completely free (i.e., zero usage).
+#'          If all teams are occupied, returns -1. Useful for routing casualties to 
+#'          damage-control surgery pathways during simulation flow.
+#'
+#'          Logs bed usage and selection outcomes using `cat()` for real-time visibility.
 select_available_r2b_team <- function(env) {
   for (i in sample(1:counts[["r2b"]])) {
     ot_beds <- env_data$elms$r2b[[i]]$ot_bed
@@ -203,7 +261,22 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
-# Select an R2E team based on available OT beds
+#' Selects an R2E team with the highest available OT bed capacity
+#'
+#' @return Integer index of the selected R2E team (1-based). If no beds are available,
+#'         returns a randomly selected team index.
+#'
+#' @details This function iterates through all R2E Heavy teams listed in `env_data$elms`,
+#'          calculates available operating theatre (OT) bed slots by subtracting current
+#'          usage from total capacity, and identifies the team(s) with maximum free slots.
+#'
+#'          If all teams are at full capacity (i.e., all OT beds are in use), the function
+#'          logs a warning and randomly selects one team to continue the simulation flow.
+#'
+#'          Used for routing surgical casualties to appropriate forward-deployed surgical
+#'          teams when Role 2 Enhanced capacity varies dynamically throughout simulation.
+#'
+#'          Logs selection results using `cat()` for visibility and debugging.
 select_r2e_team <- function() {
   capacities <- sapply(seq_along(env_data$elms$r2eheavy), function(team_id) {
     ot_beds <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
@@ -223,11 +296,18 @@ select_r2e_team <- function() {
   return(selected)
 }
 
-
 ##############################################
 ## ROLE 1 TRAJECTORIES                      ##
 ##############################################
-# Treatment logic for KIA casualties
+
+#' Simulates mortuary treatment pathway for KIA casualties from Role 1
+#'
+#' @param team index referring to R1 team array
+#' @return simmer trajectory object for KIA treatment flow
+#'
+#' @details Selects technician from specified Role 1 team and applies a fixed-duration
+#'          mortuary treatment process. Sets attributes `r1_treated` and `mortuary_treated`
+#'          to record team and disposition status.
 r1_treat_kia <- function(team) {
   medics <- r1_teams_technicians[[team]]
   trajectory(paste("KIA Team", team)) %>%
@@ -239,7 +319,13 @@ r1_treat_kia <- function(team) {
     release_selected()
 }
 
-# Transport KIA to mortuary (collocated with Role 2 facility)
+#' Simulates KIA transport from Role 1 to mortuary at Role 2
+#'
+#' @return simmer trajectory object for KIA vehicle transport
+#'
+#' @details Uses HX240M transport asset with shortest-queue selection policy.
+#'          Applies log-normal delay to simulate movement time, and records start time
+#'          with attribute `transport_start_time`.
 r1_transport_kia <- function() {
   trajectory("Transport KIA") %>%
     simmer::select(env_data$transports$HX240M, policy = "shortest-queue") %>%
@@ -249,7 +335,17 @@ r1_transport_kia <- function() {
     release_selected()
 }
 
-# Treatment logic for WIA casualties
+#' Executes Role 1 treatment sequence for WIA casualties
+#'
+#' @param team index referring to R1 team array
+#' @return simmer trajectory object for WIA treatment logic
+#'
+#' @details Seizes technician and clinician from specified Role 1 team.
+#'          Treatment duration is based on casualty priority level (attribute `priority`)
+#'          using a switch-weighted log-normal distribution. Start time logged via
+#'          `treatment_start_time` attribute.
+#'
+#' @note Releases all seized resources at end of trajectory using `release_all()`
 r1_treat_wia <- function(team) {
   medics <- r1_teams_technicians[[team]]
   clinicians <- r1_teams_clinicians[[team]]
@@ -274,7 +370,18 @@ r1_treat_wia <- function(team) {
     release_all()
 }
 
-# Transport WIA/DNBI to Role 2 using one of the PMV_Amb resources
+#' Simulates Role 1 transport of WIA or DNBI casualties to Role 2 facilities
+#'
+#' @return simmer trajectory object modeling casualty movement phase
+#'
+#' @details Selects a PMV Ambulance asset from `env_data$transports$PMVAmb` using
+#'          shortest-queue policy to minimize dispatch delay. Logs transport start
+#'          time using `transport_start_time` attribute. Applies log-normal distributed
+#'          timeout to simulate transit duration from Role 1 to Role 2. Releases vehicle
+#'          resource upon arrival to allow re-tasking.
+#'
+#'          This trajectory is typically invoked after initial treatment or triage,
+#'          and supports both WIA (battle injuries) and DNBI (non-battle injuries).
 r1_transport_wia <- function() {
   trajectory("Transport WIA") %>%
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
@@ -287,7 +394,16 @@ r1_transport_wia <- function() {
 ##############################################
 ## ROLE 2B TRAJECTORIES                     ##
 ##############################################
-# Treatment logic for KIA casualties
+
+#' Applies mortuary preparation for KIA casualties using Role 2B evacuation team
+#'
+#' @param traj a simmer trajectory object (typically originating at Role 1 or evac path)
+#' @param team_id integer index for selected Role 2B team
+#'
+#' @return the modified trajectory with KIA treatment logic appended
+#'
+#' @details Seizes evacuation team resources and applies fixed-duration mortuary prep.
+#'          Does not modify any attributes beyond resource usage.
 r2b_treat_kia <- function(traj, team_id) {
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   traj %>%
@@ -296,7 +412,15 @@ r2b_treat_kia <- function(traj, team_id) {
     release_resources(evacuation_team)
 }
 
-# Transport KIA to mortuary (collocated with Role 2 facility)
+#' Simulates Role 2B transport of KIA casualties to collocated mortuary
+#'
+#' @param traj a simmer trajectory object
+#' @param team_id integer index for selected Role 2B team
+#'
+#' @return the modified trajectory with transport logic included
+#'
+#' @details Seizes evacuation team, logs transport duration with log-normal distribution,
+#'          and sets `mortuary_treated = 1` attribute to confirm completion.
 r2b_transport_kia <- function(traj, team_id) {
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   traj %>%
@@ -306,7 +430,13 @@ r2b_transport_kia <- function(traj, team_id) {
     release_resources(evacuation_team)
 }
 
-# Transport for WIA to Role 2E Heavy
+#' Transports WIA casualties from Role 2B to Role 2E Heavy
+#'
+#' @return a new trajectory object for casualty movement
+#'
+#' @details Selects PMV Ambulance asset (ID = 7) using shortest-queue policy.
+#'          Logs transport initiation via `r2b_r2e_transport_start` and simulates
+#'          full round-trip duration (~30 minutes) using log-normal variation.
 r2b_transport_wia <- function() {
   trajectory("R2B to R2E Heavy transport") %>%
     log_("R2B to R2E Heavy Transport - start") %>%
@@ -322,7 +452,33 @@ r2b_transport_wia <- function() {
     release_selected(id = 7)
 }
 
-# R2B Treatment trajectory
+#' Executes the full treatment pathway for WIA casualties at Role 2B
+#'
+#' @param team_id integer index of the Role 2B team handling treatment
+#'
+#' @return a simmer trajectory object representing the entire WIA care pathway
+#'
+#' @details This function models complex branching logic and resource allocation:
+#'
+#' ### Steps:
+#' 1. **Hold Bed** – Initial stabilization
+#' 2. **DOW Check (~1%)** – Casualties who die after arrival
+#'     - Executes KIA treatment + mortuary transport
+#' 3. **Resus Phase** – Seizes emergency team and resus bed
+#' 4. **Surgical Decision Branch**
+#'     - If surgery required:
+#'         - Checks OT bed availability
+#'         - Executes surgery if available (bounded by `rtruncnorm`)
+#'         - Logs `r2b_surgery = 1`
+#'     - If surgery not required:
+#'         - Enters recovery via hold bed with random duration
+#'         - Logs `return_day`
+#' 5. **Evacuation Decision Branch**
+#'     - If evacuation team available → immediate transfer to Role 2E Heavy
+#'         - Logs `r2b_to_r2e = 1`, assigns `r2e` index via selector
+#'         - Invokes appropriate `r2e_treat_wia()` branch
+#'     - If evacuation team not available → fallback to ICU waiting
+#'         - Tracks `evac_wait_count`, sets `r2b_to_r2e`, and reuses evacuation logic
 r2b_treat_wia <- function(team_id) {
   hold_beds <- env_data$elms$r2b[[team_id]][["hold_bed"]]
   resus_beds <- env_data$elms$r2b[[team_id]][["resus_bed"]]
@@ -479,7 +635,17 @@ r2b_treat_wia <- function(team_id) {
 ##############################################
 ## ROLE 2E HEAVY TRAJECTORIES               ##
 ##############################################
-# Treatment logic for KIA casualties
+
+#' Applies treatment for KIA casualties in preparation for mortuary using R2E evacuation team
+#'
+#' @param traj simmer trajectory object to append treatment steps
+#' @param team_id integer index of the Role 2E Heavy team
+#' @param evac_team character vector of resource names assigned for evacuation duties
+#'
+#' @return modified trajectory with mortuary prep sequence
+#'
+#' @details Seizes evacuation team resources for a fixed treatment duration (normal distribution),
+#'          then releases them. Used in Died of Wounds (DOW) casualties.
 r2e_treat_kia <- function(traj, team_id, evac_team) {
   traj %>%
     seize_resources(evac_team) %>%
@@ -487,7 +653,16 @@ r2e_treat_kia <- function(traj, team_id, evac_team) {
     release_resources(evac_team)
 }
 
-# Transport KIA to mortuary (collocated with Role 2 facility)
+#' Simulates transport of KIA casualty to mortuary zone
+#'
+#' @param traj simmer trajectory object to append movement steps
+#' @param team_id integer index of the Role 2E Heavy team
+#' @param evac_team evacuation team resources associated with the selected R2E team
+#'
+#' @return modified trajectory with transport sequence and disposition marking
+#'
+#' @details Applies log-normal timeout to simulate movement duration and sets
+#'          attribute `mortuary_treated = 1` to track postmortem disposition.
 r2e_transport_kia <- function(traj, team_id, evac_team) {
   traj %>%
     seize_resources(evac_team) %>%
@@ -496,6 +671,44 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
     release_resources(evac_team)
 }
 
+#' Executes full treatment sequence for WIA casualties at Role 2E Heavy facility
+#'
+#' @param team_id integer index of the Role 2E Heavy team receiving the casualty
+#'
+#' @return simmer trajectory modeling clinical, surgical, and disposition pathways
+#'
+#' @details Models a multi-phase treatment pipeline using conditional branching and resource logic:
+#'
+#' ### Phases:
+#' 1. **Dead on Withdrawal (~1%)**
+#'     - Applies KIA treatment and transport, exits trajectory
+#'
+#' 2. **Initial Hold Bed (ID 1)**
+#'     - Stabilization before transfer to resuscitation
+#'
+#' 3. **Resuscitation Phase**
+#'     - Seizes emergency team
+#'     - Shorter timeout if previously resuscitated at R2B (`r2b_resus == 1`)
+#'     - Logs `r2e_resus = 1` if first resus
+#'
+#' 4. **Secondary Hold Bed (ID 3)**
+#'     - Casualty holds unless cleared for surgery
+#'
+#' 5. **Surgery Branching**
+#'     - Checks `surgery` attribute
+#'     - If surgery required:
+#'         - Seizes OT bed and surgical team
+#'         - Surgery duration is uniform between 2–4 hours
+#'     - Else: No surgery, remains in hold bed
+#'
+#' 6. **Final Disposition Branch**
+#'     - Randomly selects between strategic evacuation (5%) or local recovery (95%)
+#'     - If recovery:
+#'         - Seizes another hold bed (ID 5)
+#'         - Simulates recovery over 6–10 days
+#'         - Sets `return_day` attribute
+#'     - If evac:
+#'         - Sets `r2e_evac = 1`, logs handoff to strategic evacuation
 r2e_treat_wia <- function(team_id) {
   hold_beds <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -622,6 +835,45 @@ r2e_treat_wia <- function(team_id) {
 ##############################################
 ## CORE TRAJECTORY                          ##
 ##############################################
+
+#' Defines full casualty trajectory from battlefield through Role 1 to Role 2 facilities
+#'
+#' @return a simmer trajectory object modeling branching logic for casualty disposition
+#'
+#' @details This is the core trajectory representing all casualty types—KIA, WIA, DNBI—
+#'          and routing decisions based on casualty attributes. It includes:
+#'
+#' ### Step 1: Attribute Initialization
+#' - Assigns R1 team (random selection)
+#' - Sets casualty priority (1–3) for WIA/DNBI, NA for KIA
+#' - Flags DNBI status (`nbi`) and computes likelihood
+#' - Computes `surgery` need based on priority and casualty type
+#'
+#' ### Step 2: Casualty Type Branch
+#' - **Path 1: WIA/DNBI Handling**
+#'     - Role 1 treatment by assigned team
+#'     - DOW Branch (~5% P1, ~2.5% P2): If death occurs, route to KIA handling
+#'     - Post-treatment routing:
+#'         - If evacuation warranted (most P1/P2), select R2B team
+#'             - If team available → continue to R2B treatment
+#'             - If none available → bypass to R2E treatment, mark as `r2b_bypassed`
+#'         - Else → Casualty recovers at Role 1 (Beta distribution, ~5 days)
+#'
+#' - **Path 2: KIA Handling**
+#'     - Treatment and mortuary transport by selected Role 1 team
+#'
+#' ### Notable Attributes Used
+#' - `team`: selected R1 team index
+#' - `priority`: treatment urgency (1: critical → 3: mild)
+#' - `nbi`: DNBI flag (non-battle injuries)
+#' - `surgery`: binary flag indicating surgical requirement
+#' - `dow`: flag for DOW cases
+#' - `r2b`, `r2e`, `r2b_bypassed`: evacuation tracking
+#' - `return_day`: timestamp for recovered casualties
+#'
+#' ### Logging and Flow Commentary
+#' - Uses in-line `cat()` call to log selected R2B team
+#' - All branching logic follows `continue = TRUE` to allow trajectory persistence
 casualty <- trajectory("Casualty") %>%
   # Step 1: Set initial attributes
   # Set team and priority attributes
@@ -761,7 +1013,6 @@ casualty <- trajectory("Casualty") %>%
         })
       )
   )
-
 
 ##############################################
 ## BUILD ENVIRONMENT                        ##

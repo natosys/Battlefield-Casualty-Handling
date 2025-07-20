@@ -139,6 +139,12 @@ The following table summarises the medical elements configured in `env_data.json
 
 Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
 
+Comparison of casualty rates to estimates from Ukrainian conflict:
+
+Russian casualties of between 700 - 1100 casualties per day and troop commitment of 450,000 - 600,000 to the battlefront providing a daily casualty rate of ~0.2% [[7]](#References). The casualty generators used in this simulation produce a daily casualty rate of ~0.8% (of total force committed to the battlefront) with a casualty rate of approximately 30 per day for a committed force of 3750. As a result this was revised...?
+
+
+
 ### Wounded In Action (WIA)
 
 Casualty generation has been based on Okinawa combat troop WIA rates ([[1]](#References), table A.7, p 32). The $\lambda_{day}=6.86$ WIA rate was converted from a per day to $\lambda_{min}$ (a per minute rate) adjusted for the combat troop population:
@@ -451,6 +457,8 @@ DOW: 5% of total [6]
 [5] https://www.thefreelibrary.com/Casualty%2Bestimation%2Bin%2Bmodern%2Bwarfare.-a0110459243
 
 [6] https://apps.dtic.mil/sti/pdfs/ADA480496.pdf
+
+[7] https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far
 
 Resources
 

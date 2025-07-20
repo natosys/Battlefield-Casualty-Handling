@@ -1,7 +1,6 @@
 # Battlefield Casualty Handling Simulation
 
 <!-- TOC START -->
-
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
 - [🧰 Resource Descriptions](#-resource-descriptions)
@@ -44,7 +43,6 @@
   - [🧬 Casualty Trajectory Logic](#-casualty-trajectory-logic)
   - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
   - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
-    
     <!-- TOC END -->
 
 ## 📘 Introduction

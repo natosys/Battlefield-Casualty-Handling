@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -50,6 +51,7 @@
     - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
+  
   <!-- TOC END -->
 
 ---
@@ -166,6 +168,10 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 ## 📊 Environment Data Summary
 
 <small>[Return to Top](#contents)</small>
+
+<!-- ENV SUMMARY START -->
+
+<!-- ENV SUMMARY END -->
 
 ### 👥 Population Groups
 

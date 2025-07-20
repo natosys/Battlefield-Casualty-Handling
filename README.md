@@ -1,13 +1,9 @@
 # Battlefield Casualty Handling Simulation
 
 <!-- TOC START -->
-
 - [📘 Introduction](#-introduction)
-
 - [🌍 Context](#-context)
-
 - [🧰 Resource Descriptions](#-resource-descriptions)
-  
   - [🏥Health Teams](#health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -20,15 +16,11 @@
   - [🚑 Transport Assets](#-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
-
 - [📊 Environment Data Summary](#-environment-data-summary)
-  
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
   - [🏥 Medical Resources](#-medical-resources)
-
 - [🤕 Casualties](#-casualties)
-  
   - [Casualty Generation](#casualty-generation)
     - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
@@ -44,21 +36,13 @@
     - [Combat Casualties](#combat-casualties)
     - [Support Casualties](#support-casualties)
     - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
-
 - [Casualty Priorities](#casualty-priorities)
-
 - [Return to Duty](#return-to-duty)
-
 - [Died of Wounds](#died-of-wounds)
-
 - [🔧Simulation Environment Setup](#simulation-environment-setup)
-  
   - [🧬 Casualty Trajectory Logic](#-casualty-trajectory-logic)
-  
   - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
-  
   - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
-    
     <!-- TOC END -->
 
 ## 📘 Introduction

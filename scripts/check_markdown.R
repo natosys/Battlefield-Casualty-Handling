@@ -113,6 +113,7 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   
   # Define canonical version to preserve
   canonical_return <- "<small>[Return to Top](#contents)</small>"
+  return_text <- canonical_return
 
   while (i <= length(lines)) {
     line <- lines[i]
@@ -131,6 +132,8 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
     if (grepl("^## ", line)) {
       heading <- trimws(sub("^##\\s*", "", line))
       next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
+      has_canonical_return <- trimws(next_line) == canonical_return
+      has_any_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
       
       has_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
       if (!has_return) {
@@ -156,9 +159,13 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
       quit(status = 1)
     }
   } else if (mode == "replace") {
-    writeLines(new_lines, file_path)
-    cat(sprintf("✅ Standardized return links under %d H2 headings in %s\n", length(patched_headings), file_path))
-    
+    if (!has_canonical_return) {
+      if (has_any_return) {
+        i <- i + 1  # Skip legacy link line
+      }
+      new_lines <- c(new_lines, return_text)
+      patched_headings <- c(patched_headings, heading)
+    }    
     if (length(patched_headings) > 0) {
       timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       log_entry <- sprintf("[%s] Updated 'Return to Top' under H2 in %s:\n- %s\n\n", 

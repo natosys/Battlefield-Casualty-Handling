@@ -1,10 +1,11 @@
 # Battlefield Casualty Handling Simulation
 
 ## Contents
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -50,19 +51,22 @@
     - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
-    <!-- TOC END -->
+  
+  <!-- TOC END -->
 
 ---
 
 ## 📘 Introduction
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
 
 ## 🌍 Context
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 The code simulates a deployed combat brigade based on the Australian combat and health brigade capabilities.
 
@@ -77,8 +81,9 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 ---
 
 ## 🧰 Resource Descriptions
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 ### 🏥Health Teams
 
@@ -164,8 +169,9 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 ---
 
 ## 📊 Environment Data Summary
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 ### 👥 Population Groups
 
@@ -198,8 +204,9 @@ The following table summarises the medical elements configured in `env_data.json
 ---
 
 ## 🤕 Casualties
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
 
@@ -327,8 +334,9 @@ $$
 DNBI cases were further sub-categorised as either NBI or disease/battle fatigue with 17% of DNBI cases being allocated as NBI and the remainder disease or battle fatigue (per [[1]](#References), pp 22-23).
 
 ## Casualty Priorities
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 The following casualty priority rates were used with the rates requiring surgery (informed by [[2]](#References)):
 
@@ -343,8 +351,9 @@ The following casualty priority rates were used with the rates requiring surgery
   - 60% of other priority 3 casualties requiring surgery. 
 
 ## Return to Duty
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 - Priority 3 are returned to duty from R1. Priority 1 and 2 that do not require surgery are RTF post recovery from emergency treatment at r2b.
 
@@ -353,16 +362,18 @@ The following casualty priority rates were used with the rates requiring surgery
 - ddd
 
 ## Died of Wounds
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 ...
 
 ---
 
 ## Simulation Design
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 ### 🔧Simulation Environment Setup
 
@@ -505,8 +516,9 @@ DOW: 5% of total [6]
 ---
 
 ## References
+
 [Return to Top](#contents)
-[Return to Top](#table-of-contents)
+
 
 [1] Blood, C., Zouris, J.M. and Rotblatt, D. (1997) Using the Ground Forces Casualty Forecasting System (FORECAS) to Project Casualty Sustainment. Accessed 23 Mar 2025 (Available at: [https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf](https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf)).
 

@@ -23,6 +23,7 @@
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
 - [📊 Environment Data Summary](#-environment-data-summary)
+- [📊 Environment Data Summary](#-environment-data-summary)
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
   - [🏥 Medical Resources](#-medical-resources)
@@ -198,10 +199,8 @@ The following table summarises the medical elements configured in `env_data.json
 | Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
 | -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
 | R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
-| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
-| R2EHEAVY | 2        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
-
----
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 ## 🤕 Casualties
 

@@ -134,7 +134,7 @@ generate_env_summary_section <- function(env_data) {
     "",
     "| Population | Count |",
     "|------------|-------|",
-    paste0("| ", map_chr(env_data$pops, ~ capitalize(.x$name)), " | ", map_chr(env_data$pops, ~ .x$count), " |"),
+    paste0("| ", map_chr(env_data$pops, ~ capitalize(.x$name)), " | ", map_chr(env_data$pops, ~ as.character(.x$count)), " |"),
     ""
   )
   
@@ -146,18 +146,18 @@ generate_env_summary_section <- function(env_data) {
     "| Platform | Quantity | Capacity |",
     "|----------|----------|----------|",
     paste0("| ", map_chr(env_data$transports, ~ capitalize_platform(.x$name)),
-           " | ", map_chr(env_data$transports, ~ .x$qty),
-           " | ", map_chr(env_data$transports, ~ .x$capacity), " |"),
+           " | ", map_chr(env_data$transports, ~ as.character(.x$qty)),
+           " | ", map_chr(env_data$transports, ~ as.character(.x$capacity)), " |"),
     ""
   )
   
   summarise_resources <- function(resources) {
-    paste(map_chr(resources, ~ sprintf("%s (%s)", capitalize(.x$name %||% .x$resource), .x$qty)), collapse = ", ")
+    paste(map_chr(resources, ~ sprintf("%s (%s)", capitalize(.x$name %||% .x$resource), as.character(.x$qty))), collapse = ", ")
   }
   
   summarise_beds <- function(beds) {
     if (is.null(beds)) return(NA)
-    paste(map_chr(beds, ~ sprintf("%s (%s)", capitalize_bed(.x$name), .x$qty)), collapse = "; ")
+    paste(map_chr(beds, ~ sprintf("%s (%s)", capitalize_bed(.x$name), as.character(.x$qty))), collapse = "; ")
   }
   
   all_team_types <- unique(unlist(map(env_data$elms, function(elm) {
@@ -174,7 +174,7 @@ generate_env_summary_section <- function(env_data) {
     c(
       list(
         Element = toupper_safe(elm$elm),
-        Quantity = elm$qty,
+        Quantity = as.character(elm$qty),
         Beds = summarise_beds(elm$beds)
       ),
       team_resources
@@ -190,45 +190,52 @@ generate_env_summary_section <- function(env_data) {
     paste0("| ", paste(elm_colnames, collapse = " | "), " |"),
     paste0("| ", paste(rep("---", length(elm_colnames)), collapse = " | "), " |"),
     map_chr(elm_rows, function(row) {
-      paste0("| ", paste(map_chr(elm_colnames, ~ row[[.x]] %||% ""), collapse = " | "), " |")
+      paste0("| ", paste(map_chr(elm_colnames, ~ as.character(row[[.x]] %||% "")), collapse = " | "), " |")
     }),
     ""
   )
   
   c(
+    "<!-- ENV SUMMARY START -->",
+    "<!-- This section is auto-generated. Do not edit manually. -->",
+    "",
     "## 📊 Environment Data Summary",
     "",
     pop_section,
     transport_section,
-    elm_section
+    elm_section,
+    "<!-- ENV SUMMARY END -->"
   )
 }
 
+# === Execution Logic ===
 env_data <- fromJSON("env_data.json", simplifyVector = FALSE)
-expected_section <- generate_env_summary_section(env_data)
+expected_block <- generate_env_summary_section(env_data)
 
 readme <- readLines("README.md")
-
 start_line <- grep("<!-- ENV SUMMARY START -->", readme)
 end_line   <- grep("<!-- ENV SUMMARY END -->", readme)
 
-while (end_line < length(readme) && !grepl("^## ", readme[end_line + 1])) {
-  end_line <- end_line + 1
-}
-
-existing_section <- readme[start_line:end_line]
-if (!identical(trimws(existing_section), trimws(expected_section))) {
-  updated_readme <- c(
-    readme[1:(start_line - 1)],
-    expected_section,
-    readme[(end_line + 1):length(readme)]
-  )
-  writeLines(updated_readme, "README.md")
-  cat("✅ Environment summary replaced in README.md\n")
+if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
+  existing_block <- readme[start_line:end_line]
   
-  # Logging
-  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-  log_entry <- sprintf("[%s] Replaced 📊 Environment Data Summary in README.md\n", timestamp)
-  dir.create("logs", showWarnings = FALSE)
-  write(log_entry, file = "log.log", append = TRUE)
+  if (!identical(trimws(existing_block), trimws(expected_block))) {
+    updated_readme <- c(
+      readme[1:(start_line - 1)],
+      expected_block,
+      readme[(end_line + 1):length(readme)]
+    )
+    writeLines(updated_readme, "README.md")
+    cat("✅ Environment summary block updated in README.md\n")
+    
+    timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    log_entry <- sprintf("[%s] 📊 ENV SUMMARY block replaced in README.md\n", timestamp)
+    dir.create("logs", showWarnings = FALSE)
+    write(log_entry, file = "log.log", append = TRUE)
+  } else {
+    cat("✓ Environment summary block is up to date.\n")
+  }
+} else {
+  cat("⚠️ ENV SUMMARY START/END markers not found or malformed.\n")
+  quit(status = 1)
 }

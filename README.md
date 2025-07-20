@@ -5,7 +5,6 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
-
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -51,7 +50,6 @@
     - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
-  
   <!-- TOC END -->
 
 ---

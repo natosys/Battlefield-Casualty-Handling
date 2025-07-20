@@ -99,7 +99,7 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
 # }
 enforce_return_links <- function(file_path, mode = c("verify", "replace"),
                                  top_anchor = "#contents",
-                                 return_text = "<small>[Return to Top](#contents)</small>",
+                                 return_text = "<sub>[Return to Top](#contents)</sub>",
                                  log_path = "log.log") {
   mode <- match.arg(mode)
   lines <- readLines(file_path)
@@ -112,7 +112,7 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   generic_return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
   
   # Define canonical version to preserve
-  canonical_return <- "<small>[Return to Top](#contents)</small>"
+  canonical_return <- "<sub>[Return to Top](#contents)</sub>"
   return_text <- canonical_return
 
   while (i <= length(lines)) {

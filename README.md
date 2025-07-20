@@ -290,6 +290,10 @@ The following casualty priority rates were used with the rates requiring surgery
 
 - ddd
 
+## Died of Wounds
+
+...
+
 ---
 
 # Simulation Design

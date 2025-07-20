@@ -44,6 +44,9 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
       )
       writeLines(updated_lines, file_path)
       cat("✅ TOC block replaced.\n")
+      # Logging
+      log_entry <- sprintf("[%s] TOC updated in %s", Sys.time(), file_path)
+      write(log_entry, file = "toc_update.log", append = TRUE)
     }
   } else {
     cat("⚠️ TOC markers not found or malformed.\n")

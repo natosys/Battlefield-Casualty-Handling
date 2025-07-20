@@ -54,4 +54,49 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
   }
 }
 
+enforce_return_links <- function(file_path, mode = c("verify", "replace"), 
+                                 top_anchor = "#table-of-contents", 
+                                 return_text = "[Return to Top](#table-of-contents)") {
+  mode <- match.arg(mode)
+  lines <- readLines(file_path)
+  new_lines <- c()
+  i <- 1
+  missing_count <- 0
+  
+  while (i <= length(lines)) {
+    line <- lines[i]
+    new_lines <- c(new_lines, line)
+    
+    if (grepl("^## ", line)) {
+      next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
+      
+      if (!grepl(return_text, next_line, fixed = TRUE)) {
+        if (mode == "verify") {
+          missing_count <- missing_count + 1
+        } else if (mode == "replace") {
+          new_lines <- c(new_lines, return_text)
+        }
+      }
+    }
+    i <- i + 1
+  }
+  
+  if (mode == "verify") {
+    if (missing_count == 0) {
+      cat("✓ All H2 headings have return links.\n")
+    } else {
+      cat(sprintf("⚠️ %d H2 headings are missing return links.\n", missing_count))
+      quit(status = 1)
+    }
+  } else if (mode == "replace") {
+    writeLines(new_lines, file_path)
+    cat(sprintf("✅ Inserted return links under H2 headings in %s\n", file_path))
+    
+    # Optional: audit log entry
+    log_entry <- sprintf("[%s] Return links inserted under H2 in %s", Sys.time(), file_path)
+    write(log_entry, file = "log.log", append = TRUE)
+  }
+}
+
 update_or_check_toc("README.md", "replace")
+enforce_return_links("README.md", "replace")

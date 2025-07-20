@@ -1,6 +1,9 @@
 # Battlefield Casualty Handling Simulation
 
+## Contents
+
 <!-- TOC START -->
+
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
 - [🧰 Resource Descriptions](#-resource-descriptions)
@@ -43,7 +46,10 @@
   - [🧬 Casualty Trajectory Logic](#-casualty-trajectory-logic)
   - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
   - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
+    
     <!-- TOC END -->
+
+---
 
 ## 📘 Introduction
 
@@ -335,9 +341,9 @@ The following casualty priority rates were used with the rates requiring surgery
 
 ---
 
-# Simulation Design
+## Simulation Design
 
-## 🔧Simulation Environment Setup
+### 🔧Simulation Environment Setup
 
 - **Framework:** `simmer` (discrete-event simulation)
 
@@ -345,7 +351,7 @@ The following casualty priority rates were used with the rates requiring surgery
 
 ---
 
-### 🧬 Casualty Trajectory Logic
+#### 🧬 Casualty Trajectory Logic
 
 - Each casualty is assigned:
   
@@ -429,7 +435,7 @@ ReleaseEvacSurg --> End
 
 ---
 
-### 💀 KIA (Killed in Action) Handling
+#### 💀 KIA (Killed in Action) Handling
 
 - **Treatment (`treat_kia()`):**
   
@@ -445,7 +451,7 @@ ReleaseEvacSurg --> End
 
 ---
 
-### 🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling
+#### 🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling
 
 - **Treatment (`treat_wia()`):**
   
@@ -477,7 +483,7 @@ DOW: 5% of total [6]
 
 ---
 
-# References
+## References
 
 [1] Blood, C., Zouris, J.M. and Rotblatt, D. (1997) Using the Ground Forces Casualty Forecasting System (FORECAS) to Project Casualty Sustainment. Accessed 23 Mar 2025 (Available at: [https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf](https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf)).
 

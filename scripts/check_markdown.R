@@ -54,28 +54,90 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
   }
 }
 
-enforce_return_links <- function(file_path, mode = c("verify", "replace"), 
-                                 top_anchor = "#contents", 
-                                 return_text = "<sub>[Return to Top](#table-of-contents)</sub>") {
+# enforce_return_links <- function(file_path, mode = c("verify", "replace"), 
+#                                  top_anchor = "#contents", 
+#                                  return_text = "<sub>[Return to Top](#table-of-contents)</sub>") {
+#   mode <- match.arg(mode)
+#   lines <- readLines(file_path)
+#   new_lines <- c()
+#   i <- 1
+#   missing_count <- 0
+#   
+#   while (i <= length(lines)) {
+#     line <- lines[i]
+#     new_lines <- c(new_lines, line)
+#     
+#     if (grepl("^## ", line)) {
+#       next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
+#       
+#       if (!grepl(return_text, next_line, fixed = TRUE)) {
+#         if (mode == "verify") {
+#           missing_count <- missing_count + 1
+#         } else if (mode == "replace") {
+#           new_lines <- c(new_lines, return_text)
+#         }
+#       }
+#     }
+#     i <- i + 1
+#   }
+#   
+#   if (mode == "verify") {
+#     if (missing_count == 0) {
+#       cat("✓ All H2 headings have return links.\n")
+#     } else {
+#       cat(sprintf("⚠️ %d H2 headings are missing return links.\n", missing_count))
+#       quit(status = 1)
+#     }
+#   } else if (mode == "replace") {
+#     writeLines(new_lines, file_path)
+#     cat(sprintf("✅ Inserted return links under H2 headings in %s\n", file_path))
+#     
+#     # Optional: audit log entry
+#     log_entry <- sprintf("[%s] Return links inserted under H2 in %s", Sys.time(), file_path)
+#     write(log_entry, file = "log.log", append = TRUE)
+#   }
+# }
+enforce_return_links <- function(file_path, mode = c("verify", "replace"),
+                                 top_anchor = "#contents",
+                                 return_text = "<small>[Return to Top](#table-of-contents)</small>",
+                                 log_path = "log.log") {
   mode <- match.arg(mode)
   lines <- readLines(file_path)
   new_lines <- c()
   i <- 1
   missing_count <- 0
+  patched_headings <- c()
+  
+  # Pattern for detecting ANY return-to-top link
+  generic_return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
   
   while (i <= length(lines)) {
     line <- lines[i]
+    
+    # If line matches generic return-to-top, skip it
+    if (grepl(generic_return_pattern, line, perl = TRUE)) {
+      i <- i + 1
+      next
+    }
+    
     new_lines <- c(new_lines, line)
     
+    # Detect H2 heading
     if (grepl("^## ", line)) {
+      heading <- trimws(sub("^##\\s*", "", line))
       next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
       
-      if (!grepl(return_text, next_line, fixed = TRUE)) {
+      has_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
+      if (!has_return) {
         if (mode == "verify") {
           missing_count <- missing_count + 1
         } else if (mode == "replace") {
           new_lines <- c(new_lines, return_text)
+          patched_headings <- c(patched_headings, heading)
         }
+      } else {
+        # Skip the legacy return link line
+        i <- i + 1
       }
     }
     i <- i + 1
@@ -83,18 +145,22 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   
   if (mode == "verify") {
     if (missing_count == 0) {
-      cat("✓ All H2 headings have return links.\n")
+      cat("✓ All H2 headings have clean return links.\n")
     } else {
-      cat(sprintf("⚠️ %d H2 headings are missing return links.\n", missing_count))
+      cat(sprintf("⚠️ %d H2 headings are missing valid return links.\n", missing_count))
       quit(status = 1)
     }
   } else if (mode == "replace") {
     writeLines(new_lines, file_path)
-    cat(sprintf("✅ Inserted return links under H2 headings in %s\n", file_path))
+    cat(sprintf("✅ Standardized return links under %d H2 headings in %s\n", length(patched_headings), file_path))
     
-    # Optional: audit log entry
-    log_entry <- sprintf("[%s] Return links inserted under H2 in %s", Sys.time(), file_path)
-    write(log_entry, file = "log.log", append = TRUE)
+    if (length(patched_headings) > 0) {
+      timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      log_entry <- sprintf("[%s] Updated 'Return to Top' under H2 in %s:\n- %s\n\n", 
+                           timestamp, file_path, paste(patched_headings, collapse = "\n- "))
+      dir.create(dirname(log_path), showWarnings = FALSE, recursive = TRUE)
+      write(log_entry, file = log_path, append = TRUE)
+    }
   }
 }
 

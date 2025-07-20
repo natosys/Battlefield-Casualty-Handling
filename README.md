@@ -1,11 +1,11 @@
 # Battlefield Casualty Handling Simulation
 
 ## Contents
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
 <!-- TOC START -->
-
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -51,12 +51,12 @@
     - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
-  
   <!-- TOC END -->
 
 ---
 
 ## 📘 Introduction
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -64,6 +64,7 @@
 This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
 
 ## 🌍 Context
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -81,6 +82,7 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 ---
 
 ## 🧰 Resource Descriptions
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -169,6 +171,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 ---
 
 ## 📊 Environment Data Summary
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -204,6 +207,7 @@ The following table summarises the medical elements configured in `env_data.json
 ---
 
 ## 🤕 Casualties
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -334,6 +338,7 @@ $$
 DNBI cases were further sub-categorised as either NBI or disease/battle fatigue with 17% of DNBI cases being allocated as NBI and the remainder disease or battle fatigue (per [[1]](#References), pp 22-23).
 
 ## Casualty Priorities
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -351,6 +356,7 @@ The following casualty priority rates were used with the rates requiring surgery
   - 60% of other priority 3 casualties requiring surgery. 
 
 ## Return to Duty
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -362,6 +368,7 @@ The following casualty priority rates were used with the rates requiring surgery
 - ddd
 
 ## Died of Wounds
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -371,6 +378,7 @@ The following casualty priority rates were used with the rates requiring surgery
 ---
 
 ## Simulation Design
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 
@@ -516,6 +524,7 @@ DOW: 5% of total [6]
 ---
 
 ## References
+<sub>[Return to Top](#table-of-contents)</sub>
 
 [Return to Top](#contents)
 

@@ -156,7 +156,7 @@ for (transport_type in names(env_data$transports)) {
 ##############################################
 ## HELPER FUNCTIONS                         ##
 ##############################################
-
+# Seize group resources
 seize_resources <- function(trj, resources) {
   for (res in resources) {
     trj <- trj %>% seize(res, 1)
@@ -164,6 +164,7 @@ seize_resources <- function(trj, resources) {
   trj
 }
 
+# Release group resources
 release_resources <- function(trj, resources) {
   for (res in resources) {
     trj <- trj %>% release(res, 1)
@@ -171,6 +172,7 @@ release_resources <- function(trj, resources) {
   trj
 }
 
+# Select a sub-team for resource allocation
 select_subteam <- function(elm_type, team_id, subteam_type) {
   subteams <- env_data$elms[[elm_type]][[team_id]][[subteam_type]]
   
@@ -182,6 +184,7 @@ select_subteam <- function(elm_type, team_id, subteam_type) {
   return(subteams[[index]])
 }
 
+# Select an R2B team based on available OT beds
 select_available_r2b_team <- function(env) {
   for (i in sample(1:counts[["r2b"]])) {
     ot_beds <- env_data$elms$r2b[[i]]$ot_bed
@@ -200,11 +203,26 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
+# Select an R2E team based on available OT beds
 select_r2e_team <- function() {
-  selected <- sample(1:length(env_data$elms$r2eheavy), 1)
-  cat(sprintf("⚠ Randomly selected R2E team %d (no capacity check)\n", selected))
+  capacities <- sapply(seq_along(env_data$elms$r2eheavy), function(team_id) {
+    ot_beds <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
+    sum(sapply(ot_beds, function(bed) get_capacity(env, bed) - get_server_count(env, bed)))
+  })
+  
+  if (all(capacities <= 0)) {
+    selected <- sample(seq_along(env_data$elms$r2eheavy), 1)
+    cat(sprintf("⚠ No OT capacity available, randomly selected R2E team %d\n", selected))
+  } else {
+    max_capacity <- max(capacities)
+    candidates <- which(capacities == max_capacity)
+    selected <- sample(candidates, 1)
+    cat(sprintf("✅ Selected R2E team %d with %d available OT slots\n", selected, max_capacity))
+  }
+  
   return(selected)
 }
+
 
 ##############################################
 ## ROLE 1 TRAJECTORIES                      ##
@@ -496,7 +514,7 @@ r2e_treat_wia <- function(team_id) {
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
 
-    # Step 1.5: DOW branch (~1%)
+    # Step 1: DOW branch (~1%)
     branch(
       option = function() {
         if (runif(1) < 0.01) return(1)
@@ -515,16 +533,16 @@ r2e_treat_wia <- function(team_id) {
       trajectory("Continue R2E Treatment")
     ) %>%
     
-    # Step 1: Initial hold bed
+    # Step 2: Initial hold bed
     simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
     
-    # Step 2: Transfer to Resus
+    # Step 3: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
 
-    # Step 3: Emergency treatment
+    # Step 4: Emergency treatment
     seize_resources(emergency_team) %>%
     branch(
       option = function() {
@@ -548,11 +566,11 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 2)
     ) %>%
   
-    # Step 4: hold bed
+    # Step 5: hold bed
     simmer::select(hold_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
 
-    # Step 5: Surgery if required
+    # Step 6: Surgery if required
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")

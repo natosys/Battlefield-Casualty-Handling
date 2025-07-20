@@ -18,6 +18,123 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 ---
 
+## 🧰 Resource Descriptions
+
+### 🏥Health Teams
+
+#### Role 1 (R1) Treatment Team
+
+A role 1 treatment team provides the first line of medical care. It is designed to deliver immediate lifesaving measures, perform triage and stabilization, and manage minor injuries and illnesses close to the point of injury or unit location. These teams also prepare casualties for evacuation to higher levels of care if needed.
+
+#### Role 2 Basic (R2B)
+
+A Role 2 Basic (R2B) medical treatment facility provides forward surgical and resuscitative care close to the battlefield. Its purpose is to deliver damage-control surgery, critical care, and short-term patient holding in austere environments where rapid intervention can save lives.
+
+It’s designed to be mobile, logistically lean, and capable of stabilizing casualties before evacuation to higher-level care. With ICU beds, low-dependency holding, and a surgical team, R2B bridges the gap between frontline treatment and more comprehensive facilities like Role 2 Enhanced or Role 3.
+
+#### Role 2 Enhanced Heavy (R2E Heavy)
+
+A R2E Heavy facility delivers advanced surgical and critical care capabilities in forward-deployed military operations. Its purpose is to provide damage-control surgery, intensive care, inpatient services, and scalable resuscitation for casualties who require more than basic stabilization but are not yet ready for strategic evacuation.
+
+The R2E Heavy is a static field hospital with designed to handle complex trauma, prolonged care, and high casualty volumes—bridging the gap between battlefield stabilization and full hospital-level treatment.
+
+### 🛏️ Beds Types
+
+#### Operating Theatre (OT)
+
+OT beds are specialized surgical stations designed to support damage-control surgery and life-saving interventions. These beds are part of a sterile operating suite and are equipped to handle:
+
+- Emergency trauma procedures.
+- Advanced surgical care including orthopedic, abdominal, and thoracic operations.
+- Integrated anesthesia and monitoring systems for patient stability.
+- Rapid turnover and sterilization protocols to manage high casualty volumes.
+
+#### Resuscitation (Resus) (alternatively Emergency)
+
+Emergency beds are designed for rapid stabilization and life-saving interventions immediately after casualty arrival. These beds support:
+
+- Advanced trauma management including airway control, hemorrhage control, and shock treatment.
+- Critical monitoring and resuscitation equipment such as defibrillators, oxygen delivery systems, and IV access.
+- Quick turnover and accessibility to facilitate high casualty throughput during mass casualty events.
+- Integration with surgical and evacuation pathways, ensuring seamless transition to operating theatres or higher echelons of care.
+
+These beds serve as the first stop for severely injured personnel.
+
+#### Intensive Care Unit (ICU)
+
+Intensive Care Unit (ICU) beds are designed to deliver advanced life-support and continuous monitoring for critically injured or ill personnel. These beds serve as the backbone of forward-deployed critical care, enabling:
+
+- Resuscitation and stabilization of casualties with multi-system trauma.
+- Mechanical ventilation, invasive monitoring, and medication infusions.
+- Postoperative care following damage-control surgery.
+- Support for prolonged field care when evacuation is delayed.
+
+ICU beds are equipped with portable monitors, ventilators, infusion pumps, and access to diagnostics like labs and imaging.
+
+Holding (Hold)
+
+Holding beds are designated for short-term patient care and observation, typically for those who are awaiting evacuation, recovering from minor procedures, or expected to return to duty soon. These beds serve as a transitional space between acute treatment zones (like ICU or OT) and final disposition—whether that’s evacuation to higher care or reintegration into the force.
+
+They’re often used for:
+
+- Postoperative recovery after damage-control surgery.
+- Monitoring stable patients who don’t require intensive care.
+- Staging casualties for medical evacuation.
+- Low-dependency care such as hydration, pain management, or wound dressing.
+
+Holding beds help to maintain patient flow and prevent bottlenecks in critical care areas.
+
+### 🚑 Transport Assets
+
+#### Protected Mobility Vehicle Ambulance (PMV Ambulance)
+
+The PMV Ambulance (Protected Mobility Vehicle – Ambulance) is a blast-resistant, armored medical transport designed to safely evacuate casualties from combat zones. Based on the Bushmaster, it combines mobility, protection, and medical capability, allowing medics to deliver care en route while shielding patients from small arms fire, IEDs, and mines.
+
+Its key features typically include:
+
+- V-shaped hull for blast deflection
+- Internal stretcher mounts and medical equipment
+- Air conditioning and fire suppression systems
+- Optional mounted weapon systems for self-defense
+
+#### HX2 40M
+
+The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Military Vehicles (RMMV) as part of the HX2 series. Designed for high mobility and rugged performance, it serves as a versatile logistics platform for transporting troops, equipment, and supplies in demanding operational environments. In this simulation the HX2 40M is used for the transport of KIA and casualties that have DOW.
+
+---
+
+## 📊 Environment Data Summary
+
+### 👥 Population Groups
+
+The following population groups are defined in the simulation environment:
+
+| Population | Count |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
+
+### 🚑 Transport Resources
+
+These are the available transport platforms and their characteristics:
+
+| Platform | Quantity | Capacity |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
+
+### 🏥 Medical Resources
+
+The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
+
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 2        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+
+---
+
 ## 🤕 Casualties
 
 Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
@@ -172,94 +289,6 @@ The following casualty priority rates were used with the rates requiring surgery
 - Per [[3]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
 
 - ddd
-
----
-
-## 👨‍⚕️Resources
-
-**Health Teams**. The health architecture is made up of the following health teams:
-
-- **Treatment Team**. The `8` treatment teams are made up of the following personnel resources:
-  
-  - `3` Medics
-  
-  - `1` Nurse
-  
-  - `1` Doctor
-
-- **R2B**. The R2B is a forward-deployed, damage control surgical facility designed to stabilize and prepare casualties for evacuation. It includes medical, surgical, nursing, and bed management capabilities.
-
-- The R2B is made up of the following personnel resources:
-  
-  - Surgical Team
-    
-    - `2` Surgeons
-    - `1` Anesthetist
-    - `1` Medic
-  
-  - Emergency Team
-    
-    - `1` FACEM (Emergency Physician)
-    - `1` Medic
-    - `3` Nurses
-  
-  - Evacuation Team
-    
-    - `2` Medics
-
-- **R2E Heavy**. The R2E Heavy is a large field hospital, capable only of static deployments. It is capable of limited major surgery, stabilisation and recovery of casualties. It includes medical, surgical, nursing and bed management capabilities.
-
-- The R2E Heavy is made up of the following personnel resources:
-  
-  - `3` Surgical Teams
-  
-  - `3` Emergency Teams
-    
-    - `1` FACEM
-    - `1` Medic
-    - `3` Nurses
-  
-  - `3` ICU Teams
-  
-  - `3` Evacuation Teams
-
-**Transport Resources**. Transport resources are typically drawn from the supported call-sign or a CSS element. the following transport resources are available by echelon:
-
-- **Treatment Team**. Treatment teams have access to battlegroup vehicle assets to effect casualty evacuations. The treatment teams have access to:
-  
-  - `2` PMV Ambulances per treatment team (for a total of `16`), used for the transport of Wounded In Action (WIA) and Disease and Non-Battle Injury (DNBI) to the R2B (where required)
-  
-  - `1` HX2 40 M per treatment team (for a total of `8`), used for the transport of Killed In Action (KIA) to the mortuary (at R2E)
-
-Transport resources are shared across all treatment teams.
-
-- **R2B**. The R2B has `1` dedicated evacuation team operating a PMV Ambulance. In addition to the dedicated resource of the R2B, the R2B has access to the following resources:
-  
-  - ...
-
-**Bed Resources**. Beds are finite resources and are seized by patients during treatment and recovery phases, influencing throughput and capacity under casualty load. Not all health elements have dedicated bed resources.
-
-- **Treatment Team**. No dedicated bed resources.
-
-- **R2B**. R2B includes limited inpatient capacity to stabilize casualties prior to evacuation or return to duty. The R2B has the following bed capacity:
-  
-  - `1` Operating Theatre (OT) bed
-  
-  - `2` Resus beds
-  
-  - `2` ICU beds
-  
-  - `5` Holding beds
-
-- **R2E Heavy**. The R2E Heavy holds the following bed capacity:
-  
-  - `2` OT beds
-  
-  - `4` Resus beds
-  
-  - `4` ICU beds
-  
-  - `30` Holding beds
 
 ---
 

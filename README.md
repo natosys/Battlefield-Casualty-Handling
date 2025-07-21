@@ -22,7 +22,6 @@
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
 - [📊 Environment Data Summary](#-environment-data-summary)
-- [📊 Environment Data Summary](#-environment-data-summary)
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
   - [🏥 Medical Resources](#-medical-resources)

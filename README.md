@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -51,6 +52,7 @@
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -169,6 +171,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -176,28 +179,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 6 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -400,6 +403,8 @@ The following casualty priority rates were used with the rates requiring surgery
     
     - Then transport to mortuary
 
+##### Core Trajectory
+
 ```mermaid
 flowchart TD
   A[Start: Casualty Arrives] --> B[Set Attributes: team, priority, nbi, surgery]
@@ -408,24 +413,121 @@ flowchart TD
   C --> D[WIA/DNBI Handling]
   C --> P[KIA Handling]
 
-  D --> E{Died of Wounds?}
-  E --> F[DOW → KIA Treatment + Transport]
+  D --> D1["Call r1_treat_wia(team)"]
+  D1 --> E{Died of Wounds?}
+  E --> F["Call r1_treat_kia(team)"] --> G["Call r1_transport_kia()"]
   E --> H{Evacuation Required?}
 
-  H --> I[Transport to R2B]
+  H --> I["Call r1_transport_wia()"]
   I --> J{R2B Team Available?}
-  J --> K[R2B Treatment]
-  J --> L[R2B Bypassed → R2E] --> M[R2E Treatment]
+  J --> K["Call r2b_treat_wia(team)"]
+  J --> L[Bypass R2B → To R2E] --> M["Call r2e_treat_wia(team)"]
 
-  H --> N[Recover at Role 1]
-
-  P --> Q[Role 1 KIA Treatment]
-  Q --> R[Transport to Mortuary]
-
+  H --> N[Recover at Role 1<br/>Approx. 5 days]
   N --> S[Set return_day attribute]
+
+  P --> Q["Call r1_treat_kia(team)"]
+  Q --> R["Call r1_transport_kia()"]
 ```
 
-[Online FlowChart &amp; Diagrams Editor - Mermaid Live Editor](https://mermaid.live/edit#pako:eNqVVP9vojAU_1ealyyRhCkFYUiMxpuXnDEuZLfcVy6mQqdk0JoCu3nG__0KBZWZy278QN-3vn4-7712DyGPKHjwmPDf4YaIHD1MA4bk9zmXWudnAJUQwC8NXV-P0AMl6STL4jXrBDBcjZSMcl55hr3VCA1XQv6ylCTJCJeeXHqWIS9YPuwpcwCaOuWUrsr-dTa53dDwaS-F3vTuw2x8UHGNQ0ah7zRDnSZAofJFzEWc747I6pyNvYUJ-dhz7Cvkm55pyMXysH11gaydUnEXlOTyYMW80kpgF6TvacYLEdLMQxZ6QSmN4lBHrBAZ1VHEw5wLVGQxWyOsnIiwSMphErM4jAlDnSq4p2K1Kve0ECSPOfNK-CJhXKQdbBo6MrrYtDW9pFObncqqjFZjVKG2dtmCmlWrkKoLAfgYSbC-OQ7g0K5Lux0-7vlmPSGCsGzLxXmlastb1cKOLJe_-LKcpCv0inVNw_oXjQtcd1zCshSmBWexrOQRUa2XeNA9DfkzFTsJbHzMdj5vZaL5bKKdZmDenoH5f89Au-vvZNgc3a7y_LLKb-BxJZ5P35Z9Y_F-BKfWVig-sqh8IuRSPhAq6FTrJuTV5vm5J2Cgw1rEEXi5KKgOKRUpKVXYl_sCyDc0pQF4UoyIeAogYAe5Z0vYD87TZpvgxXoD3iNJ5CWDYhuRnE5jshYkPVoFZREVt-VDBJ7pYrPKAt4eXqRuuvIiOXgwuLFdu29YNzrsQD4UXYwtx7b6huGatoMPOvypzjW6LrYMyzXdgd13Bo7jHP4CLfKgpA)
+##### R2B Trajectory
+
+```mermaid
+flowchart TD
+  A[Casualty arrives at Role 2B] --> B[Seize Hold Bed]
+  B --> C{Check for Dead on Withdrawal}
+
+  %% DOW Path
+  C -->|Yes| D[Treat KIA with evac team]
+  D --> E[Transport KIA to mortuary]
+  E --> F[Release Hold Bed]
+  F --> G[Exit Trajectory]
+
+  %% Continue Treatment
+  C -->|No| H[Continue Treatment]
+  H --> I[Seize Resus Bed]
+  I --> J[Seize Emergency Team and treat]
+  J --> K[Log resus complete]
+  K --> L[Release Resus Bed and Team]
+
+  L --> M{Surgery Required?}
+  M -->|Yes| N{Check OT Bed Availability}
+
+  N -->|Available| O[Seize OT Bed and Surg Team]
+  O --> P[Perform Surgery]
+  P --> Q[Log surgery complete]
+  Q --> R[Release Resources]
+
+  N -->|Not Available| S[Skip Surgery]
+
+  M -->|No| T[Recover in Hold Bed]
+  T --> U[Log recovery complete]
+  U --> V[Release Hold Bed]
+  V --> W[Exit Trajectory]
+
+  %% Evacuation Decision
+  R --> X{Evac Team Available?}
+  S --> X
+
+  X -->|Yes| Y[Immediate Evac to Role 2E]
+  Y --> Z[Log evac and select R2E team]
+  Z --> AA[Seize Evac Team and Transport]
+  AA --> AB[Release Evac Team]
+  AB --> AC[Branch to R2E Treatment]
+
+  X -->|No| AD[Fallback: Wait in ICU]
+  AD --> AE[Increment evac wait counter]
+  AE --> AF[Seize ICU Bed and Resources]
+  AF --> AG[Log evac and select R2E team]
+  AG --> AH[Transport after wait]
+  AH --> AI[Release ICU and Evac Team]
+  AI --> AJ[Branch to R2E Treatment]
+```
+
+##### R2E Heavy Trajectory
+
+```mermaid
+flowchart TD
+  A[Start R2E Treatment] --> B[Set r2e_treated and r2e_handling]
+  B --> C{Is Died of Wounds}
+
+  %% DOW Path
+  C -->|Yes| D[Set dow = 1]
+  D --> E[Treat KIA: Seize evac team and timeout]
+  E --> F[Transport KIA: Set mortuary_treated and timeout]
+  F --> G[Exit trajectory]
+
+  %% Continue Treatment Path
+  C -->|No| H[Seize Hold Bed]
+  H --> I[Transfer to Resus Bed and release Hold Bed]
+  I --> J[Seize Emergency Team]
+
+  %% Resus Branch
+  J --> K{Resus at R2B previously}
+  K -->|Yes| L[Short resus timeout → release]
+  K -->|No| M[Long resus timeout → set r2e_resus → release]
+
+  %% Surgery Branch
+  L --> N[Seize new Hold Bed]
+  M --> N
+  N --> O{Is Surgery Required}
+
+  O -->|Yes| P[Seize OT Bed and Surg Team]
+  P --> Q[Surgery timeout 2–4 hrs → release]
+  Q --> R{Final Disposition}
+
+  O -->|No| S[Remain in Hold Bed]
+  S --> R
+
+  %% Disposition Branch
+  R -->|Recover| T[Seize Recovery Hold Bed]
+  T --> U[Recovery timeout 6–10 days → set return_day → release]
+
+  R -->|Evac| V[Set r2e_evac = 1 → Strategic Evac]
+
+  U --> W[Exit trajectory]
+  V --> W
+```
 
 ---
 

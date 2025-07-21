@@ -199,8 +199,6 @@ generate_env_summary_section <- function(env_data) {
     "<!-- ENV SUMMARY START -->",
     "<!-- This section is auto-generated. Do not edit manually. -->",
     "",
-    "## 📊 Environment Data Summary",
-    "",
     pop_section,
     transport_section,
     elm_section,

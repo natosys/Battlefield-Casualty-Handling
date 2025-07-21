@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -51,6 +52,7 @@
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -169,6 +171,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -176,28 +179,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 6 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -402,60 +405,35 @@ The following casualty priority rates were used with the rates requiring surgery
 
 ```mermaid
 flowchart TD
-    Start(["Start"]) --> TeamAssign("Assign to R1")
+  A[Start: Casualty Arrives] --> B[Set Attributes<br/>team, priority, nbi, surgery]
 
-    subgraph role1 [Role 1 Treatment Team]
-        TeamAssign --> WIACheck{WIA/DNBI?}
-        WIACheck -- Yes (WIA/DNBI) --> TreatWIA("Treat WIA")
-        TreatWIA --> PriorityCheck{"P1 or P2?"}
-        PriorityCheck -- Yes (P1/P2) --> TransportWIA("Transport WIA")
-        PriorityCheck -- No (P3) --> MonitorWIA("Monitor WIA Recovery")
-        WIACheck -- No (KIA) --> TreatKIA("Treat KIA")
-        TreatKIA --> TransportKIA("Transport KIA")
-    end
+  B --> C{Casualty Type}
+  C -->|WIA or DNBI| D[Role 1 Treatment<br/>by selected team]
+  C -->|KIA| P[KIA Treatment at Role 1] --> Q[KIA Transport to Mortuary]
 
-    MonitorWIA --> End
-    TransportKIA --> End
+  D --> E{Died of Wounds?}
+  E -->|Yes| F[DOW at Role 1] --> G[KIA Path: Treatment & Transport]
+  E -->|No| H{Evacuation Required?}
 
-    subgraph r2b [Role 2 Basic]
-        TransportWIA --> bedCheck{"ICU Bed Available?"}
-        bedCheck -- Yes (ICU) --> icu
-        bedCheck -- No (Holding) --> hold["Occupy Holding Bed"]
+  H -->|Yes| I[Transport to R2B]
+  I --> J{R2B Team Available?}
+  J -->|Yes| K[R2B Treatment<br/>by selected team]
+  J -->|No| L[R2B Bypassed → R2E] --> M[R2E Treatment<br/>by selected team]
 
-        hold --> waitForICU["Wait for ICU"]
-        waitForICU --> icu["Occupy ICU Bed"]
-        icu --> EmergencyCare["Emergency Treatment (ATLS)"]
-        EmergencyCare --> EmergencyDuration["Emergency care"]
-        EmergencyDuration --> ReleaseEmergency["Release Emergency Team"]
+  H -->|No| N[Recovery at Role 1]
+  N --> O[Set return_day attribute]
 
-        ReleaseEmergency --> surgeryCheck{"Require Surgery?"}
-
-        surgeryCheck -- P1 95%; P2 90% --> SeizeSurgery
-        surgeryCheck -- P1 5%; P2 10% --> SeizeEvacSurg
-
-
-        subgraph SurgeryPath [Surgery and Outcome]
-
-            SeizeSurgery["Seize Surgical Team"] --> SurgeryDuration["Timeout ~ Surgery (truncnorm 60–180 min)"]
-            SurgeryDuration --> ReleaseSurgery["Release Surgical Team"]
-            ReleaseSurgery --> ReleaseICU["Release ICU Bed"]
-            ReleaseICU --> SurvivalCheck{"Survives? (90%)"}
-        end
-
-        SurvivalCheck -- No --> DOW["Set dow = 1"] --> TimeoutDOW["Timeout 5 min"]
-        SurvivalCheck -- Yes --> SeizeEvacSurg
-
-
-        SeizeEvacSurg["Seize Evacuation Team"]
-        SeizeEvacSurg --> TimeoutEvacSurg["Timeout ~ Evac (lnorm ~30min)"]
-        TimeoutEvacSurg --> ReleaseEvacSurg["Release Evacuation Team"]
-    end
-
-TimeoutDOW --> End
-ReleaseEvacSurg --> End
-
-TimeoutDOW --> End
-ReleaseEvacSurg --> End
+  subgraph Casualty Flow
+    A --> B --> C
+    C --> D --> E
+    E --> F --> G
+    E --> H
+    H --> I --> J
+    J --> K
+    J --> L --> M
+    H --> N --> O
+    C --> P --> Q
+  end
 ```
 
 [Online FlowChart &amp; Diagrams Editor - Mermaid Live Editor](https://mermaid.live/edit#pako:eNqVVP9vojAU_1ealyyRhCkFYUiMxpuXnDEuZLfcVy6mQqdk0JoCu3nG__0KBZWZy278QN-3vn4-7712DyGPKHjwmPDf4YaIHD1MA4bk9zmXWudnAJUQwC8NXV-P0AMl6STL4jXrBDBcjZSMcl55hr3VCA1XQv6ylCTJCJeeXHqWIS9YPuwpcwCaOuWUrsr-dTa53dDwaS-F3vTuw2x8UHGNQ0ah7zRDnSZAofJFzEWc747I6pyNvYUJ-dhz7Cvkm55pyMXysH11gaydUnEXlOTyYMW80kpgF6TvacYLEdLMQxZ6QSmN4lBHrBAZ1VHEw5wLVGQxWyOsnIiwSMphErM4jAlDnSq4p2K1Kve0ECSPOfNK-CJhXKQdbBo6MrrYtDW9pFObncqqjFZjVKG2dtmCmlWrkKoLAfgYSbC-OQ7g0K5Lux0-7vlmPSGCsGzLxXmlastb1cKOLJe_-LKcpCv0inVNw_oXjQtcd1zCshSmBWexrOQRUa2XeNA9DfkzFTsJbHzMdj5vZaL5bKKdZmDenoH5f89Au-vvZNgc3a7y_LLKb-BxJZ5P35Z9Y_F-BKfWVig-sqh8IuRSPhAq6FTrJuTV5vm5J2Cgw1rEEXi5KKgOKRUpKVXYl_sCyDc0pQF4UoyIeAogYAe5Z0vYD87TZpvgxXoD3iNJ5CWDYhuRnE5jshYkPVoFZREVt-VDBJ7pYrPKAt4eXqRuuvIiOXgwuLFdu29YNzrsQD4UXYwtx7b6huGatoMPOvypzjW6LrYMyzXdgd13Bo7jHP4CLfKgpA)

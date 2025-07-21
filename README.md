@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -54,6 +55,7 @@
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -172,6 +174,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -179,28 +182,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 6 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -375,35 +378,29 @@ The following casualty priority rates were used with the rates requiring surgery
 
 ### 🔧Simulation Environment Setup
 
-- **Framework:** `simmer` (discrete-event simulation)
-
-- **Context:** Battlefield casualty handling with Role 1 treatment and evacuation logic
+The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
 
 ---
 
-#### 🧬 Casualty Trajectory Logic
+### Core Trajectory
 
-- Each casualty is assigned:
-  
-  - A team (random)
-  
-  - A priority (if WIA or DNBI, not KIA)
+Casualties enter the system with assigned attributes:
 
-- Then:
-  
-  - **Branch 1:** WIA/DNBI
-    
-    - Treatment by assigned team
-    
-    - Conditional transport if Priority 1 or 2
-  
-  - **Branch 2:** KIA
-    
-    - Treatment by assigned team
-    
-    - Then transport to mortuary
+- `team`: initial Role 1 assignment
+- `priority`: triage urgency (1–3)
+- `surgery`: binary flag based on casualty severity
+- `nbi`: non-battle injury indicator
 
-##### Core Trajectory
+Casualty types are immediately sorted:
+
+- **KIA**: routed to Role 1 mortuary preparation and transport
+- **WIA/DNBI**: evaluated for treatment, potential death-of-wounds (~2.5–5%), and evacuation need
+
+Evacuation options:
+
+- If Role 2 Basic teams are available, casualties flow to `r2b_treat_wia()`
+- If not, they bypass to `r2e_treat_wia()` directly
+- Lower priority casualties may recover at Role 1 without escalation
 
 ```mermaid
 flowchart TD
@@ -430,7 +427,36 @@ flowchart TD
   Q --> R["Call r1_transport_kia()"]
 ```
 
-##### R2B Trajectory
+### R2B Trajectory
+
+Casualties entering R2B undergo the following phases:
+
+1. **Hold Bed Assignment**
+   
+   - Initial stabilization; second DOW check (~1%)
+
+2. **Resuscitation Phase**
+   
+   - Emergency team support; logs `r2b_resus = 1`
+
+3. **Surgical Decision**
+   
+   - OT bed capacity assessed
+   - If available, surgery duration modeled with `rtruncnorm()`
+   - If skipped, recovery in hold bed with beta-distributed duration
+
+4. **Evacuation Assessment**
+   
+   - If evac team is free, casualty is routed to R2E
+   - If not, joins ICU wait loop via `wait_for_evac` until capacity frees
+
+5. **Mortuary Handling (if DOW)**
+   
+   - Executes `r2b_treat_kia()` and `r2b_transport_kia()`
+
+Key attributes:
+
+- `r2b_treated`, `r2b_surgery`, `evac_wait_count`, `return_day`, `r2b_to_r2e`
 
 ```mermaid
 flowchart TD
@@ -484,7 +510,33 @@ flowchart TD
   AI --> AJ[Branch to R2E Treatment]
 ```
 
-##### R2E Heavy Trajectory
+### R2E Heavy Trajectory
+
+Role 2E offers advanced medical intervention and strategic routing:
+
+1. **DOW Check (~1%)**
+   
+   - Routes casualty to `r2e_treat_kia()` + `r2e_transport_kia()`
+
+2. **Initial Hold Bed & Resuscitation**
+   
+   - Duration varies based on prior R2B treatment
+   - `r2e_resus = 1` logged for primary interventions
+
+3. **Surgery Branch**
+   
+   - If `surgery = 1`, OT bed and surgical team are seized
+   - Operation modeled with uniform duration (2–4 hours)
+   - If skipped, casualty remains in hold bed
+
+4. **Final Disposition**
+   
+   - 95% recover locally (6–10 days); `return_day` logged
+   - 5% routed for strategic evacuation; `r2e_evac = 1` assigned
+
+Attributes tracked:
+
+- `r2e_treated`, `r2e_handling`, `r2e_resus`, `r2e_evac`, `return_day`, `mortuary_treated`, `dow`
 
 ```mermaid
 flowchart TD

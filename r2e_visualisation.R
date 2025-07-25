@@ -63,6 +63,7 @@ r2e_bed_use$resource_readable <- gsub("(\\D)(\\d)(\\b)", "\\10\\2", r2e_bed_use$
 # Generate and stack plots
 team_ids <- sort(unique(r2e_bed_use$team_id))
 team_plots <- list()
+day_breaks <- seq(0, ceiling(max(r2e_bed_use$end_day)), by = 1)
 
 for (team in team_ids) {
   team_data <- r2e_bed_use[r2e_bed_use$team_id == team, ]
@@ -78,9 +79,15 @@ for (team in team_ids) {
       y = "Bed",
       color = "Bed Type"
     ) +
+    geom_vline(
+      xintercept = day_breaks,
+      linetype = "dotted",
+      color = "gray20",
+      linewidth = 0.4
+    ) +
     scale_color_manual(values = bed_colors) +
     scale_x_continuous(
-      breaks = seq(0, ceiling(max(r2e_bed_use$end_day)), by = 1),
+      breaks = day_breaks,
       expand = c(0, 0)
     ) +
     guides(color = "none") +

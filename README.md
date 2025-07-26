@@ -5,10 +5,15 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
+
 - [📘 Introduction](#-introduction)
+
 - [🌍 Context](#-context)
+
 - [🧰 Resource Descriptions](#-resource-descriptions)
+  
   - [🏥Health Teams](#health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -21,11 +26,15 @@
   - [🚑 Transport Assets](#-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
+
 - [📊 Environment Data Summary](#-environment-data-summary)
+  
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
   - [🏥 Medical Resources](#-medical-resources)
+
 - [🤕 Casualties](#-casualties)
+  
   - [Casualty Generation](#casualty-generation)
     - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
@@ -41,18 +50,26 @@
     - [Combat Casualties](#combat-casualties)
     - [Support Casualties](#support-casualties)
     - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
+
 - [Casualty Priorities](#casualty-priorities)
+
 - [Return to Duty](#return-to-duty)
+
 - [Died of Wounds](#died-of-wounds)
+
 - [Simulation Design](#simulation-design)
+  
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
     - [💀 KIA (Killed in Action) Handling](#-kia-killed-in-action-handling)
     - [🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling](#-wia-wounded-in-action-dnbi-diseasenonbattle-injury-handling)
+
 - [References](#references)
+
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -62,6 +79,8 @@
 <small>[Return to Top](#contents)</small>
 
 This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
+
+DES has been used as a proven way to simulate healthcare systems and support healthcare decision-making (as shown in [[9]](#References)).
 
 ## 🌍 Context
 
@@ -171,6 +190,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -178,28 +198,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 6 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 6        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -378,23 +398,63 @@ The simulation models casualty handling across echelons of care in a battlefield
 
 ### Core Trajectory
 
-Casualties enter the system with assigned attributes:
+This trajectory defines how a battlefield casualty is processed at Role 1 care and routed onward to either Role 2B, Role 2E, or recovery. It applies distinct treatment logic based on casualty type—WIA (wounded in action), DNBI (disease/non-battle injury), or KIA (killed in action)—and dynamically evaluates surgery requirements, priority, and disposition pathways.
 
-- `team`: initial Role 1 assignment
-- `priority`: triage urgency (1–3)
-- `surgery`: binary flag based on casualty severity
-- `nbi`: non-battle injury indicator
+🔢 Step 1: Attribute Initialization
 
-Casualty types are immediately sorted:
+Before treatment begins, each casualty is assigned key attributes:
 
-- **KIA**: routed to Role 1 mortuary preparation and transport
-- **WIA/DNBI**: evaluated for treatment, potential death-of-wounds (~2.5–5%), and evacuation need
+- `team`: randomly selects one of the available Role 1 teams
+- `priority`: for WIA/DNBI, a triage urgency level (1–3) using weighted probabilities; KIA receives `NA`
+- `nbi`: flags DNBI casualties with a 17% chance
+- `surgery`: determines surgical need based on priority and casualty type, with probabilities adjusted for severity
 
-Evacuation options:
+🔀 Step 2: Casualty Type Branching
 
-- If Role 2 Basic teams are available, casualties flow to `r2b_treat_wia()`
-- If not, they bypass to `r2e_treat_wia()` directly
-- Lower priority casualties may recover at Role 1 without escalation
+**Path A: WIA/DNBI Casualties**
+
+Casualties enter Role 1 treatment with team-specific logic:
+
+1. **Role 1 Team Treatment**  
+   Routed to the selected team’s treatment function (`r1_treat_wia`), enabling modular handling across Role 1 units.
+
+2. **Died of Wounds (DOW) Evaluation**  
+   Priority 1 and 2 casualties are checked for DOW risk:
+- 5% chance for P1
+
+- 2.5% chance for P2  
+  If triggered:
+
+- Casualty is flagged with `dow = 1`
+
+- Routed to Role 1 KIA processing (`r1_treat_kia` + `r1_transport_kia`)
+4. **Post-Treatment Disposition**
+- Casualties that survive Role 1 care undergo further routing:
+
+- **Evacuation Decision**  
+  For high-priority (P1/P2) cases:
+
+- ~95% of P1 and ~90% of P2 proceed to evacuation
+
+- Role 2B team selection attempted via `select_available_r2b_team(env)`
+
+- If successful → proceed to `r2b_treat_wia`
+
+- If unavailable → bypass to `r2e_treat_wia`; flag `r2b_bypassed = 1`
+
+- **Recovery Decision**  
+  Lower-priority or DNBI casualties who don’t meet evac thresholds recover locally at Role 1:
+
+- Recovery duration follows a beta distribution scaled to ~5 days
+
+- `return_day` timestamp is logged on completion
+
+**Path B: KIA Casualties**
+
+Casualties identified as KIA follow a simplified treatment path:
+
+- Assigned to Role 1 mortuary care via their `team` index
+- Routed through `r1_treat_kia` followed by mortuary transport using `r1_transport_kia`
 
 ```mermaid
 flowchart TD
@@ -427,7 +487,7 @@ Casualties entering R2B undergo the following phases:
 
 1. **Hold Bed Assignment**
    
-   - Initial stabilization; second DOW check (~1%)
+   - Initial stabilization; DOW identified and subsequently transported to mortuary (~1%)
 
 2. **Resuscitation Phase**
    
@@ -520,13 +580,17 @@ Role 2E offers advanced medical intervention and strategic routing:
 3. **Surgery Branch**
    
    - If `surgery = 1`, OT bed and surgical team are seized
-   - Operation modeled with uniform duration (2–4 hours)
+   - Operating time modeled with triangular distribution where:
+   - min: 90
+   - max: 240
+   - mode: 135
+   - A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References). 
    - If skipped, casualty remains in hold bed
 
 4. **Final Disposition**
    
-   - 95% recover locally (6–10 days); `return_day` logged
-   - 5% routed for strategic evacuation; `r2e_evac = 1` assigned
+   - 20% recover locally (6–10 days); `return_day` logged
+   - 80% routed for strategic evacuation; `r2e_evac = 1` assigned
 
 Attributes tracked:
 
@@ -568,56 +632,39 @@ flowchart TD
 
     U --> W[Exit]
     V --> W
-
 ```
 
 ---
 
-#### 💀 KIA (Killed in Action) Handling
+DOW: 5% of total [[6]](#References). 
 
-- **Treatment (`treat_kia()`):**
-  
-  - Selects medics using shortest-queue policy
-  
-  - Brief timeout (avg 15 min), simulating confirmation and prep for evacuation
+- Role 1: 5% P1, 2.5% P2 on arrival
 
-- **Transport (`transport_kia()`):**
-  
-  - Uses HX2_40M vehicles (selected by shortest queue)
-  
-  - Simulates transport to mortuary near Role 2 (avg ~30 min, log-normal)
+- Role 2B: 1% on arrival
+
+- Role 2E: 1% on arrival
 
 ---
 
-#### 🤕 WIA (Wounded in Action) / DNBI (Disease/Non-Battle Injury) Handling
+## Single Run Analysis
 
-- **Treatment (`treat_wia()`):**
-  
-  - Seizes medics and clinicians (shortest-queue per group)
-  
-  - Treatment duration depends on assigned `priority` (1–3), drawn probabilistically
-    
-    - Priority 1: ~120 min
-    
-    - Priority 2: ~60 min
-    
-    - Priority 3: ~20 min
+1. Seems that there is insufficient OT bed / surgical capability availability compared to other resource types in the architecture.
 
-- **Evacuation Decision:**
-  
-  - Only Priority 1 & 2 trigger **transport to Role 2** via PMV_Amb
-  
-  - Priority 3 enters a recovery trajectory taking between 0 and 5 days to recover with an average of 2 days to recover and return to the force.
+2. the holding bed volume assumes ready access to strategic medical evacuation which may not be valid in LSCO.
+
+[Sankey flow diagram](%5Bplotly-logomark%5D(https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
+
+![image info](file://C:\Users\natha\Documents\Battlefield Casualty Handling\sankey.png?msec=1753045894538)
 
 ---
 
-DOW: 5% of total [6]
+## Further Development
 
----
+1. Add usage of transport resources for return journey
 
-[Sankey flow diagram]([plotly-logomark](https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
+2. Pulse strategic medical evacuation to simuate temporal availability of the resource
 
-![image info](sankey.png)
+3. 
 
 ---
 
@@ -642,6 +689,10 @@ Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF
 [6] Holcomb, J. B., Stansbury, L. G., Champion, H. R., Wade, C., & Bellamy, R. F. (2006). *Understanding combat casualty care statistics*. U.S. Army Institute of Surgical Research. [https://apps.dtic.mil/sti/pdfs/ADA480496.pdf](https://apps.dtic.mil/sti/pdfs/ADA480496.pdf)
 
 [7] The Economist. (2025, July 9). *Russia’s summer Ukraine offensive looks like its deadliest yet*. [https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far](https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far)
+
+[8] Wang, Y., & Pinsky, E. (2023). Geometry of deviation measures for triangular distributions. *Frontiers in Applied Mathematics and Statistics*, *9*, 1274787. Accessed: 26 Jul 25. (Available at: https://doi.org/10.3389/fams.2023.1274787)
+
+[9] Maddeh, M., Ayouni, S., Al-Otaibi, S., Alazzam, M. B., Alturki, N. M., & Hajjej, F. (2023). Discrete-Event Simulation Model for Monitoring Elderly and Patient’s Smart Beds. *Journal of Disability Research*, *2*(3), 1-9. DOI: 10.57197/JDR-2023-0026. Accessed: 26 Jul 25. (Available at: https://www.scienceopen.com/hosted-document?doi=10.57197/JDR-2023-0026)
 
 <!-- REFERENCES END -->
 

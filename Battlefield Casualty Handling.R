@@ -129,7 +129,7 @@ build_env <- function(env, env_data) {
                 if (elm_type == "r2b") {
                   team_shift <- if (r2b_surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
                   env <- env %>% add_resource(res_name, team_shift)
-                  r2b_surg_counter <- r2b_surg_counter + 1
+                  # r2b_surg_counter <- r2b_surg_counter + 1
                   
                 } else if (elm_type == "r2eheavy") {
                   team_shift <- switch(surg_index,
@@ -140,9 +140,9 @@ build_env <- function(env, env_data) {
                 
               } else if (section_name == "ot_bed") {
                 if (elm_type == "r2eheavy") {
-                  if (r2e_ot_bed_counter == 1) {
+                  if (r2e_ot_bed_counter %% 2 == 1) {
                     env <- env %>% add_resource(res_name)
-                  } else if (r2e_ot_bed_counter == 2) {
+                  } else {
                     env <- env %>% add_resource(res_name, ot_shift_1)
                   }
                   r2e_ot_bed_counter <- r2e_ot_bed_counter + 1
@@ -154,6 +154,7 @@ build_env <- function(env, env_data) {
               } else {
                 env <- env %>% add_resource(res_name)
               }
+              r2b_surg_counter <- r2b_surg_counter + 1
             }
           }
           
@@ -583,7 +584,7 @@ r2b_treat_wia <- function(team_id) {
           option = function() {
             usage <- sum(get_server_count(env, resources = ot_beds))
             cap <- sum(get_capacity(env, resources = ot_beds))
-            if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+            if (!is.na(usage) && !is.na(cap) && usage <= cap) return(1)
             return(2)
           },
           continue = TRUE,
@@ -593,7 +594,7 @@ r2b_treat_wia <- function(team_id) {
             simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
             seize_selected(id = 4) %>%
             seize_resources(surg_team) %>%
-            timeout(function() rtruncnorm(1, a = 60, b = 180, mean = 135, sd = 20)) %>%
+            timeout(function() rtruncnorm(1, a = env_data$vars$r2b$surgery$min, b = env_data$vars$r2b$surgery$max, mean = env_data$vars$r2b$surgery$mean, sd = env_data$vars$r2b$surgery$sd)) %>%
             set_attribute("r2b_surgery", 1) %>%
             release_resources(surg_team) %>%
             release_selected(id = 4),
@@ -762,7 +763,7 @@ r2e_treat_wia <- function(team_id) {
   trajectory("R2E Treatment (Fallback)") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
-
+    
     # Step 1: DOW branch (~1%)
     branch(
       option = function() {
@@ -782,15 +783,10 @@ r2e_treat_wia <- function(team_id) {
       trajectory("Continue R2E Treatment")
     ) %>%
     
-    # Step 2: Initial hold bed
-    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
-    seize_selected(id = 1) %>%
-    
     # Step 3: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-    release_selected(id = 1) %>%
-
+    
     # Step 4: Emergency treatment
     seize_resources(emergency_team) %>%
     branch(
@@ -803,22 +799,18 @@ r2e_treat_wia <- function(team_id) {
       
       # Shorter resus time if previously resus at R2B
       trajectory() %>%
-        timeout(function() rlnorm(1, log(15), 0.3)) %>%
+        timeout(function() rlnorm(1, log(env_data$vars$r2eheavy$short_resus$mean), env_data$vars$r2eheavy$short_resus$sd)) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2),
       
       # Longer resus time otherwise
       trajectory() %>%
-        timeout(function() rlnorm(1, log(45), 0.3)) %>%
+        timeout(function() rlnorm(1, log(env_data$vars$r2eheavy$long_resus$mean), env_data$vars$r2eheavy$long_resus$sd)) %>%
         set_attribute("r2e_resus", 1) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     ) %>%
-  
-    # Step 5: hold bed
-    simmer::select(hold_beds, policy = "shortest-queue", id = 3) %>%
-    seize_selected(id = 3) %>%
-
+    
     # Step 6: Surgery if required
     branch(
       option = function() {
@@ -832,12 +824,11 @@ r2e_treat_wia <- function(team_id) {
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
-        release_selected(id = 3) %>%  # Release hold bed after OT is secured
         seize_resources(surg_team) %>%
-        timeout(function() runif(1, min = 2 * 60, max = 4 * 60)) %>%
+        timeout(function() runif(1, min = env_data$vars$r2eheavy$surgery$min, max = env_data$vars$r2eheavy$surgery$max)) %>%
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
-
+        
         # ICU care after surgery or hold phase
         # ICU timeout uses log-normal with median ~2 hours and long tail up to 48 hours
         log_("seizing ICU bed") %>%
@@ -851,13 +842,12 @@ r2e_treat_wia <- function(team_id) {
       
       # Branch 2: No surgery needed → stay in hold bed, no OT required
       trajectory("No Surgery Needed") %>%
-        release_selected(id = 3) %>%
         log_("No surgery needed")
     ) %>%
     
     # Step 7: Evacuate or retain for recovery
     branch(
-      option = function() sample(1:2, 1, prob = c(0.20, 0.8)),
+      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$rate, (1-env_data$vars$r2eheavy$recovery$rate))),
       continue = TRUE,
       
       # Branch 1: Recover at R2E Heavy
@@ -1072,39 +1062,39 @@ env %>%
   add_generator("wia_cbt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 1.77,
-                                                        sd_daily = 3.56,
-                                                        pop = env_data$pops$combat,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 3.56,
+                                                       pop = env_data$pops$combat,
+                                                       n_days)), mon = 2) %>%
   add_generator("kia_cbt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 0.68,
-                                                        sd_daily = 1.39,
-                                                        pop = env_data$pops$combat,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 1.39,
+                                                       pop = env_data$pops$combat,
+                                                       n_days)), mon = 2) %>%
   add_generator("dnbi_cbt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 2.04,
-                                                        sd_daily = 1.89,
-                                                        pop = env_data$pops$combat,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 1.89,
+                                                       pop = env_data$pops$combat,
+                                                       n_days)), mon = 2) %>%
   add_generator("wia_spt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 1.77,
-                                                        sd_daily = 3.56,
-                                                        pop = env_data$pops$support,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 3.56,
+                                                       pop = env_data$pops$support,
+                                                       n_days)), mon = 2) %>%
   add_generator("kia_spt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 0.68,
-                                                        sd_daily = 1.39,
-                                                        pop = env_data$pops$support,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 1.39,
+                                                       pop = env_data$pops$support,
+                                                       n_days)), mon = 2) %>%
   add_generator("dnbi_spt", 
                 casualty, 
                 distribution = at(generate_ln_arrivals(mean_daily = 0.94,
-                                                        sd_daily = 0.56,
-                                                        pop = env_data$pops$support,
-                                                        n_days)), mon = 2) %>%
+                                                       sd_daily = 0.56,
+                                                       pop = env_data$pops$support,
+                                                       n_days)), mon = 2) %>%
   add_global("evac_wait_count", 0)
 
 results <- replicate(n_iterations, {

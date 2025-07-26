@@ -15,7 +15,7 @@
     [
       {
         "elm": "r1",
-        "qty": 6,
+        "qty": 3,
         "sub_elms": 
           [
             {
@@ -134,7 +134,7 @@
       },
       {
         "elm": "r2eheavy",
-        "qty": 1,
+        "qty": 2,
         "sub_elms": 
           [
             {
@@ -234,6 +234,103 @@
         "name": "HX240M",
         "capacity": 50,
         "qty": 4
+      }
+    ],
+  "vars":
+    [
+      {
+        "elm": "r2eheavy",
+        "actys":
+          [
+            {
+            "acty": "surgery",
+            "vals": 
+              [
+                {
+                  "var": "min",
+                  "val": 120
+                },
+                {
+                  "var": "max",
+                  "val": 240
+                },
+                {
+                  "var": "mean",
+                  "val": 120
+                },
+                {
+                  "var": "sd",
+                  "val": 15
+                }
+              ]
+            },
+            {
+              "acty": "short_resus",
+              "vals":
+              [
+                {
+                  "var": "mean",
+                  "val": 15
+                },
+                {
+                  "var": "sd",
+                  "val": 0.3
+                }
+              ]
+            },
+            {
+              "acty": "long_resus",
+              "vals":
+              [
+                {
+                  "var": "mean",
+                  "val": 45
+                },
+                {
+                  "var": "sd",
+                  "val": 0.3
+                }
+              ]
+            },
+            {
+              "acty": "recovery",
+              "vals":
+              [
+                {
+                  "var": "rate",
+                  "val": 0.2
+                }
+              ]
+            }
+          ]
+      },
+      {
+        "elm": "r2b",
+        "actys":
+        [
+          {
+            "acty": "surgery",
+            "vals": 
+              [
+                {
+                  "var": "min",
+                  "val": 120
+                },
+                {
+                  "var": "max",
+                  "val": 240
+                },
+                {
+                  "var": "mean",
+                  "val": 120
+                },
+                {
+                  "var": "sd",
+                  "val": 15
+                }
+              ]            
+          }
+        ]
       }
     ]
 }

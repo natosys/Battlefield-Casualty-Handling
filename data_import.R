@@ -85,10 +85,32 @@ build_environment <- function(data) {
     )
   }
   
+  # ── Process vars into nested named list ──
+  vars_list <- list()
+  if (!is.null(data$vars)) {
+    for (elm_def in data$vars) {
+      elm_name <- elm_def$elm
+      acty_defs <- elm_def$actys
+      
+      acty_list <- list()
+      for (acty_def in acty_defs) {
+        acty_name <- acty_def$acty
+        vals_list <- setNames(
+          lapply(acty_def$vals, function(v) v$val),
+          sapply(acty_def$vals, function(v) v$var)
+        )
+        acty_list[[acty_name]] <- vals_list
+      }
+      
+      vars_list[[elm_name]] <- acty_list
+    }
+  }
+  
   return(list(
     pops = pops_list,
     elms = env_list,
-    transports = transports_list
+    transports = transports_list,
+    vars = vars_list
   ))
 }
 

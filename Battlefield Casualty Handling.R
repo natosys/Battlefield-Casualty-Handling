@@ -16,6 +16,7 @@ library(scales)
 library(reshape2)
 library(truncnorm)
 library(jsonlite)
+library(triangle)
 
 # Import data import functions
 source("data_import.R")
@@ -799,13 +800,27 @@ r2e_treat_wia <- function(team_id) {
       
       # Shorter resus time if previously resus at R2B
       trajectory() %>%
-        timeout(function() rlnorm(1, log(env_data$vars$r2eheavy$short_resus$mean), env_data$vars$r2eheavy$short_resus$sd)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$short_resus$min,
+            b = env_data$vars$r2eheavy$short_resus$max,
+            c = env_data$vars$r2eheavy$short_resus$mode
+          )
+        }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2),
       
       # Longer resus time otherwise
       trajectory() %>%
-        timeout(function() rlnorm(1, log(env_data$vars$r2eheavy$long_resus$mean), env_data$vars$r2eheavy$long_resus$sd)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$long_resus$min,
+            b = env_data$vars$r2eheavy$long_resus$max,
+            c = env_data$vars$r2eheavy$long_resus$mode
+          )
+        }) %>%
         set_attribute("r2e_resus", 1) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
@@ -825,7 +840,14 @@ r2e_treat_wia <- function(team_id) {
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
         seize_resources(surg_team) %>%
-        timeout(function() runif(1, min = env_data$vars$r2eheavy$surgery$min, max = env_data$vars$r2eheavy$surgery$max)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$surgery$min,
+            b = env_data$vars$r2eheavy$surgery$max,
+            c = env_data$vars$r2eheavy$surgery$mode
+          )
+        }) %>%
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
         
@@ -835,8 +857,12 @@ r2e_treat_wia <- function(team_id) {
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
         timeout(function() {
-          duration <- rlnorm(1, meanlog = log(120), sdlog = 1.2)
-          min(duration, 2880)  # Cap at 2 days (2880 minutes)
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$icu$min,
+            b = env_data$vars$r2eheavy$icu$max,
+            c = env_data$vars$r2eheavy$icu$mode
+          )
         }) %>%
         release_selected(id = 6),
       

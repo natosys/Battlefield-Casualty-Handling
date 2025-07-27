@@ -134,7 +134,7 @@
       },
       {
         "elm": "r2eheavy",
-        "qty": 2,
+        "qty": 1,
         "sub_elms": 
           [
             {
@@ -248,19 +248,15 @@
               [
                 {
                   "var": "min",
-                  "val": 120
+                  "val": 90
                 },
                 {
                   "var": "max",
                   "val": 240
                 },
                 {
-                  "var": "mean",
+                  "var": "mode",
                   "val": 120
-                },
-                {
-                  "var": "sd",
-                  "val": 15
                 }
               ]
             },
@@ -269,12 +265,16 @@
               "vals":
               [
                 {
-                  "var": "mean",
-                  "val": 15
+                  "var": "min",
+                  "val": 13
                 },
                 {
-                  "var": "sd",
-                  "val": 0.3
+                  "var": "max",
+                  "val": 55
+                },
+                {
+                  "var": "mode",
+                  "val": 28
                 }
               ]
             },
@@ -283,12 +283,34 @@
               "vals":
               [
                 {
-                  "var": "mean",
-                  "val": 45
+                  "var": "min",
+                  "val": 25
                 },
                 {
-                  "var": "sd",
-                  "val": 0.3
+                  "var": "max",
+                  "val": 70
+                },
+                {
+                  "var": "mode",
+                  "val": 45
+                }
+              ]
+            },
+            {
+              "acty": "icu",
+              "vals":
+              [
+                {
+                  "var": "min",
+                  "val": 770
+                },
+                {
+                  "var": "max",
+                  "val": 2160
+                },
+                {
+                  "var": "mode",
+                  "val": 1440
                 }
               ]
             },

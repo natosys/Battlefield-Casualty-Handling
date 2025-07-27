@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 2 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 2        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -375,6 +378,57 @@ The following casualty priority rates were used with the rates requiring surgery
 ### 🔧Simulation Environment Setup
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
+
+The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree.
+
+```mermaid
+block-beta
+  columns 13
+
+  a["Casualty Care"]:13
+  b["R1"]:3
+  c["R2B"]:4 space:9
+  e["R2E"]:7 space:6
+  f["R4"]:10
+
+  g["Triage"]
+  h["POI Care"]
+  i["MEDIVAC"]
+  j["Resus/Emergency"]
+  k["Abbreviated Surgery"]
+  l["ICU Stabilisation"]
+  m["MEDIVAC"]
+  n["Definitive Surgery"]
+  o["Recovery"]
+  p["MEDIVAC"]
+  q["Reconstructive Surgery"]
+  r["Rehabilitation"]
+  s["Long Term Recovery"]
+
+  %% Role 1 Care (forward emergency)
+  style b fill:#cce5ff,stroke:#3399ff,stroke-width:2px
+  style g fill:#cce5ff,stroke:#3399ff
+  style h fill:#cce5ff,stroke:#3399ff
+  style i fill:#cce5ff,stroke:#3399ff
+
+  %% Role 2 Care (damage control surgery and ICU)
+  style c fill:#d5f5e3,stroke:#2ecc71,stroke-width:2px
+  style e fill:#e9f78f,stroke:#a9d70b,stroke-width:3px
+  style j fill:#d5f5e3,stroke:#2ecc71
+  style k fill:#d5f5e3,stroke:#2ecc71
+  style l fill:#d5f5e3,stroke:#2ecc71
+  style m fill:#d5f5e3,stroke:#2ecc71
+
+  %% Role 4 Care (definitive treatment + recovery)
+  style f fill:#f9e79f,stroke:#f1c40f,stroke-width:2px
+  style n fill:#e9f78f,stroke:#a9d70b
+  style o fill:#e9f78f,stroke:#a9d70b
+  style p fill:#e9f78f,stroke:#a9d70b
+  style q fill:#f9e79f,stroke:#f1c40f
+  style r fill:#f9e79f,stroke:#f1c40f
+  style s fill:#f9e79f,stroke:#f1c40f
+
+```
 
 ---
 
@@ -558,19 +612,57 @@ Role 2E offers advanced medical intervention and strategic routing:
    
    - Duration varies based on prior R2B treatment
    - `r2e_resus = 1` logged for primary interventions
+   
+   There were no clear durations that could be identified in literature for the duration to be used for the resuscitation/emergency phase of treatment in the R2E Heavy. Instead, the likely/anticipated tasks required to be undertaken in this phase were collated with task duration estimates collated to produce estimates for use in the simulation. The durations were developed recognising the need for all activities to be completed within 90 min as indicated by [[10]](#References).
+   
+   | Long Resuscitation       |           |            |           |
+   | ------------------------ | --------- | ---------- | --------- |
+   | Step                     | Min (min) | Mode (min) | Max (min) |
+   | Hemorrhage Control       | 2         | 5          | 10        |
+   | IV/IO Access             | 2         | 5          | 10        |
+   | TXA Administration       | 10        | 10         | 15        |
+   | Fluid Resuscitation      | 5         | 10         | 20        |
+   | Airway/Breathing Support | 3         | 5          | 10        |
+   | TBI Monitoring & Warming | 2         | 5          | 10        |
+   | Documentation/Prep       | 2         | 3          | 5         |
+   | **TOTAL**                | 25        | 45         | 70        |
+   
+   | Short Reuscitation       |           |            |           |
+   | ------------------------ | --------- | ---------- | --------- |
+   | Step                     | Min (min) | Mode (min) | Max (min) |
+   | Hemorrhage Control       | 2         | 5          | 10        |
+   | IV/IO Access             | 2         | 5          | 10        |
+   | Fluid Resuscitation      | 5         | 10         | 20        |
+   | TBI Monitoring & Warming | 2         | 5          | 10        |
+   | Documentation/Prep       | 2         | 3          | 5         |
+   | **TOTAL**                | 13        | 28         | 55        |
+   
+   Resus:
+   
+   
 
 3. **Surgery Branch**
    
    - If `surgery = 1`, OT bed and surgical team are seized
-   - Operating time modeled with triangular distribution where:
-   - min: 90
-   - max: 240
-   - mode: 135
    - A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References). 
-   - If skipped, casualty remains in hold bed
-
-4. **Final Disposition**
+   - Due to the variability of potential requirements for surgery it is difficult to establish specific durations for surgery time, however some meta studies for particular DCS-III surgery types ([[11]](#References), [[12]](#References) and [[13]](#References)) provide some indication for surgery times that were used for the definition for this simulation:
+   - min: 41 min
+   - max: 210 min 
+   - mode: 95 min   
    
+   ![R2E Heavy Surgery Time Distribution](C:\Users\natha\Documents\Battlefield%20Casualty%20Handling\images\r2eheavy_surgery_distribution.png)
+   
+   - COULD ENHANCE: https://academic.oup.com/milmed/article/188/11-12/e3368/6961509?login=false provides timings for mild, moderate, severe and critical cases.
+   - If skipped, casualty remains in hold bed
+4. **Post Surgery ICU**. Following surgery casualties are admitted to the ICU for moonitoring. Times for this ICU period are derived from [[14]](#References), [[15]](#References) and [[16]](#References).
+   
+   min: 12 h (770 min)
+   
+   max: 36 h (2160 min)
+   
+   mode: 24 h (1440 min)
+   
+   **Final Disposition**
    - 20% recover locally (6–10 days); `return_day` logged
    - 80% routed for strategic evacuation; `r2e_evac = 1` assigned
 
@@ -660,9 +752,7 @@ DOW: 5% of total [[6]](#References).
 
 [2] Australian Army (2018) *Land Warfare Publication 0-5-2 Staff Officers Aide-Memoir*. Accessed 20 Jul 25.
 
-[3] 
-
-Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF; Kelly, KM;  Taylor, JF; Holland, JC; Laragione, VJ. (March 2025) *To Conserve Fighting Strength in Large Scale Combat Operations*. Military Review Online. Accessed: 20 Jul 25. (Available at: https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/)
+[3] Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF; Kelly, KM;  Taylor, JF; Holland, JC; Laragione, VJ. (March 2025) *To Conserve Fighting Strength in Large Scale Combat Operations*. Military Review Online. Accessed: 20 Jul 25. (Available at: https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/)
 
 [4] Kemple, W. G., & Lacy, L. W. (1995). *Modeling command and control: The design and implementation of the C2 model*. Defense Technical Information Center. [https://apps.dtic.mil/sti/html/tr/ADA304910/](https://apps.dtic.mil/sti/html/tr/ADA304910/)
 
@@ -675,6 +765,20 @@ Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF
 [8] Wang, Y., & Pinsky, E. (2023). Geometry of deviation measures for triangular distributions. *Frontiers in Applied Mathematics and Statistics*, *9*, 1274787. Accessed: 26 Jul 25. (Available at: https://doi.org/10.3389/fams.2023.1274787)
 
 [9] Maddeh, M., Ayouni, S., Al-Otaibi, S., Alazzam, M. B., Alturki, N. M., & Hajjej, F. (2023). Discrete-Event Simulation Model for Monitoring Elderly and Patient’s Smart Beds. *Journal of Disability Research*, *2*(3), 1-9. DOI: 10.57197/JDR-2023-0026. Accessed: 26 Jul 25. (Available at: https://www.scienceopen.com/hosted-document?doi=10.57197/JDR-2023-0026)
+
+[10] Abri, M. A., Snani, S. A., Almayahi, J., Sharqi, A. A., & Qadhi, H. A. The Outcome of Damage Control Surgery at Sultan Qaboos University Hospital. *World J Surg Surgical Res. 2022; 5*, *1428*. Accessed: 26 Jul 25. (Available at: https://www.surgeryresearchjournal.com/open-access/the-outcome-of-damage-control-surgery-at-sultan-qaboos-university-9532.pdf?utm_source=chatgpt.com)
+
+[11] Zizzo, M., Ruiz, C. C., Zanelli, M., Bassi, M. C., Sanguedolce, F., Ascani, S., & Annessi, V. (2020). Damage control surgery for the treatment of perforated acute colonic diverticulitis: a systematic review. *Medicine*, *99*(48), e23323. Accessed 26 Jul 25. (Available at: https://journals.lww.com/md-journal/fulltext/2020/11250/damage_control_surgery_for_the_treatment_of.43.aspx)
+
+[12] Krige, J. E., Navsaria, P. H., & Nicol, A. J. (2016). Damage control laparotomy and delayed pancreatoduodenectomy for complex combined pancreatoduodenal and venous injuries. *European Journal of Trauma and Emergency Surgery*, *42*(2), 225-230. Accessed: 26 Jul 25. (Available at: https://pubmed.ncbi.nlm.nih.gov/26038043/)
+
+[13] Hall, A., Graham, B., Hanson, M., & Stern, C. (2023). Surgical capability utilization time for military casualties at Role 2 and Role 3 facilities. *Military medicine*, *188*(11-12), e3368-e3370. Accessed: 26 Jul 25. (Available at: https://doi.org/10.1093/milmed/usac414)
+
+[14] Lamb, C. M., MacGoey, P., Navarro, A. P., & Brooks, A. J. (2014). Damage control surgery in the era of damage control resuscitation. *British Journal of Anaesthesia*, *113*(2), 242-249. Accessed: 27 Jul 25. (Available at: https://doi.org/10.1093/bja/aeu233)
+
+[15] Allen, S. R., Brooks, A. J., Reilly, P. M., & Cotton, B. A. (2011). Damage Control Part III: Definitive Reconstruction. In *Ryan's Ballistic Trauma* (pp. 453-460). Springer, London. (Available at: https://link.springer.com/chapter/10.1007/978-1-84882-124-8_31)
+
+[16] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved July 27, 2025, from https://litfl.com/damage-control-resuscitation/
 
 <!-- REFERENCES END -->
 

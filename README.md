@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -402,29 +405,30 @@ block-beta
   r["Rehabilitation"]
   s["Long Term Recovery"]
 
-  %% Role 1 Care (forward emergency)
-  style b fill:#cce5ff,stroke:#3399ff,stroke-width:2px
-  style g fill:#cce5ff,stroke:#3399ff
-  style h fill:#cce5ff,stroke:#3399ff
-  style i fill:#cce5ff,stroke:#3399ff
+  %% Role 1 Care — Rich Blue
+  style b fill:#99c2ff,stroke:#0059b3,stroke-width:2px
+  style g fill:#99c2ff,stroke:#0059b3
+  style h fill:#99c2ff,stroke:#0059b3
+  style i fill:#99c2ff,stroke:#0059b3
 
-  %% Role 2 Care (damage control surgery and ICU)
-  style c fill:#d5f5e3,stroke:#2ecc71,stroke-width:2px
-  style e fill:#e9f78f,stroke:#a9d70b,stroke-width:3px
-  style j fill:#d5f5e3,stroke:#2ecc71
-  style k fill:#d5f5e3,stroke:#2ecc71
-  style l fill:#d5f5e3,stroke:#2ecc71
-  style m fill:#d5f5e3,stroke:#2ecc71
+  %% Role 2 Basic — Deeper Green
+  style c fill:#b0e6c1,stroke:#006633,stroke-width:2px
+  style j fill:#b0e6c1,stroke:#006633
+  style k fill:#b0e6c1,stroke:#006633
+  style l fill:#b0e6c1,stroke:#006633
+  style m fill:#b0e6c1,stroke:#006633
 
-  %% Role 4 Care (definitive treatment + recovery)
-  style f fill:#f9e79f,stroke:#f1c40f,stroke-width:2px
-  style n fill:#e9f78f,stroke:#a9d70b
-  style o fill:#e9f78f,stroke:#a9d70b
-  style p fill:#e9f78f,stroke:#a9d70b
-  style q fill:#f9e79f,stroke:#f1c40f
-  style r fill:#f9e79f,stroke:#f1c40f
-  style s fill:#f9e79f,stroke:#f1c40f
+  %% Role 2 Enhanced — Lime-Gold Transition
+  style e fill:#c6d700,stroke:#667700,stroke-width:3px
+  style n fill:#c6d700,stroke:#667700
+  style o fill:#c6d700,stroke:#667700
+  style p fill:#c6d700,stroke:#667700
 
+  %% Role 4 — Rich Amber
+  style f fill:#ffcc66,stroke:#995c00,stroke-width:2px
+  style q fill:#ffcc66,stroke:#995c00
+  style r fill:#ffcc66,stroke:#995c00
+  style s fill:#ffcc66,stroke:#995c00
 ```
 
 ---
@@ -635,8 +639,6 @@ Role 2E offers advanced medical intervention and strategic routing:
    | **TOTAL**                | 13        | 28         | 55        |
    
    Resus:
-   
-   
 
 3. **Surgery Branch**
    
@@ -651,6 +653,7 @@ Role 2E offers advanced medical intervention and strategic routing:
    
    - COULD ENHANCE: https://academic.oup.com/milmed/article/188/11-12/e3368/6961509?login=false provides timings for mild, moderate, severe and critical cases.
    - If skipped, casualty remains in hold bed
+
 4. **Post Surgery ICU**. Following surgery casualties are admitted to the ICU for moonitoring. Times for this ICU period are derived from [[14]](#References), [[15]](#References) and [[16]](#References).
    
    min: 12 h (770 min)
@@ -660,6 +663,7 @@ Role 2E offers advanced medical intervention and strategic routing:
    mode: 24 h (1440 min)
    
    **Final Disposition**
+   
    - 20% recover locally (6–10 days); `return_day` logged
    - 80% routed for strategic evacuation; `r2e_evac = 1` assigned
 

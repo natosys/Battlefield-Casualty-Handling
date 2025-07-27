@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 1 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 1        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -402,30 +405,30 @@ block-beta
   r["Rehabilitation"]
   s["Long Term Recovery"]
 
-  %% Role 1 Care — Rich Blue
-  style b fill:#99c2ff,stroke:#0059b3,stroke-width:2px
-  style g fill:#99c2ff,stroke:#0059b3
-  style h fill:#99c2ff,stroke:#0059b3
-  style i fill:#99c2ff,stroke:#0059b3
+  %% Role 1 — Deep Navy
+  style b fill:#336699,stroke:#003366,color:#ffffff
+  style g fill:#336699,stroke:#003366,color:#ffffff
+  style h fill:#336699,stroke:#003366,color:#ffffff
+  style i fill:#336699,stroke:#003366,color:#ffffff
 
-  %% Role 2 Basic — Deeper Green
-  style c fill:#b0e6c1,stroke:#006633,stroke-width:2px
-  style j fill:#b0e6c1,stroke:#006633
-  style k fill:#b0e6c1,stroke:#006633
-  style l fill:#b0e6c1,stroke:#006633
-  style m fill:#b0e6c1,stroke:#006633
+  %% Role 2B — Dark Sea Green
+  style c fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style j fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style k fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style l fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style m fill:#2e8b57,stroke:#14532d,color:#ffffff
 
-  %% Role 2 Enhanced — Lime-Gold Transition
-  style e fill:#c6d700,stroke:#667700,stroke-width:3px
-  style n fill:#c6d700,stroke:#667700
-  style o fill:#c6d700,stroke:#667700
-  style p fill:#c6d700,stroke:#667700
+  %% Role 2E — Olive Gold
+  style e fill:#b5a900,stroke:#665c00,color:#ffffff
+  style n fill:#b5a900,stroke:#665c00,color:#ffffff
+  style o fill:#b5a900,stroke:#665c00,color:#ffffff
+  style p fill:#b5a900,stroke:#665c00,color:#ffffff
 
-  %% Role 4 — Rich Amber
-  style f fill:#ffcc66,stroke:#995c00,stroke-width:2px
-  style q fill:#ffcc66,stroke:#995c00
-  style r fill:#ffcc66,stroke:#995c00
-  style s fill:#ffcc66,stroke:#995c00
+  %% Role 4 — Burnt Amber
+  style f fill:#cc6600,stroke:#663300,color:#ffffff
+  style q fill:#cc6600,stroke:#663300,color:#ffffff
+  style r fill:#cc6600,stroke:#663300,color:#ffffff
+  style s fill:#cc6600,stroke:#663300,color:#ffffff
 ```
 
 ---

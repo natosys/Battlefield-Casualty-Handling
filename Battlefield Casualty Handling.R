@@ -108,6 +108,7 @@ build_env <- function(env, env_data) {
   r2e_surg_counter <- 1
   r2e_ot_bed_counter <- 1
   r2b_surg_counter <- 1
+  r2b_ot_bed_counter <- 1
   
   # Add resources based on `elms`
   for (elm_type in names(env_data$elms)) {
@@ -128,15 +129,22 @@ build_env <- function(env, env_data) {
             for (res_name in section) {
               if (section_name == "surg") {
                 if (elm_type == "r2b") {
-                  team_shift <- if (r2b_surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
+                  if (r2b_surg_counter %% 2 == 1) {
+                    team_shift <- ot_shift_1
+                  } else {
+                    team_shift <- ot_shift_2
+                  }
                   env <- env %>% add_resource(res_name, team_shift)
-                  # r2b_surg_counter <- r2b_surg_counter + 1
+                  r2b_surg_counter <- r2b_surg_counter + 1
                   
                 } else if (elm_type == "r2eheavy") {
-                  team_shift <- switch(surg_index,
-                                       ot_shift_1, ot_shift_2, ot_shift_1)
+                  if (r2e_surg_counter %% 2 == 1) {
+                    team_shift <- ot_shift_1
+                  } else {
+                    team_shift <- ot_shift_2
+                  }
                   env <- env %>% add_resource(res_name, team_shift)
-                  surg_index <- surg_index + 1
+                  r2e_surg_counter <- r2e_surg_counter + 1
                 }
                 
               } else if (section_name == "ot_bed") {
@@ -148,14 +156,18 @@ build_env <- function(env, env_data) {
                   }
                   r2e_ot_bed_counter <- r2e_ot_bed_counter + 1
                 } else {
-                  team_shift <- if (r2b_surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
+                  if (r2b_ot_bed_counter %% 2 == 1) {
+                    team_shift <- ot_shift_1
+                  } else {
+                    team_shift <- ot_shift_2
+                  }
                   env <- env %>% add_resource(res_name, team_shift)
+                  r2b_ot_bed_counter <- r2b_ot_bed_counter + 1
                 }
                 
               } else {
                 env <- env %>% add_resource(res_name)
               }
-              r2b_surg_counter <- r2b_surg_counter + 1
             }
           }
           
@@ -703,49 +715,65 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 #'    - Routed to mortuary processing via `r2e_treat_kia()` and `r2e_transport_kia()`
 #'    - Exits trajectory
 #'
-#' 2. **Initial Hold Bed (ID 1)**
-#'    - Casualty stabilized prior to resuscitation
-#'
-#' 3. **Resuscitation Phase (Resus Bed ID 2)**
+#' 2. **Resuscitation Phase (Resus Bed ID 2)**
 #'    - Emergency team engaged
-#'    - Duration scaled:
-#'        - 15 min if previously resuscitated at R2B (`r2b_resus == 1`)
-#'        - 45 min otherwise; logs `r2e_resus = 1`
+#'    - Duration scaled via triangular distribution:
+#'        - ~15 min if previously resuscitated at R2B (`r2b_resus == 1`)
+#'        - ~45 min otherwise; attribute `r2e_resus = 1` assigned
 #'
-#' 4. **Secondary Hold Bed (ID 3)**
-#'    - Prepares casualty for surgical evaluation
+#' 3. **Surgical Evaluation**
+#'    - Branches by `surgery` attribute:
+#'        - **If `surgery == 1` (surgery needed)**:
+#'            - OT Bed ID 4 and surgical team seized
+#'            - Duration: Triangle sample (2–4 hours typical)
+#'            - Attribute `r2e_surgery = 1` set
 #'
-#' 5. **Surgery Evaluation & Execution**
-#'    - Checks `surgery` attribute
-#'    - If surgery required:
-#'        - Seizes OT bed and surgical team
-#'        - Surgery duration sampled uniformly between 2–4 hours
-#'        - Post-op ICU care follows (ICU Bed ID 6)
-#'            - Log-normal timeout (median ~2h, tail capped at 48h)
-#'    - If surgery not required:
-#'        - Casualty remains in hold bed
+#'          → Then branches based on `r2b_surgery`:
+#'              - **If prior R2B surgery (`r2b_surgery == 1`)**:
+#'                  - 75% chance of stable outcome → **Short ICU Recovery** (~1 hr)
+#'                  - 25% chance of instability → **Full ICU Recovery** (2–48 hr range)
 #'
-#' 6. **Final Disposition**
-#'    - Branches to:
-#'        - **Recovery at R2E Heavy (80%)**
-#'            - Hold Bed ID 5 assigned
-#'            - Recovery time: Normal distribution, mean = 15 days, SD = 2 days
-#'            - Logs `return_day` on discharge
-#'        - **Strategic Aeromedical Evacuation (20%)**
-#'            - Sets `r2e_evac = 1` and logs strategic transfer initiation
+#'              - **If first surgery (no R2B)**:
+#'                  - Always follows **Full ICU Recovery**
+#'
+#'        - **If `surgery == 0` (no surgery needed)**:
+#'            - Casualty remains in hold bed
+#'            - Logs non-surgical path
+#'
+#' 4. **Disposition Phase**
+#'    - Branches by recovery probability (`in_theatre_rate`):
+#'        - **Recover in-theatre (~80%)**
+#'            - Branches again based on prior surgery:
+#'                - **If no prior R2B surgery (`r2b_surgery != 1`)**:
+#'                    - Casualty undergoes **second surgical procedure**
+#'                    - OT Bed ID 7 and surgical team seized
+#'                    - Duration sampled as above
+#'                    - Continues into recovery phase
+#'
+#'                - **If prior R2B surgery exists**:
+#'                    - Proceeds directly to recovery
+#'
+#'            - Hold Bed ID 5 seized for recovery
+#'            - Recovery time: Normal(mean = 15 days, SD = 2 days)
+#'            - Logs `return_day` upon discharge
+#'
+#'        - **Strategic Aeromedical Evacuation (~20%)**
+#'            - Sets attribute `r2e_evac = 1`
+#'            - Logs strategic transfer
 #'
 #' ### Attributes Tracked:
 #' - `r2e_treated`: assigned Role 2E team index
 #' - `r2e_handling`: flow marker for Role 2E entry
-#' - `r2e_resus`: flag for first emergency resuscitation
-#' - `dow`: Dead on Withdrawal trigger
-#' - `r2e_evac`: strategic evacuation marker
-#' - `return_day`: timestamp for completed recovery
-#' - `mortuary_treated`: disposition confirmation for KIA cases
+#' - `r2e_resus`: flag indicating resuscitation performed
+#' - `r2e_surgery`: flag marking surgical intervention
+#' - `r2b_surgery`: flag for prior upstream surgery
+#' - `dow`: Dead on Withdrawal indicator
+#' - `r2e_evac`: evacuation trigger for strategic AME
+#' - `return_day`: timestamp set on recovery exit
 #'
-#' ### Logging:
-#' - Uses `log_()` statements to trace ICU entry, recovery stages, and strategic transfers
-#' - All branching logic uses `continue = TRUE` to preserve flow context
+#' ### Logging & Flow Control:
+#' - All branching uses `continue = TRUE` for state preservation
+#' - `log_()` traces key transitions: resuscitation status, surgery events (including second-pass), ICU routing, and disposition outcome
 r2e_treat_wia <- function(team_id) {
   hold_beds <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -840,6 +868,7 @@ r2e_treat_wia <- function(team_id) {
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
         seize_resources(surg_team) %>%
+        set_attribute("r2e_surgery", 1) %>%
         timeout(function() {
           rtriangle(
             n = 1,
@@ -852,19 +881,51 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 4) %>%
         
         # ICU care after surgery or hold phase
-        # ICU timeout uses log-normal with median ~2 hours and long tail up to 48 hours
-        log_("seizing ICU bed") %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-        seize_selected(id = 6) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$icu$min,
-            b = env_data$vars$r2eheavy$icu$max,
-            c = env_data$vars$r2eheavy$icu$mode
-          )
-        }) %>%
-        release_selected(id = 6),
+        branch(
+          option = function() {
+            prior_surg <- get_attribute(env, "r2b_surgery")
+            
+            # If prior surgery at R2B, apply probabilistic branch
+            if (!is.na(prior_surg) && prior_surg == 1) {
+              outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, (1-env_data$vars$r2eheavy$recovery$post_surgery)))
+              return(outcome)
+            }
+            
+            # Otherwise, full recovery
+            return(2)
+          },
+          continue = TRUE,
+          
+          # Path 1: Stable → ICU short recovery
+          trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
+            log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
+            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+            seize_selected(id = 6) %>%
+            timeout(function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r2eheavy$short_icu$min,
+                b = env_data$vars$r2eheavy$short_icu$max,
+                c = env_data$vars$r2eheavy$short_icu$mode
+              )
+            }) %>%
+            release_selected(id = 6),
+          
+          # Path 2: Unstable or first surgery → Full ICU recovery
+          trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
+            log_("Standard ICU recovery required") %>%
+            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+            seize_selected(id = 6) %>%
+            timeout(function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r2eheavy$long_icu$min,
+                b = env_data$vars$r2eheavy$long_icu$max,
+                c = env_data$vars$r2eheavy$long_icu$mode
+              )
+            }) %>%
+            release_selected(id = 6)
+        ),
       
       # Branch 2: No surgery needed → stay in hold bed, no OT required
       trajectory("No Surgery Needed") %>%
@@ -873,11 +934,41 @@ r2e_treat_wia <- function(team_id) {
     
     # Step 7: Evacuate or retain for recovery
     branch(
-      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$rate, (1-env_data$vars$r2eheavy$recovery$rate))),
+      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, (1-env_data$vars$r2eheavy$recovery$in_theatre_rate))),
       continue = TRUE,
       
       # Branch 1: Recover at R2E Heavy
       trajectory("Recover at R2E") %>%
+        branch(
+          option = function() {
+            prior_surg <- get_attribute(env, "r2b_surgery")
+            if (!is.na(prior_surg) && prior_surg == 1) return(2)  # Skip second surgery
+            return(1)  # Perform second surgery
+          },
+          continue = TRUE,
+          
+          # Path 1: Second Surgery Required
+          trajectory("Second Surgery Before Recovery") %>%
+            log_("Initiating second surgery before R2E recovery") %>%
+            simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
+            seize_selected(id = 7) %>%
+            seize_resources(surg_team) %>%
+            timeout(function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r2eheavy$surgery$min,
+                b = env_data$vars$r2eheavy$surgery$max,
+                c = env_data$vars$r2eheavy$surgery$mode
+              )
+            }) %>%
+            release_resources(surg_team) %>%
+            release_selected(id = 7) %>%
+            log_("Second surgery complete – proceeding to recovery"),
+          
+          # Path 2: No Second Surgery Needed
+          trajectory("No Second Surgery")  # Simply proceeds to recovery
+        ) %>%
+      
         log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
@@ -1169,7 +1260,7 @@ merge_attribute <- function(attr_name, arrivals, attributes) {
 }
 
 # List of attributes to merge
-attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e")
+attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e", "r2e_surgery")
 
 # Apply the function for each attribute
 for (attr in attribute_keys) {

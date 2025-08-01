@@ -100,3 +100,39 @@ for (team in team_ids) {
 # Stack vertically
 final_plot <- wrap_plots(team_plots, ncol = 1)
 print(final_plot)
+
+##########
+
+# Filter only rows where surgery occurred at R2E
+r2e_surgery_rows <- arrivals %>%
+  filter(!is.na(r2e_surgery) & r2e_surgery == 1)
+
+# Convert simulation time (in minutes) to days
+r2e_surgery_rows <- r2e_surgery_rows %>%
+  mutate(day = floor(start_time / day_min))
+
+# Tabulate counts of surgeries by day and team
+r2e_surgery_counts <- r2e_surgery_rows %>%
+  group_by(day, r2e_surgery) %>%
+  summarise(surgeries = n(), .groups = "drop")
+
+# Compute total per day for y-axis scale
+total_per_day <- r2e_surgery_counts %>%
+  group_by(day) %>%
+  summarise(total = sum(surgeries), .groups = "drop")
+
+max_total <- max(total_per_day$total)
+
+# Create stacked bar chart
+r2e_daily_surgeries <- ggplot(r2e_surgery_counts, aes(x = day, y = surgeries, fill = factor(r2e_surgery))) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "R2E Surgeries Per Day",
+    x = "Day",
+    y = "Number of Surgeries",
+    fill = "R2E Team"
+  ) +
+  scale_y_continuous(breaks = seq(0, max_total, by = 1)) +
+  theme_minimal()
+
+print(r2e_daily_surgeries)

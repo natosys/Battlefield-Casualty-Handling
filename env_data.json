@@ -44,7 +44,7 @@
       },
       {
         "elm": "r2b",
-        "qty": 1,
+        "qty": 2,
         "sub_elms":
           [
             {
@@ -297,7 +297,7 @@
               ]
             },
             {
-              "acty": "icu",
+              "acty": "long_icu",
               "vals":
               [
                 {
@@ -315,12 +315,34 @@
               ]
             },
             {
+              "acty": "short_icu",
+              "vals":
+              [
+                {
+                  "var": "min",
+                  "val": 30
+                },
+                {
+                  "var": "max",
+                  "val": 90
+                },
+                {
+                  "var": "mode",
+                  "val": 60
+                }
+              ]
+            },
+            {
               "acty": "recovery",
               "vals":
               [
                 {
-                  "var": "rate",
-                  "val": 0.2
+                  "var": "in_theatre_rate",
+                  "val": 0.1
+                },
+                {
+                  "var": "post_surgery",
+                  "val": 0.75
                 }
               ]
             }

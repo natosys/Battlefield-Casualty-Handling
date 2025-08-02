@@ -334,14 +334,20 @@ select_r2e_team <- function() {
 #'          mortuary treatment process. Sets attributes `r1_treated` and `mortuary_treated`
 #'          to record team and disposition status.
 r1_treat_kia <- function(team) {
-  # medics <- r1_teams_technicians[[team]]
   medics <- env_data$elms$r1[[team]][grepl("_technician_", env_data$elms$r1[[team]])]
   trajectory(paste("KIA Team", team)) %>%
     set_attribute("r1_treated", team) %>%
     set_attribute("mortuary_treated", 1) %>%
     simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
-    timeout(function() rnorm(1, 15)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r1$kia_treat$min,
+        b = env_data$vars$r1$kia_treat$max,
+        c = env_data$vars$r1$kia_treat$mode
+      )
+    }) %>%
     release_selected()
 }
 
@@ -357,7 +363,14 @@ r1_transport_kia <- function() {
     simmer::select(env_data$transports$HX240M, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
-    timeout(function() rlnorm(1, log(30), 0.5)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r1$kia_transport$min,
+        b = env_data$vars$r1$kia_transport$max,
+        c = env_data$vars$r1$kia_transport$mode
+      )
+    }) %>%
     release_selected()
 }
 
@@ -373,9 +386,7 @@ r1_transport_kia <- function() {
 #'
 #' @note Releases all seized resources at end of trajectory using `release_all()`
 r1_treat_wia <- function(team) {
-  # medics <- r1_teams_technicians[[team]]
   medics <- env_data$elms$r1[[team]][grepl("_technician_", env_data$elms$r1[[team]])]
-  # clinicians <- r1_teams_clinicians[[team]]
   clinicians <- env_data$elms$r1[[team]][grepl("_clinician_", env_data$elms$r1[[team]])]
   
   trajectory(paste("WIA Team", team)) %>%
@@ -385,14 +396,12 @@ r1_treat_wia <- function(team) {
     simmer::select(clinicians, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("treatment_start_time", function() now(env)) %>%  # Track treatment start time
-    timeout(function() {  # Set treatment duration based on priority
-      prio <- get_attribute(env, "priority")
-      switch(
-        as.character(prio),
-        "1" = rlnorm(1, log(120), 0.125),
-        "2" = rlnorm(1, log(60), 0.25),
-        "3" = rlnorm(1, log(20), 0.5),
-        45
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r1$wia_treat$min,
+        b = env_data$vars$r1$wia_treat$max,
+        c = env_data$vars$r1$wia_treat$mode
       )
     }) %>%
     release_all()
@@ -415,7 +424,14 @@ r1_transport_wia <- function() {
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
-    timeout(function() rlnorm(1, log(30), 0.5)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r1$wia_transport$min,
+        b = env_data$vars$r1$wia_transport$max,
+        c = env_data$vars$r1$wia_transport$mode
+      )
+    }) %>%
     release_selected()
 }
 
@@ -436,7 +452,15 @@ r2b_treat_kia <- function(traj, team_id) {
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   traj %>%
     seize_resources(evacuation_team) %>%
-    timeout(function() rnorm(1, 15)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$kia_treat$min,
+        b = env_data$vars$r2b$kia_treat$max,
+        c = env_data$vars$r2b$kia_treat$mode
+      )
+    }) %>%
+    # timeout(function() rnorm(1, 15)) %>%
     release_resources(evacuation_team)
 }
 
@@ -453,7 +477,14 @@ r2b_transport_kia <- function(traj, team_id) {
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   traj %>%
     seize_resources(evacuation_team) %>%
-    timeout(function() rlnorm(1, log(30), 0.5)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$kia_transport$min,
+        b = env_data$vars$r2b$kia_transport$max,
+        c = env_data$vars$r2b$kia_transport$mode
+      )
+    }) %>%
     set_attribute("mortuary_treated", 1) %>%
     release_resources(evacuation_team)
 }
@@ -474,7 +505,12 @@ r2b_transport_wia <- function() {
     
     # Simulate full round-trip transport time (e.g., 30 min each way)
     timeout(function() {
-      rlnorm(1, log(30), 0.3)
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$wia_transport$min,
+        b = env_data$vars$r2b$wia_transport$max,
+        c = env_data$vars$r2b$wia_transport$mode
+      )
     }) %>%
     
     release_selected(id = 7)
@@ -549,14 +585,14 @@ r2b_treat_wia <- function(team_id) {
       lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
     ) %>%
     leave(1)
-
+  
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
-
+    
     # Step 1: Initial hold bed
     simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
-
+    
     # Step 1.5: DOW branch (~1%)
     branch(
       option = function() {
@@ -564,7 +600,7 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Path 1: DOW
       trajectory("Dead on Withdrawal") %>%
         set_attribute("dow", 1) %>%
@@ -572,16 +608,16 @@ r2b_treat_wia <- function(team_id) {
         r2b_transport_kia(team_id) %>%
         release_selected(id = 1) %>%
         simmer::leave(1),
-
+      
       # Path 2: Continue treatment
       trajectory("Continue R2B Treatment")
     ) %>%
-
+    
     # Step 2: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
-
+    
     # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
     timeout(function() {
@@ -595,7 +631,7 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
-
+    
     # Step 4: Surgery
     branch(
       option = function() {
@@ -604,7 +640,7 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Branch 1: Surgery
       trajectory("Needs Surgery") %>%
         branch(
@@ -615,7 +651,7 @@ r2b_treat_wia <- function(team_id) {
             return(2)
           },
           continue = TRUE,
-
+          
           # Sub-branch 1: OT bed available → Surgery
           trajectory("Surgery Path") %>%
             simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
@@ -632,24 +668,28 @@ r2b_treat_wia <- function(team_id) {
             set_attribute("r2b_surgery", 1) %>%
             release_resources(surg_team) %>%
             release_selected(id = 4),
-
+          
           # Sub-branch 2: No OT bed available → Skip surgery (and proceed to evac)
           trajectory("No OT Available – Skip Surgery")
         ),
-
+      
       # Branch 2: No surgery required
       trajectory("R2B No Surgery") %>%
         simmer::select(hold_beds, policy = "first-available", id = 5) %>%
         seize_selected(id = 5) %>%
         timeout(function() {
-          recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 3
-          recovery_days * day_min
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2b$holding$min,
+            b = env_data$vars$r2b$holding$max,
+            c = env_data$vars$r2b$holding$mode
+          )
         }) %>%
         set_attribute("return_day", function() now(env)) %>%
         release_selected(id = 5) %>%
         simmer::leave(1)
     ) %>%
-
+    
     # Step 5: Try immediate evac, fallback if not possible
     branch(
       option = function() {
@@ -659,14 +699,21 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Path 1: Immediate evacuation possible
       trajectory("Immediate Evac") %>%
         log_("Immediate evacuation to R2E Heavy") %>%
         set_attribute("r2b_to_r2e", 1) %>%
         set_attribute("r2e", function() select_r2e_team()) %>%
         seize_resources(evacuation_team) %>%
-        timeout(function() rlnorm(1, log(30), 0.2)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2b$wia_transport$min,
+            b = env_data$vars$r2b$wia_transport$max,
+            c = env_data$vars$r2b$wia_transport$mode
+          )
+        }) %>%
         release_resources(evacuation_team) %>%
         log_("Resources Released") %>%
         branch(
@@ -675,7 +722,7 @@ r2b_treat_wia <- function(team_id) {
           lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
         ) %>%
         simmer::leave(1),
-
+      
       # Path 2: Immediate evacuation not possible → Wait in ICU
       join(wait_for_evac)
     )
@@ -701,9 +748,9 @@ r2e_treat_kia <- function(traj, team_id, evac_team) {
     timeout(function() {
       rtriangle(
         n = 1,
-        a = env_data$vars$r2b$kia_treat$min,
-        b = env_data$vars$r2b$kia_treat$max,
-        c = env_data$vars$r2b$kia_treat$mode
+        a = env_data$vars$r2eheavy$kia_treat$min,
+        b = env_data$vars$r2eheavy$kia_treat$max,
+        c = env_data$vars$r2eheavy$kia_treat$mode
       )
     }) %>%
     release_resources(evac_team)
@@ -725,9 +772,9 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
     timeout(function() {
       rtriangle(
         n = 1,
-        a = env_data$vars$r2b$kia_transport$min,
-        b = env_data$vars$r2b$kia_transport$max,
-        c = env_data$vars$r2b$kia_transport$mode
+        a = env_data$vars$r2eheavy$kia_transport$min,
+        b = env_data$vars$r2eheavy$kia_transport$max,
+        c = env_data$vars$r2eheavy$kia_transport$mode
       )
     }) %>%
     set_attribute("mortuary_treated", 1) %>%
@@ -818,16 +865,16 @@ r2e_treat_wia <- function(team_id) {
   evacuation_teams <- env_data$elms$r2eheavy[[team_id]][["evac"]]
   surg_teams <- env_data$elms$r2eheavy[[team_id]][["surg"]]
   icu_teams <- env_data$elms$r2eheavy[[team_id]][["icu"]]
-
+  
   emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
   surg_team <- select_subteam("r2eheavy", team_id, "surg")
   evac_team <- select_subteam("r2eheavy", team_id, "evac")
   icu_team <- select_subteam("r2eheavy", team_id, "icu")
-
+  
   trajectory("R2E Treatment (Fallback)") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
-
+    
     # Step 1: DOW branch (~1%)
     branch(
       option = function() {
@@ -835,22 +882,22 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Path 1: DOW
       trajectory("Dead on Withdrawal") %>%
         set_attribute("dow", 1) %>%
         r2e_treat_kia(team_id, evac_team) %>%
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
-
+      
       # Path 2: Continue treatment
       trajectory("Continue R2E Treatment")
     ) %>%
-
+    
     # Step 3: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-
+    
     # Step 4: Emergency treatment
     seize_resources(emergency_team) %>%
     branch(
@@ -860,7 +907,7 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Shorter resus time if previously resus at R2B
       trajectory() %>%
         timeout(function() {
@@ -873,7 +920,7 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2),
-
+      
       # Longer resus time otherwise
       trajectory() %>%
         timeout(function() {
@@ -888,7 +935,7 @@ r2e_treat_wia <- function(team_id) {
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     ) %>%
-
+    
     # Step 6: Surgery if required
     branch(
       option = function() {
@@ -897,7 +944,7 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-
+      
       # Branch 1: Needs surgery → Seize OT bed and perform surgery
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
@@ -914,23 +961,23 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
-
+        
         # ICU care after surgery or hold phase
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
-
+            
             # If prior surgery at R2B, apply probabilistic branch
             if (!is.na(prior_surg) && prior_surg == 1) {
               outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, (1-env_data$vars$r2eheavy$recovery$post_surgery)))
               return(outcome)
             }
-
+            
             # Otherwise, full recovery
             return(2)
           },
           continue = TRUE,
-
+          
           # Path 1: Stable → ICU short recovery
           trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
             log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
@@ -945,7 +992,7 @@ r2e_treat_wia <- function(team_id) {
               )
             }) %>%
             release_selected(id = 6),
-
+          
           # Path 2: Unstable or first surgery → Full ICU recovery
           trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
             log_("Standard ICU recovery required") %>%
@@ -961,17 +1008,17 @@ r2e_treat_wia <- function(team_id) {
             }) %>%
             release_selected(id = 6)
         ),
-
+      
       # Branch 2: No surgery needed → stay in hold bed, no OT required
       trajectory("No Surgery Needed") %>%
         log_("No surgery needed")
     ) %>%
-
+    
     # Step 7: Evacuate or retain for recovery
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, (1-env_data$vars$r2eheavy$recovery$in_theatre_rate))),
       continue = TRUE,
-
+      
       # Branch 1: Recover at R2E Heavy
       trajectory("Recover at R2E") %>%
         branch(
@@ -981,7 +1028,7 @@ r2e_treat_wia <- function(team_id) {
             return(1)  # Perform second surgery
           },
           continue = TRUE,
-
+          
           # Path 1: Second Surgery Required
           trajectory("Second Surgery Before Recovery") %>%
             log_("Initiating second surgery before R2E recovery") %>%
@@ -999,11 +1046,11 @@ r2e_treat_wia <- function(team_id) {
             release_resources(surg_team) %>%
             release_selected(id = 7) %>%
             log_("Second surgery complete – proceeding to recovery"),
-
+          
           # Path 2: No Second Surgery Needed
           trajectory("No Second Surgery")  # Simply proceeds to recovery
         ) %>%
-
+        
         log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
@@ -1019,7 +1066,7 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 5) %>%
         set_attribute("return_day", function() now(env)) %>%
         log_("Recovery complete – hold bed released"),
-
+      
       # Branch 2: Strategic AME
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_evac", 1) %>%
@@ -1223,38 +1270,38 @@ env %>%
   # add_generator("wia_cbt", casualty, distribution = at(wia_rate_cbt), mon = 2) %>%
   add_generator("wia_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 1.77,
-                                                       sd_daily = 3.56,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$wia_cbt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$wia_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("kia_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 0.68,
-                                                       sd_daily = 1.39,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$kia_cbt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$kia_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("dnbi_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 2.04,
-                                                       sd_daily = 1.89,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$dnbi_cbt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$dnbi_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("wia_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 1.77,
-                                                       sd_daily = 3.56,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$wia_spt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$wia_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_generator("kia_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 0.68,
-                                                       sd_daily = 1.39,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$kia_spt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$kia_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_generator("dnbi_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = 0.94,
-                                                       sd_daily = 0.56,
+                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$dnbi_spt$mean_daily,
+                                                       sd_daily = env_data$vars$generators$dnbi_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_global("evac_wait_count", 0)

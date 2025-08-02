@@ -2,8 +2,9 @@ library(shiny)
 library(jsonlite)
 library(shinyBS)
 
-getSafeVal <- function(x, default = 0) {
-  if (is.null(x) || is.na(x)) default else x
+getSafeVal <- function(x, default = NULL) {
+  if (is.null(x) || is.na(x)) return(default)
+  x
 }
 
 generateInputs <- function(json, parent = "") {
@@ -123,40 +124,122 @@ generateInputs <- function(json, parent = "") {
   tagList(ui_list)
 }
 
+# updateJsonFromInputs <- function(json, input_list, parent = "") {
+#   keys <- names(json)
+#   if (is.null(keys)) keys <- as.character(seq_along(json))  # Handle arrays
+# 
+#   updated <- if (is.null(names(json))) vector("list", length(json)) else json
+# 
+#   for (i in seq_along(keys)) {
+#     key <- keys[i]
+#     val <- json[[i]]
+#     full_key <- if (parent == "") key else paste0(parent, "$", key)
+#     input_id <- gsub("\\$", "_", full_key)
+# 
+#     if (is.list(val)) {
+#       updated[[i]] <- updateJsonFromInputs(val, input_list, full_key)
+#     } else if (!is.null(input_list[[input_id]])) {
+#       original_val <- val
+#       new_val <- input_list[[input_id]]
+# 
+#       if (is.numeric(original_val)) {
+#         new_val <- as.numeric(new_val)
+#       } else if (is.integer(original_val)) {
+#         new_val <- as.integer(new_val)
+#       } else if (is.logical(original_val)) {
+#         new_val <- as.logical(new_val)
+#       } else {
+#         new_val <- as.character(new_val)
+#       }
+# 
+#       updated[[i]] <- new_val
+#     } else {
+#       updated[[i]] <- val
+#     }
+#   }
+# 
+#   names(updated) <- names(json)
+#   updated
+# }
+#####
+# updateJsonFromInputs <- function(json, input_list, parent = "") {
+#   keys <- names(json)
+#   if (is.null(keys)) keys <- as.character(seq_along(json))  # Handle arrays
+#   
+#   updated <- if (is.null(names(json))) vector("list", length(json)) else json
+#   
+#   for (i in seq_along(keys)) {
+#     key <- keys[i]
+#     val <- json[[i]]
+#     full_key <- if (parent == "") key else paste0(parent, "$", key)
+#     input_id <- gsub("\\$", "_", full_key)
+#     
+#     if (is.list(val)) {
+#       updated[[i]] <- updateJsonFromInputs(val, input_list, full_key)
+#     } else if (!is.null(input_list[[input_id]])) {
+#       new_val <- input_list[[input_id]]
+#       
+#       if (!is.null(new_val)) {
+#         # Respect original type when coercing
+#         if (inherits(val, "numeric")) {
+#           new_val <- as.numeric(new_val)
+#         } else if (inherits(val, "integer")) {
+#           new_val <- as.integer(new_val)
+#         } else if (inherits(val, "logical")) {
+#           new_val <- as.logical(new_val)
+#         } else if (inherits(val, "character")) {
+#           new_val <- as.character(new_val)
+#         }
+#         updated[[i]] <- new_val
+#       } else {
+#         updated[[i]] <- NULL  # Explicitly preserve NULL
+#       }
+#     } else {
+#       updated[[i]] <- val  # No update, retain original
+#     }
+#   }
+#   
+#   names(updated) <- names(json)
+#   updated
+# }
+######
 updateJsonFromInputs <- function(json, input_list, parent = "") {
   keys <- names(json)
-  if (is.null(keys)) keys <- as.character(seq_along(json))  # Handle arrays
-
+  if (is.null(keys)) keys <- as.character(seq_along(json))
+  
   updated <- if (is.null(names(json))) vector("list", length(json)) else json
-
+  
   for (i in seq_along(keys)) {
     key <- keys[i]
     val <- json[[i]]
     full_key <- if (parent == "") key else paste0(parent, "$", key)
     input_id <- gsub("\\$", "_", full_key)
-
+    
     if (is.list(val)) {
       updated[[i]] <- updateJsonFromInputs(val, input_list, full_key)
-    } else if (!is.null(input_list[[input_id]])) {
-      original_val <- val
+    } else if (input_id %in% names(input_list)) {
       new_val <- input_list[[input_id]]
-
-      if (is.numeric(original_val)) {
-        new_val <- as.numeric(new_val)
-      } else if (is.integer(original_val)) {
-        new_val <- as.integer(new_val)
-      } else if (is.logical(original_val)) {
-        new_val <- as.logical(new_val)
+      
+      # Interpret empty string "" as untouched
+      if (is.null(new_val) || (is.character(new_val) && new_val == "")) {
+        updated[[i]] <- val  # Preserve original value
       } else {
-        new_val <- as.character(new_val)
+        if (inherits(val, "numeric")) {
+          new_val <- suppressWarnings(as.numeric(new_val))
+        } else if (inherits(val, "integer")) {
+          new_val <- suppressWarnings(as.integer(new_val))
+        } else if (inherits(val, "logical")) {
+          new_val <- as.logical(new_val)
+        } else if (inherits(val, "character")) {
+          new_val <- as.character(new_val)
+        }
+        updated[[i]] <- new_val
       }
-
-      updated[[i]] <- new_val
     } else {
       updated[[i]] <- val
     }
   }
-
+  
   names(updated) <- names(json)
   updated
 }

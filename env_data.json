@@ -337,6 +337,40 @@
               "val": 0.75
             }
           ]
+        },
+        {
+          "acty": "kia_treat",
+          "vals": [
+            {
+              "var": "min",
+              "val": 10
+            },
+            {
+              "var": "max",
+              "val": 20
+            },
+            {
+              "var": "mode",
+              "val": 15
+            }
+          ]
+        },
+        {
+          "acty": "kia_transport",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
         }
       ]
     },
@@ -374,6 +408,23 @@
             {
               "var": "mode",
               "val": 45
+            }
+          ]
+        },
+        {
+          "acty": "holding",
+          "vals": [
+            {
+              "var": "min",
+              "val": 720
+            },
+            {
+              "var": "max",
+              "val": 14400
+            },
+            {
+              "var": "mode",
+              "val": 7200
             }
           ]
         },
@@ -468,6 +519,74 @@
           ]
         },
         {
+          "acty": "wia_transport",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
+        },
+        {
+          "acty": "kia_transport",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
+        },
+        {
+          "acty": "kia_treat",
+          "vals": [
+            {
+              "var": "min",
+              "val": 10
+            },
+            {
+              "var": "max",
+              "val": 20
+            },
+            {
+              "var": "mode",
+              "val": 15
+            }
+          ]
+        },
+        {
+          "acty": "wia_treat",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
+        },
+        {
           "acty": "other",
           "vals": [
             {
@@ -506,6 +625,53 @@
               "var": "pri2_evac",
               "val": 0.9
             }
+          ]
+        }
+      ]
+    },
+    {
+      "elm": "generators",
+      "actys": [
+        {
+          "acty": "wia_cbt",
+          "vals": [
+            { "var": "mean_daily", "val": 1.77 },
+            { "var": "sd_daily", "val": 3.56 }
+          ]
+        },
+        {
+          "acty": "kia_cbt",
+          "vals": [
+            { "var": "mean_daily", "val": 0.68 },
+            { "var": "sd_daily", "val": 1.39 }
+          ]
+        },
+        {
+          "acty": "dnbi_cbt",
+          "vals": [
+            { "var": "mean_daily", "val": 2.04 },
+            { "var": "sd_daily", "val": 1.89 }
+          ]
+        },
+        {
+          "acty": "wia_spt",
+          "vals": [
+            { "var": "mean_daily", "val": 1.77 },
+            { "var": "sd_daily", "val": 3.56 }
+          ]
+        },
+        {
+          "acty": "kia_spt",
+          "vals": [
+            { "var": "mean_daily", "val": 0.68 },
+            { "var": "sd_daily", "val": 1.39 }
+          ]
+        },
+        {
+          "acty": "dnbi_spt",
+          "vals": [
+            { "var": "mean_daily", "val": 0.94 },
+            { "var": "sd_daily", "val": 0.56 }
           ]
         }
       ]

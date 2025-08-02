@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -439,8 +442,8 @@ This trajectory defines how a battlefield casualty is processed at Role 1 care a
 Before treatment begins, each casualty is assigned key attributes:
 
 - `team`: randomly selects one of the available Role 1 teams
-- `priority`: for WIA/DNBI, a triage urgency level (1–3) using weighted probabilities; KIA receives `NA`
-- `nbi`: flags DNBI casualties with a 17% chance
+- `priority`: for WIA/DNBI, a triage urgency level (1–3) using weighted probabilities (based on weights established in [[2]](#References)); KIA receives `NA`
+- `nbi`: flags DNBI casualties with a 17% chance [[1]](#References)
 - `surgery`: determines surgical need based on priority and casualty type, with probabilities adjusted for severity
 
 🔀 Step 2: Casualty Type Branching
@@ -453,7 +456,7 @@ Casualties enter Role 1 treatment with team-specific logic:
    Routed to the selected team’s treatment function (`r1_treat_wia`), enabling modular handling across Role 1 units.
 
 2. **Died of Wounds (DOW) Evaluation**  
-   Priority 1 and 2 casualties are checked for DOW risk:
+   [[17]](#References) Priority 1 and 2 casualties are checked for DOW risk:
 - 5% chance for P1
 
 - 2.5% chance for P2  
@@ -653,17 +656,29 @@ Role 2E offers advanced medical intervention and strategic routing:
 
 4. **Post Surgery ICU**. Following surgery casualties are admitted to the ICU for moonitoring. Times for this ICU period are derived from [[14]](#References), [[15]](#References) and [[16]](#References).
    
+   post first surgery:
+   
    min: 12 h (770 min)
    
    max: 36 h (2160 min)
    
    mode: 24 h (1440 min)
+   
+   post second surgery:
+   
+   min: 30 min
+   
+   max: 90 min 
+   
+   mode: 60 min
 
 5. Second surgery then per [11] follow similar surgery times.
    
+   
+   
    **Final Disposition**
    
-   - 10% recover locally (6–10 days); `return_day` logged
+   - 10% recover locally (1–9-21 days); `return_day` logged [11] interpreted that shorter recovery would be retained at hospital.
    - 90% routed for strategic evacuation; `r2e_evac = 1` assigned
    - based on [3] Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E. 
 
@@ -780,6 +795,8 @@ DOW: 5% of total [[6]](#References).
 [15] Allen, S. R., Brooks, A. J., Reilly, P. M., & Cotton, B. A. (2011). Damage Control Part III: Definitive Reconstruction. In *Ryan's Ballistic Trauma* (pp. 453-460). Springer, London. (Available at: https://link.springer.com/chapter/10.1007/978-1-84882-124-8_31)
 
 [16] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved July 27, 2025, from https://litfl.com/damage-control-resuscitation/
+
+[17] Howard, J. T., Kotwal, R. S., Stern, C. A., Janak, J. C., Mazuchowski, E. L., Butler, F. K., ... & Smith, D. J. (2019). Use of combat casualty care data to assess the US military trauma system during the Afghanistan and Iraq conflicts, 2001-2017. *JAMA surgery*, *154*(7), 600-608. Accessed: 01 Aug 25. (Available at: https://jamanetwork.com/journals/jamasurgery/articlepdf/2729451/jamasurgery_howard_2019_oi_190007.pdf)
 
 <!-- REFERENCES END -->
 

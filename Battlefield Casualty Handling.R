@@ -534,7 +534,14 @@ r2b_treat_wia <- function(team_id) {
     release_selected(id = 3) %>%
     set_attribute("r2b_to_r2e", 1) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
-    timeout(function() rlnorm(1, log(30), 0.2)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$wia_transport$min,
+        b = env_data$vars$r2b$wia_transport$max,
+        c = env_data$vars$r2b$wia_transport$mode
+      )
+    }) %>%
     release_resources(evacuation_team) %>%
     branch(
       option = function() get_attribute(env, "r2e"),
@@ -542,14 +549,14 @@ r2b_treat_wia <- function(team_id) {
       lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
     ) %>%
     leave(1)
-  
+
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
-    
+
     # Step 1: Initial hold bed
     simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
-    
+
     # Step 1.5: DOW branch (~1%)
     branch(
       option = function() {
@@ -557,31 +564,38 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Path 1: DOW
       trajectory("Dead on Withdrawal") %>%
         set_attribute("dow", 1) %>%
-        r2b_treat_kia(team_id) %>% 
+        r2b_treat_kia(team_id) %>%
         r2b_transport_kia(team_id) %>%
         release_selected(id = 1) %>%
         simmer::leave(1),
-      
+
       # Path 2: Continue treatment
       trajectory("Continue R2B Treatment")
     ) %>%
-    
+
     # Step 2: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
-    
+
     # Step 3: Emergency treatment
     seize_resources(emergency_team) %>%
-    timeout(function() rlnorm(1, log(45), 0.3)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$long_resus$min,
+        b = env_data$vars$r2b$long_resus$max,
+        c = env_data$vars$r2b$long_resus$mode
+      )
+    }) %>%
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
-    
+
     # Step 4: Surgery
     branch(
       option = function() {
@@ -590,7 +604,7 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Branch 1: Surgery
       trajectory("Needs Surgery") %>%
         branch(
@@ -601,21 +615,28 @@ r2b_treat_wia <- function(team_id) {
             return(2)
           },
           continue = TRUE,
-          
+
           # Sub-branch 1: OT bed available → Surgery
           trajectory("Surgery Path") %>%
             simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
             seize_selected(id = 4) %>%
             seize_resources(surg_team) %>%
-            timeout(function() rtruncnorm(1, a = env_data$vars$r2b$surgery$min, b = env_data$vars$r2b$surgery$max, mean = env_data$vars$r2b$surgery$mean, sd = env_data$vars$r2b$surgery$sd)) %>%
+            timeout(function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r2b$surgery$min,
+                b = env_data$vars$r2b$surgery$max,
+                c = env_data$vars$r2b$surgery$mode
+              )
+            }) %>%
             set_attribute("r2b_surgery", 1) %>%
             release_resources(surg_team) %>%
             release_selected(id = 4),
-          
+
           # Sub-branch 2: No OT bed available → Skip surgery (and proceed to evac)
           trajectory("No OT Available – Skip Surgery")
         ),
-      
+
       # Branch 2: No surgery required
       trajectory("R2B No Surgery") %>%
         simmer::select(hold_beds, policy = "first-available", id = 5) %>%
@@ -628,7 +649,7 @@ r2b_treat_wia <- function(team_id) {
         release_selected(id = 5) %>%
         simmer::leave(1)
     ) %>%
-    
+
     # Step 5: Try immediate evac, fallback if not possible
     branch(
       option = function() {
@@ -638,7 +659,7 @@ r2b_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Path 1: Immediate evacuation possible
       trajectory("Immediate Evac") %>%
         log_("Immediate evacuation to R2E Heavy") %>%
@@ -654,7 +675,7 @@ r2b_treat_wia <- function(team_id) {
           lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
         ) %>%
         simmer::leave(1),
-      
+
       # Path 2: Immediate evacuation not possible → Wait in ICU
       join(wait_for_evac)
     )
@@ -677,7 +698,14 @@ r2b_treat_wia <- function(team_id) {
 r2e_treat_kia <- function(traj, team_id, evac_team) {
   traj %>%
     seize_resources(evac_team) %>%
-    timeout(function() rnorm(1, 15)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$kia_treat$min,
+        b = env_data$vars$r2b$kia_treat$max,
+        c = env_data$vars$r2b$kia_treat$mode
+      )
+    }) %>%
     release_resources(evac_team)
 }
 
@@ -694,7 +722,14 @@ r2e_treat_kia <- function(traj, team_id, evac_team) {
 r2e_transport_kia <- function(traj, team_id, evac_team) {
   traj %>%
     seize_resources(evac_team) %>%
-    timeout(function() rlnorm(1, log(30), 0.5)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$kia_transport$min,
+        b = env_data$vars$r2b$kia_transport$max,
+        c = env_data$vars$r2b$kia_transport$mode
+      )
+    }) %>%
     set_attribute("mortuary_treated", 1) %>%
     release_resources(evac_team)
 }
@@ -783,16 +818,16 @@ r2e_treat_wia <- function(team_id) {
   evacuation_teams <- env_data$elms$r2eheavy[[team_id]][["evac"]]
   surg_teams <- env_data$elms$r2eheavy[[team_id]][["surg"]]
   icu_teams <- env_data$elms$r2eheavy[[team_id]][["icu"]]
-  
+
   emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
   surg_team <- select_subteam("r2eheavy", team_id, "surg")
   evac_team <- select_subteam("r2eheavy", team_id, "evac")
   icu_team <- select_subteam("r2eheavy", team_id, "icu")
-  
+
   trajectory("R2E Treatment (Fallback)") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
-    
+
     # Step 1: DOW branch (~1%)
     branch(
       option = function() {
@@ -800,22 +835,22 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Path 1: DOW
       trajectory("Dead on Withdrawal") %>%
         set_attribute("dow", 1) %>%
         r2e_treat_kia(team_id, evac_team) %>%
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
-      
+
       # Path 2: Continue treatment
       trajectory("Continue R2E Treatment")
     ) %>%
-    
+
     # Step 3: Transfer to Resus
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
-    
+
     # Step 4: Emergency treatment
     seize_resources(emergency_team) %>%
     branch(
@@ -825,7 +860,7 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Shorter resus time if previously resus at R2B
       trajectory() %>%
         timeout(function() {
@@ -838,7 +873,7 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2),
-      
+
       # Longer resus time otherwise
       trajectory() %>%
         timeout(function() {
@@ -853,7 +888,7 @@ r2e_treat_wia <- function(team_id) {
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     ) %>%
-    
+
     # Step 6: Surgery if required
     branch(
       option = function() {
@@ -862,7 +897,7 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
+
       # Branch 1: Needs surgery → Seize OT bed and perform surgery
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
@@ -879,23 +914,23 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
-        
+
         # ICU care after surgery or hold phase
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
-            
+
             # If prior surgery at R2B, apply probabilistic branch
             if (!is.na(prior_surg) && prior_surg == 1) {
               outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, (1-env_data$vars$r2eheavy$recovery$post_surgery)))
               return(outcome)
             }
-            
+
             # Otherwise, full recovery
             return(2)
           },
           continue = TRUE,
-          
+
           # Path 1: Stable → ICU short recovery
           trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
             log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
@@ -910,7 +945,7 @@ r2e_treat_wia <- function(team_id) {
               )
             }) %>%
             release_selected(id = 6),
-          
+
           # Path 2: Unstable or first surgery → Full ICU recovery
           trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
             log_("Standard ICU recovery required") %>%
@@ -926,17 +961,17 @@ r2e_treat_wia <- function(team_id) {
             }) %>%
             release_selected(id = 6)
         ),
-      
+
       # Branch 2: No surgery needed → stay in hold bed, no OT required
       trajectory("No Surgery Needed") %>%
         log_("No surgery needed")
     ) %>%
-    
+
     # Step 7: Evacuate or retain for recovery
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, (1-env_data$vars$r2eheavy$recovery$in_theatre_rate))),
       continue = TRUE,
-      
+
       # Branch 1: Recover at R2E Heavy
       trajectory("Recover at R2E") %>%
         branch(
@@ -946,7 +981,7 @@ r2e_treat_wia <- function(team_id) {
             return(1)  # Perform second surgery
           },
           continue = TRUE,
-          
+
           # Path 1: Second Surgery Required
           trajectory("Second Surgery Before Recovery") %>%
             log_("Initiating second surgery before R2E recovery") %>%
@@ -964,23 +999,27 @@ r2e_treat_wia <- function(team_id) {
             release_resources(surg_team) %>%
             release_selected(id = 7) %>%
             log_("Second surgery complete – proceeding to recovery"),
-          
+
           # Path 2: No Second Surgery Needed
           trajectory("No Second Surgery")  # Simply proceeds to recovery
         ) %>%
-      
+
         log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
         log_("Recovering at R2E Heavy") %>%
         timeout(function() {
-          recovery_time <- rnorm(1, mean = 15 * day_min, sd = 2 * day_min)
-          max(0, recovery_time)  # Prevent negative time
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$holding$min,
+            b = env_data$vars$r2eheavy$holding$max,
+            c = env_data$vars$r2eheavy$holding$mode
+          )
         }) %>%
         release_selected(id = 5) %>%
         set_attribute("return_day", function() now(env)) %>%
         log_("Recovery complete – hold bed released"),
-      
+
       # Branch 2: Strategic AME
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_evac", 1) %>%
@@ -1036,7 +1075,9 @@ casualty <- trajectory("Casualty") %>%
   set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>% 
   set_attribute("priority", function() {
     if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
-      sample(1:3, 1, prob = c(0.65, 0.2, 0.15))
+      sample(1:3, 1, prob = c(env_data$vars$r1$priority$one, 
+                              env_data$vars$r1$priority$two, 
+                              env_data$vars$r1$priority$three))
     } else {
       NA
     }
@@ -1044,7 +1085,7 @@ casualty <- trajectory("Casualty") %>%
   set_attribute("nbi", function() {
     name <- get_name(env)
     if (startsWith(name, "dnbi")) {
-      return(as.numeric(runif(1) < 0.17))
+      return(as.numeric(runif(1) < env_data$vars$r1$other$nbi))
     } else {
       return(NA)
     }
@@ -1056,14 +1097,14 @@ casualty <- trajectory("Casualty") %>%
     
     if (is.na(prio)) return(0)
     
-    if (prio == 1) return(as.numeric(runif(1) < 0.9))
-    if (prio == 2) return(as.numeric(runif(1) < 0.8))
+    if (prio == 1) return(as.numeric(runif(1) < env_data$vars$r1$other$pri1_surgery))
+    if (prio == 2) return(as.numeric(runif(1) < env_data$vars$r1$other$pri2_surgery))
     
     # For priority 3
     if (startsWith(name, "dnbi")) {
-      return(as.numeric(runif(1) < 0.4))
+      return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_dnbi_surgery))
     } else {
-      return(as.numeric(runif(1) < 0.6))
+      return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))
     }
   }) %>%
   
@@ -1087,8 +1128,8 @@ casualty <- trajectory("Casualty") %>%
       branch(
         option = function() {
           prio <- get_attribute(env, "priority")
-          if (prio == 1 && runif(1) < 0.05) return(1)  # 5% P1 die of wounds
-          if (prio == 2 && runif(1) < 0.025) return(1) # 2.5% P2 die of wounds
+          if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_dow) return(1)  # 5% P1 die of wounds
+          if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_dow) return(1) # 2.5% P2 die of wounds
           return(2)  # Proceed to R2B or recovery
         },
         continue = TRUE,
@@ -1111,8 +1152,8 @@ casualty <- trajectory("Casualty") %>%
             option = function() {
               prio <- get_attribute(env, "priority")
               if (is.na(prio)) return(2)
-              if (prio == 1 && runif(1) < 0.95) return(1)
-              if (prio == 2 && runif(1) < 0.90) return(1)
+              if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_evac) return(1)
+              if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_evac) return(1)
               return(2)
             },
             continue = TRUE,
@@ -1152,8 +1193,12 @@ casualty <- trajectory("Casualty") %>%
             # Path 2: Recover at Role 1
             trajectory("Monitor Recovery") %>%
               timeout(function() {
-                recovery_days <- rbeta(1, shape1 = 2, shape2 = 3) * 5
-                recovery_days * day_min
+                rtriangle(
+                  n = 1,
+                  a = env_data$vars$r1$recovery$min,
+                  b = env_data$vars$r1$recovery$max,
+                  c = env_data$vars$r1$recovery$mode
+                )
               }) %>%
               set_attribute("return_day", function() now(env))
           )

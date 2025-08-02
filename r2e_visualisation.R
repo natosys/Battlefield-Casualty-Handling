@@ -1,5 +1,6 @@
 library(ggplot2)
 library(patchwork)
+library(dplyr)
 
 # Setup
 day_min <- 1440  # 1 day = 1440 minutes
@@ -102,6 +103,9 @@ final_plot <- wrap_plots(team_plots, ncol = 1)
 print(final_plot)
 
 ##########
+
+r2e_surgery <- arrivals %>%
+  mutate(r2e_surgery = if_else(!is.na(r2e_surgery), 1, 0))
 
 # Filter only rows where surgery occurred at R2E
 r2e_surgery_rows <- arrivals %>%

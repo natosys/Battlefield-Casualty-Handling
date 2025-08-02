@@ -1,380 +1,514 @@
 {
   "env": "env",
-  "pops": 
-    [
-      {
-        "name": "combat",
-        "count": 2500
-      },
-      {
-        "name": "support",
-        "count": 1250
-      }
-    ],
-  "elms": 
-    [
-      {
-        "elm": "r1",
-        "qty": 3,
-        "sub_elms": 
-          [
+  "pops": [
+    {
+      "name": "combat",
+      "count": 2500
+    },
+    {
+      "name": "support",
+      "count": 1250
+    }
+  ],
+  "elms": [
+    {
+      "elm": "r1",
+      "qty": 3,
+      "sub_elms": [
+        {
+          "sub_elm": null,
+          "qty": 1,
+          "resources": [
             {
-              "sub_elm": null,
-              "qty": 1,
-              "resources": 
-                [
-                  {
-                    "resource": "medic",
-                    "type": "technician",
-                    "qty": 3
-                  },
-                  {
-                    "resource": "nurse",
-                    "type": "clinician",
-                    "qty": 1
-                  },
-                  {
-                    "resource": "doctor",
-                    "type": "clinician",
-                    "qty": 1
-                  }
-                ]
-            }
-          ]
-      },
-      {
-        "elm": "r2b",
-        "qty": 2,
-        "sub_elms":
-          [
-            {
-              "sub_elm": "surg",
-              "qty": 1,
-              "resources": 
-                [
-                  {
-                    "name": "anesthetist",
-                    "qty": 1
-                  },
-                  {
-                    "name": "surgeon",
-                    "qty": 2
-                  },
-                  {
-                    "name": "medic",
-                    "qty": 1
-                  }
-                ]
+              "resource": "medic",
+              "type": "technician",
+              "qty": 3
             },
             {
-              "sub_elm": "emerg",
-              "qty": 1,
-              "resources":
-                [
-                  {
-                    "name": "facem",
-                    "qty": 1
-                  },
-                  {
-                    "name": "nurse",
-                    "qty": 3
-                  },
-                  {
-                    "name": "medic",
-                    "qty": 1
-                  }
-                ]
-            },
-            {
-              "sub_elm": "icu",
-              "qty": 1,
-              "resources":
-                [
-                  {
-                    "name": "nurse",
-                    "qty": 2
-                  },
-                  {
-                    "name": "medic",
-                    "qty": 2
-                  }
-                ]
-            },
-            {
-              "sub_elm": "evac",
-              "qty": 1,
-              "resources":
-                [
-                  {
-                    "name": "medic",
-                    "qty": 2
-                  }
-                ]
-            }
-          ],
-        "beds": 
-          [
-            {
-              "name": "ot",
+              "resource": "nurse",
+              "type": "clinician",
               "qty": 1
             },
             {
-              "name": "resus",
-              "qty": 2
-            },
-            {
-              "name": "icu",
-              "qty": 2
-            },
-            {
-              "name": "hold",
-              "qty": 5
+              "resource": "doctor",
+              "type": "clinician",
+              "qty": 1
             }
           ]
-      },
-      {
-        "elm": "r2eheavy",
-        "qty": 1,
-        "sub_elms": 
-          [
+        }
+      ]
+    },
+    {
+      "elm": "r2b",
+      "qty": 2,
+      "sub_elms": [
+        {
+          "sub_elm": "surg",
+          "qty": 1,
+          "resources": [
             {
-              "sub_elm": "surg",
-              "qty": 3,
-              "resources": 
-                [
-                  {
-                    "name": "anesthetist",
-                    "qty": 1
-                  },
-                  {
-                    "name": "surgeon",
-                    "qty": 2
-                  },
-                  {
-                    "name": "nurse",
-                    "qty": 4
-                  }
-                ]
+              "name": "anesthetist",
+              "qty": 1
             },
             {
-              "sub_elm": "emerg",
-              "qty": 3,
-              "resources":
-                [
-                  {
-                    "name": "facem",
-                    "qty": 1
-                  },
-                  {
-                    "name": "nurse",
-                    "qty": 3
-                  },
-                  {
-                    "name": "medic",
-                    "qty": 1
-                  }
-                ]
-            },
-            {
-              "sub_elm": "icu",
-              "qty": 3,
-              "resources":
-                [
-                  {
-                    "name": "intensivist",
-                    "qty": 1
-                  },
-                  {
-                    "name": "nurse",
-                    "qty": 4
-                  }
-                ]
-            },
-            {
-              "sub_elm": "evac",
-              "qty": 3,
-              "resources":
-                [
-                  {
-                    "name": "medic",
-                    "qty": 2
-                  }
-                ]
-            }
-          ],
-        "beds":
-          [
-            {
-              "name": "ot",
+              "name": "surgeon",
               "qty": 2
             },
             {
-              "name": "resus",
+              "name": "medic",
+              "qty": 1
+            }
+          ]
+        },
+        {
+          "sub_elm": "emerg",
+          "qty": 1,
+          "resources": [
+            {
+              "name": "facem",
+              "qty": 1
+            },
+            {
+              "name": "nurse",
+              "qty": 3
+            },
+            {
+              "name": "medic",
+              "qty": 1
+            }
+          ]
+        },
+        {
+          "sub_elm": "icu",
+          "qty": 1,
+          "resources": [
+            {
+              "name": "nurse",
+              "qty": 2
+            },
+            {
+              "name": "medic",
+              "qty": 2
+            }
+          ]
+        },
+        {
+          "sub_elm": "evac",
+          "qty": 1,
+          "resources": [
+            {
+              "name": "medic",
+              "qty": 2
+            }
+          ]
+        }
+      ],
+      "beds": [
+        {
+          "name": "ot",
+          "qty": 1
+        },
+        {
+          "name": "resus",
+          "qty": 2
+        },
+        {
+          "name": "icu",
+          "qty": 2
+        },
+        {
+          "name": "hold",
+          "qty": 5
+        }
+      ]
+    },
+    {
+      "elm": "r2eheavy",
+      "qty": 1,
+      "sub_elms": [
+        {
+          "sub_elm": "surg",
+          "qty": 3,
+          "resources": [
+            {
+              "name": "anesthetist",
+              "qty": 1
+            },
+            {
+              "name": "surgeon",
+              "qty": 2
+            },
+            {
+              "name": "nurse",
               "qty": 4
+            }
+          ]
+        },
+        {
+          "sub_elm": "emerg",
+          "qty": 3,
+          "resources": [
+            {
+              "name": "facem",
+              "qty": 1
             },
             {
-              "name": "icu",
+              "name": "nurse",
+              "qty": 3
+            },
+            {
+              "name": "medic",
+              "qty": 1
+            }
+          ]
+        },
+        {
+          "sub_elm": "icu",
+          "qty": 3,
+          "resources": [
+            {
+              "name": "intensivist",
+              "qty": 1
+            },
+            {
+              "name": "nurse",
               "qty": 4
-            },
-            {
-              "name": "hold",
-              "qty": 30
             }
           ]
-      }
-    ],
-  "transports":
-    [
-      {
-        "name": "PMVAmb",
-        "capacity": 4,
-        "qty": 3
-      },
-      {
-        "name": "HX240M",
-        "capacity": 50,
-        "qty": 4
-      }
-    ],
-  "vars":
-    [
-      {
-        "elm": "r2eheavy",
-        "actys":
-          [
+        },
+        {
+          "sub_elm": "evac",
+          "qty": 3,
+          "resources": [
             {
-            "acty": "surgery",
-            "vals": 
-              [
-                {
-                  "var": "min",
-                  "val": 90
-                },
-                {
-                  "var": "max",
-                  "val": 240
-                },
-                {
-                  "var": "mode",
-                  "val": 120
-                }
-              ]
-            },
-            {
-              "acty": "short_resus",
-              "vals":
-              [
-                {
-                  "var": "min",
-                  "val": 13
-                },
-                {
-                  "var": "max",
-                  "val": 55
-                },
-                {
-                  "var": "mode",
-                  "val": 28
-                }
-              ]
-            },
-            {
-              "acty": "long_resus",
-              "vals":
-              [
-                {
-                  "var": "min",
-                  "val": 25
-                },
-                {
-                  "var": "max",
-                  "val": 70
-                },
-                {
-                  "var": "mode",
-                  "val": 45
-                }
-              ]
-            },
-            {
-              "acty": "long_icu",
-              "vals":
-              [
-                {
-                  "var": "min",
-                  "val": 770
-                },
-                {
-                  "var": "max",
-                  "val": 2160
-                },
-                {
-                  "var": "mode",
-                  "val": 1440
-                }
-              ]
-            },
-            {
-              "acty": "short_icu",
-              "vals":
-              [
-                {
-                  "var": "min",
-                  "val": 30
-                },
-                {
-                  "var": "max",
-                  "val": 90
-                },
-                {
-                  "var": "mode",
-                  "val": 60
-                }
-              ]
-            },
-            {
-              "acty": "recovery",
-              "vals":
-              [
-                {
-                  "var": "in_theatre_rate",
-                  "val": 0.1
-                },
-                {
-                  "var": "post_surgery",
-                  "val": 0.75
-                }
-              ]
+              "name": "medic",
+              "qty": 2
             }
           ]
-      },
-      {
-        "elm": "r2b",
-        "actys":
-        [
-          {
-            "acty": "surgery",
-            "vals": 
-              [
-                {
-                  "var": "min",
-                  "val": 120
-                },
-                {
-                  "var": "max",
-                  "val": 240
-                },
-                {
-                  "var": "mean",
-                  "val": 120
-                },
-                {
-                  "var": "sd",
-                  "val": 15
-                }
-              ]            
-          }
-        ]
-      }
-    ]
+        }
+      ],
+      "beds": [
+        {
+          "name": "ot",
+          "qty": 2
+        },
+        {
+          "name": "resus",
+          "qty": 4
+        },
+        {
+          "name": "icu",
+          "qty": 4
+        },
+        {
+          "name": "hold",
+          "qty": 30
+        }
+      ]
+    }
+  ],
+  "transports": [
+    {
+      "name": "PMVAmb",
+      "capacity": 4,
+      "qty": 3
+    },
+    {
+      "name": "HX240M",
+      "capacity": 50,
+      "qty": 4
+    }
+  ],
+  "vars": [
+    {
+      "elm": "r2eheavy",
+      "actys": [
+        {
+          "acty": "surgery",
+          "vals": [
+            {
+              "var": "min",
+              "val": 90
+            },
+            {
+              "var": "max",
+              "val": 240
+            },
+            {
+              "var": "mode",
+              "val": 120
+            }
+          ]
+        },
+        {
+          "acty": "short_resus",
+          "vals": [
+            {
+              "var": "min",
+              "val": 13
+            },
+            {
+              "var": "max",
+              "val": 55
+            },
+            {
+              "var": "mode",
+              "val": 28
+            }
+          ]
+        },
+        {
+          "acty": "long_resus",
+          "vals": [
+            {
+              "var": "min",
+              "val": 25
+            },
+            {
+              "var": "max",
+              "val": 70
+            },
+            {
+              "var": "mode",
+              "val": 45
+            }
+          ]
+        },
+        {
+          "acty": "long_icu",
+          "vals": [
+            {
+              "var": "min",
+              "val": 770
+            },
+            {
+              "var": "max",
+              "val": 2160
+            },
+            {
+              "var": "mode",
+              "val": 1440
+            }
+          ]
+        },
+        {
+          "acty": "short_icu",
+          "vals": [
+            {
+              "var": "min",
+              "val": 30
+            },
+            {
+              "var": "max",
+              "val": 90
+            },
+            {
+              "var": "mode",
+              "val": 60
+            }
+          ]
+        },
+        {
+          "acty": "holding",
+          "vals": [
+            {
+              "var": "min",
+              "val": 1440
+            },
+            {
+              "var": "max",
+              "val": 30240
+            },
+            {
+              "var": "mode",
+              "val": 12960
+            }
+          ]
+        },
+        {
+          "acty": "recovery",
+          "vals": [
+            {
+              "var": "in_theatre_rate",
+              "val": 0.1
+            },
+            {
+              "var": "post_surgery",
+              "val": 0.75
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "elm": "r2b",
+      "actys": [
+        {
+          "acty": "surgery",
+          "vals": [
+            {
+              "var": "min",
+              "val": 90
+            },
+            {
+              "var": "max",
+              "val": 240
+            },
+            {
+              "var": "mode",
+              "val": 120
+            }
+          ]
+        },
+        {
+          "acty": "long_resus",
+          "vals": [
+            {
+              "var": "min",
+              "val": 25
+            },
+            {
+              "var": "max",
+              "val": 70
+            },
+            {
+              "var": "mode",
+              "val": 45
+            }
+          ]
+        },
+        {
+          "acty": "kia_transport",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
+        },
+        {
+          "acty": "wia_transport",
+          "vals": [
+            {
+              "var": "min",
+              "val": 15
+            },
+            {
+              "var": "max",
+              "val": 45
+            },
+            {
+              "var": "mode",
+              "val": 30
+            }
+          ]
+        },
+        {
+          "acty": "kia_treat",
+          "vals": [
+            {
+              "var": "min",
+              "val": 10
+            },
+            {
+              "var": "max",
+              "val": 20
+            },
+            {
+              "var": "mode",
+              "val": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "elm": "r1",
+      "actys": [
+        {
+          "acty": "priority",
+          "vals": [
+            {
+              "var": "one",
+              "val": 0.65
+            },
+            {
+              "var": "two",
+              "val": 0.2
+            },
+            {
+              "var": "three",
+              "val": 0.15
+            }
+          ]
+        },
+        {
+          "acty": "recovery",
+          "vals": [
+            {
+              "var": "min",
+              "val": 1440
+            },
+            {
+              "var": "max",
+              "val": 7200
+            },
+            {
+              "var": "mode",
+              "val": 2880
+            }
+          ]
+        },
+        {
+          "acty": "other",
+          "vals": [
+            {
+              "var": "nbi",
+              "val": 0.17
+            },
+            {
+              "var": "pri1_surgery",
+              "val": 0.9
+            },
+            {
+              "var": "pri2_surgery",
+              "val": 0.8
+            },
+            {
+              "var": "pri3_dnbi_surgery",
+              "val": 0.4
+            },
+            {
+              "var": "pri3_other_surgery",
+              "val": 0.6
+            },
+            {
+              "var": "pri1_dow",
+              "val": 0.05
+            },
+            {
+              "var": "pri2_dow",
+              "val": 0.025
+            },
+            {
+              "var": "pri1_evac",
+              "val": 0.95
+            },
+            {
+              "var": "pri2_evac",
+              "val": 0.9
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

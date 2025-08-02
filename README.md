@@ -197,7 +197,7 @@ These are the available transport platforms and their characteristics:
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
+| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
 | R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |

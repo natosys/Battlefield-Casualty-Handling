@@ -16,7 +16,7 @@
       "qty": 3,
       "sub_elms": [
         {
-          "sub_elm": null,
+          "sub_elm": 1,
           "qty": 1,
           "resources": [
             {

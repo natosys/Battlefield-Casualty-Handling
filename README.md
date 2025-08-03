@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -380,8 +383,6 @@ The simulation was designed around the general functions of each role of health 
 
 The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References).
 
-
-
 ```mermaid
 block-beta
   columns 13
@@ -440,8 +441,6 @@ The casualty processing trajectory at R1 care establishes a dynamic and doctrina
 
 Survivors are dispositioned based on urgency: evacuation decisions for Priority 1 and Priority 2 cases result in approximately ``95%`` of Priority 1 and ``90%`` of Priority 2 casualties advancing (based on estimates of casualty surgical requirement from [\[2\]](#References)) to R2B, or bypassing to R2E if R2B teams are unavailable. Lower-priority or DNBI casualties not meeting evacuation criteria are retained for local recovery at the R1, with a recovery duration modeled using triangular distribution with ``min = 0.5``, ``max = 5``, and ``mode = 2`` (days), based on field estimates of minor injury convalescence. WIA and DNBI casualties receiving immediate treatment at R1 are assigned a treatment duration drawn from a triangular distribution with ``min = 10``, ``max = 30``, and ``mode = 20`` (minutes) per [\[18\]](#References). KIA casualties bypass clinical treatment and are processed and transported, each having a processing duration with a triangular distribution: ``min = 15``, ``max = 45``, and ``mode = 30`` (minutes).
 
-
-
 ```mermaid
 flowchart TD
   A[Start: Casualty Arrives] --> B[Set Attributes: team, priority, nbi, surgery]
@@ -489,17 +488,11 @@ Resuscitation is modeled using a triangular distribution with ``min = 25``, ``ma
 
 Once resuscitation/emergency treatment has been completed, casualties not requiring surgery are transferred to a holding bed for recovery. Recovery follows a triangular distribution with ``min = 0.5``, ``max = 10``, and ``mode = 5`` (days).
 
-Patients requiring surgery are transferred to an operating theatre for damage control (DAMCON) surgery. The DAMCON surgery treatment duration is modeled using a triangular distribution with ``min = 41``, ``max = 210``, and ``mode = 95`` (minutes). Due to the variability of potential requirements for surgery it was difficult to identify reliable durations for surgery time. This distribution was developed based on the interpretation of several meta studies ([[11]](#References), [[12]](#References) and [[13]](#References)).
+Next, surgical candidacy is assessed based on operating theatre (OT) bed availability. If capacity permits, patients requiring surgery are transferred to an operating theatre for damage control (DAMCON) surgery. The DAMCON surgery treatment duration is modeled using a triangular distribution with ``min = 41``, ``max = 210``, and ``mode = 95`` (minutes). Due to the variability of potential requirements for surgery it was difficult to identify reliable durations for surgery time. This distribution was developed based on the interpretation of several meta studies ([[11]](#References), [[12]](#References) and [[13]](#References)). Where there is not OT capacity, casualties are evacuated to the R2E for handling. 
 
-Casualties requiring further care (surgery following the DCS model [[19]](#References)) are evacuated to the R2E. The duration for evacuation to the R2E follows a triangular distribution with ``min = 15``, ``max = 45``, and ``mode = 30``. Where evacuation resources are not available, the patient is transferred to the ICU for holding until the evacuation resources are available.
-
-
+Casualties requiring further care (surgery following the DCS model described in [[11]](#References) and [[19]](#References)) are evacuated to the R2E. The duration for evacuation to the R2E follows a triangular distribution with ``min = 15``, ``max = 45``, and ``mode = 30``. Where evacuation resources are not available, the patient is transferred to the ICU until evacuation resources are available to facilitate transfer.
 
 
-
-
-
-Casualties entering Role 2B (R2B) proceed through a multi-phase clinical trajectory designed to stabilize patients under surgical and evacuation constraints. The initial phase involves hold bed assignment, where casualties are stabilized and evaluated for DOW mortality (~1% incidence), triggering mortuary transport if applicable with a duration using a triangular distribution . Resuscitation support is then provided by an emergency team. Next, surgical candidacy is assessed based on operating theater (OT) bed availability. If capacity permits, surgery duration is modeled using `rtruncnorm()`. When surgery is skipped due to resource limitations or casualty condition, the individual recovers in the hold bed; `return_day` is timestamped at completion, with recovery durations modeled between 0.5 and 10 days [11], consistent with doctrinal interpretations that short-recovery patients remain at R2B.
 
 ```mermaid
 flowchart TD
@@ -555,73 +548,29 @@ flowchart TD
 
 ### R2E Heavy Trajectory
 
-Role 2E offers advanced medical intervention and strategic routing:
 
-1. **DOW Check (~1%)**
-   
-   - Routes casualty to `r2e_treat_kia()` + `r2e_transport_kia()`
 
-2. **Initial Hold Bed & Resuscitation**
-   
-   - Duration varies based on prior R2B treatment
-   - `r2e_resus = 1` logged for primary interventions
-   
-   
-   
-   | Short Reuscitation       |           |            |           |
-   | ------------------------ | --------- | ---------- | --------- |
-   | Step                     | Min (min) | Mode (min) | Max (min) |
-   | Hemorrhage Control       | 2         | 5          | 10        |
-   | IV/IO Access             | 2         | 5          | 10        |
-   | Fluid Resuscitation      | 5         | 10         | 20        |
-   | TBI Monitoring & Warming | 2         | 5          | 10        |
-   | Documentation/Prep       | 2         | 3          | 5         |
-   | **TOTAL**                | 13        | 28         | 55        |
-   
-   Resus:
+The R2E facility serves as a critical node for advanced casualty management, including resuscitation, surgery, intensive care, holding and pathways to strategic evacuation. 
 
-3. **Surgery Branch**
-   
-   - If `surgery = 1`, OT bed and surgical team are seized
-   - 
-   - Due to the variability of potential requirements for surgery it is difficult to establish specific durations for surgery time, however some meta studies ([[11]](#References), [[12]](#References) and [[13]](#References)) provide some indication for surgery times that were used for the definition for this simulation:
-   - min: 41 min
-   - max: 210 min 
-   - mode: 95 min   
-   
-   ![R2E Heavy Surgery Time Distribution](C:\Users\natha\Documents\Battlefield%20Casualty%20Handling\images\r2eheavy_surgery_distribution.png)
-   
-   - COULD ENHANCE: https://academic.oup.com/milmed/article/188/11-12/e3368/6961509?login=false provides timings for mild, moderate, severe and critical cases.
-   - If skipped, casualty remains in hold bed
+Upon arrival, casualties are triaged, those identified as DOW (~1%, based on [[17]](#References)) are transferred for mortuary handling. Surviving casualties are allocated to an initial holding bed until a resuscitation bay is available, where they undergo a resuscitation phase. Where previous resuscitation has not been completed (at the R2B) a long duration resuscitation is completed, otherwise a short resuscitation is completed. The R2E long duration resuscitation follows the triangular distribution estimated for R2B resuscitations (`min = 25`, `max = 70`, and `mode = 45` (min)). The short duration resuscitation is modelled based on task estimate durations. These times are outlined in the table below. The duration uses a triangular distribution with ``min = 13``, ``max = 55``, and ``mode = 28``.
 
-4. **Post Surgery ICU**. Following surgery casualties are admitted to the ICU for moonitoring. Times for this ICU period are derived from [[14]](#References), [[15]](#References) and [[16]](#References).
-   
-   post first surgery:
-   
-   min: 12 h (770 min)
-   
-   max: 36 h (2160 min)
-   
-   mode: 24 h (1440 min)
-   
-   post second surgery:
-   
-   min: 30 min
-   
-   max: 90 min 
-   
-   mode: 60 min
+| Short Reuscitation       |           |            |           |
+| ------------------------ | --------- | ---------- | --------- |
+| Step                     | Min (min) | Mode (min) | Max (min) |
+| Hemorrhage Control       | 2         | 5          | 10        |
+| IV/IO Access             | 2         | 5          | 10        |
+| Fluid Resuscitation      | 5         | 10         | 20        |
+| TBI Monitoring & Warming | 2         | 5          | 10        |
+| Documentation/Prep       | 2         | 3          | 5         |
+| **TOTAL**                | 13        | 28         | 55        |
 
-5. Second surgery then per [11] follow similar surgery times.
-   
-   **Final Disposition**
-- 10% recover locally (1–9-21 days); `return_day` logged [11] interpreted that shorter recovery would be retained at hospital.
-- 90% routed for strategic evacuation; `r2e_evac = 1` assigned
-- based on [3] Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E. 
+On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min =41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[11]](#References), [[12]](#References), and [[13]](#References)). 
 
-Attributes tracked:
+Post-operative care involves admission to the ICU, where durations vary by surgical phase: the first ICU period ranges from ``min = 770`` to ``max = 2160`` minutes (``mode =  1440``) based on descriptions of post- DCS-I stabilization requirements (described as 24-36 h in most DCS research [[11]](#References), [[14]](#References), [[15]](#References), [[16]](#References)), while the secondary ICU phase (following second surgery) ranges from ``min = 30`` to ``mode = 90``, with ``mode = 60`` (min) to allow for post surgery monitoring and stabilisation prior to transfer to holding. Casualties who arrive at the R2E requiring surgery, but not having received any prior to arrival are queued to complete a second round of surgery after ICU time. 
 
-- `r2e_treated`, `r2e_handling`, `r2e_resus`, `r2e_evac`, `return_day`, `mortuary_treated`, `dow`
+After completing surgery and ICU monitoring, patients are either transferred to holding for recovery or undertake strategic evacuation. ~10% of casualties undertake recovery at the R2E following a triangular distribution for recovery time with ``min = 1``, ``max = 21``, and ``mode = 9`` (days) this distribution was selected on the basis that casualties with shorter recovery times and a likelihood for capacity to return to duty following recovery would be retained in theatre. The remaining ~90% are transferred for strategy evacuation. Based on [[3]](#References) Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E
+
+
 
 ```mermaid
 flowchart TD
@@ -663,21 +612,11 @@ flowchart TD
 
 ---
 
-DOW: 5% of total [[6]](#References). 
-
-- Role 1: 5% P1, 2.5% P2 on arrival
-
-- Role 2B: 1% on arrival
-
-- Role 2E: 1% on arrival
-
----
-
 ## Single Run Analysis
 
 1. Seems that there is insufficient OT bed / surgical capability availability compared to other resource types in the architecture.
 
-2. the holding bed volume assumes ready access to strategic medical evacuation which may not be valid in LSCO.
+2. May be an opportunity to either (a) right-size holding bed quantity, or (b) expand the in-theatre recovery beyond 10% supporting faster return to duty and relieving pressure at higher care facilities.
 
 [Sankey flow diagram](%5Bplotly-logomark%5D(https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
 
@@ -685,13 +624,21 @@ DOW: 5% of total [[6]](#References).
 
 ---
 
+## Multi-Run Analysis
+
+1. If historical models of casualty generation remain accurate for LSCO, future deployable health system must be able to handle X number of casualties per day.
+
+2. 
+
+---
+
 ## Further Development
 
-1. Add usage of transport resources for return journey
+1. Add usage of transport resources for return journey (dead-heading).
 
-2. Pulse strategic medical evacuation to simuate temporal availability of the resource
+2. Pulse strategic medical evacuation to simuate temporal availability of the resource.
 
-3. 
+3. General model refinement through expert consultation.
 
 ---
 
@@ -741,12 +688,8 @@ DOW: 5% of total [[6]](#References).
 
 <!-- REFERENCES END -->
 
-## Resources
+## Other Resources
 
 Possible information on casualty flow and handling considerations for inclusion in simulations:
 
 https://pure.southwales.ac.uk/ws/portalfiles/portal/987130/1_3_Bricknell_Paper_3_Casualty_Estimation_final_PhD.pdfResources
-
-Possible information on casualty flow and handling considerations for inclusion in simulations:
-
-https://pure.southwales.ac.uk/ws/portalfiles/portal/987130/1_3_Bricknell_Paper_3_Casualty_Estimation_final_PhD.pdf

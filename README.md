@@ -5,6 +5,7 @@
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -53,6 +54,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Resources](#resources)
+  
   <!-- TOC END -->
 
 ---
@@ -173,6 +175,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -180,28 +183,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -378,6 +381,10 @@ The simulation models casualty handling across echelons of care in a battlefield
 
 The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree.
 
+The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References).
+
+
+
 ```mermaid
 block-beta
   columns 13
@@ -432,63 +439,11 @@ block-beta
 
 ### Core Trajectory
 
-This trajectory defines how a battlefield casualty is processed at Role 1 care and routed onward to either Role 2B, Role 2E, or recovery. It applies distinct treatment logic based on casualty type—WIA (wounded in action), DNBI (disease/non-battle injury), or KIA (killed in action)—and dynamically evaluates surgery requirements, priority, and disposition pathways.
+The casualty processing trajectory at R1 care establishes a dynamic and doctrinally aligned framework for routing battlefield casualties based on classification—wounded in action (WIA), disease/non-battle injury (DNBI), or killed in action (KIA). Each casualty is initialized with key attributes: assignment to a R1 team (via random selection), triage priority for WIA/DNBI based on weighted probabilities (priority 1–3) per [\[2\]](#References), NBI status flagged with a ``17%`` probability [\[1\]](#References), and a probabilistic determination of surgical need based on casualty type and severity [\[2\]](#References). WIA and DNBI casualties are determined if they have died-of-wounds (DOW) with probabilistic allocation of DOW for Priority 1 and Priority 2 cases—``5%`` DOW chance for Priority 1 and ``2.5%`` for Priority 2 casualties (estimate based on reporting in [\[17\]](#References)). Those flagged as DOW are reclassified and routed through KIA processing. 
 
-🔢 Step 1: Attribute Initialization
+Survivors are dispositioned based on urgency: evacuation decisions for Priority 1 and Priority 2 cases result in approximately ``95%`` of Priority 1 and ``90%`` of Priority 2 casualties advancing (based on estimates of casualty surgical requirement from [\[2\]](#References)) to R2B, or bypassing to R2E if R2B teams are unavailable. Lower-priority or DNBI casualties not meeting evacuation criteria are retained for local recovery at the R1, with a recovery duration modeled using triangular distribution with ``min = 0.5``, ``max = 5``, and ``mode = 2`` (days), based on field estimates of minor injury convalescence. WIA and DNBI casualties receiving immediate treatment at R1 are assigned a treatment duration drawn from a triangular distribution with ``min = 10``, ``max = 30``, and ``mode = 20`` (minutes) per [\[18\]](#References). KIA casualties bypass clinical treatment and are processed and transported, each having a processing duration with a triangular distribution: ``min = 15``, ``max = 45``, and ``mode = 30`` (minutes).
 
-Before treatment begins, each casualty is assigned key attributes:
 
-- `team`: randomly selects one of the available Role 1 teams
-- `priority`: for WIA/DNBI, a triage urgency level (1–3) using weighted probabilities (based on weights established in [[2]](#References)); KIA receives `NA`
-- `nbi`: flags DNBI casualties with a 17% chance [[1]](#References)
-- `surgery`: determines surgical need based on priority and casualty type, with probabilities adjusted for severity
-
-🔀 Step 2: Casualty Type Branching
-
-**Path A: WIA/DNBI Casualties**
-
-Casualties enter Role 1 treatment with team-specific logic:
-
-1. **Role 1 Team Treatment**  
-   Routed to the selected team’s treatment function (`r1_treat_wia`), enabling modular handling across Role 1 units.
-
-2. **Died of Wounds (DOW) Evaluation**  
-   [[17]](#References) Priority 1 and 2 casualties are checked for DOW risk:
-- 5% chance for P1
-
-- 2.5% chance for P2  
-  If triggered:
-
-- Casualty is flagged with `dow = 1`
-
-- Routed to Role 1 KIA processing (`r1_treat_kia` + `r1_transport_kia`)
-4. **Post-Treatment Disposition**
-- Casualties that survive Role 1 care undergo further routing:
-
-- **Evacuation Decision**  
-  For high-priority (P1/P2) cases:
-
-- ~95% of P1 and ~90% of P2 proceed to evacuation
-
-- Role 2B team selection attempted via `select_available_r2b_team(env)`
-
-- If successful → proceed to `r2b_treat_wia`
-
-- If unavailable → bypass to `r2e_treat_wia`; flag `r2b_bypassed = 1`
-
-- **Recovery Decision**  
-  Lower-priority or DNBI casualties who don’t meet evac thresholds recover locally at Role 1:
-
-- Recovery duration follows a beta distribution scaled to ~5 days
-
-- `return_day` timestamp is logged on completion
-
-**Path B: KIA Casualties**
-
-Casualties identified as KIA follow a simplified treatment path:
-
-- Assigned to Role 1 mortuary care via their `team` index
-- Routed through `r1_treat_kia` followed by mortuary transport using `r1_transport_kia`
 
 ```mermaid
 flowchart TD
@@ -517,34 +472,37 @@ flowchart TD
 
 ### R2B Trajectory
 
-Casualties entering R2B undergo the following phases:
+Casualties routed to the R2B undergo surgical care, stabilization, and further dispositioning. Casualties are initially assigned a holding bed, until they can be transferred to a resuscitation bed.
 
-1. **Hold Bed Assignment**
-   
-   - Initial stabilization; DOW identified and subsequently transported to mortuary (~1%)
+Similar to the R1, where DOW occurs (~1% of arrivals at the R2B, again based on [[17]](#References)), casualties undergo a short treatment and are transported to the mortuary. Treatment and transport both use a duration with a triangular distribution: `min = 15`, `max = 45`, and `mode = 30` (minutes).
 
-2. **Resuscitation Phase**
-   
-   - Emergency team support; logs `r2b_resus = 1`
+Resuscitation is modeled using a triangular distribution with ``min = 25``, ``max = 70``, and ``mode = 45`` (min). This distribution was developed based on estimates as there were no clear durations that could be identified in literature for the duration to be used for the resuscitation/emergency phase of treatment in R2 facilities. Instead, the likely/anticipated tasks required to be undertaken in this phase were collated with task duration estimates collated to produce estimates for use in the simulation (demonstrated in the table below). The durations were developed recognising the need for all activities to be completed within 90 min as indicated by [[10]](#References).
 
-3. **Surgical Decision**
-   
-   - OT bed capacity assessed
-   - If available, surgery duration modeled with `rtruncnorm()`
-   - If skipped, recovery in hold bed (0.5–5-10 days); `return_day` logged [11] interpreted that short recovery would be retained at r2b.
+| Long Resuscitation       |           |            |           |
+| ------------------------ | --------- | ---------- | --------- |
+| Step                     | Min (min) | Mode (min) | Max (min) |
+| Hemorrhage Control       | 2         | 5          | 10        |
+| IV/IO Access             | 2         | 5          | 10        |
+| TXA Administration       | 10        | 10         | 15        |
+| Fluid Resuscitation      | 5         | 10         | 20        |
+| Airway/Breathing Support | 3         | 5          | 10        |
+| TBI Monitoring & Warming | 2         | 5          | 10        |
+| Documentation/Prep       | 2         | 3          | 5         |
+| **TOTAL**                | 25        | 45         | 70        |
 
-4. **Evacuation Assessment**
-   
-   - If evac team is free, casualty is routed to R2E
-   - If not, joins ICU wait loop via `wait_for_evac` until capacity frees
+Once resuscitation/emergency treatment has been completed, casualties not requiring surgery are transferred to a holding bed for recovery. Recovery follows a triangular distribution with ``min = 0.5``, ``max = 10``, and ``mode = 5`` (days).
 
-5. **Mortuary Handling (if DOW)**
-   
-   - Executes `r2b_treat_kia()` and `r2b_transport_kia()`
+Patients requiring surgery are transferred to an operating theatre for damage control (DAMCON) surgery. The DAMCON surgery treatment duration is modeled using a triangular distribution with ``min = 41``, ``max = 210``, and ``mode = 95`` (minutes). Due to the variability of potential requirements for surgery it was difficult to identify reliable durations for surgery time. This distribution was developed based on the interpretation of several meta studies ([[11]](#References), [[12]](#References) and [[13]](#References)).
 
-Key attributes:
+Casualties requiring further care (surgery following the DCS model [[19]](#References)) are evacuated to the R2E. The duration for evacuation to the R2E follows a triangular distribution with ``min = 15``, ``max = 45``, and ``mode = 30``. Where evacuation resources are not available, the patient is transferred to the ICU for holding until the evacuation resources are available.
 
-- `r2b_treated`, `r2b_surgery`, `evac_wait_count`, `return_day`, `r2b_to_r2e`
+
+
+
+
+
+
+Casualties entering Role 2B (R2B) proceed through a multi-phase clinical trajectory designed to stabilize patients under surgical and evacuation constraints. The initial phase involves hold bed assignment, where casualties are stabilized and evaluated for DOW mortality (~1% incidence), triggering mortuary transport if applicable with a duration using a triangular distribution . Resuscitation support is then provided by an emergency team. Next, surgical candidacy is assessed based on operating theater (OT) bed availability. If capacity permits, surgery duration is modeled using `rtruncnorm()`. When surgery is skipped due to resource limitations or casualty condition, the individual recovers in the hold bed; `return_day` is timestamped at completion, with recovery durations modeled between 0.5 and 10 days [11], consistent with doctrinal interpretations that short-recovery patients remain at R2B.
 
 ```mermaid
 flowchart TD
@@ -611,19 +569,7 @@ Role 2E offers advanced medical intervention and strategic routing:
    - Duration varies based on prior R2B treatment
    - `r2e_resus = 1` logged for primary interventions
    
-   There were no clear durations that could be identified in literature for the duration to be used for the resuscitation/emergency phase of treatment in the R2E Heavy. Instead, the likely/anticipated tasks required to be undertaken in this phase were collated with task duration estimates collated to produce estimates for use in the simulation. The durations were developed recognising the need for all activities to be completed within 90 min as indicated by [[10]](#References).
    
-   | Long Resuscitation       |           |            |           |
-   | ------------------------ | --------- | ---------- | --------- |
-   | Step                     | Min (min) | Mode (min) | Max (min) |
-   | Hemorrhage Control       | 2         | 5          | 10        |
-   | IV/IO Access             | 2         | 5          | 10        |
-   | TXA Administration       | 10        | 10         | 15        |
-   | Fluid Resuscitation      | 5         | 10         | 20        |
-   | Airway/Breathing Support | 3         | 5          | 10        |
-   | TBI Monitoring & Warming | 2         | 5          | 10        |
-   | Documentation/Prep       | 2         | 3          | 5         |
-   | **TOTAL**                | 25        | 45         | 70        |
    
    | Short Reuscitation       |           |            |           |
    | ------------------------ | --------- | ---------- | --------- |
@@ -640,8 +586,8 @@ Role 2E offers advanced medical intervention and strategic routing:
 3. **Surgery Branch**
    
    - If `surgery = 1`, OT bed and surgical team are seized
-   - A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References). 
-   - Due to the variability of potential requirements for surgery it is difficult to establish specific durations for surgery time, however some meta studies for particular DCS-III surgery types ([[11]](#References), [[12]](#References) and [[13]](#References)) provide some indication for surgery times that were used for the definition for this simulation:
+   - 
+   - Due to the variability of potential requirements for surgery it is difficult to establish specific durations for surgery time, however some meta studies ([[11]](#References), [[12]](#References) and [[13]](#References)) provide some indication for surgery times that were used for the definition for this simulation:
    - min: 41 min
    - max: 210 min 
    - mode: 95 min   
@@ -670,9 +616,8 @@ Role 2E offers advanced medical intervention and strategic routing:
    mode: 60 min
 
 5. Second surgery then per [11] follow similar surgery times.
-
+   
    **Final Disposition**
-
 - 10% recover locally (1–9-21 days); `return_day` logged [11] interpreted that shorter recovery would be retained at hospital.
 - 90% routed for strategic evacuation; `r2e_evac = 1` assigned
 - based on [3] Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E. 
@@ -794,6 +739,8 @@ DOW: 5% of total [[6]](#References).
 [17] Howard, J. T., Kotwal, R. S., Stern, C. A., Janak, J. C., Mazuchowski, E. L., Butler, F. K., ... & Smith, D. J. (2019). Use of combat casualty care data to assess the US military trauma system during the Afghanistan and Iraq conflicts, 2001-2017. *JAMA surgery*, *154*(7), 600-608. Accessed: 01 Aug 25. (Available at: https://jamanetwork.com/journals/jamasurgery/articlepdf/2729451/jamasurgery_howard_2019_oi_190007.pdf )
 
 [18] Lynch, P., Griffin, K., Terrell, A. G., & Pealin, D. (1997). Medical planning--casualty treatment times at first and second line. *Journal of the Royal Army Medical Corps*, *143*(2), 83-89. Accessed: 02 Aug 25. (Available at: https://pubmed.ncbi.nlm.nih.gov/9247859/ )
+
+[19] Karamarković, A. Damage Control in Abdominal Surgery. *Clin Surg. 2016; 1*, *1118*. Accessed: 02 Aug 25. (Available at: https://www.clinicsinsurgery.com/open-access/damage-control-in-abdominal-surgery-2563.pdf )
 
 <!-- REFERENCES END -->
 

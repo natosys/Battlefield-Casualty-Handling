@@ -602,7 +602,7 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
       
       # Path 1: DOW
-      trajectory("Dead on Withdrawal") %>%
+      trajectory("Died of Wounds") %>%
         set_attribute("dow", 1) %>%
         r2b_treat_kia(team_id) %>%
         r2b_transport_kia(team_id) %>%

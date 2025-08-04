@@ -336,7 +336,7 @@ select_r2e_team <- function() {
 r1_treat_kia <- function(team) {
   medics <- env_data$elms$r1[[team]][grepl("_technician_", env_data$elms$r1[[team]])]
   trajectory(paste("KIA Team", team)) %>%
-    set_attribute("r1_treated", team) %>%
+    # set_attribute("r1_treated", team) %>%
     set_attribute("mortuary_treated", 1) %>%
     simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
@@ -390,7 +390,7 @@ r1_treat_wia <- function(team) {
   clinicians <- env_data$elms$r1[[team]][grepl("_clinician_", env_data$elms$r1[[team]])]
   
   trajectory(paste("WIA Team", team)) %>%
-    set_attribute("r1_treated", team) %>%
+    # set_attribute("r1_treated", team) %>%
     simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
     simmer::select(clinicians, policy = "shortest-queue") %>%
@@ -781,81 +781,55 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
     release_resources(evac_team)
 }
 
-#' Executes full treatment sequence for WIA casualties at Role 2E Heavy facility
+#' Models the R2E Heavy treatment flow for WIA casualties bypassing R2B or routed directly
 #'
-#' @param team_id Integer index of the Role 2E Heavy team receiving the casualty
+#' @param team_id Integer ID of the R2E team assigned to receive the casualty
 #'
-#' @return Simmer trajectory modeling clinical, surgical, ICU, and disposition pathways
+#' @return A simmer trajectory object representing clinical care and disposition at R2E
 #'
-#' @details Models a multi-phase treatment pipeline using conditional branching and resource logic.
-#'          Each phase reflects clinical decision-making, resource capacity checks, and stochastic delays.
+#' @details This trajectory simulates doctrinal R2E workflows for wounded casualties requiring
+#'          advanced treatment, resuscitation, surgical care, ICU stabilization, and eventual
+#'          recovery or strategic evacuation. It preserves procedural logic from DOW check through
+#'          surgical sequencing, and models transitions based on prior R2B interventions and outcomes.
 #'
-#' ### Phases:
+#' ### Phase 1: DOW Filtering (~1%)
+#' - Casualty routed to `r2e_treat_kia()` and `r2e_transport_kia()` if flagged
+#' - `dow = 1` set for outcome tracking
 #'
-#' 1. **Dead on Withdrawal (~1%)**
-#'    - Casualty flagged as `dow = 1`
-#'    - Routed to mortuary processing via `r2e_treat_kia()` and `r2e_transport_kia()`
-#'    - Exits trajectory
+#' ### Phase 2: Initial Resuscitation
+#' - Casualty assigned resus bed and emergency team
+#' - If previously resuscitated at R2B (`r2b_resus = 1`), receives short-form resus
+#' - Otherwise, full-length emergency stabilization executed
+#' - `r2e_resus = 1` set when primary interventions occur at R2E
 #'
-#' 2. **Resuscitation Phase (Resus Bed ID 2)**
-#'    - Emergency team engaged
-#'    - Duration scaled via triangular distribution:
-#'        - ~15 min if previously resuscitated at R2B (`r2b_resus == 1`)
-#'        - ~45 min otherwise; attribute `r2e_resus = 1` assigned
+#' ### Phase 3: Surgical Branch
+#' - Casualties with `surgery = 1` flag attempt to seize OT bed
+#' - If seized, DAMCON surgery performed using triangular duration
+#' - `r2e_surgery = 1` set post-procedure
 #'
-#' 3. **Surgical Evaluation**
-#'    - Branches by `surgery` attribute:
-#'        - **If `surgery == 1` (surgery needed)**:
-#'            - OT Bed ID 4 and surgical team seized
-#'            - Duration: Triangle sample (2–4 hours typical)
-#'            - Attribute `r2e_surgery = 1` set
+#' ### Phase 4: ICU Handling
+#' - ICU treatment varies based on prior surgery history:
+#'     - If R2B surgery occurred (`r2b_surgery = 1`), probabilistic branch to short ICU recovery
+#'     - Else, full ICU recovery executed
+#' - ICU duration modeled using doctrinal distributions (see [[14]]–[[16]])
 #'
-#'          → Then branches based on `r2b_surgery`:
-#'              - **If prior R2B surgery (`r2b_surgery == 1`)**:
-#'                  - 75% chance of stable outcome → **Short ICU Recovery** (~1 hr)
-#'                  - 25% chance of instability → **Full ICU Recovery** (2–48 hr range)
+#' ### Phase 5: Final Disposition
+#' - 10% of casualties routed to recovery (`return_day` logged) via hold beds
+#' - Remaining 90% assigned `r2e_evac = 1` for strategic evacuation
+#' - Within recovery branch:
+#'     - If no prior R2B surgery, secondary surgery is performed at R2E
+#'     - Else, casualty proceeds directly to recovery bed
+#' - Hold bed durations modeled using triangular distribution
 #'
-#'              - **If first surgery (no R2B)**:
-#'                  - Always follows **Full ICU Recovery**
+#' ### Attributes Set
+#' - `r2e_treated`, `r2e_handling`: for team and flow tracking
+#' - `dow`, `r2e_resus`, `r2e_surgery`, `return_day`: event-based state flags
+#' - `r2e_evac`: strategic evacuation signal
+#' - Resource IDs and selections handled dynamically by shortest queue policy
 #'
-#'        - **If `surgery == 0` (no surgery needed)**:
-#'            - Casualty remains in hold bed
-#'            - Logs non-surgical path
-#'
-#' 4. **Disposition Phase**
-#'    - Branches by recovery probability (`in_theatre_rate`):
-#'        - **Recover in-theatre (~80%)**
-#'            - Branches again based on prior surgery:
-#'                - **If no prior R2B surgery (`r2b_surgery != 1`)**:
-#'                    - Casualty undergoes **second surgical procedure**
-#'                    - OT Bed ID 7 and surgical team seized
-#'                    - Duration sampled as above
-#'                    - Continues into recovery phase
-#'
-#'                - **If prior R2B surgery exists**:
-#'                    - Proceeds directly to recovery
-#'
-#'            - Hold Bed ID 5 seized for recovery
-#'            - Recovery time: Normal(mean = 15 days, SD = 2 days)
-#'            - Logs `return_day` upon discharge
-#'
-#'        - **Strategic Aeromedical Evacuation (~20%)**
-#'            - Sets attribute `r2e_evac = 1`
-#'            - Logs strategic transfer
-#'
-#' ### Attributes Tracked:
-#' - `r2e_treated`: assigned Role 2E team index
-#' - `r2e_handling`: flow marker for Role 2E entry
-#' - `r2e_resus`: flag indicating resuscitation performed
-#' - `r2e_surgery`: flag marking surgical intervention
-#' - `r2b_surgery`: flag for prior upstream surgery
-#' - `dow`: Dead on Withdrawal indicator
-#' - `r2e_evac`: evacuation trigger for strategic AME
-#' - `return_day`: timestamp set on recovery exit
-#'
-#' ### Logging & Flow Control:
-#' - All branching uses `continue = TRUE` for state preservation
-#' - `log_()` traces key transitions: resuscitation status, surgery events (including second-pass), ICU routing, and disposition outcome
+#' ### Logging
+#' - Inline `log_()` calls trace surgical decision, ICU path, and disposition outcome
+#' - Simulation audits enabled via attribute set and log hooks
 r2e_treat_wia <- function(team_id) {
   hold_beds <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -875,7 +849,8 @@ r2e_treat_wia <- function(team_id) {
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
     
-    # Step 1: DOW branch (~1%)
+    # Step 1: Early mortality check (Dead on Withdrawal ~1%)
+    # If casualty dies immediately upon arrival, route to mortuary handling and exit simulation
     branch(
       option = function() {
         if (runif(1) < 0.01) return(1)
@@ -890,15 +865,18 @@ r2e_treat_wia <- function(team_id) {
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
       
-      # Path 2: Continue treatment
+      # Step 2: Proceed with emergency treatment at R2E Heavy
       trajectory("Continue R2E Treatment")
     ) %>%
     
-    # Step 3: Transfer to Resus
+    # Step 3: Seize resuscitation bed (shortest available queue)
+    # Prepares for initial stabilization prior to surgery or disposition
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     
-    # Step 4: Emergency treatment
+    # Step 4: Emergency resuscitation (short or full)
+    # If previously treated at R2B → apply short resus model
+    # Otherwise → perform full emergency treatment with logging
     seize_resources(emergency_team) %>%
     branch(
       option = function() {
@@ -908,7 +886,7 @@ r2e_treat_wia <- function(team_id) {
       },
       continue = TRUE,
       
-      # Shorter resus time if previously resus at R2B
+      # Short resus time if R2B treatment occurred
       trajectory() %>%
         timeout(function() {
           rtriangle(
@@ -921,7 +899,7 @@ r2e_treat_wia <- function(team_id) {
         release_resources(emergency_team) %>%
         release_selected(id = 2),
       
-      # Longer resus time otherwise
+      # Full resus time otherwise
       trajectory() %>%
         timeout(function() {
           rtriangle(
@@ -936,7 +914,8 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 2)
     ) %>%
     
-    # Step 6: Surgery if required
+    # Step 5: Surgery check
+    # Casualties flagged for surgery are routed to OT bed if available
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
@@ -945,7 +924,7 @@ r2e_treat_wia <- function(team_id) {
       },
       continue = TRUE,
       
-      # Branch 1: Needs surgery → Seize OT bed and perform surgery
+      # If surgery required → perform surgery
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
@@ -962,12 +941,13 @@ r2e_treat_wia <- function(team_id) {
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
         
-        # ICU care after surgery or hold phase
+        # Post-surgical ICU routing
+        # If prior R2B surgery → branch based on DCS stage
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
             
-            # If prior surgery at R2B, apply probabilistic branch
+            # DCS-III complete → short ICU recovery
             if (!is.na(prior_surg) && prior_surg == 1) {
               outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, (1-env_data$vars$r2eheavy$recovery$post_surgery)))
               return(outcome)
@@ -978,7 +958,7 @@ r2e_treat_wia <- function(team_id) {
           },
           continue = TRUE,
           
-          # Path 1: Stable → ICU short recovery
+          # Second-time surgery → ICU short recovery
           trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
             log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
@@ -993,7 +973,7 @@ r2e_treat_wia <- function(team_id) {
             }) %>%
             release_selected(id = 6),
           
-          # Path 2: Unstable or first surgery → Full ICU recovery
+          # First-time surgery → full ICU recovery
           trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
             log_("Standard ICU recovery required") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
@@ -1009,17 +989,18 @@ r2e_treat_wia <- function(team_id) {
             release_selected(id = 6)
         ),
       
-      # Branch 2: No surgery needed → stay in hold bed, no OT required
+      # No surgery required → skip to disposition logic
       trajectory("No Surgery Needed") %>%
         log_("No surgery needed")
     ) %>%
     
-    # Step 7: Evacuate or retain for recovery
+    # Step 6: Recovery or strategic evacuation branch
+    # Based on doctrinal 10% recovery vs 90% evac split
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, (1-env_data$vars$r2eheavy$recovery$in_theatre_rate))),
       continue = TRUE,
       
-      # Branch 1: Recover at R2E Heavy
+      # In-theatre recovery path (10% rate)
       trajectory("Recover at R2E") %>%
         branch(
           option = function() {
@@ -1029,7 +1010,7 @@ r2e_treat_wia <- function(team_id) {
           },
           continue = TRUE,
           
-          # Path 1: Second Surgery Required
+          # If no prior surgery at R2B → perform second surgery at R2E
           trajectory("Second Surgery Before Recovery") %>%
             log_("Initiating second surgery before R2E recovery") %>%
             simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
@@ -1047,10 +1028,11 @@ r2e_treat_wia <- function(team_id) {
             release_selected(id = 7) %>%
             log_("Second surgery complete – proceeding to recovery"),
           
-          # Path 2: No Second Surgery Needed
-          trajectory("No Second Surgery")  # Simply proceeds to recovery
+          # If prior surgery already occurred → proceed directly to recovery
+          trajectory("No Second Surgery")
         ) %>%
         
+        # Final recovery in hold bed
         log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
@@ -1067,7 +1049,7 @@ r2e_treat_wia <- function(team_id) {
         set_attribute("return_day", function() now(env)) %>%
         log_("Recovery complete – hold bed released"),
       
-      # Branch 2: Strategic AME
+      # Strategic evacuation path (90% rate)
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_evac", 1) %>%
         log_("Commencing strategic evacuation from R2E Heavy")
@@ -1078,44 +1060,46 @@ r2e_treat_wia <- function(team_id) {
 ## CORE TRAJECTORY                          ##
 ##############################################
 
-#' Defines full casualty trajectory from battlefield through Role 1 to Role 2 facilities
+#' Models full casualty flow from point of injury through Role 1 and onward to Role 2 (B/E)
 #'
-#' @return a simmer trajectory object modeling branching logic for casualty disposition
+#' @return A simmer trajectory object representing branching decisions based on casualty attributes
 #'
-#' @details This is the core trajectory representing all casualty types—KIA, WIA, DNBI—
-#'          and routing decisions based on casualty attributes. It includes:
+#' @details This trajectory encapsulates initial triage, Role 1 stabilization, early mortality assessment,
+#'          and evacuation decisions for all casualty categories: Killed in Action (KIA), Wounded in Action (WIA),
+#'          and Disease/Non-Battle Injury (DNBI). Routing logic and attribute initialization are grounded in
+#'          doctrinal estimates and probabilistic modeling inputs from `env_data`.
 #'
-#' ### Step 1: Attribute Initialization
-#' - Assigns R1 team (random selection)
-#' - Sets casualty priority (1–3) for WIA/DNBI, NA for KIA
-#' - Flags DNBI status (`nbi`) and computes likelihood
-#' - Computes `surgery` need based on priority and casualty type
+#' ### Phase 1: Attribute Assignment
+#' - Randomly assigns a Role 1 treatment team (`team`)
+#' - Flags NBI probability (`nbi`) based on case name
+#' - Assigns treatment priority (`priority`) using doctrinal distributions for WIA and DNBI cases
+#' - Computes `surgery` requirement based on priority tier and casualty class
 #'
-#' ### Step 2: Casualty Type Branch
-#' - **Path 1: WIA/DNBI Handling**
-#'     - Role 1 treatment by assigned team
-#'     - DOW Branch (~5% P1, ~2.5% P2): If death occurs, route to KIA handling
-#'     - Post-treatment routing:
-#'         - If evacuation warranted (most P1/P2), select R2B team
-#'             - If team available → continue to R2B treatment
-#'             - If none available → bypass to R2E treatment, mark as `r2b_bypassed`
-#'         - Else → Casualty recovers at Role 1 (Beta distribution, ~5 days)
+#' ### Phase 2: Casualty Type Branch
+#' - **Branch A – WIA/DNBI**
+#'     - Casualty receives care from assigned R1 team (`r1_treat_wia()`)
+#'     - Dead of Wounds (DOW) check performed (~5% P1, ~2.5% P2); DOW cases routed to KIA handling
+#'     - Evacuation Decision:
+#'         - If `priority == 1 or 2` and evac criteria met → attempt R2B team assignment
+#'         - If R2B team unavailable → casualty bypasses to R2E and `r2b_bypassed = 1`
+#'         - Else (typically P3) → recovery occurs at Role 1 (`return_day` marked post Beta-distributed timeout)
 #'
-#' - **Path 2: KIA Handling**
-#'     - Treatment and mortuary transport by selected Role 1 team
+#' - **Branch B – KIA**
+#'     - Casualty receives simulated mortuary care via assigned R1 team (`r1_treat_kia()`) and is transported accordingly
 #'
-#' ### Notable Attributes Used
-#' - `team`: selected R1 team index
-#' - `priority`: treatment urgency (1: critical → 3: mild)
-#' - `nbi`: DNBI flag (non-battle injuries)
-#' - `surgery`: binary flag indicating surgical requirement
-#' - `dow`: flag for DOW cases
-#' - `r2b`, `r2e`, `r2b_bypassed`: evacuation tracking
-#' - `return_day`: timestamp for recovered casualties
+#' ### Trajectory Attributes and Logging
+#' - `team`: Assigned R1 treatment team
+#' - `priority`: Triage urgency code (1 = Immediate; 2 = Urgent; 3 = Delayed)
+#' - `nbi`: Flag for DNBI-type cases
+#' - `surgery`: Binary flag indicating surgical need (0/1)
+#' - `dow`: DOW flag if casualty dies post-R1 treatment
+#' - `r2b`, `r2e`, `r2b_bypassed`: Routing indicators for evacuation tracking
+#' - `return_day`: Time the casualty exits simulation via recovery
 #'
-#' ### Logging and Flow Commentary
-#' - Uses in-line `cat()` call to log selected R2B team
-#' - All branching logic follows `continue = TRUE` to allow trajectory persistence
+#' ### Notes on Flow Integrity
+#' - All branching logic uses `continue = TRUE` to allow non-terminal transitions
+#' - Selected R2B team is printed via `cat()` to support live simulation tracing
+#' - This trajectory serves as the foundation for all casualty entry points and ensures doctrinal traceability from point of injury through recovery or disposition
 casualty <- trajectory("Casualty") %>%
   # Step 1: Set initial attributes
   # Set team and priority attributes

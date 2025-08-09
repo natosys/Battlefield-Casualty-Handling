@@ -1256,7 +1256,7 @@ casualty <- trajectory("Casualty") %>%
 ##############################################
 ## BUILD ENVIRONMENT                        ##
 ##############################################
-sink("data/logs.txt")
+sink("logs/logs.txt")
 
 # Add casualty generators to simulation
 env %>%

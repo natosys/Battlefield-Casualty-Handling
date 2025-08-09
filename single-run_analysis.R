@@ -224,9 +224,62 @@ ggplot(queue_plot_data, aes(x = time, y = queue, color = bed_type)) +
   )
 
 ##############################################
+## CASUALTY TREATMENT SUMMARY               ##
+##############################################
+# 1. Pivot attributes wide
+attributes_wide <- attributes %>%
+  pivot_wider(
+    id_cols = c(name, replication),
+    names_from = key,
+    values_fn = ~ first(.x)
+  )
+
+# 2. Join with arrivals
+combined <- arrivals %>%
+  left_join(attributes_wide, by = c("name", "replication"))
+
+# 3. Filter for R2E-treated casualties
+r2e_casualties <- combined %>%
+  filter(!is.na(r2e_treated) & r2e_treated > 0)
+
+# 4. Convert r2b_treated to station label
+r2e_casualties <- r2e_casualties %>%
+  mutate(r2b_station = case_when(
+    is.na(r2b_treated) | r2b_treated == 0 ~ "Skipped R2B",
+    TRUE ~ paste0("R2B", r2b_treated)
+  ))
+
+# 5. Convert start_time to simulation day
+r2e_casualties <- r2e_casualties %>%
+  mutate(day = floor(start_time / 1440) + 1)
+
+# 6. Summarize daily counts by R2B station
+daily_station_summary <- r2e_casualties %>%
+  count(day, r2b_station)
+
+# 7. Optional: define custom colors
+r2b_levels <- unique(daily_station_summary$r2b_station)
+r2b_colors <- setNames(
+  c(RColorBrewer::brewer.pal(n = length(r2b_levels) - 1, name = "Set2"), "#ff7f0e"),
+  c(setdiff(r2b_levels, "Skipped R2B"), "Skipped R2B")
+)
+
+# 8. Plot stacked bar chart
+ggplot(daily_station_summary, aes(x = factor(day), y = n, fill = r2b_station)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
+  labs(
+    title = "Casualties Routed Through Each R2B Station by Simulation Day",
+    x = "Simulation Day",
+    y = "Number of Casualties",
+    fill = "R2B Station"
+  ) +
+  scale_fill_manual(values = r2b_colors) +
+  theme_minimal(base_size = 14)
+
+##############################################
 ## R2E OT Bed QUEUE GRAPH                   ##
 ##############################################
-queue_plot_data <- get_mon_resources(env) %>%
+queue_plot_data <- resources %>%
   as.data.frame() %>%
   filter(resource %in% c("b_r2eheavy_ot_1_t1", "b_r2eheavy_ot_2_t1", "b_r2eheavy_ot_3_t1")) %>%
   dplyr::select(time, resource, queue)

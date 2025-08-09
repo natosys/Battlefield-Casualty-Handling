@@ -50,7 +50,7 @@ n_iterations <- 1000
 #' @param pop size of target population
 #' @param n_days duration in days
 #' @return vector of arrival times in simulation minutes
-generate_ln_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
+generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   
   n_minutes <- day_min * n_days
@@ -71,6 +71,10 @@ generate_ln_arrivals <- function(mean_daily, sd_daily, pop, n_days, cap = 5, see
   
   # Step 5: Add random jitter within minute and sort
   arrival_times <- sort(arrival_idx + runif(length(arrival_idx), 0, 1))
+  
+  # Step 6: Write to file
+  filename <- paste0("data/arrivals_", type, ".txt")
+  write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
   
   return(arrival_times)
 }
@@ -274,15 +278,15 @@ select_available_r2b_team <- function(env) {
     bed_usage <- sapply(ot_beds, function(b) get_server_count(env, b))
     total_in_use <- sum(bed_usage)
     
-    cat(sprintf("Team %d OT usage: %s → total in use = %d\n", i, toString(bed_usage), total_in_use))
+    # cat(sprintf("Team %d OT usage: %s → total in use = %d\n", i, toString(bed_usage), total_in_use))
     
     if (total_in_use == 0) {
-      cat(sprintf("✔ R2B %d selected (OT beds are free)\n", i))
+      # cat(sprintf("✔ R2B %d selected (OT beds are free)\n", i))
       return(i)
     }
   }
   
-  cat("✖ No R2B team available (all OT beds are in use)\n")
+  # cat("✖ No R2B team available (all OT beds are in use)\n")
   return(-1)
 }
 
@@ -310,12 +314,12 @@ select_r2e_team <- function() {
   
   if (all(capacities <= 0)) {
     selected <- sample(seq_along(env_data$elms$r2eheavy), 1)
-    cat(sprintf("⚠ No OT capacity available, randomly selected R2E team %d\n", selected))
+    # cat(sprintf("⚠ No OT capacity available, randomly selected R2E team %d\n", selected))
   } else {
     max_capacity <- max(capacities)
     candidates <- which(capacities == max_capacity)
     selected <- sample(candidates, 1)
-    cat(sprintf("✅ Selected R2E team %d with %d available OT slots\n", selected, max_capacity))
+    # cat(sprintf("✅ Selected R2E team %d with %d available OT slots\n", selected, max_capacity))
   }
   
   return(selected)
@@ -336,7 +340,7 @@ select_r2e_team <- function() {
 r1_treat_kia <- function(team) {
   medics <- env_data$elms$r1[[team]][grepl("_technician_", env_data$elms$r1[[team]])]
   trajectory(paste("KIA Team", team)) %>%
-    # set_attribute("r1_treated", team) %>%
+    set_attribute("r1_treated", team) %>%
     set_attribute("mortuary_treated", 1) %>%
     simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
@@ -498,7 +502,7 @@ r2b_transport_kia <- function(traj, team_id) {
 #'          full round-trip duration (~30 minutes) using log-normal variation.
 r2b_transport_wia <- function() {
   trajectory("R2B to R2E Heavy transport") %>%
-    log_("R2B to R2E Heavy Transport - start") %>%
+    # log_("R2B to R2E Heavy Transport - start") %>%
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
     seize_selected(id = 7) %>%
     set_attribute("r2b_r2e_transport_start", function() now(env)) %>%
@@ -558,10 +562,10 @@ r2b_treat_wia <- function(team_id) {
     set_global("evac_wait_count", function() {
       current <- get_global(env, "evac_wait_count")
       updated <- current + 1
-      cat("evac_wait_count:", updated, "\n")  # Now prints the incremented value
+      # cat("evac_wait_count:", updated, "\n")  # Now prints the incremented value
       return(updated)
     }) %>%
-    log_("wait_for_evac") %>%
+    # log_("wait_for_evac") %>%
     simmer::select(icu_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
     seize_resources(icu_team) %>%
@@ -702,7 +706,7 @@ r2b_treat_wia <- function(team_id) {
       
       # Path 1: Immediate evacuation possible
       trajectory("Immediate Evac") %>%
-        log_("Immediate evacuation to R2E Heavy") %>%
+        # log_("Immediate evacuation to R2E Heavy") %>%
         set_attribute("r2b_to_r2e", 1) %>%
         set_attribute("r2e", function() select_r2e_team()) %>%
         seize_resources(evacuation_team) %>%
@@ -715,7 +719,7 @@ r2b_treat_wia <- function(team_id) {
           )
         }) %>%
         release_resources(evacuation_team) %>%
-        log_("Resources Released") %>%
+        # log_("Resources Released") %>%
         branch(
           option = function() get_attribute(env, "r2e"),
           continue = TRUE,
@@ -960,7 +964,7 @@ r2e_treat_wia <- function(team_id) {
           
           # Second-time surgery → ICU short recovery
           trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
-            log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
+            # log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
             seize_selected(id = 6) %>%
             timeout(function() {
@@ -975,7 +979,7 @@ r2e_treat_wia <- function(team_id) {
           
           # First-time surgery → full ICU recovery
           trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
-            log_("Standard ICU recovery required") %>%
+            # log_("Standard ICU recovery required") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
             seize_selected(id = 6) %>%
             timeout(function() {
@@ -990,8 +994,8 @@ r2e_treat_wia <- function(team_id) {
         ),
       
       # No surgery required → skip to disposition logic
-      trajectory("No Surgery Needed") %>%
-        log_("No surgery needed")
+      trajectory("No Surgery Needed")
+        # log_("No surgery needed")
     ) %>%
     
     # Step 6: Recovery or strategic evacuation branch
@@ -1012,7 +1016,7 @@ r2e_treat_wia <- function(team_id) {
           
           # If no prior surgery at R2B → perform second surgery at R2E
           trajectory("Second Surgery Before Recovery") %>%
-            log_("Initiating second surgery before R2E recovery") %>%
+            # log_("Initiating second surgery before R2E recovery") %>%
             simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
             seize_selected(id = 7) %>%
             seize_resources(surg_team) %>%
@@ -1025,18 +1029,18 @@ r2e_treat_wia <- function(team_id) {
               )
             }) %>%
             release_resources(surg_team) %>%
-            release_selected(id = 7) %>%
-            log_("Second surgery complete – proceeding to recovery"),
+            release_selected(id = 7),
+            # log_("Second surgery complete – proceeding to recovery"),
           
           # If prior surgery already occurred → proceed directly to recovery
           trajectory("No Second Surgery")
         ) %>%
         
         # Final recovery in hold bed
-        log_("Selecting hold bed for recovery") %>%
+        # log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
-        log_("Recovering at R2E Heavy") %>%
+        # log_("Recovering at R2E Heavy") %>%
         timeout(function() {
           rtriangle(
             n = 1,
@@ -1046,13 +1050,13 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         release_selected(id = 5) %>%
-        set_attribute("return_day", function() now(env)) %>%
-        log_("Recovery complete – hold bed released"),
+        set_attribute("return_day", function() now(env)),
+        # log_("Recovery complete – hold bed released"),
       
       # Strategic evacuation path (90% rate)
       trajectory("Strategic Evac") %>%
-        set_attribute("r2e_evac", 1) %>%
-        log_("Commencing strategic evacuation from R2E Heavy")
+        set_attribute("r2e_evac", 1)
+        # log_("Commencing strategic evacuation from R2E Heavy")
     )
 }
 
@@ -1101,6 +1105,9 @@ r2e_treat_wia <- function(team_id) {
 #' - Selected R2B team is printed via `cat()` to support live simulation tracing
 #' - This trajectory serves as the foundation for all casualty entry points and ensures doctrinal traceability from point of injury through recovery or disposition
 casualty <- trajectory("Casualty") %>%
+  log_(function() {
+    paste0(get_name(env))
+  }) %>%
   # Step 1: Set initial attributes
   # Set team and priority attributes
   set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>% 
@@ -1198,7 +1205,7 @@ casualty <- trajectory("Casualty") %>%
               branch(
                 option = function() {
                   r2b <- get_attribute(env, "r2b")
-                  cat("Selected R2B:", r2b, "\n")  # This prints to the console
+                  # cat("Selected R2B:", r2b, "\n")  # This prints to the console
                   if (r2b > 0) return(1) else return(2)
                 },
                 continue = TRUE,
@@ -1249,178 +1256,190 @@ casualty <- trajectory("Casualty") %>%
 ##############################################
 ## BUILD ENVIRONMENT                        ##
 ##############################################
+sink("data/logs.txt")
+
 # Add casualty generators to simulation
 env %>%
   # add_generator("wia_cbt", casualty, distribution = at(wia_rate_cbt), mon = 2) %>%
   add_generator("wia_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$wia_cbt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "wia_cbt",
+                                                       mean_daily = env_data$vars$generators$wia_cbt$mean_daily,
                                                        sd_daily = env_data$vars$generators$wia_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("kia_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$kia_cbt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "kia_cbt",
+                                                       mean_daily = env_data$vars$generators$kia_cbt$mean_daily,
                                                        sd_daily = env_data$vars$generators$kia_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("dnbi_cbt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$dnbi_cbt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "dnbi_cbt",
+                                                       mean_daily = env_data$vars$generators$dnbi_cbt$mean_daily,
                                                        sd_daily = env_data$vars$generators$dnbi_cbt$sd_daily,
                                                        pop = env_data$pops$combat,
                                                        n_days)), mon = 2) %>%
   add_generator("wia_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$wia_spt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "wia_spt",
+                                                       mean_daily = env_data$vars$generators$wia_spt$mean_daily,
                                                        sd_daily = env_data$vars$generators$wia_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_generator("kia_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$kia_spt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "kia_spt",
+                                                       mean_daily = env_data$vars$generators$kia_spt$mean_daily,
                                                        sd_daily = env_data$vars$generators$kia_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_generator("dnbi_spt", 
                 casualty, 
-                distribution = at(generate_ln_arrivals(mean_daily = env_data$vars$generators$dnbi_spt$mean_daily,
+                distribution = at(generate_ln_arrivals(type = "dnbi_spt",
+                                                       mean_daily = env_data$vars$generators$dnbi_spt$mean_daily,
                                                        sd_daily = env_data$vars$generators$dnbi_spt$sd_daily,
                                                        pop = env_data$pops$support,
                                                        n_days)), mon = 2) %>%
   add_global("evac_wait_count", 0)
 
-results <- replicate(n_iterations, {
-  env %>% run(until = n_days * day_min)
-  
-  # Extract custom metrics or statistics
-  list(
-    arrivals = get_mon_arrivals(env),
-    resources = get_mon_resources(env)  # Includes usage, capacity, queue sizes over time
-  )
-}, simplify = FALSE)
+env %>% run(until = n_days * day_min)
+
+sink()
+
+# results <- replicate(n_iterations, {
+#   env %>% run(until = n_days * day_min)
+#   
+#   # Extract custom metrics or statistics
+#   list(
+#     arrivals = get_mon_arrivals(env),
+#     resources = get_mon_resources(env)  # Includes usage, capacity, queue sizes over time
+#   )
+# }, simplify = FALSE)
 
 ##############################################
 ## FORMAT DATA                              ##
 ##############################################
-all_resources <- get_mon_resources(env)
-transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
-resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
-
-# Get arrival logs and annotate with casualty type
-arrivals <- get_mon_arrivals(env)
-arrivals$day <- floor(arrivals$start_time / day_min)
-arrivals$type <- ifelse(
-  grepl("^wia", arrivals$name), "WIA",
-  ifelse(grepl("^kia", arrivals$name), "KIA", "DNBI")
-)
-
-# Extract priority values from attributes and merge with arrival data
-attributes <- get_mon_attributes(env)
-priority <- attributes[attributes$key == "priority", ]
-priority_latest <- priority[!duplicated(priority$name, fromLast = TRUE), c("name", "value")]
-colnames(priority_latest)[2] <- "priority"
-
-arrivals <- merge(arrivals, priority_latest, by = "name", all.x = TRUE)
-arrivals$priority <- ifelse(is.na(arrivals$priority), 5, arrivals$priority)  # Assign 5 = KIA
-arrivals$priority <- factor(arrivals$priority, levels = c(1, 2, 3, 5), labels = c("P1", "P2", "P3", "KIA"))
-
-########################################
-## Build Arrivals Table Data          ##
-########################################
-# Utility function to extract and merge an attribute into the arrivals table
-merge_attribute <- function(attr_name, arrivals, attributes) {
-  subset <- attributes[attributes$key == attr_name, c("name", "value")]
-  colnames(subset) <- c("name", attr_name)
-  merge(arrivals, subset, by = "name", all.x = TRUE)
-}
-
-# List of attributes to merge
-attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e", "r2e_surgery")
-
-# Apply the function for each attribute
-for (attr in attribute_keys) {
-  arrivals <- merge_attribute(attr, arrivals, attributes)
-}
-
-arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
-arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:counts[["r1"]]))
-
-# Categorize casualties by source: combat vs support
-arrivals$source <- ifelse(
-  grepl("_cbt", arrivals$name), "Combat",
-  ifelse(grepl("_spt", arrivals$name), "Support", "Unknown")
-)
-
-# Get return to duty attributes
-attributes <- get_mon_attributes(env)
-returns <- attributes[attributes$key == "return_day", ]
-returns$return_day <- floor(returns$value / day_min)  # Rename before merge
-
-# Merge return days into arrivals
-arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
-
-########################################
-## Build Cumulative Losses Table Data ##
-########################################
-# Step 1: Build daily casualty counts
-daily_counts <- as.data.frame(table(arrivals$day))
-colnames(daily_counts) <- c("day", "daily_count")
-daily_counts$day <- as.numeric(as.character(daily_counts$day))
-daily_counts$cumulative_total <- cumsum(daily_counts$daily_count)
-
-# Step 2: Count daily returns to duty
-daily_returns <- as.data.frame(table(arrivals$return_day))
-colnames(daily_returns) <- c("day", "daily_returns")
-daily_returns$day <- as.numeric(as.character(daily_returns$day))
-
-# Step 3: Merge returns into casualty table
-daily_counts <- merge(daily_counts, daily_returns, by = "day", all.x = TRUE)
-daily_counts$daily_returns[is.na(daily_counts$daily_returns)] <- 0  # Replace NA with 0
-
-# Step 4: Compute cumulative returns and loss
-daily_counts$cumulative_returns <- cumsum(daily_counts$daily_returns)
-daily_counts$cumulative_loss <- daily_counts$cumulative_total - daily_counts$cumulative_returns
-
-# Step 5: Convert to long format for plotting
-cumulative_counts <- data.frame(
-  day = daily_counts$day,
-  `Total Casualties` = daily_counts$cumulative_total,
-  `Force Loss` = daily_counts$cumulative_loss
-)
-
-cumulative_counts_long <- melt(cumulative_counts, id.vars = "day", variable.name = "Metric", value.name = "Count")
-
-# Compute resource usage per team/role/day
-resources <- resources[order(resources$resource, resources$time), ]
-resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x) c(diff(x), 0))
-resources$busy_time <- resources$server * resources$time_diff
-resources$day <- floor(resources$time / day_min)
-resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
-resources$role <- sub("^[a-zA-Z]_(r[0-9]+[a-z]*_).*?_(\\w+_[0-9]+).*", "\\1\\2", resources$resource)
-resources$resource_type <- sub("^([cbt])_.*", "\\1", resources$resource)
-
-resources_r1 <- resources[grepl("r1", resources$resource), ]
-
-agg_resources <- aggregate(busy_time ~ team + role + day, data = resources_r1, sum)
-agg_resources$percent_seized <- round((agg_resources$busy_time / day_min) * 100, 2)
-
-# Count casualties per team per day
-casualty_counts <- as.data.frame(table(arrivals$team, arrivals$day))
-colnames(casualty_counts) <- c("team", "day", "casualties")
-casualty_counts$day <- as.numeric(as.character(casualty_counts$day))
-
-# Merge utilization and casualty data for plotting
-utilisation_data <- merge(agg_resources, casualty_counts, by = c("team", "day"), all.x = TRUE)
-total_casualties <- aggregate(casualties ~ team, data = casualty_counts, sum)
-utilisation_data <- merge(utilisation_data, total_casualties, by = "team", suffixes = c("", "_total"))
-utilisation_data$casualty_percent_of_total <- round((utilisation_data$casualties / utilisation_data$casualties_total) * 100, 2)
-
-########################################
-## FILE IMPORTS                       ##
-########################################
-
-source("visualisations.R")
-source("r2b_visualisation.R")
-source("r2e_visualisation.R")
-source("sankey_flow.R")
+# all_resources <- get_mon_resources(env)
+# transport_resources <- unique(all_resources$resource[grepl("^t_", all_resources$resource)])
+# resources <- all_resources[!grepl("^t_", all_resources$resource), ]  # Exclude transport resources
+# 
+# # Get arrival logs and annotate with casualty type
+# arrivals <- get_mon_arrivals(env)
+# arrivals$day <- floor(arrivals$start_time / day_min)
+# arrivals$type <- ifelse(
+#   grepl("^wia", arrivals$name), "WIA",
+#   ifelse(grepl("^kia", arrivals$name), "KIA", "DNBI")
+# )
+# 
+# # Extract priority values from attributes and merge with arrival data
+# attributes <- get_mon_attributes(env)
+# priority <- attributes[attributes$key == "priority", ]
+# priority_latest <- priority[!duplicated(priority$name, fromLast = TRUE), c("name", "value")]
+# colnames(priority_latest)[2] <- "priority"
+# 
+# arrivals <- merge(arrivals, priority_latest, by = "name", all.x = TRUE)
+# arrivals$priority <- ifelse(is.na(arrivals$priority), 5, arrivals$priority)  # Assign 5 = KIA
+# arrivals$priority <- factor(arrivals$priority, levels = c(1, 2, 3, 5), labels = c("P1", "P2", "P3", "KIA"))
+# 
+# ########################################
+# ## Build Arrivals Table Data          ##
+# ########################################
+# # Utility function to extract and merge an attribute into the arrivals table
+# merge_attribute <- function(attr_name, arrivals, attributes) {
+#   subset <- attributes[attributes$key == attr_name, c("name", "value")]
+#   colnames(subset) <- c("name", attr_name)
+#   merge(arrivals, subset, by = "name", all.x = TRUE)
+# }
+# 
+# # List of attributes to merge
+# attribute_keys <- c("r2b_treated", "dow", "surgery", "r2b_surgery", "r2e_handling", "r2b_bypassed", "r2b_to_r2e", "r2e_surgery")
+# 
+# # Apply the function for each attribute
+# for (attr in attribute_keys) {
+#   arrivals <- merge_attribute(attr, arrivals, attributes)
+# }
+# 
+# arrivals$team <- get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$value[match(arrivals$name, get_mon_attributes(env)[get_mon_attributes(env)$key == "team", ]$name)]
+# arrivals$team <- factor(arrivals$team, labels = paste("Team", 1:counts[["r1"]]))
+# 
+# # Categorize casualties by source: combat vs support
+# arrivals$source <- ifelse(
+#   grepl("_cbt", arrivals$name), "Combat",
+#   ifelse(grepl("_spt", arrivals$name), "Support", "Unknown")
+# )
+# 
+# # Get return to duty attributes
+# attributes <- get_mon_attributes(env)
+# returns <- attributes[attributes$key == "return_day", ]
+# returns$return_day <- floor(returns$value / day_min)  # Rename before merge
+# 
+# # Merge return days into arrivals
+# arrivals <- merge(arrivals, returns[, c("name", "return_day")], by = "name", all.x = TRUE)
+# 
+# ########################################
+# ## Build Cumulative Losses Table Data ##
+# ########################################
+# # Step 1: Build daily casualty counts
+# daily_counts <- as.data.frame(table(arrivals$day))
+# colnames(daily_counts) <- c("day", "daily_count")
+# daily_counts$day <- as.numeric(as.character(daily_counts$day))
+# daily_counts$cumulative_total <- cumsum(daily_counts$daily_count)
+# 
+# # Step 2: Count daily returns to duty
+# daily_returns <- as.data.frame(table(arrivals$return_day))
+# colnames(daily_returns) <- c("day", "daily_returns")
+# daily_returns$day <- as.numeric(as.character(daily_returns$day))
+# 
+# # Step 3: Merge returns into casualty table
+# daily_counts <- merge(daily_counts, daily_returns, by = "day", all.x = TRUE)
+# daily_counts$daily_returns[is.na(daily_counts$daily_returns)] <- 0  # Replace NA with 0
+# 
+# # Step 4: Compute cumulative returns and loss
+# daily_counts$cumulative_returns <- cumsum(daily_counts$daily_returns)
+# daily_counts$cumulative_loss <- daily_counts$cumulative_total - daily_counts$cumulative_returns
+# 
+# # Step 5: Convert to long format for plotting
+# cumulative_counts <- data.frame(
+#   day = daily_counts$day,
+#   `Total Casualties` = daily_counts$cumulative_total,
+#   `Force Loss` = daily_counts$cumulative_loss
+# )
+# 
+# cumulative_counts_long <- melt(cumulative_counts, id.vars = "day", variable.name = "Metric", value.name = "Count")
+# 
+# # Compute resource usage per team/role/day
+# resources <- resources[order(resources$resource, resources$time), ]
+# resources$time_diff <- ave(resources$time, resources$resource, FUN = function(x) c(diff(x), 0))
+# resources$busy_time <- resources$server * resources$time_diff
+# resources$day <- floor(resources$time / day_min)
+# resources$team <- paste("Team", sub(".*_t(\\d+)$", "\\1", resources$resource))
+# resources$role <- sub("^[a-zA-Z]_(r[0-9]+[a-z]*_).*?_(\\w+_[0-9]+).*", "\\1\\2", resources$resource)
+# resources$resource_type <- sub("^([cbt])_.*", "\\1", resources$resource)
+# 
+# resources_r1 <- resources[grepl("r1", resources$resource), ]
+# 
+# agg_resources <- aggregate(busy_time ~ team + role + day, data = resources_r1, sum)
+# agg_resources$percent_seized <- round((agg_resources$busy_time / day_min) * 100, 2)
+# 
+# # Count casualties per team per day
+# casualty_counts <- as.data.frame(table(arrivals$team, arrivals$day))
+# colnames(casualty_counts) <- c("team", "day", "casualties")
+# casualty_counts$day <- as.numeric(as.character(casualty_counts$day))
+# 
+# # Merge utilization and casualty data for plotting
+# utilisation_data <- merge(agg_resources, casualty_counts, by = c("team", "day"), all.x = TRUE)
+# total_casualties <- aggregate(casualties ~ team, data = casualty_counts, sum)
+# utilisation_data <- merge(utilisation_data, total_casualties, by = "team", suffixes = c("", "_total"))
+# utilisation_data$casualty_percent_of_total <- round((utilisation_data$casualties / utilisation_data$casualties_total) * 100, 2)
+# 
+# ########################################
+# ## FILE IMPORTS                       ##
+# ########################################
+# 
+# source("visualisations.R")
+# source("r2b_visualisation.R")
+# source("r2e_visualisation.R")
+# source("sankey_flow.R")

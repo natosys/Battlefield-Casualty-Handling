@@ -4,7 +4,6 @@
 312.898139110301,"dnbi_cbt0","priority",1,1
 312.898139110301,"dnbi_cbt0","nbi",0,1
 312.898139110301,"dnbi_cbt0","surgery",1,1
-312.898139110301,"dnbi_cbt0","r1_treated",3,1
 312.898139110301,"dnbi_cbt0","treatment_start_time",312.898139110301,1
 334.645216178081,"dnbi_cbt0","r2b",1,1
 334.645216178081,"dnbi_cbt0","transport_start_time",334.645216178081,1
@@ -14,7 +13,6 @@
 421.609075754648,"wia_cbt0","priority",1,1
 421.609075754648,"wia_cbt0","nbi",NA,1
 421.609075754648,"wia_cbt0","surgery",1,1
-421.609075754648,"wia_cbt0","r1_treated",3,1
 421.609075754648,"wia_cbt0","treatment_start_time",421.609075754648,1
 442.185184899829,"wia_cbt0","r2b",2,1
 442.185184899829,"wia_cbt0","transport_start_time",442.185184899829,1
@@ -29,7 +27,6 @@
 630.818876627833,"dnbi_cbt1","priority",1,1
 630.818876627833,"dnbi_cbt1","nbi",0,1
 630.818876627833,"dnbi_cbt1","surgery",1,1
-630.818876627833,"dnbi_cbt1","r1_treated",3,1
 630.818876627833,"dnbi_cbt1","treatment_start_time",630.818876627833,1
 652.602639049829,"dnbi_cbt1","r2b",2,1
 652.602639049829,"dnbi_cbt1","transport_start_time",652.602639049829,1
@@ -40,13 +37,11 @@
 828.316464662086,"wia_spt0","priority",3,1
 828.316464662086,"wia_spt0","nbi",NA,1
 828.316464662086,"wia_spt0","surgery",1,1
-828.316464662086,"wia_spt0","r1_treated",3,1
 828.316464662086,"wia_spt0","treatment_start_time",828.316464662086,1
 828.957135484554,"wia_cbt1","team",1,1
 828.957135484554,"wia_cbt1","priority",2,1
 828.957135484554,"wia_cbt1","nbi",NA,1
 828.957135484554,"wia_cbt1","surgery",1,1
-828.957135484554,"wia_cbt1","r1_treated",1,1
 828.957135484554,"wia_cbt1","treatment_start_time",828.957135484554,1
 849.985253537022,"wia_cbt1","r2b",1,1
 849.985253537022,"wia_cbt1","transport_start_time",849.985253537022,1
@@ -69,7 +64,6 @@
 928.72950383462,"dnbi_cbt2","priority",1,1
 928.72950383462,"dnbi_cbt2","nbi",0,1
 928.72950383462,"dnbi_cbt2","surgery",1,1
-928.72950383462,"dnbi_cbt2","r1_treated",3,1
 928.72950383462,"dnbi_cbt2","treatment_start_time",928.72950383462,1
 929.625878565124,"wia_cbt1","r2b_resus",1,1
 947.178952121607,"dnbi_cbt2","r2b",1,1
@@ -87,13 +81,11 @@
 1209.68697032798,"dnbi_spt0","priority",1,1
 1209.68697032798,"dnbi_spt0","nbi",0,1
 1209.68697032798,"dnbi_spt0","surgery",1,1
-1209.68697032798,"dnbi_spt0","r1_treated",1,1
 1209.68697032798,"dnbi_spt0","treatment_start_time",1209.68697032798,1
 1211.46399461408,"wia_cbt2","team",1,1
 1211.46399461408,"wia_cbt2","priority",1,1
 1211.46399461408,"wia_cbt2","nbi",NA,1
 1211.46399461408,"wia_cbt2","surgery",1,1
-1211.46399461408,"wia_cbt2","r1_treated",1,1
 1211.46399461408,"wia_cbt2","treatment_start_time",1211.46399461408,1
 1233.64804058232,"dnbi_spt0","r2b",1,1
 1233.64804058232,"dnbi_spt0","transport_start_time",1233.64804058232,1
@@ -101,7 +93,6 @@
 1240.71649689367,"dnbi_cbt3","priority",1,1
 1240.71649689367,"dnbi_cbt3","nbi",1,1
 1240.71649689367,"dnbi_cbt3","surgery",1,1
-1240.71649689367,"dnbi_cbt3","r1_treated",3,1
 1240.71649689367,"dnbi_cbt3","treatment_start_time",1240.71649689367,1
 1254.81601460528,"dnbi_spt0","r2b_treated",1,1
 1262.11557751913,"dnbi_cbt3","r2b",1,1
@@ -114,7 +105,6 @@
 1552.88136000698,"dnbi_cbt4","priority",1,1
 1552.88136000698,"dnbi_cbt4","nbi",0,1
 1552.88136000698,"dnbi_cbt4","surgery",1,1
-1552.88136000698,"dnbi_cbt4","r1_treated",3,1
 1552.88136000698,"dnbi_cbt4","treatment_start_time",1552.88136000698,1
 1572.1159103643,"dnbi_cbt4","r2b",2,1
 1572.1159103643,"dnbi_cbt4","transport_start_time",1572.1159103643,1
@@ -128,7 +118,6 @@
 1630.11529690214,"wia_cbt3","priority",1,1
 1630.11529690214,"wia_cbt3","nbi",NA,1
 1630.11529690214,"wia_cbt3","surgery",1,1
-1630.11529690214,"wia_cbt3","r1_treated",2,1
 1630.11529690214,"wia_cbt3","treatment_start_time",1630.11529690214,1
 1641.59393468928,"dnbi_cbt4","r2b_resus",1,1
 1657.39401976819,"wia_cbt3","r2b",2,1
@@ -138,7 +127,6 @@
 1686.87972336216,"wia_spt1","priority",1,1
 1686.87972336216,"wia_spt1","nbi",NA,1
 1686.87972336216,"wia_spt1","surgery",1,1
-1686.87972336216,"wia_spt1","r1_treated",1,1
 1686.87972336216,"wia_spt1","treatment_start_time",1686.87972336216,1
 1711.72212192082,"wia_cbt3","r2b_resus",1,1
 1713.34912814349,"wia_spt1","r2b",2,1
@@ -164,7 +152,6 @@
 1861.8581698474,"dnbi_cbt5","priority",2,1
 1861.8581698474,"dnbi_cbt5","nbi",0,1
 1861.8581698474,"dnbi_cbt5","surgery",1,1
-1861.8581698474,"dnbi_cbt5","r1_treated",2,1
 1861.8581698474,"dnbi_cbt5","treatment_start_time",1861.8581698474,1
 1874.65756591487,"dnbi_spt0","r2e_treated",1,1
 1874.65756591487,"dnbi_spt0","r2e_handling",1,1
@@ -183,7 +170,6 @@
 1990.92256695195,"wia_cbt4","priority",1,1
 1990.92256695195,"wia_cbt4","nbi",NA,1
 1990.92256695195,"wia_cbt4","surgery",1,1
-1990.92256695195,"wia_cbt4","r1_treated",1,1
 1990.92256695195,"wia_cbt4","treatment_start_time",1990.92256695195,1
 2015.76554784298,"wia_cbt4","dow",1,1
 2015.76554784298,"wia_cbt4","r1_treated",1,1
@@ -198,7 +184,6 @@
 2158.62116652052,"dnbi_cbt6","priority",1,1
 2158.62116652052,"dnbi_cbt6","nbi",0,1
 2158.62116652052,"dnbi_cbt6","surgery",1,1
-2158.62116652052,"dnbi_cbt6","r1_treated",2,1
 2158.62116652052,"dnbi_cbt6","treatment_start_time",2158.62116652052,1
 2160,"wia_cbt1","r2e_surgery",1,1
 2175.77031971922,"dnbi_cbt6","r2b",1,1
@@ -215,13 +200,11 @@
 2396.13952279533,"dnbi_spt1","priority",1,1
 2396.13952279533,"dnbi_spt1","nbi",0,1
 2396.13952279533,"dnbi_spt1","surgery",1,1
-2396.13952279533,"dnbi_spt1","r1_treated",2,1
 2396.13952279533,"dnbi_spt1","treatment_start_time",2396.13952279533,1
 2400.27474789368,"wia_cbt5","team",1,1
 2400.27474789368,"wia_cbt5","priority",1,1
 2400.27474789368,"wia_cbt5","nbi",NA,1
 2400.27474789368,"wia_cbt5","surgery",1,1
-2400.27474789368,"wia_cbt5","r1_treated",1,1
 2400.27474789368,"wia_cbt5","treatment_start_time",2400.27474789368,1
 2416.91056095489,"dnbi_spt1","r2b",1,1
 2416.91056095489,"dnbi_spt1","transport_start_time",2416.91056095489,1
@@ -234,7 +217,6 @@
 2443.72314067138,"dnbi_cbt7","priority",1,1
 2443.72314067138,"dnbi_cbt7","nbi",0,1
 2443.72314067138,"dnbi_cbt7","surgery",1,1
-2443.72314067138,"dnbi_cbt7","r1_treated",2,1
 2443.72314067138,"dnbi_cbt7","treatment_start_time",2443.72314067138,1
 2449.01495503716,"wia_cbt3","r2e_treated",1,1
 2449.01495503716,"wia_cbt3","r2e_handling",1,1
@@ -249,7 +231,6 @@
 2503.95216102991,"wia_spt2","priority",2,1
 2503.95216102991,"wia_spt2","nbi",NA,1
 2503.95216102991,"wia_spt2","surgery",1,1
-2503.95216102991,"wia_spt2","r1_treated",2,1
 2503.95216102991,"wia_spt2","treatment_start_time",2503.95216102991,1
 2518.5450071517,"wia_spt2","r2b",1,1
 2518.5450071517,"wia_spt2","transport_start_time",2518.5450071517,1
@@ -273,7 +254,6 @@
 2741.42450025887,"dnbi_cbt8","priority",1,1
 2741.42450025887,"dnbi_cbt8","nbi",0,1
 2741.42450025887,"dnbi_cbt8","surgery",1,1
-2741.42450025887,"dnbi_cbt8","r1_treated",2,1
 2741.42450025887,"dnbi_cbt8","treatment_start_time",2741.42450025887,1
 2756.10487020773,"dnbi_cbt5","r2e_treated",1,1
 2756.10487020773,"dnbi_cbt5","r2e_handling",1,1
@@ -285,7 +265,6 @@
 2790.69789814623,"wia_cbt6","priority",3,1
 2790.69789814623,"wia_cbt6","nbi",NA,1
 2790.69789814623,"wia_cbt6","surgery",1,1
-2790.69789814623,"wia_cbt6","r1_treated",3,1
 2790.69789814623,"wia_cbt6","treatment_start_time",2790.69789814623,1
 2791.75091056752,"dnbi_cbt8","r2b_treated",2,1
 2800.92528357385,"dnbi_cbt5","mortuary_treated",1,1
@@ -310,7 +289,6 @@
 3040.39902949356,"dnbi_cbt9","priority",2,1
 3040.39902949356,"dnbi_cbt9","nbi",0,1
 3040.39902949356,"dnbi_cbt9","surgery",0,1
-3040.39902949356,"dnbi_cbt9","r1_treated",2,1
 3040.39902949356,"dnbi_cbt9","treatment_start_time",3040.39902949356,1
 3052.43975764993,"dnbi_cbt9","r2b",2,1
 3052.43975764993,"dnbi_cbt9","transport_start_time",3052.43975764993,1
@@ -325,7 +303,6 @@
 3203.04273198172,"wia_cbt7","priority",3,1
 3203.04273198172,"wia_cbt7","nbi",NA,1
 3203.04273198172,"wia_cbt7","surgery",1,1
-3203.04273198172,"wia_cbt7","r1_treated",3,1
 3203.04273198172,"wia_cbt7","treatment_start_time",3203.04273198172,1
 3272.46398442228,"dnbi_spt1","r2b_surgery",1,1
 3272.46398442228,"dnbi_spt1","r2b_to_r2e",1,1
@@ -334,7 +311,6 @@
 3279.97032924183,"wia_spt3","priority",1,1
 3279.97032924183,"wia_spt3","nbi",NA,1
 3279.97032924183,"wia_spt3","surgery",1,1
-3279.97032924183,"wia_spt3","r1_treated",2,1
 3279.97032924183,"wia_spt3","treatment_start_time",3279.97032924183,1
 3300.46171965514,"wia_spt3","r2b",2,1
 3300.46171965514,"wia_spt3","transport_start_time",3300.46171965514,1
@@ -345,7 +321,6 @@
 3341.40706057637,"dnbi_cbt10","priority",1,1
 3341.40706057637,"dnbi_cbt10","nbi",1,1
 3341.40706057637,"dnbi_cbt10","surgery",1,1
-3341.40706057637,"dnbi_cbt10","r1_treated",3,1
 3341.40706057637,"dnbi_cbt10","treatment_start_time",3341.40706057637,1
 3360.82958208192,"dnbi_cbt10","dow",1,1
 3360.82958208192,"dnbi_cbt10","r1_treated",3,1
@@ -372,13 +347,11 @@
 3614.74292368023,"dnbi_spt2","priority",2,1
 3614.74292368023,"dnbi_spt2","nbi",0,1
 3614.74292368023,"dnbi_spt2","surgery",1,1
-3614.74292368023,"dnbi_spt2","r1_treated",3,1
 3614.74292368023,"dnbi_spt2","treatment_start_time",3614.74292368023,1
 3623.07120700506,"wia_cbt8","team",2,1
 3623.07120700506,"wia_cbt8","priority",2,1
 3623.07120700506,"wia_cbt8","nbi",NA,1
 3623.07120700506,"wia_cbt8","surgery",1,1
-3623.07120700506,"wia_cbt8","r1_treated",2,1
 3623.07120700506,"wia_cbt8","treatment_start_time",3623.07120700506,1
 3623.93884329358,"kia_spt1","transport_start_time",3623.93884329358,1
 3626.6682001651,"dnbi_cbt7","r2e_treated",1,1
@@ -394,7 +367,6 @@
 3663.1500762091,"dnbi_cbt11","priority",2,1
 3663.1500762091,"dnbi_cbt11","nbi",0,1
 3663.1500762091,"dnbi_cbt11","surgery",1,1
-3663.1500762091,"dnbi_cbt11","r1_treated",3,1
 3663.1500762091,"dnbi_cbt11","treatment_start_time",3663.1500762091,1
 3675.36324275676,"wia_cbt8","r2b_bypassed",1,1
 3675.36324275676,"wia_cbt8","r2e_treated",1,1
@@ -435,7 +407,6 @@
 3983.40469501051,"dnbi_cbt12","priority",1,1
 3983.40469501051,"dnbi_cbt12","nbi",0,1
 3983.40469501051,"dnbi_cbt12","surgery",1,1
-3983.40469501051,"dnbi_cbt12","r1_treated",2,1
 3983.40469501051,"dnbi_cbt12","treatment_start_time",3983.40469501051,1
 4000.22865139227,"dnbi_cbt12","r2b",1,1
 4000.22865139227,"dnbi_cbt12","transport_start_time",4000.22865139227,1
@@ -445,7 +416,6 @@
 4075.87670424161,"wia_cbt9","priority",1,1
 4075.87670424161,"wia_cbt9","nbi",NA,1
 4075.87670424161,"wia_cbt9","surgery",1,1
-4075.87670424161,"wia_cbt9","r1_treated",2,1
 4075.87670424161,"wia_cbt9","treatment_start_time",4075.87670424161,1
 4078.57638807291,"dnbi_cbt12","r2b_resus",1,1
 4100.33180038327,"dnbi_spt1","r2e_evac",1,1
@@ -455,7 +425,6 @@
 4132.79937721835,"wia_spt4","priority",3,1
 4132.79937721835,"wia_spt4","nbi",NA,1
 4132.79937721835,"wia_spt4","surgery",0,1
-4132.79937721835,"wia_spt4","r1_treated",1,1
 4132.79937721835,"wia_spt4","treatment_start_time",4132.79937721835,1
 4143.34314933016,"wia_cbt9","r2b_treated",2,1
 4186.96554873306,"wia_cbt9","r2b_resus",1,1
@@ -465,7 +434,6 @@
 4290.54017244745,"dnbi_cbt13","priority",1,1
 4290.54017244745,"dnbi_cbt13","nbi",0,1
 4290.54017244745,"dnbi_cbt13","surgery",1,1
-4290.54017244745,"dnbi_cbt13","r1_treated",2,1
 4290.54017244745,"dnbi_cbt13","treatment_start_time",4290.54017244745,1
 4320,"dnbi_spt2","r2e_surgery",1,1
 4344.61437327691,"wia_cbt9","r2b_surgery",1,1
@@ -480,7 +448,6 @@
 4531.34761807718,"wia_cbt10","priority",1,1
 4531.34761807718,"wia_cbt10","nbi",NA,1
 4531.34761807718,"wia_cbt10","surgery",0,1
-4531.34761807718,"wia_cbt10","r1_treated",2,1
 4531.34761807718,"wia_cbt10","treatment_start_time",4531.34761807718,1
 4542.26246347285,"dnbi_cbt12","r2e_treated",1,1
 4542.26246347285,"dnbi_cbt12","r2e_handling",1,1
@@ -492,7 +459,6 @@
 4610.86180526577,"dnbi_cbt14","priority",1,1
 4610.86180526577,"dnbi_cbt14","nbi",1,1
 4610.86180526577,"dnbi_cbt14","surgery",1,1
-4610.86180526577,"dnbi_cbt14","r1_treated",1,1
 4610.86180526577,"dnbi_cbt14","treatment_start_time",4610.86180526577,1
 4617.8796776603,"kia_cbt4","team",1,1
 4617.8796776603,"kia_cbt4","priority",NA,1
@@ -513,7 +479,6 @@
 4854.01141044218,"dnbi_spt3","priority",3,1
 4854.01141044218,"dnbi_spt3","nbi",0,1
 4854.01141044218,"dnbi_spt3","surgery",0,1
-4854.01141044218,"dnbi_spt3","r1_treated",1,1
 4854.01141044218,"dnbi_spt3","treatment_start_time",4854.01141044218,1
 4864.9663928944,"dnbi_cbt14","r2e_treated",1,1
 4864.9663928944,"dnbi_cbt14","r2e_handling",1,1
@@ -522,7 +487,6 @@
 4926.6261773333,"dnbi_cbt15","priority",1,1
 4926.6261773333,"dnbi_cbt15","nbi",0,1
 4926.6261773333,"dnbi_cbt15","surgery",1,1
-4926.6261773333,"dnbi_cbt15","r1_treated",2,1
 4926.6261773333,"dnbi_cbt15","treatment_start_time",4926.6261773333,1
 4946.15828980768,"dnbi_cbt15","r2b",2,1
 4946.15828980768,"dnbi_cbt15","transport_start_time",4946.15828980768,1
@@ -530,7 +494,6 @@
 4952.27398556843,"wia_cbt11","priority",2,1
 4952.27398556843,"wia_cbt11","nbi",NA,1
 4952.27398556843,"wia_cbt11","surgery",1,1
-4952.27398556843,"wia_cbt11","r1_treated",3,1
 4952.27398556843,"wia_cbt11","treatment_start_time",4952.27398556843,1
 4969.32553491041,"wia_cbt11","r2b",1,1
 4969.32553491041,"wia_cbt11","transport_start_time",4969.32553491041,1
@@ -539,7 +502,6 @@
 4994.57657728996,"wia_spt5","priority",1,1
 4994.57657728996,"wia_spt5","nbi",NA,1
 4994.57657728996,"wia_spt5","surgery",1,1
-4994.57657728996,"wia_spt5","r1_treated",1,1
 4994.57657728996,"wia_spt5","treatment_start_time",4994.57657728996,1
 5001.15451687988,"wia_cbt11","r2b_treated",1,1
 5017.22609185486,"wia_spt5","r2b",2,1
@@ -565,13 +527,11 @@
 5250.78027315531,"dnbi_cbt16","priority",3,1
 5250.78027315531,"dnbi_cbt16","nbi",0,1
 5250.78027315531,"dnbi_cbt16","surgery",0,1
-5250.78027315531,"dnbi_cbt16","r1_treated",3,1
 5250.78027315531,"dnbi_cbt16","treatment_start_time",5250.78027315531,1
 5361.61361886514,"wia_cbt12","team",1,1
 5361.61361886514,"wia_cbt12","priority",1,1
 5361.61361886514,"wia_cbt12","nbi",NA,1
 5361.61361886514,"wia_cbt12","surgery",0,1
-5361.61361886514,"wia_cbt12","r1_treated",1,1
 5361.61361886514,"wia_cbt12","treatment_start_time",5361.61361886514,1
 5361.7493167862,"dnbi_cbt12","r2e_surgery",1,1
 5381.59436225697,"wia_cbt12","r2b",1,1
@@ -596,7 +556,6 @@
 5554.70772189088,"dnbi_cbt17","priority",1,1
 5554.70772189088,"dnbi_cbt17","nbi",0,1
 5554.70772189088,"dnbi_cbt17","surgery",1,1
-5554.70772189088,"dnbi_cbt17","r1_treated",1,1
 5554.70772189088,"dnbi_cbt17","treatment_start_time",5554.70772189088,1
 5564.38023297442,"kia_cbt5","team",3,1
 5564.38023297442,"kia_cbt5","priority",NA,1
@@ -618,7 +577,6 @@
 5784.47824175889,"wia_cbt13","priority",1,1
 5784.47824175889,"wia_cbt13","nbi",NA,1
 5784.47824175889,"wia_cbt13","surgery",1,1
-5784.47824175889,"wia_cbt13","r1_treated",2,1
 5784.47824175889,"wia_cbt13","treatment_start_time",5784.47824175889,1
 5812.795865483,"wia_cbt13","r2b",2,1
 5812.795865483,"wia_cbt13","transport_start_time",5812.795865483,1
@@ -627,7 +585,6 @@
 5858.39834333351,"wia_spt6","priority",1,1
 5858.39834333351,"wia_spt6","nbi",NA,1
 5858.39834333351,"wia_spt6","surgery",1,1
-5858.39834333351,"wia_spt6","r1_treated",2,1
 5858.39834333351,"wia_spt6","treatment_start_time",5858.39834333351,1
 5866.77359188305,"wia_cbt13","r2b_resus",1,1
 5884.91226635179,"wia_spt6","r2b",2,1
@@ -636,7 +593,6 @@
 5885.024583427,"dnbi_cbt18","priority",1,1
 5885.024583427,"dnbi_cbt18","nbi",0,1
 5885.024583427,"dnbi_cbt18","surgery",1,1
-5885.024583427,"dnbi_cbt18","r1_treated",1,1
 5885.024583427,"dnbi_cbt18","treatment_start_time",5885.024583427,1
 5899.21069337321,"dnbi_cbt18","r2b",2,1
 5899.21069337321,"dnbi_cbt18","transport_start_time",5899.21069337321,1
@@ -655,7 +611,6 @@
 6074.64893415477,"dnbi_spt4","priority",2,1
 6074.64893415477,"dnbi_spt4","nbi",0,1
 6074.64893415477,"dnbi_spt4","surgery",1,1
-6074.64893415477,"dnbi_spt4","r1_treated",1,1
 6074.64893415477,"dnbi_spt4","treatment_start_time",6074.64893415477,1
 6089.13329909404,"dnbi_spt4","r2b",2,1
 6089.13329909404,"dnbi_spt4","transport_start_time",6089.13329909404,1
@@ -665,13 +620,11 @@
 6183.41649718443,"dnbi_cbt19","priority",3,1
 6183.41649718443,"dnbi_cbt19","nbi",1,1
 6183.41649718443,"dnbi_cbt19","surgery",1,1
-6183.41649718443,"dnbi_cbt19","r1_treated",1,1
 6183.41649718443,"dnbi_cbt19","treatment_start_time",6183.41649718443,1
 6221.25571320206,"wia_cbt14","team",2,1
 6221.25571320206,"wia_cbt14","priority",1,1
 6221.25571320206,"wia_cbt14","nbi",NA,1
 6221.25571320206,"wia_cbt14","surgery",1,1
-6221.25571320206,"wia_cbt14","r1_treated",2,1
 6221.25571320206,"wia_cbt14","treatment_start_time",6221.25571320206,1
 6232.00111147772,"dnbi_spt3","return_day",6232.00111147772,1
 6246.6733579171,"wia_cbt14","r2b",1,1
@@ -691,7 +644,6 @@
 6490.65127150668,"dnbi_cbt20","priority",1,1
 6490.65127150668,"dnbi_cbt20","nbi",1,1
 6490.65127150668,"dnbi_cbt20","surgery",1,1
-6490.65127150668,"dnbi_cbt20","r1_treated",3,1
 6490.65127150668,"dnbi_cbt20","treatment_start_time",6490.65127150668,1
 6493.89484774946,"wia_cbt14","r2b_surgery",1,1
 6493.89484774946,"wia_cbt14","r2b_to_r2e",1,1
@@ -710,7 +662,6 @@
 6638.61613149196,"wia_cbt15","priority",2,1
 6638.61613149196,"wia_cbt15","nbi",NA,1
 6638.61613149196,"wia_cbt15","surgery",1,1
-6638.61613149196,"wia_cbt15","r1_treated",1,1
 6638.61613149196,"wia_cbt15","treatment_start_time",6638.61613149196,1
 6642.3486812042,"wia_cbt13","r2e_treated",1,1
 6642.3486812042,"wia_cbt13","r2e_handling",1,1
@@ -718,7 +669,6 @@
 6649.79847948183,"wia_spt7","priority",3,1
 6649.79847948183,"wia_spt7","nbi",NA,1
 6649.79847948183,"wia_spt7","surgery",0,1
-6649.79847948183,"wia_spt7","r1_treated",2,1
 6649.79847948183,"wia_spt7","treatment_start_time",6649.79847948183,1
 6657.05092249232,"wia_cbt15","r2b",1,1
 6657.05092249232,"wia_cbt15","transport_start_time",6657.05092249232,1
@@ -734,7 +684,6 @@
 6791.47925471491,"dnbi_cbt21","priority",2,1
 6791.47925471491,"dnbi_cbt21","nbi",0,1
 6791.47925471491,"dnbi_cbt21","surgery",1,1
-6791.47925471491,"dnbi_cbt21","r1_treated",2,1
 6791.47925471491,"dnbi_cbt21","treatment_start_time",6791.47925471491,1
 6813.45906541401,"dnbi_cbt21","r2b",1,1
 6813.45906541401,"dnbi_cbt21","transport_start_time",6813.45906541401,1
@@ -754,7 +703,6 @@
 7026.72707587108,"wia_cbt16","priority",2,1
 7026.72707587108,"wia_cbt16","nbi",NA,1
 7026.72707587108,"wia_cbt16","surgery",0,1
-7026.72707587108,"wia_cbt16","r1_treated",1,1
 7026.72707587108,"wia_cbt16","treatment_start_time",7026.72707587108,1
 7037.53978404315,"dnbi_spt4","r2e_treated",1,1
 7037.53978404315,"dnbi_spt4","r2e_handling",1,1
@@ -765,7 +713,6 @@
 7102.25188376755,"dnbi_cbt22","priority",1,1
 7102.25188376755,"dnbi_cbt22","nbi",1,1
 7102.25188376755,"dnbi_cbt22","surgery",1,1
-7102.25188376755,"dnbi_cbt22","r1_treated",3,1
 7102.25188376755,"dnbi_cbt22","treatment_start_time",7102.25188376755,1
 7104.00344744205,"dnbi_cbt18","r2e_surgery",1,1
 7125.18091151443,"dnbi_cbt22","r2b",2,1
@@ -783,7 +730,6 @@
 7266.71435632627,"dnbi_spt5","priority",1,1
 7266.71435632627,"dnbi_spt5","nbi",0,1
 7266.71435632627,"dnbi_spt5","surgery",1,1
-7266.71435632627,"dnbi_spt5","r1_treated",1,1
 7266.71435632627,"dnbi_spt5","treatment_start_time",7266.71435632627,1
 7271.09675896589,"kia_spt3","transport_start_time",7271.09675896589,1
 7289.80660867692,"dnbi_spt5","r2b",-1,1
@@ -815,7 +761,6 @@
 7420.04365596361,"dnbi_cbt23","priority",1,1
 7420.04365596361,"dnbi_cbt23","nbi",0,1
 7420.04365596361,"dnbi_cbt23","surgery",1,1
-7420.04365596361,"dnbi_cbt23","r1_treated",2,1
 7420.04365596361,"dnbi_cbt23","treatment_start_time",7420.04365596361,1
 7432.46865162911,"wia_cbt14","r2e_evac",1,1
 7440.20377954228,"dnbi_cbt23","r2b",2,1
@@ -825,7 +770,6 @@
 7470.01683836826,"wia_cbt17","priority",1,1
 7470.01683836826,"wia_cbt17","nbi",NA,1
 7470.01683836826,"wia_cbt17","surgery",1,1
-7470.01683836826,"wia_cbt17","r1_treated",2,1
 7470.01683836826,"wia_cbt17","treatment_start_time",7470.01683836826,1
 7486.39815909653,"wia_cbt17","r2b",2,1
 7486.39815909653,"wia_cbt17","transport_start_time",7486.39815909653,1
@@ -833,7 +777,6 @@
 7487.51981059951,"wia_spt8","priority",3,1
 7487.51981059951,"wia_spt8","nbi",NA,1
 7487.51981059951,"wia_spt8","surgery",1,1
-7487.51981059951,"wia_spt8","r1_treated",1,1
 7487.51981059951,"wia_spt8","treatment_start_time",7487.51981059951,1
 7511.14820067692,"dnbi_cbt23","r2b_resus",1,1
 7516.85954504125,"wia_cbt15","r2b_surgery",1,1
@@ -849,7 +792,6 @@
 7717.63857515575,"dnbi_cbt24","priority",2,1
 7717.63857515575,"dnbi_cbt24","nbi",0,1
 7717.63857515575,"dnbi_cbt24","surgery",1,1
-7717.63857515575,"dnbi_cbt24","r1_treated",3,1
 7717.63857515575,"dnbi_cbt24","treatment_start_time",7717.63857515575,1
 7720.50484877893,"dnbi_cbt21","r2b_surgery",1,1
 7720.50484877893,"dnbi_cbt21","r2b_to_r2e",1,1
@@ -865,7 +807,6 @@
 7932.61811285233,"wia_cbt18","priority",1,1
 7932.61811285233,"wia_cbt18","nbi",NA,1
 7932.61811285233,"wia_cbt18","surgery",1,1
-7932.61811285233,"wia_cbt18","r1_treated",1,1
 7932.61811285233,"wia_cbt18","treatment_start_time",7932.61811285233,1
 7945.4034234271,"wia_cbt18","r2b",1,1
 7945.4034234271,"wia_cbt18","transport_start_time",7945.4034234271,1
@@ -875,7 +816,6 @@
 8035.25316364039,"dnbi_cbt25","priority",2,1
 8035.25316364039,"dnbi_cbt25","nbi",0,1
 8035.25316364039,"dnbi_cbt25","surgery",1,1
-8035.25316364039,"dnbi_cbt25","r1_treated",1,1
 8035.25316364039,"dnbi_cbt25","treatment_start_time",8035.25316364039,1
 8053.21447595961,"dnbi_cbt25","r2b",1,1
 8053.21447595961,"dnbi_cbt25","transport_start_time",8053.21447595961,1
@@ -907,19 +847,16 @@
 8323.90050899982,"wia_spt9","priority",1,1
 8323.90050899982,"wia_spt9","nbi",NA,1
 8323.90050899982,"wia_spt9","surgery",1,1
-8323.90050899982,"wia_spt9","r1_treated",3,1
 8323.90050899982,"wia_spt9","treatment_start_time",8323.90050899982,1
 8330.09084768523,"dnbi_cbt26","team",2,1
 8330.09084768523,"dnbi_cbt26","priority",2,1
 8330.09084768523,"dnbi_cbt26","nbi",0,1
 8330.09084768523,"dnbi_cbt26","surgery",1,1
-8330.09084768523,"dnbi_cbt26","r1_treated",2,1
 8330.09084768523,"dnbi_cbt26","treatment_start_time",8330.09084768523,1
 8336.10735811852,"wia_cbt19","team",1,1
 8336.10735811852,"wia_cbt19","priority",2,1
 8336.10735811852,"wia_cbt19","nbi",NA,1
 8336.10735811852,"wia_cbt19","surgery",1,1
-8336.10735811852,"wia_cbt19","r1_treated",1,1
 8336.10735811852,"wia_cbt19","treatment_start_time",8336.10735811852,1
 8342.56489273463,"wia_spt9","r2b",1,1
 8342.56489273463,"wia_spt9","transport_start_time",8342.56489273463,1
@@ -939,7 +876,6 @@
 8507.05139739183,"dnbi_spt6","priority",1,1
 8507.05139739183,"dnbi_spt6","nbi",0,1
 8507.05139739183,"dnbi_spt6","surgery",1,1
-8507.05139739183,"dnbi_spt6","r1_treated",1,1
 8507.05139739183,"dnbi_spt6","treatment_start_time",8507.05139739183,1
 8533.00459603116,"dnbi_spt6","r2b",1,1
 8533.00459603116,"dnbi_spt6","transport_start_time",8533.00459603116,1
@@ -955,7 +891,6 @@
 8641.35985763441,"dnbi_cbt27","priority",1,1
 8641.35985763441,"dnbi_cbt27","nbi",0,1
 8641.35985763441,"dnbi_cbt27","surgery",1,1
-8641.35985763441,"dnbi_cbt27","r1_treated",1,1
 8641.35985763441,"dnbi_cbt27","treatment_start_time",8641.35985763441,1
 8654.4611405544,"dnbi_cbt27","r2b",2,1
 8654.4611405544,"dnbi_cbt27","transport_start_time",8654.4611405544,1
@@ -968,7 +903,6 @@
 8767.51773713762,"wia_cbt20","priority",2,1
 8767.51773713762,"wia_cbt20","nbi",NA,1
 8767.51773713762,"wia_cbt20","surgery",1,1
-8767.51773713762,"wia_cbt20","r1_treated",3,1
 8767.51773713762,"wia_cbt20","treatment_start_time",8767.51773713762,1
 8781.43186107561,"wia_cbt20","r2b",2,1
 8781.43186107561,"wia_cbt20","transport_start_time",8781.43186107561,1
@@ -986,7 +920,6 @@
 8956.14137747325,"dnbi_cbt28","priority",1,1
 8956.14137747325,"dnbi_cbt28","nbi",0,1
 8956.14137747325,"dnbi_cbt28","surgery",1,1
-8956.14137747325,"dnbi_cbt28","r1_treated",2,1
 8956.14137747325,"dnbi_cbt28","treatment_start_time",8956.14137747325,1
 8974.17614896904,"dnbi_cbt28","r2b",2,1
 8974.17614896904,"dnbi_cbt28","transport_start_time",8974.17614896904,1
@@ -1015,7 +948,6 @@
 9136.06856579217,"wia_spt10","priority",1,1
 9136.06856579217,"wia_spt10","nbi",NA,1
 9136.06856579217,"wia_spt10","surgery",1,1
-9136.06856579217,"wia_spt10","r1_treated",1,1
 9136.06856579217,"wia_spt10","treatment_start_time",9136.06856579217,1
 9144.80644708084,"wia_spt9","r2b_surgery",1,1
 9144.80644708084,"wia_spt9","r2b_to_r2e",1,1
@@ -1029,7 +961,6 @@
 9199.12907390762,"wia_cbt21","priority",1,1
 9199.12907390762,"wia_cbt21","nbi",NA,1
 9199.12907390762,"wia_cbt21","surgery",1,1
-9199.12907390762,"wia_cbt21","r1_treated",2,1
 9199.12907390762,"wia_cbt21","treatment_start_time",9199.12907390762,1
 9216.51677645304,"wia_cbt21","r2b",2,1
 9216.51677645304,"wia_cbt21","transport_start_time",9216.51677645304,1
@@ -1039,7 +970,6 @@
 9274.18077725451,"dnbi_cbt29","priority",1,1
 9274.18077725451,"dnbi_cbt29","nbi",0,1
 9274.18077725451,"dnbi_cbt29","surgery",1,1
-9274.18077725451,"dnbi_cbt29","r1_treated",2,1
 9274.18077725451,"dnbi_cbt29","treatment_start_time",9274.18077725451,1
 9289.22459033385,"wia_cbt21","r2b_resus",1,1
 9328.26134420365,"dnbi_spt6","r2b_surgery",1,1
@@ -1057,7 +987,6 @@
 9571.66208133474,"dnbi_cbt30","priority",3,1
 9571.66208133474,"dnbi_cbt30","nbi",1,1
 9571.66208133474,"dnbi_cbt30","surgery",0,1
-9571.66208133474,"dnbi_cbt30","r1_treated",2,1
 9571.66208133474,"dnbi_cbt30","treatment_start_time",9571.66208133474,1
 9602.05407576501,"dnbi_cbt27","r2e_treated",1,1
 9602.05407576501,"dnbi_cbt27","r2e_handling",1,1
@@ -1065,7 +994,6 @@
 9612.75326279202,"wia_cbt22","priority",1,1
 9612.75326279202,"wia_cbt22","nbi",NA,1
 9612.75326279202,"wia_cbt22","surgery",1,1
-9612.75326279202,"wia_cbt22","r1_treated",1,1
 9612.75326279202,"wia_cbt22","treatment_start_time",9612.75326279202,1
 9616.94248803477,"wia_cbt15","r2e_surgery",1,1
 9636.44530687717,"wia_cbt22","r2b",1,1
@@ -1076,7 +1004,6 @@
 9731.74869075208,"dnbi_spt7","priority",1,1
 9731.74869075208,"dnbi_spt7","nbi",0,1
 9731.74869075208,"dnbi_spt7","surgery",1,1
-9731.74869075208,"dnbi_spt7","r1_treated",3,1
 9731.74869075208,"dnbi_spt7","treatment_start_time",9731.74869075208,1
 9746.45498184711,"dnbi_spt7","r2b",1,1
 9746.45498184711,"dnbi_spt7","transport_start_time",9746.45498184711,1
@@ -1093,7 +1020,6 @@
 9887.05533430632,"dnbi_cbt31","priority",1,1
 9887.05533430632,"dnbi_cbt31","nbi",0,1
 9887.05533430632,"dnbi_cbt31","surgery",1,1
-9887.05533430632,"dnbi_cbt31","r1_treated",3,1
 9887.05533430632,"dnbi_cbt31","treatment_start_time",9887.05533430632,1
 9915.98627477204,"dnbi_cbt28","r2b_surgery",1,1
 9915.98627477204,"dnbi_cbt28","r2b_to_r2e",1,1
@@ -1110,7 +1036,6 @@
 9959.86988082621,"wia_spt11","priority",2,1
 9959.86988082621,"wia_spt11","nbi",NA,1
 9959.86988082621,"wia_spt11","surgery",0,1
-9959.86988082621,"wia_spt11","r1_treated",1,1
 9959.86988082621,"wia_spt11","treatment_start_time",9959.86988082621,1
 9964.34745366784,"kia_cbt10","transport_start_time",9964.34745366784,1
 9979.80824321346,"wia_spt11","r2b",1,1
@@ -1122,7 +1047,6 @@
 10048.868268695,"wia_cbt23","priority",1,1
 10048.868268695,"wia_cbt23","nbi",NA,1
 10048.868268695,"wia_cbt23","surgery",1,1
-10048.868268695,"wia_cbt23","r1_treated",3,1
 10048.868268695,"wia_cbt23","treatment_start_time",10048.868268695,1
 10076.4987803884,"wia_cbt23","r2b",1,1
 10076.4987803884,"wia_cbt23","transport_start_time",10076.4987803884,1
@@ -1139,7 +1063,6 @@
 10201.4995417513,"dnbi_cbt32","priority",3,1
 10201.4995417513,"dnbi_cbt32","nbi",0,1
 10201.4995417513,"dnbi_cbt32","surgery",0,1
-10201.4995417513,"dnbi_cbt32","r1_treated",3,1
 10201.4995417513,"dnbi_cbt32","treatment_start_time",10201.4995417513,1
 10253.0756953707,"wia_cbt22","r2b_surgery",1,1
 10253.0756953707,"wia_cbt22","r2b_to_r2e",1,1
@@ -1155,7 +1078,6 @@
 10464.2191470305,"wia_cbt24","priority",1,1
 10464.2191470305,"wia_cbt24","nbi",NA,1
 10464.2191470305,"wia_cbt24","surgery",1,1
-10464.2191470305,"wia_cbt24","r1_treated",2,1
 10464.2191470305,"wia_cbt24","treatment_start_time",10464.2191470305,1
 10468.8962439894,"dnbi_spt7","r2e_treated",1,1
 10468.8962439894,"dnbi_spt7","r2e_handling",1,1
@@ -1163,7 +1085,6 @@
 10507.9549621891,"dnbi_cbt33","priority",3,1
 10507.9549621891,"dnbi_cbt33","nbi",0,1
 10507.9549621891,"dnbi_cbt33","surgery",0,1
-10507.9549621891,"dnbi_cbt33","r1_treated",3,1
 10507.9549621891,"dnbi_cbt33","treatment_start_time",10507.9549621891,1
 10634.120301787,"wia_cbt23","r2b_surgery",1,1
 10634.120301787,"wia_cbt23","r2b_to_r2e",1,1
@@ -1175,13 +1096,11 @@
 10811.1669437285,"wia_spt12","priority",1,1
 10811.1669437285,"wia_spt12","nbi",NA,1
 10811.1669437285,"wia_spt12","surgery",1,1
-10811.1669437285,"wia_spt12","r1_treated",1,1
 10811.1669437285,"wia_spt12","treatment_start_time",10811.1669437285,1
 10812.9681958084,"dnbi_cbt34","team",3,1
 10812.9681958084,"dnbi_cbt34","priority",1,1
 10812.9681958084,"dnbi_cbt34","nbi",0,1
 10812.9681958084,"dnbi_cbt34","surgery",1,1
-10812.9681958084,"dnbi_cbt34","r1_treated",3,1
 10812.9681958084,"dnbi_cbt34","treatment_start_time",10812.9681958084,1
 10834.1276109677,"wia_spt12","r2b",1,1
 10834.1276109677,"wia_spt12","transport_start_time",10834.1276109677,1
@@ -1196,7 +1115,6 @@
 10877.959444521,"wia_cbt25","priority",1,1
 10877.959444521,"wia_cbt25","nbi",NA,1
 10877.959444521,"wia_cbt25","surgery",1,1
-10877.959444521,"wia_cbt25","r1_treated",3,1
 10877.959444521,"wia_cbt25","treatment_start_time",10877.959444521,1
 10888.0107881833,"kia_cbt11","transport_start_time",10888.0107881833,1
 10899.9167446335,"wia_cbt25","r2b",1,1
@@ -1215,7 +1133,6 @@
 10941.083723278,"dnbi_spt8","priority",1,1
 10941.083723278,"dnbi_spt8","nbi",0,1
 10941.083723278,"dnbi_spt8","surgery",1,1
-10941.083723278,"dnbi_spt8","r1_treated",1,1
 10941.083723278,"dnbi_spt8","treatment_start_time",10941.083723278,1
 10956.0793447874,"dnbi_spt8","r2b",1,1
 10956.0793447874,"dnbi_spt8","transport_start_time",10956.0793447874,1
@@ -1232,7 +1149,6 @@
 11093.002213808,"dnbi_cbt35","priority",2,1
 11093.002213808,"dnbi_cbt35","nbi",0,1
 11093.002213808,"dnbi_cbt35","surgery",1,1
-11093.002213808,"dnbi_cbt35","r1_treated",2,1
 11093.002213808,"dnbi_cbt35","treatment_start_time",11093.002213808,1
 11097.3352802019,"wia_cbt15","r2e_evac",1,1
 11184.5744992681,"dnbi_spt6","r2e_surgery",1,1
@@ -1241,7 +1157,6 @@
 11306.2357417964,"wia_cbt26","priority",1,1
 11306.2357417964,"wia_cbt26","nbi",NA,1
 11306.2357417964,"wia_cbt26","surgery",1,1
-11306.2357417964,"wia_cbt26","r1_treated",3,1
 11306.2357417964,"wia_cbt26","treatment_start_time",11306.2357417964,1
 11322.8428250778,"wia_cbt26","dow",1,1
 11322.8428250778,"wia_cbt26","r1_treated",3,1
@@ -1253,7 +1168,6 @@
 11393.5134805024,"dnbi_cbt36","priority",3,1
 11393.5134805024,"dnbi_cbt36","nbi",0,1
 11393.5134805024,"dnbi_cbt36","surgery",0,1
-11393.5134805024,"dnbi_cbt36","r1_treated",3,1
 11393.5134805024,"dnbi_cbt36","treatment_start_time",11393.5134805024,1
 11425.2006688825,"dnbi_cbt27","r2e_evac",1,1
 11528.4275951218,"dnbi_cbt32","return_day",11528.4275951218,1
@@ -1262,7 +1176,6 @@
 11619.5152534379,"wia_spt13","priority",1,1
 11619.5152534379,"wia_spt13","nbi",NA,1
 11619.5152534379,"wia_spt13","surgery",1,1
-11619.5152534379,"wia_spt13","r1_treated",3,1
 11619.5152534379,"wia_spt13","treatment_start_time",11619.5152534379,1
 11640.0180430172,"wia_spt13","r2b",2,1
 11640.0180430172,"wia_spt13","transport_start_time",11640.0180430172,1
@@ -1276,14 +1189,12 @@
 11713.9681623122,"dnbi_cbt37","priority",1,1
 11713.9681623122,"dnbi_cbt37","nbi",0,1
 11713.9681623122,"dnbi_cbt37","surgery",0,1
-11713.9681623122,"dnbi_cbt37","r1_treated",2,1
 11713.9681623122,"dnbi_cbt37","treatment_start_time",11713.9681623122,1
 11722.8859312025,"dnbi_cbt9","return_day",11722.8859312025,1
 11731.0685703706,"wia_cbt27","team",3,1
 11731.0685703706,"wia_cbt27","priority",1,1
 11731.0685703706,"wia_cbt27","nbi",NA,1
 11731.0685703706,"wia_cbt27","surgery",1,1
-11731.0685703706,"wia_cbt27","r1_treated",3,1
 11731.0685703706,"wia_cbt27","treatment_start_time",11731.0685703706,1
 11735.2357547677,"dnbi_cbt37","r2b",2,1
 11735.2357547677,"dnbi_cbt37","transport_start_time",11735.2357547677,1
@@ -1314,7 +1225,6 @@
 12015.8451789026,"dnbi_cbt38","priority",2,1
 12015.8451789026,"dnbi_cbt38","nbi",0,1
 12015.8451789026,"dnbi_cbt38","surgery",1,1
-12015.8451789026,"dnbi_cbt38","r1_treated",1,1
 12015.8451789026,"dnbi_cbt38","treatment_start_time",12015.8451789026,1
 12018.5375163181,"dnbi_cbt31","return_day",12018.5375163181,1
 12031.4547153444,"dnbi_spt8","r2e_treated",1,1
@@ -1324,13 +1234,11 @@
 12157.3295015546,"wia_cbt28","priority",1,1
 12157.3295015546,"wia_cbt28","nbi",NA,1
 12157.3295015546,"wia_cbt28","surgery",1,1
-12157.3295015546,"wia_cbt28","r1_treated",3,1
 12157.3295015546,"wia_cbt28","treatment_start_time",12157.3295015546,1
 12171.0142454533,"dnbi_spt9","team",1,1
 12171.0142454533,"dnbi_spt9","priority",1,1
 12171.0142454533,"dnbi_spt9","nbi",0,1
 12171.0142454533,"dnbi_spt9","surgery",0,1
-12171.0142454533,"dnbi_spt9","r1_treated",1,1
 12171.0142454533,"dnbi_spt9","treatment_start_time",12171.0142454533,1
 12173.636602421,"wia_cbt28","r2b",1,1
 12173.636602421,"wia_cbt28","transport_start_time",12173.636602421,1
@@ -1343,7 +1251,6 @@
 12319.8571206671,"dnbi_cbt39","priority",1,1
 12319.8571206671,"dnbi_cbt39","nbi",0,1
 12319.8571206671,"dnbi_cbt39","surgery",1,1
-12319.8571206671,"dnbi_cbt39","r1_treated",2,1
 12319.8571206671,"dnbi_cbt39","treatment_start_time",12319.8571206671,1
 12338.1997099833,"dnbi_cbt39","r2b",1,1
 12338.1997099833,"dnbi_cbt39","transport_start_time",12338.1997099833,1
@@ -1360,7 +1267,6 @@
 12495.9176833292,"wia_spt14","priority",1,1
 12495.9176833292,"wia_spt14","nbi",NA,1
 12495.9176833292,"wia_spt14","surgery",1,1
-12495.9176833292,"wia_spt14","r1_treated",3,1
 12495.9176833292,"wia_spt14","treatment_start_time",12495.9176833292,1
 12524.3606524927,"wia_spt14","r2b",1,1
 12524.3606524927,"wia_spt14","transport_start_time",12524.3606524927,1
@@ -1368,7 +1274,6 @@
 12535.3054600719,"wia_cbt29","priority",1,1
 12535.3054600719,"wia_cbt29","nbi",NA,1
 12535.3054600719,"wia_cbt29","surgery",1,1
-12535.3054600719,"wia_cbt29","r1_treated",1,1
 12535.3054600719,"wia_cbt29","treatment_start_time",12535.3054600719,1
 12542.1550073217,"dnbi_cbt20","r2e_evac",1,1
 12549.175907245,"wia_cbt27","r2b_surgery",1,1
@@ -1384,7 +1289,6 @@
 12634.0375574597,"dnbi_cbt40","priority",1,1
 12634.0375574597,"dnbi_cbt40","nbi",0,1
 12634.0375574597,"dnbi_cbt40","surgery",1,1
-12634.0375574597,"dnbi_cbt40","r1_treated",3,1
 12634.0375574597,"dnbi_cbt40","treatment_start_time",12634.0375574597,1
 12652.5035451662,"kia_cbt13","team",2,1
 12652.5035451662,"kia_cbt13","priority",NA,1
@@ -1413,13 +1317,11 @@
 12934.1291518565,"dnbi_cbt41","priority",3,1
 12934.1291518565,"dnbi_cbt41","nbi",0,1
 12934.1291518565,"dnbi_cbt41","surgery",0,1
-12934.1291518565,"dnbi_cbt41","r1_treated",1,1
 12934.1291518565,"dnbi_cbt41","treatment_start_time",12934.1291518565,1
 12944.0729662043,"wia_cbt30","team",2,1
 12944.0729662043,"wia_cbt30","priority",1,1
 12944.0729662043,"wia_cbt30","nbi",NA,1
 12944.0729662043,"wia_cbt30","surgery",1,1
-12944.0729662043,"wia_cbt30","r1_treated",2,1
 12944.0729662043,"wia_cbt30","treatment_start_time",12944.0729662043,1
 12963.0078956268,"wia_cbt30","r2b",2,1
 12963.0078956268,"wia_cbt30","transport_start_time",12963.0078956268,1
@@ -1434,7 +1336,6 @@
 13243.0690314034,"dnbi_cbt42","priority",1,1
 13243.0690314034,"dnbi_cbt42","nbi",0,1
 13243.0690314034,"dnbi_cbt42","surgery",1,1
-13243.0690314034,"dnbi_cbt42","r1_treated",2,1
 13243.0690314034,"dnbi_cbt42","treatment_start_time",13243.0690314034,1
 13256.2958376117,"dnbi_cbt42","r2b",2,1
 13256.2958376117,"dnbi_cbt42","transport_start_time",13256.2958376117,1
@@ -1450,19 +1351,16 @@
 13362.3770414139,"wia_spt15","priority",3,1
 13362.3770414139,"wia_spt15","nbi",NA,1
 13362.3770414139,"wia_spt15","surgery",1,1
-13362.3770414139,"wia_spt15","r1_treated",2,1
 13362.3770414139,"wia_spt15","treatment_start_time",13362.3770414139,1
 13380.8895517169,"wia_cbt31","team",3,1
 13380.8895517169,"wia_cbt31","priority",2,1
 13380.8895517169,"wia_cbt31","nbi",NA,1
 13380.8895517169,"wia_cbt31","surgery",1,1
-13380.8895517169,"wia_cbt31","r1_treated",3,1
 13380.8895517169,"wia_cbt31","treatment_start_time",13380.8895517169,1
 13400.7102407452,"dnbi_spt10","team",3,1
 13400.7102407452,"dnbi_spt10","priority",1,1
 13400.7102407452,"dnbi_spt10","nbi",1,1
 13400.7102407452,"dnbi_spt10","surgery",1,1
-13400.7102407452,"dnbi_spt10","r1_treated",3,1
 13400.7102407452,"dnbi_spt10","treatment_start_time",13400.7102407452,1
 13401.9855925945,"wia_cbt31","r2b",2,1
 13401.9855925945,"wia_cbt31","transport_start_time",13401.9855925945,1
@@ -1488,7 +1386,6 @@
 13534.7849555339,"dnbi_cbt43","priority",1,1
 13534.7849555339,"dnbi_cbt43","nbi",0,1
 13534.7849555339,"dnbi_cbt43","surgery",1,1
-13534.7849555339,"dnbi_cbt43","r1_treated",1,1
 13534.7849555339,"dnbi_cbt43","treatment_start_time",13534.7849555339,1
 13560.5512818708,"dnbi_cbt43","dow",1,1
 13560.5512818708,"dnbi_cbt43","r1_treated",1,1
@@ -1505,7 +1402,6 @@
 13767.2445204454,"wia_cbt32","priority",1,1
 13767.2445204454,"wia_cbt32","nbi",NA,1
 13767.2445204454,"wia_cbt32","surgery",1,1
-13767.2445204454,"wia_cbt32","r1_treated",1,1
 13767.2445204454,"wia_cbt32","treatment_start_time",13767.2445204454,1
 13784.1949406297,"wia_cbt32","r2b",1,1
 13784.1949406297,"wia_cbt32","transport_start_time",13784.1949406297,1
@@ -1520,7 +1416,6 @@
 13844.2368781005,"dnbi_cbt44","priority",1,1
 13844.2368781005,"dnbi_cbt44","nbi",0,1
 13844.2368781005,"dnbi_cbt44","surgery",1,1
-13844.2368781005,"dnbi_cbt44","r1_treated",1,1
 13844.2368781005,"dnbi_cbt44","treatment_start_time",13844.2368781005,1
 13862.814950214,"wia_cbt32","r2b_resus",1,1
 13870.04272422,"dnbi_cbt44","r2b",1,1
@@ -1540,14 +1435,12 @@
 14156.4634135328,"dnbi_cbt45","priority",3,1
 14156.4634135328,"dnbi_cbt45","nbi",0,1
 14156.4634135328,"dnbi_cbt45","surgery",0,1
-14156.4634135328,"dnbi_cbt45","r1_treated",3,1
 14156.4634135328,"dnbi_cbt45","treatment_start_time",14156.4634135328,1
 14169.8333945949,"wia_cbt25","r2e_evac",1,1
 14197.838500849,"wia_cbt33","team",1,1
 14197.838500849,"wia_cbt33","priority",1,1
 14197.838500849,"wia_cbt33","nbi",NA,1
 14197.838500849,"wia_cbt33","surgery",1,1
-14197.838500849,"wia_cbt33","r1_treated",1,1
 14197.838500849,"wia_cbt33","treatment_start_time",14197.838500849,1
 14203.7258474382,"wia_spt13","r2e_surgery",1,1
 14211.4252763686,"wia_cbt31","r2b_surgery",1,1
@@ -1557,7 +1450,6 @@
 14213.0465438385,"wia_spt16","priority",1,1
 14213.0465438385,"wia_spt16","nbi",NA,1
 14213.0465438385,"wia_spt16","surgery",1,1
-14213.0465438385,"wia_spt16","r1_treated",2,1
 14213.0465438385,"wia_spt16","treatment_start_time",14213.0465438385,1
 14213.1672722087,"wia_cbt33","r2b",1,1
 14213.1672722087,"wia_cbt33","transport_start_time",14213.1672722087,1
@@ -1596,7 +1488,6 @@
 14468.2770997707,"dnbi_cbt46","priority",2,1
 14468.2770997707,"dnbi_cbt46","nbi",0,1
 14468.2770997707,"dnbi_cbt46","surgery",1,1
-14468.2770997707,"dnbi_cbt46","r1_treated",2,1
 14468.2770997707,"dnbi_cbt46","treatment_start_time",14468.2770997707,1
 14481.490834178,"dnbi_cbt46","r2b",2,1
 14481.490834178,"dnbi_cbt46","transport_start_time",14481.490834178,1
@@ -1612,13 +1503,11 @@
 14621.79579584,"dnbi_spt11","priority",1,1
 14621.79579584,"dnbi_spt11","nbi",0,1
 14621.79579584,"dnbi_spt11","surgery",1,1
-14621.79579584,"dnbi_spt11","r1_treated",2,1
 14621.79579584,"dnbi_spt11","treatment_start_time",14621.79579584,1
 14625.4303582069,"wia_cbt34","team",3,1
 14625.4303582069,"wia_cbt34","priority",1,1
 14625.4303582069,"wia_cbt34","nbi",NA,1
 14625.4303582069,"wia_cbt34","surgery",1,1
-14625.4303582069,"wia_cbt34","r1_treated",3,1
 14625.4303582069,"wia_cbt34","treatment_start_time",14625.4303582069,1
 14643.3706001092,"wia_cbt34","r2b",2,1
 14643.3706001092,"wia_cbt34","transport_start_time",14643.3706001092,1
@@ -1637,7 +1526,6 @@
 14768.4403658321,"dnbi_cbt47","priority",1,1
 14768.4403658321,"dnbi_cbt47","nbi",1,1
 14768.4403658321,"dnbi_cbt47","surgery",1,1
-14768.4403658321,"dnbi_cbt47","r1_treated",3,1
 14768.4403658321,"dnbi_cbt47","treatment_start_time",14768.4403658321,1
 14772.0966441858,"dnbi_spt11","r2b_resus",1,1
 14791.6930487111,"wia_cbt33","r2b_surgery",1,1
@@ -1658,7 +1546,6 @@
 15012.7899144783,"wia_cbt35","priority",1,1
 15012.7899144783,"wia_cbt35","nbi",NA,1
 15012.7899144783,"wia_cbt35","surgery",1,1
-15012.7899144783,"wia_cbt35","r1_treated",3,1
 15012.7899144783,"wia_cbt35","treatment_start_time",15012.7899144783,1
 15035.8077423771,"wia_cbt35","r2b",1,1
 15035.8077423771,"wia_cbt35","transport_start_time",15035.8077423771,1
@@ -1666,14 +1553,12 @@
 15055.5961008822,"wia_spt17","priority",1,1
 15055.5961008822,"wia_spt17","nbi",NA,1
 15055.5961008822,"wia_spt17","surgery",1,1
-15055.5961008822,"wia_spt17","r1_treated",3,1
 15055.5961008822,"wia_spt17","treatment_start_time",15055.5961008822,1
 15069.8279335012,"wia_cbt35","r2b_treated",1,1
 15075.2596473424,"dnbi_cbt48","team",2,1
 15075.2596473424,"dnbi_cbt48","priority",1,1
 15075.2596473424,"dnbi_cbt48","nbi",0,1
 15075.2596473424,"dnbi_cbt48","surgery",1,1
-15075.2596473424,"dnbi_cbt48","r1_treated",2,1
 15075.2596473424,"dnbi_cbt48","treatment_start_time",15075.2596473424,1
 15076.242804049,"wia_spt17","r2b",1,1
 15076.242804049,"wia_spt17","transport_start_time",15076.242804049,1
@@ -1708,13 +1593,11 @@
 15411.0699661428,"dnbi_cbt49","priority",3,1
 15411.0699661428,"dnbi_cbt49","nbi",0,1
 15411.0699661428,"dnbi_cbt49","surgery",0,1
-15411.0699661428,"dnbi_cbt49","r1_treated",1,1
 15411.0699661428,"dnbi_cbt49","treatment_start_time",15411.0699661428,1
 15415.8610532712,"wia_cbt36","team",1,1
 15415.8610532712,"wia_cbt36","priority",1,1
 15415.8610532712,"wia_cbt36","nbi",NA,1
 15415.8610532712,"wia_cbt36","surgery",1,1
-15415.8610532712,"wia_cbt36","r1_treated",1,1
 15415.8610532712,"wia_cbt36","treatment_start_time",15415.8610532712,1
 15440.3164724961,"wia_cbt36","dow",1,1
 15440.3164724961,"wia_cbt36","r1_treated",1,1
@@ -1738,14 +1621,12 @@
 15729.4551951471,"dnbi_cbt50","priority",3,1
 15729.4551951471,"dnbi_cbt50","nbi",0,1
 15729.4551951471,"dnbi_cbt50","surgery",0,1
-15729.4551951471,"dnbi_cbt50","r1_treated",2,1
 15729.4551951471,"dnbi_cbt50","treatment_start_time",15729.4551951471,1
 15752.6353989126,"wia_spt14","r2e_evac",1,1
 15810.0043332253,"wia_cbt37","team",1,1
 15810.0043332253,"wia_cbt37","priority",1,1
 15810.0043332253,"wia_cbt37","nbi",NA,1
 15810.0043332253,"wia_cbt37","surgery",1,1
-15810.0043332253,"wia_cbt37","r1_treated",1,1
 15810.0043332253,"wia_cbt37","treatment_start_time",15810.0043332253,1
 15834.839876426,"wia_cbt37","r2b",2,1
 15834.839876426,"wia_cbt37","transport_start_time",15834.839876426,1
@@ -1755,13 +1636,11 @@
 15871.7314054533,"dnbi_spt12","priority",2,1
 15871.7314054533,"dnbi_spt12","nbi",0,1
 15871.7314054533,"dnbi_spt12","surgery",1,1
-15871.7314054533,"dnbi_spt12","r1_treated",1,1
 15871.7314054533,"dnbi_spt12","treatment_start_time",15871.7314054533,1
 15898.9691724323,"wia_spt18","team",3,1
 15898.9691724323,"wia_spt18","priority",1,1
 15898.9691724323,"wia_spt18","nbi",NA,1
 15898.9691724323,"wia_spt18","surgery",1,1
-15898.9691724323,"wia_spt18","r1_treated",3,1
 15898.9691724323,"wia_spt18","treatment_start_time",15898.9691724323,1
 15899.5123286416,"dnbi_spt12","r2b",2,1
 15899.5123286416,"dnbi_spt12","transport_start_time",15899.5123286416,1
@@ -1779,7 +1658,6 @@
 16048.3222687326,"dnbi_cbt51","priority",2,1
 16048.3222687326,"dnbi_cbt51","nbi",0,1
 16048.3222687326,"dnbi_cbt51","surgery",1,1
-16048.3222687326,"dnbi_cbt51","r1_treated",3,1
 16048.3222687326,"dnbi_cbt51","treatment_start_time",16048.3222687326,1
 16072.4235341202,"wia_cbt35","r2b_surgery",1,1
 16072.4235341202,"wia_cbt35","r2b_to_r2e",1,1
@@ -1806,7 +1684,6 @@
 16239.3605022391,"wia_cbt38","priority",1,1
 16239.3605022391,"wia_cbt38","nbi",NA,1
 16239.3605022391,"wia_cbt38","surgery",1,1
-16239.3605022391,"wia_cbt38","r1_treated",1,1
 16239.3605022391,"wia_cbt38","treatment_start_time",16239.3605022391,1
 16246.299265757,"kia_spt8","team",1,1
 16246.299265757,"kia_spt8","priority",NA,1
@@ -1822,7 +1699,6 @@
 16334.3227145374,"dnbi_cbt52","priority",1,1
 16334.3227145374,"dnbi_cbt52","nbi",0,1
 16334.3227145374,"dnbi_cbt52","surgery",1,1
-16334.3227145374,"dnbi_cbt52","r1_treated",3,1
 16334.3227145374,"dnbi_cbt52","treatment_start_time",16334.3227145374,1
 16344.8813844237,"dnbi_cbt48","r2b_surgery",1,1
 16344.8813844237,"dnbi_cbt48","r2b_to_r2e",1,1
@@ -1842,13 +1718,11 @@
 16647.3367572646,"dnbi_cbt53","priority",1,1
 16647.3367572646,"dnbi_cbt53","nbi",0,1
 16647.3367572646,"dnbi_cbt53","surgery",1,1
-16647.3367572646,"dnbi_cbt53","r1_treated",3,1
 16647.3367572646,"dnbi_cbt53","treatment_start_time",16647.3367572646,1
 16671.4957279512,"wia_cbt39","team",2,1
 16671.4957279512,"wia_cbt39","priority",1,1
 16671.4957279512,"wia_cbt39","nbi",NA,1
 16671.4957279512,"wia_cbt39","surgery",1,1
-16671.4957279512,"wia_cbt39","r1_treated",2,1
 16671.4957279512,"wia_cbt39","treatment_start_time",16671.4957279512,1
 16679.2748908506,"wia_spt15","return_day",16679.2748908506,1
 16685.4905337319,"wia_cbt39","r2b",1,1
@@ -1867,7 +1741,6 @@
 16755.5011147792,"wia_spt19","priority",1,1
 16755.5011147792,"wia_spt19","nbi",NA,1
 16755.5011147792,"wia_spt19","surgery",1,1
-16755.5011147792,"wia_spt19","r1_treated",1,1
 16755.5011147792,"wia_spt19","treatment_start_time",16755.5011147792,1
 16773.2758606138,"wia_spt19","r2b",1,1
 16773.2758606138,"wia_spt19","transport_start_time",16773.2758606138,1
@@ -1883,7 +1756,6 @@
 16938.4656658042,"dnbi_cbt54","priority",2,1
 16938.4656658042,"dnbi_cbt54","nbi",0,1
 16938.4656658042,"dnbi_cbt54","surgery",1,1
-16938.4656658042,"dnbi_cbt54","r1_treated",2,1
 16938.4656658042,"dnbi_cbt54","treatment_start_time",16938.4656658042,1
 16960.6647721035,"dnbi_cbt54","r2b",1,1
 16960.6647721035,"dnbi_cbt54","transport_start_time",16960.6647721035,1
@@ -1897,7 +1769,6 @@
 17075.5183956039,"dnbi_spt13","priority",1,1
 17075.5183956039,"dnbi_spt13","nbi",0,1
 17075.5183956039,"dnbi_spt13","surgery",1,1
-17075.5183956039,"dnbi_spt13","r1_treated",1,1
 17075.5183956039,"dnbi_spt13","treatment_start_time",17075.5183956039,1
 17077.8771611479,"wia_spt18","r2e_treated",1,1
 17077.8771611479,"wia_spt18","r2e_handling",1,1
@@ -1905,7 +1776,6 @@
 17081.9614026134,"wia_cbt40","priority",1,1
 17081.9614026134,"wia_cbt40","nbi",NA,1
 17081.9614026134,"wia_cbt40","surgery",1,1
-17081.9614026134,"wia_cbt40","r1_treated",2,1
 17081.9614026134,"wia_cbt40","treatment_start_time",17081.9614026134,1
 17098.6040192368,"kia_cbt18","team",3,1
 17098.6040192368,"kia_cbt18","priority",NA,1
@@ -1931,7 +1801,6 @@
 17251.8792882154,"dnbi_cbt55","priority",3,1
 17251.8792882154,"dnbi_cbt55","nbi",0,1
 17251.8792882154,"dnbi_cbt55","surgery",1,1
-17251.8792882154,"dnbi_cbt55","r1_treated",2,1
 17251.8792882154,"dnbi_cbt55","treatment_start_time",17251.8792882154,1
 17271.9464517653,"dnbi_cbt51","r2e_treated",1,1
 17271.9464517653,"dnbi_cbt51","r2e_handling",1,1
@@ -1949,7 +1818,6 @@
 17498.7189000933,"wia_cbt41","priority",1,1
 17498.7189000933,"wia_cbt41","nbi",NA,1
 17498.7189000933,"wia_cbt41","surgery",1,1
-17498.7189000933,"wia_cbt41","r1_treated",2,1
 17498.7189000933,"wia_cbt41","treatment_start_time",17498.7189000933,1
 17505.7613169566,"wia_cbt39","r2e_treated",1,1
 17505.7613169566,"wia_cbt39","r2e_handling",1,1
@@ -1959,7 +1827,6 @@
 17535.7532360395,"dnbi_cbt56","priority",1,1
 17535.7532360395,"dnbi_cbt56","nbi",0,1
 17535.7532360395,"dnbi_cbt56","surgery",1,1
-17535.7532360395,"dnbi_cbt56","r1_treated",2,1
 17535.7532360395,"dnbi_cbt56","treatment_start_time",17535.7532360395,1
 17545.0173926386,"dnbi_cbt38","return_day",17545.0173926386,1
 17553.2732484957,"wia_cbt41","r2b_treated",2,1
@@ -1975,7 +1842,6 @@
 17619.6647557688,"wia_spt20","priority",1,1
 17619.6647557688,"wia_spt20","nbi",NA,1
 17619.6647557688,"wia_spt20","surgery",1,1
-17619.6647557688,"wia_spt20","r1_treated",1,1
 17619.6647557688,"wia_spt20","treatment_start_time",17619.6647557688,1
 17624.0274776688,"wia_spt19","r2e_treated",1,1
 17624.0274776688,"wia_spt19","r2e_handling",1,1
@@ -1993,7 +1859,6 @@
 17831.0318986678,"dnbi_cbt57","priority",2,1
 17831.0318986678,"dnbi_cbt57","nbi",0,1
 17831.0318986678,"dnbi_cbt57","surgery",1,1
-17831.0318986678,"dnbi_cbt57","r1_treated",2,1
 17831.0318986678,"dnbi_cbt57","treatment_start_time",17831.0318986678,1
 17847.5012448794,"dnbi_cbt57","r2b",2,1
 17847.5012448794,"dnbi_cbt57","transport_start_time",17847.5012448794,1
@@ -2003,7 +1868,6 @@
 17909.803050162,"wia_cbt42","priority",2,1
 17909.803050162,"wia_cbt42","nbi",NA,1
 17909.803050162,"wia_cbt42","surgery",1,1
-17909.803050162,"wia_cbt42","r1_treated",3,1
 17909.803050162,"wia_cbt42","treatment_start_time",17909.803050162,1
 17915.4450156657,"dnbi_cbt57","r2b_resus",1,1
 17925.9536868745,"wia_cbt42","r2b",2,1
@@ -2035,7 +1899,6 @@
 18136.1814657657,"dnbi_cbt58","priority",2,1
 18136.1814657657,"dnbi_cbt58","nbi",0,1
 18136.1814657657,"dnbi_cbt58","surgery",1,1
-18136.1814657657,"dnbi_cbt58","r1_treated",1,1
 18136.1814657657,"dnbi_cbt58","treatment_start_time",18136.1814657657,1
 18149.0637262648,"dnbi_cbt58","r2b",1,1
 18149.0637262648,"dnbi_cbt58","transport_start_time",18149.0637262648,1
@@ -2052,7 +1915,6 @@
 18269.4647359967,"wia_cbt43","priority",2,1
 18269.4647359967,"wia_cbt43","nbi",NA,1
 18269.4647359967,"wia_cbt43","surgery",1,1
-18269.4647359967,"wia_cbt43","r1_treated",2,1
 18269.4647359967,"wia_cbt43","treatment_start_time",18269.4647359967,1
 18303.7763683085,"dnbi_spt11","r2e_surgery",1,1
 18325.9867487774,"wia_cbt41","r2b_surgery",1,1
@@ -2062,7 +1924,6 @@
 18326.5788960643,"dnbi_spt14","priority",1,1
 18326.5788960643,"dnbi_spt14","nbi",0,1
 18326.5788960643,"dnbi_spt14","surgery",1,1
-18326.5788960643,"dnbi_spt14","r1_treated",1,1
 18326.5788960643,"dnbi_spt14","treatment_start_time",18326.5788960643,1
 18353.7288266025,"dnbi_spt14","r2b",1,1
 18353.7288266025,"dnbi_spt14","transport_start_time",18353.7288266025,1
@@ -2075,7 +1936,6 @@
 18450.0495228106,"dnbi_cbt59","priority",2,1
 18450.0495228106,"dnbi_cbt59","nbi",0,1
 18450.0495228106,"dnbi_cbt59","surgery",1,1
-18450.0495228106,"dnbi_cbt59","r1_treated",2,1
 18450.0495228106,"dnbi_cbt59","treatment_start_time",18450.0495228106,1
 18466.4397254052,"dnbi_cbt47","r2e_surgery",1,1
 18468.9235709502,"dnbi_cbt59","r2b",1,1
@@ -2085,7 +1945,6 @@
 18532.3773062525,"wia_spt21","priority",2,1
 18532.3773062525,"wia_spt21","nbi",NA,1
 18532.3773062525,"wia_spt21","surgery",0,1
-18532.3773062525,"wia_spt21","r1_treated",3,1
 18532.3773062525,"wia_spt21","treatment_start_time",18532.3773062525,1
 18534.0275214289,"wia_spt20","r2b_surgery",1,1
 18534.0275214289,"wia_spt20","r2b_to_r2e",1,1
@@ -2106,7 +1965,6 @@
 18693.8260887007,"wia_cbt44","priority",1,1
 18693.8260887007,"wia_cbt44","nbi",NA,1
 18693.8260887007,"wia_cbt44","surgery",1,1
-18693.8260887007,"wia_cbt44","r1_treated",1,1
 18693.8260887007,"wia_cbt44","treatment_start_time",18693.8260887007,1
 18696.8729366764,"dnbi_cbt57","r2e_treated",1,1
 18696.8729366764,"dnbi_cbt57","r2e_handling",1,1
@@ -2118,7 +1976,6 @@
 18751.0035636723,"dnbi_cbt60","priority",1,1
 18751.0035636723,"dnbi_cbt60","nbi",0,1
 18751.0035636723,"dnbi_cbt60","surgery",1,1
-18751.0035636723,"dnbi_cbt60","r1_treated",2,1
 18751.0035636723,"dnbi_cbt60","treatment_start_time",18751.0035636723,1
 18774.346339536,"dnbi_cbt60","r2b",-1,1
 18774.346339536,"dnbi_cbt60","transport_start_time",18774.346339536,1
@@ -2150,7 +2007,6 @@
 19054.0428776955,"dnbi_cbt61","priority",1,1
 19054.0428776955,"dnbi_cbt61","nbi",1,1
 19054.0428776955,"dnbi_cbt61","surgery",1,1
-19054.0428776955,"dnbi_cbt61","r1_treated",1,1
 19054.0428776955,"dnbi_cbt61","treatment_start_time",19054.0428776955,1
 19071.6565025967,"dnbi_cbt61","r2b",2,1
 19071.6565025967,"dnbi_cbt61","transport_start_time",19071.6565025967,1
@@ -2164,7 +2020,6 @@
 19106.1184369016,"wia_cbt45","priority",1,1
 19106.1184369016,"wia_cbt45","nbi",NA,1
 19106.1184369016,"wia_cbt45","surgery",1,1
-19106.1184369016,"wia_cbt45","r1_treated",3,1
 19106.1184369016,"wia_cbt45","treatment_start_time",19106.1184369016,1
 19132.9689029372,"wia_cbt45","r2b",2,1
 19132.9689029372,"wia_cbt45","transport_start_time",19132.9689029372,1
@@ -2180,7 +2035,6 @@
 19347.295424355,"dnbi_cbt62","priority",1,1
 19347.295424355,"dnbi_cbt62","nbi",0,1
 19347.295424355,"dnbi_cbt62","surgery",1,1
-19347.295424355,"dnbi_cbt62","r1_treated",2,1
 19347.295424355,"dnbi_cbt62","treatment_start_time",19347.295424355,1
 19357.8492340411,"dnbi_cbt59","r2b_surgery",1,1
 19357.8492340411,"dnbi_cbt59","r2b_to_r2e",1,1
@@ -2191,7 +2045,6 @@
 19384.9488271859,"wia_spt22","priority",1,1
 19384.9488271859,"wia_spt22","nbi",NA,1
 19384.9488271859,"wia_spt22","surgery",1,1
-19384.9488271859,"wia_spt22","r1_treated",3,1
 19384.9488271859,"wia_spt22","treatment_start_time",19384.9488271859,1
 19393.7050189904,"dnbi_cbt59","r2e_treated",1,1
 19393.7050189904,"dnbi_cbt59","r2e_handling",1,1
@@ -2209,7 +2062,6 @@
 19496.0177720645,"wia_cbt46","priority",1,1
 19496.0177720645,"wia_cbt46","nbi",NA,1
 19496.0177720645,"wia_cbt46","surgery",1,1
-19496.0177720645,"wia_cbt46","r1_treated",1,1
 19496.0177720645,"wia_cbt46","treatment_start_time",19496.0177720645,1
 19512.5544010342,"wia_cbt44","r2e_treated",1,1
 19512.5544010342,"wia_cbt44","r2e_handling",1,1
@@ -2220,7 +2072,6 @@
 19562.0699535704,"dnbi_spt15","priority",2,1
 19562.0699535704,"dnbi_spt15","nbi",1,1
 19562.0699535704,"dnbi_spt15","surgery",0,1
-19562.0699535704,"dnbi_spt15","r1_treated",3,1
 19562.0699535704,"dnbi_spt15","treatment_start_time",19562.0699535704,1
 19563.2515267544,"dnbi_cbt61","r2b_surgery",1,1
 19563.2515267544,"dnbi_cbt61","r2b_to_r2e",1,1
@@ -2233,7 +2084,6 @@
 19638.7099350945,"dnbi_cbt63","priority",3,1
 19638.7099350945,"dnbi_cbt63","nbi",0,1
 19638.7099350945,"dnbi_cbt63","surgery",0,1
-19638.7099350945,"dnbi_cbt63","r1_treated",1,1
 19638.7099350945,"dnbi_cbt63","treatment_start_time",19638.7099350945,1
 19647.5716932815,"dnbi_spt7","r2e_evac",1,1
 19666.65308657,"dnbi_cbt50","return_day",19666.65308657,1
@@ -2269,7 +2119,6 @@
 19923.1141422661,"wia_cbt47","priority",1,1
 19923.1141422661,"wia_cbt47","nbi",NA,1
 19923.1141422661,"wia_cbt47","surgery",1,1
-19923.1141422661,"wia_cbt47","r1_treated",2,1
 19923.1141422661,"wia_cbt47","treatment_start_time",19923.1141422661,1
 19940.2563669593,"wia_cbt47","r2b",1,1
 19940.2563669593,"wia_cbt47","transport_start_time",19940.2563669593,1
@@ -2277,7 +2126,6 @@
 19947.1795411713,"dnbi_cbt64","priority",1,1
 19947.1795411713,"dnbi_cbt64","nbi",0,1
 19947.1795411713,"dnbi_cbt64","surgery",0,1
-19947.1795411713,"dnbi_cbt64","r1_treated",3,1
 19947.1795411713,"dnbi_cbt64","treatment_start_time",19947.1795411713,1
 19965.6967786414,"dnbi_cbt64","r2b",1,1
 19965.6967786414,"dnbi_cbt64","transport_start_time",19965.6967786414,1
@@ -2296,7 +2144,6 @@
 20199.1964779391,"wia_spt23","priority",2,1
 20199.1964779391,"wia_spt23","nbi",NA,1
 20199.1964779391,"wia_spt23","surgery",1,1
-20199.1964779391,"wia_spt23","r1_treated",2,1
 20199.1964779391,"wia_spt23","treatment_start_time",20199.1964779391,1
 20220.6042962599,"wia_spt18","r2e_evac",1,1
 20222.4239537376,"wia_spt23","r2b",2,1
@@ -2305,7 +2152,6 @@
 20243.7153688006,"dnbi_cbt65","priority",1,1
 20243.7153688006,"dnbi_cbt65","nbi",0,1
 20243.7153688006,"dnbi_cbt65","surgery",1,1
-20243.7153688006,"dnbi_cbt65","r1_treated",1,1
 20243.7153688006,"dnbi_cbt65","treatment_start_time",20243.7153688006,1
 20246.3100780771,"wia_spt23","r2b_treated",2,1
 20263.198509813,"dnbi_cbt65","r2b",2,1
@@ -2322,7 +2168,6 @@
 20369.5946993805,"wia_cbt48","priority",1,1
 20369.5946993805,"wia_cbt48","nbi",NA,1
 20369.5946993805,"wia_cbt48","surgery",0,1
-20369.5946993805,"wia_cbt48","r1_treated",1,1
 20369.5946993805,"wia_cbt48","treatment_start_time",20369.5946993805,1
 20380.1903496211,"wia_cbt48","r2b",2,1
 20380.1903496211,"wia_cbt48","transport_start_time",20380.1903496211,1
@@ -2338,7 +2183,6 @@
 20526.6696579093,"dnbi_cbt66","priority",3,1
 20526.6696579093,"dnbi_cbt66","nbi",0,1
 20526.6696579093,"dnbi_cbt66","surgery",1,1
-20526.6696579093,"dnbi_cbt66","r1_treated",1,1
 20526.6696579093,"dnbi_cbt66","treatment_start_time",20526.6696579093,1
 20642.542478529,"kia_cbt22","team",3,1
 20642.542478529,"kia_cbt22","priority",NA,1
@@ -2351,13 +2195,11 @@
 20811.8686763051,"dnbi_spt16","priority",1,1
 20811.8686763051,"dnbi_spt16","nbi",0,1
 20811.8686763051,"dnbi_spt16","surgery",1,1
-20811.8686763051,"dnbi_spt16","r1_treated",1,1
 20811.8686763051,"dnbi_spt16","treatment_start_time",20811.8686763051,1
 20821.8519040917,"wia_cbt49","team",2,1
 20821.8519040917,"wia_cbt49","priority",1,1
 20821.8519040917,"wia_cbt49","nbi",NA,1
 20821.8519040917,"wia_cbt49","surgery",0,1
-20821.8519040917,"wia_cbt49","r1_treated",2,1
 20821.8519040917,"wia_cbt49","treatment_start_time",20821.8519040917,1
 20836.251843563,"dnbi_spt16","r2b",1,1
 20836.251843563,"dnbi_spt16","transport_start_time",20836.251843563,1
@@ -2365,7 +2207,6 @@
 20846.9457902475,"dnbi_cbt67","priority",1,1
 20846.9457902475,"dnbi_cbt67","nbi",0,1
 20846.9457902475,"dnbi_cbt67","surgery",1,1
-20846.9457902475,"dnbi_cbt67","r1_treated",1,1
 20846.9457902475,"dnbi_cbt67","treatment_start_time",20846.9457902475,1
 20865.3157384363,"dnbi_spt16","r2b_treated",1,1
 20868.058071566,"dnbi_cbt67","r2b",1,1
@@ -2384,7 +2225,6 @@
 21077.3790352398,"wia_spt24","priority",2,1
 21077.3790352398,"wia_spt24","nbi",NA,1
 21077.3790352398,"wia_spt24","surgery",1,1
-21077.3790352398,"wia_spt24","r1_treated",3,1
 21077.3790352398,"wia_spt24","treatment_start_time",21077.3790352398,1
 21094.5704516913,"wia_spt24","r2b",1,1
 21094.5704516913,"wia_spt24","transport_start_time",21094.5704516913,1
@@ -2394,7 +2234,6 @@
 21136.1661125179,"dnbi_cbt68","priority",2,1
 21136.1661125179,"dnbi_cbt68","nbi",0,1
 21136.1661125179,"dnbi_cbt68","surgery",1,1
-21136.1661125179,"dnbi_cbt68","r1_treated",2,1
 21136.1661125179,"dnbi_cbt68","treatment_start_time",21136.1661125179,1
 21137.6810399723,"dnbi_cbt65","r2b_surgery",1,1
 21137.6810399723,"dnbi_cbt65","r2b_to_r2e",1,1
@@ -2412,7 +2251,6 @@
 21252.0774349147,"wia_cbt50","priority",1,1
 21252.0774349147,"wia_cbt50","nbi",NA,1
 21252.0774349147,"wia_cbt50","surgery",0,1
-21252.0774349147,"wia_cbt50","r1_treated",2,1
 21252.0774349147,"wia_cbt50","treatment_start_time",21252.0774349147,1
 21271.7207741922,"dnbi_spt12","r2e_evac",1,1
 21278.1950345629,"wia_cbt50","r2b",1,1
@@ -2430,7 +2268,6 @@
 21439.9522296663,"dnbi_cbt69","priority",1,1
 21439.9522296663,"dnbi_cbt69","nbi",1,1
 21439.9522296663,"dnbi_cbt69","surgery",1,1
-21439.9522296663,"dnbi_cbt69","r1_treated",1,1
 21439.9522296663,"dnbi_cbt69","treatment_start_time",21439.9522296663,1
 21462.7396164659,"dnbi_cbt69","r2b",1,1
 21462.7396164659,"dnbi_cbt69","transport_start_time",21462.7396164659,1
@@ -2449,7 +2286,6 @@
 21667.1734689218,"wia_cbt51","priority",1,1
 21667.1734689218,"wia_cbt51","nbi",NA,1
 21667.1734689218,"wia_cbt51","surgery",1,1
-21667.1734689218,"wia_cbt51","r1_treated",2,1
 21667.1734689218,"wia_cbt51","treatment_start_time",21667.1734689218,1
 21676.0098607892,"kia_spt11","team",3,1
 21676.0098607892,"kia_spt11","priority",NA,1
@@ -2465,7 +2301,6 @@
 21731.2965988854,"dnbi_cbt70","priority",1,1
 21731.2965988854,"dnbi_cbt70","nbi",0,1
 21731.2965988854,"dnbi_cbt70","surgery",1,1
-21731.2965988854,"dnbi_cbt70","r1_treated",1,1
 21731.2965988854,"dnbi_cbt70","treatment_start_time",21731.2965988854,1
 21735.2698668932,"dnbi_spt16","r2b_surgery",1,1
 21735.2698668932,"dnbi_spt16","r2b_to_r2e",1,1
@@ -2482,7 +2317,6 @@
 21926.4212421023,"wia_spt25","priority",1,1
 21926.4212421023,"wia_spt25","nbi",NA,1
 21926.4212421023,"wia_spt25","surgery",1,1
-21926.4212421023,"wia_spt25","r1_treated",2,1
 21926.4212421023,"wia_spt25","treatment_start_time",21926.4212421023,1
 21941.9910598582,"dnbi_cbt67","r2b_surgery",1,1
 21941.9910598582,"dnbi_cbt67","r2b_to_r2e",1,1
@@ -2498,13 +2332,11 @@
 22033.0310776953,"dnbi_spt17","priority",3,1
 22033.0310776953,"dnbi_spt17","nbi",0,1
 22033.0310776953,"dnbi_spt17","surgery",0,1
-22033.0310776953,"dnbi_spt17","r1_treated",1,1
 22033.0310776953,"dnbi_spt17","treatment_start_time",22033.0310776953,1
 22033.6459503334,"dnbi_cbt71","team",1,1
 22033.6459503334,"dnbi_cbt71","priority",2,1
 22033.6459503334,"dnbi_cbt71","nbi",0,1
 22033.6459503334,"dnbi_cbt71","surgery",1,1
-22033.6459503334,"dnbi_cbt71","r1_treated",1,1
 22033.6459503334,"dnbi_cbt71","treatment_start_time",22033.6459503334,1
 22049.6793644644,"dnbi_cbt71","r2b",2,1
 22049.6793644644,"dnbi_cbt71","transport_start_time",22049.6793644644,1
@@ -2513,7 +2345,6 @@
 22084.2195913738,"wia_cbt52","priority",3,1
 22084.2195913738,"wia_cbt52","nbi",NA,1
 22084.2195913738,"wia_cbt52","surgery",0,1
-22084.2195913738,"wia_cbt52","r1_treated",3,1
 22084.2195913738,"wia_cbt52","treatment_start_time",22084.2195913738,1
 22089.5099025443,"wia_spt24","r2b_surgery",1,1
 22089.5099025443,"wia_spt24","r2b_to_r2e",1,1
@@ -2532,7 +2363,6 @@
 22328.241096338,"dnbi_cbt72","priority",1,1
 22328.241096338,"dnbi_cbt72","nbi",0,1
 22328.241096338,"dnbi_cbt72","surgery",1,1
-22328.241096338,"dnbi_cbt72","r1_treated",1,1
 22328.241096338,"dnbi_cbt72","treatment_start_time",22328.241096338,1
 22348.3306028234,"dnbi_cbt72","dow",1,1
 22348.3306028234,"dnbi_cbt72","r1_treated",1,1
@@ -2545,7 +2375,6 @@
 22470.7146435038,"wia_cbt53","priority",1,1
 22470.7146435038,"wia_cbt53","nbi",NA,1
 22470.7146435038,"wia_cbt53","surgery",1,1
-22470.7146435038,"wia_cbt53","r1_treated",2,1
 22470.7146435038,"wia_cbt53","treatment_start_time",22470.7146435038,1
 22476.5681643513,"wia_cbt51","r2e_treated",1,1
 22476.5681643513,"wia_cbt51","r2e_handling",1,1
@@ -2568,7 +2397,6 @@
 22632.255109672,"dnbi_cbt73","priority",1,1
 22632.255109672,"dnbi_cbt73","nbi",0,1
 22632.255109672,"dnbi_cbt73","surgery",1,1
-22632.255109672,"dnbi_cbt73","r1_treated",1,1
 22632.255109672,"dnbi_cbt73","treatment_start_time",22632.255109672,1
 22637.0917876667,"dnbi_cbt70","r2e_treated",1,1
 22637.0917876667,"dnbi_cbt70","r2e_handling",1,1
@@ -2582,7 +2410,6 @@
 22788.384650073,"wia_spt26","priority",1,1
 22788.384650073,"wia_spt26","nbi",NA,1
 22788.384650073,"wia_spt26","surgery",1,1
-22788.384650073,"wia_spt26","r1_treated",2,1
 22788.384650073,"wia_spt26","treatment_start_time",22788.384650073,1
 22791.4977055699,"dnbi_cbt71","r2b_surgery",1,1
 22791.4977055699,"dnbi_cbt71","r2b_to_r2e",1,1
@@ -2596,7 +2423,6 @@
 22872.9639053552,"wia_cbt54","priority",1,1
 22872.9639053552,"wia_cbt54","nbi",NA,1
 22872.9639053552,"wia_cbt54","surgery",1,1
-22872.9639053552,"wia_cbt54","r1_treated",3,1
 22872.9639053552,"wia_cbt54","treatment_start_time",22872.9639053552,1
 22885.3796333531,"wia_spt26","r2b_resus",1,1
 22885.4853419256,"dnbi_spt13","r2e_evac",1,1
@@ -2608,7 +2434,6 @@
 22951.7487060199,"dnbi_cbt74","priority",2,1
 22951.7487060199,"dnbi_cbt74","nbi",0,1
 22951.7487060199,"dnbi_cbt74","surgery",1,1
-22951.7487060199,"dnbi_cbt74","r1_treated",2,1
 22951.7487060199,"dnbi_cbt74","treatment_start_time",22951.7487060199,1
 22964.5935612166,"dnbi_cbt74","r2b",1,1
 22964.5935612166,"dnbi_cbt74","transport_start_time",22964.5935612166,1
@@ -2626,19 +2451,16 @@
 23245.3101258485,"dnbi_spt18","priority",1,1
 23245.3101258485,"dnbi_spt18","nbi",0,1
 23245.3101258485,"dnbi_spt18","surgery",1,1
-23245.3101258485,"dnbi_spt18","r1_treated",2,1
 23245.3101258485,"dnbi_spt18","treatment_start_time",23245.3101258485,1
 23246.3993113069,"dnbi_cbt75","team",1,1
 23246.3993113069,"dnbi_cbt75","priority",3,1
 23246.3993113069,"dnbi_cbt75","nbi",1,1
 23246.3993113069,"dnbi_cbt75","surgery",1,1
-23246.3993113069,"dnbi_cbt75","r1_treated",1,1
 23246.3993113069,"dnbi_cbt75","treatment_start_time",23246.3993113069,1
 23262.1278058947,"wia_cbt55","team",1,1
 23262.1278058947,"wia_cbt55","priority",1,1
 23262.1278058947,"wia_cbt55","nbi",NA,1
 23262.1278058947,"wia_cbt55","surgery",1,1
-23262.1278058947,"wia_cbt55","r1_treated",1,1
 23262.1278058947,"wia_cbt55","treatment_start_time",23262.1278058947,1
 23266.2872205821,"dnbi_spt18","r2b",2,1
 23266.2872205821,"dnbi_spt18","transport_start_time",23266.2872205821,1
@@ -2676,14 +2498,12 @@
 23534.5101193918,"dnbi_cbt76","priority",2,1
 23534.5101193918,"dnbi_cbt76","nbi",0,1
 23534.5101193918,"dnbi_cbt76","surgery",1,1
-23534.5101193918,"dnbi_cbt76","r1_treated",2,1
 23534.5101193918,"dnbi_cbt76","treatment_start_time",23534.5101193918,1
 23537.0396478543,"kia_spt12","transport_start_time",23537.0396478543,1
 23585.4599188343,"wia_spt27","team",1,1
 23585.4599188343,"wia_spt27","priority",1,1
 23585.4599188343,"wia_spt27","nbi",NA,1
 23585.4599188343,"wia_spt27","surgery",1,1
-23585.4599188343,"wia_spt27","r1_treated",1,1
 23585.4599188343,"wia_spt27","treatment_start_time",23585.4599188343,1
 23605.105482808,"wia_spt27","r2b",2,1
 23605.105482808,"wia_spt27","transport_start_time",23605.105482808,1
@@ -2691,7 +2511,6 @@
 23646.2337095293,"wia_cbt56","priority",1,1
 23646.2337095293,"wia_cbt56","nbi",NA,1
 23646.2337095293,"wia_cbt56","surgery",0,1
-23646.2337095293,"wia_cbt56","r1_treated",1,1
 23646.2337095293,"wia_cbt56","treatment_start_time",23646.2337095293,1
 23647.973551352,"wia_spt27","r2b_treated",2,1
 23654.8583232609,"wia_cbt54","r2b_surgery",1,1
@@ -2712,7 +2531,6 @@
 23843.2062646763,"dnbi_cbt77","priority",2,1
 23843.2062646763,"dnbi_cbt77","nbi",0,1
 23843.2062646763,"dnbi_cbt77","surgery",1,1
-23843.2062646763,"dnbi_cbt77","r1_treated",2,1
 23843.2062646763,"dnbi_cbt77","treatment_start_time",23843.2062646763,1
 23845.3759284361,"dnbi_cbt74","r2e_treated",1,1
 23845.3759284361,"dnbi_cbt74","r2e_handling",1,1
@@ -2739,7 +2557,6 @@
 24067.4401576072,"wia_cbt57","priority",3,1
 24067.4401576072,"wia_cbt57","nbi",NA,1
 24067.4401576072,"wia_cbt57","surgery",1,1
-24067.4401576072,"wia_cbt57","r1_treated",2,1
 24067.4401576072,"wia_cbt57","treatment_start_time",24067.4401576072,1
 24121.9380148884,"wia_spt27","r2b_surgery",1,1
 24121.9380148884,"wia_spt27","r2b_to_r2e",1,1
@@ -2751,7 +2568,6 @@
 24169.3916481864,"dnbi_cbt78","priority",1,1
 24169.3916481864,"dnbi_cbt78","nbi",0,1
 24169.3916481864,"dnbi_cbt78","surgery",1,1
-24169.3916481864,"dnbi_cbt78","r1_treated",3,1
 24169.3916481864,"dnbi_cbt78","treatment_start_time",24169.3916481864,1
 24187.096371818,"dnbi_cbt78","r2b",2,1
 24187.096371818,"dnbi_cbt78","transport_start_time",24187.096371818,1
@@ -2775,7 +2591,6 @@
 24431.4672256566,"wia_spt28","priority",1,1
 24431.4672256566,"wia_spt28","nbi",NA,1
 24431.4672256566,"wia_spt28","surgery",1,1
-24431.4672256566,"wia_spt28","r1_treated",2,1
 24431.4672256566,"wia_spt28","treatment_start_time",24431.4672256566,1
 24452.5645916346,"wia_spt28","r2b",2,1
 24452.5645916346,"wia_spt28","transport_start_time",24452.5645916346,1
@@ -2786,19 +2601,16 @@
 24463.1451483034,"wia_cbt58","priority",1,1
 24463.1451483034,"wia_cbt58","nbi",NA,1
 24463.1451483034,"wia_cbt58","surgery",1,1
-24463.1451483034,"wia_cbt58","r1_treated",3,1
 24463.1451483034,"wia_cbt58","treatment_start_time",24463.1451483034,1
 24465.2921024116,"dnbi_spt19","team",1,1
 24465.2921024116,"dnbi_spt19","priority",3,1
 24465.2921024116,"dnbi_spt19","nbi",1,1
 24465.2921024116,"dnbi_spt19","surgery",0,1
-24465.2921024116,"dnbi_spt19","r1_treated",1,1
 24465.2921024116,"dnbi_spt19","treatment_start_time",24465.2921024116,1
 24469.8773120414,"dnbi_cbt79","team",3,1
 24469.8773120414,"dnbi_cbt79","priority",1,1
 24469.8773120414,"dnbi_cbt79","nbi",0,1
 24469.8773120414,"dnbi_cbt79","surgery",1,1
-24469.8773120414,"dnbi_cbt79","r1_treated",3,1
 24469.8773120414,"dnbi_cbt79","treatment_start_time",24469.8773120414,1
 24481.0846890522,"wia_spt28","r2b_treated",2,1
 24485.975101491,"wia_cbt58","r2b",2,1
@@ -2822,7 +2634,6 @@
 24761.9279183974,"dnbi_cbt80","priority",1,1
 24761.9279183974,"dnbi_cbt80","nbi",1,1
 24761.9279183974,"dnbi_cbt80","surgery",0,1
-24761.9279183974,"dnbi_cbt80","r1_treated",1,1
 24761.9279183974,"dnbi_cbt80","treatment_start_time",24761.9279183974,1
 24786.2151388194,"dnbi_cbt80","r2b",2,1
 24786.2151388194,"dnbi_cbt80","transport_start_time",24786.2151388194,1
@@ -2832,7 +2643,6 @@
 24867.2351178844,"wia_cbt59","priority",1,1
 24867.2351178844,"wia_cbt59","nbi",NA,1
 24867.2351178844,"wia_cbt59","surgery",1,1
-24867.2351178844,"wia_cbt59","r1_treated",3,1
 24867.2351178844,"wia_cbt59","treatment_start_time",24867.2351178844,1
 24875.2407942721,"dnbi_cbt80","r2b_resus",1,1
 24881.3990269466,"wia_cbt59","dow",1,1
@@ -2843,7 +2653,6 @@
 25068.3376918505,"dnbi_cbt81","priority",1,1
 25068.3376918505,"dnbi_cbt81","nbi",0,1
 25068.3376918505,"dnbi_cbt81","surgery",1,1
-25068.3376918505,"dnbi_cbt81","r1_treated",3,1
 25068.3376918505,"dnbi_cbt81","treatment_start_time",25068.3376918505,1
 25093.3846860345,"dnbi_cbt81","r2b",1,1
 25093.3846860345,"dnbi_cbt81","transport_start_time",25093.3846860345,1
@@ -2862,13 +2671,11 @@
 25263.3592483054,"wia_spt29","priority",1,1
 25263.3592483054,"wia_spt29","nbi",NA,1
 25263.3592483054,"wia_spt29","surgery",1,1
-25263.3592483054,"wia_spt29","r1_treated",3,1
 25263.3592483054,"wia_spt29","treatment_start_time",25263.3592483054,1
 25264.8890842153,"wia_cbt60","team",1,1
 25264.8890842153,"wia_cbt60","priority",2,1
 25264.8890842153,"wia_cbt60","nbi",NA,1
 25264.8890842153,"wia_cbt60","surgery",1,1
-25264.8890842153,"wia_cbt60","r1_treated",1,1
 25264.8890842153,"wia_cbt60","treatment_start_time",25264.8890842153,1
 25282.6418196793,"wia_spt29","r2b",-1,1
 25282.6418196793,"wia_spt29","transport_start_time",25282.6418196793,1
@@ -2903,7 +2710,6 @@
 25378.2282582049,"dnbi_cbt82","priority",1,1
 25378.2282582049,"dnbi_cbt82","nbi",0,1
 25378.2282582049,"dnbi_cbt82","surgery",0,1
-25378.2282582049,"dnbi_cbt82","r1_treated",1,1
 25378.2282582049,"dnbi_cbt82","treatment_start_time",25378.2282582049,1
 25382.888335042,"dnbi_cbt62","r2e_surgery",1,1
 25401.2405902342,"dnbi_cbt82","r2b",1,1
@@ -2926,19 +2732,16 @@
 25670.8612836136,"wia_cbt61","priority",3,1
 25670.8612836136,"wia_cbt61","nbi",NA,1
 25670.8612836136,"wia_cbt61","surgery",1,1
-25670.8612836136,"wia_cbt61","r1_treated",3,1
 25670.8612836136,"wia_cbt61","treatment_start_time",25670.8612836136,1
 25684.6344316516,"dnbi_cbt83","team",2,1
 25684.6344316516,"dnbi_cbt83","priority",2,1
 25684.6344316516,"dnbi_cbt83","nbi",0,1
 25684.6344316516,"dnbi_cbt83","surgery",1,1
-25684.6344316516,"dnbi_cbt83","r1_treated",2,1
 25684.6344316516,"dnbi_cbt83","treatment_start_time",25684.6344316516,1
 25685.3494792096,"dnbi_spt20","team",1,1
 25685.3494792096,"dnbi_spt20","priority",1,1
 25685.3494792096,"dnbi_spt20","nbi",0,1
 25685.3494792096,"dnbi_spt20","surgery",1,1
-25685.3494792096,"dnbi_spt20","r1_treated",1,1
 25685.3494792096,"dnbi_spt20","treatment_start_time",25685.3494792096,1
 25695.9536790912,"dnbi_cbt79","r2e_treated",1,1
 25695.9536790912,"dnbi_cbt79","r2e_handling",1,1
@@ -2963,7 +2766,6 @@
 25999.7773766113,"dnbi_cbt84","priority",3,1
 25999.7773766113,"dnbi_cbt84","nbi",0,1
 25999.7773766113,"dnbi_cbt84","surgery",1,1
-25999.7773766113,"dnbi_cbt84","r1_treated",2,1
 25999.7773766113,"dnbi_cbt84","treatment_start_time",25999.7773766113,1
 26041.0910093983,"dnbi_cbt83","r2b_surgery",1,1
 26041.0910093983,"dnbi_cbt83","r2b_to_r2e",1,1
@@ -2974,13 +2776,11 @@
 26087.8044812081,"wia_cbt62","priority",2,1
 26087.8044812081,"wia_cbt62","nbi",NA,1
 26087.8044812081,"wia_cbt62","surgery",1,1
-26087.8044812081,"wia_cbt62","r1_treated",3,1
 26087.8044812081,"wia_cbt62","treatment_start_time",26087.8044812081,1
 26093.4671783661,"wia_spt30","team",1,1
 26093.4671783661,"wia_spt30","priority",1,1
 26093.4671783661,"wia_spt30","nbi",NA,1
 26093.4671783661,"wia_spt30","surgery",1,1
-26093.4671783661,"wia_spt30","r1_treated",1,1
 26093.4671783661,"wia_spt30","treatment_start_time",26093.4671783661,1
 26108.3956901499,"wia_spt30","r2b",1,1
 26108.3956901499,"wia_spt30","transport_start_time",26108.3956901499,1
@@ -3002,7 +2802,6 @@
 26302.7762837685,"dnbi_cbt85","priority",1,1
 26302.7762837685,"dnbi_cbt85","nbi",0,1
 26302.7762837685,"dnbi_cbt85","surgery",1,1
-26302.7762837685,"dnbi_cbt85","r1_treated",1,1
 26302.7762837685,"dnbi_cbt85","treatment_start_time",26302.7762837685,1
 26318.4849835847,"wia_cbt62","r2b_surgery",1,1
 26318.4849835847,"wia_cbt62","r2b_to_r2e",1,1
@@ -3017,7 +2816,6 @@
 26478.6732788091,"wia_cbt63","priority",2,1
 26478.6732788091,"wia_cbt63","nbi",NA,1
 26478.6732788091,"wia_cbt63","surgery",1,1
-26478.6732788091,"wia_cbt63","r1_treated",2,1
 26478.6732788091,"wia_cbt63","treatment_start_time",26478.6732788091,1
 26495.8956525686,"wia_spt30","r2b_surgery",1,1
 26495.8956525686,"wia_spt30","r2b_to_r2e",1,1
@@ -3034,7 +2832,6 @@
 26612.067928087,"dnbi_cbt86","priority",1,1
 26612.067928087,"dnbi_cbt86","nbi",0,1
 26612.067928087,"dnbi_cbt86","surgery",1,1
-26612.067928087,"dnbi_cbt86","r1_treated",2,1
 26612.067928087,"dnbi_cbt86","treatment_start_time",26612.067928087,1
 26632.3257021559,"dnbi_cbt86","r2b",2,1
 26632.3257021559,"dnbi_cbt86","transport_start_time",26632.3257021559,1
@@ -3051,7 +2848,6 @@
 26850.693285635,"wia_cbt64","priority",1,1
 26850.693285635,"wia_cbt64","nbi",NA,1
 26850.693285635,"wia_cbt64","surgery",1,1
-26850.693285635,"wia_cbt64","r1_treated",2,1
 26850.693285635,"wia_cbt64","treatment_start_time",26850.693285635,1
 26856.2984699457,"dnbi_cbt86","r2b_surgery",1,1
 26856.2984699457,"dnbi_cbt86","r2b_to_r2e",1,1
@@ -3066,13 +2862,11 @@
 26914.2419959845,"wia_spt31","priority",2,1
 26914.2419959845,"wia_spt31","nbi",NA,1
 26914.2419959845,"wia_spt31","surgery",1,1
-26914.2419959845,"wia_spt31","r1_treated",2,1
 26914.2419959845,"wia_spt31","treatment_start_time",26914.2419959845,1
 26915.1203063354,"dnbi_cbt87","team",1,1
 26915.1203063354,"dnbi_cbt87","priority",2,1
 26915.1203063354,"dnbi_cbt87","nbi",0,1
 26915.1203063354,"dnbi_cbt87","surgery",1,1
-26915.1203063354,"dnbi_cbt87","r1_treated",1,1
 26915.1203063354,"dnbi_cbt87","treatment_start_time",26915.1203063354,1
 26932.8648722177,"dnbi_cbt87","r2b",1,1
 26932.8648722177,"dnbi_cbt87","transport_start_time",26932.8648722177,1
@@ -3081,7 +2875,6 @@
 26939.6073424167,"dnbi_spt21","priority",1,1
 26939.6073424167,"dnbi_spt21","nbi",0,1
 26939.6073424167,"dnbi_spt21","surgery",0,1
-26939.6073424167,"dnbi_spt21","r1_treated",2,1
 26939.6073424167,"dnbi_spt21","treatment_start_time",26939.6073424167,1
 26959.0453068945,"dnbi_cbt87","r2b_treated",1,1
 26981.4162653071,"dnbi_spt16","r2e_surgery",1,1
@@ -3112,13 +2905,11 @@
 27224.1069346948,"dnbi_cbt88","priority",3,1
 27224.1069346948,"dnbi_cbt88","nbi",0,1
 27224.1069346948,"dnbi_cbt88","surgery",0,1
-27224.1069346948,"dnbi_cbt88","r1_treated",2,1
 27224.1069346948,"dnbi_cbt88","treatment_start_time",27224.1069346948,1
 27257.2958378354,"wia_cbt65","team",3,1
 27257.2958378354,"wia_cbt65","priority",1,1
 27257.2958378354,"wia_cbt65","nbi",NA,1
 27257.2958378354,"wia_cbt65","surgery",1,1
-27257.2958378354,"wia_cbt65","r1_treated",3,1
 27257.2958378354,"wia_cbt65","treatment_start_time",27257.2958378354,1
 27276.1100420319,"wia_cbt65","r2b",1,1
 27276.1100420319,"wia_cbt65","transport_start_time",27276.1100420319,1
@@ -3133,7 +2924,6 @@
 27540.9216465938,"dnbi_cbt89","priority",3,1
 27540.9216465938,"dnbi_cbt89","nbi",0,1
 27540.9216465938,"dnbi_cbt89","surgery",0,1
-27540.9216465938,"dnbi_cbt89","r1_treated",1,1
 27540.9216465938,"dnbi_cbt89","treatment_start_time",27540.9216465938,1
 27546.4845654153,"dnbi_cbt87","r2e_treated",1,1
 27546.4845654153,"dnbi_cbt87","r2e_handling",1,1
@@ -3141,7 +2931,6 @@
 27649.1306636722,"wia_cbt66","priority",1,1
 27649.1306636722,"wia_cbt66","nbi",NA,1
 27649.1306636722,"wia_cbt66","surgery",1,1
-27649.1306636722,"wia_cbt66","r1_treated",1,1
 27649.1306636722,"wia_cbt66","treatment_start_time",27649.1306636722,1
 27670.5317816029,"wia_cbt66","dow",1,1
 27670.5317816029,"wia_cbt66","r1_treated",1,1
@@ -3156,7 +2945,6 @@
 27749.616208388,"wia_spt32","priority",1,1
 27749.616208388,"wia_spt32","nbi",NA,1
 27749.616208388,"wia_spt32","surgery",1,1
-27749.616208388,"wia_spt32","r1_treated",1,1
 27749.616208388,"wia_spt32","treatment_start_time",27749.616208388,1
 27770.7869421726,"wia_spt32","r2b",2,1
 27770.7869421726,"wia_spt32","transport_start_time",27770.7869421726,1
@@ -3166,7 +2954,6 @@
 27837.8575431819,"dnbi_cbt90","priority",1,1
 27837.8575431819,"dnbi_cbt90","nbi",1,1
 27837.8575431819,"dnbi_cbt90","surgery",1,1
-27837.8575431819,"dnbi_cbt90","r1_treated",2,1
 27837.8575431819,"dnbi_cbt90","treatment_start_time",27837.8575431819,1
 27850.1709228186,"dnbi_cbt64","return_day",27850.1709228186,1
 27856.5444619912,"dnbi_cbt90","r2b",1,1
@@ -3189,7 +2976,6 @@
 28083.5591596186,"wia_cbt67","priority",3,1
 28083.5591596186,"wia_cbt67","nbi",NA,1
 28083.5591596186,"wia_cbt67","surgery",1,1
-28083.5591596186,"wia_cbt67","r1_treated",1,1
 28083.5591596186,"wia_cbt67","treatment_start_time",28083.5591596186,1
 28107.5457271852,"dnbi_cbt90","r2e_treated",1,1
 28107.5457271852,"dnbi_cbt90","r2e_handling",1,1
@@ -3197,7 +2983,6 @@
 28124.8681388479,"dnbi_cbt91","priority",1,1
 28124.8681388479,"dnbi_cbt91","nbi",0,1
 28124.8681388479,"dnbi_cbt91","surgery",1,1
-28124.8681388479,"dnbi_cbt91","r1_treated",2,1
 28124.8681388479,"dnbi_cbt91","treatment_start_time",28124.8681388479,1
 28140.6060508426,"dnbi_cbt46","r2e_evac",1,1
 28144.4275552062,"dnbi_cbt91","r2b",1,1
@@ -3206,7 +2991,6 @@
 28165.6734885459,"dnbi_spt22","priority",2,1
 28165.6734885459,"dnbi_spt22","nbi",1,1
 28165.6734885459,"dnbi_spt22","surgery",1,1
-28165.6734885459,"dnbi_spt22","r1_treated",2,1
 28165.6734885459,"dnbi_spt22","treatment_start_time",28165.6734885459,1
 28180.8998525478,"dnbi_cbt91","r2b_treated",1,1
 28202.9069170672,"wia_spt32","r2b_surgery",1,1
@@ -3223,7 +3007,6 @@
 28426.3444091331,"dnbi_cbt92","priority",1,1
 28426.3444091331,"dnbi_cbt92","nbi",0,1
 28426.3444091331,"dnbi_cbt92","surgery",1,1
-28426.3444091331,"dnbi_cbt92","r1_treated",2,1
 28426.3444091331,"dnbi_cbt92","treatment_start_time",28426.3444091331,1
 28449.6889275662,"dnbi_cbt92","r2b",1,1
 28449.6889275662,"dnbi_cbt92","transport_start_time",28449.6889275662,1
@@ -3233,7 +3016,6 @@
 28506.4153159456,"wia_cbt68","priority",1,1
 28506.4153159456,"wia_cbt68","nbi",NA,1
 28506.4153159456,"wia_cbt68","surgery",1,1
-28506.4153159456,"wia_cbt68","r1_treated",1,1
 28506.4153159456,"wia_cbt68","treatment_start_time",28506.4153159456,1
 28524.0659974367,"wia_cbt68","r2b",1,1
 28524.0659974367,"wia_cbt68","transport_start_time",28524.0659974367,1
@@ -3244,7 +3026,6 @@
 28586.0739272009,"wia_spt33","priority",2,1
 28586.0739272009,"wia_spt33","nbi",NA,1
 28586.0739272009,"wia_spt33","surgery",1,1
-28586.0739272009,"wia_spt33","r1_treated",2,1
 28586.0739272009,"wia_spt33","treatment_start_time",28586.0739272009,1
 28611.3789750068,"wia_cbt68","r2b_resus",1,1
 28647.0770481697,"dnbi_cbt71","r2e_evac",1,1
@@ -3253,7 +3034,6 @@
 28732.570869389,"dnbi_cbt93","priority",2,1
 28732.570869389,"dnbi_cbt93","nbi",0,1
 28732.570869389,"dnbi_cbt93","surgery",1,1
-28732.570869389,"dnbi_cbt93","r1_treated",1,1
 28732.570869389,"dnbi_cbt93","treatment_start_time",28732.570869389,1
 28745.7990011973,"dnbi_cbt93","r2b",1,1
 28745.7990011973,"dnbi_cbt93","transport_start_time",28745.7990011973,1
@@ -3284,7 +3064,6 @@
 28955.0161631051,"wia_cbt69","priority",2,1
 28955.0161631051,"wia_cbt69","nbi",NA,1
 28955.0161631051,"wia_cbt69","surgery",1,1
-28955.0161631051,"wia_cbt69","r1_treated",1,1
 28955.0161631051,"wia_cbt69","treatment_start_time",28955.0161631051,1
 28965.6496137551,"wia_cbt69","r2b",2,1
 28965.6496137551,"wia_cbt69","transport_start_time",28965.6496137551,1
@@ -3293,7 +3072,6 @@
 29034.255268858,"dnbi_cbt94","priority",2,1
 29034.255268858,"dnbi_cbt94","nbi",0,1
 29034.255268858,"dnbi_cbt94","surgery",1,1
-29034.255268858,"dnbi_cbt94","r1_treated",3,1
 29034.255268858,"dnbi_cbt94","treatment_start_time",29034.255268858,1
 29048.961628973,"wia_cbt69","r2b_resus",1,1
 29061.0399851481,"dnbi_cbt94","r2b",2,1
@@ -3314,13 +3092,11 @@
 29342.8642261825,"dnbi_cbt95","priority",1,1
 29342.8642261825,"dnbi_cbt95","nbi",0,1
 29342.8642261825,"dnbi_cbt95","surgery",1,1
-29342.8642261825,"dnbi_cbt95","r1_treated",1,1
 29342.8642261825,"dnbi_cbt95","treatment_start_time",29342.8642261825,1
 29358.2415945337,"wia_cbt70","team",2,1
 29358.2415945337,"wia_cbt70","priority",3,1
 29358.2415945337,"wia_cbt70","nbi",NA,1
 29358.2415945337,"wia_cbt70","surgery",0,1
-29358.2415945337,"wia_cbt70","r1_treated",2,1
 29358.2415945337,"wia_cbt70","treatment_start_time",29358.2415945337,1
 29361.5503846831,"dnbi_cbt95","r2b",2,1
 29361.5503846831,"dnbi_cbt95","transport_start_time",29361.5503846831,1
@@ -3331,7 +3107,6 @@
 29373.2483944993,"dnbi_spt23","priority",2,1
 29373.2483944993,"dnbi_spt23","nbi",0,1
 29373.2483944993,"dnbi_spt23","surgery",0,1
-29373.2483944993,"dnbi_spt23","r1_treated",1,1
 29373.2483944993,"dnbi_spt23","treatment_start_time",29373.2483944993,1
 29383.6434981581,"dnbi_cbt93","r2e_treated",1,1
 29383.6434981581,"dnbi_cbt93","r2e_handling",1,1
@@ -3340,7 +3115,6 @@
 29439.4827945468,"wia_spt34","priority",1,1
 29439.4827945468,"wia_spt34","nbi",NA,1
 29439.4827945468,"wia_spt34","surgery",1,1
-29439.4827945468,"wia_spt34","r1_treated",3,1
 29439.4827945468,"wia_spt34","treatment_start_time",29439.4827945468,1
 29444.8954142782,"dnbi_cbt95","r2b_resus",1,1
 29459.141048241,"wia_spt34","r2b",2,1
@@ -3353,7 +3127,6 @@
 29638.6853319115,"dnbi_cbt96","priority",1,1
 29638.6853319115,"dnbi_cbt96","nbi",1,1
 29638.6853319115,"dnbi_cbt96","surgery",1,1
-29638.6853319115,"dnbi_cbt96","r1_treated",2,1
 29638.6853319115,"dnbi_cbt96","treatment_start_time",29638.6853319115,1
 29651.3856705387,"dnbi_cbt96","r2b",1,1
 29651.3856705387,"dnbi_cbt96","transport_start_time",29651.3856705387,1
@@ -3376,7 +3149,6 @@
 29764.385334129,"wia_cbt71","priority",3,1
 29764.385334129,"wia_cbt71","nbi",NA,1
 29764.385334129,"wia_cbt71","surgery",0,1
-29764.385334129,"wia_cbt71","r1_treated",3,1
 29764.385334129,"wia_cbt71","treatment_start_time",29764.385334129,1
 29789.9142999451,"wia_cbt61","return_day",29789.9142999451,1
 29799.9319709942,"wia_cbt55","r2e_surgery",1,1
@@ -3392,7 +3164,6 @@
 29950.5433559099,"dnbi_cbt97","priority",1,1
 29950.5433559099,"dnbi_cbt97","nbi",0,1
 29950.5433559099,"dnbi_cbt97","surgery",1,1
-29950.5433559099,"dnbi_cbt97","r1_treated",3,1
 29950.5433559099,"dnbi_cbt97","treatment_start_time",29950.5433559099,1
 29970.9106138616,"wia_cbt55","r2e_evac",1,1
 29975.281107896,"dnbi_cbt97","r2b",1,1
@@ -3411,7 +3182,6 @@
 30179.4329694049,"wia_cbt72","priority",1,1
 30179.4329694049,"wia_cbt72","nbi",NA,1
 30179.4329694049,"wia_cbt72","surgery",1,1
-30179.4329694049,"wia_cbt72","r1_treated",3,1
 30179.4329694049,"wia_cbt72","treatment_start_time",30179.4329694049,1
 30201.9090840004,"wia_cbt72","r2b",1,1
 30201.9090840004,"wia_cbt72","transport_start_time",30201.9090840004,1
@@ -3428,7 +3198,6 @@
 30273.2169437604,"dnbi_cbt98","priority",1,1
 30273.2169437604,"dnbi_cbt98","nbi",0,1
 30273.2169437604,"dnbi_cbt98","surgery",1,1
-30273.2169437604,"dnbi_cbt98","r1_treated",1,1
 30273.2169437604,"dnbi_cbt98","treatment_start_time",30273.2169437604,1
 30290.2461377784,"dnbi_cbt98","dow",1,1
 30290.2461377784,"dnbi_cbt98","r1_treated",1,1
@@ -3438,7 +3207,6 @@
 30309.6207340078,"wia_spt35","priority",3,1
 30309.6207340078,"wia_spt35","nbi",NA,1
 30309.6207340078,"wia_spt35","surgery",1,1
-30309.6207340078,"wia_spt35","r1_treated",1,1
 30309.6207340078,"wia_spt35","treatment_start_time",30309.6207340078,1
 30321.8835762958,"dnbi_cbt78","r2e_evac",1,1
 30392.7776276769,"dnbi_cbt96","r2b_surgery",1,1
@@ -3457,19 +3225,16 @@
 30585.5428604304,"dnbi_spt24","priority",1,1
 30585.5428604304,"dnbi_spt24","nbi",0,1
 30585.5428604304,"dnbi_spt24","surgery",1,1
-30585.5428604304,"dnbi_spt24","r1_treated",3,1
 30585.5428604304,"dnbi_spt24","treatment_start_time",30585.5428604304,1
 30590.8784630392,"dnbi_cbt99","team",3,1
 30590.8784630392,"dnbi_cbt99","priority",1,1
 30590.8784630392,"dnbi_cbt99","nbi",0,1
 30590.8784630392,"dnbi_cbt99","surgery",1,1
-30590.8784630392,"dnbi_cbt99","r1_treated",3,1
 30590.8784630392,"dnbi_cbt99","treatment_start_time",30590.8784630392,1
 30592.2391895137,"wia_cbt73","team",2,1
 30592.2391895137,"wia_cbt73","priority",1,1
 30592.2391895137,"wia_cbt73","nbi",NA,1
 30592.2391895137,"wia_cbt73","surgery",1,1
-30592.2391895137,"wia_cbt73","r1_treated",2,1
 30592.2391895137,"wia_cbt73","treatment_start_time",30592.2391895137,1
 30608.8870674248,"dnbi_cbt99","r2b",2,1
 30608.8870674248,"dnbi_cbt99","transport_start_time",30608.8870674248,1
@@ -3508,7 +3273,6 @@
 30879.3475945904,"dnbi_cbt100","priority",1,1
 30879.3475945904,"dnbi_cbt100","nbi",0,1
 30879.3475945904,"dnbi_cbt100","surgery",0,1
-30879.3475945904,"dnbi_cbt100","r1_treated",1,1
 30879.3475945904,"dnbi_cbt100","treatment_start_time",30879.3475945904,1
 30904.0268317463,"dnbi_cbt51","r2e_evac",1,1
 30960,"wia_spt19","r2e_surgery",1,1
@@ -3516,7 +3280,6 @@
 31029.5850429351,"wia_cbt74","priority",3,1
 31029.5850429351,"wia_cbt74","nbi",NA,1
 31029.5850429351,"wia_cbt74","surgery",1,1
-31029.5850429351,"wia_cbt74","r1_treated",1,1
 31029.5850429351,"wia_cbt74","treatment_start_time",31029.5850429351,1
 31128.2535369798,"dnbi_cbt99","r2b_surgery",1,1
 31128.2535369798,"dnbi_cbt99","r2b_to_r2e",1,1
@@ -3528,13 +3291,11 @@
 31176.6043658212,"wia_spt36","priority",1,1
 31176.6043658212,"wia_spt36","nbi",NA,1
 31176.6043658212,"wia_spt36","surgery",1,1
-31176.6043658212,"wia_spt36","r1_treated",3,1
 31176.6043658212,"wia_spt36","treatment_start_time",31176.6043658212,1
 31191.3361217699,"dnbi_cbt101","team",2,1
 31191.3361217699,"dnbi_cbt101","priority",2,1
 31191.3361217699,"dnbi_cbt101","nbi",0,1
 31191.3361217699,"dnbi_cbt101","surgery",0,1
-31191.3361217699,"dnbi_cbt101","r1_treated",2,1
 31191.3361217699,"dnbi_cbt101","treatment_start_time",31191.3361217699,1
 31193.9045790622,"wia_spt36","r2b",1,1
 31193.9045790622,"wia_spt36","transport_start_time",31193.9045790622,1
@@ -3560,7 +3321,6 @@
 31448.3389360311,"wia_cbt75","priority",1,1
 31448.3389360311,"wia_cbt75","nbi",NA,1
 31448.3389360311,"wia_cbt75","surgery",1,1
-31448.3389360311,"wia_cbt75","r1_treated",2,1
 31448.3389360311,"wia_cbt75","treatment_start_time",31448.3389360311,1
 31469.3473821356,"wia_cbt75","r2b",2,1
 31469.3473821356,"wia_cbt75","transport_start_time",31469.3473821356,1
@@ -3568,7 +3328,6 @@
 31486.9235528631,"dnbi_cbt102","priority",1,1
 31486.9235528631,"dnbi_cbt102","nbi",1,1
 31486.9235528631,"dnbi_cbt102","surgery",1,1
-31486.9235528631,"dnbi_cbt102","r1_treated",3,1
 31486.9235528631,"dnbi_cbt102","treatment_start_time",31486.9235528631,1
 31498.2473063309,"wia_cbt75","r2b_treated",2,1
 31509.9977237941,"dnbi_cbt102","r2b",1,1
@@ -3595,7 +3354,6 @@
 31794.5238654225,"dnbi_cbt103","priority",2,1
 31794.5238654225,"dnbi_cbt103","nbi",1,1
 31794.5238654225,"dnbi_cbt103","surgery",1,1
-31794.5238654225,"dnbi_cbt103","r1_treated",1,1
 31794.5238654225,"dnbi_cbt103","treatment_start_time",31794.5238654225,1
 31796.3838667964,"wia_spt36","r2b_surgery",1,1
 31796.3838667964,"wia_spt36","r2b_to_r2e",1,1
@@ -3608,7 +3366,6 @@
 31827.911647972,"dnbi_spt25","priority",2,1
 31827.911647972,"dnbi_spt25","nbi",0,1
 31827.911647972,"dnbi_spt25","surgery",1,1
-31827.911647972,"dnbi_spt25","r1_treated",1,1
 31827.911647972,"dnbi_spt25","treatment_start_time",31827.911647972,1
 31844.7203169598,"dnbi_spt25","r2b",2,1
 31844.7203169598,"dnbi_spt25","transport_start_time",31844.7203169598,1
@@ -3619,7 +3376,6 @@
 31900.3117993008,"wia_cbt76","priority",1,1
 31900.3117993008,"wia_cbt76","nbi",NA,1
 31900.3117993008,"wia_cbt76","surgery",1,1
-31900.3117993008,"wia_cbt76","r1_treated",1,1
 31900.3117993008,"wia_cbt76","treatment_start_time",31900.3117993008,1
 31922.215772839,"wia_cbt76","r2b",2,1
 31922.215772839,"wia_cbt76","transport_start_time",31922.215772839,1
@@ -3634,7 +3390,6 @@
 31993.6454591125,"wia_spt37","priority",2,1
 31993.6454591125,"wia_spt37","nbi",NA,1
 31993.6454591125,"wia_spt37","surgery",1,1
-31993.6454591125,"wia_spt37","r1_treated",2,1
 31993.6454591125,"wia_spt37","treatment_start_time",31993.6454591125,1
 32006.1441562561,"wia_cbt76","r2b_resus",1,1
 32016.3926683072,"wia_spt37","r2b",1,1
@@ -3646,7 +3401,6 @@
 32105.2692356044,"dnbi_cbt104","priority",1,1
 32105.2692356044,"dnbi_cbt104","nbi",0,1
 32105.2692356044,"dnbi_cbt104","surgery",0,1
-32105.2692356044,"dnbi_cbt104","r1_treated",3,1
 32105.2692356044,"dnbi_cbt104","treatment_start_time",32105.2692356044,1
 32129.3764566047,"dnbi_cbt104","r2b",2,1
 32129.3764566047,"dnbi_cbt104","transport_start_time",32129.3764566047,1
@@ -3662,7 +3416,6 @@
 32336.9501137692,"wia_cbt77","priority",1,1
 32336.9501137692,"wia_cbt77","nbi",NA,1
 32336.9501137692,"wia_cbt77","surgery",1,1
-32336.9501137692,"wia_cbt77","r1_treated",2,1
 32336.9501137692,"wia_cbt77","treatment_start_time",32336.9501137692,1
 32357.8594202296,"wia_cbt77","r2b",1,1
 32357.8594202296,"wia_cbt77","transport_start_time",32357.8594202296,1
@@ -3672,7 +3425,6 @@
 32409.740397932,"dnbi_cbt105","priority",1,1
 32409.740397932,"dnbi_cbt105","nbi",0,1
 32409.740397932,"dnbi_cbt105","surgery",1,1
-32409.740397932,"dnbi_cbt105","r1_treated",1,1
 32409.740397932,"dnbi_cbt105","treatment_start_time",32409.740397932,1
 32417.2657556607,"wia_cbt77","r2b_resus",1,1
 32432.3223739959,"dnbi_cbt105","r2b",1,1
@@ -3705,7 +3457,6 @@
 32691.7362960638,"dnbi_cbt106","priority",2,1
 32691.7362960638,"dnbi_cbt106","nbi",0,1
 32691.7362960638,"dnbi_cbt106","surgery",0,1
-32691.7362960638,"dnbi_cbt106","r1_treated",3,1
 32691.7362960638,"dnbi_cbt106","treatment_start_time",32691.7362960638,1
 32695.5712641663,"dnbi_cbt81","r2e_evac",1,1
 32713.161823065,"dnbi_cbt106","r2b",1,1
@@ -3714,7 +3465,6 @@
 32728.5564435998,"wia_cbt78","priority",1,1
 32728.5564435998,"wia_cbt78","nbi",NA,1
 32728.5564435998,"wia_cbt78","surgery",1,1
-32728.5564435998,"wia_cbt78","r1_treated",2,1
 32728.5564435998,"wia_cbt78","treatment_start_time",32728.5564435998,1
 32742.9705458566,"dnbi_cbt106","r2b_treated",1,1
 32744.330220311,"dnbi_spt25","r2b_surgery",1,1
@@ -3733,7 +3483,6 @@
 32848.3424520898,"wia_spt38","priority",3,1
 32848.3424520898,"wia_spt38","nbi",NA,1
 32848.3424520898,"wia_spt38","surgery",1,1
-32848.3424520898,"wia_spt38","r1_treated",2,1
 32848.3424520898,"wia_spt38","treatment_start_time",32848.3424520898,1
 32869.9332040838,"wia_cbt58","r2e_evac",1,1
 32894.835111333,"wia_cbt76","r2b_surgery",1,1
@@ -3746,7 +3495,6 @@
 32997.2926622347,"dnbi_cbt107","priority",1,1
 32997.2926622347,"dnbi_cbt107","nbi",0,1
 32997.2926622347,"dnbi_cbt107","surgery",1,1
-32997.2926622347,"dnbi_cbt107","r1_treated",2,1
 32997.2926622347,"dnbi_cbt107","treatment_start_time",32997.2926622347,1
 33018.3869099762,"dnbi_cbt107","r2b",1,1
 33018.3869099762,"dnbi_cbt107","transport_start_time",33018.3869099762,1
@@ -3755,7 +3503,6 @@
 33063.0825249054,"dnbi_spt26","priority",2,1
 33063.0825249054,"dnbi_spt26","nbi",0,1
 33063.0825249054,"dnbi_spt26","surgery",1,1
-33063.0825249054,"dnbi_spt26","r1_treated",3,1
 33063.0825249054,"dnbi_spt26","treatment_start_time",33063.0825249054,1
 33067.3731184967,"wia_cbt60","r2e_evac",1,1
 33087.4175798733,"dnbi_spt26","r2b",2,1
@@ -3768,7 +3515,6 @@
 33162.6919431712,"wia_cbt79","priority",1,1
 33162.6919431712,"wia_cbt79","nbi",NA,1
 33162.6919431712,"wia_cbt79","surgery",1,1
-33162.6919431712,"wia_cbt79","r1_treated",1,1
 33162.6919431712,"wia_cbt79","treatment_start_time",33162.6919431712,1
 33187.7123740511,"wia_cbt79","r2b",2,1
 33187.7123740511,"wia_cbt79","transport_start_time",33187.7123740511,1
@@ -3784,7 +3530,6 @@
 33323.5448049514,"dnbi_cbt108","priority",2,1
 33323.5448049514,"dnbi_cbt108","nbi",0,1
 33323.5448049514,"dnbi_cbt108","surgery",1,1
-33323.5448049514,"dnbi_cbt108","r1_treated",1,1
 33323.5448049514,"dnbi_cbt108","treatment_start_time",33323.5448049514,1
 33359.6795321182,"dnbi_cbt105","r2b_surgery",1,1
 33359.6795321182,"dnbi_cbt105","r2b_to_r2e",1,1
@@ -3807,7 +3552,6 @@
 33556.2498903745,"wia_cbt80","priority",1,1
 33556.2498903745,"wia_cbt80","nbi",NA,1
 33556.2498903745,"wia_cbt80","surgery",0,1
-33556.2498903745,"wia_cbt80","r1_treated",3,1
 33556.2498903745,"wia_cbt80","treatment_start_time",33556.2498903745,1
 33577.1075954176,"wia_cbt80","r2b",2,1
 33577.1075954176,"wia_cbt80","transport_start_time",33577.1075954176,1
@@ -3815,7 +3559,6 @@
 33608.6548893116,"wia_spt39","priority",1,1
 33608.6548893116,"wia_spt39","nbi",NA,1
 33608.6548893116,"wia_spt39","surgery",1,1
-33608.6548893116,"wia_spt39","r1_treated",3,1
 33608.6548893116,"wia_spt39","treatment_start_time",33608.6548893116,1
 33611.4361126086,"wia_cbt80","r2b_treated",2,1
 33623.9731870298,"wia_spt39","r2b",2,1
@@ -3824,7 +3567,6 @@
 33625.515778092,"dnbi_cbt109","priority",1,1
 33625.515778092,"dnbi_cbt109","nbi",0,1
 33625.515778092,"dnbi_cbt109","surgery",1,1
-33625.515778092,"dnbi_cbt109","r1_treated",1,1
 33625.515778092,"dnbi_cbt109","treatment_start_time",33625.515778092,1
 33650.0210980152,"dnbi_cbt109","r2b",2,1
 33650.0210980152,"dnbi_cbt109","transport_start_time",33650.0210980152,1
@@ -3844,7 +3586,6 @@
 33948.3705265992,"dnbi_cbt110","priority",1,1
 33948.3705265992,"dnbi_cbt110","nbi",1,1
 33948.3705265992,"dnbi_cbt110","surgery",0,1
-33948.3705265992,"dnbi_cbt110","r1_treated",2,1
 33948.3705265992,"dnbi_cbt110","treatment_start_time",33948.3705265992,1
 33968.9947917028,"dnbi_cbt110","r2b",1,1
 33968.9947917028,"dnbi_cbt110","transport_start_time",33968.9947917028,1
@@ -3855,7 +3596,6 @@
 33974.5451134024,"wia_cbt81","priority",1,1
 33974.5451134024,"wia_cbt81","nbi",NA,1
 33974.5451134024,"wia_cbt81","surgery",1,1
-33974.5451134024,"wia_cbt81","r1_treated",1,1
 33974.5451134024,"wia_cbt81","treatment_start_time",33974.5451134024,1
 33997.9233312298,"dnbi_cbt110","r2b_treated",1,1
 33998.5525024975,"dnbi_spt26","r2e_treated",1,1
@@ -3877,7 +3617,6 @@
 34237.3277767599,"dnbi_cbt111","priority",2,1
 34237.3277767599,"dnbi_cbt111","nbi",0,1
 34237.3277767599,"dnbi_cbt111","surgery",1,1
-34237.3277767599,"dnbi_cbt111","r1_treated",3,1
 34237.3277767599,"dnbi_cbt111","treatment_start_time",34237.3277767599,1
 34254.1295538629,"wia_spt39","r2b_surgery",1,1
 34254.1295538629,"wia_spt39","r2b_to_r2e",1,1
@@ -3898,7 +3637,6 @@
 34304.2189144948,"dnbi_spt27","priority",1,1
 34304.2189144948,"dnbi_spt27","nbi",0,1
 34304.2189144948,"dnbi_spt27","surgery",1,1
-34304.2189144948,"dnbi_spt27","r1_treated",3,1
 34304.2189144948,"dnbi_spt27","treatment_start_time",34304.2189144948,1
 34305.3988023169,"wia_cbt70","return_day",34305.3988023169,1
 34322.4669975597,"dnbi_spt27","r2b",1,1
@@ -3918,7 +3656,6 @@
 34373.586102203,"wia_cbt82","priority",1,1
 34373.586102203,"wia_cbt82","nbi",NA,1
 34373.586102203,"wia_cbt82","surgery",1,1
-34373.586102203,"wia_cbt82","r1_treated",3,1
 34373.586102203,"wia_cbt82","treatment_start_time",34373.586102203,1
 34392.4876285159,"dnbi_spt23","return_day",34392.4876285159,1
 34397.5432900671,"dnbi_cbt109","r2b_surgery",1,1
@@ -3934,7 +3671,6 @@
 34476.3185339044,"wia_spt40","priority",1,1
 34476.3185339044,"wia_spt40","nbi",NA,1
 34476.3185339044,"wia_spt40","surgery",0,1
-34476.3185339044,"wia_spt40","r1_treated",1,1
 34476.3185339044,"wia_spt40","treatment_start_time",34476.3185339044,1
 34483.6186455695,"wia_cbt82","r2b_resus",1,1
 34484.4821940492,"wia_cbt64","r2e_surgery",1,1
@@ -3946,7 +3682,6 @@
 34527.2486111699,"dnbi_cbt112","priority",1,1
 34527.2486111699,"dnbi_cbt112","nbi",0,1
 34527.2486111699,"dnbi_cbt112","surgery",1,1
-34527.2486111699,"dnbi_cbt112","r1_treated",1,1
 34527.2486111699,"dnbi_cbt112","treatment_start_time",34527.2486111699,1
 34533.6142371961,"wia_cbt63","r2e_evac",1,1
 34550.6114821362,"wia_spt38","return_day",34550.6114821362,1
@@ -3965,13 +3700,11 @@
 34831.5247077488,"wia_cbt83","priority",3,1
 34831.5247077488,"wia_cbt83","nbi",NA,1
 34831.5247077488,"wia_cbt83","surgery",0,1
-34831.5247077488,"wia_cbt83","r1_treated",2,1
 34831.5247077488,"wia_cbt83","treatment_start_time",34831.5247077488,1
 34842.2021668064,"dnbi_cbt113","team",1,1
 34842.2021668064,"dnbi_cbt113","priority",1,1
 34842.2021668064,"dnbi_cbt113","nbi",0,1
 34842.2021668064,"dnbi_cbt113","surgery",1,1
-34842.2021668064,"dnbi_cbt113","r1_treated",1,1
 34842.2021668064,"dnbi_cbt113","treatment_start_time",34842.2021668064,1
 34859.0896842498,"dnbi_cbt113","r2b",2,1
 34859.0896842498,"dnbi_cbt113","transport_start_time",34859.0896842498,1
@@ -3997,7 +3730,6 @@
 35134.5850587599,"dnbi_cbt114","priority",1,1
 35134.5850587599,"dnbi_cbt114","nbi",0,1
 35134.5850587599,"dnbi_cbt114","surgery",1,1
-35134.5850587599,"dnbi_cbt114","r1_treated",1,1
 35134.5850587599,"dnbi_cbt114","treatment_start_time",35134.5850587599,1
 35160.7985709062,"dnbi_cbt114","r2b",2,1
 35160.7985709062,"dnbi_cbt114","transport_start_time",35160.7985709062,1
@@ -4010,7 +3742,6 @@
 35238.6736169292,"wia_cbt84","priority",2,1
 35238.6736169292,"wia_cbt84","nbi",NA,1
 35238.6736169292,"wia_cbt84","surgery",1,1
-35238.6736169292,"wia_cbt84","r1_treated",1,1
 35238.6736169292,"wia_cbt84","treatment_start_time",35238.6736169292,1
 35254.5263391549,"wia_cbt84","r2b",2,1
 35254.5263391549,"wia_cbt84","transport_start_time",35254.5263391549,1
@@ -4020,7 +3751,6 @@
 35268.0948224929,"wia_spt41","priority",1,1
 35268.0948224929,"wia_spt41","nbi",NA,1
 35268.0948224929,"wia_spt41","surgery",1,1
-35268.0948224929,"wia_spt41","r1_treated",1,1
 35268.0948224929,"wia_spt41","treatment_start_time",35268.0948224929,1
 35277.196810504,"wia_cbt84","r2b_treated",2,1
 35280,"wia_cbt40","r2e_surgery",1,1
@@ -4048,7 +3778,6 @@
 35472.8197707327,"dnbi_cbt115","priority",1,1
 35472.8197707327,"dnbi_cbt115","nbi",0,1
 35472.8197707327,"dnbi_cbt115","surgery",1,1
-35472.8197707327,"dnbi_cbt115","r1_treated",3,1
 35472.8197707327,"dnbi_cbt115","treatment_start_time",35472.8197707327,1
 35485.5046454432,"dnbi_cbt115","r2b",1,1
 35485.5046454432,"dnbi_cbt115","transport_start_time",35485.5046454432,1
@@ -4057,7 +3786,6 @@
 35537.1186498643,"dnbi_spt28","priority",1,1
 35537.1186498643,"dnbi_spt28","nbi",0,1
 35537.1186498643,"dnbi_spt28","surgery",1,1
-35537.1186498643,"dnbi_spt28","r1_treated",3,1
 35537.1186498643,"dnbi_spt28","treatment_start_time",35537.1186498643,1
 35546.3914246837,"dnbi_cbt115","r2b_resus",1,1
 35552.6292235257,"dnbi_cbt114","r2b_surgery",1,1
@@ -4074,7 +3802,6 @@
 35644.3805898195,"wia_cbt85","priority",1,1
 35644.3805898195,"wia_cbt85","nbi",NA,1
 35644.3805898195,"wia_cbt85","surgery",1,1
-35644.3805898195,"wia_cbt85","r1_treated",3,1
 35644.3805898195,"wia_cbt85","treatment_start_time",35644.3805898195,1
 35653.1670382037,"dnbi_spt28","r2b_resus",1,1
 35656.9081769964,"wia_cbt84","r2b_surgery",1,1
@@ -4093,7 +3820,6 @@
 35781.6139769366,"dnbi_cbt116","priority",1,1
 35781.6139769366,"dnbi_cbt116","nbi",0,1
 35781.6139769366,"dnbi_cbt116","surgery",1,1
-35781.6139769366,"dnbi_cbt116","r1_treated",3,1
 35781.6139769366,"dnbi_cbt116","treatment_start_time",35781.6139769366,1
 35806.1663951247,"dnbi_cbt116","r2b",1,1
 35806.1663951247,"dnbi_cbt116","transport_start_time",35806.1663951247,1
@@ -4109,7 +3835,6 @@
 36037.7837934366,"wia_cbt86","priority",2,1
 36037.7837934366,"wia_cbt86","nbi",NA,1
 36037.7837934366,"wia_cbt86","surgery",1,1
-36037.7837934366,"wia_cbt86","r1_treated",2,1
 36037.7837934366,"wia_cbt86","treatment_start_time",36037.7837934366,1
 36059.0069415597,"wia_cbt86","r2b",2,1
 36059.0069415597,"wia_cbt86","transport_start_time",36059.0069415597,1
@@ -4117,7 +3842,6 @@
 36081.3158000582,"dnbi_cbt117","priority",1,1
 36081.3158000582,"dnbi_cbt117","nbi",0,1
 36081.3158000582,"dnbi_cbt117","surgery",1,1
-36081.3158000582,"dnbi_cbt117","r1_treated",1,1
 36081.3158000582,"dnbi_cbt117","treatment_start_time",36081.3158000582,1
 36089.6221573432,"wia_cbt86","r2b_treated",2,1
 36101.7897578709,"dnbi_cbt117","r2b",2,1
@@ -4127,7 +3851,6 @@
 36136.6955169162,"wia_spt42","priority",1,1
 36136.6955169162,"wia_spt42","nbi",NA,1
 36136.6955169162,"wia_spt42","surgery",1,1
-36136.6955169162,"wia_spt42","r1_treated",3,1
 36136.6955169162,"wia_spt42","treatment_start_time",36136.6955169162,1
 36145.0515388315,"wia_cbt86","r2b_resus",1,1
 36160.551201409,"wia_spt42","r2b",2,1
@@ -4168,7 +3891,6 @@
 36425.3544775958,"dnbi_cbt118","priority",1,1
 36425.3544775958,"dnbi_cbt118","nbi",1,1
 36425.3544775958,"dnbi_cbt118","surgery",1,1
-36425.3544775958,"dnbi_cbt118","r1_treated",1,1
 36425.3544775958,"dnbi_cbt118","treatment_start_time",36425.3544775958,1
 36442.9786588865,"dnbi_cbt118","r2b",2,1
 36442.9786588865,"dnbi_cbt118","transport_start_time",36442.9786588865,1
@@ -4177,7 +3899,6 @@
 36469.5132411164,"wia_cbt87","priority",2,1
 36469.5132411164,"wia_cbt87","nbi",NA,1
 36469.5132411164,"wia_cbt87","surgery",1,1
-36469.5132411164,"wia_cbt87","r1_treated",2,1
 36469.5132411164,"wia_cbt87","treatment_start_time",36469.5132411164,1
 36503.4056797164,"dnbi_cbt116","r2b_surgery",1,1
 36503.4056797164,"dnbi_cbt116","r2b_to_r2e",1,1
@@ -4191,7 +3912,6 @@
 36720.0488100131,"dnbi_cbt119","priority",1,1
 36720.0488100131,"dnbi_cbt119","nbi",1,1
 36720.0488100131,"dnbi_cbt119","surgery",0,1
-36720.0488100131,"dnbi_cbt119","r1_treated",1,1
 36720.0488100131,"dnbi_cbt119","treatment_start_time",36720.0488100131,1
 36746.0261409772,"dnbi_cbt119","r2b",1,1
 36746.0261409772,"dnbi_cbt119","transport_start_time",36746.0261409772,1
@@ -4200,7 +3920,6 @@
 36780.7284832995,"dnbi_spt29","priority",1,1
 36780.7284832995,"dnbi_spt29","nbi",0,1
 36780.7284832995,"dnbi_spt29","surgery",1,1
-36780.7284832995,"dnbi_spt29","r1_treated",2,1
 36780.7284832995,"dnbi_spt29","treatment_start_time",36780.7284832995,1
 36794.5214385701,"dnbi_spt29","r2b",1,1
 36794.5214385701,"dnbi_spt29","transport_start_time",36794.5214385701,1
@@ -4218,7 +3937,6 @@
 36907.8935683789,"wia_cbt88","priority",3,1
 36907.8935683789,"wia_cbt88","nbi",NA,1
 36907.8935683789,"wia_cbt88","surgery",0,1
-36907.8935683789,"wia_cbt88","r1_treated",3,1
 36907.8935683789,"wia_cbt88","treatment_start_time",36907.8935683789,1
 36978.3875191541,"dnbi_cbt117","r2b_surgery",1,1
 36978.3875191541,"dnbi_cbt117","r2b_to_r2e",1,1
@@ -4229,13 +3947,11 @@
 37022.4031480418,"wia_spt43","priority",2,1
 37022.4031480418,"wia_spt43","nbi",NA,1
 37022.4031480418,"wia_spt43","surgery",1,1
-37022.4031480418,"wia_spt43","r1_treated",2,1
 37022.4031480418,"wia_spt43","treatment_start_time",37022.4031480418,1
 37033.1481560641,"dnbi_cbt120","team",1,1
 37033.1481560641,"dnbi_cbt120","priority",1,1
 37033.1481560641,"dnbi_cbt120","nbi",0,1
 37033.1481560641,"dnbi_cbt120","surgery",1,1
-37033.1481560641,"dnbi_cbt120","r1_treated",1,1
 37033.1481560641,"dnbi_cbt120","treatment_start_time",37033.1481560641,1
 37041.6286216079,"wia_spt43","r2b",1,1
 37041.6286216079,"wia_spt43","transport_start_time",37041.6286216079,1
@@ -4264,7 +3980,6 @@
 37300.6365435589,"wia_cbt89","priority",1,1
 37300.6365435589,"wia_cbt89","nbi",NA,1
 37300.6365435589,"wia_cbt89","surgery",1,1
-37300.6365435589,"wia_cbt89","r1_treated",2,1
 37300.6365435589,"wia_cbt89","treatment_start_time",37300.6365435589,1
 37312.593751382,"wia_cbt89","r2b",1,1
 37312.593751382,"wia_cbt89","transport_start_time",37312.593751382,1
@@ -4272,7 +3987,6 @@
 37315.8994985402,"dnbi_cbt121","priority",2,1
 37315.8994985402,"dnbi_cbt121","nbi",0,1
 37315.8994985402,"dnbi_cbt121","surgery",1,1
-37315.8994985402,"dnbi_cbt121","r1_treated",3,1
 37315.8994985402,"dnbi_cbt121","treatment_start_time",37315.8994985402,1
 37323.4491061187,"dnbi_cbt118","r2b_surgery",1,1
 37323.4491061187,"dnbi_cbt118","r2b_to_r2e",1,1
@@ -4294,7 +4008,6 @@
 37622.6527822621,"dnbi_cbt122","priority",2,1
 37622.6527822621,"dnbi_cbt122","nbi",0,1
 37622.6527822621,"dnbi_cbt122","surgery",1,1
-37622.6527822621,"dnbi_cbt122","r1_treated",3,1
 37622.6527822621,"dnbi_cbt122","treatment_start_time",37622.6527822621,1
 37640.9840241541,"dnbi_spt29","r2e_treated",1,1
 37640.9840241541,"dnbi_spt29","r2e_handling",1,1
@@ -4306,7 +4019,6 @@
 37700.6455376935,"wia_cbt90","priority",2,1
 37700.6455376935,"wia_cbt90","nbi",NA,1
 37700.6455376935,"wia_cbt90","surgery",1,1
-37700.6455376935,"wia_cbt90","r1_treated",3,1
 37700.6455376935,"wia_cbt90","treatment_start_time",37700.6455376935,1
 37719.1606333099,"wia_spt43","r2b_surgery",1,1
 37719.1606333099,"wia_spt43","r2b_to_r2e",1,1
@@ -4326,7 +4038,6 @@
 37872.1576313078,"wia_spt44","priority",1,1
 37872.1576313078,"wia_spt44","nbi",NA,1
 37872.1576313078,"wia_spt44","surgery",0,1
-37872.1576313078,"wia_spt44","r1_treated",3,1
 37872.1576313078,"wia_spt44","treatment_start_time",37872.1576313078,1
 37887.3763376988,"dnbi_cbt120","r2e_treated",1,1
 37887.3763376988,"dnbi_cbt120","r2e_handling",1,1
@@ -4339,7 +4050,6 @@
 37956.2698020365,"dnbi_cbt123","priority",1,1
 37956.2698020365,"dnbi_cbt123","nbi",0,1
 37956.2698020365,"dnbi_cbt123","surgery",1,1
-37956.2698020365,"dnbi_cbt123","r1_treated",1,1
 37956.2698020365,"dnbi_cbt123","treatment_start_time",37956.2698020365,1
 37983.262580834,"dnbi_cbt123","r2b",2,1
 37983.262580834,"dnbi_cbt123","transport_start_time",37983.262580834,1
@@ -4350,7 +4060,6 @@
 38000.5370695007,"dnbi_spt30","priority",1,1
 38000.5370695007,"dnbi_spt30","nbi",0,1
 38000.5370695007,"dnbi_spt30","surgery",1,1
-38000.5370695007,"dnbi_spt30","r1_treated",1,1
 38000.5370695007,"dnbi_spt30","treatment_start_time",38000.5370695007,1
 38015.0563049988,"dnbi_cbt123","r2b_treated",2,1
 38020.4105851365,"dnbi_spt30","r2b",2,1
@@ -4378,7 +4087,6 @@
 38107.0322590133,"wia_cbt91","priority",1,1
 38107.0322590133,"wia_cbt91","nbi",NA,1
 38107.0322590133,"wia_cbt91","surgery",1,1
-38107.0322590133,"wia_cbt91","r1_treated",2,1
 38107.0322590133,"wia_cbt91","treatment_start_time",38107.0322590133,1
 38135.5501192548,"wia_cbt91","r2b",2,1
 38135.5501192548,"wia_cbt91","transport_start_time",38135.5501192548,1
@@ -4395,7 +4103,6 @@
 38258.5000216237,"dnbi_cbt124","priority",1,1
 38258.5000216237,"dnbi_cbt124","nbi",0,1
 38258.5000216237,"dnbi_cbt124","surgery",1,1
-38258.5000216237,"dnbi_cbt124","r1_treated",1,1
 38258.5000216237,"dnbi_cbt124","treatment_start_time",38258.5000216237,1
 38276.8281356133,"dnbi_cbt124","r2b",1,1
 38276.8281356133,"dnbi_cbt124","transport_start_time",38276.8281356133,1
@@ -4419,13 +4126,11 @@
 38557.4520184849,"wia_cbt92","priority",3,1
 38557.4520184849,"wia_cbt92","nbi",NA,1
 38557.4520184849,"wia_cbt92","surgery",0,1
-38557.4520184849,"wia_cbt92","r1_treated",3,1
 38557.4520184849,"wia_cbt92","treatment_start_time",38557.4520184849,1
 38560.3227457807,"dnbi_cbt125","team",2,1
 38560.3227457807,"dnbi_cbt125","priority",3,1
 38560.3227457807,"dnbi_cbt125","nbi",0,1
 38560.3227457807,"dnbi_cbt125","surgery",1,1
-38560.3227457807,"dnbi_cbt125","r1_treated",2,1
 38560.3227457807,"dnbi_cbt125","treatment_start_time",38560.3227457807,1
 38612.7587183246,"dnbi_cbt123","r2b_surgery",1,1
 38612.7587183246,"dnbi_cbt123","r2b_to_r2e",1,1
@@ -4437,7 +4142,6 @@
 38720.8098832872,"wia_spt45","priority",1,1
 38720.8098832872,"wia_spt45","nbi",NA,1
 38720.8098832872,"wia_spt45","surgery",1,1
-38720.8098832872,"wia_spt45","r1_treated",1,1
 38720.8098832872,"wia_spt45","treatment_start_time",38720.8098832872,1
 38721.5302159957,"dnbi_cbt101","return_day",38721.5302159957,1
 38748.8931981063,"wia_spt45","r2b",1,1
@@ -4456,7 +4160,6 @@
 38889.1900992966,"dnbi_cbt126","priority",1,1
 38889.1900992966,"dnbi_cbt126","nbi",0,1
 38889.1900992966,"dnbi_cbt126","surgery",0,1
-38889.1900992966,"dnbi_cbt126","r1_treated",3,1
 38889.1900992966,"dnbi_cbt126","treatment_start_time",38889.1900992966,1
 38912.1239640835,"dnbi_cbt126","r2b",-1,1
 38912.1239640835,"dnbi_cbt126","transport_start_time",38912.1239640835,1
@@ -4471,7 +4174,6 @@
 38956.5397084199,"wia_cbt93","priority",1,1
 38956.5397084199,"wia_cbt93","nbi",NA,1
 38956.5397084199,"wia_cbt93","surgery",1,1
-38956.5397084199,"wia_cbt93","r1_treated",2,1
 38956.5397084199,"wia_cbt93","treatment_start_time",38956.5397084199,1
 38968.1147492702,"wia_cbt87","return_day",38968.1147492702,1
 38974.7781330836,"wia_cbt91","r2e_treated",1,1
@@ -4502,7 +4204,6 @@
 39205.5282090367,"dnbi_cbt127","priority",2,1
 39205.5282090367,"dnbi_cbt127","nbi",0,1
 39205.5282090367,"dnbi_cbt127","surgery",1,1
-39205.5282090367,"dnbi_cbt127","r1_treated",3,1
 39205.5282090367,"dnbi_cbt127","treatment_start_time",39205.5282090367,1
 39221.210399122,"wia_spt45","r2e_treated",1,1
 39221.210399122,"wia_spt45","r2e_handling",1,1
@@ -4512,7 +4213,6 @@
 39265.7935967129,"dnbi_spt31","priority",2,1
 39265.7935967129,"dnbi_spt31","nbi",0,1
 39265.7935967129,"dnbi_spt31","surgery",1,1
-39265.7935967129,"dnbi_spt31","r1_treated",3,1
 39265.7935967129,"dnbi_spt31","treatment_start_time",39265.7935967129,1
 39271.046202724,"dnbi_cbt127","r2b_treated",2,1
 39284.886176023,"dnbi_spt31","r2b",1,1
@@ -4524,7 +4224,6 @@
 39334.2881839362,"wia_cbt94","priority",1,1
 39334.2881839362,"wia_cbt94","nbi",NA,1
 39334.2881839362,"wia_cbt94","surgery",1,1
-39334.2881839362,"wia_cbt94","r1_treated",3,1
 39334.2881839362,"wia_cbt94","treatment_start_time",39334.2881839362,1
 39350.1733900909,"wia_cbt94","r2b",2,1
 39350.1733900909,"wia_cbt94","transport_start_time",39350.1733900909,1
@@ -4535,14 +4234,12 @@
 39504.4447684123,"dnbi_cbt128","priority",3,1
 39504.4447684123,"dnbi_cbt128","nbi",0,1
 39504.4447684123,"dnbi_cbt128","surgery",1,1
-39504.4447684123,"dnbi_cbt128","r1_treated",2,1
 39504.4447684123,"dnbi_cbt128","treatment_start_time",39504.4447684123,1
 39506.4504866347,"dnbi_cbt95","r2e_evac",1,1
 39511.4698034604,"wia_spt46","team",2,1
 39511.4698034604,"wia_spt46","priority",2,1
 39511.4698034604,"wia_spt46","nbi",NA,1
 39511.4698034604,"wia_spt46","surgery",1,1
-39511.4698034604,"wia_spt46","r1_treated",2,1
 39511.4698034604,"wia_spt46","treatment_start_time",39511.4698034604,1
 39529.742632466,"wia_spt46","r2b",1,1
 39529.742632466,"wia_spt46","transport_start_time",39529.742632466,1
@@ -4553,7 +4250,6 @@
 39766.7217717622,"wia_cbt95","priority",3,1
 39766.7217717622,"wia_cbt95","nbi",NA,1
 39766.7217717622,"wia_cbt95","surgery",0,1
-39766.7217717622,"wia_cbt95","r1_treated",3,1
 39766.7217717622,"wia_cbt95","treatment_start_time",39766.7217717622,1
 39768.1132702642,"wia_cbt93","r2b_surgery",1,1
 39768.1132702642,"wia_cbt93","r2b_to_r2e",1,1
@@ -4565,7 +4261,6 @@
 39816.8103560612,"dnbi_cbt129","priority",1,1
 39816.8103560612,"dnbi_cbt129","nbi",0,1
 39816.8103560612,"dnbi_cbt129","surgery",1,1
-39816.8103560612,"dnbi_cbt129","r1_treated",3,1
 39816.8103560612,"dnbi_cbt129","treatment_start_time",39816.8103560612,1
 39826.4760289348,"kia_spt21","team",2,1
 39826.4760289348,"kia_spt21","priority",NA,1
@@ -4602,7 +4297,6 @@
 40130.3706434537,"dnbi_cbt130","priority",2,1
 40130.3706434537,"dnbi_cbt130","nbi",1,1
 40130.3706434537,"dnbi_cbt130","surgery",0,1
-40130.3706434537,"dnbi_cbt130","r1_treated",2,1
 40130.3706434537,"dnbi_cbt130","treatment_start_time",40130.3706434537,1
 40149.8516138807,"dnbi_cbt106","return_day",40149.8516138807,1
 40154.6065039099,"dnbi_cbt130","r2b",1,1
@@ -4613,7 +4307,6 @@
 40200.3530503216,"wia_cbt96","priority",3,1
 40200.3530503216,"wia_cbt96","nbi",NA,1
 40200.3530503216,"wia_cbt96","surgery",0,1
-40200.3530503216,"wia_cbt96","r1_treated",2,1
 40200.3530503216,"wia_cbt96","treatment_start_time",40200.3530503216,1
 40213.1635408413,"dnbi_cbt130","r2b_resus",1,1
 40214.6978574204,"dnbi_spt24","r2e_evac",1,1
@@ -4622,14 +4315,12 @@
 40325.4721220203,"wia_spt47","priority",1,1
 40325.4721220203,"wia_spt47","nbi",NA,1
 40325.4721220203,"wia_spt47","surgery",1,1
-40325.4721220203,"wia_spt47","r1_treated",2,1
 40325.4721220203,"wia_spt47","treatment_start_time",40325.4721220203,1
 40373.5496265917,"wia_spt36","r2e_evac",1,1
 40440.0471528617,"dnbi_cbt131","team",3,1
 40440.0471528617,"dnbi_cbt131","priority",2,1
 40440.0471528617,"dnbi_cbt131","nbi",0,1
 40440.0471528617,"dnbi_cbt131","surgery",1,1
-40440.0471528617,"dnbi_cbt131","r1_treated",3,1
 40440.0471528617,"dnbi_cbt131","treatment_start_time",40440.0471528617,1
 40506.3250845543,"wia_spt46","r2b_surgery",1,1
 40506.3250845543,"wia_spt46","r2b_to_r2e",1,1
@@ -4639,7 +4330,6 @@
 40532.5104082525,"dnbi_spt32","priority",3,1
 40532.5104082525,"dnbi_spt32","nbi",0,1
 40532.5104082525,"dnbi_spt32","surgery",0,1
-40532.5104082525,"dnbi_spt32","r1_treated",2,1
 40532.5104082525,"dnbi_spt32","treatment_start_time",40532.5104082525,1
 40535.8578587694,"wia_spt46","r2e_treated",1,1
 40535.8578587694,"wia_spt46","r2e_handling",1,1
@@ -4653,7 +4343,6 @@
 40660.4954942637,"wia_cbt97","priority",1,1
 40660.4954942637,"wia_cbt97","nbi",NA,1
 40660.4954942637,"wia_cbt97","surgery",1,1
-40660.4954942637,"wia_cbt97","r1_treated",2,1
 40660.4954942637,"wia_cbt97","treatment_start_time",40660.4954942637,1
 40684.8475525134,"wia_cbt97","r2b",2,1
 40684.8475525134,"wia_cbt97","transport_start_time",40684.8475525134,1
@@ -4662,7 +4351,6 @@
 40732.9798668271,"dnbi_cbt132","priority",3,1
 40732.9798668271,"dnbi_cbt132","nbi",0,1
 40732.9798668271,"dnbi_cbt132","surgery",1,1
-40732.9798668271,"dnbi_cbt132","r1_treated",1,1
 40732.9798668271,"dnbi_cbt132","treatment_start_time",40732.9798668271,1
 40760.5310199622,"wia_cbt97","r2b_resus",1,1
 40957.2468127802,"kia_cbt44","team",2,1
@@ -4677,13 +4365,11 @@
 41049.2791535235,"dnbi_cbt133","priority",3,1
 41049.2791535235,"dnbi_cbt133","nbi",1,1
 41049.2791535235,"dnbi_cbt133","surgery",0,1
-41049.2791535235,"dnbi_cbt133","r1_treated",3,1
 41049.2791535235,"dnbi_cbt133","treatment_start_time",41049.2791535235,1
 41069.6687065039,"wia_cbt98","team",3,1
 41069.6687065039,"wia_cbt98","priority",1,1
 41069.6687065039,"wia_cbt98","nbi",NA,1
 41069.6687065039,"wia_cbt98","surgery",1,1
-41069.6687065039,"wia_cbt98","r1_treated",3,1
 41069.6687065039,"wia_cbt98","treatment_start_time",41069.6687065039,1
 41096.2830499867,"wia_cbt98","r2b",1,1
 41096.2830499867,"wia_cbt98","transport_start_time",41096.2830499867,1
@@ -4692,7 +4378,6 @@
 41145.5168758247,"wia_spt48","priority",1,1
 41145.5168758247,"wia_spt48","nbi",NA,1
 41145.5168758247,"wia_spt48","surgery",0,1
-41145.5168758247,"wia_spt48","r1_treated",3,1
 41145.5168758247,"wia_spt48","treatment_start_time",41145.5168758247,1
 41172.5818019963,"wia_spt48","r2b",1,1
 41172.5818019963,"wia_spt48","transport_start_time",41172.5818019963,1
@@ -4709,7 +4394,6 @@
 41337.3279175698,"dnbi_cbt134","priority",1,1
 41337.3279175698,"dnbi_cbt134","nbi",1,1
 41337.3279175698,"dnbi_cbt134","surgery",1,1
-41337.3279175698,"dnbi_cbt134","r1_treated",1,1
 41337.3279175698,"dnbi_cbt134","treatment_start_time",41337.3279175698,1
 41345.7391811941,"wia_cbt88","return_day",41345.7391811941,1
 41349.488052143,"dnbi_cbt134","r2b",1,1
@@ -4722,7 +4406,6 @@
 41454.3372542276,"wia_cbt99","priority",1,1
 41454.3372542276,"wia_cbt99","nbi",NA,1
 41454.3372542276,"wia_cbt99","surgery",1,1
-41454.3372542276,"wia_cbt99","r1_treated",2,1
 41454.3372542276,"wia_cbt99","treatment_start_time",41454.3372542276,1
 41471.9379554901,"wia_cbt99","r2b",1,1
 41471.9379554901,"wia_cbt99","transport_start_time",41471.9379554901,1
@@ -4735,7 +4418,6 @@
 41675.4287282561,"dnbi_cbt135","priority",1,1
 41675.4287282561,"dnbi_cbt135","nbi",0,1
 41675.4287282561,"dnbi_cbt135","surgery",1,1
-41675.4287282561,"dnbi_cbt135","r1_treated",3,1
 41675.4287282561,"dnbi_cbt135","treatment_start_time",41675.4287282561,1
 41678.7224588145,"kia_spt22","team",2,1
 41678.7224588145,"kia_spt22","priority",NA,1
@@ -4754,7 +4436,6 @@
 41770.6238889883,"dnbi_spt33","priority",1,1
 41770.6238889883,"dnbi_spt33","nbi",0,1
 41770.6238889883,"dnbi_spt33","surgery",1,1
-41770.6238889883,"dnbi_spt33","r1_treated",3,1
 41770.6238889883,"dnbi_spt33","treatment_start_time",41770.6238889883,1
 41787.991225014,"dnbi_spt33","r2b",2,1
 41787.991225014,"dnbi_spt33","transport_start_time",41787.991225014,1
@@ -4771,7 +4452,6 @@
 41872.394604322,"wia_cbt100","priority",1,1
 41872.394604322,"wia_cbt100","nbi",NA,1
 41872.394604322,"wia_cbt100","surgery",0,1
-41872.394604322,"wia_cbt100","r1_treated",2,1
 41872.394604322,"wia_cbt100","treatment_start_time",41872.394604322,1
 41894.5679521173,"wia_cbt100","r2b",2,1
 41894.5679521173,"wia_cbt100","transport_start_time",41894.5679521173,1
@@ -4781,7 +4461,6 @@
 41964.4555045539,"wia_spt49","priority",1,1
 41964.4555045539,"wia_spt49","nbi",NA,1
 41964.4555045539,"wia_spt49","surgery",1,1
-41964.4555045539,"wia_spt49","r1_treated",1,1
 41964.4555045539,"wia_spt49","treatment_start_time",41964.4555045539,1
 41965.3526044358,"wia_cbt98","r2b_surgery",1,1
 41965.3526044358,"wia_cbt98","r2b_to_r2e",1,1
@@ -4791,7 +4470,6 @@
 41980.7437694336,"dnbi_cbt136","priority",3,1
 41980.7437694336,"dnbi_cbt136","nbi",0,1
 41980.7437694336,"dnbi_cbt136","surgery",1,1
-41980.7437694336,"dnbi_cbt136","r1_treated",3,1
 41980.7437694336,"dnbi_cbt136","treatment_start_time",41980.7437694336,1
 41987.0578695776,"wia_spt49","r2b",2,1
 41987.0578695776,"wia_spt49","transport_start_time",41987.0578695776,1
@@ -4809,7 +4487,6 @@
 42272.8405643473,"dnbi_cbt137","priority",2,1
 42272.8405643473,"dnbi_cbt137","nbi",0,1
 42272.8405643473,"dnbi_cbt137","surgery",1,1
-42272.8405643473,"dnbi_cbt137","r1_treated",3,1
 42272.8405643473,"dnbi_cbt137","treatment_start_time",42272.8405643473,1
 42288.9220465616,"dnbi_cbt137","r2b",2,1
 42288.9220465616,"dnbi_cbt137","transport_start_time",42288.9220465616,1
@@ -4817,7 +4494,6 @@
 42290.743197711,"wia_cbt101","priority",2,1
 42290.743197711,"wia_cbt101","nbi",NA,1
 42290.743197711,"wia_cbt101","surgery",0,1
-42290.743197711,"wia_cbt101","r1_treated",1,1
 42290.743197711,"wia_cbt101","treatment_start_time",42290.743197711,1
 42308.111177549,"wia_cbt101","r2b",2,1
 42308.111177549,"wia_cbt101","transport_start_time",42308.111177549,1
@@ -4840,7 +4516,6 @@
 42563.5097113003,"dnbi_cbt138","priority",1,1
 42563.5097113003,"dnbi_cbt138","nbi",0,1
 42563.5097113003,"dnbi_cbt138","surgery",1,1
-42563.5097113003,"dnbi_cbt138","r1_treated",2,1
 42563.5097113003,"dnbi_cbt138","treatment_start_time",42563.5097113003,1
 42584.2100464601,"dnbi_cbt138","r2b",1,1
 42584.2100464601,"dnbi_cbt138","transport_start_time",42584.2100464601,1
@@ -4856,7 +4531,6 @@
 42689.236983734,"wia_cbt102","priority",2,1
 42689.236983734,"wia_cbt102","nbi",NA,1
 42689.236983734,"wia_cbt102","surgery",1,1
-42689.236983734,"wia_cbt102","r1_treated",3,1
 42689.236983734,"wia_cbt102","treatment_start_time",42689.236983734,1
 42693.3875616288,"wia_cbt78","r2e_surgery",1,1
 42704.2981597762,"wia_spt49","r2b_surgery",1,1
@@ -4873,7 +4547,6 @@
 42768.7991213351,"wia_spt50","priority",2,1
 42768.7991213351,"wia_spt50","nbi",NA,1
 42768.7991213351,"wia_spt50","surgery",1,1
-42768.7991213351,"wia_spt50","r1_treated",3,1
 42768.7991213351,"wia_spt50","treatment_start_time",42768.7991213351,1
 42792.5088321061,"wia_spt50","r2b",1,1
 42792.5088321061,"wia_spt50","transport_start_time",42792.5088321061,1
@@ -4889,7 +4562,6 @@
 42851.0828366152,"dnbi_cbt139","priority",3,1
 42851.0828366152,"dnbi_cbt139","nbi",0,1
 42851.0828366152,"dnbi_cbt139","surgery",0,1
-42851.0828366152,"dnbi_cbt139","r1_treated",1,1
 42851.0828366152,"dnbi_cbt139","treatment_start_time",42851.0828366152,1
 42851.9079630029,"wia_spt50","r2b_resus",1,1
 42861.1311865677,"dnbi_cbt137","r2b_surgery",1,1
@@ -4904,7 +4576,6 @@
 43005.3941511342,"dnbi_spt34","priority",1,1
 43005.3941511342,"dnbi_spt34","nbi",0,1
 43005.3941511342,"dnbi_spt34","surgery",1,1
-43005.3941511342,"dnbi_spt34","r1_treated",2,1
 43005.3941511342,"dnbi_spt34","treatment_start_time",43005.3941511342,1
 43021.2476127298,"dnbi_spt34","r2b",1,1
 43021.2476127298,"dnbi_spt34","transport_start_time",43021.2476127298,1
@@ -4914,7 +4585,6 @@
 43067.4179390343,"wia_cbt103","priority",1,1
 43067.4179390343,"wia_cbt103","nbi",NA,1
 43067.4179390343,"wia_cbt103","surgery",1,1
-43067.4179390343,"wia_cbt103","r1_treated",2,1
 43067.4179390343,"wia_cbt103","treatment_start_time",43067.4179390343,1
 43091.8230701369,"wia_cbt103","r2b",1,1
 43091.8230701369,"wia_cbt103","transport_start_time",43091.8230701369,1
@@ -4926,6 +4596,5 @@
 43174.1516154869,"dnbi_cbt140","priority",2,1
 43174.1516154869,"dnbi_cbt140","nbi",1,1
 43174.1516154869,"dnbi_cbt140","surgery",1,1
-43174.1516154869,"dnbi_cbt140","r1_treated",2,1
 43174.1516154869,"dnbi_cbt140","treatment_start_time",43174.1516154869,1
 43194.7710055405,"dnbi_cbt109","r2e_surgery",1,1

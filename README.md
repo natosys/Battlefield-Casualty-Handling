@@ -1,10 +1,19 @@
-# Battlefield Casualty Handling Simulation
+# Battlefield Casualty Handling
+
+## Abstract
+
+This study presents a modular, auditable simulation framework designed to evaluate surgical resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from doctrinal sources and open-access clinical references, a Descrete Event Simulation (DES) models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). Key metrics include queue lengths, waiting times, and resource saturation, visualized over simulation days to assess temporal bottlenecks and doctrinal compliance.
+
+The analysis integrates dynamic UI elements and recursive logic to allow non-technical users to interact with simulation parameters and outputs. Visualizations such as queue length over time and casualty wait distributions are rendered using `ggplot2`. 
+
+Findings highlight critical periods of resource saturation and identify potential delays in surgical care, informing future planning, staffing, and doctrinal adjustments. The simulation tool is designed for iterative refinement and stakeholder engagement, supporting transparent decision-making in LSCO medical operations.
 
 ## Contents
 
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
 - [🌍 Context](#-context)
@@ -54,6 +63,7 @@
 - [Further Development](#further-development)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -174,6 +184,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -181,28 +192,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -610,8 +621,6 @@ A single run was executed using the seed 42 with a 30 day duration. The graph an
 
 ![Alt text](images/casualty_summary.png)
 
-
-
 | Casualty Type | Population Source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
 |:------------- |:----------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
 | dnbi          | cbt               | 4   | 5   | 5   | 4   | 5   | 4   | 5   | 5   | 5   | 4   | 5   | 5   | 4   | 5   | 5   | 5   | 5   | 4   | 5   | 5   | 4   | 5   | 5   | 5   | 4   | 5   | 4   | 5   | 5   | 5   | 141   |
@@ -622,15 +631,11 @@ A single run was executed using the seed 42 with a 30 day duration. The graph an
 | wia           | spt               | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 51    |
 | Total         |                   | 10  | 15  | 13  | 12  | 13  | 14  | 15  | 12  | 15  | 12  | 13  | 15  | 13  | 13  | 13  | 14  | 16  | 11  | 15  | 12  | 13  | 14  | 14  | 15  | 10  | 15  | 12  | 14  | 13  | 15  | 401   |
 
-
-
 | Population Source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
 |:----------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
 | cbt               | 8   | 11  | 9   | 9   | 10  | 9   | 11  | 9   | 11  | 9   | 10  | 10  | 9   | 10  | 10  | 10  | 11  | 8   | 11  | 9   | 10  | 10  | 9   | 11  | 8   | 11  | 8   | 11  | 9   | 11  | 292   |
 | spt               | 2   | 4   | 4   | 3   | 3   | 5   | 4   | 3   | 4   | 3   | 3   | 5   | 4   | 3   | 3   | 4   | 5   | 3   | 4   | 3   | 3   | 4   | 5   | 4   | 2   | 4   | 4   | 3   | 4   | 4   | 109   |
 | Total             | 10  | 15  | 13  | 12  | 13  | 14  | 15  | 12  | 15  | 12  | 13  | 15  | 13  | 13  | 13  | 14  | 16  | 11  | 15  | 12  | 13  | 14  | 14  | 15  | 10  | 15  | 12  | 14  | 13  | 15  | 401   |
-
-
 
 | priority_group | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
 |:-------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
@@ -642,11 +647,11 @@ A single run was executed using the seed 42 with a 30 day duration. The graph an
 
 summary statistics (total of each casualty type, how many are incomplete)
 
-![Alt text](images/r2eheavy_ot_queue.png)
+![Alt text](images/r2eheavy_ot_queue_3_teams.png)
 
 about 30 backlog for each R2E Heavy OT bed which means we would need capacity for at least 60 surgeries. Using the mode of 120 min we need 7200 min of surgery capacity in 30 days (this only accounts for backlog not any additional surgeries that may be required). Adding an additional surgical team and a second OT bed to 24 h availability with an additional surgical team should provide 21,600 min of surgical time.
 
-
+![Alt text](images/r2eheavy_ot_queue_4_teams.png)
 
 There is insufficient OT bed / surgical capability availability compared to other resource 
 

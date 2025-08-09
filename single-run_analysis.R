@@ -186,16 +186,15 @@ writeLines(kable(casualty_type_table_wide, format = "markdown"), "casualty_table
 ##############################################
 ## QUEUE GRAPHS                             ##
 ##############################################
-queue_plot_data <- resources %>%
-  # as.data.frame() %>%
-  # as_tibble() %>%  # Ensures compatibility with dplyr verbs
-  filter(resource %in% c("b_r2eheavy_ot_1_t1", "b_r2eheavy_ot_2_t1")) %>%
+queue_plot_data <- get_mon_resources(env) %>%
+  as.data.frame() %>%
+  filter(resource %in% c("b_r2eheavy_ot_1_t1", "b_r2eheavy_ot_2_t1", "b_r2eheavy_ot_3_t1")) %>%
   dplyr::select(time, resource, queue)
 
 ggplot(queue_plot_data, aes(x = time, y = queue, color = resource)) +
   geom_line(size = 1) +
   labs(
-    title = "R2E Heavy OT Bed Queue Length Over Time",
+    title = "R2E Heavy OT Bed Queue Length Over Time – 6 Surgical Teams with 3 Beds",
     x = "Simulation Day",
     y = "Queue Size",
     color = "Resource",
@@ -214,8 +213,16 @@ ggplot(queue_plot_data, aes(x = time, y = queue, color = resource)) +
     expand = c(0, 0)
   ) +
   scale_color_manual(
-    values = c("b_r2eheavy_ot_1_t1" = "#1f77b4", "b_r2eheavy_ot_2_t1" = "#ff7f0e"),
-    labels = c("b_r2eheavy_ot_1_t1" = "OT 1", "b_r2eheavy_ot_2_t1" = "OT 2")
+    values = c(
+      "b_r2eheavy_ot_1_t1" = "#1f77b4",
+      "b_r2eheavy_ot_2_t1" = "#ff7f0e",
+      "b_r2eheavy_ot_3_t1" = "#2ca02c"
+    ),
+    labels = c(
+      "b_r2eheavy_ot_1_t1" = "OT 1",
+      "b_r2eheavy_ot_2_t1" = "OT 2",
+      "b_r2eheavy_ot_3_t1" = "OT 3"
+    )
   )
 
 ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +

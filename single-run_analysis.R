@@ -198,7 +198,8 @@ ggplot(queue_plot_data, aes(x = time, y = queue, color = resource)) +
     title = "R2E Heavy OT Bed Queue Length Over Time",
     x = "Simulation Day",
     y = "Queue Size",
-    color = "Resource"
+    color = "Resource",
+    caption = "Day 1 corresponds to simulation start (time = 0 min)"
   ) +
   theme_minimal(base_size = 14) +
   scale_x_continuous(
@@ -208,15 +209,13 @@ ggplot(queue_plot_data, aes(x = time, y = queue, color = resource)) +
     expand = c(0, 0)
   ) +
   scale_y_continuous(
-    limits = c(0, NA),
+    limits = c(0, 40),
+    breaks = seq(0, 40, by = 1),
     expand = c(0, 0)
   ) +
   scale_color_manual(
     values = c("b_r2eheavy_ot_1_t1" = "#1f77b4", "b_r2eheavy_ot_2_t1" = "#ff7f0e"),
     labels = c("b_r2eheavy_ot_1_t1" = "OT 1", "b_r2eheavy_ot_2_t1" = "OT 2")
-  ) + 
-  labs(
-    caption = "Day 1 corresponds to simulation start (time = 0 min)"
   )
 
 ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +

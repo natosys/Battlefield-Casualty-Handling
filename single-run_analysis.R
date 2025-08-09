@@ -184,7 +184,47 @@ writeLines(kable(population_source_table_wide, format = "markdown"), "population
 writeLines(kable(casualty_type_table_wide, format = "markdown"), "casualty_table.md")
 
 ##############################################
-## QUEUE GRAPHS                             ##
+## R2B Bed QUEUE GRAPHs                     ##
+##############################################
+queue_plot_data <- resources %>%
+  as.data.frame() %>%
+  filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
+  dplyr::select(time, resource, queue) %>%
+  mutate(
+    r2b_id = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
+    r2b_label = paste0("R2B ", r2b_id),
+    bed_type = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper()
+  )
+
+ggplot(queue_plot_data, aes(x = time, y = queue, color = bed_type)) +
+  geom_line(size = 1) +
+  labs(
+    title = "R2B Bed Queue Length Over Time by Bed Type",
+    x = "Simulation Day",
+    y = "Queue Size",
+    color = "Bed Type",
+    caption = "Day 1 corresponds to simulation start (time = 0 min)"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_x_continuous(
+    limits = c(0, NA),
+    breaks = seq(0, max(queue_plot_data$time), by = 60 * 24),
+    labels = function(x) round(x / (60 * 24) + 1, 1),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, by = 1),
+    expand = c(0, 0)
+  ) +
+  facet_wrap(~r2b_label, ncol = 1, scales = "fixed") +
+  theme(
+    strip.text = element_text(face = "bold", size = 14),
+    legend.position = "bottom"
+  )
+
+##############################################
+## R2E OT Bed QUEUE GRAPH                   ##
 ##############################################
 queue_plot_data <- get_mon_resources(env) %>%
   as.data.frame() %>%
@@ -194,7 +234,7 @@ queue_plot_data <- get_mon_resources(env) %>%
 ggplot(queue_plot_data, aes(x = time, y = queue, color = resource)) +
   geom_line(size = 1) +
   labs(
-    title = "R2E Heavy OT Bed Queue Length Over Time – 6 Surgical Teams with 3 Beds",
+    title = "R2E Heavy OT Bed Queue Length Over Time – 3 Surgical Teams",
     x = "Simulation Day",
     y = "Queue Size",
     color = "Resource",
@@ -235,127 +275,3 @@ ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +
   geom_smooth(method = "loess", se = FALSE, color = "darkred") +
   theme_minimal(base_size = 14)
 
-#TEMP
-# read_arrivals_file <- function(filename, day_min = 1440) {
-#   # Extract file stem (without extension)
-#   stem <- tools::file_path_sans_ext(basename(filename))
-#   
-#   # Parse type and pop source
-#   parts <- strsplit(stem, "_")[[1]]
-#   if (length(parts) != 3 || parts[1] != "arrivals") {
-#     stop("Filename must follow format 'arrivals_<type>_<source>.txt'")
-#   }
-#   
-#   cas_type <- parts[2]
-#   pop_source <- parts[3]
-#   
-#   # Read arrival times
-#   arrival_times <- scan(filename, quiet = TRUE)
-#   
-#   tibble(
-#     start_time = arrival_times,
-#     arrival_day = floor(arrival_times / day_min) + 1,
-#     cas_type = cas_type,
-#     pop_source = pop_source
-#   )
-# }
-
-# arrivals_tbl <- bind_rows(
-#   read_arrivals_file("data/arrivals_dnbi_cbt.txt"),
-#   read_arrivals_file("data/arrivals_dnbi_spt.txt"),
-#   read_arrivals_file("data/arrivals_kia_cbt.txt"),
-#   read_arrivals_file("data/arrivals_kia_spt.txt"),
-#   read_arrivals_file("data/arrivals_wia_cbt.txt"),
-#   read_arrivals_file("data/arrivals_wia_spt.txt")
-# )
-# 
-# p_type <- ggplot(arrivals_tbl, aes(x = arrival_day, fill = cas_type)) +
-#   geom_bar(stat = "count", position = "stack") +
-#   scale_fill_brewer(palette = "Set1") +
-#   scale_x_continuous(
-#     breaks = seq(min(arrivals_tbl$arrival_day), max(arrivals_tbl$arrival_day), by = 1)
-#   ) +
-#   labs(
-#     title = "Arrivals by Casualty Type",
-#     x = "Arrival Day",
-#     y = "Number of Casualties",
-#     fill = "Casualty Type"
-#   ) +
-#   theme_minimal()
-# 
-# p_source <- ggplot(arrivals_tbl, aes(x = arrival_day, fill = pop_source)) +
-#   geom_bar(stat = "count", position = "stack") +
-#   scale_fill_brewer(palette = "Dark2") +
-#   scale_x_continuous(
-#     breaks = seq(min(arrivals_tbl$arrival_day), max(arrivals_tbl$arrival_day), by = 1)
-#   ) +
-#   labs(
-#     title = "Arrivals by Population Source",
-#     x = "Arrival Day",
-#     y = "Number of Casualties",
-#     fill = "Population Source"
-#   ) +
-#   theme_minimal()
-# 
-# # Combine side-by-side
-# p_type / p_source
-
-# ggplot() +
-#   # Background: stacked count from raw arrivals, more transparent
-#   geom_bar(
-#     data = arrivals_tbl,
-#     aes(x = arrival_day, fill = pop_source),
-#     position = "stack", stat = "count", alpha = 0.3
-#   ) +
-#   
-#   # Foreground: modeled totals from casualty_summary
-#   geom_bar(
-#     data = casualty_summary,
-#     aes(x = arrival_day, y = count, fill = population_source),
-#     position = "stack", stat = "identity", alpha = 1
-#   ) +
-#   
-#   scale_fill_brewer(palette = "Dark2") +
-#   scale_x_continuous(
-#     breaks = seq(
-#       min(casualty_priority_summary$arrival_day),
-#       max(casualty_priority_summary$arrival_day),
-#       by = 1
-#     )
-#   ) +
-#   ylim(0, max_daily_total) +
-#   labs(
-#     title = "Overlay: Raw Arrival Counts vs Casualties Processed",
-#     x = "Arrival Day",
-#     y = "Number of Casualties",
-#     fill = "Population Source"
-#   ) +
-#   theme_minimal()
-
-# #TEMP
-# resource_data <- get_mon_resources(env)
-# 
-# end_time <- max(resource_data$time)
-# 
-# resource_queues <- resource_data %>%
-#   filter(time == end_time) %>%
-#   select(resource, queue, server)
-# 
-# resource_queues %>%
-#   filter(resource == "c_r1_clinician_nurse_1_t2")
-# 
-# missing_from_arrivals <- arrivals_tbl %>%
-#   anti_join(arrivals, by = "start_time")
-# 
-# log_lines <- readLines("logs.txt")
-# 
-# # Split each line into 3 parts using ": " as delimiter
-# split_matrix <- str_split_fixed(log_lines, pattern = ": ", n = 3)
-# 
-# # Convert to tibble and name columns
-# log_df <- as_tibble(split_matrix) %>%
-#   rename(start_time = V1, entity = V2, message = V3) %>%
-#   mutate(start_time = as.numeric(start_time))
-# 
-# missing_from_logs <- arrivals_tbl %>%
-#   anti_join(log_df, by = "start_time")

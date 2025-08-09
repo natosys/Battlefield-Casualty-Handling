@@ -86,27 +86,6 @@ simmer environment: Battlefield Casualty Handling | now: 0 | next: 0
 { Resource: c_r2eheavy_surg_3_nurse_2_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_3_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_4_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_surgeon_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_surgeon_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_3_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_4_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_anesthetist_1_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_surgeon_1_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_surgeon_2_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_1_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_2_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_3_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_4_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_surgeon_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_surgeon_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_3_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_4_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_facem_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_nurse_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_nurse_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -145,7 +124,6 @@ simmer environment: Battlefield Casualty Handling | now: 0 | next: 0
 { Resource: c_r2eheavy_evac_3_medic_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_ot_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_ot_2_t1 | monitored: TRUE | server status: 0(NA) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_ot_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -198,406 +176,407 @@ simmer environment: Battlefield Casualty Handling | now: 0 | next: 0
 { Source: kia_spt | monitored: 2 | n_generated: 0 }
 { Source: dnbi_spt | monitored: 2 | n_generated: 0 }
 { Global: evac_wait_count | schedule: FALSE | initial value: 0 }
-312.454: dnbi_cbt0: dnbi_cbt0
-442.997: wia_cbt0: wia_cbt0
-631.243: dnbi_cbt1: dnbi_cbt1
-829.129: wia_spt0: wia_spt0
-888.609: wia_cbt1: wia_cbt1
-915.156: kia_cbt0: kia_cbt0
-928.898: dnbi_cbt2: dnbi_cbt2
-1210.27: dnbi_spt0: dnbi_spt0
-1240.82: dnbi_cbt3: dnbi_cbt3
-1291.96: wia_cbt2: wia_cbt2
-1550.73: dnbi_cbt4: dnbi_cbt4
-1687.89: wia_spt1: wia_spt1
-1698.46: wia_cbt3: wia_cbt3
-1840.59: kia_spt0: kia_spt0
-1861.72: dnbi_cbt5: dnbi_cbt5
-1914.28: kia_cbt1: kia_cbt1
-2139.12: wia_cbt4: wia_cbt4
-2158.88: dnbi_cbt6: dnbi_cbt6
-2397.86: dnbi_spt1: dnbi_spt1
-2443.86: dnbi_cbt7: dnbi_cbt7
-2504.32: wia_spt2: wia_spt2
-2539.92: wia_cbt5: wia_cbt5
-2742.62: dnbi_cbt8: dnbi_cbt8
-2801.69: kia_cbt2: kia_cbt2
-2964.27: wia_cbt6: wia_cbt6
-3039.72: dnbi_cbt9: dnbi_cbt9
-3280.88: wia_spt3: wia_spt3
-3341.42: dnbi_cbt10: dnbi_cbt10
-3386.7: wia_cbt7: wia_cbt7
-3611.6: kia_spt1: kia_spt1
-3615.69: dnbi_spt2: dnbi_spt2
-3662.4: dnbi_cbt11: dnbi_cbt11
-3752.13: kia_cbt3: kia_cbt3
-3808.04: wia_cbt8: wia_cbt8
-3982.41: dnbi_cbt12: dnbi_cbt12
-4133.95: wia_spt4: wia_spt4
-4270.07: wia_cbt9: wia_cbt9
-4290.15: dnbi_cbt13: dnbi_cbt13
-4611.4: dnbi_cbt14: dnbi_cbt14
-4618: kia_cbt4: kia_cbt4
-4666.88: wia_cbt10: wia_cbt10
-4854.14: dnbi_spt3: dnbi_spt3
-4927.54: dnbi_cbt15: dnbi_cbt15
-4994.97: wia_spt5: wia_spt5
-5087.35: wia_cbt11: wia_cbt11
-5249.86: dnbi_cbt16: dnbi_cbt16
-5386.16: kia_spt2: kia_spt2
-5473.27: wia_cbt12: wia_cbt12
-5555.63: dnbi_cbt17: dnbi_cbt17
-5565.53: kia_cbt5: kia_cbt5
-5858.8: wia_spt6: wia_spt6
-5866.61: wia_cbt13: wia_cbt13
-5882.78: dnbi_cbt18: dnbi_cbt18
-6074.74: dnbi_spt4: dnbi_spt4
-6183.71: dnbi_cbt19: dnbi_cbt19
-6281.48: wia_cbt14: wia_cbt14
-6409.88: kia_cbt6: kia_cbt6
-6489.02: dnbi_cbt20: dnbi_cbt20
-6650.58: wia_spt7: wia_spt7
-6711.26: wia_cbt15: wia_cbt15
-6791.42: dnbi_cbt21: dnbi_cbt21
-7101.65: dnbi_cbt22: dnbi_cbt22
-7123.62: wia_cbt16: wia_cbt16
-7258.27: kia_spt3: kia_spt3
-7266.01: dnbi_spt5: dnbi_spt5
-7296.38: kia_cbt7: kia_cbt7
-7421.48: dnbi_cbt23: dnbi_cbt23
-7488.4: wia_spt8: wia_spt8
-7577.73: wia_cbt17: wia_cbt17
-7717.25: dnbi_cbt24: dnbi_cbt24
-8033.02: wia_cbt18: wia_cbt18
-8033.04: dnbi_cbt25: dnbi_cbt25
-8230.13: kia_cbt8: kia_cbt8
-8324.8: wia_spt9: wia_spt9
-8330.64: dnbi_cbt26: dnbi_cbt26
-8433.62: wia_cbt19: wia_cbt19
-8507.65: dnbi_spt6: dnbi_spt6
-8640.25: dnbi_cbt27: dnbi_cbt27
-8824.11: wia_cbt20: wia_cbt20
-8956.09: dnbi_cbt28: dnbi_cbt28
-9070.86: kia_cbt9: kia_cbt9
-9089.14: kia_spt4: kia_spt4
-9137.52: wia_spt10: wia_spt10
-9271.52: wia_cbt21: wia_cbt21
-9274.36: dnbi_cbt29: dnbi_cbt29
-9571.14: dnbi_cbt30: dnbi_cbt30
-9693.13: wia_cbt22: wia_cbt22
-9730.71: dnbi_spt7: dnbi_spt7
-9888.18: dnbi_cbt31: dnbi_cbt31
-9948.56: kia_cbt10: kia_cbt10
-9959.9: wia_spt11: wia_spt11
-10102.8: wia_cbt23: wia_cbt23
-10201.7: dnbi_cbt32: dnbi_cbt32
-10506.1: dnbi_cbt33: dnbi_cbt33
-10507.9: wia_cbt24: wia_cbt24
-10812.1: wia_spt12: wia_spt12
-10812.5: dnbi_cbt34: dnbi_cbt34
-10874.2: kia_cbt11: kia_cbt11
-10915.6: kia_spt5: kia_spt5
+312.898: dnbi_cbt0: dnbi_cbt0
+421.609: wia_cbt0: wia_cbt0
+630.819: dnbi_cbt1: dnbi_cbt1
+828.316: wia_spt0: wia_spt0
+828.957: wia_cbt1: wia_cbt1
+915.688: kia_cbt0: kia_cbt0
+928.73: dnbi_cbt2: dnbi_cbt2
+1209.69: dnbi_spt0: dnbi_spt0
+1211.46: wia_cbt2: wia_cbt2
+1240.72: dnbi_cbt3: dnbi_cbt3
+1552.88: dnbi_cbt4: dnbi_cbt4
+1630.12: wia_cbt3: wia_cbt3
+1686.88: wia_spt1: wia_spt1
+1839.16: kia_spt0: kia_spt0
+1861.86: dnbi_cbt5: dnbi_cbt5
+1913.13: kia_cbt1: kia_cbt1
+1990.92: wia_cbt4: wia_cbt4
+2158.62: dnbi_cbt6: dnbi_cbt6
+2396.14: dnbi_spt1: dnbi_spt1
+2400.27: wia_cbt5: wia_cbt5
+2443.72: dnbi_cbt7: dnbi_cbt7
+2503.95: wia_spt2: wia_spt2
+2741.42: dnbi_cbt8: dnbi_cbt8
+2790.7: wia_cbt6: wia_cbt6
+2801: kia_cbt2: kia_cbt2
+3040.4: dnbi_cbt9: dnbi_cbt9
+3203.04: wia_cbt7: wia_cbt7
+3279.97: wia_spt3: wia_spt3
+3341.41: dnbi_cbt10: dnbi_cbt10
+3611.27: kia_spt1: kia_spt1
+3614.74: dnbi_spt2: dnbi_spt2
+3623.07: wia_cbt8: wia_cbt8
+3663.15: dnbi_cbt11: dnbi_cbt11
+3753.53: kia_cbt3: kia_cbt3
+3983.4: dnbi_cbt12: dnbi_cbt12
+4075.88: wia_cbt9: wia_cbt9
+4132.8: wia_spt4: wia_spt4
+4290.54: dnbi_cbt13: dnbi_cbt13
+4531.35: wia_cbt10: wia_cbt10
+4610.86: dnbi_cbt14: dnbi_cbt14
+4617.88: kia_cbt4: kia_cbt4
+4854.01: dnbi_spt3: dnbi_spt3
+4926.63: dnbi_cbt15: dnbi_cbt15
+4952.27: wia_cbt11: wia_cbt11
+4994.58: wia_spt5: wia_spt5
+5250.78: dnbi_cbt16: dnbi_cbt16
+5361.61: wia_cbt12: wia_cbt12
+5385.14: kia_spt2: kia_spt2
+5554.71: dnbi_cbt17: dnbi_cbt17
+5564.38: kia_cbt5: kia_cbt5
+5784.48: wia_cbt13: wia_cbt13
+5858.4: wia_spt6: wia_spt6
+5885.02: dnbi_cbt18: dnbi_cbt18
+6074.65: dnbi_spt4: dnbi_spt4
+6183.42: dnbi_cbt19: dnbi_cbt19
+6221.26: wia_cbt14: wia_cbt14
+6408.13: kia_cbt6: kia_cbt6
+6490.65: dnbi_cbt20: dnbi_cbt20
+6638.62: wia_cbt15: wia_cbt15
+6649.8: wia_spt7: wia_spt7
+6791.48: dnbi_cbt21: dnbi_cbt21
+7026.73: wia_cbt16: wia_cbt16
+7102.25: dnbi_cbt22: dnbi_cbt22
+7257.6: kia_spt3: kia_spt3
+7266.71: dnbi_spt5: dnbi_spt5
+7295.86: kia_cbt7: kia_cbt7
+7420.04: dnbi_cbt23: dnbi_cbt23
+7470.02: wia_cbt17: wia_cbt17
+7487.52: wia_spt8: wia_spt8
+7717.64: dnbi_cbt24: dnbi_cbt24
+7932.62: wia_cbt18: wia_cbt18
+8035.25: dnbi_cbt25: dnbi_cbt25
+8230.56: kia_cbt8: kia_cbt8
+8323.9: wia_spt9: wia_spt9
+8330.09: dnbi_cbt26: dnbi_cbt26
+8336.11: wia_cbt19: wia_cbt19
+8507.05: dnbi_spt6: dnbi_spt6
+8641.36: dnbi_cbt27: dnbi_cbt27
+8767.52: wia_cbt20: wia_cbt20
+8956.14: dnbi_cbt28: dnbi_cbt28
+9069.19: kia_cbt9: kia_cbt9
+9088.52: kia_spt4: kia_spt4
+9136.07: wia_spt10: wia_spt10
+9199.13: wia_cbt21: wia_cbt21
+9274.18: dnbi_cbt29: dnbi_cbt29
+9571.66: dnbi_cbt30: dnbi_cbt30
+9612.75: wia_cbt22: wia_cbt22
+9731.75: dnbi_spt7: dnbi_spt7
+9887.06: dnbi_cbt31: dnbi_cbt31
+9948.05: kia_cbt10: kia_cbt10
+9959.87: wia_spt11: wia_spt11
+10048.9: wia_cbt23: wia_cbt23
+10201.5: dnbi_cbt32: dnbi_cbt32
+10464.2: wia_cbt24: wia_cbt24
+10508: dnbi_cbt33: dnbi_cbt33
+10811.2: wia_spt12: wia_spt12
+10813: dnbi_cbt34: dnbi_cbt34
+10874.9: kia_cbt11: kia_cbt11
+10878: wia_cbt25: wia_cbt25
+10916.9: kia_spt5: kia_spt5
 10941.1: dnbi_spt8: dnbi_spt8
-10952.2: wia_cbt25: wia_cbt25
-11094: dnbi_cbt35: dnbi_cbt35
-11384: wia_cbt26: wia_cbt26
-11394: dnbi_cbt36: dnbi_cbt36
-11619.9: wia_spt13: wia_spt13
-11712: dnbi_cbt37: dnbi_cbt37
-11798.1: kia_cbt12: kia_cbt12
-11814.2: wia_cbt27: wia_cbt27
-12016.5: dnbi_cbt38: dnbi_cbt38
-12171.7: dnbi_spt9: dnbi_spt9
-12207.1: wia_cbt28: wia_cbt28
-12320: dnbi_cbt39: dnbi_cbt39
-12496.2: wia_spt14: wia_spt14
-12612.3: wia_cbt29: wia_cbt29
-12634.8: dnbi_cbt40: dnbi_cbt40
-12653.9: kia_cbt13: kia_cbt13
-12701.5: kia_spt6: kia_spt6
-12934.9: dnbi_cbt41: dnbi_cbt41
-13033.3: wia_cbt30: wia_cbt30
-13243: dnbi_cbt42: dnbi_cbt42
-13363.5: wia_spt15: wia_spt15
-13399.1: dnbi_spt10: dnbi_spt10
-13478.1: wia_cbt31: wia_cbt31
-13514.6: kia_cbt14: kia_cbt14
-13535.1: dnbi_cbt43: dnbi_cbt43
-13842.1: dnbi_cbt44: dnbi_cbt44
-13916.9: wia_cbt32: wia_cbt32
-14156.8: dnbi_cbt45: dnbi_cbt45
-14214.9: wia_spt16: wia_spt16
-14357.2: wia_cbt33: wia_cbt33
-14395.5: kia_cbt15: kia_cbt15
-14445.9: kia_spt7: kia_spt7
-14469.2: dnbi_cbt46: dnbi_cbt46
-14621: dnbi_spt11: dnbi_spt11
-14767.5: dnbi_cbt47: dnbi_cbt47
-14801.8: wia_cbt34: wia_cbt34
-15056.4: wia_spt17: wia_spt17
+11093: dnbi_cbt35: dnbi_cbt35
+11306.2: wia_cbt26: wia_cbt26
+11393.5: dnbi_cbt36: dnbi_cbt36
+11619.5: wia_spt13: wia_spt13
+11714: dnbi_cbt37: dnbi_cbt37
+11731.1: wia_cbt27: wia_cbt27
+11797.6: kia_cbt12: kia_cbt12
+12015.8: dnbi_cbt38: dnbi_cbt38
+12157.3: wia_cbt28: wia_cbt28
+12171: dnbi_spt9: dnbi_spt9
+12319.9: dnbi_cbt39: dnbi_cbt39
+12495.9: wia_spt14: wia_spt14
+12535.3: wia_cbt29: wia_cbt29
+12634: dnbi_cbt40: dnbi_cbt40
+12652.5: kia_cbt13: kia_cbt13
+12700.9: kia_spt6: kia_spt6
+12934.1: dnbi_cbt41: dnbi_cbt41
+12944.1: wia_cbt30: wia_cbt30
+13243.1: dnbi_cbt42: dnbi_cbt42
+13362.4: wia_spt15: wia_spt15
+13380.9: wia_cbt31: wia_cbt31
+13400.7: dnbi_spt10: dnbi_spt10
+13513.3: kia_cbt14: kia_cbt14
+13534.8: dnbi_cbt43: dnbi_cbt43
+13767.2: wia_cbt32: wia_cbt32
+13844.2: dnbi_cbt44: dnbi_cbt44
+14156.5: dnbi_cbt45: dnbi_cbt45
+14197.8: wia_cbt33: wia_cbt33
+14213: wia_spt16: wia_spt16
+14394.6: kia_cbt15: kia_cbt15
+14445.4: kia_spt7: kia_spt7
+14468.3: dnbi_cbt46: dnbi_cbt46
+14621.8: dnbi_spt11: dnbi_spt11
+14625.4: wia_cbt34: wia_cbt34
+14768.4: dnbi_cbt47: dnbi_cbt47
+15012.8: wia_cbt35: wia_cbt35
+15055.6: wia_spt17: wia_spt17
 15075.3: dnbi_cbt48: dnbi_cbt48
-15174.4: wia_cbt35: wia_cbt35
-15283.3: kia_cbt16: kia_cbt16
-15410.4: dnbi_cbt49: dnbi_cbt49
-15554.8: wia_cbt36: wia_cbt36
-15730.3: dnbi_cbt50: dnbi_cbt50
+15282.4: kia_cbt16: kia_cbt16
+15411.1: dnbi_cbt49: dnbi_cbt49
+15415.9: wia_cbt36: wia_cbt36
+15729.5: dnbi_cbt50: dnbi_cbt50
+15810: wia_cbt37: wia_cbt37
 15871.7: dnbi_spt12: dnbi_spt12
 15899: wia_spt18: wia_spt18
-15977.9: wia_cbt37: wia_cbt37
-16048.1: dnbi_cbt51: dnbi_cbt51
-16176.6: kia_cbt17: kia_cbt17
-16246.9: kia_spt8: kia_spt8
-16335.5: dnbi_cbt52: dnbi_cbt52
-16408: wia_cbt38: wia_cbt38
+16048.3: dnbi_cbt51: dnbi_cbt51
+16175.7: kia_cbt17: kia_cbt17
+16239.4: wia_cbt38: wia_cbt38
+16246.3: kia_spt8: kia_spt8
+16334.3: dnbi_cbt52: dnbi_cbt52
 16647.3: dnbi_cbt53: dnbi_cbt53
-16756.6: wia_spt19: wia_spt19
-16834.4: wia_cbt39: wia_cbt39
-16938.3: dnbi_cbt54: dnbi_cbt54
-17075.8: dnbi_spt13: dnbi_spt13
-17098.4: kia_cbt18: kia_cbt18
-17231.5: wia_cbt40: wia_cbt40
-17251.3: dnbi_cbt55: dnbi_cbt55
-17536.5: dnbi_cbt56: dnbi_cbt56
-17621: wia_spt20: wia_spt20
-17656: wia_cbt41: wia_cbt41
-17832.9: dnbi_cbt57: dnbi_cbt57
-17964.4: kia_spt9: kia_spt9
-18035.7: kia_cbt19: kia_cbt19
-18101.7: wia_cbt42: wia_cbt42
-18136.8: dnbi_cbt58: dnbi_cbt58
-18326.7: dnbi_spt14: dnbi_spt14
+16671.5: wia_cbt39: wia_cbt39
+16755.5: wia_spt19: wia_spt19
+16938.5: dnbi_cbt54: dnbi_cbt54
+17075.5: dnbi_spt13: dnbi_spt13
+17082: wia_cbt40: wia_cbt40
+17098.6: kia_cbt18: kia_cbt18
+17251.9: dnbi_cbt55: dnbi_cbt55
+17498.7: wia_cbt41: wia_cbt41
+17535.8: dnbi_cbt56: dnbi_cbt56
+17619.7: wia_spt20: wia_spt20
+17831: dnbi_cbt57: dnbi_cbt57
+17909.8: wia_cbt42: wia_cbt42
+17963.6: kia_spt9: kia_spt9
+18034.7: kia_cbt19: kia_cbt19
+18136.2: dnbi_cbt58: dnbi_cbt58
+18269.5: wia_cbt43: wia_cbt43
+18326.6: dnbi_spt14: dnbi_spt14
 18450: dnbi_cbt59: dnbi_cbt59
-18516.8: wia_cbt43: wia_cbt43
-18533.5: wia_spt21: wia_spt21
-18751.2: dnbi_cbt60: dnbi_cbt60
-18918.5: wia_cbt44: wia_cbt44
-18959.6: kia_cbt20: kia_cbt20
-19055: dnbi_cbt61: dnbi_cbt61
-19307.8: wia_cbt45: wia_cbt45
-19347: dnbi_cbt62: dnbi_cbt62
-19385.7: wia_spt22: wia_spt22
-19562.5: dnbi_spt15: dnbi_spt15
-19638: dnbi_cbt63: dnbi_cbt63
-19739.1: wia_cbt46: wia_cbt46
-19769.7: kia_cbt21: kia_cbt21
-19775.3: kia_spt10: kia_spt10
-19947.3: dnbi_cbt64: dnbi_cbt64
-20101: wia_cbt47: wia_cbt47
-20200.4: wia_spt23: wia_spt23
-20242.7: dnbi_cbt65: dnbi_cbt65
-20524.2: dnbi_cbt66: dnbi_cbt66
-20529.1: wia_cbt48: wia_cbt48
-20643.4: kia_cbt22: kia_cbt22
-20811.6: dnbi_spt16: dnbi_spt16
-20846.7: dnbi_cbt67: dnbi_cbt67
-20937.6: wia_cbt49: wia_cbt49
-21078.9: wia_spt24: wia_spt24
-21135.7: dnbi_cbt68: dnbi_cbt68
-21383.9: wia_cbt50: wia_cbt50
-21439.9: dnbi_cbt69: dnbi_cbt69
-21586.2: kia_cbt23: kia_cbt23
-21677.6: kia_spt11: kia_spt11
-21731.2: dnbi_cbt70: dnbi_cbt70
-21752.1: wia_cbt51: wia_cbt51
-21927.2: wia_spt25: wia_spt25
-22033.1: dnbi_spt17: dnbi_spt17
-22034: dnbi_cbt71: dnbi_cbt71
-22150.2: wia_cbt52: wia_cbt52
-22329.3: dnbi_cbt72: dnbi_cbt72
-22558.2: wia_cbt53: wia_cbt53
-22566.5: kia_cbt24: kia_cbt24
-22633.6: dnbi_cbt73: dnbi_cbt73
-22789.4: wia_spt26: wia_spt26
-22951.2: dnbi_cbt74: dnbi_cbt74
-22964.7: wia_cbt54: wia_cbt54
-23244.9: dnbi_spt18: dnbi_spt18
-23245.3: dnbi_cbt75: dnbi_cbt75
-23400: wia_cbt55: wia_cbt55
-23449.9: kia_cbt25: kia_cbt25
-23523: kia_spt12: kia_spt12
-23534.7: dnbi_cbt76: dnbi_cbt76
-23586.4: wia_spt27: wia_spt27
-23805.1: wia_cbt56: wia_cbt56
-23844.4: dnbi_cbt77: dnbi_cbt77
-24168.5: dnbi_cbt78: dnbi_cbt78
-24212.2: wia_cbt57: wia_cbt57
-24400.8: kia_cbt26: kia_cbt26
-24432.4: wia_spt28: wia_spt28
-24465: dnbi_spt19: dnbi_spt19
-24470.2: dnbi_cbt79: dnbi_cbt79
-24616.4: wia_cbt58: wia_cbt58
-24760.4: dnbi_cbt80: dnbi_cbt80
-24997.1: wia_cbt59: wia_cbt59
-25069.9: dnbi_cbt81: dnbi_cbt81
-25224: kia_cbt27: kia_cbt27
-25264.5: wia_spt29: wia_spt29
-25304: kia_spt13: kia_spt13
-25378.9: dnbi_cbt82: dnbi_cbt82
-25399.2: wia_cbt60: wia_cbt60
-25683.3: dnbi_cbt83: dnbi_cbt83
+18532.4: wia_spt21: wia_spt21
+18693.8: wia_cbt44: wia_cbt44
+18751: dnbi_cbt60: dnbi_cbt60
+18958.4: kia_cbt20: kia_cbt20
+19054: dnbi_cbt61: dnbi_cbt61
+19106.1: wia_cbt45: wia_cbt45
+19347.3: dnbi_cbt62: dnbi_cbt62
+19384.9: wia_spt22: wia_spt22
+19496: wia_cbt46: wia_cbt46
+19562.1: dnbi_spt15: dnbi_spt15
+19638.7: dnbi_cbt63: dnbi_cbt63
+19769.2: kia_cbt21: kia_cbt21
+19775: kia_spt10: kia_spt10
+19923.1: wia_cbt47: wia_cbt47
+19947.2: dnbi_cbt64: dnbi_cbt64
+20199.2: wia_spt23: wia_spt23
+20243.7: dnbi_cbt65: dnbi_cbt65
+20369.6: wia_cbt48: wia_cbt48
+20526.7: dnbi_cbt66: dnbi_cbt66
+20642.5: kia_cbt22: kia_cbt22
+20811.9: dnbi_spt16: dnbi_spt16
+20821.9: wia_cbt49: wia_cbt49
+20846.9: dnbi_cbt67: dnbi_cbt67
+21077.4: wia_spt24: wia_spt24
+21136.2: dnbi_cbt68: dnbi_cbt68
+21252.1: wia_cbt50: wia_cbt50
+21440: dnbi_cbt69: dnbi_cbt69
+21585.9: kia_cbt23: kia_cbt23
+21667.2: wia_cbt51: wia_cbt51
+21676: kia_spt11: kia_spt11
+21731.3: dnbi_cbt70: dnbi_cbt70
+21926.4: wia_spt25: wia_spt25
+22033: dnbi_spt17: dnbi_spt17
+22033.6: dnbi_cbt71: dnbi_cbt71
+22084.2: wia_cbt52: wia_cbt52
+22328.2: dnbi_cbt72: dnbi_cbt72
+22470.7: wia_cbt53: wia_cbt53
+22565.8: kia_cbt24: kia_cbt24
+22632.3: dnbi_cbt73: dnbi_cbt73
+22788.4: wia_spt26: wia_spt26
+22873: wia_cbt54: wia_cbt54
+22951.7: dnbi_cbt74: dnbi_cbt74
+23245.3: dnbi_spt18: dnbi_spt18
+23246.4: dnbi_cbt75: dnbi_cbt75
+23262.1: wia_cbt55: wia_cbt55
+23449: kia_cbt25: kia_cbt25
+23522.2: kia_spt12: kia_spt12
+23534.5: dnbi_cbt76: dnbi_cbt76
+23585.5: wia_spt27: wia_spt27
+23646.2: wia_cbt56: wia_cbt56
+23843.2: dnbi_cbt77: dnbi_cbt77
+24067.4: wia_cbt57: wia_cbt57
+24169.4: dnbi_cbt78: dnbi_cbt78
+24399.5: kia_cbt26: kia_cbt26
+24431.5: wia_spt28: wia_spt28
+24463.1: wia_cbt58: wia_cbt58
+24465.3: dnbi_spt19: dnbi_spt19
+24469.9: dnbi_cbt79: dnbi_cbt79
+24761.9: dnbi_cbt80: dnbi_cbt80
+24867.2: wia_cbt59: wia_cbt59
+25068.3: dnbi_cbt81: dnbi_cbt81
+25223.9: kia_cbt27: kia_cbt27
+25263.4: wia_spt29: wia_spt29
+25264.9: wia_cbt60: wia_cbt60
+25304.1: kia_spt13: kia_spt13
+25378.2: dnbi_cbt82: dnbi_cbt82
+25670.9: wia_cbt61: wia_cbt61
+25684.6: dnbi_cbt83: dnbi_cbt83
 25685.3: dnbi_spt20: dnbi_spt20
-25811.9: wia_cbt61: wia_cbt61
-25999.2: dnbi_cbt84: dnbi_cbt84
-26094.5: wia_spt30: wia_spt30
-26129.5: kia_cbt28: kia_cbt28
-26217.9: wia_cbt62: wia_cbt62
-26302.6: dnbi_cbt85: dnbi_cbt85
-26612.8: dnbi_cbt86: dnbi_cbt86
-26659.8: wia_cbt63: wia_cbt63
-26915.4: wia_spt31: wia_spt31
-26916.8: dnbi_cbt87: dnbi_cbt87
-26939.3: dnbi_spt21: dnbi_spt21
-27018.2: kia_spt14: kia_spt14
-27032.9: kia_cbt29: kia_cbt29
-27064.7: wia_cbt64: wia_cbt64
-27225.1: dnbi_cbt88: dnbi_cbt88
-27466.7: wia_cbt65: wia_cbt65
-27541.1: dnbi_cbt89: dnbi_cbt89
-27750.5: wia_spt32: wia_spt32
-27837.1: dnbi_cbt90: dnbi_cbt90
-27870.3: wia_cbt66: wia_cbt66
-27935.2: kia_cbt30: kia_cbt30
-28123.9: dnbi_cbt91: dnbi_cbt91
-28164.3: dnbi_spt22: dnbi_spt22
-28264.1: wia_cbt67: wia_cbt67
-28425.9: dnbi_cbt92: dnbi_cbt92
-28587.2: wia_spt33: wia_spt33
-28661.6: wia_cbt68: wia_cbt68
-28732.9: dnbi_cbt93: dnbi_cbt93
-28839.1: kia_spt15: kia_spt15
-28904.2: kia_cbt31: kia_cbt31
-29032.3: dnbi_cbt94: dnbi_cbt94
-29102.4: wia_cbt69: wia_cbt69
-29342.6: dnbi_cbt95: dnbi_cbt95
-29373.6: dnbi_spt23: dnbi_spt23
-29439.6: wia_spt34: wia_spt34
-29562: wia_cbt70: wia_cbt70
-29638.3: dnbi_cbt96: dnbi_cbt96
-29703.5: kia_cbt32: kia_cbt32
-29950.9: dnbi_cbt97: dnbi_cbt97
-29966.2: wia_cbt71: wia_cbt71
-30273.7: dnbi_cbt98: dnbi_cbt98
-30310.1: wia_spt35: wia_spt35
-30339.4: wia_cbt72: wia_cbt72
-30586.7: dnbi_spt24: dnbi_spt24
-30588.5: dnbi_cbt99: dnbi_cbt99
-30643.3: kia_cbt33: kia_cbt33
-30707.4: kia_spt16: kia_spt16
-30768.4: wia_cbt73: wia_cbt73
-30880.2: dnbi_cbt100: dnbi_cbt100
-31177.5: wia_spt36: wia_spt36
-31183.2: wia_cbt74: wia_cbt74
-31192.9: dnbi_cbt101: dnbi_cbt101
-31487.3: dnbi_cbt102: dnbi_cbt102
-31582.6: wia_cbt75: wia_cbt75
-31583.1: kia_cbt34: kia_cbt34
-31793.3: dnbi_cbt103: dnbi_cbt103
-31826.2: dnbi_spt25: dnbi_spt25
-31972.3: wia_cbt76: wia_cbt76
-31994.6: wia_spt37: wia_spt37
-32104.9: dnbi_cbt104: dnbi_cbt104
-32398.3: wia_cbt77: wia_cbt77
-32410.5: dnbi_cbt105: dnbi_cbt105
-32499.8: kia_cbt35: kia_cbt35
-32544.2: kia_spt17: kia_spt17
-32691.3: dnbi_cbt106: dnbi_cbt106
-32797: wia_cbt78: wia_cbt78
-32849.6: wia_spt38: wia_spt38
-32996.7: dnbi_cbt107: dnbi_cbt107
-33063.5: dnbi_spt26: dnbi_spt26
-33223.6: wia_cbt79: wia_cbt79
-33322.7: dnbi_cbt108: dnbi_cbt108
-33379.8: kia_cbt36: kia_cbt36
-33609.6: wia_spt39: wia_spt39
-33625.3: dnbi_cbt109: dnbi_cbt109
-33669.7: wia_cbt80: wia_cbt80
-33947.5: dnbi_cbt110: dnbi_cbt110
-34097.2: wia_cbt81: wia_cbt81
-34237.5: dnbi_cbt111: dnbi_cbt111
-34255.6: kia_spt18: kia_spt18
-34305.9: dnbi_spt27: dnbi_spt27
-34334.1: kia_cbt37: kia_cbt37
-34477.3: wia_spt40: wia_spt40
-34527.4: dnbi_cbt112: dnbi_cbt112
-34536.5: wia_cbt82: wia_cbt82
-34843.3: dnbi_cbt113: dnbi_cbt113
-34961.6: wia_cbt83: wia_cbt83
-35134.2: dnbi_cbt114: dnbi_cbt114
-35269.7: wia_spt41: wia_spt41
-35320.6: kia_cbt38: kia_cbt38
-35355.5: wia_cbt84: wia_cbt84
-35472.2: dnbi_cbt115: dnbi_cbt115
+25999.8: dnbi_cbt84: dnbi_cbt84
+26087.8: wia_cbt62: wia_cbt62
+26093.5: wia_spt30: wia_spt30
+26128.2: kia_cbt28: kia_cbt28
+26302.8: dnbi_cbt85: dnbi_cbt85
+26478.7: wia_cbt63: wia_cbt63
+26612.1: dnbi_cbt86: dnbi_cbt86
+26850.7: wia_cbt64: wia_cbt64
+26914.2: wia_spt31: wia_spt31
+26915.1: dnbi_cbt87: dnbi_cbt87
+26939.6: dnbi_spt21: dnbi_spt21
+27019.4: kia_spt14: kia_spt14
+27032.2: kia_cbt29: kia_cbt29
+27224.1: dnbi_cbt88: dnbi_cbt88
+27257.3: wia_cbt65: wia_cbt65
+27540.9: dnbi_cbt89: dnbi_cbt89
+27649.1: wia_cbt66: wia_cbt66
+27749.6: wia_spt32: wia_spt32
+27837.9: dnbi_cbt90: dnbi_cbt90
+27934.5: kia_cbt30: kia_cbt30
+28083.6: wia_cbt67: wia_cbt67
+28124.9: dnbi_cbt91: dnbi_cbt91
+28165.7: dnbi_spt22: dnbi_spt22
+28426.3: dnbi_cbt92: dnbi_cbt92
+28506.4: wia_cbt68: wia_cbt68
+28586.1: wia_spt33: wia_spt33
+28732.6: dnbi_cbt93: dnbi_cbt93
+28840.2: kia_spt15: kia_spt15
+28903.3: kia_cbt31: kia_cbt31
+28955: wia_cbt69: wia_cbt69
+29034.3: dnbi_cbt94: dnbi_cbt94
+29342.9: dnbi_cbt95: dnbi_cbt95
+29358.2: wia_cbt70: wia_cbt70
+29373.2: dnbi_spt23: dnbi_spt23
+29439.5: wia_spt34: wia_spt34
+29638.7: dnbi_cbt96: dnbi_cbt96
+29702.1: kia_cbt32: kia_cbt32
+29764.4: wia_cbt71: wia_cbt71
+29950.5: dnbi_cbt97: dnbi_cbt97
+30179.4: wia_cbt72: wia_cbt72
+30273.2: dnbi_cbt98: dnbi_cbt98
+30309.6: wia_spt35: wia_spt35
+30585.5: dnbi_spt24: dnbi_spt24
+30590.9: dnbi_cbt99: dnbi_cbt99
+30592.2: wia_cbt73: wia_cbt73
+30643.8: kia_cbt33: kia_cbt33
+30706.6: kia_spt16: kia_spt16
+30879.3: dnbi_cbt100: dnbi_cbt100
+31029.6: wia_cbt74: wia_cbt74
+31176.6: wia_spt36: wia_spt36
+31191.3: dnbi_cbt101: dnbi_cbt101
+31448.3: wia_cbt75: wia_cbt75
+31486.9: dnbi_cbt102: dnbi_cbt102
+31582.8: kia_cbt34: kia_cbt34
+31794.5: dnbi_cbt103: dnbi_cbt103
+31827.9: dnbi_spt25: dnbi_spt25
+31900.3: wia_cbt76: wia_cbt76
+31993.6: wia_spt37: wia_spt37
+32105.3: dnbi_cbt104: dnbi_cbt104
+32337: wia_cbt77: wia_cbt77
+32409.7: dnbi_cbt105: dnbi_cbt105
+32498.1: kia_cbt35: kia_cbt35
+32543.9: kia_spt17: kia_spt17
+32691.7: dnbi_cbt106: dnbi_cbt106
+32728.6: wia_cbt78: wia_cbt78
+32848.3: wia_spt38: wia_spt38
+32997.3: dnbi_cbt107: dnbi_cbt107
+33063.1: dnbi_spt26: dnbi_spt26
+33162.7: wia_cbt79: wia_cbt79
+33323.5: dnbi_cbt108: dnbi_cbt108
+33378.6: kia_cbt36: kia_cbt36
+33556.2: wia_cbt80: wia_cbt80
+33608.7: wia_spt39: wia_spt39
+33625.5: dnbi_cbt109: dnbi_cbt109
+33948.4: dnbi_cbt110: dnbi_cbt110
+33974.5: wia_cbt81: wia_cbt81
+34237.3: dnbi_cbt111: dnbi_cbt111
+34254.8: kia_spt18: kia_spt18
+34304.2: dnbi_spt27: dnbi_spt27
+34333.3: kia_cbt37: kia_cbt37
+34373.6: wia_cbt82: wia_cbt82
+34476.3: wia_spt40: wia_spt40
+34527.2: dnbi_cbt112: dnbi_cbt112
+34831.5: wia_cbt83: wia_cbt83
+34842.2: dnbi_cbt113: dnbi_cbt113
+35134.6: dnbi_cbt114: dnbi_cbt114
+35238.7: wia_cbt84: wia_cbt84
+35268.1: wia_spt41: wia_spt41
+35320.9: kia_cbt38: kia_cbt38
+35472.8: dnbi_cbt115: dnbi_cbt115
 35537.1: dnbi_spt28: dnbi_spt28
-35773.7: wia_cbt85: wia_cbt85
+35644.4: wia_cbt85: wia_cbt85
 35781.6: dnbi_cbt116: dnbi_cbt116
-36082.8: dnbi_cbt117: dnbi_cbt117
-36137.3: wia_spt42: wia_spt42
-36198.4: wia_cbt86: wia_cbt86
-36219.3: kia_cbt39: kia_cbt39
-36230.9: kia_spt19: kia_spt19
-36424.6: dnbi_cbt118: dnbi_cbt118
-36606.8: wia_cbt87: wia_cbt87
-36721.3: dnbi_cbt119: dnbi_cbt119
-36780.2: dnbi_spt29: dnbi_spt29
-37002.5: wia_cbt88: wia_cbt88
-37023.1: wia_spt43: wia_spt43
-37033.4: dnbi_cbt120: dnbi_cbt120
-37186.9: kia_cbt40: kia_cbt40
-37315: dnbi_cbt121: dnbi_cbt121
-37410.9: wia_cbt89: wia_cbt89
-37622.1: dnbi_cbt122: dnbi_cbt122
-37856.6: wia_cbt90: wia_cbt90
-37873.7: wia_spt44: wia_spt44
-37956.9: dnbi_cbt123: dnbi_cbt123
-38001.1: dnbi_spt30: dnbi_spt30
-38078.8: kia_spt20: kia_spt20
-38090.9: kia_cbt41: kia_cbt41
-38253.6: wia_cbt91: wia_cbt91
-38259.7: dnbi_cbt124: dnbi_cbt124
+36037.8: wia_cbt86: wia_cbt86
+36081.3: dnbi_cbt117: dnbi_cbt117
+36136.7: wia_spt42: wia_spt42
+36218.9: kia_cbt39: kia_cbt39
+36229.6: kia_spt19: kia_spt19
+36425.4: dnbi_cbt118: dnbi_cbt118
+36469.5: wia_cbt87: wia_cbt87
+36720: dnbi_cbt119: dnbi_cbt119
+36780.7: dnbi_spt29: dnbi_spt29
+36907.9: wia_cbt88: wia_cbt88
+37022.4: wia_spt43: wia_spt43
+37033.1: dnbi_cbt120: dnbi_cbt120
+37185.2: kia_cbt40: kia_cbt40
+37300.6: wia_cbt89: wia_cbt89
+37315.9: dnbi_cbt121: dnbi_cbt121
+37622.7: dnbi_cbt122: dnbi_cbt122
+37700.6: wia_cbt90: wia_cbt90
+37872.2: wia_spt44: wia_spt44
+37956.3: dnbi_cbt123: dnbi_cbt123
+38000.5: dnbi_spt30: dnbi_spt30
+38079: kia_spt20: kia_spt20
+38089: kia_cbt41: kia_cbt41
+38107: wia_cbt91: wia_cbt91
+38258.5: dnbi_cbt124: dnbi_cbt124
+38557.5: wia_cbt92: wia_cbt92
 38560.3: dnbi_cbt125: dnbi_cbt125
-38645: wia_cbt92: wia_cbt92
-38721.4: wia_spt45: wia_spt45
-38888.5: dnbi_cbt126: dnbi_cbt126
-39055.2: kia_cbt42: kia_cbt42
-39075.5: wia_cbt93: wia_cbt93
-39203.3: dnbi_cbt127: dnbi_cbt127
-39266.7: dnbi_spt31: dnbi_spt31
-39482.5: wia_cbt94: wia_cbt94
-39504.2: dnbi_cbt128: dnbi_cbt128
-39512.2: wia_spt46: wia_spt46
-39816.5: dnbi_cbt129: dnbi_cbt129
-39827.6: kia_spt21: kia_spt21
-39955.3: wia_cbt95: wia_cbt95
-40007: kia_cbt43: kia_cbt43
-40131.4: dnbi_cbt130: dnbi_cbt130
-40326.8: wia_spt47: wia_spt47
-40359.7: wia_cbt96: wia_cbt96
-40440.8: dnbi_cbt131: dnbi_cbt131
+38720.8: wia_spt45: wia_spt45
+38889.2: dnbi_cbt126: dnbi_cbt126
+38956.5: wia_cbt93: wia_cbt93
+39054.6: kia_cbt42: kia_cbt42
+39205.5: dnbi_cbt127: dnbi_cbt127
+39265.8: dnbi_spt31: dnbi_spt31
+39334.3: wia_cbt94: wia_cbt94
+39504.4: dnbi_cbt128: dnbi_cbt128
+39511.5: wia_spt46: wia_spt46
+39766.7: wia_cbt95: wia_cbt95
+39816.8: dnbi_cbt129: dnbi_cbt129
+39826.5: kia_spt21: kia_spt21
+40006.2: kia_cbt43: kia_cbt43
+40130.4: dnbi_cbt130: dnbi_cbt130
+40200.4: wia_cbt96: wia_cbt96
+40325.5: wia_spt47: wia_spt47
+40440: dnbi_cbt131: dnbi_cbt131
 40532.5: dnbi_spt32: dnbi_spt32
-40733.4: dnbi_cbt132: dnbi_cbt132
-40773.4: wia_cbt97: wia_cbt97
-40958.6: kia_cbt44: kia_cbt44
-41049: dnbi_cbt133: dnbi_cbt133
-41146.5: wia_spt48: wia_spt48
-41168.5: wia_cbt98: wia_cbt98
-41339: dnbi_cbt134: dnbi_cbt134
-41619.7: wia_cbt99: wia_cbt99
-41673.3: dnbi_cbt135: dnbi_cbt135
-41679: kia_spt22: kia_spt22
-41770.8: dnbi_spt33: dnbi_spt33
-41853.2: kia_cbt45: kia_cbt45
-41965.5: wia_spt49: wia_spt49
-41980.3: dnbi_cbt136: dnbi_cbt136
-42058.3: wia_cbt100: wia_cbt100
-42273.4: dnbi_cbt137: dnbi_cbt137
-42518.4: wia_cbt101: wia_cbt101
-42563.7: dnbi_cbt138: dnbi_cbt138
-42769.5: wia_spt50: wia_spt50
-42798.2: kia_cbt46: kia_cbt46
-42852.8: dnbi_cbt139: dnbi_cbt139
-42944.7: wia_cbt102: wia_cbt102
-43005.5: dnbi_spt34: dnbi_spt34
-43174.5: dnbi_cbt140: dnbi_cbt140
+40660.5: wia_cbt97: wia_cbt97
+40733: dnbi_cbt132: dnbi_cbt132
+40957.2: kia_cbt44: kia_cbt44
+41049.3: dnbi_cbt133: dnbi_cbt133
+41069.7: wia_cbt98: wia_cbt98
+41145.5: wia_spt48: wia_spt48
+41337.3: dnbi_cbt134: dnbi_cbt134
+41454.3: wia_cbt99: wia_cbt99
+41675.4: dnbi_cbt135: dnbi_cbt135
+41678.7: kia_spt22: kia_spt22
+41770.6: dnbi_spt33: dnbi_spt33
+41852.7: kia_cbt45: kia_cbt45
+41872.4: wia_cbt100: wia_cbt100
+41964.5: wia_spt49: wia_spt49
+41980.7: dnbi_cbt136: dnbi_cbt136
+42272.8: dnbi_cbt137: dnbi_cbt137
+42290.7: wia_cbt101: wia_cbt101
+42563.5: dnbi_cbt138: dnbi_cbt138
+42689.2: wia_cbt102: wia_cbt102
+42768.8: wia_spt50: wia_spt50
+42798.5: kia_cbt46: kia_cbt46
+42851.1: dnbi_cbt139: dnbi_cbt139
+43005.4: dnbi_spt34: dnbi_spt34
+43067.4: wia_cbt103: wia_cbt103
+43174.2: dnbi_cbt140: dnbi_cbt140
 simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Monitor: in memory }
 { Resource: c_r1_technician_medic_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -605,10 +584,10 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: c_r1_technician_medic_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r1_clinician_nurse_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r1_clinician_doctor_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r1_technician_medic_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
+{ Resource: c_r1_technician_medic_1_t2 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: c_r1_technician_medic_2_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r1_technician_medic_3_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r1_clinician_nurse_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
+{ Resource: c_r1_clinician_nurse_1_t2 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: c_r1_clinician_doctor_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r1_technician_medic_1_t3 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r1_technician_medic_2_t3 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -630,7 +609,7 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: c_r2b_icu_1_medic_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2b_evac_1_medic_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2b_evac_1_medic_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2b_ot_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 6(Inf) }
+{ Resource: b_r2b_ot_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 5(Inf) }
 { Resource: b_r2b_resus_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2b_resus_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2b_icu_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -638,7 +617,7 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: b_r2b_hold_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: b_r2b_hold_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: b_r2b_hold_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2b_hold_4_t1 | monitored: TRUE | server status: 1(1) | queue status: 1(Inf) }
+{ Resource: b_r2b_hold_4_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: b_r2b_hold_5_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2b_surg_1_anesthetist_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2b_surg_1_surgeon_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -660,11 +639,11 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: b_r2b_resus_2_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2b_icu_1_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2b_icu_2_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2b_hold_1_t2 | monitored: TRUE | server status: 1(1) | queue status: 6(Inf) }
-{ Resource: b_r2b_hold_2_t2 | monitored: TRUE | server status: 1(1) | queue status: 4(Inf) }
-{ Resource: b_r2b_hold_3_t2 | monitored: TRUE | server status: 1(1) | queue status: 4(Inf) }
+{ Resource: b_r2b_hold_1_t2 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2b_hold_2_t2 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2b_hold_3_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2b_hold_4_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2b_hold_5_t2 | monitored: TRUE | server status: 1(1) | queue status: 3(Inf) }
+{ Resource: b_r2b_hold_5_t2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_1_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_1_surgeon_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_1_surgeon_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
@@ -672,41 +651,20 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: c_r2eheavy_surg_1_nurse_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_1_nurse_3_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_1_nurse_4_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_anesthetist_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_surgeon_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_surgeon_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_nurse_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_nurse_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_nurse_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_2_nurse_4_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_3_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 1(Inf) }
+{ Resource: c_r2eheavy_surg_2_anesthetist_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_surgeon_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_surgeon_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_nurse_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_nurse_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_nurse_3_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_2_nurse_4_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: c_r2eheavy_surg_3_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_surgeon_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_surgeon_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_3_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_surg_3_nurse_4_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_anesthetist_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_surgeon_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_surgeon_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_3_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_4_nurse_4_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_anesthetist_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_surgeon_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_surgeon_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_1_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_3_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_5_nurse_4_t1 | monitored: TRUE | server status: 0(0) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_anesthetist_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_surgeon_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_surgeon_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: c_r2eheavy_surg_6_nurse_4_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_facem_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_nurse_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_emerg_1_nurse_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -743,22 +701,21 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: c_r2eheavy_evac_2_medic_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_evac_3_medic_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: c_r2eheavy_evac_3_medic_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_ot_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 14(Inf) }
-{ Resource: b_r2eheavy_ot_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 15(Inf) }
-{ Resource: b_r2eheavy_ot_3_t1 | monitored: TRUE | server status: 1(1) | queue status: 14(Inf) }
+{ Resource: b_r2eheavy_ot_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 29(Inf) }
+{ Resource: b_r2eheavy_ot_2_t1 | monitored: TRUE | server status: 0(0) | queue status: 30(Inf) }
 { Resource: b_r2eheavy_resus_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_2_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_resus_4_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_icu_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_icu_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_icu_3_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2eheavy_icu_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_icu_4_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_hold_1_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2eheavy_hold_1_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_2_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_hold_3_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_hold_4_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: b_r2eheavy_hold_5_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
+{ Resource: b_r2eheavy_hold_3_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2eheavy_hold_4_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: b_r2eheavy_hold_5_t1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_6_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_7_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_8_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
@@ -784,14 +741,14 @@ simmer environment: Battlefield Casualty Handling | now: 43200 | next: 43200
 { Resource: b_r2eheavy_hold_28_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_29_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: b_r2eheavy_hold_30_t1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Resource: t_PMVAmb_1 | monitored: TRUE | server status: 1(1) | queue status: 0(Inf) }
+{ Resource: t_PMVAmb_1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_PMVAmb_2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_PMVAmb_3 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_HX240M_1 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_HX240M_2 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_HX240M_3 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
 { Resource: t_HX240M_4 | monitored: TRUE | server status: 0(1) | queue status: 0(Inf) }
-{ Source: wia_cbt | monitored: 2 | n_generated: 103 }
+{ Source: wia_cbt | monitored: 2 | n_generated: 104 }
 { Source: kia_cbt | monitored: 2 | n_generated: 47 }
 { Source: dnbi_cbt | monitored: 2 | n_generated: 141 }
 { Source: wia_spt | monitored: 2 | n_generated: 51 }

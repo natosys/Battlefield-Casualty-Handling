@@ -128,7 +128,7 @@
       "sub_elms": [
         {
           "sub_elm": "surg",
-          "qty": 6,
+          "qty": 3,
           "resources": [
             {
               "name": "anesthetist",
@@ -190,7 +190,7 @@
       "beds": [
         {
           "name": "ot",
-          "qty": 3
+          "qty": 2
         },
         {
           "name": "resus",

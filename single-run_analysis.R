@@ -283,31 +283,51 @@ ggplot(daily_station_summary, aes(x = factor(day), y = n, fill = r2b_station)) +
 # 1. Pivot attributes wide
 attributes_wide <- attributes %>%
   pivot_wider(
-    id_cols = c(name, replication),
+    id_cols = c(name, replication, time),
     names_from = key,
     values_fn = ~ first(.x)
   )
 
-# 2. Convert time to simulation day
+# 2. Calculate day of surgery
 attributes_wide <- attributes_wide %>%
-  mutate(day = floor(time / 1440) + 1)
+  mutate(day = floor(as.numeric(time) / 1440) + 1)
 
-# 3. Filter for R2B surgeries
+# 3. Merge rows
+attributes_wide <- attributes_wide %>%
+  arrange(name, time) %>%
+  group_by(name, replication) %>%
+  summarise(
+    across(
+      .cols = -c(time),  # exclude time unless you want to keep max time
+      .fns = ~ last(na.omit(.x))
+    ),
+    time = max(time),  # optional: keep latest timestamp
+    .groups = "drop"
+  )
+
+# 4. Filter for R2B surgeries
 r2b_surgeries <- attributes_wide %>%
   filter(!is.na(r2b_surgery) & r2b_surgery > 0)
 
-# 4. Summarize surgeries per day
-daily_surgery_summary <- r2b_surgeries %>%
-  count(day, name = "surgeries")
+# 5. Label R2B station
+r2b_surgeries <- r2b_surgeries %>%
+  mutate(r2b_station = paste0("R2B ", r2b_treated))
 
-# 5. Plot: R2B Surgeries Completed Per Simulation Day
-ggplot(daily_surgery_summary, aes(x = factor(day), y = surgeries)) +
-  geom_bar(stat = "identity", fill = "#2ca02c", width = 0.7) +
+# 6. Summarize surgeries per day and station
+daily_surgery_summary <- r2b_surgeries %>%
+  count(day, r2b_station, name = "surgeries")
+
+# 7. Plot stacked bar chart
+ggplot(daily_surgery_summary, aes(x = factor(day), y = surgeries, fill = r2b_station)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
   labs(
-    title = "R2B Surgeries Completed Per Simulation Day",
+    title = "R2B Surgeries Completed Per Simulation Day by Station",
     x = "Simulation Day",
-    y = "Number of Surgeries"
+    y = "Number of Surgeries",
+    fill = "R2B Station"
   ) +
+  scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
+  scale_fill_brewer(palette = "Set2") +
   theme_minimal(base_size = 14)
 
 

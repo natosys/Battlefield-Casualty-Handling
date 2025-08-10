@@ -274,7 +274,42 @@ ggplot(daily_station_summary, aes(x = factor(day), y = n, fill = r2b_station)) +
     fill = "R2B Station"
   ) +
   scale_fill_manual(values = r2b_colors) +
+  scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
   theme_minimal(base_size = 14)
+
+##############################################
+## R2B SURGERY SUMMARY                      ##
+##############################################
+# 1. Pivot attributes wide
+attributes_wide <- attributes %>%
+  pivot_wider(
+    id_cols = c(name, replication),
+    names_from = key,
+    values_fn = ~ first(.x)
+  )
+
+# 2. Convert time to simulation day
+attributes_wide <- attributes_wide %>%
+  mutate(day = floor(time / 1440) + 1)
+
+# 3. Filter for R2B surgeries
+r2b_surgeries <- attributes_wide %>%
+  filter(!is.na(r2b_surgery) & r2b_surgery > 0)
+
+# 4. Summarize surgeries per day
+daily_surgery_summary <- r2b_surgeries %>%
+  count(day, name = "surgeries")
+
+# 5. Plot: R2B Surgeries Completed Per Simulation Day
+ggplot(daily_surgery_summary, aes(x = factor(day), y = surgeries)) +
+  geom_bar(stat = "identity", fill = "#2ca02c", width = 0.7) +
+  labs(
+    title = "R2B Surgeries Completed Per Simulation Day",
+    x = "Simulation Day",
+    y = "Number of Surgeries"
+  ) +
+  theme_minimal(base_size = 14)
+
 
 ##############################################
 ## R2E OT Bed QUEUE GRAPH                   ##

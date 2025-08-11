@@ -156,6 +156,7 @@ build_env <- function(env, env_data) {
                   if (r2e_ot_bed_counter %% 2 == 1) {
                     env <- env %>% add_resource(res_name)
                   } else {
+                    # env <- env %>% add_resource(res_name)
                     env <- env %>% add_resource(res_name, ot_shift_1)
                   }
                   r2e_ot_bed_counter <- r2e_ot_bed_counter + 1
@@ -661,6 +662,7 @@ r2b_treat_wia <- function(team_id) {
             simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
             seize_selected(id = 4) %>%
             seize_resources(surg_team) %>%
+            set_attribute("r2b_surgery_start", function() now(env)) %>%  # Track treatment
             timeout(function() {
               rtriangle(
                 n = 1,
@@ -670,6 +672,7 @@ r2b_treat_wia <- function(team_id) {
               )
             }) %>%
             set_attribute("r2b_surgery", 1) %>%
+            set_attribute("r2b_surgery_end", function() now(env)) %>%  # Track treatment
             release_resources(surg_team) %>%
             release_selected(id = 4),
           
@@ -849,38 +852,30 @@ r2e_treat_wia <- function(team_id) {
   evac_team <- select_subteam("r2eheavy", team_id, "evac")
   icu_team <- select_subteam("r2eheavy", team_id, "icu")
   
-  trajectory("R2E Treatment (Fallback)") %>%
+  trajectory("R2E Treatment") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
     
     # Step 1: Early mortality check (Dead on Withdrawal ~1%)
-    # If casualty dies immediately upon arrival, route to mortuary handling and exit simulation
     branch(
       option = function() {
         if (runif(1) < 0.01) return(1)
         return(2)
       },
       continue = TRUE,
-      
-      # Path 1: DOW
-      trajectory("Dead on Withdrawal") %>%
+      trajectory("Died of Wounds") %>%
         set_attribute("dow", 1) %>%
         r2e_treat_kia(team_id, evac_team) %>%
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
-      
-      # Step 2: Proceed with emergency treatment at R2E Heavy
       trajectory("Continue R2E Treatment")
     ) %>%
     
-    # Step 3: Seize resuscitation bed (shortest available queue)
-    # Prepares for initial stabilization prior to surgery or disposition
+    # Step 2: Seize resuscitation bed
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     
-    # Step 4: Emergency resuscitation (short or full)
-    # If previously treated at R2B → apply short resus model
-    # Otherwise → perform full emergency treatment with logging
+    # Step 3: Emergency resuscitation
     seize_resources(emergency_team) %>%
     branch(
       option = function() {
@@ -889,8 +884,6 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
-      # Short resus time if R2B treatment occurred
       trajectory() %>%
         timeout(function() {
           rtriangle(
@@ -902,8 +895,6 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2),
-      
-      # Full resus time otherwise
       trajectory() %>%
         timeout(function() {
           rtriangle(
@@ -918,8 +909,7 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 2)
     ) %>%
     
-    # Step 5: Surgery check
-    # Casualties flagged for surgery are routed to OT bed if available
+    # Step 4: Surgery check
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
@@ -927,13 +917,12 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
-      
-      # If surgery required → perform surgery
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
-        seize_resources(surg_team) %>%
+        # seize_resources(surg_team) %>%
         set_attribute("r2e_surgery", 1) %>%
+        set_attribute("r2e_surgery_1_start", function() now(env)) %>%  # Track treatment
         timeout(function() {
           rtriangle(
             n = 1,
@@ -942,29 +931,20 @@ r2e_treat_wia <- function(team_id) {
             c = env_data$vars$r2eheavy$surgery$mode
           )
         }) %>%
-        release_resources(surg_team) %>%
+        set_attribute("r2e_surgery_1_end", function() now(env)) %>%  # Track treatment
+        # release_resources(surg_team) %>%
         release_selected(id = 4) %>%
-        
-        # Post-surgical ICU routing
-        # If prior R2B surgery → branch based on DCS stage
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
-            
-            # DCS-III complete → short ICU recovery
             if (!is.na(prior_surg) && prior_surg == 1) {
-              outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, (1-env_data$vars$r2eheavy$recovery$post_surgery)))
+              outcome <- sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, 1 - env_data$vars$r2eheavy$recovery$post_surgery))
               return(outcome)
             }
-            
-            # Otherwise, full recovery
             return(2)
           },
           continue = TRUE,
-          
-          # Second-time surgery → ICU short recovery
-          trajectory("Short ICU Recovery – Stable after Second Surgery") %>%
-            # log_("Stable post-op after second surgery – 1hr ICU recovery") %>%
+          trajectory("Short ICU Recovery") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
             seize_selected(id = 6) %>%
             timeout(function() {
@@ -976,10 +956,7 @@ r2e_treat_wia <- function(team_id) {
               )
             }) %>%
             release_selected(id = 6),
-          
-          # First-time surgery → full ICU recovery
-          trajectory("Full ICU Recovery – Unstable or First Surgery") %>%
-            # log_("Standard ICU recovery required") %>%
+          trajectory("Full ICU Recovery") %>%
             simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
             seize_selected(id = 6) %>%
             timeout(function() {
@@ -992,55 +969,43 @@ r2e_treat_wia <- function(team_id) {
             }) %>%
             release_selected(id = 6)
         ),
-      
-      # No surgery required → skip to disposition logic
       trajectory("No Surgery Needed")
-        # log_("No surgery needed")
     ) %>%
     
-    # Step 6: Recovery or strategic evacuation branch
-    # Based on doctrinal 10% recovery vs 90% evac split
+    # Step 5: Second surgery if no prior R2B surgery
     branch(
-      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, (1-env_data$vars$r2eheavy$recovery$in_theatre_rate))),
+      option = function() {
+        prior_surg <- get_attribute(env, "r2b_surgery")
+        if (!is.na(prior_surg) && prior_surg == 1) return(2)
+        return(1)
+      },
       continue = TRUE,
-      
-      # In-theatre recovery path (10% rate)
+      trajectory("Second Surgery Before Disposition") %>%
+        simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
+        seize_selected(id = 7) %>%
+        # seize_resources(surg_team) %>%
+        set_attribute("r2e_surgery_2_start", function() now(env)) %>%  # Track treatment
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$surgery$min,
+            b = env_data$vars$r2eheavy$surgery$max,
+            c = env_data$vars$r2eheavy$surgery$mode
+          )
+        }) %>%
+        set_attribute("r2e_surgery_2_end", function() now(env)) %>%  # Track treatment
+        # release_resources(surg_team) %>%
+        release_selected(id = 7),
+      trajectory("No Second Surgery Needed")
+    ) %>%
+    
+    # Step 6: Recovery or strategic evacuation
+    branch(
+      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, 1 - env_data$vars$r2eheavy$recovery$in_theatre_rate)),
+      continue = TRUE,
       trajectory("Recover at R2E") %>%
-        branch(
-          option = function() {
-            prior_surg <- get_attribute(env, "r2b_surgery")
-            if (!is.na(prior_surg) && prior_surg == 1) return(2)  # Skip second surgery
-            return(1)  # Perform second surgery
-          },
-          continue = TRUE,
-          
-          # If no prior surgery at R2B → perform second surgery at R2E
-          trajectory("Second Surgery Before Recovery") %>%
-            # log_("Initiating second surgery before R2E recovery") %>%
-            simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
-            seize_selected(id = 7) %>%
-            seize_resources(surg_team) %>%
-            timeout(function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2eheavy$surgery$min,
-                b = env_data$vars$r2eheavy$surgery$max,
-                c = env_data$vars$r2eheavy$surgery$mode
-              )
-            }) %>%
-            release_resources(surg_team) %>%
-            release_selected(id = 7),
-            # log_("Second surgery complete – proceeding to recovery"),
-          
-          # If prior surgery already occurred → proceed directly to recovery
-          trajectory("No Second Surgery")
-        ) %>%
-        
-        # Final recovery in hold bed
-        # log_("Selecting hold bed for recovery") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
-        # log_("Recovering at R2E Heavy") %>%
         timeout(function() {
           rtriangle(
             n = 1,
@@ -1051,12 +1016,8 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_selected(id = 5) %>%
         set_attribute("return_day", function() now(env)),
-        # log_("Recovery complete – hold bed released"),
-      
-      # Strategic evacuation path (90% rate)
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_evac", 1)
-        # log_("Commencing strategic evacuation from R2E Heavy")
     )
 }
 

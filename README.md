@@ -13,6 +13,7 @@ Findings highlight critical periods of resource saturation and identify potentia
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -64,6 +65,7 @@ Findings highlight critical periods of resource saturation and identify potentia
 - [Further Development](#further-development)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -184,6 +186,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -191,28 +194,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -473,8 +476,6 @@ flowchart TD
     N --> L
     G --> O["Transfer KIA"]
     O --> L
-
-
 ```
 
 ### R2B Trajectory
@@ -534,7 +535,6 @@ flowchart TD
     W --> X["Wait for Evac"]
     X --> Y["Release ICU"]
     Y --> T
-
 ```
 
 ### R2E Heavy Trajectory
@@ -590,7 +590,7 @@ flowchart TD
 
 ## Single Run Analysis
 
-A single run was executed using the seed 42 with a 30 day duration. The graph and tables below summarise the casualties that were generated for the 
+A single run was executed using the seed 42 with a 30 day duration. The graph and tables below summarise the casualties that were generated for the simulation.
 
 ![Alt text](images/casualty_summary.png)
 
@@ -630,21 +630,23 @@ because of the algorithm, casualties are assigned to an r2b when there is no que
 
 ![Alt text](images/r2b_bed_queues.png)
 
-saw-toothing to zero, along with the fact that most casualties are treated at an r2b suggests a manageable daily load between the two r2b. 
+saw-toothing to zero, along with the fact that most casualties are treated at an r2b suggests a manageable daily load between the two r2b. The saw-tooth is likely occurring because of the 12 h availability schedule for the single surgical team within the R2B.
+
+![Alt text](file://C:\Users\natha\Documents\Battlefield Casualty Handling\images\r2b_surgeries.png?msec=1755361326333)
 
 Additionally, to ensure timely treatment, patients are transferred to the r2e heavy for further handling if there is a queue for the r2b OT bed. This is evident in the number of surgeries completed at each R2B being less than those handled at each R2B.
 
-![Alt text](images/r2b_surgeries.png)
+
 
 r2e:
 
-![Alt text](images/r2eheavy_ot_queue_3_teams.png)
+![Alt text](images/r2eheavy_bed_queue_3_teams.png)
 
-about 30 backlog for each R2E Heavy OT bed which means we would need capacity for at least 60 surgeries. Using the mode of 120 min we need 7200 min of surgery capacity in 30 days (this only accounts for backlog not any additional surgeries that may be required where a patient is queueing for their first surgery). Adding an additional surgical team and a second OT bed to 24 h availability with an additional surgical team should provide 21,600 min of surgical time.
 
-![Alt text](images/r2eheavy_ot_queue_4_teams.png)
 
-![Alt text](images/r2eheavy_ot_queue_5_teams.png)
+![Alt text](images/r2eheavy_gantt.png)
+
+![Alt text](images/r2eheavy_surgeries.png)
 
 ![Alt text](images/r2eheavy_ot_queue_6_teams.png)
 

@@ -5,6 +5,7 @@ library(ggplot2)
 library(patchwork)
 library(knitr)
 library(data.table)
+library(RColorBrewer)
 
 # Save as CSV (readable, good for Excel or reports)
 write.csv(get_mon_arrivals(env, ongoing = TRUE), "data/mon_arrivals.csv", row.names = FALSE)
@@ -241,6 +242,48 @@ attributes_wide <- attributes %>%
   ungroup()
 
 ##############################################
+## CASUALTIES SKIPPING R2B                  ##
+##############################################
+# # Filter: value set for r2e_treated AND no value set for r2b_treated
+# skipped_r2b <- attributes_wide %>%
+#   filter(!is.na(r2e_treated) & is.na(r2b_treated))
+# 
+# # Count per replication (one row per casualty after your slice_tail)
+# skipped_counts <- skipped_r2b %>%
+#   count(replication, name = "n")
+# 
+# ggplot(skipped_counts, aes(x = factor(replication), y = n)) +
+#   geom_col(aes(fill = "Skipped R2B")) +   # single fill group
+#   geom_text(aes(label = n), vjust = -0.3, size = 4) +
+#   scale_fill_brewer(palette = "Set2", guide = "none") +
+#   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+#   labs(
+#     title = "Casualties Skipping R2B",
+#     subtitle = "Criteria: r2e_treated is set; r2b_treated is not set (NA)",
+#     x = "Replication",
+#     y = "Number of casualties"
+#   ) +
+#   theme_minimal(base_size = 14)
+
+# Extract and preprocess skipped R2B data
+skipped_r2b_daily <- attributes_wide %>%
+  mutate(day = floor(time / 1440) + 1) %>%  # Derive day assuming 1440 mins/day
+  filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
+  group_by(day) %>%
+  summarise(skipped_r2b = n(), .groups = "drop") %>%
+  complete(day = 1:30, fill = list(skipped_r2b = 0))
+
+# Plot with zero-filled timeline for doctrinal clarity
+ggplot(skipped_r2b_daily, aes(x = day, y = skipped_r2b)) +
+  geom_col(fill = "#66c2a5") +
+  labs(
+    title = "Casualties Skipping R2B Treatment per Day",
+    x = "Simulation Day",
+    y = "Count of Skipped R2B"
+  ) +
+  theme_minimal()
+
+##############################################
 ## CASUALTY TREATMENT SUMMARY               ##
 ##############################################
 # 1. Join arrivals with attributes_wide
@@ -393,18 +436,34 @@ r2e_summary <- attributes_wide %>%
   select(name, starts_with("r2e_surgery_")) %>%
   pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
   filter(!is.na(start_min)) %>%
-  mutate(r2e_day = floor(start_min / 1440)) %>%
+  mutate(r2e_day = floor(start_min / 1440) + 1) %>%
   count(r2e_day, name = "surgeries")
 
+# ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
+#   geom_bar(stat = "identity", fill = "#007ACC") +
+#   labs(title = "R2E Heavy Surgeries Completed Per Simulation Day",
+#        x = "Simulation Day", y = "Number of Surgeries") +
+#   scale_x_continuous(
+#     breaks = seq(1, max_days, by = 1),
+#     expand = c(0, 0)
+#   ) +
+#   scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
+#   theme_minimal(base_size = 14)
 ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
-  geom_bar(stat = "identity", fill = "#007ACC") +
-  labs(title = "R2E-Heavy Surgeries Completed Per Simulation Day",
-       x = "Simulation Day", y = "Number of Surgeries") +
+  geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Set2")[1]) +
+  labs(
+    title = "R2E Heavy Surgeries Completed Per Simulation Day",
+    x = "Simulation Day",
+    y = "Number of Surgeries"
+  ) +
   scale_x_continuous(
     breaks = seq(1, max_days, by = 1),
     expand = c(0, 0)
   ) +
-  scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
+  scale_y_continuous(
+    breaks = 0:25,
+    limits = c(0, 25)
+  ) +
   theme_minimal(base_size = 14)
 
 ##############################################

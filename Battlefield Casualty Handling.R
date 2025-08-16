@@ -394,7 +394,7 @@ r1_treat_wia <- function(team) {
   medics <- env_data$elms$r1[[team]][grepl("_technician_", env_data$elms$r1[[team]])]
   clinicians <- env_data$elms$r1[[team]][grepl("_clinician_", env_data$elms$r1[[team]])]
   
-  trajectory(paste("WIA Team", team)) %>%
+  trajectory(paste("r1-", team, " treat wia")) %>%
     # set_attribute("r1_treated", team) %>%
     simmer::select(medics, policy = "shortest-queue") %>%
     seize_selected() %>%
@@ -563,7 +563,6 @@ r2b_treat_wia <- function(team_id) {
     set_global("evac_wait_count", function() {
       current <- get_global(env, "evac_wait_count")
       updated <- current + 1
-      # cat("evac_wait_count:", updated, "\n")  # Now prints the incremented value
       return(updated)
     }) %>%
     # log_("wait_for_evac") %>%
@@ -610,8 +609,8 @@ r2b_treat_wia <- function(team_id) {
       trajectory("Died of Wounds") %>%
         set_attribute("dow", 1) %>%
         r2b_treat_kia(team_id) %>%
-        r2b_transport_kia(team_id) %>%
         release_selected(id = 1) %>%
+        r2b_transport_kia(team_id) %>%
         simmer::leave(1),
       
       # Path 2: Continue treatment
@@ -1070,8 +1069,6 @@ casualty <- trajectory("Casualty") %>%
     paste0(get_name(env))
   }) %>%
   # Step 1: Set initial attributes
-  # Set team and priority attributes
-  set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>% 
   set_attribute("priority", function() {
     if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
       sample(1:3, 1, prob = c(env_data$vars$r1$priority$one, 
@@ -1106,6 +1103,8 @@ casualty <- trajectory("Casualty") %>%
       return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))
     }
   }) %>%
+  # Set team and priority attributes
+  set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>% 
   
   # Branch 1: WIA/DNBI or KIA handling
   branch(

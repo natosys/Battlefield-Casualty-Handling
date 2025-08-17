@@ -185,46 +185,46 @@ writeLines(kable(population_source_table_wide, format = "markdown"), "population
 # Casualty type table
 writeLines(kable(casualty_type_table_wide, format = "markdown"), "casualty_table.md")
 
-##############################################
-## R2B Bed QUEUE GRAPHs                     ##
-##############################################
-queue_plot_data <- resources %>%
-  as.data.frame() %>%
-  filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
-  select(time, resource, queue) %>%
-  mutate(
-    r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
-    bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
-    bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
-    r2b_label = paste0("R2B ", r2b_id),
-    bed_label = paste0(bed_type, " ", bed_index)
-  )
-
-ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
-  geom_step(linewidth = 1) +
-  labs(
-    title = "Queue Length Over Time by R2B",
-    x = "Time (Days)",
-    y = "Queue Size",
-    color = "Bed"
-  ) +
-  scale_x_continuous(
-    breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1),  # One tick per day
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    limits = c(0, 10),
-    breaks = seq(0, 10, by = 1),
-    expand = c(0, 0)
-  ) +
-  facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
-  theme_minimal(base_size = 13) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
-    legend.position = "bottom",
-    strip.text = element_text(face = "bold")
-  )
+# ##############################################
+# ## R2B Bed QUEUE GRAPHs                     ##
+# ##############################################
+# queue_plot_data <- resources %>%
+#   as.data.frame() %>%
+#   filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
+#   select(time, resource, queue) %>%
+#   mutate(
+#     r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
+#     bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
+#     bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
+#     r2b_label = paste0("R2B ", r2b_id),
+#     bed_label = paste0(bed_type, " ", bed_index)
+#   )
+# 
+# ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
+#   geom_step(linewidth = 1) +
+#   labs(
+#     title = "Queue Length Over Time by R2B",
+#     x = "Time (Days)",
+#     y = "Queue Size",
+#     color = "Bed"
+#   ) +
+#   scale_x_continuous(
+#     breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1),  # One tick per day
+#     expand = c(0, 0)
+#   ) +
+#   scale_y_continuous(
+#     limits = c(0, 10),
+#     breaks = seq(0, 10, by = 1),
+#     expand = c(0, 0)
+#   ) +
+#   facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
+#   theme_minimal(base_size = 13) +
+#   theme(
+#     panel.grid.minor = element_blank(),
+#     panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
+#     legend.position = "bottom",
+#     strip.text = element_text(face = "bold")
+#   )
 
 ##############################################
 ## WIDE ATTRIBUTES FOR GRAPHS               ##
@@ -242,38 +242,7 @@ attributes_wide <- attributes %>%
   ungroup()
 
 ##############################################
-## CASUALTIES SKIPPING R2B                  ##
-##############################################
-
-# Extract and preprocess skipped R2B data
-skipped_r2b_daily <- attributes_wide %>%
-  mutate(day = floor(time / 1440) + 1) %>%  # Derive day assuming 1440 mins/day
-  filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
-  group_by(day) %>%
-  summarise(skipped_r2b = n(), .groups = "drop") %>%
-  complete(day = 1:30, fill = list(skipped_r2b = 0))
-
-# Ensure every day gets a tick: sequence from 1 to max day present
-x_breaks <- seq(min(skipped_r2b_daily$day), max(skipped_r2b_daily$day), by = 1)
-
-# Plot with zero-filled timeline for doctrinal clarity
-ggplot(skipped_r2b_daily, aes(x = day, y = skipped_r2b)) +
-  geom_col(fill = "#66c2a5") +
-  labs(
-    title = "Casualties Skipping R2B Treatment per Day",
-    x = "Simulation Day",
-    y = "Count of Skipped R2B"
-  ) +
-  scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
-  scale_x_continuous(
-    breaks = x_breaks,
-    labels = function(x) paste0(x),
-    expand = c(0, 0)
-  ) +
-  theme_minimal()
-
-##############################################
-## CASUALTY TREATMENT SUMMARY               ##
+## R2B CASUALTY TREATMENT SUMMARY           ##
 ##############################################
 # 1. Join arrivals with attributes_wide
 combined <- arrivals %>%
@@ -289,11 +258,11 @@ r2b_casualties <- r2b_casualties %>%
 
 # 4. Convert start_time to simulation day
 r2b_casualties <- r2b_casualties %>%
-  mutate(day = floor(start_time / 1440) + 1)
+  mutate(r2b_treatment_start_time = floor(start_time / 1440) + 1)
 
 # 5. Summarize daily counts by R2B station
 daily_station_summary <- r2b_casualties %>%
-  count(day, r2b_station)
+  count(r2b_treatment_start_time, r2b_station)
 
 # 6. Define custom colors
 r2b_levels <- unique(daily_station_summary$r2b_station)
@@ -303,12 +272,12 @@ r2b_colors <- setNames(
 )
 
 # 7. Plot stacked bar chart
-ggplot(daily_station_summary, aes(x = factor(day), y = n, fill = r2b_station)) +
+plot_r2b_treated <- ggplot(daily_station_summary, aes(x = factor(r2b_treatment_start_time), y = n, fill = r2b_station)) +
   geom_bar(stat = "identity", position = "stack", width = 0.7) +
   labs(
-    title = "Casualties Treated at R2B Stations by Simulation Day",
+    title = "Casualties Treated at R2B Stations per Simulation Day",
     x = "Simulation Day",
-    y = "Number of Casualties",
+    y = "Casualties",
     fill = "R2B Station"
   ) +
   scale_fill_manual(values = r2b_colors) +
@@ -326,263 +295,284 @@ r2b_summary <- attributes_wide %>%
   ) %>%
   count(r2b_day, r2b_station, name = "surgeries")
 
-ggplot(r2b_summary, aes(x = factor(r2b_day), y = surgeries, fill = r2b_station)) +
+plot_r2b_summary <- ggplot(r2b_summary, aes(x = factor(r2b_day), y = surgeries, fill = r2b_station)) +
   geom_bar(stat = "identity", position = "stack", width = 0.7) +
-  labs(title = "R2B Surgeries Started Per Simulation Day by Station",
-       x = "Simulation Day", y = "Number of Surgeries", fill = "R2B Station") +
+  labs(
+    title = "R2B Surgeries Started per Simulation Day",
+    x = "Simulation Day", 
+    y = "Casualties", 
+    fill = "R2B Station") +
   scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
   scale_fill_brewer(palette = "Set2") +
   theme_minimal(base_size = 14)
 
 ##############################################
-## R2B RESOURCE USAGE (clean facet version) ##
+## CASUALTIES SKIPPING R2B                  ##
 ##############################################
-r2b_bed_usage <- resources %>%
-  as.data.frame() %>%
-  filter(str_detect(resource, "^b_r2b_\\w+_\\d+_t\\d+$")) %>%
-  arrange(replication, resource, time) %>%
-  group_by(replication) %>%
-  mutate(
-    rep_end_time = if (all(is.na(time))) NA_real_ else max(time, na.rm = TRUE)
-  ) %>%
-  group_by(replication, resource) %>%
-  mutate(
-    start_time = time,
-    end_time   = lead(time),
-    end_time   = if_else(is.na(end_time), rep_end_time, end_time)
-  ) %>%
-  filter(server > 0, end_time > start_time) %>%
-  ungroup() %>%
-  mutate(
-    bed_type  = str_match(resource, "^b_r2b_([^_]+)_")[,2],
-    bed_num   = str_match(resource, "^b_r2b_[^_]+_(\\d+)_")[,2],
-    r2b_team  = str_match(resource, "_t(\\d+)$")[,2],
-    resource_label = paste(toupper(bed_type), "Bed", bed_num),
-    bed_num_i = as.integer(bed_num),
-    r2b_team_i = as.integer(r2b_team)
-  ) %>%
-  arrange(r2b_team_i, bed_type, bed_num_i) %>%
-  mutate(
-    r2b_team = factor(r2b_team, levels = unique(r2b_team))
-  )
 
-# Drop unused factor levels per facet
-r2b_bed_usage <- r2b_bed_usage %>%
-  group_by(r2b_team) %>%
-  mutate(resource_label = factor(resource_label, levels = unique(resource_label))) %>%
-  ungroup()
+# Extract and preprocess skipped R2B data
+skipped_r2b_daily <- attributes_wide %>%
+  mutate(day = floor(time / 1440) + 1) %>%  # Derive day assuming 1440 mins/day
+  filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
+  group_by(day) %>%
+  summarise(skipped_r2b = n(), .groups = "drop") %>%
+  complete(day = 1:30, fill = list(skipped_r2b = 0))
 
-# Axis prep
-max_days <- {
-  max_end <- suppressWarnings(max(r2b_bed_usage$end_time, na.rm = TRUE))
-  if (!is.finite(max_end)) NA_real_ else ceiling(max_end / 1440)
-}
-x_breaks <- if (is.finite(max_days) && max_days >= 1) seq(1, max_days, by = 1) else waiver()
+# Ensure every day gets a tick: sequence from 1 to max day present
+x_breaks <- seq(min(skipped_r2b_daily$day), max(skipped_r2b_daily$day), by = 1)
 
-# Faceted Gantt plot
-ggplot(
-  r2b_bed_usage,
-  aes(y = resource_label, color = toupper(bed_type))
-) +
-  geom_segment(
-    aes(
-      x = start_time / 1440,
-      xend = end_time / 1440,
-      yend = resource_label
-    ),
-    linewidth = 6,
-    lineend = "butt"
-  ) +
+# Plot with zero-filled timeline for doctrinal clarity
+plot_r2b_skipped <- ggplot(skipped_r2b_daily, aes(x = factor(day), y = skipped_r2b)) +
+  geom_bar(stat = "identity", width = 0.7, fill = "#6A737B") +
   labs(
-    title = "R2B Bed Resource Usage (Gantt) by Team",
-    x = "Time (Days)",
-    y = "Bed Resource",
-    color = "Bed Type"
+    title = "Casualties Skipping R2B per Simulation Day",
+    x = "Simulation Day",
+    y = "Casualties"
   ) +
-  scale_x_continuous(
-    breaks = x_breaks,
-    labels = function(x) paste0(x),
-    expand = c(0, 0)
-  ) +
-  facet_wrap(
-    ~ r2b_team,
-    ncol = 1,
-    scales = "free_y",  # allows each facet to drop unused rows
-    labeller = labeller(r2b_team = function(x) paste0("R2B ", x))
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
-    legend.position = "bottom",
-    strip.text = element_text(face = "bold")
-  )
+  scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
+  theme_minimal(base_size = 14)
 
-##############################################
-## R2E SURGERIES                            ##
-##############################################
-r2e_summary <- attributes_wide %>%
-  select(name, starts_with("r2e_surgery_")) %>%
-  pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
-  filter(!is.na(start_min)) %>%
-  mutate(r2e_day = floor(start_min / 1440) + 1) %>%
-  count(r2e_day, name = "surgeries")
+plot_r2b_treated / plot_r2b_summary / plot_r2b_skipped
 
+# ##############################################
+# ## R2B RESOURCE USAGE (clean facet version) ##
+# ##############################################
+# r2b_bed_usage <- resources %>%
+#   as.data.frame() %>%
+#   filter(str_detect(resource, "^b_r2b_\\w+_\\d+_t\\d+$")) %>%
+#   arrange(replication, resource, time) %>%
+#   group_by(replication) %>%
+#   mutate(
+#     rep_end_time = if (all(is.na(time))) NA_real_ else max(time, na.rm = TRUE)
+#   ) %>%
+#   group_by(replication, resource) %>%
+#   mutate(
+#     start_time = time,
+#     end_time   = lead(time),
+#     end_time   = if_else(is.na(end_time), rep_end_time, end_time)
+#   ) %>%
+#   filter(server > 0, end_time > start_time) %>%
+#   ungroup() %>%
+#   mutate(
+#     bed_type  = str_match(resource, "^b_r2b_([^_]+)_")[,2],
+#     bed_num   = str_match(resource, "^b_r2b_[^_]+_(\\d+)_")[,2],
+#     r2b_team  = str_match(resource, "_t(\\d+)$")[,2],
+#     resource_label = paste(toupper(bed_type), "Bed", bed_num),
+#     bed_num_i = as.integer(bed_num),
+#     r2b_team_i = as.integer(r2b_team)
+#   ) %>%
+#   arrange(r2b_team_i, bed_type, bed_num_i) %>%
+#   mutate(
+#     r2b_team = factor(r2b_team, levels = unique(r2b_team))
+#   )
+# 
+# # Drop unused factor levels per facet
+# r2b_bed_usage <- r2b_bed_usage %>%
+#   group_by(r2b_team) %>%
+#   mutate(resource_label = factor(resource_label, levels = unique(resource_label))) %>%
+#   ungroup()
+# 
+# # Axis prep
+# max_days <- {
+#   max_end <- suppressWarnings(max(r2b_bed_usage$end_time, na.rm = TRUE))
+#   if (!is.finite(max_end)) NA_real_ else ceiling(max_end / 1440)
+# }
+# x_breaks <- if (is.finite(max_days) && max_days >= 1) seq(1, max_days, by = 1) else waiver()
+# 
+# # Faceted Gantt plot
+# ggplot(
+#   r2b_bed_usage,
+#   aes(y = resource_label, color = toupper(bed_type))
+# ) +
+#   geom_segment(
+#     aes(
+#       x = start_time / 1440,
+#       xend = end_time / 1440,
+#       yend = resource_label
+#     ),
+#     linewidth = 6,
+#     lineend = "butt"
+#   ) +
+#   labs(
+#     title = "R2B Bed Resource Usage (Gantt) by Team",
+#     x = "Time (Days)",
+#     y = "Bed Resource",
+#     color = "Bed Type"
+#   ) +
+#   scale_x_continuous(
+#     breaks = x_breaks,
+#     labels = function(x) paste0(x),
+#     expand = c(0, 0)
+#   ) +
+#   facet_wrap(
+#     ~ r2b_team,
+#     ncol = 1,
+#     scales = "free_y",  # allows each facet to drop unused rows
+#     labeller = labeller(r2b_team = function(x) paste0("R2B ", x))
+#   ) +
+#   theme_minimal(base_size = 14) +
+#   theme(
+#     panel.grid.minor = element_blank(),
+#     panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
+#     legend.position = "bottom",
+#     strip.text = element_text(face = "bold")
+#   )
+
+# ##############################################
+# ## R2E SURGERIES                            ##
+# ##############################################
+# r2e_summary <- attributes_wide %>%
+#   select(name, starts_with("r2e_surgery_")) %>%
+#   pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
+#   filter(!is.na(start_min)) %>%
+#   mutate(r2e_day = floor(start_min / 1440) + 1) %>%
+#   count(r2e_day, name = "surgeries")
+# 
 # ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
-#   geom_bar(stat = "identity", fill = "#007ACC") +
-#   labs(title = "R2E Heavy Surgeries Completed Per Simulation Day",
-#        x = "Simulation Day", y = "Number of Surgeries") +
+#   geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Set2")[1]) +
+#   labs(
+#     title = "R2E Heavy Surgeries Completed Per Simulation Day",
+#     x = "Simulation Day",
+#     y = "Number of Surgeries"
+#   ) +
 #   scale_x_continuous(
 #     breaks = seq(1, max_days, by = 1),
 #     expand = c(0, 0)
 #   ) +
-#   scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
+#   scale_y_continuous(
+#     breaks = 0:25,
+#     limits = c(0, 25)
+#   ) +
 #   theme_minimal(base_size = 14)
-ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
-  geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Set2")[1]) +
-  labs(
-    title = "R2E Heavy Surgeries Completed Per Simulation Day",
-    x = "Simulation Day",
-    y = "Number of Surgeries"
-  ) +
-  scale_x_continuous(
-    breaks = seq(1, max_days, by = 1),
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    breaks = 0:25,
-    limits = c(0, 25)
-  ) +
-  theme_minimal(base_size = 14)
-
-##############################################
-## R2E BED QUEUE GRAPH                      ##
-##############################################
-prepare_queue_data <- function(resource_type, data) {
-  pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
-  
-  queue_plot_data <- data %>%
-    as.data.frame() %>%
-    filter(grepl(pattern, resource)) %>%
-    select(time, resource, queue) %>%
-    mutate(
-      resource_type = toupper(resource_type),
-      bed_number = gsub("^b_r2eheavy_.*?_(\\d+)_t\\d+$", "\\1", resource),
-      r2e_number = gsub("^b_r2eheavy_.*?_\\d+_t(\\d+)$", "\\1", resource),
-      resource_label = paste(resource_type, "Bed", bed_number)
-    )
-  
-  return(queue_plot_data)
-}
-
-combined_queue_data <- bind_rows(
-  prepare_queue_data("ot", resources),
-  prepare_queue_data("icu", resources)
-)
-
-ggplot(combined_queue_data, aes(x = time / 1440, y = queue, color = resource_label)) +
-  geom_step(linewidth = 1) +
-  labs(
-    title = "R2E Heavy Bed Queue Length Over Time by Resource Type",
-    x = "Time (Days)",
-    y = "Queue Size",
-    color = "Resource"
-  ) +
-  facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
-  scale_x_continuous(
-    breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1),
-    labels = function(x) paste0(x),
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    limits = c(0, 10),
-    breaks = seq(0, 10, by = 1),
-    expand = c(0, 0)
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    strip.text = element_text(face = "bold"),
-    legend.position = "bottom",
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_line(linetype = "dotted", color = "gray")
-  )
-
-ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +
-  geom_point(alpha = 0.5, color = "steelblue") +
-  labs(
-    title = "Casualty Waiting Time Over Simulation",
-    x = "Simulation Day",
-    y = "Waiting Time (min)"
-  ) +
-  geom_smooth(method = "loess", se = FALSE, color = "darkred") +
-  theme_minimal(base_size = 14)
-
-##############################################
-## R2E RESOURCE USAGE                       ##
-##############################################
-# Filter to R2E bed resources and build usage intervals (server > 0)
-r2e_bed_usage <- resources %>%
-  as.data.frame() %>%
-  filter(str_detect(resource, "^b_r2eheavy_\\w+_\\d+_t\\d+$")) %>%
-  arrange(replication, resource, time) %>%
-  group_by(replication) %>%
-  mutate(rep_end_time = max(time)) %>%          # simulation end per replication
-  group_by(replication, resource) %>%
-  mutate(
-    start_time = time,
-    end_time   = lead(time),
-    end_time   = if_else(is.na(end_time), rep_end_time, end_time)
-  ) %>%
-  filter(server > 0, end_time > start_time) %>% # keep only intervals when bed is in use
-  ungroup() %>%
-  mutate(
-    bed_type   = str_match(resource, "^b_r2eheavy_([^_]+)_")[,2],
-    bed_num    = str_match(resource, "^b_r2eheavy_[^_]+_(\\d+)_")[,2],
-    r2e_team   = str_match(resource, "_t(\\d+)$")[,2],
-    resource_label = paste(toupper(bed_type), "Bed", bed_num)
-  )
-
-# Order beds by type, bed number, then team for readable y-axis
-r2e_bed_usage <- r2e_bed_usage %>%
-  mutate(
-    bed_num_i = as.integer(bed_num),
-    r2e_team_i = as.integer(r2e_team)
-  ) %>%
-  arrange(bed_type, bed_num_i, r2e_team_i) %>%
-  mutate(resource_label = factor(resource_label, levels = unique(resource_label)))
-
-# Compute max days for axis ticks
-max_days <- ceiling(max(r2e_bed_usage$end_time, na.rm = TRUE) / 1440)
-
-# Gantt-style plot (one row per bed, colored by bed type)
-ggplot(
-  r2e_bed_usage,
-  aes(y = resource_label, color = toupper(bed_type))
-) +
-  geom_segment(
-    aes(
-      x = start_time / 1440,
-      xend = end_time / 1440,
-      yend = resource_label
-    ),
-    linewidth = 6,
-    lineend = "butt"
-  ) +
-  labs(
-    title = "R2E Bed Resource Usage (Gantt)",
-    x = "Time (Days)",
-    y = "Bed Resource",
-    color = "Bed Type"
-  ) +
-  scale_x_continuous(
-    breaks = seq(1, max_days, by = 1),
-    labels = function(x) paste0(x),
-    expand = c(0, 0)
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
-    legend.position = "bottom"
-  )
-
+# 
+# ##############################################
+# ## R2E BED QUEUE GRAPH                      ##
+# ##############################################
+# prepare_queue_data <- function(resource_type, data) {
+#   pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
+#   
+#   queue_plot_data <- data %>%
+#     as.data.frame() %>%
+#     filter(grepl(pattern, resource)) %>%
+#     select(time, resource, queue) %>%
+#     mutate(
+#       resource_type = toupper(resource_type),
+#       bed_number = gsub("^b_r2eheavy_.*?_(\\d+)_t\\d+$", "\\1", resource),
+#       r2e_number = gsub("^b_r2eheavy_.*?_\\d+_t(\\d+)$", "\\1", resource),
+#       resource_label = paste(resource_type, "Bed", bed_number)
+#     )
+#   
+#   return(queue_plot_data)
+# }
+# 
+# combined_queue_data <- bind_rows(
+#   prepare_queue_data("ot", resources),
+#   prepare_queue_data("icu", resources)
+# )
+# 
+# ggplot(combined_queue_data, aes(x = time / 1440, y = queue, color = resource_label)) +
+#   geom_step(linewidth = 1) +
+#   labs(
+#     title = "R2E Heavy Bed Queue Length Over Time by Resource Type",
+#     x = "Time (Days)",
+#     y = "Queue Size",
+#     color = "Resource"
+#   ) +
+#   facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
+#   scale_x_continuous(
+#     breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1),
+#     labels = function(x) paste0(x),
+#     expand = c(0, 0)
+#   ) +
+#   scale_y_continuous(
+#     limits = c(0, 10),
+#     breaks = seq(0, 10, by = 1),
+#     expand = c(0, 0)
+#   ) +
+#   theme_minimal(base_size = 14) +
+#   theme(
+#     strip.text = element_text(face = "bold"),
+#     legend.position = "bottom",
+#     panel.grid.minor = element_blank(),
+#     panel.grid.major.y = element_line(linetype = "dotted", color = "gray")
+#   )
+# 
+# ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +
+#   geom_point(alpha = 0.5, color = "steelblue") +
+#   labs(
+#     title = "Casualty Waiting Time Over Simulation",
+#     x = "Simulation Day",
+#     y = "Waiting Time (min)"
+#   ) +
+#   geom_smooth(method = "loess", se = FALSE, color = "darkred") +
+#   theme_minimal(base_size = 14)
+# 
+# ##############################################
+# ## R2E RESOURCE USAGE                       ##
+# ##############################################
+# # Filter to R2E bed resources and build usage intervals (server > 0)
+# r2e_bed_usage <- resources %>%
+#   as.data.frame() %>%
+#   filter(str_detect(resource, "^b_r2eheavy_\\w+_\\d+_t\\d+$")) %>%
+#   arrange(replication, resource, time) %>%
+#   group_by(replication) %>%
+#   mutate(rep_end_time = max(time)) %>%          # simulation end per replication
+#   group_by(replication, resource) %>%
+#   mutate(
+#     start_time = time,
+#     end_time   = lead(time),
+#     end_time   = if_else(is.na(end_time), rep_end_time, end_time)
+#   ) %>%
+#   filter(server > 0, end_time > start_time) %>% # keep only intervals when bed is in use
+#   ungroup() %>%
+#   mutate(
+#     bed_type   = str_match(resource, "^b_r2eheavy_([^_]+)_")[,2],
+#     bed_num    = str_match(resource, "^b_r2eheavy_[^_]+_(\\d+)_")[,2],
+#     r2e_team   = str_match(resource, "_t(\\d+)$")[,2],
+#     resource_label = paste(toupper(bed_type), "Bed", bed_num)
+#   )
+# 
+# # Order beds by type, bed number, then team for readable y-axis
+# r2e_bed_usage <- r2e_bed_usage %>%
+#   mutate(
+#     bed_num_i = as.integer(bed_num),
+#     r2e_team_i = as.integer(r2e_team)
+#   ) %>%
+#   arrange(bed_type, bed_num_i, r2e_team_i) %>%
+#   mutate(resource_label = factor(resource_label, levels = unique(resource_label)))
+# 
+# # Compute max days for axis ticks
+# max_days <- ceiling(max(r2e_bed_usage$end_time, na.rm = TRUE) / 1440)
+# 
+# # Gantt-style plot (one row per bed, colored by bed type)
+# ggplot(
+#   r2e_bed_usage,
+#   aes(y = resource_label, color = toupper(bed_type))
+# ) +
+#   geom_segment(
+#     aes(
+#       x = start_time / 1440,
+#       xend = end_time / 1440,
+#       yend = resource_label
+#     ),
+#     linewidth = 6,
+#     lineend = "butt"
+#   ) +
+#   labs(
+#     title = "R2E Bed Resource Usage (Gantt)",
+#     x = "Time (Days)",
+#     y = "Bed Resource",
+#     color = "Bed Type"
+#   ) +
+#   scale_x_continuous(
+#     breaks = seq(1, max_days, by = 1),
+#     labels = function(x) paste0(x),
+#     expand = c(0, 0)
+#   ) +
+#   theme_minimal(base_size = 14) +
+#   theme(
+#     panel.grid.minor = element_blank(),
+#     panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
+#     legend.position = "bottom"
+#   )
+# 

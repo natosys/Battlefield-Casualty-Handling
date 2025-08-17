@@ -592,6 +592,7 @@ r2b_treat_wia <- function(team_id) {
   
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
+    set_attribute("r2b_treatment_start_time", function() now(env)) %>%  # Track treatment start time
     
     # Step 1: Initial hold bed
     simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%

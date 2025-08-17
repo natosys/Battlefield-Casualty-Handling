@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This study presents a Discrete Event Simulation (DES) designed to evaluate resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from doctrinal sources and open-access academic literature, the simulation models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). 
+This study presents a Discrete Event Simulation (DES) designed to evaluate resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from open-access academic literature, the simulation models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). 
 
 Key metrics include queue lengths, waiting times, and resource saturation, visualized over simulation days to assess temporal bottlenecks and system suitability to enable the land combat system.
 
@@ -15,6 +15,7 @@ The paper recommends options for further refinement to the simulation model thro
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -66,6 +67,7 @@ The paper recommends options for further refinement to the simulation model thro
 - [Further Development](#further-development)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -74,29 +76,64 @@ The paper recommends options for further refinement to the simulation model thro
 
 <small>[Return to Top](#contents)</small>
 
-This is a Discrete Event Simulation (DES) written in R that uses the simmer package. The code is designed to simulate the flow of battlefield casualties in Large Scale Combat Operations (LSCO) scenarios. The purpose of the simulation is to support decision making on deployed health system design with a focus on capacity planning.
+Large‑scale combat operations (LSCO) represent the most demanding form of conventional warfare, characterised by high‑tempo, multi‑domain action against peer or near‑peer adversaries. Defined in contemporary doctrine such as extensive joint combat operations conducted at division (and above) scale to achieve strategic objectives, LSCO require the orchestration of manoeuvre, fires, logistics, intelligence, and command across vast, often nonlinear battlespaces [[20]](#References), [[21]](#References). Unlike the western experience in Middle-East conflicts, forces in LSCO will not have guaranteed air superiority, uncontested lines of communication, and predictable casualty flows. LSCO is expected to unfold in contested, degraded, and dynamic operational conditions [[20]](#References), [[21]](#References), [[22]](#References). Historical and contemporary case studies - from the industrial battlefields of the Second World War to recent fighting in Ukraine - demonstrate that such operations generate high casualty densities, impose unprecedented logistical demands, and challenge even the most sophisticated forces’ ability to sustain tempo over time [[21]](#References), [[7]](#References).
 
-DES has been used as a proven way to simulate healthcare systems and support healthcare decision-making (as shown in [[9]](#References)).
+The medical implications of LSCO are profound. Estimates consistently project casualty volumes in the order of 50,000 to 60,000 per 100,000 personnel over a matter of weeks, with thousands of those potentially able to return to duty if treated effectively and without delay [[23]](#References). The deployed health system — encompassing point‑of‑injury care, medical evacuation, forward surgical capabilities, hospitalisation, force health protection, and medical command and control — is therefore not a peripheral service but a critical combat enabler. Its capacity to preserve fighting strength underpins the force’s ability to seize, retain, and exploit the initiative. In LSCO, battlefield clearance must be achieved despite contested airspace and disrupted communications, injury patterns will reflect the lethality of modern munitions, and medical logistics must adapt to disrupted supply chains and fluid front lines.
+
+Yet, existing medical doctrine and force design have evolved largely from counterinsurgency campaigns where operational conditions were comparatively permissive [[23]](#References). In a peer‑conflict LSCO scenario, planners must expect prolonged field care, delays in evacuation, and the need for smaller, more mobile surgical teams positioned closer to the fight [[22]](#References), [[23]](#References). A resilient and agile, deployed health system serves not only to save lives, but to sustain operational momentum and, ultimately, to enable the successful prosecution of the campaign.
+
+This thesis looks to explore the performance of the deployed health system within the through simulation with an eye to understanding its implications for participation in LSCO. By modelling casualty flows, evacuation timelines, treatment capacities, and return‑to‑duty rates, the study seeks to identify key vulnerabilities, and resource requirements. The simulation approach allows for the exploration of scenarios that are difficult to replicate in live exercises, offering evidence‑based insights to refine doctrine, optimise medical force posture, and ensure that health support is adequate for LSCO. In doing so, it contributes to the broader imperative of preparing the force for the realities of high‑intensity warfare in an era of renewed great‑power competition [[24]](#References), [[25]](#References).
+
+## 📚 Literature Review
+
+### Methodology
+
+To inform the design and implementation of the battlefield casualty simulation, a structured literature review was conducted using a multi-pronged methodology. The initial phase involved surveying open-access academic literature and publicly available internet-based resources related to battlefield casualty modelling, discrete event simulation (DES), and casualty rate estimation. This was complemented by a snowballing technique, where references cited within key papers were recursively explored to identify additional relevant sources.
+
+To further expand the scope and ensure coverage of emerging and less-indexed materials, large language models (LLMs) were engaged iteratively to identify supplementary resources. These included algorithmic approaches to casualty distribution modelling, comparative analyses of simulation paradigms, and operational insights into trauma system design under combat conditions. The use of LLMs enabled the discovery of niche publications, technical reports, and grey literature that may not have surfaced through conventional search techniques.
+
+This academic and technical review was supplemented by a survey of publicly available military publications, including field manuals, operational health service support doctrine, and policy documents from allied defence organisations. These sources provided critical context for force structure, casualty flow assumptions, and the operational constraints that shape real-world medical planning.
+
+### Findings
+
+In total, 26 resources were reviewed to develop the simulation framework. These spanned peer-reviewed journals, technical reports, doctrinal publications, and internet publications. The review focused on four thematic domains:
+
+#### Battlefield Casualty Rates and Estimation Models
+
+Historical and predictive models of casualty rates were central to the review. The FORECAS system [[1]](#References) provided a statistically grounded approach to projecting wounded-in-action (WIA), killed-in-action (KIA), and disease/non-battle injury (DNBI) rates using empirical data from past conflicts. Complementary studies [[3]](#References), [[5]](#References), [[6]](#References) and [[17]](#References) highlighted the operational implications of casualty rates in LSCO, emphasizing the disproportionate impact of DNBI on lost duty days and the need for robust force health protection (FHP) strategies.
+
+#### Casualty Simulation and DES
+
+Simulation methodologies were explored through both military-specific and general DES literature. The simmer package for R [[26]](#References) was identified as a suitable framework for implementing modular, auditable, and event-driven logic. Studies such as [[9]](#References) demonstrated DES applications in healthcare contexts, while [[4]](#References) and [[7]](#References) provided high-level casualty rate numbers that allowed the evaluation of the performance of DES models and [[21]](#References) provided insights into trauma system design under combat conditions.
+These sources informed the architectural decisions for the simulation engine, including event scheduling, resource constraints, and patient flow logic.
+
+#### Statistical Distributions and Modelling Algorithms
+
+The review examined statistical distributions suitable for modelling casualty arrival rates and treatment durations. FORECAS [[1]](#References) employed lognormal and exponential distributions based on battle intensity and troop type, validated through historical data. Additional studies [[8]](#References), [[6]](#References) and [[9]](#References) provided statistics, explored distribution models measures, and described other approaches using DES in medical care contexts.
+These findings guided the selection of distribution functions for stochastic modelling, ensuring that simulated outputs reflect doctrinally plausible variability and temporal clustering.
+
+#### Military Doctrine and Operational Health Support Policy
+
+Doctrinal and policy publications such as [[20]](#References), [[22]](#References), [[24]](#References) and [[25]](#References) established the current geostrategic context and outlined the imperitive for militaries to be able to provide force options for LSCO. 
+Recent doctrinal analyses [[3]](#References), [[21]](#References) and [[23]](#References) emphasized the shift toward prolonged casualty care, contested evacuation, and the need for distributed medical assets. These insights were incorporated into the simulation design to ensure alignment with contemporary operational realities.
+
+This literature review enabled the design of a model suitable to support the assessment of the deployed health system capacity within LSCO.
 
 ## 🌍 Scenario Context
 
 <small>[Return to Top](#contents)</small>
 
-The code simulates a deployed combat brigade based on the Australian combat and health brigade capabilities.
+The simulation scenario models a deployed combat brigade's assigned health support capabilities. The design reflects the doctrinal organisation of deployed elements adapted to the operational requirements of LSCO. The simulated brigade is composed of three battlegroups, each commanded by one of the resident combat manoeuvre units. To ensure close health support at the point of need, each battlegroup is allocated `2` R1 treatment teams tasked with providing immediate clinical intervention and stabilisation in proximity to combat operations (for a total of `6` R1 treatment teams). These forward elements represent the first echelon of the deployed health system, capable of delivering life‑saving care under combat conditions.
 
-**Organisation**. The simulation is built around the following design:
+In the second medical echelon, `2` Role 2 - Basic (R2B) facilities are established. Their function is to conduct damage control resuscitation and surgery, stabilising casualties before onward evacuation to higher‑level medical treatment facilities. Positioned to balance proximity to the fight with survivability, the R2B facilities serve as critical nodes in the casualty evacuation chain, extending the reach of forward treatment teams.
 
-1. The combat brigade has formed `3` battlegroups headquartered by the resident `2` infantry battalions and `1` cavalry regiment. Each battlegroup has been force assigned `2` treatment teams to provide close health support.
+To provide robust surgical capability and greater depth of care, `1` Role 2 – Enhanced Heavy (R2E Heavy) hospital is sited to the rear. This facility is equipped to conduct complex surgical procedures, extended post‑operative care, and advanced diagnostic support. Its location optimises both the survivability of the asset and its accessibility to casualties moved from forward positions, thereby anchoring the brigade’s deployed medical architecture.
 
-2. `2` Role 2 - Basic (R2B) have been established to support damage control (DAMCON) and stabilise casualties prior to evacuation to higher level care.
+The organisational structure described above underpins the simulation’s logic for casualty generation, treatment timelines, and evacuation flows. A representative diagram illustrates the spatial and functional relationships between the brigade’s manoeuvre elements and its health support system, serving as the baseline model for subsequent scenario analysis.
 
-3. To provide surgical capability to the brigade `1` Role 2 - Enhanced Heavy (R2E Heavy) hospital has been established within the BMA.
+![Alt text](images/tactical_diagram.png)
 
-The representative diagram below depicts the model that is being simulated.
-
-
-
-[Interactive Diagram](https://www.map.army/?ShareID=1041879&UserType=RO-P0NnXxZq)
+An [Interactive Diagram](https://www.map.army/?ShareID=1041879&UserType=RO-P0NnXxZq) allows further exploration of the model being simulated.
 
 ---
 
@@ -185,6 +222,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -192,28 +230,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -229,9 +267,9 @@ Some resource teams have rosters/schedules. Due to the limited size and structur
 
 Casualties are generated based on rates outlined in [[1]](#References) and refined with analysis provided in [[5]](#References) and supported by [[4]](#References), with the implementation outlined below.
 
-Initially, WIA and KIA rates from US historical analysis of the Battle of Okinawa were used [[1]](#References), producing approximately 30 casualties per day for a force size of 3,750—yielding a casualty rate of ~0.8%. By comparison, Russia’s estimated 700–1,100 daily casualties from a committed force of 450,000–600,000 in Ukraine imply a lower casualty rate of ~0.2% [[7]](#References).
+Initially, WIA and KIA rates from US historical analysis of the Battle of Okinawa were used [[1]](#References), producing approximately 30 casualties per day for a force size of 3,750, yielding a casualty rate of ~0.8%. By comparison, Russia’s estimated 700-1,100 daily casualties from a committed force of 450,000–600,000 in Ukraine imply a lower casualty rate of ~0.2% [[7]](#References).
 
-Given this discrepancy, a planning baseline was re-evaluated using historical data from the Falklands War, which suggests a casualty rate of ~0.37% [[1]](#References). This adjustment accounts for both the likely under-reporting in Russian casualty estimates—particularly of non-critical wounded personnel—and over three years of varied combat intensity in Ukraine, with seasonal fluctuations in operational tempo (source TBD).
+Given this discrepancy, a planning baseline was re-evaluated using historical data from the Falklands War, which suggests a casualty rate of ~0.37% [[1]](#References). This adjustment accounts for both the likely under-reporting in Russian casualty estimates, particularly of non-critical wounded personnel and over three years of varied combat intensity in Ukraine, with seasonal fluctuations in operational tempo (source TBD).
 
 Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitable estimate for operational planning.
 
@@ -388,6 +426,8 @@ The following casualty priority rates were used with the rates requiring surgery
 
 <small>[Return to Top](#contents)</small>
 
+The simulation is built as a Discrete Event Simulation (DES), it is written in R  using the simmer package [[26]](#References). DES has been used as a proven way to simulate healthcare systems and support healthcare decision-making (as shown in [[9]](#References)).
+
 ### 🔧Simulation Environment Setup
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
@@ -450,7 +490,7 @@ block-beta
 
 ### Core Trajectory
 
-The casualty processing trajectory at R1 care establishes a dynamic and doctrinally aligned framework for routing battlefield casualties based on classification—wounded in action (WIA), disease/non-battle injury (DNBI), or killed in action (KIA). Each casualty is initialized with key attributes: assignment to a R1 team (via random selection), triage priority for WIA/DNBI based on weighted probabilities (priority 1–3) per [\[2\]](#References), NBI status flagged with a ``17%`` probability [\[1\]](#References), and a probabilistic determination of surgical need based on casualty type and severity [\[2\]](#References). WIA and DNBI casualties are determined if they have died-of-wounds (DOW) with probabilistic allocation of DOW for Priority 1 and Priority 2 cases—``5%`` DOW chance for Priority 1 and ``2.5%`` for Priority 2 casualties (estimate based on reporting in [\[17\]](#References)). Those flagged as DOW are reclassified and routed through KIA processing. 
+The casualty processing trajectory at R1 care establishes a dynamic and doctrinally aligned framework for routing battlefield casualties based on classification—wounded in action (WIA), disease/non-battle injury (DNBI), or killed in action (KIA). Each casualty is initialized with key attributes: assignment to a R1 team (via random selection), triage priority for WIA/DNBI based on weighted probabilities (priority 1-3) per [\[2\]](#References), NBI status flagged with a ``17%`` probability [\[1\]](#References), and a probabilistic determination of surgical need based on casualty type and severity [\[2\]](#References). WIA and DNBI casualties are determined if they have died-of-wounds (DOW) with probabilistic allocation of DOW for Priority 1 and Priority 2 cases ``5%`` DOW chance for Priority 1 and ``2.5%`` for Priority 2 casualties (estimate based on reporting in [\[17\]](#References)). Those flagged as DOW are reclassified and routed through KIA processing. 
 
 Survivors are dispositioned based on urgency: evacuation decisions for Priority 1 and Priority 2 cases result in approximately ``95%`` of Priority 1 and ``90%`` of Priority 2 casualties advancing (based on estimates of casualty surgical requirement from [\[2\]](#References)) to R2B, or bypassing to R2E if R2B teams are unavailable. Lower-priority or DNBI casualties not meeting evacuation criteria are retained for local recovery at the R1, with a recovery duration modeled using triangular distribution with ``min = 0.5``, ``max = 5``, and ``mode = 2`` (days), based on field estimates of minor injury convalescence. WIA and DNBI casualties receiving immediate treatment at R1 are assigned a treatment duration drawn from a triangular distribution with ``min = 10``, ``max = 30``, and ``mode = 20`` (minutes) per [\[18\]](#References). KIA casualties bypass clinical treatment and are processed and transported, each having a processing duration with a triangular distribution: ``min = 15``, ``max = 45``, and ``mode = 30`` (minutes).
 
@@ -551,7 +591,7 @@ Upon arrival, casualties are triaged, those identified as DOW (~1%, based on [[1
 | Documentation/Prep       | 2         | 3          | 5         |
 | **TOTAL**                | 13        | 28         | 55        |
 
-On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min =41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[11]](#References), [[12]](#References), and [[13]](#References)). 
+On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min = 41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[11]](#References), [[12]](#References), and [[13]](#References)). 
 
 Post-operative care involves admission to the ICU, where durations vary by surgical phase: the first ICU period ranges from ``min = 770`` to ``max = 2160`` minutes (``mode =  1440``) based on descriptions of post- DCS-I stabilization requirements (described as 24-36 h in most DCS research [[11]](#References), [[14]](#References), [[15]](#References), [[16]](#References)), while the secondary ICU phase (following second surgery) ranges from ``min = 30`` to ``mode = 90``, with ``mode = 60`` (min) to allow for post surgery monitoring and stabilisation prior to transfer to holding. Casualties who arrive at the R2E requiring surgery, but not having received any prior to arrival are queued to complete a second round of surgery after ICU time. 
 
@@ -644,13 +684,15 @@ r2e:
 
 ![Alt text](images/r2eheavy_surgeries.png)
 
-
-
 - Excess Resus; excess Holding
 
 - Sufficient OT within system (2 x R2B and 1 x R2E Heavy) to support a combat brigade in combat. based on the constrained resource limits (Surgery) such a design would be insufficient to support a division even if only one Brigade was in the fight at a time as DNBI case-load would be anticipated to increase ~400%.
 
-- Doesn't account for surge or 
+- Doesn't account for surge or mass-casualty
+
+- Arguably doesn't represent LSCO, need to plan for the higher rates reported in FORECAS such as those modelled of Okinawa.
+
+- Doesn't account for prolonged wait times or resultant DOWs
 
 There is insufficient OT bed / surgical capability availability compared to other resource 
 
@@ -682,6 +724,30 @@ There is insufficient OT bed / surgical capability availability compared to othe
 
 5. Introduce modelling for mass-casualty events occurring (rarely).
 
+6. Analysis against other casualty generation models, including those already available in the FORECAS pub (Okinawa, Vietnam). Anticipate these would further stress the surgical capacity of the system and require significant re-design of the health system to get to a supportable state.
+
+---
+
+## Conclusion
+
+this research has 
+
+- reviewed the existing literature identifying and reporting previoulsy published casualty models
+
+- Re-modelled these casualty rates to support a per-minute simulation that can be run at the brigade level for 30+ days to allow analysis of the systems effectiveness
+
+- built discrete event simulation of deployed health system from triage through to definitive care applying a three stage model of damage control surgery derived from the literature within the simulated health system. 
+
+- conducted simulation and modelled a representative deployed health systems performance
+
+- analysed this performance and identified areas of risk in the system design
+
+- evaluated the simulation design and identified  
+
+demonstrates a system that is designed to effectively handle moderate casualty rates, historically represented by those exprerienced in the Falklands war. This is not likely to be the environment that western forces face. LSCO will see substantially higher casualty rates with greater difficulty to evacuate and treat patients. 
+
+While this simulation has not fully tested under LSCO, further development of the simulation model along with tests against casualty rates more likely to be expereienced will allow detailed analysis of the system under the intense pressure expected   
+
 ---
 
 ## References
@@ -690,43 +756,57 @@ There is insufficient OT bed / surgical capability availability compared to othe
 
 <!-- REFERENCES START -->
 
-[1] Blood, CG; Zouris, JM; Rotblatt, D; (1998) *Using the Ground Forces Casualty System (FORECAS) to Project Casualty Sustainment*. Accessed: 20 Jul 25. (Available at: https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf )
+[1] Blood, CG; Zouris, JM; Rotblatt, D; (1998) *Using the Ground Forces Casualty System (FORECAS) to Project Casualty Sustainment*. Retrieved 20 Jul 25, from https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf
 
 [2] Australian Army (2018) *Land Warfare Publication 0-5-2 Staff Officers Aide-Memoir*. Accessed 20 Jul 25.
 
-[3] Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF; Kelly, KM;  Taylor, JF; Holland, JC; Laragione, VJ. (March 2025) *To Conserve Fighting Strength in Large Scale Combat Operations*. Military Review Online. Accessed: 20 Jul 25. (Available at: https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/ )
+[3] Izaguirre, MK; Cox, D; Lodi, PC; Giraud, RS; Murray, CK; Teyhen, DS; Capaldi, VF; Kelly, KM;  Taylor, JF; Holland, JC; Laragione, VJ. (March 2025) *To Conserve Fighting Strength in Large Scale Combat Operations*. Military Review Online. Retrieved 20 Jul 25, from https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/ )
 
-[4] Kemple, W. G., & Lacy, L. W. (1995). *Modeling command and control: The design and implementation of the C2 model*. Defense Technical Information Center. [https://apps.dtic.mil/sti/html/tr/ADA304910/](https://apps.dtic.mil/sti/html/tr/ADA304910/)
+[4] Kemple, W. G., & Lacy, L. W. (1995). *Modeling command and control: The design and implementation of the C2 model*. Defense Technical Information Center. Retrieved 20 Jul 25, from [https://apps.dtic.mil/sti/html/tr/ADA304910/](https://apps.dtic.mil/sti/html/tr/ADA304910/)
 
-[5] Gibson, D (2003). *Casualty estimation in modern warfare*. The Free Library. https://www.thefreelibrary.com/Casualty%2Bestimation%2Bin%2Bmodern%2Bwarfare.-a0110459243
+[5] Gibson, D (2003). *Casualty estimation in modern warfare*. The Free Library. Retrieved 20 Jul 25, from https://www.thefreelibrary.com/Casualty%2Bestimation%2Bin%2Bmodern%2Bwarfare.-a0110459243
 
-[6] Holcomb, J. B., Stansbury, L. G., Champion, H. R., Wade, C., & Bellamy, R. F. (2006). *Understanding combat casualty care statistics*. U.S. Army Institute of Surgical Research. [https://apps.dtic.mil/sti/pdfs/ADA480496.pdf](https://apps.dtic.mil/sti/pdfs/ADA480496.pdf)
+[6] Holcomb, J. B., Stansbury, L. G., Champion, H. R., Wade, C., & Bellamy, R. F. (2006). *Understanding combat casualty care statistics*. U.S. Army Institute of Surgical Research. Retrieved 20 Jul 25, from [https://apps.dtic.mil/sti/pdfs/ADA480496.pdf](https://apps.dtic.mil/sti/pdfs/ADA480496.pdf)
 
-[7] The Economist. (2025, July 9). *Russia’s summer Ukraine offensive looks like its deadliest yet*. [https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far](https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far)
+[7] The Economist. (2025, July 9). *Russia’s summer Ukraine offensive looks like its deadliest yet*. Retrieved 26 Jul 25, from [https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far](https://www.economist.com/interactive/graphic-detail/2025/07/09/russias-summer-ukraine-offensive-looks-like-its-deadliest-so-far)
 
-[8] Wang, Y., & Pinsky, E. (2023). Geometry of deviation measures for triangular distributions. *Frontiers in Applied Mathematics and Statistics*, *9*, 1274787. Accessed: 26 Jul 25. (Available at: https://doi.org/10.3389/fams.2023.1274787 )
+[8] Wang, Y., & Pinsky, E. (2023). Geometry of deviation measures for triangular distributions. *Frontiers in Applied Mathematics and Statistics*, *9*, 1274787. Retrieved 26 Jul 25, from https://doi.org/10.3389/fams.2023.1274787
 
-[9] Maddeh, M., Ayouni, S., Al-Otaibi, S., Alazzam, M. B., Alturki, N. M., & Hajjej, F. (2023). Discrete-Event Simulation Model for Monitoring Elderly and Patient’s Smart Beds. *Journal of Disability Research*, *2*(3), 1-9. DOI: 10.57197/JDR-2023-0026. Accessed: 26 Jul 25. (Available at: https://www.scienceopen.com/hosted-document?doi=10.57197/JDR-2023-0026 )
+[9] Maddeh, M., Ayouni, S., Al-Otaibi, S., Alazzam, M. B., Alturki, N. M., & Hajjej, F. (2023). Discrete-Event Simulation Model for Monitoring Elderly and Patient’s Smart Beds. *Journal of Disability Research*, *2*(3), 1-9. DOI: 10.57197/JDR-2023-0026. Retrieved 26 Jul 25, from https://www.scienceopen.com/hosted-document?doi=10.57197/JDR-2023-0026
 
-[10] Abri, M. A., Snani, S. A., Almayahi, J., Sharqi, A. A., & Qadhi, H. A. The Outcome of Damage Control Surgery at Sultan Qaboos University Hospital. *World J Surg Surgical Res. 2022; 5*, *1428*. Accessed: 26 Jul 25. (Available at: https://www.surgeryresearchjournal.com/open-access/the-outcome-of-damage-control-surgery-at-sultan-qaboos-university-9532.pdf )
+[10] Abri, M. A., Snani, S. A., Almayahi, J., Sharqi, A. A., & Qadhi, H. A. The Outcome of Damage Control Surgery at Sultan Qaboos University Hospital. *World J Surg Surgical Res. 2022; 5*, *1428*. Retrieved 26 Jul 25, from https://www.surgeryresearchjournal.com/open-access/the-outcome-of-damage-control-surgery-at-sultan-qaboos-university-9532.pdf
 
-[11] Zizzo, M., Ruiz, C. C., Zanelli, M., Bassi, M. C., Sanguedolce, F., Ascani, S., & Annessi, V. (2020). Damage control surgery for the treatment of perforated acute colonic diverticulitis: a systematic review. *Medicine*, *99*(48), e23323. Accessed 26 Jul 25. (Available at: https://journals.lww.com/md-journal/fulltext/2020/11250/damage_control_surgery_for_the_treatment_of.43.aspx )
+[11] Zizzo, M., Ruiz, C. C., Zanelli, M., Bassi, M. C., Sanguedolce, F., Ascani, S., & Annessi, V. (2020). Damage control surgery for the treatment of perforated acute colonic diverticulitis: a systematic review. *Medicine*, *99*(48), e23323. Retrieved 26 Jul 25, from https://journals.lww.com/md-journal/fulltext/2020/11250/damage_control_surgery_for_the_treatment_of.43.aspx
 
-[12] Krige, J. E., Navsaria, P. H., & Nicol, A. J. (2016). Damage control laparotomy and delayed pancreatoduodenectomy for complex combined pancreatoduodenal and venous injuries. *European Journal of Trauma and Emergency Surgery*, *42*(2), 225-230. Accessed: 26 Jul 25. (Available at: https://pubmed.ncbi.nlm.nih.gov/26038043/ )
+[12] Krige, J. E., Navsaria, P. H., & Nicol, A. J. (2016). Damage control laparotomy and delayed pancreatoduodenectomy for complex combined pancreatoduodenal and venous injuries. *European Journal of Trauma and Emergency Surgery*, *42*(2), 225-230. Retrieved 26 Jul 25, from https://pubmed.ncbi.nlm.nih.gov/26038043/
 
-[13] Hall, A., Graham, B., Hanson, M., & Stern, C. (2023). Surgical capability utilization time for military casualties at Role 2 and Role 3 facilities. *Military medicine*, *188*(11-12), e3368-e3370. Accessed: 26 Jul 25. (Available at: https://doi.org/10.1093/milmed/usac414 )
+[13] Hall, A., Graham, B., Hanson, M., & Stern, C. (2023). Surgical capability utilization time for military casualties at Role 2 and Role 3 facilities. *Military medicine*, *188*(11-12), e3368-e3370. Retrieved 26 Jul 25, from https://doi.org/10.1093/milmed/usac414
 
 [14] Lamb, C. M., MacGoey, P., Navarro, A. P., & Brooks, A. J. (2014). Damage control surgery in the era of damage control resuscitation. *British Journal of Anaesthesia*, *113*(2), 242-249. Accessed: 27 Jul 25. (Available at: https://doi.org/10.1093/bja/aeu233 )
 
-[15] Allen, S. R., Brooks, A. J., Reilly, P. M., & Cotton, B. A. (2011). Damage Control Part III: Definitive Reconstruction. In *Ryan's Ballistic Trauma* (pp. 453-460). Springer, London. (Available at: https://link.springer.com/chapter/10.1007/978-1-84882-124-8_31)
+[15] Allen, S. R., Brooks, A. J., Reilly, P. M., & Cotton, B. A. (2011). Damage Control Part III: Definitive Reconstruction. In *Ryan's Ballistic Trauma* (pp. 453-460). Springer, London. Retrieved 27 Jul 25, from https://link.springer.com/chapter/10.1007/978-1-84882-124-8_31
 
-[16] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved July 27, 2025, from https://litfl.com/damage-control-resuscitation/
+[16] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved 27 July, 2025, from https://litfl.com/damage-control-resuscitation/
 
-[17] Howard, J. T., Kotwal, R. S., Stern, C. A., Janak, J. C., Mazuchowski, E. L., Butler, F. K., ... & Smith, D. J. (2019). Use of combat casualty care data to assess the US military trauma system during the Afghanistan and Iraq conflicts, 2001-2017. *JAMA surgery*, *154*(7), 600-608. Accessed: 01 Aug 25. (Available at: https://jamanetwork.com/journals/jamasurgery/articlepdf/2729451/jamasurgery_howard_2019_oi_190007.pdf )
+[17] Howard, J. T., Kotwal, R. S., Stern, C. A., Janak, J. C., Mazuchowski, E. L., Butler, F. K., ... & Smith, D. J. (2019). Use of combat casualty care data to assess the US military trauma system during the Afghanistan and Iraq conflicts, 2001-2017. *JAMA surgery*, *154*(7), 600-608. Retrieved 01 Aug 25, from https://jamanetwork.com/journals/jamasurgery/articlepdf/2729451/jamasurgery_howard_2019_oi_190007.pdf
 
-[18] Lynch, P., Griffin, K., Terrell, A. G., & Pealin, D. (1997). Medical planning--casualty treatment times at first and second line. *Journal of the Royal Army Medical Corps*, *143*(2), 83-89. Accessed: 02 Aug 25. (Available at: https://pubmed.ncbi.nlm.nih.gov/9247859/ )
+[18] Lynch, P., Griffin, K., Terrell, A. G., & Pealin, D. (1997). Medical planning--casualty treatment times at first and second line. *Journal of the Royal Army Medical Corps*, *143*(2), 83-89. Retrieved 02 Aug 25, from https://pubmed.ncbi.nlm.nih.gov/9247859/
 
-[19] Karamarković, A. Damage Control in Abdominal Surgery. *Clin Surg. 2016; 1*, *1118*. Accessed: 02 Aug 25. (Available at: https://www.clinicsinsurgery.com/open-access/damage-control-in-abdominal-surgery-2563.pdf )
+[19] Karamarković, A. Damage Control in Abdominal Surgery. *Clin Surg. 2016; 1*, *1118*. Retrieved 02 Aug 25, from https://www.clinicsinsurgery.com/open-access/damage-control-in-abdominal-surgery-2563.pdf
+
+[20] U.S. Army Combined Arms Center. (2025). *ADP 3-0: Operations*. Headquarters, Department of the Army. Retrieved 17 Aug 25, from https://armypubs.army.mil/epubs/DR*pubs/DR*a/ARN30041-ADP_3-0-000-WEB-1.pdf
+
+[21] Remondelli, M. H., Remick, K. N., Shackelford, S. A., Gurney, J. M., Pamplin, J. C., Polk, T. M., ... & Holt, D. B. (2023). Casualty care implications of large-scale combat operations. *Journal of Trauma and Acute Care Surgery*, *95*(2S), S180-S184. Retrieved 17 Aug 25, from https://journals.lww.com/jtrauma/_layouts/15/oaks.journals/downloadpdf.aspx?an=01586154-202308001-00026
+
+[22] U.S. Army Combined Arms Center. (2025). *FM 3-0: Operations*. Headquarters, Department of the Army. Retrieved 17 Aug 25, from https://armypubs.army.mil/epubs/DR_pubs/DR_a/ARN43326-FM_3-0-000-WEB-1.pdf
+
+[23] Fandre M. Medical Changes Needed for Large-Scale Combat Operations: Observations from Mission Command Training Program Warfighter Exercises. Military Review. 2020. Retrieved 17 Aug 25, from https://www.armyupress.army.mil/Journals/Military-Review/English-Edition-Archives/May-June-2020/Fandre-Medical-Changes/
+
+[24] Department of Defence. (2023). *National Defence: Defence Strategic Review*, Commonwealth of Australia. Retrieved 17 Aug 25, from https://www.defence.gov.au/about/reviews-inquiries/defence-strategic-review 
+
+[25] Department of Defence. (2024). *National Defence Strategy 2024*, Commonwealth of Australia. Retrieved 17 Aug 25, from https://www.defence.gov.au/about/strategic-planning/2024-national-defence-strategy-2024-integrated-investment-program
+
+[26] Ucar I, Smeets B, Azcorra A (2019). “simmer: Discrete-Event Simulation for R.” *Journal of Statistical Software*, 90(2), 1–30. [doi:10.18637/jss.v090.i02](https://doi.org/10.18637/jss.v090.i02).
 
 <!-- REFERENCES END -->
 

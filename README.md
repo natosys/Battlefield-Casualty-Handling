@@ -2,22 +2,30 @@
 
 ## Abstract
 
-This study presents a modular, auditable simulation framework designed to evaluate surgical resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from doctrinal sources and open-access clinical references, a Descrete Event Simulation (DES) models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). Key metrics include queue lengths, waiting times, and resource saturation, visualized over simulation days to assess temporal bottlenecks and doctrinal compliance.
+This study presents a Discrete Event Simulation (DES) designed to evaluate resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from doctrinal sources and open-access academic literature, the simulation models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). 
 
-The analysis integrates dynamic UI elements and recursive logic to allow non-technical users to interact with simulation parameters and outputs. Visualizations such as queue length over time and casualty wait distributions are rendered using `ggplot2`. 
+Key metrics include queue lengths, waiting times, and resource saturation, visualized over simulation days to assess temporal bottlenecks and system suitability to enable the land combat system.
 
-Findings highlight critical periods of resource saturation and identify potential delays in surgical care, informing future planning, staffing, and doctrinal adjustments. The simulation tool is designed for iterative refinement and stakeholder engagement, supporting transparent decision-making in LSCO medical operations.
+Findings highlight critical constraints within the existing system (surgical resources) and reports areas for potential improvement of the deployed health system.
+
+The paper recommends options for further refinement to the simulation model through expanded engagement with subject matter experts, and areas for further research to support system enhancement including expansion of the simulation of inter- and intra-theatre evacuation. The simulation tool is designed for iterative refinement and stakeholder engagement, supporting transparent decision-making in LSCO medical operations to enable this further research.
 
 ## Contents
 
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
+
 - [Contents](#contents)
+
 - [📘 Introduction](#-introduction)
+
 - [🌍 Context](#-context)
+
 - [🧰 Resource Descriptions](#-resource-descriptions)
+  
   - [🏥Health Teams](#health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -30,12 +38,16 @@ Findings highlight critical periods of resource saturation and identify potentia
   - [🚑 Transport Assets](#-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
+
 - [📊 Environment Data Summary](#-environment-data-summary)
+  
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
   - [🏥 Medical Resources](#-medical-resources)
   - [Schedules and Rosters](#schedules-and-rosters)
+
 - [🤕 Casualties](#-casualties)
+  
   - [Casualty Generation](#casualty-generation)
     - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
@@ -51,19 +63,30 @@ Findings highlight critical periods of resource saturation and identify potentia
     - [Combat Casualties](#combat-casualties)
     - [Support Casualties](#support-casualties)
     - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
+
 - [Casualty Priorities](#casualty-priorities)
+
 - [Return to Duty](#return-to-duty)
+
 - [Died of Wounds](#died-of-wounds)
+
 - [Simulation Design](#simulation-design)
+  
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
+
 - [Single Run Analysis](#single-run-analysis)
+
 - [Multi-Run Analysis](#multirun-analysis)
+
 - [Further Development](#further-development)
+
 - [References](#references)
+
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -76,7 +99,7 @@ This is a Discrete Event Simulation (DES) written in R that uses the simmer pack
 
 DES has been used as a proven way to simulate healthcare systems and support healthcare decision-making (as shown in [[9]](#References)).
 
-## 🌍 Context
+## 🌍 Scenario Context
 
 <small>[Return to Top](#contents)</small>
 
@@ -84,11 +107,17 @@ The code simulates a deployed combat brigade based on the Australian combat and 
 
 **Organisation**. The simulation is built around the following design:
 
-1. The combat brigade has formed `3` battlegroups headquartered by the resident `2` infantry battalions and `1` cavalry regiment. a commander's reserve has been established by the brigade commander formed around a combat team. The cavalry regiment based battlegroup is performing a screen forward of the two infantry battlegroups. Each battlegroup has been force assigned `2` treatment teams to provide close health support.
+1. The combat brigade has formed `3` battlegroups headquartered by the resident `2` infantry battalions and `1` cavalry regiment. Each battlegroup has been force assigned `2` treatment teams to provide close health support.
 
-2. Artillery support is assigned with battery's assigned Direct Support (DS) to the infantry battlegroups and are placed with the capacity to provide support to their supported call-signs. The Brigade Headquarters (HQ) has established a HQ-Forward and HQ-Main. The HQ-Forward is placed one tactical bound behind the forward battlegroups. `1` additional treatment team has been establsihed to provide close health support to the artillery unit and HQ-Forward. `1` Role 2 - Basic (R2B) has been established in vicinity of the HQ-Forward to support damage control (DAMCON) and stabilise casualties prior to evacuation to higher level care.
+2. `2` Role 2 - Basic (R2B) have been established to support damage control (DAMCON) and stabilise casualties prior to evacuation to higher level care.
 
-3. The Combat Service Support Battalion (CSSB) has established the Brigade Maintenance Area (BMA). One further treatment team has been established to provide close health support within the BMA. To provide surgical capability to the brigade `1` Role 2 - Enhanced Heavy (R2E Heavy) hospital has been established within the BMA.
+3. To provide surgical capability to the brigade `1` Role 2 - Enhanced Heavy (R2E Heavy) hospital has been established within the BMA.
+
+The representative diagram below depicts the model that is being simulated.
+
+
+
+[Interactive Diagram](https://www.map.army/?ShareID=1041879&UserType=RO-P0NnXxZq)
 
 ---
 
@@ -166,13 +195,6 @@ Holding beds help to maintain patient flow and prevent bottlenecks in critical c
 
 The PMV Ambulance (Protected Mobility Vehicle – Ambulance) is a blast-resistant, armored medical transport designed to safely evacuate casualties from combat zones. Based on the Bushmaster, it combines mobility, protection, and medical capability, allowing medics to deliver care en route while shielding patients from small arms fire, IEDs, and mines.
 
-Its key features typically include:
-
-- V-shaped hull for blast deflection
-- Internal stretcher mounts and medical equipment
-- Air conditioning and fire suppression systems
-- Optional mounted weapon systems for self-defense
-
 #### HX2 40M
 
 The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Military Vehicles (RMMV) as part of the HX2 series. Designed for high mobility and rugged performance, it serves as a versatile logistics platform for transporting troops, equipment, and supplies in demanding operational environments. In this simulation the HX2 40M is used for the transport of KIA and casualties that have DOW.
@@ -184,6 +206,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -191,28 +214,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -631,23 +654,25 @@ saw-toothing to zero, along with the fact that most casualties are treated at an
 
 ![Alt text](file://C:\Users\natha\Documents\Battlefield Casualty Handling\images\r2b_surgeries.png?msec=1755361326333)
 
-Additionally, to ensure timely treatment, patients are transferred to the r2e heavy for further handling if there is a queue for the r2b OT bed. This is evident in the number of surgeries completed at each R2B being less than those handled at each R2B.
+Additionally, to ensure timely treatment, patients are transferred to the r2e heavy for further handling if there is a queue for the r2b OT bed. This is evident in the number of surgeries completed at each R2B being less than those handled at each R2B. limited numbers skip R2B, as detailed in the plot below (day recorded is the day of casualty generation). Suggests two R2B is suitable for a single brigade in combat.
 
-
+![Alt text](images/r2b_skipped.png)
 
 r2e:
 
 ![Alt text](images/r2eheavy_bed_queue_3_teams.png)
 
-
-
 ![Alt text](images/r2eheavy_gantt.png)
 
 ![Alt text](images/r2eheavy_surgeries.png)
 
-![Alt text](images/r2eheavy_ot_queue_6_teams.png)
 
-issue with no change between 5 and 6 surgical teams
+
+- Excess Resus; excess Holding
+
+- Sufficient OT within system (2 x R2B and 1 x R2E Heavy) to support a combat brigade in combat. based on the constrained resource limits (Surgery) such a design would be insufficient to support a division even if only one Brigade was in the fight at a time as DNBI case-load would be anticipated to increase ~400%.
+
+- Doesn't account for surge or 
 
 There is insufficient OT bed / surgical capability availability compared to other resource 
 
@@ -676,6 +701,8 @@ There is insufficient OT bed / surgical capability availability compared to othe
 3. General model refinement through expert consultation.
 
 4. Dynamic DOW based on wait times.
+
+5. Introduce modelling for mass-casualty events occurring (rarely).
 
 ---
 

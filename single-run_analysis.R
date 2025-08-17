@@ -244,26 +244,6 @@ attributes_wide <- attributes %>%
 ##############################################
 ## CASUALTIES SKIPPING R2B                  ##
 ##############################################
-# # Filter: value set for r2e_treated AND no value set for r2b_treated
-# skipped_r2b <- attributes_wide %>%
-#   filter(!is.na(r2e_treated) & is.na(r2b_treated))
-# 
-# # Count per replication (one row per casualty after your slice_tail)
-# skipped_counts <- skipped_r2b %>%
-#   count(replication, name = "n")
-# 
-# ggplot(skipped_counts, aes(x = factor(replication), y = n)) +
-#   geom_col(aes(fill = "Skipped R2B")) +   # single fill group
-#   geom_text(aes(label = n), vjust = -0.3, size = 4) +
-#   scale_fill_brewer(palette = "Set2", guide = "none") +
-#   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-#   labs(
-#     title = "Casualties Skipping R2B",
-#     subtitle = "Criteria: r2e_treated is set; r2b_treated is not set (NA)",
-#     x = "Replication",
-#     y = "Number of casualties"
-#   ) +
-#   theme_minimal(base_size = 14)
 
 # Extract and preprocess skipped R2B data
 skipped_r2b_daily <- attributes_wide %>%
@@ -273,6 +253,9 @@ skipped_r2b_daily <- attributes_wide %>%
   summarise(skipped_r2b = n(), .groups = "drop") %>%
   complete(day = 1:30, fill = list(skipped_r2b = 0))
 
+# Ensure every day gets a tick: sequence from 1 to max day present
+x_breaks <- seq(min(skipped_r2b_daily$day), max(skipped_r2b_daily$day), by = 1)
+
 # Plot with zero-filled timeline for doctrinal clarity
 ggplot(skipped_r2b_daily, aes(x = day, y = skipped_r2b)) +
   geom_col(fill = "#66c2a5") +
@@ -280,6 +263,12 @@ ggplot(skipped_r2b_daily, aes(x = day, y = skipped_r2b)) +
     title = "Casualties Skipping R2B Treatment per Day",
     x = "Simulation Day",
     y = "Count of Skipped R2B"
+  ) +
+  scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
+  scale_x_continuous(
+    breaks = x_breaks,
+    labels = function(x) paste0(x),
+    expand = c(0, 0)
   ) +
   theme_minimal()
 

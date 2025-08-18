@@ -185,46 +185,98 @@ writeLines(kable(population_source_table_wide, format = "markdown"), "population
 # Casualty type table
 writeLines(kable(casualty_type_table_wide, format = "markdown"), "casualty_table.md")
 
-# ##############################################
-# ## R2B Bed QUEUE GRAPHs                     ##
-# ##############################################
-# queue_plot_data <- resources %>%
-#   as.data.frame() %>%
-#   filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
-#   select(time, resource, queue) %>%
-#   mutate(
-#     r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
-#     bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
-#     bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
-#     r2b_label = paste0("R2B ", r2b_id),
-#     bed_label = paste0(bed_type, " ", bed_index)
-#   )
-# 
-# ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
-#   geom_step(linewidth = 1) +
-#   labs(
-#     title = "Queue Length Over Time by R2B",
-#     x = "Time (Days)",
-#     y = "Queue Size",
-#     color = "Bed"
-#   ) +
-#   scale_x_continuous(
-#     breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1),  # One tick per day
-#     expand = c(0, 0)
-#   ) +
-#   scale_y_continuous(
-#     limits = c(0, 10),
-#     breaks = seq(0, 10, by = 1),
-#     expand = c(0, 0)
-#   ) +
-#   facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
-#   theme_minimal(base_size = 13) +
-#   theme(
-#     panel.grid.minor = element_blank(),
-#     panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
-#     legend.position = "bottom",
-#     strip.text = element_text(face = "bold")
-#   )
+##############################################
+## R1 RESOURCE QUEUE GRAPHS                 ##
+##############################################
+queue_plot_data_r1 <- resources %>%
+  as.data.frame() %>%
+  # Match any R1 resource: c_r1_<role>_<index>_t<team>
+  filter(grepl("^c_r1_.*_\\d+_t\\d+$", resource)) %>%
+  select(time, resource, queue) %>%
+  mutate(
+    # Extract R1 team number
+    r1_id    = str_extract(resource, "_t\\d+$") %>%
+      str_remove("_t") %>%
+      as.integer(),
+    # Extract role (technician_medic, clinician_nurse, etc.)
+    role     = str_extract(resource, "(?<=c_r1_)[^_]+_[^_]+") %>%
+      str_replace_all("_", " ") %>%
+      tools::toTitleCase(),
+    # Extract index within role
+    role_idx = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>%
+      as.integer(),
+    # Labels for facets and legend
+    r1_label = paste0("R1 ", r1_id),
+    role_label = paste0(role, " ", role_idx)
+  )
+
+# Plot queues over time for each R1 team
+ggplot(queue_plot_data_r1, aes(x = time / 1440, y = queue, color = role_label)) +
+  geom_step(linewidth = 1) +
+  labs(
+    title = "Queue Length Over Time by R1 Team",
+    x = "Time (Days)",
+    y = "Queue Size",
+    color = "Role"
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, max(queue_plot_data_r1$time) / 1440, by = 1),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, by = 1),
+    expand = c(0, 0)
+  ) +
+  facet_wrap(~ r1_label, ncol = 1, scales = "free_x") +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
+
+##############################################
+## R2B Bed QUEUE GRAPHs                     ##
+##############################################
+queue_plot_data <- resources %>%
+  as.data.frame() %>%
+  filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
+  select(time, resource, queue) %>%
+  mutate(
+    r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
+    bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
+    bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
+    r2b_label = paste0("R2B ", r2b_id),
+    bed_label = paste0(bed_type, " ", bed_index)
+  )
+
+ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
+  geom_step(linewidth = 1) +
+  labs(
+    title = "Queue Length Over Time by R2B",
+    x = "Time (Days)",
+    y = "Queue Size",
+    color = "Bed"
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1),  # One tick per day
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 10),
+    breaks = seq(0, 10, by = 1),
+    expand = c(0, 0)
+  ) +
+  facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(linetype = "dotted", color = "gray"),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
 
 ##############################################
 ## WIDE ATTRIBUTES FOR GRAPHS               ##

@@ -15,6 +15,7 @@ The paper recommends options for further refinement to the simulation model thro
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -78,6 +79,7 @@ The paper recommends options for further refinement to the simulation model thro
 - [Conclusion](#conclusion)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -133,7 +135,7 @@ This literature review enabled the design of a model suitable to support the ass
 
 <small>[Return to Top](#contents)</small>
 
-The simulation scenario models a deployed combat brigade's assigned health support capabilities. The design reflects the doctrinal organisation of deployed elements adapted to the operational requirements of LSCO. The simulated brigade is composed of three battlegroups, each commanded by one of the resident combat manoeuvre units. To ensure close health support at the point of need, each battlegroup is allocated `2` R1 treatment teams tasked with providing immediate clinical intervention and stabilisation in proximity to combat operations (for a total of `6` R1 treatment teams). These forward elements represent the first echelon of the deployed health system, capable of delivering life‑saving care under combat conditions.
+The simulation scenario models a deployed combat brigade's assigned health support capabilities. The design reflects the doctrinal organisation of deployed elements adapted to the operational requirements of LSCO. The simulated brigade is composed of three battlegroups, each commanded by one of the resident combat manoeuvre units. To ensure close health support at the point of need, each battlegroup is allocated `1` R1 treatment teams tasked with providing immediate clinical intervention and stabilisation in proximity to combat operations (for a total of `3` R1 treatment teams). These forward elements represent the first echelon of the deployed health system, capable of delivering life‑saving care under combat conditions.
 
 In the second medical echelon, `2` Role 2 - Basic (R2B) facilities are established. Their function is to conduct damage control resuscitation and surgery, stabilising casualties before onward evacuation to higher‑level medical treatment facilities. Positioned to balance proximity to the fight with survivability, the R2B facilities serve as critical nodes in the casualty evacuation chain, extending the reach of forward treatment teams.
 
@@ -143,7 +145,7 @@ The organisational structure described above underpins the simulation’s logic 
 
 ![Alt text](images/tactical_diagram.png)
 
-An [Interactive Diagram](https://www.map.army/?ShareID=1041879&UserType=RO-P0NnXxZq) allows further exploration of the model being simulated.
+An [Interactive Diagram](https://www.map.army/?ShareID=1041883&UserType=RO-xOMjf7j6) allows further exploration of the model being simulated.
 
 ---
 
@@ -232,6 +234,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -239,28 +242,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -441,9 +444,7 @@ The simulation is built as a Discrete Event Simulation (DES), it is written in R
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
 
-The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree.
-
-The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References).
+The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree. The diagram below provides an outline of the role and function design applied for this simulation using the three-stage Damage Control Surgery (DCS) model of care described in [[11]](#References) and [[19]](#References).
 
 ```mermaid
 block-beta
@@ -494,6 +495,10 @@ block-beta
   style r fill:#cc6600,stroke:#663300,color:#ffffff
   style s fill:#cc6600,stroke:#663300,color:#ffffff
 ```
+
+The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[8]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[9]](#References). 
+
+
 
 ---
 
@@ -689,7 +694,7 @@ From a systems design perspective, the acuity profile derived from this simulati
 
 ### R1 Handling
 
-no queuing, rapid handling, not limited by evacuation.
+Role 1 facilities consistently demonstrated the ability to process casualties without delay, with all patients receiving immediate triage and treatment on arrival. The absence of queuing reflects both adequate staffing and appropriately scaled treatment capacity relative to the casualty inflow modelled. Rapid handling times ensured that Priority 1 cases could be stabilised and evacuated without degradation in clinical status, while lower‑priority cases were managed and prepared for movement in line with requirements. However, the model does not currently fully represent the limitations in availability of evacuation assets, as a result, throughput at the Role 1 was not constrained by evacuation availability, allowing continuous casualty flow to higher‑echelon care and preventing downstream bottlenecks in the system which may bear out with the introduction of more detailed modelling of evacuation. Despite this, the performance underscores the critical function of Role 1 as an agile, forward medical capability able to maintain momentum under sustained operational tempo.
 
 ### R2B Handling
 
@@ -703,27 +708,39 @@ Daily casualty treatments at R2B 1 and R2B 2 show saw-tooth cycles in queuing fo
 
 ### R2E Heavy Handling
 
-r2e:
+The R2E Heavy reveals a complex interaction between critical care saturation, surgical throughput, and the utilisation of downstream holding capacity. ICU queues displayed sustained and system‑wide congestion during several periods, most notably between Days 11–13 and Days 26–29, where as many a number of patients were awaiting critical care. Such peaks are consistent with high‑acuity casualty streams in LSCO and prolonged ICU lengths of stay, both of which constrain turnover rates. Under these conditions, surgical throughput is at risk, as post‑operative patients may be delayed in theatre or recovery pending ICU availability, potentially increasing morbidity and mortality. This dynamic underscores the vulnerability of the R2E Heavy’s ICU provision to operational surges and the need for either expanded critical care capacity or well‑rehearsed transfer protocols to higher‑echelon or other health facilities.
 
 ![Alt text](images/r2eheavy_bed_queue_3_teams.png)
 
+Operating Theatre (OT) queues at the R2E Heavy were shorter and less frequent than ICU queues, rarely exceeding two patients per theatre; however, they were almost continuously present throughout the simulation. This pattern suggests the surgical component was operating at or near full capacity, with minimal slack to absorb unplanned casualty spikes. When examined in system context, the combined OT capacity of two Role 2 Basic (R2B) elements and one R2E Heavy appears sufficient to support a single combat brigade under conditions modelled on the Falklands casualty rates [FORECAS]. Yet, if this deployed health system was applied to a deployed division it would be grossly insufficient, even if only one brigade was assumed to be in contact at any time. With no other changes to casualty rates with an increased force, DNBI rates for a the further deployed force of a division would exceed the limited excess capacity that is observed in this system. Furthermore, the modelled scenario does not account for mass‑casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa, or Vietnam both of which would further expose this deficit [FORECAS].
+
 ![Alt text](images/r2eheavy_gantt.png)
+
+Analysis of other treatment capacities revealed significant underutilisation in certain areas. Two resuscitation beds were unused throughout the simulation, while sixteen holding beds saw no occupancy at all. This imbalance offers an opportunity to reallocate resources—either through expansion of OT capacity at the R2E Heavy or by modifying holding policy to increase the proportion of in‑theatre recoveries beyond the ten percent modelled in the simulation. A higher return‑to‑duty rate within theatre could alleviate the burden on higher‑echelon facilities and improve the overall force operational viability period.
 
 ![Alt text](images/r2eheavy_surgeries.png)
 
-- Excess Resus; excess Holding. could change r2e heavy to grow OT capacity. Alternatively, could modify holding policy to seek greater in-theatre recovery and return to force.
+Taken together, the simulation outputs indicate that the R2E Heavy’s primary limiting factor is OT availability, with ICU capacity representing a secondary but significant constraint. Both could be mitigated through deliberate rebalancing of underused bed spaces and by modelling scenarios that better reflect LSCO surge conditions. Forward Role 2 Basic nodes remain a critical component in modulating the demand placed upon the R2E Heavy, highlighting the importance of integrated patient flow monitoring, robust surge protocols, and synchronised scheduling across all surgical and critical care assets. Without such measures, even sustained baseline performance offers little resilience to the shock of high‑intensity operational realities.
 
-- Sufficient OT within system (2 x R2B and 1 x R2E Heavy) to support a combat brigade in combat. based on the constrained resource limits (Surgery) such a design would be insufficient to support a division even if only one Brigade was in the fight at a time as DNBI case-load would be anticipated to increase ~400%.
+### Conclusion
 
-- Doesn't account for surge or mass-casualty events
+The single run analysis, viewed in its entirety, demonstrates that while the modelled deployed health system is capable of sustaining a steady operational tempo for a single brigade under baseline casualty assumptions (using casualty models derived from the Falklands war), it operates with little reserve and exhibits critical vulnerabilities under higher‑demand conditions. Role 1 elements show sufficient responsiveness and throughput, and the dual‑node R2B configuration effectively absorbs the majority of cases without systemic reliance on bypass to higher care. However, the R2E Heavy emerges as a structural bottleneck, with surgical and ICU capacity constraints that would be rapidly overwhelmed in the event of divisional‑level operations, mass‑casualty incidents, or casualty rates on par with historical LSCO campaigns with more substantial casualty rates such as Okinawa or Vietnam.
 
-- Arguably doesn't represent LSCO, need to plan for the higher rates reported in FORECAS such as those modelled of Okinawa.
+Underutilisation of resuscitation and holding beds indicates scope for resource reallocation or policy changes to increase in‑theatre recovery and return‑to‑duty rates, thereby reducing pressure on constrained surgical and critical care assets. Without such adjustments, the system’s ability to absorb prolonged surges, manage high‑acuity case‑mixes, and maintain operational tempo would be severely limited.
 
-- Doesn't account for prolonged wait times or resultant DOW
+Ultimately, the findings reinforce that effective LSCO medical support cannot rely solely on baseline performance metrics. Instead, it must be built on a foundation of scalable capacity, adaptable evacuation architecture, and dynamically balanced resource distribution between Roles 1, 2B, and 2E Heavy. By integrating these design principles into future modelling and force development, the deployed health system will be better positioned to sustain combat effectiveness across the full spectrum of operational intensity.
 
-There is insufficient OT bed / surgical capability availability compared to other resource 
+---
 
-1. May be an opportunity to either (a) right-size holding bed quantity, or (b) expand the in-theatre recovery beyond 10% supporting faster return to duty and relieving pressure at higher care facilities.
+
+
+
+
+
+
+
+
+
 
 [Sankey flow diagram](%5Bplotly-logomark%5D(https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
 

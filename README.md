@@ -15,6 +15,7 @@ The paper recommends options for further refinement to the simulation model thro
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -79,6 +80,7 @@ The paper recommends options for further refinement to the simulation model thro
 - [Conclusion](#conclusion)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -233,6 +235,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -240,28 +243,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -636,7 +639,7 @@ flowchart TD
 
 ---
 
-## Single Run Analysis
+## Simulation Analysis
 
 ### Simulation Casualty Generation
 
@@ -710,7 +713,7 @@ The R2E Heavy reveals a complex interaction between critical care saturation, su
 
 ![Alt text](images/r2eheavy_bed_queue_3_teams.png)
 
-Operating Theatre (OT) queues at the R2E Heavy were shorter and less frequent than ICU queues, rarely exceeding two patients per theatre; however, they were almost continuously present throughout the simulation. This pattern suggests the surgical component was operating at or near full capacity, with minimal slack to absorb unplanned casualty spikes. When examined in system context, the combined OT capacity of two Role 2 Basic (R2B) elements and one R2E Heavy appears sufficient to support a single combat brigade under conditions modelled on the Falklands casualty rates [FORECAS]. Yet, if this deployed health system was applied to a deployed division it would be grossly insufficient, even if only one brigade was assumed to be in contact at any time. With no other changes to casualty rates with an increased force, DNBI rates for a the further deployed force of a division would exceed the limited excess capacity that is observed in this system. Furthermore, the modelled scenario does not account for mass‑casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa, or Vietnam both of which would further expose this deficit [FORECAS].
+Operating Theatre (OT) queues at the R2E Heavy were shorter and less frequent than ICU queues, rarely exceeding two patients per theatre; however, they were almost continuously present throughout the simulation. This pattern suggests the surgical component was operating at or near full capacity, with minimal slack to absorb unplanned casualty spikes. When examined in system context, the combined OT capacity of two Role 2 Basic (R2B) elements and one R2E Heavy appears sufficient to support a single combat brigade under conditions modelled on the Falklands casualty rates [[1]](#References). Yet, if this deployed health system was applied to a deployed division it would be grossly insufficient, even if only one brigade was assumed to be in contact at any time. With no other changes to casualty rates with an increased force, DNBI rates for a the further deployed force of a division would exceed the limited excess capacity that is observed in this system. Furthermore, the modelled scenario does not account for mass‑casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa, or Vietnam both of which would further expose this deficit [[1]](#References).
 
 ![Alt text](images/r2eheavy_gantt.png)
 
@@ -730,55 +733,37 @@ Ultimately, the findings reinforce that effective LSCO medical support cannot re
 
 ---
 
-[Sankey flow diagram](%5Bplotly-logomark%5D(https://natosys.github.io/Battlefield-Casualty-Handling/sankey.html)), gives a visual diagram of the flow of casualties between echelons of health care.
-
-![Alt text](sankey.png)
-
----
-
-## Multi-Run Analysis
-
-1. If historical models of casualty generation remain accurate for LSCO, future deployable health system must be able to handle X number of casualties per day.
-
-2. 
-
----
-
 ## Further Development
 
-1. Add usage of transport resources for return journey (dead-heading).
+The single run analysis has demonstrated that while the current simulation framework offers a credible baseline for evaluating deployed health system performance under brigade-level LSCO conditions, several areas warrant further development to improve the accuracy of the model and enhance the analysis from it.
 
-2. Pulse strategic medical evacuation to simuate temporal availability of the resource.
+One immediate opportunity lies in expanding the modelling of transport resources to include return journeys—commonly referred to as "dead-heading". The current simulation assumes unidirectional casualty movement, which underestimates the logistical burden and resource consumption associated with evacuation cycles. Incorporating return legs would allow for more accurate scheduling, asset availability tracking, and fuel or crew fatigue modelling, all of which are critical in contested or extended operational environments.
 
-3. General model refinement through expert consultation.
+Another refinement involves pulsing strategic medical evacuation availability to simulate its temporal constraints. Rather than assuming continuous access to strategic lift, future iterations should model episodic availability windows, reflecting real-world limitations such as airframe tasking, weather delays, or air superiority conditions. This would allow for more realistic bottleneck formation and better inform prioritisation protocols for high-acuity casualties.
 
-4. Dynamic DOW based on wait times.
+Model fidelity can also be improved through structured expert consultation. Engaging clinicians, medical planners, and operational commanders would support refinement of treatment durations, triage logic, and evacuation thresholds. This would ensure that the simulation reflects not only doctrinal intent but also clinical realities and operational constraints.
 
-5. Introduce modelling for mass-casualty events occurring (rarely).
+A critical enhancement involves introducing dynamic modelling of Died of Wounds (DOW) outcomes based on wait times. The current simulation does not penalise delayed treatment, which may understate the clinical consequences of ICU or OT saturation. By linking DOW probability to time-to-treatment metrics, future models can better capture the operational cost of medical delay and support more aggressive capacity planning.
 
-6. Analysis against other casualty generation models, including those already available in the FORECAS pub (Okinawa, Vietnam). Anticipate these would further stress the surgical capacity of the system and require significant re-design of the health system to get to a supportable state.
+To reflect the unpredictability of LSCO, future simulations should also incorporate rare but high-impact mass-casualty events. These could be triggered stochastically and used to evaluate system shock absorption, surge protocols, and triage degradation under extreme conditions. Such modelling would be particularly valuable in validating the robustness of the R2E Heavy and its ability to maintain throughput under duress.
+
+Finally, comparative analysis against other casualty generation models—particularly those published in [[1]](#References), such as Okinawa and Vietnam—would provide a more rigorous test of system scalability. These historical scenarios project casualty rates far beyond those modelled in the current run and would likely expose critical shortfalls in surgical capacity, evacuation throughput, and ICU resilience. Such stress-testing is essential to determine whether the current health system design is supportable under true LSCO conditions or whether significant redesign is required.
+
+Despite these refinements, the recommendations from the single run analysis remain relevant. Rebalancing underutilised bed spaces (e.g., resuscitation and holding beds), expanding in-theatre recovery rates to improve return-to-duty throughput, and exploring the operational impact of increasing surgical team availability at R2B nodes are all worth investigating. The model refinements will support the development of a more responsive, and scalable deployed health system capable of sustaining combat power under the full spectrum of LSCO demands.
 
 ---
 
 ## Conclusion
 
-this research has 
+This research has advanced the modelling of deployed health system performance by using casualty generation modelled on historical conflict casualty data with a discrete event simulation framework capable to build a brigade-level simulation that can be run over extended operational durations. Through a systematic review of existing literature, previously published casualty models were identified, restructured, and adapted to support per-minute simulation granularity; enabling evaluation of medical infrastructure across 30+ day campaigns.
 
-- reviewed the existing literature identifying and reporting previoulsy published casualty models
+A representative deployed health system was constructed, encompassing triage, evacuation, and definitive care, and incorporating a three-stage model of damage control surgery derived from academic resources. The simulation was executed under moderate casualty conditions, and its outputs were analysed to identify systemic risks, capacity shortfalls, and design inefficiencies. These findings informed targeted recommendations for system refinement, including adjustments to bed allocation, surgical team distribution, and recovery throughput.
 
-- Re-modelled these casualty rates to support a per-minute simulation that can be run at the brigade level for 30+ days to allow analysis of the systems effectiveness
+The simulation demonstrates that the current system design is capable of managing casualty rates comparable to those experienced during the Falklands conflict. However, this historical benchmark may not reflect the operational realities anticipated in future large-scale combat operations (LSCO), where casualty volumes, evacuation delays, and treatment bottlenecks may be significantly more severe. The current model, while robust under moderate stress, has not yet been fully tested against LSCO-scale casualty projections.
 
-- built discrete event simulation of deployed health system from triage through to definitive care applying a three stage model of damage control surgery derived from the literature within the simulated health system. 
+To address this gap, further development is required. Enhancements such as dynamic DOW modelling, pulsed strategic evacuation availability, and stochastic mass-casualty event triggers will improve realism and operational relevance. Comparative analysis against high-intensity casualty models—such as those published in [[1]](#References) for Okinawa and Vietnam—will be essential to evaluate whether the current health system architecture is supportable under LSCO conditions or requires fundamental redesign.
 
-- conducted simulation and modelled a representative deployed health systems performance
-
-- analysed this performance and identified areas of risk in the system design
-
-- evaluated the simulation design and identified  
-
-demonstrates a system that is designed to effectively handle moderate casualty rates, historically represented by those exprerienced in the Falklands war. This is not likely to be the environment that western forces face. LSCO will see substantially higher casualty rates with greater difficulty to evacuate and treat patients. 
-
-While this simulation has not fully tested under LSCO, further development of the simulation model along with tests against casualty rates more likely to be expereienced will allow detailed analysis of the system under the intense pressure expected   
+Ultimately, this research provides a transparent, modular, and extensible foundation for future simulation efforts. It enables planners, clinicians, and commanders to interrogate system performance, anticipate failure points, and iteratively refine medical support doctrine. With continued development and rigorous testing, this framework can evolve into a decision-support tool capable of guiding health system design for the most demanding operational environments.
 
 ---
 

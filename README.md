@@ -2,19 +2,20 @@
 
 ## Abstract
 
-This study presents a Discrete Event Simulation (DES) designed to evaluate resource utilization and casualty processing in a battlefield casualty handling system within Large Scale Combat Operations (LSCO). Using parameterized inputs derived from open-access academic literature, the simulation models time-based arrivals, triage, and surgical throughput through Role 1 (R1) treatment teams, Role 2 Basic (R2B) and Role 2 Enhanced - Heavy (R2E Heavy). 
+This study presents a Discrete Event Simulation (DES) framework developed to evaluate resource utilization and casualty processing within a deployed battlefield medical system under Large Scale Combat Operations (LSCO). Leveraging parameterized inputs published in open-access literature, the simulation models per-minute casualty arrivals, triage, and surgical throughput across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced – Heavy (R2E Heavy) treatment nodes.
 
-Key metrics include queue lengths, waiting times, and resource saturation, visualized over simulation days to assess temporal bottlenecks and system suitability to enable the land combat system.
+The model enables extended-duration analysis at varying scales, capturing key metrics such as queue lengths, wait times, and resource saturation to identify temporal bottlenecks and assess system suitability. A three-stage damage control surgery model is embedded within the simulation to reflect treatment pathways and operational constraints.
 
-Findings highlight critical constraints within the existing system (surgical resources) and reports areas for potential improvement of the deployed health system.
+Findings demonstrate that the current system design is capable of managing moderate casualty volumes, historically represented by the Falklands conflict. However, the simulation reveals critical vulnerabilities in surgical capacity and evacuation throughput that would likely be exacerbated under LSCO conditions with greater casualty rates. The study identifies areas of risk, recommends targeted system refinements, and proposes enhancements to the simulation architecture—including dynamic DOW modelling, pulsed strategic evacuation, and stochastic mass-casualty events.
 
-The paper recommends options for further refinement to the simulation model through expanded engagement with subject matter experts, and areas for further research to support system enhancement including expansion of the simulation of inter- and intra-theatre evacuation. The simulation tool is designed for iterative refinement and stakeholder engagement, supporting transparent decision-making in LSCO medical operations to enable this further research.
+This tool supports iterative refinement and stakeholder engagement, offering a transparent, modular platform for testing health system resilience. With further development and testing against high-intensity casualty models, the simulation can inform doctrinal updates and guide medical planning for future operational environments.
 
 ## Contents
 
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -78,6 +79,7 @@ The paper recommends options for further refinement to the simulation model thro
 - [Conclusion](#conclusion)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -232,6 +234,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -239,28 +242,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 

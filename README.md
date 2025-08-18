@@ -15,6 +15,7 @@ The paper recommends options for further refinement to the simulation model thro
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [📘 Introduction](#-introduction)
@@ -74,6 +75,7 @@ The paper recommends options for further refinement to the simulation model thro
 - [Conclusion](#conclusion)
 - [References](#references)
 - [Other Resources](#other-resources)
+  
   <!-- TOC END -->
 
 ---
@@ -228,6 +230,7 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
 ### 👥 Population Groups
@@ -235,28 +238,28 @@ The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Milit
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
 ### 🚑 Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
 ### 🏥 Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | 1 | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | 1                                | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -633,7 +636,9 @@ flowchart TD
 
 ## Single Run Analysis
 
-A single run was executed using the seed 42 with a 30 day duration. The graph and tables below summarise the casualties that were generated for the simulation.
+### Simulation Casualty Generation
+
+This section presents a detailed breakdown of casualty source data captured from a single simulation run using seed 42, spanning a 30-day operational duration. The data is analyzed through the lens of deployed health system design, highlighting implications for medical resource allocation, evacuation planning, and treatment capacity across Role 1 and Role 2 facilities.
 
 ![Alt text](images/casualty_summary.png)
 
@@ -647,11 +652,21 @@ A single run was executed using the seed 42 with a 30 day duration. The graph an
 | wia           | spt               | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 2   | 1   | 2   | 2   | 1   | 2   | 2   | 51    |
 | Total         |                   | 10  | 15  | 13  | 12  | 13  | 14  | 15  | 12  | 15  | 12  | 13  | 15  | 13  | 13  | 13  | 14  | 16  | 11  | 15  | 12  | 13  | 14  | 14  | 15  | 10  | 15  | 12  | 14  | 13  | 15  | 401   |
 
+The table above presents a summary of the simulated casualty data generated across three primary categories Wounded in Action (WIA), Killed in Action (KIA), and Disease and Non-Battle Injury (DNBI), with their source population: combat forces and support forces. A total of 401 casualties were recorded, with combat elements accounting for the majority (292), reflecting their higher exposure to operational risk. DNBI emerged as the most frequent casualty type (176 cases), underscoring the persistent burden of non-combat medical conditions even in high-intensity environments. This aligns with historical data indicating that DNBI can rival or exceed battle injuries in terms of lost duty days and medical resource consumption.
+
+WIA cases totaled 155, with a notable skew toward combat personnel (104 vs. 51) as a result of the force ratios present within the simulation. These casualties typically require multi-echelon care, including resuscitation, surgical intervention, and post-operative holding, placing sustained demand on Role 1 and Role 2 facilities. KIA figures were lower (70 total).
+
+From a health system planning perspective, this data implies a need for scalable treatment capacity, robust DNBI mitigation strategies, and distributed surgical capability. The consistent casualty generation across periods suggests a steady operational tempo, requiring continuous staffing, replenishment of medical supplies, and resilient evacuation pathways.
+
 | Population Source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
 |:----------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
 | cbt               | 8   | 11  | 9   | 9   | 10  | 9   | 11  | 9   | 11  | 9   | 10  | 10  | 9   | 10  | 10  | 10  | 11  | 8   | 11  | 9   | 10  | 10  | 9   | 11  | 8   | 11  | 8   | 11  | 9   | 11  | 292   |
 | spt               | 2   | 4   | 4   | 3   | 3   | 5   | 4   | 3   | 4   | 3   | 3   | 5   | 4   | 3   | 3   | 4   | 5   | 3   | 4   | 3   | 3   | 4   | 5   | 4   | 2   | 4   | 4   | 3   | 4   | 4   | 109   |
 | Total             | 10  | 15  | 13  | 12  | 13  | 14  | 15  | 12  | 15  | 12  | 13  | 15  | 13  | 13  | 13  | 14  | 16  | 11  | 15  | 12  | 13  | 14  | 14  | 15  | 10  | 15  | 12  | 14  | 13  | 15  | 401   |
+
+The second table provides a breakdown of the casualty population by source: combat forces (cbt) and support forces (spt). Of the 401 total casualties generated, 292 (approximately 73%) originated from combat elements, while 109 (27%) were drawn from support units. This distribution reflects the total population breakdown of the organisation. The consistent presence of support force casualties across all periods underscores the vulnerability of rear-area personnel in LSCO environments, particularly under conditions of indirect fire, degraded situational awareness, and disrupted medical evacuation. The temporal spread of casualties shows a relatively stable operational tempo, with total casualties per period ranging from 10 to 16. 
+
+From a health system perspective, this data reinforces the need for distributed medical coverage that includes both forward and rear-area assets. Role 1 treatment teams must be positioned to respond rapidly to combat casualties, while Role 2 facilities must be capable of absorbing and triaging support force casualties who may present with different injury profiles, including DNBI and delayed trauma. The consistent casualty burden across both populations highlights the importance of scalable capacity, flexible evacuation pathways, and robust command and control to ensure timely treatment and prevent bottlenecks in casualty flow.
 
 | Priority | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
 |:-------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
@@ -661,25 +676,31 @@ A single run was executed using the seed 42 with a 30 day duration. The graph an
 | KIA      | 1   | 3   | 2   | 3   | 1   | 3   | 3   | 2   | 3   | 2   | 2   | 3   | 2   | 3   | 2   | 2   | 3   | 2   | 3   | 1   | 3   | 3   | 2   | 3   | 1   | 3   | 2   | 3   | 2   | 2   | 70    |
 | Total    | 10  | 15  | 13  | 12  | 13  | 14  | 15  | 12  | 15  | 12  | 13  | 15  | 13  | 13  | 13  | 14  | 16  | 11  | 15  | 12  | 13  | 14  | 14  | 15  | 10  | 15  | 12  | 14  | 13  | 15  | 401   |
 
-summary statistics (total of each casualty type, how many are incomplete)
+Of the total casualties, 207 (51.6%) were classified as Priority 1, representing patients requiring immediate life-saving intervention. This dominant category underscores the doctrinal necessity of forward-positioned Role 1 assets capable of rapid triage and stabilization. The consistent presence of Priority 1 cases across all 30 days suggests a sustained high-acuity burden, reinforcing the need for scalable throughput 
 
-r2b:
+Priority 2 and Priority 3 casualties accounted for 76 (19.0%) and 48 (12.0%) cases respectively. These patients typically require delayed or routine care. The simulation also generated 70 KIA cases (17.5%), distributed evenly across the operational timeline. While these cases do not contribute to medical workload substantially, their operational implications are significant.
 
-most casualties are receiving treatment at the r2b
+From a systems design perspective, the acuity profile derived from this simulation reinforces several key imperatives:
 
-![Alt text](images/r2b_casualty_treatment.png)
+- Role 1 facilities must be optimized for high-throughput triage and stabilization, with emphasis on rapid evacuation of Priority 1 cases.
+- Role 2 facilities requires flexible bed space and surgical capability to absorb cases, especially during sustained operations.
+- Evacuation architecture must support continuous movement of mixed-acuity casualties, with prioritization protocols and redundancy to ensure resilience.
 
-because of the algorithm, casualties are assigned to an r2b when there is no queue at the OT 
+### R1 Handling
+
+no queuing, rapid handling, not limited by evacuation.
+
+### R2B Handling
+
+The plot below outlines a summary of the casualty handling at the R2B. The data indicates a system that is generally well-balanced, handling a substantial number of the casualties generated within the simulation every day. 
+
+![Alt text](images/r2b_handling.png)
+
+Daily casualty treatments at R2B 1 and R2B 2 show saw-tooth cycles in queuing for OT (shown in the plots below) returning to zero in the vast majority of days. Of note, the 12-hour availability window for the single surgical team in each R2B is likely to substantially impact this saw-toothing. The development of models to support the ongoing availability of the R2B OT is likely to see substantial improvement in overall system capacity with relatively modest resource investment. The majority of casualties processed through the deployed health system receive treatment at the R2B, confirming that the two-node configuration is effective for the medical demand without excessive reliance on direct bypass to a higher echelon of health care.
 
 ![Alt text](images/r2b_bed_queues.png)
 
-saw-toothing to zero, along with the fact that most casualties are treated at an r2b suggests a manageable daily load between the two r2b. The saw-tooth is likely occurring because of the 12 h availability schedule for the single surgical team within the R2B.
-
-![Alt text](file://C:\Users\natha\Documents\Battlefield Casualty Handling\images\r2b_surgeries.png?msec=1755361326333)
-
-Additionally, to ensure timely treatment, patients are transferred to the r2e heavy for further handling if there is a queue for the r2b OT bed. This is evident in the number of surgeries completed at each R2B being less than those handled at each R2B. limited numbers skip R2B, as detailed in the plot below (day recorded is the day of casualty generation). Suggests two R2B is suitable for a single brigade in combat.
-
-![Alt text](images/r2b_skipped.png)
+### R2E Heavy Handling
 
 r2e:
 
@@ -689,15 +710,15 @@ r2e:
 
 ![Alt text](images/r2eheavy_surgeries.png)
 
-- Excess Resus; excess Holding
+- Excess Resus; excess Holding. could change r2e heavy to grow OT capacity. Alternatively, could modify holding policy to seek greater in-theatre recovery and return to force.
 
 - Sufficient OT within system (2 x R2B and 1 x R2E Heavy) to support a combat brigade in combat. based on the constrained resource limits (Surgery) such a design would be insufficient to support a division even if only one Brigade was in the fight at a time as DNBI case-load would be anticipated to increase ~400%.
 
-- Doesn't account for surge or mass-casualty
+- Doesn't account for surge or mass-casualty events
 
 - Arguably doesn't represent LSCO, need to plan for the higher rates reported in FORECAS such as those modelled of Okinawa.
 
-- Doesn't account for prolonged wait times or resultant DOWs
+- Doesn't account for prolonged wait times or resultant DOW
 
 There is insufficient OT bed / surgical capability availability compared to other resource 
 

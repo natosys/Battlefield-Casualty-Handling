@@ -272,8 +272,8 @@ DNBI sub-categorisation (#7) and individual resource modelling (#4). Issue #7 ca
 ### Phase 4 — Scenario Expansion (Issues 9, 10)
 MASCAL stochastic injection (#9, requires #1 + #2 + #5) → comparative scenario runner (#10, requires #1 + #2 + #5 + #8).
 
-### Phase 5 — Interface (Issue 14)
-Interactive Shiny application (#14). The `R/analysis.R` refactor (returning ggplot objects) can begin after #1; the Full Analysis (multi-run CI) mode requires Phase 1 complete.
+### Phase 5 — Interface (Issues 14, 15)
+Two-part delivery. Issue #14 (parameter editor + Quick Run + single-run output display) can begin after #1 — the `R/analysis.R` refactor (returning ggplot objects) is the gating task. Issue #15 (Full Analysis mode — multi-run with CI) requires Issues #14, #1, #2, and #3 all complete.
 
 ### Recommended implementation sequence at a glance
 
@@ -294,8 +294,11 @@ AFTER #1 + #2 + #3:
 AFTER #1 + #2 + #3 (all stable):
   #4  [Ph.3]    Individual resource seizure
 
-AFTER #1 (analysis.R refactor) / full mode after Phase 1:
-  #14 [Ph.5]    Shiny application
+AFTER #1 (analysis.R refactor only):
+  #14 [Ph.2]    Shiny app — parameter editor + Quick Run
+
+AFTER #14 + #1 + #2 + #3:
+  #15 [Ph.5]    Shiny app — Full Analysis mode (multi-run CI)
 
 AFTER #1 + #2 + #5:
   #9  [Ph.4]    MASCAL injection

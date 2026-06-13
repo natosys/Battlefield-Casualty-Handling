@@ -54,11 +54,7 @@ analyse_run <- function(mon, output_dir = "outputs") {
     ungroup()
 
   combined <- arrivals %>%
-    left_join(
-      attributes %>%
-        pivot_wider(id_cols = c(name, replication), names_from = key, values_fn = ~ first(.x)),
-      by = c("name", "replication")
-    ) %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
     mutate(
       casualty_type     = str_extract(name, "^[^_]+"),
       population_source = str_extract(name, "(?<=_)[a-zA-Z]+"),
@@ -214,7 +210,6 @@ analyse_run <- function(mon, output_dir = "outputs") {
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
-    left_join(attributes_wide, by = c("name", "replication")) %>%
     filter(!is.na(r2b_treated) & r2b_treated > 0) %>%
     mutate(
       r2b_station              = paste0("R2B ", r2b_treated),

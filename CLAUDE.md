@@ -31,7 +31,8 @@ All work must meet academic research standards: reasoning must be explicit, sour
 ### Branch Rules
 
 - **All development happens on feature branches.** Never commit directly to `main`.
-- **Only the repository owner can merge to `main`.** Do not merge, do not raise PRs against `main` without being asked.
+- **Only the repository owner can merge to `main`.** Do not merge to `main` directly. Always open a PR and await owner merge.
+- **Always open a PR at the end of each issue.** Use the GitHub MCP tools (`mcp__github__create_pull_request`) to create the PR with a test plan in the description before handing over. Never ask the user to merge via git commands — they merge through GitHub.
 - Branch naming: `feature/issue-<number>-<short-description>` (e.g., `feature/issue-1-multi-run-replication`).
 - Each GitHub Issue corresponds to one feature branch and one PR.
 

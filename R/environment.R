@@ -141,8 +141,11 @@ load_elms <- function(path) {
 #' @param n_days Duration in days
 #' @param cap Maximum per-minute rate cap (default 5)
 #' @param seed Optional random seed for reproducibility
+#' @param write_file Write arrival times to data/ directory (default TRUE;
+#'   set FALSE for parallel replication workers to avoid file-write conflicts)
 #' @return Vector of arrival times in simulation minutes
-generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days, cap = 5, seed = NULL) {
+generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
+                                 cap = 5, seed = NULL, write_file = TRUE) {
   if (!is.null(seed)) set.seed(seed)
 
   n_minutes <- day_min * n_days
@@ -157,8 +160,10 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days, cap = 
   arrival_idx   <- which(floor(cumulative) > floor(cumulative - rates))
   arrival_times <- sort(arrival_idx + runif(length(arrival_idx), 0, 1))
 
-  filename <- file.path("data", paste0("arrivals_", type, ".txt"))
-  write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
+  if (write_file) {
+    filename <- file.path("data", paste0("arrivals_", type, ".txt"))
+    write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
+  }
 
   return(arrival_times)
 }

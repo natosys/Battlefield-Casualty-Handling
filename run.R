@@ -6,12 +6,13 @@
 #
 # Terminal / Claude Code cloud:
 #   Rscript run.R --seed 42 --days 30 --iterations 1
+#   Rscript run.R --seed 42 --days 30 --iterations 10
 #   Rscript run.R --quick
 #
 # RStudio Console:
 #   source("run.R")          # loads run_bch() function
 #   run_bch()                # default run: seed 42, 30 days, 1 iteration
-#   run_bch(quick = TRUE)    # smoke test
+#   run_bch(quick = TRUE)    # smoke test: 5 iterations, 5 days
 #   run_bch(seed = 99, days = 10, iterations = 5)
 
 source("R/environment.R")
@@ -23,11 +24,13 @@ source("R/analysis.R")
 
 #' Run the BCH simulation
 #'
-#' @param seed    Random seed (default 42)
-#' @param days    Simulation duration in days (default 30)
-#' @param iterations Number of replications (default 1)
-#' @param quick   Smoke-test mode: seed 42, 5 days, 5 iterations
-#' @param output_dir Directory for output files (default "outputs")
+#' @param seed        Random seed for single-run mode (default 42; ignored in
+#'   multi-run mode — each replication uses an independent random draw)
+#' @param days        Simulation duration in days (default 30)
+#' @param iterations  Number of replications (default 1; >1 activates
+#'   parallel multi-run via mclapply)
+#' @param quick       Smoke-test mode: seed 42, 5 days, 5 iterations
+#' @param output_dir  Directory for output files (default "outputs")
 #' @return Invisibly returns the monitoring data list
 run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
                     quick = FALSE, output_dir = "outputs") {
@@ -39,66 +42,53 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   message(sprintf("Run configuration: iterations=%d, days=%d, seed=%d",
                   iterations, days, seed))
 
-  set.seed(seed)
+  env_data <<- load_elms("env_data.json")
+  day_min  <<- 1440L
+  counts   <<- sapply(env_data$elms, length)
 
-  env_data         <<- load_elms("env_data.json")
-  total_population <- env_data$pops$combat + env_data$pops$support
-  day_min          <<- 1440L
-  counts           <<- sapply(env_data$elms, length)
+  if (iterations == 1L) {
+    # ── Single-run path ────────────────────────────────────────────────────────
+    # run_once() builds env, adds generators, runs, and returns wrap(env).
+    # write_files = TRUE so arrival diagnostics land in data/.
+    # Logs are captured to logs/logs.txt for single-run inspection.
+    set.seed(seed)
+    sink(file.path("logs", "logs.txt"))
+    wrapped <- run_once(days, seed = NULL, write_files = TRUE)
+    sink()
 
-  # env must be global so trajectory closures in R/trajectories.R can reference it
-  env      <<- simmer("Battlefield Casualty Handling")
-  env      <<- build_env(env, env_data)
-  casualty <- build_casualty_trajectory()
+    mon <- list(
+      arrivals   = get_mon_arrivals(list(wrapped),   ongoing = TRUE),
+      attributes = get_mon_attributes(list(wrapped)),
+      resources  = get_mon_resources(list(wrapped))
+    )
 
-  env %>%
-    add_generator("wia_cbt",  casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "wia_cbt",
-                    env_data$vars$generators$wia_cbt$mean_daily,
-                    env_data$vars$generators$wia_cbt$sd_daily,
-                    env_data$pops$combat, days)), mon = 2) %>%
-    add_generator("kia_cbt",  casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "kia_cbt",
-                    env_data$vars$generators$kia_cbt$mean_daily,
-                    env_data$vars$generators$kia_cbt$sd_daily,
-                    env_data$pops$combat, days)), mon = 2) %>%
-    add_generator("dnbi_cbt", casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "dnbi_cbt",
-                    env_data$vars$generators$dnbi_cbt$mean_daily,
-                    env_data$vars$generators$dnbi_cbt$sd_daily,
-                    env_data$pops$combat, days)), mon = 2) %>%
-    add_generator("wia_spt",  casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "wia_spt",
-                    env_data$vars$generators$wia_spt$mean_daily,
-                    env_data$vars$generators$wia_spt$sd_daily,
-                    env_data$pops$support, days)), mon = 2) %>%
-    add_generator("kia_spt",  casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "kia_spt",
-                    env_data$vars$generators$kia_spt$mean_daily,
-                    env_data$vars$generators$kia_spt$sd_daily,
-                    env_data$pops$support, days)), mon = 2) %>%
-    add_generator("dnbi_spt", casualty,
-                  distribution = at(generate_ln_arrivals(
-                    "dnbi_spt",
-                    env_data$vars$generators$dnbi_spt$mean_daily,
-                    env_data$vars$generators$dnbi_spt$sd_daily,
-                    env_data$pops$support, days)), mon = 2) %>%
-    add_global("evac_wait_count", 0)
+    message(sprintf("Simulation complete. Total arrivals: %d", nrow(mon$arrivals)))
 
-  sink(file.path("logs", "logs.txt"))
-  mon <- run_single(env, days)
-  sink()
+    analyse_run(mon, output_dir = output_dir)
 
-  message(sprintf("Simulation complete. Total arrivals: %d", nrow(mon$arrivals)))
+    message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
 
-  analyse_run(mon, output_dir = output_dir)
+  } else {
+    # ── Multi-replication path ─────────────────────────────────────────────────
+    # Each worker in mclapply calls run_once() with seed = NULL for independent
+    # draws. set.seed() here seeds only the parent; forks inherit it before any
+    # random draws occur, so RNG independence is achieved via mc.set.seed = FALSE
+    # combined with NULL seeds inside each worker.
+    set.seed(seed)
+    mon <- run_replications(iterations, days)
 
-  message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
+    message(sprintf("Replications complete. Total arrivals across all runs: %d",
+                    nrow(mon$arrivals)))
+
+    kpi <- summarise_replications(mon)
+    kpi_path <- file.path(output_dir, "replication_summary.csv")
+    write.csv(kpi, kpi_path, row.names = FALSE)
+    message(sprintf("Replication KPI summary written to %s", kpi_path))
+
+    analyse_run(mon, output_dir = output_dir)
+
+    message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
+  }
 
   invisible(mon)
 }

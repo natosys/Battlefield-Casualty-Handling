@@ -44,8 +44,9 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   env_data         <- load_elms("env_data.json")
   total_population <- env_data$pops$combat + env_data$pops$support
 
-  env      <- simmer("Battlefield Casualty Handling")
-  env      <- build_env(env, env_data)
+  # env must be global so trajectory closures in R/trajectories.R can reference it
+  env      <<- simmer("Battlefield Casualty Handling")
+  env      <<- build_env(env, env_data)
   casualty <- build_casualty_trajectory()
 
   env %>%

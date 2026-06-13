@@ -634,7 +634,7 @@ Upon arrival, casualties are triaged, those identified as DOW (~1%, based on [[1
 | Documentation/Prep       | 2         | 3          | 5         |
 | **TOTAL**                | 13        | 28         | 55        |
 
-On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min = 41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[18]](#References), [[22]](#References), and [[23]](#References)). 
+On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, both an OT bed and the R2E surgical team are seized before the procedure begins. Procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min = 41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[18]](#References), [[22]](#References), and [[23]](#References)). The surgical team is released on completion of each surgery phase, enabling contention between concurrent OT cases to be modelled correctly. This mirrors the seizure pattern applied at R2B and ensures that the surgical team resource constraint — not only the OT bed — governs throughput.
 
 Post-operative care involves admission to the ICU, where durations vary by surgical phase: the first ICU period ranges from ``min = 770`` to ``max = 2160`` minutes (``mode =  1440``) based on descriptions of post- DCS-I stabilization requirements (described as 24-36 h in most DCS research [[18]](#References), [[24]](#References), [[25]](#References), [[26]](#References)), while the secondary ICU phase (following second surgery) ranges from ``min = 30`` to ``mode = 90``, with ``mode = 60`` (min) to allow for post surgery monitoring and stabilisation prior to transfer to holding. Casualties who arrive at the R2E requiring surgery, but not having received any prior to arrival are queued to complete a second round of surgery after ICU time. 
 
@@ -653,9 +653,9 @@ flowchart TD
     H -- Yes --> J["Short Resus"]
     I --> K{"Surgery?"}
     J --> K
-    K -- Yes --> L["Seize OT"]
+    K -- Yes --> L["Seize OT Bed + Surgical Team"]
     L --> M["Surgery"]
-    M --> N["Release Resources"]
+    M --> N["Release Surgical Team + OT Bed"]
     K -- No --> O{"Evac?"}
     N --> O
     O -- No --> P["Seize Hold Bed"]
@@ -738,6 +738,8 @@ Daily casualty treatments at R2B 1 and R2B 2 show saw-tooth cycles in queuing fo
 ![Alt text](images/r2b_bed_queues.png)
 
 ### R2E Heavy Handling
+
+> **CORRECTION NOTE:** The single-run analysis below was produced prior to the fix applied in Issue #8. In the pre-fix code, the R2E surgical team was not seized during OT procedures, allowing unlimited surgical concurrency. As a result, the OT queue figures reported below underestimate true contention — the corrected model will show higher OT queue formation as concurrent cases now correctly contend for the shared surgical team. The ICU queue findings and qualitative conclusions about system bottlenecks remain directionally valid. Updated figures will be produced as part of the Phase 1 replication framework (Issue #1).
 
 The R2E Heavy reveals a complex interaction between critical care saturation, surgical throughput, and the utilisation of downstream holding capacity. ICU queues displayed sustained and system‑wide congestion during several periods, most notably between Days 11–13 and Days 26–29, where as many a number of patients were awaiting critical care. Such peaks are consistent with high‑acuity casualty streams in LSCO and prolonged ICU lengths of stay, both of which constrain turnover rates. Under these conditions, surgical throughput is at risk, as post‑operative patients may be delayed in theatre or recovery pending ICU availability, potentially increasing morbidity and mortality. This dynamic underscores the vulnerability of the R2E Heavy’s ICU provision to operational surges and the need for either expanded critical care capacity or well‑rehearsed transfer protocols to higher‑echelon or other health facilities.
 

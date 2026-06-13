@@ -647,6 +647,7 @@ r2e_treat_wia <- function(team_id) {
       trajectory("R2E Surgery") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
         seize_selected(id = 4) %>%
+        seize_resources(surg_team) %>%
         set_attribute("r2e_surgery", 1) %>%
         set_attribute("r2e_surgery_1_start", function() now(env)) %>%
         timeout(function() {
@@ -658,6 +659,7 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_surgery_1_end", function() now(env)) %>%
+        release_resources(surg_team) %>%
         release_selected(id = 4) %>%
         branch(
           option = function() {
@@ -710,6 +712,7 @@ r2e_treat_wia <- function(team_id) {
       trajectory("Second Surgery Before Disposition") %>%
         simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
         seize_selected(id = 7) %>%
+        seize_resources(surg_team) %>%
         set_attribute("r2e_surgery_2_start", function() now(env)) %>%
         timeout(function() {
           rtriangle(
@@ -720,6 +723,7 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_surgery_2_end", function() now(env)) %>%
+        release_resources(surg_team) %>%
         release_selected(id = 7),
       trajectory("No Second Surgery Needed")
     ) %>%

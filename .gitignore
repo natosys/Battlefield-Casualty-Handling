@@ -4,3 +4,5 @@
 log.log
 outputs/*
 !outputs/.gitkeep
+data/arrivals_*.txt
+Rplots.pdf

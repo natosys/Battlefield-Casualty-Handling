@@ -447,7 +447,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
 | `R/environment.R` | Data import (`load_elms`, `build_environment`), arrival generation (`generate_ln_arrivals`), and simmer environment construction (`build_env`) |
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
-| `R/replication.R` | Single-run execution stub (`run_single`) — returns monitoring data as a named list |
+| `R/replication.R` | Multi-run replication framework — `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), `summarise_replications` (time-weighted KPI summary with 95% CI), and `run_single` backwards-compat shim |
 | `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths |
 | `data_import.R` | Compatibility shim — sources `R/environment.R` so existing code continues to work |
 | `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep` |
@@ -467,9 +467,26 @@ Rscript run.R --seed 99 --days 14 --iterations 10
 Rscript run.R --quick
 ```
 
-Outputs (monitoring CSVs and markdown tables) are written to `outputs/`. Simulation logs are written to `logs/logs.txt`.
+Single-run outputs (monitoring CSVs and markdown tables) are written to `outputs/`. Simulation logs are written to `logs/logs.txt`. Multi-run mode additionally writes `outputs/replication_summary.csv` containing the KPI table (see [Multi-run Replication Framework](#multi-run-replication-framework) below).
 
 > **Note — dependency pinning:** `renv` lockfile initialisation is planned but not yet implemented. Package versions are therefore not pinned. This is a known limitation that will be addressed in a future issue.
+
+#### Multi-run Replication Framework
+
+The simulation supports independent Monte Carlo replication via `run_replications(n_iterations, n_days)` in `R/replication.R`. When `--iterations` is greater than 1, each replication:
+
+1. Builds a fresh `simmer` environment from `env_data.json` with independent arrival streams drawn from the lognormal generator (`seed = NULL` per worker).
+2. Runs to completion and snapshots monitoring state with `wrap(env)`, which captures arrivals, attributes, and resource utilisation without holding the live environment in memory.
+3. Returns all replication data aggregated by `get_mon_arrivals(envs)` / `get_mon_resources(envs)` / `get_mon_attributes(envs)`, which append a `replication` index column (1…*n*) to each row.
+
+On POSIX systems (Linux, macOS), replications are dispatched via `mclapply` with `mc.set.seed = FALSE`, achieving statistical independence through distinct OS-level RNG states in each forked worker. On Windows, the framework falls back to sequential `lapply`.
+
+A key-performance-indicator summary is computed by `summarise_replications(mon)` using the time-weighted mean queue per replication as the unit of analysis. The across-replication summary reports mean, p10, p90, max queue, and a 95% confidence interval (t-distribution, *df* = *n* − 1) for each resource, sorted descending by mean queue. Results are written to `outputs/replication_summary.csv`.
+
+> **MODEL ASSUMPTION — RNG Independence via Fork Inheritance:** Statistical independence between parallel replications is achieved by allowing each forked worker process to inherit a distinct OS-level RNG state (via `mc.set.seed = FALSE` in `mclapply`). This is consistent with the approach described by Kelton, Sadowski and Zupick (2015) [[27]](#References) for parallel replication in simulation studies. It does not guarantee reproducibility across machines or R versions; a seeded stream approach (e.g., L'Ecuyer streams) would be required if exact reproducibility across environments is needed.
+> **Basis:** Parallel replication via forked workers without explicit seed coordination is standard practice on POSIX systems when independence — not reproducibility — is the goal.
+> **Uncertainty:** Low (the independence property is well-established; the limitation is reproducibility, not correctness).
+> **Consequence if wrong:** If RNG states are not independent (e.g., due to a bug in `mc.set.seed` handling), replications would be correlated, understating variance and making CI bounds overly narrow.
 
 ### 🔧Simulation Environment Setup
 
@@ -854,6 +871,8 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [25] Allen, S. R., Brooks, A. J., Reilly, P. M., & Cotton, B. A. (2011). Damage Control Part III: Definitive Reconstruction. In *Ryan's Ballistic Trauma* (pp. 453-460). Springer, London. Retrieved 27 Jul 25, from https://link.springer.com/chapter/10.1007/978-1-84882-124-8_31
 
 [26] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved 27 July, 2025, from https://litfl.com/damage-control-resuscitation/
+
+[27] Kelton, W. D., Sadowski, R. P., & Zupick, N. B. (2015). *Simulation with Arena* (6th ed.). McGraw-Hill Education. — Chapter 12 covers parallel replication design for independent Monte Carlo replications in discrete-event simulation.
 
 ---
 

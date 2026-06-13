@@ -182,9 +182,10 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
 #'
 #' Counters r2e_surg_counter, r2e_ot_bed_counter, r2b_surg_counter, and
 #' r2b_ot_bed_counter alternate shift assignments across teams.
-build_env <- function(env, env_data) {
-  ot_shift_1 <- simmer::schedule(c(0, 720),  c(1, 0), period = 1440)
-  ot_shift_2 <- simmer::schedule(c(720, 1440), c(1, 0), period = 1440)
+build_env <- function(env, env_data, ot_hours = 12) {
+  ot_break <- as.integer(ot_hours * 60)
+  ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = 1440)
+  ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)
 
   r2e_surg_counter   <- 1
   r2e_ot_bed_counter <- 1

@@ -69,6 +69,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
+  - [Sensitivity Analysis](#sensitivity-analysis)
 - [Simulation Analysis](#simulation-analysis)
   - [Simulation Casualty Generation](#simulation-casualty-generation)
   - [R1 Handling](#r1-handling)
@@ -684,6 +685,61 @@ flowchart TD
     T --> E
 ```
 
+### Sensitivity Analysis
+
+#### Method
+
+Morris Elementary Effects (EE) screening [[28]](#References) is applied to identify which input parameters most influence system capacity conclusions. Morris is a global, one-at-a-time (OAT) method that produces two summary statistics per parameter:
+
+- **μ\*** (mean absolute elementary effect) — overall influence on the output; parameters with μ\* ≈ 0 are non-influential.
+- **σ** (standard deviation of elementary effects) — presence of non-linear or interaction effects; high σ relative to μ\* indicates parameter interactions.
+
+Morris screening is computationally efficient, requiring only *r × (p + 1)* model evaluations (where *r* = number of trajectories and *p* = number of parameters), making it appropriate as a first-stage filter before the more expensive Sobol variance decomposition [[29]](#References).
+
+Each Morris evaluation point runs *n* independent replications to average over stochastic variation, ensuring that observed elementary effects reflect structural parameter influence rather than simulation noise.
+
+#### Parameters Screened
+
+| Parameter | Symbol | Screening range | Baseline mode |
+|---|---|---|---|
+| Surgery duration (R2B + R2E mode) | `surg_mode` | 60–150 min | 120 min |
+| Long resuscitation duration (mode) | `long_resus_mode` | 25–70 min | 45 min |
+| Priority 1 DOW rate at R1 | `pri1_dow` | 2–10% | 5% |
+| R1 → R2B transport time (mode) | `r1_transport` | 10–45 min | 30 min |
+| R2B → R2E transport time (mode) | `r2b_transport` | 15–60 min | 30 min |
+| Long ICU duration (mode) | `long_icu_mode` | 770–2160 min | 1440 min |
+| Priority 1 surgery probability at R1 | `pri1_surg_prob` | 70–98% | 90% |
+| In-theatre recovery rate at R2E | `in_theatre_rate` | 5–20% | 10% |
+| OT shift availability | `ot_hours` | 8–16 hr | 12 hr |
+
+#### KPIs Monitored
+
+Three output KPIs are monitored across all Morris evaluations:
+
+1. **Mean R2E ICU queue** (primary) — mean time-weighted queue length across replications for all R2E ICU beds.
+2. **Mean R2B OT queue** — mean time-weighted queue length across replications for all R2B OT beds.
+3. **Total DOW count** — total died-of-wounds casualties across all replications.
+
+#### Running the Screening
+
+```sh
+# Full Morris screening (r=20 trajectories, 5 reps per point, 30 days) — ~2–3 hr
+Rscript scripts/run_sensitivity.R
+
+# With Sobol follow-up on top 5 parameters
+Rscript scripts/run_sensitivity.R --sobol
+
+# Smoke test (r=3, 3 reps, 5 days) — ~5 min
+Rscript scripts/run_sensitivity.R --quick
+```
+
+Outputs: `outputs/morris_ranking.csv` (μ\* and σ per parameter), `images/morris_<kpi>.png` (Morris plots). If `--sobol` is passed: `outputs/sobol_indices.csv` (first-order S1 and total-order ST indices).
+
+> **MODEL ASSUMPTION — Stochastic Averaging for Morris Evaluations:** Each Morris evaluation point uses *n* = 5 replications. This reduces but does not eliminate Monte Carlo noise in the elementary effect estimates. Increasing *n* improves signal quality at proportional computational cost. The recommended minimum for reliable Morris screening with stochastic simulators is *n* = 10 replications per point (Campolongo et al., 2011 [[30]](#References)); the default of *n* = 5 is a computational compromise for screening purposes.
+> **Basis:** The stochastic-simulator Morris literature (Kleijnen and Sargent, 2000 [[31]](#References)) recommends averaging over replications at each design point to separate parameter effects from simulation noise.
+> **Uncertainty:** Low (the approach is standard); the trade-off is precision of μ\* estimates.
+> **Consequence if wrong:** Under-replication inflates σ estimates by conflating noise with interaction effects, potentially misclassifying non-influential parameters.
+
 ---
 
 ## Simulation Analysis
@@ -873,6 +929,14 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [26] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved 27 July, 2025, from https://litfl.com/damage-control-resuscitation/
 
 [27] Kelton, W. D., Sadowski, R. P., & Zupick, N. B. (2015). *Simulation with Arena* (6th ed.). McGraw-Hill Education. — Chapter 12 covers parallel replication design for independent Monte Carlo replications in discrete-event simulation.
+
+[28] Morris, M. D. (1991). Factorial sampling plans for preliminary computational experiments. *Technometrics*, *33*(2), 161–174. https://doi.org/10.1080/00401706.1991.10484804 — Original Morris Elementary Effects method paper.
+
+[29] Saltelli, A., Annoni, P., Azzini, I., Campolongo, F., Ratto, M., & Tarantola, S. (2010). Variance based sensitivity analysis of model output. Design and estimator for the total sensitivity index. *Computer Physics Communications*, *181*(2), 259–270. https://doi.org/10.1016/j.cpc.2009.09.018 — Sobol2007 estimator implemented in R `sensitivity` package.
+
+[30] Campolongo, F., Saltelli, A., & Cariboni, J. (2011). From screening to quantitative sensitivity analysis. A unified approach. *Computer Physics Communications*, *182*(4), 978–988. https://doi.org/10.1016/j.cpc.2010.12.039 — Guidance on replication requirements for Morris screening of stochastic simulators.
+
+[31] Kleijnen, J. P. C., & Sargent, R. G. (2000). A methodology for fitting and validating metamodels in simulation. *European Journal of Operational Research*, *120*(1), 14–29. https://doi.org/10.1016/S0377-2217(98)00392-0 — Stochastic simulator sensitivity analysis methodology.
 
 ---
 

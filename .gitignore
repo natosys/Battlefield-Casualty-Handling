@@ -2,3 +2,5 @@
 .RHistory
 .Rproj.user
 log.log
+outputs/*
+!outputs/.gitkeep

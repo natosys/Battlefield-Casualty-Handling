@@ -64,6 +64,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
 - [Simulation Design](#simulation-design)
+  - [Codebase Structure](#codebase-structure)
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -436,6 +437,39 @@ The following casualty priority rates were used with the rates requiring surgery
 <small>[Return to Top](#contents)</small>
 
 The simulation is built as a Discrete Event Simulation (DES), it is written in R  using the simmer package [[13]](#References). DES has been used as a proven way to simulate healthcare systems and support healthcare decision-making (as shown in [[14]](#References)).
+
+### Codebase Structure
+
+The codebase is organised into a modular layout under an `R/` directory, with a single CLI entry point (`run.R`). The split allows each module to be tested and extended independently, and provides a clear separation between data loading, simulation logic, execution, and analysis.
+
+| File / Directory | Purpose |
+|---|---|
+| `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
+| `R/environment.R` | Data import (`load_elms`, `build_environment`), arrival generation (`generate_ln_arrivals`), and simmer environment construction (`build_env`) |
+| `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
+| `R/replication.R` | Single-run execution stub (`run_single`) — returns monitoring data as a named list |
+| `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths |
+| `data_import.R` | Compatibility shim — sources `R/environment.R` so existing code continues to work |
+| `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep` |
+| `data/` | Read-only input data — arrival schedules and environment data |
+| `docs/` | Project documentation — action plans and role allocation tables |
+
+#### Running the simulation
+
+```sh
+# Standard single run (seed 42, 30 days, 1 iteration)
+Rscript run.R --seed 42 --days 30 --iterations 1
+
+# Custom run
+Rscript run.R --seed 99 --days 14 --iterations 10
+
+# Quick smoke test (5 days, 5 iterations, seed 42)
+Rscript run.R --quick
+```
+
+Outputs (monitoring CSVs and markdown tables) are written to `outputs/`. Simulation logs are written to `logs/logs.txt`.
+
+> **Note — dependency pinning:** `renv` lockfile initialisation is planned but not yet implemented. Package versions are therefore not pinned. This is a known limitation that will be addressed in a future issue.
 
 ### 🔧Simulation Environment Setup
 

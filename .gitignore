@@ -4,3 +4,4 @@
 log.log
 outputs/*
 !outputs/.gitkeep
+Rplots.pdf

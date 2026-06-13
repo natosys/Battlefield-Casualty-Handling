@@ -98,6 +98,54 @@ and its basis in literature. Include any key design decisions.>
 
 ---
 
+## Issue Annotation System
+
+All GitHub Issues use a consistent annotation system to make phase, type, and sequencing visible in the issue list without opening each issue.
+
+### Title prefix format
+
+Every issue title opens with a prefix in square brackets:
+
+```
+[Ph.N] Title of issue
+[Ph.N · BUG] Title of bug issue
+[HOTFIX · Ph.N] Title of pre-phase bug fix
+```
+
+| Prefix | When to use |
+|---|---|
+| `[Ph.1]` through `[Ph.5]` | Standard feature or analysis work in the named phase |
+| `[Ph.N · BUG]` | A bug found within a phase that can wait for that phase |
+| `[HOTFIX · Ph.N]` | A bug that must ship before its phase begins — no dependencies |
+
+Do not include `READY` or `BLOCKED` in the title; those are maintained as labels (see below).
+
+### Labels
+
+All labels are applied on the repository. Use them as follows when raising new issues:
+
+**Phase labels** — one per issue, matching the title prefix:
+`phase/1 · statistical-foundation`, `phase/2 · model-fidelity`, `phase/3 · structural-refactor`, `phase/4 · scenario-expansion`, `phase/5 · interface`
+
+**Type labels** — one per issue:
+`bug` (defects in existing behaviour), `enhancement` (new capability or improvement)
+
+**Status labels** — maintained as work progresses; update when dependencies are resolved:
+`status: ready` (no blocking dependencies), `status: blocked` (has unresolved dependencies)
+
+**Priority labels** — apply when the issue warrants it:
+`priority: critical` (bug that invalidates current output), `priority: high` (blocks multiple other issues)
+
+### Raising new issues
+
+When a new issue is raised:
+1. Assign the correct `[Ph.N]` prefix to the title.
+2. Apply phase, type, status, and priority labels.
+3. Set `status: ready` if it can be started immediately; `status: blocked` if it depends on open issues.
+4. When a blocking issue merges, update the `status` label on all issues it unblocks.
+
+---
+
 ## Test Plans
 
 Every PR must include a **Documented Manual Test Plan** in the PR description. There is no automated test framework; verification is by documented manual execution.
@@ -206,20 +254,55 @@ The README must maintain a Limitations section that:
 
 ## Implementation Phases
 
-Development follows the sequencing defined in `BCH_Simulation_Action_Plan.md`. Do not skip ahead — later phases depend on earlier foundations.
+Development follows the sequencing below. Do not skip ahead — later phases depend on earlier foundations. The ordering within each phase reflects dependency constraints, not just grouping.
+
+### Hotfix — Pre-phase (Issue 8)
+Issue 8 (R2E surgical team seizure bug) is labelled `[HOTFIX]` and ships before any phase work begins. It is a three-line code change with no dependencies, and its absence corrupts all R2E surgical output. It runs in parallel with Phase 1 preparation.
 
 ### Phase 1 — Statistical Foundation (Issues 1, 2, 3)
-Multi-run replication → Welch warm-up analysis → Morris sensitivity screening.
-*All subsequent results must use the Phase 1 replication framework.*
+Multi-run replication (#1) → Welch warm-up analysis (#2) and Morris sensitivity screening (#3, parallel with #2).
+*All subsequent results must use the Phase 1 replication framework. Nothing in Phase 2 onward produces trustworthy output until #1 is merged.*
 
-### Phase 2 — Model Fidelity (Issues 5, 6, 8)
-R2E surgical team seizure fix (Issue 8 first — bug fix) → dead-heading transport → time-dependent DOW.
+### Phase 2 — Model Fidelity (Issues 5, 6)
+Time-dependent DOW (#5) and dead-heading transport (#6). Issues #5 and #6 are independent of each other and can be developed in parallel once Phase 1 is complete.
 
 ### Phase 3 — Structural Refactoring (Issues 4, 7)
-Individual resource modelling (requires `BCH_Task_Role_Allocation.md`) → DNBI sub-categorisation.
+DNBI sub-categorisation (#7) and individual resource modelling (#4). Issue #7 can be pulled forward alongside Phase 2 if bandwidth allows — its only hard dependencies are #1 and #2, not #3 or #4. Issue #4 is the largest structural change in the project and must be gated until #1, #2, and #3 are all stable.
 
 ### Phase 4 — Scenario Expansion (Issues 9, 10)
-MASCAL stochastic injection → comparative scenario runner (Falklands / Vietnam / Okinawa).
+MASCAL stochastic injection (#9, requires #1 + #2 + #5) → comparative scenario runner (#10, requires #1 + #2 + #5 + #8).
+
+### Phase 5 — Interface (Issue 14)
+Interactive Shiny application (#14). The `R/analysis.R` refactor (returning ggplot objects) can begin after #1; the Full Analysis (multi-run CI) mode requires Phase 1 complete.
+
+### Recommended implementation sequence at a glance
+
+```
+NOW (unblocked):
+  #8  [HOTFIX]  R2E surgical team seizure bug
+  #1  [Ph.1]    Multi-run replication framework
+
+AFTER #1:
+  #2  [Ph.1]    Warm-up analysis          ─┐ parallel
+  #3  [Ph.1]    Morris sensitivity        ─┘
+
+AFTER #1 + #2 + #3:
+  #5  [Ph.2]    Time-dependent DOW        ─┐
+  #6  [Ph.2]    Dead-heading transport    ─┤ parallel
+  #7  [Ph.3]    DNBI sub-categorisation  ─┘ (can pull forward; only needs #1 + #2)
+
+AFTER #1 + #2 + #3 (all stable):
+  #4  [Ph.3]    Individual resource seizure
+
+AFTER #1 (analysis.R refactor) / full mode after Phase 1:
+  #14 [Ph.5]    Shiny application
+
+AFTER #1 + #2 + #5:
+  #9  [Ph.4]    MASCAL injection
+
+AFTER #1 + #2 + #5 + #8:
+  #10 [Ph.4]    Scenario runner
+```
 
 ---
 

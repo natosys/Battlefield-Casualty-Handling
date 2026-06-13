@@ -41,7 +41,7 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
 
   set.seed(seed)
 
-  env_data         <- load_elms("env_data.json")
+  env_data         <<- load_elms("env_data.json")
   total_population <- env_data$pops$combat + env_data$pops$support
   day_min          <<- 1440L
   counts           <<- sapply(env_data$elms, length)

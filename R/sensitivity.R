@@ -21,7 +21,7 @@ morris_params <- data.frame(
   name  = c("surg_mode",      "long_resus_mode", "pri1_dow",
             "r1_transport",   "r2b_transport",   "long_icu_mode",
             "pri1_surg_prob", "in_theatre_rate", "ot_hours"),
-  lower = c(60,    25,    0.02,  15,   15,   770,   0.70,  0.05,  8),
+  lower = c(90,    25,    0.02,  15,   15,   770,   0.70,  0.05,  8),
   upper = c(150,   70,    0.10,  45,   45,   2160,  0.98,  0.20,  16),
   mode  = c(120,   45,    0.05,  30,   30,   1440,  0.90,  0.10,  12),
   stringsAsFactors = FALSE

@@ -702,11 +702,11 @@ Each Morris evaluation point runs *n* independent replications to average over s
 
 | Parameter | Symbol | Screening range | Baseline mode |
 |---|---|---|---|
-| Surgery duration (R2B + R2E mode) | `surg_mode` | 60–150 min | 120 min |
+| Surgery duration (R2B + R2E mode) | `surg_mode` | 90–150 min | 120 min |
 | Long resuscitation duration (mode) | `long_resus_mode` | 25–70 min | 45 min |
 | Priority 1 DOW rate at R1 | `pri1_dow` | 2–10% | 5% |
-| R1 → R2B transport time (mode) | `r1_transport` | 10–45 min | 30 min |
-| R2B → R2E transport time (mode) | `r2b_transport` | 15–60 min | 30 min |
+| R1 → R2B transport time (mode) | `r1_transport` | 15–45 min | 30 min |
+| R2B → R2E transport time (mode) | `r2b_transport` | 15–45 min | 30 min |
 | Long ICU duration (mode) | `long_icu_mode` | 770–2160 min | 1440 min |
 | Priority 1 surgery probability at R1 | `pri1_surg_prob` | 70–98% | 90% |
 | In-theatre recovery rate at R2E | `in_theatre_rate` | 5–20% | 10% |

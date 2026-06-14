@@ -826,6 +826,49 @@ Analysis of other treatment capacities revealed significant underutilisation in 
 
 Taken together, the simulation outputs indicate that the R2E Heavy’s primary limiting factor is OT availability, with ICU capacity representing a secondary but significant constraint. Both could be mitigated through deliberate rebalancing of underused bed spaces and by modelling scenarios that better reflect LSCO surge conditions. Forward Role 2 Basic nodes remain a critical component in modulating the demand placed upon the R2E Heavy, highlighting the importance of integrated patient flow monitoring, robust surge protocols, and synchronised scheduling across all surgical and critical care assets. Without such measures, even sustained baseline performance offers little resilience to the shock of high‑intensity operational realities.
 
+### Sensitivity Analysis Results
+
+Morris Elementary Effects screening and Sobol variance decomposition were applied to nine input parameters (see [Sensitivity Analysis](#sensitivity-analysis) for method and parameter definitions). All screening used 30-day runs with three replications per design point (Morris: r = 10 trajectories; Sobol: n = 50 sample pairs). Results are approximate at these sample sizes — the full r = 20, n = 200 run is recommended before drawing firm planning conclusions — but provide sufficient signal to identify parameter priorities.
+
+#### Morris Screening Results
+
+| Rank | Parameter | μ\* | σ | Interpretation |
+|---|---|---|---|---|
+| 1 | `r2b_transport` | 0.223 | 0.323 | Most influential; high σ indicates non-linear/interaction effects |
+| 2 | `ot_hours` | 0.185 | 0.234 | OT shift length strongly drives ICU congestion; interaction effects present |
+| 3 | `pri1_surg_prob` | 0.176 | 0.217 | Proportion of P1 casualties proceeding to surgery |
+| 4 | `long_icu_mode` | 0.159 | 0.090 | Substantial effect; low σ indicates predominantly linear/additive |
+| 5 | `pri1_dow` | 0.148 | 0.194 | DOW rate at R1 influences downstream casualty volume to R2E |
+| 6 | `in_theatre_rate` | 0.125 | 0.161 | In-theatre recovery rate moderately influential |
+| 7 | `long_resus_mode` | 0.122 | 0.145 | Resuscitation duration — moderate, interactive |
+| 8 | `r1_transport` | 0.114 | 0.170 | R1→R2B transit time — moderate influence |
+| 9 | `surg_mode` | 0.076 | 0.104 | Surgery duration least influential for R2E ICU queue |
+
+The Morris plot (μ\* vs σ) for the primary KPI is saved to `images/morris_r2e_icu_q.png`. Equivalent plots for R2B OT queue and DOW count are at `images/morris_r2b_ot_q.png` and `images/morris_dow_count.png`.
+
+A notable finding is that `surg_mode` (surgery duration) ranked lowest for R2E ICU queue influence. This is counter-intuitive given that surgery is the immediate precursor to ICU admission, but is explained by the structure of the bottleneck: ICU congestion is dominated by the *rate at which casualties arrive at R2E* (`r2b_transport`) and by *how long they occupy ICU beds* (`long_icu_mode`), not by how long each surgery takes. The `ot_hours` parameter ranked second, consistent with the single-run finding that OT availability is the R2E's primary structural constraint.
+
+#### Sobol Variance Decomposition
+
+Sobol first-order (S1) and total-order (ST) indices were computed for the top five Morris parameters (n = 50, KPI: mean R2E ICU queue, nboot = 100). Confidence intervals are wide at n = 50 and should be treated as directional only.
+
+| Parameter | S1 | S1 95% CI | ST | ST 95% CI |
+|---|---|---|---|---|
+| `long_icu_mode` | 0.462 | [−0.64, 1.34] | 0.901 | [0.26, 1.42] |
+| `pri1_dow` | 0.426 | [−0.50, 0.94] | −0.183 | [−0.81, 0.83] |
+| `pri1_surg_prob` | 0.390 | [−0.92, 1.01] | 0.315 | [−0.32, 1.49] |
+| `r2b_transport` | 0.043 | [−1.26, 0.72] | 0.600 | [−0.002, 1.70] |
+| `ot_hours` | −0.189 | [−1.15, 0.42] | 0.501 | [−0.20, 1.33] |
+
+`long_icu_mode` produces the most robust signal: its ST (0.90) is the only index with a positive lower CI bound (0.26), confirming that long ICU duration accounts for a substantial and consistent share of R2E ICU queue variance. Its low σ from the Morris screen (0.090) combined with a high S1 estimate (0.46) indicates a predominantly additive, non-interactive effect — meaning ICU stay duration influences the queue independently rather than through joint effects with other parameters.
+
+`r2b_transport` has a low S1 (0.04) but high ST (0.60), confirming the Morris finding that its effect is strongly interactive: transport time influences ICU queue primarily through interaction with other parameters (likely `ot_hours` and `long_icu_mode`) rather than in isolation. The negative S1 for `ot_hours` and negative ST for `pri1_dow` reflect Monte Carlo estimation noise at n = 50 and should not be interpreted substantively.
+
+> **MODEL ASSUMPTION — Sobol sample size:** Sobol indices were computed with n = 50 sample pairs, yielding 350 model evaluations. The recommended minimum for reliable bootstrap CI estimation with p = 5 is n = 200 [[29]](#References), requiring approximately 1,400 model evaluations. At the current sample size, S1 and ST point estimates are directionally informative but confidence intervals span zero for all parameters except `long_icu_mode` ST. A full n = 200 run is required before these indices can be used to formally rank variance contributions for planning purposes.
+> **Basis:** Saltelli et al. (2010) [[29]](#References) provide guidance on sample size requirements for sobol2007.
+> **Uncertainty:** High (confidence intervals).
+> **Consequence if wrong:** Parameter importance rankings may shift materially at larger n, though the dominance of `long_icu_mode` is likely to be sustained given the robustness of its ST lower bound.
+
 ### Conclusion
 
 The single run analysis, viewed in its entirety, demonstrates that while the modelled deployed health system is capable of sustaining a steady operational tempo for a single brigade under baseline casualty assumptions (using casualty models derived from the Falklands war), it operates with little reserve and exhibits critical vulnerabilities under higher‑demand conditions. Role 1 elements show sufficient responsiveness and throughput, and the dual‑node R2B configuration effectively absorbs the majority of cases without systemic reliance on bypass to higher care. However, the R2E Heavy emerges as a structural bottleneck, with surgical and ICU capacity constraints that would be rapidly overwhelmed in the event of divisional‑level operations, mass‑casualty incidents, or casualty rates on par with historical LSCO campaigns with more substantial casualty rates such as Okinawa or Vietnam.

@@ -50,22 +50,25 @@ apply_params <- function(ed, p) {
 
 # ── KPI extraction ────────────────────────────────────────────────────────────
 
-#' Extract three KPIs from a run_replications() monitoring list
+#' Extract KPIs from a run_replications() monitoring list
 #'
 #' @param mon Named list with arrivals, attributes, resources
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, dow_count
+#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q, dow_count
 extract_kpis <- function(mon) {
   kpi <- summarise_replications(mon)
 
-  r2e_icu_q <- kpi %>%
-    filter(grepl("^b_r2eheavy_icu_", resource)) %>%
-    summarise(v = mean(mean_q, na.rm = TRUE)) %>%
-    pull(v)
+  safe_q <- function(pattern) {
+    v <- kpi %>%
+      filter(grepl(pattern, resource)) %>%
+      summarise(v = mean(mean_q, na.rm = TRUE)) %>%
+      pull(v)
+    if (length(v) == 0 || is.na(v)) 0 else v
+  }
 
-  r2b_ot_q <- kpi %>%
-    filter(grepl("^b_r2b_ot_", resource)) %>%
-    summarise(v = mean(mean_q, na.rm = TRUE)) %>%
-    pull(v)
+  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
+  r2b_ot_q    <- safe_q("^b_r2b_ot_")
+  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
+  system_ot_q <- r2b_ot_q + r2e_ot_q
 
   dow_count <- sum(
     mon$attributes$key == "dow" & mon$attributes$value == 1,
@@ -73,9 +76,11 @@ extract_kpis <- function(mon) {
   )
 
   c(
-    r2e_icu_q = if (length(r2e_icu_q) == 0 || is.na(r2e_icu_q)) 0 else r2e_icu_q,
-    r2b_ot_q  = if (length(r2b_ot_q)  == 0 || is.na(r2b_ot_q))  0 else r2b_ot_q,
-    dow_count = as.numeric(dow_count)
+    r2e_icu_q   = r2e_icu_q,
+    r2b_ot_q    = r2b_ot_q,
+    r2e_ot_q    = r2e_ot_q,
+    system_ot_q = system_ot_q,
+    dow_count   = as.numeric(dow_count)
   )
 }
 
@@ -86,7 +91,7 @@ extract_kpis <- function(mon) {
 #' @param params_row Numeric vector (length = nrow(morris_params)), in column order
 #' @param n_rep      Replications per evaluation (5 recommended for Morris)
 #' @param n_days     Simulation duration in days
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, dow_count
+#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q, dow_count
 eval_params <- function(params_row, n_rep, n_days) {
   p      <- setNames(as.numeric(params_row), morris_params$name)
   ot_h   <- p[["ot_hours"]]
@@ -106,7 +111,7 @@ eval_params <- function(params_row, n_rep, n_days) {
 #' @param levels     Number of grid levels (default 4)
 #' @param output_dir Directory for CSV and PNG outputs (default "outputs")
 #' @return Named list: morris_obj (sensitivity object), Y (KPI matrix),
-#'   ranking (data frame sorted by mu_star for r2e_icu_q)
+#'   ranking (data frame sorted by mu_star for system_ot_q)
 #'
 #' @details Saves per-KPI Morris plots to images/ and a parameter ranking CSV
 #'   to output_dir. The global env_data is restored to env_data_base on exit.
@@ -141,17 +146,20 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
       eval_params(sa$X[i, ], n_rep, n_days),
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
-        c(r2e_icu_q = NA_real_, r2b_ot_q = NA_real_, dow_count = NA_real_)
+        c(r2e_icu_q = NA_real_, r2b_ot_q = NA_real_, r2e_ot_q = NA_real_,
+          system_ot_q = NA_real_, dow_count = NA_real_)
       }
     )
-  }, numeric(3)))
+  }, numeric(5)))
 
   env_data <<- env_data_base
 
   kpi_labels <- list(
-    r2e_icu_q = "Mean R2E ICU Queue",
-    r2b_ot_q  = "Mean R2B OT Queue",
-    dow_count = "Total DOW Count"
+    r2b_ot_q    = "Mean R2B OT Queue",
+    r2e_ot_q    = "Mean R2E OT Queue",
+    system_ot_q = "System OT Queue (R2B + R2E)",
+    r2e_icu_q   = "Mean R2E ICU Queue",
+    dow_count   = "Total DOW Count"
   )
 
   morris_objs <- lapply(names(kpi_labels), function(kpi) {
@@ -175,8 +183,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   message("Morris plots saved to images/")
 
-  # Rank by mu* on primary KPI (R2E ICU queue)
-  primary <- morris_objs$r2e_icu_q
+  # Rank by mu* on primary KPI (system OT queue)
+  primary <- morris_objs$system_ot_q
   mu_star <- setNames(
     as.numeric(apply(abs(primary$ee), 2, mean, na.rm = TRUE)),
     morris_params$name
@@ -195,7 +203,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   write.csv(ranking, file.path(output_dir, "morris_ranking.csv"), row.names = FALSE)
   message("Parameter ranking written to outputs/morris_ranking.csv")
-  message("\nTop parameters by mu* (R2E ICU queue):")
+  message("\nTop parameters by mu* (system OT queue):")
   print(ranking, digits = 4)
 
   list(morris_objs = morris_objs, Y = Y, X = sa$X, ranking = ranking)
@@ -203,17 +211,17 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
 # ── Sobol variance decomposition ──────────────────────────────────────────────
 
-#' Run Sobol second-order variance decomposition on a subset of parameters
+#' Run Sobol variance decomposition on top parameters for three OT KPIs
 #'
 #' @param top_params  Character vector of parameter names from morris_params$name
 #' @param n_days      Simulation duration per replication (default 30)
 #' @param n_rep       Replications per Sobol evaluation point (default 5)
-#' @param n_sobol     Sobol sample size N (default 200; total evals = N*(2p+2))
+#' @param n_sobol     Sobol sample size N (default 200; total evals = N*(p+2))
 #' @param output_dir  Directory for CSV outputs (default "outputs")
-#' @return Sobol2007 sensitivity object with S1 and ST indices
+#' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q
 #'
-#' @details Uses sobol2007 (Saltelli et al., 2010). Wall-clock time scales with
-#'   n_sobol * (2*length(top_params) + 2) * n_rep * sim_time.
+#' @details Uses sobol2007 (Saltelli et al., 2010). A single design pass extracts
+#'   all three OT KPIs simultaneously; total evaluations = N*(p+2), not 3*N*(p+2).
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs") {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -221,57 +229,72 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   p_idx <- which(morris_params$name %in% top_params)
   if (length(p_idx) == 0) stop("None of top_params found in morris_params$name")
 
-  p_def <- morris_params[p_idx, ]
-  n_total <- n_sobol * (2 * nrow(p_def) + 2)
+  p_def   <- morris_params[p_idx, ]
+  n_total <- n_sobol * (nrow(p_def) + 2)
   message(sprintf(
-    "Sobol: n=%d, p=%d → %d evaluations × %d reps",
+    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2b_ot_q, r2e_ot_q, system_ot_q)",
     n_sobol, nrow(p_def), n_total, n_rep
   ))
 
   env_data_base <<- env_data
 
   X1 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper,
-                              SIMPLIFY = FALSE))
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
   X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper,
-                              SIMPLIFY = FALSE))
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
   names(X1) <- names(X2) <- p_def$name
 
-  sb <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_r2b <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_r2e <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_sys <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
 
   full_params <- setNames(morris_params$mode, morris_params$name)
 
-  Y_sobol <- vapply(seq_len(nrow(sb$X)), function(i) {
-    message(sprintf("  Sobol point %d / %d", i, nrow(sb$X)))
+  Y_all <- t(vapply(seq_len(nrow(sb_r2b$X)), function(i) {
+    message(sprintf("  Sobol point %d / %d", i, nrow(sb_r2b$X)))
     row <- full_params
-    row[p_def$name] <- as.numeric(sb$X[i, ])
+    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
     tryCatch(
-      eval_params(row, n_rep, n_days)[["r2e_icu_q"]],
+      {
+        kpis <- eval_params(row, n_rep, n_days)
+        c(r2b_ot_q    = kpis[["r2b_ot_q"]],
+          r2e_ot_q    = kpis[["r2e_ot_q"]],
+          system_ot_q = kpis[["system_ot_q"]])
+      },
       error = function(e) {
         warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        NA_real_
+        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_)
       }
     )
-  }, numeric(1))
+  }, numeric(3)))
 
   env_data <<- env_data_base
-  tell(sb, Y_sobol)
 
-  sobol_results <- data.frame(
-    parameter = p_def$name,
-    S1        = sb$S$original,
-    S1_lower  = sb$S$`min. c.i.`,
-    S1_upper  = sb$S$`max. c.i.`,
-    ST        = sb$T$original,
-    ST_lower  = sb$T$`min. c.i.`,
-    ST_upper  = sb$T$`max. c.i.`
-  )
+  tell(sb_r2b, Y_all[, "r2b_ot_q"])
+  tell(sb_r2e, Y_all[, "r2e_ot_q"])
+  tell(sb_sys, Y_all[, "system_ot_q"])
 
-  write.csv(sobol_results, file.path(output_dir, "sobol_indices.csv"), row.names = FALSE)
-  message("Sobol indices written to outputs/sobol_indices.csv")
-  message("\nSobol first-order (S1) and total-order (ST) indices:")
-  print(sobol_results, digits = 4)
+  save_sobol <- function(sb, kpi_name) {
+    results <- data.frame(
+      parameter = p_def$name,
+      S1        = sb$S$original,
+      S1_lower  = sb$S$`min. c.i.`,
+      S1_upper  = sb$S$`max. c.i.`,
+      ST        = sb$T$original,
+      ST_lower  = sb$T$`min. c.i.`,
+      ST_upper  = sb$T$`max. c.i.`
+    )
+    write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
+              row.names = FALSE)
+    message(sprintf("\nSobol indices for %s:", kpi_name))
+    print(results, digits = 4)
+    results
+  }
 
-  sb
+  save_sobol(sb_r2b, "r2b_ot_q")
+  save_sobol(sb_r2e, "r2e_ot_q")
+  save_sobol(sb_sys, "system_ot_q")
+
+  message("\nSobol complete.")
+  list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys)
 }

@@ -1,0 +1,41 @@
+{
+  "name": "Battlefield Casualty Handling",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // Mount the repo into the rstudio user's home so RStudio Server finds it immediately
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/rstudio/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/home/rstudio/workspace",
+
+  // RStudio Server — open in browser automatically on container start
+  "forwardPorts": [8787],
+  "portsAttributes": {
+    "8787": {
+      "label": "RStudio Server",
+      "onAutoForward": "openBrowser"
+    }
+  },
+
+  // Disable RStudio auth for local development
+  "containerEnv": {
+    "DISABLE_AUTH": "true"
+  },
+
+  "remoteUser": "rstudio",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "REditorSupport.r"
+      ],
+      "settings": {
+        "r.rterm.linux": "/usr/local/bin/R",
+        "r.bracketedPaste": true
+      }
+    }
+  },
+
+  "postCreateCommand": "echo 'Container ready — open RStudio at http://localhost:8787 and set working directory to ~/workspace'"
+}

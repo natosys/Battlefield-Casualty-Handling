@@ -19,6 +19,7 @@ source("R/environment.R")
 source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
+source("R/warmup.R")
 
 # ── Main function ─────────────────────────────────────────────────────────────
 
@@ -31,9 +32,12 @@ source("R/analysis.R")
 #'   parallel multi-run via mclapply)
 #' @param quick       Smoke-test mode: seed 42, 5 days, 5 iterations
 #' @param output_dir  Directory for output files (default "outputs")
+#' @param warm_up_days Days to exclude from the start of the analysis window
+#'   (Welch warm-up period; default WARM_UP_DAYS constant from warmup.R)
 #' @return Invisibly returns the monitoring data list
 run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
-                    quick = FALSE, output_dir = "outputs") {
+                    quick = FALSE, output_dir = "outputs",
+                    warm_up_days = WARM_UP_DAYS) {
   if (quick) {
     seed <- 42L; days <- 5L; iterations <- 5L
     message("Quick mode: iterations=5, days=5, seed=42")
@@ -64,7 +68,7 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
 
     message(sprintf("Simulation complete. Total arrivals: %d", nrow(mon$arrivals)))
 
-    analyse_run(mon, output_dir = output_dir)
+    analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
 
     message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
 
@@ -80,12 +84,12 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
     message(sprintf("Replications complete. Total arrivals across all runs: %d",
                     nrow(mon$arrivals)))
 
-    kpi <- summarise_replications(mon)
+    kpi <- summarise_replications(mon, warm_up_days = warm_up_days)
     kpi_path <- file.path(output_dir, "replication_summary.csv")
     write.csv(kpi, kpi_path, row.names = FALSE)
     message(sprintf("Replication KPI summary written to %s", kpi_path))
 
-    analyse_run(mon, output_dir = output_dir)
+    analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
 
     message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
   }
@@ -106,11 +110,15 @@ if (!interactive()) {
     make_option("--seed",       type = "integer", default = 42L,
                 help = "Random seed [default: %default]"),
     make_option("--quick",      action = "store_true", default = FALSE,
-                help = "Smoke-test mode: 5 iterations, 5 days, seed 42")
+                help = "Smoke-test mode: 5 iterations, 5 days, seed 42"),
+    make_option("--warm-up", type = "integer", default = NULL,
+                help = "Warm-up days to exclude from analysis (default: WARM_UP_DAYS constant)")
   )
 
   opt <- parse_args(OptionParser(option_list = option_list))
 
+  warm_up <- if (is.null(opt$`warm-up`)) WARM_UP_DAYS else opt$`warm-up`
   run_bch(seed = opt$seed, days = opt$days,
-          iterations = opt$iterations, quick = opt$quick)
+          iterations = opt$iterations, quick = opt$quick,
+          warm_up_days = warm_up)
 }

@@ -98,13 +98,18 @@ run_replications <- function(n_iterations, n_days) {
 #' Compute replication-level KPI summary for resource queues
 #'
 #' @param mon Named list with 'resources' element as returned by run_replications()
+#' @param warm_up_days Days to exclude from the start of each replication
+#'   (Welch warm-up period; default 0 = no exclusion)
 #' @return Data frame with one row per resource: mean, p10, p90, max queue,
 #'   and 95% CI bounds, sorted descending by mean queue length
 #'
 #' @details Uses time-weighted mean queue per replication as the unit of
 #'   analysis, then summarises across replications. 95% CI uses the t-distribution.
-summarise_replications <- function(mon) {
+summarise_replications <- function(mon, warm_up_days = 0) {
+  warm_up_min <- as.integer(warm_up_days) * 1440L
+
   rep_means <- mon$resources %>%
+    filter(time >= warm_up_min) %>%
     group_by(replication, resource) %>%
     arrange(time) %>%
     mutate(dt = lead(time, default = max(time)) - time) %>%

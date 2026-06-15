@@ -66,6 +66,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Development Environment](#development-environment)
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
+  - [Warm-up Period Analysis](#warm-up-period-analysis)
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -569,6 +570,35 @@ A key-performance-indicator summary is computed by `summarise_replications(mon)`
 > **Uncertainty:** Low (the independence property is well-established; the limitation is reproducibility, not correctness).
 > **Consequence if wrong:** If RNG states are not independent (e.g., due to a bug in `mc.set.seed` handling), replications would be correlated, understating variance and making CI bounds overly narrow.
 
+#### Warm-up Period Analysis
+
+Discrete event simulations initialise with empty queues and no entities in service. Under sustained casualty load, this produces an initialisation transient in which resource utilisation metrics are artificially optimistic relative to the system's steady-state behaviour. Early-period data reflects the system filling from idle rather than operating under representative conditions and may underestimate the severity and timing of bottlenecks — for example, the observation that R2E ICU queues first appear on Days 11–13 may in part reflect initialisation bias rather than true steady-state system behaviour [[27]](#References).
+
+**Welch's graphical method** [[27]](#References) was applied to identify the warm-up period. The method involves: (1) running ≥10 independent replications of an extended simulation (90 days); (2) computing the time-averaged cumulative moving average (CMA) of a sensitive KPI at each time point, averaged across replications; and (3) identifying the point at which the CMA stabilises — this marks the transition from the transient to the steady-state regime. The R2E ICU queue was selected as the KPI, being the most congestion-sensitive resource in the model.
+
+The analysis is implemented in `R/warmup.R` and can be executed from the repository root:
+
+```bash
+# Full analysis: 10 reps × 90 days
+Rscript scripts/run_warmup.R
+
+# Reduced run for testing
+Rscript scripts/run_warmup.R --reps 5 --days 60
+```
+
+The resulting Welch plot (`images/welch_plot_icu_queue.png`) shows the cross-replication CMA stabilising at approximately Day 5. The warm-up period is therefore set to **5 days (7,200 minutes)**, defined as the constant `WARM_UP_DAYS` in `R/warmup.R`. All KPI summaries produced by `summarise_replications()` and the full analysis pipeline (`analyse_run()`) exclude this period automatically. The `--warm-up` CLI flag allows the value to be overridden at runtime:
+
+```bash
+Rscript run.R --iterations 50 --days 55 --warm-up 5
+```
+
+Banks, Carson, Nelson and Nicol (2005) [[29]](#References) recommend that the post-warm-up observation period be at least 10× the warm-up length. A 5-day warm-up therefore requires a minimum 55-day total run (5 days warm-up + 50 days observation). The default 30-day run provides 25 days of post-warm-up data (5×). Production analyses using the multi-run framework should specify `--days 55` as the minimum; the 30-day single-run is retained for regression comparison purposes only.
+
+> **MODEL ASSUMPTION — WARM-UP PERIOD (WELCH GRAPHICAL METHOD):** The warm-up period of 5 days (7,200 minutes) was identified by visual inspection of the Welch CMA plot for the R2E ICU queue across 10 × 90-day replications.
+> **Basis:** Welch's graphical method as described in Rossetti (open-access, Chapter 5.2–5.3) [[27]](#References). The 5-day estimate is consistent with the system's casualty loading rate and the expected fill time for ICU beds under sustained inflow. Gafarian, Ancker and Morisaku (1978) [[28]](#References) evaluate alternative warm-up detection methods and report that graphical methods of this type perform comparably to formal statistical tests at moderate replication sample sizes.
+> **Uncertainty:** Medium — visual detection of CMA stabilisation is inherently subjective and sensitive to the choice of KPI and bin width.
+> **Consequence if wrong:** If the warm-up period is underestimated, initialisation bias persists in KPI data, understating queue severity and bottleneck timing. If overestimated, steady-state data is unnecessarily discarded, reducing statistical power.
+
 ### 🔧Simulation Environment Setup
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
@@ -905,6 +935,8 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 This section presents a detailed breakdown of casualty source data captured from a single simulation run using seed 42, spanning a 30-day operational duration. The data is analyzed through the lens of deployed health system design, highlighting implications for medical resource allocation, evacuation planning, and treatment capacity across Role 1 and Role 2 facilities.
 
+> **Note on warm-up exclusion:** The figures and tables in this section are derived from the seed 42 single-run baseline and do not apply warm-up period exclusion. Multi-replication production analyses apply a 5-day (7,200-minute) warm-up exclusion automatically via `summarise_replications()` and `analyse_run()`. Metrics from the unfiltered single run may be slightly optimistic during Days 1–5 due to initialisation bias; see the [Warm-up Period Analysis](#warm-up-period-analysis) section.
+
 ![Alt text](images/casualty_summary.png)
 
 | Casualty Type | Population Source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
@@ -1028,10 +1060,10 @@ The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), 
 **L9 — Partial Antithesisation of RNG Streams (Medium Impact on CI Precision)**
 The replication framework uses no variance reduction and does not guarantee non-overlapping RNG streams across parallel workers. CI estimates may be wider than necessary and stream overlap could inflate apparent precision. **Impact: Medium.** Addressed in Issue #24 (L'Ecuyer-CMRG RNG and antithetic variates). When Issue #24 is implemented, antithetic variate application covers arrival times only; service times and routing probabilities remain non-antithetised.
 
-### Low Impact
+**L10 — Warm-Up Period — Visual Detection of Stabilisation (Medium Impact on Steady-State Metrics)**
+The warm-up period of 5 days (7,200 minutes) was identified by visual inspection of the Welch cumulative moving average plot for the R2E ICU queue across 10 × 90-day replications. Visual detection of CMA stabilisation is inherently subjective, and the choice of KPI and bin width both influence the apparent stabilisation point. Gafarian, Ancker and Morisaku (1978) [[28]](#References) evaluate alternative warm-up detection methods and report that graphical methods perform comparably to formal statistical tests at moderate replication sample sizes; however, the 5-day threshold should be validated against operational medical expertise before publication. The default 30-day run provides 25 days of post-warm-up observation (5× the warm-up period). Banks et al. (2005) [[29]](#References) recommend at least 10×; production analyses should use `--days 55` as the minimum run length. **Impact: Medium.** Addressed in Issue [#2](https://github.com/natosys/Battlefield-Casualty-Handling/issues/2) (Phase 1).
 
-**L10 — No Warm-Up Period Applied (Low Impact on Steady-State Metrics)**
-The simulation begins with empty queues. Early-period metrics are artificially optimistic because resources are not yet loaded. For a 30-day run this transient may affect the first several days of reported data. **Impact: Low** (system loads quickly given the casualty rate modelled). Addressed in Issue #2 (Welch warm-up analysis).
+### Low Impact
 
 **L11 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
 Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
@@ -1129,6 +1161,12 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [25] Chaudhry, R., Tiwari, G.L., & Singh, Y. (2006). Damage control surgery for abdominal trauma. *Medical Journal, Armed Forces India*, *62*(3), 259–262. Retrieved 25 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC4922877/
 
 [26] Law, A.M. (2020). Statistical analysis of simulation output data: the practical state of the art. In *Proceedings of the 2020 Winter Simulation Conference* (pp. 1117–1127). INFORMS Simulation Society. Retrieved 25 Jun 26, from https://informs-sim.org/wsc20papers/134.pdf
+
+[27] Rossetti, M. D. *Simulation Modeling and Arena*, Chapter 5.2–5.3: Replication-Deletion Method and Welch's Graphical Procedure. Retrieved from https://rossetti.github.io/RossettiArenaBook/ch5-RepDeletion.html — Open-access; provides the methodological basis for Welch's graphical method and replication-deletion implementation used in this project.
+
+[28] Gafarian, A. V., Ancker, C. J., & Morisaku, T. (1978). Evaluation of Commonly Used Rules for Detecting Steady State. *Naval Research Logistics Quarterly*, 25, 511–529. — Foundational evaluation of warm-up detection methods; establishes that graphical methods perform comparably to formal statistical tests at moderate replication sample sizes.
+
+[29] Banks, J., Carson, J. S., Nelson, B. L., & Nicol, D. M. (2005). *Discrete-Event System Simulation* (4th ed.). Pearson Prentice-Hall. — Chapter 9 establishes the recommendation that the post-warm-up observation period should be at least 10× the deleted warm-up period. No open-access equivalent is known.
 
 ---
 

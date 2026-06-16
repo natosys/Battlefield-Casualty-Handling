@@ -56,6 +56,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     slice_tail(n = 1) %>%
     ungroup()
 
+  attributes_wide <- attributes_wide %>%
+    semi_join(select(arrivals, name, replication), by = c("name", "replication"))
+
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
     mutate(

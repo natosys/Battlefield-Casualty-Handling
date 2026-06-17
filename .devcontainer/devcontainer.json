@@ -1,0 +1,25 @@
+{
+  "name": "Battlefield Casualty Handling — R/simmer",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "forwardPorts": [8787],
+  "containerEnv": {
+    "DISABLE_AUTH": "true"
+  },
+  "workspaceFolder": "/home/rstudio/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/rstudio/workspace,type=bind,consistency=cached",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "REditorSupport.r"
+      ],
+      "settings": {
+        "r.rterm.linux": "/usr/bin/R",
+        "r.bracketedPaste": true
+      }
+    }
+  },
+  "postStartCommand": "echo 'RStudio Server available at http://localhost:8787 | Working directory: /home/rstudio/workspace'"
+}

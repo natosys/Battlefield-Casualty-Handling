@@ -694,7 +694,7 @@ Morris Elementary Effects (EE) screening [[28]](#References) is applied to ident
 - **μ\*** (mean absolute elementary effect) — overall influence on the output; parameters with μ\* ≈ 0 are non-influential.
 - **σ** (standard deviation of elementary effects) — presence of non-linear or interaction effects; high σ relative to μ\* indicates parameter interactions.
 
-Morris screening is computationally efficient, requiring only *r × (p + 1)* model evaluations (where *r* = number of trajectories and *p* = number of parameters), making it appropriate as a first-stage filter before the more expensive Sobol variance decomposition [[29]](#References).
+Morris screening is computationally efficient, requiring only *r × (p + 1)* model evaluations (where *r* = number of trajectories and *p* = number of parameters), making it appropriate as a first-stage filter before the more expensive Sobol variance decomposition [[28]](#References).
 
 Each Morris evaluation point runs *n* independent replications to average over stochastic variation, ensuring that observed elementary effects reflect structural parameter influence rather than simulation noise.
 
@@ -735,8 +735,8 @@ Rscript scripts/run_sensitivity.R --quick
 
 Outputs: `outputs/morris_ranking.csv` (μ\* and σ per parameter), `images/morris_<kpi>.png` (Morris plots). If `--sobol` is passed: `outputs/sobol_indices.csv` (first-order S1 and total-order ST indices).
 
-> **MODEL ASSUMPTION — Stochastic Averaging for Morris Evaluations:** Each Morris evaluation point uses *n* = 5 replications. This reduces but does not eliminate Monte Carlo noise in the elementary effect estimates. Increasing *n* improves signal quality at proportional computational cost. The recommended minimum for reliable Morris screening with stochastic simulators is *n* = 10 replications per point (Iooss and Lemaître, 2015 [[29]](#References)); the default of *n* = 5 is a computational compromise for screening purposes.
-> **Basis:** The stochastic-simulator sensitivity analysis literature (Iooss and Lemaître, 2015 [[29]](#References)) recommends averaging over replications at each design point to separate parameter effects from simulation noise.
+> **MODEL ASSUMPTION — Stochastic Averaging for Morris Evaluations:** Each Morris evaluation point uses *n* = 5 replications. This reduces but does not eliminate Monte Carlo noise in the elementary effect estimates. Increasing *n* improves signal quality at proportional computational cost. The recommended minimum for reliable Morris screening with stochastic simulators is *n* = 10 replications per point (Iooss and Lemaître, 2015 [[28]](#References)); the default of *n* = 5 is a computational compromise for screening purposes.
+> **Basis:** The stochastic-simulator sensitivity analysis literature (Iooss and Lemaître, 2015 [[28]](#References)) recommends averaging over replications at each design point to separate parameter effects from simulation noise.
 > **Uncertainty:** Low (the approach is standard); the trade-off is precision of μ\* estimates.
 > **Consequence if wrong:** Under-replication inflates σ estimates by conflating noise with interaction effects, potentially misclassifying non-influential parameters.
 
@@ -888,8 +888,8 @@ Sobol first-order (S1) and total-order (ST) indices were computed for the top fi
 
 The mechanically robust Sobol findings at n = 50 are `r2b_transport` ST for R2B OT queue (lower CI = +0.059, borderline) and `ot_hours` ST for R2E OT queue (lower CI = +0.112). These confirm a meaningful split: `r2b_transport` drives variance in R2B OT queue — it determines how many patients arrive before OT shifts close and whether R2B bypass is triggered — while `ot_hours` drives variance in R2E OT queue, where shift length governs the window of surgical availability at the primary bottleneck echelon. Under the system OT queue aggregate, no parameter achieves a robust positive lower CI, consistent with the wide intervals expected at n = 50 for p = 5.
 
-> **MODEL ASSUMPTION — Sobol sample size:** Sobol indices were computed with n = 50 sample pairs, yielding 350 model evaluations. The recommended minimum for reliable bootstrap CI estimation with p = 5 is n = 200 [[29]](#References), requiring 1,400 model evaluations. At n = 50, S1 and ST point estimates are directionally informative but CIs span zero for most parameters. A full n = 200 run is required before these indices can support formal planning decisions.
-> **Basis:** Iooss and Lemaître (2015) [[29]](#References).
+> **MODEL ASSUMPTION — Sobol sample size:** Sobol indices were computed with n = 50 sample pairs, yielding 350 model evaluations. The recommended minimum for reliable bootstrap CI estimation with p = 5 is n = 200 [[28]](#References), requiring 1,400 model evaluations. At n = 50, S1 and ST point estimates are directionally informative but CIs span zero for most parameters. A full n = 200 run is required before these indices can support formal planning decisions.
+> **Basis:** Iooss and Lemaître (2015) [[28]](#References).
 > **Uncertainty:** High (confidence intervals).
 > **Consequence if wrong:** Parameter importance rankings may shift materially at larger n.
 
@@ -1040,9 +1040,7 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 
 [27] Kelton, W. D., Sadowski, R. P., & Zupick, N. B. (2015). *Simulation with Arena* (6th ed.). McGraw-Hill Education. — Chapter 12 covers parallel replication design for independent Monte Carlo replications in discrete-event simulation.
 
-[28] Herman, J. D., & Usher, W. (2017). SALib: An open-source Python library for sensitivity analysis. *Journal of Open Source Software*, *2*(9), 97. https://doi.org/10.21105/joss.00097 — Open-access description of Morris Elementary Effects and Sobol variance decomposition implementations; covers the theoretical basis for both methods.
-
-[29] Iooss, B., & Lemaître, P. (2015). A review on global sensitivity analysis methods. *arXiv preprint* arXiv:1404.2405. https://arxiv.org/abs/1404.2405 — Comprehensive open-access review covering Morris EE screening, Sobol variance decomposition (including sobol2007 estimator), replication requirements for stochastic simulators, and guidance on sample size for reliable bootstrap CI estimation.
+[28] Iooss, B., & Lemaître, P. (2015). A review on global sensitivity analysis methods. *arXiv preprint* arXiv:1404.2405. https://arxiv.org/abs/1404.2405 — Comprehensive open-access review covering Morris EE screening, Sobol variance decomposition (including sobol2007 estimator), replication requirements for stochastic simulators, and guidance on sample size for reliable bootstrap CI estimation.
 
 ---
 

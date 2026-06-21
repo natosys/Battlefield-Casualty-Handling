@@ -19,37 +19,38 @@ All three pre-phase and Phase 1 foundation tasks are complete. The codebase has 
 
 ## 2. Open Pull Requests
 
-Three PRs are currently open and awaiting owner merge. **Important: PRs #17 and #20 have an additive conflict on `R/replication.R` — the second to merge will need a straightforward manual resolution (combine `ot_hours` param from #17 with `warm_up_days` param from #20).**
+Three PRs are currently open and awaiting owner merge. **Do not run the test plans for PRs #20 or #17 yet** — see the note on Issue #24 below first.
 
 | PR | Issue | Title | Conflict? | Notes |
 |---|---|---|---|---|
 | #21 | #19 | Dev Container specification | None | Independent of all simulation code — merge any time |
-| #20 | #2 | Warm-up period analysis (Issue #2) | With PR #17 | Merge before or after #17; whoever goes second resolves conflict |
-| #17 | #3 | Morris EE sensitivity + Sobol (Issue #3) | With PR #20 | Issue #3 is labelled `status: blocked` but PR is complete — label should be updated |
+| #20 | #2 | Warm-up period analysis | With PR #17 | **Hold test run until #24 is merged** (see §3) |
+| #17 | #3 | Morris EE sensitivity + Sobol | With PR #20 | **Hold test run until #24 is merged** (see §3); label should be updated from `status: blocked` |
 
-**Recommended merge order for open PRs:**
+**Recommended merge order:**
 
-1. **PR #21** (dev container) — no dependencies, merge immediately
-2. **PR #20** (warm-up, Issue #2) — merge second; no unresolved code conflicts with dev container
-3. **PR #17** (Morris, Issue #3) — merge third; will require resolving the `R/replication.R` conflict with PR #20 before merge
+1. **PR #21** (dev container) — merge immediately, no dependencies
+2. **Issue #24** — implement and merge before testing #20/#17 (see §3)
+3. **PR #20** (warm-up, Issue #2) — rebase onto #24, then run test plan and merge
+4. **PR #17** (Morris, Issue #3) — rebase onto merged #20; resolve the additive `R/replication.R` conflict, then run test plan and merge
 
-> **Note for owner:** When merging PR #17 after PR #20, `R/replication.R` will show a conflict. The resolution is additive: `summarise_replications()` and `run_once()` need both `warm_up_days` (from #20) and `ot_hours` (from #17) in their signatures. Combine both parameters — do not discard either.
+> **Conflict note for step 4:** When rebasing PR #17 after #20 merges, `R/replication.R` will show a conflict. The resolution is additive: `summarise_replications()` and `run_once()` need both `warm_up_days` (from #20) and `ot_hours` (from #17) in their signatures. Combine both parameters — do not discard either.
 
 ---
 
 ## 3. Issues Ready to Implement (No Open PR)
 
-Two Phase 1 issues have no open PR but are unblocked and should be implemented next. **Both should be implemented and PRed before Phase 2 work begins.**
+Two Phase 1 issues have no open PR but are unblocked. **Issue #24 must be implemented and merged before the test plans for PRs #20 and #17 are run.**
 
-### Issue #24 — Variance Reduction and L'Ecuyer-CMRG RNG Streams `[Ph.1]` `status: ready`
+### Issue #24 — Variance Reduction and L'Ecuyer-CMRG RNG Streams `[Ph.1]` `status: ready` ⚠️ implement first
 
-**Why now:** The current replication framework uses `mc.set.seed = FALSE`, which provides no guarantee of non-overlapping RNG streams across parallel workers. This means replications may be correlated, which would inflate the apparent precision of every CI produced by Issues #2 and #3. Issue #24 replaces this with `RNGkind("L'Ecuyer-CMRG")` + `mc.set.seed = TRUE`, and adds antithetic variates and explicit `mc.cores` configuration.
+**Why this must precede PR testing:** PRs #20 and #17 are validated by running the simulation and inspecting multi-run outputs — Welch plots, Morris rankings, CI values. Those test runs execute in `R/replication.R`. The current framework uses `mc.set.seed = FALSE`, which provides no guarantee of non-overlapping RNG streams across parallel workers, meaning replications may be correlated and CI estimates may be artificially tight. If the test plans for #2 and #3 are run and approved against the broken RNG framework, the evidence base for those PRs is unreliable by the same logic that motivates #24.
+
+Implementing #24 first means every test run — including the acceptance criteria for #2 and #3 — is executed against the correct statistical infrastructure. The test results are then trustworthy.
 
 **Dependency:** Issue #1 (MERGED). No other dependencies.
 
-**Impact if deferred:** All multi-run KPIs from Issues #2 and #3 are computed against a potentially mis-specified RNG framework. The CIs may be incorrect. Issue #24 should be merged before the Phase 1 analyses are treated as validated results.
-
-**Recommended action:** Implement Issue #24 and raise a PR immediately. If PRs #20 and #17 have already merged, this PR will need to rebase onto the merged state of `R/replication.R` and carry forward all parameters (`warm_up_days`, `ot_hours`, and the new RNG changes).
+**Recommended action:** Implement Issue #24, raise a PR, and merge it before running the test plans for PRs #20 and #17. Both of those PRs will then need a rebase onto #24's changes to `R/replication.R` before their test runs proceed.
 
 ---
 
@@ -80,9 +81,11 @@ IN REVIEW (awaiting owner merge):
   #2   [Ph.1]       Warm-up period analysis — PR #20              ─┤ merge in order: #21, #20, #17
   #3   [Ph.1]       Morris EE sensitivity — PR #17                ─┘ (resolve replication.R conflict on #17)
 
-READY (implement next, before Phase 2):
-  #24  [Ph.1]       Variance reduction / L'Ecuyer-CMRG            ─┐ parallel
-  #22  [Ph.1]       Output Variable Register                      ─┘
+IMPLEMENT BEFORE TESTING OPEN PRs:
+  #24  [Ph.1]       Variance reduction / L'Ecuyer-CMRG            ← merge before running test plans for #2 / #3
+
+IMPLEMENT IN PARALLEL WITH #24 (before Phase 2):
+  #22  [Ph.1]       Output Variable Register
 
 AFTER #1 + #2 + #3 + #22 + #24 (Phase 1 complete):
   #7   [Ph.3]       DNBI sub-categorisation                       (needs #1 + #2 only; can pull forward)
@@ -142,7 +145,7 @@ The following label states are outdated and should be updated when the correspon
 
 ### #24 vs open PRs #20 / #17
 
-Issue #24 changes `run_replications()` in `R/replication.R` — the same file that both PR #20 and PR #17 modify. If #24 is implemented after the existing PRs merge, the conflict is additive and straightforward: incorporate the L'Ecuyer RNG setup and `mc.cores` configuration alongside the `warm_up_days` and `ot_hours` parameters already merged.
+Issue #24 changes `run_replications()` in `R/replication.R` — the same file that both PR #20 and PR #17 modify. By merging #24 first, PRs #20 and #17 rebase onto a corrected RNG foundation and their test runs produce trustworthy output. The rebases are additive: `warm_up_days` (from #20) and `ot_hours` (from #17) are new parameters alongside the L'Ecuyer and `mc.cores` changes from #24 — none of the changes overlap semantically.
 
 ### #23 relationship to #18
 

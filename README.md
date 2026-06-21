@@ -1042,7 +1042,7 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 
 [28] Herman, J. D., & Usher, W. (2017). SALib: An open-source Python library for sensitivity analysis. *Journal of Open Source Software*, *2*(9), 97. https://doi.org/10.21105/joss.00097 — Open-access description of Morris Elementary Effects and Sobol variance decomposition implementations; covers the theoretical basis for both methods.
 
-[29] Iooss, B., & Lemaître, P. (2015). A review on global sensitivity analysis methods. *arXiv preprint* arXiv:1505.02558. https://arxiv.org/abs/1505.02558 — Comprehensive open-access review covering Morris EE screening, Sobol variance decomposition (including sobol2007 estimator), replication requirements for stochastic simulators, and guidance on sample size for reliable bootstrap CI estimation.
+[29] Iooss, B., & Lemaître, P. (2015). A review on global sensitivity analysis methods. *arXiv preprint* arXiv:1404.2405. https://arxiv.org/abs/1404.2405 — Comprehensive open-access review covering Morris EE screening, Sobol variance decomposition (including sobol2007 estimator), replication requirements for stochastic simulators, and guidance on sample size for reliable bootstrap CI estimation.
 
 ---
 

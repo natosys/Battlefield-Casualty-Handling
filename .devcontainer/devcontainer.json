@@ -4,6 +4,7 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "overrideCommand": false,
   "forwardPorts": [8787],
   "containerEnv": {
     "DISABLE_AUTH": "true"

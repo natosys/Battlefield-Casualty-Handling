@@ -39,8 +39,8 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
                     quick = FALSE, output_dir = "outputs",
                     warm_up_days = WARM_UP_DAYS) {
   if (quick) {
-    seed <- 42L; days <- 5L; iterations <- 5L
-    message("Quick mode: iterations=5, days=5, seed=42")
+    seed <- 42L; days <- 5L; iterations <- 5L; warm_up_days <- 0L
+    message("Quick mode: iterations=5, days=5, seed=42, warm_up_days=0 (run too short for warm-up)")
   }
 
   message(sprintf("Run configuration: iterations=%d, days=%d, seed=%d",

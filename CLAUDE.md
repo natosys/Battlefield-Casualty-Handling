@@ -94,7 +94,7 @@ and its basis in literature. Include any key design decisions.>
 
 ## References
 
-- Author (Year). Title. Source. URL — <annotation explaining relevance>
+- Author (Year). Title. Source. URL
 ```
 
 ---
@@ -230,19 +230,29 @@ The README `Limitations` section (to be added if not present, or maintained if i
 ### Citations
 
 - All parameters must be cited. If a value is estimated or derived, state this explicitly and describe the derivation.
-- Prefer open-access sources. Where a paywalled source is used, note it and provide the closest open-access equivalent if one exists.
+- **All sources must be openly accessible on the internet without a paywall.** Paywalled journal articles, restricted doctrine, and books with no freely available full text must not be used.
 - Use the numbered reference format already established in the README (`[[n]](#References)`).
 - New references are appended to the References section in the order they first appear in the text.
+
+### Reference List Rules
+
+These rules apply to every entry in the README References section and to references listed in GitHub Issues:
+
+- **No annotations, notes, or comments.** Each reference entry contains only the bibliographic citation and URL. Do not append `—` followed by any explanatory text, relevance notes, or context.
+- **Open access only.** Every source must be freely accessible via its URL without login, institutional access, or payment. Acceptable sources include: government and military publications on official sites, open-access journals (DOAJ, PubMed Central full text, Frontiers, MDPI, etc.), DTIC/arXiv/institutional repositories with direct PDF links, and free reference/educational websites. Unacceptable: paywalled journal articles (even with a direct PDF URL if the journal is not open access), books or textbook chapters, ADF/NATO restricted doctrine with no public URL.
+- **Every entry must have a URL.** Cite the specific page or document URL, not just a journal homepage. Include a retrieval date.
+- **Verify accessibility before citing.** If uncertain whether a source is freely available, do not cite it — find an open-access equivalent instead.
 
 ### Source Prioritisation
 
 When selecting methods or parameter values, prefer sources in this order:
-1. ADF doctrine (ADDP, LWP, etc.)
-2. NATO/allied doctrine (AJP, FM, ATP)
-3. Peer-reviewed open-access research
-4. Peer-reviewed paywalled research (note and provide alternative where possible)
-5. Grey literature / technical reports (DTIC, arXiv) — cite with access date
-6. Informed estimation — must be explicitly flagged as such with derivation documented
+1. Open-access military doctrine (publicly available AJP, FM, ATP; ADF publications on defence.gov.au)
+2. Peer-reviewed open-access research (DOAJ-indexed, PMC full text, Frontiers, MDPI, arXiv, DTIC)
+3. Open-access grey literature / technical reports (DTIC, institutional repositories) — cite with access date
+4. Government or intergovernmental publications (UN, WHO, national defence departments) on official public sites
+5. Informed estimation — must be explicitly flagged as such with derivation documented
+
+**Do not use:** paywalled journal articles, Springer/Elsevier/Oxford subscription content, textbooks, or any source requiring login or payment.
 
 ### Limitations Section
 

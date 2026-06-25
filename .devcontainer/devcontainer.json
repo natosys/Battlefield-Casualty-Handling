@@ -22,5 +22,6 @@
       }
     }
   },
+  "postCreateCommand": "Rscript -e \"if (!requireNamespace('languageserver', quietly = TRUE)) install.packages('languageserver', repos = 'https://cloud.r-project.org')\"",
   "postStartCommand": "echo 'RStudio Server available at http://localhost:8787 | Working directory: /home/rstudio/workspace'"
 }

@@ -8,18 +8,37 @@
 
 ## Summary of Issues Addressed
 
-| # | Issue | Priority | Effort |
-|---|-------|----------|--------|
-| 1 | Single-seed, single-run analysis | Critical | Medium |
-| 2 | No warm-up / initialisation bias analysis | High | Low |
-| 3 | No sensitivity analysis | High | Medium |
-| 4 | Team-block resource seizure (not individual) | High | High |
-| 5 | Flat DOW rate independent of wait time | High | Medium |
-| 6 | Unidirectional transport (no dead-heading) | Medium | Low |
-| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium |
-| 8 | OT surgical team not seized at R2E | Medium | Low |
-| 9 | No MASCAL stochastic injection | Medium | Medium |
-| 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low |
+| # | Issue | Priority | Effort | Status |
+|---|-------|----------|--------|--------|
+| 1 | Single-seed, single-run analysis | Critical | Medium | Merged (#16) |
+| 2 | No warm-up / initialisation bias analysis | High | Low | Open |
+| 3 | No sensitivity analysis | High | Medium | Open |
+| 4 | Team-block resource seizure (not individual) | High | High | Open |
+| 5 | Flat DOW rate independent of wait time | High | Medium | Open |
+| 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
+| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | Open |
+| 8 | OT surgical team not seized at R2E | Medium | Low | Open |
+| 9 | No MASCAL stochastic injection | Medium | Medium | Open |
+| 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | Open |
+| 14 | Shiny app — parameter editor, Quick Run mode | Medium | Medium | Open |
+| 15 | Shiny app — Full Analysis mode (multi-run CI) | Medium | Medium | Open |
+| 18 | Endogenous casualty generation (force feedback) | Medium | High | Open |
+| 19 | Dev Container — reproducible Linux R environment | Low | Low | **Merged (#21)** |
+| 22 | Output Variable Register — KPI definition | High | Low | Open |
+| 23 | Strategic evacuation demand — Role 4 / AME sorties | Medium | Medium | Open |
+| 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | Open |
+
+---
+
+## Completed Issues
+
+### Issue 19 — Dev Container Specification ✓
+
+**Merged:** PR #21, branch `claude/issue-19-ywhdei`
+
+`.devcontainer/Dockerfile` (based on `rocker/rstudio:4.4.2`) and `.devcontainer/devcontainer.json` added to the repository root. The container installs all project R packages, sets `mc.cores` to the physical core count via `Rprofile.site`, and exposes RStudio Server on port 8787 with authentication disabled. VS Code users open the repository, click "Reopen in Container", and access RStudio Server at `http://localhost:8787` after a one-time image build of approximately 5–10 minutes.
+
+**Significance:** Contributors on Windows now run `mclapply` under Linux `fork()`, reducing Morris sensitivity screening time from an estimated 10–15 hours to 1–2 hours on an 8-core machine. The environment specification makes R version and package state part of the repository, supporting academic reproducibility.
 
 ---
 
@@ -495,37 +514,215 @@ Package the scenario parameters in `env_data.json` as named scenario blocks, and
 
 ---
 
+## Issue 22 — Output Variable Register
+
+### Problem
+
+Trajectory attributes were added incrementally to support branching logic. No systematic mapping exists between tracked variables and the planner decisions or doctrinal standards they inform. Five timing intervals critical to planning — R2B dwell time, R2B→R2E transit, R2E dwell, DOW by echelon, RTD by echelon — are not computable from existing attributes. Without a defined output vector, Morris sensitivity screening (Issue 3) screens against an ad-hoc KPI set rather than the outputs planners need.
+
+### Recommended Approach
+
+Define an Output Variable Register (OVR) using five criteria derived from doctrine and DES methodology: (C1) compliance with a named AJP-4.10 / ADDP 4.2 standard; (C2) planner decision relevance; (C3) causal pathway position for Morris screening; (C4) binding constraint identification; (C5) health outcome attribution.
+
+Document the register in the README under a new "Model Outputs" section using `MODEL OUTPUT` annotation blocks, and add the five missing timing attributes (`arrival_time_r2b`, `depart_time_r2b`, `arrival_time_r2e`, `depart_time_r2e`, `surgery_start_time`) to trajectory code.
+
+### References
+
+- Sargent RG (2013). "Verification and Validation of Simulation Models." *Journal of Simulation*, 7(1), 12–24 — establishes that DES model outputs must be linked to their theoretical and doctrinal basis as a condition of model validity.
+- AJP-4.10 / ADDP 4.2 — defines the performance standards against which KPIs must be measured.
+
+---
+
+## Issue 24 — Variance Reduction (Antithetic Variates / L'Ecuyer-CMRG)
+
+### Problem
+
+The replication framework uses `mc.set.seed = FALSE`, providing no guarantee of non-overlapping RNG streams across parallel workers. Dependent streams would inflate apparent CI precision. Additionally, no variance reduction technique is applied, meaning CI convergence requires the full Monte Carlo sample size. The `mc.cores` argument is omitted, capping parallelism at 2 cores regardless of hardware.
+
+### Recommended Approach
+
+Three changes in a single PR to `R/replication.R`:
+
+1. **L'Ecuyer-CMRG streams**: Set `RNGkind("L'Ecuyer-CMRG")` before `mclapply` and use `mc.set.seed = TRUE`. Each worker receives a provably non-overlapping MRG32k3a substream (L'Ecuyer et al., 2002).
+
+2. **Antithetic variates**: For each primary replication using uniform `u`, run a paired antithetic replication using `1 - u`. Pair-average before CI computation. For monotone response functions this halves variance, reducing required replications by approximately 50% for equivalent CI width.
+
+3. **Core count**: Pass `mc.cores = parallel::detectCores(logical = FALSE)` to `mclapply` to use all physical cores (this is already set as an R option in the Dev Container via Issue 19, but must be explicit in the call for non-container environments).
+
+### References
+
+- L'Ecuyer P, Simard R, Chen EJ, Kelton WD (2002). "An Object-Oriented Random-Number Package with Many Long Streams and Substreams." *Operations Research*, 50(6), 1073–1075 — RngStream implementation underlying `RNGkind("L'Ecuyer-CMRG")` in R.
+- L'Ecuyer P (2024). "Random Number Generation." *Wiley Encyclopedia of Operations Research and Management Science* — establishes non-overlap guarantee conditions.
+- Law AM (2015). *Simulation Modelling and Analysis*, 5th ed., Chapter 11 — antithetic variates derivation and conditions of applicability.
+
+---
+
+## Issue 14 — Shiny App: Parameter Editor and Quick Run Mode
+
+### Problem
+
+The current `controller.R` Shiny application is a raw JSON editor. It exposes internal parameter names (`wia_cbt`, `short_resus`, `ot_beds`) with no operational context, no domain validation, and no ability to execute the simulation or display results. A planner or medical officer cannot use it without understanding the underlying code structure.
+
+### Recommended Approach
+
+Replace `controller.R` with `app.R` structured as a three-panel workflow: **Configure → Run → Analyse**.
+
+- **Configure panel**: Parameters grouped by operational concept with plain-English labels and tooltips. Slider bounds use `morris_params$lower`/`upper` from `R/sensitivity.R` where the parameter appears there. Internal JSON field names are never exposed.
+- **Run panel**: Quick Run (single replication, configurable seed and duration) via async execution. A progress indicator reflects simulation state.
+- **Analyse panel**: Four-tab display — Casualty Flow, Resource Utilisation, Queue Dynamics, KPI Summary — rendered from ggplot objects returned by `analyse_run()` in `R/analysis.R`. CSV and PNG export. A read-only Sensitivity Calibration tab surfaces `morris_params` bounds.
+
+Multi-run Full Analysis and sensitivity execution are deferred to Issue 15.
+
+**Dependencies:** Issue 1 (replication framework; `R/analysis.R` refactor returning ggplot objects). Issue 3 (`morris_params` bounds for slider validation).
+
+---
+
+## Issue 15 — Shiny App: Full Analysis Mode (Multi-Run with CI)
+
+### Problem
+
+Quick Run (Issue 14) produces single-replication output unsuitable for defensible planning conclusions — results vary with seed and carry no statistical bounds. Full Analysis mode activates the deferred capabilities: multi-run execution with CI, sensitivity screening execution, and integrated sensitivity result display.
+
+### Recommended Approach
+
+Extend `app.R` from Issue 14:
+
+- **Full Analysis mode**: Enable the mode selector. Wire the replication count slider (10–1000, default 100) to `run_replications()` via async execution. On completion, call `analyse_replications()` (new function in `R/analysis.R`) to produce CI ribbon plots and KPI summary cards. Apply the warm-up period constant from Issue 2 before aggregation.
+- **Sensitivity panel (active)**: Activate the "Run Sensitivity Screening" button from Issue 14. Trigger `run_morris()` asynchronously with user-configurable `r` (trajectories) and reps-per-point. Display μ\* vs σ scatter plot for R2E ICU queue, ranked parameter table, and Sobol first-order / total-effect bar chart.
+
+**Dependencies:** Issues 14, 1, 2, 3.
+
+---
+
+## Issue 18 — Endogenous Casualty Generation (Force Regeneration)
+
+### Problem
+
+Casualty arrival rates are fixed exogenous inputs applied to a static force size. The model does not represent the feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production. The `in_theatre_rate` parameter has no causal pathway to any OT, ICU, or arrival-rate metric — its influence in sensitivity screening is a bootstrap artefact. The simulation cannot answer: *what is the net effect on system load and force effectiveness of increasing the in-theatre recovery rate?*
+
+### Recommended Approach
+
+Introduce a time-varying effective force size updated daily:
+
+```r
+effective_force[day] <- initial_force
+  + cumulative_rtd[day]
+  - cumulative_strategic_evac[day]
+  + reinforcement_schedule[day]
+
+arrival_rate[day] <- base_rate * effective_force[day] / initial_force
+```
+
+The reinforcement schedule is a configurable step-input sequence in `env_data.json`. This closes the feedback loop without restructuring the arrival generator — only the per-day rate scalar changes.
+
+**Dependencies:** Issues 1, 2 (replication framework and warm-up period needed before force-feedback output is interpretable).
+
+---
+
+## Issue 23 — Strategic Evacuation Demand: Role 4 and AME Sorties
+
+### Problem
+
+Patients flagged `r2e_evac = 1` (strategic evacuation) disappear from the simulation with no downstream outputs. The model produces no estimate of Role 4 bed occupancy by ward type, no national hospitalisation census, and no derived metric for strategic aeromedical evacuation (AME) sortie demand. The simulation cannot support the two most consequential strategic medical planning questions: what Role 4 capacity is required to absorb the evacuation flow; and how many AME sorties are required to clear the backlog.
+
+This issue is the downstream complement of Issue 18. Issue 18 models the effect of strategic evacuation on theatre force size; this issue models the effect on national health assets.
+
+### Recommended Approach
+
+Implement a post-simulation Role 4 census calculation (not a constrained simmer resource — Role 4 is treated as unconstrained; the output is a demand signal):
+
+1. Capture `injury_type`, `priority`, `treatment_received`, and `evac_time` as trajectory attributes at the evacuation branch.
+2. Apply acuity-stratified national hospitalisation duration distributions (triangular, sourced from Role 4 occupancy norms in AJP-4.10) to produce a time-series Role 4 census by ward type.
+3. Derive AME sortie demand as a secondary output: `sorties = ceiling(evacuees_per_day / patients_per_sortie)` with configurable aircraft capacity.
+
+**Dependencies:** Issues 1, 22 (attribute infrastructure), 18 (evacuation counts feed force feedback).
+
+---
+
 ## Implementation Sequencing
 
-### Phase 1 — Statistical Foundation (Issues 1, 2, 3)
-*Estimated effort: 2–3 weeks. Enables all subsequent analyses to produce defensible results.*
+### Pre-phase — Infrastructure (Issue 19 ✓ Complete)
 
-1. Build multi-replication wrapper using `mclapply()` and `wrap()`.
-2. Implement Welch plot analysis; set warm-up period constant.
-3. Implement Morris sensitivity screening via `sensitivity` package.
-4. Update all outputs to report mean ± 90% CI rather than single-run values.
+Dev Container specification merged (PR #21). All contributors now develop in a reproducible Linux R environment with `mclapply` running at full core count.
 
-### Phase 2 — Model Fidelity (Issues 5, 6, 8)
-*Estimated effort: 1–2 weeks. Low-to-medium code changes, high impact on result validity.*
+### Phase 1 — Statistical Foundation (Issues 1 ✓, 22, 24, 2, 3)
+*Estimated effort: 3–4 weeks. All subsequent analyses depend on this foundation.*
 
-5. Fix R2E surgical team seizure (Issue 8 — 30 minutes of work).
-6. Implement dead-heading return legs for transport assets (Issue 6).
-7. Implement time-dependent DOW survival function (Issue 5).
+1. ~~Multi-replication wrapper (`mclapply` + `wrap()`) — **Merged PR #16**~~
+2. **Issue 22** — Define Output Variable Register; add five missing timing attributes to trajectories. Must precede Issue 3 so Morris screens the correct KPI vector.
+3. **Issue 24** — Switch to L'Ecuyer-CMRG RNG streams, add antithetic variates, set explicit `mc.cores`. Can run in parallel with Issue 22.
+4. **Issue 2** — Welch warm-up analysis; set `warm_up_period` constant.
+5. **Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22.
 
-### Phase 3 — Structural Refactoring (Issues 4, 7)
-*Estimated effort: 3–4 weeks. Requires env_data.json schema changes and trajectory rewrites.*
+### Phase 2 — Model Fidelity (Issues 8, 6, 5, 14)
+*Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
-8. Read `BCH_Task_Role_Allocation.md` in full before beginning. Implement the ADF-correct role inventory and task-requirement matrix in `env_data.json` per Part 4 of that document.
-9. Implement `seize_by_role()` and `release_by_role()` helpers; update all trajectory seizure calls across R1, R2B, and R2E trajectories.
-10. Add DNBI sub-category routing with differentiated trajectories.
-11. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris sensitivity screening from Phase 1.
+6. **Issue 8** — Fix R2E surgical team seizure (three lines; do first).
+7. **Issue 6** — Dead-heading return legs for transport assets.
+8. **Issue 5** — Time-dependent DOW survival function.
+9. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
-### Phase 4 — Scenario Expansion (Issues 9, 10)
-*Estimated effort: 1–2 weeks. Builds on Phase 1–3 outputs.*
+### Phase 3 — Structural Refactoring (Issues 7, 4)
+*Estimated effort: 3–4 weeks. Requires `env_data.json` schema changes and trajectory rewrites.*
 
-11. Implement compound Poisson MASCAL injection overlay.
-12. Implement scenario runner with Falklands / Vietnam / Okinawa configurations.
-13. Produce comparative analysis output table.
+10. **Issue 7** — DNBI sub-category routing with differentiated trajectories. Only hard dependencies are Issues 1 and 2; can be pulled forward if bandwidth allows.
+11. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
+
+### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
+*Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs.*
+
+12. **Issue 9** — Compound Poisson MASCAL injection overlay. Requires Issues 1, 2, 5.
+13. **Issue 10** — Comparative scenario runner (Falklands / Vietnam / Okinawa). Requires Issues 1, 2, 5, 8.
+14. **Issue 18** — Endogenous casualty generation (force regeneration feedback). Requires Issues 1, 2, 22.
+15. **Issue 23** — Role 4 occupancy and AME sortie demand. Requires Issues 1, 22, 18.
+
+### Phase 5 — Interface (Issue 15)
+*Estimated effort: 1–2 weeks.*
+
+16. **Issue 15** — Shiny Full Analysis mode (multi-run CI, sensitivity panel). Requires Issues 14, 1, 2, 3.
+
+### Dependency graph
+
+```
+COMPLETE:
+  #19  Dev Container
+  #1   Multi-run replication framework
+
+UNBLOCKED (start now):
+  #22  Output Variable Register     ─┐ parallel
+  #24  Variance reduction (RNG)     ─┘
+
+AFTER #22 + #24:
+  #2   Warm-up analysis             ─┐ parallel
+  #8   R2E surgical team fix        ─┘
+
+AFTER #2:
+  #3   Morris sensitivity (uses OVR from #22)
+
+AFTER #3:
+  #14  Shiny app — Quick Run
+
+AFTER #1 + #2:
+  #6   Dead-heading transport       ─┐
+  #7   DNBI sub-categorisation      ─┤ parallel (needs #1 + #2 only)
+  #5   Time-dependent DOW           ─┘
+
+AFTER #1 + #2 + #3 (all stable):
+  #4   Individual resource seizure
+
+AFTER #14 + #1 + #2 + #3:
+  #15  Shiny — Full Analysis mode
+
+AFTER #1 + #2 + #5:
+  #9   MASCAL injection
+  #18  Force regeneration feedback
+
+AFTER #1 + #2 + #5 + #8:
+  #10  Scenario runner
+
+AFTER #1 + #22 + #18:
+  #23  Role 4 / AME sortie demand
+```
 
 ---
 
@@ -543,4 +740,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. All referenced resources are open-access.*
+*Prepared June 2026. Updated June 2026 to reflect completion of Issues #1 (PR #16) and #19 (PR #21), and addition of Issues #14, #15, #18, #22, #23, and #24. All referenced resources are open-access.*

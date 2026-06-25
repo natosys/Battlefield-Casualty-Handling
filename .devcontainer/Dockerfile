@@ -36,6 +36,7 @@ RUN Rscript -e "install.packages(c( \
     'shiny', \
     'shinyBS', \
     'purrr', \
+    'optparse', \
     'languageserver' \
 ), repos = 'https://cloud.r-project.org')"
 

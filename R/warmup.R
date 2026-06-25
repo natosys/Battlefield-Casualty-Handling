@@ -6,11 +6,11 @@
 library(dplyr)
 library(ggplot2)
 
-# Warm-up period determined by Welch's graphical method (Rossetti, Ch.5.2-5.3).
-# 10 replications x 90 days; CMA of R2E ICU queue rises fastest during Days 5-10
-# (slope 0.0114/day vs 0.0045/day for Days 0-5), indicating the initialisation
-# transient extends well beyond Day 5. Slope drops to near-zero at Day 15-20.
-WARM_UP_DAYS <- 15L
+# Terminating simulation (Law 2020): finite campaign horizon, no steady state.
+# Welch CMA across 10 × 90-day reps shows episodic non-stationary behaviour
+# (peaks Days 13, 38; no convergence) — warm-up exclusion is not appropriate.
+# WARM_UP_DAYS = 0L (no exclusion). Pass --warm-up N for parametric comparisons.
+WARM_UP_DAYS <- 0L
 
 #' Bin total ICU queue into regular time intervals using step interpolation
 #'
@@ -65,16 +65,22 @@ plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
   y_max   <- max(cma_df$cma, na.rm = TRUE)
 
   p <- ggplot(cma_df, aes(x = bin_min / 1440, y = cma)) +
-    geom_line(colour = "steelblue", linewidth = 1) +
-    geom_vline(xintercept = warm_up_days,
-               linetype = "dashed", colour = "firebrick", linewidth = 0.8) +
-    annotate("text",
-             x     = warm_up_days + 0.3,
-             y     = y_max * 0.97,
-             label = sprintf("Warm-up: Day %d\n(%d min)", warm_up_days,
-                             warm_up_days * 1440L),
-             hjust = 0, vjust = 1,
-             colour = "firebrick", size = 3.5) +
+    geom_line(colour = "steelblue", linewidth = 1)
+
+  if (warm_up_days > 0L) {
+    p <- p +
+      geom_vline(xintercept = warm_up_days,
+                 linetype = "dashed", colour = "firebrick", linewidth = 0.8) +
+      annotate("text",
+               x     = warm_up_days + 0.3,
+               y     = y_max * 0.97,
+               label = sprintf("Warm-up: Day %d\n(%d min)", warm_up_days,
+                               warm_up_days * 1440L),
+               hjust = 0, vjust = 1,
+               colour = "firebrick", size = 3.5)
+  }
+
+  p <- p +
     labs(
       title    = "Welch Plot — R2E ICU Queue (Cumulative Moving Average)",
       subtitle = sprintf("%d replications × %d days; bin = 60 min", n_reps, n_days),
@@ -110,7 +116,11 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
   plot_welch(cma_df, WARM_UP_DAYS, n_reps = n_reps, n_days = n_days,
              images_dir = images_dir)
 
-  message(sprintf("Warm-up period: %d days (%d minutes)",
-                  WARM_UP_DAYS, WARM_UP_DAYS * 1440L))
+  if (WARM_UP_DAYS > 0L) {
+    message(sprintf("Warm-up period: %d days (%d minutes)",
+                    WARM_UP_DAYS, WARM_UP_DAYS * 1440L))
+  } else {
+    message("Warm-up exclusion: none (terminating simulation — full window retained)")
+  }
   invisible(list(cma = cma_df, warm_up_days = WARM_UP_DAYS))
 }

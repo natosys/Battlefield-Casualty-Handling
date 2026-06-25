@@ -7,8 +7,10 @@ library(dplyr)
 library(ggplot2)
 
 # Warm-up period determined by Welch's graphical method (Rossetti, Ch.5.2-5.3).
-# 10 replications x 90 days; CMA of R2E ICU queue stabilises at approximately Day 5.
-WARM_UP_DAYS <- 5L
+# 10 replications x 90 days; CMA of R2E ICU queue rises fastest during Days 5-10
+# (slope 0.0114/day vs 0.0045/day for Days 0-5), indicating the initialisation
+# transient extends well beyond Day 5. Slope drops to near-zero at Day 15-20.
+WARM_UP_DAYS <- 15L
 
 #' Bin total ICU queue into regular time intervals using step interpolation
 #'

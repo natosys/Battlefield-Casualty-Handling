@@ -1128,11 +1128,11 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 
 [27] Kelton, W. D., Sadowski, R. P., & Zupick, N. B. (2015). *Simulation with Arena* (6th ed.). McGraw-Hill Education. — Chapter 12 covers parallel replication design for independent Monte Carlo replications in discrete-event simulation.
 
-[28] NATO Standardization Office (2019). *AJP-4.10 Allied Joint Doctrine for Medical Support* (Edition C, Version 1). NATO Standardization Office. Retrieved 25 Jun 26, from https://www.coemed.org/files/stanags/01_AJP/AJP-4.10_EDC_V1_E_2228.pdf — Specifies evacuation timelines, surgical response standards, and echelon capacity norms; primary doctrinal basis for C1 (Doctrinal Standard Compliance) KPI selection throughout the Output Variable Register.
+[28] NATO Standardization Office. (2019). *AJP-4.10 allied joint doctrine for medical support* (Edition C, Version 1). NATO Standardization Office. Retrieved 25 Jun 26, from https://www.coemed.org/files/stanags/01_AJP/AJP-4.10_EDC_V1_E_2228.pdf — Specifies evacuation timelines, surgical response standards, and echelon capacity norms; primary doctrinal basis for C1 (Doctrinal Standard Compliance) KPI selection throughout the Output Variable Register.
 
-[29] Australian Department of Defence. *ADDP 4.2 Health Support*. Canberra. Restricted ADF doctrine; not publicly available. — ADF-specific health support standards supplementing AJP-4.10 for echelon-level throughput and RTD norms; open-access equivalent: AJP-4.10 [[28]](#References).
+[29] Australian Department of Defence. (n.d.). *ADDP 4.2 health support*. Australian Department of Defence. Restricted ADF doctrine; not publicly available. — ADF-specific health support standards supplementing AJP-4.10 for echelon-level throughput and RTD norms; open-access equivalent: AJP-4.10 [[28]](#References).
 
-[30] Sargent, R. G. (2010). Verification and validation of simulation models. In *Proceedings of the 2010 Winter Simulation Conference* (pp. 166–183). Retrieved 25 Jun 26, from https://www.informs-sim.org/wsc10papers/016.pdf — Establishes the requirement to link DES model outputs to their doctrinal and theoretical basis as a condition of model validity; basis for the five-criterion KPI selection framework.
+[30] Sargent, R. G. (2010). Verification and validation of simulation models. In *Proceedings of the 2010 Winter Simulation Conference* (pp. 166–183). IEEE. Retrieved 25 Jun 26, from https://www.informs-sim.org/wsc10papers/016.pdf — Establishes the requirement to link DES model outputs to their doctrinal and theoretical basis as a condition of model validity; basis for the five-criterion KPI selection framework.
 
 ---
 

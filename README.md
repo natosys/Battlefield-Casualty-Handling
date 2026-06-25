@@ -63,6 +63,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Casualty Priorities](#casualty-priorities)
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
+- [Development Environment](#development-environment)
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
@@ -429,6 +430,73 @@ The following casualty priority rates were used with the rates requiring surgery
 <small>[Return to Top](#contents)</small>
 
 5% of Priority 1 and 2.5% of P2 at R1, 1% of arrivals at R2B, 1% of arrivals ar R2E Heavy
+
+---
+
+## Development Environment
+
+<small>[Return to Top](#contents)</small>
+
+The simulation uses `parallel::mclapply` for multi-replication parallelism, which relies on `fork()` — a POSIX primitive unavailable on Windows. On a Windows RStudio installation, `mclapply` silently falls back to sequential execution, meaning the full Morris sensitivity screening (r = 20, reps = 5, n_sobol = 200, ~8 000 simulation runs) takes an estimated 10–15 hours rather than 1–2 hours on equivalent hardware.
+
+A Dev Container specification in `.devcontainer/` defines a reproducible Linux R environment (R 4.4.2, all project packages) that can be launched from VS Code with a single command. It provides a Linux `fork()` context, RStudio Server on `http://localhost:8787`, and automatic core-count configuration — so contributors on any host OS get full parallelism and a consistent package environment without manual dependency resolution.
+
+### Prerequisites
+
+| Requirement | Notes |
+|---|---|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Provides the container runtime. Enable "Use the WSL 2 based engine" on Windows. |
+| [VS Code](https://code.visualstudio.com/) | Host IDE used to manage the container lifecycle. |
+| [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | VS Code extension (`ms-vscode-remote.remote-containers`) that adds the "Reopen in Container" command. |
+
+### First-time setup
+
+1. Clone the repository to the local machine:
+   ```sh
+   git clone https://github.com/natosys/Battlefield-Casualty-Handling.git
+   cd Battlefield-Casualty-Handling
+   ```
+2. Open the repository folder in VS Code: **File → Open Folder**.
+3. VS Code will detect `.devcontainer/devcontainer.json` and display a notification: *"Folder contains a Dev Container configuration file. Reopen folder to develop in a container."* Click **Reopen in Container**. Alternatively, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and select **Dev Containers: Reopen in Container**.
+4. VS Code builds the Docker image and starts the container. The initial build downloads the base image and installs all R packages; this typically takes 5–10 minutes. Subsequent starts use the cached image and complete in seconds.
+5. Once the container starts, open a browser and navigate to `http://localhost:8787` to access RStudio Server. No login credentials are required (`DISABLE_AUTH=true`).
+
+### RStudio Server configuration
+
+After connecting to RStudio Server at `http://localhost:8787`:
+
+1. Set the working directory to the workspace mount point:
+   ```r
+   setwd("/home/rstudio/workspace")
+   ```
+   This can be made permanent via **Tools → Global Options → General → Default working directory**.
+2. Verify the parallel core configuration:
+   ```r
+   parallel::detectCores(logical = FALSE)  # should return > 2 on a multi-core host
+   getOption("mc.cores")                   # should match the above
+   ```
+   Both values are set automatically by `Rprofile.site` during the image build; no per-session configuration is required.
+
+### Running the simulation with full parallelism
+
+From the RStudio Server terminal or console, all `Rscript` invocations work identically to the host workflow:
+
+```sh
+# Standard single run (seed 42, 30 days, 1 iteration)
+Rscript run.R --seed 42 --days 30 --iterations 1
+
+# Multi-run replication (100 iterations, parallel via mclapply)
+Rscript run.R --seed NULL --days 30 --iterations 100
+
+# Quick smoke test (5 days, 5 iterations)
+Rscript run.R --quick
+```
+
+`mclapply` will use all physical cores reported by `parallel::detectCores(logical = FALSE)`, providing linear scaling up to the host core count.
+
+### Git workflow
+
+All files are bind-mounted from the host filesystem into `/home/rstudio/workspace` inside the container. Git commits and pushes can be made from either location — changes are immediately visible on both sides. SSH keys placed in the host `~/.ssh/` directory are available inside the container via the default Docker bind mount for SSH agent forwarding.
 
 ---
 

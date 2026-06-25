@@ -311,6 +311,7 @@ r2b_treat_wia <- function(team_id) {
     release_selected(id = 3) %>%
     set_attribute("r2b_to_r2e", 1) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
+    set_attribute("r2b_departure_time", function() now(env)) %>%
     timeout(function() {
       rtriangle(
         n = 1,
@@ -347,6 +348,7 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
       trajectory("Died of Wounds") %>%
         set_attribute("dow", 1) %>%
+        set_attribute("dow_echelon", 2) %>%
         r2b_treat_kia(team_id) %>%
         release_selected(id = 1) %>%
         r2b_transport_kia(team_id) %>%
@@ -434,6 +436,7 @@ r2b_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("return_day", function() now(env)) %>%
+        set_attribute("return_echelon", 2) %>%
         release_selected(id = 5) %>%
         simmer::leave(1)
     ) %>%
@@ -456,6 +459,7 @@ r2b_treat_wia <- function(team_id) {
         set_attribute("r2b_to_r2e", 1) %>%
         set_attribute("r2e", function() select_r2e_team()) %>%
         seize_resources(evacuation_team) %>%
+        set_attribute("r2b_departure_time", function() now(env)) %>%
         timeout(function() {
           rtriangle(
             n = 1,
@@ -571,6 +575,7 @@ r2e_treat_wia <- function(team_id) {
   trajectory("R2E Treatment") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
+    set_attribute("r2e_arrival_time", function() now(env)) %>%
 
     # Phase 1: DOW check (~1%)
     # - DOW → KIA handling and leave
@@ -583,6 +588,7 @@ r2e_treat_wia <- function(team_id) {
       continue = TRUE,
       trajectory("Died of Wounds") %>%
         set_attribute("dow", 1) %>%
+        set_attribute("dow_echelon", 3) %>%
         r2e_treat_kia(team_id, evac_team) %>%
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
@@ -743,8 +749,11 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         release_selected(id = 5) %>%
-        set_attribute("return_day", function() now(env)),
+        set_attribute("r2e_departure_time", function() now(env)) %>%
+        set_attribute("return_day", function() now(env)) %>%
+        set_attribute("return_echelon", 3),
       trajectory("Strategic Evac") %>%
+        set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("r2e_evac", 1)
     )
 }
@@ -848,6 +857,7 @@ build_casualty_trajectory <- function() {
           # Path 1: Died of wounds — treated as KIA
           trajectory("Died of Wounds at Role 1") %>%
             set_attribute("dow", 1) %>%
+            set_attribute("dow_echelon", 1) %>%
             branch(
               option = function() get_attribute(env, "team"),
               continue = TRUE,
@@ -915,7 +925,8 @@ build_casualty_trajectory <- function() {
                     c = env_data$vars$r1$recovery$mode
                   )
                 }) %>%
-                set_attribute("return_day", function() now(env))
+                set_attribute("return_day", function() now(env)) %>%
+                set_attribute("return_echelon", 1)
             )
         ),
 

@@ -10,21 +10,21 @@
 
 | # | Issue | Priority | Effort | Status |
 |---|-------|----------|--------|--------|
-| 1 | Single-seed, single-run analysis | Critical | Medium | Merged (#16) |
-| 2 | No warm-up / initialisation bias analysis | High | Low | Open |
+| 1 | Single-seed, single-run analysis | Critical | Medium | **Merged (#16)** |
+| 2 | No warm-up / initialisation bias analysis | High | Low | **Merged (#20)** |
 | 3 | No sensitivity analysis | High | Medium | Open |
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
 | 5 | Flat DOW rate independent of wait time | High | Medium | Open |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
 | 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | Open |
-| 8 | OT surgical team not seized at R2E | Medium | Low | Open |
+| 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
 | 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | Open |
 | 14 | Shiny app — parameter editor, Quick Run mode | Medium | Medium | Open |
 | 15 | Shiny app — Full Analysis mode (multi-run CI) | Medium | Medium | Open |
 | 18 | Endogenous casualty generation (force feedback) | Medium | High | Open |
 | 19 | Dev Container — reproducible Linux R environment | Low | Low | **Merged (#21)** |
-| 22 | Output Variable Register — KPI definition | High | Low | Open |
+| 22 | Output Variable Register — KPI definition | High | Low | **Merged (#26)** |
 | 23 | Strategic evacuation demand — Role 4 / AME sorties | Medium | Medium | Open |
 | 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | Open |
 
@@ -39,6 +39,50 @@
 `.devcontainer/Dockerfile` (based on `rocker/rstudio:4.4.2`) and `.devcontainer/devcontainer.json` added to the repository root. The container installs all project R packages, sets `mc.cores` to the physical core count via `Rprofile.site`, and exposes RStudio Server on port 8787 with authentication disabled. VS Code users open the repository, click "Reopen in Container", and access RStudio Server at `http://localhost:8787` after a one-time image build of approximately 5–10 minutes.
 
 **Significance:** Contributors on Windows now run `mclapply` under Linux `fork()`, reducing Morris sensitivity screening time from an estimated 10–15 hours to 1–2 hours on an 8-core machine. The environment specification makes R version and package state part of the repository, supporting academic reproducibility.
+
+---
+
+### Issue 1 — Multi-Run Replication Framework ✓
+
+**Merged:** PR #16, branch `feature/issue-1-multi-run-replication`
+
+`R/replication.R` implements `run_once()`, `run_replications()` (via `mclapply` on POSIX, `lapply` fallback on Windows), and `summarise_replications()` returning mean, p10, p90, max, and 95% CI across replications. `run.R` branches on `--iterations`: single-run path sinks logs and writes diagnostics; multi-run path writes `outputs/replication_summary.csv`. `generate_ln_arrivals()` gained a `write_file` parameter to prevent parallel file-write conflicts.
+
+**Significance:** All KPI outputs are now distributional rather than point estimates. The seed-42 single-run baseline (401 casualties) is confirmed as representative within the multi-replication distribution.
+
+---
+
+### Issue 8 — R2E Surgical Team Seizure Bug ✓
+
+**Merged:** closed 2026-06-13
+
+The `seize_resources(surg_team)` and `release_resources(surg_team)` calls were commented out in `r2e_treat_wia()`, allowing unlimited parallel R2E OT cases against the same surgical team. Uncommenting both calls for both surgery branches corrects R2E OT utilisation and queue figures. R2E OT queue is now non-zero under concurrent surgical demand.
+
+**Significance:** All R2E OT results prior to this fix were invalid (unlimited surgical parallelism). The correction is a prerequisite for trustworthy Issue #10 (scenario runner) output.
+
+---
+
+### Issue 22 — Output Variable Register ✓
+
+**Merged:** PR #26, branch `feature/issue-22-output-variable-register`
+
+Five new `set_attribute()` calls added to `R/trajectories.R`: `dow_echelon`, `r2e_arrival_time`, `r2b_departure_time`, `r2e_departure_time`, `return_echelon`. Seven derived KPI computations added to `R/analysis.R`: time to first surgery, R2B and R2E dwell times, R2B→R2E transit time, DOW and RTD count by echelon, OT utilisation per echelon. Three new CSVs written: `dow_by_echelon.csv`, `rtd_by_echelon.csv`, `ot_utilisation.csv`. README updated with Model Outputs section and Limitations section (L1–L11).
+
+**Significance:** Provides the output variable inventory required before Morris sensitivity screening (Issue #3) can be correctly targeted. Echelon-level DOW and RTD breakdowns are available for the first time.
+
+---
+
+### Issue 2 — Warm-Up / Initialisation Bias Analysis ✓
+
+**Merged:** PR #20, branch `claude/pr-dependency-issues-2-3-vsqzu9`
+
+`R/warmup.R` implements `bin_icu_queue()`, `compute_welch_cma()`, `plot_welch()`, and `run_welch_analysis()`. `scripts/run_warmup.R` provides the CLI entry point. `summarise_replications()` and `analyse_run()` both accept a `warm_up_days` parameter; `--warm-up` CLI flag threads through `run.R`.
+
+**Key finding — terminating simulation classification:** The full Welch analysis (10 × 90-day replications) revealed that the CMA of the R2E ICU queue does not converge. The CMA rises to a local peak near Day 10, dips near Day 16, recovers to a plateau across Days 20–55, then rises to a higher peak near Day 65 before gradually declining — no stable plateau is reached within 90 days. This non-convergent pattern confirms the simulation is a **terminating simulation** per Law (2020): the campaign has a finite horizon and the initial build-up of casualties from Day 1 is operationally meaningful, not an artefact to be discarded. Welch's replication-deletion approach presupposes a steady state; it is not applicable to this model.
+
+**Outcome:** `WARM_UP_DAYS = 0L` (no exclusion by default). The `--warm-up N` flag is retained for optional use in parametric comparison runs requiring a common time base. The Welch plot (`images/welch_plot_icu_queue.png`) documents the episodic non-stationary CMA behaviour.
+
+**Unblocked by this merge:** Issue #7 (DNBI sub-categorisation, needs #1 + #2) is now ready. Issue #3 (Morris sensitivity, needs #1 only) and Issue #14 (Shiny parameter editor, needs #1 only) were already unblocked at Issue #1 merge and have been updated to `status: ready`.
 
 ---
 

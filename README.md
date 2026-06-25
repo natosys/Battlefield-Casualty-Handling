@@ -66,6 +66,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Development Environment](#development-environment)
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
+  - [Warm-up Period Analysis](#warm-up-period-analysis)
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -569,6 +570,40 @@ A key-performance-indicator summary is computed by `summarise_replications(mon)`
 > **Uncertainty:** Low (the independence property is well-established; the limitation is reproducibility, not correctness).
 > **Consequence if wrong:** If RNG states are not independent (e.g., due to a bug in `mc.set.seed` handling), replications would be correlated, understating variance and making CI bounds overly narrow.
 
+#### Warm-up Period Analysis
+
+Discrete event simulations are classified as either **terminating** or **steady-state** based on the nature of the system being modelled [[26]](#References). A terminating simulation has a natural, finite end state (e.g., an operational campaign concluding after a defined horizon); the run begins under well-defined initial conditions, and behaviour across the entire horizon — including the start-up period — is of direct interest. A steady-state simulation models a perpetual system in which the long-run equilibrium is the quantity of interest; here, the initialisation transient is an artefact that must be discarded before meaningful statistics can be collected. The choice of classification governs whether warm-up exclusion is appropriate.
+
+Welch's graphical method [[27]](#References) was applied to characterise the simulation's time-varying behaviour and determine which classification applies. The method involves: (1) running ≥10 independent replications of an extended simulation (90 days); (2) computing the cross-replication cumulative moving average (CMA) of a sensitive KPI at each time point; and (3) determining whether the CMA converges to a stable level. The R2E ICU queue was selected as the KPI, being the most congestion-sensitive resource in the model.
+
+The analysis is implemented in `R/warmup.R` and can be executed from the repository root:
+
+```bash
+# Full analysis: 10 reps × 90 days
+Rscript scripts/run_warmup.R
+
+# Reduced run for testing
+Rscript scripts/run_warmup.R --reps 5 --days 60
+```
+
+The resulting Welch plot (`images/welch_plot_icu_queue.png`) shows the cross-replication CMA of the R2E ICU queue across 90 days. Rather than converging to a stable plateau, the CMA displays episodic, non-stationary behaviour: a rise to a local peak near Day 13 (the first wave of R2E ICU admissions propagating from early combat), a decline to a trough near Day 25, then a second rise to a higher peak near Day 38 as cumulative casualty load continues to build. No convergence to a steady state is observed within the 90-day horizon. This pattern is consistent with the lognormal arrival process generating episodic surges; the ICU queue is driven by campaign dynamics rather than a stationary queue process, and the CMA continues to shift across the full run length.
+
+This non-convergent CMA confirms that the battlefield casualty handling simulation is a **terminating simulation** per Law (2020) [[26]](#References). The campaign has a defined finite horizon; the ICU queue trajectory represents the operational reality of that campaign, including the initial build-up of casualties from Day 1. The empty-start initial condition — no casualties in care on Day 0 — is the correct operational initial condition for a force beginning operations. It is not a modelling artefact to be excluded. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that warm-up detection methods, including graphical approaches, presuppose the existence of a steady state; they are not applicable to terminating simulations.
+
+Warm-up exclusion is therefore **not applied** as the default. The `WARM_UP_DAYS` constant in `R/warmup.R` is set to `0L`. All KPI summaries and analysis outputs use the full observation window.
+
+The `--warm-up` CLI flag remains available for **parametric comparison runs** — sensitivity screening and scenario analysis — where a researcher wishes to study mid-campaign behaviour net of start-up effects, or where two scenarios differ in their initialisation characteristics and the comparison requires a common time base:
+
+```bash
+# Optional: exclude first 10 days for parametric comparison runs only
+Rscript run.R --iterations 50 --days 60 --warm-up 10
+```
+
+> **MODEL ASSUMPTION — TERMINATING SIMULATION (NO WARM-UP EXCLUSION BY DEFAULT):** The simulation is classified as a terminating simulation. The empty-start initial condition is the correct operational initial condition; no warm-up exclusion is applied by default (`WARM_UP_DAYS = 0L`).
+> **Basis:** Law (2020) [[26]](#References) distinguishes terminating simulations (finite-horizon, natural end state) from steady-state simulations (infinite-horizon, seeking long-run equilibrium). The battlefield casualty handling simulation models a finite operational campaign; the full run — including the initial build-up — represents the campaign truth. Welch's graphical method [[27]](#References) was applied across 10 × 90-day replications; the CMA of the R2E ICU queue exhibited episodic non-stationary behaviour (peaks at Days 13 and 38) with no convergence, confirming the absence of a steady state. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that graphical warm-up detection methods presuppose a steady state; they are not applicable to terminating simulations.
+> **Uncertainty:** Low — the terminating classification is an inherent property of the finite campaign model structure, not a parameter subject to calibration.
+> **Consequence if wrong:** If the simulation were treated as steady-state and early data discarded, KPIs would represent mid-campaign equilibrium rather than the campaign-wide casualty burden from Day 1. For operational planning — which must account for casualty load from the onset of operations — this would understate total system demand and the severity of early-period queues.
+
 ### 🔧Simulation Environment Setup
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
@@ -905,6 +940,8 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 This section presents a detailed breakdown of casualty source data captured from a single simulation run using seed 42, spanning a 30-day operational duration. The data is analyzed through the lens of deployed health system design, highlighting implications for medical resource allocation, evacuation planning, and treatment capacity across Role 1 and Role 2 facilities.
 
+> **Note on warm-up exclusion:** No warm-up exclusion is applied. The simulation is classified as a terminating simulation; the full observation window, including campaign start-up, is retained in all outputs (`WARM_UP_DAYS = 0L`). See the [Warm-up Period Analysis](#warm-up-period-analysis) section for the methodological basis.
+
 ![Alt text](images/casualty_summary.png)
 
 | Casualty Type | Population Source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
@@ -1028,10 +1065,10 @@ The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), 
 **L9 — Partial Antithesisation of RNG Streams (Medium Impact on CI Precision)**
 The replication framework uses no variance reduction and does not guarantee non-overlapping RNG streams across parallel workers. CI estimates may be wider than necessary and stream overlap could inflate apparent precision. **Impact: Medium.** Addressed in Issue #24 (L'Ecuyer-CMRG RNG and antithetic variates). When Issue #24 is implemented, antithetic variate application covers arrival times only; service times and routing probabilities remain non-antithetised.
 
-### Low Impact
+**L10 — Terminating Simulation Classification — Empty-Start Initial Condition (Low Impact)**
+The simulation is classified as a terminating simulation per Law (2020) [[26]](#References). The empty-start initial condition (no casualties in care on Day 0) is the correct operational initial condition for a force beginning operations; no warm-up exclusion is applied by default (`WARM_UP_DAYS = 0L`). Welch's graphical method was applied across 10 × 90-day replications; the cross-replication CMA of the R2E ICU queue exhibited episodic non-stationary behaviour (peaks at Days 13 and 38) with no convergence within the 90-day horizon, confirming the absence of a steady state. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that warm-up detection methods presuppose the existence of a steady state; they are not applicable to terminating simulations. For parametric comparison runs requiring a common time base, an optional `--warm-up N` flag is available. **Impact: Low** (no data excluded from default outputs). Addressed in Issue [#2](https://github.com/natosys/Battlefield-Casualty-Handling/issues/2) (Phase 1).
 
-**L10 — No Warm-Up Period Applied (Low Impact on Steady-State Metrics)**
-The simulation begins with empty queues. Early-period metrics are artificially optimistic because resources are not yet loaded. For a 30-day run this transient may affect the first several days of reported data. **Impact: Low** (system loads quickly given the casualty rate modelled). Addressed in Issue #2 (Welch warm-up analysis).
+### Low Impact
 
 **L11 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
 Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
@@ -1129,6 +1166,12 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [25] Chaudhry, R., Tiwari, G.L., & Singh, Y. (2006). Damage control surgery for abdominal trauma. *Medical Journal, Armed Forces India*, *62*(3), 259–262. Retrieved 25 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC4922877/
 
 [26] Law, A.M. (2020). Statistical analysis of simulation output data: the practical state of the art. In *Proceedings of the 2020 Winter Simulation Conference* (pp. 1117–1127). INFORMS Simulation Society. Retrieved 25 Jun 26, from https://informs-sim.org/wsc20papers/134.pdf
+
+[27] Rossetti, M. D. *Simulation Modeling and Arena*, Chapter 5.2–5.3: Replication-Deletion Method and Welch's Graphical Procedure. Retrieved 25 Jun 26, from https://rossetti.github.io/RossettiArenaBook/ch5-RepDeletion.html
+
+[28] Gafarian, A. V., Ancker, C. J., & Morisaku, T. (1978). Evaluation of Commonly Used Rules for Detecting Steady State. *Naval Research Logistics Quarterly*, 25, 511–529.
+
+[29] Banks, J., Carson, J. S., Nelson, B. L., & Nicol, D. M. (2005). *Discrete-Event System Simulation* (4th ed.). Pearson Prentice-Hall.
 
 ---
 

@@ -18,16 +18,19 @@ library(RColorBrewer)
 #'   returned by run_single()
 #' @param output_dir Directory path for saving CSV and plot outputs
 #'   (default: "outputs")
+#' @param warm_up_days Days to exclude from the start of the analysis window
+#'   (applied to arrivals by start_time and resources by time; default 0)
 #' @return Invisibly returns a named list of the key summary data frames
 #'
 #' @details Writes CSVs to output_dir, renders all standard plots to the
 #'   active graphics device, and writes markdown summary tables to output_dir.
-analyse_run <- function(mon, output_dir = "outputs") {
+analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  arrivals_raw <- mon$arrivals
+  warm_up_min    <- as.integer(warm_up_days) * 1440L
+  arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
   attributes_raw <- mon$attributes
-  resources_raw  <- mon$resources
+  resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
 
   write.csv(arrivals_raw,   file.path(output_dir, "mon_arrivals.csv"),   row.names = FALSE)
   write.csv(attributes_raw, file.path(output_dir, "mon_attributes.csv"), row.names = FALSE)
@@ -52,6 +55,9 @@ analyse_run <- function(mon, output_dir = "outputs") {
     fill(everything(), .direction = "down") %>%
     slice_tail(n = 1) %>%
     ungroup()
+
+  attributes_wide <- attributes_wide %>%
+    semi_join(select(arrivals, name, replication), by = c("name", "replication"))
 
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
@@ -252,7 +258,9 @@ analyse_run <- function(mon, output_dir = "outputs") {
     filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
     group_by(day) %>%
     summarise(skipped_r2b = n(), .groups = "drop") %>%
-    complete(day = 1:30, fill = list(skipped_r2b = 0))
+    complete(day = seq(min(floor(combined$start_time / (24 * 60)) + 1),
+                       max(floor(combined$start_time / (24 * 60)) + 1)),
+             fill = list(skipped_r2b = 0))
 
   plot_r2b_skipped <- ggplot(skipped_r2b_daily, aes(x = factor(day), y = skipped_r2b)) +
     geom_bar(stat = "identity", width = 0.7, fill = "#6A737B") +

@@ -35,7 +35,8 @@ RUN Rscript -e "install.packages(c( \
     'scales', \
     'shiny', \
     'shinyBS', \
-    'purrr' \
+    'purrr', \
+    'languageserver' \
 ), repos = 'https://cloud.r-project.org')"
 
 # Set mc.cores to physical core count so mclapply uses full parallelism automatically

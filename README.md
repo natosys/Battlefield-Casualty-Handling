@@ -70,12 +70,21 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
+- [Model Outputs](#model-outputs)
+  - [Domain 1 — Mortality and Preventable Death](#domain-1--mortality-and-preventable-death)
+  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2--time-to-care-from-r1-arrival)
+  - [Domain 3 — Surgical Throughput](#domain-3--surgical-throughput)
+  - [Domain 4 — Echelon Load and Capacity](#domain-4--echelon-load-and-capacity)
+  - [Domain 5 — Flow and Disposition](#domain-5--flow-and-disposition)
+  - [Domain 6 — Combat Power](#domain-6--combat-power)
+  - [Output Variable Register cross-reference](#output-variable-register-cross-reference)
 - [Simulation Analysis](#simulation-analysis)
   - [Simulation Casualty Generation](#simulation-casualty-generation)
   - [R1 Handling](#r1-handling)
   - [R2B Handling](#r2b-handling)
   - [R2E Heavy Handling](#r2e-heavy-handling)
   - [Conclusion](#conclusion)
+- [Limitations](#limitations)
 - [Further Development](#further-development)
 - [Conclusion](#conclusion)
 - [References](#references)
@@ -754,6 +763,138 @@ flowchart TD
 
 ---
 
+## Model Outputs
+
+The simulation produces a defined set of Key Performance Indicators (KPIs) organised by planner decision domain. Each KPI is selected against five criteria derived from military medical doctrine and discrete event simulation methodology [[30]](#References):
+
+- **C1 — Doctrinal Standard Compliance:** Variable measures compliance with a named standard in AJP-4.10 [[28]](#References) or ADDP 4.2 [[29]](#References).
+- **C2 — Planner Decision Relevance:** Variable value would change a force structure, positioning, or evacuation policy decision.
+- **C3 — Causal Pathway Position:** Variable lies on the causal path between input parameters and health outcomes, required for meaningful Morris sensitivity screening.
+- **C4 — Binding Constraint Identification:** Variable identifies when a resource or process becomes the active bottleneck.
+- **C5 — Health Outcome Attribution:** Variable connects to a measurable health outcome (mortality, RTD, time-to-care).
+
+> **Note on Point-of-Injury Time:** The simulation generates casualties as entities entering at Role 1. There is no pre-R1 phase modelled. Simmer's `start_time` in the arrivals monitor equals R1 arrival time, not point of injury. All time-to-care KPIs are therefore measured from R1 arrival, not point of injury. The POI-to-R1 transit falls outside the model's scope and cannot be derived from the current simulation structure. See the Limitations section for impact assessment.
+
+---
+
+### Domain 1 — Mortality and Preventable Death
+
+> **MODEL OUTPUT — Total DOW Count:**
+> Count of casualties assigned `dow = 1` across all replications. Includes all echelons.
+> **Doctrinal basis:** AJP-4.10 §3: evacuation timeliness standards are designed to minimise preventable death.
+> **Criteria:** C1, C2, C5
+> **Computation:** `sum(attributes_wide$dow == 1, na.rm = TRUE)` per replication.
+> **Limitation:** Flat DOW probability (5% P1, 2.5% P2 at R1; 1% at R2B/R2E) is independent of wait time. Time-dependent DOW (Issue #5) is required before this metric reflects the clinical consequence of queue saturation.
+
+> **MODEL OUTPUT — DOW Rate by Echelon:**
+> Count and proportion of DOW deaths occurring at each echelon (R1, R2B, R2E), derived from the `dow_echelon` attribute. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E (simmer supports only numeric attribute values).
+> **Doctrinal basis:** AJP-4.10 §5: echelon-specific mortality is the primary indicator for role-appropriate capability allocation.
+> **Criteria:** C1, C2, C3, C5
+> **Computation:** Filter `attributes_wide` where `dow == 1`; decode `dow_echelon` (1→"r1", 2→"r2b", 3→"r2e"); count by decoded echelon label; divide by total arrivals for rate. Consistency check: echelon subtotals must sum to total DOW count.
+> **Limitation:** Until Issue #5 is implemented, echelon DOW rates are not sensitive to system load and cannot be used to assess the effect of queue saturation on mortality.
+
+---
+
+### Domain 2 — Time-to-Care from R1 Arrival
+
+> **MODEL OUTPUT — Time from R1 Arrival to First Surgical Incision:**
+> Elapsed time (minutes) from R1 arrival (`start_time`) to first surgical incision (`min(r2b_surgery_start, r2e_surgery_1_start)`), per casualty requiring surgery.
+> **Doctrinal basis:** AJP-4.10 §5 and the NATO 10-1-2 timeline specify surgical intervention within 2 hours of point of injury. This KPI measures the within-system component of that standard.
+> **Criteria:** C1, C2, C3, C5
+> **Computation:** `pmin(r2b_surgery_start, r2e_surgery_1_start, na.rm = TRUE) - start_time`; exclude KIA and DOW cases where death preceded any surgery; report mean, p10, p90.
+> **Limitation:** Measured from R1 arrival, not point of injury. The POI-to-R1 component (evacuation from point of wounding to R1) is outside the model's scope and must be added separately to compare against the doctrinal 2-hour standard.
+
+> **MODEL OUTPUT — R2B Dwell Time:**
+> Time (minutes) a casualty spends at R2B from treatment start (`r2b_treatment_start_time`) to departure towards R2E (`r2b_departure_time`).
+> **Doctrinal basis:** AJP-4.10 §5 specifies that R2B (Role 2 Basic) dwell should not exceed the damage control surgery window; extended dwell indicates holding capacity pressure.
+> **Criteria:** C1, C3, C4
+> **Computation:** `r2b_departure_time - r2b_treatment_start_time`; report mean and p90.
+
+> **MODEL OUTPUT — R2B→R2E Transit Time:**
+> Time (minutes) between R2B departure (`r2b_departure_time`) and R2E arrival (`r2e_arrival_time`).
+> **Doctrinal basis:** AJP-4.10 §5 evacuation time norms for second-echelon to third-echelon transfer.
+> **Criteria:** C1, C3
+> **Computation:** `r2e_arrival_time - r2b_departure_time`; report mean and p90.
+
+> **MODEL OUTPUT — R2E Dwell Time:**
+> Time (minutes) a casualty spends at R2E from arrival (`r2e_arrival_time`) to disposition (`r2e_departure_time`), covering resuscitation, surgery, ICU, and holding.
+> **Doctrinal basis:** R2E (Role 2 Enhanced) dwell is the primary determinant of ICU and OT bed occupancy; AJP-4.10 §5 capacity planning norms are calibrated to expected dwell distributions.
+> **Criteria:** C1, C3, C4
+> **Computation:** `r2e_departure_time - r2e_arrival_time`; report mean and p90.
+
+---
+
+### Domain 3 — Surgical Throughput
+
+> **MODEL OUTPUT — OT Utilisation Rate by Echelon:**
+> Server time as a proportion of available capacity-minutes within the observation window, for R2B and R2E operating theatres.
+> **Doctrinal basis:** AJP-4.10 §5 bed and OT planning ratios; sustained utilisation above 85% indicates saturation risk.
+> **Criteria:** C3, C4
+> **Computation:** `sum(server × duration) / (sum(capacity) × observation_window)` per echelon, derived from resource monitor for `b_r2b_ot_*` and `b_r2eheavy_ot_*` resources.
+
+> **MODEL OUTPUT — R2B and R2E Surgery Counts per Day:**
+> Count of surgical cases started per simulation day at each echelon, derived from `r2b_surgery_start` and `r2e_surgery_1_start` / `r2e_surgery_2_start` attributes.
+> **Doctrinal basis:** AJP-4.10 §5 OT throughput norms; daily surgical volume is the primary operational throughput indicator for surgical teams.
+> **Criteria:** C2, C3, C4
+> **Computation:** Floor of surgery start time divided by 1440; count by day and echelon.
+
+---
+
+### Domain 4 — Echelon Load and Capacity
+
+> **MODEL OUTPUT — Resource Queue Length Over Time:**
+> Queue length time-series for each bed type (hold, resus, OT, ICU) at R1, R2B, and R2E, derived from the simmer resource monitor.
+> **Doctrinal basis:** AJP-4.10 §5 bed ratios and queue saturation thresholds; sustained non-zero queues indicate structural capacity shortfall.
+> **Criteria:** C3, C4
+> **Computation:** `queue` column from `get_mon_resources()` filtered by resource name pattern per echelon.
+
+---
+
+### Domain 5 — Flow and Disposition
+
+> **MODEL OUTPUT — RTD Rate by Echelon:**
+> Count and proportion of casualties returning to duty at each echelon (R1, R2B, R2E), derived from the `return_echelon` attribute alongside `return_day` assignments. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E.
+> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2 [[29]](#References): in-theatre return-to-duty rate is the primary combat power conservation metric; echelon-level RTD indicates where treatment is most efficient.
+> **Criteria:** C1, C2, C5
+> **Computation:** Filter `attributes_wide` where `return_day` is not NA; decode `return_echelon` (1→"r1", 2→"r2b", 3→"r2e"); count by decoded echelon label; divide by WIA + DNBI arrivals for rate. Consistency check: echelon subtotals must sum to total RTD count.
+
+> **MODEL OUTPUT — R2B Bypass Rate:**
+> Proportion of WIA casualties routed directly from R1 to R2E without R2B treatment, identifiable where `r2e_treated` is not NA and `r2b_treated` is NA.
+> **Doctrinal basis:** AJP-4.10 §5: bypass indicates either R2B overload or deliberate acuity-based routing policy; elevated bypass rates reduce R2B workload while increasing R2E demand.
+> **Criteria:** C2, C3, C4
+> **Computation:** Count of `combined` where `!is.na(r2e_treated) & is.na(r2b_treated)`, divided by total WIA arrivals.
+
+---
+
+### Domain 6 — Combat Power
+
+> **MODEL OUTPUT — Total RTD Count:**
+> Count of casualties assigned `return_day` across all replications.
+> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2: return-to-duty throughput directly determines the rate at which combat power is regenerated from the medical system.
+> **Criteria:** C2, C5
+> **Computation:** `sum(!is.na(attributes_wide$return_day))` per replication.
+
+---
+
+### Output Variable Register cross-reference
+
+| KPI | Domain | Attributes Required | Criteria | Analysis Function |
+|---|---|---|---|---|
+| Total DOW count | Mortality | `dow` | C1, C2, C5 | `sum(dow == 1)` |
+| DOW rate by echelon | Mortality | `dow`, `dow_echelon` | C1–C3, C5 | `dow_by_echelon` |
+| Time to first surgery | Time-to-care | `r2b_surgery_start`, `r2e_surgery_1_start`, `start_time` | C1–C3, C5 | `time_to_first_surgery` |
+| R2B dwell time | Time-to-care | `r2b_treatment_start_time`, `r2b_departure_time` | C1, C3, C4 | `r2b_dwell_time` |
+| R2B→R2E transit | Time-to-care | `r2b_departure_time`, `r2e_arrival_time` | C1, C3 | `r2b_r2e_transit_time` |
+| R2E dwell time | Time-to-care | `r2e_arrival_time`, `r2e_departure_time` | C1, C3, C4 | `r2e_dwell_time` |
+| OT utilisation | Surgical | resource monitor | C3, C4 | `ot_utilisation` |
+| Surgery counts/day | Surgical | `r2b_surgery_start`, `r2e_surgery_*` | C2–C4 | `r2b_summary`, `r2e_summary` |
+| Queue length over time | Echelon load | resource monitor | C3, C4 | resource plots |
+| RTD rate by echelon | Flow/disposition | `return_day`, `return_echelon` | C1, C2, C5 | `rtd_by_echelon` |
+| R2B bypass rate | Flow/disposition | `r2b_treated`, `r2e_treated` | C2–C4 | derived in `combined` |
+| Total RTD count | Combat power | `return_day` | C2, C5 | `sum(!is.na(return_day))` |
+
+---
+
 ## Simulation Analysis
 
 ### Simulation Casualty Generation
@@ -845,6 +986,51 @@ The single run analysis, viewed in its entirety, demonstrates that while the mod
 Underutilisation of resuscitation and holding beds indicates scope for resource reallocation or policy changes to increase in‑theatre recovery and return‑to‑duty rates, thereby reducing pressure on constrained surgical and critical care assets. Without such adjustments, the system’s ability to absorb prolonged surges, manage high‑acuity case‑mixes, and maintain operational tempo would be severely limited.
 
 Ultimately, the findings reinforce that effective LSCO medical support cannot rely solely on baseline performance metrics. Instead, it must be built on a foundation of scalable capacity, adaptable evacuation architecture, and dynamically balanced resource distribution between Roles 1, 2B, and 2E Heavy. By integrating these design principles into future modelling and force development, the deployed health system will be better positioned to sustain combat effectiveness across the full spectrum of operational intensity.
+
+---
+
+## Limitations
+
+This section consolidates known model limitations, organised by impact on findings. Each limitation is cross-referenced to the inline assumption blocks or output annotation blocks where applicable, and to the action plan issue addressing it where one exists.
+
+### High Impact
+
+**L1 — Point-of-Injury to R1 Transit Not Modelled (Medium Impact on Time-to-Care KPIs)**
+The simulation generates casualties as entities entering at Role 1 (R1). The transit from point of injury (POI) to R1 — covering application of tourniquet, self-aid, buddy-aid, and tactical field care — is outside the model's scope. All time-to-care KPIs are therefore measured from R1 arrival, not POI. This means the "time to first surgical incision" KPI represents only the within-system delay and cannot be directly compared to the doctrinal AJP-4.10 2-hour surgical standard without adding an external POI-to-R1 estimate. The within-system delay component remains planner-controllable; the POI-to-R1 component is determined by tactical factors outside the health system. **Impact: Medium.** Rated Medium rather than High because the within-system delay is the component planners can act on; however, any comparison to the doctrinal 2-hour standard must account for this gap explicitly.
+
+**L2 — Flat DOW Rate Independent of Wait Time (High Impact on Mortality KPIs)**
+Died of Wounds (DOW) probability is applied as a fixed value (5% P1, 2.5% P2 at R1; 1% at R2B/R2E) regardless of how long a casualty has waited for care. This means ICU saturation, OT queuing, and evacuation delay have zero effect on modelled mortality — the most clinically consequential relationship in the model is absent. DOW rate by echelon (KPI Domain 1) and time-to-care KPIs (Domain 2) are currently disconnected. **Impact: High.** Addressed in Issue #5 (time-dependent DOW survival function). **Until Issue #5 is merged, DOW count and rate outputs must not be used to assess the mortality consequence of queue saturation.**
+
+**L3 — Team-Block Resource Seizure (High Impact on Bottleneck Identification)**
+Resources are seized as whole team vectors. A second casualty cannot use any team member even when the first casualty requires only a subset of skills. Skill-specific bottlenecks (surgeon vs. anaesthetist vs. nursing officer) and task-sharing under surge conditions are invisible. OT utilisation and queue length KPIs understate contention. **Impact: High.** Addressed in Issue #4 (individual resource seizure refactor).
+
+**L4 — R2E Surgical Team Not Seized During OT (High Impact on R2E Throughput)**
+The `seize_resources(surg_team)` calls are commented out in the R2E treatment trajectory. The same surgical team can be simultaneously counted as available for a second OT — an impossible state. R2E surgical throughput is consequently overestimated. **Impact: High.** Addressed in Issue #8 (three-line hotfix).
+
+### Medium Impact
+
+**L5 — Undifferentiated DNBI Treatment Pathway (Medium Impact on Surgical Demand)**
+All DNBI casualties enter the same triage-resus-surgery routing as WIA. In practice, disease and battle fatigue cases almost never require surgery. Routing them through the surgical pathway inflates modelled surgical demand and understates the true WIA surgical bottleneck. **Impact: Medium.** Addressed in Issue #7 (DNBI sub-category routing).
+
+**L6 — Unidirectional Transport (Medium Impact on Asset Availability)**
+PMV ambulances are seized for the outbound leg only. Vehicles do not return to the originating echelon before becoming available again. Transport asset availability is systematically overestimated. **Impact: Medium.** Addressed in Issue #6 (dead-heading return legs).
+
+**L7 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
+The casualty generation model produces a smooth lognormal daily rate. Discrete tactical events generating 20–50 casualties within a 2–4 hour window — the primary stress test for surgical and ICU capacity in LSCO — are entirely absent. **Impact: Medium.** Addressed in Issue #9 (compound Poisson MASCAL injection).
+
+**L8 — Single Baseline Casualty Rate Scenario (Medium Impact on Generalisability)**
+The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), the most conservative available benchmark. System adequacy conclusions are bounded to this scenario and cannot be extrapolated to Vietnam- or Okinawa-intensity LSCO without scenario expansion. **Impact: Medium.** Addressed in Issue #10 (comparative scenario runner).
+
+**L9 — Partial Antithesisation of RNG Streams (Medium Impact on CI Precision)**
+The replication framework uses no variance reduction and does not guarantee non-overlapping RNG streams across parallel workers. CI estimates may be wider than necessary and stream overlap could inflate apparent precision. **Impact: Medium.** Addressed in Issue #24 (L'Ecuyer-CMRG RNG and antithetic variates). When Issue #24 is implemented, antithetic variate application covers arrival times only; service times and routing probabilities remain non-antithetised.
+
+### Low Impact
+
+**L10 — No Warm-Up Period Applied (Low Impact on Steady-State Metrics)**
+The simulation begins with empty queues. Early-period metrics are artificially optimistic because resources are not yet loaded. For a 30-day run this transient may affect the first several days of reported data. **Impact: Low** (system loads quickly given the casualty rate modelled). Addressed in Issue #2 (Welch warm-up analysis).
+
+**L11 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
+Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
 
 ---
 
@@ -941,6 +1127,12 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [26] Nickson, C. (2020, November 3). *Damage Control Resuscitation*. Life in the Fastlane. Retrieved 27 July, 2025, from https://litfl.com/damage-control-resuscitation/
 
 [27] Kelton, W. D., Sadowski, R. P., & Zupick, N. B. (2015). *Simulation with Arena* (6th ed.). McGraw-Hill Education. — Chapter 12 covers parallel replication design for independent Monte Carlo replications in discrete-event simulation.
+
+[28] NATO Standardization Office (2019). *AJP-4.10 Allied Joint Doctrine for Medical Support*. NATO. — Specifies evacuation timelines, surgical response standards, echelon capacity norms, and performance indicators against which deployed health system outputs are measured; primary basis for C1 (Doctrinal Standard Compliance) KPI selection throughout the Output Variable Register.
+
+[29] Australian Department of Defence. *ADDP 4.2 Health Support*. Canberra. — ADF-specific performance standards for the deployed medical system, including echelon-level throughput and return-to-duty norms; supplements AJP-4.10 for C1 KPI selection in the Output Variable Register.
+
+[30] Sargent, R. G. (2013). Verification and validation of simulation models. *Journal of Simulation*, 7(1), 12–24. https://doi.org/10.1057/jos.2012.20 — Establishes that DES model outputs must be linked to their theoretical and doctrinal basis as a condition of model validity; primary justification for the Output Variable Register requirement and the five-criterion KPI selection framework.
 
 ---
 

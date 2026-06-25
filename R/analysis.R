@@ -408,12 +408,122 @@ analyse_run <- function(mon, output_dir = "outputs") {
       theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom")
   )
 
+  # ── Output Variable Register derived KPIs ────────────────────────────────
+
+  # KPI 1: Time from R1 arrival to first surgical incision (minutes)
+  # Excludes KIA cases and DOW cases where death preceded any surgery.
+  time_to_first_surgery <- combined %>%
+    mutate(
+      first_surgery_start = pmin(
+        as.numeric(r2b_surgery_start),
+        as.numeric(r2e_surgery_1_start),
+        na.rm = TRUE
+      ),
+      time_to_surgery_min = first_surgery_start - start_time
+    ) %>%
+    filter(casualty_type != "kia",
+           !(dow == 1 & is.na(first_surgery_start))) %>%
+    filter(!is.na(time_to_surgery_min)) %>%
+    summarise(
+      mean_min = mean(time_to_surgery_min),
+      p10_min  = quantile(time_to_surgery_min, 0.10),
+      p90_min  = quantile(time_to_surgery_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 2: R2B dwell time (minutes) — arrival to departure
+  r2b_dwell_time <- combined %>%
+    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
+    mutate(dwell_min = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
+    filter(dwell_min >= 0) %>%
+    summarise(
+      mean_min = mean(dwell_min),
+      p90_min  = quantile(dwell_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 3: R2B → R2E transit time (minutes)
+  r2b_r2e_transit_time <- combined %>%
+    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
+    mutate(transit_min = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
+    filter(transit_min >= 0) %>%
+    summarise(
+      mean_min = mean(transit_min),
+      p90_min  = quantile(transit_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 4: R2E dwell time (minutes)
+  r2e_dwell_time <- combined %>%
+    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
+    mutate(dwell_min = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
+    filter(dwell_min >= 0) %>%
+    summarise(
+      mean_min = mean(dwell_min),
+      p90_min  = quantile(dwell_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 5: DOW count and rate by echelon
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e")
+  total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
+  dow_by_echelon <- attributes_wide %>%
+    filter(dow == 1 & !is.na(dow_echelon)) %>%
+    mutate(dow_echelon = echelon_labels[as.character(as.integer(dow_echelon))]) %>%
+    count(dow_echelon, name = "dow_count") %>%
+    mutate(dow_rate = dow_count / nrow(arrivals_raw))
+  stopifnot(sum(dow_by_echelon$dow_count) == total_dow)
+
+  # KPI 6: RTD count and rate by echelon
+  # return_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
+  total_rtd <- sum(!is.na(attributes_wide$return_day))
+  rtd_by_echelon <- attributes_wide %>%
+    filter(!is.na(return_day) & !is.na(return_echelon)) %>%
+    mutate(return_echelon = echelon_labels[as.character(as.integer(return_echelon))]) %>%
+    count(return_echelon, name = "rtd_count") %>%
+    mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
+  stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
+
+  # KPI 7: OT utilisation rate per echelon
+  # Server time as proportion of (capacity × observation window)
+  obs_window <- max(resources_raw$time, na.rm = TRUE)
+  ot_utilisation <- resources_raw %>%
+    filter(grepl("^b_r2(b|eheavy)_ot_", resource)) %>%
+    mutate(
+      echelon = if_else(grepl("^b_r2b_", resource), "R2B", "R2E"),
+      duration = lead(time) - time
+    ) %>%
+    filter(!is.na(duration) & duration > 0) %>%
+    group_by(echelon, resource) %>%
+    summarise(
+      busy_time = sum(server * duration, na.rm = TRUE),
+      capacity  = max(capacity, na.rm = TRUE),
+      .groups   = "drop"
+    ) %>%
+    group_by(echelon) %>%
+    summarise(
+      utilisation = sum(busy_time) / (sum(capacity) * obs_window),
+      .groups     = "drop"
+    )
+
+  write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
+  write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
+  write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
+
   invisible(list(
     combined                    = combined,
     casualty_summary            = casualty_summary,
     casualty_priority_summary   = casualty_priority_summary,
     attributes_wide             = attributes_wide,
     r2b_summary                 = r2b_summary,
-    r2e_summary                 = r2e_summary
+    r2e_summary                 = r2e_summary,
+    time_to_first_surgery       = time_to_first_surgery,
+    r2b_dwell_time              = r2b_dwell_time,
+    r2b_r2e_transit_time        = r2b_r2e_transit_time,
+    r2e_dwell_time              = r2e_dwell_time,
+    dow_by_echelon              = dow_by_echelon,
+    rtd_by_echelon              = rtd_by_echelon,
+    ot_utilisation              = ot_utilisation
   ))
 }

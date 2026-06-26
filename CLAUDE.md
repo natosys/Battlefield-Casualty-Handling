@@ -344,11 +344,11 @@ These are the validated baseline values from the current single-run analysis. Re
 
 | Metric | Baseline value |
 |---|---|
-| Total casualties (30 days) | 401 |
-| WIA (combat + support) | 155 |
+| Total casualties (30 days) | 400 |
+| WIA (combat + support) | 154 |
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
-| Priority 1 share | ~51.6% |
+| Priority 1 share | ~54.8% |
 | DOW rate (P1 at R1) | 5% (flat) |
 | DOW rate (P2 at R1) | 2.5% (flat) |
 | DOW rate (R2B/R2E) | 1% (flat) |

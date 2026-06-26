@@ -74,10 +74,9 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
 
   } else {
     # ── Multi-replication path ─────────────────────────────────────────────────
-    # Each worker in mclapply calls run_once() with seed = NULL for independent
-    # draws. set.seed() here seeds only the parent; forks inherit it before any
-    # random draws occur, so RNG independence is achieved via mc.set.seed = FALSE
-    # combined with NULL seeds inside each worker.
+    # run_replications() uses L'Ecuyer-CMRG parallel RNG streams (mc.set.seed =
+    # TRUE) for provably non-overlapping per-worker streams. set.seed() here
+    # seeds the parent stream before mclapply advances substreams per worker.
     set.seed(seed)
     mon <- run_replications(iterations, days)
 

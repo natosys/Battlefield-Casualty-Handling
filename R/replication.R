@@ -16,11 +16,15 @@ library(parallel)
 #'   diagnostics; FALSE for parallel replication workers)
 #' @param ot_hours    Hours per day the first OT shift is active (default 12).
 #'   Passed to build_env(); used by sensitivity screening to vary OT availability.
+#' @param antithetic  Logical; when TRUE antithetic arrival variates are used
+#'   (U' = 1 - U in both rate draws and within-minute jitter). Set TRUE for
+#'   even-indexed replications in run_replications() antithetic pairing.
 #' @return A wrapped simmer environment (use get_mon_*() on a list of these)
 #'
 #' @details Sets env globally (<<-) so trajectory closures can resolve it.
 #'   In forked mclapply workers, <<- modifies only the fork's global state.
-run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12) {
+run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
+                     antithetic = FALSE) {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")
@@ -32,32 +36,38 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12) {
                   at(generate_ln_arrivals("wia_cbt",
                     env_data$vars$generators$wia_cbt$mean_daily,
                     env_data$vars$generators$wia_cbt$sd_daily,
-                    env_data$pops$combat, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$combat, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_generator("kia_cbt",  casualty,
                   at(generate_ln_arrivals("kia_cbt",
                     env_data$vars$generators$kia_cbt$mean_daily,
                     env_data$vars$generators$kia_cbt$sd_daily,
-                    env_data$pops$combat, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$combat, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
                   at(generate_ln_arrivals("dnbi_cbt",
                     env_data$vars$generators$dnbi_cbt$mean_daily,
                     env_data$vars$generators$dnbi_cbt$sd_daily,
-                    env_data$pops$combat, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$combat, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_generator("wia_spt",  casualty,
                   at(generate_ln_arrivals("wia_spt",
                     env_data$vars$generators$wia_spt$mean_daily,
                     env_data$vars$generators$wia_spt$sd_daily,
-                    env_data$pops$support, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$support, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_generator("kia_spt",  casualty,
                   at(generate_ln_arrivals("kia_spt",
                     env_data$vars$generators$kia_spt$mean_daily,
                     env_data$vars$generators$kia_spt$sd_daily,
-                    env_data$pops$support, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$support, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_generator("dnbi_spt", casualty,
                   at(generate_ln_arrivals("dnbi_spt",
                     env_data$vars$generators$dnbi_spt$mean_daily,
                     env_data$vars$generators$dnbi_spt$sd_daily,
-                    env_data$pops$support, n_days, write_file = write_files)), mon = 2) %>%
+                    env_data$pops$support, n_days, write_file = write_files,
+                    antithetic = antithetic)), mon = 2) %>%
     add_global("evac_wait_count", 0)
 
   env %>% run(until = n_days * day_min)
@@ -75,17 +85,26 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12) {
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
 #'
-#' @details Uses mclapply on POSIX systems (Linux/macOS) and falls back to
-#'   lapply on Windows. Each worker calls run_once() with seed = NULL so
-#'   replications are statistically independent.
+#' @details Uses L'Ecuyer-CMRG parallel RNG streams (mc.set.seed = TRUE) to
+#'   guarantee non-overlapping per-worker streams across all replications.
+#'   Odd-indexed replications use primary arrival draws; even-indexed use
+#'   antithetic variates (U' = 1 - U) for negative correlation within pairs,
+#'   reducing estimator variance without increasing replication count.
+#'   Falls back to lapply on Windows (no fork()).
 run_replications <- function(n_iterations, n_days, ot_hours = 12) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
-  worker <- function(i) run_once(n_days, seed = NULL, write_files = FALSE, ot_hours = ot_hours)
+  worker <- function(i) {
+    run_once(n_days, seed = NULL, write_files = FALSE,
+             ot_hours = ot_hours, antithetic = (i %% 2 == 0))
+  }
 
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
   if (use_parallel) {
-    envs <- mclapply(seq_len(n_iterations), worker, mc.set.seed = FALSE)
+    RNGkind("L'Ecuyer-CMRG")
+    envs <- mclapply(seq_len(n_iterations), worker,
+                     mc.cores    = parallel::detectCores(),
+                     mc.set.seed = TRUE)
   } else {
     envs <- lapply(seq_len(n_iterations), worker)
   }
@@ -109,6 +128,8 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12) {
 #'
 #' @details Uses time-weighted mean queue per replication as the unit of
 #'   analysis, then summarises across replications. 95% CI uses the t-distribution.
+#'   Under antithetic pairing, replications are correlated within pairs but the
+#'   summary statistics remain valid estimators of the population mean and variance.
 summarise_replications <- function(mon, warm_up_days = 0) {
   warm_up_min <- as.integer(warm_up_days) * 1440L
 

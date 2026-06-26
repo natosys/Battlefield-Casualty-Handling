@@ -143,9 +143,13 @@ load_elms <- function(path) {
 #' @param seed Optional random seed for reproducibility
 #' @param write_file Write arrival times to data/ directory (default TRUE;
 #'   set FALSE for parallel replication workers to avoid file-write conflicts)
+#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
+#'   substituted for U in both the log-normal rate draw and the within-minute
+#'   arrival jitter. Enables antithetic pairing in run_replications().
 #' @return Vector of arrival times in simulation minutes
 generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
-                                 cap = 5, seed = NULL, write_file = TRUE) {
+                                 cap = 5, seed = NULL, write_file = TRUE,
+                                 antithetic = FALSE) {
   if (!is.null(seed)) set.seed(seed)
 
   n_minutes <- day_min * n_days
@@ -153,12 +157,17 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
 
-  rates      <- pmin(rlnorm(n_minutes, meanlog = mu_log, sdlog = sigma_log), cap)
+  # Explicit inverse-CDF transform so U can be reflected for antithetic pairing
+  u_rate <- runif(n_minutes)
+  if (antithetic) u_rate <- 1 - u_rate
+  rates      <- pmin(qlnorm(u_rate, meanlog = mu_log, sdlog = sigma_log), cap)
   rates      <- rates / 1440 * pop / 1000
   cumulative <- cumsum(rates)
 
-  arrival_idx   <- which(floor(cumulative) > floor(cumulative - rates))
-  arrival_times <- sort(arrival_idx + runif(length(arrival_idx), 0, 1))
+  arrival_idx  <- which(floor(cumulative) > floor(cumulative - rates))
+  u_jitter     <- runif(length(arrival_idx))
+  if (antithetic) u_jitter <- 1 - u_jitter
+  arrival_times <- sort(arrival_idx + u_jitter)
 
   if (write_file) {
     filename <- file.path("data", paste0("arrivals_", type, ".txt"))

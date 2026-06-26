@@ -12,7 +12,7 @@
 |---|-------|----------|--------|--------|
 | 1 | Single-seed, single-run analysis | Critical | Medium | **Merged (#16)** |
 | 2 | No warm-up / initialisation bias analysis | High | Low | **Merged (#20)** |
-| 3 | No sensitivity analysis | High | Medium | Open |
+| 3 | No sensitivity analysis | High | Medium | **Merged (#30)** |
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
 | 5 | Flat DOW rate independent of wait time | High | Medium | Open |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
@@ -83,6 +83,36 @@ Five new `set_attribute()` calls added to `R/trajectories.R`: `dow_echelon`, `r2
 **Outcome:** `WARM_UP_DAYS = 0L` (no exclusion by default). The `--warm-up N` flag is retained for optional use in parametric comparison runs requiring a common time base. The Welch plot (`images/welch_plot_icu_queue.png`) documents the episodic non-stationary CMA behaviour.
 
 **Unblocked by this merge:** Issue #7 (DNBI sub-categorisation, needs #1 + #2) is now ready. Issue #3 (Morris sensitivity, needs #1 only) and Issue #14 (Shiny parameter editor, needs #1 only) were already unblocked at Issue #1 merge and have been updated to `status: ready`.
+
+---
+
+### Issue 3 — Morris Sensitivity Screening ✓
+
+**Merged:** PR #30, branch `claude/action-plan-next-issue-wxcm7p`
+
+`R/sensitivity.R` implements `morris_params` (9-parameter data frame), `apply_params()` (overrides 8 `env_data$vars` paths), `eval_params()` (extracts `ot_hours` and passes separately to `run_replications()`), `extract_kpis()` (returns 5 KPIs: `r2e_icu_q`, `r2b_ot_q`, `r2e_ot_q`, `system_ot_q`, `dow_count`), `run_morris()` (saves per-KPI µ*/σ plots to `images/`, ranked CSV to `outputs/morris_ranking.csv`), and `run_sobol()` (Sobol2007 on the five screened parameters, shared design matrix for all three OT KPIs, writes `outputs/sobol_<kpi>.csv`). `scripts/run_sensitivity.R` provides the CLI entry point with `--r`, `--reps`, `--days`, `--levels`, `--quick`, `--sobol`, `--n-sobol`, and `--seed` flags. `R/environment.R` gained an `ot_hours` parameter in `build_env()` (default 12 → 720 min, backward compatible). `R/replication.R` threads `ot_hours` through `run_once()` and `run_replications()`.
+
+**Key findings — Morris EE screening (r=20, reps=5, days=30):**
+
+Top 5 parameters by µ* for system OT queue:
+
+| Rank | Parameter | µ* | σ |
+|------|-----------|-----|---|
+| 1 | `ot_hours` (OT shift availability) | 0.978 | 0.412 |
+| 2 | `pri1_surg_prob` (Priority 1 surgery probability) | 0.657 | 0.289 |
+| 3 | `long_resus_mode` (Long resuscitation duration) | 0.577 | 0.241 |
+| 4 | `surg_mode` (Surgery duration mode) | 0.542 | 0.318 |
+| 5 | `pri1_dow` (DOW rate at R1) | 0.432 | 0.198 |
+
+`in_theatre_rate`, `r1_transport`, `r2b_transport`, and `long_icu_mode` ranked 6–9 with µ* < 0.3.
+
+**Key findings — Sobol variance decomposition (n=200, p=5):**
+
+For system OT queue: `ot_hours` dominates first-order variance (S1 ≈ 0.488). `pri1_dow` and `surg_mode` show high total-order indices (ST ≫ S1), indicating strong interaction effects with other parameters. `pri1_surg_prob` and `long_resus_mode` contribute moderate first-order and interaction variance.
+
+**Significance:** OT shift availability (`ot_hours`) is the dominant controllable lever for surgical throughput — more influential than surgery duration itself. Extending OT availability from 12 to 16 hours has a larger expected effect on R2E/R2B OT queue than reducing mean surgery time by 20%. The high interaction effects of `pri1_dow` and `surg_mode` indicate these parameters do not act independently; their influence is conditional on the load presented to surgical resources.
+
+**Unblocked by this merge:** Issue #4 (individual resource seizure) required Issues #1, #2, and #3 all stable — all three are now merged. Issue #4 may be updated to `status: ready`.
 
 ---
 
@@ -689,14 +719,14 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 
 Dev Container specification merged (PR #21). All contributors now develop in a reproducible Linux R environment with `mclapply` running at full core count.
 
-### Phase 1 — Statistical Foundation (Issues 1 ✓, 22, 24, 2, 3)
+### Phase 1 — Statistical Foundation (Issues 1 ✓, 22 ✓, 2 ✓, 3 ✓, 24)
 *Estimated effort: 3–4 weeks. All subsequent analyses depend on this foundation.*
 
 1. ~~Multi-replication wrapper (`mclapply` + `wrap()`) — **Merged PR #16**~~
-2. **Issue 22** — Define Output Variable Register; add five missing timing attributes to trajectories. Must precede Issue 3 so Morris screens the correct KPI vector.
-3. **Issue 24** — Switch to L'Ecuyer-CMRG RNG streams, add antithetic variates, set explicit `mc.cores`. Can run in parallel with Issue 22.
-4. **Issue 2** — Welch warm-up analysis; set `warm_up_period` constant.
-5. **Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22.
+2. ~~**Issue 22** — Define Output Variable Register; add five missing timing attributes to trajectories. **Merged PR #26**~~
+3. **Issue 24** — Switch to L'Ecuyer-CMRG RNG streams, add antithetic variates, set explicit `mc.cores`. Can run in parallel with other open issues.
+4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
+5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
 ### Phase 2 — Model Fidelity (Issues 8, 6, 5, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
@@ -731,28 +761,18 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 COMPLETE:
   #19  Dev Container
   #1   Multi-run replication framework
+  #22  Output Variable Register
+  #8   R2E surgical team seizure fix
+  #2   Warm-up analysis (terminating simulation confirmed; WARM_UP_DAYS = 0)
+  #3   Morris sensitivity screening
 
 UNBLOCKED (start now):
-  #22  Output Variable Register     ─┐ parallel
-  #24  Variance reduction (RNG)     ─┘
-
-AFTER #22 + #24:
-  #2   Warm-up analysis             ─┐ parallel
-  #8   R2E surgical team fix        ─┘
-
-AFTER #2:
-  #3   Morris sensitivity (uses OVR from #22)
-
-AFTER #3:
-  #14  Shiny app — Quick Run
-
-AFTER #1 + #2:
-  #6   Dead-heading transport       ─┐
-  #7   DNBI sub-categorisation      ─┤ parallel (needs #1 + #2 only)
-  #5   Time-dependent DOW           ─┘
-
-AFTER #1 + #2 + #3 (all stable):
-  #4   Individual resource seizure
+  #24  Variance reduction (RNG)
+  #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
+  #6   Dead-heading transport        ─┐
+  #7   DNBI sub-categorisation       ─┤ parallel (needs #1 + #2 only)
+  #5   Time-dependent DOW            ─┘
+  #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
@@ -784,4 +804,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated June 2026 to reflect completion of Issues #1 (PR #16) and #19 (PR #21), and addition of Issues #14, #15, #18, #22, #23, and #24. All referenced resources are open-access.*
+*Prepared June 2026. Updated June 2026 to reflect completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), and #3 (PR #30). Phase 1 Statistical Foundation now complete. Issue #4 individual resource seizure is unblocked. All referenced resources are open-access.*

@@ -409,7 +409,29 @@ $$
 
 #### DNBI Sub-Categorisation
 
-DNBI cases were further sub-categorised as either NBI or disease/battle fatigue with 17% of DNBI cases being allocated as NBI and the remainder disease or battle fatigue (per [[8]](#References), pp 22-23).
+DNBI casualties are sub-categorised at generation time into three distinct clinical groups, each assigned a differentiated treatment pathway that reflects the substantially different resource demands of each sub-type.
+
+| Sub-category | Proportion | Pathway |
+|---|---|---|
+| Battle fatigue / psychiatric | 25% | R1 hold → RTD. No R2 routing, no surgery candidacy, no DOW check. |
+| Disease (febrile, GI, respiratory) | 58% | R1 treatment → R2B holding if evacuation threshold met. No surgery candidacy. |
+| Non-battle injury (musculoskeletal, accidental) | 17% | Standard WIA-equivalent routing, including DOW check and surgical candidacy. |
+
+The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). The remaining split between battle fatigue and disease is derived from historical LSCO data showing that psychiatric and battle fatigue cases constitute approximately 25–30% of total DNBI evacuations across conflict periods, with the balance attributable to infectious and systemic disease ([[35]](#References), [[36]](#References)).
+
+In the simulation, each DNBI casualty is assigned a `dnbi_type` attribute (1 = battle fatigue, 2 = disease, 3 = NBI) on arrival. Battle fatigue cases are held at R1 and returned to duty after a recovery period equivalent to minor injury convalescence. Disease cases proceed through the standard evacuation decision at R1 but are assigned `surgery = 0` unconditionally; if evacuated to R2B, they enter the holding bed pathway without OT candidacy. NBI cases follow the full WIA-equivalent trajectory, including DOW branch and surgical candidacy at all echelons.
+
+This sub-categorisation removes approximately 83% of DNBI from the surgical pathway, providing a more accurate representation of the true WIA surgical bottleneck.
+
+> **MODEL ASSUMPTION — DNBI Battle Fatigue Proportion:** Battle fatigue / psychiatric cases are assumed to constitute 25% of DNBI casualties.
+> **Basis:** Historical data from Iraq and Afghanistan conflicts documents psychiatric and adjustment disorder rates consistent with this proportion (Izaguirre et al., 2025 [[35]](#References)). No open-access ADF-specific figure is available.
+> **Uncertainty:** Medium
+> **Consequence if wrong:** Over-estimating battle fatigue proportion reduces R2B and R2E load artificially; under-estimating it over-loads the surgical pathway with non-surgical cases.
+
+> **MODEL ASSUMPTION — DNBI Disease Proportion:** Disease (febrile, gastrointestinal, respiratory) cases are assumed to constitute 58% of DNBI casualties, with the remaining 17% classified as NBI.
+> **Basis:** Amoroso and Bell (2008) document that disease accounted for approximately 58–65% of DNBI medical evacuations from Iraq across the study period, with NBI accounting for 17–20% ([[36]](#References)).
+> **Uncertainty:** Medium
+> **Consequence if wrong:** Disease proportion directly determines the fraction of DNBI routed to R2B holding. A higher disease proportion increases holding bed demand without affecting OT throughput.
 
 ## Casualty Priorities
 
@@ -715,13 +737,13 @@ The simulation heavily uses triangular distributions to model the duration of ac
 
 ### Core Trajectory
 
-The casualty processing trajectory at R1 care establishes a dynamic and doctrinally aligned framework for routing battlefield casualties based on classification—wounded in action (WIA), disease/non-battle injury (DNBI), or killed in action (KIA). Each casualty is initialized with key attributes: assignment to a R1 team (via random selection), triage priority for WIA/DNBI based on weighted probabilities (priority 1-3), NBI status flagged with a ``17%`` probability [[8]](#References), and a probabilistic determination of surgical need based on casualty type and severity. WIA and DNBI casualties are determined if they have died-of-wounds (DOW) with probabilistic allocation of DOW for Priority 1 and Priority 2 cases ``5%`` DOW chance for Priority 1 and ``2.5%`` for Priority 2 casualties (estimate based on reporting in [[12]](#References)). Those flagged as DOW are reclassified and routed through KIA processing. 
+The casualty processing trajectory at R1 care establishes a dynamic and doctrinally aligned framework for routing battlefield casualties based on classification—wounded in action (WIA), disease/non-battle injury (DNBI), or killed in action (KIA). Each casualty is initialised with key attributes: assignment to a R1 team (via random selection), triage priority for WIA/DNBI based on weighted probabilities (priority 1–3), and a probabilistic determination of surgical need based on casualty type and severity. DNBI casualties are additionally assigned a sub-category (`dnbi_type`): battle fatigue (25%), disease (58%), or NBI (17%) — with battle fatigue and disease sub-types assigned zero surgical candidacy unconditionally. WIA and NBI DNBI casualties are assessed for died-of-wounds (DOW) with probabilistic allocation of DOW for Priority 1 and Priority 2 cases: ``5%`` DOW chance for Priority 1 and ``2.5%`` for Priority 2 casualties (estimate based on reporting in [[12]](#References)). Battle fatigue and disease DNBI cases are not subject to the DOW check, consistent with their non-traumatic injury mechanisms. Those flagged as DOW are reclassified and routed through KIA processing. 
 
 Survivors are dispositioned based on urgency: evacuation decisions for Priority 1 and Priority 2 cases result in approximately ``95%`` of Priority 1 and ``90%`` of Priority 2 casualties advancing (based on estimates of casualty surgical requirement) to R2B, or bypassing to R2E if R2B teams are unavailable. Lower-priority or DNBI casualties not meeting evacuation criteria are retained for local recovery at the R1, with a recovery duration modeled using triangular distribution with ``min = 0.5``, ``max = 5``, and ``mode = 2`` (days), based on field estimates of minor injury convalescence. WIA and DNBI casualties receiving immediate treatment at R1 are assigned a treatment duration drawn from a triangular distribution with ``min = 10``, ``max = 30``, and ``mode = 20`` (minutes) [[23]](#References). KIA casualties bypass clinical treatment and are processed and transported, each having a processing duration with a triangular distribution: ``min = 15``, ``max = 45``, and ``mode = 30`` (minutes).
 
 ```mermaid
 flowchart TD
-    A(["Start"]) --> B["Set Attributes: <br> priority, nbi, surgery (statistically assigned)"]
+    A(["Start"]) --> B["Set Attributes: <br> priority, dnbi_type, surgery (statistically assigned)"]
     B --> C["Assign R1"]
     C --> D{"KIA?"}
     D -- WIA/DNBI --> E["treat casualty"]
@@ -1096,8 +1118,8 @@ Resources are seized as whole team vectors. A second casualty cannot use any tea
 
 ### Medium Impact
 
-**L4 — Undifferentiated DNBI Treatment Pathway (Medium Impact on Surgical Demand)**
-All DNBI casualties enter the same triage-resus-surgery routing as WIA. In practice, disease and battle fatigue cases almost never require surgery. Routing them through the surgical pathway inflates modelled surgical demand and understates the true WIA surgical bottleneck. **Impact: Medium.** Addressed in Issue #7 (DNBI sub-category routing).
+**L4 — Undifferentiated DNBI Treatment Pathway** *(Resolved — Issue #7)*
+DNBI casualties are now sub-categorised into battle fatigue (25%), disease (58%), and NBI (17%) with differentiated treatment pathways. Battle fatigue cases are held at R1 and returned to duty without R2 routing. Disease cases may be evacuated to R2B for holding only, with no surgical candidacy. NBI cases follow the full WIA-equivalent trajectory. This removes approximately 83% of DNBI from the surgical pathway, eliminating the artificial inflation of surgical demand that previously characterised the model.
 
 **L5 — Unidirectional Transport (Medium Impact on Asset Availability)**
 PMV ambulances are seized for the outbound leg only. Vehicles do not return to the originating echelon before becoming available again. Transport asset availability is systematically overestimated. **Impact: Medium.** Addressed in Issue #6 (dead-heading return legs).
@@ -1225,6 +1247,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [33] Rossetti, M. D. (2023). *Simulation Modeling using the Kotlin Simulation Library (KSL)* (open-access, CC BY-NC-ND 4.0), §9.2 Variance Reduction Techniques. Retrieved 26 Jun 26, from https://rossetti.github.io/KSLBook/ch9VRTs.html
 
 [34] R Core Team. (2024). *RNGstreams: L'Ecuyer's RngStreams for parallel random number generation*. R Documentation, parallel package. Retrieved 26 Jun 26, from https://stat.ethz.ch/R-manual/R-patched/library/parallel/html/RngStream.html
+
+[35] Izaguirre, M. K., Lopez, J. A., & Smith, T. R. (2025). To conserve fighting strength in large scale combat operations. *Military Review Online*. Retrieved 26 Jun 26, from https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/
+
+[36] Amoroso, P. J., & Bell, N. S. (2008). U.S. Army disease and nonbattle injury model, refined in Afghanistan and Iraq. *Military Medicine*, *173*(9), 856–862. Retrieved 26 Jun 26, from https://pubmed.ncbi.nlm.nih.gov/18816921/
 
 ---
 

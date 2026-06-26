@@ -174,17 +174,18 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
 #'
 #' @param env A simmer environment object
 #' @param env_data Nested list defining resources for each echelon/unit type
+#' @param ot_hours Hours per day that the first OT shift is active (default 12).
+#'   Shift 1 covers 0 to ot_hours; Shift 2 covers ot_hours to 24. Used by
+#'   sensitivity analysis to screen OT availability as a screened parameter.
 #' @return Modified simmer environment with all resources added
 #'
-#' @details Schedules operating theatre shifts for surgical staff and beds:
-#'   - Shift 1: 0000–1200 (ot_shift_1)
-#'   - Shift 2: 1200–2400 (ot_shift_2)
-#'
+#' @details Schedules operating theatre shifts for surgical staff and beds.
 #' Counters r2e_surg_counter, r2e_ot_bed_counter, r2b_surg_counter, and
 #' r2b_ot_bed_counter alternate shift assignments across teams.
-build_env <- function(env, env_data) {
-  ot_shift_1 <- simmer::schedule(c(0, 720),  c(1, 0), period = 1440)
-  ot_shift_2 <- simmer::schedule(c(720, 1440), c(1, 0), period = 1440)
+build_env <- function(env, env_data, ot_hours = 12) {
+  ot_break   <- as.integer(ot_hours * 60L)
+  ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = 1440)
+  ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)
 
   r2e_surg_counter   <- 1
   r2e_ot_bed_counter <- 1

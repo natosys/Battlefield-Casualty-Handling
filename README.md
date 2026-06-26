@@ -67,6 +67,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
   - [Warm-up Period Analysis](#warm-up-period-analysis)
+  - [Sensitivity Analysis](#sensitivity-analysis)
   - [🔧Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -531,6 +532,10 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
 | `R/replication.R` | Multi-run replication framework — `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), `summarise_replications` (time-weighted KPI summary with 95% CI), and `run_single` backwards-compat shim |
 | `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths |
+| `R/sensitivity.R` | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`) — parameter bounds table, `apply_params` for env_data override, `eval_params` for single design-point evaluation |
+| `R/warmup.R` | Welch warm-up analysis — `compute_welch_cma`, `plot_welch`, `run_welch_analysis`; `WARM_UP_DAYS` constant |
+| `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
+| `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
 | `data_import.R` | Compatibility shim — sources `R/environment.R` so existing code continues to work |
 | `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep` |
 | `data/` | Read-only input data — arrival schedules and environment data |
@@ -603,6 +608,48 @@ Rscript run.R --iterations 50 --days 60 --warm-up 10
 > **Basis:** Law (2020) [[26]](#References) distinguishes terminating simulations (finite-horizon, natural end state) from steady-state simulations (infinite-horizon, seeking long-run equilibrium). The battlefield casualty handling simulation models a finite operational campaign; the full run — including the initial build-up — represents the campaign truth. Welch's graphical method [[27]](#References) was applied across 10 × 90-day replications; the CMA of the R2E ICU queue exhibited episodic non-stationary behaviour (peaks at Days 13 and 38) with no convergence, confirming the absence of a steady state. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that graphical warm-up detection methods presuppose a steady state; they are not applicable to terminating simulations.
 > **Uncertainty:** Low — the terminating classification is an inherent property of the finite campaign model structure, not a parameter subject to calibration.
 > **Consequence if wrong:** If the simulation were treated as steady-state and early data discarded, KPIs would represent mid-campaign equilibrium rather than the campaign-wide casualty burden from Day 1. For operational planning — which must account for casualty load from the onset of operations — this would understate total system demand and the severity of early-period queues.
+
+#### Sensitivity Analysis
+
+The triangular distribution parameters governing surgery duration, resuscitation time, transport delay, DOW probability, ICU length of stay, and OT availability carry significant epistemic uncertainty. The conclusion that the system "operates with little reserve" [[22]](#References) may shift materially under plausible parameter perturbations. Without sensitivity analysis, no parameter can be identified as rate-limiting versus incidental to the result, and findings cannot be used to prioritise capability investments.
+
+**Morris Elementary Effects (EE) screening** [[30]](#References) was applied using R's `sensitivity` package [[31]](#References). Morris EE is a global, one-at-a-time (OAT) method that identifies the few influential parameters from a larger set at low computational cost — r × (p + 1) model evaluations, where r is the trajectory count and p is the number of parameters. It produces two statistics per parameter: µ\* (the mean absolute Elementary Effect, indicating overall influence) and σ (the standard deviation of Elementary Effects, indicating nonlinearity and interaction). Parameters with large µ\* and small σ have large, approximately linear effects; large µ\* and large σ indicate nonlinear or interaction-dominated effects.
+
+Nine parameters were selected for screening, spanning the main uncertain inputs across all three echelons:
+
+| Parameter | Variable | Baseline | Lower | Upper |
+|-----------|----------|----------|-------|-------|
+| Surgery duration (R2B and R2E) | `surg_mode` | 120 min | 90 | 150 |
+| Long resuscitation duration | `long_resus_mode` | 45 min | 25 | 70 |
+| P1 DOW probability at R1 | `pri1_dow` | 5% | 2% | 10% |
+| R1→R2B transport time | `r1_transport` | 30 min | 15 | 45 |
+| R2B→R2E transport time | `r2b_transport` | 30 min | 15 | 45 |
+| Long ICU duration | `long_icu_mode` | 1440 min | 770 | 2160 |
+| P1 surgery probability | `pri1_surg_prob` | 90% | 70% | 98% |
+| In-theatre recovery rate | `in_theatre_rate` | 10% | 5% | 20% |
+| OT shift duration | `ot_hours` | 12 hr | 8 | 16 |
+
+Three primary KPI outputs were monitored across all replications at each design point: mean R2B OT queue, mean R2E OT queue (combined as system OT queue), and mean R2E ICU queue. Total DOW count is tracked as a secondary output. Parameters ranked by µ\* on the system OT queue identify the inputs most responsible for surgical bottleneck severity.
+
+> **MODEL ASSUMPTION — SENSITIVITY PARAMETER BOUNDS:** The bounds in the Morris screening table are set to cover clinically plausible variation around the current baseline values, derived from expert judgement and the literature reviewed in the Simulation Design section.
+> **Basis:** Lower and upper bounds were set to span approximately ±25–50% of the baseline value for duration parameters (surgery, resuscitation, transport, ICU) and the full clinically plausible range for probability parameters (DOW, surgery probability, in-theatre recovery). OT shift availability (8–16 hours) reflects the range from a single extended session to full 16-hour dual-shift coverage.
+> **Uncertainty:** Medium — bounds represent informed clinical judgement rather than empirically derived uncertainty intervals. Wider bounds would increase µ\* values without changing parameter ranking if the model is monotone.
+> **Consequence if wrong:** Narrow bounds will understate the influence of parameters whose true range is wider; wide bounds will conflate plausible and implausible parameter regions. Parameter ranking is sensitive to bound specification in nonlinear models.
+
+The sensitivity analysis is implemented in `R/sensitivity.R` and executed via:
+
+```bash
+# Full Morris screening: r=20 trajectories × 10 (p+1) = 200 evaluations, 5 reps each
+Rscript scripts/run_sensitivity.R
+
+# Smoke test: r=3, reps=3, days=5 (completes in <5 minutes)
+Rscript scripts/run_sensitivity.R --quick
+
+# Morris then Sobol variance decomposition on top 5 parameters
+Rscript scripts/run_sensitivity.R --sobol
+```
+
+Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
 ### 🔧Simulation Environment Setup
 
@@ -1045,32 +1092,26 @@ Died of Wounds (DOW) probability is applied as a fixed value (5% P1, 2.5% P2 at 
 **L3 — Team-Block Resource Seizure (High Impact on Bottleneck Identification)**
 Resources are seized as whole team vectors. A second casualty cannot use any team member even when the first casualty requires only a subset of skills. Skill-specific bottlenecks (surgeon vs. anaesthetist vs. nursing officer) and task-sharing under surge conditions are invisible. OT utilisation and queue length KPIs understate contention. **Impact: High.** Addressed in Issue #4 (individual resource seizure refactor).
 
-**L4 — R2E Surgical Team Not Seized During OT (High Impact on R2E Throughput)**
-The `seize_resources(surg_team)` calls are commented out in the R2E treatment trajectory. The same surgical team can be simultaneously counted as available for a second OT — an impossible state. R2E surgical throughput is consequently overestimated. **Impact: High.** Addressed in Issue #8 (three-line hotfix).
-
 ### Medium Impact
 
-**L5 — Undifferentiated DNBI Treatment Pathway (Medium Impact on Surgical Demand)**
+**L4 — Undifferentiated DNBI Treatment Pathway (Medium Impact on Surgical Demand)**
 All DNBI casualties enter the same triage-resus-surgery routing as WIA. In practice, disease and battle fatigue cases almost never require surgery. Routing them through the surgical pathway inflates modelled surgical demand and understates the true WIA surgical bottleneck. **Impact: Medium.** Addressed in Issue #7 (DNBI sub-category routing).
 
-**L6 — Unidirectional Transport (Medium Impact on Asset Availability)**
+**L5 — Unidirectional Transport (Medium Impact on Asset Availability)**
 PMV ambulances are seized for the outbound leg only. Vehicles do not return to the originating echelon before becoming available again. Transport asset availability is systematically overestimated. **Impact: Medium.** Addressed in Issue #6 (dead-heading return legs).
 
-**L7 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
+**L6 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
 The casualty generation model produces a smooth lognormal daily rate. Discrete tactical events generating 20–50 casualties within a 2–4 hour window — the primary stress test for surgical and ICU capacity in LSCO — are entirely absent. **Impact: Medium.** Addressed in Issue #9 (compound Poisson MASCAL injection).
 
-**L8 — Single Baseline Casualty Rate Scenario (Medium Impact on Generalisability)**
+**L7 — Single Baseline Casualty Rate Scenario (Medium Impact on Generalisability)**
 The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), the most conservative available benchmark. System adequacy conclusions are bounded to this scenario and cannot be extrapolated to Vietnam- or Okinawa-intensity LSCO without scenario expansion. **Impact: Medium.** Addressed in Issue #10 (comparative scenario runner).
 
-**L9 — Partial Antithesisation of RNG Streams (Medium Impact on CI Precision)**
+**L8 — Partial Antithetisation of RNG Streams (Medium Impact on CI Precision)**
 The replication framework uses no variance reduction and does not guarantee non-overlapping RNG streams across parallel workers. CI estimates may be wider than necessary and stream overlap could inflate apparent precision. **Impact: Medium.** Addressed in Issue #24 (L'Ecuyer-CMRG RNG and antithetic variates). When Issue #24 is implemented, antithetic variate application covers arrival times only; service times and routing probabilities remain non-antithetised.
-
-**L10 — Terminating Simulation Classification — Empty-Start Initial Condition (Low Impact)**
-The simulation is classified as a terminating simulation per Law (2020) [[26]](#References). The empty-start initial condition (no casualties in care on Day 0) is the correct operational initial condition for a force beginning operations; no warm-up exclusion is applied by default (`WARM_UP_DAYS = 0L`). Welch's graphical method was applied across 10 × 90-day replications; the cross-replication CMA of the R2E ICU queue exhibited episodic non-stationary behaviour (peaks at Days 13 and 38) with no convergence within the 90-day horizon, confirming the absence of a steady state. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that warm-up detection methods presuppose the existence of a steady state; they are not applicable to terminating simulations. For parametric comparison runs requiring a common time base, an optional `--warm-up N` flag is available. **Impact: Low** (no data excluded from default outputs). Addressed in Issue [#2](https://github.com/natosys/Battlefield-Casualty-Handling/issues/2) (Phase 1).
 
 ### Low Impact
 
-**L11 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
+**L9 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
 Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
 
 ---
@@ -1172,6 +1213,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [28] Gafarian, A. V., Ancker, C. J., & Morisaku, T. (1978). Evaluation of Commonly Used Rules for Detecting Steady State. *Naval Research Logistics Quarterly*, 25, 511–529.
 
 [29] Banks, J., Carson, J. S., Nelson, B. L., & Nicol, D. M. (2005). *Discrete-Event System Simulation* (4th ed.). Pearson Prentice-Hall.
+
+[30] Pujol, G., Iooss, B., Janon, A., Gilquin, L., Le Gratiet, L., Lemaitre, P., Marrel, A., Meynaoui, A., Nelson, B. L., Monod, H., Fruth, J., Ratto, M., Touati, T., & Weber, F. (2024). *sensitivity: Global Sensitivity Analysis of Model Outputs and Related Quantities*. R package version 1.30.1. Retrieved 25 Jun 26, from https://cran.r-project.org/package=sensitivity
+
+[31] OpenMOLE Community. (2024). *Sensitivity Analysis: Morris Screening Method*. OpenMOLE Documentation. Retrieved 25 Jun 26, from https://openmole.org/Sensitivity.html
 
 ---
 

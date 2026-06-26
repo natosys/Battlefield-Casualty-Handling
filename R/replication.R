@@ -10,19 +10,21 @@ library(parallel)
 
 #' Build and run one complete simulation replication
 #'
-#' @param n_days Simulation duration in days
-#' @param seed   Random seed (NULL = random, for independent replications)
+#' @param n_days      Simulation duration in days
+#' @param seed        Random seed (NULL = random, for independent replications)
 #' @param write_files Write arrival data to data/ directory (TRUE for single-run
 #'   diagnostics; FALSE for parallel replication workers)
+#' @param ot_hours    Hours per day the first OT shift is active (default 12).
+#'   Passed to build_env(); used by sensitivity screening to vary OT availability.
 #' @return A wrapped simmer environment (use get_mon_*() on a list of these)
 #'
 #' @details Sets env globally (<<-) so trajectory closures can resolve it.
 #'   In forked mclapply workers, <<- modifies only the fork's global state.
-run_once <- function(n_days, seed = NULL, write_files = FALSE) {
+run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12) {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")
-  env <<- build_env(env, env_data)
+  env <<- build_env(env, env_data, ot_hours = ot_hours)
   casualty <- build_casualty_trajectory()
 
   env <<- env %>%
@@ -68,16 +70,18 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE) {
 #'
 #' @param n_iterations Number of replications
 #' @param n_days       Simulation duration in days
+#' @param ot_hours     Hours per day the first OT shift is active (default 12).
+#'   Threaded to run_once() → build_env(); used by sensitivity screening.
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
 #'
 #' @details Uses mclapply on POSIX systems (Linux/macOS) and falls back to
 #'   lapply on Windows. Each worker calls run_once() with seed = NULL so
 #'   replications are statistically independent.
-run_replications <- function(n_iterations, n_days) {
+run_replications <- function(n_iterations, n_days, ot_hours = 12) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
-  worker <- function(i) run_once(n_days, seed = NULL, write_files = FALSE)
+  worker <- function(i) run_once(n_days, seed = NULL, write_files = FALSE, ot_hours = ot_hours)
 
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
   if (use_parallel) {

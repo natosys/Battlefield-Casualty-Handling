@@ -85,18 +85,27 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
 #'
-#' @details Uses L'Ecuyer-CMRG parallel RNG streams (mc.set.seed = TRUE) to
-#'   guarantee non-overlapping per-worker streams across all replications.
-#'   Odd-indexed replications use primary arrival draws; even-indexed use
-#'   antithetic variates (U' = 1 - U) for negative correlation within pairs,
-#'   reducing estimator variance without increasing replication count.
-#'   Falls back to lapply on Windows (no fork()).
+#' @details Antithetic pairing: replications (2k-1, 2k) share a seed so that
+#'   run_once() draws uniforms U for the primary and 1-U for the antithetic,
+#'   inducing negative arrival-count correlation within each pair. Independence
+#'   across pairs is ensured by distinct pair_seeds. RNGkind("L'Ecuyer-CMRG")
+#'   is set before mclapply for the global stream; individual pair seeds are
+#'   set inside each worker via run_once(seed = ...), overriding the substream
+#'   but preserving pair-level independence. Falls back to lapply on Windows.
 run_replications <- function(n_iterations, n_days, ot_hours = 12) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
+  # Each pair (2k-1, 2k) shares a seed: primary draws U, antithetic draws 1-U
+  # from the same starting RNG state, giving Cor(primary, antithetic) < 0.
+  n_pairs    <- ceiling(n_iterations / 2)
+  pair_seeds <- sample.int(.Machine$integer.max, n_pairs)
+
   worker <- function(i) {
-    run_once(n_days, seed = NULL, write_files = FALSE,
-             ot_hours = ot_hours, antithetic = (i %% 2 == 0))
+    run_once(n_days,
+             seed        = pair_seeds[ceiling(i / 2)],
+             write_files = FALSE,
+             ot_hours    = ot_hours,
+             antithetic  = (i %% 2 == 0))
   }
 
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1

@@ -598,6 +598,10 @@
               "val": 0.58
             },
             {
+              "var": "disease_surgery_pct",
+              "val": 0.06
+            },
+            {
               "var": "nbi_pct",
               "val": 0.17
             },

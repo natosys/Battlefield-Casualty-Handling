@@ -414,14 +414,14 @@ DNBI casualties are sub-categorised at generation time into three distinct clini
 | Sub-category | Proportion | Pathway |
 |---|---|---|
 | Battle fatigue / psychiatric | 25% | R1 hold → RTD. No R2 routing, no surgery candidacy, no DOW check. |
-| Disease (febrile, GI, respiratory) | 58% | R1 treatment → R2B holding if evacuation threshold met. No surgery candidacy. |
+| Disease (febrile, GI, respiratory) | 58% | R1 treatment → R2B holding if evacuation threshold met. 6% surgical candidacy for emergency conditions (appendicitis, cholecystitis, perforated ulcer). No DOW check. |
 | Non-battle injury (musculoskeletal, accidental) | 17% | Standard WIA-equivalent routing, including DOW check and surgical candidacy. |
 
 The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). The remaining split between battle fatigue and disease is derived from historical LSCO data showing that psychiatric and battle fatigue cases constitute approximately 25–30% of total DNBI evacuations across conflict periods, with the balance attributable to infectious and systemic disease ([[35]](#References), [[36]](#References)).
 
-In the simulation, each DNBI casualty is assigned a `dnbi_type` attribute (1 = battle fatigue, 2 = disease, 3 = NBI) on arrival. Battle fatigue cases are held at R1 and returned to duty after a recovery period equivalent to minor injury convalescence. Disease cases proceed through the standard evacuation decision at R1 but are assigned `surgery = 0` unconditionally; if evacuated to R2B, they enter the holding bed pathway without OT candidacy. NBI cases follow the full WIA-equivalent trajectory, including DOW branch and surgical candidacy at all echelons.
+In the simulation, each DNBI casualty is assigned a `dnbi_type` attribute (1 = battle fatigue, 2 = disease, 3 = NBI) on arrival. Battle fatigue cases are held at R1 and returned to duty after a recovery period equivalent to minor injury convalescence, with no surgical candidacy. Disease cases proceed through the standard evacuation decision at R1 with a 6% surgical candidacy applied unconditionally across priorities, reflecting emergency conditions such as appendicitis, cholecystitis, and perforated peptic ulcer that occur in deployed disease DNBI populations [[37]](#References)[[38]](#References); if evacuated to R2B without surgical candidacy, they enter the holding bed pathway only. NBI cases follow the full WIA-equivalent trajectory, including DOW branch and surgical candidacy at all echelons.
 
-This sub-categorisation removes approximately 83% of DNBI from the surgical pathway, providing a more accurate representation of the true WIA surgical bottleneck.
+This sub-categorisation removes approximately 83% of DNBI from the routine surgical pathway, providing a more accurate representation of the true WIA surgical bottleneck, while retaining a small emergency surgical demand from disease cases.
 
 > **MODEL ASSUMPTION — DNBI Battle Fatigue Proportion:** Battle fatigue / psychiatric cases are assumed to constitute 25% of DNBI casualties.
 > **Basis:** Historical data from Iraq and Afghanistan conflicts documents psychiatric and adjustment disorder rates consistent with this proportion (Izaguirre et al., 2025 [[35]](#References)). No open-access ADF-specific figure is available.
@@ -432,6 +432,11 @@ This sub-categorisation removes approximately 83% of DNBI from the surgical path
 > **Basis:** Amoroso and Bell (2008) document that disease accounted for approximately 58–65% of DNBI medical evacuations from Iraq across the study period, with NBI accounting for 17–20% ([[36]](#References)).
 > **Uncertainty:** Medium
 > **Consequence if wrong:** Disease proportion directly determines the fraction of DNBI routed to R2B holding. A higher disease proportion increases holding bed demand without affecting OT throughput.
+
+> **MODEL ASSUMPTION — Disease DNBI Surgical Rate:** 6% of disease DNBI casualties are assumed to require emergency surgery.
+> **Basis:** Informed estimate derived from population-level surgical incidence in military-age males. Appendicitis alone occurs at approximately 35–50 per 10,000 per year in this demographic ([[37]](#References)); acute cholecystitis, perforated peptic ulcer, and complicated soft tissue infections add further surgical demand. Against ~100 disease DNBI presentations per month in the modelled force, these conditions yield approximately 3–6 surgical cases (3–6%). Emergency surgical care for disease conditions has been documented as a significant component of deployed hospital workload ([[38]](#References)). A rate of 6% is used as a central estimate.
+> **Uncertainty:** High
+> **Consequence if wrong:** The absolute number of surgical cases from disease DNBI is small (typically fewer than 10 per 30-day run). Halving or doubling this rate produces a minor shift in OT utilisation relative to the dominant WIA surgical demand.
 
 ## Casualty Priorities
 
@@ -1251,6 +1256,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [35] Izaguirre, M. K., Lopez, J. A., & Smith, T. R. (2025). To conserve fighting strength in large scale combat operations. *Military Review Online*. Retrieved 26 Jun 26, from https://www.armyupress.army.mil/Journals/Military-Review/Online-Exclusive/2025-OLE/Conserve-Fighting-Strength-in-LSCO/
 
 [36] Amoroso, P. J., & Bell, N. S. (2008). U.S. Army disease and nonbattle injury model, refined in Afghanistan and Iraq. *Military Medicine*, *173*(9), 856–862. Retrieved 26 Jun 26, from https://pubmed.ncbi.nlm.nih.gov/18816921/
+
+[37] Black, J. (2002). Acute appendicitis in Japanese soldiers in Burma: support for the "fibre" theory. *Gut*, *51*(2), 297. Retrieved 26 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC1773321/
+
+[38] Weeks, S. R., Oh, J. S., Elster, E. A., & Learn, P. A. (2017). Humanitarian surgical care in the US military treatment facilities in Afghanistan from 2002 to 2013. *JAMA Surgery*, *153*(1), 84–86. Retrieved 26 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC5833623/
 
 ---
 

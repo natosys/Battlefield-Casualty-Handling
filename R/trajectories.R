@@ -817,8 +817,14 @@ build_casualty_trajectory <- function() {
 
       if (is.na(prio)) return(0)
 
-      # Battle fatigue (1) and disease (2) DNBI sub-types have no surgery candidacy
-      if (!is.na(dnbi_type) && dnbi_type %in% c(1, 2)) return(0)
+      # Battle fatigue: no surgery candidacy
+      if (!is.na(dnbi_type) && dnbi_type == 1L) return(0)
+
+      # Disease: small probability for emergency surgical conditions (appendicitis,
+      # cholecystitis, perforated ulcer); applied unconditionally across priorities
+      if (!is.na(dnbi_type) && dnbi_type == 2L) {
+        return(as.numeric(runif(1) < env_data$vars$r1$other$disease_surgery_pct))
+      }
 
       if (prio == 1) return(as.numeric(runif(1) < env_data$vars$r1$other$pri1_surgery))
       if (prio == 2) return(as.numeric(runif(1) < env_data$vars$r1$other$pri2_surgery))

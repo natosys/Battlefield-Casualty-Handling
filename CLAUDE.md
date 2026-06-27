@@ -349,9 +349,11 @@ These are the validated baseline values from the current single-run analysis. Re
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
 | Priority 1 share | ~54.8% |
+| DOW count (seed 42) | 5 (stochastic; 10-rep mean ≈ 9, range 6–13) |
 | DOW rate (P1 at R1) | 5% (flat) |
 | DOW rate (P2 at R1) | 2.5% (flat) |
 | DOW rate (R2B/R2E) | 1% (flat) |
+| DNBI sub-types (seed 42) | battle_fatigue=46, disease=97, nbi=33 |
 
 ---
 

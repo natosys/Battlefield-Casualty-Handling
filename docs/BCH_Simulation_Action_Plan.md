@@ -32,7 +32,7 @@
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | Open |
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | Open |
-| 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | Open |
+| 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
 
 ---
 
@@ -43,6 +43,30 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 44 — RTD KPI Decomposed into Battle Fatigue vs Clinical Sub-totals ✓
+
+**Merged:** PR #47, branch `feature/issue-44-rtd-kpi-annotation`
+
+Replaces the single `total_rtd` count with two operationally distinct sub-totals. `bf_rtd` counts battle fatigue casualties (dnbi_type == 1) assigned `return_day` at R1 without clinical treatment; `clinical_rtd` counts all other RTDs (WIA/NBI/disease recovery at R1, R2B hold-bed discharge, R2E hold-bed discharge). `total_rtd = bf_rtd + clinical_rtd`, enforced by `stopifnot()`. `rtd_by_echelon` gains a `rtd_type` column (`"battle_fatigue"` / `"clinical"`), grouping the CSV output by `(return_echelon, rtd_type)`. All three scalars added to the `analyse_run()` return list. README updated with accurate Return to Duty design section and a Simulation Analysis subsection with the seed-42 results table. CLAUDE.md baseline table updated with confirmed values.
+
+**Seed-42 baseline (30 days, single run):**
+
+| Echelon | RTD type | Count | Rate (of 400) |
+|---|---|---|---|
+| R1 | battle_fatigue | 38 | 9.5% |
+| R1 | clinical | 59 | 14.8% |
+| R2B | clinical | 46 | 11.5% |
+| R2E | clinical | 5 | 1.3% |
+| **Total** | | **148** | **37.0%** |
+
+`bf_rtd` = 38, not 46, because 8 of 46 battle fatigue casualties were still within their R1 hold timeout when the 30-day simulation ended — `return_day` is only assigned on timeout completion. Confirmed across a 10-replication run with both `stopifnot()` guards passing in all replications.
+
+**Significance:** The decomposition preserves the operational distinction between forward behavioural health management (R1 battle fatigue hold) and clinical treatment throughput at each Role 2 echelon. The combined total previously obscured both. The 37.0% aggregate RTD rate is within the historical in-theatre range of 7.6–42.1% [[9]](#References).
+
+**Unblocked by this merge:** No new issues — all Phase 2 issues were already unblocked before #44.
+
+---
 
 ### Issue 37 — OT Bed Schedule Removed ✓
 
@@ -946,7 +970,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
 7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **Merged PR #36.**~~
 8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **Merged PR #38.**~~
-9. **Issue 44** — RTD KPI annotation: add inline note at `R/analysis.R:488` distinguishing battle fatigue RTDs from clinical RTDs. Small; can ship with Issue #43 or independently.
+9. ~~**Issue 44** — RTD KPI annotation: decomposed `total_rtd` into `bf_rtd` + `clinical_rtd`, added `rtd_type` column to `rtd_by_echelon`, two `stopifnot()` guards, seed-42 baseline documented. **Merged PR #47.**~~
 10. **Issue 6** — Dead-heading return legs for transport assets.
 11. **Issue 5** — Time-dependent DOW survival function.
 12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
@@ -987,6 +1011,7 @@ COMPLETE (merged to main):
   #7   DNBI sub-categorisation (PR #34)
   #35  R2B OT bypass check fix (PR #36)
   #37  OT bed schedule fix (PR #38)
+  #44  RTD KPI decomposition — bf_rtd + clinical_rtd (PR #47)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -995,7 +1020,6 @@ UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #6   Dead-heading transport        ─┐ parallel
   #5   Time-dependent DOW            ─┘
-  #44  RTD KPI annotation            (no dependencies; small fix)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #39  R2B hold bed saturation       (unblocked by #7 merge)
   #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
@@ -1033,4 +1057,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), and #37 (PR #38); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, and #37 merged; Issues #4, #5, #6, #39, #40, #44, and #14 all unblocked. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), and #44 (PR #47); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, and #44 merged; Issues #4, #5, #6, #39, #40, and #14 all unblocked. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*

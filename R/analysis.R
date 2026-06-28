@@ -213,6 +213,105 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
       theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
   )
 
+  # ── R2B hold bed occupancy by patient stream ─────────────────────────────
+  # Requires r2b_hold_start attribute (added in Issue #39 trajectory change).
+  # Decomposes daily concurrent hold bed occupancy into disease DNBI, NBI, and
+  # WIA streams. Verifies that battle_fatigue (dnbi_type == 1) never reaches
+  # R2B hold beds.
+
+  r2b_hold_occupancy_plot <- NULL
+  r2b_hold_daily          <- NULL
+
+  if ("r2b_hold_start" %in% names(attributes_wide) &&
+      any(!is.na(attributes_wide$r2b_hold_start))) {
+
+    # Verify: battle_fatigue must not appear in R2B hold
+    bf_in_hold <- attributes_wide %>%
+      filter(!is.na(r2b_hold_start) & !is.na(dnbi_type) & dnbi_type == 1L)
+    stopifnot(
+      "Battle fatigue (dnbi_type==1) must not occupy R2B hold beds" = nrow(bf_in_hold) == 0
+    )
+
+    n_sim_days <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_reps_hold <- max(1L, n_distinct(attributes_wide$replication))
+
+    hold_patients <- attributes_wide %>%
+      filter(!is.na(r2b_hold_start) & !is.na(return_day)) %>%
+      mutate(
+        stream = case_when(
+          !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
+          !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
+          TRUE                                 ~ "WIA"
+        ),
+        hold_start_min = as.numeric(r2b_hold_start),
+        hold_end_min   = as.numeric(return_day)
+      )
+
+    # Expand each patient into one row per simulation day they occupy a hold bed
+    r2b_hold_daily <- hold_patients %>%
+      rowwise() %>%
+      mutate(
+        day = list(
+          seq(
+            max(1L, floor(hold_start_min / 1440) + 1L),
+            min(n_sim_days, ceiling(hold_end_min / 1440))
+          )
+        )
+      ) %>%
+      unnest(day) %>%
+      ungroup() %>%
+      group_by(replication, day, stream) %>%
+      summarise(occupancy = n(), .groups = "drop") %>%
+      group_by(day, stream) %>%
+      summarise(mean_occupancy = mean(occupancy), .groups = "drop") %>%
+      complete(
+        day    = seq_len(n_sim_days),
+        stream = c("Disease DNBI", "NBI", "WIA"),
+        fill   = list(mean_occupancy = 0)
+      )
+
+    n_hold_beds <- 5   # per R2B unit (from env_data.json)
+
+    r2b_hold_occupancy_plot <- ggplot(
+      r2b_hold_daily,
+      aes(x = day, y = mean_occupancy, fill = stream)
+    ) +
+      geom_bar(stat = "identity", position = "stack") +
+      geom_hline(yintercept = n_hold_beds,
+                 linetype = "dashed", color = "red", linewidth = 0.8) +
+      annotate("text", x = 1, y = n_hold_beds + 0.3,
+               label = sprintf("Capacity per R2B unit (%d beds)", n_hold_beds),
+               hjust = 0, size = 3.2, color = "red") +
+      scale_fill_brewer(palette = "Set2") +
+      scale_x_continuous(
+        breaks = seq(1, n_sim_days, by = 2),
+        expand = c(0, 0)
+      ) +
+      labs(
+        title    = "R2B Hold Bed Daily Occupancy by Patient Stream",
+        subtitle = paste0(
+          "Dashed line = capacity per R2B unit (", n_hold_beds, " beds); ",
+          "total capacity = ", n_hold_beds * 2, " beds across 2 R2B units"
+        ),
+        x    = "Simulation Day",
+        y    = "Mean Concurrent Patients in Hold",
+        fill = "Stream"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(
+        panel.grid.minor  = element_blank(),
+        legend.position   = "bottom"
+      )
+
+    print(r2b_hold_occupancy_plot)
+
+    write.csv(
+      r2b_hold_daily,
+      file.path(output_dir, "r2b_hold_occupancy.csv"),
+      row.names = FALSE
+    )
+  }
+
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
@@ -552,6 +651,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     clinical_rtd                = clinical_rtd,
     total_rtd                   = total_rtd,
     rtd_by_echelon              = rtd_by_echelon,
-    ot_utilisation              = ot_utilisation
+    ot_utilisation              = ot_utilisation,
+    r2b_hold_daily              = r2b_hold_daily,
+    r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot
   ))
 }

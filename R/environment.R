@@ -197,9 +197,7 @@ build_env <- function(env, env_data, ot_hours = 12) {
   ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)
 
   r2e_surg_counter   <- 1
-  r2e_ot_bed_counter <- 1
   r2b_surg_counter   <- 1
-  r2b_ot_bed_counter <- 1
 
   for (elm_type in names(env_data$elms)) {
     for (team in env_data$elms[[elm_type]]) {
@@ -229,18 +227,9 @@ build_env <- function(env, env_data, ot_hours = 12) {
                 }
 
               } else if (section_name == "ot_bed") {
-                if (elm_type == "r2eheavy") {
-                  if (r2e_ot_bed_counter %% 2 == 1) {
-                    env <- env %>% add_resource(res_name)
-                  } else {
-                    env <- env %>% add_resource(res_name, ot_shift_1)
-                  }
-                  r2e_ot_bed_counter <- r2e_ot_bed_counter + 1
-                } else {
-                  team_shift <- if (r2b_ot_bed_counter %% 2 == 1) ot_shift_1 else ot_shift_2
-                  env <- env %>% add_resource(res_name, team_shift)
-                  r2b_ot_bed_counter <- r2b_ot_bed_counter + 1
-                }
+                # OT rooms are physical spaces available 24 h; only the surgical
+                # team (surg section) carries the shift schedule.
+                env <- env %>% add_resource(res_name)
 
               } else {
                 env <- env %>% add_resource(res_name)

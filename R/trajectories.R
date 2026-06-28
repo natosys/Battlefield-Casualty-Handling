@@ -71,6 +71,26 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
+#' Selects a randomly ordered R2B team with at least one free hold bed
+#'
+#' @param env The simmer simulation environment object
+#' @return Index of the selected R2B team (integer), or -1 if none available
+#'
+#' @details Used for disease DNBI routing, which does not require OT availability.
+#'   Returns the first team (in random order) whose hold bed capacity is not
+#'   fully occupied. Returns -1 if all R2B teams have full hold beds.
+select_r2b_for_hold <- function(env) {
+  for (i in sample(1:counts[["r2b"]])) {
+    hold_beds <- env_data$elms$r2b[[i]]$hold_bed
+    usage     <- sum(sapply(hold_beds, function(b) get_server_count(env, b)))
+    cap       <- sum(sapply(hold_beds, function(b) get_capacity(env, b)))
+    if (usage < cap) {
+      return(i)
+    }
+  }
+  return(-1)
+}
+
 #' Selects the R2E team with the highest available OT bed capacity
 #'
 #' @return Integer index of the selected R2E team (1-based). If no beds are
@@ -340,8 +360,12 @@ r2b_treat_wia <- function(team_id) {
     # Branches on runif:
     # - < 0.01 → casualty dies of wounds; routed to KIA handling, trajectory exits
     # - else   → continue treatment
+    # Disease DNBI (dnbi_type == 2) are exempt: their pathway is medical/surgical,
+    # not trauma resuscitation, and the 1% DOW rate is calibrated for combat trauma.
     branch(
       option = function() {
+        dtype <- get_attribute(env, "dnbi_type")
+        if (!is.na(dtype) && dtype == 2L) return(2)  # disease: exempt from DOW
         if (runif(1) < 0.01) return(1)
         return(2)
       },
@@ -548,10 +572,10 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 #' #       - else                               → full ICU
 #' # - surgery != 1 → no surgery needed
 #'
-#' # Phase 4: Second surgery (if no prior R2B surgery)
-#' # Branches based on attribute "r2b_surgery":
-#' # - r2b_surgery != 1 → perform second surgery at R2E
-#' # - r2b_surgery == 1 → skip second surgery
+#' # Phase 4: Second surgery (only if R2E Phase 3 surgery occurred without prior R2B DAMCON)
+#' # Branches based on attributes "r2e_surgery" and "r2b_surgery":
+#' # - r2e_surgery == 1 AND r2b_surgery != 1 → perform second surgery at R2E
+#' # - else (not a surgical candidate, or had R2B DAMCON)  → skip second surgery
 #'
 #' # Phase 5: Final disposition
 #' # Branches on in_theatre_rate probability:
@@ -702,15 +726,17 @@ r2e_treat_wia <- function(team_id) {
       trajectory("No Surgery Needed")
     ) %>%
 
-    # Phase 4: Second surgery if no prior R2B surgery
-    # Branches based on attribute "r2b_surgery":
-    # - r2b_surgery != 1 → perform second surgery at R2E
-    # - r2b_surgery == 1 → skip second surgery
+    # Phase 4: Second surgery if patient had R2E Phase 3 surgery but not prior R2B DAMCON
+    # A second procedure is only meaningful for patients who underwent Phase 3 surgery
+    # at R2E (r2e_surgery == 1) without a prior R2B DAMCON (r2b_surgery != 1).
+    # Patients with surgery == 0 never set r2e_surgery, so is.na(r2e_surg) guards them out.
     branch(
       option = function() {
+        r2e_surg   <- get_attribute(env, "r2e_surgery")
         prior_surg <- get_attribute(env, "r2b_surgery")
-        if (!is.na(prior_surg) && prior_surg == 1) return(2)
-        return(1)
+        if (!is.na(r2e_surg) && r2e_surg == 1 &&
+            (is.na(prior_surg) || prior_surg != 1)) return(1)
+        return(2)
       },
       continue = TRUE,
       trajectory("Second Surgery Before Disposition") %>%
@@ -899,7 +925,7 @@ build_casualty_trajectory <- function() {
               continue = TRUE,
 
               trajectory("Disease Transport to R2B") %>%
-                set_attribute("r2b", function() select_available_r2b_team(env)) %>%
+                set_attribute("r2b", function() select_r2b_for_hold(env)) %>%
                 join(r1_transport_wia()) %>%
                 branch(
                   option = function() {

@@ -16,7 +16,7 @@
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
 | 5 | Flat DOW rate independent of wait time | High | Medium | Open |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
-| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **PR Open (#34)** |
+| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **Merged (PR #34)** |
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
 | 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | Open |
@@ -36,13 +36,13 @@
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-### Issue 7 — DNBI Sub-Category Routing (PR #34)
+### Issue 7 — DNBI Sub-Category Routing ✓
 
-**Branch:** `feature/issue-7-dnbi-subcategory`
+**Merged:** PR #34, branch `feature/issue-7-dnbi-subcategory`
 
 Implements three-way DNBI routing, replacing the binary NBI/other split. Battle fatigue (25%) returns to duty at R1 with no R2 routing. Disease (58%) routes to R2B holding only — no surgery. NBI (17%) follows the full WIA-equivalent pathway including DOW branch and surgical candidacy.
 
-**Key changes:** `env_data.json` replaces `nbi: 0.17` with three proportions (`battle_fatigue_pct`, `disease_pct`, `nbi_pct`). `R/trajectories.R` replaces `nbi` attribute with `dnbi_type` (1/2/3); `surgery` forced to 0 for types 1 and 2. Two MODEL ASSUMPTION blocks added to README. Limitation L4 marked resolved.
+**Key changes:** `env_data.json` replaces `nbi: 0.17` with three proportions (`battle_fatigue_pct`, `disease_pct`, `nbi_pct`). `R/trajectories.R` replaces `nbi` attribute with `dnbi_type` (1/2/3); `surgery` forced to 0 for types 1 and 2. Two MODEL ASSUMPTION blocks added to README. Limitation L4 marked resolved. Three bugs corrected in the same PR: disease DNBI exempted from R2B DOW check; disease routing changed to `select_r2b_for_hold()` (hold bed availability, not OT); Phase 4 second surgery guarded by `r2e_surgery == 1`. Paywalled Reference [36] (Amoroso & Bell 2008) replaced with a derived estimate from open-access sources [8] and [35].
 
 **Seed-42 baseline (30 days, post-implementation):**
 
@@ -52,6 +52,10 @@ Implements three-way DNBI routing, replacing the binary NBI/other split. Battle 
 | Disease | 97 |
 | NBI | 33 |
 | Total DNBI | 176 |
+
+**Significance:** Approximately 83% of DNBI casualties are removed from the surgical candidacy pathway. R2B OT demand now reflects combat trauma only, producing a materially more accurate representation of the WIA surgical bottleneck. A follow-up Morris screening to include `disease_surgery_pct` in the parameter set is tracked as a Further Development item in the README.
+
+**Unblocked by this merge:** Issue #39 (R2B hold bed saturation) required `dnbi_type` stream decomposition — now ready.
 
 ---
 
@@ -898,7 +902,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 ### Phase 3 — Structural Refactoring (Issues 7, 4, 39, 40)
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
 
-10. **Issue 7** — DNBI sub-category routing (PR #34 open; await merge). Prerequisite for Issue #39.
+10. ~~**Issue 7** — DNBI sub-category routing~~ — **Merged PR #34.** Prerequisite for Issue #39 satisfied.
 11. **Issue 39** — R2B hold bed saturation analysis. Requires Issue #7 merged (stream decomposition via `dnbi_type`). Add `hold_reason` attribute; decompose occupancy; scenario-test disease evacuation priority vs. capacity increase.
 12. **Issue 40** — R2B OT utilisation improvement. Add `r2b_bypass_reason` attribute; scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4).
 13. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
@@ -927,25 +931,23 @@ COMPLETE (merged to main):
   #2   Warm-up analysis (terminating simulation confirmed; WARM_UP_DAYS = 0)
   #3   Morris sensitivity screening
   #24  Variance reduction (RNG)
+  #7   DNBI sub-categorisation (PR #34)
 
 IN REVIEW (PRs open against main):
-  #7   DNBI sub-categorisation              PR #34
   #35  R2B OT bypass check fix              PR #36
   #37  OT bed schedule fix                  PR #38
 
   Note: PRs #36 and #38 are sequential — #38 supersedes #36's bypass logic.
   Owner should merge #36 first, then #38, or merge #38 alone if #36 content
-  is subsumed. #34 (Issue #7) is independent and can merge in any order.
+  is subsumed.
 
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #6   Dead-heading transport        ─┐ parallel
   #5   Time-dependent DOW            ─┘
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
+  #39  R2B hold bed saturation       (unblocked by #7 merge)
   #40  R2B OT utilisation analysis   (needs #35 + #37 merged for correct baseline)
-
-AFTER #7 MERGES:
-  #39  R2B hold bed saturation       (needs #7 for stream decomposition)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
@@ -977,4 +979,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), and #24 (PR #32); PRs in review for Issues #7 (#34), #35 (#36), and #37 (#38); and addition of new Issues #39 (R2B hold bed saturation) and #40 (R2B OT utilisation). Phase 1 Statistical Foundation complete. Phase 3 structural refactoring in progress. All referenced resources are open-access.*
+*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), and #7 (PR #34); PRs in review for Issues #35 (#36) and #37 (#38); and addition of new Issues #39 (R2B hold bed saturation) and #40 (R2B OT utilisation). Phase 1 Statistical Foundation complete. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*

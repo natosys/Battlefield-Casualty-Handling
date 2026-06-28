@@ -1055,7 +1055,7 @@ r2e_treat_wia <- function(team_id) {
 #' ### Trajectory Attributes and Logging
 #' - `team`: Assigned R1 treatment team
 #' - `priority`: Triage urgency code (1 = Immediate; 2 = Urgent; 3 = Delayed)
-#' - `nbi`: Flag for DNBI-type cases
+#' - `dnbi_type`: DNBI sub-type (1=battle_fatigue, 2=disease, 3=nbi; NA for WIA/KIA)
 #' - `surgery`: Binary flag indicating surgical need (0/1)
 #' - `dow`: DOW flag if casualty dies post-R1 treatment
 #' - `r2b`, `r2e`, `r2b_bypassed`: Routing indicators for evacuation tracking
@@ -1079,26 +1079,38 @@ casualty <- trajectory("Casualty") %>%
       NA
     }
   }) %>%
-  set_attribute("nbi", function() {
+  set_attribute("dnbi_type", function() {
     name <- get_name(env)
     if (startsWith(name, "dnbi")) {
-      return(as.numeric(runif(1) < env_data$vars$r1$other$nbi))
+      sample(1:3, 1, prob = c(
+        env_data$vars$r1$other$battle_fatigue_pct,
+        env_data$vars$r1$other$disease_pct,
+        env_data$vars$r1$other$nbi_pct
+      ))
     } else {
-      return(NA)
+      NA_integer_
     }
   }) %>%
-  # Set surgery attribute based on priority and name
+  # Set surgery attribute based on priority and dnbi_type
   set_attribute("surgery", function() {
-    prio <- get_attribute(env, "priority")
-    name <- get_name(env)
-    
+    prio      <- get_attribute(env, "priority")
+    dnbi_type <- get_attribute(env, "dnbi_type")
+
     if (is.na(prio)) return(0)
-    
+
+    # Battle fatigue: no surgery candidacy
+    if (!is.na(dnbi_type) && dnbi_type == 1L) return(0)
+
+    # Disease: small probability for emergency surgical conditions
+    if (!is.na(dnbi_type) && dnbi_type == 2L) {
+      return(as.numeric(runif(1) < env_data$vars$r1$other$disease_surgery_pct))
+    }
+
     if (prio == 1) return(as.numeric(runif(1) < env_data$vars$r1$other$pri1_surgery))
     if (prio == 2) return(as.numeric(runif(1) < env_data$vars$r1$other$pri2_surgery))
-    
-    # For priority 3
-    if (startsWith(name, "dnbi")) {
+
+    # P3: NBI DNBI or WIA
+    if (!is.na(dnbi_type) && dnbi_type == 3L) {
       return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_dnbi_surgery))
     } else {
       return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))

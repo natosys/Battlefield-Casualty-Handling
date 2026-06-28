@@ -348,21 +348,18 @@ These are the validated baseline values from the current single-run analysis. Re
 | WIA (combat + support) | 154 |
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
-| Priority 1 share | ~55.5% |
-| DOW count (seed 42) | 7 (stochastic) |
+| Priority 1 share | ~54.8% |
+| DOW count (seed 42) | 12 (stochastic; 10-rep mean ≈ 9, range 6–13) |
 | DOW rate (P1 at R1) | 5% (flat) |
 | DOW rate (P2 at R1) | 2.5% (flat) |
 | DOW rate (R2B/R2E) | 1% (flat) |
-| DNBI sub-types (seed 42) | battle_fatigue=53, disease=92, nbi=31 |
-| R2B surgeries (seed 42) | 30 |
-| R2E surgeries — first op (seed 42) | 122 |
-| R2B OT bypass count (seed 42) | 130 of 160 surgical candidates |
-| R2B OT utilisation (seed 42) | 5.5% |
-| R2E OT utilisation — mean (seed 42) | 34.0% (OT1: 50.0%, OT2: 17.9%) |
-| R2E ICU utilisation — mean (seed 42) | 68.4% (ICU1: 78.0%, ICU2: 73.6%, ICU3: 63.7%, ICU4: 58.1%) |
-| R2E ICU queue ≥1 (seed 42) | 11.5 cumulative days (38% of run) |
-| R2E ICU utilisation — 10-rep mean | 71.2% (range 60.6–80.6%) |
-| R2E OT utilisation — 10-rep mean | 33.4% (range 29.7–36.9%) |
+| DNBI sub-types (seed 42) | battle_fatigue=46, disease=97, nbi=33 |
+| R2B surgeries (seed 42) | 71 |
+| R2E surgeries — first op (seed 42) | 199 |
+| R2B OT bypass count (seed 42) | 129 of 200 surgical candidates |
+| R2B OT utilisation — 24h room (seed 42) | 12.4% mean (OT1: 11.8%, OT2: 12.9%) |
+| R2B OT utilisation — shift time (seed 42) | ~25% mean (OT1: 23.7%, OT2: 26.8%) |
+| R2E OT utilisation — 24h room (seed 42) | OT1: 62.8%, OT2: 38.0% |
 
 ---
 

@@ -422,7 +422,7 @@ r2b_treat_wia <- function(team_id) {
             queue <- sum(get_queue_count(env, resources = ot_beds))
             # OT free only when a bed is strictly available AND no queue exists.
             # Any queue means the next patient will wait — bypass to R2E instead.
-            if (!is.na(usage) && !is.na(cap) && usage < cap && queue == 0) return(1)
+            if (!is.na(usage) && !is.na(cap) && !is.na(queue) && usage < cap && queue == 0) return(1)
             return(2)
           },
           continue = TRUE,

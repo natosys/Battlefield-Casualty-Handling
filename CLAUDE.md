@@ -349,11 +349,16 @@ These are the validated baseline values from the current single-run analysis. Re
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
 | Priority 1 share | ~54.8% |
-| DOW count (seed 42) | 5 (stochastic; 10-rep mean ≈ 9, range 6–13) |
+| DOW count (seed 42) | 9 (stochastic; 10-rep mean ≈ 9, range 6–13) |
 | DOW rate (P1 at R1) | 5% (flat) |
 | DOW rate (P2 at R1) | 2.5% (flat) |
 | DOW rate (R2B/R2E) | 1% (flat) |
 | DNBI sub-types (seed 42) | battle_fatigue=46, disease=97, nbi=33 |
+| R2B surgeries (seed 42) | 29 |
+| R2E surgeries — first op (seed 42) | 102 |
+| R2B OT bypass count (seed 42) | 74 of 103 surgical candidates |
+| R2B OT utilisation (seed 42) | 5.4% |
+| R2E OT utilisation — mean (seed 42) | 30.8% (OT1: 46.7%, OT2: 14.8%) |
 
 ---
 

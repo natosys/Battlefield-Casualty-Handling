@@ -298,9 +298,9 @@ r2b_transport_wia <- function() {
 #'
 #' # Step 4: Surgical decision branch
 #' # Branches based on attribute "surgery":
-#' # - surgery == 1 → check OT bed availability
-#' #     - capacity available → seize OT, perform DAMCON surgery
-#' #     - no capacity        → skip surgery, proceed to evac
+#' # - surgery == 1 → check OT bed availability and queue
+#' #     - OT free and no queue → seize OT, perform DAMCON surgery
+#' #     - OT full OR queued    → bypass immediately to R2E (r2b_bypassed = 1)
 #' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
 #'
 #' # Step 5: Evacuation decision branch
@@ -419,7 +419,10 @@ r2b_treat_wia <- function(team_id) {
           option = function() {
             usage <- sum(get_server_count(env, resources = ot_beds))
             cap   <- sum(get_capacity(env, resources = ot_beds))
-            if (!is.na(usage) && !is.na(cap) && usage <= cap) return(1)
+            queue <- sum(get_queue_count(env, resources = ot_beds))
+            # OT free only when a bed is strictly available AND no queue exists.
+            # Any queue means the next patient will wait — bypass to R2E instead.
+            if (!is.na(usage) && !is.na(cap) && usage < cap && queue == 0) return(1)
             return(2)
           },
           continue = TRUE,
@@ -443,8 +446,9 @@ r2b_treat_wia <- function(team_id) {
             release_resources(surg_team) %>%
             release_selected(id = 4),
 
-          # Sub-branch 2: No OT capacity — skip surgery, proceed to evac
-          trajectory("No OT Available – Skip Surgery")
+          # Sub-branch 2: OT full or queued — bypass to R2E for definitive surgery
+          trajectory("OT Busy – Bypass to R2E") %>%
+            set_attribute("r2b_bypassed", 1)
         ),
 
       # Branch 2: Surgery not required — recover in holding bed, return to duty

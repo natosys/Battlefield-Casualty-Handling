@@ -16,7 +16,7 @@
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
 | 5 | Flat DOW rate independent of wait time | High | Medium | Open |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
-| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | Open |
+| 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **PR Open (#34)** |
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
 | 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | Open |
@@ -27,6 +27,70 @@
 | 22 | Output Variable Register — KPI definition | High | Low | **Merged (#26)** |
 | 23 | Strategic evacuation demand — Role 4 / AME sorties | Medium | Medium | Open |
 | 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | **Merged (#32)** |
+| 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **PR Open (#36)** |
+| 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **PR Open (#38)** |
+| 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | Open |
+| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
+
+---
+
+## Issues In Review (PRs Open — Awaiting Owner Merge)
+
+### Issue 7 — DNBI Sub-Category Routing (PR #34)
+
+**Branch:** `feature/issue-7-dnbi-subcategory`
+
+Implements three-way DNBI routing, replacing the binary NBI/other split. Battle fatigue (25%) returns to duty at R1 with no R2 routing. Disease (58%) routes to R2B holding only — no surgery. NBI (17%) follows the full WIA-equivalent pathway including DOW branch and surgical candidacy.
+
+**Key changes:** `env_data.json` replaces `nbi: 0.17` with three proportions (`battle_fatigue_pct`, `disease_pct`, `nbi_pct`). `R/trajectories.R` replaces `nbi` attribute with `dnbi_type` (1/2/3); `surgery` forced to 0 for types 1 and 2. Two MODEL ASSUMPTION blocks added to README. Limitation L4 marked resolved.
+
+**Seed-42 baseline (30 days, post-implementation):**
+
+| Sub-type | Count |
+|---|---|
+| Battle fatigue | 46 |
+| Disease | 97 |
+| NBI | 33 |
+| Total DNBI | 176 |
+
+---
+
+### Issue 35 — R2B OT Bypass Check Bug (PR #36)
+
+**Branch:** `feature/issue-35-r2b-ot-bypass-fix`
+
+Fixes `usage <= cap` → `usage < cap && queue == 0` in the R2B OT availability check. Previously, when all OT beds were at capacity, the condition evaluated to TRUE and patients queued for R2B OT rather than bypassing immediately to R2E. Added `get_queue_count()` check so any queue triggers bypass. Sets `r2b_bypassed = 1` attribute on bypass patients.
+
+**Before/after (seed 42, 30 days):**
+
+| Metric | Pre-fix | Post-fix |
+|---|---|---|
+| R2B bypass events | 1 | 74 of 103 surgical candidates |
+| R2B surgeries | ~100+ | 29 |
+| R2E first surgeries | ~30 | 102 |
+| R2B OT utilisation | 6.2% | 5.4% |
+| R2E OT utilisation (mean) | 10.8% | 30.8% |
+
+---
+
+### Issue 37 — OT Bed Incorrectly Scheduled (PR #38)
+
+**Branch:** `feature/issue-37-ot-bed-schedule-fix`
+
+Removes the 12-hour shift schedule from OT bed resources. OT rooms are physical spaces available 24 hours per day; only the surgical team carries a shift schedule. The bug caused OT bed capacity to toggle to zero when the team was off-shift, blocking OT access for on-shift periods immediately adjacent to a shift handover. The R2B bypass logic was also updated to include a third condition: `get_capacity(surg_team) > 0` — bypassing when the team is off-shift regardless of bed availability. This prevents patients seizing an OT bed off-shift and then queuing for a team.
+
+**Before/after (seed 42, 30 days):**
+
+| Metric | Post-#35 | Post-#37 |
+|---|---|---|
+| R2B bypass events | 74 | 129 |
+| R2B surgeries | 29 | 71 |
+| R2E first surgeries | 102 | 199 |
+| R2B OT util (24h room) | 5.4% | 12.4% |
+| R2B OT util (shift time) | 10.8% | ~25% |
+| R2E OT util (OT1/OT2) | 46.7% / 14.8% | 62.8% / 38.0% |
+
+**Note:** R2E trajectory does not seize surgical team resources — pre-existing gap under Issue #4 scope. R2E OT utilisation figures overstate true throughput capacity until Issue #4 is resolved.
 
 ---
 
@@ -521,6 +585,79 @@ The 17% NBI figure already exists in the model. Extend it to split the remaining
 
 ---
 
+## Issue 35 — R2B OT Bypass Check Uses `<=` Instead of `<`
+
+### Problem
+
+The R2B OT availability check in `r2b_treat_wia()` evaluated `usage <= cap` (less-than-or-equal) rather than `usage < cap && queue == 0`. When all OT beds were occupied (`usage == cap`), the condition returned TRUE and surgical patients queued for an OT slot rather than bypassing immediately to R2E. This produced a persistent R2B OT queue that should have been structurally zero — the clinical pathway requires immediate bypass whenever the OT is busy or queued, to meet the 2-hour surgical window at R2E.
+
+### Fix
+
+Replace `usage <= cap` with `usage < cap && queue == 0`. The `get_queue_count()` check ensures that any existing queue — even if a bed is nominally free — also triggers bypass. Set `r2b_bypassed = 1` attribute on patients taking the bypass branch for downstream tracking.
+
+**PR:** #36, branch `feature/issue-35-r2b-ot-bypass-fix`
+
+---
+
+## Issue 37 — OT Bed Incorrectly Scheduled (Rooms Must Be 24h)
+
+### Problem
+
+`build_env()` in `R/environment.R` applied 12-hour alternating shift schedules to OT bed resources (`b_r2b_ot_*`, `b_r2eheavy_ot_*`) in addition to the surgical team resources. OT rooms are physical spaces that are available 24 hours per day; only the surgical team (surgeons, anaesthetist) should carry a shift schedule. Applying the schedule to the bed caused OT bed capacity to toggle to zero when the team was off-shift, which produced two errors:
+
+1. Surgery became impossible even during brief on-shift windows adjacent to a handover.
+2. The existing bypass check (Issue #35) saw zero bed capacity and evaluated `usage < cap` as FALSE during off-shift periods, triggering bypass correctly by accident. Removing the bed schedule without updating the bypass logic would have allowed patients to seize OT beds off-shift and queue for the team — an equally wrong state.
+
+### Fix
+
+1. Remove shift schedule from all `ot_bed` resources in `build_env()`. Always register OT beds with `add_resource(res_name)` (no schedule argument).
+2. Add `get_capacity(surg_team) > 0` as a third condition in the R2B bypass check. This explicitly bypasses off-shift patients regardless of bed availability.
+
+**PR:** #38, branch `feature/issue-37-ot-bed-schedule-fix`
+
+---
+
+## Issue 39 — R2B Holding Bed Saturation
+
+### Problem
+
+R2B holding beds saturate and queue from approximately Day 10–15 of the 30-day run and remain saturated for the remainder of the simulation. The primary driver is disease DNBI casualties (Issue #7 sub-type 2), who are assigned a holding duration with mode approximately 5 days and are eventually evacuated to R2E or strategically cleared. At the current DNBI disease arrival rate, the holding load from this stream exceeds R2B holding bed capacity, creating a sustained queue that displaces WIA casualties who require observation or post-surgical holding.
+
+This is operationally significant: hold bed saturation at R2B forces WIA casualties requiring observation into either early evacuation (consuming transport assets) or R1 retention (suboptimal clinical environment). It also affects R2B throughput metrics — casualties waiting for a hold bed inflate R2B queue statistics without representing a surgical bottleneck.
+
+### Recommended Approach
+
+1. **Decompose hold bed occupancy by stream.** Add a `hold_reason` attribute (values: `wia_p1`, `wia_p2`, `wia_p3`, `dnbi_disease`, `dnbi_nbi`) to all entities entering hold beds, enabling occupancy decomposition by casualty type.
+2. **Quantify saturation onset.** Use `get_mon_resources()` to identify the minute at which hold bed queue first exceeds zero and the duration of saturation across a multi-replication run.
+3. **Scenario test.** Run sensitivity analysis on disease DNBI holding duration and disease evacuation probability to identify whether extending evacuation priority for disease cases (reducing hold occupancy) or adding hold beds (capacity increase) is the more effective intervention.
+
+**Dependencies:** Issues 1, 2 (completed), 7 (PR #34 open — must merge first to enable stream decomposition).
+
+---
+
+## Issue 40 — R2B OT Suboptimal Utilisation
+
+### Problem
+
+R2B OT utilisation is approximately 25% of available surgical team shift time (12 hours per day) under the post-Issue-#37 baseline. Of 200 surgical candidates reaching R2B in the seed-42 30-day run, 129 (64.5%) bypass to R2E — the majority because the surgical team is off-shift at the time of arrival, not because the OT bed is occupied. The R2B OT is idle for three-quarters of its operational shift window, and forward surgical capability is underused.
+
+This is operationally significant for two reasons:
+
+1. Surgery performed at R2B is clinically preferable for high-acuity casualties when the team is available: it is faster (no R2B→R2E transport delay), reduces haemorrhage time, and preserves R2E capacity for cases that cannot be managed forward.
+2. The current 12-hour shift window creates a structural gap: casualties generated in the off-shift period cannot receive R2B surgery regardless of OT bed availability. In high-tempo operations, contested airspace or disrupted communications may make R2E transfer infeasible, and the off-shift gap could be operationally unacceptable.
+
+The Morris sensitivity screening (Issue #3) ranked `ot_hours` as the dominant controllable lever for surgical throughput (µ\* = 0.978), confirming that extending OT shift availability is the highest-impact single intervention available within the current establishment.
+
+### Recommended Approach
+
+1. **Track bypass reason.** Add `r2b_bypass_reason` attribute with values `off_shift` (team capacity = 0) and `ot_occupied` (bed full or queued). This enables planners to distinguish structural off-shift losses from demand-driven losses.
+2. **Sensitivity scenario.** Using the `ot_hours` parameter already wired into `run_replications()` from Issue #3, test OT shift availability at 12, 14, 16, and 20 hours per day. Report bypass rate, R2B surgery count, and R2E load at each scenario.
+3. **Establishment option.** Evaluate the marginal effect of adding a second surgical team (enabling continuous coverage via alternating 12-hour shifts). This requires the individual resource modelling from Issue #4 to be meaningful at the team level.
+
+**Dependencies:** Issues 1, 2, 3 (completed), 7 (PR #34 — for stream decomposition), 37 (PR #38 — corrects OT bed availability baseline). Issue #4 required for establishment sensitivity.
+
+---
+
 ## Issue 8 — R2E Surgical Team Not Seized During OT
 
 ### Problem
@@ -739,28 +876,32 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 
 Dev Container specification merged (PR #21). All contributors now develop in a reproducible Linux R environment with `mclapply` running at full core count.
 
-### Phase 1 — Statistical Foundation (Issues 1 ✓, 22 ✓, 2 ✓, 3 ✓, 24)
-*Estimated effort: 3–4 weeks. All subsequent analyses depend on this foundation.*
+### Phase 1 — Statistical Foundation (Issues 1 ✓, 22 ✓, 2 ✓, 3 ✓, 24 ✓)
+*Estimated effort: 3–4 weeks. All subsequent analyses depend on this foundation. **Complete.***
 
 1. ~~Multi-replication wrapper (`mclapply` + `wrap()`) — **Merged PR #16**~~
 2. ~~**Issue 22** — Define Output Variable Register; add five missing timing attributes to trajectories. **Merged PR #26**~~
-3. **Issue 24** — Switch to L'Ecuyer-CMRG RNG streams, add antithetic variates, set explicit `mc.cores`. Can run in parallel with other open issues.
+3. ~~**Issue 24** — Switch to L'Ecuyer-CMRG RNG streams, add antithetic variates, set explicit `mc.cores`. **Merged PR #32**~~
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8, 6, 5, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35, 37, 6, 5, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
-6. **Issue 8** — Fix R2E surgical team seizure (three lines; do first).
-7. **Issue 6** — Dead-heading return legs for transport assets.
-8. **Issue 5** — Time-dependent DOW survival function.
-9. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
+6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
+7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **PR #36 open.**~~
+8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **PR #38 open.**~~
+9. **Issue 6** — Dead-heading return legs for transport assets.
+10. **Issue 5** — Time-dependent DOW survival function.
+11. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
-### Phase 3 — Structural Refactoring (Issues 7, 4)
-*Estimated effort: 3–4 weeks. Requires `env_data.json` schema changes and trajectory rewrites.*
+### Phase 3 — Structural Refactoring (Issues 7, 4, 39, 40)
+*Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
 
-10. **Issue 7** — DNBI sub-category routing with differentiated trajectories. Only hard dependencies are Issues 1 and 2; can be pulled forward if bandwidth allows.
-11. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
+10. **Issue 7** — DNBI sub-category routing (PR #34 open; await merge). Prerequisite for Issue #39.
+11. **Issue 39** — R2B hold bed saturation analysis. Requires Issue #7 merged (stream decomposition via `dnbi_type`). Add `hold_reason` attribute; decompose occupancy; scenario-test disease evacuation priority vs. capacity increase.
+12. **Issue 40** — R2B OT utilisation improvement. Add `r2b_bypass_reason` attribute; scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4).
+13. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
 
 ### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
 *Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs.*
@@ -778,21 +919,33 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 ### Dependency graph
 
 ```
-COMPLETE:
+COMPLETE (merged to main):
   #19  Dev Container
   #1   Multi-run replication framework
   #22  Output Variable Register
   #8   R2E surgical team seizure fix
   #2   Warm-up analysis (terminating simulation confirmed; WARM_UP_DAYS = 0)
   #3   Morris sensitivity screening
+  #24  Variance reduction (RNG)
+
+IN REVIEW (PRs open against main):
+  #7   DNBI sub-categorisation              PR #34
+  #35  R2B OT bypass check fix              PR #36
+  #37  OT bed schedule fix                  PR #38
+
+  Note: PRs #36 and #38 are sequential — #38 supersedes #36's bypass logic.
+  Owner should merge #36 first, then #38, or merge #38 alone if #36 content
+  is subsumed. #34 (Issue #7) is independent and can merge in any order.
 
 UNBLOCKED (start now):
-  #24  Variance reduction (RNG)
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
-  #6   Dead-heading transport        ─┐
-  #7   DNBI sub-categorisation       ─┤ parallel (needs #1 + #2 only)
+  #6   Dead-heading transport        ─┐ parallel
   #5   Time-dependent DOW            ─┘
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
+  #40  R2B OT utilisation analysis   (needs #35 + #37 merged for correct baseline)
+
+AFTER #7 MERGES:
+  #39  R2B hold bed saturation       (needs #7 for stream decomposition)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
@@ -824,4 +977,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated June 2026 to reflect completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), and #3 (PR #30). Phase 1 Statistical Foundation now complete. Issue #4 individual resource seizure is unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), and #24 (PR #32); PRs in review for Issues #7 (#34), #35 (#36), and #37 (#38); and addition of new Issues #39 (R2B hold bed saturation) and #40 (R2B OT utilisation). Phase 1 Statistical Foundation complete. Phase 3 structural refactoring in progress. All referenced resources are open-access.*

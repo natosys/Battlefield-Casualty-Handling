@@ -27,14 +27,53 @@
 | 22 | Output Variable Register — KPI definition | High | Low | **Merged (#26)** |
 | 23 | Strategic evacuation demand — Role 4 / AME sorties | Medium | Medium | Open |
 | 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | **Merged (#32)** |
-| 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **PR Open (#36)** |
+| 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **PR Open (#38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | Open |
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
+| 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | Open |
+| 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | Open |
 
 ---
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
+
+### Issue 35 — R2B OT Bypass Check Bug ✓
+
+**Merged:** PR #36, branch `feature/issue-35-r2b-ot-bypass-fix`
+
+Fixes `usage <= cap` → `usage < cap && queue == 0` in the R2B OT availability check. Adds `!is.na(queue)` guard (`get_queue_count()` can return NA at simulation startup; without the guard `if(NA)` throws a runtime error). Sets `r2b_bypassed = 1` attribute on bypass patients for downstream tracking. Migrates the legacy `Battlefield Casualty Handling.R` from the removed `nbi` attribute to `dnbi_type`, aligning it with `R/trajectories.R` after PR #34 removed `env_data$vars$r1$other$nbi`.
+
+**Seed-42 baseline (30 days, post-implementation — post-rebase onto PR #34):**
+
+| Metric | Pre-fix | Post-fix |
+|---|---|---|
+| R2B bypass events | 1 | 130 of 160 surgical candidates |
+| R2B surgeries | ~160 (with queuing) | 30 |
+| R2E first surgeries | ~30 | 122 |
+| R2B OT utilisation | — | 5.5% |
+| R2E OT utilisation (mean) | — | 34.0% (OT1: 50.0%, OT2: 17.9%) |
+| R2E ICU utilisation (mean) | — | 68.4% (ICU1: 78.0%, ICU2: 73.6%, ICU3: 63.7%, ICU4: 58.1%) |
+| R2E ICU queue ≥1 | — | 11.5 cumulative days (38% of run) |
+
+**10-replication confirmation (seed 42, 30 days per run):**
+
+| Resource | 10-rep mean | Range |
+|---|---|---|
+| R2E ICU utilisation | 71.2% | 60.6–80.6% |
+| R2E OT utilisation | 33.4% | 29.7–36.9% |
+
+ICU exceeded OT utilisation in all 10 replications, confirming ICU as the primary R2E binding constraint — not OT.
+
+**Significance:** The bypass fix routes 130 of 160 R2B surgical candidates directly to R2E, producing a 4× increase in R2E first surgeries (30 → 122) and materially higher ICU load. The ICU constraint identification is robust across replications.
+
+**Known issues raised from this PR:**
+- Issue #43 (OT–ICU gating absent): surgery proceeds regardless of ICU availability — three-way branch required
+- Issue #44 (RTD KPI annotation): `R/analysis.R:488` implicitly includes battle fatigue RTDs without inline note
+
+**Unblocked by this merge:** Issue #40 (R2B OT utilisation analysis) required #35 merged for correct bypass baseline — now ready, pending #37.
+
+---
 
 ### Issue 7 — DNBI Sub-Category Routing ✓
 
@@ -589,17 +628,9 @@ The 17% NBI figure already exists in the model. Extend it to split the remaining
 
 ---
 
-## Issue 35 — R2B OT Bypass Check Uses `<=` Instead of `<`
+## Issue 35 — R2B OT Bypass Check Uses `<=` Instead of `<` ✓
 
-### Problem
-
-The R2B OT availability check in `r2b_treat_wia()` evaluated `usage <= cap` (less-than-or-equal) rather than `usage < cap && queue == 0`. When all OT beds were occupied (`usage == cap`), the condition returned TRUE and surgical patients queued for an OT slot rather than bypassing immediately to R2E. This produced a persistent R2B OT queue that should have been structurally zero — the clinical pathway requires immediate bypass whenever the OT is busy or queued, to meet the 2-hour surgical window at R2E.
-
-### Fix
-
-Replace `usage <= cap` with `usage < cap && queue == 0`. The `get_queue_count()` check ensures that any existing queue — even if a bed is nominally free — also triggers bypass. Set `r2b_bypassed = 1` attribute on patients taking the bypass branch for downstream tracking.
-
-**PR:** #36, branch `feature/issue-35-r2b-ot-bypass-fix`
+**Merged PR #36** — see "Issues In Review" section above for full detail.
 
 ---
 
@@ -889,15 +920,17 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8 ✓, 35, 37, 6, 5, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37, 44, 43, 6, 5, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
-7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **PR #36 open.**~~
+7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **Merged PR #36.**~~
 8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **PR #38 open.**~~
-9. **Issue 6** — Dead-heading return legs for transport assets.
-10. **Issue 5** — Time-dependent DOW survival function.
-11. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
+9. **Issue 44** — RTD KPI annotation: add inline note at `R/analysis.R:488` distinguishing battle fatigue RTDs from clinical RTDs. Small; can ship with Issue #37 or independently.
+10. **Issue 6** — Dead-heading return legs for transport assets.
+11. **Issue 5** — Time-dependent DOW survival function.
+12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
+13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
 ### Phase 3 — Structural Refactoring (Issues 7, 4, 39, 40)
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
@@ -932,22 +965,22 @@ COMPLETE (merged to main):
   #3   Morris sensitivity screening
   #24  Variance reduction (RNG)
   #7   DNBI sub-categorisation (PR #34)
+  #35  R2B OT bypass check fix (PR #36)
 
 IN REVIEW (PRs open against main):
-  #35  R2B OT bypass check fix              PR #36
   #37  OT bed schedule fix                  PR #38
-
-  Note: PRs #36 and #38 are sequential — #38 supersedes #36's bypass logic.
-  Owner should merge #36 first, then #38, or merge #38 alone if #36 content
-  is subsumed.
 
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #6   Dead-heading transport        ─┐ parallel
   #5   Time-dependent DOW            ─┘
+  #44  RTD KPI annotation            (no dependencies; small fix)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #39  R2B hold bed saturation       (unblocked by #7 merge)
-  #40  R2B OT utilisation analysis   (needs #35 + #37 merged for correct baseline)
+  #40  R2B OT utilisation analysis   (needs #35 ✓ + #37 merged for correct baseline)
+
+AFTER #5:
+  #43  OT–ICU gating                 (flat DOW placeholder usable; #5 adds full value)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
@@ -979,4 +1012,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), and #7 (PR #34); PRs in review for Issues #35 (#36) and #37 (#38); and addition of new Issues #39 (R2B hold bed saturation) and #40 (R2B OT utilisation). Phase 1 Statistical Foundation complete. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), and #35 (PR #36); PR in review for Issue #37 (#38); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8 and #35 merged, #37 in review. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*

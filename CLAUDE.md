@@ -359,6 +359,8 @@ These are the validated baseline values from the current single-run analysis. Re
 | R2B OT bypass count (seed 42) | 130 of 160 surgical candidates |
 | R2B OT utilisation (seed 42) | 5.5% |
 | R2E OT utilisation — mean (seed 42) | 34.0% (OT1: 50.0%, OT2: 17.9%) |
+| R2E ICU utilisation — mean (seed 42) | 68.4% (ICU1: 78.0%, ICU2: 73.6%, ICU3: 63.7%, ICU4: 58.1%) |
+| R2E ICU queue ≥1 (seed 42) | 11.5 cumulative days (38% of run) |
 
 ---
 

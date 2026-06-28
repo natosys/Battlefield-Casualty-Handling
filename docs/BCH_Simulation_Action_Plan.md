@@ -28,7 +28,7 @@
 | 23 | Strategic evacuation demand — Role 4 / AME sorties | Medium | Medium | Open |
 | 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | **Merged (#32)** |
 | 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
-| 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **PR Open (#38)** |
+| 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | Open |
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | Open |
@@ -37,6 +37,41 @@
 ---
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
+
+*No PRs currently open against main.*
+
+---
+
+## Recently Merged Issues
+
+### Issue 37 — OT Bed Schedule Removed ✓
+
+**Merged:** PR #38, branch `feature/issue-37-ot-bed-schedule-fix`
+
+Removes the 12-hour shift schedule from all OT bed resources (`b_r2b_ot_*`, `b_r2eheavy_ot_*`). OT rooms are physical spaces available 24 hours per day; only the surgical team carries a shift schedule. The bug caused OT bed capacity to toggle to zero when the team was off-shift, blocking OT access for on-shift periods adjacent to a shift handover. The R2B bypass logic was updated with a third condition: `get_capacity(surg_team) > 0` — explicitly bypassing off-shift patients regardless of bed availability. Removed unused `r2b_ot_bed_counter` and `r2e_ot_bed_counter` variables from `R/environment.R`. README, CLAUDE.md, and all 8 analysis plots regenerated from the corrected post-rebase simulation run.
+
+**Seed-42 baseline (30 days, post-implementation — post-rebase onto main including Issues #7, #24):**
+
+| Metric | Post-#35 (pre-rebase) | Post-#37 (rebased) |
+|---|---|---|
+| R2B surgical candidates | ~160 | 170 |
+| R2B bypass events | 74 | 114 of 170 |
+| R2B surgeries | 29 | 41 |
+| R2E first surgeries | 102 | 126 |
+| R2B OT util (24h room) | 5.4% | OT1: 5.4%, OT2: 8.5% |
+| R2B OT util (shift time) | 10.8% | OT1: 10.8%, OT2: 17.0% |
+| R2E OT util (24h room) | 30.8% mean | OT1: 46.9%, OT2: 23.5% |
+| R2E ICU util | 68.4% mean | ICU1: 88.8%, ICU2: 77.9%, ICU3: 73.1%, ICU4: 65.0% |
+| R2E ICU queue ≥1 | 38% of run | ICU1: 59% of run, ICU2: 46% of run |
+| Total casualties | 400 | 400 ✓ |
+
+The R2E ICU is the binding R2E constraint post-fix: chronic queuing for ICU1 and ICU2 throughout the run. R2E OT queues are intermittent and brief. R2B holding beds remain the R2B binding constraint (unchanged from #35 baseline). Difference from pre-rebase figures reflects integration of Issue #7 DNBI sub-categorisation (reducing surgical candidacy from ~160 to 170, with more routing to holding).
+
+**Significance:** OT rooms now correctly reflect 24h physical availability. The bypass check ensures patients cannot seize a bed off-shift and wait. R2E ICU emerges as the primary system-level constraint, visible in queue data across the full 30-day run.
+
+**Unblocked by this merge:** Issue #40 (R2B OT utilisation analysis) required Issue #37 merged for a correct bypass baseline — now ready.
+
+---
 
 ### Issue 35 — R2B OT Bypass Check Bug ✓
 
@@ -116,24 +151,9 @@ Fixes `usage <= cap` → `usage < cap && queue == 0` in the R2B OT availability 
 
 ---
 
-### Issue 37 — OT Bed Incorrectly Scheduled (PR #38)
+### Issue 37 — OT Bed Incorrectly Scheduled ✓
 
-**Branch:** `feature/issue-37-ot-bed-schedule-fix`
-
-Removes the 12-hour shift schedule from OT bed resources. OT rooms are physical spaces available 24 hours per day; only the surgical team carries a shift schedule. The bug caused OT bed capacity to toggle to zero when the team was off-shift, blocking OT access for on-shift periods immediately adjacent to a shift handover. The R2B bypass logic was also updated to include a third condition: `get_capacity(surg_team) > 0` — bypassing when the team is off-shift regardless of bed availability. This prevents patients seizing an OT bed off-shift and then queuing for a team.
-
-**Before/after (seed 42, 30 days):**
-
-| Metric | Post-#35 | Post-#37 |
-|---|---|---|
-| R2B bypass events | 74 | 129 |
-| R2B surgeries | 29 | 71 |
-| R2E first surgeries | 102 | 199 |
-| R2B OT util (24h room) | 5.4% | 12.4% |
-| R2B OT util (shift time) | 10.8% | ~25% |
-| R2E OT util (OT1/OT2) | 46.7% / 14.8% | 62.8% / 38.0% |
-
-**Note:** R2E trajectory does not seize surgical team resources — pre-existing gap under Issue #4 scope. R2E OT utilisation figures overstate true throughput capacity until Issue #4 is resolved.
+**Merged:** PR #38 — see "Recently Merged Issues" section above for full detail.
 
 ---
 
@@ -920,13 +940,13 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37, 44, 43, 6, 5, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44, 43, 6, 5, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
 7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **Merged PR #36.**~~
-8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **PR #38 open.**~~
-9. **Issue 44** — RTD KPI annotation: add inline note at `R/analysis.R:488` distinguishing battle fatigue RTDs from clinical RTDs. Small; can ship with Issue #37 or independently.
+8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **Merged PR #38.**~~
+9. **Issue 44** — RTD KPI annotation: add inline note at `R/analysis.R:488` distinguishing battle fatigue RTDs from clinical RTDs. Small; can ship with Issue #43 or independently.
 10. **Issue 6** — Dead-heading return legs for transport assets.
 11. **Issue 5** — Time-dependent DOW survival function.
 12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
@@ -966,9 +986,10 @@ COMPLETE (merged to main):
   #24  Variance reduction (RNG)
   #7   DNBI sub-categorisation (PR #34)
   #35  R2B OT bypass check fix (PR #36)
+  #37  OT bed schedule fix (PR #38)
 
 IN REVIEW (PRs open against main):
-  #37  OT bed schedule fix                  PR #38
+  (none)
 
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
@@ -977,7 +998,7 @@ UNBLOCKED (start now):
   #44  RTD KPI annotation            (no dependencies; small fix)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #39  R2B hold bed saturation       (unblocked by #7 merge)
-  #40  R2B OT utilisation analysis   (needs #35 ✓ + #37 merged for correct baseline)
+  #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
 
 AFTER #5:
   #43  OT–ICU gating                 (flat DOW placeholder usable; #5 adds full value)
@@ -1012,4 +1033,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), and #35 (PR #36); PR in review for Issue #37 (#38); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8 and #35 merged, #37 in review. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), and #37 (PR #38); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, and #37 merged; Issues #4, #5, #6, #39, #40, #44, and #14 all unblocked. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*

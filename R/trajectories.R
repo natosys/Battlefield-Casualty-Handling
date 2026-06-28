@@ -71,6 +71,26 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
+#' Selects a randomly ordered R2B team with at least one free hold bed
+#'
+#' @param env The simmer simulation environment object
+#' @return Index of the selected R2B team (integer), or -1 if none available
+#'
+#' @details Used for disease DNBI routing, which does not require OT availability.
+#'   Returns the first team (in random order) whose hold bed capacity is not
+#'   fully occupied. Returns -1 if all R2B teams have full hold beds.
+select_r2b_for_hold <- function(env) {
+  for (i in sample(1:counts[["r2b"]])) {
+    hold_beds <- env_data$elms$r2b[[i]]$hold_bed
+    usage     <- sum(sapply(hold_beds, function(b) get_server_count(env, b)))
+    cap       <- sum(sapply(hold_beds, function(b) get_capacity(env, b)))
+    if (usage < cap) {
+      return(i)
+    }
+  }
+  return(-1)
+}
+
 #' Selects the R2E team with the highest available OT bed capacity
 #'
 #' @return Integer index of the selected R2E team (1-based). If no beds are
@@ -340,8 +360,12 @@ r2b_treat_wia <- function(team_id) {
     # Branches on runif:
     # - < 0.01 → casualty dies of wounds; routed to KIA handling, trajectory exits
     # - else   → continue treatment
+    # Disease DNBI (dnbi_type == 2) are exempt: their pathway is medical/surgical,
+    # not trauma resuscitation, and the 1% DOW rate is calibrated for combat trauma.
     branch(
       option = function() {
+        dtype <- get_attribute(env, "dnbi_type")
+        if (!is.na(dtype) && dtype == 2L) return(2)  # disease: exempt from DOW
         if (runif(1) < 0.01) return(1)
         return(2)
       },
@@ -548,10 +572,10 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 #' #       - else                               → full ICU
 #' # - surgery != 1 → no surgery needed
 #'
-#' # Phase 4: Second surgery (if no prior R2B surgery)
-#' # Branches based on attribute "r2b_surgery":
-#' # - r2b_surgery != 1 → perform second surgery at R2E
-#' # - r2b_surgery == 1 → skip second surgery
+#' # Phase 4: Second surgery (only if R2E Phase 3 surgery occurred without prior R2B DAMCON)
+#' # Branches based on attributes "r2e_surgery" and "r2b_surgery":
+#' # - r2e_surgery == 1 AND r2b_surgery != 1 → perform second surgery at R2E
+#' # - else (not a surgical candidate, or had R2B DAMCON)  → skip second surgery
 #'
 #' # Phase 5: Final disposition
 #' # Branches on in_theatre_rate probability:
@@ -702,15 +726,17 @@ r2e_treat_wia <- function(team_id) {
       trajectory("No Surgery Needed")
     ) %>%
 
-    # Phase 4: Second surgery if no prior R2B surgery
-    # Branches based on attribute "r2b_surgery":
-    # - r2b_surgery != 1 → perform second surgery at R2E
-    # - r2b_surgery == 1 → skip second surgery
+    # Phase 4: Second surgery if patient had R2E Phase 3 surgery but not prior R2B DAMCON
+    # A second procedure is only meaningful for patients who underwent Phase 3 surgery
+    # at R2E (r2e_surgery == 1) without a prior R2B DAMCON (r2b_surgery != 1).
+    # Patients with surgery == 0 never set r2e_surgery, so is.na(r2e_surg) guards them out.
     branch(
       option = function() {
+        r2e_surg   <- get_attribute(env, "r2e_surgery")
         prior_surg <- get_attribute(env, "r2b_surgery")
-        if (!is.na(prior_surg) && prior_surg == 1) return(2)
-        return(1)
+        if (!is.na(r2e_surg) && r2e_surg == 1 &&
+            (is.na(prior_surg) || prior_surg != 1)) return(1)
+        return(2)
       },
       continue = TRUE,
       trajectory("Second Surgery Before Disposition") %>%
@@ -770,8 +796,8 @@ r2e_treat_wia <- function(team_id) {
 #' # Phase 1: Attribute assignment
 #' # - Assigns R1 team (random selection)
 #' # - Sets priority (WIA/DNBI) via weighted sample
-#' # - Sets nbi flag (DNBI cases only)
-#' # - Computes surgery requirement based on priority tier and casualty class
+#' # - Sets dnbi_type (DNBI cases only): 1=battle_fatigue, 2=disease, 3=nbi
+#' # - Computes surgery requirement based on priority tier and dnbi_type
 #'
 #' # Phase 2: Casualty type branch
 #' # Branches based on casualty name prefix:
@@ -798,24 +824,39 @@ build_casualty_trajectory <- function() {
         NA
       }
     }) %>%
-    set_attribute("nbi", function() {
+    set_attribute("dnbi_type", function() {
       name <- get_name(env)
       if (startsWith(name, "dnbi")) {
-        return(as.numeric(runif(1) < env_data$vars$r1$other$nbi))
+        sample(1:3, 1, prob = c(
+          env_data$vars$r1$other$battle_fatigue_pct,
+          env_data$vars$r1$other$disease_pct,
+          env_data$vars$r1$other$nbi_pct
+        ))
       } else {
-        return(NA)
+        NA_integer_
       }
     }) %>%
     set_attribute("surgery", function() {
-      prio <- get_attribute(env, "priority")
-      name <- get_name(env)
+      prio      <- get_attribute(env, "priority")
+      dnbi_type <- get_attribute(env, "dnbi_type")
+      name      <- get_name(env)
 
       if (is.na(prio)) return(0)
+
+      # Battle fatigue: no surgery candidacy
+      if (!is.na(dnbi_type) && dnbi_type == 1L) return(0)
+
+      # Disease: small probability for emergency surgical conditions (appendicitis,
+      # cholecystitis, perforated ulcer); applied unconditionally across priorities
+      if (!is.na(dnbi_type) && dnbi_type == 2L) {
+        return(as.numeric(runif(1) < env_data$vars$r1$other$disease_surgery_pct))
+      }
 
       if (prio == 1) return(as.numeric(runif(1) < env_data$vars$r1$other$pri1_surgery))
       if (prio == 2) return(as.numeric(runif(1) < env_data$vars$r1$other$pri2_surgery))
 
-      if (startsWith(name, "dnbi")) {
+      # P3: NBI DNBI or WIA
+      if (!is.na(dnbi_type) && dnbi_type == 3) {
         return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_dnbi_surgery))
       } else {
         return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))
@@ -841,37 +882,38 @@ build_casualty_trajectory <- function() {
           lapply(1:counts[["r1"]], r1_treat_wia)
         ) %>%
 
-        # DOW branch
-        # - P1 with runif < pri1_dow → DOW (KIA processing)
-        # - P2 with runif < pri2_dow → DOW (KIA processing)
-        # - else                     → proceed to evacuation decision
+        # DNBI sub-type routing branch
+        # Applies differentiated pathways based on dnbi_type attribute:
+        # - dnbi_type == 1 (battle_fatigue) → R1 hold → RTD; no R2 routing, no DOW
+        # - dnbi_type == 2 (disease)        → evac decision (no DOW); surgery=0 forces R2B hold path
+        # - dnbi_type == 3 (nbi) or WIA     → standard DOW + evac logic
         branch(
           option = function() {
-            prio <- get_attribute(env, "priority")
-            if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_dow) return(1)
-            if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_dow) return(1)
-            return(2)
+            dtype <- get_attribute(env, "dnbi_type")
+            if (!is.na(dtype) && dtype == 1L) return(1)  # battle fatigue
+            if (!is.na(dtype) && dtype == 2L) return(2)  # disease
+            return(3)                                      # nbi or WIA
           },
           continue = TRUE,
 
-          # Path 1: Died of wounds — treated as KIA
-          trajectory("Died of Wounds at Role 1") %>%
-            set_attribute("dow", 1) %>%
-            set_attribute("dow_echelon", 1) %>%
-            branch(
-              option = function() get_attribute(env, "team"),
-              continue = TRUE,
-              lapply(1:counts[["r1"]], function(i) {
-                r1_treat_kia(i) %>% join(r1_transport_kia())
-              })
-            ),
+          # Branch 1: Battle fatigue — hold at R1, return to duty; no R2 routing
+          trajectory("Battle Fatigue R1 Hold") %>%
+            set_attribute("dnbi_bf_hold", 1) %>%
+            timeout(function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r1$recovery$min,
+                b = env_data$vars$r1$recovery$max,
+                c = env_data$vars$r1$recovery$mode
+              )
+            }) %>%
+            set_attribute("return_day", function() now(env)) %>%
+            set_attribute("return_echelon", 1) %>%
+            simmer::leave(1),
 
-          # Path 2: Continue to evacuation decision
-          trajectory("Post-Treatment Decision") %>%
-            # Evacuation decision branch
-            # - P1 with runif < pri1_evac → evacuate to next echelon
-            # - P2 with runif < pri2_evac → evacuate to next echelon
-            # - else                      → recover at R1
+          # Branch 2: Disease — evacuation decision (no DOW, no surgery candidacy)
+          # surgery attribute is forced to 0 for disease; R2B routes them to hold path
+          trajectory("Disease Evac Decision") %>%
             branch(
               option = function() {
                 prio <- get_attribute(env, "priority")
@@ -882,31 +924,22 @@ build_casualty_trajectory <- function() {
               },
               continue = TRUE,
 
-              # Path 1: Evacuate to R2B or bypass to R2E
-              trajectory("Transport to R2b") %>%
-                set_attribute("r2b", function() select_available_r2b_team(env)) %>%
+              trajectory("Disease Transport to R2B") %>%
+                set_attribute("r2b", function() select_r2b_for_hold(env)) %>%
                 join(r1_transport_wia()) %>%
-
-                # R2B availability branch
-                # - r2b > 0 → evacuate to selected R2B team
-                # - r2b <= 0 → bypass R2B, send directly to R2E
                 branch(
                   option = function() {
                     r2b <- get_attribute(env, "r2b")
                     if (r2b > 0) return(1) else return(2)
                   },
                   continue = TRUE,
-
-                  # Path 1: R2B treatment
-                  trajectory("To R2B") %>%
+                  trajectory("Disease To R2B") %>%
                     branch(
                       option = function() get_attribute(env, "r2b"),
                       continue = TRUE,
                       lapply(1:counts[["r2b"]], r2b_treat_wia)
                     ),
-
-                  # Path 2: Bypass R2B, route directly to R2E
-                  trajectory("Bypass R2B → To R2E") %>%
+                  trajectory("Disease Bypass R2B → R2E") %>%
                     set_attribute("r2b_bypassed", 1) %>%
                     branch(
                       option = function() sample(1:counts[["r2eheavy"]], 1),
@@ -915,8 +948,7 @@ build_casualty_trajectory <- function() {
                     )
                 ),
 
-              # Path 2: Recover at R1
-              trajectory("Monitor Recovery") %>%
+              trajectory("Disease Monitor Recovery") %>%
                 timeout(function() {
                   rtriangle(
                     n = 1,
@@ -927,6 +959,97 @@ build_casualty_trajectory <- function() {
                 }) %>%
                 set_attribute("return_day", function() now(env)) %>%
                 set_attribute("return_echelon", 1)
+            ),
+
+          # Branch 3: NBI or WIA — standard DOW + evac logic
+          trajectory("NBI/WIA Standard Path") %>%
+            # DOW branch
+            # - P1 with runif < pri1_dow → DOW (KIA processing)
+            # - P2 with runif < pri2_dow → DOW (KIA processing)
+            # - else                     → proceed to evacuation decision
+            branch(
+              option = function() {
+                prio <- get_attribute(env, "priority")
+                if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_dow) return(1)
+                if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_dow) return(1)
+                return(2)
+              },
+              continue = TRUE,
+
+              # Path 1: Died of wounds — treated as KIA
+              trajectory("Died of Wounds at Role 1") %>%
+                set_attribute("dow", 1) %>%
+                set_attribute("dow_echelon", 1) %>%
+                branch(
+                  option = function() get_attribute(env, "team"),
+                  continue = TRUE,
+                  lapply(1:counts[["r1"]], function(i) {
+                    r1_treat_kia(i) %>% join(r1_transport_kia())
+                  })
+                ),
+
+              # Path 2: Continue to evacuation decision
+              trajectory("Post-Treatment Decision") %>%
+                # Evacuation decision branch
+                # - P1 with runif < pri1_evac → evacuate to next echelon
+                # - P2 with runif < pri2_evac → evacuate to next echelon
+                # - else                      → recover at R1
+                branch(
+                  option = function() {
+                    prio <- get_attribute(env, "priority")
+                    if (is.na(prio)) return(2)
+                    if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_evac) return(1)
+                    if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_evac) return(1)
+                    return(2)
+                  },
+                  continue = TRUE,
+
+                  # Path 1: Evacuate to R2B or bypass to R2E
+                  trajectory("Transport to R2b") %>%
+                    set_attribute("r2b", function() select_available_r2b_team(env)) %>%
+                    join(r1_transport_wia()) %>%
+
+                    # R2B availability branch
+                    # - r2b > 0 → evacuate to selected R2B team
+                    # - r2b <= 0 → bypass R2B, send directly to R2E
+                    branch(
+                      option = function() {
+                        r2b <- get_attribute(env, "r2b")
+                        if (r2b > 0) return(1) else return(2)
+                      },
+                      continue = TRUE,
+
+                      # Path 1: R2B treatment
+                      trajectory("To R2B") %>%
+                        branch(
+                          option = function() get_attribute(env, "r2b"),
+                          continue = TRUE,
+                          lapply(1:counts[["r2b"]], r2b_treat_wia)
+                        ),
+
+                      # Path 2: Bypass R2B, route directly to R2E
+                      trajectory("Bypass R2B → To R2E") %>%
+                        set_attribute("r2b_bypassed", 1) %>%
+                        branch(
+                          option = function() sample(1:counts[["r2eheavy"]], 1),
+                          continue = TRUE,
+                          lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
+                        )
+                    ),
+
+                  # Path 2: Recover at R1
+                  trajectory("Monitor Recovery") %>%
+                    timeout(function() {
+                      rtriangle(
+                        n = 1,
+                        a = env_data$vars$r1$recovery$min,
+                        b = env_data$vars$r1$recovery$max,
+                        c = env_data$vars$r1$recovery$mode
+                      )
+                    }) %>%
+                    set_attribute("return_day", function() now(env)) %>%
+                    set_attribute("return_echelon", 1)
+                )
             )
         ),
 

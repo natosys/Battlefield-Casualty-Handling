@@ -590,7 +590,19 @@
           "acty": "other",
           "vals": [
             {
-              "var": "nbi",
+              "var": "battle_fatigue_pct",
+              "val": 0.25
+            },
+            {
+              "var": "disease_pct",
+              "val": 0.58
+            },
+            {
+              "var": "disease_surgery_pct",
+              "val": 0.06
+            },
+            {
+              "var": "nbi_pct",
               "val": 0.17
             },
             {

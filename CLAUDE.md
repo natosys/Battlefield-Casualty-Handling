@@ -354,6 +354,8 @@ These are the validated baseline values from the current single-run analysis. Re
 | DOW rate (P2 at R1) | 2.5% (flat) |
 | DOW rate (R2B/R2E) | 1% (flat) |
 | DNBI sub-types (seed 42) | battle_fatigue=46, disease=97, nbi=33 |
+| bf_rtd (seed 42) | 46 (all battle fatigue cases; deterministic from dnbi_type==1 trajectory) |
+| clinical_rtd (seed 42) | TBD — confirm from seed-42 run after PR merge |
 | R2B surgical candidates (seed 42) | 170 |
 | R2B surgeries (seed 42) | 41 |
 | R2E surgeries — first op (seed 42) | 126 |

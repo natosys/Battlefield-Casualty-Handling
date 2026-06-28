@@ -970,10 +970,10 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 ### Domain 5 — Flow and Disposition
 
 > **MODEL OUTPUT — RTD Rate by Echelon:**
-> Count and proportion of casualties returning to duty at each echelon (R1, R2B, R2E), derived from the `return_echelon` attribute alongside `return_day` assignments. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E.
-> **Doctrinal basis:** AJP-4.10 §5 [[21]](#References): in-theatre return-to-duty rate is the primary combat power conservation metric; echelon-level RTD indicates where treatment is most efficient.
+> Count and proportion of casualties returning to duty at each echelon (R1, R2B, R2E), decomposed by RTD type (`battle_fatigue` / `clinical`). Derived from the `return_echelon`, `return_day`, and `dnbi_type` attributes. Attribute encoding: `return_echelon` 1 = R1, 2 = R2B, 3 = R2E; `dnbi_type` 1 = battle fatigue.
+> **Doctrinal basis:** AJP-4.10 §5 [[21]](#References): in-theatre return-to-duty rate is the primary combat power conservation metric; echelon-level RTD indicates where treatment is most efficient. The `battle_fatigue` sub-type reflects forward behavioural health management capacity (R1 hold, no R2 routing); the `clinical` sub-type reflects Role 2 treatment throughput and efficacy.
 > **Criteria:** C1, C2, C5
-> **Computation:** Filter `attributes_wide` where `return_day` is not NA; decode `return_echelon` (1→"r1", 2→"r2b", 3→"r2e"); count by decoded echelon label; divide by WIA + DNBI arrivals for rate. Consistency check: echelon subtotals must sum to total RTD count.
+> **Computation:** Filter `attributes_wide` where `return_day` is not NA; decode `return_echelon` (1→"r1", 2→"r2b", 3→"r2e"); assign `rtd_type` = "battle_fatigue" where `dnbi_type == 1`, else "clinical"; count by `(return_echelon, rtd_type)`; divide by total WIA + DNBI arrivals for rate. Consistency check: echelon × type subtotals must sum to `total_rtd`.
 
 > **MODEL OUTPUT — R2B Bypass Rate:**
 > Proportion of WIA casualties routed directly from R1 to R2E without R2B treatment, identifiable where `r2e_treated` is not NA and `r2b_treated` is NA.
@@ -985,11 +985,11 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 ### Domain 6 — Combat Power
 
-> **MODEL OUTPUT — Total RTD Count:**
-> Count of casualties assigned `return_day` across all replications.
-> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2: return-to-duty throughput directly determines the rate at which combat power is regenerated from the medical system.
+> **MODEL OUTPUT — Total RTD Count (bf_rtd + clinical_rtd):**
+> Total count of casualties assigned `return_day`, decomposed into two operationally distinct sub-totals: `bf_rtd` (battle fatigue casualties returned at R1 without clinical treatment) and `clinical_rtd` (all other RTDs following R1 recovery, R2B hold-bed discharge, or R2E hold-bed discharge). `total_rtd = bf_rtd + clinical_rtd`.
+> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2: return-to-duty throughput directly determines the rate at which combat power is regenerated from the medical system. `bf_rtd` measures forward behavioural health management; `clinical_rtd` measures Role 2 treatment efficacy. Reporting a combined total without this decomposition overstates clinical RTD output.
 > **Criteria:** C2, C5
-> **Computation:** `sum(!is.na(attributes_wide$return_day))` per replication.
+> **Computation:** `bf_rtd = sum(!is.na(return_day) & dnbi_type == 1)`; `clinical_rtd = sum(!is.na(return_day) & (is.na(dnbi_type) | dnbi_type != 1))`; consistency check: `bf_rtd + clinical_rtd == sum(!is.na(return_day))`.
 
 ---
 
@@ -1006,9 +1006,9 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 | OT utilisation | Surgical | resource monitor | C3, C4 | `ot_utilisation` |
 | Surgery counts/day | Surgical | `r2b_surgery_start`, `r2e_surgery_*` | C2–C4 | `r2b_summary`, `r2e_summary` |
 | Queue length over time | Echelon load | resource monitor | C3, C4 | resource plots |
-| RTD rate by echelon | Flow/disposition | `return_day`, `return_echelon` | C1, C2, C5 | `rtd_by_echelon` |
+| RTD rate by echelon × type | Flow/disposition | `return_day`, `return_echelon`, `dnbi_type` | C1, C2, C5 | `rtd_by_echelon` (columns: `return_echelon`, `rtd_type`, `rtd_count`, `rtd_rate`) |
 | R2B bypass rate | Flow/disposition | `r2b_treated`, `r2e_treated` | C2–C4 | derived in `combined` |
-| Total RTD count | Combat power | `return_day` | C2, C5 | `sum(!is.na(return_day))` |
+| Total RTD count (bf + clinical) | Combat power | `return_day`, `dnbi_type` | C2, C5 | `bf_rtd`, `clinical_rtd`, `total_rtd` |
 
 ---
 

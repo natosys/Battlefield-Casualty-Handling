@@ -485,11 +485,28 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
 
   # KPI 6: RTD count and rate by echelon
   # return_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
-  total_rtd <- sum(!is.na(attributes_wide$return_day))
+  # battle_fatigue RTDs (dnbi_type == 1) are returned at R1 without clinical treatment;
+  # all other RTDs (WIA/NBI/disease recovery at R1, R2B/R2E hold-bed discharge) are clinical RTDs.
+  bf_rtd <- sum(
+    !is.na(attributes_wide$return_day) &
+      !is.na(attributes_wide$dnbi_type) &
+      attributes_wide$dnbi_type == 1L,
+    na.rm = TRUE
+  )
+  clinical_rtd <- sum(
+    !is.na(attributes_wide$return_day) &
+      (is.na(attributes_wide$dnbi_type) | attributes_wide$dnbi_type != 1L),
+    na.rm = TRUE
+  )
+  total_rtd <- bf_rtd + clinical_rtd
+  stopifnot(total_rtd == sum(!is.na(attributes_wide$return_day)))
   rtd_by_echelon <- attributes_wide %>%
     filter(!is.na(return_day) & !is.na(return_echelon)) %>%
-    mutate(return_echelon = echelon_labels[as.character(as.integer(return_echelon))]) %>%
-    count(return_echelon, name = "rtd_count") %>%
+    mutate(
+      return_echelon = echelon_labels[as.character(as.integer(return_echelon))],
+      rtd_type       = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")
+    ) %>%
+    count(return_echelon, rtd_type, name = "rtd_count") %>%
     mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
   stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
 
@@ -531,6 +548,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     r2b_r2e_transit_time        = r2b_r2e_transit_time,
     r2e_dwell_time              = r2e_dwell_time,
     dow_by_echelon              = dow_by_echelon,
+    bf_rtd                      = bf_rtd,
+    clinical_rtd                = clinical_rtd,
+    total_rtd                   = total_rtd,
     rtd_by_echelon              = rtd_by_echelon,
     ot_utilisation              = ot_utilisation
   ))

@@ -463,9 +463,15 @@ The following casualty priority rates were used with the rates requiring surgery
 
 <small>[Return to Top](#contents)</small>
 
-- Priority 3 are returned to duty from R1. Priority 1 and 2 that do not require surgery are RTF post recovery from emergency treatment at r2b.
+Return to duty (RTD) is modelled at three echelons and decomposed into two operationally distinct sub-types:
 
-- Per [[9]](#References), of those admitted to MTFs, the distribution for return to duty was 42.1 percent in Republic of Vietnam, 7.6 percent in the U.S. Indo-Pacific Command, and 33.4 percent in the CONUS.
+- **Battle fatigue RTD (R1 only):** Battle fatigue casualties (DNBI sub-type 1, 25% of DNBI) are held at R1 and returned to duty without R2 routing or clinical treatment. An entity receives a `return_day` attribute when it completes the R1 hold timeout. Because the 30-day simulation may end before all battle fatigue entities complete their hold, `bf_rtd` is bounded by simulation end and will be less than the total number of battle fatigue casualties generated.
+
+- **Clinical RTD (R1, R2B, R2E):** All other casualties assigned `return_day` constitute clinical RTDs — Priority 3 WIA and NBI cases completing R1 recovery, disease cases discharged from R2B holding beds, and post-surgical cases discharged from R2E holding beds. `clinical_rtd` is assigned at the echelon where the hold-bed discharge occurs.
+
+`total_rtd = bf_rtd + clinical_rtd`. The decomposition preserves the operational distinction between forward behavioural health management (which conserves R2 capacity) and clinical treatment efficacy at each Role 2 echelon.
+
+Per [[9]](#References), historical in-theatre return-to-duty rates for those admitted to MTFs ranged from 7.6% (U.S. Indo-Pacific Command) to 42.1% (Republic of Vietnam) and 33.4% (CONUS). These figures are used as external validity comparators, not as model inputs.
 
 ## Died of Wounds
 
@@ -970,10 +976,10 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 ### Domain 5 — Flow and Disposition
 
 > **MODEL OUTPUT — RTD Rate by Echelon:**
-> Count and proportion of casualties returning to duty at each echelon (R1, R2B, R2E), derived from the `return_echelon` attribute alongside `return_day` assignments. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E.
-> **Doctrinal basis:** AJP-4.10 §5 [[21]](#References): in-theatre return-to-duty rate is the primary combat power conservation metric; echelon-level RTD indicates where treatment is most efficient.
+> Count and proportion of casualties returning to duty at each echelon (R1, R2B, R2E), decomposed by RTD type (`battle_fatigue` / `clinical`). Derived from the `return_echelon`, `return_day`, and `dnbi_type` attributes. Attribute encoding: `return_echelon` 1 = R1, 2 = R2B, 3 = R2E; `dnbi_type` 1 = battle fatigue.
+> **Doctrinal basis:** AJP-4.10 §5 [[21]](#References): in-theatre return-to-duty rate is the primary combat power conservation metric; echelon-level RTD indicates where treatment is most efficient. The `battle_fatigue` sub-type reflects forward behavioural health management capacity (R1 hold, no R2 routing); the `clinical` sub-type reflects Role 2 treatment throughput and efficacy.
 > **Criteria:** C1, C2, C5
-> **Computation:** Filter `attributes_wide` where `return_day` is not NA; decode `return_echelon` (1→"r1", 2→"r2b", 3→"r2e"); count by decoded echelon label; divide by WIA + DNBI arrivals for rate. Consistency check: echelon subtotals must sum to total RTD count.
+> **Computation:** Filter `attributes_wide` where `return_day` is not NA; decode `return_echelon` (1→"r1", 2→"r2b", 3→"r2e"); assign `rtd_type` = "battle_fatigue" where `dnbi_type == 1`, else "clinical"; count by `(return_echelon, rtd_type)`; divide by total WIA + DNBI arrivals for rate. Consistency check: echelon × type subtotals must sum to `total_rtd`.
 
 > **MODEL OUTPUT — R2B Bypass Rate:**
 > Proportion of WIA casualties routed directly from R1 to R2E without R2B treatment, identifiable where `r2e_treated` is not NA and `r2b_treated` is NA.
@@ -985,11 +991,11 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 ### Domain 6 — Combat Power
 
-> **MODEL OUTPUT — Total RTD Count:**
-> Count of casualties assigned `return_day` across all replications.
-> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2: return-to-duty throughput directly determines the rate at which combat power is regenerated from the medical system.
+> **MODEL OUTPUT — Total RTD Count (bf_rtd + clinical_rtd):**
+> Total count of casualties assigned `return_day`, decomposed into two operationally distinct sub-totals: `bf_rtd` (battle fatigue casualties returned at R1 without clinical treatment) and `clinical_rtd` (all other RTDs following R1 recovery, R2B hold-bed discharge, or R2E hold-bed discharge). `total_rtd = bf_rtd + clinical_rtd`.
+> **Doctrinal basis:** AJP-4.10 §5 and ADDP 4.2: return-to-duty throughput directly determines the rate at which combat power is regenerated from the medical system. `bf_rtd` measures forward behavioural health management; `clinical_rtd` measures Role 2 treatment efficacy. Reporting a combined total without this decomposition overstates clinical RTD output.
 > **Criteria:** C2, C5
-> **Computation:** `sum(!is.na(attributes_wide$return_day))` per replication.
+> **Computation:** `bf_rtd = sum(!is.na(return_day) & dnbi_type == 1)`; `clinical_rtd = sum(!is.na(return_day) & (is.na(dnbi_type) | dnbi_type != 1))`; consistency check: `bf_rtd + clinical_rtd == sum(!is.na(return_day))`.
 
 ---
 
@@ -1006,9 +1012,9 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 | OT utilisation | Surgical | resource monitor | C3, C4 | `ot_utilisation` |
 | Surgery counts/day | Surgical | `r2b_surgery_start`, `r2e_surgery_*` | C2–C4 | `r2b_summary`, `r2e_summary` |
 | Queue length over time | Echelon load | resource monitor | C3, C4 | resource plots |
-| RTD rate by echelon | Flow/disposition | `return_day`, `return_echelon` | C1, C2, C5 | `rtd_by_echelon` |
+| RTD rate by echelon × type | Flow/disposition | `return_day`, `return_echelon`, `dnbi_type` | C1, C2, C5 | `rtd_by_echelon` (columns: `return_echelon`, `rtd_type`, `rtd_count`, `rtd_rate`) |
 | R2B bypass rate | Flow/disposition | `r2b_treated`, `r2e_treated` | C2–C4 | derived in `combined` |
-| Total RTD count | Combat power | `return_day` | C2, C5 | `sum(!is.na(return_day))` |
+| Total RTD count (bf + clinical) | Combat power | `return_day`, `dnbi_type` | C2, C5 | `bf_rtd`, `clinical_rtd`, `total_rtd` |
 
 ---
 
@@ -1100,6 +1106,20 @@ Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (I
 ![Alt text](images/r2eheavy_surgeries.png)
 
 When examined in system context, the combined OT capacity of two R2B elements and one R2E Heavy is adequate for a single combat brigade under Falklands-equivalent casualty rates [[8]](#References). However, if this system were applied to a deployed division, surgical and holding capacity would be grossly insufficient even if only one brigade was assumed to be in contact at any time. The modelled scenario also does not account for mass-casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa or Vietnam, both of which would expose this deficit [[8]](#References).
+
+### Return to Duty
+
+Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribute, decomposed as follows:
+
+| Echelon | RTD type | Count | Rate (of 400 arrivals) |
+|---|---|---|---|
+| R1 | battle_fatigue | 38 | 9.5% |
+| R1 | clinical | 59 | 14.8% |
+| R2B | clinical | 46 | 11.5% |
+| R2E | clinical | 5 | 1.3% |
+| **Total** | | **148** | **37.0%** |
+
+`bf_rtd` is 38, not 46 (the total battle fatigue casualties generated), because 8 battle fatigue entities were still within their R1 hold timeout when the 30-day simulation ended and were not assigned `return_day`. Battle fatigue RTDs are exclusively at R1, consistent with the no-R2-routing design. The majority of clinical RTDs occur at R1 (Priority 3 WIA and NBI completing R1 recovery) and R2B (disease cases discharged from hold beds). R2E clinical RTDs are low (5) because R2E hold-bed discharge is contingent on post-surgical recovery completion, which for many casualties extends beyond the 30-day window. The aggregate RTD rate of 37.0% is within the historical range for in-theatre MTF admissions (7.6–42.1% [[9]](#References)), though direct comparison requires accounting for the simulation's 30-day boundary effect.
 
 ### Conclusion
 

@@ -425,6 +425,10 @@
             {
               "var": "mode",
               "val": 7200
+            },
+            {
+              "var": "hold_threshold",
+              "val": 0.8
             }
           ]
         },

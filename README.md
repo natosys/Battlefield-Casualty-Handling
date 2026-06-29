@@ -6,7 +6,7 @@ This study presents a Discrete Event Simulation (DES) framework developed to eva
 
 The model enables extended-duration analysis at varying scales, capturing key metrics such as queue lengths, wait times, and resource saturation to identify temporal bottlenecks and assess system suitability. A three-stage damage control surgery model is embedded within the simulation to reflect treatment pathways and operational constraints.
 
-Findings demonstrate that the current system design is capable of managing moderate casualty volumes, historically represented by the Falklands conflict. Following correction of DNBI sub-categorisation, OT-bypass routing, and OT bed scheduling, two system constraints are identified. At R2B, holding bed capacity saturates progressively over a 30-day operation, driven by disease DNBI evacuees occupying hold beds for extended durations. At R2E Heavy, the ICU is the primary binding constraint, operating at 65–89% utilisation per bed with queues present for up to 59% of the run; OT capacity (47% and 24% for the two theatres) is not saturated. The study identifies areas of risk, recommends targeted system refinements, and proposes enhancements to the simulation architecture—including dynamic DOW modelling, pulsed strategic evacuation, and stochastic mass-casualty events.
+Findings demonstrate that the current system design is capable of managing moderate casualty volumes, historically represented by the Falklands conflict. Following correction of DNBI sub-categorisation, OT-bypass routing, and OT bed scheduling, two system constraints are identified. At R2B, holding bed capacity saturates progressively over a 30-day operation, driven by disease DNBI evacuees occupying hold beds for extended durations; stream decomposition confirms a structural 55% overload (expected 15.5 concurrent hold beds against 10-bed capacity); a two-tier routing policy is implemented — an upstream occupancy threshold (default 80%) routes overflow to R2E before transport begins, and an at-R2B three-stage policy handles race conditions — with hold bed expansion or an evacuation threshold as the indicated structural remedies. At R2E Heavy, the ICU is the primary binding constraint, operating at 65–89% utilisation per bed with queues present for up to 59% of the run; OT capacity (47% and 24% for the two theatres) is not saturated. The study identifies areas of risk, recommends targeted system refinements, and proposes enhancements to the simulation architecture—including dynamic DOW modelling, pulsed strategic evacuation, and stochastic mass-casualty events.
 
 This tool supports iterative refinement and stakeholder engagement, offering a transparent, modular platform for testing health system resilience. With further development and testing against high-intensity casualty models, the simulation can inform doctrinal updates and guide medical planning for future operational environments.
 
@@ -601,7 +601,7 @@ The simulation supports independent Monte Carlo replication via `run_replication
 
 On POSIX systems (Linux, macOS), replications are dispatched via `mclapply` with `mc.set.seed = TRUE` and `RNGkind("L'Ecuyer-CMRG")` set before the call. This assigns each worker a provably non-overlapping substream of the underlying MRG32k3a generator, with overall period ρ ≈ 2¹⁹¹ and substream spacing ρ₂ = 2⁷⁶ — stream overlap is impossible within any realistic simulation workload. Karl et al. (2014) [[32]](#References) demonstrate the practical application of this mechanism in R via the `parallel` and `rstream` packages. The physical core count is used via `mc.cores = parallel::detectCores()`. On Windows, the framework falls back to sequential `lapply`.
 
-**Antithetic variate variance reduction** is applied to arrival generation. Replication pairs (2*k*−1, 2*k*) share a seed: both workers call `run_once()` with the same `seed` value, so their RNG streams start from an identical state. The primary replication (odd index) draws U ~ Uniform(0,1) and computes X = qlnorm(U); the antithetic replication (even index) substitutes U′ = 1 − U, computing X′ = qlnorm(1 − U). Because both use the *same* initial uniform sequence, the reflection is exact: Cor(X, X′) < 0 and the estimator variance Var[Ȳ] is reduced without increasing replication count (Rossetti, 2023 [[33]](#References)). Independence *across* pairs is ensured by distinct pair seeds drawn from the parent RNG. The within-minute arrival jitter is also antithetised. Antithetic application is limited to arrival times; service times and routing probabilities generated internally by simmer cannot be antithetised without deep trajectory instrumentation (see L8, Limitations).
+**Antithetic variate variance reduction** is applied to arrival generation. Replication pairs (2*k*−1, 2*k*) share a seed: both workers call `run_once()` with the same `seed` value, so their RNG streams start from an identical state. The primary replication (odd index) draws U ~ Uniform(0,1) and computes X = qlnorm(U); the antithetic replication (even index) substitutes U′ = 1 − U, computing X′ = qlnorm(1 − U). Because both use the *same* initial uniform sequence, the reflection is exact: Cor(X, X′) < 0 and the estimator variance Var[Ȳ] is reduced without increasing replication count (Rossetti, 2023 [[33]](#References)). Independence *across* pairs is ensured by distinct pair seeds drawn from the parent RNG. The within-minute arrival jitter is also antithetised. Antithetic application is limited to arrival times; service times and routing probabilities generated internally by simmer cannot be antithetised without deep trajectory instrumentation (see L9, Limitations).
 
 A key-performance-indicator summary is computed by `summarise_replications(mon)` using the time-weighted mean queue per replication as the unit of analysis. The across-replication summary reports mean, p10, p90, max queue, and a 95% confidence interval (t-distribution, *df* = *n* − 1) for each resource, sorted descending by mean queue. Results are written to `outputs/replication_summary.csv`.
 
@@ -626,7 +626,9 @@ Rscript scripts/run_warmup.R
 Rscript scripts/run_warmup.R --reps 5 --days 60
 ```
 
-The resulting Welch plot (`images/welch_plot_icu_queue.png`) shows the cross-replication CMA of the R2E ICU queue across 90 days. Rather than converging to a stable plateau, the CMA displays episodic, non-stationary behaviour: a rise to a local peak near Day 13 (the first wave of R2E ICU admissions propagating from early combat), a decline to a trough near Day 25, then a second rise to a higher peak near Day 38 as cumulative casualty load continues to build. No convergence to a steady state is observed within the 90-day horizon. This pattern is consistent with the lognormal arrival process generating episodic surges; the ICU queue is driven by campaign dynamics rather than a stationary queue process, and the CMA continues to shift across the full run length.
+The resulting Welch plot shows the cross-replication CMA of the R2E ICU queue across 90 days.
+
+![Welch plot — R2E ICU queue CMA across 90 days](images/welch_plot_icu_queue.png) Rather than converging to a stable plateau, the CMA displays episodic, non-stationary behaviour: a rise to a local peak near Day 13 (the first wave of R2E ICU admissions propagating from early combat), a decline to a trough near Day 25, then a second rise to a higher peak near Day 38 as cumulative casualty load continues to build. No convergence to a steady state is observed within the 90-day horizon. This pattern is consistent with the lognormal arrival process generating episodic surges; the ICU queue is driven by campaign dynamics rather than a stationary queue process, and the CMA continues to shift across the full run length.
 
 This non-convergent CMA confirms that the battlefield casualty handling simulation is a **terminating simulation** per Law (2020) [[26]](#References). The campaign has a defined finite horizon; the ICU queue trajectory represents the operational reality of that campaign, including the initial build-up of casualties from Day 1. The empty-start initial condition — no casualties in care on Day 0 — is the correct operational initial condition for a force beginning operations. It is not a modelling artefact to be excluded. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that warm-up detection methods, including graphical approaches, presuppose the existence of a steady state; they are not applicable to terminating simulations.
 
@@ -687,6 +689,16 @@ Rscript scripts/run_sensitivity.R --sobol
 ```
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
+
+![Morris EE — System OT queue](images/morris_system_ot_q.png)
+
+![Morris EE — R2B OT queue](images/morris_r2b_ot_q.png)
+
+![Morris EE — R2E OT queue](images/morris_r2e_ot_q.png)
+
+![Morris EE — R2E ICU queue](images/morris_r2e_icu_q.png)
+
+![Morris EE — DOW count](images/morris_dow_count.png)
 
 ### 🔧Simulation Environment Setup
 
@@ -1090,6 +1102,49 @@ OT rooms are modelled as physical spaces available 24 hours per day. The surgica
 
 ![Alt text](images/r2b_bed_queues.png)
 
+![Alt text](images/r2b_gantt.png)
+
+#### R2B Hold Bed Saturation — Stream Decomposition and Intervention Analysis
+
+Issue #39 adds per-stream decomposition of R2B hold bed occupancy. A `r2b_hold_start` attribute is now recorded for each patient entering the long-duration hold pathway, enabling daily concurrent occupancy to be decomposed by patient stream (disease DNBI, NBI DNBI, WIA) in the analysis pipeline. The `r2b_hold_drawn` attribute stores the drawn hold duration at the time of bed seizure, supporting optional evac-threshold logic described below.
+
+**Battle fatigue verification.** Code inspection confirms that battle fatigue casualties (dnbi_type == 1) exit the trajectory at R1 via the "Battle Fatigue R1 Hold" branch and never reach R2B hold beds. This is enforced by a `stopifnot` assertion in the analysis pipeline.
+
+**Structural load calculation.** Under the baseline seed 42 parameters (176 DNBI total; 97 disease, 33 NBI, 46 battle fatigue):
+
+- Disease DNBI reaching R2B hold: ~77 evacuated (P1: 97 × 0.65 × 0.95 ≈ 60; P2: 97 × 0.20 × 0.90 ≈ 17), minus ~6% surgical candidacy ≈ **72 entering hold-bed recovery** over 30 days (≈ 2.4 per day)
+- Non-surgical WIA and NBI reaching R2B hold: ~19 over 30 days (≈ 0.6 per day)
+- **Total hold entry rate: ≈ 3.0 patients per day**
+- Expected hold duration (triangular min=0.5d, mode=5d, max=10d): mean = (0.5 + 5 + 10) / 3 = **5.17 days**
+- **Expected concurrent hold occupancy: 3.0 × 5.17 ≈ 15.5 beds** against 10 available (5 per R2B unit × 2 units)
+
+This is a **structural 55% overload**. The saturation cannot be resolved by changes to surgical throughput; it requires an intervention at the holding pathway itself.
+
+![R2B Hold Bed Daily Occupancy by Patient Stream](images/r2b_hold_occupancy.png)
+
+**Intervention Scenario A — Hold duration reduction** (`vars.r2b.holding.mode` in `env_data.json`). Reducing the hold mode from 5 days (7,200 min) to 3 days (4,320 min) reduces expected mean duration from 5.17 to (0.5 + 3 + 10) / 3 = 4.5 days. Expected concurrent occupancy falls from 15.5 to 3.0 × 4.5 = **13.5 beds** — still 35% above the 10-bed capacity. A clinically implausible mode of ≤ 1.3 days would be required to bring expected occupancy within capacity. Hold duration reduction alone is insufficient to resolve saturation. To test: change `{"var": "mode", "val": 7200}` to `{"var": "mode", "val": 4320}` in the `vars.r2b.holding` activity and re-run 10+ replications.
+
+**Intervention Scenario B — Hold bed expansion** (`elms.r2b.beds.hold.qty` in `env_data.json`). Increasing hold beds from 5 to 10 per R2B unit provides 20 total beds against expected steady-state demand of ~15.5, yielding comfortable headroom to absorb stochastic variance. Eight beds per unit (16 total) provides marginal headroom. To test: change `{"name": "hold", "qty": 5}` to `{"name": "hold", "qty": 10}` in the `elms.r2b.beds` array and re-run 10+ replications.
+
+**Intervention Scenario C — Evacuation threshold** (`vars.r2b.holding.evac_threshold` in `env_data.json`). The trajectory now supports an optional evac threshold (minutes): when `evac_threshold` is set and a patient's drawn hold duration exceeds it, the patient is forwarded to R2E rather than waiting for full recovery at R2B. At a threshold of 3 days (4,320 min): the triangular CDF gives P(draw > 4,320) = 1 − (4,320 − 720)² / ((14,400 − 720) × (7,200 − 720)) ≈ **85% of hold patients forwarded to R2E early**, effectively eliminating R2B hold saturation. This reduces R2B hold bed occupancy substantially but transfers a non-surgical medical load to the R2E hold and ICU pathway. To test: add `{"var": "evac_threshold", "val": 4320}` to the `vars.r2b.holding` activity vals array and re-run 10+ replications.
+
+**Intervention Scenario D — Capacity-aware hold routing (Issue #39, implemented).** A two-tier routing policy manages hold bed allocation. The primary tier operates at R1 before transport begins; the secondary tier operates at R2B on arrival.
+
+**Primary tier — upstream threshold routing (`vars.r2b.holding.hold_threshold`, default 0.8).** `select_r2b_for_hold()` now checks whether a R2B unit's hold occupancy is strictly below `hold_threshold × capacity` before routing a patient there. With 5 beds per unit and threshold 0.8, a unit is only selected if fewer than 4 beds (80%) are occupied, keeping at least 1 bed reserved for incoming Step 1 staging patients. If no R2B unit is below threshold, the patient is routed directly to R2E from R1 (`r2b_bypassed = 1`) without incurring transport to R2B at all. When `hold_threshold` is absent the function falls back to routing whenever any bed is free (original behaviour). This eliminates the cascade where long-duration Step 4 holders starve new Step 1 arrivals: the routing decision is made before transport, not after the patient has already consumed a hold bed. To test: set `{"var": "hold_threshold", "val": 0.6}` for more aggressive upstream routing, or remove the parameter to restore original behaviour.
+
+**Secondary tier — at-R2B three-stage policy.** For patients who arrive at R2B (either because the upstream check passed, or a race condition occurred between routing decision and arrival):
+
+1. **Hold capacity available** — patient seizes a hold bed immediately (Step 4 No Surgery branch).
+2. **Hold full, R2E has capacity** — patient bypasses to R2E via evacuation-team transport (`r2b_hold_bypass = 1`); also the fallback when queue cap is exceeded.
+3. **Both echelons full, queue within cap** — patient joins the R2B hold queue (`r2b_hold_queued = 1`). Queue cap = floor(R2B\_beds / (R2B\_beds + R2E\_beds) × R2B\_beds) = **2 patients**; above cap, fallback to stage 2.
+
+The analysis pipeline reports all three routing outcomes: `r2b_pre_bypass_count` (upstream, at R1), `r2b_hold_bypass_count` (at R2B Step 4), and `r2b_hold_queued_count` (queued at R2B when both echelons saturated).
+
+> **MODEL ASSUMPTION — R2B Hold Bed Structural Overload:** Five hold beds per R2B unit are insufficient to absorb the demand generated by 58% disease DNBI proportion over a 30-day operation. The overload is structural (expected demand 15.5 beds vs. 10 available) and is not resolved by hold duration reduction alone. With no-queue bypass active (Scenario D), overflowing patients transfer to R2E rather than accumulating at R2B, preserving system throughput at the cost of increased R2E medical hold load.
+> **Basis:** Derived from model parameters: hold entry rate ≈ 3.0 patients/day × mean hold 5.17 days = 15.5 concurrent beds. No empirical doctrinal standard for forward medical holding capacity in LSCO contexts has been identified in open-access literature.
+> **Uncertainty:** Medium — conditioned on the 58% disease DNBI proportion assumption (itself High uncertainty; see MODEL ASSUMPTION — DNBI Disease Proportion). If true disease proportion is lower, the overload reduces proportionally.
+> **Consequence if wrong:** If disease DNBI proportion is substantially lower (e.g., 30%), expected concurrent hold occupancy falls to ~8 beds, within the 10-bed capacity. The saturation finding is sensitive to this assumption.
+
 ### R2E Heavy Handling
 
 Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issues #35 and #37), and 24-hour OT bed availability, the R2E Heavy is the primary surgical node for the deployed health system. Under seed 42 (30 days), the R2E performed **126 first surgeries**, receiving both direct R1 bypass patients and the 114 R2B bypasses generated by off-shift or occupied R2B OT.
@@ -1106,6 +1161,10 @@ Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (I
 ![Alt text](images/r2eheavy_surgeries.png)
 
 When examined in system context, the combined OT capacity of two R2B elements and one R2E Heavy is adequate for a single combat brigade under Falklands-equivalent casualty rates [[8]](#References). However, if this system were applied to a deployed division, surgical and holding capacity would be grossly insufficient even if only one brigade was assumed to be in contact at any time. The modelled scenario also does not account for mass-casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa or Vietnam, both of which would expose this deficit [[8]](#References).
+
+### Casualty Waiting Time
+
+![Casualty Waiting Time Over Simulation](images/waiting_time.png)
 
 ### Return to Duty
 
@@ -1125,7 +1184,7 @@ Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribu
 
 The single-run analysis, viewed in its entirety, demonstrates that the modelled deployed health system is capable of sustaining a steady operational tempo for a single brigade under baseline casualty assumptions derived from the Falklands conflict. Role 1 elements show sufficient responsiveness and throughput, and the dual-node R2B configuration absorbs surgical demand effectively through a combination of forward surgery and bypass routing to R2E.
 
-Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issue #35), and OT bed scheduling (Issue #37), two system constraints are identified. At R2B, holding bed capacity saturates progressively from Day 10–15 onward, driven by disease DNBI evacuees occupying hold beds for multi-day durations, and not addressable through surgical throughput adjustment. OT is not a constraint at either echelon: R2B OT operates at 5.4–8.5% against 24-hour room time (10.8–17.0% against shift time); R2E OT at 46.9% and 23.5%.
+Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issues #35 and #37), and structural analysis of R2B holding capacity (Issue #39), two system constraints are identified. At R2B, holding bed capacity saturates progressively from Day 10–15 onward, driven by disease DNBI evacuees occupying hold beds for multi-day durations. Stream decomposition analysis (Issue #39) confirms disease DNBI as the dominant load: expected concurrent hold occupancy of ~15.5 beds exceeds 10-bed capacity by 55%, a structural mismatch not addressable through surgical throughput adjustment. Hold bed expansion (≥8 beds per unit) or an evacuation threshold policy are the indicated interventions. OT is not a constraint at either echelon: R2B OT operates at 5.4–8.5% against 24-hour room time (10.8–17.0% against shift time); R2E OT at 46.9% and 23.5%.
 
 **The primary binding constraint at R2E is ICU capacity.** The four-bed ICU operates at 65–89% utilisation, with ICU beds 1 and 2 carrying queues for 59% and 46% of the run respectively. This is consistent with the pre-rebase finding from 10 independent replications (ICU utilisation 71.2%, range 60.6–80.6%). The R2E Heavy performs 126 first surgeries in the baseline run compared to 41 at R2B. Two distinct system levers are indicated: R2B holding bed expansion or higher evacuation threshold from R2B holding, and increased R2E ICU capacity to relieve the primary post-surgical bottleneck.
 
@@ -1149,24 +1208,27 @@ Resources are seized as whole team vectors at R2B. A second casualty cannot use 
 
 ### Medium Impact
 
-**L4 — Undifferentiated DNBI Treatment Pathway** *(Resolved — Issue #7)*
+**L4 — R2B Hold Bed Capacity Insufficient for Disease DNBI Load (Medium Impact on Patient Throughput and DOW Risk)**
+Stream decomposition analysis (Issue #39) confirms that the five hold beds per R2B unit are structurally insufficient: expected concurrent occupancy is approximately 15.5 beds against a 10-bed total capacity across both R2B units (see R2B Hold Bed Saturation section). Four interventions have been analysed and implemented: hold duration reduction (insufficient alone), hold bed expansion to 8–10 per unit (structurally resolves the overload), an evacuation threshold policy routing long-duration holders to R2E early (activation: add `evac_threshold` to `vars.r2b.holding` in `env_data.json`), and a two-tier capacity-aware routing policy (Issue #39, implemented). The two-tier policy operates: (1) upstream at R1 — `select_r2b_for_hold()` routes patients to R2E before transport when R2B hold occupancy meets or exceeds `hold_threshold` (default 0.8; configurable in `vars.r2b.holding`), keeping at least one hold bed free for Step 1 incoming patients; (2) at R2B on arrival — a three-stage branch seizes hold if available, bypasses to R2E if hold is full but R2E has capacity, or queues at R2B (capped at 2 patients) if both echelons are simultaneously saturated. Together, the two tiers eliminate routine hold queuing; only genuine simultaneous saturation of both echelons (the most severe operational scenario) can produce a bounded R2B queue. **Impact: Medium** — patients are always dispositioned in finite time; upstream routing reduces R2B load at the cost of increased R2E medical hold demand. **Impact rises to High once Issue #5 (time-dependent DOW) is merged**, at which point routing policy will directly affect modelled mortality.
+
+**L5 — Undifferentiated DNBI Treatment Pathway** *(Resolved — Issue #7)*
 DNBI casualties are now sub-categorised into battle fatigue (25%), disease (58%), and NBI (17%) with differentiated treatment pathways. Battle fatigue cases are held at R1 and returned to duty without R2 routing. Disease cases may be evacuated to R2B for holding only, with a 6% emergency surgical candidacy. NBI cases follow the full WIA-equivalent trajectory. This removes approximately 83% of DNBI from the routine surgical pathway, eliminating the artificial inflation of surgical demand that previously characterised the model. Across 100 replications, NBI surgical candidacy was 79.6%, disease surgical candidacy was 5.7%, and battle fatigue was 0.0%.
 
-**L5 — Unidirectional Transport (Medium Impact on Asset Availability)**
+**L6 — Unidirectional Transport (Medium Impact on Asset Availability)**
 PMV ambulances are seized for the outbound leg only. Vehicles do not return to the originating echelon before becoming available again. Transport asset availability is systematically overestimated. **Impact: Medium.** Addressed in Issue #6 (dead-heading return legs).
 
-**L6 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
+**L7 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
 The casualty generation model produces a smooth lognormal daily rate. Discrete tactical events generating 20–50 casualties within a 2–4 hour window — the primary stress test for surgical and ICU capacity in LSCO — are entirely absent. **Impact: Medium.** Addressed in Issue #9 (compound Poisson MASCAL injection).
 
-**L7 — Single Baseline Casualty Rate Scenario (Medium Impact on Generalisability)**
+**L8 — Single Baseline Casualty Rate Scenario (Medium Impact on Generalisability)**
 The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), the most conservative available benchmark. System adequacy conclusions are bounded to this scenario and cannot be extrapolated to Vietnam- or Okinawa-intensity LSCO without scenario expansion. **Impact: Medium.** Addressed in Issue #10 (comparative scenario runner).
 
-**L8 — Partial Antithetisation (Low Impact on CI Precision)**
+**L9 — Partial Antithetisation (Low Impact on CI Precision)**
 Antithetic variate variance reduction is applied to arrival time generation only. Service times and routing probabilities are generated internally by simmer's C++ engine from R's global RNG and cannot be antithetised without deep trajectory instrumentation. The CI-narrowing benefit of antithetic pairing is therefore partial: it reduces arrival-driven variance but leaves service-time variance unreduced. **Impact: Low** — the dominant source of between-replication variance is arrival schedule variation (lognormal), which is fully antithetised; residual variance from service draws is secondary.
 
 ### Low Impact
 
-**L9 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
+**L10 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
 Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
 
 ---

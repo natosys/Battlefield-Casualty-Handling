@@ -196,6 +196,27 @@ The README is the primary academic output of this project. It must be updated **
 - New methods introduced must reference the algorithm or statistical technique by name, with citation (e.g., "Morris Elementary Effects screening (Morris, 1991) was applied using R's `sensitivity` package").
 - Tables and flowcharts must be kept synchronised with the code.
 
+### Mermaid Diagram Maintenance
+
+The README contains Mermaid flowcharts representing the R1, R2B, and R2E trajectory logic. These diagrams are part of the academic document and must be kept accurate.
+
+**When any of the following change, update the corresponding diagram in the same PR:**
+
+| Change type | Diagram(s) to update |
+|---|---|
+| New branch added to a trajectory | The diagram for that echelon |
+| Resource seizure/release order changed | The diagram for that echelon |
+| DOW check probability or logic changed | All diagrams that include a DOW node |
+| New resource type introduced (e.g., ICU, hold bed) | The diagram for that echelon |
+| Casualty routing logic changed (R2B bypass, R2E direct, etc.) | R1 and/or R2B diagram as appropriate |
+| Surgery, ICU, or recovery phase added or removed | The diagram for that echelon |
+
+**Diagram accuracy rules:**
+- Every node in the diagram must correspond to an actual step in the trajectory code. Do not include aspirational steps that are not yet implemented.
+- Every major branch in `branch()` calls must appear in the diagram. Probability labels (e.g., "~1%", "~5%") are encouraged on edges where the code uses a fixed threshold.
+- Resource names shown in nodes (e.g., "Seize OT & Surg Team") must reflect what is actually seized in the code — not what is semantically intended.
+- When a trajectory function is restructured, re-read the code from top to bottom and redraw the diagram from scratch rather than patching individual nodes.
+
 ---
 
 ## Assumption Handling

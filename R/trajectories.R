@@ -71,20 +71,29 @@ select_available_r2b_team <- function(env) {
   return(-1)
 }
 
-#' Selects a randomly ordered R2B team with at least one free hold bed
+#' Selects a randomly ordered R2B team whose hold bed occupancy is below threshold
 #'
 #' @param env The simmer simulation environment object
 #' @return Index of the selected R2B team (integer), or -1 if none available
 #'
 #' @details Used for disease DNBI routing, which does not require OT availability.
-#'   Returns the first team (in random order) whose hold bed capacity is not
-#'   fully occupied. Returns -1 if all R2B teams have full hold beds.
+#'   When env_data$vars$r2b$holding$hold_threshold is set (0–1 fraction), a team
+#'   is only selected if its hold occupancy is strictly below that fraction of
+#'   capacity. This reserves headroom for incoming Step 1 patients and prevents
+#'   long-duration Step 4 holders from starving new arrivals. Returns -1 (route
+#'   to R2E) if no R2B team is below threshold, routing the decision upstream.
+#'   When hold_threshold is absent, falls back to selecting any team with at least
+#'   one free bed (original behaviour).
 select_r2b_for_hold <- function(env) {
+  threshold <- env_data$vars$r2b$holding$hold_threshold
+  use_threshold <- !is.null(threshold) && !is.na(threshold)
+
   for (i in sample(1:counts[["r2b"]])) {
     hold_beds <- env_data$elms$r2b[[i]]$hold_bed
     usage     <- sum(sapply(hold_beds, function(b) get_server_count(env, b)))
     cap       <- sum(sapply(hold_beds, function(b) get_capacity(env, b)))
-    if (usage < cap) {
+    limit     <- if (use_threshold) threshold * cap else cap
+    if (usage < limit) {
       return(i)
     }
   }

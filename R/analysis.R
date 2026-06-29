@@ -313,8 +313,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
   }
 
   # ── R2B hold routing diagnostics ─────────────────────────────────────────
-  # r2b_hold_bypass  = 1: R2B full, R2E had capacity or queue cap exceeded → R2E
-  # r2b_hold_queued  = 1: R2B full, R2E full, queue within cap → queued at R2B
+  # r2b_bypassed     = 1: routed to R2E at R1 (hold_threshold exceeded before transport)
+  # r2b_hold_bypass  = 1: arrived at R2B but hold full at Step 4 → R2E
+  # r2b_hold_queued  = 1: both echelons full, queue within cap → queued at R2B hold
+  r2b_pre_bypass_count <- 0L
+  if ("r2b_bypassed" %in% names(attributes_wide)) {
+    r2b_pre_bypass_count <- sum(!is.na(attributes_wide$r2b_bypassed) &
+                                  attributes_wide$r2b_bypassed == 1L,
+                                na.rm = TRUE)
+  }
   r2b_hold_bypass_count <- 0L
   if ("r2b_hold_bypass" %in% names(attributes_wide)) {
     r2b_hold_bypass_count <- sum(!is.na(attributes_wide$r2b_hold_bypass) &
@@ -327,8 +334,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
                                    attributes_wide$r2b_hold_queued == 1L,
                                  na.rm = TRUE)
   }
-  cat(sprintf("R2B hold bypass (→R2E): %d | hold queue (R2E also full): %d\n",
-              r2b_hold_bypass_count, r2b_hold_queued_count))
+  cat(sprintf(
+    "R2B routing: pre-bypass at R1 (threshold): %d | at-R2B bypass (hold full): %d | R2B queue (both full): %d\n",
+    r2b_pre_bypass_count, r2b_hold_bypass_count, r2b_hold_queued_count
+  ))
 
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
@@ -672,6 +681,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     ot_utilisation              = ot_utilisation,
     r2b_hold_daily              = r2b_hold_daily,
     r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot,
+    r2b_pre_bypass_count        = r2b_pre_bypass_count,
     r2b_hold_bypass_count       = r2b_hold_bypass_count,
     r2b_hold_queued_count       = r2b_hold_queued_count
   ))

@@ -626,14 +626,6 @@
               "val": 0.6
             },
             {
-              "var": "pri1_dow",
-              "val": 0.05
-            },
-            {
-              "var": "pri2_dow",
-              "val": 0.025
-            },
-            {
               "var": "pri1_evac",
               "val": 0.95
             },
@@ -641,6 +633,25 @@
               "var": "pri2_evac",
               "val": 0.9
             }
+          ]
+        }
+      ]
+    },
+    {
+      "elm": "dow",
+      "actys": [
+        {
+          "acty": "params",
+          "vals": [
+            { "var": "p1_p_base", "val": 0.05  },
+            { "var": "p1_p_max",  "val": 0.60  },
+            { "var": "p1_k",      "val": 0.04  },
+            { "var": "p1_t_mid",  "val": 120   },
+            { "var": "p2_p_base", "val": 0.025 },
+            { "var": "p2_p_max",  "val": 0.25  },
+            { "var": "p2_k",      "val": 0.025 },
+            { "var": "p2_t_mid",  "val": 180   },
+            { "var": "p3_flat",   "val": 0.005 }
           ]
         }
       ]

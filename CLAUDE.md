@@ -45,6 +45,48 @@ All work must meet academic research standards: reasoning must be explicit, sour
 5. Open a PR against `main` with a test plan (see Test Plans below).
 6. Await owner merge — do not self-merge.
 
+### Post-Merge Checklist
+
+After the repository owner merges a PR to `main`, perform the following tasks on a new chore branch (`chore/post-pr<N>-action-plan-update`) and open a follow-up PR:
+
+**1. Update `docs/BCH_Simulation_Action_Plan.md`**
+
+| Location in document | What to do |
+|---|---|
+| Summary table | Change the issue's Status from `Open` → `**Merged (PR #N)**` |
+| "Issues In Review" section | Remove the merged issue's entry; if the section is now empty, restore the placeholder: `*No PRs currently open against main.*` |
+| "Recently Merged Issues" section | Add a new entry (see format below) above the previous most-recent entry |
+| Phase sequence list | Strike through the item with `~~double tildes~~` |
+| Dependency graph | Move the issue node from UNBLOCKED to COMPLETE; move any newly unblocked issues from BLOCKED to UNBLOCKED |
+| Footer | Update the "last updated" date |
+
+Recently Merged Issues entry format:
+```
+### Issue N — <Title> ✓
+
+**Merged:** PR #N, branch `<branch-name>`
+
+<One paragraph describing what was implemented and how it works.>
+
+**Seed-42 baseline (30 days, single run):** <Include a table of changed metrics if the merge altered simulation outputs. Omit this block for documentation-only changes.>
+
+**Unblocked by this merge:** <List newly unblocked issues, or "No new issues unblocked.">
+```
+
+**2. Update GitHub issue labels**
+
+For each issue newly unblocked by the merge: change its label from `status: blocked` to `status: ready` using the GitHub MCP tools.
+
+**3. Update `CLAUDE.md` baseline table (if simulation outputs changed)**
+
+If the merged PR modified `Battlefield Casualty Handling.R` or `env_data.json` in a way that shifts the RNG stream or alters stochastic outputs, re-run the simulation at seed 42 and update the Key Parameters table at the bottom of this file. Document the change in the action plan entry.
+
+**4. Regenerate `README_inputs.md` (if `env_data.json` changed)**
+
+If the merged PR modified `env_data.json`, run `scripts/check_env_data_summary.R` to regenerate `README_inputs.md` and include the updated file in the chore PR.
+
+---
+
 ### Commit Messages
 
 Commits should be clear and descriptive. Reference the issue number:

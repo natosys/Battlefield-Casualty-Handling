@@ -815,7 +815,7 @@ flowchart TD
     H --> I["Release Resources"]
     I --> J{"Surgery?"}
     J -- Yes --> K{"OT Ready?"}
-    K -- Available --> L["Seize OT"]
+    K -- Available --> L["Seize OT & Surg Team"]
     L --> M["Surgery"]
     M --> N["Release Resources"]
     K -- Not Available --> O{"Evac Ready?"}
@@ -839,7 +839,7 @@ flowchart TD
 
 The R2E facility serves as a critical node for advanced casualty management, including resuscitation, surgery, intensive care, holding and pathways to strategic evacuation. 
 
-Upon arrival, casualties are triaged, those identified as DOW (~1%, based on [[12]](#References)) are transferred for mortuary handling. Surviving casualties are allocated to an initial holding bed until a resuscitation bay is available, where they undergo a resuscitation phase. Where previous resuscitation has not been completed (at the R2B) a long duration resuscitation is completed, otherwise a short resuscitation is completed. The R2E long duration resuscitation follows the triangular distribution estimated for R2B resuscitations (`min = 25`, `max = 70`, and `mode = 45` (min)). The short duration resuscitation is modelled based on task estimate durations. These times are outlined in the table below. The duration uses a triangular distribution with ``min = 13``, ``max = 55``, and ``mode = 28``.
+Upon arrival, casualties are triaged, those identified as DOW (~1%, based on [[12]](#References)) are transferred for mortuary handling. Surviving casualties queue directly for a resuscitation bay, where they undergo a resuscitation phase. Where previous resuscitation has not been completed (at the R2B) a long duration resuscitation is completed, otherwise a short resuscitation is completed. The R2E long duration resuscitation follows the triangular distribution estimated for R2B resuscitations (`min = 25`, `max = 70`, and `mode = 45` (min)). The short duration resuscitation is modelled based on task estimate durations. These times are outlined in the table below. The duration uses a triangular distribution with ``min = 13``, ``max = 55``, and ``mode = 28``.
 
 | Short Reuscitation       |           |            |           |
 | ------------------------ | --------- | ---------- | --------- |
@@ -862,26 +862,33 @@ flowchart TD
     A(["Start"]) --> B{"DOW?"}
     B -- Yes --> C["Treat KIA"]
     C --> D["Transfer"]
-    D --> E(["End"])
-    B -- No --> F["Seize Hold Bed"]
-    F --> G["Seize Resus Bed <br> Release Hold Bed"]
-    G --> H{"Prev Resus?"}
-    H -- No --> I["Long Resus"]
-    H -- Yes --> J["Short Resus"]
-    I --> K{"Surgery?"}
-    J --> K
-    K -- Yes --> L["Seize OT"]
-    L --> M["Surgery"]
-    M --> N["Release Resources"]
-    K -- No --> O{"Evac?"}
-    N --> O
-    O -- No --> P["Seize Hold Bed"]
-    P --> Q["Recover at R2E"]
-    Q --> R["Release Hold Bed"]
-    R --> S["Return to Duty"]
-    O -- Yes --> T["Strategic Evacuation"]
-    S --> E
-    T --> E
+    D --> Z(["End"])
+    B -- No --> E["Seize Resus Bed <br> Seize Emerg Team"]
+    E --> F{"Prev Resus?"}
+    F -- Yes --> G["Short Resus"]
+    F -- No --> H["Long Resus"]
+    G --> I["Release Emerg Team & Resus"]
+    H --> I
+    I --> J{"Surgery?"}
+    J -- Yes --> K["Seize OT"]
+    K --> L["Surgery (First)"]
+    L --> M["Release OT"]
+    M --> N["ICU (Short or Long)"]
+    N --> O["Release ICU"]
+    O --> P{"Prior R2B Surg?"}
+    J -- No --> P
+    P -- No --> Q["Seize OT"]
+    Q --> R["Surgery (Second)"]
+    R --> S["Release OT"]
+    S --> T{"Recover in Theatre?"}
+    P -- Yes --> T
+    T -- Yes --> U["Seize Hold Bed"]
+    U --> V["Recover at R2E"]
+    V --> W["Release Hold Bed"]
+    W --> X["Return to Duty"]
+    X --> Z
+    T -- No --> Y["Strategic Evacuation"]
+    Y --> Z
 ```
 
 ---

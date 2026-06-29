@@ -29,7 +29,7 @@
 | 24 | Variance reduction — antithetic variates / L'Ecuyer | Medium | Low | **Merged (#32)** |
 | 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
-| 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | Open |
+| 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | **Merged (PR #48)** |
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | Open |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
@@ -43,6 +43,39 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 39 — R2B Hold Bed Saturation: Two-Tier Routing Policy ✓
+
+**Merged:** PR #48, branch `claude/action-plan-review-7rde0w`
+
+Implements per-stream hold bed occupancy analysis and a two-tier capacity-aware routing policy to address structural R2B hold saturation driven by disease DNBI evacuees. Stream decomposition via `r2b_hold_start` and `dnbi_type` attributes confirms disease DNBI as the dominant load (~72 of 91 hold patients over 30 days). Expected concurrent hold occupancy (~15.5 beds against 10-bed capacity across both R2B units) is a structural mismatch not resolvable by hold duration reduction alone.
+
+**Two-tier routing policy (Issue #39, implemented):**
+
+- **Primary tier — upstream threshold routing (`hold_threshold = 0.8`).** `select_r2b_for_hold()` in `R/trajectories.R` checks whether any R2B unit's hold occupancy is strictly below `hold_threshold × capacity` (≥4 of 5 beds occupied triggers reroute). If no unit is below threshold, the patient is routed to R2E at R1 before transport (`r2b_bypassed = 1`), eliminating transport to an already-saturated R2B.
+- **Secondary tier — at-R2B three-stage branch.** On arrival at R2B, a three-way branch: (1) hold capacity available → seize hold bed; (2) R2B hold full but R2E has capacity → at-R2B bypass to R2E (`r2b_hold_bypass = 1`); (3) both echelons full → queue at R2B hold, capped at floor(5/10 × 5) = 2 patients (`r2b_hold_queued = 1`).
+
+**`R/analysis.R` additions:** `r2b_hold_daily` (daily concurrent occupancy by stream: Disease DNBI / NBI / WIA), `r2b_hold_occupancy_plot` (ggplot object, saved to `images/r2b_hold_occupancy.png`), `r2b_pre_bypass_count`, `r2b_hold_bypass_count`, `r2b_hold_queued_count`. All three routing scalars included in the `analyse_run()` return list. `waiting_time.png` added as a second new plot (casualty waiting time scatter over simulation time).
+
+**Seed-42 baseline (30 days, single run — post-implementation):**
+
+| Metric | Pre-#39 | Post-#39 |
+|---|---|---|
+| Total casualties | 400 | 400 ✓ |
+| Pre-bypass at R1 (threshold, `r2b_bypassed = 1`) | 0 | **112** |
+| At-R2B bypass (hold full, `r2b_hold_bypass = 1`) | 0 | **0** |
+| Queued at R2B (both echelons full, `r2b_hold_queued = 1`) | 0 | **0** |
+| R2B hold max queue (resource monitor) | 4 | **2** |
+| R2B hold queue events (queue > 0, resource monitor) | 148 | **28** (−81%) |
+| R2B treated total | 189 | **172** |
+
+The 112 upstream pre-bypasses at R1 prevent hold saturation in the downstream tier. As a result, no patients trigger the at-R2B bypass or queue paths: both are zero. Residual queue events (28 in the resource monitor) represent transient race conditions resolved within one event step; max concurrent queue is 2 (within cap). Analysis plots regenerated: all 10 PNGs in `images/` updated and committed, including two new plots (`r2b_hold_occupancy.png`, `waiting_time.png`). README updated with Hold Bed Saturation diagnostic section, four intervention scenarios (A–D), and updated Simulation Analysis narrative identifying R2B hold saturation as the primary near-echelon constraint.
+
+**Significance:** Disease DNBI evacuees occupy hold beds for multi-day durations (mode 5 days), generating a structural 55% overload. The two-tier routing policy eliminates routine queuing and keeps the R2B hold pathway functional throughout a 30-day operation, at the cost of transferring non-surgical medical load to R2E. Hold bed expansion (≥8 per unit) or an evacuation threshold policy remain indicated structural remedies. **Impact rises to High once Issue #5 (time-dependent DOW) merges**, as routing policy will then directly affect modelled mortality.
+
+**Unblocked by this merge:** No new issues unblocked — all Phase 2 and remaining Phase 3 issues were already `status: ready` before this merge.
+
+---
 
 ### Issue 44 — RTD KPI Decomposed into Battle Fatigue vs Clinical Sub-totals ✓
 
@@ -980,7 +1013,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
 
 10. ~~**Issue 7** — DNBI sub-category routing~~ — **Merged PR #34.** Prerequisite for Issue #39 satisfied.
-11. **Issue 39** — R2B hold bed saturation analysis. Requires Issue #7 merged (stream decomposition via `dnbi_type`). Add `hold_reason` attribute; decompose occupancy; scenario-test disease evacuation priority vs. capacity increase.
+11. ~~**Issue 39** — R2B hold bed saturation analysis~~ — **Merged PR #48.** Two-tier routing policy (upstream threshold + at-R2B three-stage branch) implemented; per-stream occupancy decomposition added to analysis pipeline.
 12. **Issue 40** — R2B OT utilisation improvement. Add `r2b_bypass_reason` attribute; scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4).
 13. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
 
@@ -1012,6 +1045,7 @@ COMPLETE (merged to main):
   #35  R2B OT bypass check fix (PR #36)
   #37  OT bed schedule fix (PR #38)
   #44  RTD KPI decomposition — bf_rtd + clinical_rtd (PR #47)
+  #39  R2B hold bed saturation — two-tier routing policy (PR #48)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -1021,7 +1055,6 @@ UNBLOCKED (start now):
   #6   Dead-heading transport        ─┐ parallel
   #5   Time-dependent DOW            ─┘
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
-  #39  R2B hold bed saturation       (unblocked by #7 merge)
   #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
 
 AFTER #5:
@@ -1057,4 +1090,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 28 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), and #44 (PR #47); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, and #44 merged; Issues #4, #5, #6, #39, #40, and #14 all unblocked. Phase 3 structural refactoring in progress — Issue #7 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 29 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), and #39 (PR #48); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, and #44 merged; Issues #4, #5, #6, and #14 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. All referenced resources are open-access.*

@@ -453,25 +453,46 @@ r2b_treat_wia <- function(team_id) {
             set_attribute("r2b_bypassed", 1)
         ),
 
-      # Branch 2: Surgery not required — recover in holding bed or bypass to R2E
-      # Outer capacity check: if all hold beds are occupied the patient is
-      # immediately routed to R2E rather than queuing (r2b_hold_bypass = 1).
-      # When env_data$vars$r2b$holding$evac_threshold is set (minutes), patients
-      # whose drawn hold duration exceeds the threshold are evacuated to R2E
-      # rather than returned to duty, freeing the hold bed early.
+      # Branch 2: Surgery not required — recover in holding bed, queue, or bypass
+      # Three-stage routing policy:
       #
-      # Branch 2a: hold capacity available → seize bed, recover, RTD or evac
-      # Branch 2b: hold beds full → bypass directly to R2E without queuing
+      # Branch 2a: this R2B unit's hold beds have capacity → seize immediately
+      # Branch 2b: R2B hold full; R2E hold has capacity → bypass to R2E
+      #            Also used when R2B hold queue cap is exceeded (fallback)
+      # Branch 2c: R2B hold full; R2E hold full; queue within cap → join R2B queue
+      #            Cap = floor(R2B_beds / (R2B_beds + R2E_beds) * R2B_beds)
+      #            With 10 R2B and 30 R2E beds: cap = floor(10/40 * 10) = 2 patients
+      #
+      # When env_data$vars$r2b$holding$evac_threshold is set (minutes), patients
+      # in branches 2a and 2c whose drawn hold duration exceeds the threshold are
+      # evacuated to R2E rather than returned to duty.
       trajectory("R2B No Surgery") %>%
         branch(
           option = function() {
-            usage <- sum(get_server_count(env, resources = hold_beds))
-            cap   <- sum(get_capacity(env, resources = hold_beds))
-            if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
-            return(2)
+            # Branch 2a: this R2B unit has hold capacity
+            r2b_usage <- sum(get_server_count(env, resources = hold_beds))
+            r2b_cap   <- sum(get_capacity(env, resources = hold_beds))
+            if (!is.na(r2b_usage) && !is.na(r2b_cap) && r2b_usage < r2b_cap) return(1)
+
+            # R2B hold full — check R2E hold capacity
+            all_r2e_hold <- unlist(lapply(env_data$elms$r2eheavy, `[[`, "hold_bed"))
+            r2e_usage <- sum(get_server_count(env, resources = all_r2e_hold))
+            r2e_cap   <- sum(get_capacity(env, resources = all_r2e_hold))
+            if (!is.na(r2e_usage) && !is.na(r2e_cap) && r2e_usage < r2e_cap) return(2)
+
+            # Both full — check global R2B hold queue against proportional cap
+            all_r2b_hold  <- unlist(lapply(env_data$elms$r2b, `[[`, "hold_bed"))
+            r2b_total_cap <- length(all_r2b_hold)
+            r2e_total_cap <- length(all_r2e_hold)
+            queue_cap     <- floor(r2b_total_cap / (r2b_total_cap + r2e_total_cap) *
+                                   r2b_total_cap)
+            r2b_queue <- sum(get_queue_count(env, resources = all_r2b_hold))
+            if (!is.na(r2b_queue) && r2b_queue < queue_cap) return(3)
+
+            return(2)  # Queue cap exceeded — bypass to R2E regardless
           },
           continue = TRUE,
-          # Branch 2a: Hold capacity available
+          # Branch 2a: Hold capacity available — seize and recover or evac
           trajectory("R2B Hold") %>%
             simmer::select(hold_beds, policy = "first-available", id = 5) %>%
             seize_selected(id = 5) %>%
@@ -528,7 +549,7 @@ r2b_treat_wia <- function(team_id) {
                 release_selected(id = 5) %>%
                 simmer::leave(1)
             ),
-          # Branch 2b: Hold beds full — bypass to R2E without queuing
+          # Branch 2b: R2B full, R2E has capacity (or queue cap exceeded) — bypass
           trajectory("R2B Hold Full — Bypass to R2E") %>%
             set_attribute("r2b_hold_bypass", 1) %>%
             set_attribute("r2b_to_r2e", 1) %>%
@@ -549,7 +570,62 @@ r2b_treat_wia <- function(team_id) {
               continue = TRUE,
               lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
             ) %>%
-            simmer::leave(1)
+            simmer::leave(1),
+          # Branch 2c: Both full, queue within proportional cap — queue at R2B
+          trajectory("R2B Hold Queue — R2E Full") %>%
+            set_attribute("r2b_hold_queued", 1) %>%
+            simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
+            seize_selected(id = 5) %>%
+            set_attribute("r2b_hold_start", function() now(env)) %>%
+            set_attribute("r2b_hold_drawn", function() {
+              rtriangle(
+                n = 1,
+                a = env_data$vars$r2b$holding$min,
+                b = env_data$vars$r2b$holding$max,
+                c = env_data$vars$r2b$holding$mode
+              )
+            }) %>%
+            timeout(function() {
+              drawn  <- get_attribute(env, "r2b_hold_drawn")
+              thresh <- env_data$vars$r2b$holding$evac_threshold
+              if (!is.null(thresh) && !is.na(thresh)) min(drawn, thresh) else drawn
+            }) %>%
+            branch(
+              option = function() {
+                drawn  <- get_attribute(env, "r2b_hold_drawn")
+                thresh <- env_data$vars$r2b$holding$evac_threshold
+                if (!is.null(thresh) && !is.na(thresh) && drawn > thresh) return(1)
+                return(2)
+              },
+              continue = TRUE,
+              trajectory("R2B Hold Queue Threshold — Early Evac") %>%
+                set_attribute("r2b_hold_evac", 1) %>%
+                release_selected(id = 5) %>%
+                set_attribute("r2b_to_r2e", 1) %>%
+                set_attribute("r2e", function() select_r2e_team()) %>%
+                seize_resources(evacuation_team) %>%
+                set_attribute("r2b_departure_time", function() now(env)) %>%
+                timeout(function() {
+                  rtriangle(
+                    n = 1,
+                    a = env_data$vars$r2b$wia_transport$min,
+                    b = env_data$vars$r2b$wia_transport$max,
+                    c = env_data$vars$r2b$wia_transport$mode
+                  )
+                }) %>%
+                release_resources(evacuation_team) %>%
+                branch(
+                  option = function() get_attribute(env, "r2e"),
+                  continue = TRUE,
+                  lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
+                ) %>%
+                simmer::leave(1),
+              trajectory("R2B Hold Queue RTD") %>%
+                set_attribute("return_day", function() now(env)) %>%
+                set_attribute("return_echelon", 2) %>%
+                release_selected(id = 5) %>%
+                simmer::leave(1)
+            )
         )
     ) %>%
 

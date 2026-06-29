@@ -20,12 +20,16 @@ library(RColorBrewer)
 #'   (default: "outputs")
 #' @param warm_up_days Days to exclude from the start of the analysis window
 #'   (applied to arrivals by start_time and resources by time; default 0)
+#' @param images_dir Directory path for saving PNG plot files (default: "images")
 #' @return Invisibly returns a named list of the key summary data frames
 #'
-#' @details Writes CSVs to output_dir, renders all standard plots to the
-#'   active graphics device, and writes markdown summary tables to output_dir.
-analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
+#' @details Writes CSVs and markdown tables to output_dir. Saves eight PNG
+#'   plots to images_dir: casualty_summary, r1_queues, r2b_bed_queues,
+#'   r2b_handling, r2b_gantt, r2eheavy_surgeries, r2eheavy_bed_queue_3_teams,
+#'   r2eheavy_gantt.
+analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0, images_dir = "images") {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
   warm_up_min    <- as.integer(warm_up_days) * 1440L
   arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
@@ -118,7 +122,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     labs(title = "Total Casualties by Priority Level and Arrival Day", x = "Arrival Day", y = "Number of Casualties", fill = "Priority Group") +
     theme_minimal()
 
-  print(plot_type / plot_source / plot_priority)
+  p_casualty_summary <- plot_type / plot_source / plot_priority
+  print(p_casualty_summary)
+  ggsave(file.path(images_dir, "casualty_summary.png"), p_casualty_summary, width = 12, height = 10, dpi = 150)
 
   # ── Summary tables ────────────────────────────────────────────────────────
 
@@ -177,16 +183,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
 
   max_days_r1 <- ceiling(max(queue_plot_data_r1$time, na.rm = TRUE) / 1440)
 
-  print(
-    ggplot(queue_plot_data_r1, aes(x = time / 1440, y = queue, color = role_label)) +
-      geom_step(linewidth = 1) +
-      labs(title = "Queue Length Over Time by R1 Team", x = "Time (Days)", y = "Queue Size", color = "Role") +
-      scale_x_continuous(breaks = seq(0, max_days_r1, by = 1), limits = c(0, max_days_r1), expand = c(0, 0)) +
-      scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
-      facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  )
+  p_r1_queues <- ggplot(queue_plot_data_r1, aes(x = time / 1440, y = queue, color = role_label)) +
+    geom_step(linewidth = 1) +
+    labs(title = "Queue Length Over Time by R1 Team", x = "Time (Days)", y = "Queue Size", color = "Role") +
+    scale_x_continuous(breaks = seq(0, max_days_r1, by = 1), limits = c(0, max_days_r1), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  print(p_r1_queues)
+  ggsave(file.path(images_dir, "r1_queues.png"), p_r1_queues, width = 14, height = 10, dpi = 150)
 
   # ── R2B bed queue graphs ──────────────────────────────────────────────────
 
@@ -202,16 +208,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
       bed_label = paste0(bed_type, " ", bed_index)
     )
 
-  print(
-    ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
-      geom_step(linewidth = 1) +
-      labs(title = "Queue Length Over Time by R2B", x = "Time (Days)", y = "Queue Size", color = "Bed") +
-      scale_x_continuous(breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1), expand = c(0, 0)) +
-      scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
-      facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  )
+  p_r2b_bed_queues <- ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
+    geom_step(linewidth = 1) +
+    labs(title = "Queue Length Over Time by R2B", x = "Time (Days)", y = "Queue Size", color = "Bed") +
+    scale_x_continuous(breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  print(p_r2b_bed_queues)
+  ggsave(file.path(images_dir, "r2b_bed_queues.png"), p_r2b_bed_queues, width = 14, height = 8, dpi = 150)
 
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
@@ -268,7 +274,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
     theme_minimal(base_size = 14)
 
-  print(plot_r2b_treated / plot_r2b_summary / plot_r2b_skipped)
+  p_r2b_handling <- plot_r2b_treated / plot_r2b_summary / plot_r2b_skipped
+  print(p_r2b_handling)
+  ggsave(file.path(images_dir, "r2b_handling.png"), p_r2b_handling, width = 12, height = 10, dpi = 150)
 
   # ── R2B resource usage (Gantt) ────────────────────────────────────────────
 
@@ -306,15 +314,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
   }
   x_breaks <- if (is.finite(max_days) && max_days >= 1) seq(1, max_days, by = 1) else waiver()
 
-  print(
-    ggplot(r2b_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
-      geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
-      labs(title = "R2B Bed Resource Usage (Gantt) by Team", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
-      scale_x_continuous(breaks = x_breaks, labels = function(x) paste0(x), expand = c(0, 0)) +
-      facet_wrap(~ r2b_team, ncol = 1, scales = "free_y", labeller = labeller(r2b_team = function(x) paste0("R2B ", x))) +
-      theme_minimal(base_size = 14) +
-      theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  )
+  p_r2b_gantt <- ggplot(r2b_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
+    geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
+    labs(title = "R2B Bed Resource Usage (Gantt) by Team", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
+    scale_x_continuous(breaks = x_breaks, labels = function(x) paste0(x), expand = c(0, 0)) +
+    facet_wrap(~ r2b_team, ncol = 1, scales = "free_y", labeller = labeller(r2b_team = function(x) paste0("R2B ", x))) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  print(p_r2b_gantt)
+  ggsave(file.path(images_dir, "r2b_gantt.png"), p_r2b_gantt, width = 14, height = 8, dpi = 150)
 
   # ── R2E surgeries ─────────────────────────────────────────────────────────
 
@@ -325,14 +333,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     mutate(r2e_day = floor(start_min / 1440) + 1) %>%
     count(r2e_day, name = "surgeries")
 
-  print(
-    ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
-      geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Set2")[1]) +
-      labs(title = "R2E Heavy Surgeries Completed Per Simulation Day", x = "Simulation Day", y = "Number of Surgeries") +
-      scale_x_continuous(breaks = seq(1, max_days, by = 1), expand = c(0, 0)) +
-      scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
-      theme_minimal(base_size = 14)
-  )
+  p_r2eheavy_surgeries <- ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
+    geom_bar(stat = "identity", fill = brewer.pal(n = 3, name = "Set2")[1]) +
+    labs(title = "R2E Heavy Surgeries Completed Per Simulation Day", x = "Simulation Day", y = "Number of Surgeries") +
+    scale_x_continuous(breaks = seq(1, max_days, by = 1), expand = c(0, 0)) +
+    scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
+    theme_minimal(base_size = 14)
+  print(p_r2eheavy_surgeries)
+  ggsave(file.path(images_dir, "r2eheavy_surgeries.png"), p_r2eheavy_surgeries, width = 12, height = 6, dpi = 150)
 
   # ── R2E bed queue graphs ──────────────────────────────────────────────────
 
@@ -355,16 +363,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     prepare_queue_data("icu", resources)
   )
 
-  print(
-    ggplot(combined_queue_data, aes(x = time / 1440, y = queue, color = resource_label)) +
-      geom_step(linewidth = 1) +
-      labs(title = "R2E Heavy Bed Queue Length Over Time by Resource Type", x = "Time (Days)", y = "Queue Size", color = "Resource") +
-      facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
-      scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
-      scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
-      theme_minimal(base_size = 14) +
-      theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
-  )
+  p_r2eheavy_bed_queue <- ggplot(combined_queue_data, aes(x = time / 1440, y = queue, color = resource_label)) +
+    geom_step(linewidth = 1) +
+    labs(title = "R2E Heavy Bed Queue Length Over Time by Resource Type", x = "Time (Days)", y = "Queue Size", color = "Resource") +
+    facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
+    scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    theme_minimal(base_size = 14) +
+    theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
+  print(p_r2eheavy_bed_queue)
+  ggsave(file.path(images_dir, "r2eheavy_bed_queue_3_teams.png"), p_r2eheavy_bed_queue, width = 14, height = 8, dpi = 150)
 
   # ── Waiting time scatter ──────────────────────────────────────────────────
 
@@ -407,14 +415,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
 
   max_days_r2e <- ceiling(max(r2e_bed_usage$end_time, na.rm = TRUE) / 1440)
 
-  print(
-    ggplot(r2e_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
-      geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
-      labs(title = "R2E Bed Resource Usage (Gantt)", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
-      scale_x_continuous(breaks = seq(1, max_days_r2e, by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
-      theme_minimal(base_size = 14) +
-      theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom")
-  )
+  p_r2eheavy_gantt <- ggplot(r2e_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
+    geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
+    labs(title = "R2E Bed Resource Usage (Gantt)", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
+    scale_x_continuous(breaks = seq(1, max_days_r2e, by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom")
+  print(p_r2eheavy_gantt)
+  ggsave(file.path(images_dir, "r2eheavy_gantt.png"), p_r2eheavy_gantt, width = 14, height = 8, dpi = 150)
 
   # ── Output Variable Register derived KPIs ────────────────────────────────
 

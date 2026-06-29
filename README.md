@@ -626,7 +626,9 @@ Rscript scripts/run_warmup.R
 Rscript scripts/run_warmup.R --reps 5 --days 60
 ```
 
-The resulting Welch plot (`images/welch_plot_icu_queue.png`) shows the cross-replication CMA of the R2E ICU queue across 90 days. Rather than converging to a stable plateau, the CMA displays episodic, non-stationary behaviour: a rise to a local peak near Day 13 (the first wave of R2E ICU admissions propagating from early combat), a decline to a trough near Day 25, then a second rise to a higher peak near Day 38 as cumulative casualty load continues to build. No convergence to a steady state is observed within the 90-day horizon. This pattern is consistent with the lognormal arrival process generating episodic surges; the ICU queue is driven by campaign dynamics rather than a stationary queue process, and the CMA continues to shift across the full run length.
+The resulting Welch plot shows the cross-replication CMA of the R2E ICU queue across 90 days.
+
+![Welch plot — R2E ICU queue CMA across 90 days](images/welch_plot_icu_queue.png) Rather than converging to a stable plateau, the CMA displays episodic, non-stationary behaviour: a rise to a local peak near Day 13 (the first wave of R2E ICU admissions propagating from early combat), a decline to a trough near Day 25, then a second rise to a higher peak near Day 38 as cumulative casualty load continues to build. No convergence to a steady state is observed within the 90-day horizon. This pattern is consistent with the lognormal arrival process generating episodic surges; the ICU queue is driven by campaign dynamics rather than a stationary queue process, and the CMA continues to shift across the full run length.
 
 This non-convergent CMA confirms that the battlefield casualty handling simulation is a **terminating simulation** per Law (2020) [[26]](#References). The campaign has a defined finite horizon; the ICU queue trajectory represents the operational reality of that campaign, including the initial build-up of casualties from Day 1. The empty-start initial condition — no casualties in care on Day 0 — is the correct operational initial condition for a force beginning operations. It is not a modelling artefact to be excluded. Gafarian, Ancker and Morisaku (1978) [[28]](#References) establish that warm-up detection methods, including graphical approaches, presuppose the existence of a steady state; they are not applicable to terminating simulations.
 
@@ -687,6 +689,16 @@ Rscript scripts/run_sensitivity.R --sobol
 ```
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
+
+![Morris EE — System OT queue](images/morris_system_ot_q.png)
+
+![Morris EE — R2B OT queue](images/morris_r2b_ot_q.png)
+
+![Morris EE — R2E OT queue](images/morris_r2e_ot_q.png)
+
+![Morris EE — R2E ICU queue](images/morris_r2e_icu_q.png)
+
+![Morris EE — DOW count](images/morris_dow_count.png)
 
 ### 🔧Simulation Environment Setup
 
@@ -1090,6 +1102,8 @@ OT rooms are modelled as physical spaces available 24 hours per day. The surgica
 
 ![Alt text](images/r2b_bed_queues.png)
 
+![Alt text](images/r2b_gantt.png)
+
 #### R2B Hold Bed Saturation — Stream Decomposition and Intervention Analysis
 
 Issue #39 adds per-stream decomposition of R2B hold bed occupancy. A `r2b_hold_start` attribute is now recorded for each patient entering the long-duration hold pathway, enabling daily concurrent occupancy to be decomposed by patient stream (disease DNBI, NBI DNBI, WIA) in the analysis pipeline. The `r2b_hold_drawn` attribute stores the drawn hold duration at the time of bed seizure, supporting optional evac-threshold logic described below.
@@ -1105,6 +1119,8 @@ Issue #39 adds per-stream decomposition of R2B hold bed occupancy. A `r2b_hold_s
 - **Expected concurrent hold occupancy: 3.0 × 5.17 ≈ 15.5 beds** against 10 available (5 per R2B unit × 2 units)
 
 This is a **structural 55% overload**. The saturation cannot be resolved by changes to surgical throughput; it requires an intervention at the holding pathway itself.
+
+![R2B Hold Bed Daily Occupancy by Patient Stream](images/r2b_hold_occupancy.png)
 
 **Intervention Scenario A — Hold duration reduction** (`vars.r2b.holding.mode` in `env_data.json`). Reducing the hold mode from 5 days (7,200 min) to 3 days (4,320 min) reduces expected mean duration from 5.17 to (0.5 + 3 + 10) / 3 = 4.5 days. Expected concurrent occupancy falls from 15.5 to 3.0 × 4.5 = **13.5 beds** — still 35% above the 10-bed capacity. A clinically implausible mode of ≤ 1.3 days would be required to bring expected occupancy within capacity. Hold duration reduction alone is insufficient to resolve saturation. To test: change `{"var": "mode", "val": 7200}` to `{"var": "mode", "val": 4320}` in the `vars.r2b.holding` activity and re-run 10+ replications.
 
@@ -1145,6 +1161,10 @@ Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (I
 ![Alt text](images/r2eheavy_surgeries.png)
 
 When examined in system context, the combined OT capacity of two R2B elements and one R2E Heavy is adequate for a single combat brigade under Falklands-equivalent casualty rates [[8]](#References). However, if this system were applied to a deployed division, surgical and holding capacity would be grossly insufficient even if only one brigade was assumed to be in contact at any time. The modelled scenario also does not account for mass-casualty events or the elevated casualty production rates reported in FORECAS modelling of campaigns such as Okinawa or Vietnam, both of which would expose this deficit [[8]](#References).
+
+### Casualty Waiting Time
+
+![Casualty Waiting Time Over Simulation](images/waiting_time.png)
 
 ### Return to Duty
 

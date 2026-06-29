@@ -312,6 +312,17 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     )
   }
 
+  # ── R2B hold bypass count ─────────────────────────────────────────────────
+  # Counts patients routed directly to R2E because all hold beds were occupied
+  # on arrival (r2b_hold_bypass = 1, set by the no-queue bypass branch).
+  r2b_hold_bypass_count <- 0L
+  if ("r2b_hold_bypass" %in% names(attributes_wide)) {
+    r2b_hold_bypass_count <- sum(!is.na(attributes_wide$r2b_hold_bypass) &
+                                   attributes_wide$r2b_hold_bypass == 1L,
+                                 na.rm = TRUE)
+  }
+  cat(sprintf("R2B hold-full bypass count: %d\n", r2b_hold_bypass_count))
+
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
@@ -653,6 +664,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0) {
     rtd_by_echelon              = rtd_by_echelon,
     ot_utilisation              = ot_utilisation,
     r2b_hold_daily              = r2b_hold_daily,
-    r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot
+    r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot,
+    r2b_hold_bypass_count       = r2b_hold_bypass_count
   ))
 }

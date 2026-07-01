@@ -408,14 +408,15 @@ r2b_treat_wia <- function(team_id) {
         t_prev <- get_attribute(env, "last_dow_t") - injury
         t_now  <- now(env) - injury
         prio   <- get_attribute(env, "priority")
-        dp     <- env_data$vars$dow$params
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
         if (prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev,
-                 dp$p1_p_base, dp$p1_p_max, dp$p1_k, dp$p1_t_mid)
+                 dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
           if (runif(1) < p) return(1)
         } else if (prio == 2) {
           p <- dow_prob_conditional(t_now, t_prev,
-                 dp$p2_p_base, dp$p2_p_max, dp$p2_k, dp$p2_t_mid)
+                 dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
           if (runif(1) < p) return(1)
         } else {
           if (runif(1) < dp$p3_flat) return(1)
@@ -452,6 +453,11 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * env_data$vars$dow$treatment_efficacy$r2b_resus_factor
+    }) %>%
 
     # Step 4: Surgery decision
     # Branches based on attribute "surgery":
@@ -500,7 +506,12 @@ r2b_treat_wia <- function(team_id) {
             set_attribute("r2b_surgery", 1) %>%
             set_attribute("r2b_surgery_end", function() now(env)) %>%
             release_resources(surg_team) %>%
-            release_selected(id = 4),
+            release_selected(id = 4) %>%
+            set_attribute("dow_ceiling", function() {
+              ceiling <- get_attribute(env, "dow_ceiling")
+              if (is.na(ceiling)) return(ceiling)
+              ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
+            }),
 
           # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E
           trajectory("OT Unavailable – Bypass to R2E") %>%
@@ -831,14 +842,15 @@ r2e_treat_wia <- function(team_id) {
         t_prev <- get_attribute(env, "last_dow_t") - injury
         t_now  <- now(env) - injury
         prio   <- get_attribute(env, "priority")
-        dp     <- env_data$vars$dow$params
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
         if (prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev,
-                 dp$p1_p_base, dp$p1_p_max, dp$p1_k, dp$p1_t_mid)
+                 dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
           if (runif(1) < p) return(1)
         } else if (prio == 2) {
           p <- dow_prob_conditional(t_now, t_prev,
-                 dp$p2_p_base, dp$p2_p_max, dp$p2_k, dp$p2_t_mid)
+                 dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
           if (runif(1) < p) return(1)
         } else {
           if (runif(1) < dp$p3_flat) return(1)
@@ -893,6 +905,11 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_resus", 1) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_resus_factor
+        }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     ) %>%
@@ -926,6 +943,11 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         set_attribute("r2e_surgery_1_end", function() now(env)) %>%
         release_selected(id = 4) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor
+        }) %>%
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
@@ -989,7 +1011,12 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_surgery_2_end", function() now(env)) %>%
-        release_selected(id = 7),
+        release_selected(id = 7) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+        }),
       trajectory("No Second Surgery Needed")
     ) %>%
 
@@ -1063,6 +1090,14 @@ build_casualty_trajectory <- function() {
         NA
       }
     }) %>%
+    set_attribute("dow_ceiling", function() {
+      prio <- get_attribute(env, "priority")
+      dp   <- env_data$vars$dow$params
+      if (is.na(prio)) return(NA_real_)
+      if (prio == 1) dp$p1_p_max
+      else if (prio == 2) dp$p2_p_max
+      else dp$p3_flat
+    }) %>%
     set_attribute("dnbi_type", function() {
       name <- get_name(env)
       if (startsWith(name, "dnbi")) {
@@ -1120,6 +1155,11 @@ build_casualty_trajectory <- function() {
           continue = TRUE,
           lapply(1:counts[["r1"]], r1_treat_wia)
         ) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r1_tccc_factor
+        }) %>%
 
         # DNBI sub-type routing branch
         # Applies differentiated pathways based on dnbi_type attribute:
@@ -1213,14 +1253,15 @@ build_casualty_trajectory <- function() {
                 injury <- get_attribute(env, "injury_time")
                 t_prev <- get_attribute(env, "last_dow_t") - injury
                 t_now  <- now(env) - injury
-                dp     <- env_data$vars$dow$params
+                dp      <- env_data$vars$dow$params
+                ceiling <- get_attribute(env, "dow_ceiling")
                 if (prio == 1) {
                   p <- dow_prob_conditional(t_now, t_prev,
-                         dp$p1_p_base, dp$p1_p_max, dp$p1_k, dp$p1_t_mid)
+                         dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
                   if (runif(1) < p) return(1)
                 } else if (prio == 2) {
                   p <- dow_prob_conditional(t_now, t_prev,
-                         dp$p2_p_base, dp$p2_p_max, dp$p2_k, dp$p2_t_mid)
+                         dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
                   if (runif(1) < p) return(1)
                 }
                 return(2)

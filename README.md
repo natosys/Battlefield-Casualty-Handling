@@ -519,10 +519,44 @@ where *t_prev* is the elapsed time at the previous DOW check and *t_now* is the 
 
 Disease DNBI and battle fatigue DNBI are exempt from DOW checks at all echelons, consistent with their non-traumatic injury mechanisms. NBI and WIA follow the full time-dependent DOW pathway.
 
+### Treatment Efficacy Modifiers
+
+The logistic function F(t) characterises the mortality trajectory of a casualty receiving *no further care* — the probability of death given indefinite delay from the current state. Without modification, this ceiling (*p_max*) applies equally at each subsequent DOW check regardless of care received: a P1 casualty who has undergone R2B damage control resuscitation and surgery faces the same asymptotic mortality ceiling (0.60) on arrival at R2E as a casualty who received no treatment. This overstates residual mortality risk for the treated population and removes the incentive structure by which the model should reward timely definitive care.
+
+To address this, the model introduces a per-entity `dow_ceiling` attribute, initialised to the priority-appropriate *p_max* at casualty entry. After each care phase completes, `dow_ceiling` is multiplied by a treatment efficacy factor, reducing the effective ceiling applied at the next DOW check:
+
+```
+dow_ceiling ← dow_ceiling × treatment_efficacy_factor
+```
+
+The *p_base* term is held fixed throughout: it represents non-survivable injuries (non-compressible truncal and junctional haemorrhage, unsurvivable CNS trauma) for which no care can alter the outcome. Only the treatable fraction of the ceiling is reduced.
+
+| Care phase | Factor | Rationale |
+|---|---|---|
+| R1 TCCC | 0.83 | Eastridge et al. (2012) [[38]](#References) identify non-compressible haemorrhage (truncal, junctional) as the mechanism in 90% of potentially preventable battlefield deaths — injuries beyond the scope of TCCC intervention. TCCC skills (tourniquet, wound packing, airway management) address the remaining 10%, yielding a modest 17% ceiling reduction. |
+| R2B DCR (resus) | 0.56 | Braverman et al. (2021) [[40]](#References) report that damage control resuscitation with balanced haemostatic products reduces laparotomy mortality from 22% to 13% — a 41% relative reduction — reflecting the haemostatic benefit of early plasma and platelet administration. |
+| R2B DCS (surgery) | 0.32 | Holcomb et al. (2013) PROMMTT [[41]](#References) reported a 40% overall mortality rate in massively transfused surgical patients, with exsanguination accounting for 33.3% of deaths — approximately 13% haemorrhage-specific post-DCS mortality. This implies a 68% relative reduction from the pre-DCS ceiling, applied as a factor of 0.32. |
+| R2E DCR (resus) | 0.56 | Same factor as R2B DCR [[40]](#References); applied only when full resuscitation occurs at R2E (i.e., the casualty bypassed R2B). Casualties pre-resuscitated at R2B receive a short resus at R2E; this factor is not re-applied, avoiding double-counting the DCR effect. |
+| R2E DCS 1st op | 0.25 | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[40]](#References). |
+| R2E DCS 2nd op | 0.57 | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS. |
+
+The cumulative effect on a P1 casualty (initial ceiling = 0.60) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
+
+```
+0.60 × 0.83 × 0.56 × 0.32 × 0.25 = 0.022
+```
+
+This residual ceiling of 2.2% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with clinical estimates for the irreducible mortality of the survivable-but-severe fraction of the P1 combat casualty cohort.
+
 > **MODEL ASSUMPTION — DOW LOGISTIC PARAMETERS:** The parameters *p_base*, *p_max*, *k*, and *t_mid* are calibrated to clinical literature rather than empirically fitted to conflict data; no published dataset provides the per-minute individual-level survival curves required for maximum-likelihood estimation in this context.
 > **Basis:** Eastridge et al. (2012) [[38]](#References) and Kotwal et al. (2011) [[39]](#References) provide aggregate mortality rates and time-window analysis. The logistic form is a standard S-shaped approximation for time-dependent failure processes (Law, 2020 [[26]](#References)).
 > **Uncertainty:** Medium — the functional form is well-supported but parameter values are informed estimates. The inflection point and steepness carry the highest uncertainty.
 > **Consequence if wrong:** Narrowing p_max reduces the sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays. The qualitative direction of the relationship (DOW increases with wait time) is robust to parameter uncertainty.
+
+> **MODEL ASSUMPTION — TREATMENT EFFICACY FACTORS:** The multiplicative reduction factors are derived from aggregate post-care survival rates in open-access literature; they are not fitted to individual-level combat casualty data and have not been validated against a specifically comparable conflict dataset.
+> **Basis:** DCR factor (0.56) anchored to Braverman et al. (2021) [[40]](#References); DCS factor (0.32) anchored to Holcomb et al. (2013) PROMMTT [[41]](#References); TCCC factor (0.83) derived from Eastridge et al. (2012) [[38]](#References) non-compressible haemorrhage analysis. The R2E DCS second-operation factor (0.57) is an informed estimate with no direct literature anchor.
+> **Uncertainty:** Low–Medium for DCR and DCS factors; High for R2E second-operation factor.
+> **Consequence if wrong:** Overestimating efficacy factors reduces modelled DOW sensitivity to system overload for treated casualties; underestimating inflates DOW for patients who received definitive care. The relative ordering (DCS reduces ceiling more than DCR; DCR more than TCCC) reflects clinical consensus and is unlikely to reverse under parameter uncertainty.
 
 ---
 
@@ -1402,6 +1436,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [38] Eastridge, B. J., Mabry, R. L., Seguin, P., Cantrell, J., Tops, T., Uribe, P., ... & Blackbourne, L. H. (2012). Death on the battlefield (2001–2011): implications for the future of combat casualty care. *Journal of Trauma and Acute Care Surgery*, *73*(6 Suppl 5), S431–S437. Retrieved 29 Jun 26, from https://apps.dtic.mil/sti/pdfs/ADA609611.pdf
 
 [39] Kotwal, R. S., Montgomery, H. R., Kotwal, B. M., Champion, H. R., Butler Jr, F. K., Mabry, R. L., ... & Holcomb, J. B. (2011). Eliminating preventable death on the battlefield. *Archives of Surgery*, *146*(12), 1350–1358. Retrieved 29 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC5832013/
+
+[40] Braverman, M. A., Smith, A., Arshad, M. I., Cannon, J. W., Borgman, M. A., Holcomb, J. B., Etchill, E. W., DuBose, J. J., Rasmussen, T. E., Edwards, J., Epley, E., Glaser, J. J., Redfield, C. S., Schreiber, M. A., & Morrison, J. J. (2021). Damage control resuscitation in patients undergoing emergency laparotomy: outcomes and implications. *Journal of Trauma and Acute Care Surgery*, *92*(2), 321–328. Retrieved 01 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC8600903/
+
+[41] Holcomb, J. B., Del Junco, D. J., Fox, E. E., Wade, C. E., Cohen, M. J., Schreiber, M. A., Alarcon, L. H., Bai, Y., Brasel, K. J., Bulger, E. M., Cotton, B. A., Matijevic, N., Muskat, P., Myers, J. G., Phelan, H. A., White, C. E., Zhang, J., Rahbar, M. H., & PROMMTT Study Group. (2013). The prospective, observational, multicenter, major trauma transfusion (PROMMTT) study: comparative effectiveness of a time-varying treatment with competing risks. *JAMA Surgery*, *148*(2), 127–136. Retrieved 01 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC3773975/
 
 ---
 

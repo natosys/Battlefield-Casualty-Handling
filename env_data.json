@@ -653,6 +653,17 @@
             { "var": "p2_t_mid",  "val": 180   },
             { "var": "p3_flat",   "val": 0.005 }
           ]
+        },
+        {
+          "acty": "treatment_efficacy",
+          "vals": [
+            { "var": "r1_tccc_factor",   "val": 0.83 },
+            { "var": "r2b_resus_factor", "val": 0.56 },
+            { "var": "r2b_dcs_factor",   "val": 0.32 },
+            { "var": "r2e_resus_factor", "val": 0.56 },
+            { "var": "r2e_dcs1_factor",  "val": 0.25 },
+            { "var": "r2e_dcs2_factor",  "val": 0.57 }
+          ]
         }
       ]
     },

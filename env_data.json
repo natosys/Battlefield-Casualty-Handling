@@ -371,6 +371,36 @@
               "val": 7
             }
           ]
+        },
+        {
+          "acty": "icu_gating",
+          "vals": [
+            {
+              "var": "p1_bypass_priority_max",
+              "val": 1
+            },
+            {
+              "var": "defer_check_interval",
+              "val": 30
+            }
+          ]
+        },
+        {
+          "acty": "post_op_hold",
+          "vals": [
+            {
+              "var": "min",
+              "val": 360
+            },
+            {
+              "var": "max",
+              "val": 1440
+            },
+            {
+              "var": "mode",
+              "val": 600
+            }
+          ]
         }
       ]
     },
@@ -484,6 +514,15 @@
             {
               "var": "mode",
               "val": 15
+            }
+          ]
+        },
+        {
+          "acty": "icu_gating",
+          "vals": [
+            {
+              "var": "defer_check_interval",
+              "val": 30
             }
           ]
         }
@@ -674,7 +713,8 @@
             { "var": "r2b_dcs_factor",   "val": 0.32 },
             { "var": "r2e_resus_factor", "val": 0.56 },
             { "var": "r2e_dcs1_factor",  "val": 0.25 },
-            { "var": "r2e_dcs2_factor",  "val": 0.57 }
+            { "var": "r2e_dcs2_factor",  "val": 0.57 },
+            { "var": "r2e_postop_hold_penalty", "val": 3.0 }
           ]
         }
       ]

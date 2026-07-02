@@ -411,27 +411,29 @@ These are the validated baseline values from the current single-run analysis. Re
 | WIA (combat + support) | 154 |
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
-| Priority 1 share | ~52.0% |
+| Priority 1 share (of 400 total) | ~53.3% |
 | DOW count (seed 42) | 0 (stochastic; mean ~0.70/run across replications) |
 | DOW rate — P1 p_max (logistic) | 2.3% ceiling (Falklands 1982 calibration) |
 | DOW rate — P2 p_max (logistic) | 1.9% ceiling (Falklands 1982 calibration) |
 | DOW rate — P3 flat | 0.1% (structural placeholder; P3 never evacuated) |
 | Mean DOW/run (50-rep, seed=NULL) | ~0.70 (0.45% of WIA); 95% CI [0.41, 0.95] |
-| DNBI sub-types (seed 42) | battle_fatigue=33, disease=118, nbi=25 |
-| bf_rtd (seed 42) | 31 (2 of 33 battle_fatigue still in R1 recovery timeout at sim end) |
-| clinical_rtd (seed 42) | 105 (r1: 55, r2b: 43, r2e: 7) |
-| total_rtd (seed 42) | 136 |
-| R2B surgical candidates (seed 42) | 149 |
-| R2B surgeries (seed 42) | 42 |
-| R2E surgeries — first op (seed 42) | 122 |
-| R2B OT bypass count (seed 42) | 80 of 149 surgical candidates |
-| R2B OT utilisation — 24h room (seed 42) | T1: 7.0%, T2: 8.0% |
-| R2B OT utilisation — shift time (seed 42) | T1: 14.1%, T2: 16.0% |
-| R2E OT utilisation — 24h room (seed 42) | OT1: 42.4%, OT2: 21.4% |
-| R2E ICU utilisation — mean (seed 42) | ICU1: 80.6%, ICU2: 73.6%, ICU3: 64.8%, ICU4: 56.9% |
-| R2E ICU queue ≥1 (seed 42) | ICU1: 45.9% of run, ICU2: 31.8% of run |
-| PMV Ambulance utilisation (seed 42, post-Issue-6 dead-heading) | 11.1% (max queue 0 throughout run) |
-| HX240M utilisation (seed 42, post-Issue-6 dead-heading) | 4.9% (max queue 0 throughout run) |
+| DNBI sub-types (seed 42) | battle_fatigue=42, disease=100, nbi=34 |
+| bf_rtd (seed 42) | 37 |
+| clinical_rtd (seed 42) | 105 (r1: 51, r2b: 41, r2e: 13) |
+| total_rtd (seed 42) | 142 |
+| R2B surgical candidates (seed 42, post-Issue-43) | 132 |
+| R2B surgeries (seed 42, post-Issue-43) | 53 |
+| R2E surgeries — first op (seed 42, post-Issue-43) | 134 |
+| R2B bypass count (seed 42, post-Issue-43) | 124 (upstream R1 threshold + at-R2B OT/ICU-gate bypass, combined) |
+| R2B OT utilisation — 24h room (seed 42) | T1: 10.5%, T2: 7.9% |
+| R2B OT utilisation — shift time (seed 42) | T1: 21.0%, T2: 15.9% |
+| R2E OT utilisation — 24h room (seed 42, post-Issue-43) | OT1: 48.7%, OT2: 25.2% |
+| R2E ICU utilisation — mean (seed 42, post-Issue-43) | ICU1: 75.8%, ICU2: 62.6%, ICU3: 59.0%, ICU4: 49.6% |
+| R2E ICU queue ≥1 (seed 42, post-Issue-43) | ICU1: 27.2% of run, ICU2: 6.7% of run, ICU3: 6.1% of run |
+| PMV Ambulance utilisation (seed 42, post-Issue-6 dead-heading) | 10.9% (max queue 0 throughout run) |
+| HX240M utilisation (seed 42, post-Issue-6 dead-heading) | 4.8% (max queue 0 throughout run) |
+| R2E post-op pathway (seed 42, Issue #43) | icu=110, hold=23 (ICU saturated, P1 override); surgery_deferred=10 (ICU saturated, P2+) |
+| R2E post-op DOW rate — icu vs hold (seed 42, Issue #43) | 0/110 vs 0/23 (single-run; saturated-ICU 90-day stress test confirms mechanism fires, hold pathway > icu pathway) |
 
 ---
 

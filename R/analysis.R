@@ -681,8 +681,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     )
 
   # KPI 5: DOW count and rate by echelon
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e")
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E (post-operative, Issue #43)
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop")
   total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
   dow_by_echelon <- attributes_wide %>%
     filter(dow == 1 & !is.na(dow_echelon)) %>%
@@ -740,6 +740,38 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       .groups     = "drop"
     )
 
+  # KPI 8: R2E OT-ICU gating post-operative pathway summary (Issue #43)
+  # post_op_pathway: 1 = ICU (nominal), 2 = Post-Op Hold (ICU saturated, P1 override).
+  # postop_dow uses dow_echelon == 4, the post-operative checkpoint added by Issue #43,
+  # kept distinct from the Phase 1 R2E arrival DOW checkpoint (dow_echelon == 3) so the
+  # two pathways' realised post-operative mortality can be directly compared.
+  pathway_labels <- c("1" = "icu", "2" = "hold")
+  post_op_pathway_summary <- NULL
+  surgery_deferred_count  <- 0L
+  if ("post_op_pathway" %in% names(attributes_wide)) {
+    post_op_pathway_summary <- attributes_wide %>%
+      filter(!is.na(post_op_pathway)) %>%
+      mutate(
+        pathway    = pathway_labels[as.character(as.integer(post_op_pathway))],
+        postop_dow = as.integer(!is.na(dow_echelon) & dow_echelon == 4 & dow == 1)
+      ) %>%
+      group_by(pathway) %>%
+      summarise(
+        total           = n(),
+        died            = sum(postop_dow),
+        postop_dow_rate = died / total,
+        .groups         = "drop"
+      )
+    write.csv(post_op_pathway_summary, file.path(output_dir, "post_op_pathway_summary.csv"), row.names = FALSE)
+  }
+  if ("surgery_deferred" %in% names(attributes_wide)) {
+    surgery_deferred_count <- sum(!is.na(attributes_wide$surgery_deferred) &
+                                    attributes_wide$surgery_deferred == 1L,
+                                  na.rm = TRUE)
+  }
+  cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
+  if (!is.null(post_op_pathway_summary)) print(post_op_pathway_summary)
+
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
@@ -767,7 +799,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_hold_bypass_count       = r2b_hold_bypass_count,
     r2b_hold_queued_count       = r2b_hold_queued_count,
     transport_utilisation       = transport_utilisation,
-    transport_capacity_margin_plot = p_transport_capacity_margin
+    transport_capacity_margin_plot = p_transport_capacity_margin,
+    post_op_pathway_summary     = post_op_pathway_summary,
+    surgery_deferred_count      = surgery_deferred_count
   ))
 }
 

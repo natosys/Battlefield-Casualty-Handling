@@ -124,6 +124,37 @@ select_r2e_team <- function() {
   return(selected)
 }
 
+# ── DOW survival functions ────────────────────────────────────────────────────
+
+#' Time-dependent DOW probability (shifted logistic)
+#'
+#' @param t_elapsed Elapsed minutes since injury
+#' @param p_base    Minimum DOW probability at t = 0 (floor)
+#' @param p_max     Asymptotic maximum DOW probability
+#' @param k         Logistic steepness (min^-1)
+#' @param t_mid     Inflection point in minutes (time at which DOW = (p_base + p_max) / 2)
+#' @return DOW probability in [p_base, p_max]
+dow_prob <- function(t_elapsed, p_base, p_max, k, t_mid) {
+  p_base + (p_max - p_base) / (1 + exp(-k * (t_elapsed - t_mid)))
+}
+
+#' Conditional DOW probability increment between two check points
+#'
+#' @param t_now  Elapsed minutes since injury at the current check
+#' @param t_prev Elapsed minutes since injury at the previous DOW check (0 = first check)
+#' @param p_base,p_max,k,t_mid Parameters as for dow_prob()
+#' @return Conditional probability P(die in [t_prev, t_now] | survived to t_prev)
+#'
+#' @details Used at R2B and R2E to avoid double-counting mortality already
+#'   screened at R1. When t_prev = 0 (first check), reduces to the cumulative
+#'   probability adjusted for the non-zero floor at t = 0.
+dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
+  f_now  <- dow_prob(t_now,  p_base, p_max, k, t_mid)
+  f_prev <- dow_prob(t_prev, p_base, p_max, k, t_mid)
+  if (f_prev >= 1) return(1)
+  pmax(0, (f_now - f_prev) / (1 - f_prev))
+}
+
 # ── Role 1 trajectories ───────────────────────────────────────────────────────
 
 #' Simulates mortuary treatment pathway for KIA casualties at Role 1
@@ -365,17 +396,31 @@ r2b_treat_wia <- function(team_id) {
     simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
     seize_selected(id = 1) %>%
 
-    # Step 1.5: DOW branch (~1%)
-    # Branches on runif:
-    # - < 0.01 → casualty dies of wounds; routed to KIA handling, trajectory exits
-    # - else   → continue treatment
-    # Disease DNBI (dnbi_type == 2) are exempt: their pathway is medical/surgical,
-    # not trauma resuscitation, and the 1% DOW rate is calibrated for combat trauma.
+    # Step 1.5: DOW branch (time-dependent logistic, Issue #5)
+    # Conditional increment from last DOW check (R1) to current elapsed time.
+    # Disease DNBI (dnbi_type == 2) remain exempt — medical pathway, not trauma.
+    # P3 casualties use a flat probability (minor wounds, not time-critical).
     branch(
       option = function() {
-        dtype <- get_attribute(env, "dnbi_type")
+        dtype  <- get_attribute(env, "dnbi_type")
         if (!is.na(dtype) && dtype == 2L) return(2)  # disease: exempt from DOW
-        if (runif(1) < 0.01) return(1)
+        injury <- get_attribute(env, "injury_time")
+        t_prev <- get_attribute(env, "last_dow_t") - injury
+        t_now  <- now(env) - injury
+        prio   <- get_attribute(env, "priority")
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (prio == 1) {
+          p <- dow_prob_conditional(t_now, t_prev,
+                 dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+          if (runif(1) < p) return(1)
+        } else if (prio == 2) {
+          p <- dow_prob_conditional(t_now, t_prev,
+                 dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+          if (runif(1) < p) return(1)
+        } else {
+          if (runif(1) < dp$p3_flat) return(1)
+        }
         return(2)
       },
       continue = TRUE,
@@ -388,6 +433,7 @@ r2b_treat_wia <- function(team_id) {
         simmer::leave(1),
       trajectory("Continue R2B Treatment")
     ) %>%
+    set_attribute("last_dow_t", function() now(env)) %>%
 
     # Step 2: Transfer to resus bed
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
@@ -407,6 +453,11 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * env_data$vars$dow$treatment_efficacy$r2b_resus_factor
+    }) %>%
 
     # Step 4: Surgery decision
     # Branches based on attribute "surgery":
@@ -455,7 +506,12 @@ r2b_treat_wia <- function(team_id) {
             set_attribute("r2b_surgery", 1) %>%
             set_attribute("r2b_surgery_end", function() now(env)) %>%
             release_resources(surg_team) %>%
-            release_selected(id = 4),
+            release_selected(id = 4) %>%
+            set_attribute("dow_ceiling", function() {
+              ceiling <- get_attribute(env, "dow_ceiling")
+              if (is.na(ceiling)) return(ceiling)
+              ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
+            }),
 
           # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E
           trajectory("OT Unavailable – Bypass to R2E") %>%
@@ -774,12 +830,31 @@ r2e_treat_wia <- function(team_id) {
     set_attribute("r2e_handling", 1) %>%
     set_attribute("r2e_arrival_time", function() now(env)) %>%
 
-    # Phase 1: DOW check (~1%)
-    # - DOW → KIA handling and leave
-    # - else → continue to resuscitation
+    # Phase 1: DOW check (time-dependent logistic, Issue #5)
+    # Conditional increment from last DOW check to current elapsed time since injury.
+    # Disease DNBI (dnbi_type == 2) exempt — medical pathway, not trauma.
+    # P3 casualties use a flat probability (minor wounds, not time-critical).
     branch(
       option = function() {
-        if (runif(1) < 0.01) return(1)
+        dtype  <- get_attribute(env, "dnbi_type")
+        if (!is.na(dtype) && dtype == 2L) return(2)  # disease: exempt from DOW
+        injury <- get_attribute(env, "injury_time")
+        t_prev <- get_attribute(env, "last_dow_t") - injury
+        t_now  <- now(env) - injury
+        prio   <- get_attribute(env, "priority")
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (prio == 1) {
+          p <- dow_prob_conditional(t_now, t_prev,
+                 dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+          if (runif(1) < p) return(1)
+        } else if (prio == 2) {
+          p <- dow_prob_conditional(t_now, t_prev,
+                 dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+          if (runif(1) < p) return(1)
+        } else {
+          if (runif(1) < dp$p3_flat) return(1)
+        }
         return(2)
       },
       continue = TRUE,
@@ -791,6 +866,7 @@ r2e_treat_wia <- function(team_id) {
         simmer::leave(1),
       trajectory("Continue R2E Treatment")
     ) %>%
+    set_attribute("last_dow_t", function() now(env)) %>%
 
     # Phase 2: Resuscitation bed seizure
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
@@ -829,6 +905,11 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_resus", 1) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_resus_factor
+        }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     ) %>%
@@ -862,6 +943,11 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         set_attribute("r2e_surgery_1_end", function() now(env)) %>%
         release_selected(id = 4) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor
+        }) %>%
         branch(
           option = function() {
             prior_surg <- get_attribute(env, "r2b_surgery")
@@ -925,7 +1011,12 @@ r2e_treat_wia <- function(team_id) {
           )
         }) %>%
         set_attribute("r2e_surgery_2_end", function() now(env)) %>%
-        release_selected(id = 7),
+        release_selected(id = 7) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+        }),
       trajectory("No Second Surgery Needed")
     ) %>%
 
@@ -988,6 +1079,8 @@ r2e_treat_wia <- function(team_id) {
 build_casualty_trajectory <- function() {
   trajectory("Casualty") %>%
     log_(function() paste0(get_name(env))) %>%
+    set_attribute("injury_time", function() now(env)) %>%
+    set_attribute("last_dow_t",  function() now(env)) %>%
     set_attribute("priority", function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
         sample(1:3, 1, prob = c(env_data$vars$r1$priority$one,
@@ -996,6 +1089,14 @@ build_casualty_trajectory <- function() {
       } else {
         NA
       }
+    }) %>%
+    set_attribute("dow_ceiling", function() {
+      prio <- get_attribute(env, "priority")
+      dp   <- env_data$vars$dow$params
+      if (is.na(prio)) return(NA_real_)
+      if (prio == 1) dp$p1_p_max
+      else if (prio == 2) dp$p2_p_max
+      else dp$p3_flat
     }) %>%
     set_attribute("dnbi_type", function() {
       name <- get_name(env)
@@ -1054,6 +1155,11 @@ build_casualty_trajectory <- function() {
           continue = TRUE,
           lapply(1:counts[["r1"]], r1_treat_wia)
         ) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r1_tccc_factor
+        }) %>%
 
         # DNBI sub-type routing branch
         # Applies differentiated pathways based on dnbi_type attribute:
@@ -1136,15 +1242,28 @@ build_casualty_trajectory <- function() {
 
           # Branch 3: NBI or WIA — standard DOW + evac logic
           trajectory("NBI/WIA Standard Path") %>%
-            # DOW branch
-            # - P1 with runif < pri1_dow → DOW (KIA processing)
-            # - P2 with runif < pri2_dow → DOW (KIA processing)
-            # - else                     → proceed to evacuation decision
+            # DOW branch — time-dependent logistic (Issue #5)
+            # Probability is a shifted logistic function of elapsed time since injury.
+            # At R1, t_prev = 0 (first DOW check), so the conditional increment equals
+            # the cumulative DOW probability adjusted for the non-zero p_base floor.
+            # P3 casualties have no DOW check at R1 (minor wounds, not time-critical).
             branch(
               option = function() {
-                prio <- get_attribute(env, "priority")
-                if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_dow) return(1)
-                if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_dow) return(1)
+                prio   <- get_attribute(env, "priority")
+                injury <- get_attribute(env, "injury_time")
+                t_prev <- get_attribute(env, "last_dow_t") - injury
+                t_now  <- now(env) - injury
+                dp      <- env_data$vars$dow$params
+                ceiling <- get_attribute(env, "dow_ceiling")
+                if (prio == 1) {
+                  p <- dow_prob_conditional(t_now, t_prev,
+                         dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+                  if (runif(1) < p) return(1)
+                } else if (prio == 2) {
+                  p <- dow_prob_conditional(t_now, t_prev,
+                         dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+                  if (runif(1) < p) return(1)
+                }
                 return(2)
               },
               continue = TRUE,
@@ -1163,6 +1282,7 @@ build_casualty_trajectory <- function() {
 
               # Path 2: Continue to evacuation decision
               trajectory("Post-Treatment Decision") %>%
+                set_attribute("last_dow_t", function() now(env)) %>%
                 # Evacuation decision branch
                 # - P1 with runif < pri1_evac → evacuate to next echelon
                 # - P2 with runif < pri2_evac → evacuate to next echelon

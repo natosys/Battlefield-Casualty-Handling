@@ -626,14 +626,6 @@
               "val": 0.6
             },
             {
-              "var": "pri1_dow",
-              "val": 0.05
-            },
-            {
-              "var": "pri2_dow",
-              "val": 0.025
-            },
-            {
               "var": "pri1_evac",
               "val": 0.95
             },
@@ -641,6 +633,36 @@
               "var": "pri2_evac",
               "val": 0.9
             }
+          ]
+        }
+      ]
+    },
+    {
+      "elm": "dow",
+      "actys": [
+        {
+          "acty": "params",
+          "vals": [
+            { "var": "p1_p_base", "val": 0.001  },
+            { "var": "p1_p_max",  "val": 0.023  },
+            { "var": "p1_k",      "val": 0.04   },
+            { "var": "p1_t_mid",  "val": 120    },
+            { "var": "p2_p_base", "val": 0.0005 },
+            { "var": "p2_p_max",  "val": 0.019  },
+            { "var": "p2_k",      "val": 0.025  },
+            { "var": "p2_t_mid",  "val": 180    },
+            { "var": "p3_flat",   "val": 0.001  }
+          ]
+        },
+        {
+          "acty": "treatment_efficacy",
+          "vals": [
+            { "var": "r1_tccc_factor",   "val": 0.83 },
+            { "var": "r2b_resus_factor", "val": 0.56 },
+            { "var": "r2b_dcs_factor",   "val": 0.32 },
+            { "var": "r2e_resus_factor", "val": 0.56 },
+            { "var": "r2e_dcs1_factor",  "val": 0.25 },
+            { "var": "r2e_dcs2_factor",  "val": 0.57 }
           ]
         }
       ]

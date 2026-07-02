@@ -20,12 +20,12 @@ library(ggplot2)
 #'   Bounds are set to cover clinically plausible variation around the
 #'   current baseline; see README Sensitivity Analysis section for derivation.
 morris_params <- data.frame(
-  name  = c("surg_mode",      "long_resus_mode", "pri1_dow",
+  name  = c("surg_mode",      "long_resus_mode", "p1_p_max",
             "r1_transport",   "r2b_transport",   "long_icu_mode",
             "pri1_surg_prob", "in_theatre_rate", "ot_hours"),
-  lower = c(90,    25,    0.02,  15,   15,   770,   0.70,  0.05,  8),
-  upper = c(150,   70,    0.10,  45,   45,   2160,  0.98,  0.20,  16),
-  mode  = c(120,   45,    0.05,  30,   30,   1440,  0.90,  0.10,  12),
+  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8),
+  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16),
+  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12),
   stringsAsFactors = FALSE
 )
 
@@ -43,7 +43,7 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$surgery$mode             <- p[["surg_mode"]]
   ed$vars$r2eheavy$long_resus$mode          <- p[["long_resus_mode"]]
   ed$vars$r2b$long_resus$mode               <- p[["long_resus_mode"]]
-  ed$vars$r1$other$pri1_dow                 <- p[["pri1_dow"]]
+  ed$vars$dow$params$p1_p_max               <- p[["p1_p_max"]]
   ed$vars$r1$wia_transport$mode             <- p[["r1_transport"]]
   ed$vars$r2b$wia_transport$mode            <- p[["r2b_transport"]]
   ed$vars$r2eheavy$long_icu$mode            <- p[["long_icu_mode"]]

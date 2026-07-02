@@ -401,7 +401,9 @@ r2b_transport_wia <- function() {
 #'
 #' # Step 4: Surgical decision branch
 #' # Branches based on attribute "surgery":
-#' # - surgery == 1 → check OT bed AND surgical team availability
+#' # - surgery == 1 → pre-OT ICU availability gate (Issue #43; P1 always
+#' #     proceeds, P2+ defers OT entry while this unit's ICU is saturated),
+#' #     then check OT bed AND surgical team availability
 #' #     - OT bed free, no queue, team on shift → seize OT + team, perform DAMCON surgery
 #' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E (r2b_bypassed = 1)
 #' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
@@ -450,6 +452,53 @@ r2b_treat_wia <- function(team_id) {
       lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
     ) %>%
     leave(1)
+
+  # OT availability check (unchanged from pre-Issue-43 logic). Joined
+  # directly when the pre-OT ICU gate above clears immediately, and again
+  # after the P2+ ICU-defer wait loop resolves.
+  r2b_ot_check_path <- trajectory("R2B OT Check") %>%
+    branch(
+      option = function() {
+        usage    <- sum(get_server_count(env, resources = ot_beds))
+        cap      <- sum(get_capacity(env, resources = ot_beds))
+        queue    <- sum(get_queue_count(env, resources = ot_beds))
+        team_cap <- sum(get_capacity(env, resources = surg_team))
+        # OT available only when a bed is free, no queue exists, and team is on shift.
+        # Any of these failing means the patient should bypass to R2E immediately.
+        if (!is.na(usage) && !is.na(cap) && usage < cap && queue == 0 &&
+            !is.na(team_cap) && team_cap > 0) return(1)
+        return(2)
+      },
+      continue = TRUE,
+
+      # Sub-branch 1: OT bed free and team on shift — perform DAMCON surgery
+      trajectory("Surgery Path") %>%
+        simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
+        seize_selected(id = 4) %>%
+        seize_resources(surg_team) %>%
+        set_attribute("r2b_surgery_start", function() now(env)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2b$surgery$min,
+            b = env_data$vars$r2b$surgery$max,
+            c = env_data$vars$r2b$surgery$mode
+          )
+        }) %>%
+        set_attribute("r2b_surgery", 1) %>%
+        set_attribute("r2b_surgery_end", function() now(env)) %>%
+        release_resources(surg_team) %>%
+        release_selected(id = 4) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
+        }),
+
+      # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E
+      trajectory("OT Unavailable – Bypass to R2E") %>%
+        set_attribute("r2b_bypassed", 1)
+    )
 
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%
@@ -537,48 +586,37 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
 
       # Branch 1: Surgery required
+      # Pre-OT ICU availability gate (Issue #43), mirroring the R2E pattern for
+      # consistency and forward compatibility. R2B surgery does not seize
+      # icu_beds for post-operative recovery (icu_beds here are used only by
+      # the wait_for_evac fallback path above), so Priority 1 candidates
+      # proceed unconditionally; only Priority 2+ candidates defer OT entry
+      # while this unit's ICU is fully saturated, preserving ICU headroom for
+      # existing evac-holding patients. Under current establishment sizing,
+      # R2B ICU utilisation is effectively zero, so this branch is expected to
+      # be inert in practice.
       trajectory("Needs Surgery") %>%
         branch(
           option = function() {
-            usage    <- sum(get_server_count(env, resources = ot_beds))
-            cap      <- sum(get_capacity(env, resources = ot_beds))
-            queue    <- sum(get_queue_count(env, resources = ot_beds))
-            team_cap <- sum(get_capacity(env, resources = surg_team))
-            # OT available only when a bed is free, no queue exists, and team is on shift.
-            # Any of these failing means the patient should bypass to R2E immediately.
-            if (!is.na(usage) && !is.na(cap) && usage < cap && queue == 0 &&
-                !is.na(team_cap) && team_cap > 0) return(1)
-            return(2)
+            prio <- get_attribute(env, "priority")
+            if (!is.na(prio) && prio == 1) return(1)  # P1 always proceeds
+            usage  <- sum(get_server_count(env, resources = icu_beds))
+            cap    <- sum(get_capacity(env, resources = icu_beds))
+            icu_ok <- !is.na(usage) && !is.na(cap) && usage < cap
+            if (icu_ok) return(1)
+            return(2)  # P2+, ICU saturated: defer OT entry
           },
           continue = TRUE,
-
-          # Sub-branch 1: OT bed free and team on shift — perform DAMCON surgery
-          trajectory("Surgery Path") %>%
-            simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-            seize_selected(id = 4) %>%
-            seize_resources(surg_team) %>%
-            set_attribute("r2b_surgery_start", function() now(env)) %>%
-            timeout(function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2b$surgery$min,
-                b = env_data$vars$r2b$surgery$max,
-                c = env_data$vars$r2b$surgery$mode
-              )
+          r2b_ot_check_path,
+          trajectory("ICU Full — Defer Surgery (P2+)") %>%
+            set_attribute("surgery_deferred", 1) %>%
+            timeout(function() env_data$vars$r2b$icu_gating$defer_check_interval) %>%
+            rollback(target = 1, check = function() {
+              usage <- sum(get_server_count(env, resources = icu_beds))
+              cap   <- sum(get_capacity(env, resources = icu_beds))
+              !(!is.na(usage) && !is.na(cap) && usage < cap)
             }) %>%
-            set_attribute("r2b_surgery", 1) %>%
-            set_attribute("r2b_surgery_end", function() now(env)) %>%
-            release_resources(surg_team) %>%
-            release_selected(id = 4) %>%
-            set_attribute("dow_ceiling", function() {
-              ceiling <- get_attribute(env, "dow_ceiling")
-              if (is.na(ceiling)) return(ceiling)
-              ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
-            }),
-
-          # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E
-          trajectory("OT Unavailable – Bypass to R2E") %>%
-            set_attribute("r2b_bypassed", 1)
+            join(r2b_ot_check_path)
         ),
 
       # Branch 2: Surgery not required — recover in holding bed, queue, or bypass
@@ -856,12 +894,23 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 #' # - r2b_resus == 1 → short resus (prior R2B resus occurred)
 #' # - else           → full resus, sets r2e_resus = 1
 #'
-#' # Phase 3: Surgical branch
+#' # Phase 3: Surgical branch (OT–ICU gating, Issue #43)
 #' # Branches based on attribute "surgery":
-#' # - surgery == 1 → seize OT bed, perform DAMCON surgery
-#' #   - Sub-branch on r2b_surgery:
-#' #       - r2b_surgery == 1 and recovery prob → short ICU
-#' #       - else                               → full ICU
+#' # - surgery == 1 → pre-OT ICU availability check, then:
+#' #     - ICU available            → seize OT, DAMCON surgery, then ICU recovery
+#' #                                   (short/full per prior R2B surgery + recovery
+#' #                                   prob, unchanged from pre-Issue-43 behaviour)
+#' #     - ICU full, priority <= icu_gating$p1_bypass_priority_max (P1)
+#' #                                → seize OT, DAMCON surgery, then post-operative
+#' #                                   HOLDING bed recovery (post_op_pathway = 2) with
+#' #                                   an elevated dow_ceiling (r2e_postop_hold_penalty)
+#' #                                   reflecting reduced post-op monitoring
+#' #     - ICU full, priority > threshold (P2+)
+#' #                                → defer OT entry (surgery_deferred = 1); poll ICU
+#' #                                   availability every icu_gating$defer_check_interval
+#' #                                   minutes until free, then proceed as "ICU available"
+#' #   Both ICU and post-op-hold recovery paths converge on a shared post-operative
+#' #   DOW check (time-dependent conditional increment, Issue #5) before Phase 4.
 #' # - surgery != 1 → no surgery needed
 #'
 #' # Phase 4: Second surgery (only if R2E Phase 3 surgery occurred without prior R2B DAMCON)
@@ -887,6 +936,162 @@ r2e_treat_wia <- function(team_id) {
   surg_team      <- select_subteam("r2eheavy", team_id, "surg")
   evac_team      <- select_subteam("r2eheavy", team_id, "evac")
   icu_team       <- select_subteam("r2eheavy", team_id, "icu")
+
+  # ── OT–ICU gating sub-trajectories (Issue #43) ──────────────────────────────
+  # Built once per team and joined at the points below. Shared post-operative
+  # DOW check: both the ICU and post-op-hold recovery paths converge here so
+  # that the two pathways' realised mortality can be directly compared (see
+  # README "Died of Wounds" — Post-Operative Checkpoint). dow_echelon = 4
+  # distinguishes this checkpoint from the Phase 1 R2E arrival DOW check
+  # (dow_echelon = 3).
+  r2e_post_op_dow_check <- trajectory("R2E Post-Operative DOW Check") %>%
+    branch(
+      option = function() {
+        injury  <- get_attribute(env, "injury_time")
+        t_prev  <- get_attribute(env, "last_dow_t") - injury
+        t_now   <- now(env) - injury
+        prio    <- get_attribute(env, "priority")
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (!is.na(prio) && prio == 1) {
+          p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+        } else if (!is.na(prio) && prio == 2) {
+          p <- dow_prob_conditional(t_now, t_prev, dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+        } else {
+          p <- dp$p3_flat
+        }
+        if (runif(1) < p) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("Died of Wounds — Post-Operative") %>%
+        set_attribute("dow", 1) %>%
+        set_attribute("dow_echelon", 4) %>%
+        r2e_treat_kia(team_id, evac_team) %>%
+        r2e_transport_kia(team_id, evac_team) %>%
+        simmer::leave(1),
+      trajectory("Survived Post-Operative Recovery")
+    ) %>%
+    set_attribute("last_dow_t", function() now(env))
+
+  # Nominal pathway: ICU bed available at time of OT entry. Recovery duration
+  # (short vs full ICU) unchanged from pre-Issue-43 behaviour.
+  r2e_icu_recovery <- trajectory("R2E ICU Recovery") %>%
+    set_attribute("post_op_pathway", 1) %>%
+    branch(
+      option = function() {
+        prior_surg <- get_attribute(env, "r2b_surgery")
+        if (!is.na(prior_surg) && prior_surg == 1) {
+          return(sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, 1 - env_data$vars$r2eheavy$recovery$post_surgery)))
+        }
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("Short ICU Recovery") %>%
+        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+        seize_selected(id = 6) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$short_icu$min,
+            b = env_data$vars$r2eheavy$short_icu$max,
+            c = env_data$vars$r2eheavy$short_icu$mode
+          )
+        }) %>%
+        release_selected(id = 6),
+      trajectory("Full ICU Recovery") %>%
+        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+        seize_selected(id = 6) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$long_icu$min,
+            b = env_data$vars$r2eheavy$long_icu$max,
+            c = env_data$vars$r2eheavy$long_icu$mode
+          )
+        }) %>%
+        release_selected(id = 6)
+    ) %>%
+    join(r2e_post_op_dow_check)
+
+  # Bypass pathway: ICU full and priority within the P1 override threshold
+  # (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
+  # proceeds; recovery is in a holding bed instead of ICU. dow_ceiling is
+  # multiplied by r2e_postop_hold_penalty (> 1) to reflect the elevated
+  # mortality risk of reduced post-operative monitoring — see README "Died
+  # of Wounds — Treatment Efficacy Modifiers".
+  #
+  # MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
+  # Priority 1 candidate even when no post-operative ICU bed is available,
+  # accepting elevated post-operative mortality risk rather than withholding
+  # surgery (which would expose an unsurgicated P1 casualty to near-certain
+  # DOW). See README Limitations for basis, uncertainty, and consequence.
+  r2e_hold_recovery <- trajectory("R2E Post-Op Hold Recovery") %>%
+    set_attribute("post_op_pathway", 2) %>%
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+    }) %>%
+    simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
+    seize_selected(id = 8) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2eheavy$post_op_hold$min,
+        b = env_data$vars$r2eheavy$post_op_hold$max,
+        c = env_data$vars$r2eheavy$post_op_hold$mode
+      )
+    }) %>%
+    release_selected(id = 8) %>%
+    join(r2e_post_op_dow_check)
+
+  # Shared surgery portion (OT seizure through DAMCON surgery). Recovery
+  # (ICU vs post-op hold) is decided upstream at the pre-OT gating branch
+  # and joined on afterwards, so this portion is identical for both paths.
+  r2e_ot_surgery <- trajectory("R2E OT — DAMCON Surgery") %>%
+    simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
+    seize_selected(id = 4) %>%
+    set_attribute("r2e_surgery", 1) %>%
+    set_attribute("r2e_surgery_1_start", function() now(env)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2eheavy$surgery$min,
+        b = env_data$vars$r2eheavy$surgery$max,
+        c = env_data$vars$r2eheavy$surgery$mode
+      )
+    }) %>%
+    set_attribute("r2e_surgery_1_end", function() now(env)) %>%
+    release_selected(id = 4) %>%
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor
+    })
+
+  r2e_surgery_icu_path <- trajectory("R2E Surgery — ICU Available") %>%
+    join(r2e_ot_surgery) %>%
+    join(r2e_icu_recovery)
+
+  r2e_surgery_hold_path <- trajectory("R2E Surgery — ICU Full, P1 to Post-Op Hold") %>%
+    join(r2e_ot_surgery) %>%
+    join(r2e_hold_recovery)
+
+  # Deferral pathway: ICU full and priority above the P1 override threshold
+  # (P2+). OT entry is deferred rather than proceeding without ICU backup;
+  # the candidate polls ICU availability every icu_gating$defer_check_interval
+  # minutes (timeout + rollback, no resources held while waiting) until a bed
+  # frees, then proceeds exactly as the nominal ICU-available path.
+  r2e_surgery_defer_path <- trajectory("R2E Surgery — Deferred (ICU Full, P2+)") %>%
+    set_attribute("surgery_deferred", 1) %>%
+    timeout(function() env_data$vars$r2eheavy$icu_gating$defer_check_interval) %>%
+    rollback(target = 1, check = function() {
+      usage <- sum(get_server_count(env, resources = icu_beds))
+      cap   <- sum(get_capacity(env, resources = icu_beds))
+      !(!is.na(usage) && !is.na(cap) && usage < cap)
+    }) %>%
+    join(r2e_surgery_icu_path)
 
   trajectory("R2E Treatment") %>%
     set_attribute("r2e_treated", team_id) %>%
@@ -977,74 +1182,38 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 2)
     ) %>%
 
-    # Phase 3: Surgical branch
+    # Phase 3: Surgical branch — pre-OT ICU availability gate (Issue #43)
     # Branches based on attribute "surgery":
-    # - surgery == 1 → seize OT bed, perform DAMCON surgery
-    #   - Sub-branch on r2b_surgery + recovery probability:
-    #       - prior R2B surgery + recovery prob → short ICU
-    #       - else                              → full ICU
+    # - surgery == 1 → check this team's ICU bed availability before OT entry:
+    #     - ICU available                                     → r2e_surgery_icu_path
+    #         (unchanged short/full ICU recovery logic, then post-op DOW check)
+    #     - ICU full, priority <= icu_gating$p1_bypass_priority_max (P1)
+    #                                                          → r2e_surgery_hold_path
+    #         (surgery proceeds; recovery in a holding bed with elevated
+    #         dow_ceiling, then post-op DOW check)
+    #     - ICU full, priority above threshold (P2+)           → r2e_surgery_defer_path
+    #         (OT entry deferred; polls ICU availability on a timer, then
+    #         proceeds as the ICU-available path)
     # - surgery != 1 → no surgery needed
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
-        if (!is.na(needs_surg) && needs_surg == 1) return(1)
-        return(2)
+        if (is.na(needs_surg) || needs_surg != 1) return(4)
+
+        usage  <- sum(get_server_count(env, resources = icu_beds))
+        cap    <- sum(get_capacity(env, resources = icu_beds))
+        icu_ok <- !is.na(usage) && !is.na(cap) && usage < cap
+        if (icu_ok) return(1)
+
+        prio      <- get_attribute(env, "priority")
+        threshold <- env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max
+        if (!is.na(prio) && prio <= threshold) return(2)
+        return(3)
       },
       continue = TRUE,
-      trajectory("R2E Surgery") %>%
-        simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-        seize_selected(id = 4) %>%
-        set_attribute("r2e_surgery", 1) %>%
-        set_attribute("r2e_surgery_1_start", function() now(env)) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$surgery$min,
-            b = env_data$vars$r2eheavy$surgery$max,
-            c = env_data$vars$r2eheavy$surgery$mode
-          )
-        }) %>%
-        set_attribute("r2e_surgery_1_end", function() now(env)) %>%
-        release_selected(id = 4) %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor
-        }) %>%
-        branch(
-          option = function() {
-            prior_surg <- get_attribute(env, "r2b_surgery")
-            if (!is.na(prior_surg) && prior_surg == 1) {
-              return(sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, 1 - env_data$vars$r2eheavy$recovery$post_surgery)))
-            }
-            return(2)
-          },
-          continue = TRUE,
-          trajectory("Short ICU Recovery") %>%
-            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-            seize_selected(id = 6) %>%
-            timeout(function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2eheavy$short_icu$min,
-                b = env_data$vars$r2eheavy$short_icu$max,
-                c = env_data$vars$r2eheavy$short_icu$mode
-              )
-            }) %>%
-            release_selected(id = 6),
-          trajectory("Full ICU Recovery") %>%
-            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-            seize_selected(id = 6) %>%
-            timeout(function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2eheavy$long_icu$min,
-                b = env_data$vars$r2eheavy$long_icu$max,
-                c = env_data$vars$r2eheavy$long_icu$mode
-              )
-            }) %>%
-            release_selected(id = 6)
-        ),
+      r2e_surgery_icu_path,
+      r2e_surgery_hold_path,
+      r2e_surgery_defer_path,
       trajectory("No Surgery Needed")
     ) %>%
 

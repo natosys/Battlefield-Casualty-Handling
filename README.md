@@ -531,7 +531,7 @@ The P3 flat rate of 0.1% applies only at R2B and R2E echelons. P3 casualties rec
 
 ### Multi-Echelon Check and Conditional Increment
 
-DOW checks are performed at three points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), and on arrival at R2E. To avoid double-counting mortality across echelons, the probability applied at R2B and R2E is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
+DOW checks are performed at four points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, and — since Issue #43 — at completion of post-operative recovery at R2E (ICU or holding bed). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
 
 ```
 p_conditional = max(0, (F(t_now) − F(t_prev)) / (1 − F(t_prev)))
@@ -561,6 +561,7 @@ The *p_base* term is held fixed throughout: it represents non-survivable injurie
 | R2E DCR (resus) | 0.56 | Same factor as R2B DCR [[40]](#References); applied only when full resuscitation occurs at R2E (i.e., the casualty bypassed R2B). Casualties pre-resuscitated at R2B receive a short resus at R2E; this factor is not re-applied, avoiding double-counting the DCR effect. |
 | R2E DCS 1st op | 0.25 | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[40]](#References). |
 | R2E DCS 2nd op | 0.57 | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS. |
+| R2E post-op hold (penalty) | 3.0 | Informed estimate (Issue #43). Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See Post-Operative Checkpoint below. |
 
 The cumulative effect on a P1 casualty (initial ceiling = 0.023) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
 
@@ -575,6 +576,23 @@ This residual ceiling of 0.085% represents the fraction of optimally treated P1 
 > **Uncertainty:** Medium — the calibration target (3 events / 580 WIA) is derived from a single conflict and may not generalise to other operational contexts. The treatment efficacy factors (Table above) retain OIF/OEF-era values and are not Falklands-specific; Issue #54 will package era-appropriate factors into a discrete scenario profile.
 > **Consequence if wrong:** If the Falklands DOW rate is unrepresentative of the baseline scenario, DOW counts will be systematically biased. Sensitivity analysis (Issue #3) will quantify the influence of p_max uncertainty on total DOW output. Narrowing p_max reduces sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays.
 > **Co-dependence of p_max and treatment efficacy factors:** The value p_max = 0.023 was not derived independently of the efficacy factors; the simulation was calibrated iteratively with the OIF/OEF efficacy multipliers (0.83, 0.56, 0.32, 0.25) already in place. These two components are therefore entangled: p_max is the ceiling that, *when combined with those specific multipliers*, reproduces the 0.52% historical rate. If Issue #54 substitutes Falklands-era efficacy values (which should be lower, as damage control resuscitation and damage control surgery protocols did not exist in 1982), p_max must be re-calibrated upward to maintain the same historical output. Treating p_max and the efficacy factors as independently derived would be incorrect.
+
+### Post-Operative Checkpoint (Issue #43)
+
+Prior to Issue #43, the R2E surgical trajectory admitted every casualty flagged for surgery to an operating theatre as soon as an OT bed was free, irrespective of whether a post-operative ICU bed would be available on completion. A casualty finishing surgery with no ICU bed free simply queued for one — in `simmer` terms this blocks no further progress in the model, but clinically represents a patient receiving inadequate post-operative monitoring in a recovery area not equipped for it. Damage control surgery is established doctrine specifically because post-operative critical care is expected to follow [[45]](#References), and post-operative ICU or high-dependency care is the guideline-recommended standard after major trauma surgery [[46]](#References); bed capacity is an explicitly named constraint at deployed damage-control facilities in LSCO [[2]](#References).
+
+The R2E surgical branch now performs a pre-OT ICU availability check before seizing an OT bed:
+
+1. **ICU available** — surgery proceeds unchanged; post-operative recovery is in ICU (short or full duration, as before).
+2. **ICU full, Priority 1** — surgery still proceeds (withholding it would expose an unsurgicated Priority 1 casualty to near-certain DOW), but post-operative recovery is in a holding bed instead of ICU. `dow_ceiling` is multiplied by the post-op hold penalty (3.0 — Treatment Efficacy Modifiers table above) rather than a further reduction, reflecting reduced monitoring.
+3. **ICU full, Priority 2+** — OT entry is deferred. The candidate polls ICU availability every `icu_gating.defer_check_interval` minutes (30, by default) without holding any resource while waiting, and proceeds as path 1 once a bed frees.
+
+Both the ICU and post-op-hold recovery paths converge on a shared post-operative DOW check — the same conditional-increment logistic mechanism used at the three arrival-time checkpoints, evaluated against each pathway's `dow_ceiling` — so the two pathways' realised mortality is directly comparable in output (`outputs/post_op_pathway_summary.csv`; `post_op_pathway` attribute: 1 = ICU, 2 = post-op hold). The same pre-OT ICU gate is mirrored at R2B for structural consistency, though R2B surgery does not seize ICU beds for recovery, so only the Priority 2+ deferral behaviour is materially active there, and only when R2B's own two-bed ICU (used otherwise for the `wait_for_evac` fallback) is saturated — a condition the existing analysis found effectively never occurs under baseline load.
+
+> **MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU:** A surgeon operates on a Priority 1 candidate even when no post-operative ICU bed is available, accepting elevated post-operative mortality risk in preference to withholding surgery (which would leave an unsurgicated Priority 1 casualty facing near-certain DOW). The priority threshold for this override (`icu_gating.p1_bypass_priority_max = 1`) and the post-op hold penalty multiplier (3.0) are both configured in `env_data.json`.
+> **Basis:** The clinical trade-off is described in Turner & Wilson (2024) [[45]](#References) and Remondelli et al. (2023) [[2]](#References); the standard of post-operative ICU/HDU care against which the "hold" pathway is a departure is set out in Hardcastle et al. (2025) [[46]](#References). The specific 3.0× penalty multiplier is an informed estimate — no open-access source quantifies a ward-vs-ICU mortality ratio for post-DCS trauma patients specifically — chosen to produce a materially higher, but not overwhelming, realised DOW rate for the hold pathway relative to ICU.
+> **Uncertainty:** High. Both the priority threshold and the penalty multiplier are structural placeholders pending clinical expert consultation or a literature-derived ward-vs-ICU post-DCS mortality ratio.
+> **Consequence if wrong:** An overstated penalty inflates post-op hold DOW beyond what forward surgical teams would actually accept operating under; an understated penalty removes the intended incentive structure that should make ICU capacity a visible driver of R2E mortality outcomes. The qualitative direction (hold pathway DOW rate exceeds ICU pathway DOW rate) is not sensitive to the exact multiplier value chosen.
 
 > **MODEL ASSUMPTION — TREATMENT EFFICACY FACTORS:** The multiplicative reduction factors are derived from aggregate post-care survival rates in open-access literature; they are not fitted to individual-level combat casualty data and have not been validated against a specifically comparable conflict dataset.
 > **Basis:** DCR factor (0.56) anchored to Braverman et al. (2021) [[40]](#References); DCS factor (0.32) anchored to Holcomb et al. (2013) PROMMTT [[41]](#References); TCCC factor (0.83) derived from Eastridge et al. (2012) [[38]](#References) non-compressible haemorrhage analysis. The R2E DCS second-operation factor (0.57) is an informed estimate with no direct literature anchor.
@@ -913,7 +931,7 @@ Resuscitation is modeled using a triangular distribution with ``min = 25``, ``ma
 
 Once resuscitation/emergency treatment has been completed, casualties not requiring surgery are transferred to a holding bed for recovery. Recovery follows a triangular distribution with ``min = 0.5``, ``max = 10``, and ``mode = 5`` (days).
 
-Next, surgical candidacy is assessed based on operating theatre (OT) bed availability. If capacity permits, patients requiring surgery are transferred to an operating theatre for damage control (DAMCON) surgery. The DAMCON surgery treatment duration is modeled using a triangular distribution with ``min = 41``, ``max = 210``, and ``mode = 95`` (minutes). Due to the variability of potential requirements for surgery it was difficult to identify reliable durations for surgery time. This distribution was developed based on the interpretation of several meta studies ([[17]](#References), [[24]](#References)). Where there is not OT capacity, casualties are evacuated to the R2E for handling. 
+Next, surgical candidacy is assessed. Since Issue #43, a pre-OT ICU availability gate is checked first, mirroring the R2E pattern for consistency and forward compatibility: Priority 1 candidates proceed regardless of this unit's ICU status; Priority 2+ candidates defer OT entry (polling on a timer, holding no resource) while this unit's ICU beds are fully saturated. R2B surgery does not seize ICU beds for post-operative recovery — the icu_beds checked here are the same beds used by the `wait_for_evac` fallback below — so this gate is expected to be inert under baseline load, where R2B ICU utilisation is effectively zero. Once the gate clears, operating theatre (OT) bed availability is assessed as before: if capacity permits, patients requiring surgery are transferred to an operating theatre for damage control (DAMCON) surgery. The DAMCON surgery treatment duration is modeled using a triangular distribution with ``min = 41``, ``max = 210``, and ``mode = 95`` (minutes). Due to the variability of potential requirements for surgery it was difficult to identify reliable durations for surgery time. This distribution was developed based on the interpretation of several meta studies ([[17]](#References), [[24]](#References)). Where there is not OT capacity, casualties are evacuated to the R2E for handling. 
 
 Casualties requiring further care (surgery following the DCS model described in [[17]](#References) and [[18]](#References)) are evacuated to the R2E. The duration for evacuation to the R2E follows a triangular distribution with ``min = 15``, ``max = 45``, and ``mode = 30``. Where evacuation resources are not available, the patient is transferred to the ICU until evacuation resources are available to facilitate transfer.
 
@@ -929,7 +947,10 @@ flowchart TD
     G --> H["Resus"]
     H --> I["Release Resources"]
     I --> J{"Surgery?"}
-    J -- Yes --> K{"OT Ready?"}
+    J -- Yes --> K0{"ICU Full and<br>Priority 2+?"}
+    K0 -- "No (P1, or ICU free)" --> K{"OT Ready?"}
+    K0 -- Yes --> KD["Defer: Poll ICU on Timer"]
+    KD --> K0
     K -- Available --> L["Seize OT & Surg Team"]
     L --> M["Surgery"]
     M --> N["Release Resources"]
@@ -966,11 +987,11 @@ Upon arrival, casualties are triaged; those identified as DOW by the time-depend
 | Documentation/Prep       | 2         | 3          | 5         |
 | **TOTAL**                | 13        | 28         | 55        |
 
-On completion of resuscitation, surgical candidacy is then assessed: if the casualty is flagged for damage control surgery and operating theatre resources are available, procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min = 41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[17]](#References), [[24]](#References)). 
+On completion of resuscitation, surgical candidacy is assessed via a pre-OT ICU availability gate (Issue #43 — see [Died of Wounds — Post-Operative Checkpoint](#died-of-wounds) for the full clinical rationale): if the casualty is flagged for damage control surgery, this team's ICU bed availability is checked *before* OT entry, not merely at the point of post-operative ICU admission. If an ICU bed is available, surgery proceeds and is followed by ICU recovery — the model behaviour is unchanged from pre-Issue-43. If ICU is saturated and the casualty is Priority 1, surgery still proceeds (withholding it would expose an unsurgicated Priority 1 casualty to near-certain DOW) but post-operative recovery is in a holding bed rather than ICU, with an elevated post-operative mortality risk. If ICU is saturated and the casualty is Priority 2 or lower, OT entry is deferred until an ICU bed frees. Surgical procedures follow the same triangular distribution for DAMCON surgeries at the R2B (``min = 41``, ``max = 210``, and ``mode = 95``), derived from meta-analyses and other academic studies ([[17]](#References), [[24]](#References)).
 
-Post-operative care involves admission to the ICU, where durations vary by surgical phase: the first ICU period ranges from ``min = 770`` to ``max = 2160`` minutes (``mode =  1440``) based on descriptions of post- DCS-I stabilization requirements (described as 24-36 h in most DCS research [[17]](#References), [[20]](#References), [[25]](#References)), while the secondary ICU phase (following second surgery) ranges from ``min = 30`` to ``mode = 90``, with ``mode = 60`` (min) to allow for post surgery monitoring and stabilisation prior to transfer to holding. Casualties who arrive at the R2E requiring surgery, but not having received any prior to arrival are queued to complete a second round of surgery after ICU time. 
+Post-operative care in the nominal (ICU-available) pathway involves admission to the ICU, where durations vary by surgical phase: the first ICU period ranges from ``min = 770`` to ``max = 2160`` minutes (``mode =  1440``) based on descriptions of post- DCS-I stabilization requirements (described as 24-36 h in most DCS research [[17]](#References), [[20]](#References), [[25]](#References)), while the secondary ICU phase (following second surgery) ranges from ``min = 30`` to ``mode = 90``, with ``mode = 60`` (min) to allow for post surgery monitoring and stabilisation prior to transfer to holding. In the ICU-saturated, Priority 1 pathway, post-operative recovery is instead in a holding bed with a triangular distribution of ``min = 360``, ``max = 1440``, and ``mode = 600`` minutes — shorter than a full ICU stay but carrying an elevated `dow_ceiling` (see Died of Wounds — Post-Operative Checkpoint). Both pathways converge on a shared post-operative DOW check before continuing. Casualties who arrive at the R2E requiring surgery, but not having received any prior to arrival, are queued to complete a second round of surgery after post-operative recovery.
 
-After completing surgery and ICU monitoring, patients are either transferred to holding for recovery or undertake strategic evacuation. ~10% of casualties undertake recovery at the R2E following a triangular distribution for recovery time with ``min = 1``, ``max = 21``, and ``mode = 9`` (days) this distribution was selected on the basis that casualties with shorter recovery times and a likelihood for capacity to return to duty following recovery would be retained in theatre. The remaining ~90% are transferred for strategy evacuation. Based on [[9]](#References) Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E
+After completing surgery and post-operative recovery, patients are either transferred to holding for recovery or undertake strategic evacuation. ~10% of casualties undertake recovery at the R2E following a triangular distribution for recovery time with ``min = 1``, ``max = 21``, and ``mode = 9`` (days) this distribution was selected on the basis that casualties with shorter recovery times and a likelihood for capacity to return to duty following recovery would be retained in theatre. The remaining ~90% are transferred for strategy evacuation. Based on [[9]](#References) Vietnam data that indicated 31% return to duty with 42% in theatre providing about 13% recovery in theatre at R2E
 
 ```mermaid
 flowchart TD
@@ -985,13 +1006,24 @@ flowchart TD
     G --> I["Release Emerg Team & Resus"]
     H --> I
     I --> J{"Surgery?"}
-    J -- Yes --> K["Seize OT"]
-    K --> L["Surgery (First)"]
-    L --> M["Release OT"]
-    M --> N["ICU (Short or Long)"]
-    N --> O["Release ICU"]
-    O --> P{"Prior R2B Surg?"}
-    J -- No --> P
+    J -- No --> P{"Prior R2B Surg?"}
+    J -- Yes --> K{"ICU Available?"}
+    K -- "Yes" --> L["Seize OT"]
+    L --> M["Surgery (First)"]
+    M --> N["Release OT"]
+    N --> O["ICU (Short or Long)"]
+    O --> O2["Release ICU"]
+    O2 --> PD{"Post-Op DOW?"}
+    K -- "Full, Priority 1" --> L2["Seize OT"]
+    L2 --> M2["Surgery (First)"]
+    M2 --> N2["Release OT"]
+    N2 --> O3["Seize Hold Bed (Post-Op)"]
+    O3 --> O4["Release Hold Bed"]
+    O4 --> PD
+    K -- "Full, Priority 2+" --> KD["Defer: Poll ICU on Timer"]
+    KD --> K
+    PD -- Yes --> C
+    PD -- No --> P
     P -- No --> Q["Seize OT"]
     Q --> R["Surgery (Second)"]
     R --> S["Release OT"]
@@ -1257,13 +1289,21 @@ The analysis pipeline reports all three routing outcomes: `r2b_pre_bypass_count`
 
 ### R2E Heavy Handling
 
-Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issues #35 and #37), and 24-hour OT bed availability, the R2E Heavy is the primary surgical node for the deployed health system. Under seed 42 (30 days), the R2E performed **126 first surgeries**, receiving both direct R1 bypass patients and the 114 R2B bypasses generated by off-shift or occupied R2B OT.
+Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issues #35 and #37), 24-hour OT bed availability, and the OT–ICU gating introduced by Issue #43, the R2E Heavy is the primary surgical node for the deployed health system. Under seed 42 (30 days, post-Issue-43), the R2E performed **134 first surgeries**, receiving both direct R1 bypass patients and R2B bypasses generated by off-shift, occupied, or ICU-saturated R2B OT.
 
 ![Alt text](images/r2eheavy_bed_queue_3_teams.png)
 
-**R2E OT utilisation is elevated but not saturated.** OT 1 operated at **46.9%** utilisation against 24-hour room time; OT 2 at **23.5%**. OT queues are brief and sporadic (maximum 2 patients). It should be noted that the R2E trajectory currently seizes OT bed resources but does not seize the surgical team directly; the team schedule therefore has no operative effect on R2E surgical timing. Correcting this is part of the individual resource seizure refactor (Issue #4) and will likely increase true R2E OT utilisation figures when implemented.
+**R2E OT utilisation is moderate and not saturated.** OT 1 operated at **48.7%** utilisation against 24-hour room time; OT 2 at **25.2%**. OT queues are brief and sporadic. It should be noted that the R2E trajectory currently seizes OT bed resources but does not seize the surgical team directly; the team schedule therefore has no operative effect on R2E surgical timing. Correcting this is part of the individual resource seizure refactor (Issue #4) and will likely increase true R2E OT utilisation figures when implemented.
 
-**ICU is the primary binding constraint at R2E Heavy.** Per-bed utilisation across the four ICU beds is **88.8%, 77.9%, 73.1%, and 65.0%** (seed 42, 30 days). ICU 1 carries a queue for **59% of the run**; ICU 2 for **46%**. These are not isolated transient surges — the ICU operates under chronic demand pressure throughout the second half of the run. With post-surgical ICU requirement driven by the volume of R2E first surgeries (126 in this run), and a four-bed establishment, the ICU constitutes the single greatest throughput constraint at the R2E.
+**ICU remains the primary binding constraint at R2E Heavy, though the OT–ICU gate (Issue #43) now visibly redistributes load away from it.** Per-bed utilisation across the four ICU beds is **75.8%, 62.6%, 59.0%, and 49.6%** (seed 42, 30 days) — lower than the pre-Issue-43 baseline (80.6%, 73.6%, 64.8%, 56.9%) because 23 of the 133 patients gated at the pre-OT ICU check were rerouted to post-operative holding-bed recovery instead of queuing for ICU. ICU 1 carries a queue for **27% of the run**; ICU 2 and ICU 3 for **7% and 6%** respectively; ICU 4 is never queued. Of the 133 casualties passing through the pre-OT gate, **110 recovered in ICU** (`post_op_pathway = 1`) and **23 Priority 1 casualties recovered in a holding bed** (`post_op_pathway = 2`) because ICU was saturated at the moment of OT entry; **10 Priority 2+ casualties had OT entry deferred** (`surgery_deferred = 1`) while ICU was saturated, all subsequently proceeding once a bed freed. Neither pathway produced a post-operative DOW event in this single seed-42 run — consistent with the small per-patient probabilities involved (see [Died of Wounds — Post-Operative Checkpoint](#died-of-wounds)) and the still-small absolute DOW counts characteristic of the Falklands-calibrated baseline; a saturated-ICU stress test (ICU capacity forced to 0, 90-day run) confirmed the mechanism fires correctly, producing measurable post-operative DOW when the elevated-risk pathway dominates. With post-surgical recovery demand driven by the volume of R2E first surgeries (134 in this run) against a four-bed ICU establishment, ICU remains the single greatest throughput constraint at the R2E, but the model now represents the clinical trade-off surgical teams face rather than silently queuing patients for a bed that may never come.
+
+`analyse_run()` now visualises exactly which casualties, and on which simulation day, received degraded care as a direct consequence of ICU saturation:
+
+![R2E OT-ICU Gating Impact](images/r2e_icu_gating_impact.png)
+
+Sub-optimal care (red — surgery proceeded despite ICU saturation, Priority 1 override to holding-bed recovery) and delayed care (orange — OT entry deferred pending ICU availability, Priority 2+) cluster on the higher-arrival days from roughly Day 18 onward, consistent with cumulative ICU demand outstripping the four-bed establishment later in the run. `outputs/r2e_icu_gating_daily.csv` and `outputs/post_op_pathway_summary.csv` provide the underlying daily and pathway-level counts.
+
+**50-replication validation (seed = NULL, 30 days) confirms the effect generalises beyond seed 42.** Comparing 50 independent replications pre- and post-Issue-43: mean R2E ICU utilisation fell from **74.1% to 60.2%** — a substantial, consistently-observed reduction in ICU load, not a seed-42 artefact. Mean DOW/run rose from **0.84 (95% CI [0.58, 1.10]) to 1.00 (95% CI [0.74, 1.26])** — the two confidence intervals overlap substantially, so this specific comparison does not reach conventional statistical significance at n = 50 (DOW remains a rare event; a properly powered before/after comparison would need a considerably larger replication count). The increase is, however, fully attributable to the new post-operative checkpoint: it contributed a mean of 0.10 DOW/run on its own (5 of 50 replications), accounting for essentially the entire point-estimate shift. Within that checkpoint, the qualitative design intent held using the real (non-stress-tested) parameters: the post-op hold pathway's realised DOW rate (2 deaths / 1,223 patients = 0.16%) was roughly **2.8× the ICU pathway's rate** (3 deaths / 5,085 patients = 0.06%) — the elevated-risk pathway is measurably, not just theoretically, riskier at baseline casualty rates, though the small absolute counts mean this ratio itself carries wide uncertainty.
 
 ![Alt text](images/r2eheavy_gantt.png)
 
@@ -1304,7 +1344,7 @@ The single-run analysis, viewed in its entirety, demonstrates that the modelled 
 
 Following correction of DNBI sub-categorisation (Issue #7), OT-bypass routing (Issues #35 and #37), and structural analysis of R2B holding capacity (Issue #39), two system constraints are identified. At R2B, holding bed capacity saturates progressively from Day 10–15 onward, driven by disease DNBI evacuees occupying hold beds for multi-day durations. Stream decomposition analysis (Issue #39) confirms disease DNBI as the dominant load: expected concurrent hold occupancy of ~15.5 beds exceeds 10-bed capacity by 55%, a structural mismatch not addressable through surgical throughput adjustment. Hold bed expansion (≥8 beds per unit) or an evacuation threshold policy are the indicated interventions. OT is not a constraint at either echelon: R2B OT operates at 5.4–8.5% against 24-hour room time (10.8–17.0% against shift time); R2E OT at 46.9% and 23.5%.
 
-**The primary binding constraint at R2E is ICU capacity.** The four-bed ICU operates at 65–89% utilisation, with ICU beds 1 and 2 carrying queues for 59% and 46% of the run respectively. This is consistent with the pre-rebase finding from 10 independent replications (ICU utilisation 71.2%, range 60.6–80.6%). The R2E Heavy performs 126 first surgeries in the baseline run compared to 41 at R2B. Two distinct system levers are indicated: R2B holding bed expansion or higher evacuation threshold from R2B holding, and increased R2E ICU capacity to relieve the primary post-surgical bottleneck.
+**The primary binding constraint at R2E is ICU capacity.** The four-bed ICU operates at 50–76% utilisation post-Issue-43 (down from 57–81% pre-Issue-43, reflecting the 23 casualties now rerouted to post-operative holding), with ICU bed 1 carrying a queue for 27% of the run. The R2E Heavy performs 134 first surgeries in the baseline run compared to 53 at R2B. Two distinct system levers are indicated: R2B holding bed expansion or higher evacuation threshold from R2B holding, and increased R2E ICU capacity to relieve the primary post-surgical bottleneck. The OT–ICU gate (Issue #43) does not add capacity; it makes the consequence of the existing shortfall explicit in the model's mortality output rather than absorbing it silently into ICU queue time.
 
 The system's resilience to surge remains limited. Neither the R2B nor the R2E can absorb divisional-level operations, mass-casualty events, or casualty rates consistent with historical LSCO campaigns such as Okinawa or Vietnam [[8]](#References). Effective LSCO medical support requires scalable holding capacity at forward echelons, adaptable evacuation architecture, and dynamic load-balancing between R2B and R2E — capabilities that the current static establishment does not provide.
 ---
@@ -1343,6 +1383,9 @@ The current analysis uses Falklands-derived casualty rates (~0.37% daily rate), 
 
 **L9 — Partial Antithetisation (Low Impact on CI Precision)**
 Antithetic variate variance reduction is applied to arrival time generation only. Service times and routing probabilities are generated internally by simmer's C++ engine from R's global RNG and cannot be antithetised without deep trajectory instrumentation. The CI-narrowing benefit of antithetic pairing is therefore partial: it reduces arrival-driven variance but leaves service-time variance unreduced. **Impact: Low** — the dominant source of between-replication variance is arrival schedule variation (lognormal), which is fully antithetised; residual variance from service draws is secondary.
+
+**L11 — OT–ICU Gating Parameters Are Informed Estimates (Medium Impact on Post-Operative Mortality Realism)**
+The Priority 1 override threshold, the post-op hold penalty multiplier (3.0), and the post-op hold LOS distribution introduced by Issue #43 (see [Died of Wounds — Post-Operative Checkpoint](#died-of-wounds)) are informed estimates rather than literature-derived values — no open-access source quantifies a ward-vs-ICU mortality ratio specific to post-DCS trauma patients, or a typical length of stay for post-operative recovery outside ICU in an austere setting. Priority 2+ candidates deferring OT entry while ICU is saturated have no escape valve in the current model: under sustained ICU saturation (e.g. MASCAL conditions, Issue #9), a deferred candidate could in principle wait indefinitely rather than being triaged to non-operative management. **Impact: Medium.** The qualitative direction of the model's findings (the post-op hold pathway carries materially higher DOW risk than ICU; deferred candidates accumulate visibly under saturation — confirmed under a saturated-ICU stress test) is expected to be robust to the exact parameter values chosen; absolute post-operative DOW rates should be treated as illustrative pending clinical expert consultation or a literature-derived calibration target.
 
 ### Low Impact
 
@@ -1478,6 +1521,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [43] Jolly, R. (2018). Obituary: Surgeon Commander Rick Jolly OBE. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 02 Jul 26, from https://jmvh.org/article/obituary-surgeon-commander-rick-jolly-obe/
 
 [44] Fischer, J., Al-Husseini, M., Krishnamoorthy, R., Kumar, V., & Kochenderfer, M. J. (2025). Digital simulations to enhance military medical evacuation decision-making. Open-access preprint retrieved 02 Jul 26, from https://arxiv.org/abs/2507.06373
+
+[45] Turner, J., & Wilson, A. (2024). Backed into a corner: damage control surgery in the rural or austere setting. *Trauma Surgery & Acute Care Open*, *9*(Suppl 2), e001391. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC11029234/
+
+[46] Hardcastle, T. C., Gaarder, C., Balogh, Z., et al. (2025). Guidelines for Enhanced Recovery After Trauma and Intensive Care (ERATIC): ERAS Society and IATSIC Recommendations: Paper 1: Initial Care — Pre and Intraoperative Care Until ICU, Including Non-Operative Management. *World Journal of Surgery*, *49*(8), 1997–2028. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC12338446/
 
 ---
 

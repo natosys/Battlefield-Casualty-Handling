@@ -31,7 +31,7 @@
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | **Merged (PR #48)** |
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
-| 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | Open |
+| 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | **Merged (PR #59)** |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
 
 ---
@@ -43,6 +43,37 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 43 — OT–ICU Gating: Pre-OT ICU Availability Check ✓
+
+**Merged:** PR #59, branch `claude/next-issue-ihn98l`
+
+Replaces unconditional R2E OT entry with a pre-OT ICU availability gate, so surgery is no longer scheduled independently of post-operative bed availability. `r2e_treat_wia()` (`R/trajectories.R`) now branches into three paths at the point of OT seizure: **ICU available** — unchanged behaviour (surgery, then ICU recovery, short or full per prior R2B surgery + recovery probability); **ICU full + Priority 1** — surgery still proceeds (withholding it would expose an unsurgicated Priority 1 casualty to near-certain DOW), but post-operative recovery moves to a holding bed instead of ICU, with `dow_ceiling` multiplied by a post-op hold penalty (`r2e_postop_hold_penalty = 3.0`) reflecting reduced monitoring; **ICU full + Priority 2+** — OT entry is deferred via a `timeout` + `rollback(target = 1, check = ...)` poll loop (`icu_gating.defer_check_interval`, default 30 min), holding no resource while waiting, until an ICU bed frees. Both the ICU and post-op-hold recovery paths converge on a new shared post-operative DOW check (`dow_echelon = 4`), reusing the Issue #5 time-dependent conditional-increment survival function so the two pathways' realised mortality is directly comparable rather than one silently having no mortality consequence. The same gate is mirrored at R2B for structural consistency; it is expected to be inert under baseline load since R2B ICU utilisation is effectively zero and R2B surgery does not seize ICU beds post-op.
+
+New `env_data.json` parameters: `r2eheavy.icu_gating` (`p1_bypass_priority_max`, `defer_check_interval`), `r2eheavy.post_op_hold` (holding-bed LOS distribution), `r2b.icu_gating` (`defer_check_interval`), `dow.treatment_efficacy.r2e_postop_hold_penalty`. `R/analysis.R` gained a `post_op_pathway_summary` KPI (icu vs. hold: total / died / postop_dow_rate, written to `outputs/post_op_pathway_summary.csv`), a `surgery_deferred_count`, and a new diagnostic plot (`images/r2e_icu_gating_impact.png`, `outputs/r2e_icu_gating_daily.csv`) showing, by simulation day, which casualties received sub-optimal (hold-bed override) or delayed (OT-entry deferral) care as a direct consequence of ICU saturation.
+
+**Verification:** a saturated-ICU stress test (R2E `icu_bed` forced to an empty resource vector, 90-day run) confirmed zero ICU seizures, all hold-pathway patients Priority 1, and P2+ candidates correctly accumulating in the defer queue — matching the issue's acceptance criteria. A follow-up 50-replication comparison (seed = NULL, 30 days, pre- vs. post-merge) validated the effect generalises beyond seed 42: mean R2E ICU utilisation fell from 74.1% to 60.2%; mean DOW/run rose from 0.84 (95% CI [0.58, 1.10]) to 1.00 (95% CI [0.74, 1.26]) — the CIs overlap, so this specific before/after comparison is not statistically significant at n = 50 (DOW remains a rare event), but the entire point-estimate shift is attributable to the new post-operative checkpoint alone (+0.10/run, 5 of 50 replications). Within that checkpoint, using the real (non-stress-tested) 3.0× penalty, the post-op hold pathway's realised DOW rate (2/1,223 = 0.16%) was ≈2.8× the ICU pathway's (3/5,085 = 0.06%), confirming the intended design effect is measurable at baseline casualty rates.
+
+A pre-existing, unrelated bug was discovered during testing and raised separately as Issue #60 (not fixed in this PR): setting a bed/resource `qty: 0` in `env_data.json` does not actually remove that resource, due to an R `paste0()` zero-length-argument recycling quirk in `build_environment()`. Does not affect Issue #43's logic (which is keyed off live `get_capacity()`/`get_server_count()`, not `qty`) or any currently-shipped baseline.
+
+**Seed-42 baseline (30 days, single run — post-Issue-43):**
+
+| Metric | Pre-#43 | Post-#43 |
+|---|---|---|
+| Total casualties | 400 ✓ | 400 ✓ |
+| R2B surgical candidates | 122 | **132** |
+| R2B surgeries | 42 | **53** |
+| R2E surgeries — first op | 122 | **134** |
+| R2E ICU utilisation (mean) | ICU1 80.6%, ICU2 73.6%, ICU3 64.8%, ICU4 56.9% | **ICU1 75.8%, ICU2 62.6%, ICU3 59.0%, ICU4 49.6%** |
+| R2E ICU queue ≥1 | ICU1 45.9%, ICU2 31.8% of run | **ICU1 27.2%, ICU2 6.7%, ICU3 6.1% of run** |
+| `post_op_pathway` (Issue #43) | — | **icu=110, hold=23** |
+| `surgery_deferred` (Issue #43) | — | **10** |
+
+Shifts in R2B/R2E surgery counts reflect the new `runif()` draws consumed at each OT-entry decision shifting the shared RNG stream from that point onward — the same pattern documented for Issues #5/#6 — not a causal effect of the gating logic itself. The ICU utilisation and queue reductions, and the pathway/deferral counts, are the direct, causal, mechanistic effects of the new gate.
+
+**Unblocked by this merge:** No new issues unblocked — #4, #9, #10, #14, #18, #40 were already `status: ready` before this merge; none list #43 as a dependency.
+
+---
 
 ### Issue 6 — Dead-Heading Return Legs for Transport Assets ✓
 
@@ -1059,7 +1090,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43 ✓, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
@@ -1068,7 +1099,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 9. ~~**Issue 44** — RTD KPI annotation: decomposed `total_rtd` into `bf_rtd` + `clinical_rtd`, added `rtd_type` column to `rtd_by_echelon`, two `stopifnot()` guards, seed-42 baseline documented. **Merged PR #47.**~~
 10. ~~**Issue 6** — Dead-heading return legs for transport assets.~~ — **Merged PR #56.**
 11. ~~**Issue 5** — Time-dependent DOW survival function.~~ — **Merged PR #53.**
-12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
+12. ~~**Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+).~~ — **Merged PR #59.**
 13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
 ### Phase 3 — Structural Refactoring (Issues 7, 4, 39, 40)
@@ -1110,6 +1141,8 @@ COMPLETE (merged to main):
   #39  R2B hold bed saturation — two-tier routing policy (PR #48)
   #5   Time-dependent DOW — Falklands calibration (PR #53)
   #6   Dead-heading transport — return_leg_multiplier, transport KPIs, capacity margin plot (PR #56)
+  #43  OT–ICU gating — pre-OT ICU availability check, post-op hold pathway, shared
+       post-operative DOW checkpoint, R2E OT-ICU gating impact plot (PR #59)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -1118,7 +1151,6 @@ UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
-  #43  OT–ICU gating                 (unblocked by #5 ✓)
   #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
@@ -1150,4 +1182,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), and #6 (PR #56); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), and #57 (fleet-size capacity margin sweep). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, and #6 merged; Issues #4, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*
+*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), and #43 (PR #59); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #4, #14, #40, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*

@@ -1276,6 +1276,14 @@ When examined in system context, the combined OT capacity of two R2B elements an
 
 ![Casualty Waiting Time Over Simulation](images/waiting_time.png)
 
+### Transport Fleet Capacity Margin
+
+![Transport Fleet Capacity Margin — Queue Over Time](images/transport_capacity_margin.png)
+
+Under seed 42 (30 days), the queue for every PMV Ambulance and HX240M unit remains at 0 throughout the run, confirming the finding from the Transport Assets — Dead-Heading Return Legs section: the current three-vehicle PMV Ambulance and two-vehicle HX240M pools are not a binding constraint at the current Falklands-derived casualty rate, even with the full round-trip dead-heading model applied. Mean utilisation (`outputs/transport_utilisation.csv`) is 11.1% for PMV Ambulance and 4.9% for HX240M — substantial headroom remains. This plot shows the current single-run margin only; a fleet-size sweep (varying vehicle count directly, rather than only casualty rate or transport duration) is required to characterise at what fleet size or casualty rate transport becomes the binding constraint, and is tracked as a follow-up issue (see Further Development).
+
+> **STUB — Fleet-Size Capacity Margin Sweep:** `plot_transport_capacity_margin_by_fleet_size()` in `R/analysis.R` is scaffolding only — it defines the intended parameters (`fleet_sizes`, `n_days`, `n_rep`) and documents the planned algorithm in its roxygen block, but calling it raises an explicit "not yet implemented" error. It depends on the comparative scenario runner (Issue #10) and is tracked as a Phase 4 follow-up issue, sequenced after #10.
+
 ### Return to Duty
 
 Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribute, decomposed as follows:
@@ -1347,7 +1355,7 @@ Casualty arrival rates are fixed exogenous inputs applied to a static force size
 
 The single run analysis has demonstrated that while the current simulation framework offers a credible baseline for evaluating deployed health system performance under brigade-level LSCO conditions, several areas warrant further development to improve the accuracy of the model and enhance the analysis from it.
 
-One immediate opportunity lies in expanding the modelling of transport resources to include return journeys—commonly referred to as "dead-heading". The current simulation assumes unidirectional casualty movement, which underestimates the logistical burden and resource consumption associated with evacuation cycles. Incorporating return legs would allow for more accurate scheduling, asset availability tracking, and fuel or crew fatigue modelling, all of which are critical in contested or extended operational environments.
+Dead-heading return legs for pooled transport assets are now modelled (Issue #6; see Transport Assets — Dead-Heading Return Legs). The immediate follow-on opportunity is a **fleet-size capacity margin sweep**: the current single-run analysis shows PMV Ambulance and HX240M utilisation rising under dead-heading but queue remaining at 0 under the current establishment, which only demonstrates margin exists — it does not quantify how much, or at what fleet size or casualty rate the transport layer becomes a binding constraint. A stub for this — `plot_transport_capacity_margin_by_fleet_size()` in `R/analysis.R` — is included as scaffolding: it documents the intended interface and algorithm but is not yet implemented, since a meaningful sweep requires the comparative scenario runner infrastructure (Issue #10) to avoid duplicating replication/aggregation logic. Tracked as a follow-up issue in Phase 4 (Scenario Expansion), sequenced after #10 — see `docs/BCH_Simulation_Action_Plan.md`.
 
 Another refinement involves pulsing strategic medical evacuation availability to simulate its temporal constraints. Rather than assuming continuous access to strategic lift, future iterations should model episodic availability windows, reflecting real-world limitations such as airframe tasking, weather delays, or air superiority conditions. This would allow for more realistic bottleneck formation and better inform prioritisation protocols for high-acuity casualties.
 

@@ -14,7 +14,7 @@
 | 2 | No warm-up / initialisation bias analysis | High | Low | **Merged (#20)** |
 | 3 | No sensitivity analysis | High | Medium | **Merged (#30)** |
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
-| 5 | Flat DOW rate independent of wait time | High | Medium | Open |
+| 5 | Flat DOW rate independent of wait time | High | Medium | **Merged (PR #53)** |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
 | 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **Merged (PR #34)** |
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
@@ -43,6 +43,34 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 5 — Time-Dependent DOW Survival Function (Falklands Calibration) ✓
+
+**Merged:** PR #53, branch `claude/action-plan-review-rj2ilu`
+
+Replaces the flat, time-independent DOW probability with a logistic survival function `F(t) = p_base + (p_max − p_base) / (1 + exp(−k × (t − t_mid)))` evaluated at each care-transition checkpoint (R1 exit, R2B arrival, R2E arrival). DOW probability is applied as a conditional increment to avoid double-counting across echelons: `p_cond = max(0, (F(t_now) − F(t_prev)) / (1 − F(t_prev)))`. Each casualty carries a `dow_ceiling` attribute initialised to its priority's `p_max` and multiplied by treatment efficacy factors after each care phase (TCCC×0.83, R2B DCR×0.56, R2B DCS×0.32, R2E DCR×0.56, R2E DCS 1st op×0.25, R2E DCS 2nd op×0.57).
+
+**Calibration:** P1 p_max = 0.023, k = 0.04, t_mid = 120 min; P2 p_max = 0.019, k = 0.025, t_mid = 180 min. Calibrated against the Falklands 1982 historical rate of 3 DOW / 580 WIA ≈ 0.52% (Payne 1983). A 50-replication validation run (seed = NULL) produced mean 0.70 DOW/run (0.45% of WIA), 95% CI [0.41, 0.95] — encompassing the 0.52% target. Seed-42 single run: 4 DOW. The values `p_max` and the OIF/OEF-era efficacy factors are entangled; substituting Falklands-era efficacy values (Issue #54) requires re-calibrating `p_max` upward.
+
+**DOW model design finding (Test 2):** DOW checks fire only at care-transition boundaries, not during intra-echelon queue waits. Zeroing R2E OT capacity reduces DOW to 0 in the seed-42 run while OT queue peaks at 62 — confirming the model is sensitive to evacuation delays but not to intra-echelon surgical queue delays. Documented as a known limitation in the README.
+
+**README additions:** DOW Survival Function section updated with logistic parameter table, cumulative ceiling calculation (0.023 × 0.83 × 0.56 × 0.32 × 0.25 = 0.085%), MODEL ASSUMPTION block with Falklands calibration basis and p_max/efficacy co-dependence note, embedded survival function figure (`images/dow_survival_function.png`), and References [42] (Payne 1983, PMC) and [43] (Jolly 2018, JMVH).
+
+**Seed-42 baseline (30 days, single run — post-calibration):**
+
+| Metric | Pre-#5 | Post-#5 |
+|---|---|---|
+| DOW count | 0 (flat placeholder active) | **4** (seed 42; mean ~0.70/run across replications) |
+| DOW rate — P1 p_max | — | **2.3%** ceiling (Falklands 1982 calibration) |
+| DOW rate — P2 p_max | — | **1.9%** ceiling (Falklands 1982 calibration) |
+| DOW rate — P3 flat | 0.1% placeholder | **0.1%** (structural placeholder; P3 never evacuated) |
+| Mean DOW/run (50-rep) | — | **~0.70** (0.45% of WIA); 95% CI [0.41, 0.95] |
+| Total casualties | 400 ✓ | 400 ✓ |
+| Morris ranking — p1_p_max | Not present (flat DOW used `pri1_dow`) | **Rank 6**, µ* = 0.0081 |
+
+**Unblocked by this merge:** Issue #43 (OT–ICU gating; now unblocked after #5), Issue #9 (MASCAL injection; requires #1 + #2 + #5 — all now merged), Issue #18 (force regeneration feedback; requires #1 + #2 + #5 — all now merged), Issue #10 (scenario runner; requires #1 + #2 + #5 + #8 — all now merged).
+
+---
 
 ### Issue 39 — R2B Hold Bed Saturation: Two-Tier Routing Policy ✓
 
@@ -1005,7 +1033,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **Merged PR #38.**~~
 9. ~~**Issue 44** — RTD KPI annotation: decomposed `total_rtd` into `bf_rtd` + `clinical_rtd`, added `rtd_type` column to `rtd_by_echelon`, two `stopifnot()` guards, seed-42 baseline documented. **Merged PR #47.**~~
 10. **Issue 6** — Dead-heading return legs for transport assets.
-11. **Issue 5** — Time-dependent DOW survival function.
+11. ~~**Issue 5** — Time-dependent DOW survival function.~~ — **Merged PR #53.**
 12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
 13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
@@ -1046,29 +1074,23 @@ COMPLETE (merged to main):
   #37  OT bed schedule fix (PR #38)
   #44  RTD KPI decomposition — bf_rtd + clinical_rtd (PR #47)
   #39  R2B hold bed saturation — two-tier routing policy (PR #48)
+  #5   Time-dependent DOW — Falklands calibration (PR #53)
 
 IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
-  #6   Dead-heading transport        ─┐ parallel
-  #5   Time-dependent DOW            ─┘
+  #6   Dead-heading transport
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
-
-AFTER #5:
-  #43  OT–ICU gating                 (flat DOW placeholder usable; #5 adds full value)
+  #43  OT–ICU gating                 (unblocked by #5 ✓)
+  #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
+  #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
+  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
-
-AFTER #1 + #2 + #5:
-  #9   MASCAL injection
-  #18  Force regeneration feedback
-
-AFTER #1 + #2 + #5 + #8:
-  #10  Scenario runner
 
 AFTER #1 + #22 + #18:
   #23  Role 4 / AME sortie demand
@@ -1090,4 +1112,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 29 June 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), and #39 (PR #48); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, and #44 merged; Issues #4, #5, #6, and #14 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), and #5 (PR #53); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, and #5 merged; Issues #4, #6, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. All referenced resources are open-access.*

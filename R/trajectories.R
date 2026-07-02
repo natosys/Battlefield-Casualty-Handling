@@ -189,7 +189,14 @@ r1_treat_kia <- function(team) {
 #'
 #' @details Uses HX240M transport asset with shortest-queue selection policy.
 #'   Applies triangular delay to simulate movement time and records start
-#'   time with attribute transport_start_time.
+#'   time with attribute transport_start_time. Models the dead-head return
+#'   leg (Issue #6): after drop-off, the entity clones into a vehicle
+#'   branch (unladen return timeout, then release — listed first so it
+#'   inherits the pre-clone seize record) and a casualty branch (no
+#'   further activity). The trailing synchronize(wait = FALSE) lets the
+#'   casualty continue immediately once it reaches that point, while the
+#'   vehicle clone is discarded when it later arrives there after
+#'   completing its return leg.
 r1_transport_kia <- function() {
   trajectory("Transport KIA") %>%
     simmer::select(env_data$transports$HX240M, policy = "shortest-queue") %>%
@@ -203,7 +210,21 @@ r1_transport_kia <- function() {
         c = env_data$vars$r1$kia_transport$mode
       )
     }) %>%
-    release_selected()
+    clone(
+      n = 2,
+      trajectory("Vehicle Return Leg") %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r1$kia_transport$min,
+            b = env_data$vars$r1$kia_transport$max,
+            c = env_data$vars$r1$kia_transport$mode
+          ) * env_data$vars$r1$kia_transport$return_leg_multiplier
+        }) %>%
+        release_selected(),
+      trajectory("Casualty Dropped Off")
+    ) %>%
+    synchronize(wait = FALSE)
 }
 
 #' Executes Role 1 treatment sequence for WIA casualties
@@ -242,7 +263,14 @@ r1_treat_wia <- function(team) {
 #'
 #' @details Selects a PMV Ambulance asset using shortest-queue policy. Logs
 #'   transport start time via transport_start_time attribute. Applies
-#'   triangular distributed timeout to simulate transit duration.
+#'   triangular distributed timeout to simulate transit duration. Models
+#'   the dead-head return leg (Issue #6): after drop-off, the entity
+#'   clones into a vehicle branch (unladen return timeout, then release —
+#'   listed first so it inherits the pre-clone seize record) and a
+#'   casualty branch (no further activity). The trailing
+#'   synchronize(wait = FALSE) lets the casualty continue immediately
+#'   once it reaches that point, while the vehicle clone is discarded
+#'   when it later arrives there after completing its return leg.
 r1_transport_wia <- function() {
   trajectory("Transport WIA") %>%
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
@@ -256,7 +284,21 @@ r1_transport_wia <- function() {
         c = env_data$vars$r1$wia_transport$mode
       )
     }) %>%
-    release_selected()
+    clone(
+      n = 2,
+      trajectory("Vehicle Return Leg") %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r1$wia_transport$min,
+            b = env_data$vars$r1$wia_transport$max,
+            c = env_data$vars$r1$wia_transport$mode
+          ) * env_data$vars$r1$wia_transport$return_leg_multiplier
+        }) %>%
+        release_selected(),
+      trajectory("Casualty Dropped Off")
+    ) %>%
+    synchronize(wait = FALSE)
 }
 
 # ── Role 2B trajectories ──────────────────────────────────────────────────────
@@ -308,7 +350,14 @@ r2b_transport_kia <- function(traj, team_id) {
 #'
 #' @details Selects PMV Ambulance asset (id = 7) using shortest-queue policy.
 #'   Logs transport initiation via r2b_r2e_transport_start attribute and
-#'   simulates round-trip duration using triangular distribution.
+#'   simulates outbound leg duration using triangular distribution. Models
+#'   the dead-head return leg (Issue #6): after drop-off, the entity
+#'   clones into a vehicle branch (unladen return timeout, then release
+#'   under id = 7 — listed first so it inherits the pre-clone seize
+#'   record) and a casualty branch (no further activity). The trailing
+#'   synchronize(wait = FALSE) lets the casualty continue immediately
+#'   once it reaches that point, while the vehicle clone is discarded
+#'   when it later arrives there after completing its return leg.
 r2b_transport_wia <- function() {
   trajectory("R2B to R2E Heavy transport") %>%
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
@@ -322,7 +371,21 @@ r2b_transport_wia <- function() {
         c = env_data$vars$r2b$wia_transport$mode
       )
     }) %>%
-    release_selected(id = 7)
+    clone(
+      n = 2,
+      trajectory("Vehicle Return Leg") %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2b$wia_transport$min,
+            b = env_data$vars$r2b$wia_transport$max,
+            c = env_data$vars$r2b$wia_transport$mode
+          ) * env_data$vars$r2b$wia_transport$return_leg_multiplier
+        }) %>%
+        release_selected(id = 7),
+      trajectory("Casualty Dropped Off")
+    ) %>%
+    synchronize(wait = FALSE)
 }
 
 #' Executes the full treatment pathway for WIA casualties at Role 2B

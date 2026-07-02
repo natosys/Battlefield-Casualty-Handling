@@ -63,6 +63,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   attributes_wide <- attributes_wide %>%
     semi_join(select(arrivals, name, replication), by = c("name", "replication"))
 
+  # pivot_wider only creates a column for an attribute key when at least one
+  # casualty in the run had it set; guard against runs with zero DOW events.
+  for (dow_col in c("dow", "dow_echelon")) {
+    if (!dow_col %in% names(attributes_wide)) {
+      attributes_wide[[dow_col]] <- NA_real_
+    }
+  }
+
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
     mutate(

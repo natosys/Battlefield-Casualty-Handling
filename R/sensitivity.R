@@ -14,18 +14,20 @@ library(ggplot2)
 #'
 #' @format Data frame with columns: name, lower, upper, mode (current baseline value)
 #'
-#' @details Nine parameters span treatment durations (surgery, resuscitation,
-#'   ICU), DOW probability, evacuation transport times, surgical decision
-#'   probabilities, in-theatre recovery rate, and OT shift availability.
-#'   Bounds are set to cover clinically plausible variation around the
-#'   current baseline; see README Sensitivity Analysis section for derivation.
+#' @details Ten parameters span treatment durations (surgery, resuscitation,
+#'   ICU), DOW probability, evacuation transport times, dead-head return
+#'   leg duration (Issue #6), surgical decision probabilities, in-theatre
+#'   recovery rate, and OT shift availability. Bounds are set to cover
+#'   clinically plausible variation around the current baseline; see README
+#'   Sensitivity Analysis section for derivation.
 morris_params <- data.frame(
   name  = c("surg_mode",      "long_resus_mode", "p1_p_max",
             "r1_transport",   "r2b_transport",   "long_icu_mode",
-            "pri1_surg_prob", "in_theatre_rate", "ot_hours"),
-  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8),
-  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16),
-  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12),
+            "pri1_surg_prob", "in_theatre_rate", "ot_hours",
+            "return_leg_multiplier"),
+  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8,    0.7),
+  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16,   1.3),
+  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12,   1.0),
   stringsAsFactors = FALSE
 )
 
@@ -49,6 +51,9 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$long_icu$mode            <- p[["long_icu_mode"]]
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
   ed$vars$r2eheavy$recovery$in_theatre_rate <- p[["in_theatre_rate"]]
+  ed$vars$r1$wia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
+  ed$vars$r1$kia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
+  ed$vars$r2b$wia_transport$return_leg_multiplier <- p[["return_leg_multiplier"]]
   ed
 }
 

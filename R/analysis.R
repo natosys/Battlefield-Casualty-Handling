@@ -64,8 +64,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     semi_join(select(arrivals, name, replication), by = c("name", "replication"))
 
   # pivot_wider only creates a column for an attribute key when at least one
-  # casualty in the run had it set; guard against runs with zero DOW events.
-  for (dow_col in c("dow", "dow_echelon")) {
+  # casualty in the run had it set; guard against runs with zero DOW events
+  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43).
+  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred")) {
     if (!dow_col %in% names(attributes_wide)) {
       attributes_wide[[dow_col]] <- NA_real_
     }
@@ -772,6 +773,80 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
   if (!is.null(post_op_pathway_summary)) print(post_op_pathway_summary)
 
+  # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
+  # Visualises, by simulation day, where casualties experienced degraded care
+  # specifically attributable to ICU saturation at the point of OT entry:
+  # - Sub-Optimal Care: a Priority 1 candidate was operated on despite ICU
+  #   being full; post-operative recovery occurred in a holding bed instead
+  #   of ICU, carrying an elevated dow_ceiling (README — Died of Wounds,
+  #   Post-Operative Checkpoint).
+  # - Delayed Care: a Priority 2+ candidate had OT entry deferred while ICU
+  #   was saturated, polling on a timer until a bed freed.
+  # - Normal: ICU was available at the point of OT entry (gate had no effect).
+  r2e_icu_gating_plot  <- NULL
+  r2e_icu_gating_daily <- NULL
+
+  if ("post_op_pathway" %in% names(attributes_wide) &&
+      "r2e_surgery_1_start" %in% names(attributes_wide) &&
+      any(!is.na(attributes_wide$post_op_pathway))) {
+
+    icu_gating_patients <- attributes_wide %>%
+      filter(!is.na(post_op_pathway)) %>%
+      mutate(
+        care_category = case_when(
+          !is.na(surgery_deferred) & surgery_deferred == 1 ~ "Delayed (ICU Wait)",
+          post_op_pathway == 2                              ~ "Sub-Optimal (Hold Bed Override)",
+          TRUE                                               ~ "Normal (ICU Access)"
+        ),
+        day = floor(as.numeric(r2e_surgery_1_start) / 1440) + 1
+      )
+
+    n_sim_days_icu <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    care_levels <- c("Normal (ICU Access)", "Sub-Optimal (Hold Bed Override)", "Delayed (ICU Wait)")
+
+    r2e_icu_gating_daily <- icu_gating_patients %>%
+      count(day, care_category, name = "n") %>%
+      complete(
+        day           = seq_len(n_sim_days_icu),
+        care_category = care_levels,
+        fill          = list(n = 0)
+      ) %>%
+      mutate(care_category = factor(care_category, levels = care_levels))
+
+    n_suboptimal  <- sum(icu_gating_patients$care_category == "Sub-Optimal (Hold Bed Override)")
+    n_delayed     <- sum(icu_gating_patients$care_category == "Delayed (ICU Wait)")
+    n_total_gated <- nrow(icu_gating_patients)
+    n_max_daily   <- r2e_icu_gating_daily %>% group_by(day) %>% summarise(t = sum(n), .groups = "drop") %>% pull(t) %>% max()
+
+    r2e_icu_gating_plot <- ggplot(r2e_icu_gating_daily, aes(x = day, y = n, fill = care_category)) +
+      geom_bar(stat = "identity", position = "stack") +
+      scale_fill_manual(values = c(
+        "Normal (ICU Access)"             = "#4C956C",
+        "Sub-Optimal (Hold Bed Override)" = "#D62828",
+        "Delayed (ICU Wait)"              = "#F4A259"
+      )) +
+      annotate("text", x = 1, y = n_max_daily + 0.5,
+               label = sprintf(
+                 "%d of %d R2E surgical patients affected by ICU saturation: %d sub-optimal (hold-bed recovery), %d delayed",
+                 n_suboptimal + n_delayed, n_total_gated, n_suboptimal, n_delayed
+               ),
+               hjust = 0, size = 3.2, color = "gray20") +
+      scale_x_continuous(breaks = seq(1, n_sim_days_icu, by = 2), expand = c(0, 0)) +
+      labs(
+        title    = "R2E OT-ICU Gating — Sub-Optimal and Delayed Care by Simulation Day",
+        subtitle = "Red = surgery proceeded despite ICU saturation (Priority 1 override, hold-bed recovery); Orange = OT entry deferred pending ICU availability (Priority 2+)",
+        x = "Simulation Day (day of surgery start)", y = "Casualties", fill = "Care Pathway"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    print(r2e_icu_gating_plot)
+    ggsave(file.path(images_dir, "r2e_icu_gating_impact.png"), r2e_icu_gating_plot,
+           width = 12, height = 6, dpi = 150)
+
+    write.csv(r2e_icu_gating_daily, file.path(output_dir, "r2e_icu_gating_daily.csv"), row.names = FALSE)
+  }
+
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
@@ -801,7 +876,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     transport_utilisation       = transport_utilisation,
     transport_capacity_margin_plot = p_transport_capacity_margin,
     post_op_pathway_summary     = post_op_pathway_summary,
-    surgery_deferred_count      = surgery_deferred_count
+    surgery_deferred_count      = surgery_deferred_count,
+    r2e_icu_gating_daily        = r2e_icu_gating_daily,
+    r2e_icu_gating_plot         = r2e_icu_gating_plot
   ))
 }
 

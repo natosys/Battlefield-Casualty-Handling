@@ -434,6 +434,9 @@ These are the validated baseline values from the current single-run analysis. Re
 | HX240M utilisation (seed 42, post-Issue-6 dead-heading) | 4.8% (max queue 0 throughout run) |
 | R2E post-op pathway (seed 42, Issue #43) | icu=110, hold=23 (ICU saturated, P1 override); surgery_deferred=10 (ICU saturated, P2+) |
 | R2E post-op DOW rate — icu vs hold (seed 42, Issue #43) | 0/110 vs 0/23 (single-run; saturated-ICU 90-day stress test confirms mechanism fires, hold pathway > icu pathway) |
+| Mean DOW/run — pre- vs post-Issue-43 (50-rep, seed=NULL) | 0.84 (95% CI [0.58, 1.10]) → 1.00 (95% CI [0.74, 1.26]); CIs overlap (not significant at n=50); +0.10/run attributable to the new post-op checkpoint alone (5/50 reps) |
+| R2E post-op DOW rate — icu vs hold (50-rep, Issue #43) | icu: 3/5,085 (0.06%); hold: 2/1,223 (0.16%) — hold ≈2.8× icu, consistent with intended design at real (non-stress-tested) parameters |
+| R2E ICU utilisation — mean (50-rep, pre- vs post-Issue-43) | 74.1% → 60.2% |
 
 ---
 

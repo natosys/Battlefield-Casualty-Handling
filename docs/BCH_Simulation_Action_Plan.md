@@ -15,7 +15,7 @@
 | 3 | No sensitivity analysis | High | Medium | **Merged (#30)** |
 | 4 | Team-block resource seizure (not individual) | High | High | Open |
 | 5 | Flat DOW rate independent of wait time | High | Medium | **Merged (PR #53)** |
-| 6 | Unidirectional transport (no dead-heading) | Medium | Low | Open |
+| 6 | Unidirectional transport (no dead-heading) | Medium | Low | **Merged (PR #56)** |
 | 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **Merged (PR #34)** |
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
@@ -43,6 +43,40 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 6 — Dead-Heading Return Legs for Transport Assets ✓
+
+**Merged:** PR #56, branch `claude/action-plan-review-73a25i`
+
+Replaces the outbound-only transport model with a full round trip. `r1_transport_wia()`, `r1_transport_kia()`, and `r2b_transport_wia()` (`R/trajectories.R`) now clone the entity after the outbound timeout into a vehicle branch (return-leg timeout, then release — listed first in `clone()` so it inherits the pre-clone seize record) and a casualty branch (no further activity); `synchronize(wait = FALSE)` lets the casualty continue immediately while the vehicle clone completes its return leg independently and is discarded when it later arrives at the same point. Return leg duration is a fresh triangular draw from the same outbound distribution, scaled by a configurable `return_leg_multiplier` (`env_data.json`, default **1.0** — a symmetric round trip, since tactical rate-of-march planning for these vehicle classes does not doctrinally differentiate laden/unladen travel time; the issue's original 0.8 assumption was corrected during implementation). Mortuary transfers at R2B/R2E use collocated evacuation personnel, not pooled vehicles, and are unaffected.
+
+**Sensitivity screen extended:** `return_leg_multiplier` added to `morris_params` (bounds 0.7–1.3). `R/sensitivity.R::extract_kpis()` gained `transport_q` (mean queue) and `transport_util` (mean utilisation) KPIs, since the existing OT/ICU queue KPIs are downstream of transport and, at the current casualty rate, transport itself only shows up as utilisation (queue stays at 0) — a queue-only KPI would have under-detected the parameter's effect. `run_sobol()` was hardened against degenerate-variance responses (`transport_q` is exactly 0 whenever none of the screened parameters affect transport occupancy, which previously crashed `boot::boot.ci()` inside `tell.sobol2007()`); each KPI's `tell()` is now independently wrapped, and `save_sobol()` checks for partial results before writing, so one degenerate KPI no longer discards the other four.
+
+**Capacity margin plot added:** `analyse_run()` now produces `images/transport_capacity_margin.png` (queue-over-time per PMV Ambulance/HX240M unit) and `outputs/transport_utilisation.csv`. `plot_transport_capacity_margin_by_fleet_size()` is included as a documented stub (roxygen-specified interface and algorithm, raises an explicit "not yet implemented" error) for a future fleet-size sweep — blocked on Issue #10 (comparative scenario runner). A follow-up issue for that sweep was drafted during the PR but could not be created due to a GitHub connector disconnection in that session; the draft is available and should be raised as a new `[Ph.4]` issue, sequenced after #10, before that work begins.
+
+Also fixes a latent bug in `R/analysis.R::analyse_run()`: it previously crashed on any run with zero DOW events, since `pivot_wider()` only creates a column for an attribute key when at least one casualty has it set. Added a defensive guard for the `dow`/`dow_echelon` columns.
+
+**Seed-42 baseline (30 days, single run — post-Issue-6):** Modelling the return leg consumes an additional random draw per outbound leg, shifting the seed-42 RNG stream from that point onward. Total casualty count and KIA count are unaffected; most other seed-42 figures shift:
+
+| Metric | Pre-#6 | Post-#6 |
+|---|---|---|
+| Total casualties | 400 ✓ | 400 ✓ |
+| KIA | 70 ✓ | 70 ✓ |
+| DOW count (seed 42) | 4 | **0** (single-run stochastic outcome; mean ~0.70/run across replications unaffected) |
+| DNBI sub-types | battle_fatigue=46, disease=97, nbi=33 | **battle_fatigue=33, disease=118, nbi=25** |
+| total_rtd | 148 | **136** (bf_rtd 31, clinical_rtd 105: r1 55, r2b 43, r2e 7) |
+| R2B surgical candidates | 170 | **149** |
+| R2B surgeries | 41 | **42** |
+| R2E surgeries — first op | 126 | **122** |
+| R2E ICU utilisation (mean) | ICU1 88.8%, ICU2 77.9%, ICU3 73.1%, ICU4 65.0% | **ICU1 80.6%, ICU2 73.6%, ICU3 64.8%, ICU4 56.9%** |
+| PMV Ambulance utilisation | — (not tracked pre-#6) | **11.1%** (max queue 0 throughout) |
+| HX240M utilisation | — (not tracked pre-#6) | **4.9%** (max queue 0 throughout) |
+
+Under the current Falklands-derived casualty rate, the 3-vehicle PMV Ambulance / 2-vehicle HX240M pools have enough spare capacity that dead-heading does not produce a persistent queue — the effect is visible only in utilisation (busy-time roughly doubling relative to the outbound-only model, confirmed by direct comparison against a stashed pre-#6 baseline). A targeted Sobol run varying `return_leg_multiplier`, `r1_transport`, and `r2b_transport` confirmed transport queue is near-constant-zero (variance ≈ 1.5–2.4×10⁻¹⁰) across the full plausible parameter range, while transport utilisation showed genuine, non-degenerate variance (≈0.002–0.005) and a structurally valid Sobol decomposition when the underlying bootstrap succeeded — directly confirming the new KPIs are correctly computed, not just structurally present.
+
+**Unblocked by this merge:** No new issues unblocked — #4, #9, #10, #14, #18, #40, #43 were already `status: ready` before this merge, gated on earlier issues. A new follow-up issue (fleet-size capacity margin sweep, Phase 4, blocked on #10) was drafted but not yet raised — see above.
+
+---
 
 ### Issue 5 — Time-Dependent DOW Survival Function (Falklands Calibration) ✓
 
@@ -1025,14 +1059,14 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44, 43, 6, 5, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43, 14)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
 7. ~~**Issue 35** — Fix R2B OT bypass check (`<=` → `< && queue == 0`). **Merged PR #36.**~~
 8. ~~**Issue 37** — Remove 12h schedule from OT bed resources; add team-availability bypass check. **Merged PR #38.**~~
 9. ~~**Issue 44** — RTD KPI annotation: decomposed `total_rtd` into `bf_rtd` + `clinical_rtd`, added `rtd_type` column to `rtd_by_echelon`, two `stopifnot()` guards, seed-42 baseline documented. **Merged PR #47.**~~
-10. **Issue 6** — Dead-heading return legs for transport assets.
+10. ~~**Issue 6** — Dead-heading return legs for transport assets.~~ — **Merged PR #56.**
 11. ~~**Issue 5** — Time-dependent DOW survival function.~~ — **Merged PR #53.**
 12. **Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+). Recommended after Issue #5 for differentiated post-op mortality rates.
 13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
@@ -1075,13 +1109,13 @@ COMPLETE (merged to main):
   #44  RTD KPI decomposition — bf_rtd + clinical_rtd (PR #47)
   #39  R2B hold bed saturation — two-tier routing policy (PR #48)
   #5   Time-dependent DOW — Falklands calibration (PR #53)
+  #6   Dead-heading transport — return_leg_multiplier, transport KPIs, capacity margin plot (PR #56)
 
 IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
-  #6   Dead-heading transport
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
   #43  OT–ICU gating                 (unblocked by #5 ✓)
@@ -1094,6 +1128,10 @@ AFTER #14 + #1 + #2 + #3:
 
 AFTER #1 + #22 + #18:
   #23  Role 4 / AME sortie demand
+
+AFTER #10 (not yet raised — see Issue #6 entry above):
+  #??  Fleet-size capacity margin sweep for transport assets — stubbed as
+       plot_transport_capacity_margin_by_fleet_size() in R/analysis.R
 ```
 
 ---
@@ -1112,4 +1150,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), and #5 (PR #53); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, and #5 merged; Issues #4, #6, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. All referenced resources are open-access.*
+*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), and #6 (PR #56); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, and #6 merged; Issues #4, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. A follow-up issue for a transport fleet-size capacity margin sweep (Phase 4, blocked on #10) was drafted during Issue #6 but not yet raised due to a GitHub connectivity issue. All referenced resources are open-access.*

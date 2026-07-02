@@ -495,17 +495,17 @@ where *t* is elapsed minutes since injury, *p_base* is the irreducible DOW proba
 
 | Priority | p_base | p_max | k (min⁻¹) | t_mid (min) |
 |---|---|---|---|---|
-| P1 (urgent) | 0.05 | 0.60 | 0.04 | 120 |
-| P2 (priority) | 0.025 | 0.25 | 0.025 | 180 |
-| P3 (non-urgent) | — | — | flat | 0.005 |
+| P1 (urgent) | 0.001 | 0.023 | 0.04 | 120 |
+| P2 (priority) | 0.0005 | 0.019 | 0.025 | 180 |
+| P3 (non-urgent) | — | — | flat | 0.001 |
 
-The P1 calibration is anchored to two constraints:
+The logistic shape parameters (*k*, *t_mid*) are anchored to the haemorrhagic shock critical window. Eastridge et al. (2012) [[38]](#References) describe the majority of potentially survivable haemorrhagic deaths as occurring within 60–180 minutes post-injury. The inflection point *t_mid* = 120 minutes centres the logistic rise within this window; the P2 inflection is set to 180 minutes, reflecting the lower urgency of the Priority 2 cohort.
 
-1. **Baseline compatibility at typical R1 processing time.** R1 treatment for WIA is modelled as Triangular(10, 30, 20) minutes [[23]](#References); median completion is approximately 20 minutes post-arrival. F(20) under the P1 logistic evaluates to approximately 6%, preserving compatibility with the prior 5% P1 estimate derived from Howard et al. (2019) [[12]](#References) for casualties already screened through an active trauma system.
+The ceiling *p_max* and floor *p_base* values are calibrated to the Falklands War 1982 (Operation CORPORATE) historical DOW outcome. Payne (1983) [[42]](#References) reports that four British Army Field Surgical Teams operated on 233 casualties across the Ajax Bay Advanced Surgical Centre and two forward stations (Teal Inlet, Fitzroy), with three post-operative deaths recorded. Accounts of the Ajax Bay medical system confirm that only three of the 580 British soldiers and marines wounded in action died of wounds — a DOW/WIA rate of 0.52% [[43]](#References). The simulation, run at a baseline of 154 WIA per 30-day period, targets 0.80 DOW/run (= 0.52% × 154); calibrated parameters produce a mean of approximately 0.70 DOW/run (0.45%) with a 95% confidence interval that spans the historical target (50-replication estimate: [0.41, 0.95] per run).
 
-2. **Inflection anchored at the haemorrhagic shock critical window.** Eastridge et al. (2012) [[38]](#References) describe the majority of potentially survivable haemorrhagic deaths as occurring within 60–180 minutes post-injury. The inflection point *t_mid* = 120 minutes centres the logistic rise within this window. The P2 inflection is set to 180 minutes, reflecting the lower urgency of the Priority 2 cohort.
+The low Falklands DOW rate reflects the compact geography of the islands (short evacuation windows), the innovative field surgical care established at Ajax Bay, and the predominantly young, fit demographic of land-force casualties. These parameters represent an interim Falklands-specific calibration within the base `env_data.json`; when Issue #54 (scenario-level parameter profiles) is implemented, they will be packaged into a discrete Falklands 1982 profile alongside era-appropriate treatment efficacy factors, casualty generation rates, and transport distributions.
 
-The ceiling *p_max* = 0.60 for P1 represents the portion of P1 casualties that will die given indefinite delay. This is consistent with Eastridge et al.'s finding that 24.3% of all battlefield deaths were potentially survivable, concentrated in the high-acuity fraction that dominates the P1 cohort. The P3 flat rate of 0.5% reflects the negligible time-sensitive mortality risk of low-priority casualties.
+The P3 flat rate of 0.1% applies only at R2B and R2E echelons. P3 casualties recover at R1 and are not evacuated; this parameter is therefore practically inactive in the current routing logic and is retained for structural completeness.
 
 ### Multi-Echelon Check and Conditional Increment
 
@@ -540,18 +540,18 @@ The *p_base* term is held fixed throughout: it represents non-survivable injurie
 | R2E DCS 1st op | 0.25 | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[40]](#References). |
 | R2E DCS 2nd op | 0.57 | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS. |
 
-The cumulative effect on a P1 casualty (initial ceiling = 0.60) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
+The cumulative effect on a P1 casualty (initial ceiling = 0.023) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
 
 ```
-0.60 × 0.83 × 0.56 × 0.32 × 0.25 = 0.022
+0.023 × 0.83 × 0.56 × 0.32 × 0.25 = 0.00085
 ```
 
-This residual ceiling of 2.2% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with clinical estimates for the irreducible mortality of the survivable-but-severe fraction of the P1 combat casualty cohort.
+This residual ceiling of 0.085% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with the Falklands 1982 historical outcome of effectively zero post-operative deaths in patients who survived to definitive surgical care at Ajax Bay.
 
-> **MODEL ASSUMPTION — DOW LOGISTIC PARAMETERS:** The parameters *p_base*, *p_max*, *k*, and *t_mid* are calibrated to clinical literature rather than empirically fitted to conflict data; no published dataset provides the per-minute individual-level survival curves required for maximum-likelihood estimation in this context.
-> **Basis:** Eastridge et al. (2012) [[38]](#References) and Kotwal et al. (2011) [[39]](#References) provide aggregate mortality rates and time-window analysis. The logistic form is a standard S-shaped approximation for time-dependent failure processes (Law, 2020 [[26]](#References)).
-> **Uncertainty:** Medium — the functional form is well-supported but parameter values are informed estimates. The inflection point and steepness carry the highest uncertainty.
-> **Consequence if wrong:** Narrowing p_max reduces the sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays. The qualitative direction of the relationship (DOW increases with wait time) is robust to parameter uncertainty.
+> **MODEL ASSUMPTION — DOW LOGISTIC PARAMETERS:** The parameters *p_base*, *p_max*, *k*, and *t_mid* are calibrated to the Falklands War 1982 (Operation CORPORATE) historical outcome rather than empirically fitted to per-minute individual-level survival curves, which no published dataset provides. Payne (1983) [[42]](#References) reports three post-operative deaths among 233 casualties treated at the Ajax Bay Advanced Surgical Centre and forward stations. Jolly (2018) [[43]](#References) confirms that of 580 British soldiers and marines wounded in action, only three died of wounds — a DOW/WIA rate of 0.52%. The ceiling values (p1_p_max = 0.023, p2_p_max = 0.019) were iteratively calibrated until 50-replication Monte Carlo output produced a mean DOW/run of approximately 0.70 (0.45% of 154 baseline WIA), with a 95% CI spanning the 0.52% historical target. The shape parameters (k, t_mid) are anchored to aggregate mortality time-window analysis in Eastridge et al. (2012) [[38]](#References) and Kotwal et al. (2011) [[39]](#References); the logistic form is a standard S-shaped approximation for time-dependent failure processes (Law, 2020 [[26]](#References)).
+> **Basis:** Payne (1983) [[42]](#References); Jolly (2018) [[43]](#References); Eastridge et al. (2012) [[38]](#References); Kotwal et al. (2011) [[39]](#References).
+> **Uncertainty:** Medium — the calibration target (3 events / 580 WIA) is derived from a single conflict and may not generalise to other operational contexts. The treatment efficacy factors (Table above) retain OIF/OEF-era values and are not Falklands-specific; Issue #54 will package era-appropriate factors into a discrete scenario profile.
+> **Consequence if wrong:** If the Falklands DOW rate is unrepresentative of the baseline scenario, DOW counts will be systematically biased. Sensitivity analysis (Issue #3) will quantify the influence of p_max uncertainty on total DOW output. Narrowing p_max reduces sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays.
 
 > **MODEL ASSUMPTION — TREATMENT EFFICACY FACTORS:** The multiplicative reduction factors are derived from aggregate post-care survival rates in open-access literature; they are not fitted to individual-level combat casualty data and have not been validated against a specifically comparable conflict dataset.
 > **Basis:** DCR factor (0.56) anchored to Braverman et al. (2021) [[40]](#References); DCS factor (0.32) anchored to Holcomb et al. (2013) PROMMTT [[41]](#References); TCCC factor (0.83) derived from Eastridge et al. (2012) [[38]](#References) non-compressible haemorrhage analysis. The R2E DCS second-operation factor (0.57) is an informed estimate with no direct literature anchor.
@@ -1440,6 +1440,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [40] Braverman, M. A., Smith, A., Arshad, M. I., Cannon, J. W., Borgman, M. A., Holcomb, J. B., Etchill, E. W., DuBose, J. J., Rasmussen, T. E., Edwards, J., Epley, E., Glaser, J. J., Redfield, C. S., Schreiber, M. A., & Morrison, J. J. (2021). Damage control resuscitation in patients undergoing emergency laparotomy: outcomes and implications. *Journal of Trauma and Acute Care Surgery*, *92*(2), 321–328. Retrieved 01 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC8600903/
 
 [41] Holcomb, J. B., Del Junco, D. J., Fox, E. E., Wade, C. E., Cohen, M. J., Schreiber, M. A., Alarcon, L. H., Bai, Y., Brasel, K. J., Bulger, E. M., Cotton, B. A., Matijevic, N., Muskat, P., Myers, J. G., Phelan, H. A., White, C. E., Zhang, J., Rahbar, M. H., & PROMMTT Study Group. (2013). The prospective, observational, multicenter, major trauma transfusion (PROMMTT) study: comparative effectiveness of a time-varying treatment with competing risks. *JAMA Surgery*, *148*(2), 127–136. Retrieved 01 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC3773975/
+
+[42] Payne, R. (1983). The Falklands war: Army field surgical experience. *Annals of the Royal College of Surgeons of England*, *65*(5), 281–285. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC2494365/
+
+[43] Jolly, R. (2018). Obituary: Surgeon Commander Rick Jolly OBE. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 02 Jul 26, from https://jmvh.org/article/obituary-surgeon-commander-rick-jolly-obe/
 
 ---
 

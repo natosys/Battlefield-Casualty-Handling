@@ -412,10 +412,11 @@ These are the validated baseline values from the current single-run analysis. Re
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
 | Priority 1 share | ~54.8% |
-| DOW count (seed 42) | 8 (stochastic) |
-| DOW rate (P1 at R1) | 5% (flat) |
-| DOW rate (P2 at R1) | 2.5% (flat) |
-| DOW rate (R2B/R2E) | 1% (flat) |
+| DOW count (seed 42) | 4 (stochastic; mean ~0.70/run across replications) |
+| DOW rate — P1 p_max (logistic) | 2.3% ceiling (Falklands 1982 calibration) |
+| DOW rate — P2 p_max (logistic) | 1.9% ceiling (Falklands 1982 calibration) |
+| DOW rate — P3 flat | 0.1% (structural placeholder; P3 never evacuated) |
+| Mean DOW/run (50-rep, seed=NULL) | ~0.70 (0.45% of WIA); 95% CI [0.41, 0.95] |
 | DNBI sub-types (seed 42) | battle_fatigue=46, disease=97, nbi=33 |
 | bf_rtd (seed 42) | 38 (8 of 46 battle_fatigue still in R1 recovery timeout at sim end) |
 | clinical_rtd (seed 42) | 110 (r1: 59, r2b: 46, r2e: 5) |

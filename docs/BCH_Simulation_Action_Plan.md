@@ -74,7 +74,7 @@ Also fixes a latent bug in `R/analysis.R::analyse_run()`: it previously crashed 
 
 Under the current Falklands-derived casualty rate, the 3-vehicle PMV Ambulance / 2-vehicle HX240M pools have enough spare capacity that dead-heading does not produce a persistent queue — the effect is visible only in utilisation (busy-time roughly doubling relative to the outbound-only model, confirmed by direct comparison against a stashed pre-#6 baseline). A targeted Sobol run varying `return_leg_multiplier`, `r1_transport`, and `r2b_transport` confirmed transport queue is near-constant-zero (variance ≈ 1.5–2.4×10⁻¹⁰) across the full plausible parameter range, while transport utilisation showed genuine, non-degenerate variance (≈0.002–0.005) and a structurally valid Sobol decomposition when the underlying bootstrap succeeded — directly confirming the new KPIs are correctly computed, not just structurally present.
 
-**Unblocked by this merge:** No new issues unblocked — #4, #9, #10, #14, #18, #40, #43 were already `status: ready` before this merge, gated on earlier issues. A new follow-up issue (fleet-size capacity margin sweep, Phase 4, blocked on #10) was drafted but not yet raised — see above.
+**Unblocked by this merge:** No new issues unblocked — #4, #9, #10, #14, #18, #40, #43 were already `status: ready` before this merge, gated on earlier issues. A new follow-up issue (#57, fleet-size capacity margin sweep, Phase 4, blocked on #10) was raised — see above.
 
 ---
 
@@ -1129,8 +1129,8 @@ AFTER #14 + #1 + #2 + #3:
 AFTER #1 + #22 + #18:
   #23  Role 4 / AME sortie demand
 
-AFTER #10 (not yet raised — see Issue #6 entry above):
-  #??  Fleet-size capacity margin sweep for transport assets — stubbed as
+AFTER #10:
+  #57  Fleet-size capacity margin sweep for transport assets — stubbed as
        plot_transport_capacity_margin_by_fleet_size() in R/analysis.R
 ```
 
@@ -1150,4 +1150,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), and #6 (PR #56); and addition of new Issues #43 (OT–ICU gating) and #44 (RTD KPI annotation). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, and #6 merged; Issues #4, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. A follow-up issue for a transport fleet-size capacity margin sweep (Phase 4, blocked on #10) was drafted during Issue #6 but not yet raised due to a GitHub connectivity issue. All referenced resources are open-access.*
+*Prepared June 2026. Updated 02 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), and #6 (PR #56); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), and #57 (fleet-size capacity margin sweep). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, and #6 merged; Issues #4, #14, #40, #43, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7 and #39 merged, Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*

@@ -491,6 +491,10 @@ F(t) = p_base + (p_max − p_base) / (1 + exp(−k × (t − t_mid)))
 
 where *t* is elapsed minutes since injury, *p_base* is the irreducible DOW probability at *t* = 0 (representing immediately non-survivable injury independent of care speed), *p_max* is the asymptotic ceiling (representing the fraction of casualties that will die without timely definitive care), *k* controls the steepness of the rise, and *t_mid* is the inflection point in minutes.
 
+![DOW Survival Function](images/dow_survival_function.png)
+
+*Figure: DOW probability F(t) for P1 (urgent, red) and P2 (priority, blue) cohorts. Both curves are near-flat before 60 minutes — the window in which most simulated casualties reach R1 treatment. The sigmoid rise through the haemorrhagic shock critical window (shaded, 60–180 min) represents the period of greatest time-sensitivity. Dashed horizontal lines show the p_max asymptotes; the curves approach but never exceed these ceilings.*
+
 ### Parameter Calibration
 
 | Priority | p_base | p_max | k (min⁻¹) | t_mid (min) |
@@ -552,6 +556,7 @@ This residual ceiling of 0.085% represents the fraction of optimally treated P1 
 > **Basis:** Payne (1983) [[42]](#References); Jolly (2018) [[43]](#References); Eastridge et al. (2012) [[38]](#References); Kotwal et al. (2011) [[39]](#References).
 > **Uncertainty:** Medium — the calibration target (3 events / 580 WIA) is derived from a single conflict and may not generalise to other operational contexts. The treatment efficacy factors (Table above) retain OIF/OEF-era values and are not Falklands-specific; Issue #54 will package era-appropriate factors into a discrete scenario profile.
 > **Consequence if wrong:** If the Falklands DOW rate is unrepresentative of the baseline scenario, DOW counts will be systematically biased. Sensitivity analysis (Issue #3) will quantify the influence of p_max uncertainty on total DOW output. Narrowing p_max reduces sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays.
+> **Co-dependence of p_max and treatment efficacy factors:** The value p_max = 0.023 was not derived independently of the efficacy factors; the simulation was calibrated iteratively with the OIF/OEF efficacy multipliers (0.83, 0.56, 0.32, 0.25) already in place. These two components are therefore entangled: p_max is the ceiling that, *when combined with those specific multipliers*, reproduces the 0.52% historical rate. If Issue #54 substitutes Falklands-era efficacy values (which should be lower, as damage control resuscitation and damage control surgery protocols did not exist in 1982), p_max must be re-calibrated upward to maintain the same historical output. Treating p_max and the efficacy factors as independently derived would be incorrect.
 
 > **MODEL ASSUMPTION — TREATMENT EFFICACY FACTORS:** The multiplicative reduction factors are derived from aggregate post-care survival rates in open-access literature; they are not fitted to individual-level combat casualty data and have not been validated against a specifically comparable conflict dataset.
 > **Basis:** DCR factor (0.56) anchored to Braverman et al. (2021) [[40]](#References); DCS factor (0.32) anchored to Holcomb et al. (2013) PROMMTT [[41]](#References); TCCC factor (0.83) derived from Eastridge et al. (2012) [[38]](#References) non-compressible haemorrhage analysis. The R2E DCS second-operation factor (0.57) is an informed estimate with no direct literature anchor.

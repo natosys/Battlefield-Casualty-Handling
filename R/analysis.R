@@ -63,6 +63,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   attributes_wide <- attributes_wide %>%
     semi_join(select(arrivals, name, replication), by = c("name", "replication"))
 
+  # pivot_wider only creates a column for an attribute key when at least one
+  # casualty in the run had it set; guard against runs with zero DOW events.
+  for (dow_col in c("dow", "dow_echelon")) {
+    if (!dow_col %in% names(attributes_wide)) {
+      attributes_wide[[dow_col]] <- NA_real_
+    }
+  }
+
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
     mutate(
@@ -520,6 +528,61 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ggsave(file.path(images_dir, "waiting_time.png"), p_waiting_time,
          width = 12, height = 6, dpi = 150)
 
+  # ── Transport fleet capacity margin (Issue #6) ────────────────────────────
+  # Queue-over-time per pooled transport asset (PMV Ambulance, HX240M) shows
+  # how much headroom the current fleet size has under the dead-heading
+  # round trip: a queue that stays at 0 throughout indicates spare capacity;
+  # sustained queue > 0 indicates the fleet is a binding constraint.
+
+  transport_queue_data <- resources %>%
+    as.data.frame() %>%
+    filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
+    select(time, resource, queue) %>%
+    mutate(
+      platform   = str_extract(resource, "(?<=^t_)[^_]+"),
+      unit_id    = str_extract(resource, "\\d+$") %>% as.integer(),
+      unit_label = paste(platform, unit_id)
+    )
+
+  p_transport_capacity_margin <- ggplot(transport_queue_data, aes(x = time / 1440, y = queue, color = unit_label)) +
+    geom_step(linewidth = 1) +
+    labs(title = "Transport Fleet Capacity Margin — Queue Over Time",
+         subtitle = "Queue length by vehicle; sustained queue > 0 indicates the fleet is at capacity",
+         x = "Time (Days)", y = "Queue Size", color = "Vehicle") +
+    scale_x_continuous(breaks = seq(0, ceiling(max(transport_queue_data$time) / 1440), by = 1), expand = c(0, 0)) +
+    facet_wrap(~ platform, ncol = 1, scales = "free_y") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  print(p_transport_capacity_margin)
+  ggsave(file.path(images_dir, "transport_capacity_margin.png"), p_transport_capacity_margin,
+         width = 12, height = 8, dpi = 150)
+
+  # KPI: transport utilisation by platform (mirrors the ot_utilisation pattern
+  # below, but explicitly groups by resource before lead() so duration is
+  # never computed across a resource boundary).
+  transport_utilisation <- resources_raw %>%
+    filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
+    arrange(resource, time) %>%
+    group_by(resource) %>%
+    mutate(
+      platform = str_extract(resource, "(?<=^t_)[^_]+"),
+      duration = lead(time) - time
+    ) %>%
+    ungroup() %>%
+    filter(!is.na(duration) & duration > 0) %>%
+    group_by(platform, resource) %>%
+    summarise(
+      busy_time = sum(server * duration, na.rm = TRUE),
+      capacity  = max(capacity, na.rm = TRUE),
+      .groups   = "drop"
+    ) %>%
+    group_by(platform) %>%
+    summarise(
+      utilisation = sum(busy_time) / (sum(capacity) * max(resources_raw$time, na.rm = TRUE)),
+      .groups     = "drop"
+    )
+  write.csv(transport_utilisation, file.path(output_dir, "transport_utilisation.csv"), row.names = FALSE)
+
   # ── R2E resource usage (Gantt) ────────────────────────────────────────────
 
   r2e_bed_usage <- resources %>%
@@ -702,6 +765,50 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot,
     r2b_pre_bypass_count        = r2b_pre_bypass_count,
     r2b_hold_bypass_count       = r2b_hold_bypass_count,
-    r2b_hold_queued_count       = r2b_hold_queued_count
+    r2b_hold_queued_count       = r2b_hold_queued_count,
+    transport_utilisation       = transport_utilisation,
+    transport_capacity_margin_plot = p_transport_capacity_margin
   ))
+}
+
+#' Plot medevac fleet capacity margin across a range of fleet sizes (STUB)
+#'
+#' @param fleet_sizes Named list of integer vectors to sweep, e.g.
+#'   list(PMVAmb = 1:5, HX240M = 1:4). Each element replaces the `qty` for
+#'   the matching entry in env_data$transports for that sweep point.
+#' @param n_days Simulation duration per replication.
+#' @param n_rep  Replications per fleet-size point (for CI bounds).
+#' @param output_dir Directory for CSV output.
+#' @param images_dir Directory for the saved plot.
+#' @return ggplot object: mean transport queue/utilisation vs fleet size,
+#'   with the current establishment's fleet size marked, and a 95% CI ribbon
+#'   across replications at each sweep point.
+#'
+#' @details NOT YET IMPLEMENTED. This is a stub for a fleet-size capacity
+#'   margin plot, motivated by Issue #6 (dead-heading transport): the current
+#'   single-run analysis shows PMV Ambulance/HX240M utilisation rising with
+#'   dead-heading but queue remaining at 0 under the current 3/2-vehicle
+#'   establishment and Falklands-derived casualty rate (see README Transport
+#'   Assets — Dead-Heading Return Legs). Answering "how much fleet margin is
+#'   there, and at what casualty rate does it become a binding constraint?"
+#'   requires re-running the simulation at each fleet size, which in turn
+#'   requires the comparative scenario runner infrastructure (Issue #10) to
+#'   avoid duplicating replication/aggregation logic here. Tracked as a
+#'   follow-up issue in Phase 4 (Scenario Expansion), sequenced after #10.
+#'   See docs/BCH_Simulation_Action_Plan.md.
+#'
+#'   Intended implementation once #10 lands: for each fleet_sizes sweep
+#'   point, deep-copy env_data, overwrite the relevant transports[[]]$qty,
+#'   rebuild via build_environment(), run n_rep replications at n_days,
+#'   extract mean transport_q / transport_util (R/sensitivity.R's
+#'   extract_kpis() already computes both), and plot both metrics against
+#'   fleet size with a vertical reference line at the current establishment.
+plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes, n_days = 30, n_rep = 5,
+                                                          output_dir = "outputs", images_dir = "images") {
+  stop(
+    "plot_transport_capacity_margin_by_fleet_size() is not yet implemented. ",
+    "It depends on the comparative scenario runner infrastructure (Issue #10). ",
+    "See the function's roxygen documentation and docs/BCH_Simulation_Action_Plan.md ",
+    "for the tracked follow-up issue and intended implementation."
+  )
 }

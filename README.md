@@ -39,6 +39,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [🚑 Transport Assets](#-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
+    - [Dead-Heading Return Legs](#dead-heading-return-legs)
 - [📊 Environment Data Summary](#-environment-data-summary)
   - [👥 Population Groups](#-population-groups)
   - [🚑 Transport Resources](#-transport-resources)
@@ -236,6 +237,23 @@ The PMV Ambulance (Protected Mobility Vehicle – Ambulance) is a blast-resistan
 #### HX2 40M
 
 The HX2 40M is a 4×4 tactical military truck developed by Rheinmetall MAN Military Vehicles (RMMV) as part of the HX2 series. Designed for high mobility and rugged performance, it serves as a versatile logistics platform for transporting troops, equipment, and supplies in demanding operational environments. In this simulation the HX2 40M is used for the transport of KIA and casualties that have DOW.
+
+#### Dead-Heading Return Legs
+
+PMV Ambulance and HX2 40M transport assets are held for a return leg after casualty drop-off, rather than becoming available for the next pickup immediately. This reflects the real-world requirement for a vehicle to travel back to the originating echelon before it can be tasked again — a vehicle that has just delivered a casualty to R2B is not present at R1 for the next casualty. Modelling only the outbound leg systematically overestimates evacuation asset availability throughout the run (see Issue #6, [[44]](#References)).
+
+Dead-heading is implemented for the three legs served by pooled transport assets — R1→R2B (PMV Ambulance), R2B→R2E (PMV Ambulance), and R1→mortuary (HX2 40M, KIA/DOW) — using simmer's `clone()`/`synchronize()` activities. After the outbound timeout, the entity is cloned into two parallel branches: a vehicle branch that runs an unladen return-leg timeout before releasing the asset, and a casualty branch with no further activity. `synchronize(wait = FALSE)` then lets the casualty branch continue immediately into the rest of the trajectory (it is always the first of the two clones to reach that point), while the vehicle branch is discarded once it later arrives there having completed the return leg and released the resource. The resource therefore remains occupied — and unavailable to other casualties — for the full round trip, while the casualty's own care pathway is unaffected by the vehicle's return travel time. Mortuary transfers at R2B and R2E (`r2b_transport_kia()`, `r2e_transport_kia()`) use collocated evacuation team personnel rather than a pooled vehicle asset and are unaffected.
+
+Return leg duration is modelled as a fresh triangular draw from the same outbound distribution, scaled by a configurable `return_leg_multiplier` (`vars.<echelon>.<leg>.return_leg_multiplier` in `env_data.json`). The default is 1.0 (a symmetric round trip): tactical vehicle rate-of-march planning for these vehicle classes over these distances is governed by terrain, threat, and route conditions rather than payload, so laden and unladen legs are not doctrinally differentiated by travel time. The multiplier is retained as a configurable parameter — and included in the Morris sensitivity screen — so that a faster or slower return (e.g. an unobstructed empty-vehicle route, or a return leg exposed to different threat conditions) can be tested as a scenario variation rather than assumed by default.
+
+**Seed-42 baseline (30 days, single run):** Under the current Falklands-derived casualty rate, the three-vehicle PMV Ambulance pool has sufficient spare capacity that dead-heading does not produce a persistent evacuation queue (max queue = 0, both with and without dead-heading). The effect is visible in asset utilisation instead: total PMV Ambulance busy-time rises from 6,816 to 14,376 minutes (+111%, consistent with an approximately symmetric round trip) across the 30-day run once the return leg is modelled, and a third vehicle is drawn into service that was never required under the outbound-only model. Setting `return_leg_multiplier = 0` reproduces the outbound-only busy-time (7,277 minutes, within RNG-stream tolerance of the pre-Issue-6 value) and confirms max queue remains 0 — the regression check specified in Issue #6's test plan.
+
+> **Baseline note:** Modelling the return leg consumes additional random draws (one `rtriangle()` call per outbound leg previously had no counterpart; it now has one), which shifts the seed-42 RNG stream from this point onward. Total casualty count and KIA count are unaffected (400 and 70 respectively, matching the pre-Issue-6 baseline), but downstream stochastic outcomes that depend on the shifted stream — DOW count, RTD counts by echelon, and the R1 pre-bypass count reported elsewhere in this README — will differ from the figures quoted in sections describing Issues #5, #39, and #44 until those are refreshed. This is the same class of effect documented for Issue #24 (antithetic variates), which shifted the seed-42 total casualty count by one. The `CLAUDE.md` Key Parameters baseline table is updated separately as part of the standard post-merge checklist.
+
+> **MODEL ASSUMPTION — Dead-Head Return Leg Multiplier:** The return leg duration for each transport asset is modelled by default as 1.0× the outbound triangular distribution (a fresh draw from the same min/max/mode, i.e. a symmetric round trip), configurable via `return_leg_multiplier`.
+> **Basis:** Tactical vehicle rate-of-march estimation does not generally differentiate laden and unladen movement time for these vehicle classes over these distances — travel time is governed by terrain, route, and threat conditions rather than payload, so the outbound and return legs are assumed to draw from the same distribution by default (Fischer et al., 2025 [[44]](#References)). No open-access source provides an empirically measured laden-vs-unladen speed differential for tactical ambulance movement that would justify departing from this convention as the default.
+> **Uncertainty:** Medium — the qualitative effect (reduced asset availability from dead-heading) is not sensitive to the exact multiplier value, but the magnitude of the resulting queue increase is. The multiplier remains configurable and is included in the Morris sensitivity screen (bounds 0.7–1.3) to test scenarios where the return leg is genuinely faster (e.g. unobstructed egress) or slower (e.g. contested terrain, blackout driving) than the outbound leg.
+> **Consequence if wrong:** A multiplier below 1.0 (faster return) understates queue formation at R1 and R2B; a multiplier above 1.0 (slower return) overstates it. Return route conditions are assumed symmetric with the outbound route; asymmetric terrain, threat, or traffic conditions on the return leg are not separately modelled.
 
 ---
 
@@ -736,7 +754,7 @@ The triangular distribution parameters governing surgery duration, resuscitation
 
 **Morris Elementary Effects (EE) screening** [[30]](#References) was applied using R's `sensitivity` package [[31]](#References). Morris EE is a global, one-at-a-time (OAT) method that identifies the few influential parameters from a larger set at low computational cost — r × (p + 1) model evaluations, where r is the trajectory count and p is the number of parameters. It produces two statistics per parameter: µ\* (the mean absolute Elementary Effect, indicating overall influence) and σ (the standard deviation of Elementary Effects, indicating nonlinearity and interaction). Parameters with large µ\* and small σ have large, approximately linear effects; large µ\* and large σ indicate nonlinear or interaction-dominated effects.
 
-Nine parameters were selected for screening, spanning the main uncertain inputs across all three echelons:
+Ten parameters were selected for screening, spanning the main uncertain inputs across all three echelons:
 
 | Parameter | Variable | Baseline | Lower | Upper |
 |-----------|----------|----------|-------|-------|
@@ -749,10 +767,11 @@ Nine parameters were selected for screening, spanning the main uncertain inputs 
 | P1 surgery probability | `pri1_surg_prob` | 90% | 70% | 98% |
 | In-theatre recovery rate | `in_theatre_rate` | 10% | 5% | 20% |
 | OT shift duration | `ot_hours` | 12 hr | 8 | 16 |
+| Dead-head return leg multiplier | `return_leg_multiplier` | 1.0 | 0.7 | 1.3 |
 
-Three primary KPI outputs were monitored across all replications at each design point: mean R2B OT queue, mean R2E OT queue (combined as system OT queue), and mean R2E ICU queue. Total DOW count is tracked as a secondary output. Parameters ranked by µ\* on the system OT queue identify the inputs most responsible for surgical bottleneck severity.
+Three primary KPI outputs were monitored across all replications at each design point: mean R2B OT queue, mean R2E OT queue (combined as system OT queue), and mean R2E ICU queue. Total DOW count is tracked as a secondary output. Two further KPIs cover the transport layer directly (Issue #6): mean transport queue and mean transport utilisation, pooled across the PMV Ambulance and HX240M resources. The utilisation KPI is necessary alongside the queue KPI because, under the current baseline casualty rate, transport assets rarely queue — their availability is affected well before a queue forms — so a queue-only KPI would under-detect the influence of transport-related parameters such as `return_leg_multiplier`. Parameters ranked by µ\* on the system OT queue identify the inputs most responsible for surgical bottleneck severity.
 
-> **Note — sensitivity screening conducted pre-Issue-7 and pre-Issue-5:** The Morris screening above was run before DNBI sub-categorisation (Issue #7) and time-dependent DOW (Issue #5) were merged. The nine-parameter set does not include `disease_surgery_pct` (the disease DNBI emergency surgical rate — rated High uncertainty), and the DOW parameter has been updated from the flat `pri1_dow` (5%) to the logistic ceiling `p1_p_max` (60%) following Issue #5. Absolute µ\* values reflect a model in which all DNBI were surgical candidates, producing higher OT queues than the current model. The relative ranking of the original nine parameters is expected to be qualitatively stable, since WIA still dominates surgical demand (~84% of surgical candidates). A re-run that adds `disease_surgery_pct` to the parameter set and updates the quantitative µ\* values is tracked as a follow-up task (see Further Development).
+> **Note — sensitivity screening conducted pre-Issue-7, pre-Issue-5, and pre-Issue-6:** The Morris screening above was run before DNBI sub-categorisation (Issue #7), time-dependent DOW (Issue #5), and dead-heading transport (Issue #6) were merged. The parameter set does not include `disease_surgery_pct` (the disease DNBI emergency surgical rate — rated High uncertainty), and the DOW parameter has been updated from the flat `pri1_dow` (5%) to the logistic ceiling `p1_p_max` (60%) following Issue #5. Absolute µ\* values reflect a model in which all DNBI were surgical candidates and transport assets were seized for the outbound leg only, producing higher OT queues and lower transport-driven queueing than the current model. The relative ranking of the original nine parameters is expected to be qualitatively stable, since WIA still dominates surgical demand (~84% of surgical candidates). A re-run that adds `disease_surgery_pct` to the parameter set, incorporates dead-heading, and updates the quantitative µ\* values is tracked as a follow-up task (see Further Development).
 
 > **MODEL ASSUMPTION — SENSITIVITY PARAMETER BOUNDS:** The bounds in the Morris screening table are set to cover clinically plausible variation around the current baseline values, derived from expert judgement and the literature reviewed in the Simulation Design section.
 > **Basis:** Lower and upper bounds were set to span approximately ±25–50% of the baseline value for duration parameters (surgery, resuscitation, transport, ICU) and the full clinically plausible range for probability parameters (DOW, surgery probability, in-theatre recovery). OT shift availability (8–16 hours) reflects the range from a single extended session to full 16-hour dual-shift coverage.
@@ -1257,6 +1276,14 @@ When examined in system context, the combined OT capacity of two R2B elements an
 
 ![Casualty Waiting Time Over Simulation](images/waiting_time.png)
 
+### Transport Fleet Capacity Margin
+
+![Transport Fleet Capacity Margin — Queue Over Time](images/transport_capacity_margin.png)
+
+Under seed 42 (30 days), the queue for every PMV Ambulance and HX240M unit remains at 0 throughout the run, confirming the finding from the Transport Assets — Dead-Heading Return Legs section: the current three-vehicle PMV Ambulance and two-vehicle HX240M pools are not a binding constraint at the current Falklands-derived casualty rate, even with the full round-trip dead-heading model applied. Mean utilisation (`outputs/transport_utilisation.csv`) is 11.1% for PMV Ambulance and 4.9% for HX240M — substantial headroom remains. This plot shows the current single-run margin only; a fleet-size sweep (varying vehicle count directly, rather than only casualty rate or transport duration) is required to characterise at what fleet size or casualty rate transport becomes the binding constraint, and is tracked as a follow-up issue (see Further Development).
+
+> **STUB — Fleet-Size Capacity Margin Sweep:** `plot_transport_capacity_margin_by_fleet_size()` in `R/analysis.R` is scaffolding only — it defines the intended parameters (`fleet_sizes`, `n_days`, `n_rep`) and documents the planned algorithm in its roxygen block, but calling it raises an explicit "not yet implemented" error. It depends on the comparative scenario runner (Issue #10) and is tracked as a Phase 4 follow-up issue, sequenced after #10.
+
 ### Return to Duty
 
 Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribute, decomposed as follows:
@@ -1305,8 +1332,8 @@ Stream decomposition analysis (Issue #39) confirms that the five hold beds per R
 **L5 — Undifferentiated DNBI Treatment Pathway** *(Resolved — Issue #7)*
 DNBI casualties are now sub-categorised into battle fatigue (25%), disease (58%), and NBI (17%) with differentiated treatment pathways. Battle fatigue cases are held at R1 and returned to duty without R2 routing. Disease cases may be evacuated to R2B for holding only, with a 6% emergency surgical candidacy. NBI cases follow the full WIA-equivalent trajectory. This removes approximately 83% of DNBI from the routine surgical pathway, eliminating the artificial inflation of surgical demand that previously characterised the model. Across 100 replications, NBI surgical candidacy was 79.6%, disease surgical candidacy was 5.7%, and battle fatigue was 0.0%.
 
-**L6 — Unidirectional Transport (Medium Impact on Asset Availability)**
-PMV ambulances are seized for the outbound leg only. Vehicles do not return to the originating echelon before becoming available again. Transport asset availability is systematically overestimated. **Impact: Medium.** Addressed in Issue #6 (dead-heading return legs).
+**L6 — Unidirectional Transport** *(Resolved — Issue #6)*
+PMV Ambulance and HX2 40M transport assets now hold for a configurable return leg (default 1.0× the outbound triangular distribution, i.e. a symmetric round trip — tactical rate-of-march is not doctrinally differentiated by payload) after casualty drop-off, before becoming available for the next pickup. Under the current Falklands-derived casualty rate, the vehicle pool is not saturated, so no persistent queue forms; the effect is visible as an increase in total PMV Ambulance busy-time over a 30-day run. The impact will be more pronounced under MASCAL conditions (Issue #9) where multiple casualties compete for the same limited vehicle pool. Return route conditions are assumed symmetric with the outbound route — see the Transport Assets MODEL ASSUMPTION block.
 
 **L7 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
 The casualty generation model produces a smooth lognormal daily rate. Discrete tactical events generating 20–50 casualties within a 2–4 hour window — the primary stress test for surgical and ICU capacity in LSCO — are entirely absent. **Impact: Medium.** Addressed in Issue #9 (compound Poisson MASCAL injection).
@@ -1328,7 +1355,7 @@ Casualty arrival rates are fixed exogenous inputs applied to a static force size
 
 The single run analysis has demonstrated that while the current simulation framework offers a credible baseline for evaluating deployed health system performance under brigade-level LSCO conditions, several areas warrant further development to improve the accuracy of the model and enhance the analysis from it.
 
-One immediate opportunity lies in expanding the modelling of transport resources to include return journeys—commonly referred to as "dead-heading". The current simulation assumes unidirectional casualty movement, which underestimates the logistical burden and resource consumption associated with evacuation cycles. Incorporating return legs would allow for more accurate scheduling, asset availability tracking, and fuel or crew fatigue modelling, all of which are critical in contested or extended operational environments.
+Dead-heading return legs for pooled transport assets are now modelled (Issue #6; see Transport Assets — Dead-Heading Return Legs). The immediate follow-on opportunity is a **fleet-size capacity margin sweep**: the current single-run analysis shows PMV Ambulance and HX240M utilisation rising under dead-heading but queue remaining at 0 under the current establishment, which only demonstrates margin exists — it does not quantify how much, or at what fleet size or casualty rate the transport layer becomes a binding constraint. A stub for this — `plot_transport_capacity_margin_by_fleet_size()` in `R/analysis.R` — is included as scaffolding: it documents the intended interface and algorithm but is not yet implemented, since a meaningful sweep requires the comparative scenario runner infrastructure (Issue #10) to avoid duplicating replication/aggregation logic. Tracked as a follow-up issue in Phase 4 (Scenario Expansion), sequenced after #10 — see `docs/BCH_Simulation_Action_Plan.md`.
 
 Another refinement involves pulsing strategic medical evacuation availability to simulate its temporal constraints. Rather than assuming continuous access to strategic lift, future iterations should model episodic availability windows, reflecting real-world limitations such as airframe tasking, weather delays, or air superiority conditions. This would allow for more realistic bottleneck formation and better inform prioritisation protocols for high-acuity casualties.
 
@@ -1449,6 +1476,8 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [42] Payne, R. (1983). The Falklands war: Army field surgical experience. *Annals of the Royal College of Surgeons of England*, *65*(5), 281–285. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC2494365/
 
 [43] Jolly, R. (2018). Obituary: Surgeon Commander Rick Jolly OBE. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 02 Jul 26, from https://jmvh.org/article/obituary-surgeon-commander-rick-jolly-obe/
+
+[44] Fischer, J., Al-Husseini, M., Krishnamoorthy, R., Kumar, V., & Kochenderfer, M. J. (2025). Digital simulations to enhance military medical evacuation decision-making. Open-access preprint retrieved 02 Jul 26, from https://arxiv.org/abs/2507.06373
 
 ---
 

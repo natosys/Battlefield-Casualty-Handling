@@ -14,18 +14,20 @@ library(ggplot2)
 #'
 #' @format Data frame with columns: name, lower, upper, mode (current baseline value)
 #'
-#' @details Nine parameters span treatment durations (surgery, resuscitation,
-#'   ICU), DOW probability, evacuation transport times, surgical decision
-#'   probabilities, in-theatre recovery rate, and OT shift availability.
-#'   Bounds are set to cover clinically plausible variation around the
-#'   current baseline; see README Sensitivity Analysis section for derivation.
+#' @details Ten parameters span treatment durations (surgery, resuscitation,
+#'   ICU), DOW probability, evacuation transport times, dead-head return
+#'   leg duration (Issue #6), surgical decision probabilities, in-theatre
+#'   recovery rate, and OT shift availability. Bounds are set to cover
+#'   clinically plausible variation around the current baseline; see README
+#'   Sensitivity Analysis section for derivation.
 morris_params <- data.frame(
   name  = c("surg_mode",      "long_resus_mode", "p1_p_max",
             "r1_transport",   "r2b_transport",   "long_icu_mode",
-            "pri1_surg_prob", "in_theatre_rate", "ot_hours"),
-  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8),
-  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16),
-  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12),
+            "pri1_surg_prob", "in_theatre_rate", "ot_hours",
+            "return_leg_multiplier"),
+  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8,    0.7),
+  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16,   1.3),
+  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12,   1.0),
   stringsAsFactors = FALSE
 )
 
@@ -49,18 +51,50 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$long_icu$mode            <- p[["long_icu_mode"]]
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
   ed$vars$r2eheavy$recovery$in_theatre_rate <- p[["in_theatre_rate"]]
+  ed$vars$r1$wia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
+  ed$vars$r1$kia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
+  ed$vars$r2b$wia_transport$return_leg_multiplier <- p[["return_leg_multiplier"]]
   ed
 }
 
 # ── KPI extraction ────────────────────────────────────────────────────────────
 
+#' Time-weighted mean resource utilisation (fraction busy) matching a pattern
+#'
+#' @param mon Named list with 'resources' element as returned by run_replications()
+#' @param pattern Regex pattern to match resource names
+#' @return Mean utilisation (0-1), time-weighted per replication then averaged
+#'   across replications and matching resources. Returns 0 if no resource matches.
+#'
+#' @details Complements summarise_replications() (queue-based) with a
+#'   utilisation-based measure. Needed for resources such as pooled transport
+#'   assets that rarely queue under current baseline demand (Issue #6) but
+#'   whose busy-time is still directly affected by duration parameters —
+#'   queue-based KPIs alone would show near-zero sensitivity in that case.
+compute_utilisation <- function(mon, pattern) {
+  util <- mon$resources %>%
+    filter(grepl(pattern, resource)) %>%
+    group_by(replication, resource) %>%
+    arrange(time) %>%
+    mutate(dt = lead(time, default = max(time)) - time) %>%
+    summarise(
+      rep_util = weighted.mean(server / pmax(capacity, 1), w = pmax(dt, 0), na.rm = TRUE),
+      .groups  = "drop"
+    )
+  if (nrow(util) == 0) return(0)
+  mean(util$rep_util, na.rm = TRUE)
+}
+
 #' Extract KPIs from a run_replications() monitoring list
 #'
 #' @param mon Named list with arrivals, attributes, resources
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q, dow_count
+#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q,
+#'   dow_count, transport_q, transport_util
 #'
 #' @details Uses summarise_replications() for queue KPIs. DOW count is taken
-#'   directly from the attributes monitor to avoid dependency on warm-up filtering.
+#'   directly from the attributes monitor to avoid dependency on warm-up
+#'   filtering. transport_q and transport_util (Issue #6) cover the pooled
+#'   PMV Ambulance and HX240M transport assets.
 extract_kpis <- function(mon) {
   kpi <- summarise_replications(mon)
 
@@ -77,17 +111,22 @@ extract_kpis <- function(mon) {
   r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
   system_ot_q <- r2b_ot_q + r2e_ot_q
 
+  transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
+  transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
+
   dow_count <- sum(
     mon$attributes$key == "dow" & mon$attributes$value == 1,
     na.rm = TRUE
   )
 
   c(
-    r2e_icu_q   = r2e_icu_q,
-    r2b_ot_q    = r2b_ot_q,
-    r2e_ot_q    = r2e_ot_q,
-    system_ot_q = system_ot_q,
-    dow_count   = as.numeric(dow_count)
+    r2e_icu_q      = r2e_icu_q,
+    r2b_ot_q       = r2b_ot_q,
+    r2e_ot_q       = r2e_ot_q,
+    system_ot_q    = system_ot_q,
+    dow_count      = as.numeric(dow_count),
+    transport_q    = transport_q,
+    transport_util = transport_util
   )
 }
 
@@ -98,7 +137,8 @@ extract_kpis <- function(mon) {
 #' @param params_row Numeric vector (length = nrow(morris_params)), in column order
 #' @param n_rep      Replications per evaluation (5 recommended for Morris)
 #' @param n_days     Simulation duration in days
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q, dow_count
+#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q,
+#'   dow_count, transport_q, transport_util
 #'
 #' @details Modifies the global env_data via apply_params() then restores it.
 #'   The ot_hours parameter is extracted separately and passed to run_replications()
@@ -160,19 +200,22 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
         c(r2e_icu_q = NA_real_, r2b_ot_q = NA_real_, r2e_ot_q = NA_real_,
-          system_ot_q = NA_real_, dow_count = NA_real_)
+          system_ot_q = NA_real_, dow_count = NA_real_,
+          transport_q = NA_real_, transport_util = NA_real_)
       }
     )
-  }, numeric(5)))
+  }, numeric(7)))
 
   env_data <<- env_data_base
 
   kpi_labels <- list(
-    r2b_ot_q    = "Mean R2B OT Queue",
-    r2e_ot_q    = "Mean R2E OT Queue",
-    system_ot_q = "System OT Queue (R2B + R2E)",
-    r2e_icu_q   = "Mean R2E ICU Queue",
-    dow_count   = "Total DOW Count"
+    r2b_ot_q       = "Mean R2B OT Queue",
+    r2e_ot_q       = "Mean R2E OT Queue",
+    system_ot_q    = "System OT Queue (R2B + R2E)",
+    r2e_icu_q      = "Mean R2E ICU Queue",
+    dow_count      = "Total DOW Count",
+    transport_q    = "Mean Transport Queue (PMV Amb + HX240M)",
+    transport_util = "Mean Transport Utilisation (PMV Amb + HX240M)"
   )
 
   morris_objs <- lapply(names(kpi_labels), function(kpi) {
@@ -232,10 +275,11 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #' @param n_rep       Replications per Sobol evaluation point (default 5)
 #' @param n_sobol     Sobol sample size N (default 200; total evals = N*(p+2))
 #' @param output_dir  Directory for CSV outputs (default "outputs")
-#' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q
+#' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q,
+#'   transport_q, transport_util
 #'
 #' @details Applies sobol2007 (Saltelli et al. estimator) using a single design
-#'   pass shared across all three OT KPIs, giving N*(p+2) total evaluations.
+#'   pass shared across all five KPIs, giving N*(p+2) total evaluations.
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs") {
@@ -247,7 +291,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   p_def   <- morris_params[p_idx, ]
   n_total <- n_sobol * (nrow(p_def) + 2L)
   message(sprintf(
-    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2b_ot_q, r2e_ot_q, system_ot_q)",
+    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2b_ot_q, r2e_ot_q, system_ot_q, transport_q, transport_util)",
     n_sobol, nrow(p_def), n_total, n_rep
   ))
 
@@ -259,9 +303,11 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                               p_def$lower, p_def$upper, SIMPLIFY = FALSE))
   names(X1) <- names(X2) <- p_def$name
 
-  sb_r2b <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_r2e <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_sys <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_sys   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_tq    <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
 
   full_params <- setNames(morris_params$mode, morris_params$name)
 
@@ -272,24 +318,64 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     tryCatch(
       {
         kpis <- eval_params(row, n_rep, n_days)
-        c(r2b_ot_q    = kpis[["r2b_ot_q"]],
-          r2e_ot_q    = kpis[["r2e_ot_q"]],
-          system_ot_q = kpis[["system_ot_q"]])
+        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
+          r2e_ot_q       = kpis[["r2e_ot_q"]],
+          system_ot_q    = kpis[["system_ot_q"]],
+          transport_q    = kpis[["transport_q"]],
+          transport_util = kpis[["transport_util"]])
       },
       error = function(e) {
         warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_)
+        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
+          transport_q = NA_real_, transport_util = NA_real_)
       }
     )
-  }, numeric(3)))
+  }, numeric(5)))
 
   env_data <<- env_data_base
 
-  tell(sb_r2b, Y_all[, "r2b_ot_q"])
-  tell(sb_r2e, Y_all[, "r2e_ot_q"])
-  tell(sb_sys, Y_all[, "system_ot_q"])
+  # tell() invokes boot::boot.ci() internally, which errors on a response
+  # with (near-)zero variance across the design (e.g. transport_q when none
+  # of top_params affect transport occupancy — see Issue #6 PR discussion).
+  # Wrapped per-KPI so one degenerate response doesn't discard the rest.
+  tell_safe <- function(sb, y, kpi_name) {
+    tryCatch({
+      tell(sb, y)
+      TRUE
+    }, error = function(e) {
+      warning(sprintf(
+        "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
+        kpi_name, "top_params may not include a parameter that moves this KPI",
+        conditionMessage(e)
+      ))
+      FALSE
+    })
+  }
 
+  sobol_ok <- c(
+    r2b_ot_q       = tell_safe(sb_r2b,   Y_all[, "r2b_ot_q"],       "r2b_ot_q"),
+    r2e_ot_q       = tell_safe(sb_r2e,   Y_all[, "r2e_ot_q"],       "r2e_ot_q"),
+    system_ot_q    = tell_safe(sb_sys,   Y_all[, "system_ot_q"],    "system_ot_q"),
+    transport_q    = tell_safe(sb_tq,    Y_all[, "transport_q"],    "transport_q"),
+    transport_util = tell_safe(sb_tutil, Y_all[, "transport_util"], "transport_util")
+  )
+
+  # Even when tell() does not throw, boot.ci() can silently fail for an
+  # individual parameter within an otherwise-successful call (e.g. one
+  # parameter's bootstrap distribution is degenerate while others are not),
+  # leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
+  # here rather than relying on tell_safe() alone.
   save_sobol <- function(sb, kpi_name) {
+    p <- nrow(p_def)
+    lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
+              length(sb$T$original), length(sb$T$`min. c.i.`), length(sb$T$`max. c.i.`))
+    if (any(lens != p)) {
+      warning(sprintf(
+        "Skipping Sobol output for %s: incomplete indices (expected %d parameters, got lengths %s) — likely a degenerate bootstrap for at least one parameter.",
+        kpi_name, p, paste(lens, collapse = ",")
+      ))
+      return(invisible(NULL))
+    }
     results <- data.frame(
       parameter = p_def$name,
       S1        = sb$S$original,
@@ -306,10 +392,16 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     results
   }
 
-  save_sobol(sb_r2b, "r2b_ot_q")
-  save_sobol(sb_r2e, "r2e_ot_q")
-  save_sobol(sb_sys, "system_ot_q")
+  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
+                   transport_q = sb_tq, transport_util = sb_tutil)
+  saved <- list()
+  for (kpi_name in names(sb_objs)) {
+    if (sobol_ok[[kpi_name]]) {
+      res <- save_sobol(sb_objs[[kpi_name]], kpi_name)
+      if (!is.null(res)) saved[[kpi_name]] <- sb_objs[[kpi_name]]
+    }
+  }
 
   message("\nSobol complete.")
-  list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys)
+  saved
 }

@@ -67,7 +67,11 @@ build_environment <- function(data) {
       if (!is.null(elm$beds)) {
         for (bed in elm$beds) {
           bed_type <- bed$name
-          bed_ids <- paste0("b_", elm_name, "_", bed_type, "_", seq_len(bed$qty), "_t", i)
+          bed_ids <- if (bed$qty > 0) {
+            paste0("b_", elm_name, "_", bed_type, "_", seq_len(bed$qty), "_t", i)
+          } else {
+            character(0)
+          }
           instance[[paste0(bed_type, "_bed")]] <- bed_ids
         }
       }
@@ -81,7 +85,11 @@ build_environment <- function(data) {
   transports_list <- list()
   if (!is.null(data$transports)) {
     for (vehicle in data$transports) {
-      transports_list[[vehicle$name]] <- paste0("t_", vehicle$name, "_", seq_len(vehicle$qty))
+      transports_list[[vehicle$name]] <- if (vehicle$qty > 0) {
+        paste0("t_", vehicle$name, "_", seq_len(vehicle$qty))
+      } else {
+        character(0)
+      }
     }
   }
 

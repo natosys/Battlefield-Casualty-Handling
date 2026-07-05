@@ -13,7 +13,7 @@
 | 1 | Single-seed, single-run analysis | Critical | Medium | **Merged (#16)** |
 | 2 | No warm-up / initialisation bias analysis | High | Low | **Merged (#20)** |
 | 3 | No sensitivity analysis | High | Medium | **Merged (#30)** |
-| 4 | Team-block resource seizure (not individual) | High | High | Open |
+| 4 | Team-block resource seizure (not individual) | High | High | Backlog |
 | 5 | Flat DOW rate independent of wait time | High | Medium | **Merged (PR #53)** |
 | 6 | Unidirectional transport (no dead-heading) | Medium | Low | **Merged (PR #56)** |
 | 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **Merged (PR #34)** |
@@ -30,7 +30,7 @@
 | 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | **Merged (PR #48)** |
-| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open — bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B remain |
+| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B **Backlog** |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | **Merged (PR #59)** |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
 | 60 | `qty: 0` in env_data.json silently creates one unit instead of zero | Low | Low | **Merged (PR #62)** |
@@ -1133,14 +1133,14 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 12. ~~**Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+).~~ — **Merged PR #59.**
 13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
-### Phase 3 — Structural Refactoring (Issues 7 ✓, 39 ✓, 60 ✓, 4, 40 partial ✓)
+### Phase 3 — Structural Refactoring (Issues 7 ✓, 39 ✓, 60 ✓, 4 backlog, 40 partial ✓ / backlog)
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
 
 10. ~~**Issue 7** — DNBI sub-category routing~~ — **Merged PR #34.** Prerequisite for Issue #39 satisfied.
 11. ~~**Issue 39** — R2B hold bed saturation analysis~~ — **Merged PR #48.** Two-tier routing policy (upstream threshold + at-R2B three-stage branch) implemented; per-stream occupancy decomposition added to analysis pipeline.
 12. ~~**Issue 60** — Guard zero-length `seq_len(qty)` in `build_environment()`'s bed and transport ID construction so `qty: 0` produces zero resources instead of one.~~ — **Merged PR #62.**
-13. **Issue 40** — R2B OT utilisation improvement. ~~Add `r2b_bypass_reason` attribute~~ — **Merged PR #64** (67 off-shift, 10 OT busy/queued, of 77 at-R2B bypasses). Remaining: scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4) — both deferred pending a clinician fatigue model (Scenario A) and a directed establishment-size decision (Scenario B).
-14. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
+13. **Issue 40** — R2B OT utilisation improvement. ~~Add `r2b_bypass_reason` attribute~~ — **Merged PR #64** (67 off-shift, 10 OT busy/queued, of 77 at-R2B bypasses). Remaining scope: scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4) — both deferred pending a clinician fatigue model (Scenario A) and a directed establishment-size decision (Scenario B). **Backlog** — not currently planned; unblocked but on hold pending that design work.
+14. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable (satisfied). Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1. **Backlog** — unblocked but deprioritised given its size/risk; may not be resourced in the near term.
 
 ### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
 *Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs.*
@@ -1184,15 +1184,18 @@ IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
+  #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
+  #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
+  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
+
+BACKLOG (unblocked but deprioritised — not currently planned):
+  #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
+       parked given its size/risk — largest structural change in the project)
   #40  R2B OT utilisation analysis   (remaining scope: Scenario A extended
        shift hours — deferred pending a clinician fatigue model; Scenario B
        second surgical team — deferred pending a directed establishment
        change. Bypass-reason diagnostic merged, PR #64.)
-  #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
-  #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
-  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
 
 AFTER #14 + #1 + #2 + #3:
   #15  Shiny — Full Analysis mode
@@ -1221,4 +1224,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 05 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), and partial completion of #40 (bypass-reason diagnostic, PR #64); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #4, #14, #9, #18, and #10 all unblocked; #40 partially merged with Scenario A/B remaining unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*
+*Prepared June 2026. Updated 05 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14, #9, #18, and #10 unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 backlogged; #40 partially merged with remaining Scenario A/B scope backlogged. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*

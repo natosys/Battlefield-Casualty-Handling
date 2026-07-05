@@ -359,6 +359,28 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_pre_bypass_count, r2b_hold_bypass_count, r2b_hold_queued_count
   ))
 
+  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
+  # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
+  # non-NA) and were bypassed to R2E at the surgical decision point — it does
+  # not apply to the pre-transport r2b_bypassed rows above (those never carry
+  # r2b_treated, since they are routed from R1 before ever arriving at R2B).
+  # 1 = surgical team off-shift; 2 = OT bed busy or queued.
+  r2b_ot_bypass_offshift_count <- 0L
+  r2b_ot_bypass_busy_count     <- 0L
+  if ("r2b_bypass_reason" %in% names(attributes_wide)) {
+    r2b_ot_bypass_offshift_count <- sum(!is.na(attributes_wide$r2b_bypass_reason) &
+                                          attributes_wide$r2b_bypass_reason == 1L,
+                                        na.rm = TRUE)
+    r2b_ot_bypass_busy_count     <- sum(!is.na(attributes_wide$r2b_bypass_reason) &
+                                          attributes_wide$r2b_bypass_reason == 2L,
+                                        na.rm = TRUE)
+  }
+  r2b_ot_bypass_count <- r2b_ot_bypass_offshift_count + r2b_ot_bypass_busy_count
+  cat(sprintf(
+    "R2B OT bypass reason (at-R2B, surgical decision point): team off-shift: %d | OT busy/queued: %d | total: %d\n",
+    r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
+  ))
+
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
@@ -873,6 +895,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_pre_bypass_count        = r2b_pre_bypass_count,
     r2b_hold_bypass_count       = r2b_hold_bypass_count,
     r2b_hold_queued_count       = r2b_hold_queued_count,
+    r2b_ot_bypass_offshift_count = r2b_ot_bypass_offshift_count,
+    r2b_ot_bypass_busy_count    = r2b_ot_bypass_busy_count,
+    r2b_ot_bypass_count         = r2b_ot_bypass_count,
     transport_utilisation       = transport_utilisation,
     transport_capacity_margin_plot = p_transport_capacity_margin,
     post_op_pathway_summary     = post_op_pathway_summary,

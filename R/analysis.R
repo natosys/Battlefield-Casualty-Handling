@@ -381,9 +381,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
   ))
 
+  # Averaged per replication before plotting (matches the r2b_hold_daily
+  # convention, Issue #39) so multi-replication runs show mean bypasses per
+  # simulation day rather than a raw sum across replications, which would
+  # scale with n_iterations and misrepresent a single run's daily pattern.
   r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
-  day_range <- seq(min(floor(combined$start_time / 1440) + 1),
-                    max(floor(combined$start_time / 1440) + 1))
+  day_range   <- seq(min(floor(combined$start_time / 1440) + 1),
+                      max(floor(combined$start_time / 1440) + 1))
+  n_reps_bypass <- max(1L, n_distinct(attributes_wide$replication))
 
   r2b_bypass_reason_daily <- attributes_wide %>%
     filter(!is.na(r2b_bypass_reason)) %>%
@@ -394,20 +399,26 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
         levels = r2b_bypass_reason_levels
       )
     ) %>%
-    count(day, reason, name = "n") %>%
-    complete(day = day_range, reason = r2b_bypass_reason_levels, fill = list(n = 0))
+    group_by(replication, day, reason) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(day, reason) %>%
+    summarise(mean_n = mean(n), .groups = "drop") %>%
+    complete(day = day_range, reason = r2b_bypass_reason_levels, fill = list(mean_n = 0))
 
-  y_top <- max(1, tapply(r2b_bypass_reason_daily$n, r2b_bypass_reason_daily$day, sum)) + 1
+  y_top <- max(1, tapply(r2b_bypass_reason_daily$mean_n, r2b_bypass_reason_daily$day, sum)) + 1
 
-  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_daily, aes(x = factor(day), y = n, fill = reason)) +
+  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_daily, aes(x = factor(day), y = mean_n, fill = reason)) +
     geom_bar(stat = "identity", position = "stack", width = 0.7) +
     scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a")) +
     scale_y_continuous(breaks = 0:y_top, limits = c(0, y_top)) +
     labs(
       title    = "R2B OT Bypass Reason per Simulation Day",
-      subtitle = sprintf("Of %d casualties bypassed to R2E at the R2B surgical decision point (seed 42, 30 days)",
-                         r2b_ot_bypass_count),
-      x = "Simulation Day", y = "Casualties Bypassed", fill = "Reason"
+      subtitle = sprintf(
+        "Mean bypasses per day across %d replication%s (%d total: %d off-shift, %d OT busy/queued)",
+        n_reps_bypass, if (n_reps_bypass == 1) "" else "s",
+        r2b_ot_bypass_count, r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count
+      ),
+      x = "Simulation Day", y = "Mean Casualties Bypassed", fill = "Reason"
     ) +
     theme_minimal(base_size = 14) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")

@@ -381,6 +381,32 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
   ))
 
+  r2b_bypass_reason_df <- data.frame(
+    reason = factor(c("Team off-shift", "OT busy / queued"),
+                     levels = c("Team off-shift", "OT busy / queued")),
+    count  = c(r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count)
+  )
+
+  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_df, aes(x = reason, y = count, fill = reason)) +
+    geom_col(width = 0.55) +
+    geom_text(
+      aes(label = sprintf("%d (%.0f%%)", count, 100 * count / sum(count))),
+      vjust = -0.6, size = 5, fontface = "bold", color = "#0b0b0b"
+    ) +
+    scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a"), guide = "none") +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.18))) +
+    labs(
+      title    = "R2B OT Bypass Reason (Seed 42, 30 Days)",
+      subtitle = sprintf("Of %d casualties bypassed to R2E at the R2B surgical decision point", r2b_ot_bypass_count),
+      x = NULL, y = "Casualties bypassed"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor = element_blank())
+
+  print(r2b_bypass_reason_plot)
+  ggsave(file.path(images_dir, "r2b_ot_bypass_reason.png"), r2b_bypass_reason_plot,
+         width = 8, height = 6, dpi = 150)
+
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
@@ -898,6 +924,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_ot_bypass_offshift_count = r2b_ot_bypass_offshift_count,
     r2b_ot_bypass_busy_count    = r2b_ot_bypass_busy_count,
     r2b_ot_bypass_count         = r2b_ot_bypass_count,
+    r2b_bypass_reason_plot      = r2b_bypass_reason_plot,
     transport_utilisation       = transport_utilisation,
     transport_capacity_margin_plot = p_transport_capacity_margin,
     post_op_pathway_summary     = post_op_pathway_summary,

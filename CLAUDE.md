@@ -424,7 +424,8 @@ These are the validated baseline values from the current single-run analysis. Re
 | R2B surgical candidates (seed 42, post-Issue-43) | 132 |
 | R2B surgeries (seed 42, post-Issue-43) | 53 |
 | R2E surgeries — first op (seed 42, post-Issue-43) | 134 |
-| R2B bypass count (seed 42, post-Issue-43) | 124 (upstream R1 threshold + at-R2B OT/ICU-gate bypass, combined) |
+| R2B bypass count (seed 42, post-Issue-43) | 124 (upstream R1 threshold: 47 + at-R2B OT-check bypass: 77) |
+| R2B OT bypass reason (seed 42, post-Issue-40) | at-R2B subset (77) decomposed: team off-shift 67 (87%), OT busy/queued 10 (13%) |
 | R2B OT utilisation — 24h room (seed 42) | T1: 10.5%, T2: 7.9% |
 | R2B OT utilisation — shift time (seed 42) | T1: 21.0%, T2: 15.9% |
 | R2E OT utilisation — 24h room (seed 42, post-Issue-43) | OT1: 48.7%, OT2: 25.2% |

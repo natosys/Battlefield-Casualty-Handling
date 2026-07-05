@@ -405,7 +405,9 @@ r2b_transport_wia <- function() {
 #' #     proceeds, P2+ defers OT entry while this unit's ICU is saturated),
 #' #     then check OT bed AND surgical team availability
 #' #     - OT bed free, no queue, team on shift → seize OT + team, perform DAMCON surgery
-#' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E (r2b_bypassed = 1)
+#' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E
+#' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
+#' #          r2b_bypass_time = simulation time of the bypass decision)
 #' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
 #'
 #' # Step 5: Evacuation decision branch
@@ -495,9 +497,20 @@ r2b_treat_wia <- function(team_id) {
           ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
         }),
 
-      # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E
+      # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E.
+      # r2b_bypass_reason decomposes the cause (Issue #40): 1 = surgical team
+      # off-shift (team_cap <= 0), 2 = OT bed busy or queued. Re-reads the same
+      # resource state as the option() check above — no timeout intervenes
+      # between the branch decision and this sub-trajectory, so state cannot
+      # have changed.
       trajectory("OT Unavailable – Bypass to R2E") %>%
-        set_attribute("r2b_bypassed", 1)
+        set_attribute("r2b_bypassed", 1) %>%
+        set_attribute("r2b_bypass_reason", function() {
+          team_cap <- sum(get_capacity(env, resources = surg_team))
+          if (!is.na(team_cap) && team_cap <= 0) return(1)
+          return(2)
+        }) %>%
+        set_attribute("r2b_bypass_time", function() now(env))
     )
 
   trajectory("R2B Basic Flow") %>%

@@ -359,6 +359,74 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_pre_bypass_count, r2b_hold_bypass_count, r2b_hold_queued_count
   ))
 
+  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
+  # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
+  # non-NA) and were bypassed to R2E at the surgical decision point — it does
+  # not apply to the pre-transport r2b_bypassed rows above (those never carry
+  # r2b_treated, since they are routed from R1 before ever arriving at R2B).
+  # 1 = surgical team off-shift; 2 = OT bed busy or queued.
+  r2b_ot_bypass_offshift_count <- 0L
+  r2b_ot_bypass_busy_count     <- 0L
+  if ("r2b_bypass_reason" %in% names(attributes_wide)) {
+    r2b_ot_bypass_offshift_count <- sum(!is.na(attributes_wide$r2b_bypass_reason) &
+                                          attributes_wide$r2b_bypass_reason == 1L,
+                                        na.rm = TRUE)
+    r2b_ot_bypass_busy_count     <- sum(!is.na(attributes_wide$r2b_bypass_reason) &
+                                          attributes_wide$r2b_bypass_reason == 2L,
+                                        na.rm = TRUE)
+  }
+  r2b_ot_bypass_count <- r2b_ot_bypass_offshift_count + r2b_ot_bypass_busy_count
+  cat(sprintf(
+    "R2B OT bypass reason (at-R2B, surgical decision point): team off-shift: %d | OT busy/queued: %d | total: %d\n",
+    r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
+  ))
+
+  # Averaged per replication before plotting (matches the r2b_hold_daily
+  # convention, Issue #39) so multi-replication runs show mean bypasses per
+  # simulation day rather than a raw sum across replications, which would
+  # scale with n_iterations and misrepresent a single run's daily pattern.
+  r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
+  day_range   <- seq(min(floor(combined$start_time / 1440) + 1),
+                      max(floor(combined$start_time / 1440) + 1))
+  n_reps_bypass <- max(1L, n_distinct(attributes_wide$replication))
+
+  r2b_bypass_reason_daily <- attributes_wide %>%
+    filter(!is.na(r2b_bypass_reason)) %>%
+    mutate(
+      day    = floor(r2b_bypass_time / 1440) + 1,
+      reason = factor(
+        ifelse(r2b_bypass_reason == 1, "Team off-shift", "OT busy / queued"),
+        levels = r2b_bypass_reason_levels
+      )
+    ) %>%
+    group_by(replication, day, reason) %>%
+    summarise(n = n(), .groups = "drop") %>%
+    group_by(day, reason) %>%
+    summarise(mean_n = mean(n), .groups = "drop") %>%
+    complete(day = day_range, reason = r2b_bypass_reason_levels, fill = list(mean_n = 0))
+
+  y_top <- max(1, tapply(r2b_bypass_reason_daily$mean_n, r2b_bypass_reason_daily$day, sum)) + 1
+
+  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_daily, aes(x = factor(day), y = mean_n, fill = reason)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.7) +
+    scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a")) +
+    scale_y_continuous(breaks = 0:y_top, limits = c(0, y_top)) +
+    labs(
+      title    = "R2B OT Bypass Reason per Simulation Day",
+      subtitle = sprintf(
+        "Mean bypasses per day across %d replication%s (%d total: %d off-shift, %d OT busy/queued)",
+        n_reps_bypass, if (n_reps_bypass == 1) "" else "s",
+        r2b_ot_bypass_count, r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count
+      ),
+      x = "Simulation Day", y = "Mean Casualties Bypassed", fill = "Reason"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+  print(r2b_bypass_reason_plot)
+  ggsave(file.path(images_dir, "r2b_ot_bypass_reason.png"), r2b_bypass_reason_plot,
+         width = 12, height = 6, dpi = 150)
+
   # ── R2B casualty treatment summary ───────────────────────────────────────
 
   r2b_casualties <- combined %>%
@@ -873,6 +941,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_pre_bypass_count        = r2b_pre_bypass_count,
     r2b_hold_bypass_count       = r2b_hold_bypass_count,
     r2b_hold_queued_count       = r2b_hold_queued_count,
+    r2b_ot_bypass_offshift_count = r2b_ot_bypass_offshift_count,
+    r2b_ot_bypass_busy_count    = r2b_ot_bypass_busy_count,
+    r2b_ot_bypass_count         = r2b_ot_bypass_count,
+    r2b_bypass_reason_plot      = r2b_bypass_reason_plot,
     transport_utilisation       = transport_utilisation,
     transport_capacity_margin_plot = p_transport_capacity_margin,
     post_op_pathway_summary     = post_op_pathway_summary,

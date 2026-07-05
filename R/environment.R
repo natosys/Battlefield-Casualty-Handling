@@ -8,6 +8,8 @@ library(simmer)
 library(simmer.bricks)
 library(triangle)
 
+source("R/scenario.R")
+
 # ── Data import ──────────────────────────────────────────────────────────────
 
 #' Builds structured environment data from parsed JSON
@@ -135,6 +137,27 @@ build_environment <- function(data) {
 #' @return Named list with elements: pops, elms, transports, vars
 load_elms <- function(path) {
   json_data <- fromJSON(path, simplifyVector = FALSE)
+  build_environment(json_data)
+}
+
+#' Loads env_data.json and applies a named scenario profile overlay
+#'
+#' @param path File path to env_data.json
+#' @param scenario Name of scenario profile to apply (default "default" —
+#'   base parameters, no override; reproduces the existing baseline exactly)
+#' @return Named list with elements: pops, elms, transports, vars
+#'
+#' @details Scenario profiles are defined under the top-level `scenarios`
+#'   key in env_data.json and override only the scenario-specific subset of
+#'   `vars` (casualty generation rates, DOW parameters and treatment
+#'   efficacy factors, priority distribution, evacuation/surgery
+#'   probabilities, DNBI composition, transport time distributions).
+#'   Structural configuration (`elms`, `transports`, `pops`) is never
+#'   overridden. See `resolve_scenario()` and `merge_scenario_vars()` in
+#'   R/scenario.R.
+load_scenario <- function(path, scenario = "default") {
+  json_data <- fromJSON(path, simplifyVector = FALSE)
+  json_data <- resolve_scenario(json_data, scenario)
   build_environment(json_data)
 }
 

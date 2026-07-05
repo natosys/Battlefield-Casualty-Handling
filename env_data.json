@@ -766,5 +766,63 @@
         }
       ]
     }
-  ]
+  ],
+  "scenarios": {
+    "falklands_1982": {
+      "label": "Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)",
+      "source": "Payne (1983); Jolly (2018); Blood, Zouris & Rotblatt (1998) FORECAS Table A.8",
+      "notes": "Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. Only the DOW ceiling and treatment-efficacy factors are overridden: the base values for those two groups are OIF/OEF-era (TCCC, damage control resuscitation/surgery), which did not exist as doctrine in 1982, so applying them to a Falklands scenario would misattribute modern treatment technique for the low historical DOW rate. See README 'Scenario Profiles' section.",
+      "vars": [
+        {
+          "elm": "dow",
+          "actys": [
+            {
+              "acty": "params",
+              "vals": [
+                { "var": "p1_p_base", "val": 0.001 },
+                { "var": "p1_p_max",  "val": 0.0089 },
+                { "var": "p1_k",      "val": 0.04  },
+                { "var": "p1_t_mid",  "val": 120   },
+                { "var": "p2_p_base", "val": 0.0005 },
+                { "var": "p2_p_max",  "val": 0.0074 },
+                { "var": "p2_k",      "val": 0.025 },
+                { "var": "p2_t_mid",  "val": 180   },
+                { "var": "p3_flat",   "val": 0.001 }
+              ]
+            },
+            {
+              "acty": "treatment_efficacy",
+              "vals": [
+                { "var": "r1_tccc_factor",   "val": 1.0  },
+                { "var": "r2b_resus_factor", "val": 0.90 },
+                { "var": "r2b_dcs_factor",   "val": 0.55 },
+                { "var": "r2e_resus_factor", "val": 0.90 },
+                { "var": "r2e_dcs1_factor",  "val": 0.55 },
+                { "var": "r2e_dcs2_factor",  "val": 0.80 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "oif_oef": {
+      "label": "OIF/OEF (Operations Iraqi Freedom / Enduring Freedom, US-led coalition, 2001-2017) — demonstration skeleton",
+      "source": "Howard et al. (2019) JAMA Surgery aggregate DOW rate (2.1-3.3% of battle casualties)",
+      "notes": "SKELETON PROFILE (Issue #54): demonstrates that the scenario mechanism generalises beyond Falklands; it is not a fully validated second scenario. Treatment efficacy factors are unchanged from the base env_data.json values because those values are already OIF/OEF-era in origin (see README DOW section). Only the DOW ceiling (p_max) is overridden, scaled toward the Howard et al. (2019) aggregate DOW rate. Casualty generation rates, priority distribution, DNBI composition, and transport time distributions are NOT sourced for OIF/OEF in this issue and are inherited from the base (Falklands-calibrated) configuration as a known placeholder — see README Limitations.",
+      "vars": [
+        {
+          "elm": "dow",
+          "actys": [
+            {
+              "acty": "params",
+              "vals": [
+                { "var": "p1_p_max", "val": 0.095 },
+                { "var": "p2_p_max", "val": 0.078 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
 }

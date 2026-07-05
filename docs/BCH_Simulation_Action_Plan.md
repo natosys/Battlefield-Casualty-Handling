@@ -30,7 +30,7 @@
 | 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | **Merged (PR #48)** |
-| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open |
+| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Open — bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B remain |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | **Merged (PR #59)** |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
 | 60 | `qty: 0` in env_data.json silently creates one unit instead of zero | Low | Low | **Merged (PR #62)** |
@@ -44,6 +44,22 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 40 (partial) — R2B OT Bypass Reason Diagnostic ✓
+
+**Merged:** PR #64, branch `claude/next-issue-selection-v6kxjh`
+
+Implements the diagnostic portion of Issue #40 only. `r2b_treat_wia()`'s OT-unavailable bypass branch (`R/trajectories.R`) now sets `r2b_bypass_reason` (1 = surgical team off-shift, 2 = OT bed busy or queued) and `r2b_bypass_time`, decomposing the previously undifferentiated at-R2B bypass count. `R/analysis.R` gained the matching decomposition (`r2b_ot_bypass_offshift_count`, `r2b_ot_bypass_busy_count`, `r2b_ot_bypass_count`) and a stacked bar chart of mean bypasses per simulation day by reason (`images/r2b_ot_bypass_reason.png`), following the `r2b_hold_daily` (Issue #39) replication-averaging convention.
+
+**Scope decision:** Scenario A (extended `ot_hours`) and Scenario B (second surgical team per R2B unit) — the two intervention tests in the original issue — were deliberately **not** implemented. Extended-hours throughput gains can't be meaningfully assessed without a clinician fatigue/error-rate model, which the simulation doesn't represent; reporting them without that counterweight would overstate the intervention's net benefit. A second team is an establishment-size decision for planners, not a parameter to test unilaterally. Issue #40 remains open for this remaining scope.
+
+**Seed-42 baseline (30 days, single run):** Of 77 at-R2B OT-check bypasses (subset of the existing combined 124 `r2b_bypassed` count — 47 upstream R1-threshold + 77 at-R2B), **67 (87%) are attributable to the surgical team's 12-hour shift window**, and only **10 (13%) to OT bed congestion** — confirming the shift window, not physical OT capacity, as the dominant constraint on forward surgical throughput at R2B. Total casualties (400), WIA (154), KIA (70), and DNBI (176) all unchanged; no RNG-stream-affecting change was made.
+
+**A genuine bug was found and fixed during this PR's own review cycle:** the first version of the daily chart summed bypass counts across replications instead of averaging per replication first (matching `r2b_hold_daily`'s convention), which would have scaled the chart ~N× under multi-run mode (`--iterations > 1`) and silently mis-rendered rather than erroring. Caught by testing the multi-replication path before merge; fixed and re-verified (single-run baseline unaffected; multi-rep now correctly scaled) in the same PR.
+
+**Unblocked by this merge:** No new issues unblocked — nothing in the dependency graph lists #40 as a blocker, and #40 itself remains `status: ready` for its remaining Scenario A/B scope.
+
+---
 
 ### Issue 60 — `qty: 0` Silently Creates One Resource Instead of Zero ✓
 
@@ -1117,13 +1133,13 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 12. ~~**Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+).~~ — **Merged PR #59.**
 13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
 
-### Phase 3 — Structural Refactoring (Issues 7 ✓, 39 ✓, 60 ✓, 4, 40)
+### Phase 3 — Structural Refactoring (Issues 7 ✓, 39 ✓, 60 ✓, 4, 40 partial ✓)
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
 
 10. ~~**Issue 7** — DNBI sub-category routing~~ — **Merged PR #34.** Prerequisite for Issue #39 satisfied.
 11. ~~**Issue 39** — R2B hold bed saturation analysis~~ — **Merged PR #48.** Two-tier routing policy (upstream threshold + at-R2B three-stage branch) implemented; per-stream occupancy decomposition added to analysis pipeline.
 12. ~~**Issue 60** — Guard zero-length `seq_len(qty)` in `build_environment()`'s bed and transport ID construction so `qty: 0` produces zero resources instead of one.~~ — **Merged PR #62.**
-13. **Issue 40** — R2B OT utilisation improvement. Add `r2b_bypass_reason` attribute; scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4).
+13. **Issue 40** — R2B OT utilisation improvement. ~~Add `r2b_bypass_reason` attribute~~ — **Merged PR #64** (67 off-shift, 10 OT busy/queued, of 77 at-R2B bypasses). Remaining: scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4) — both deferred pending a clinician fatigue model (Scenario A) and a directed establishment-size decision (Scenario B).
 14. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable. Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1.
 
 ### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
@@ -1161,6 +1177,8 @@ COMPLETE (merged to main):
        post-operative DOW checkpoint, R2E OT-ICU gating impact plot (PR #59)
   #60  qty:0 resource guard — build_environment() bed/transport ID construction
        fix (PR #62)
+  #40  (partial) bypass-reason diagnostic — r2b_bypass_reason/r2b_bypass_time,
+       daily chart (PR #64); Scenario A/B remain — see UNBLOCKED below
 
 IN REVIEW (PRs open against main):
   (none)
@@ -1168,7 +1186,10 @@ IN REVIEW (PRs open against main):
 UNBLOCKED (start now):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged)
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
-  #40  R2B OT utilisation analysis   (unblocked by #35 ✓ + #37 ✓)
+  #40  R2B OT utilisation analysis   (remaining scope: Scenario A extended
+       shift hours — deferred pending a clinician fatigue model; Scenario B
+       second surgical team — deferred pending a directed establishment
+       change. Bypass-reason diagnostic merged, PR #64.)
   #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
@@ -1200,4 +1221,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 04 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), and #60 (PR #62); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #4, #14, #40, #9, #18, and #10 all unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*
+*Prepared June 2026. Updated 05 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), and partial completion of #40 (bypass-reason diagnostic, PR #64); and addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing). Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #4, #14, #9, #18, and #10 all unblocked; #40 partially merged with Scenario A/B remaining unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 unblocked. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*

@@ -1242,7 +1242,9 @@ OT rooms are modelled as physical spaces available 24 hours per day. The surgica
 
 **Bypass reason decomposition (Issue #40).** The undifferentiated bypass count above conflates two distinct causes: the surgical team being off-shift, and the OT bed itself being busy or queued. `r2b_bypass_reason` (set at the point of bypass in `r2b_treat_wia()`, `R/trajectories.R`) distinguishes them: of the 77 bypasses, **67 (87%) were because the surgical team was off-shift**, and only **10 (13%) were because the OT bed was busy or a queue existed**. This confirms the 12-hour shift window — not physical OT capacity — as the dominant constraint on forward surgical throughput at R2B: for half of each 24-hour cycle, a casualty arriving at either R2B unit cannot receive surgery there regardless of bed availability, and is routed to R2E instead.
 
-![R2B OT Bypass Reason](images/r2b_ot_bypass_reason.png)
+![R2B OT Bypass Reason per Simulation Day](images/r2b_ot_bypass_reason.png)
+
+Off-shift bypasses (blue) dominate on nearly every day of the run, while OT-busy/queued bypasses (green) appear only intermittently and never exceed 2 in a single day — indicating the shift-window gap is a persistent, day-to-day constraint rather than an occasional congestion spike.
 
 Two candidate interventions to close this gap were scoped under Issue #40 — extending the existing team's shift hours, or fielding a second surgical team per R2B unit on the complementary shift — but neither is evaluated in this analysis. Extending shift hours cannot be meaningfully assessed without a model of clinician fatigue and associated error/complication risk, which the simulation does not represent; reporting throughput gains from longer shifts without that counterweight would overstate the intervention's net benefit. Fielding a second team is an establishment-size decision — a resourcing question for planners, not a parameter the simulation should default to testing as if cost-free. Both remain candidate follow-up scenario tests once a fatigue model exists or a second-team establishment change is directed; see Further Development.
 

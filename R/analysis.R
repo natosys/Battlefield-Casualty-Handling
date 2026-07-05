@@ -381,31 +381,40 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
   ))
 
-  r2b_bypass_reason_df <- data.frame(
-    reason = factor(c("Team off-shift", "OT busy / queued"),
-                     levels = c("Team off-shift", "OT busy / queued")),
-    count  = c(r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count)
-  )
+  r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
+  day_range <- seq(min(floor(combined$start_time / 1440) + 1),
+                    max(floor(combined$start_time / 1440) + 1))
 
-  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_df, aes(x = reason, y = count, fill = reason)) +
-    geom_col(width = 0.55) +
-    geom_text(
-      aes(label = sprintf("%d (%.0f%%)", count, 100 * count / sum(count))),
-      vjust = -0.6, size = 5, fontface = "bold", color = "#0b0b0b"
-    ) +
-    scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a"), guide = "none") +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.18))) +
+  r2b_bypass_reason_daily <- attributes_wide %>%
+    filter(!is.na(r2b_bypass_reason)) %>%
+    mutate(
+      day    = floor(r2b_bypass_time / 1440) + 1,
+      reason = factor(
+        ifelse(r2b_bypass_reason == 1, "Team off-shift", "OT busy / queued"),
+        levels = r2b_bypass_reason_levels
+      )
+    ) %>%
+    count(day, reason, name = "n") %>%
+    complete(day = day_range, reason = r2b_bypass_reason_levels, fill = list(n = 0))
+
+  y_top <- max(1, tapply(r2b_bypass_reason_daily$n, r2b_bypass_reason_daily$day, sum)) + 1
+
+  r2b_bypass_reason_plot <- ggplot(r2b_bypass_reason_daily, aes(x = factor(day), y = n, fill = reason)) +
+    geom_bar(stat = "identity", position = "stack", width = 0.7) +
+    scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a")) +
+    scale_y_continuous(breaks = 0:y_top, limits = c(0, y_top)) +
     labs(
-      title    = "R2B OT Bypass Reason (Seed 42, 30 Days)",
-      subtitle = sprintf("Of %d casualties bypassed to R2E at the R2B surgical decision point", r2b_ot_bypass_count),
-      x = NULL, y = "Casualties bypassed"
+      title    = "R2B OT Bypass Reason per Simulation Day",
+      subtitle = sprintf("Of %d casualties bypassed to R2E at the R2B surgical decision point (seed 42, 30 days)",
+                         r2b_ot_bypass_count),
+      x = "Simulation Day", y = "Casualties Bypassed", fill = "Reason"
     ) +
     theme_minimal(base_size = 14) +
-    theme(panel.grid.major.x = element_blank(), panel.grid.minor = element_blank())
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 
   print(r2b_bypass_reason_plot)
   ggsave(file.path(images_dir, "r2b_ot_bypass_reason.png"), r2b_bypass_reason_plot,
-         width = 8, height = 6, dpi = 150)
+         width = 12, height = 6, dpi = 150)
 
   # ── R2B casualty treatment summary ───────────────────────────────────────
 

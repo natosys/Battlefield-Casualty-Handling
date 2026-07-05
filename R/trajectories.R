@@ -406,7 +406,8 @@ r2b_transport_wia <- function() {
 #' #     then check OT bed AND surgical team availability
 #' #     - OT bed free, no queue, team on shift → seize OT + team, perform DAMCON surgery
 #' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E
-#' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued)
+#' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
+#' #          r2b_bypass_time = simulation time of the bypass decision)
 #' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
 #'
 #' # Step 5: Evacuation decision branch
@@ -508,7 +509,8 @@ r2b_treat_wia <- function(team_id) {
           team_cap <- sum(get_capacity(env, resources = surg_team))
           if (!is.na(team_cap) && team_cap <= 0) return(1)
           return(2)
-        })
+        }) %>%
+        set_attribute("r2b_bypass_time", function() now(env))
     )
 
   trajectory("R2B Basic Flow") %>%

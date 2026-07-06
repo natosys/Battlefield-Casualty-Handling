@@ -47,7 +47,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Schedules and Rosters](#schedules-and-rosters)
 - [🤕 Casualties](#🤕-casualties)
   - [Casualty Generation](#casualty-generation)
-    - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
+    - [1. Distribution Parameterisation](#1-distribution-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
     - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
     - [4. Temporal Randomisation](#4-temporal-randomisation)
@@ -339,11 +339,13 @@ Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitabl
 
 ### Casualty Generation
 
-For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. The function simulates the timing of casualty arrivals using a lognormal distribution to reflect daily variability, transformed into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
+For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 
-#### 1. Lognormal Parameterisation
+FORECAS [[8]](#References) fits casualty incidence to one of **two** distribution families, selected by battle intensity and troop type rather than a single distribution applying universally: a **lognormal** model (two parameters, mean and standard deviation) for moderate/light-intensity combat troops and for support troops at all intensities, and a single-parameter **exponential** model for combat troops in high-intensity battles. `generate_casualty_arrivals()` (`R/environment.R`) dispatches each casualty stream to `generate_ln_arrivals()` or `generate_exp_arrivals()` based on an explicit `distribution` field read from `env_data$vars$generators`; which family applies to which stream is a scenario-level choice — see [Scenario Profiles](#scenario-profiles) for how `moderate_intensity` (lognormal, all streams) and `high_intensity` (exponential, all streams) select between them. Both models share the same per-minute sampling, cumulative-sum arrival detection, and jitter mechanics (steps 2–4 below); they differ only in how the per-minute rate itself is drawn (step 1).
 
-Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
+#### 1. Distribution Parameterisation
+
+**Lognormal** (`generate_ln_arrivals()`) converts the daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution:
 
 Mean (log-space):
 
@@ -359,14 +361,25 @@ $$
 
 Where:
 
-- \mu = expected number of DNBI casualties per day
+- \mu = expected number of casualties per day
 - \sigma = daily standard deviation
+
+**Exponential** (`generate_exp_arrivals()`) is single-parameter — the rate is fully determined by the mean, with no separate shape parameter, following FORECAS's own formula $W \sim \text{exponential}(\mu)$:
+
+$$
+\lambda = \frac{1}{\mu}
+$$
+
+Where:
+
+- \mu = expected number of casualties per day
+- \lambda = exponential rate parameter passed to the per-minute draw (no \sigma term — a reported standard deviation for an exponential-fitted stream is retained in `env_data.json` for citation only and plays no role in generation)
 
 #### 2. Per-Minute Rate Sampling and Scaling
 
-Draws lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
+Draws samples from the stream's selected distribution representing per-minute casualty rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
 
-For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute DNBI rate is computed as:
+For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute casualty rate is computed as:
 
 $$
 r_i = \min\left(x_i, \text{cap}\right) \times \frac{P}{1000 \times 1440}
@@ -374,13 +387,15 @@ $$
 
 Where:
 
-- $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$
-- $\mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)$
-- $\sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}$
-- $\mu, \sigma$ = daily mean and standard deviation
+- $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$ (lognormal streams) or $x_i \sim \text{Exponential}(\lambda)$ (exponential streams)
 - $\text{cap}$ = upper bound (e.g., 5) to prevent extreme values
 - $P$ = population size (support or combat)
 - $r_i$ = scaled and capped casualty rate for minute i
+
+> **MODEL ASSUMPTION — RATE CAP APPLIES EQUALLY TO BOTH DISTRIBUTIONS:** The same fixed `cap = 5` per-minute ceiling truncates both lognormal and exponential draws. Because the exponential distribution's heavier tail sits closer to this cap at high-intensity means (e.g. `high_intensity`'s 6.86/1.63), realised casualty counts under `high_intensity` under-scale somewhat relative to the nominal FORECAS mean — see the `high_intensity` profile discussion under [Scenario Profiles](#scenario-profiles).
+> **Basis:** `cap` is a fixed argument default in `generate_ln_arrivals()`/`generate_exp_arrivals()` (`R/environment.R`), not a `vars` entry, so it is not currently scenario-configurable.
+> **Uncertainty:** Medium.
+> **Consequence if wrong:** A scenario whose true intensity warrants a materially higher per-minute ceiling would need `cap` exposed as a scenario-level parameter; flagged as a candidate refinement for Issue #10.
 
 #### 3. Arrival Detection via Cumulative Sum
 

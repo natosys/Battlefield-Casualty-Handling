@@ -87,6 +87,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Multi-run Replication Framework](#multirun-replication-framework)
     - [Warm-up Period Analysis](#warmup-period-analysis)
     - [Sensitivity Analysis](#sensitivity-analysis)
+    - [Comparative Scenario Runner](#comparative-scenario-runner)
   - [🔧Simulation Environment Setup](#🔧simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -960,6 +961,34 @@ Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* f
 ![Morris EE — R2E ICU queue](images/morris_r2e_icu_q.png)
 
 ![Morris EE — DOW count](images/morris_dow_count.png)
+
+#### Comparative Scenario Runner
+
+The comparative scenario runner (`R/scenario_runner.R`) executes the multi-run replication framework (above) under a named scenario profile ([Scenario Profiles](#scenario-profiles)) rather than the base configuration, and aggregates queue and mortality KPIs across replications for cross-scenario comparison.
+
+`run_scenario(scenario, n_iterations, n_days)` resolves the named profile via `resolve_scenario()`/`build_environment()` (`R/scenario.R`, `R/environment.R`), sets the resulting `env_data` globally, and runs `run_replications()` exactly as the single-scenario path does. It returns the raw monitoring data plus two summary tables in the project's standard mean (p10–p90), 95% CI format: `queue_kpi` (per-resource queue KPIs, via `summarise_replications()`) and `totals` (`total_casualties`, `wia_count`, `dow_count`, and `dow_rate` — DOW as a proportion of WIA, matching the "DOW/WIA rate" convention used elsewhere in this project). An unrecognised scenario name raises an explicit error listing the profiles available in `env_data.json`.
+
+`compare_scenarios(scenarios, n_iterations, n_days)` runs `run_scenario()` for each named profile in turn, combines their KPI tables with `scenario`/`scenario_label` columns, writes `outputs/scenario_comparison_queues.csv` and `outputs/scenario_comparison_totals.csv`, and renders a faceted bar chart of mean queue by resource group (R2B OT, R2E OT, R2E ICU, Transport) and scenario to `images/scenario_comparison.png`.
+
+```bash
+# Default comparison: moderate_intensity vs high_intensity, 10 reps x 30 days
+Rscript scripts/run_scenarios.R
+
+# Explicit scenario list, custom replication count
+Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity,default --iterations 30 --days 30
+
+# Smoke test: 3 reps, 5 days
+Rscript scripts/run_scenarios.R --quick
+```
+
+```r
+# RStudio console
+source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
+source("R/analysis.R"); source("R/scenario_runner.R")
+cmp <- compare_scenarios(c("moderate_intensity", "high_intensity"), n_iterations = 10, n_days = 30)
+```
+
+Results and interpretation are presented in [Comparative Scenario Analysis](#comparative-scenario-analysis) under Simulation Analysis.
 
 ### 🔧Simulation Environment Setup
 

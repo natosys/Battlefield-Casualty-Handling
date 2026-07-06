@@ -726,52 +726,58 @@
           "acty": "wia_cbt",
           "vals": [
             { "var": "mean_daily", "val": 1.77 },
-            { "var": "sd_daily", "val": 3.56 }
+            { "var": "sd_daily", "val": 3.56 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         },
         {
           "acty": "kia_cbt",
           "vals": [
             { "var": "mean_daily", "val": 0.68 },
-            { "var": "sd_daily", "val": 1.39 }
+            { "var": "sd_daily", "val": 1.39 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         },
         {
           "acty": "dnbi_cbt",
           "vals": [
             { "var": "mean_daily", "val": 2.04 },
-            { "var": "sd_daily", "val": 1.89 }
+            { "var": "sd_daily", "val": 1.89 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         },
         {
           "acty": "wia_spt",
           "vals": [
             { "var": "mean_daily", "val": 1.77 },
-            { "var": "sd_daily", "val": 3.56 }
+            { "var": "sd_daily", "val": 3.56 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         },
         {
           "acty": "kia_spt",
           "vals": [
             { "var": "mean_daily", "val": 0.68 },
-            { "var": "sd_daily", "val": 1.39 }
+            { "var": "sd_daily", "val": 1.39 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         },
         {
           "acty": "dnbi_spt",
           "vals": [
             { "var": "mean_daily", "val": 0.94 },
-            { "var": "sd_daily", "val": 0.56 }
+            { "var": "sd_daily", "val": 0.56 },
+            { "var": "distribution", "val": "lognormal" }
           ]
         }
       ]
     }
   ],
   "scenarios": {
-    "falklands_1982": {
-      "label": "Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)",
+    "moderate_intensity": {
+      "label": "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)",
       "source": "Payne (1983); Jolly (2018); Blood, Zouris & Rotblatt (1998) FORECAS Table A.8",
-      "notes": "Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. Only the DOW ceiling and treatment-efficacy factors are overridden: the base values for those two groups are OIF/OEF-era (TCCC, damage control resuscitation/surgery), which did not exist as doctrine in 1982, so applying them to a Falklands scenario would misattribute modern treatment technique for the low historical DOW rate. See README 'Scenario Profiles' section.",
+      "notes": "Named for FORECAS's own battle-intensity framing (NONE/LOW/MODERATE/HEAVY/INTENSE) rather than a specific historical engagement, since FORECAS's casualty-rate model selects a distribution family by battle intensity, not by named conflict — Falklands is the moderate-intensity calibration exemplar this project has validated, per FORECAS's own text pairing lognormal-distributed WIA/KIA incidence with 'a moderate battle intensity scenario'. Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. Only the DOW ceiling and treatment-efficacy factors are overridden: the base values for those two groups are OIF/OEF-era (TCCC, damage control resuscitation/surgery), which did not exist as doctrine in 1982, so applying them to this scenario would misattribute modern treatment technique for the low historical DOW rate. See README 'Scenario Profiles' section.",
       "vars": [
         {
           "elm": "dow",
@@ -805,10 +811,10 @@
         }
       ]
     },
-    "vietnam": {
-      "label": "Vietnam (sustained medium-intensity campaign) — demonstration skeleton",
-      "source": "Blood, Zouris & Rotblatt (1998) FORECAS Table A.5",
-      "notes": "SKELETON PROFILE (Issue #54): demonstrates that the scenario mechanism generalises to the other FORECAS-modelled battles cited by Issue #10, using the same source document as the falklands_1982 profile. It is not a fully validated second scenario. Only casualty generation rates (generators.wia_cbt/kia_cbt/wia_spt/kia_spt) are overridden, from FORECAS Table A.5. DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are NOT sourced for the Vietnam era in this issue and are inherited from the base (Falklands-calibrated) configuration as a known placeholder — see README Limitations. Issue #10 (comparative scenario runner) owns extending this to a fully parameterised scenario.",
+    "high_intensity": {
+      "label": "High Intensity — Okinawa (peer-conflict, mass casualty production)",
+      "source": "Blood, Zouris & Rotblatt (1998), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated)",
+      "notes": "SKELETON PROFILE (Issue #54): demonstrates that the scenario mechanism generalises beyond moderate_intensity, and that the underlying distribution family (not just its parameters) is itself scenario-specific per FORECAS's own methodology. Named for FORECAS's own battle-intensity framing rather than a specific historical engagement; Okinawa is the high-intensity calibration exemplar. It is not a fully validated second scenario. FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, W ~ exponential(mean); FORECAS separately keeps its own 'SUPPORT' category (intra-divisional combat support: tank, artillery, light-armoured infantry, combat engineer) lognormal at all intensities, and reserves the fully lognormal, non-autocorrelated treatment for its distinct 'SERVICE SUPPORT' category (extra-divisional sustainment: FSSG, SRIG). This simulation models a single brigade (division and below); it has no extra-divisional 'service support' population, and this project's 'support' population group represents an organic brigade element exposed to the same battle risk as the 'combat' population, not FORECAS's rear-area service support troops. Both generators.wia_cbt/kia_cbt AND generators.wia_spt/kia_spt are therefore overridden with distribution=exponential, using Table A.7's Expon(6.86) (historical data mean 6.86, SD 6.65) and Table A.9's Expon(1.63) (historical mean 1.63, SD 1.73) — sd_daily is retained for reference but unused by generate_exp_arrivals(), a single-parameter distribution. DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are NOT sourced for Okinawa in this issue and are inherited from the base (Falklands-calibrated) configuration as a known placeholder — see README Limitations. Issue #10 (comparative scenario runner) owns extending this to a fully parameterised scenario. A companion Vietnam-calibrated profile was considered but dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in this document.",
       "vars": [
         {
           "elm": "generators",
@@ -816,69 +822,33 @@
             {
               "acty": "wia_cbt",
               "vals": [
-                { "var": "mean_daily", "val": 4.12 },
-                { "var": "sd_daily", "val": 6.89 }
+                { "var": "mean_daily", "val": 6.86 },
+                { "var": "sd_daily", "val": 6.65 },
+                { "var": "distribution", "val": "exponential" }
               ]
             },
             {
               "acty": "kia_cbt",
               "vals": [
-                { "var": "mean_daily", "val": 1.58 },
-                { "var": "sd_daily", "val": 2.64 }
+                { "var": "mean_daily", "val": 1.63 },
+                { "var": "sd_daily", "val": 1.73 },
+                { "var": "distribution", "val": "exponential" }
               ]
             },
             {
               "acty": "wia_spt",
               "vals": [
-                { "var": "mean_daily", "val": 4.12 },
-                { "var": "sd_daily", "val": 6.89 }
+                { "var": "mean_daily", "val": 6.86 },
+                { "var": "sd_daily", "val": 6.65 },
+                { "var": "distribution", "val": "exponential" }
               ]
             },
             {
               "acty": "kia_spt",
               "vals": [
-                { "var": "mean_daily", "val": 1.58 },
-                { "var": "sd_daily", "val": 2.64 }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "okinawa": {
-      "label": "Okinawa (high-intensity peer-conflict, mass casualty production) — demonstration skeleton",
-      "source": "Blood, Zouris & Rotblatt (1998) FORECAS Table A.2",
-      "notes": "SKELETON PROFILE (Issue #54): demonstrates that the scenario mechanism generalises to the other FORECAS-modelled battles cited by Issue #10, using the same source document as the falklands_1982 profile. It is not a fully validated second scenario. Only casualty generation rates (generators.wia_cbt/kia_cbt/wia_spt/kia_spt) are overridden, from FORECAS Table A.2. DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are NOT sourced for the Okinawa era in this issue and are inherited from the base (Falklands-calibrated) configuration as a known placeholder — see README Limitations. Issue #10 (comparative scenario runner) owns extending this to a fully parameterised scenario.",
-      "vars": [
-        {
-          "elm": "generators",
-          "actys": [
-            {
-              "acty": "wia_cbt",
-              "vals": [
-                { "var": "mean_daily", "val": 8.40 },
-                { "var": "sd_daily", "val": 11.20 }
-              ]
-            },
-            {
-              "acty": "kia_cbt",
-              "vals": [
-                { "var": "mean_daily", "val": 3.22 },
-                { "var": "sd_daily", "val": 4.30 }
-              ]
-            },
-            {
-              "acty": "wia_spt",
-              "vals": [
-                { "var": "mean_daily", "val": 8.40 },
-                { "var": "sd_daily", "val": 11.20 }
-              ]
-            },
-            {
-              "acty": "kia_spt",
-              "vals": [
-                { "var": "mean_daily", "val": 3.22 },
-                { "var": "sd_daily", "val": 4.30 }
+                { "var": "mean_daily", "val": 1.63 },
+                { "var": "sd_daily", "val": 1.73 },
+                { "var": "distribution", "val": "exponential" }
               ]
             }
           ]

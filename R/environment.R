@@ -208,6 +208,82 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
   return(arrival_times)
 }
 
+#' Generates exponential arrival timestamps using capped exponential rates
+#'
+#' @param type Character string identifying casualty stream (e.g. "wia_cbt")
+#' @param mean_daily Expected daily rate. Fully parameterises the exponential
+#'   rate distribution (rate = 1 / mean_daily); unlike generate_ln_arrivals(),
+#'   there is no separate sd_daily shape parameter for a single-parameter
+#'   exponential distribution.
+#' @param pop Size of target population
+#' @param n_days Duration in days
+#' @param cap Maximum per-minute rate cap (default 5)
+#' @param seed Optional random seed for reproducibility
+#' @param write_file Write arrival times to data/ directory (default TRUE;
+#'   set FALSE for parallel replication workers to avoid file-write conflicts)
+#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
+#'   substituted for U in both the exponential rate draw and the
+#'   within-minute arrival jitter. Enables antithetic pairing in
+#'   run_replications().
+#' @return Vector of arrival times in simulation minutes
+#'
+#' @details FORECAS (Blood, Zouris & Rotblatt, 1998) fits lognormal and
+#'   exponential distributions to different battle intensities/troop types.
+#'   Used for the high_intensity scenario profile (Issue #54), whose
+#'   higher-intensity casualty streams are exponential-distributed rather
+#'   than lognormal-distributed like the moderate_intensity/default streams.
+generate_exp_arrivals <- function(type, mean_daily, pop, n_days,
+                                  cap = 5, seed = NULL, write_file = TRUE,
+                                  antithetic = FALSE) {
+  if (!is.null(seed)) set.seed(seed)
+
+  n_minutes <- day_min * n_days
+
+  # Explicit inverse-CDF transform so U can be reflected for antithetic pairing
+  u_rate <- runif(n_minutes)
+  if (antithetic) u_rate <- 1 - u_rate
+  rates      <- pmin(qexp(u_rate, rate = 1 / mean_daily), cap)
+  rates      <- rates / 1440 * pop / 1000
+  cumulative <- cumsum(rates)
+
+  arrival_idx  <- which(floor(cumulative) > floor(cumulative - rates))
+  u_jitter     <- runif(length(arrival_idx))
+  if (antithetic) u_jitter <- 1 - u_jitter
+  arrival_times <- sort(arrival_idx + u_jitter)
+
+  if (write_file) {
+    filename <- file.path("data", paste0("arrivals_", type, ".txt"))
+    write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
+  }
+
+  return(arrival_times)
+}
+
+#' Dispatches to the appropriate arrival generator for a casualty stream
+#'
+#' @param type Character string identifying casualty stream (e.g. "wia_cbt")
+#' @param gen_vars List with mean_daily and (for lognormal streams) sd_daily,
+#'   as read from env_data$vars$generators[[type]]; an optional `distribution`
+#'   field selects "lognormal" (default, if absent) or "exponential"
+#' @param pop Size of target population
+#' @param n_days Duration in days
+#' @param write_file Write arrival times to data/ directory
+#' @param antithetic Logical; antithetic variate pairing (see
+#'   generate_ln_arrivals() / generate_exp_arrivals())
+#' @return Vector of arrival times in simulation minutes
+generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
+                                       write_file = FALSE, antithetic = FALSE) {
+  distribution <- if (!is.null(gen_vars$distribution)) gen_vars$distribution else "lognormal"
+
+  if (distribution == "exponential") {
+    generate_exp_arrivals(type, gen_vars$mean_daily, pop, n_days,
+                         write_file = write_file, antithetic = antithetic)
+  } else {
+    generate_ln_arrivals(type, gen_vars$mean_daily, gen_vars$sd_daily, pop, n_days,
+                        write_file = write_file, antithetic = antithetic)
+  }
+}
+
 # ── Simmer environment construction ─────────────────────────────────────────
 
 #' Initializes the simmer environment by adding all resources from env_data

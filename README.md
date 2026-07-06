@@ -17,37 +17,37 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 <!-- TOC START -->
 - [Abstract](#abstract)
 - [Contents](#contents)
-- [📘 Introduction](#-introduction)
-- [📚 Literature Review](#-literature-review)
+- [📘 Introduction](#📘-introduction)
+- [📚 Literature Review](#📚-literature-review)
   - [Methodology](#methodology)
   - [Findings](#findings)
     - [Battlefield Casualty Rates and Estimation Models](#battlefield-casualty-rates-and-estimation-models)
     - [Casualty Simulation and DES](#casualty-simulation-and-des)
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
-- [🌍 Scenario Context](#-scenario-context)
-- [🧰 Resource Descriptions](#-resource-descriptions)
-  - [🏥Health Teams](#health-teams)
+- [🌍 Scenario Context](#🌍-scenario-context)
+- [🧰 Resource Descriptions](#�-resource-descriptions)
+  - [🏥Health Teams](#🏥health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
     - [Role 2 Enhanced Heavy (R2E Heavy)](#role-2-enhanced-heavy-r2e-heavy)
-  - [🛏️ Bed Types](#-bed-types)
+  - [🛏️ Bed Types](#🛏️-bed-types)
     - [Operating Theatre (OT)](#operating-theatre-ot)
     - [Resuscitation (Resus) (alternatively Emergency)](#resuscitation-resus-alternatively-emergency)
     - [Intensive Care Unit (ICU)](#intensive-care-unit-icu)
     - [Holding (Hold)](#holding-hold)
-  - [🚑 Transport Assets](#-transport-assets)
+  - [🚑 Transport Assets](#🚑-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
-    - [Dead-Heading Return Legs](#dead-heading-return-legs)
-- [📊 Environment Data Summary](#-environment-data-summary)
-  - [👥 Population Groups](#-population-groups)
-  - [🚑 Transport Resources](#-transport-resources)
-  - [🏥 Medical Resources](#-medical-resources)
+    - [Dead-Heading Return Legs](#deadheading-return-legs)
+- [📊 Environment Data Summary](#📊-environment-data-summary)
+  - [👥 Population Groups](#👥-population-groups)
+  - [🚑 Transport Resources](#🚑-transport-resources)
+  - [🏥 Medical Resources](#🏥-medical-resources)
   - [Schedules and Rosters](#schedules-and-rosters)
-- [🤕 Casualties](#-casualties)
+- [🤕 Casualties](#🤕-casualties)
   - [Casualty Generation](#casualty-generation)
-    - [1. Lognormal Parameterisation](#1-lognormal-parameterisation)
+    - [1. Distribution Parameterisation](#1-distribution-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
     - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
     - [4. Temporal Randomisation](#4-temporal-randomisation)
@@ -64,30 +64,55 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Casualty Priorities](#casualty-priorities)
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
+  - [Survival Function](#survival-function)
+  - [Parameter Calibration](#parameter-calibration)
+  - [Multi-Echelon Check and Conditional Increment](#multiechelon-check-and-conditional-increment)
+  - [Treatment Efficacy Modifiers](#treatment-efficacy-modifiers)
+  - [Post-Operative Checkpoint (Issue #43)](#postoperative-checkpoint-issue-43)
+- [Scenario Profiles](#scenario-profiles)
+  - [Mechanism](#mechanism)
+  - [Parameter classification](#parameter-classification)
+  - [Moderate Intensity profile (Falklands 1982 exemplar)](#moderate-intensity-profile-falklands-1982-exemplar)
+  - [High Intensity profile (Okinawa exemplar, demonstration skeleton)](#high-intensity-profile-okinawa-exemplar-demonstration-skeleton)
+  - [Parameter editor integration](#parameter-editor-integration)
 - [Development Environment](#development-environment)
+  - [Prerequisites](#prerequisites)
+  - [First-time setup](#firsttime-setup)
+  - [RStudio Server configuration](#rstudio-server-configuration)
+  - [Running the simulation with full parallelism](#running-the-simulation-with-full-parallelism)
+  - [Git workflow](#git-workflow)
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
-  - [Warm-up Period Analysis](#warm-up-period-analysis)
-  - [Sensitivity Analysis](#sensitivity-analysis)
-  - [🔧Simulation Environment Setup](#simulation-environment-setup)
+    - [Running the simulation](#running-the-simulation)
+    - [Multi-run Replication Framework](#multirun-replication-framework)
+    - [Warm-up Period Analysis](#warmup-period-analysis)
+    - [Sensitivity Analysis](#sensitivity-analysis)
+  - [🔧Simulation Environment Setup](#🔧simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
 - [Model Outputs](#model-outputs)
-  - [Domain 1 — Mortality and Preventable Death](#domain-1--mortality-and-preventable-death)
-  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2--time-to-care-from-r1-arrival)
-  - [Domain 3 — Surgical Throughput](#domain-3--surgical-throughput)
-  - [Domain 4 — Echelon Load and Capacity](#domain-4--echelon-load-and-capacity)
-  - [Domain 5 — Flow and Disposition](#domain-5--flow-and-disposition)
-  - [Domain 6 — Combat Power](#domain-6--combat-power)
-  - [Output Variable Register cross-reference](#output-variable-register-cross-reference)
+  - [Domain 1 — Mortality and Preventable Death](#domain-1-—-mortality-and-preventable-death)
+  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2-—-timetocare-from-r1-arrival)
+  - [Domain 3 — Surgical Throughput](#domain-3-—-surgical-throughput)
+  - [Domain 4 — Echelon Load and Capacity](#domain-4-—-echelon-load-and-capacity)
+  - [Domain 5 — Flow and Disposition](#domain-5-—-flow-and-disposition)
+  - [Domain 6 — Combat Power](#domain-6-—-combat-power)
+  - [Output Variable Register cross-reference](#output-variable-register-crossreference)
 - [Simulation Analysis](#simulation-analysis)
   - [Simulation Casualty Generation](#simulation-casualty-generation)
   - [R1 Handling](#r1-handling)
   - [R2B Handling](#r2b-handling)
+    - [R2B Hold Bed Saturation — Stream Decomposition and Intervention Analysis](#r2b-hold-bed-saturation-—-stream-decomposition-and-intervention-analysis)
   - [R2E Heavy Handling](#r2e-heavy-handling)
+  - [Casualty Waiting Time](#casualty-waiting-time)
+  - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
+  - [Return to Duty](#return-to-duty)
   - [Conclusion](#conclusion)
 - [Limitations](#limitations)
+  - [High Impact](#high-impact)
+  - [Medium Impact](#medium-impact)
+  - [Low Impact](#low-impact)
 - [Further Development](#further-development)
 - [Conclusion](#conclusion)
 - [References](#references)
@@ -314,11 +339,13 @@ Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitabl
 
 ### Casualty Generation
 
-For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. The function simulates the timing of casualty arrivals using a lognormal distribution to reflect daily variability, transformed into randomized, minute-level arrival times. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
+For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 
-#### 1. Lognormal Parameterisation
+FORECAS [[8]](#References) fits casualty incidence to one of **two** distribution families, selected by battle intensity and troop type rather than a single distribution applying universally: a **lognormal** model (two parameters, mean and standard deviation) for moderate/light-intensity combat troops and for support troops at all intensities, and a single-parameter **exponential** model for combat troops in high-intensity battles. `generate_casualty_arrivals()` (`R/environment.R`) dispatches each casualty stream to `generate_ln_arrivals()` or `generate_exp_arrivals()` based on an explicit `distribution` field read from `env_data$vars$generators`; which family applies to which stream is a scenario-level choice — see [Scenario Profiles](#scenario-profiles) for how `moderate_intensity` (lognormal, all streams) and `high_intensity` (exponential, all streams) select between them. Both models share the same per-minute sampling, cumulative-sum arrival detection, and jitter mechanics (steps 2–4 below); they differ only in how the per-minute rate itself is drawn (step 1).
 
-Converts daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution.
+#### 1. Distribution Parameterisation
+
+**Lognormal** (`generate_ln_arrivals()`) converts the daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution:
 
 Mean (log-space):
 
@@ -334,14 +361,25 @@ $$
 
 Where:
 
-- \mu = expected number of DNBI casualties per day
+- \mu = expected number of casualties per day
 - \sigma = daily standard deviation
+
+**Exponential** (`generate_exp_arrivals()`) is single-parameter — the rate is fully determined by the mean, with no separate shape parameter, following FORECAS's own formula $W \sim \text{exponential}(\mu)$:
+
+$$
+\lambda = \frac{1}{\mu}
+$$
+
+Where:
+
+- \mu = expected number of casualties per day
+- \lambda = exponential rate parameter passed to the per-minute draw (no \sigma term — a reported standard deviation for an exponential-fitted stream is retained in `env_data.json` for citation only and plays no role in generation)
 
 #### 2. Per-Minute Rate Sampling and Scaling
 
-Draws lognormally distributed samples representing per-minute DNBI rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
+Draws samples from the stream's selected distribution representing per-minute casualty rates, capped at a threshold to prevent extreme outliers, then scaled according to population size and temporal resolution (per minute per 1000 personnel).
 
-For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute DNBI rate is computed as:
+For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute casualty rate is computed as:
 
 $$
 r_i = \min\left(x_i, \text{cap}\right) \times \frac{P}{1000 \times 1440}
@@ -349,13 +387,16 @@ $$
 
 Where:
 
-- $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$
-- $\mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)$
-- $\sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}$
-- $\mu, \sigma$ = daily mean and standard deviation
-- $\text{cap}$ = upper bound (e.g., 5) to prevent extreme values
+- $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$ (lognormal streams) or $x_i \sim \text{Exponential}(\lambda)$ (exponential streams)
 - $P$ = population size (support or combat)
 - $r_i$ = scaled and capped casualty rate for minute i
+
+The cap itself is **not** the same fixed value for both distribution families. `generate_ln_arrivals()` retains a fixed absolute default (`cap = 5`) for backward compatibility with the validated `default`/`moderate_intensity` baseline (`R/environment.R`; there is no citation for this specific value — see the assumption block below). `generate_exp_arrivals()` instead computes `cap = cap_multiplier × mean_daily` (default `cap_multiplier = 3`), because $P(\text{Exponential}(\mu) > k\mu) = e^{-k}$ is *independent of the mean* — a fixed multiple of the mean truncates the same tail probability (~5% at $k=3$) regardless of how intense the scenario is, whereas a fixed absolute value does not.
+
+> **MODEL ASSUMPTION — RATE CAP DERIVATION AND SCOPE:** `cap = 5` (the fixed absolute value used by `generate_ln_arrivals()`, and formerly also by `generate_exp_arrivals()`) has no cited derivation; it has been a hardcoded engineering safeguard against extreme per-minute draws since the casualty generator's earliest implementation, and FORECAS [[8]](#References) does not describe any equivalent truncation mechanism. Applying that same fixed value to `generate_exp_arrivals()` (as originally implemented for Issue #54) was found to truncate a highly uneven, mean-dependent share of each stream's draws: ~1.4% for `moderate_intensity` KIA (mean 0.68), ~7.3% for `moderate_intensity` WIA (mean 1.77), ~4.7% for `high_intensity` KIA (mean 1.63) — but ~48% for `high_intensity` WIA (mean 6.86, *above* the fixed cap), silently compressing the realised high-intensity WIA rate toward ~5/day regardless of the FORECAS-sourced 6.86 mean. `generate_exp_arrivals()` was corrected to use `cap = 3 × mean_daily`, which truncates a constant ~5% of draws for every exponential stream regardless of intensity (matching the same order of magnitude as the pre-existing, accepted lognormal truncation rates above), rather than a share that grows unboundedly as mean_daily approaches a fixed ceiling.
+> **Basis:** $P(\text{Exponential}(\mu) > k\mu) = e^{-k}$ is an exact, mean-invariant property of the exponential distribution (not an estimate); the choice of $k=3$ (≈5% truncation) is an informed judgement matched to the order of magnitude already accepted for the lognormal `moderate_intensity` baseline, not a literature-derived value.
+> **Uncertainty:** Low for the mean-invariance property itself; Medium for the specific choice of `cap_multiplier = 3` and for the un-derived `cap = 5` absolute value retained by `generate_ln_arrivals()`.
+> **Consequence if wrong:** A smaller `cap_multiplier` would re-introduce under-scaling at high intensity; a larger one would rarely bind at all and stop serving as a safeguard against pathological single-minute draws. The lognormal absolute `cap = 5` is untouched by this issue and continues to reproduce the documented `default`/`moderate_intensity` baseline exactly; revisiting it (e.g. to the same mean-relative form) is a candidate refinement for a future issue, since it was not shown to be materially distorting any currently validated scenario.
 
 #### 3. Arrival Detection via Cumulative Sum
 
@@ -525,7 +566,7 @@ The logistic shape parameters (*k*, *t_mid*) are anchored to the haemorrhagic sh
 
 The ceiling *p_max* and floor *p_base* values are calibrated to the Falklands War 1982 (Operation CORPORATE) historical DOW outcome. Payne (1983) [[42]](#References) reports that four British Army Field Surgical Teams operated on 233 casualties across the Ajax Bay Advanced Surgical Centre and two forward stations (Teal Inlet, Fitzroy), with three post-operative deaths recorded. Accounts of the Ajax Bay medical system confirm that only three of the 580 British soldiers and marines wounded in action died of wounds — a DOW/WIA rate of 0.52% [[43]](#References). The simulation, run at a baseline of 154 WIA per 30-day period, targets 0.80 DOW/run (= 0.52% × 154); calibrated parameters produce a mean of approximately 0.70 DOW/run (0.45%) with a 95% confidence interval that spans the historical target (50-replication estimate: [0.41, 0.95] per run).
 
-The low Falklands DOW rate reflects the compact geography of the islands (short evacuation windows), the innovative field surgical care established at Ajax Bay, and the predominantly young, fit demographic of land-force casualties. These parameters represent an interim Falklands-specific calibration within the base `env_data.json`; when Issue #54 (scenario-level parameter profiles) is implemented, they will be packaged into a discrete Falklands 1982 profile alongside era-appropriate treatment efficacy factors, casualty generation rates, and transport distributions.
+The low Falklands DOW rate reflects the compact geography of the islands (short evacuation windows), the innovative field surgical care established at Ajax Bay, and the predominantly young, fit demographic of land-force casualties. The parameters above are the base `env_data.json` values used by the `default` scenario; they remain paired with OIF/OEF-era treatment efficacy factors (Table below) for the reasons discussed under [Treatment Efficacy Modifiers](#treatment-efficacy-modifiers). A discrete `moderate_intensity` profile (Falklands 1982 exemplar) with era-appropriate treatment efficacy factors and a re-calibrated ceiling — implemented in [Scenario Profiles](#scenario-profiles) (Issue #54) — is available for scenario-explicit analysis; see that section for the disentangled calibration.
 
 The P3 flat rate of 0.1% applies only at R2B and R2E echelons. P3 casualties recover at R1 and are not evacuated; this parameter is therefore practically inactive in the current routing logic and is retained for structural completeness.
 
@@ -573,9 +614,9 @@ This residual ceiling of 0.085% represents the fraction of optimally treated P1 
 
 > **MODEL ASSUMPTION — DOW LOGISTIC PARAMETERS:** The parameters *p_base*, *p_max*, *k*, and *t_mid* are calibrated to the Falklands War 1982 (Operation CORPORATE) historical outcome rather than empirically fitted to per-minute individual-level survival curves, which no published dataset provides. Payne (1983) [[42]](#References) reports three post-operative deaths among 233 casualties treated at the Ajax Bay Advanced Surgical Centre and forward stations. Jolly (2018) [[43]](#References) confirms that of 580 British soldiers and marines wounded in action, only three died of wounds — a DOW/WIA rate of 0.52%. The ceiling values (p1_p_max = 0.023, p2_p_max = 0.019) were iteratively calibrated until 50-replication Monte Carlo output produced a mean DOW/run of approximately 0.70 (0.45% of 154 baseline WIA), with a 95% CI spanning the 0.52% historical target. The shape parameters (k, t_mid) are anchored to aggregate mortality time-window analysis in Eastridge et al. (2012) [[38]](#References) and Kotwal et al. (2011) [[39]](#References); the logistic form is a standard S-shaped approximation for time-dependent failure processes (Law, 2020 [[26]](#References)).
 > **Basis:** Payne (1983) [[42]](#References); Jolly (2018) [[43]](#References); Eastridge et al. (2012) [[38]](#References); Kotwal et al. (2011) [[39]](#References).
-> **Uncertainty:** Medium — the calibration target (3 events / 580 WIA) is derived from a single conflict and may not generalise to other operational contexts. The treatment efficacy factors (Table above) retain OIF/OEF-era values and are not Falklands-specific; Issue #54 will package era-appropriate factors into a discrete scenario profile.
+> **Uncertainty:** Medium — the calibration target (3 events / 580 WIA) is derived from a single conflict and may not generalise to other operational contexts. The treatment efficacy factors (Table above) retain OIF/OEF-era values and are not Falklands-specific; this base configuration is what the `default` scenario runs. A Falklands-specific disentanglement of *p_max* and the treatment efficacy factors is implemented as the `moderate_intensity` scenario profile — see [Scenario Profiles](#scenario-profiles) (Issue #54).
 > **Consequence if wrong:** If the Falklands DOW rate is unrepresentative of the baseline scenario, DOW counts will be systematically biased. Sensitivity analysis (Issue #3) will quantify the influence of p_max uncertainty on total DOW output. Narrowing p_max reduces sensitivity of DOW count to queue saturation; shifting t_mid later makes the model less responsive to R1-level delays.
-> **Co-dependence of p_max and treatment efficacy factors:** The value p_max = 0.023 was not derived independently of the efficacy factors; the simulation was calibrated iteratively with the OIF/OEF efficacy multipliers (0.83, 0.56, 0.32, 0.25) already in place. These two components are therefore entangled: p_max is the ceiling that, *when combined with those specific multipliers*, reproduces the 0.52% historical rate. If Issue #54 substitutes Falklands-era efficacy values (which should be lower, as damage control resuscitation and damage control surgery protocols did not exist in 1982), p_max must be re-calibrated upward to maintain the same historical output. Treating p_max and the efficacy factors as independently derived would be incorrect.
+> **Co-dependence of p_max and treatment efficacy factors:** The value p_max = 0.023 was not derived independently of the efficacy factors; the simulation was calibrated iteratively with the OIF/OEF efficacy multipliers (0.83, 0.56, 0.32, 0.25) already in place. These two components are therefore entangled: p_max is the ceiling that, *when combined with those specific multipliers*, reproduces the 0.52% historical rate. This entanglement is exactly what the `moderate_intensity` scenario profile (Issue #54, see [Scenario Profiles](#scenario-profiles)) resolves: era-appropriate (weaker) treatment efficacy factors are paired with an independently re-calibrated, lower ceiling, reproducing the same historical DOW/WIA target through a mechanistically consistent route.
 
 ### Post-Operative Checkpoint (Issue #43)
 
@@ -598,6 +639,104 @@ Both the ICU and post-op-hold recovery paths converge on a shared post-operative
 > **Basis:** DCR factor (0.56) anchored to Braverman et al. (2021) [[40]](#References); DCS factor (0.32) anchored to Holcomb et al. (2013) PROMMTT [[41]](#References); TCCC factor (0.83) derived from Eastridge et al. (2012) [[38]](#References) non-compressible haemorrhage analysis. The R2E DCS second-operation factor (0.57) is an informed estimate with no direct literature anchor.
 > **Uncertainty:** Low–Medium for DCR and DCS factors; High for R2E second-operation factor.
 > **Consequence if wrong:** Overestimating efficacy factors reduces modelled DOW sensitivity to system overload for treated casualties; underestimating inflates DOW for patients who received definitive care. The relative ordering (DCS reduces ceiling more than DCR; DCR more than TCCC) reflects clinical consensus and is unlikely to reverse under parameter uncertainty.
+
+---
+
+## Scenario Profiles
+
+<small>[Return to Top](#contents)</small>
+
+The base `env_data.json` configuration conflates two historical contexts. Casualty generation rates ([Casualty Generation](#casualty-generation)) and the DOW ceiling ([Parameter Calibration](#parameter-calibration)) are calibrated to the Falklands War 1982 (Operation CORPORATE), while the treatment efficacy factors that modify that ceiling ([Treatment Efficacy Modifiers](#treatment-efficacy-modifiers)) — TCCC, damage control resuscitation, damage control surgery — describe techniques documented in 21st-century combat casualty care literature [[38]](#References), [[40]](#References), [[41]](#References) with no equivalent doctrine recorded in the available Falklands-specific sources [[42]](#References), [[43]](#References). Running a Falklands scenario through modern treatment efficacy factors risks misattributing the historically low Falklands DOW rate to treatment technique that was not available in 1982, rather than to the combination of casualty demographic, injury pattern, and evacuation geography that the historical sources actually describe.
+
+This section introduces a **named scenario profile** mechanism that overlays a discrete, internally consistent parameter set onto the base configuration, so a given simulation run is scenario-explicit rather than an implicit hybrid. Profiles are named for FORECAS's own battle-intensity framing (`moderate_intensity`, `high_intensity`) rather than for a specific historical engagement, since FORECAS [[8]](#References) itself selects a casualty-rate distribution family by battle intensity and troop type, not by named conflict — a specific historical battle is retained as the calibration exemplar for each intensity tier, not the identity of the scenario.
+
+### Mechanism
+
+Scenario profiles are defined under a top-level `scenarios` key in `env_data.json`. Each profile is a partial `vars` override in the same shape as the base `vars` block — a list of element (`elm`) blocks, each containing activity (`acty`) blocks, each containing `var`/`val` pairs. `merge_scenario_vars()` (`R/scenario.R`) overlays a profile's `vars` onto the base `vars` at the individual variable level: only the variables named in the profile are replaced, every other variable retains its base value, and variables present in a profile but absent from the base are appended. `resolve_scenario()` (`R/scenario.R`) selects a named profile from `env_data.json` (or validates that the requested name exists, raising an explicit error listing available profiles otherwise), and `load_scenario(path, scenario)` (`R/environment.R`) composes this with the existing JSON parsing and environment-building pipeline (`build_environment()`).
+
+```r
+env_data <- load_scenario("env_data.json", "moderate_intensity")   # scenario-explicit
+env_data <- load_scenario("env_data.json", "default")              # base configuration (unchanged)
+env_data <- load_elms("env_data.json")                              # equivalent to the line above
+```
+
+`scenario = "default"` (or omitting the argument to `load_elms()`, as all existing call sites do) is a strict no-op: `resolve_scenario()` returns the parsed JSON unmodified, so every existing entry point (`run.R`, `scripts/run_warmup.R`, `scripts/run_sensitivity.R`) is unaffected. This was confirmed by comparing `load_elms("env_data.json")` against `load_scenario("env_data.json", "default")` for structural identity, and by re-running the documented seed-42 baseline (30 days): 400 total casualties (154 WIA, 70 KIA, 176 DNBI), matching the `CLAUDE.md` Key Parameters baseline exactly.
+
+A distribution family is itself a scenario-specific choice, not just a distribution's parameters: FORECAS fits casualty incidence to either a lognormal or an exponential distribution depending on battle intensity, so `generators.*` entries carry an explicit `distribution` field (`"lognormal"` or `"exponential"`) alongside `mean_daily`/`sd_daily`. `generate_casualty_arrivals()` (`R/environment.R`) dispatches to `generate_ln_arrivals()` or the new `generate_exp_arrivals()` based on this field (defaulting to lognormal if the field is absent, for backward compatibility). `generate_exp_arrivals()` draws the per-minute rate via `qexp(u, rate = 1 / mean_daily)` — a single-parameter distribution, so `sd_daily` plays no role in generation for exponential streams (it is retained in the JSON purely as the published empirical value, for citation).
+
+### Parameter classification
+
+Only variables that genuinely differ by battle intensity/historical context are scenario-eligible. Structural configuration — element/bed/team counts (`elms`), transport fleet sizes (`transports`), and population sizes (`pops`) — is never overridden by a scenario profile; these describe the deployed force structure being tested against a scenario, not the scenario itself.
+
+| Parameter group | Scenario-specific? | `moderate_intensity` profile |
+|---|---|---|
+| Casualty generation rates and distribution family (`generators.*`) | Yes | Inherited from base — already Falklands-sourced (FORECAS Table A.8 [[8]](#References), lognormal) |
+| DOW ceiling and shape (`dow.params`) | Yes | **Overridden** — re-calibrated (see below) |
+| DOW treatment efficacy (`dow.treatment_efficacy`) | Yes | **Overridden** — era-appropriate factors (see below) |
+| Priority distribution (`r1.priority`) | Yes | Inherited from base — no Falklands-specific triage data identified |
+| DNBI composition, surgery/evacuation probabilities (`r1.other`) | Yes | Inherited from base — already Falklands/FORECAS-sourced where cited |
+| Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Yes | Inherited from base — no Falklands-specific transport-time source identified |
+| Element/bed/team counts, transport fleet sizes, population sizes | No (structural) | Not scenario-eligible |
+
+"Inherited from base" is a deliberate choice, not an oversight: restating identical values under the scenario key would duplicate a second source of truth with no behavioural effect. Where the base value is not actually Falklands-specific (transport time distributions, priority distribution), this is recorded as a limitation below rather than silently assumed correct.
+
+### Moderate Intensity profile (Falklands 1982 exemplar)
+
+The `moderate_intensity` profile overrides `dow.params` and `dow.treatment_efficacy` to disentangle the co-dependence flagged in the [Parameter Calibration](#parameter-calibration) MODEL ASSUMPTION block.
+
+| Factor | Base (OIF/OEF-era) | `moderate_intensity` | Rationale |
+|---|---|---|---|
+| R1 TCCC | 0.83 | 1.0 | TCCC is a post-1990s doctrine [[38]](#References); no equivalent tourniquet-forward/haemostatic-dressing prehospital doctrine is documented for 1982 British forces in the available sources. No additional ceiling reduction is attributed to this checkpoint. |
+| R2B / R2E resuscitation | 0.56 | 0.90 | Braverman et al.'s (2021) [[40]](#References) 0.56 factor is specific to balanced-component damage control resuscitation. A modest benefit from whole-blood/crystalloid resuscitation (available in 1982) is retained; the specific balanced-ratio benefit is not. |
+| R2B DCS / R2E DCS 1st op | 0.32 / 0.25 | 0.55 | Payne (1983) [[42]](#References) records near-zero post-operative mortality among casualties who reached the Ajax Bay Advanced Surgical Centre, so definitive surgical intervention itself is retained as materially protective; the more aggressive modern factors reflect additional staged damage-control/haemostatic-adjunct technique not available in 1982. |
+| R2E DCS 2nd op | 0.57 | 0.80 | Era-appropriate weakening of the (already informed-estimate) second-operation factor, consistent with the same reasoning as the first operation. |
+| R2E post-op hold penalty | 3.0 | 3.0 (unchanged) | A within-era relative degradation factor (ICU vs. non-ICU recovery), not a period-specific treatment technology; not scenario-eligible. |
+
+> **MODEL ASSUMPTION — FALKLANDS-ERA TREATMENT EFFICACY:** The `moderate_intensity` treatment efficacy factors are informed estimates, not literature-derived values — no open-access source quantifies 1982 British field-surgical efficacy in the same multiplicative-ceiling terms used by this model. They were constructed by reasoning from the absence of specific modern techniques (TCCC, balanced DCR, staged DCS) documented in [[38]](#References), [[40]](#References), [[41]](#References), while preserving Payne's (1983) [[42]](#References) and Jolly's (2018) [[43]](#References) evidence that 1982 field surgery itself was highly effective for casualties who reached it.
+> **Basis:** Payne (1983) [[42]](#References); Jolly (2018) [[43]](#References); absence of a documented equivalent to [[38]](#References), [[40]](#References), [[41]](#References) for the 1982 conflict.
+> **Uncertainty:** High for all five factors — these are the least literature-anchored parameters in the model.
+> **Consequence if wrong:** The qualitative direction (era-appropriate factors are weaker than modern factors, i.e. closer to 1.0) is required by the underlying clinical history and is not sensitive to the exact values chosen. The paired *p_max* re-calibration (below) absorbs the exact magnitude of this estimate, so the aggregate DOW rate remains close to the historical target regardless of the precise factor values; what would change under different factor values is the *distribution* of mortality risk across care phases, not the aggregate rate.
+
+With these weaker factors, `dow.params` was re-calibrated (the same iterative Monte Carlo procedure used for the base configuration in Issue #5) to reproduce the same 0.52% DOW/WIA historical target: `p1_p_max` = 0.0089, `p2_p_max` = 0.0074 (down from the base 0.023 / 0.019 — a lower ceiling is required to compensate for the weaker treatment efficacy factors' smaller ceiling reduction). A 30-replication run (30 days, `seed = NULL`) of `moderate_intensity` produced:
+
+| Metric | `moderate_intensity` (30-rep) | Historical target |
+|---|---|---|
+| Mean DOW/run | 0.767 (95% CI [0.431, 1.102]) | 0.80 (= 0.52% × 154 baseline WIA) |
+| DOW/WIA rate | 0.498% (95% CI [0.280%, 0.715%]) | 0.52% [[42]](#References), [[43]](#References) |
+| KIA:WIA ratio | 0.452 | 0.328 (255 KIA : 777 WIA [[43]](#References)) |
+
+The DOW/WIA rate is within the ±2 percentage point acceptance tolerance (well within it — the 95% CI spans the historical target). The KIA:WIA ratio is a pre-existing characteristic of the base casualty generator calibration (Issue #1), not something this issue's DOW/treatment-efficacy disentanglement changes — the FORECAS-derived `kia_cbt`/`wia_cbt` generation rates that both `default` and `moderate_intensity` inherit already produce this ratio under the current lognormal-cap generation mechanism, before any scenario override is applied. See Limitations (L12).
+
+### High Intensity profile (Okinawa exemplar, demonstration skeleton)
+
+The `high_intensity` profile demonstrates that the mechanism generalises beyond `moderate_intensity`, and that the underlying **distribution family** — not just its parameters — is itself scenario-specific per FORECAS's own methodology. It is **not** a fully validated second scenario, only a skeleton per Issue #54's acceptance criteria; Issue #10 (comparative scenario runner) owns extending it to a fully parameterised scenario.
+
+FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, `W ~ exponential(mean)`, rather than the lognormal distribution used at moderate/light intensity. Table A.7 gives `Expon(6.86)` as the fitted combat-troop WIA distribution for Okinawa (historical data mean 6.86, SD 6.65); Table A.9 gives `Expon(1.63)` for combat-troop KIA (historical mean 1.63, SD 1.73) [[8]](#References). `generators.wia_cbt`/`kia_cbt` are overridden with `distribution = "exponential"` using these means.
+
+FORECAS itself further distinguishes three troop categories with different casualty-rate treatments: INFANTRY (exponential at high intensity), SUPPORT (intra-divisional combat support — tank, artillery, light-armoured infantry, combat engineer; lognormal at all intensities), and SERVICE SUPPORT (extra-divisional sustainment — Force Service Support Group, Surveillance Reconnaissance Intelligence Group; lognormal, no autocorrelation, at all intensities) [[8]](#References). This simulation models a single brigade (division and below); it has no extra-divisional "service support" population, and the `support` population group represents an organic brigade element exposed to the same battle risk as the `combat` population — not FORECAS's rear-area service support troops. Both `generators.wia_cbt`/`kia_cbt` **and** `generators.wia_spt`/`kia_spt` are therefore overridden with `distribution = "exponential"` using the same Table A.7/A.9 means.
+
+> **MODEL ASSUMPTION — SUPPORT POPULATION TREATED AS COMBAT-EXPOSED:** FORECAS's own "SUPPORT" troop category is kept lognormal at all intensities, distinct from its exponential-eligible "INFANTRY" category. This project instead applies the exponential (high-intensity) distribution to both of its own population groups (`combat`, `support`) under `high_intensity`, on the basis that a division-and-below brigade model has no genuine extra-divisional "service support" population, and that this project's `support` population is an organic, battle-exposed brigade element rather than FORECAS's rear-area category.
+> **Basis:** FORECAS's own troop-category definitions (INFANTRY: ground combat troops; SUPPORT: intra-divisional combat support; SERVICE SUPPORT: extra-divisional sustainment) [[8]](#References); this project's brigade-level (division and below) scope.
+> **Uncertainty:** Medium — this is a considered reclassification rather than a literature-derived value, but it follows directly from FORECAS's own category definitions and this project's documented force structure ([Scenario Context](#scenario-context)).
+> **Consequence if wrong:** If the project's `support` population should instead be treated as FORECAS's lognormal-always "SUPPORT" category, `generators.wia_spt`/`kia_spt` should revert to `distribution = "lognormal"` for `high_intensity`, which would somewhat reduce realised support-troop casualty counts under this profile without affecting `combat` population output.
+
+DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are **not** sourced for Okinawa in this issue and are inherited unchanged from the Falklands-calibrated base — an internally consistent Okinawa-era DOW/treatment model, analogous to the `moderate_intensity` disentanglement above, is out of scope for Issue #54 and would need its own issue.
+
+A 30-replication run (30 days) of each produced:
+
+| Metric | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
+|---|---|---|
+| Mean WIA/run | 154.0 | 733.0 |
+| Mean KIA/run | 69.6 | 173.4 |
+| WIA+KIA ratio vs. `moderate_intensity` | 1.00× | 4.05× |
+
+These figures use `generate_exp_arrivals()`'s mean-relative rate cap (`cap = 3 × mean_daily`, see [Casualty Generation](#casualty-generation)); an earlier version of this profile used the same fixed absolute cap as the lognormal streams, which truncated ~48% of `high_intensity` WIA draws and understated the WIA count by nearly half.
+
+A companion Vietnam-calibrated profile was considered and dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in the source document. Adding a Vietnam-named profile would have required either fabricating a citation or silently estimating a value without a source, neither of which meets this project's citation standards; a Vietnam-calibrated scenario should wait for a source that actually tabulates it.
+
+### Parameter editor integration
+
+`controller.R` (the Shiny `env_data.json` editor) exposes a top-level scenario selector. Selecting a profile re-renders the editable form and JSON preview with that profile's parameters overlaid on the base — a read-only preview of the effective configuration, not a second copy of the data. Saving is only enabled while previewing `default`, so the override mechanism cannot be accidentally flattened into the base file through the generic editor; a scenario's own override values are edited directly in the auto-generated `scenarios` panel, which the existing recursive form renders without any scenario-specific UI code.
 
 ---
 
@@ -1394,6 +1533,9 @@ Antithetic variate variance reduction is applied to arrival time generation only
 
 **L11 — OT–ICU Gating Parameters Are Informed Estimates (Medium Impact on Post-Operative Mortality Realism)**
 The Priority 1 override threshold, the post-op hold penalty multiplier (3.0), and the post-op hold LOS distribution introduced by Issue #43 (see [Died of Wounds — Post-Operative Checkpoint](#died-of-wounds)) are informed estimates rather than literature-derived values — no open-access source quantifies a ward-vs-ICU mortality ratio specific to post-DCS trauma patients, or a typical length of stay for post-operative recovery outside ICU in an austere setting. Priority 2+ candidates deferring OT entry while ICU is saturated have no escape valve in the current model: under sustained ICU saturation (e.g. MASCAL conditions, Issue #9), a deferred candidate could in principle wait indefinitely rather than being triaged to non-operative management. **Impact: Medium.** The qualitative direction of the model's findings (the post-op hold pathway carries materially higher DOW risk than ICU; deferred candidates accumulate visibly under saturation — confirmed under a saturated-ICU stress test) is expected to be robust to the exact parameter values chosen; absolute post-operative DOW rates should be treated as illustrative pending clinical expert consultation or a literature-derived calibration target.
+
+**L12 — Falklands KIA:WIA Ratio, High Intensity Skeleton Incompleteness, and Missing Vietnam Source (Medium Impact on Scenario Validation)**
+The `moderate_intensity` scenario profile (Issue #54, see [Scenario Profiles](#scenario-profiles)) reproduces a KIA:WIA ratio of 0.452 across 30 replications, against the published 255 KIA : 777 WIA (0.328) South Atlantic campaign record [[43]](#References). This ratio is a pre-existing characteristic of the base `generators.wia_cbt`/`generators.kia_cbt` casualty generation rates (FORECAS Table A.8 [[8]](#References), calibrated under Issue #1) combined with the lognormal-cap generation mechanism ([Casualty Generation](#casualty-generation)); it is not introduced or corrected by Issue #54, which overrides only the DOW ceiling and treatment efficacy factors. Separately, the `high_intensity` profile is an explicitly unvalidated demonstration skeleton: only casualty generation rates and distribution family are sourced (FORECAS Tables A.7/A.9 [[8]](#References)); DOW ceiling, treatment efficacy, priority distribution, DNBI composition, and transport times are inherited from the Falklands-calibrated base rather than sourced for the Okinawa context. No Vietnam-calibrated profile exists in this project: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (only a DNBI table), so no genuinely FORECAS-sourced Vietnam parameters could be identified — a Vietnam scenario should wait for a source that actually tabulates it rather than being estimated without one. **Impact: Medium.** The DOW rate — the parameter Issue #54 is responsible for — is well within tolerance of its historical target; the KIA:WIA discrepancy, the `high_intensity` skeleton's incompleteness, and the absence of a sourced Vietnam profile would need to be addressed by a future issue (most likely Issue #10) revisiting the casualty generator calibration or completing a fully validated `high_intensity` scenario profile.
 
 ### Low Impact
 

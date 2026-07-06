@@ -2,6 +2,8 @@ library(shiny)
 library(jsonlite)
 library(shinyBS)
 
+source("R/scenario.R")
+
 getSafeVal <- function(x, default = NULL) {
   if (is.null(x) || is.na(x)) return(default)
   x
@@ -168,12 +170,22 @@ updateJsonFromInputs <- function(json, input_list, parent = "") {
 # Load initial JSON
 default_path <- "env_data.json"
 initial_env_data <- fromJSON(default_path, simplifyVector = FALSE)
+initial_scenario_choices <- c("default", names(initial_env_data$scenarios))
 
 ui <- fillPage(
   padding = 10,
-  titlePanel("Grouped env_data.json Editor"),  
+  titlePanel("Grouped env_data.json Editor"),
   fileInput("upload_json", "📤 Load JSON File", accept = ".json"),
   actionButton("save_json", "💾 Save JSON"),
+  selectInput("scenario_select", "🌍 Active Scenario (preview)",
+              choices = initial_scenario_choices, selected = "default"),
+  tags$div(
+    style = "opacity: 0.7; margin-top: -10px; margin-bottom: 10px;",
+    "Previews the effective parameters for the selected scenario profile ",
+    "(base env_data.json values overlaid with the scenario's overrides — see ",
+    "the 'scenarios' block below). Saving is only enabled for 'default'; edit ",
+    "a scenario's own override values directly in the 'scenarios' panel."
+  ),
   fluidRow(
     column(6,
            tags$hr(),
@@ -195,45 +207,69 @@ ui <- fillPage(
 )
 
 server <- function(input, output, session) {
-  env_data_reactive <- reactiveVal(initial_env_data)
+  # raw_env_data is the authoritative on-disk structure (base + scenarios
+  # block); it is what gets written back to env_data.json on save. Selecting
+  # a non-default scenario only changes the *preview* (display_env_data),
+  # never raw_env_data, so scenario overlays can never be accidentally
+  # flattened into the base file.
+  raw_env_data <- reactiveVal(initial_env_data)
   editable_fields <- c("val", "count", "capacity", "qty")
-  
+
+  display_env_data <- reactive({
+    if (identical(input$scenario_select, "default") || is.null(input$scenario_select)) {
+      raw_env_data()
+    } else {
+      resolve_scenario(raw_env_data(), input$scenario_select)
+    }
+  })
+
   observeEvent(input$upload_json, {
     req(input$upload_json)
     new_data <- fromJSON(input$upload_json$datapath, simplifyVector = FALSE)
-    env_data_reactive(new_data)
+    raw_env_data(new_data)
+    updateSelectInput(session, "scenario_select",
+                       choices = c("default", names(new_data$scenarios)),
+                       selected = "default")
     showNotification("New JSON loaded.", type = "message")
   })
-  
+
   output$dynamic_inputs <- renderUI({
-    generateInputs(env_data_reactive())
+    generateInputs(display_env_data())
   })
-  
+
   output$json_preview <- renderText({
     current_inputs <- reactiveValuesToList(input)
-    updated_json <- updateJsonFromInputs(env_data_reactive(), current_inputs)
+    updated_json <- updateJsonFromInputs(display_env_data(), current_inputs)
     toJSON(updated_json, pretty = TRUE, auto_unbox = TRUE)
   })
-  
+
   observeEvent(input$save_json, {
+    if (!identical(input$scenario_select, "default")) {
+      showNotification(
+        "Saving is disabled while previewing a scenario — switch to 'default' to save, or edit the scenario's own values in the 'scenarios' panel.",
+        type = "error"
+      )
+      return(invisible(NULL))
+    }
+
     current_inputs <- reactiveValuesToList(input)
-    
+
     # 🔍 Validation block
     invalid_fields <- Filter(function(k) {
       field_name <- sub(".*_", "", k)
       field_name %in% editable_fields &&
         (!is.numeric(current_inputs[[k]]) || current_inputs[[k]] <= 0)
     }, names(current_inputs))
-    
+
     if (length(invalid_fields) > 0) {
       showNotification(
         paste("Validation error in:", paste(invalid_fields, collapse = ", ")),
         type = "error"
       )
     } else {
-      updated_json <- updateJsonFromInputs(env_data_reactive(), current_inputs)
+      updated_json <- updateJsonFromInputs(raw_env_data(), current_inputs)
       write_json(updated_json, default_path, pretty = TRUE, auto_unbox = TRUE)
-      env_data_reactive(updated_json)
+      raw_env_data(updated_json)
       showNotification("env_data.json saved.", type = "message")
     }
   })

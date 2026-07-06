@@ -73,7 +73,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Mechanism](#mechanism)
   - [Parameter classification](#parameter-classification)
   - [Falklands 1982 profile](#falklands-1982-profile)
-  - [OIF/OEF profile (demonstration skeleton)](#oifoef-profile-demonstration-skeleton)
+  - [Vietnam and Okinawa profiles (demonstration skeletons)](#vietnam-and-okinawa-profiles-demonstration-skeletons)
   - [Parameter editor integration](#parameter-editor-integration)
 - [Development Environment](#development-environment)
   - [Prerequisites](#prerequisites)
@@ -689,11 +689,30 @@ With these weaker factors, `dow.params` was re-calibrated (the same iterative Mo
 
 The DOW/WIA rate is within the ±2 percentage point acceptance tolerance (well within it — the 95% CI spans the historical target). The KIA:WIA ratio is a pre-existing characteristic of the base casualty generator calibration (Issue #1), not something this issue's DOW/treatment-efficacy disentanglement changes — the FORECAS-derived `kia_cbt`/`wia_cbt` generation rates that both `default` and `falklands_1982` inherit already produce this ratio under the current lognormal-cap generation mechanism, before any scenario override is applied. See Limitations (L12).
 
-### OIF/OEF profile (demonstration skeleton)
+### Vietnam and Okinawa profiles (demonstration skeletons)
 
-The `oif_oef` profile demonstrates that the mechanism generalises beyond a single scenario; it is **not** a fully validated second scenario, only a skeleton per Issue #54's acceptance criteria. It overrides only `dow.params.p1_p_max` / `p2_p_max`, scaled toward Howard et al.'s (2019) [[12]](#References) reported 2.1–3.3% aggregate DOW rate among OIF/OEF battle casualties; `dow.treatment_efficacy` is left unmodified because the base factors are already OIF/OEF-era in origin. A 30-replication run produced a DOW/WIA rate of 2.64% (95% CI [2.12%, 3.16%]), within the target range.
+The `vietnam` and `okinawa` profiles demonstrate that the mechanism generalises to the other two FORECAS-modelled battles named by Issue #10 (Falklands, Vietnam, Okinawa), using the same source document [[8]](#References) as `falklands_1982` rather than an unrelated modern-era source. Both are **not** fully validated scenarios, only skeletons per Issue #54's acceptance criteria — Issue #10 (comparative scenario runner) owns extending them to fully parameterised, independently-run scenarios. Each overrides only `generators.wia_cbt`/`kia_cbt`/`wia_spt`/`kia_spt` with FORECAS Table A.5 (Vietnam) and Table A.2 (Okinawa) [[8]](#References) rates:
 
-Casualty generation rates, priority distribution, DNBI composition, and transport time distributions are **not** sourced for OIF/OEF in this issue and are inherited unchanged from the Falklands-calibrated base — a materially higher-intensity casualty stream is not represented by this skeleton. Completing an OIF/OEF (or other) profile to the same standard as `falklands_1982` is out of scope for Issue #54 and would need its own issue if a modern-era comparison scenario is required.
+| Scenario | WIA μ | WIA σ | KIA μ | KIA σ | Source |
+|---|---|---|---|---|---|
+| `falklands_1982` | 1.77 | 3.56 | 0.68 | 1.39 | FORECAS Table A.8 |
+| `vietnam` | 4.12 | 6.89 | 1.58 | 2.64 | FORECAS Table A.5 |
+| `okinawa` | 8.40 | 11.20 | 3.22 | 4.30 | FORECAS Table A.2 |
+
+DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are **not** sourced for Vietnam or Okinawa in this issue and are inherited unchanged from the Falklands-calibrated base — an internally consistent Vietnam- or Okinawa-era DOW/treatment model, analogous to the `falklands_1982` disentanglement above, is out of scope for Issue #54 and would need its own issue.
+
+A 15-replication run (30 days) of each produced:
+
+| Metric | `falklands_1982` (50-rep) | `vietnam` (15-rep) | `okinawa` (15-rep) |
+|---|---|---|---|
+| Mean WIA/run | 154.0 | 285.6 | 427.7 |
+| Mean KIA/run | 69.7 | 149.4 | 267.3 |
+| WIA+KIA ratio vs. Falklands | 1.00× | 1.94× | 3.10× |
+
+> **MODEL ASSUMPTION — VIETNAM/OKINAWA CASUALTY SCALING:** The realised WIA+KIA growth (1.94× and 3.10×) is materially lower than the ratio implied by the nominal FORECAS `mean_daily` rates alone (4.12/1.77 ≈ 2.33× and 8.40/1.77 ≈ 4.75×). This is because `generate_ln_arrivals()` (see [Casualty Generation](#casualty-generation)) caps the per-minute lognormal rate draw at `cap = 5` before scaling by population — a structural parameter of the arrival-generation mechanism, not a `vars` entry, and therefore outside this issue's scenario-classification scope. As `mean_daily` approaches the cap under higher-intensity scenarios, a growing fraction of the draw distribution is truncated, so realised counts under-scale relative to the nominal FORECAS rate.
+> **Basis:** Direct comparison of the Issue #10 nominal ratios (2.33×, 4.75×, derived from FORECAS Table A.5/A.2 relative to A.8) against the realised simulation ratios (1.94×, 3.10×) at the current default `cap = 5`.
+> **Uncertainty:** Medium — the direction and rough magnitude of the truncation effect is confirmed; the exact realised ratio at full replication (Issue #10 will use more replications and longer runs) may differ slightly from this skeleton's 15-replication estimate.
+> **Consequence if wrong:** If Issue #10 requires ratios closer to the nominal FORECAS values, `cap` will need to be exposed as a scenario-configurable (or otherwise revisited) parameter rather than left as a fixed default; this is flagged for Issue #10 rather than resolved here, since `cap` is a generation-mechanism parameter, not a `vars` entry this issue's classification covers.
 
 ### Parameter editor integration
 
@@ -1495,8 +1514,8 @@ Antithetic variate variance reduction is applied to arrival time generation only
 **L11 — OT–ICU Gating Parameters Are Informed Estimates (Medium Impact on Post-Operative Mortality Realism)**
 The Priority 1 override threshold, the post-op hold penalty multiplier (3.0), and the post-op hold LOS distribution introduced by Issue #43 (see [Died of Wounds — Post-Operative Checkpoint](#died-of-wounds)) are informed estimates rather than literature-derived values — no open-access source quantifies a ward-vs-ICU mortality ratio specific to post-DCS trauma patients, or a typical length of stay for post-operative recovery outside ICU in an austere setting. Priority 2+ candidates deferring OT entry while ICU is saturated have no escape valve in the current model: under sustained ICU saturation (e.g. MASCAL conditions, Issue #9), a deferred candidate could in principle wait indefinitely rather than being triaged to non-operative management. **Impact: Medium.** The qualitative direction of the model's findings (the post-op hold pathway carries materially higher DOW risk than ICU; deferred candidates accumulate visibly under saturation — confirmed under a saturated-ICU stress test) is expected to be robust to the exact parameter values chosen; absolute post-operative DOW rates should be treated as illustrative pending clinical expert consultation or a literature-derived calibration target.
 
-**L12 — Falklands KIA:WIA Ratio and OIF/OEF Skeleton Incompleteness (Medium Impact on Scenario Validation)**
-The `falklands_1982` scenario profile (Issue #54, see [Scenario Profiles](#scenario-profiles)) reproduces a KIA:WIA ratio of 0.452 across 50 replications, against the published 255 KIA : 777 WIA (0.328) South Atlantic campaign record [[43]](#References). This ratio is a pre-existing characteristic of the base `generators.wia_cbt`/`generators.kia_cbt` casualty generation rates (FORECAS Table A.8 [[8]](#References), calibrated under Issue #1) combined with the lognormal-cap generation mechanism ([Casualty Generation](#casualty-generation)); it is not introduced or corrected by Issue #54, which overrides only the DOW ceiling and treatment efficacy factors. Separately, the `oif_oef` profile is an explicitly unvalidated demonstration skeleton: only its DOW ceiling is sourced (Howard et al. 2019 [[12]](#References)); casualty generation, priority distribution, DNBI composition, and transport times are inherited from the Falklands-calibrated base rather than sourced for the OIF/OEF context. **Impact: Medium.** The DOW rate — the parameter Issue #54 is responsible for — is well within tolerance of its historical target; the KIA:WIA discrepancy and the OIF/OEF skeleton's incompleteness would need to be addressed by a future issue revisiting the casualty generator calibration or completing a validated modern-era scenario profile.
+**L12 — Falklands KIA:WIA Ratio, Vietnam/Okinawa Skeleton Incompleteness, and Generation-Cap Truncation (Medium Impact on Scenario Validation)**
+The `falklands_1982` scenario profile (Issue #54, see [Scenario Profiles](#scenario-profiles)) reproduces a KIA:WIA ratio of 0.452 across 50 replications, against the published 255 KIA : 777 WIA (0.328) South Atlantic campaign record [[43]](#References). This ratio is a pre-existing characteristic of the base `generators.wia_cbt`/`generators.kia_cbt` casualty generation rates (FORECAS Table A.8 [[8]](#References), calibrated under Issue #1) combined with the lognormal-cap generation mechanism ([Casualty Generation](#casualty-generation)); it is not introduced or corrected by Issue #54, which overrides only the DOW ceiling and treatment efficacy factors. Separately, the `vietnam` and `okinawa` profiles are explicitly unvalidated demonstration skeletons: only casualty generation rates are sourced (FORECAS Tables A.5 and A.2 [[8]](#References)); DOW ceiling, treatment efficacy, priority distribution, DNBI composition, and transport times are inherited from the Falklands-calibrated base rather than sourced for those eras. Their realised WIA+KIA growth (1.94× and 3.10× vs. Falklands) is also materially lower than the nominal FORECAS rate ratio (2.33× and 4.75×) because of `generate_ln_arrivals()`'s fixed `cap = 5` per-minute rate ceiling truncating a growing fraction of the higher-intensity draw distributions — see the Scenario Profiles MODEL ASSUMPTION block. **Impact: Medium.** The DOW rate — the parameter Issue #54 is responsible for — is well within tolerance of its historical target; the KIA:WIA discrepancy, the skeletons' incompleteness, and the generation-cap truncation effect would need to be addressed by a future issue (most likely Issue #10) revisiting the casualty generator calibration, the `cap` parameter, or completing fully validated Vietnam/Okinawa scenario profiles.
 
 ### Low Impact
 

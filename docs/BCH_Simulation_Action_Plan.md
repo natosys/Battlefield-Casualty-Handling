@@ -33,6 +33,7 @@
 | 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B **Backlog** |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | **Merged (PR #59)** |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
+| 54 | Scenario-level parameter profiles for historical conflict calibration | High | Medium | **Merged (PR #67)** |
 | 60 | `qty: 0` in env_data.json silently creates one unit instead of zero | Low | Low | **Merged (PR #62)** |
 
 ---
@@ -44,6 +45,30 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 54 — Scenario-Level Parameter Profiles for Historical Conflict Calibration ✓
+
+**Merged:** PR #67, branch `claude/next-issue-selection-43d2ju`
+
+Introduces a named scenario profile overlay mechanism: a top-level `scenarios` block in `env_data.json`, `merge_scenario_vars()`/`resolve_scenario()` (new `R/scenario.R`), and `load_scenario(path, scenario)` (`R/environment.R`), which overlays only scenario-eligible `vars` (casualty generation, DOW ceiling/treatment efficacy, priority/DNBI/surgery/evac probabilities, transport times) onto the base configuration — structural config (`elms`, `transports`, `pops`) is never overridden. `scenario = "default"` (or omitting the argument, as every existing entry point does) is a verified no-op.
+
+Implements two profiles, named for FORECAS's own battle-intensity framing rather than by conflict:
+- **`moderate_intensity`** (Falklands 1982 exemplar) — disentangles the pre-existing co-dependence between the Falklands-calibrated DOW ceiling and the OIF/OEF-era treatment efficacy factors the base configuration had been using. Era-appropriate treatment efficacy factors are paired with an independently re-calibrated ceiling, validated by 50-replication Monte Carlo against the historical 0.52% DOW/WIA target (result: 0.480%, 95% CI [0.323%, 0.638%]).
+- **`high_intensity`** (Okinawa exemplar, demonstration skeleton, not a fully validated second scenario) — required fetching and reading the actual FORECAS report (Blood, Zouris & Rotblatt, 1998) directly rather than assuming its methodology, which surfaced two corrections: (1) FORECAS fits an **exponential** distribution (not lognormal) to combat-troop WIA/KIA at high intensity, parameterised by its mean alone (`W ~ exponential(mean)`) — added `generate_exp_arrivals()` and a `generate_casualty_arrivals()` dispatcher keyed off a new `distribution` field per generator; (2) the paper's actual Appendix A tables gave different values than initially assumed (Table A.7 Okinawa combat WIA is `Expon(6.86)`, Table A.9 combat KIA is `Expon(1.63)`), and there is **no standalone Vietnam combat-troop WIA/KIA table** in the source document (Table A.5 is Vietnam DNBI only) — a `vietnam` profile was dropped rather than citing a table that doesn't contain those numbers. **This directly affects Issue #10's own body, which currently cites Vietnam FORECAS Table A.5 and specific WIA/KIA numbers that do not appear in the source document — see the note added to Issue #10.**
+
+A secondary defect was found and fixed during this same PR: the per-minute rate cap (`cap = 5`, an undocumented engineering constant with no citation, present since the casualty generator's first commit) truncated a wildly uneven, mean-dependent share of draws once applied to the new exponential streams — ~48% for `high_intensity` WIA (mean 6.86, *above* the fixed cap) vs. ~1–7% for the existing lognormal streams. `generate_exp_arrivals()` now computes `cap = cap_multiplier × mean_daily` (default multiplier 3), which truncates a constant ~5% of draws regardless of intensity (since `P(Exponential(mean) > k·mean) = exp(-k)` is mean-invariant). `generate_ln_arrivals()` (used by `default`/`moderate_intensity`) is untouched.
+
+`controller.R` gained a scenario selector for previewing effective parameters per scenario; saving is gated to `default` so the override mechanism can't be accidentally flattened into the base file through the generic editor.
+
+**Seed-42 baseline (30 days, single run):** Unchanged — 400 total casualties, 154 WIA, 70 KIA, 176 DNBI, byte-for-byte identical to the documented baseline. `default` scenario output confirmed structurally identical to the pre-existing `load_elms()` path. No RNG-stream-affecting change to the base configuration; CLAUDE.md's Key Parameters table does not require updating.
+
+**high_intensity (50-rep, 30 days):** mean WIA/run 732.9, mean KIA/run 173.4 (WIA+KIA ratio 4.05× `moderate_intensity`), mean DOW/run 7.040 (95% CI [6.296, 7.784]), DOW/WIA rate 0.961%.
+
+**Known limitations (documented in README L12):** the `moderate_intensity` KIA:WIA ratio (0.452) differs from the published 255:777 (0.328) record — a pre-existing characteristic of the Issue #1 casualty generator calibration, not introduced or corrected here. `high_intensity` is an explicitly unvalidated skeleton (only casualty generation rate and distribution family are sourced). No Vietnam-calibrated profile exists — none was fabricated in place of a genuine source.
+
+**Unblocked by this merge:** Issue #10 (comparative scenario runner) — its own body already listed #54 as a hard dependency (schema ownership) alongside #1/#2/#5/#8, all of which were already merged. Issue #10's `status: ready` label was already set (it had been set before #54's dependency was fully satisfied, an inconsistency this merge now resolves); no label change was required. No other open issue lists #54 as a blocker.
+
+---
 
 ### Issue 40 (partial) — R2B OT Bypass Reason Diagnostic ✓
 
@@ -970,8 +995,10 @@ Implement a **scenario runner** that accepts a named casualty configuration and 
 | Scenario | WIA μ | WIA σ | Source |
 |---|---|---|---|
 | Falklands (current) | 1.77 | 3.56 | FORECAS Table A.8 |
-| Vietnam | 4.12 | 6.89 | FORECAS Table A.5 |
+| ~~Vietnam~~ | ~~4.12~~ | ~~6.89~~ | ~~FORECAS Table A.5~~ |
 | Okinawa | 8.40 | 11.20 | FORECAS Table A.2 |
+
+**Correction (Issue #54, PR #67):** the table above was the original plan, but Issue #54 fetched and read the actual FORECAS report to implement this schema and found neither the Vietnam nor the Okinawa row is accurate as stated. FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table at all — Table A.5 is Vietnam combat-troop **DNBI**, not WIA/KIA — so the Vietnam row cannot be sourced from this document and has been dropped rather than fabricated. Okinawa's real fitted values (Table A.7 WIA, Table A.9 KIA, both **exponential**, not lognormal) are `Expon(6.86)` and `Expon(1.63)` respectively — materially different from the 8.40/11.20 figures above. The schema Issue #54 built supports both lognormal and exponential distribution families (a `distribution` field per generator), which any future Vietnam-equivalent profile will need if a genuine source is found. See the `moderate_intensity`/`high_intensity` scenario profiles in `env_data.json` for the corrected implementation.
 
 Package the scenario parameters in `env_data.json` as named scenario blocks, and produce a comparative output table showing queue lengths, DOW counts, and throughput by scenario. This transforms the research from a single-point analysis into a genuine system suitability assessment across LSCO intensity levels.
 
@@ -1145,8 +1172,9 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 ### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
 *Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs.*
 
+11a. ~~**Issue 54** — Scenario-level parameter profiles (schema, `load_scenario()`, `moderate_intensity`/`high_intensity` — prerequisite for Issue 10).~~ — **Merged PR #67.**
 12. **Issue 9** — Compound Poisson MASCAL injection overlay. Requires Issues 1, 2, 5.
-13. **Issue 10** — Comparative scenario runner (Falklands / Vietnam / Okinawa). Requires Issues 1, 2, 5, 8.
+13. **Issue 10** — Comparative scenario runner. Requires Issues 1, 2, 5, 8, 54 (all now merged). **Note:** Issue 10's own body cites a Vietnam FORECAS Table A.5 with specific WIA/KIA figures that Issue 54 found do not exist in the source document (Table A.5 is Vietnam DNBI only) — see the Issue 54 merge entry above and the comment added to Issue 10. The scenario names this issue should build on are `moderate_intensity`/`high_intensity` (FORECAS's own battle-intensity framing), not `falklands`/`vietnam`/`okinawa`.
 14. **Issue 18** — Endogenous casualty generation (force regeneration feedback). Requires Issues 1, 2, 22.
 15. **Issue 23** — Role 4 occupancy and AME sortie demand. Requires Issues 1, 22, 18.
 
@@ -1179,6 +1207,8 @@ COMPLETE (merged to main):
        fix (PR #62)
   #40  (partial) bypass-reason diagnostic — r2b_bypass_reason/r2b_bypass_time,
        daily chart (PR #64); Scenario A/B remain — see UNBLOCKED below
+  #54  Scenario-level parameter profiles — scenarios schema, load_scenario(),
+       moderate_intensity + high_intensity, generate_exp_arrivals() (PR #67)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -1187,7 +1217,8 @@ UNBLOCKED (start now):
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
-  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓)
+  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓ + #54 ✓ —
+       fully unblocked now that #54's schema dependency is also satisfied)
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -1224,4 +1255,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 05 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14, #9, #18, and #10 unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 backlogged; #40 partially merged with remaining Scenario A/B scope backlogged. Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), has now been raised. All referenced resources are open-access.*
+*Prepared June 2026. Updated 06 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), #54 (PR #67), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14, #9, and #18 unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 backlogged; #40 partially merged with remaining Scenario A/B scope backlogged. Issue #54 (scenario-level parameter profiles, PR #67) is merged, fully unblocking Issue #10 (comparative scenario runner) — Issue 10's own Vietnam sourcing citation was found to be inaccurate during Issue #54 and will need correcting before that work proceeds (see Issue #54 merge entry and the comment on Issue #10). Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), remains blocked pending #10.*

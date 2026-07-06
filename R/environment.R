@@ -217,7 +217,15 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
 #'   exponential distribution.
 #' @param pop Size of target population
 #' @param n_days Duration in days
-#' @param cap Maximum per-minute rate cap (default 5)
+#' @param cap_multiplier Per-minute rate cap, expressed as a multiple of
+#'   mean_daily rather than an absolute value (default 3). Because
+#'   P(Exponential(mean) > k * mean) = exp(-k) regardless of mean, this
+#'   yields the same ~5% truncation probability for every exponential
+#'   stream irrespective of intensity — unlike a fixed absolute cap (as
+#'   used by generate_ln_arrivals()), which truncates a rapidly growing
+#'   share of the distribution as mean_daily approaches the cap (e.g.
+#'   ~48% for a mean of 6.86 against a fixed cap of 5; see README
+#'   Casualty Generation section).
 #' @param seed Optional random seed for reproducibility
 #' @param write_file Write arrival times to data/ directory (default TRUE;
 #'   set FALSE for parallel replication workers to avoid file-write conflicts)
@@ -233,11 +241,12 @@ generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 generate_exp_arrivals <- function(type, mean_daily, pop, n_days,
-                                  cap = 5, seed = NULL, write_file = TRUE,
+                                  cap_multiplier = 3, seed = NULL, write_file = TRUE,
                                   antithetic = FALSE) {
   if (!is.null(seed)) set.seed(seed)
 
   n_minutes <- day_min * n_days
+  cap <- cap_multiplier * mean_daily
 
   # Explicit inverse-CDF transform so U can be reflected for antithetic pairing
   u_rate <- runif(n_minutes)

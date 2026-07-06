@@ -377,7 +377,7 @@ Where:
 
 #### 2. Per-Minute Rate Sampling and Scaling
 
-Draws samples from the stream's selected distribution representing per-minute casualty rates, capped at a specified threshold to prevent extreme outliers. The sample is scaled according to population size and temporal resolution (per minute per 1000 personnel).
+Draws samples from the stream's selected distribution representing per-minute casualty rates, capped at a threshold to prevent extreme outliers, then scaled according to population size and temporal resolution (per minute per 1000 personnel).
 
 For each simulation minute $i \in \{1, 2, \dots, n_{\text{minutes}}\}$, the per-minute casualty rate is computed as:
 
@@ -388,14 +388,15 @@ $$
 Where:
 
 - $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$ (lognormal streams) or $x_i \sim \text{Exponential}(\lambda)$ (exponential streams)
-- $\text{cap}$ = upper bound (e.g., 5) to prevent extreme values
 - $P$ = population size (support or combat)
 - $r_i$ = scaled and capped casualty rate for minute i
 
-> **MODEL ASSUMPTION — RATE CAP APPLIES EQUALLY TO BOTH DISTRIBUTIONS:** The same fixed `cap = 5` per-minute ceiling truncates both lognormal and exponential draws. Because the exponential distribution's heavier tail sits closer to this cap at high-intensity means (e.g. `high_intensity`'s 6.86/1.63), realised casualty counts under `high_intensity` under-scale somewhat relative to the nominal FORECAS mean — see the `high_intensity` profile discussion under [Scenario Profiles](#scenario-profiles).
-> **Basis:** `cap` is a fixed argument default in `generate_ln_arrivals()`/`generate_exp_arrivals()` (`R/environment.R`), not a `vars` entry, so it is not currently scenario-configurable.
-> **Uncertainty:** Medium.
-> **Consequence if wrong:** A scenario whose true intensity warrants a materially higher per-minute ceiling would need `cap` exposed as a scenario-level parameter; flagged as a candidate refinement for Issue #10.
+The cap itself is **not** the same fixed value for both distribution families. `generate_ln_arrivals()` retains a fixed absolute default (`cap = 5`) for backward compatibility with the validated `default`/`moderate_intensity` baseline (`R/environment.R`; there is no citation for this specific value — see the assumption block below). `generate_exp_arrivals()` instead computes `cap = cap_multiplier × mean_daily` (default `cap_multiplier = 3`), because $P(\text{Exponential}(\mu) > k\mu) = e^{-k}$ is *independent of the mean* — a fixed multiple of the mean truncates the same tail probability (~5% at $k=3$) regardless of how intense the scenario is, whereas a fixed absolute value does not.
+
+> **MODEL ASSUMPTION — RATE CAP DERIVATION AND SCOPE:** `cap = 5` (the fixed absolute value used by `generate_ln_arrivals()`, and formerly also by `generate_exp_arrivals()`) has no cited derivation; it has been a hardcoded engineering safeguard against extreme per-minute draws since the casualty generator's earliest implementation, and FORECAS [[8]](#References) does not describe any equivalent truncation mechanism. Applying that same fixed value to `generate_exp_arrivals()` (as originally implemented for Issue #54) was found to truncate a highly uneven, mean-dependent share of each stream's draws: ~1.4% for `moderate_intensity` KIA (mean 0.68), ~7.3% for `moderate_intensity` WIA (mean 1.77), ~4.7% for `high_intensity` KIA (mean 1.63) — but ~48% for `high_intensity` WIA (mean 6.86, *above* the fixed cap), silently compressing the realised high-intensity WIA rate toward ~5/day regardless of the FORECAS-sourced 6.86 mean. `generate_exp_arrivals()` was corrected to use `cap = 3 × mean_daily`, which truncates a constant ~5% of draws for every exponential stream regardless of intensity (matching the same order of magnitude as the pre-existing, accepted lognormal truncation rates above), rather than a share that grows unboundedly as mean_daily approaches a fixed ceiling.
+> **Basis:** $P(\text{Exponential}(\mu) > k\mu) = e^{-k}$ is an exact, mean-invariant property of the exponential distribution (not an estimate); the choice of $k=3$ (≈5% truncation) is an informed judgement matched to the order of magnitude already accepted for the lognormal `moderate_intensity` baseline, not a literature-derived value.
+> **Uncertainty:** Low for the mean-invariance property itself; Medium for the specific choice of `cap_multiplier = 3` and for the un-derived `cap = 5` absolute value retained by `generate_ln_arrivals()`.
+> **Consequence if wrong:** A smaller `cap_multiplier` would re-introduce under-scaling at high intensity; a larger one would rarely bind at all and stop serving as a safeguard against pathological single-minute draws. The lognormal absolute `cap = 5` is untouched by this issue and continues to reproduce the documented `default`/`moderate_intensity` baseline exactly; revisiting it (e.g. to the same mean-relative form) is a candidate refinement for a future issue, since it was not shown to be materially distorting any currently validated scenario.
 
 #### 3. Arrival Detection via Cumulative Sum
 
@@ -725,9 +726,11 @@ A 30-replication run (30 days) of each produced:
 
 | Metric | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
 |---|---|---|
-| Mean WIA/run | 154.0 | 398.5 |
-| Mean KIA/run | 69.6 | 174.0 |
-| WIA+KIA ratio vs. `moderate_intensity` | 1.00× | 2.32× |
+| Mean WIA/run | 154.0 | 733.0 |
+| Mean KIA/run | 69.6 | 173.4 |
+| WIA+KIA ratio vs. `moderate_intensity` | 1.00× | 4.05× |
+
+These figures use `generate_exp_arrivals()`'s mean-relative rate cap (`cap = 3 × mean_daily`, see [Casualty Generation](#casualty-generation)); an earlier version of this profile used the same fixed absolute cap as the lognormal streams, which truncated ~48% of `high_intensity` WIA draws and understated the WIA count by nearly half.
 
 A companion Vietnam-calibrated profile was considered and dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in the source document. Adding a Vietnam-named profile would have required either fabricating a citation or silently estimating a value without a source, neither of which meets this project's citation standards; a Vietnam-calibrated scenario should wait for a source that actually tabulates it.
 

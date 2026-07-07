@@ -19,7 +19,7 @@
 | 7 | Undifferentiated DNBI treatment pathway | Medium | Medium | **Merged (PR #34)** |
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
-| 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | Open |
+| 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | **Merged (PR #69)** |
 | 14 | Shiny app — parameter editor, Quick Run mode | Medium | Medium | Open |
 | 15 | Shiny app — Full Analysis mode (multi-run CI) | Medium | Medium | Open |
 | 18 | Endogenous casualty generation (force feedback) | Medium | High | Open |
@@ -45,6 +45,32 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 10 — Comparative Scenario Runner ✓
+
+**Merged:** PR #69, branch `claude/next-issue-gi4q2n`
+
+Adds `run_scenario()` / `compare_scenarios()` (new `R/scenario_runner.R`) and a CLI entry point (`scripts/run_scenarios.R`) that execute the existing multi-replication framework (`run_replications()`/`summarise_replications()`, Issue #1) under a named `env_data.json` scenario profile (`load_scenario()`/`resolve_scenario()`, Issue #54), aggregating queue and mortality KPIs across replications in the project's standard mean (p10–p90), 95% CI format. `run_scenario()` also reports `wia_count` and `dow_rate` (DOW as a proportion of WIA, matching the existing "DOW/WIA rate" convention) alongside `total_casualties`. `compare_scenarios()` combines results across scenarios, writes `outputs/scenario_comparison_queues.csv` / `outputs/scenario_comparison_totals.csv`, and renders a faceted comparison plot (`images/scenario_comparison.png`) grouping queue KPIs by R2B OT, R2E OT, R2E ICU, and Transport.
+
+**Scope revision:** the issue as originally raised cited Vietnam/Okinawa WIA/KIA figures that Issue #54 subsequently found do not exist in the FORECAS source document (Table A.5 is Vietnam DNBI only). This PR compares the two profiles Issue #54 actually shipped — `moderate_intensity` (Falklands 1982) and `high_intensity` (Okinawa, demonstration skeleton) — rather than fabricating a Vietnam profile with uncited numbers; this was flagged on the issue before work started.
+
+A follow-up commit on the same PR added a "Comparative Scenario Runner" reference subsection under README's Codebase Structure (matching the pattern used for the replication/warm-up/sensitivity tooling), which had been missed in the initial commit — the results were documented under Simulation Analysis but the how-to-call-it reference was not.
+
+**10-replication × 30-day comparison (seed 42):**
+
+| Metric | `moderate_intensity` (Falklands) | `high_intensity` (Okinawa) | Ratio |
+|---|---|---|---|
+| Total casualties/run | 399.8 | 1082.1 | 2.71× |
+| DOW/WIA rate | 0.260% | 1.078% | 4.15× |
+| R2E OT mean queue | 0.049 | 37.82 | 773× |
+| R2E ICU mean queue | 0.045 | 3.156 | 69× |
+| R2B OT mean queue | 0.000 | 0.000 | — |
+
+**Seed-42 baseline (30 days, single run):** Unchanged — no changes to `Battlefield Casualty Handling.R` or `env_data.json`; `moderate_intensity` total casualties (399.8 mean at 10 reps) match the documented default baseline (400) within 0.05%. CLAUDE.md's Key Parameters table does not require updating.
+
+**Known limitations (documented in README L8/L12):** No Vietnam-intensity comparison exists — no genuinely FORECAS-sourced Vietnam combat-troop WIA/KIA table could be identified. `high_intensity` remains an unvalidated demonstration skeleton per Issue #54 (only casualty generation rate/distribution family sourced for Okinawa), so the queue/DOW increases reported are a lower bound on Okinawa-intensity system stress, not a fully validated clinical model.
+
+**Unblocked by this merge:** Issue #57 (fleet-size capacity margin sweep) — its only hard blocker was #10; label updated `status: blocked` → `status: ready`. Issues #23 and #15 also reference #10-adjacent work in their surrounding context but list #1/#22/#18 and #14/#1/#2/#3 respectively as their actual blockers, not #10 — neither is unblocked by this merge.
 
 ### Issue 54 — Scenario-Level Parameter Profiles for Historical Conflict Calibration ✓
 
@@ -1169,12 +1195,12 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 13. **Issue 40** — R2B OT utilisation improvement. ~~Add `r2b_bypass_reason` attribute~~ — **Merged PR #64** (67 off-shift, 10 OT busy/queued, of 77 at-R2B bypasses). Remaining scope: scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4) — both deferred pending a clinician fatigue model (Scenario A) and a directed establishment-size decision (Scenario B). **Backlog** — not currently planned; unblocked but on hold pending that design work.
 14. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable (satisfied). Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1. **Backlog** — unblocked but deprioritised given its size/risk; may not be resourced in the near term.
 
-### Phase 4 — Scenario Expansion (Issues 9, 10, 18, 23)
+### Phase 4 — Scenario Expansion (Issues 9, 10 ✓, 18, 23)
 *Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs.*
 
 11a. ~~**Issue 54** — Scenario-level parameter profiles (schema, `load_scenario()`, `moderate_intensity`/`high_intensity` — prerequisite for Issue 10).~~ — **Merged PR #67.**
 12. **Issue 9** — Compound Poisson MASCAL injection overlay. Requires Issues 1, 2, 5.
-13. **Issue 10** — Comparative scenario runner. Requires Issues 1, 2, 5, 8, 54 (all now merged). **Note:** Issue 10's own body cites a Vietnam FORECAS Table A.5 with specific WIA/KIA figures that Issue 54 found do not exist in the source document (Table A.5 is Vietnam DNBI only) — see the Issue 54 merge entry above and the comment added to Issue 10. The scenario names this issue should build on are `moderate_intensity`/`high_intensity` (FORECAS's own battle-intensity framing), not `falklands`/`vietnam`/`okinawa`.
+13. ~~**Issue 10** — Comparative scenario runner (`run_scenario()`/`compare_scenarios()`, `R/scenario_runner.R`; scope revised to compare `moderate_intensity`/`high_intensity` rather than the uncited Vietnam/Okinawa figures originally in the issue body).~~ — **Merged PR #69.**
 14. **Issue 18** — Endogenous casualty generation (force regeneration feedback). Requires Issues 1, 2, 22.
 15. **Issue 23** — Role 4 occupancy and AME sortie demand. Requires Issues 1, 22, 18.
 
@@ -1209,6 +1235,8 @@ COMPLETE (merged to main):
        daily chart (PR #64); Scenario A/B remain — see UNBLOCKED below
   #54  Scenario-level parameter profiles — scenarios schema, load_scenario(),
        moderate_intensity + high_intensity, generate_exp_arrivals() (PR #67)
+  #10  Comparative scenario runner — run_scenario()/compare_scenarios()
+       (R/scenario_runner.R), scripts/run_scenarios.R (PR #69)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -1217,8 +1245,9 @@ UNBLOCKED (start now):
   #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
-  #10  Scenario runner               (unblocked: #1 ✓ + #2 ✓ + #5 ✓ + #8 ✓ + #54 ✓ —
-       fully unblocked now that #54's schema dependency is also satisfied)
+  #57  Fleet-size capacity margin sweep for transport assets — stubbed as
+       plot_transport_capacity_margin_by_fleet_size() in R/analysis.R
+       (unblocked: #10 ✓)
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -1233,10 +1262,6 @@ AFTER #14 + #1 + #2 + #3:
 
 AFTER #1 + #22 + #18:
   #23  Role 4 / AME sortie demand
-
-AFTER #10:
-  #57  Fleet-size capacity margin sweep for transport assets — stubbed as
-       plot_transport_capacity_margin_by_fleet_size() in R/analysis.R
 ```
 
 ---
@@ -1255,4 +1280,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 06 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), #54 (PR #67), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14, #9, and #18 unblocked. Phase 3 structural refactoring in progress — Issues #7, #39, and #60 merged; Issue #4 backlogged; #40 partially merged with remaining Scenario A/B scope backlogged. Issue #54 (scenario-level parameter profiles, PR #67) is merged, fully unblocking Issue #10 (comparative scenario runner) — Issue 10's own Vietnam sourcing citation was found to be inaccurate during Issue #54 and will need correcting before that work proceeds (see Issue #54 merge entry and the comment on Issue #10). Issue #57, a follow-up for a transport fleet-size capacity margin sweep drafted during Issue #6 (Phase 4, blocked on #10), remains blocked pending #10.*
+*Prepared June 2026. Updated 07 July 2026 to reflect: completion of Issue #10 (comparative scenario runner, PR #69) — compares `moderate_intensity`/`high_intensity` (not the uncited Vietnam/Okinawa figures originally in the issue body), unblocking Issue #57 (`status: blocked` → `status: ready`). Previously updated 06 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), #54 (PR #67), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14 and #9 unblocked; Issue #18 unblocked. Phase 4 Scenario Expansion in progress — Issues #54 and #10 merged; Issue #57 unblocked.*

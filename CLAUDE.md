@@ -15,7 +15,8 @@ All work must meet academic research standards: reasoning must be explicit, sour
 | `Battlefield Casualty Handling.R` | Main simulation engine — trajectories, resource seizure, casualty routing |
 | `data_import.R` | Reads `env_data.json` and builds the simmer environment |
 | `single-run_analysis.R` | Analysis and visualisation pipeline (currently single-run; being extended) |
-| `controller.R` | Shiny GUI for interactive `env_data.json` parameter editing |
+| `app.R` | Shiny console — Configure/Run/Analyse workflow for interactive `env_data.json` parameter editing and Quick Run execution (Issue #14) |
+| `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `env_data.json` | All simulation parameters — populations, resources, distributions, schedules |
 | `distribution_graphs.R` | Triangle distribution demonstration |
 | `README.md` | Primary academic document — introduction, literature review, methodology, results, limitations, references |

@@ -88,6 +88,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Warm-up Period Analysis](#warmup-period-analysis)
     - [Sensitivity Analysis](#sensitivity-analysis)
     - [Comparative Scenario Runner](#comparative-scenario-runner)
+    - [Shiny Application](#shiny-application)
   - [🔧Simulation Environment Setup](#🔧simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
@@ -738,7 +739,9 @@ A companion Vietnam-calibrated profile was considered and dropped: FORECAS's App
 
 ### Parameter editor integration
 
-`controller.R` (the Shiny `env_data.json` editor) exposes a top-level scenario selector. Selecting a profile re-renders the editable form and JSON preview with that profile's parameters overlaid on the base — a read-only preview of the effective configuration, not a second copy of the data. Saving is only enabled while previewing `default`, so the override mechanism cannot be accidentally flattened into the base file through the generic editor; a scenario's own override values are edited directly in the auto-generated `scenarios` panel, which the existing recursive form renders without any scenario-specific UI code.
+`controller_legacy.R` (the original raw `env_data.json` editor, superseded by `app.R` — see [Shiny Application](#shiny-application) below) exposed a top-level scenario selector: selecting a profile re-rendered the editable form and JSON preview with that profile's parameters overlaid on the base — a read-only preview of the effective configuration, not a second copy of the data. Saving was only enabled while previewing `default`, so the override mechanism could not be accidentally flattened into the base file through the generic editor.
+
+`app.R`'s Configure/Run/Analyse console (Issue #14) does not yet carry this scenario-preview capability forward — its scope is the plain-English parameter editor and Quick Run execution against the base configuration. Comparing named scenario profiles remains available via the CLI comparative scenario runner (`scripts/run_scenarios.R`, [Comparative Scenario Runner](#comparative-scenario-runner)); folding scenario selection into `app.R` is tracked as a Further Development item.
 
 ---
 
@@ -828,6 +831,9 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths |
 | `R/sensitivity.R` | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`) — parameter bounds table, `apply_params` for env_data override, `eval_params` for single design-point evaluation |
 | `R/warmup.R` | Welch warm-up analysis — `compute_welch_cma`, `plot_welch`, `run_welch_analysis`; `WARM_UP_DAYS` constant |
+| `R/app_params.R` | Parameter registry for the Shiny Configure panel (Issue #14) — plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
+| `app.R` | Shiny app — Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
+| `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
 | `data_import.R` | Compatibility shim — sources `R/environment.R` so existing code continues to work |
@@ -989,6 +995,23 @@ cmp <- compare_scenarios(c("moderate_intensity", "high_intensity"), n_iterations
 ```
 
 Results and interpretation are presented in [Comparative Scenario Analysis](#comparative-scenario-analysis) under Simulation Analysis.
+
+#### Shiny Application
+
+`app.R` (Issue #14) is a Shiny console intended to let military planners, medical officers, and research analysts explore the parameter space without reading source code. It replaces `controller_legacy.R`'s raw JSON field editor with a three-panel Configure → Run → Analyse workflow.
+
+```r
+# RStudio console, or `Rscript -e 'shiny::runApp("app.R")'`
+shiny::runApp("app.R")
+```
+
+**Configure** groups every editable `env_data.json` field into six operational panels (Force Size, Casualty Rates, R1 — Forward Aid Post, R2B — Battalion Aid Post, R2E — Field Hospital, Transport Assets), each field carrying a plain-English label and a hover tooltip in place of the raw JSON field name. The field registry (`R/app_params.R`) reads and writes the parsed `env_data.json` tree directly, so `build_environment()` consumes an edited in-memory copy identically to the CLI path. Fields that also appear in the Morris sensitivity screen ([Sensitivity Analysis](#sensitivity-analysis)) render as sliders bounded by that screen's `lower`/`upper` range rather than plain numeric inputs, with the screened range noted in the tooltip. *Save Configuration* downloads the edited tree as a timestamped `env_data.json`; *Load Configuration* accepts a previously saved file — unlike `controller_legacy.R`, neither action writes to the server's on-disk `env_data.json`, so exploring parameters in a running app session cannot silently mutate the repository's tracked configuration.
+
+**Run** executes a single replication (Quick Run) asynchronously via the `future`/`promises` packages, so the UI stays responsive (a progress indicator) rather than blocking for the ~20 second runtime of a 30-day run. Full Analysis mode (multi-replication with confidence intervals) is present as a disabled placeholder pending Issue #15. Domain validation (positive force sizes and team counts, internally consistent triangular min/mode/max triples, transport capacity ≥ 1 wherever fleet size > 0, triage-priority and DNBI sub-type splits summing to 1) runs before a Quick Run is submitted and reports every violation in a single dialog.
+
+**Analyse** renders four result tabs — Casualty Flow, Queue Depths, Bed & Resource Utilisation, Waiting Times — directly from the named ggplot objects `analyse_run()` now returns (`casualty_flow`, `r1_queues`, `r2b_treatment`, `r2b_bed_queues`, `r2b_gantt`, `r2e_surgery`, `r2e_bed_queues`, `waiting_times`, `r2e_gantt`), each with PNG/PDF/CSV download buttons, plus a read-only Sensitivity Calibration tab listing the Morris-screened parameters, their plain-English labels, and screening bounds.
+
+`R/analysis.R::analyse_run()` no longer prints plots to the active graphics device — a prerequisite for calling it safely from a headless Shiny session — while still writing the same CSVs and PNGs to `output_dir`/`images_dir` for the CLI path. `run.R` reproduces the previous on-screen print sequence via `print_analysis_plots()` for interactive/RStudio use, so behaviour there is unchanged.
 
 ### 🔧Simulation Environment Setup
 
@@ -1598,6 +1621,9 @@ The `moderate_intensity` scenario profile (Issue #54, see [Scenario Profiles](#s
 **L10 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
 Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
 
+**L13 — Stale Morris Screening Bounds for `p1_p_max` (Low Impact on Sensitivity Calibration Display)**
+`morris_params` (`R/sensitivity.R`) screens `p1_p_max` (the Priority 1 DOW ceiling) over the range 0.25–0.75, predating Issue #5's Falklands recalibration of the shipped baseline to 0.023 — the screening bounds were not updated when the baseline moved by roughly an order of magnitude. This was found while building the Shiny app's Configure panel (Issue #14), whose slider for this field would otherwise clip the baseline value below the slider's minimum; `app.R` widens the slider defensively to always include the current value rather than silently clipping it. The Sensitivity Calibration tab and the [Sensitivity Analysis](#sensitivity-analysis) section's screening range for `p1_p_max` should be treated as stale until re-screened. **Impact: Low** — no shipped simulation output is affected (the stale bounds are a Morris *design* input, not a model parameter; the baseline `p1_p_max` used by every documented result is unaffected), but a future Morris/Sobol re-run should re-derive bounds for this parameter around the current 0.023 baseline before its µ\*/σ ranking is relied upon.
+
 ---
 
 ## Further Development
@@ -1617,6 +1643,8 @@ Comparative analysis against other casualty generation models is now implemented
 The R2B bypass-reason decomposition (Issue #40) confirms that surgical team off-shift hours, not OT bed congestion, are the dominant constraint on forward surgical throughput at R2B (see R2B Handling). Two scenario tests remain to quantify how this gap might be closed — extended shift hours and a second surgical team per unit — but both are deliberately deferred: extended-hours evaluation requires a clinician fatigue/error-rate model not currently represented, and a second team is an establishment-size decision for planners rather than a parameter the simulation should test unilaterally. Should either input become available (a fatigue model, or a directed establishment change), `ot_hours` already threads through to `build_env()` for the former, while the latter requires extending the R2B `surg` sub-element to `qty: 2` in `env_data.json` and reworking `build_env()`'s shift-alternation counter, which currently alternates across R2B units rather than within one.
 
 The introduction of DNBI sub-categorisation (Issue #7) also opens a new sensitivity screening requirement. The Morris Elementary Effects analysis conducted in Issue #3 covers nine parameters from the original undifferentiated DNBI model; it does not include `disease_surgery_pct` (the proportion of disease DNBI cases escalated to emergency surgery), which carries High uncertainty and directly affects OT and ICU utilisation. A follow-up Morris screening should add this parameter to the set, re-run on the Issue #7 model, and update the µ\* ranking table to reflect current model structure. Until this re-run is complete, the absolute µ\* values in the current Sensitivity Analysis section should be interpreted with caution — the relative ranking of the original nine parameters is expected to remain qualitatively stable, since WIA continues to dominate surgical demand.
+
+The Shiny Configure/Run/Analyse console (Issue #14; see [Shiny Application](#shiny-application)) is a first delivery. Its Full Analysis mode selector and the Sensitivity Calibration tab's "Run Sensitivity Screening" button are present but intentionally disabled, pending Issue #15 (multi-replication execution with confidence intervals from within the app). Scenario-profile selection, previously available in `controller_legacy.R`, has not yet been carried forward into `app.R`; re-adding it — and re-screening `p1_p_max`'s stale Morris bounds (Limitation L13) before surfacing them as authoritative in the Calibration tab — are both tracked as follow-on work.
 
 Despite these refinements, the recommendations from the single run analysis remain relevant. Rebalancing underutilised bed spaces (e.g., resuscitation and holding beds), expanding in-theatre recovery rates to improve return-to-duty throughput, and exploring the operational impact of increasing surgical team availability at R2B nodes are all worth investigating. The model refinements will support the development of a more responsive, and scalable deployed health system capable of sustaining combat power under the full spectrum of LSCO demands.
 

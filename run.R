@@ -23,6 +23,26 @@ source("R/warmup.R")
 
 # ── Main function ─────────────────────────────────────────────────────────────
 
+#' Print each analyse_run() plot to the active graphics device, in the same
+#' order the pipeline previously auto-printed them, for interactive/RStudio
+#' use. analyse_run() itself no longer calls print() (Issue #14 — it must be
+#' safe to call from a headless Shiny session), so the CLI path reproduces
+#' the original on-screen sequence here. Conditional plots are NULL when
+#' their trigger condition (e.g. zero R2B hold occupants) was not met.
+#'
+#' @param results Named list returned by analyse_run()
+print_analysis_plots <- function(results) {
+  plot_order <- c(
+    "casualty_flow", "r1_queues", "r2b_bed_queues",
+    "r2b_hold_occupancy_plot", "r2b_bypass_reason_plot", "r2b_treatment",
+    "r2b_gantt", "r2e_surgery", "r2e_bed_queues", "waiting_times",
+    "transport_capacity_margin_plot", "r2e_gantt", "r2e_icu_gating_plot"
+  )
+  for (plot_name in plot_order) {
+    if (!is.null(results[[plot_name]])) print(results[[plot_name]])
+  }
+}
+
 #' Run the BCH simulation
 #'
 #' @param seed        Random seed for single-run mode (default 42; ignored in
@@ -68,7 +88,8 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
 
     message(sprintf("Simulation complete. Total arrivals: %d", nrow(mon$arrivals)))
 
-    analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
+    results <- analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
+    print_analysis_plots(results)
 
     message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
 
@@ -88,7 +109,8 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
     write.csv(kpi, kpi_path, row.names = FALSE)
     message(sprintf("Replication KPI summary written to %s", kpi_path))
 
-    analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
+    results <- analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days)
+    print_analysis_plots(results)
 
     message(sprintf("Analysis complete. Outputs written to %s/", output_dir))
   }

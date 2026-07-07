@@ -156,7 +156,8 @@ ui <- page_navbar(
                                        "(the second shift covers the remainder of the 24h day). ",
                                        sprintf("Screened in Morris sensitivity analysis (Issue #3); plausible range %s–%s.",
                                                morris_params$lower[morris_params$name == "ot_hours"],
-                                               morris_params$upper[morris_params$name == "ot_hours"])))),
+                                               morris_params$upper[morris_params$name == "ot_hours"]),
+                                       " Source: README Schedules and Rosters — surgical team shift length; not independently cited (informed establishment planning assumption)."))),
                     min = morris_params$lower[morris_params$name == "ot_hours"],
                     max = morris_params$upper[morris_params$name == "ot_hours"],
                     value = morris_params$mode[morris_params$name == "ot_hours"], step = 1)

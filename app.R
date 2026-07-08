@@ -260,6 +260,93 @@ field_label <- function(f, overridden_paths = NULL) {
   )
 }
 
+#' Pair a single-value slider with a small numeric box for typed entry.
+#' The slider (`id`) remains the authoritative reactive value everything
+#' else in the app reads via `input[[id]]`; the numeric box (`<id>_txt`)
+#' is a secondary UI-only control kept in sync by wire_slider_text_sync()
+#' (registered once at server startup — see server()). The field's own
+#' label sits beside the numeric box rather than above the slider, since
+#' sliderInput(label = NULL) omits its built-in label row entirely.
+slider_with_text_input <- function(id, lbl, min, max, value, step) {
+  tagList(
+    div(style = "display:flex; justify-content:space-between; align-items:flex-end; gap:8px;",
+        div(style = "flex:1; min-width:0;", lbl),
+        numericInput(paste0(id, "_txt"), label = NULL, value = value,
+                     min = min, max = max, step = step, width = "80px")
+    ),
+    sliderInput(id, label = NULL, min = min, max = max, value = value, step = step, width = "100%")
+  )
+}
+
+#' As slider_with_text_input(), for a two-handle range slider: one small
+#' numeric box per handle (`<id>_txt1`, `<id>_txt2`), matching the two
+#' breakpoint values already shown in the slider's own handle bubbles.
+range_slider_with_text_input <- function(id, lbl, value, min = 0, max = 1, step = 0.01) {
+  tagList(
+    div(style = "display:flex; justify-content:space-between; align-items:flex-end; gap:8px;",
+        div(style = "flex:1; min-width:0;", lbl),
+        div(style = "display:flex; gap:4px;",
+            numericInput(paste0(id, "_txt1"), label = NULL, value = value[1],
+                         min = min, max = max, step = step, width = "70px"),
+            numericInput(paste0(id, "_txt2"), label = NULL, value = value[2],
+                         min = min, max = max, step = step, width = "70px")
+        )
+    ),
+    sliderInput(id, label = NULL, min = min, max = max, step = step, value = value, width = "100%")
+  )
+}
+
+#' Wire bidirectional sync between a single-value slider (`id`) and its
+#' paired "type an exact value" numeric input (`<id>_txt`, see
+#' slider_with_text_input()). Registered once at server startup for every
+#' slider field — Shiny inputs persist by id regardless of which renderUI
+#' call currently has them in the DOM, so this does not need to be re-run
+#' when a group's UI regenerates (e.g. on a Casualty Intensity Profile
+#' change). The equality check on each side breaks the update loop: an
+#' update that didn't actually change the value doesn't trigger another.
+wire_slider_text_sync <- function(input, session, id) {
+  txt_id <- paste0(id, "_txt")
+  observeEvent(input[[txt_id]], {
+    v <- input[[txt_id]]; cur <- input[[id]]
+    if (!is.null(v) && !is.na(v) && (is.null(cur) || !isTRUE(all.equal(v, cur)))) {
+      updateSliderInput(session, id, value = v)
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input[[id]], {
+    v <- input[[id]]; cur <- input[[txt_id]]
+    if (!is.null(v) && !is.na(v) && (is.null(cur) || !isTRUE(all.equal(v, cur)))) {
+      updateNumericInput(session, txt_id, value = v)
+    }
+  }, ignoreInit = TRUE)
+}
+
+#' As wire_slider_text_sync(), for a two-handle range slider paired with
+#' two numeric inputs (`<id>_txt1`, `<id>_txt2`, see
+#' range_slider_with_text_input()) — one per breakpoint.
+wire_range_slider_text_sync <- function(input, session, id) {
+  txt1 <- paste0(id, "_txt1"); txt2 <- paste0(id, "_txt2")
+  observeEvent(input[[txt1]], {
+    v <- input[[txt1]]; cur <- input[[id]]
+    if (!is.null(v) && !is.na(v) && !is.null(cur) && !isTRUE(all.equal(v, cur[1]))) {
+      updateSliderInput(session, id, value = c(v, cur[2]))
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input[[txt2]], {
+    v <- input[[txt2]]; cur <- input[[id]]
+    if (!is.null(v) && !is.na(v) && !is.null(cur) && !isTRUE(all.equal(v, cur[2]))) {
+      updateSliderInput(session, id, value = c(cur[1], v))
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input[[id]], {
+    v <- input[[id]]
+    if (!is.null(v) && length(v) == 2) {
+      cur1 <- input[[txt1]]; cur2 <- input[[txt2]]
+      if (is.null(cur1) || !isTRUE(all.equal(v[1], cur1))) updateNumericInput(session, txt1, value = v[1])
+      if (is.null(cur2) || !isTRUE(all.equal(v[2], cur2))) updateNumericInput(session, txt2, value = v[2])
+    }
+  }, ignoreInit = TRUE)
+}
+
 field_input <- function(f, value, overridden_paths = NULL) {
   lbl <- field_label(f, overridden_paths)
   if (isTRUE(f$morris) || isTRUE(f$slider)) {
@@ -274,8 +361,8 @@ field_input <- function(f, value, overridden_paths = NULL) {
       lo <- min(lo, value)
       hi <- max(hi, value)
     }
-    sliderInput(f$id, lbl, min = lo, max = hi, value = value,
-                step = if (identical(f$type, "integer")) 1 else f$step)
+    step <- if (identical(f$type, "integer")) 1 else f$step
+    slider_with_text_input(f$id, lbl, lo, hi, value, step)
   } else if (identical(f$type, "integer")) {
     numericInput(f$id, lbl, value = value, min = f$min, max = f$max, step = 1)
   } else {
@@ -330,8 +417,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       ), overridden_paths)
       pri_card <- card(
         card_header(sg),
-        sliderInput("pri_split", pri_lbl, min = 0, max = 1, step = 0.01,
-                    value = c(p1, p1 + p2))
+        range_slider_with_text_input("pri_split", pri_lbl, c(p1, p1 + p2))
       )
 
       dnbi_fields <- fields[subgroups == "DNBI Sub-Type Split"]
@@ -351,8 +437,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
         ), overridden_paths)
         dnbi_card <- card(
           card_header("DNBI Sub-Type Split"),
-          sliderInput("dnbi_split", dnbi_lbl, min = 0, max = 1, step = 0.01,
-                      value = c(p_bf, p_bf + p_dis))
+          range_slider_with_text_input("dnbi_split", dnbi_lbl, c(p_bf, p_bf + p_dis))
         )
       }
 
@@ -432,7 +517,7 @@ ui <- page_navbar(
         card_header("Run Configuration"),
         numericInput("n_days", "Simulation Duration (days)", value = 30, min = 1, max = 180, step = 1),
         textInput("seed", "Random Seed (blank = random)", value = "42"),
-        sliderInput("ot_hours",
+        slider_with_text_input("ot_hours",
                     field_label(list(label = "OT Shift Length (hours per shift)",
                                      tooltip = paste0(
                                        "Hours the first operating theatre shift is active each day ",
@@ -481,6 +566,20 @@ server <- function(input, output, session) {
   # ── Configure panel ───────────────────────────────────────────────────────
 
   fields_by_group <- split(PARAM_REGISTRY, vapply(PARAM_REGISTRY, `[[`, character(1), "group"))
+
+  # Every slider gets a paired "type an exact value" numeric box (see
+  # field_input()/slider_with_text_input()); wire the two-way sync once per
+  # id here rather than inside the per-group renderUI blocks, since the
+  # sync only needs to exist once regardless of how many times the UI
+  # containing it is regenerated.
+  slider_field_ids <- vapply(
+    Filter(function(f) isTRUE(f$morris) || isTRUE(f$slider), PARAM_REGISTRY),
+    function(f) f$id, character(1)
+  )
+  lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))
+  wire_slider_text_sync(input, session, "ot_hours")
+  wire_range_slider_text_sync(input, session, "pri_split")
+  wire_range_slider_text_sync(input, session, "dnbi_split")
 
   # ── Casualty Intensity Profile selector ──────────────────────────────────
   # Offers exactly the scenario profiles defined in the loaded env_data.json

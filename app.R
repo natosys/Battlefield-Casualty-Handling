@@ -47,6 +47,45 @@ APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
 PARAM_REGISTRY  <- build_param_registry()
 
+GEN_STREAM_ACTYS <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
+
+#' Render a small density-curve preview for a casualty generation stream
+#'
+#' @details Mirrors the exact distributional transform used by
+#'   generate_ln_arrivals()/generate_exp_arrivals() (R/environment.R), so the
+#'   curve shown is the real shape that mean_daily/sd_daily imply — not a
+#'   generic approximation. distribution is read live from the resolved
+#'   scenario JSON (not user-editable), so switching intensity profiles
+#'   changes the curve shape for the streams that scenario actually
+#'   overrides (see README Scenario Profiles) and leaves the others alone.
+render_gen_curve <- function(mean_daily, sd_daily, distribution) {
+  if (is.null(mean_daily) || is.na(mean_daily) || mean_daily <= 0) {
+    return(ggplot() + theme_void())
+  }
+  if (identical(distribution, "exponential")) {
+    x <- seq(1e-3, mean_daily * 5, length.out = 200)
+    y <- dexp(x, rate = 1 / mean_daily)
+    dist_label <- "Exponential"
+  } else {
+    sd_daily  <- max(if (is.null(sd_daily) || is.na(sd_daily)) 0 else sd_daily, 1e-6)
+    mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
+    sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
+    x <- seq(1e-3, max(mean_daily + 4 * sd_daily, mean_daily * 2), length.out = 200)
+    y <- dlnorm(x, meanlog = mu_log, sdlog = sigma_log)
+    dist_label <- "Lognormal"
+  }
+  ggplot(data.frame(x = x, y = y), aes(x, y)) +
+    geom_area(fill = "#2a78d6", alpha = 0.25) +
+    geom_line(color = "#2a78d6", linewidth = 0.9) +
+    geom_vline(xintercept = mean_daily, linetype = "dashed", color = "#c0392b", linewidth = 0.5) +
+    labs(x = NULL, y = NULL, subtitle = dist_label) +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.subtitle = element_text(size = 8, color = "#888888"),
+          plot.margin = margin(2, 4, 2, 4))
+}
+
 MORRIS_LABELS <- c(
   surg_mode              = "Surgery Duration (Mode)",
   long_resus_mode        = "Long Resuscitation Duration (Mode)",
@@ -62,16 +101,30 @@ MORRIS_LABELS <- c(
 
 # ── UI helpers ────────────────────────────────────────────────────────────
 
-field_label <- function(f) {
+#' @param overridden_paths Character vector of "elm.acty" paths the active
+#'   Casualty Intensity Profile is currently overriding (from
+#'   scenario_overridden_paths()); NULL/empty under the default profile.
+field_label <- function(f, overridden_paths = NULL) {
+  is_overridden <- !is.null(f$path) && f$path %in% overridden_paths
+  tt <- if (is_overridden) {
+    paste0(f$tooltip, " ⚠ Currently overridden by the selected Casualty Intensity Profile — see the panel note above.")
+  } else {
+    f$tooltip
+  }
+  icon <- if (is_overridden) {
+    tags$span(style = "color:#c0392b; cursor:help; font-weight:bold;", HTML("&nbsp;&#9888;"))
+  } else {
+    tags$span(style = "color:#888; cursor:help;", HTML("&nbsp;&#9432;"))
+  }
   tooltip(
-    tags$span(f$label, tags$span(style = "color:#888; cursor:help;", HTML("&nbsp;&#9432;"))),
-    f$tooltip,
+    tags$span(f$label, icon),
+    tt,
     placement = "right"
   )
 }
 
-field_input <- function(f, value) {
-  lbl <- field_label(f)
+field_input <- function(f, value, overridden_paths = NULL) {
+  lbl <- field_label(f, overridden_paths)
   if (isTRUE(f$morris)) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
@@ -94,23 +147,51 @@ field_input <- function(f, value) {
 }
 
 #' Render one top-level Configure accordion panel body for a field group
-render_group_body <- function(fields, defaults) {
+#'
+#' @param overridden_paths Character vector of "elm.acty" paths the active
+#'   Casualty Intensity Profile is overriding (see scenario_overridden_paths()
+#'   in the server); passed through to every field's tooltip so overridden
+#'   fields are flagged individually, not just in the panel-level scope note.
+render_group_body <- function(fields, defaults, overridden_paths = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
 
   if (all(subgroups == "")) {
     return(layout_column_wrap(
       width = "300px",
-      !!!lapply(fields, function(f) field_input(f, defaults[[f$id]]))
+      !!!lapply(fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
     ))
   }
 
   tagList(lapply(unique(subgroups), function(sg) {
     sg_fields <- fields[subgroups == sg]
+
+    if (identical(sg, "Casualty Generation Rates")) {
+      return(tagList(
+        h6(class = "text-muted mt-2", sg),
+        p(class = "text-muted small",
+          "These are curve parameters, not single values — the shaded area is the actual shape of daily casualty-rate variability implied by the mean and standard deviation below it (dashed line = mean). The curve updates live as you edit the numbers, and its shape (lognormal vs exponential) follows the Casualty Intensity Profile selected above."),
+        layout_column_wrap(
+          width = "320px",
+          !!!lapply(GEN_STREAM_ACTYS, function(acty) {
+            mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
+            sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
+            stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label)
+            card(
+              card_header(stream_label),
+              plotOutput(paste0("curve_", acty), height = "110px"),
+              field_input(mean_f, defaults[[mean_f$id]], overridden_paths),
+              field_input(sd_f, defaults[[sd_f$id]], overridden_paths)
+            )
+          })
+        )
+      ))
+    }
+
     tagList(
       h6(class = "text-muted mt-2", sg),
       layout_column_wrap(
         width = "300px",
-        !!!lapply(sg_fields, function(f) field_input(f, defaults[[f$id]]))
+        !!!lapply(sg_fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
       )
     )
   }))
@@ -130,9 +211,11 @@ ui <- page_navbar(
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",
       "Sliders show the plausible range screened in the project's Morris sensitivity analysis (Issue #3)."),
     fluidRow(
+      column(4, uiOutput("scenario_selector_ui")),
       column(3, fileInput("upload_json", "Load Configuration (.json)", accept = ".json")),
       column(3, downloadButton("download_json", "Save Configuration", class = "btn-outline-secondary mt-4"))
     ),
+    uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
       !!!lapply(c(GRP_FORCE, GRP_CASUALTY, GRP_R1, GRP_R2B, GRP_R2E, GRP_TRANSPORT), function(g) {
@@ -199,11 +282,90 @@ server <- function(input, output, session) {
 
   fields_by_group <- split(PARAM_REGISTRY, vapply(PARAM_REGISTRY, `[[`, character(1), "group"))
 
+  # ── Casualty Intensity Profile selector ──────────────────────────────────
+  # Offers exactly the scenario profiles defined in the loaded env_data.json
+  # (today: "default" plus whatever is under its `scenarios` block) — no
+  # fabricated intermediate tiers. resolve_scenario() (R/scenario.R) only
+  # overlays the `vars` paths a given scenario actually defines; structural
+  # config (force size, team/bed counts, transport fleet) is never touched.
+
+  scenario_choices <- reactive({
+    base <- raw_env_data()
+    ids  <- c("default", names(base$scenarios))
+    labels <- vapply(ids, function(s) {
+      if (identical(s, "default")) return("Default (Base Configuration)")
+      lbl <- base$scenarios[[s]]$label
+      if (is.null(lbl)) s else trimws(lbl)
+    }, character(1))
+    setNames(ids, labels)
+  })
+
+  output$scenario_selector_ui <- renderUI({
+    selectInput(
+      "scenario_select",
+      field_label(list(
+        label = "Casualty Intensity Profile",
+        tooltip = paste(
+          "Selects a named scenario profile that overlays casualty-generation,",
+          "DOW, and treatment-efficacy parameters onto the base configuration.",
+          "Structural fields (force size, team/bed counts, transport fleet)",
+          "are never affected by this selector.",
+          "Source: README Scenario Profiles (Issue #54); only the profiles",
+          "actually defined and cited in env_data.json are offered — no",
+          "fabricated intermediate intensity tiers."
+        )
+      )),
+      choices  = scenario_choices(),
+      selected = "default",
+      selectize = FALSE
+    )
+  })
+  # Only depends on raw_env_data() (via scenario_choices()), so re-renders
+  # (resetting the widget to "default") only when a new file is loaded —
+  # not on every scenario pick the user makes.
+  outputOptions(output, "scenario_selector_ui", suspendWhenHidden = FALSE)
+
+  current_scenario <- reactive({
+    if (is.null(input$scenario_select)) "default" else input$scenario_select
+  })
+
+  # The scenario-resolved view of the configuration: what the Configure
+  # panel's field defaults, Save Configuration, and Quick Run all consume.
+  # raw_env_data() itself stays pristine (only changes on initial load or
+  # Load Configuration) so switching profiles is always computed fresh
+  # rather than compounding onto a previously-overlaid state.
+  scenario_json <- reactive({
+    resolve_scenario(raw_env_data(), current_scenario())
+  })
+
+  # "elm.acty" paths the active profile overrides, e.g. "generators.wia_cbt".
+  # Shared by the panel-level scope note and each affected field's own
+  # tooltip (via field$path, set in R/app_params.R).
+  scenario_overridden_paths <- reactive({
+    scen <- current_scenario()
+    if (identical(scen, "default")) return(character(0))
+    scen_def <- raw_env_data()$scenarios[[scen]]
+    if (is.null(scen_def)) return(character(0))
+    unlist(lapply(scen_def$vars, function(elm) {
+      vapply(elm$actys, function(acty) paste0(elm$elm, ".", acty$acty), character(1))
+    }))
+  })
+
+  output$scenario_scope_note <- renderUI({
+    paths <- scenario_overridden_paths()
+    if (length(paths) == 0) return(NULL)
+    div(class = "alert alert-info py-2 px-3 small",
+        sprintf(
+          "This profile overrides: %s (flagged with ⚠ on the affected fields below). All other fields — including force size, team/bed counts, and transport fleet — retain the base configuration's values.",
+          paste(paths, collapse = ", ")
+        ))
+  })
+
   lapply(names(fields_by_group), function(g) {
     output_id <- paste0("group_ui_", make.names(g))
     output[[output_id]] <- renderUI({
-      defaults <- registry_defaults(fields_by_group[[g]], raw_env_data())
-      render_group_body(fields_by_group[[g]], defaults)
+      defaults <- registry_defaults(fields_by_group[[g]], scenario_json())
+      render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths())
     })
     # Accordion panels other than the initially-open one are hidden
     # (display:none) at first render; Shiny suspends output bindings it
@@ -211,6 +373,23 @@ server <- function(input, output, session) {
     # user happens to open every panel first. Force eager rendering so
     # every field's input exists (and its value is capturable) regardless
     # of which panels are currently expanded.
+    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+  })
+
+  # Live casualty-generation curve previews (Casualty Rates group). Read
+  # live from the mean/sd inputs so the curve redraws as the user edits
+  # them; the distribution family comes from scenario_json() (not itself
+  # user-editable — see README Scenario Profiles for why picking a family
+  # independently of a sourced rate would be uncited guesswork).
+  lapply(GEN_STREAM_ACTYS, function(acty) {
+    output_id <- paste0("curve_", acty)
+    output[[output_id]] <- renderPlot({
+      mean_v <- input[[paste0("gen_", acty, "_mean")]]
+      sd_v   <- input[[paste0("gen_", acty, "_sd")]]
+      dist   <- get_raw_var(scenario_json(), "generators", acty, "distribution")
+      if (is.null(dist)) dist <- "lognormal"
+      render_gen_curve(mean_v, sd_v, dist)
+    })
     outputOptions(output, output_id, suspendWhenHidden = FALSE)
   })
 
@@ -226,7 +405,7 @@ server <- function(input, output, session) {
   })
 
   current_json <- reactive({
-    apply_registry_values(PARAM_REGISTRY, raw_env_data(), reactiveValuesToList(input))
+    apply_registry_values(PARAM_REGISTRY, scenario_json(), reactiveValuesToList(input))
   })
 
   output$download_json <- downloadHandler(

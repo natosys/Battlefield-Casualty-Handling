@@ -156,6 +156,12 @@ SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport
 #'   comes from — a citation (matching the README's numbered references) or
 #'   an explicit "informed estimate" disclosure. Defaults to SRC_UNCITED so
 #'   no field is silently left without a provenance statement.
+#' @param path "elm.acty" string identifying this field's location in
+#'   env_data.json's vars tree (e.g. "generators.wia_cbt"), or NULL for
+#'   fields outside that tree (force size, team/bed counts, transport —
+#'   never scenario-overridden, see R/scenario.R). Lets app.R's Configure
+#'   panel flag which fields the active Casualty Intensity Profile is
+#'   currently overriding, without introspecting get()/set() closures.
 #'
 #' @details When morris_name matches a row in morris_params, the field's
 #'   min/max are overridden with the screened lower/upper bounds and the
@@ -164,7 +170,7 @@ SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport
 #'   lower/upper as slider bounds").
 field <- function(id, group, subgroup, label, tooltip, get, set,
                    type = "numeric", min = NA, max = NA, step = NA,
-                   morris_name = NULL, source = SRC_UNCITED) {
+                   morris_name = NULL, source = SRC_UNCITED, path = NULL) {
   if (!is.null(morris_name)) {
     mp <- morris_params[morris_params$name == morris_name, ]
     if (nrow(mp) == 1) {
@@ -180,45 +186,56 @@ field <- function(id, group, subgroup, label, tooltip, get, set,
   tooltip <- paste0(tooltip, " Source: ", source)
   list(id = id, group = group, subgroup = subgroup, label = label, tooltip = tooltip,
        get = get, set = set, type = type, min = min, max = max, step = step,
-       morris = !is.null(morris_name))
+       morris = !is.null(morris_name), path = path)
 }
 
 #' Triangular-distribution (min/mode/max) triple of field specs
 tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
                         morris_mode_name = NULL, bound = c(0, 40000),
                         source = SRC_UNCITED) {
+  path <- paste0(elm, ".", acty)
   list(
     field(paste0(id_prefix, "_min"), group, subgroup,
           paste0(label, " — Minimum"),
           paste0(tooltip, " Minimum duration (triangular distribution), minutes."),
           get = function(json) get_raw_var(json, elm, acty, "min"),
           set = function(json, v) set_raw_var(json, elm, acty, "min", v),
-          type = "integer", min = bound[1], max = bound[2], step = 1, source = source),
+          type = "integer", min = bound[1], max = bound[2], step = 1, source = source, path = path),
     field(paste0(id_prefix, "_mode"), group, subgroup,
           paste0(label, " — Most Likely (Mode)"),
           paste0(tooltip, " Most likely duration (triangular distribution mode), minutes."),
           get = function(json) get_raw_var(json, elm, acty, "mode"),
           set = function(json, v) set_raw_var(json, elm, acty, "mode", v),
           type = "integer", min = bound[1], max = bound[2], step = 1,
-          morris_name = morris_mode_name, source = source),
+          morris_name = morris_mode_name, source = source, path = path),
     field(paste0(id_prefix, "_max"), group, subgroup,
           paste0(label, " — Maximum"),
           paste0(tooltip, " Maximum duration (triangular distribution), minutes."),
           get = function(json) get_raw_var(json, elm, acty, "max"),
           set = function(json, v) set_raw_var(json, elm, acty, "max", v),
-          type = "integer", min = bound[1], max = bound[2], step = 1, source = source)
+          type = "integer", min = bound[1], max = bound[2], step = 1, source = source, path = path)
   )
 }
 
 #' Single named var field within an elm/acty (e.g. a probability or rate)
+#'
+#' @details elm/acty/var are forced immediately (rather than left as lazy
+#'   promises tied to the caller's environment) so this is safe to call from
+#'   inside a `for` loop — R's lazy evaluation would otherwise mean every
+#'   field's get()/set() closure resolves elm/acty/var to whatever the loop
+#'   variable holds when the closure is *called*, not when it was *created*,
+#'   silently making every field from the same loop resolve to the last
+#'   iteration's path. (Found via a scenario-selector regression: all six
+#'   casualty-generation streams were reading/writing generators.dnbi_spt.)
 var_field <- function(id, group, subgroup, elm, acty, var, label, tooltip,
                        type = "numeric", min = 0, max = 1, step = 0.01,
                        morris_name = NULL, source = SRC_UNCITED) {
+  force(elm); force(acty); force(var)
   field(id, group, subgroup, label, tooltip,
         get = function(json) get_raw_var(json, elm, acty, var),
         set = function(json, v) set_raw_var(json, elm, acty, var, v),
         type = type, min = min, max = max, step = step, morris_name = morris_name,
-        source = source)
+        source = source, path = paste0(elm, ".", acty))
 }
 
 # ── Registry assembly ────────────────────────────────────────────────────
@@ -254,9 +271,12 @@ build_param_registry <- function() {
     list("kia_spt",  "KIA — Support",  SRC_SUPPORT_INCLUSION),
     list("dnbi_spt", "DNBI — Support", SRC_FORECAS_DNBI_SPT)
   )
-  for (s in gen_streams) {
+  # lapply(), not `for`, so each stream's get()/set() closures capture their
+  # own acty/label/src rather than all resolving to the loop's final value
+  # (see the note on var_field()'s force() calls above).
+  registry <- c(registry, unlist(lapply(gen_streams, function(s) {
     acty <- s[[1]]; label <- s[[2]]; src <- s[[3]]
-    registry <- c(registry, list(
+    list(
       var_field(paste0("gen_", acty, "_mean"), GRP_CASUALTY, "Casualty Generation Rates",
                 "generators", acty, "mean_daily",
                 paste0(label, " — Mean Daily Rate"),
@@ -267,8 +287,8 @@ build_param_registry <- function() {
                 paste0(label, " — Daily Rate Std. Dev."),
                 "Day-to-day variability in the casualty rate (lognormal shape parameter).",
                 type = "numeric", min = 0, max = 20, step = 0.01, source = src)
-    ))
-  }
+    )
+  }), recursive = FALSE))
   registry <- c(registry, list(
     var_field("pri_one", GRP_CASUALTY, "Triage Priority Split", "r1", "priority", "one",
               "Priority 1 (Immediate) Share", "Proportion of WIA triaged as Priority 1 at R1.",
@@ -358,16 +378,18 @@ build_param_registry <- function() {
           set = function(json, v) set_elm_qty(json, "r2b", v),
           type = "integer", min = 1, max = 10, step = 1, source = SRC_ESTABLISHMENT)
   ))
-  for (bed in list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
-                    c("icu", "ICU Beds"), c("hold", "Holding Beds"))) {
-    registry <- c(registry, list(
-      field(paste0("r2b_bed_", bed[1]), GRP_R2B, "Bed Capacity (per Team)", bed[2],
-            paste0("Number of ", tolower(bed[2]), " per R2B team."),
-            get = function(json) get_bed_qty(json, "r2b", bed[1]),
-            set = function(json, v) set_bed_qty(json, "r2b", bed[1], v),
-            type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
-    ))
-  }
+  # lapply(), not `for` — see the note on gen_streams above; a `for` loop
+  # here previously made every R2B bed field silently get/set "hold" (the
+  # last bed type in the list), regardless of which bed type the field's
+  # own label said it was.
+  registry <- c(registry, lapply(list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
+                                       c("icu", "ICU Beds"), c("hold", "Holding Beds")), function(bed) {
+    field(paste0("r2b_bed_", bed[1]), GRP_R2B, "Bed Capacity (per Team)", bed[2],
+          paste0("Number of ", tolower(bed[2]), " per R2B team."),
+          get = function(json) get_bed_qty(json, "r2b", bed[1]),
+          set = function(json, v) set_bed_qty(json, "r2b", bed[1], v),
+          type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
+  }))
   registry <- c(registry, tri_fields("r2b_surgery", GRP_R2B, "Surgical & Resuscitation Durations", "r2b", "surgery",
                                      "Surgery Duration", "Time occupying an R2B operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
@@ -408,16 +430,14 @@ build_param_registry <- function() {
           set = function(json, v) set_elm_qty(json, "r2eheavy", v),
           type = "integer", min = 1, max = 5, step = 1, source = SRC_ESTABLISHMENT)
   ))
-  for (bed in list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
-                    c("icu", "ICU Beds"), c("hold", "Holding Beds"))) {
-    registry <- c(registry, list(
-      field(paste0("r2e_bed_", bed[1]), GRP_R2E, "Bed Capacity (per Team)", bed[2],
-            paste0("Number of ", tolower(bed[2]), " per R2E team."),
-            get = function(json) get_bed_qty(json, "r2eheavy", bed[1]),
-            set = function(json, v) set_bed_qty(json, "r2eheavy", bed[1], v),
-            type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
-    ))
-  }
+  registry <- c(registry, lapply(list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
+                                       c("icu", "ICU Beds"), c("hold", "Holding Beds")), function(bed) {
+    field(paste0("r2e_bed_", bed[1]), GRP_R2E, "Bed Capacity (per Team)", bed[2],
+          paste0("Number of ", tolower(bed[2]), " per R2E team."),
+          get = function(json) get_bed_qty(json, "r2eheavy", bed[1]),
+          set = function(json, v) set_bed_qty(json, "r2eheavy", bed[1], v),
+          type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
+  }))
   registry <- c(registry, tri_fields("r2e_surgery", GRP_R2E, "Surgical & Resuscitation Durations", "r2eheavy", "surgery",
                                      "Surgery Duration", "Time occupying an R2E operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
@@ -461,8 +481,8 @@ build_param_registry <- function() {
                                      source = SRC_TRANSPORT_GENERIC))
 
   # ── Transport Assets ──────────────────────────────────────────────────────
-  for (veh in c("PMVAmb", "HX240M")) {
-    registry <- c(registry, list(
+  registry <- c(registry, unlist(lapply(c("PMVAmb", "HX240M"), function(veh) {
+    list(
       field(paste0("transport_", veh, "_qty"), GRP_TRANSPORT, NULL, paste0(veh, " — Fleet Size"),
             paste0("Number of ", veh, " vehicles available for casualty evacuation."),
             get = function(json) get_transport_field(json, veh, "qty"),
@@ -473,8 +493,8 @@ build_param_registry <- function() {
             get = function(json) get_transport_field(json, veh, "capacity"),
             set = function(json, v) set_transport_field(json, veh, "capacity", v),
             type = "integer", min = 1, max = 100, step = 1, source = SRC_VEHICLE_CAPACITY)
-    ))
-  }
+    )
+  }), recursive = FALSE))
 
   registry
 }

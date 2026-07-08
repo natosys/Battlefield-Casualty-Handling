@@ -86,64 +86,97 @@ render_gen_curve <- function(mean_daily, sd_daily, distribution) {
           plot.margin = margin(2, 4, 2, 4))
 }
 
-#' Render a three-way compositional split (two slider handles) as a
-#' labelled stacked bar
-#'
-#' @param breaks Length-2 numeric vector (the two slider handle positions);
-#'   shares are derived as c(breaks[1], breaks[2]-breaks[1], 1-breaks[2]).
-#' @param labels Character vector of length 3, one per segment, in the same
-#'   order as the three derived shares.
-#' @param colors Character vector of length 3, hex colours matching `labels`.
-render_split_bar <- function(breaks, labels, colors) {
-  shares <- c(breaks[1], breaks[2] - breaks[1], 1 - breaks[2])
-  df <- data.frame(segment = factor(labels, levels = labels), share = shares)
-  ggplot(df, aes(x = 1, y = share, fill = segment)) +
-    geom_col(width = 0.7) +
-    geom_text(aes(label = sprintf("%s: %.0f%%", segment, share * 100)),
-              position = position_stack(vjust = 0.5), color = "white",
-              size = 3.3, fontface = "bold") +
-    coord_flip() +
-    scale_fill_manual(values = setNames(colors, labels)) +
-    theme_void() +
-    theme(legend.position = "none", plot.margin = margin(2, 4, 2, 4))
-}
-
-#' Colours for each three-way compositional split, shared between the
-#' breakdown bar (render_split_bar()) and the slider track recolouring
-#' (split_slider_recolor_script()) so the two stay visually in sync.
-SPLIT_SLIDER_COLORS <- list(
-  pri_split  = c("#c0392b", "#e08e2d", "#2a78d6"),
-  dnbi_split = c("#8e44ad", "#e08e2d", "#2a78d6")
+#' Colours and short labels for each three-way compositional split, in the
+#' same left-to-right order as the slider's segments (0–handle1, handle1–
+#' handle2, handle2–1). Consumed entirely by split_slider_recolor_script();
+#' there is no separate server-rendered breakdown bar (removed — it was a
+#' full duplicate of what the slider itself now shows).
+SPLIT_SLIDER_META <- list(
+  pri_split  = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
+                     labels = c("P1", "P2", "P3")),
+  dnbi_split = list(colors = c("#8e44ad", "#e08e2d", "#2a78d6"),
+                     labels = c("BF", "Disease", "NBI"))
 )
 
 #' Recolour a two-handle ion.rangeSlider's track to show all three
-#' compositional segments (rather than the default styling, which paints
-#' only the region between the handles — implying a "selected range" —
-#' leaving the two outer segments in a neutral track colour). This
-#' overlays a three-stop gradient on `.irs-line` matching the segment the
-#' handles currently bound, and makes the default `.irs-bar` transparent
-#' so it no longer visually competes with the gradient.
+#' compositional segments, and overlay a live per-segment value label
+#' directly above it — replacing the default styling, which paints only
+#' the region between the handles (implying a "selected range") and gives
+#' no indication of each segment's actual share.
 #'
-#' @param color_map Named list; each name is a slider input id (e.g.
-#'   "pri_split") and each value a length-3 character vector of hex
-#'   colours, in the same left-to-right order as the slider's segments.
-split_slider_recolor_script <- function(color_map) {
-  json <- jsonlite::toJSON(color_map, auto_unbox = FALSE)
+#' Entirely client-side (a MutationObserver watching `.irs-bar`'s inline
+#' style, which ion.rangeSlider updates continuously while dragging) so
+#' labels track the handles with no server round-trip — unlike the
+#' ggplot bar this replaces, which required a renderPlot() invalidation
+#' on every drag.
+#'
+#' @param meta_map Named list; each name is a slider input id (e.g.
+#'   "pri_split") and each value a list(colors = <length-3 hex vector>,
+#'   labels = <length-3 short label vector>), both in slider segment order.
+split_slider_recolor_script <- function(meta_map) {
+  json <- jsonlite::toJSON(meta_map, auto_unbox = TRUE)
   js <- paste0("
 (function() {
-  var colorMap = ", json, ";
+  var meta = ", json, ";
   $(document).on('shiny:bound', function(e) {
     var id = e.target.id;
-    var colors = colorMap[id];
-    if (!colors) return;
+    var cfg = meta[id];
+    if (!cfg) return;
+    var colors = cfg.colors, labels = cfg.labels;
     var $wrap = $(e.target).closest('.form-group');
+    var sliderEl = $wrap.find('.irs--shiny')[0];
     var bar = $wrap.find('.irs-bar')[0];
     var line = $wrap.find('.irs-line')[0];
-    if (!bar || !line) return;
+    if (!bar || !line || !sliderEl) return;
+
+    var labelRow = $wrap.find('.split-slider-labels')[0];
+    if (!labelRow) {
+      labelRow = document.createElement('div');
+      labelRow.className = 'split-slider-labels';
+      labelRow.style.position = 'relative';
+      labelRow.style.height = '26px';
+      labelRow.style.marginBottom = '4px';
+      labelRow.style.width = sliderEl.offsetWidth + 'px';
+      for (var i = 0; i < 3; i++) {
+        var seg = document.createElement('div');
+        seg.style.position = 'absolute';
+        seg.style.top = '0';
+        seg.style.bottom = '0';
+        seg.style.display = 'flex';
+        seg.style.alignItems = 'center';
+        seg.style.justifyContent = 'center';
+        seg.style.overflow = 'hidden';
+        seg.style.whiteSpace = 'nowrap';
+        seg.style.color = '#fff';
+        seg.style.fontWeight = '600';
+        seg.style.borderRadius = '3px';
+        seg.style.background = colors[i];
+        labelRow.appendChild(seg);
+      }
+      sliderEl.parentNode.insertBefore(labelRow, sliderEl);
+    }
+    var segs = labelRow.children;
+
     function paint() {
       var left = parseFloat(bar.style.left) || 0;
       var width = parseFloat(bar.style.width) || 0;
       var right = Math.min(100, left + width);
+      var bounds = [0, left, right, 100];
+      // Derive the displayed shares from the slider's own bound value
+      // (exact, step-quantized) rather than the rendered CSS percentage
+      // of `.irs-bar`, which is only an approximate pixel-rounded proxy
+      // for the true value and can drift by a percentage point or more.
+      var parts = (e.target.value || '').split(';').map(parseFloat);
+      var from = parts[0], to = parts[1];
+      if (isNaN(from) || isNaN(to)) { from = left / 100; to = right / 100; }
+      var shares = [from, to - from, 1 - to];
+      for (var i = 0; i < 3; i++) {
+        var segLeft = bounds[i], segWidth = bounds[i + 1] - bounds[i];
+        segs[i].style.left = segLeft + '%';
+        segs[i].style.width = segWidth + '%';
+        segs[i].style.fontSize = segWidth < 8 ? '0px' : '12px';
+        segs[i].textContent = labels[i] + ': ' + shares[i].toFixed(2);
+      }
       line.style.background =
         'linear-gradient(to right,' +
         colors[0] + ' 0%,' + colors[0] + ' ' + left + '%,' +
@@ -282,7 +315,6 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       ), overridden_paths)
       return(tagList(
         h6(class = "text-muted mt-2", sg),
-        plotOutput("triage_split_bar", height = "50px"),
         sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
                     value = c(p1, p1 + p2))
       ))
@@ -308,7 +340,6 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       }, logical(1))]
       return(tagList(
         h6(class = "text-muted mt-2", sg),
-        plotOutput("dnbi_split_bar", height = "50px"),
         sliderInput("dnbi_split", lbl, min = 0, max = 1, step = 0.01,
                     value = c(p_bf, p_bf + p_dis)),
         if (length(other_fields) > 0) layout_column_wrap(
@@ -359,7 +390,7 @@ ui <- page_navbar(
 
   nav_panel(
     "Configure",
-    split_slider_recolor_script(SPLIT_SLIDER_COLORS),
+    split_slider_recolor_script(SPLIT_SLIDER_META),
     p(class = "text-muted",
       "Adjust simulation parameters below, grouped by operational concept. ",
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",
@@ -569,22 +600,6 @@ server <- function(input, output, session) {
   current_json <- reactive({
     apply_registry_values(PARAM_REGISTRY, scenario_json(), inject_all_splits(reactiveValuesToList(input)))
   })
-
-  output$triage_split_bar <- renderPlot({
-    req(input$pri_split)
-    render_split_bar(input$pri_split,
-                      c("Priority 1", "Priority 2", "Priority 3"),
-                      SPLIT_SLIDER_COLORS$pri_split)
-  })
-  outputOptions(output, "triage_split_bar", suspendWhenHidden = FALSE)
-
-  output$dnbi_split_bar <- renderPlot({
-    req(input$dnbi_split)
-    render_split_bar(input$dnbi_split,
-                      c("Battle Fatigue", "Disease", "NBI"),
-                      SPLIT_SLIDER_COLORS$dnbi_split)
-  })
-  outputOptions(output, "dnbi_split_bar", suspendWhenHidden = FALSE)
 
   output$download_json <- downloadHandler(
     filename = function() sprintf("env_data_%s.json", format(Sys.time(), "%Y%m%d_%H%M%S")),

@@ -108,12 +108,10 @@ set_transport_field <- function(json, name, field, value) {
 
 # ── Registry group names ─────────────────────────────────────────────────
 
-GRP_FORCE     <- "Force Size"
-GRP_CASUALTY  <- "Casualty Rates"
-GRP_R1        <- "R1 — Forward Aid Post"
-GRP_R2B       <- "R2B — Battalion Aid Post"
-GRP_R2E       <- "R2E — Field Hospital"
-GRP_TRANSPORT <- "Transport Assets"
+GRP_FORCE        <- "Force Size"
+GRP_FORCE_DESIGN <- "Force Design"
+GRP_CASUALTY     <- "Casualty Rates"
+GRP_TRANSPORT    <- "Transport Assets"
 
 # ── Field constructors ───────────────────────────────────────────────────
 
@@ -342,42 +340,42 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.001, source = SRC_DOW_CEILING, slider = TRUE)
   ))
 
-  # ── R1 — Forward Aid Post ────────────────────────────────────────────────
+  # ── Force Design: R1 — Forward Aid Post ───────────────────────────────────
   registry <- c(registry, list(
-    field("r1_team_count", GRP_R1, NULL, "Number of R1 Teams",
+    field("r1_team_count", GRP_FORCE_DESIGN, "R1 — Establishment", "Number of R1 Teams",
           "Number of R1 (forward aid post) teams deployed.",
           get = function(json) get_elm_qty(json, "r1"),
           set = function(json, v) set_elm_qty(json, "r1", v),
           type = "integer", min = 1, max = 10, step = 1, source = SRC_ESTABLISHMENT)
   ))
-  registry <- c(registry, tri_fields("r1_wia_treat", GRP_R1, "Treatment Durations", "r1", "wia_treat",
+  registry <- c(registry, tri_fields("r1_wia_treat", GRP_FORCE_DESIGN, "R1 — Treatment Durations", "r1", "wia_treat",
                                      "WIA Treatment Time", "Time to stabilise a WIA casualty at R1.", bound = c(0, 200),
                                      source = SRC_R1_WIA_TREAT))
-  registry <- c(registry, tri_fields("r1_kia_treat", GRP_R1, "Treatment Durations", "r1", "kia_treat",
+  registry <- c(registry, tri_fields("r1_kia_treat", GRP_FORCE_DESIGN, "R1 — Treatment Durations", "r1", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R1.", bound = c(0, 200)))
-  registry <- c(registry, tri_fields("r1_recovery", GRP_R1, "Treatment Durations", "r1", "recovery",
+  registry <- c(registry, tri_fields("r1_recovery", GRP_FORCE_DESIGN, "R1 — Treatment Durations", "r1", "recovery",
                                      "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.", bound = c(0, 20000),
                                      source = SRC_R1_RECOVERY))
-  registry <- c(registry, tri_fields("r1_wia_transport", GRP_R1, "Transport (R1 → R2B)", "r1", "wia_transport",
+  registry <- c(registry, tri_fields("r1_wia_transport", GRP_FORCE_DESIGN, "R1 — Transport (R1 → R2B)", "r1", "wia_transport",
                                      "WIA Transport Time", "Transport time from point of injury to R1/R2B for a WIA casualty.",
                                      morris_mode_name = "r1_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
   registry <- c(registry, list(
-    var_field("r1_wia_transport_return", GRP_R1, "Transport (R1 → R2B)", "r1", "wia_transport", "return_leg_multiplier",
+    var_field("r1_wia_transport_return", GRP_FORCE_DESIGN, "R1 — Transport (R1 → R2B)", "r1", "wia_transport", "return_leg_multiplier",
               "WIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
               min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
   ))
-  registry <- c(registry, tri_fields("r1_kia_transport", GRP_R1, "Transport (R1 → R2B)", "r1", "kia_transport",
+  registry <- c(registry, tri_fields("r1_kia_transport", GRP_FORCE_DESIGN, "R1 — Transport (R1 → R2B)", "r1", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from point of injury.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
   registry <- c(registry, list(
-    var_field("r1_kia_transport_return", GRP_R1, "Transport (R1 → R2B)", "r1", "kia_transport", "return_leg_multiplier",
+    var_field("r1_kia_transport_return", GRP_FORCE_DESIGN, "R1 — Transport (R1 → R2B)", "r1", "kia_transport", "return_leg_multiplier",
               "KIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
               min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
   ))
 
-  # ── R2B — Battalion Aid Post ─────────────────────────────────────────────
+  # ── Force Design: R2B — Battalion Aid Post ────────────────────────────────
   registry <- c(registry, list(
-    field("r2b_team_count", GRP_R2B, NULL, "Number of R2B Teams",
+    field("r2b_team_count", GRP_FORCE_DESIGN, "R2B — Establishment", "Number of R2B Teams",
           "Number of R2B (battalion aid post) teams deployed.",
           get = function(json) get_elm_qty(json, "r2b"),
           set = function(json, v) set_elm_qty(json, "r2b", v),
@@ -389,47 +387,47 @@ build_param_registry <- function() {
   # own label said it was.
   registry <- c(registry, lapply(list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
                                        c("icu", "ICU Beds"), c("hold", "Holding Beds")), function(bed) {
-    field(paste0("r2b_bed_", bed[1]), GRP_R2B, "Bed Capacity (per Team)", bed[2],
+    field(paste0("r2b_bed_", bed[1]), GRP_FORCE_DESIGN, "R2B — Bed Capacity (per Team)", bed[2],
           paste0("Number of ", tolower(bed[2]), " per R2B team."),
           get = function(json) get_bed_qty(json, "r2b", bed[1]),
           set = function(json, v) set_bed_qty(json, "r2b", bed[1], v),
           type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
   }))
-  registry <- c(registry, tri_fields("r2b_surgery", GRP_R2B, "Surgical & Resuscitation Durations", "r2b", "surgery",
+  registry <- c(registry, tri_fields("r2b_surgery", GRP_FORCE_DESIGN, "R2B — Surgical & Resuscitation Durations", "r2b", "surgery",
                                      "Surgery Duration", "Time occupying an R2B operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
-  registry <- c(registry, tri_fields("r2b_long_resus", GRP_R2B, "Surgical & Resuscitation Durations", "r2b", "long_resus",
+  registry <- c(registry, tri_fields("r2b_long_resus", GRP_FORCE_DESIGN, "R2B — Surgical & Resuscitation Durations", "r2b", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2B resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
-  registry <- c(registry, tri_fields("r2b_holding", GRP_R2B, "Holding & Routing", "r2b", "holding",
+  registry <- c(registry, tri_fields("r2b_holding", GRP_FORCE_DESIGN, "R2B — Holding & Routing", "r2b", "holding",
                                      "Holding Bed Duration", "Time occupying an R2B holding bed.", bound = c(0, 20000)))
   registry <- c(registry, list(
-    var_field("r2b_hold_threshold", GRP_R2B, "Holding & Routing", "r2b", "holding", "hold_threshold",
+    var_field("r2b_hold_threshold", GRP_FORCE_DESIGN, "R2B — Holding & Routing", "r2b", "holding", "hold_threshold",
               "Hold-Bed Reroute Threshold", "Occupancy fraction above which new patients are rerouted to R2E rather than queuing at R2B (Issue #39).",
               min = 0, max = 1, step = 0.05, source = SRC_HOLD_THRESHOLD)
   ))
-  registry <- c(registry, tri_fields("r2b_wia_transport", GRP_R2B, "Transport (R2B ↔ R2E)", "r2b", "wia_transport",
+  registry <- c(registry, tri_fields("r2b_wia_transport", GRP_FORCE_DESIGN, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport",
                                      "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty.",
                                      morris_mode_name = "r2b_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
   registry <- c(registry, list(
-    var_field("r2b_wia_transport_return", GRP_R2B, "Transport (R2B ↔ R2E)", "r2b", "wia_transport", "return_leg_multiplier",
+    var_field("r2b_wia_transport_return", GRP_FORCE_DESIGN, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport", "return_leg_multiplier",
               "WIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
               min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
   ))
-  registry <- c(registry, tri_fields("r2b_kia_transport", GRP_R2B, "Transport (R2B ↔ R2E)", "r2b", "kia_transport",
+  registry <- c(registry, tri_fields("r2b_kia_transport", GRP_FORCE_DESIGN, "R2B — Transport (R2B ↔ R2E)", "r2b", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2B.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
   registry <- c(registry, list(
-    field("r2b_icu_defer_interval", GRP_R2B, "ICU Gating", "OT-Entry Defer Poll Interval",
+    field("r2b_icu_defer_interval", GRP_FORCE_DESIGN, "R2B — ICU Gating", "OT-Entry Defer Poll Interval",
           "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
           get = function(json) get_raw_var(json, "r2b", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2b", "icu_gating", "defer_check_interval", v),
           type = "integer", min = 5, max = 180, step = 5, source = SRC_ICU_GATING)
   ))
 
-  # ── R2E — Field Hospital ─────────────────────────────────────────────────
+  # ── Force Design: R2E — Field Hospital ────────────────────────────────────
   registry <- c(registry, list(
-    field("r2e_team_count", GRP_R2E, NULL, "Number of R2E Teams",
+    field("r2e_team_count", GRP_FORCE_DESIGN, "R2E — Establishment", "Number of R2E Teams",
           "Number of R2E (field hospital) teams deployed.",
           get = function(json) get_elm_qty(json, "r2eheavy"),
           set = function(json, v) set_elm_qty(json, "r2eheavy", v),
@@ -437,51 +435,51 @@ build_param_registry <- function() {
   ))
   registry <- c(registry, lapply(list(c("ot", "Operating Theatre Beds"), c("resus", "Resuscitation Beds"),
                                        c("icu", "ICU Beds"), c("hold", "Holding Beds")), function(bed) {
-    field(paste0("r2e_bed_", bed[1]), GRP_R2E, "Bed Capacity (per Team)", bed[2],
+    field(paste0("r2e_bed_", bed[1]), GRP_FORCE_DESIGN, "R2E — Bed Capacity (per Team)", bed[2],
           paste0("Number of ", tolower(bed[2]), " per R2E team."),
           get = function(json) get_bed_qty(json, "r2eheavy", bed[1]),
           set = function(json, v) set_bed_qty(json, "r2eheavy", bed[1], v),
           type = "integer", min = 0, max = 50, step = 1, source = SRC_ESTABLISHMENT)
   }))
-  registry <- c(registry, tri_fields("r2e_surgery", GRP_R2E, "Surgical & Resuscitation Durations", "r2eheavy", "surgery",
+  registry <- c(registry, tri_fields("r2e_surgery", GRP_FORCE_DESIGN, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "surgery",
                                      "Surgery Duration", "Time occupying an R2E operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
-  registry <- c(registry, tri_fields("r2e_short_resus", GRP_R2E, "Surgical & Resuscitation Durations", "r2eheavy", "short_resus",
+  registry <- c(registry, tri_fields("r2e_short_resus", GRP_FORCE_DESIGN, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "short_resus",
                                      "Short Resuscitation Duration", "Time occupying an R2E resuscitation bay for a straightforward case.", bound = c(0, 200),
                                      source = SRC_RESUS_TASK_TABLE))
-  registry <- c(registry, tri_fields("r2e_long_resus", GRP_R2E, "Surgical & Resuscitation Durations", "r2eheavy", "long_resus",
+  registry <- c(registry, tri_fields("r2e_long_resus", GRP_FORCE_DESIGN, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2E resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
-  registry <- c(registry, tri_fields("r2e_short_icu", GRP_R2E, "ICU & Holding Durations", "r2eheavy", "short_icu",
+  registry <- c(registry, tri_fields("r2e_short_icu", GRP_FORCE_DESIGN, "R2E — ICU & Holding Durations", "r2eheavy", "short_icu",
                                      "Short ICU Stay", "Time occupying an R2E ICU bed after a short-recovery case.", bound = c(0, 500)))
-  registry <- c(registry, tri_fields("r2e_long_icu", GRP_R2E, "ICU & Holding Durations", "r2eheavy", "long_icu",
+  registry <- c(registry, tri_fields("r2e_long_icu", GRP_FORCE_DESIGN, "R2E — ICU & Holding Durations", "r2eheavy", "long_icu",
                                      "Long ICU Stay", "Time occupying an R2E ICU bed after a full-recovery case.",
                                      morris_mode_name = "long_icu_mode", bound = c(0, 5000), source = SRC_ICU_STABILISATION))
-  registry <- c(registry, tri_fields("r2e_holding", GRP_R2E, "ICU & Holding Durations", "r2eheavy", "holding",
+  registry <- c(registry, tri_fields("r2e_holding", GRP_FORCE_DESIGN, "R2E — ICU & Holding Durations", "r2eheavy", "holding",
                                      "Holding Bed Duration", "Time occupying an R2E holding bed.", bound = c(0, 40000),
                                      source = SRC_IN_THEATRE_RATE))
-  registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_R2E, "ICU & Holding Durations", "r2eheavy", "post_op_hold",
+  registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_FORCE_DESIGN, "R2E — ICU & Holding Durations", "r2eheavy", "post_op_hold",
                                      "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation (Issue #43).", bound = c(0, 3000),
                                      source = SRC_POST_OP_HOLD))
   registry <- c(registry, list(
-    var_field("r2e_in_theatre_rate", GRP_R2E, "Recovery & Evacuation", "r2eheavy", "recovery", "in_theatre_rate",
+    var_field("r2e_in_theatre_rate", GRP_FORCE_DESIGN, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "in_theatre_rate",
               "In-Theatre Recovery Rate", "Proportion of R2E casualties who recover in theatre rather than being strategically evacuated.",
               min = 0, max = 1, step = 0.01, morris_name = "in_theatre_rate", source = SRC_IN_THEATRE_RATE),
-    var_field("r2e_post_surgery_rate", GRP_R2E, "Recovery & Evacuation", "r2eheavy", "recovery", "post_surgery",
+    var_field("r2e_post_surgery_rate", GRP_FORCE_DESIGN, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "post_surgery",
               "Post-Surgery Full-Recovery Rate", "Proportion of surgical patients routed to full (long) ICU recovery rather than short recovery.",
               min = 0, max = 1, step = 0.01),
-    var_field("r2e_icu_p1_bypass", GRP_R2E, "ICU Gating", "r2eheavy", "icu_gating", "p1_bypass_priority_max",
+    var_field("r2e_icu_p1_bypass", GRP_FORCE_DESIGN, "R2E — ICU Gating", "r2eheavy", "icu_gating", "p1_bypass_priority_max",
               "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead (Issue #43).",
               type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING),
-    field("r2e_icu_defer_interval", GRP_R2E, "ICU Gating", "OT-Entry Defer Poll Interval",
+    field("r2e_icu_defer_interval", GRP_FORCE_DESIGN, "R2E — ICU Gating", "OT-Entry Defer Poll Interval",
           "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval", v),
           type = "integer", min = 5, max = 180, step = 5, source = SRC_ICU_GATING)
   ))
-  registry <- c(registry, tri_fields("r2e_kia_treat", GRP_R2E, "KIA Handling", "r2eheavy", "kia_treat",
+  registry <- c(registry, tri_fields("r2e_kia_treat", GRP_FORCE_DESIGN, "R2E — KIA Handling", "r2eheavy", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R2E.", bound = c(0, 200)))
-  registry <- c(registry, tri_fields("r2e_kia_transport", GRP_R2E, "KIA Handling", "r2eheavy", "kia_transport",
+  registry <- c(registry, tri_fields("r2e_kia_transport", GRP_FORCE_DESIGN, "R2E — KIA Handling", "r2eheavy", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
 

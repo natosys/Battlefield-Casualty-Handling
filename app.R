@@ -503,7 +503,7 @@ ui <- page_navbar(
     uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
-      !!!lapply(c(GRP_FORCE, GRP_CASUALTY, GRP_R1, GRP_R2B, GRP_R2E, GRP_TRANSPORT), function(g) {
+      !!!lapply(c(GRP_FORCE, GRP_FORCE_DESIGN, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
         accordion_panel(g, uiOutput(paste0("group_ui_", make.names(g))))
       })
     )

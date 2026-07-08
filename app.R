@@ -379,6 +379,56 @@ field_card <- function(f, value, overridden_paths = NULL) {
   card(field_input(f, value, overridden_paths))
 }
 
+#' NULL-coalesce (base R only gained `%||%` in 4.4; this app targets 4.3).
+`%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
+
+#' Render a live structural capacity diagram for R1 -> R2B -> R2E: team
+#' counts at each echelon, plus (for R2B/R2E, which have beds) aggregate
+#' bed capacity by type -- the per-team count the user edits, multiplied
+#' out by team count into a total. This visualises the *structural*
+#' capacity implied by the Force Design panel's own numbers as they're
+#' edited; it is not a simulated outcome -- it cannot show queueing, wait
+#' times, or casualty outcomes under that configuration, only Quick Run
+#' can. The caption says as much, so the diagram isn't mistaken for one.
+#'
+#' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
+#' @param r2b_beds,r2e_beds Named numeric vectors (or NULL), one entry per
+#'   bed type, each the *per-team* bed count for that echelon.
+force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
+  bed_rows <- function(beds, teams) {
+    tagList(lapply(names(beds), function(nm) {
+      per_team <- beds[[nm]]
+      tags$div(style = "font-size:12px; color:#444; white-space:nowrap;",
+               sprintf("%s: %g/team × %g teams = ", nm, per_team, teams),
+               tags$b(sprintf("%g", per_team * teams)), " total")
+    }))
+  }
+  echelon_card <- function(title, teams, beds = NULL, note = NULL) {
+    card(
+      card_header(title),
+      tags$div(style = "font-size:13px;", sprintf("%g Teams", teams)),
+      if (!is.null(beds)) tags$div(style = "margin-top:6px;", bed_rows(beds, teams)),
+      if (!is.null(note)) tags$div(style = "font-size:11px; color:#888; margin-top:6px;", note)
+    )
+  }
+  arrow <- tags$div(style = "display:flex; align-items:center; justify-content:center; font-size:22px; color:#888; padding:0 4px; flex:0 0 auto;",
+                     "→")
+
+  tagList(
+    h6(class = "text-muted mt-2", "Force Structure Overview"),
+    p(class = "text-muted small",
+      "Structural capacity implied by the numbers below — team counts and per-team bed capacity, multiplied out into totals. This shows what you're configuring, not a simulated outcome; run Quick Run to see actual queueing, wait times, and casualty outcomes under this configuration."),
+    div(style = "display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin-bottom: 4px;",
+        tags$div(style = "flex:1; min-width:180px;", echelon_card("R1 — Forward Aid Post", r1_teams,
+                                                                   note = "Treats and returns to duty, or transports to R2B.")),
+        arrow,
+        tags$div(style = "flex:1; min-width:180px;", echelon_card("R2B — Battalion Aid Post", r2b_teams, r2b_beds)),
+        arrow,
+        tags$div(style = "flex:1; min-width:180px;", echelon_card("R2E — Field Hospital", r2e_teams, r2e_beds))
+    )
+  )
+}
+
 #' Render one top-level Configure accordion panel body for a field group
 #'
 #' @param overridden_paths Character vector of "elm.acty" paths the active
@@ -504,7 +554,11 @@ ui <- page_navbar(
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
       !!!lapply(c(GRP_FORCE, GRP_FORCE_DESIGN, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
-        accordion_panel(g, uiOutput(paste0("group_ui_", make.names(g))))
+        if (identical(g, GRP_FORCE_DESIGN)) {
+          accordion_panel(g, uiOutput("force_design_diagram"), uiOutput(paste0("group_ui_", make.names(g))))
+        } else {
+          accordion_panel(g, uiOutput(paste0("group_ui_", make.names(g))))
+        }
       })
     )
   ),
@@ -682,6 +736,30 @@ server <- function(input, output, session) {
     # of which panels are currently expanded.
     outputOptions(output, output_id, suspendWhenHidden = FALSE)
   })
+
+  # Live structural capacity diagram at the top of the Force Design panel
+  # (see force_structure_diagram()) — reads the same team-count/bed-count
+  # inputs the fields below it edit, so it stays in sync automatically as
+  # they change. Bed fields only exist for R2B/R2E (R1 has none).
+  output$force_design_diagram <- renderUI({
+    r2b_beds <- c(
+      OT    = input$r2b_bed_ot    %||% 0,
+      Resus = input$r2b_bed_resus %||% 0,
+      ICU   = input$r2b_bed_icu   %||% 0,
+      Hold  = input$r2b_bed_hold  %||% 0
+    )
+    r2e_beds <- c(
+      OT    = input$r2e_bed_ot    %||% 0,
+      Resus = input$r2e_bed_resus %||% 0,
+      ICU   = input$r2e_bed_icu   %||% 0,
+      Hold  = input$r2e_bed_hold  %||% 0
+    )
+    force_structure_diagram(
+      input$r1_team_count  %||% 0, input$r2b_team_count %||% 0, r2b_beds,
+      input$r2e_team_count %||% 0, r2e_beds
+    )
+  })
+  outputOptions(output, "force_design_diagram", suspendWhenHidden = FALSE)
 
   # Live casualty-generation curve previews (Casualty Rates group). Read
   # live from the mean/sd inputs so the curve redraws as the user edits

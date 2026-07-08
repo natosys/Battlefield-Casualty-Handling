@@ -389,9 +389,15 @@ field_card <- function(f, value, overridden_paths = NULL) {
 #' each echelon are pooled and seized on availability (see
 #' R/trajectories.R's select()/seize_selected() calls), not partitioned
 #' into fixed lanes, so a casualty from any R1 team can in principle be
-#' routed to any R2B team. Node counts >~6 per column make for a dense
+#' routed to any R2B team. Node counts >~6 per band make for a dense
 #' mesh; that density is itself informative (it is the same pooling that
 #' produces it), so it is left as-is rather than simplified away.
+#'
+#' Laid out vertically (R1 top, R2B middle, R2E bottom, each a horizontal
+#' band of nodes) rather than as three left-to-right columns, so the
+#' whole diagram fits a narrow sidebar column next to — and roughly
+#' level with — the echelon's own field sections, which render in the
+#' same top-to-bottom order immediately to its right.
 #'
 #' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
 force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
@@ -399,68 +405,79 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
   r2b_teams <- max(0, round(r2b_teams %||% 0))
   r2e_teams <- max(0, round(r2e_teams %||% 0))
 
-  col_x   <- c(60, 300, 540)
-  row_gap <- 30
-  top_pad <- 34
+  col_gap <- 26
+  base_w  <- 240
   max_n   <- max(r1_teams, r2b_teams, r2e_teams, 1)
-  height  <- top_pad + (max_n - 1) * row_gap + 30
+  width   <- max(base_w, (max_n - 1) * col_gap + 40)
 
-  node_y <- function(n) if (n == 0) numeric(0) else top_pad + (seq_len(n) - 1) * row_gap
+  label_y <- c(12, 118, 224)
+  node_y  <- label_y + 24
+  height  <- node_y[3] + 26
 
-  y1 <- node_y(r1_teams); y2 <- node_y(r2b_teams); y3 <- node_y(r2e_teams)
+  node_x <- function(n) {
+    if (n == 0) return(numeric(0))
+    total_w <- (n - 1) * col_gap
+    start_x <- (width - total_w) / 2
+    start_x + (seq_len(n) - 1) * col_gap
+  }
+  x1 <- node_x(r1_teams); x2 <- node_x(r2b_teams); x3 <- node_x(r2e_teams)
 
-  mesh <- function(x_from, y_from, x_to, y_to, color) {
-    if (length(y_from) == 0 || length(y_to) == 0) return(NULL)
-    pts <- expand.grid(yf = y_from, yt = y_to)
+  mesh <- function(y_from, x_from, y_to, x_to, color) {
+    if (length(x_from) == 0 || length(x_to) == 0) return(NULL)
+    pts <- expand.grid(xf = x_from, xt = x_to)
     lapply(seq_len(nrow(pts)), function(i) {
-      tags$line(x1 = x_from, y1 = pts$yf[i], x2 = x_to, y2 = pts$yt[i],
+      tags$line(x1 = pts$xf[i], y1 = y_from, x2 = pts$xt[i], y2 = y_to,
                 stroke = color, `stroke-width` = 1, `stroke-opacity` = 0.3)
     })
   }
-  nodes <- function(x, ys, fill) {
-    lapply(seq_along(ys), function(i) {
+  nodes <- function(y, xs, fill) {
+    lapply(seq_along(xs), function(i) {
       tagList(
-        tags$circle(cx = x, cy = ys[i], r = 11, fill = fill, stroke = "#333", `stroke-width` = 1),
-        tags$text(x = x, y = ys[i] + 4, `text-anchor` = "middle", `font-size` = 11,
+        tags$circle(cx = xs[i], cy = y, r = 10, fill = fill, stroke = "#333", `stroke-width` = 1),
+        tags$text(x = xs[i], y = y + 4, `text-anchor` = "middle", `font-size` = 10,
                    `font-weight` = "600", fill = "#fff", i)
       )
     })
   }
-  header <- function(x, label) {
-    tags$text(x = x, y = 14, `text-anchor` = "middle", `font-size` = 12, `font-weight` = "bold", fill = "#333", label)
+  header <- function(y, label) {
+    tags$text(x = 4, y = y, `text-anchor` = "start", `font-size` = 12, `font-weight` = "bold", fill = "#333", label)
   }
 
   tags$svg(
-    xmlns = "http://www.w3.org/2000/svg", viewBox = sprintf("0 0 %d %d", 600, height),
-    style = sprintf("width:100%%; max-width:640px; height:%dpx; display:block;", height),
-    mesh(col_x[1], y1, col_x[2], y2, "#c0392b"),
-    mesh(col_x[2], y2, col_x[3], y3, "#2a78d6"),
-    nodes(col_x[1], y1, "#c0392b"), nodes(col_x[2], y2, "#e08e2d"), nodes(col_x[3], y3, "#2a78d6"),
-    header(col_x[1], sprintf("R1 (%g)", r1_teams)),
-    header(col_x[2], sprintf("R2B (%g)", r2b_teams)),
-    header(col_x[3], sprintf("R2E (%g)", r2e_teams))
+    xmlns = "http://www.w3.org/2000/svg", viewBox = sprintf("0 0 %d %d", width, height),
+    style = sprintf("width:100%%; max-width:%dpx; height:%dpx; display:block;", width, height),
+    mesh(node_y[1], x1, node_y[2], x2, "#c0392b"),
+    mesh(node_y[2], x2, node_y[3], x3, "#2a78d6"),
+    nodes(node_y[1], x1, "#c0392b"), nodes(node_y[2], x2, "#e08e2d"), nodes(node_y[3], x3, "#2a78d6"),
+    header(label_y[1], sprintf("R1 (%g)", r1_teams)),
+    header(label_y[2], sprintf("R2B (%g)", r2b_teams)),
+    header(label_y[3], sprintf("R2E (%g)", r2e_teams))
   )
 }
 
 #' Tabulate aggregate bed capacity by echelon x bed type: total = per-team
 #' count x team count, with the per-team/team factors shown underneath
 #' each total for traceability back to the fields that produced it.
+#' Transposed (rows = bed type, columns = echelon) so the table stays
+#' narrow enough for the sidebar column it now shares with the node
+#' graph — 3 columns fits comfortably where the original 5-column
+#' (echelon x bed type) layout would have been cramped or overflowed.
 force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   bed_types <- names(r2b_beds)
   cell <- function(per_team, teams) {
     tags$td(
       tags$div(style = "font-weight:600;", sprintf("%g", per_team * teams)),
-      tags$div(style = "font-size:10px; color:#888;", sprintf("(%g × %g)", per_team, teams))
+      tags$div(style = "font-size:9px; color:#888;", sprintf("(%g × %g)", per_team, teams))
     )
   }
-  row <- function(label, teams, beds) {
-    tags$tr(tags$td(tags$b(label)), lapply(bed_types, function(nm) cell(beds[[nm]], teams)))
+  row <- function(nm) {
+    tags$tr(tags$td(tags$b(nm)), cell(r2b_beds[[nm]], r2b_teams), cell(r2e_beds[[nm]], r2e_teams))
   }
   tags$table(
     class = "table table-sm table-bordered",
-    style = "margin-top:6px; max-width:480px;",
-    tags$thead(tags$tr(tags$th("Echelon"), lapply(bed_types, tags$th))),
-    tags$tbody(row("R2B", r2b_teams, r2b_beds), row("R2E", r2e_teams, r2e_beds))
+    style = "margin-top:6px; font-size:12px;",
+    tags$thead(tags$tr(tags$th("Bed Type"), tags$th("R2B"), tags$th("R2E"))),
+    tags$tbody(lapply(bed_types, row))
   )
 }
 
@@ -478,13 +495,13 @@ force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
 #'   type, each the *per-team* bed count for that echelon.
 force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   tagList(
-    h6(class = "text-muted mt-2", "Force Structure Overview"),
-    p(class = "text-muted small",
-      "Each node is one deployed team; lines show that casualties from any team at one echelon can be routed to any team at the next — resources are pooled per echelon, not fixed lanes. This shows what you're configuring, not a simulated outcome; run Quick Run to see actual queueing, wait times, and casualty outcomes under this configuration."),
+    h6(class = "text-muted mt-2", "Force Structure"),
+    p(class = "text-muted", style = "font-size:11px;",
+      "Each node is one deployed team; lines show pooled routing to the next echelon, not fixed lanes. This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
     force_node_graph(r1_teams, r2b_teams, r2e_teams),
-    p(class = "text-muted small", style = "margin-top:2px;",
-      "R1 has no bed capacity of its own — casualties are treated and returned to duty, or transported to R2B."),
-    h6(class = "text-muted", style = "font-size:13px; margin-top:8px;", "Aggregate Bed Capacity (Total = Per-Team × Teams)"),
+    p(class = "text-muted", style = "font-size:11px; margin-top:2px;",
+      "R1 has no beds — treats and returns to duty, or transports to R2B."),
+    h6(class = "text-muted", style = "font-size:12px; margin-top:8px;", "Bed Capacity (Total = Per-Team × Teams)"),
     force_bed_table(r2b_teams, r2b_beds, r2e_teams, r2e_beds)
   )
 }
@@ -615,7 +632,14 @@ ui <- page_navbar(
       id = "config_accordion", open = c(GRP_FORCE),
       !!!lapply(c(GRP_FORCE, GRP_FORCE_DESIGN, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
         if (identical(g, GRP_FORCE_DESIGN)) {
-          accordion_panel(g, uiOutput("force_design_diagram"), uiOutput(paste0("group_ui_", make.names(g))))
+          accordion_panel(g,
+            div(style = "display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;",
+                div(style = "flex:0 0 280px; max-width:280px; position:sticky; top:12px;",
+                    uiOutput("force_design_diagram")),
+                div(style = "flex:1; min-width:280px;",
+                    uiOutput(paste0("group_ui_", make.names(g))))
+            )
+          )
         } else {
           accordion_panel(g, uiOutput(paste0("group_ui_", make.names(g))))
         }

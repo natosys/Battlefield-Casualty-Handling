@@ -324,8 +324,11 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       ), overridden_paths)
       return(tagList(
         h6(class = "text-muted mt-2", sg),
-        sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
-                    value = c(p1, p1 + p2))
+        layout_column_wrap(
+          width = "480px",
+          card(sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
+                            value = c(p1, p1 + p2)))
+        )
       ))
     }
 
@@ -342,18 +345,12 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
         ),
         path = bf_f$path
       ), overridden_paths)
-      # disease_surgery_pct shares this subgroup but is not part of the
-      # three-way split — render it normally below the slider.
-      other_fields <- sg_fields[!vapply(sg_fields, function(f) {
-        f$id %in% c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct")
-      }, logical(1))]
       return(tagList(
         h6(class = "text-muted mt-2", sg),
-        sliderInput("dnbi_split", lbl, min = 0, max = 1, step = 0.01,
-                    value = c(p_bf, p_bf + p_dis)),
-        if (length(other_fields) > 0) layout_column_wrap(
-          width = "300px",
-          !!!lapply(other_fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
+        layout_column_wrap(
+          width = "480px",
+          card(sliderInput("dnbi_split", lbl, min = 0, max = 1, step = 0.01,
+                            value = c(p_bf, p_bf + p_dis)))
         )
       ))
     }

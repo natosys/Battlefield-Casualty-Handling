@@ -86,6 +86,44 @@ render_gen_curve <- function(mean_daily, sd_daily, distribution) {
           plot.margin = margin(2, 4, 2, 4))
 }
 
+#' Render the Priority 1/2/3 triage split as a labelled stacked bar
+#'
+#' @param breaks Length-2 numeric vector (the two slider handle positions);
+#'   shares are derived as c(breaks[1], breaks[2]-breaks[1], 1-breaks[2]).
+render_priority_split_bar <- function(breaks) {
+  shares <- c(breaks[1], breaks[2] - breaks[1], 1 - breaks[2])
+  df <- data.frame(
+    priority = factor(c("Priority 1", "Priority 2", "Priority 3"),
+                       levels = c("Priority 1", "Priority 2", "Priority 3")),
+    share = shares
+  )
+  ggplot(df, aes(x = 1, y = share, fill = priority)) +
+    geom_col(width = 0.7) +
+    geom_text(aes(label = sprintf("%s: %.0f%%", priority, share * 100)),
+              position = position_stack(vjust = 0.5), color = "white",
+              size = 3.3, fontface = "bold") +
+    coord_flip() +
+    scale_fill_manual(values = c("Priority 1" = "#c0392b", "Priority 2" = "#e08e2d", "Priority 3" = "#2a78d6")) +
+    theme_void() +
+    theme(legend.position = "none", plot.margin = margin(2, 4, 2, 4))
+}
+
+#' Merge the pri_split range-slider value into a values list as pri_one/
+#' pri_two/pri_three, matching the field ids apply_registry_values()/
+#' validate_config() expect. Needed because the Configure panel replaces
+#' those three separate numeric inputs with one two-handle slider (see
+#' render_group_body()'s "Triage Priority Split" special case) — the split
+#' sums to 1 by construction, so this is purely a representation change,
+#' not a new validation rule.
+inject_priority_split <- function(values) {
+  if (!is.null(values$pri_split) && length(values$pri_split) == 2) {
+    values$pri_one   <- values$pri_split[1]
+    values$pri_two   <- values$pri_split[2] - values$pri_split[1]
+    values$pri_three <- 1 - values$pri_split[2]
+  }
+  values
+}
+
 MORRIS_LABELS <- c(
   surg_mode              = "Surgery Duration (Mode)",
   long_resus_mode        = "Long Resuscitation Duration (Mode)",
@@ -164,6 +202,25 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
 
   tagList(lapply(unique(subgroups), function(sg) {
     sg_fields <- fields[subgroups == sg]
+
+    if (identical(sg, "Triage Priority Split")) {
+      one_f <- Find(function(f) identical(f$id, "pri_one"), sg_fields)
+      p1 <- defaults[["pri_one"]]; p2 <- defaults[["pri_two"]]
+      lbl <- field_label(list(
+        label   = "Priority Split (P1 | P2 | P3)",
+        tooltip = paste0(
+          "Drag either handle to reallocate share between adjacent priorities — ",
+          "Priority 1, 2, and 3 always sum to 100% by construction. Source: ", SRC_PRIORITY_SPLIT
+        ),
+        path = one_f$path
+      ), overridden_paths)
+      return(tagList(
+        h6(class = "text-muted mt-2", sg),
+        plotOutput("triage_split_bar", height = "50px"),
+        sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
+                    value = c(p1, p1 + p2))
+      ))
+    }
 
     if (identical(sg, "Casualty Generation Rates")) {
       return(tagList(
@@ -289,13 +346,21 @@ server <- function(input, output, session) {
   # overlays the `vars` paths a given scenario actually defines; structural
   # config (force size, team/bed counts, transport fleet) is never touched.
 
+  # env_data.json's scenario labels carry a full descriptive parenthetical
+  # (e.g. "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British
+  # Task Force, South Atlantic)") intended for the README/CSV outputs; the
+  # dropdown only needs the short form before that parenthetical.
+  shorten_scenario_label <- function(lbl) {
+    trimws(sub("\\s*\\(.*$", "", lbl))
+  }
+
   scenario_choices <- reactive({
     base <- raw_env_data()
     ids  <- c("default", names(base$scenarios))
     labels <- vapply(ids, function(s) {
-      if (identical(s, "default")) return("Default (Base Configuration)")
+      if (identical(s, "default")) return("Default")
       lbl <- base$scenarios[[s]]$label
-      if (is.null(lbl)) s else trimws(lbl)
+      if (is.null(lbl)) s else shorten_scenario_label(lbl)
     }, character(1))
     setNames(ids, labels)
   })
@@ -405,8 +470,14 @@ server <- function(input, output, session) {
   })
 
   current_json <- reactive({
-    apply_registry_values(PARAM_REGISTRY, scenario_json(), reactiveValuesToList(input))
+    apply_registry_values(PARAM_REGISTRY, scenario_json(), inject_priority_split(reactiveValuesToList(input)))
   })
+
+  output$triage_split_bar <- renderPlot({
+    req(input$pri_split)
+    render_priority_split_bar(input$pri_split)
+  })
+  outputOptions(output, "triage_split_bar", suspendWhenHidden = FALSE)
 
   output$download_json <- downloadHandler(
     filename = function() sprintf("env_data_%s.json", format(Sys.time(), "%Y%m%d_%H%M%S")),
@@ -444,10 +515,10 @@ server <- function(input, output, session) {
       }
     }
 
-    psum <- sum(values$pri_one, values$pri_two, values$pri_three)
-    if (abs(psum - 1) > 0.02) {
-      errors <- c(errors, sprintf("Triage priority split (Priority 1/2/3) must sum to 1 (currently %.2f).", psum))
-    }
+    # Triage priority split has no corresponding check here — pri_split
+    # (a two-handle range slider, see render_group_body()) makes summing to
+    # 1 a structural guarantee rather than something to validate after the
+    # fact.
     dsum <- sum(values$dnbi_bf_pct, values$dnbi_disease_pct, values$dnbi_nbi_pct)
     if (abs(dsum - 1) > 0.02) {
       errors <- c(errors, sprintf("DNBI sub-type split (Battle Fatigue/Disease/NBI) must sum to 1 (currently %.2f).", dsum))
@@ -459,7 +530,7 @@ server <- function(input, output, session) {
   # ── Quick Run execution (async via future + promises) ────────────────────
 
   observeEvent(input$run_quick, {
-    values <- reactiveValuesToList(input)
+    values <- inject_priority_split(reactiveValuesToList(input))
     errors <- validate_config(values)
     if (length(errors) > 0) {
       showModal(modalDialog(

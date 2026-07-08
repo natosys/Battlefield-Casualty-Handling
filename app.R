@@ -262,7 +262,7 @@ field_label <- function(f, overridden_paths = NULL) {
 
 field_input <- function(f, value, overridden_paths = NULL) {
   lbl <- field_label(f, overridden_paths)
-  if (isTRUE(f$morris)) {
+  if (isTRUE(f$morris) || isTRUE(f$slider)) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
     # (R/sensitivity.R) has drifted from the baseline after a later
@@ -283,6 +283,15 @@ field_input <- function(f, value, overridden_paths = NULL) {
   }
 }
 
+#' Wrap a single field's input in a bordered card tile, matching the visual
+#' structure used for the Casualty Generation Rates curve cards (see
+#' render_group_body()) so every Configure field — not just the curve
+#' previews — reads as a distinct tile in a responsive grid rather than a
+#' bare label/widget pair floating in a flex-wrap row.
+field_card <- function(f, value, overridden_paths = NULL) {
+  card(field_input(f, value, overridden_paths))
+}
+
 #' Render one top-level Configure accordion panel body for a field group
 #'
 #' @param overridden_paths Character vector of "elm.acty" paths the active
@@ -295,7 +304,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
   if (all(subgroups == "")) {
     return(layout_column_wrap(
       width = "300px",
-      !!!lapply(fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
+      !!!lapply(fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
     ))
   }
 
@@ -344,7 +353,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
                     value = c(p_bf, p_bf + p_dis)),
         if (length(other_fields) > 0) layout_column_wrap(
           width = "300px",
-          !!!lapply(other_fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
+          !!!lapply(other_fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
         )
       ))
     }
@@ -375,7 +384,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       h6(class = "text-muted mt-2", sg),
       layout_column_wrap(
         width = "300px",
-        !!!lapply(sg_fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
+        !!!lapply(sg_fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
       )
     )
   }))

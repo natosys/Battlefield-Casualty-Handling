@@ -168,9 +168,14 @@ SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport
 #'   tooltip gains a note naming the screened range, per Issue #14
 #'   acceptance criteria ("parameters appearing in morris_params use
 #'   lower/upper as slider bounds").
+#' @param slider Force single-value slider rendering in the Configure panel
+#'   even when this field is not Morris-screened (`morris_name = NULL`).
+#'   Used for probability/rate fields where a slider communicates the 0–1
+#'   bound more directly than a bare numeric box.
 field <- function(id, group, subgroup, label, tooltip, get, set,
                    type = "numeric", min = NA, max = NA, step = NA,
-                   morris_name = NULL, source = SRC_UNCITED, path = NULL) {
+                   morris_name = NULL, source = SRC_UNCITED, path = NULL,
+                   slider = FALSE) {
   if (!is.null(morris_name)) {
     mp <- morris_params[morris_params$name == morris_name, ]
     if (nrow(mp) == 1) {
@@ -186,7 +191,7 @@ field <- function(id, group, subgroup, label, tooltip, get, set,
   tooltip <- paste0(tooltip, " Source: ", source)
   list(id = id, group = group, subgroup = subgroup, label = label, tooltip = tooltip,
        get = get, set = set, type = type, min = min, max = max, step = step,
-       morris = !is.null(morris_name), path = path)
+       morris = !is.null(morris_name), path = path, slider = isTRUE(slider))
 }
 
 #' Triangular-distribution (min/mode/max) triple of field specs
@@ -229,13 +234,13 @@ tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
 #'   casualty-generation streams were reading/writing generators.dnbi_spt.)
 var_field <- function(id, group, subgroup, elm, acty, var, label, tooltip,
                        type = "numeric", min = 0, max = 1, step = 0.01,
-                       morris_name = NULL, source = SRC_UNCITED) {
+                       morris_name = NULL, source = SRC_UNCITED, slider = FALSE) {
   force(elm); force(acty); force(var)
   field(id, group, subgroup, label, tooltip,
         get = function(json) get_raw_var(json, elm, acty, var),
         set = function(json, v) set_raw_var(json, elm, acty, var, v),
         type = type, min = min, max = max, step = step, morris_name = morris_name,
-        source = source, path = paste0(elm, ".", acty))
+        source = source, path = paste0(elm, ".", acty), slider = slider)
 }
 
 # ── Registry assembly ────────────────────────────────────────────────────
@@ -310,19 +315,19 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_NBI_PCT),
     var_field("dnbi_disease_surgery_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "disease_surgery_pct",
               "Disease Surgical Candidacy", "Proportion of disease DNBI casualties who nonetheless require surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_DISEASE_SURGERY),
+              min = 0, max = 1, step = 0.01, source = SRC_DISEASE_SURGERY, slider = TRUE),
     var_field("surg_pri1", GRP_CASUALTY, "Surgical & Evacuation Probabilities", "r1", "other", "pri1_surgery",
               "Priority 1 Surgical Candidacy", "Proportion of Priority 1 WIA requiring surgery.",
               min = 0, max = 1, step = 0.01, morris_name = "pri1_surg_prob", source = SRC_PRIORITY_SPLIT),
     var_field("surg_pri2", GRP_CASUALTY, "Surgical & Evacuation Probabilities", "r1", "other", "pri2_surgery",
               "Priority 2 Surgical Candidacy", "Proportion of Priority 2 WIA requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT),
+              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("surg_pri3_dnbi", GRP_CASUALTY, "Surgical & Evacuation Probabilities", "r1", "other", "pri3_dnbi_surgery",
               "Priority 3 DNBI Surgical Candidacy", "Proportion of Priority 3 DNBI casualties requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT),
+              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("surg_pri3_other", GRP_CASUALTY, "Surgical & Evacuation Probabilities", "r1", "other", "pri3_other_surgery",
               "Priority 3 Other Surgical Candidacy", "Proportion of other Priority 3 casualties requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT),
+              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("evac_pri1", GRP_CASUALTY, "Surgical & Evacuation Probabilities", "r1", "other", "pri1_evac",
               "Priority 1 Strategic Evacuation Rate", "Proportion of treated Priority 1 casualties evacuated out of theatre.",
               min = 0, max = 1, step = 0.01, source = SRC_EVAC_CANDIDACY),

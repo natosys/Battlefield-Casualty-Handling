@@ -382,50 +382,110 @@ field_card <- function(f, value, overridden_paths = NULL) {
 #' NULL-coalesce (base R only gained `%||%` in 4.4; this app targets 4.3).
 `%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
 
-#' Render a live structural capacity diagram for R1 -> R2B -> R2E: team
-#' counts at each echelon, plus (for R2B/R2E, which have beds) aggregate
-#' bed capacity by type -- the per-team count the user edits, multiplied
-#' out by team count into a total. This visualises the *structural*
-#' capacity implied by the Force Design panel's own numbers as they're
-#' edited; it is not a simulated outcome -- it cannot show queueing, wait
-#' times, or casualty outcomes under that configuration, only Quick Run
-#' can. The caption says as much, so the diagram isn't mistaken for one.
+#' Render an SVG node graph: one node per deployed team at each echelon,
+#' full bipartite mesh of lines between adjacent echelons (R1<->R2B,
+#' R2B<->R2E). A full mesh — every node on one side connected to every
+#' node on the other — is deliberate, not a simplification: resources at
+#' each echelon are pooled and seized on availability (see
+#' R/trajectories.R's select()/seize_selected() calls), not partitioned
+#' into fixed lanes, so a casualty from any R1 team can in principle be
+#' routed to any R2B team. Node counts >~6 per column make for a dense
+#' mesh; that density is itself informative (it is the same pooling that
+#' produces it), so it is left as-is rather than simplified away.
 #'
 #' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
-#' @param r2b_beds,r2e_beds Named numeric vectors (or NULL), one entry per
-#'   bed type, each the *per-team* bed count for that echelon.
-force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
-  bed_rows <- function(beds, teams) {
-    tagList(lapply(names(beds), function(nm) {
-      per_team <- beds[[nm]]
-      tags$div(style = "font-size:12px; color:#444; white-space:nowrap;",
-               sprintf("%s: %g/team × %g teams = ", nm, per_team, teams),
-               tags$b(sprintf("%g", per_team * teams)), " total")
-    }))
+force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
+  r1_teams  <- max(0, round(r1_teams %||% 0))
+  r2b_teams <- max(0, round(r2b_teams %||% 0))
+  r2e_teams <- max(0, round(r2e_teams %||% 0))
+
+  col_x   <- c(60, 300, 540)
+  row_gap <- 30
+  top_pad <- 34
+  max_n   <- max(r1_teams, r2b_teams, r2e_teams, 1)
+  height  <- top_pad + (max_n - 1) * row_gap + 30
+
+  node_y <- function(n) if (n == 0) numeric(0) else top_pad + (seq_len(n) - 1) * row_gap
+
+  y1 <- node_y(r1_teams); y2 <- node_y(r2b_teams); y3 <- node_y(r2e_teams)
+
+  mesh <- function(x_from, y_from, x_to, y_to, color) {
+    if (length(y_from) == 0 || length(y_to) == 0) return(NULL)
+    pts <- expand.grid(yf = y_from, yt = y_to)
+    lapply(seq_len(nrow(pts)), function(i) {
+      tags$line(x1 = x_from, y1 = pts$yf[i], x2 = x_to, y2 = pts$yt[i],
+                stroke = color, `stroke-width` = 1, `stroke-opacity` = 0.3)
+    })
   }
-  echelon_card <- function(title, teams, beds = NULL, note = NULL) {
-    card(
-      card_header(title),
-      tags$div(style = "font-size:13px;", sprintf("%g Teams", teams)),
-      if (!is.null(beds)) tags$div(style = "margin-top:6px;", bed_rows(beds, teams)),
-      if (!is.null(note)) tags$div(style = "font-size:11px; color:#888; margin-top:6px;", note)
+  nodes <- function(x, ys, fill) {
+    lapply(seq_along(ys), function(i) {
+      tagList(
+        tags$circle(cx = x, cy = ys[i], r = 11, fill = fill, stroke = "#333", `stroke-width` = 1),
+        tags$text(x = x, y = ys[i] + 4, `text-anchor` = "middle", `font-size` = 11,
+                   `font-weight` = "600", fill = "#fff", i)
+      )
+    })
+  }
+  header <- function(x, label) {
+    tags$text(x = x, y = 14, `text-anchor` = "middle", `font-size` = 12, `font-weight` = "bold", fill = "#333", label)
+  }
+
+  tags$svg(
+    xmlns = "http://www.w3.org/2000/svg", viewBox = sprintf("0 0 %d %d", 600, height),
+    style = sprintf("width:100%%; max-width:640px; height:%dpx; display:block;", height),
+    mesh(col_x[1], y1, col_x[2], y2, "#c0392b"),
+    mesh(col_x[2], y2, col_x[3], y3, "#2a78d6"),
+    nodes(col_x[1], y1, "#c0392b"), nodes(col_x[2], y2, "#e08e2d"), nodes(col_x[3], y3, "#2a78d6"),
+    header(col_x[1], sprintf("R1 (%g)", r1_teams)),
+    header(col_x[2], sprintf("R2B (%g)", r2b_teams)),
+    header(col_x[3], sprintf("R2E (%g)", r2e_teams))
+  )
+}
+
+#' Tabulate aggregate bed capacity by echelon x bed type: total = per-team
+#' count x team count, with the per-team/team factors shown underneath
+#' each total for traceability back to the fields that produced it.
+force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
+  bed_types <- names(r2b_beds)
+  cell <- function(per_team, teams) {
+    tags$td(
+      tags$div(style = "font-weight:600;", sprintf("%g", per_team * teams)),
+      tags$div(style = "font-size:10px; color:#888;", sprintf("(%g × %g)", per_team, teams))
     )
   }
-  arrow <- tags$div(style = "display:flex; align-items:center; justify-content:center; font-size:22px; color:#888; padding:0 4px; flex:0 0 auto;",
-                     "→")
+  row <- function(label, teams, beds) {
+    tags$tr(tags$td(tags$b(label)), lapply(bed_types, function(nm) cell(beds[[nm]], teams)))
+  }
+  tags$table(
+    class = "table table-sm table-bordered",
+    style = "margin-top:6px; max-width:480px;",
+    tags$thead(tags$tr(tags$th("Echelon"), lapply(bed_types, tags$th))),
+    tags$tbody(row("R2B", r2b_teams, r2b_beds), row("R2E", r2e_teams, r2e_beds))
+  )
+}
 
+#' Render the Force Design panel's live structural capacity diagram: a
+#' node graph (one node per deployed team, see force_node_graph()) above
+#' a tabulation of aggregate bed capacity (see force_bed_table()). This
+#' visualises the *structural* capacity implied by the Force Design
+#' panel's own numbers as they're edited; it is not a simulated outcome
+#' — it cannot show queueing, wait times, or casualty outcomes under that
+#' configuration, only Quick Run can. The caption says as much, so the
+#' diagram isn't mistaken for one.
+#'
+#' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
+#' @param r2b_beds,r2e_beds Named numeric vectors, one entry per bed
+#'   type, each the *per-team* bed count for that echelon.
+force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   tagList(
     h6(class = "text-muted mt-2", "Force Structure Overview"),
     p(class = "text-muted small",
-      "Structural capacity implied by the numbers below — team counts and per-team bed capacity, multiplied out into totals. This shows what you're configuring, not a simulated outcome; run Quick Run to see actual queueing, wait times, and casualty outcomes under this configuration."),
-    div(style = "display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin-bottom: 4px;",
-        tags$div(style = "flex:1; min-width:180px;", echelon_card("R1 — Forward Aid Post", r1_teams,
-                                                                   note = "Treats and returns to duty, or transports to R2B.")),
-        arrow,
-        tags$div(style = "flex:1; min-width:180px;", echelon_card("R2B — Battalion Aid Post", r2b_teams, r2b_beds)),
-        arrow,
-        tags$div(style = "flex:1; min-width:180px;", echelon_card("R2E — Field Hospital", r2e_teams, r2e_beds))
-    )
+      "Each node is one deployed team; lines show that casualties from any team at one echelon can be routed to any team at the next — resources are pooled per echelon, not fixed lanes. This shows what you're configuring, not a simulated outcome; run Quick Run to see actual queueing, wait times, and casualty outcomes under this configuration."),
+    force_node_graph(r1_teams, r2b_teams, r2e_teams),
+    p(class = "text-muted small", style = "margin-top:2px;",
+      "R1 has no bed capacity of its own — casualties are treated and returned to duty, or transported to R2B."),
+    h6(class = "text-muted", style = "font-size:13px; margin-top:8px;", "Aggregate Bed Capacity (Total = Per-Team × Teams)"),
+    force_bed_table(r2b_teams, r2b_beds, r2e_teams, r2e_beds)
   )
 }
 

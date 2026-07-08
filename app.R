@@ -47,6 +47,30 @@ APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
 PARAM_REGISTRY  <- build_param_registry()
 
+#' Detect every triangular (min/mode/max) field triple in a registry, by
+#' shared id prefix (tri_fields() in R/app_params.R always names them
+#' "<prefix>_min"/"<prefix>_mode"/"<prefix>_max"). Computed once from the
+#' full registry so every triangular field group in the app — not just
+#' one hand-picked group — gets a live distribution curve card (see
+#' render_field_grid()) without hardcoding each one by name.
+#'
+#' @return Named list (name = prefix); each value has min_id/mode_id/
+#'   max_id and label (the mode field's label with its " — Most Likely
+#'   (Mode)" suffix stripped, used as the curve card's header).
+detect_tri_triples <- function(registry) {
+  ids <- vapply(registry, function(f) f$id, character(1))
+  mode_ids <- grep("_mode$", ids, value = TRUE)
+  prefixes <- sub("_mode$", "", mode_ids)
+  keep <- vapply(prefixes, function(p) paste0(p, "_min") %in% ids && paste0(p, "_max") %in% ids, logical(1))
+  prefixes <- prefixes[keep]
+  setNames(lapply(prefixes, function(p) {
+    mode_f <- registry[[which(ids == paste0(p, "_mode"))]]
+    list(min_id = paste0(p, "_min"), mode_id = paste0(p, "_mode"), max_id = paste0(p, "_max"),
+         label = sub(" — Most Likely \\(Mode\\)$", "", mode_f$label))
+  }), prefixes)
+}
+TRI_TRIPLES <- detect_tri_triples(PARAM_REGISTRY)
+
 GEN_STREAM_ACTYS <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
 
 #' Render a small density-curve preview for a casualty generation stream
@@ -79,6 +103,33 @@ render_gen_curve <- function(mean_daily, sd_daily, distribution) {
     geom_line(color = "#2a78d6", linewidth = 0.9) +
     geom_vline(xintercept = mean_daily, linetype = "dashed", color = "#c0392b", linewidth = 0.5) +
     labs(x = NULL, y = NULL, subtitle = dist_label) +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.subtitle = element_text(size = 8, color = "#888888"),
+          plot.margin = margin(2, 4, 2, 4))
+}
+
+#' Render a small density-curve preview for a triangular-distribution
+#' field group (min/mode/max), matching the visual language of
+#' render_gen_curve() for the casualty-generation streams.
+#'
+#' @details Uses `triangle::dtriangle()` — the same package the
+#'   simulation itself draws durations from via `rtriangle()`
+#'   (R/trajectories.R), so the curve shown is the exact shape those
+#'   three numbers imply, not an approximation.
+render_tri_curve <- function(mn, mode, mx) {
+  invalid <- is.null(mn) || is.null(mode) || is.null(mx) ||
+    is.na(mn) || is.na(mode) || is.na(mx) ||
+    !(mn <= mode && mode <= mx) || mn == mx
+  if (invalid) return(ggplot() + theme_void())
+  x <- seq(mn, mx, length.out = 200)
+  y <- triangle::dtriangle(x, a = mn, b = mx, c = mode)
+  ggplot(data.frame(x = x, y = y), aes(x, y)) +
+    geom_area(fill = "#2a78d6", alpha = 0.25) +
+    geom_line(color = "#2a78d6", linewidth = 0.9) +
+    geom_vline(xintercept = mode, linetype = "dashed", color = "#c0392b", linewidth = 0.5) +
+    labs(x = NULL, y = NULL, subtitle = "Triangular") +
     theme_minimal(base_size = 9) +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(),
           panel.grid.minor = element_blank(),
@@ -379,6 +430,41 @@ field_card <- function(f, value, overridden_paths = NULL) {
   card(field_input(f, value, overridden_paths))
 }
 
+#' Render a set of fields as a responsive grid, automatically detecting
+#' triangular (min/mode/max) field triples via TRI_TRIPLES and rendering
+#' each as a single curve card (plot + 3 inputs, matching the Casualty
+#' Generation Rates pattern) instead of three separate plain field cards.
+#' Any field not part of a detected triple still renders as a plain
+#' field_card(), so this is a superset of the previous plain-grid
+#' behaviour — a subgroup with no triangular fields renders identically
+#' to before.
+render_field_grid <- function(fields, defaults, overridden_paths = NULL, width = "300px") {
+  ids  <- vapply(fields, function(f) f$id, character(1))
+  used <- character(0)
+  items <- list()
+  for (f in fields) {
+    if (f$id %in% used) next
+    prefix <- if (grepl("_min$", f$id)) sub("_min$", "", f$id) else NA_character_
+    tt <- if (!is.na(prefix)) TRI_TRIPLES[[prefix]] else NULL
+    if (!is.null(tt) && tt$mode_id %in% ids && tt$max_id %in% ids) {
+      min_f  <- Find(function(x) identical(x$id, tt$min_id),  fields)
+      mode_f <- Find(function(x) identical(x$id, tt$mode_id), fields)
+      max_f  <- Find(function(x) identical(x$id, tt$max_id),  fields)
+      items[[length(items) + 1]] <- card(
+        card_header(tt$label),
+        plotOutput(paste0("tri_curve_", prefix), height = "90px"),
+        field_input(min_f,  defaults[[min_f$id]],  overridden_paths),
+        field_input(mode_f, defaults[[mode_f$id]], overridden_paths),
+        field_input(max_f,  defaults[[max_f$id]],  overridden_paths)
+      )
+      used <- c(used, tt$min_id, tt$mode_id, tt$max_id)
+    } else {
+      items[[length(items) + 1]] <- field_card(f, defaults[[f$id]], overridden_paths)
+    }
+  }
+  layout_column_wrap(width = width, !!!items)
+}
+
 #' NULL-coalesce (base R only gained `%||%` in 4.4; this app targets 4.3).
 `%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
 
@@ -516,10 +602,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
 
   if (all(subgroups == "")) {
-    return(layout_column_wrap(
-      width = "300px",
-      !!!lapply(fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
-    ))
+    return(render_field_grid(fields, defaults, overridden_paths))
   }
 
   tagList(lapply(unique(subgroups), function(sg) {
@@ -600,10 +683,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
 
     tagList(
       h6(class = "text-muted mt-2", sg),
-      layout_column_wrap(
-        width = "300px",
-        !!!lapply(sg_fields, function(f) field_card(f, defaults[[f$id]], overridden_paths))
-      )
+      render_field_grid(sg_fields, defaults, overridden_paths)
     )
   }))
 }
@@ -718,6 +798,19 @@ server <- function(input, output, session) {
   wire_slider_text_sync(input, session, "ot_hours")
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
+
+  # Live distribution-curve preview for every triangular (min/mode/max)
+  # field group in the registry (see TRI_TRIPLES/render_field_grid()),
+  # reading straight from the three inputs so it redraws as any of them
+  # is edited — the same pattern as the casualty-generation curves above.
+  lapply(names(TRI_TRIPLES), function(prefix) {
+    tt <- TRI_TRIPLES[[prefix]]
+    output_id <- paste0("tri_curve_", prefix)
+    output[[output_id]] <- renderPlot({
+      render_tri_curve(input[[tt$min_id]], input[[tt$mode_id]], input[[tt$max_id]])
+    })
+    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+  })
 
   # ── Casualty Intensity Profile selector ──────────────────────────────────
   # Offers exactly the scenario profiles defined in the loaded env_data.json

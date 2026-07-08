@@ -438,6 +438,28 @@ field_card <- function(f, value, overridden_paths = NULL) {
 #' field_card(), so this is a superset of the previous plain-grid
 #' behaviour — a subgroup with no triangular fields renders identically
 #' to before.
+#' Render a triangular field triple's min/mode/max as three small plain
+#' numeric inputs side by side, rather than three full-width rows — the
+#' mode field's own tooltip (still stating its Morris-screened range and
+#' source, where applicable) is preserved via field_label(), just with a
+#' short "Min"/"Mode"/"Max" visible label instead of the field's full
+#' descriptive name, since that's already shown once in the card header.
+#' Always plain numericInput()s (never a slider, even for a
+#' Morris-screened mode field) so all three fit uniformly in one narrow
+#' row under the curve.
+tri_input_row <- function(min_f, mode_f, max_f, defaults, overridden_paths = NULL) {
+  compact_input <- function(f, short_label) {
+    lbl <- field_label(list(label = short_label, tooltip = f$tooltip, path = f$path), overridden_paths)
+    numericInput(f$id, lbl, value = defaults[[f$id]], min = f$min, max = f$max,
+                 step = if (identical(f$type, "integer")) 1 else f$step, width = "100%")
+  }
+  div(style = "display:flex; gap:6px;",
+      div(style = "flex:1; min-width:0;", compact_input(min_f,  "Min")),
+      div(style = "flex:1; min-width:0;", compact_input(mode_f, "Mode")),
+      div(style = "flex:1; min-width:0;", compact_input(max_f,  "Max"))
+  )
+}
+
 render_field_grid <- function(fields, defaults, overridden_paths = NULL, width = "300px") {
   ids  <- vapply(fields, function(f) f$id, character(1))
   used <- character(0)
@@ -453,9 +475,7 @@ render_field_grid <- function(fields, defaults, overridden_paths = NULL, width =
       items[[length(items) + 1]] <- card(
         card_header(tt$label),
         plotOutput(paste0("tri_curve_", prefix), height = "90px"),
-        field_input(min_f,  defaults[[min_f$id]],  overridden_paths),
-        field_input(mode_f, defaults[[mode_f$id]], overridden_paths),
-        field_input(max_f,  defaults[[max_f$id]],  overridden_paths)
+        tri_input_row(min_f, mode_f, max_f, defaults, overridden_paths)
       )
       used <- c(used, tt$min_id, tt$mode_id, tt$max_id)
     } else {
@@ -789,9 +809,14 @@ server <- function(input, output, session) {
   # field_input()/slider_with_text_input()); wire the two-way sync once per
   # id here rather than inside the per-group renderUI blocks, since the
   # sync only needs to exist once regardless of how many times the UI
-  # containing it is regenerated.
+  # containing it is regenerated. Triangular mode fields are excluded even
+  # when Morris-screened (f$morris == TRUE): render_field_grid() always
+  # renders a detected triangular triple's min/mode/max as plain compact
+  # inputs (tri_input_row()), never a slider, so there is no "<id>_txt"
+  # companion for this sync to wire up.
+  tri_mode_ids <- vapply(TRI_TRIPLES, `[[`, character(1), "mode_id")
   slider_field_ids <- vapply(
-    Filter(function(f) isTRUE(f$morris) || isTRUE(f$slider), PARAM_REGISTRY),
+    Filter(function(f) (isTRUE(f$morris) || isTRUE(f$slider)) && !(f$id %in% tri_mode_ids), PARAM_REGISTRY),
     function(f) f$id, character(1)
   )
   lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))

@@ -86,41 +86,55 @@ render_gen_curve <- function(mean_daily, sd_daily, distribution) {
           plot.margin = margin(2, 4, 2, 4))
 }
 
-#' Render the Priority 1/2/3 triage split as a labelled stacked bar
+#' Render a three-way compositional split (two slider handles) as a
+#' labelled stacked bar
 #'
 #' @param breaks Length-2 numeric vector (the two slider handle positions);
 #'   shares are derived as c(breaks[1], breaks[2]-breaks[1], 1-breaks[2]).
-render_priority_split_bar <- function(breaks) {
+#' @param labels Character vector of length 3, one per segment, in the same
+#'   order as the three derived shares.
+#' @param colors Character vector of length 3, hex colours matching `labels`.
+render_split_bar <- function(breaks, labels, colors) {
   shares <- c(breaks[1], breaks[2] - breaks[1], 1 - breaks[2])
-  df <- data.frame(
-    priority = factor(c("Priority 1", "Priority 2", "Priority 3"),
-                       levels = c("Priority 1", "Priority 2", "Priority 3")),
-    share = shares
-  )
-  ggplot(df, aes(x = 1, y = share, fill = priority)) +
+  df <- data.frame(segment = factor(labels, levels = labels), share = shares)
+  ggplot(df, aes(x = 1, y = share, fill = segment)) +
     geom_col(width = 0.7) +
-    geom_text(aes(label = sprintf("%s: %.0f%%", priority, share * 100)),
+    geom_text(aes(label = sprintf("%s: %.0f%%", segment, share * 100)),
               position = position_stack(vjust = 0.5), color = "white",
               size = 3.3, fontface = "bold") +
     coord_flip() +
-    scale_fill_manual(values = c("Priority 1" = "#c0392b", "Priority 2" = "#e08e2d", "Priority 3" = "#2a78d6")) +
+    scale_fill_manual(values = setNames(colors, labels)) +
     theme_void() +
     theme(legend.position = "none", plot.margin = margin(2, 4, 2, 4))
 }
 
-#' Merge the pri_split range-slider value into a values list as pri_one/
-#' pri_two/pri_three, matching the field ids apply_registry_values()/
+#' Merge a two-handle range-slider value into a values list as three
+#' underlying field values, matching the ids apply_registry_values()/
 #' validate_config() expect. Needed because the Configure panel replaces
-#' those three separate numeric inputs with one two-handle slider (see
-#' render_group_body()'s "Triage Priority Split" special case) — the split
-#' sums to 1 by construction, so this is purely a representation change,
-#' not a new validation rule.
-inject_priority_split <- function(values) {
-  if (!is.null(values$pri_split) && length(values$pri_split) == 2) {
-    values$pri_one   <- values$pri_split[1]
-    values$pri_two   <- values$pri_split[2] - values$pri_split[1]
-    values$pri_three <- 1 - values$pri_split[2]
+#' three-way compositional splits (Triage Priority, DNBI Sub-Type) with a
+#' single slider each (see render_group_body()'s special cases) — the
+#' split sums to 1 by construction, so this is purely a representation
+#' change, not a new validation rule.
+#'
+#' @param values Named list (from reactiveValuesToList(input))
+#' @param split_id Input id of the range slider, e.g. "pri_split"
+#' @param part_ids Character vector of length 3: the three field ids the
+#'   slider's breakpoints expand into, in slider order
+inject_split <- function(values, split_id, part_ids) {
+  v <- values[[split_id]]
+  if (!is.null(v) && length(v) == 2) {
+    values[[part_ids[1]]] <- v[1]
+    values[[part_ids[2]]] <- v[2] - v[1]
+    values[[part_ids[3]]] <- 1 - v[2]
   }
+  values
+}
+
+#' Apply inject_split() for every compositional split the Configure panel
+#' represents as a slider
+inject_all_splits <- function(values) {
+  values <- inject_split(values, "pri_split",  c("pri_one", "pri_two", "pri_three"))
+  values <- inject_split(values, "dnbi_split", c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct"))
   values
 }
 
@@ -219,6 +233,36 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
         plotOutput("triage_split_bar", height = "50px"),
         sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
                     value = c(p1, p1 + p2))
+      ))
+    }
+
+    if (identical(sg, "DNBI Sub-Type Split")) {
+      bf_f  <- Find(function(f) identical(f$id, "dnbi_bf_pct"), sg_fields)
+      p_bf  <- defaults[["dnbi_bf_pct"]]; p_dis <- defaults[["dnbi_disease_pct"]]
+      lbl <- field_label(list(
+        label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
+        tooltip = paste0(
+          "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
+          "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction. ",
+          "Sources: Battle Fatigue — ", SRC_DNBI_BF_PCT, " Disease — ", SRC_DNBI_DISEASE_PCT,
+          " NBI — ", SRC_DNBI_NBI_PCT
+        ),
+        path = bf_f$path
+      ), overridden_paths)
+      # disease_surgery_pct shares this subgroup but is not part of the
+      # three-way split — render it normally below the slider.
+      other_fields <- sg_fields[!vapply(sg_fields, function(f) {
+        f$id %in% c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct")
+      }, logical(1))]
+      return(tagList(
+        h6(class = "text-muted mt-2", sg),
+        plotOutput("dnbi_split_bar", height = "50px"),
+        sliderInput("dnbi_split", lbl, min = 0, max = 1, step = 0.01,
+                    value = c(p_bf, p_bf + p_dis)),
+        if (length(other_fields) > 0) layout_column_wrap(
+          width = "300px",
+          !!!lapply(other_fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
+        )
       ))
     }
 
@@ -470,14 +514,24 @@ server <- function(input, output, session) {
   })
 
   current_json <- reactive({
-    apply_registry_values(PARAM_REGISTRY, scenario_json(), inject_priority_split(reactiveValuesToList(input)))
+    apply_registry_values(PARAM_REGISTRY, scenario_json(), inject_all_splits(reactiveValuesToList(input)))
   })
 
   output$triage_split_bar <- renderPlot({
     req(input$pri_split)
-    render_priority_split_bar(input$pri_split)
+    render_split_bar(input$pri_split,
+                      c("Priority 1", "Priority 2", "Priority 3"),
+                      c("#c0392b", "#e08e2d", "#2a78d6"))
   })
   outputOptions(output, "triage_split_bar", suspendWhenHidden = FALSE)
+
+  output$dnbi_split_bar <- renderPlot({
+    req(input$dnbi_split)
+    render_split_bar(input$dnbi_split,
+                      c("Battle Fatigue", "Disease", "NBI"),
+                      c("#8e44ad", "#e08e2d", "#2a78d6"))
+  })
+  outputOptions(output, "dnbi_split_bar", suspendWhenHidden = FALSE)
 
   output$download_json <- downloadHandler(
     filename = function() sprintf("env_data_%s.json", format(Sys.time(), "%Y%m%d_%H%M%S")),
@@ -515,14 +569,10 @@ server <- function(input, output, session) {
       }
     }
 
-    # Triage priority split has no corresponding check here — pri_split
-    # (a two-handle range slider, see render_group_body()) makes summing to
-    # 1 a structural guarantee rather than something to validate after the
-    # fact.
-    dsum <- sum(values$dnbi_bf_pct, values$dnbi_disease_pct, values$dnbi_nbi_pct)
-    if (abs(dsum - 1) > 0.02) {
-      errors <- c(errors, sprintf("DNBI sub-type split (Battle Fatigue/Disease/NBI) must sum to 1 (currently %.2f).", dsum))
-    }
+    # Triage priority split and DNBI sub-type split have no corresponding
+    # check here — pri_split and dnbi_split (two-handle range sliders, see
+    # render_group_body()) make summing to 1 a structural guarantee rather
+    # than something to validate after the fact.
 
     errors
   }
@@ -530,7 +580,7 @@ server <- function(input, output, session) {
   # ── Quick Run execution (async via future + promises) ────────────────────
 
   observeEvent(input$run_quick, {
-    values <- inject_priority_split(reactiveValuesToList(input))
+    values <- inject_all_splits(reactiveValuesToList(input))
     errors <- validate_config(values)
     if (length(errors) > 0) {
       showModal(modalDialog(

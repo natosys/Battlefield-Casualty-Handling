@@ -311,10 +311,16 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
   tagList(lapply(unique(subgroups), function(sg) {
     sg_fields <- fields[subgroups == sg]
 
+    # Triage Priority Split and DNBI Sub-Type Split are rendered together in
+    # one shared grid (rather than each getting its own single-card grid,
+    # which always stretches that lone card to fill the row) so the two
+    # sliders can sit side by side when there's room. The card's own header
+    # replaces the previous subgroup-title h6, since there are now two
+    # titles sharing one row rather than one title per row.
     if (identical(sg, "Triage Priority Split")) {
       one_f <- Find(function(f) identical(f$id, "pri_one"), sg_fields)
       p1 <- defaults[["pri_one"]]; p2 <- defaults[["pri_two"]]
-      lbl <- field_label(list(
+      pri_lbl <- field_label(list(
         label   = "Priority Split (P1 | P2 | P3)",
         tooltip = paste0(
           "Drag either handle to reallocate share between adjacent priorities — ",
@@ -322,37 +328,40 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
         ),
         path = one_f$path
       ), overridden_paths)
-      return(tagList(
-        h6(class = "text-muted mt-2", sg),
-        layout_column_wrap(
-          width = "480px",
-          card(sliderInput("pri_split", lbl, min = 0, max = 1, step = 0.01,
-                            value = c(p1, p1 + p2)))
+      pri_card <- card(
+        card_header(sg),
+        sliderInput("pri_split", pri_lbl, min = 0, max = 1, step = 0.01,
+                    value = c(p1, p1 + p2))
+      )
+
+      dnbi_fields <- fields[subgroups == "DNBI Sub-Type Split"]
+      dnbi_card <- NULL
+      if (length(dnbi_fields) > 0) {
+        bf_f  <- Find(function(f) identical(f$id, "dnbi_bf_pct"), dnbi_fields)
+        p_bf  <- defaults[["dnbi_bf_pct"]]; p_dis <- defaults[["dnbi_disease_pct"]]
+        dnbi_lbl <- field_label(list(
+          label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
+          tooltip = paste0(
+            "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
+            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction. ",
+            "Sources: Battle Fatigue — ", SRC_DNBI_BF_PCT, " Disease — ", SRC_DNBI_DISEASE_PCT,
+            " NBI — ", SRC_DNBI_NBI_PCT
+          ),
+          path = bf_f$path
+        ), overridden_paths)
+        dnbi_card <- card(
+          card_header("DNBI Sub-Type Split"),
+          sliderInput("dnbi_split", dnbi_lbl, min = 0, max = 1, step = 0.01,
+                      value = c(p_bf, p_bf + p_dis))
         )
-      ))
+      }
+
+      return(layout_column_wrap(width = "480px", pri_card, dnbi_card))
     }
 
+    # Already rendered above, alongside Triage Priority Split.
     if (identical(sg, "DNBI Sub-Type Split")) {
-      bf_f  <- Find(function(f) identical(f$id, "dnbi_bf_pct"), sg_fields)
-      p_bf  <- defaults[["dnbi_bf_pct"]]; p_dis <- defaults[["dnbi_disease_pct"]]
-      lbl <- field_label(list(
-        label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
-        tooltip = paste0(
-          "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
-          "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction. ",
-          "Sources: Battle Fatigue — ", SRC_DNBI_BF_PCT, " Disease — ", SRC_DNBI_DISEASE_PCT,
-          " NBI — ", SRC_DNBI_NBI_PCT
-        ),
-        path = bf_f$path
-      ), overridden_paths)
-      return(tagList(
-        h6(class = "text-muted mt-2", sg),
-        layout_column_wrap(
-          width = "480px",
-          card(sliderInput("dnbi_split", lbl, min = 0, max = 1, step = 0.01,
-                            value = c(p_bf, p_bf + p_dis)))
-        )
-      ))
+      return(NULL)
     }
 
     if (identical(sg, "Casualty Generation Rates")) {

@@ -108,6 +108,58 @@ render_split_bar <- function(breaks, labels, colors) {
     theme(legend.position = "none", plot.margin = margin(2, 4, 2, 4))
 }
 
+#' Colours for each three-way compositional split, shared between the
+#' breakdown bar (render_split_bar()) and the slider track recolouring
+#' (split_slider_recolor_script()) so the two stay visually in sync.
+SPLIT_SLIDER_COLORS <- list(
+  pri_split  = c("#c0392b", "#e08e2d", "#2a78d6"),
+  dnbi_split = c("#8e44ad", "#e08e2d", "#2a78d6")
+)
+
+#' Recolour a two-handle ion.rangeSlider's track to show all three
+#' compositional segments (rather than the default styling, which paints
+#' only the region between the handles — implying a "selected range" —
+#' leaving the two outer segments in a neutral track colour). This
+#' overlays a three-stop gradient on `.irs-line` matching the segment the
+#' handles currently bound, and makes the default `.irs-bar` transparent
+#' so it no longer visually competes with the gradient.
+#'
+#' @param color_map Named list; each name is a slider input id (e.g.
+#'   "pri_split") and each value a length-3 character vector of hex
+#'   colours, in the same left-to-right order as the slider's segments.
+split_slider_recolor_script <- function(color_map) {
+  json <- jsonlite::toJSON(color_map, auto_unbox = FALSE)
+  js <- paste0("
+(function() {
+  var colorMap = ", json, ";
+  $(document).on('shiny:bound', function(e) {
+    var id = e.target.id;
+    var colors = colorMap[id];
+    if (!colors) return;
+    var $wrap = $(e.target).closest('.form-group');
+    var bar = $wrap.find('.irs-bar')[0];
+    var line = $wrap.find('.irs-line')[0];
+    if (!bar || !line) return;
+    function paint() {
+      var left = parseFloat(bar.style.left) || 0;
+      var width = parseFloat(bar.style.width) || 0;
+      var right = Math.min(100, left + width);
+      line.style.background =
+        'linear-gradient(to right,' +
+        colors[0] + ' 0%,' + colors[0] + ' ' + left + '%,' +
+        colors[1] + ' ' + left + '%,' + colors[1] + ' ' + right + '%,' +
+        colors[2] + ' ' + right + '%,' + colors[2] + ' 100%)';
+    }
+    bar.style.background = 'transparent';
+    bar.style.boxShadow = 'none';
+    paint();
+    new MutationObserver(paint).observe(bar, {attributes: true, attributeFilter: ['style']});
+  });
+})();
+")
+  tags$script(HTML(js))
+}
+
 #' Merge a two-handle range-slider value into a values list as three
 #' underlying field values, matching the ids apply_registry_values()/
 #' validate_config() expect. Needed because the Configure panel replaces
@@ -307,6 +359,7 @@ ui <- page_navbar(
 
   nav_panel(
     "Configure",
+    split_slider_recolor_script(SPLIT_SLIDER_COLORS),
     p(class = "text-muted",
       "Adjust simulation parameters below, grouped by operational concept. ",
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",
@@ -521,7 +574,7 @@ server <- function(input, output, session) {
     req(input$pri_split)
     render_split_bar(input$pri_split,
                       c("Priority 1", "Priority 2", "Priority 3"),
-                      c("#c0392b", "#e08e2d", "#2a78d6"))
+                      SPLIT_SLIDER_COLORS$pri_split)
   })
   outputOptions(output, "triage_split_bar", suspendWhenHidden = FALSE)
 
@@ -529,7 +582,7 @@ server <- function(input, output, session) {
     req(input$dnbi_split)
     render_split_bar(input$dnbi_split,
                       c("Battle Fatigue", "Disease", "NBI"),
-                      c("#8e44ad", "#e08e2d", "#2a78d6"))
+                      SPLIT_SLIDER_COLORS$dnbi_split)
   })
   outputOptions(output, "dnbi_split_bar", suspendWhenHidden = FALSE)
 

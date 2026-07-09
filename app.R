@@ -869,11 +869,21 @@ server <- function(input, output, session) {
     trimws(sub("\\s*\\(.*$", "", lbl))
   }
 
+  # "Default" is not a third battle-intensity tier alongside Moderate/High —
+  # it is a *hybrid* baseline that keeps Falklands-sourced casualty
+  # generation rates and a Falklands-calibrated DOW ceiling, but pairs them
+  # with modern (OIF/OEF-era) treatment efficacy factors rather than the
+  # 1982-appropriate factors "Moderate Intensity" re-derives (see README
+  # Scenario Profiles — "The base env_data.json configuration conflates two
+  # historical contexts"). The label makes that hybrid nature explicit
+  # rather than implying Default is simply "no scenario" or a milder version
+  # of Moderate Intensity; kept short (full explanation lives in the
+  # tooltip) so it isn't truncated in the selector's narrow column.
   scenario_choices <- reactive({
     base <- raw_env_data()
     ids  <- c("default", names(base$scenarios))
     labels <- vapply(ids, function(s) {
-      if (identical(s, "default")) return("Default")
+      if (identical(s, "default")) return("Default — Modern Treatment Efficacy")
       lbl <- base$scenarios[[s]]$label
       if (is.null(lbl)) s else shorten_scenario_label(lbl)
     }, character(1))
@@ -890,6 +900,13 @@ server <- function(input, output, session) {
           "DOW, and treatment-efficacy parameters onto the base configuration.",
           "Structural fields (force size, team/bed counts, transport fleet)",
           "are never affected by this selector.",
+          "\"Default\" is not a third battle-intensity tier: it is a hybrid",
+          "baseline that pairs Falklands-sourced casualty generation and a",
+          "Falklands-calibrated DOW ceiling with modern treatment efficacy",
+          "factors. \"Moderate Intensity\" re-derives both the DOW ceiling",
+          "and the treatment efficacy factors to be internally consistent",
+          "for 1982, so the two produce different DOW outcomes despite both",
+          "citing Falklands.",
           "Source: README Scenario Profiles (Issue #54); only the profiles",
           "actually defined and cited in env_data.json are offered — no",
           "fabricated intermediate intensity tiers."

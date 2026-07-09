@@ -587,11 +587,12 @@ force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   )
 }
 
-#' Render the Force Design panel's live structural capacity diagram: a
-#' node graph (one node per deployed team, see force_node_graph()) above
-#' a tabulation of aggregate bed capacity (see force_bed_table()). This
-#' visualises the *structural* capacity implied by the Force Design
-#' panel's own numbers as they're edited; it is not a simulated outcome
+#' Render the Health System Architecture panel's live structural capacity
+#' diagram: a node graph (one node per deployed team, see
+#' force_node_graph()) above a tabulation of aggregate bed capacity (see
+#' force_bed_table()). This visualises the *structural* capacity implied by
+#' the Health System Architecture panel's own numbers as they're edited;
+#' it is not a simulated outcome
 #' — it cannot show queueing, wait times, or casualty outcomes under that
 #' configuration, only Quick Run can. The caption says as much, so the
 #' diagram isn't mistaken for one.
@@ -730,8 +731,8 @@ ui <- page_navbar(
     uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
-      !!!lapply(c(GRP_FORCE, GRP_FORCE_DESIGN, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
-        if (identical(g, GRP_FORCE_DESIGN)) {
+      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
+        if (identical(g, GRP_HEALTH_ARCH)) {
           accordion_panel(g,
             div(style = "display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;",
                 div(style = "flex:0 0 280px; max-width:280px; position:sticky; top:12px;",
@@ -939,7 +940,8 @@ server <- function(input, output, session) {
     outputOptions(output, output_id, suspendWhenHidden = FALSE)
   })
 
-  # Live structural capacity diagram at the top of the Force Design panel
+  # Live structural capacity diagram at the top of the Health System
+  # Architecture panel
   # (see force_structure_diagram()) — reads the same team-count/bed-count
   # inputs the fields below it edit, so it stays in sync automatically as
   # they change. Bed fields only exist for R2B/R2E (R1 has none).

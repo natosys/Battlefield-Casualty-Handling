@@ -863,27 +863,46 @@ server <- function(input, output, session) {
 
   # env_data.json's scenario labels carry a full descriptive parenthetical
   # (e.g. "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British
-  # Task Force, South Atlantic)") intended for the README/CSV outputs; the
-  # dropdown only needs the short form before that parenthetical.
+  # Task Force, South Atlantic)") intended for the README/CSV outputs
+  # (R/scenario.R's active_scenario_label, R/scenario_runner.R) — kept
+  # unchanged there since that is the citation-quality name. The dropdown
+  # instead uses SCENARIO_DROPDOWN_LABELS below: a display-only override,
+  # not a rename of the underlying scenario identity.
   shorten_scenario_label <- function(lbl) {
     trimws(sub("\\s*\\(.*$", "", lbl))
   }
 
-  # "Default" is not a third battle-intensity tier alongside Moderate/High —
-  # it is a *hybrid* baseline that keeps Falklands-sourced casualty
-  # generation rates and a Falklands-calibrated DOW ceiling, but pairs them
-  # with modern (OIF/OEF-era) treatment efficacy factors rather than the
-  # 1982-appropriate factors "Moderate Intensity" re-derives (see README
-  # Scenario Profiles — "The base env_data.json configuration conflates two
-  # historical contexts"). The label makes that hybrid nature explicit
-  # rather than implying Default is simply "no scenario" or a milder version
-  # of Moderate Intensity; kept short (full explanation lives in the
-  # tooltip) so it isn't truncated in the selector's narrow column.
+  # The dropdown's own naming for what each option actually changes,
+  # distinct from — and overriding, for display only — env_data.json's
+  # canonical scenario labels above. Neither "Default" nor "Moderate
+  # Intensity" being labelled by battle intensity alone made it obvious
+  # that *both* are Falklands-sourced and differ only in whether treatment
+  # efficacy has been re-derived for the era (see README Scenario Profiles
+  # — "The base env_data.json configuration conflates two historical
+  # contexts"): "Falklands — Modified" (was "Default") keeps Falklands
+  # casualty generation and DOW ceiling but pairs them with modern
+  # (OIF/OEF-era) treatment efficacy; "Falklands — Unmodified" (was
+  # "Moderate Intensity") re-derives both the DOW ceiling and treatment
+  # efficacy to be internally consistent for 1982. "Okinawa — Casualty
+  # Rates" (was "High Intensity") is named for exactly what it overrides
+  # rather than implied as a complete second scenario — it still inherits
+  # the Falklands DOW ceiling and modern treatment efficacy from the base
+  # configuration, since it is a "demonstration skeleton" per Issue #54's
+  # acceptance criteria (Issue #10 owns extending it to a full scenario).
+  # A scenario id absent from this map (e.g. a future addition) falls back
+  # to its own env_data.json label, so this isn't a hardcoded assumption
+  # that only these three will ever exist.
+  SCENARIO_DROPDOWN_LABELS <- c(
+    default             = "Falklands — Modified",
+    moderate_intensity  = "Falklands — Unmodified",
+    high_intensity      = "Okinawa — Casualty Rates"
+  )
+
   scenario_choices <- reactive({
     base <- raw_env_data()
     ids  <- c("default", names(base$scenarios))
     labels <- vapply(ids, function(s) {
-      if (identical(s, "default")) return("Default — Modern Treatment Efficacy")
+      if (s %in% names(SCENARIO_DROPDOWN_LABELS)) return(SCENARIO_DROPDOWN_LABELS[[s]])
       lbl <- base$scenarios[[s]]$label
       if (is.null(lbl)) s else shorten_scenario_label(lbl)
     }, character(1))
@@ -900,13 +919,19 @@ server <- function(input, output, session) {
           "DOW, and treatment-efficacy parameters onto the base configuration.",
           "Structural fields (force size, team/bed counts, transport fleet)",
           "are never affected by this selector.",
-          "\"Default\" is not a third battle-intensity tier: it is a hybrid",
-          "baseline that pairs Falklands-sourced casualty generation and a",
-          "Falklands-calibrated DOW ceiling with modern treatment efficacy",
-          "factors. \"Moderate Intensity\" re-derives both the DOW ceiling",
-          "and the treatment efficacy factors to be internally consistent",
-          "for 1982, so the two produce different DOW outcomes despite both",
-          "citing Falklands.",
+          "\"Falklands — Modified\" (the base configuration) keeps",
+          "Falklands-sourced casualty generation and a Falklands-calibrated",
+          "DOW ceiling but pairs them with modern (OIF/OEF-era) treatment",
+          "efficacy factors. \"Falklands — Unmodified\" re-derives both the",
+          "DOW ceiling and the treatment efficacy factors to be internally",
+          "consistent for 1982, so the two produce different DOW outcomes",
+          "despite both being Falklands-sourced.",
+          "\"Okinawa — Casualty Rates\" overrides only the WIA/KIA",
+          "casualty-generation distributions; it still inherits the",
+          "Falklands DOW ceiling and modern treatment efficacy from the",
+          "base configuration rather than being a complete second scenario",
+          "(a documented demonstration skeleton — see README Scenario",
+          "Profiles).",
           "Source: README Scenario Profiles (Issue #54); only the profiles",
           "actually defined and cited in env_data.json are offered — no",
           "fabricated intermediate intensity tiers."

@@ -365,6 +365,25 @@ build_param_registry <- function() {
                                      "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.", bound = c(0, 20000),
                                      source = SRC_R1_RECOVERY))
 
+  # ── Medevac: Transport Fleet ──────────────────────────────────────────────
+  # Placed first so fleet-level totals (how many vehicles exist) precede the
+  # per-leg duration detail below, matching how a planner would naturally
+  # read the panel top-to-bottom: capacity first, then the legs that draw on it.
+  registry <- c(registry, unlist(lapply(c("PMVAmb", "HX240M"), function(veh) {
+    list(
+      field(paste0("transport_", veh, "_qty"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Fleet Size"),
+            paste0("Number of ", veh, " vehicles available for casualty evacuation."),
+            get = function(json) get_transport_field(json, veh, "qty"),
+            set = function(json, v) set_transport_field(json, veh, "qty", v),
+            type = "integer", min = 0, max = 20, step = 1, source = SRC_VEHICLE_CAPACITY),
+      field(paste0("transport_", veh, "_capacity"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Capacity per Vehicle"),
+            paste0("Number of casualties a single ", veh, " can carry per load."),
+            get = function(json) get_transport_field(json, veh, "capacity"),
+            set = function(json, v) set_transport_field(json, veh, "capacity", v),
+            type = "integer", min = 1, max = 100, step = 1, source = SRC_VEHICLE_CAPACITY)
+    )
+  }), recursive = FALSE))
+
   # ── Medevac: R1 — Forward Aid Post ────────────────────────────────────────
   registry <- c(registry, tri_fields("r1_wia_transport", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "wia_transport",
                                      "WIA Transport Time", "Transport time from point of injury to R1/R2B for a WIA casualty.",
@@ -500,22 +519,6 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2e_kia_transport", GRP_LOGISTICS, "R2E — KIA Transport", "r2eheavy", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
-
-  # ── Medevac: Transport Fleet ──────────────────────────────────────────────
-  registry <- c(registry, unlist(lapply(c("PMVAmb", "HX240M"), function(veh) {
-    list(
-      field(paste0("transport_", veh, "_qty"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Fleet Size"),
-            paste0("Number of ", veh, " vehicles available for casualty evacuation."),
-            get = function(json) get_transport_field(json, veh, "qty"),
-            set = function(json, v) set_transport_field(json, veh, "qty", v),
-            type = "integer", min = 0, max = 20, step = 1, source = SRC_VEHICLE_CAPACITY),
-      field(paste0("transport_", veh, "_capacity"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Capacity per Vehicle"),
-            paste0("Number of casualties a single ", veh, " can carry per load."),
-            get = function(json) get_transport_field(json, veh, "capacity"),
-            set = function(json, v) set_transport_field(json, veh, "capacity", v),
-            type = "integer", min = 1, max = 100, step = 1, source = SRC_VEHICLE_CAPACITY)
-    )
-  }), recursive = FALSE))
 
   registry
 }

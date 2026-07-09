@@ -20,7 +20,7 @@
 | 8 | OT surgical team not seized at R2E | Medium | Low | **Merged** |
 | 9 | No MASCAL stochastic injection | Medium | Medium | Open |
 | 10 | No comparative scenario (Okinawa/Vietnam rates) | Lower | Low | **Merged (PR #69)** |
-| 14 | Shiny app — parameter editor, Quick Run mode | Medium | Medium | Open |
+| 14 | Shiny app — parameter editor, Quick Run mode | Medium | Medium | **Merged (PR #71)** |
 | 15 | Shiny app — Full Analysis mode (multi-run CI) | Medium | Medium | Open |
 | 18 | Endogenous casualty generation (force feedback) | Medium | High | Open |
 | 19 | Dev Container — reproducible Linux R environment | Low | Low | **Merged (#21)** |
@@ -45,6 +45,20 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 14 — Shiny App: Parameter Editor, Quick Run Mode, and Single-Run Output Display ✓
+
+**Merged:** PR #71, branch `claude/next-issue-ydx5qt`
+
+Replaces `controller.R`'s raw `env_data.json` field editor with `app.R`, a Configure → Run → Analyse Shiny console (`controller.R` retained as `controller_legacy.R`). The Configure panel groups all ~110 editable fields into five operational panels (Force Size, Health System Architecture, Medevac, Health Provision, Casualty Rates), each field rendered as a bordered card with a plain-English label, a source-citation tooltip, and a widget matched to its semantics — Morris-screened and other bounded probability/threshold fields as sliders (each paired with a typeable numeric box), the two sum-to-1 compositional splits (Triage Priority, DNBI Sub-Type) as two-handle range sliders with live recoloured/labelled segments, the R2E ICU-Full Priority Override Threshold as a three-option dropdown, and every triangular min/mode/max duration field as a live density-curve card with compact side-by-side inputs. Health System Architecture and Medevac each carry a sticky-sidebar SVG diagram — a force-structure node graph/bed table, and a Medevac Chain diagram tracing the actual PMVAmb/HX240M/R2B-evac-team transport legs modelled in `R/trajectories.R`, including the two distinct R2B-bypass mechanisms. The Run panel executes Quick Run (single replication) asynchronously via `future`/`promises`; Analyse renders `analyse_run()`'s four result tabs plus a read-only Sensitivity Calibration tab. `R/analysis.R::analyse_run()` was refactored to return its plots as named ggplot objects instead of printing them, the prerequisite that unblocks this issue and Issue #15; `run.R` reproduces the prior print order via a new `print_analysis_plots()` helper.
+
+Three bugs were found and fixed during implementation: a lazy-argument-evaluation closure bug that silently corrupted 24 loop-built fields to all read/write the same (last-iteration) `env_data.json` path; a `future` worker-bootstrap race against `simmer`'s `run()` S3 method; and a pixel-rounding imprecision in the compositional split sliders' inline value labels. Three further pre-existing gaps were found (not introduced) and documented rather than fixed, each now with its own tracking issue: stale Morris screening bounds for `p1_p_max` (README L13, Issue #75), a divergence between the R2B/R2E surgery-duration narrative text and the shipped `env_data.json` configuration (README L14, Issue #76), and the R2B→R2E WIA dead-heading return leg being configured but never applied by any active code path (README L15, Issue #73). A fourth pre-existing gap — Configure-panel edits or scenario switches made within ~15–20s of load or a prior switch can be silently reverted by a late-arriving initial-value websocket message, a consequence of eagerly rendering every accordion panel so every field stays capturable regardless of which panel is open — is tracked as Issue #77.
+
+**Seed-42 baseline (30 days, single run):** Unchanged — `R/analysis.R`'s refactor to return ggplot objects instead of printing them is verified byte-identical in CSV/PNG output at seed 42; no `env_data.json` or trajectory-logic change was made. CLAUDE.md's Key Parameters table does not require updating.
+
+**Unblocked by this merge:** Issue #15 (Shiny Full Analysis mode) — its dependencies (#14, #1, #2, #3) are now all merged; label updated `status: blocked` → `status: ready`.
+
+---
 
 ### Issue 10 — Comparative Scenario Runner ✓
 
@@ -1174,7 +1188,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 4. ~~**Issue 2** — Welch warm-up analysis; set `warm_up_period` constant. **Merged PR #20**~~
 5. ~~**Issue 3** — Morris Elementary Effects screening using the OVR KPIs from Issue 22. **Merged PR #30**~~
 
-### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43 ✓, 14)
+### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43 ✓, 14 ✓)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
 
 6. ~~**Issue 8** — Fix R2E surgical team seizure (three lines; do first). **Merged.**~~
@@ -1184,7 +1198,7 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 10. ~~**Issue 6** — Dead-heading return legs for transport assets.~~ — **Merged PR #56.**
 11. ~~**Issue 5** — Time-dependent DOW survival function.~~ — **Merged PR #53.**
 12. ~~**Issue 43** — OT–ICU gating: implement three-way pre-OT branch (ICU available / ICU full + P1 / ICU full + P2+).~~ — **Merged PR #59.**
-13. **Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).
+13. ~~**Issue 14** — Shiny app parameter editor and Quick Run mode. Requires `R/analysis.R` refactor returning ggplot objects (Issue 1 dependency already satisfied).~~ — **Merged PR #71.**
 
 ### Phase 3 — Structural Refactoring (Issues 7 ✓, 39 ✓, 60 ✓, 4 backlog, 40 partial ✓ / backlog)
 *Estimated effort: 4–5 weeks. Requires `env_data.json` schema changes, trajectory rewrites, and hold-bed decomposition.*
@@ -1237,17 +1251,19 @@ COMPLETE (merged to main):
        moderate_intensity + high_intensity, generate_exp_arrivals() (PR #67)
   #10  Comparative scenario runner — run_scenario()/compare_scenarios()
        (R/scenario_runner.R), scripts/run_scenarios.R (PR #69)
+  #14  Shiny app — parameter editor, Quick Run mode, single-run output
+       display (R/analysis.R ggplot-object refactor, app.R) (PR #71)
 
 IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  #14  Shiny app — Quick Run         (needs #1 analysis.R refactor only)
   #9   MASCAL injection              (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #18  Force regeneration feedback   (unblocked: #1 ✓ + #2 ✓ + #5 ✓)
   #57  Fleet-size capacity margin sweep for transport assets — stubbed as
        plot_transport_capacity_margin_by_fleet_size() in R/analysis.R
        (unblocked: #10 ✓)
+  #15  Shiny — Full Analysis mode   (unblocked: #14 ✓ + #1 ✓ + #2 ✓ + #3 ✓)
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -1256,9 +1272,6 @@ BACKLOG (unblocked but deprioritised — not currently planned):
        shift hours — deferred pending a clinician fatigue model; Scenario B
        second surgical team — deferred pending a directed establishment
        change. Bypass-reason diagnostic merged, PR #64.)
-
-AFTER #14 + #1 + #2 + #3:
-  #15  Shiny — Full Analysis mode
 
 AFTER #1 + #22 + #18:
   #23  Role 4 / AME sortie demand
@@ -1280,4 +1293,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 07 July 2026 to reflect: completion of Issue #10 (comparative scenario runner, PR #69) — compares `moderate_intensity`/`high_intensity` (not the uncited Vietnam/Okinawa figures originally in the issue body), unblocking Issue #57 (`status: blocked` → `status: ready`). Previously updated 06 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), #54 (PR #67), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity in progress — Issues #8, #35, #37, #44, #5, #6, and #43 merged; Issues #14 and #9 unblocked; Issue #18 unblocked. Phase 4 Scenario Expansion in progress — Issues #54 and #10 merged; Issue #57 unblocked.*
+*Prepared June 2026. Updated 09 July 2026 to reflect: completion of Issue #14 (Shiny app — parameter editor, Quick Run mode, single-run output display, PR #71), including the `R/analysis.R` ggplot-object refactor that was the sole gating dependency for Issue #15 — unblocking Issue #15 (`status: blocked` → `status: ready`). Three pre-existing gaps found (not introduced) during Issue #14 were raised as new issues: #75 (stale Morris screening bounds for `p1_p_max`), #76 (R2B/R2E surgery duration narrative vs. shipped `env_data.json` divergence), and #77 (Configure-panel eager-render/`suspendWhenHidden` race); a fourth (#73, R2B→R2E dead-heading return leg never applied) was already open, and a related owner-raised follow-up (#74, remove `return_leg_multiplier` entirely) is also open. Previously updated 07 July 2026 to reflect: completion of Issue #10 (comparative scenario runner, PR #69) — compares `moderate_intensity`/`high_intensity` (not the uncited Vietnam/Okinawa figures originally in the issue body), unblocking Issue #57 (`status: blocked` → `status: ready`). Previously updated 06 July 2026 to reflect: completion of Issues #19 (PR #21), #1 (PR #16), #8, #22 (PR #26), #2 (PR #20), #3 (PR #30), #24 (PR #32), #7 (PR #34), #35 (PR #36), #37 (PR #38), #44 (PR #47), #39 (PR #48), #5 (PR #53), #6 (PR #56), #43 (PR #59), #60 (PR #62), #54 (PR #67), and partial completion of #40 (bypass-reason diagnostic, PR #64); addition of new Issues #43 (OT–ICU gating), #44 (RTD KPI annotation), #57 (fleet-size capacity margin sweep), and #60 (bed/resource `qty: 0` silently creates one unit instead of zero — discovered during Issue #43 testing); and reclassification of Issues #4 and #40 (remaining Scenario A/B scope) as `status: backlog` — both are unblocked but deprioritised, not currently planned. Phase 1 Statistical Foundation complete. Phase 2 Model Fidelity complete except Issue #40's deferred Scenario A/B scope — Issues #8, #35, #37, #44, #5, #6, #43, and #14 all merged; Issue #9 unblocked; Issue #18 unblocked. Phase 4 Scenario Expansion in progress — Issues #54 and #10 merged; Issue #57 unblocked. Phase 5 Interface in progress — Issue #14 merged; Issue #15 unblocked.*

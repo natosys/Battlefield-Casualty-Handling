@@ -137,6 +137,41 @@ render_tri_curve <- function(mn, mode, mx) {
           plot.margin = margin(2, 4, 2, 4))
 }
 
+#' Render a small live curve preview of the DOW survival function F(t) for
+#' one priority cohort
+#'
+#' @details Uses dow_prob() (R/trajectories.R) directly, so the curve shown
+#'   is the exact shifted-logistic function the simulation evaluates at
+#'   each DOW check — not an approximation. p_max is the live Configure
+#'   slider value for this priority; p_base, k, and t_mid are read from the
+#'   resolved scenario JSON and are not user-editable in this app (see the
+#'   read-only fields alongside the curve), so the curve's ceiling moves as
+#'   the slider is dragged while its floor and shape track whichever
+#'   Casualty Intensity Profile is active.
+#' @param p_base,p_max,k,t_mid Parameters as for dow_prob() (R/trajectories.R).
+#' @param window_max Upper bound of the plotted time window in minutes; when
+#'   NULL (default), sized to comfortably show the curve reach its plateau.
+render_dow_curve <- function(p_base, p_max, k, t_mid, window_max = NULL) {
+  invalid <- is.null(p_base) || is.null(p_max) || is.null(k) || is.null(t_mid) ||
+    any(is.na(c(p_base, p_max, k, t_mid))) || p_max <= p_base || k <= 0
+  if (invalid) return(ggplot() + theme_void())
+  if (is.null(window_max)) window_max <- t_mid + 6 / k
+  x <- seq(0, window_max, length.out = 200)
+  y <- dow_prob(x, p_base, p_max, k, t_mid)
+  ggplot(data.frame(x = x, y = y), aes(x, y)) +
+    geom_area(fill = "#c0392b", alpha = 0.15) +
+    geom_line(color = "#c0392b", linewidth = 0.9) +
+    geom_hline(yintercept = p_max, linetype = "dashed", color = "#888888", linewidth = 0.5) +
+    geom_vline(xintercept = t_mid, linetype = "dotted", color = "#888888", linewidth = 0.5) +
+    scale_y_continuous(limits = c(0, max(p_max * 1.1, 1e-3)), labels = scales::percent) +
+    labs(x = NULL, y = NULL, subtitle = "DOW probability F(t) vs. minutes since injury") +
+    theme_minimal(base_size = 9) +
+    theme(axis.text.y = element_text(size = 6), axis.ticks.y = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.subtitle = element_text(size = 8, color = "#888888"),
+          plot.margin = margin(2, 4, 2, 4))
+}
+
 #' Colours and short labels for each three-way compositional split, in the
 #' same left-to-right order as the slider's segments (0–handle1, handle1–
 #' handle2, handle2–1). Consumed entirely by split_slider_recolor_script();
@@ -311,6 +346,29 @@ field_label <- function(f, overridden_paths = NULL) {
   )
 }
 
+#' Render a small, visually inert numeric display — a real `<input
+#' disabled>` element styled to match the surrounding form controls, not an
+#' editable Shiny widget (no `input$id` is ever registered for it). Used
+#' for constants shown for context (e.g. the DOW logistic shape parameters)
+#' that are not exposed as editable Configure fields.
+#'
+#' @param label,tooltip Short label and hover tooltip (provenance/citation).
+#' @param value Numeric value to display; formatted with `digits` decimals.
+#' @param path "elm.acty" path for the ⚠ scenario-override flag, matching
+#'   field_label()'s convention — pass the same path an editable sibling
+#'   field in the same acty block would use, so this constant is flagged
+#'   consistently when a scenario overrides the block it lives in.
+readonly_numeric <- function(label, tooltip_text, value, digits = 3,
+                             path = NULL, overridden_paths = NULL) {
+  lbl <- field_label(list(label = label, tooltip = tooltip_text, path = path), overridden_paths)
+  tags$div(class = "form-group mb-0",
+    tags$label(class = "small mb-0", lbl),
+    tags$input(type = "number", class = "form-control form-control-sm",
+               value = if (is.null(value) || is.na(value)) "" else round(value, digits),
+               disabled = NA, style = "background-color:#eee; color:#555;")
+  )
+}
+
 #' Pair a single-value slider with a small numeric box for typed entry.
 #' The slider (`id`) remains the authoritative reactive value everything
 #' else in the app reads via `input[[id]]`; the numeric box (`<id>_txt`)
@@ -406,9 +464,8 @@ field_input <- function(f, value, overridden_paths = NULL) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
     # (R/sensitivity.R) has drifted from the baseline after a later
-    # recalibration (e.g. p1_p_max's screening bounds of 0.25-0.75 predate
-    # Issue #5's DOW recalibration to a 0.023 baseline) — flagged as a
-    # follow-up data-consistency issue rather than silently clipping here.
+    # recalibration (Issue #75) — flagged as a data-consistency check
+    # rather than silently clipping here.
     lo <- f$min; hi <- f$max
     if (!is.null(value) && !is.na(value)) {
       lo <- min(lo, value)
@@ -769,7 +826,8 @@ medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
 #'   Generation Rates subgroup, to suppress the Std. Dev. field for streams
 #'   an exponential distribution — fully described by its mean alone —
 #'   currently governs.
-render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_distributions = NULL) {
+render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_distributions = NULL,
+                              dow_shape = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
 
   if (all(subgroups == "")) {
@@ -853,6 +911,40 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               plotOutput(paste0("curve_", acty), height = "110px"),
               field_input(mean_f, defaults[[mean_f$id]], overridden_paths),
               sd_input
+            )
+          })
+        )
+      ))
+    }
+
+    if (identical(sg, "Died of Wounds Ceilings")) {
+      return(tagList(
+        h6(class = "text-muted mt-2", sg),
+        p(class = "text-muted small",
+          "The ceiling below is the only editable value; the curve shows the full time-dependent survival function F(t) the simulation evaluates at each DOW check, using the fixed shape parameters shown alongside it — p_base (floor at t=0) and k/t_mid (rise steepness/inflection) are not user-editable in this app. See README Died of Wounds — Survival Function."),
+        layout_column_wrap(
+          width = "340px",
+          !!!lapply(list(
+            list(prio = "p1", id = "dow_p1_pmax", label = "Priority 1 (Urgent)"),
+            list(prio = "p2", id = "dow_p2_pmax", label = "Priority 2 (Priority)")
+          ), function(pr) {
+            pmax_f <- Find(function(f) identical(f$id, pr$id), sg_fields)
+            shp <- if (is.null(dow_shape)) NULL else dow_shape[[pr$prio]]
+            card(
+              card_header(pr$label),
+              plotOutput(paste0("dow_curve_", pr$prio), height = "110px"),
+              field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
+              div(style = "display:flex; gap:6px; margin-top:4px;",
+                div(style = "flex:1; min-width:0;",
+                    readonly_numeric("p_base", SRC_DOW_CEILING, shp$p_base, digits = 4,
+                                     path = "dow.params", overridden_paths = overridden_paths)),
+                div(style = "flex:1; min-width:0;",
+                    readonly_numeric("k", SRC_DOW_SHAPE, shp$k, digits = 3,
+                                     path = "dow.params", overridden_paths = overridden_paths)),
+                div(style = "flex:1; min-width:0;",
+                    readonly_numeric("t_mid", SRC_DOW_SHAPE, shp$t_mid, digits = 0,
+                                     path = "dow.params", overridden_paths = overridden_paths))
+              )
             )
           })
         )
@@ -1142,11 +1234,28 @@ server <- function(input, output, session) {
     }, character(1)), GEN_STREAM_ACTYS)
   })
 
+  # Fixed DOW logistic shape parameters (p_base, k, t_mid) per priority,
+  # read from the resolved scenario JSON — not user-editable, but displayed
+  # read-only alongside the P1/P2 DOW curve cards (render_dow_curve()) and
+  # used to draw them, so the curve's floor/shape track whichever Casualty
+  # Intensity Profile is active exactly as its ceiling (p_max) does.
+  dow_shape <- reactive({
+    sj <- scenario_json()
+    setNames(lapply(c("p1", "p2"), function(pr) {
+      list(
+        p_base = get_raw_var(sj, "dow", "params", paste0(pr, "_p_base")),
+        k      = get_raw_var(sj, "dow", "params", paste0(pr, "_k")),
+        t_mid  = get_raw_var(sj, "dow", "params", paste0(pr, "_t_mid"))
+      )
+    }), c("p1", "p2"))
+  })
+
   lapply(names(fields_by_group), function(g) {
     output_id <- paste0("group_ui_", make.names(g))
     output[[output_id]] <- renderUI({
       defaults <- registry_defaults(fields_by_group[[g]], scenario_json())
-      render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(), gen_distributions())
+      render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(),
+                        gen_distributions(), dow_shape())
     })
     # Accordion panels other than the initially-open one are hidden
     # (display:none) at first render; Shiny suspends output bindings it
@@ -1213,6 +1322,22 @@ server <- function(input, output, session) {
       dist   <- get_raw_var(scenario_json(), "generators", acty, "distribution")
       if (is.null(dist)) dist <- "lognormal"
       render_gen_curve(mean_v, sd_v, dist)
+    })
+    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+  })
+
+  # Live DOW survival-function curve previews (Casualty Rates group, Died
+  # of Wounds Ceilings subgroup). p_max is read live from the P1/P2
+  # Configure slider so the curve's ceiling redraws as it is dragged;
+  # p_base/k/t_mid come from dow_shape() (scenario-resolved, not
+  # user-editable), matching the same live/fixed split used for the
+  # casualty-generation curves above.
+  lapply(c("p1", "p2"), function(pr) {
+    output_id <- paste0("dow_curve_", pr)
+    output[[output_id]] <- renderPlot({
+      p_max <- input[[paste0("dow_", pr, "_pmax")]]
+      shp   <- dow_shape()[[pr]]
+      render_dow_curve(shp$p_base, p_max, shp$k, shp$t_mid)
     })
     outputOptions(output, output_id, suspendWhenHidden = FALSE)
   })

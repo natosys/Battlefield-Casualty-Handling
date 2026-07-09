@@ -25,9 +25,9 @@ morris_params <- data.frame(
             "r1_transport",   "r2b_transport",   "long_icu_mode",
             "pri1_surg_prob", "in_theatre_rate", "ot_hours",
             "return_leg_multiplier"),
-  lower = c(90,    25,    0.25,  15,   15,   770,   0.70,  0.05,  8,    0.7),
-  upper = c(150,   70,    0.75,  45,   45,   2160,  0.98,  0.20,  16,   1.3),
-  mode  = c(120,   45,    0.60,  30,   30,   1440,  0.90,  0.10,  12,   1.0),
+  lower = c(90,    25,    0.0115, 15,   15,   770,   0.70,  0.05,  8,    0.7),
+  upper = c(150,   70,    0.046,  45,   45,   2160,  0.98,  0.20,  16,   1.3),
+  mode  = c(120,   45,    0.023,  30,   30,   1440,  0.90,  0.10,  12,   1.0),
   stringsAsFactors = FALSE
 )
 

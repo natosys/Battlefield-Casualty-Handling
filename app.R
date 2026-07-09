@@ -406,9 +406,8 @@ field_input <- function(f, value, overridden_paths = NULL) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
     # (R/sensitivity.R) has drifted from the baseline after a later
-    # recalibration (e.g. p1_p_max's screening bounds of 0.25-0.75 predate
-    # Issue #5's DOW recalibration to a 0.023 baseline) — flagged as a
-    # follow-up data-consistency issue rather than silently clipping here.
+    # recalibration (Issue #75) — flagged as a data-consistency check
+    # rather than silently clipping here.
     lo <- f$min; hi <- f$max
     if (!is.null(value) && !is.na(value)) {
       lo <- min(lo, value)

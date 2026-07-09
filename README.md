@@ -946,7 +946,7 @@ Three primary KPI outputs were monitored across all replications at each design 
 The sensitivity analysis is implemented in `R/sensitivity.R` and executed via:
 
 ```bash
-# Full Morris screening: r=20 trajectories × 10 (p+1) = 200 evaluations, 5 reps each
+# Full Morris screening: r=20 trajectories × (10 + 1) = 220 evaluations, 5 reps each
 Rscript scripts/run_sensitivity.R
 
 # Smoke test: r=3, reps=3, days=5 (completes in <5 minutes)
@@ -958,6 +958,23 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
+The table below is the current `outputs/morris_ranking.csv` (r=20, 5 reps, 30 days, seed 42; Issue #75 re-run), ranked by µ\* on the system OT queue:
+
+| Rank | Parameter | µ\* | σ |
+|---|---|---|---|
+| 1 | `pri1_surg_prob` | 0.0224 | 0.0226 |
+| 2 | `surg_mode` | 0.0209 | 0.0197 |
+| 3 | `p1_p_max` | 0.0179 | 0.0219 |
+| 4 | `ot_hours` | 0.0150 | 0.0171 |
+| 5 | `r1_transport` | 0.0148 | 0.0182 |
+| 6 | `in_theatre_rate` | 0.0147 | 0.0193 |
+| 7 | `r2b_transport` | 0.0143 | 0.0209 |
+| 8 | `long_icu_mode` | 0.0139 | 0.0167 |
+| 9 | `long_resus_mode` | 0.0131 | 0.0158 |
+| 10 | `return_leg_multiplier` | 0.0095 | 0.0124 |
+
+No parameter dominates: µ\* values span a narrow 2.4× range (0.0095–0.0224) rather than showing the order-of-magnitude separation that would identify one or two clearly rate-limiting inputs. The Priority 1 surgical candidacy rate and surgery duration rank highest, consistent with surgical throughput being the primary system constraint identified in the single-run analysis; `p1_p_max` ranks third now that its screening range correctly brackets the shipped baseline. Every parameter's σ is comparable to or exceeds its µ\* (σ/µ\* ranging 0.94–1.46), indicating nonlinear or interaction-dominated effects throughout rather than the simple linear effects a low-σ, high-µ\* parameter would show — consistent with the branching, resource-contingent routing logic in `R/trajectories.R`, where a parameter's effect depends on which branch a casualty happens to take. Return-leg multiplier ranks last, corroborating the Sobol variance decomposition from the Issue #6 PR discussion (PR #56), which found transport queue near-constant-zero across the full screened range of transport-duration parameters under the current fleet size.
+
 ![Morris EE — System OT queue](images/morris_system_ot_q.png)
 
 ![Morris EE — R2B OT queue](images/morris_r2b_ot_q.png)
@@ -967,6 +984,10 @@ Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* f
 ![Morris EE — R2E ICU queue](images/morris_r2e_icu_q.png)
 
 ![Morris EE — DOW count](images/morris_dow_count.png)
+
+![Morris EE — Transport queue](images/morris_transport_q.png)
+
+![Morris EE — Transport utilisation](images/morris_transport_util.png)
 
 #### Comparative Scenario Runner
 

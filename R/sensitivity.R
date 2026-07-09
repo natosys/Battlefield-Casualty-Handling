@@ -53,7 +53,6 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$recovery$in_theatre_rate <- p[["in_theatre_rate"]]
   ed$vars$r1$wia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
   ed$vars$r1$kia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
-  ed$vars$r2b$wia_transport$return_leg_multiplier <- p[["return_leg_multiplier"]]
   ed
 }
 

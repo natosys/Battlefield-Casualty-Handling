@@ -448,13 +448,8 @@ build_param_registry <- function() {
 
   # ── Medevac: R2B — Battalion Aid Post ─────────────────────────────────────
   registry <- c(registry, tri_fields("r2b_wia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport",
-                                     "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty.",
+                                     "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty. Seizes each R2B team's own organic evac resource, not the shared PMVAmb fleet — no dead-heading return leg is modelled for this leg (Issue #73).",
                                      morris_mode_name = "r2b_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
-  registry <- c(registry, list(
-    var_field("r2b_wia_transport_return", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport", "return_leg_multiplier",
-              "WIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
-              min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
-  ))
   registry <- c(registry, tri_fields("r2b_kia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2B.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))

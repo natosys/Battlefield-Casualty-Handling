@@ -344,50 +344,6 @@ r2b_transport_kia <- function(traj, team_id) {
     release_resources(evacuation_team)
 }
 
-#' Transports WIA casualties from Role 2B to Role 2E Heavy
-#'
-#' @return New trajectory for casualty movement from R2B to R2E
-#'
-#' @details Selects PMV Ambulance asset (id = 7) using shortest-queue policy.
-#'   Logs transport initiation via r2b_r2e_transport_start attribute and
-#'   simulates outbound leg duration using triangular distribution. Models
-#'   the dead-head return leg (Issue #6): after drop-off, the entity
-#'   clones into a vehicle branch (unladen return timeout, then release
-#'   under id = 7 — listed first so it inherits the pre-clone seize
-#'   record) and a casualty branch (no further activity). The trailing
-#'   synchronize(wait = FALSE) lets the casualty continue immediately
-#'   once it reaches that point, while the vehicle clone is discarded
-#'   when it later arrives there after completing its return leg.
-r2b_transport_wia <- function() {
-  trajectory("R2B to R2E Heavy transport") %>%
-    simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
-    seize_selected(id = 7) %>%
-    set_attribute("r2b_r2e_transport_start", function() now(env)) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2b$wia_transport$min,
-        b = env_data$vars$r2b$wia_transport$max,
-        c = env_data$vars$r2b$wia_transport$mode
-      )
-    }) %>%
-    clone(
-      n = 2,
-      trajectory("Vehicle Return Leg") %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2b$wia_transport$min,
-            b = env_data$vars$r2b$wia_transport$max,
-            c = env_data$vars$r2b$wia_transport$mode
-          ) * env_data$vars$r2b$wia_transport$return_leg_multiplier
-        }) %>%
-        release_selected(id = 7),
-      trajectory("Casualty Dropped Off")
-    ) %>%
-    synchronize(wait = FALSE)
-}
-
 #' Executes the full treatment pathway for WIA casualties at Role 2B
 #'
 #' @param team_id Integer index of the Role 2B team handling treatment
@@ -414,6 +370,11 @@ r2b_transport_wia <- function() {
 #' # Branches based on evacuation team availability:
 #' # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
 #' # - evac not available → wait in ICU bed until evac is free
+#' # R2B → R2E WIA movement seizes each R2B team's own `evac` resource, not
+#' # the shared PMVAmb fleet — a deliberate design (Issue #73): this leg
+#' # represents an organic R2B unit asset, distinct from the brigade-pooled
+#' # transport fleet used for R1 → R2B, and is not modelled with a
+#' # dead-heading return leg.
 r2b_treat_wia <- function(team_id) {
   hold_beds       <- env_data$elms$r2b[[team_id]][["hold_bed"]]
   resus_beds      <- env_data$elms$r2b[[team_id]][["resus_bed"]]

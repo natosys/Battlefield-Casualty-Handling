@@ -493,10 +493,6 @@
             {
               "var": "mode",
               "val": 30
-            },
-            {
-              "var": "return_leg_multiplier",
-              "val": 1.0
             }
           ]
         },

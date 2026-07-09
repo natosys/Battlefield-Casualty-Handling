@@ -694,15 +694,13 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'     (all of its "R2B Hold"/"Hold Full"/"Hold Queue"/wait-for-evac
 #'     sub-paths — i.e. every R2B→R2E movement, surgical or bypassed,
 #'     funnels through this one step), which seizes each R2B team's own
-#'     `evac` resource, *not* the shared PMVAmb fleet. A separate,
-#'     PMVAmb-based `r2b_transport_wia()` function also exists in
-#'     R/trajectories.R and is where `return_leg_multiplier` for this
-#'     leg is read — but grepping the codebase shows that function is
-#'     never actually called from any trajectory, so this leg has no
-#'     working return-leg/dead-heading behaviour despite the Configure
-#'     field of that name existing. Flagged here and in the caption
-#'     rather than silently drawing a return leg the model doesn't have;
-#'     not fixed by this diagram (would need its own issue).
+#'     `evac` resource — a deliberate design (Issue #73): this leg
+#'     represents an organic R2B unit asset, distinct from the
+#'     brigade-pooled PMVAmb fleet used for R1 → R2B, and is not
+#'     modelled with a dead-heading return leg. A separate, unused
+#'     PMVAmb-based `r2b_transport_wia()` function that once modelled
+#'     this leg against the shared fleet was removed as dead code when
+#'     this design was formalised.
 #' KIA reaching R2B or R2E do not travel further — r2b_transport_kia()/
 #' r2e_transport_kia() move the casualty to a *collocated* mortuary via
 #' the team's own evacuation-team resource — so these render as a small
@@ -714,8 +712,8 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' @param kia1_mode,kia1_ret R1→R2B KIA transport mode and return-leg
 #'   multiplier.
 #' @param wia2_mode R2B→R2E WIA transport mode (minutes); no return-leg
-#'   parameter — see above, that behaviour is not currently active for
-#'   this leg.
+#'   parameter — this leg uses an organic team asset with no
+#'   dead-heading return trip modelled (Issue #73).
 #' @param mort2b_mode,mort2e_mode R2B/R2E collocated-mortuary local
 #'   transport mode (minutes) — no return leg, since no vehicle asset is
 #'   used for this movement.
@@ -781,7 +779,7 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
         sprintf("×%s return", fmt1(kia1_ret))),
     leg(y[2], y[3], -1, "#1e824c",
         sprintf("R2B Evac Team: %s min", fmt(wia2_mode)),
-        "(no return leg modelled)"),
+        "(organic asset — no return leg)"),
 
     mortuary_marker(y[2], mort2b_mode),
     mortuary_marker(y[3], mort2e_mode),
@@ -804,7 +802,7 @@ medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
       tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb, dead-heading return leg)"), "; ",
       tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M, dead-heading return leg)"), "; ",
       tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
-      " (each R2B team's own Evac Team resource, not the shared PMVAmb fleet — a separate PMVAmb-based function for this leg exists in the codebase but is never called, so no return leg is modelled here despite the Configure field of that name existing).",
+      " (each R2B team's own organic Evac Team resource, not the shared PMVAmb fleet — a deliberate design distinct from the R1 → R2B legs, so no dead-heading return leg is modelled for this leg).",
       " R2B is bypassed to R2E two ways, both reusing the R1→R2B leg time or the green evacuation step already shown rather than drawing a new leg: upstream, before transport starts, if every R2B team's OT beds are fully occupied (",
       tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
       " KIA reaching R2B or R2E travel no further — the ⚱ marker is a local transfer to a collocated mortuary, not a cross-echelon vehicle leg.",

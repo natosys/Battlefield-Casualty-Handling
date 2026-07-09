@@ -615,6 +615,147 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
   )
 }
 
+#' Render the Casualty Logistics panel's live medevac chain diagram: a
+#' compact, fixed-topology diagram of the vehicle-transport legs the
+#' trajectory code actually models (R/trajectories.R), labelled with each
+#' leg's current mode duration and dead-heading return-leg multiplier
+#' (Issue #6) as the fields beside it are edited. Unlike force_node_graph()
+#' (Health System Architecture), whose topology scales with team counts,
+#' the medevac chain's topology is fixed — three echelons, a small fixed
+#' set of legs — so only the text labels are dynamic, not the layout.
+#'
+#' Every line drawn corresponds to an actual seize()/timeout() sequence in
+#' R/trajectories.R, not an aspirational or simplified one:
+#'   - R1 → R2B, WIA (PMVAmb): r1_transport_wia(), with a working
+#'     dead-heading return leg (`return_leg_multiplier` is read inside
+#'     this function). Also the leg used when a full R2B is bypassed
+#'     straight to R2E — not drawn as a second line, since it draws the
+#'     same underlying duration; noted in the caption instead.
+#'   - R1 → R2B, KIA (HX240M): r1_transport_kia() ("KIA transport from
+#'     Role 1 to mortuary at Role 2"), also with a working return leg.
+#'   - R2B → R2E, WIA: the inline evacuation step inside r2b_treat_wia()
+#'     (all of its "R2B Hold"/"Hold Full"/"Hold Queue"/wait-for-evac
+#'     sub-paths — i.e. every R2B→R2E movement, surgical or bypassed,
+#'     funnels through this one step), which seizes each R2B team's own
+#'     `evac` resource, *not* the shared PMVAmb fleet. A separate,
+#'     PMVAmb-based `r2b_transport_wia()` function also exists in
+#'     R/trajectories.R and is where `return_leg_multiplier` for this
+#'     leg is read — but grepping the codebase shows that function is
+#'     never actually called from any trajectory, so this leg has no
+#'     working return-leg/dead-heading behaviour despite the Configure
+#'     field of that name existing. Flagged here and in the caption
+#'     rather than silently drawing a return leg the model doesn't have;
+#'     not fixed by this diagram (would need its own issue).
+#' KIA reaching R2B or R2E do not travel further — r2b_transport_kia()/
+#' r2e_transport_kia() move the casualty to a *collocated* mortuary via
+#' the team's own evacuation-team resource — so these render as a small
+#' in-place ⚱ marker rather than a line to the next echelon, to avoid
+#' implying a KIA leg the model doesn't have.
+#'
+#' @param wia1_mode,wia1_ret R1→R2B WIA transport mode (minutes) and
+#'   dead-heading return-leg multiplier.
+#' @param kia1_mode,kia1_ret R1→R2B KIA transport mode and return-leg
+#'   multiplier.
+#' @param wia2_mode R2B→R2E WIA transport mode (minutes); no return-leg
+#'   parameter — see above, that behaviour is not currently active for
+#'   this leg.
+#' @param mort2b_mode,mort2e_mode R2B/R2E collocated-mortuary local
+#'   transport mode (minutes) — no return leg, since no vehicle asset is
+#'   used for this movement.
+evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
+                                wia2_mode, mort2b_mode, mort2e_mode) {
+  fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
+  fmt1 <- function(x) if (is.null(x) || is.na(x)) "?" else formatC(x, format = "f", digits = 2)
+
+  width <- 300
+  y     <- c(20, 130, 240)
+  cx    <- width / 2
+  height <- y[3] + 26
+
+  node <- function(y, label, sub) {
+    tagList(
+      tags$rect(x = cx - 44, y = y - 16, width = 88, height = 32, rx = 6,
+                fill = "#f5f5f5", stroke = "#333", `stroke-width` = 1),
+      tags$text(x = cx, y = y - 2, `text-anchor` = "middle", `font-size` = 12,
+                 `font-weight` = "700", fill = "#333", label),
+      tags$text(x = cx, y = y + 12, `text-anchor` = "middle", `font-size` = 9,
+                 fill = "#888", sub)
+    )
+  }
+
+  # side: -1 puts the line left-of-centre with its label growing further
+  # left (text-anchor "end"); +1 puts it right-of-centre with its label
+  # growing further right (text-anchor "start") — so the WIA and KIA
+  # labels for the same leg diverge away from each other instead of
+  # colliding at the shared midline.
+  leg <- function(y1, y2, side, color, label_line1, label_line2 = NULL) {
+    x <- cx + side * 38
+    anchor <- if (side < 0) "end" else "start"
+    label_x <- x + side * 6
+    tagList(
+      tags$line(x1 = x, y1 = y1 + 16, x2 = x, y2 = y2 - 16,
+                stroke = color, `stroke-width` = 2),
+      tags$text(x = label_x, y = (y1 + y2) / 2 - 4, `text-anchor` = anchor,
+                 `font-size` = 9, fill = color, label_line1),
+      if (!is.null(label_line2)) {
+        tags$text(x = label_x, y = (y1 + y2) / 2 + 8, `text-anchor` = anchor,
+                   `font-size` = 9, fill = "#888", label_line2)
+      }
+    )
+  }
+
+  mortuary_marker <- function(y, mode) {
+    tagList(
+      tags$text(x = cx + 50, y = y + 4, `font-size` = 13, "⚱"),
+      tags$text(x = cx + 64, y = y + 4, `font-size` = 9, fill = "#888",
+                 sprintf("Mortuary: %s min", fmt(mode)))
+    )
+  }
+
+  tags$svg(
+    xmlns = "http://www.w3.org/2000/svg", viewBox = sprintf("0 0 %d %d", width, height),
+    style = sprintf("width:100%%; max-width:%dpx; height:%dpx; display:block;", width, height),
+
+    leg(y[1], y[2], -1, "#2a78d6",
+        sprintf("PMVAmb: %s min", fmt(wia1_mode)),
+        sprintf("×%s return", fmt1(wia1_ret))),
+    leg(y[1], y[2], 1, "#6c757d",
+        sprintf("HX240M: %s min", fmt(kia1_mode)),
+        sprintf("×%s return", fmt1(kia1_ret))),
+    leg(y[2], y[3], -1, "#1e824c",
+        sprintf("R2B Evac Team: %s min", fmt(wia2_mode)),
+        "(no return leg modelled)"),
+
+    mortuary_marker(y[2], mort2b_mode),
+    mortuary_marker(y[3], mort2e_mode),
+
+    node(y[1], "R1", "Forward Aid Post"),
+    node(y[2], "R2B", "Battalion Aid Post"),
+    node(y[3], "R2E", "Field Hospital")
+  )
+}
+
+#' Wrap evac_chain_diagram() with the heading/caption pattern matching
+#' force_structure_diagram() (Health System Architecture), for the same
+#' sticky-sidebar treatment on the Casualty Logistics panel.
+casualty_logistics_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
+                                        wia2_mode, mort2b_mode, mort2e_mode) {
+  tagList(
+    h6(class = "text-muted mt-2", "Medevac Chain"),
+    p(class = "text-muted", style = "font-size:11px;",
+      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration. ",
+      tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb, dead-heading return leg)"), "; ",
+      tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M, dead-heading return leg)"), "; ",
+      tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
+      " (each R2B team's own Evac Team resource, not the shared PMVAmb fleet — a separate PMVAmb-based function for this leg exists in the codebase but is never called, so no return leg is modelled here despite the Configure field of that name existing).",
+      " R2B is bypassed to R2E two ways, both reusing the R1→R2B leg time or the green evacuation step already shown rather than drawing a new leg: upstream, before transport starts, if every R2B team's OT beds are fully occupied (",
+      tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
+      " KIA reaching R2B or R2E travel no further — the ⚱ marker is a local transfer to a collocated mortuary, not a cross-echelon vehicle leg.",
+      " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
+    evac_chain_diagram(wia1_mode, wia1_ret, kia1_mode, kia1_ret, wia2_mode, mort2b_mode, mort2e_mode)
+  )
+}
+
 #' Render one top-level Configure accordion panel body for a field group
 #'
 #' @param overridden_paths Character vector of "elm.acty" paths the active
@@ -748,11 +889,18 @@ ui <- page_navbar(
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
       !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
-        if (identical(g, GRP_HEALTH_ARCH)) {
+        sidebar_output_id <- if (identical(g, GRP_HEALTH_ARCH)) {
+          "force_design_diagram"
+        } else if (identical(g, GRP_LOGISTICS)) {
+          "casualty_logistics_diagram"
+        } else {
+          NULL
+        }
+        if (!is.null(sidebar_output_id)) {
           accordion_panel(g,
             div(style = "display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;",
                 div(style = "flex:0 0 280px; max-width:280px; position:sticky; top:12px;",
-                    uiOutput("force_design_diagram")),
+                    uiOutput(sidebar_output_id)),
                 div(style = "flex:1; min-width:280px;",
                     uiOutput(paste0("group_ui_", make.names(g))))
             )
@@ -1033,6 +1181,24 @@ server <- function(input, output, session) {
     )
   })
   outputOptions(output, "force_design_diagram", suspendWhenHidden = FALSE)
+
+  # Live medevac chain diagram at the top of the Casualty Logistics panel
+  # (see casualty_logistics_diagram()) — reads the same transport mode/
+  # return-leg-multiplier inputs the fields below it edit. R2B->R2E WIA and
+  # R2B/R2E KIA mortuary times have no *active* return-leg behaviour (see
+  # the function's own docstring for why), so no return-leg input is read
+  # for those legs even though the R2B WIA Transport Return-Leg Multiplier
+  # Configure field still exists and is still readable/settable.
+  output$casualty_logistics_diagram <- renderUI({
+    casualty_logistics_diagram(
+      wia1_mode = input$r1_wia_transport_mode  %||% 0, wia1_ret = input$r1_wia_transport_return %||% 1,
+      kia1_mode = input$r1_kia_transport_mode  %||% 0, kia1_ret = input$r1_kia_transport_return %||% 1,
+      wia2_mode = input$r2b_wia_transport_mode %||% 0,
+      mort2b_mode = input$r2b_kia_transport_mode %||% 0,
+      mort2e_mode = input$r2e_kia_transport_mode %||% 0
+    )
+  })
+  outputOptions(output, "casualty_logistics_diagram", suspendWhenHidden = FALSE)
 
   # Live casualty-generation curve previews (Casualty Rates group). Read
   # live from the mean/sd inputs so the curve redraws as the user edits

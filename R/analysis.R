@@ -21,11 +21,18 @@ library(RColorBrewer)
 #' @param warm_up_days Days to exclude from the start of the analysis window
 #'   (applied to arrivals by start_time and resources by time; default 0)
 #' @param images_dir Directory path for saving PNG plots (default: "images")
-#' @return Invisibly returns a named list of the key summary data frames
+#' @return Invisibly returns a named list. Nine elements are always-present
+#'   ggplot objects (Issue #14 — embeddable in a Shiny reactive context via
+#'   e.g. renderPlot()): casualty_flow, r1_queues, r2b_treatment,
+#'   r2b_bed_queues, r2b_gantt, r2e_surgery, r2e_bed_queues, waiting_times,
+#'   r2e_gantt. Remaining elements are summary data frames, scalar KPIs, and
+#'   conditional ggplot objects (NULL when their trigger condition — e.g. a
+#'   run with zero R2B hold occupants — is not met).
 #'
-#' @details Writes CSVs to output_dir, renders all standard plots to the
-#'   active graphics device and saves PNGs to images_dir, and writes markdown
-#'   summary tables to output_dir.
+#' @details Writes CSVs to output_dir and PNGs to images_dir; does not print
+#'   plots to the active graphics device (the caller is responsible for
+#'   display — see run.R for the CLI path, which prints each plot in the
+#'   original on-screen order for interactive/RStudio use).
 analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
                         images_dir = "images") {
   dir.create(output_dir,  showWarnings = FALSE, recursive = TRUE)
@@ -132,7 +139,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme_minimal()
 
   p_casualty_summary <- plot_type / plot_source / plot_priority
-  print(p_casualty_summary)
   ggsave(file.path(images_dir, "casualty_summary.png"), p_casualty_summary,
          width = 12, height = 10, dpi = 150)
 
@@ -201,7 +207,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  print(p_r1_queues)
   ggsave(file.path(images_dir, "r1_queues.png"), p_r1_queues,
          width = 12, height = 8, dpi = 150)
 
@@ -227,7 +232,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  print(p_r2b_bed_queues)
   ggsave(file.path(images_dir, "r2b_bed_queues.png"), p_r2b_bed_queues,
          width = 12, height = 8, dpi = 150)
 
@@ -321,7 +325,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
         legend.position   = "bottom"
       )
 
-    print(r2b_hold_occupancy_plot)
     ggsave(file.path(images_dir, "r2b_hold_occupancy.png"), r2b_hold_occupancy_plot,
            width = 12, height = 6, dpi = 150)
 
@@ -423,7 +426,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme_minimal(base_size = 14) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 
-  print(r2b_bypass_reason_plot)
   ggsave(file.path(images_dir, "r2b_ot_bypass_reason.png"), r2b_bypass_reason_plot,
          width = 12, height = 6, dpi = 150)
 
@@ -483,7 +485,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme_minimal(base_size = 14)
 
   p_r2b_handling <- plot_r2b_treated / plot_r2b_summary / plot_r2b_skipped
-  print(p_r2b_handling)
   ggsave(file.path(images_dir, "r2b_handling.png"), p_r2b_handling,
          width = 12, height = 10, dpi = 150)
 
@@ -530,7 +531,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     facet_wrap(~ r2b_team, ncol = 1, scales = "free_y", labeller = labeller(r2b_team = function(x) paste0("R2B ", x))) +
     theme_minimal(base_size = 14) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  print(p_r2b_gantt)
   ggsave(file.path(images_dir, "r2b_gantt.png"), p_r2b_gantt,
          width = 14, height = 10, dpi = 150)
 
@@ -549,7 +549,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     scale_x_continuous(breaks = seq(1, max_days, by = 1), expand = c(0, 0)) +
     scale_y_continuous(breaks = 0:25, limits = c(0, 25)) +
     theme_minimal(base_size = 14)
-  print(p_r2e_surgeries)
   ggsave(file.path(images_dir, "r2eheavy_surgeries.png"), p_r2e_surgeries,
          width = 12, height = 6, dpi = 150)
 
@@ -582,7 +581,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
     theme_minimal(base_size = 14) +
     theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
-  print(p_r2e_bed_queues)
   ggsave(file.path(images_dir, "r2eheavy_bed_queue_3_teams.png"), p_r2e_bed_queues,
          width = 12, height = 8, dpi = 150)
 
@@ -593,7 +591,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     labs(title = "Casualty Waiting Time Over Simulation", x = "Simulation Day", y = "Waiting Time (min)") +
     geom_smooth(method = "loess", se = FALSE, color = "darkred") +
     theme_minimal(base_size = 14)
-  print(p_waiting_time)
   ggsave(file.path(images_dir, "waiting_time.png"), p_waiting_time,
          width = 12, height = 6, dpi = 150)
 
@@ -622,7 +619,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     facet_wrap(~ platform, ncol = 1, scales = "free_y") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
-  print(p_transport_capacity_margin)
   ggsave(file.path(images_dir, "transport_capacity_margin.png"), p_transport_capacity_margin,
          width = 12, height = 8, dpi = 150)
 
@@ -689,7 +685,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     scale_x_continuous(breaks = seq(1, max_days_r2e, by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
     theme_minimal(base_size = 14) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom")
-  print(p_r2e_gantt)
   ggsave(file.path(images_dir, "r2eheavy_gantt.png"), p_r2e_gantt,
          width = 14, height = 10, dpi = 150)
 
@@ -908,7 +903,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 
-    print(r2e_icu_gating_plot)
     ggsave(file.path(images_dir, "r2e_icu_gating_impact.png"), r2e_icu_gating_plot,
            width = 12, height = 6, dpi = 150)
 
@@ -920,6 +914,19 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
 
   invisible(list(
+    # Named ggplot objects (Issue #14) — embeddable directly in a Shiny
+    # reactive context (e.g. renderPlot(results()$casualty_flow)) without
+    # re-running the analysis pipeline. ggsave() above still writes the same
+    # PNGs to images_dir for the CLI/report path.
+    casualty_flow               = p_casualty_summary,
+    r1_queues                   = p_r1_queues,
+    r2b_treatment               = p_r2b_handling,
+    r2b_bed_queues              = p_r2b_bed_queues,
+    r2b_gantt                   = p_r2b_gantt,
+    r2e_surgery                 = p_r2e_surgeries,
+    r2e_bed_queues              = p_r2e_bed_queues,
+    waiting_times               = p_waiting_time,
+    r2e_gantt                   = p_r2e_gantt,
     combined                    = combined,
     casualty_summary            = casualty_summary,
     casualty_priority_summary   = casualty_priority_summary,

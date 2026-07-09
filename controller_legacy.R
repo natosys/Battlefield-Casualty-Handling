@@ -1,3 +1,13 @@
+##############################################
+## controller_legacy.R                      ##
+## SUPERSEDED by app.R (Issue #14)          ##
+##############################################
+#
+# This raw env_data.json editor predates the Configure/Run/Analyse Shiny
+# console. It is retained only for reference — launch app.R instead
+# (shiny::runApp("app.R")) for parameter editing, Quick Run execution, and
+# result visualisation with plain-English labels and tooltips.
+
 library(shiny)
 library(jsonlite)
 library(shinyBS)

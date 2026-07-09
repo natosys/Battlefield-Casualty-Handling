@@ -615,7 +615,7 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
   )
 }
 
-#' Render the Casualty Logistics panel's live medevac chain diagram: a
+#' Render the Medevac panel's live medevac chain diagram: a
 #' compact, fixed-topology diagram of the vehicle-transport legs the
 #' trajectory code actually models (R/trajectories.R), labelled with each
 #' leg's current mode duration and dead-heading return-leg multiplier
@@ -737,8 +737,8 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
 
 #' Wrap evac_chain_diagram() with the heading/caption pattern matching
 #' force_structure_diagram() (Health System Architecture), for the same
-#' sticky-sidebar treatment on the Casualty Logistics panel.
-casualty_logistics_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
+#' sticky-sidebar treatment on the Medevac panel.
+medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
                                         wia2_mode, mort2b_mode, mort2e_mode) {
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
@@ -888,11 +888,11 @@ ui <- page_navbar(
     uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
-      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_TRANSPORT), function(g) {
+      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY), function(g) {
         sidebar_output_id <- if (identical(g, GRP_HEALTH_ARCH)) {
           "force_design_diagram"
         } else if (identical(g, GRP_LOGISTICS)) {
-          "casualty_logistics_diagram"
+          "medevac_diagram"
         } else {
           NULL
         }
@@ -1182,15 +1182,15 @@ server <- function(input, output, session) {
   })
   outputOptions(output, "force_design_diagram", suspendWhenHidden = FALSE)
 
-  # Live medevac chain diagram at the top of the Casualty Logistics panel
-  # (see casualty_logistics_diagram()) — reads the same transport mode/
+  # Live medevac chain diagram at the top of the Medevac panel
+  # (see medevac_diagram()) — reads the same transport mode/
   # return-leg-multiplier inputs the fields below it edit. R2B->R2E WIA and
   # R2B/R2E KIA mortuary times have no *active* return-leg behaviour (see
   # the function's own docstring for why), so no return-leg input is read
   # for those legs even though the R2B WIA Transport Return-Leg Multiplier
   # Configure field still exists and is still readable/settable.
-  output$casualty_logistics_diagram <- renderUI({
-    casualty_logistics_diagram(
+  output$medevac_diagram <- renderUI({
+    medevac_diagram(
       wia1_mode = input$r1_wia_transport_mode  %||% 0, wia1_ret = input$r1_wia_transport_return %||% 1,
       kia1_mode = input$r1_kia_transport_mode  %||% 0, kia1_ret = input$r1_kia_transport_return %||% 1,
       wia2_mode = input$r2b_wia_transport_mode %||% 0,
@@ -1198,7 +1198,7 @@ server <- function(input, output, session) {
       mort2e_mode = input$r2e_kia_transport_mode %||% 0
     )
   })
-  outputOptions(output, "casualty_logistics_diagram", suspendWhenHidden = FALSE)
+  outputOptions(output, "medevac_diagram", suspendWhenHidden = FALSE)
 
   # Live casualty-generation curve previews (Casualty Rates group). Read
   # live from the mean/sd inputs so the curve redraws as the user edits

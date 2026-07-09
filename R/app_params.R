@@ -110,10 +110,9 @@ set_transport_field <- function(json, name, field, value) {
 
 GRP_FORCE        <- "Force Size"
 GRP_HEALTH_ARCH  <- "Health System Architecture"
-GRP_LOGISTICS    <- "Casualty Logistics"
+GRP_LOGISTICS    <- "Medevac"
 GRP_PROVISION    <- "Health Provision"
 GRP_CASUALTY     <- "Casualty Rates"
-GRP_TRANSPORT    <- "Transport Assets"
 
 # ── Field constructors ───────────────────────────────────────────────────
 
@@ -366,7 +365,7 @@ build_param_registry <- function() {
                                      "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.", bound = c(0, 20000),
                                      source = SRC_R1_RECOVERY))
 
-  # ── Casualty Logistics: R1 — Forward Aid Post ─────────────────────────────
+  # ── Medevac: R1 — Forward Aid Post ────────────────────────────────────────
   registry <- c(registry, tri_fields("r1_wia_transport", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "wia_transport",
                                      "WIA Transport Time", "Transport time from point of injury to R1/R2B for a WIA casualty.",
                                      morris_mode_name = "r1_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
@@ -427,7 +426,7 @@ build_param_registry <- function() {
           type = "integer", min = 5, max = 180, step = 5, source = SRC_ICU_GATING)
   ))
 
-  # ── Casualty Logistics: R2B — Battalion Aid Post ──────────────────────────
+  # ── Medevac: R2B — Battalion Aid Post ─────────────────────────────────────
   registry <- c(registry, tri_fields("r2b_wia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport",
                                      "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty.",
                                      morris_mode_name = "r2b_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
@@ -497,20 +496,20 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2e_kia_treat", GRP_PROVISION, "R2E — KIA Treatment", "r2eheavy", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R2E.", bound = c(0, 200)))
 
-  # ── Casualty Logistics: R2E — Field Hospital ──────────────────────────────
+  # ── Medevac: R2E — Field Hospital ─────────────────────────────────────────
   registry <- c(registry, tri_fields("r2e_kia_transport", GRP_LOGISTICS, "R2E — KIA Transport", "r2eheavy", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
 
-  # ── Transport Assets ──────────────────────────────────────────────────────
+  # ── Medevac: Transport Fleet ──────────────────────────────────────────────
   registry <- c(registry, unlist(lapply(c("PMVAmb", "HX240M"), function(veh) {
     list(
-      field(paste0("transport_", veh, "_qty"), GRP_TRANSPORT, NULL, paste0(veh, " — Fleet Size"),
+      field(paste0("transport_", veh, "_qty"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Fleet Size"),
             paste0("Number of ", veh, " vehicles available for casualty evacuation."),
             get = function(json) get_transport_field(json, veh, "qty"),
             set = function(json, v) set_transport_field(json, veh, "qty", v),
             type = "integer", min = 0, max = 20, step = 1, source = SRC_VEHICLE_CAPACITY),
-      field(paste0("transport_", veh, "_capacity"), GRP_TRANSPORT, NULL, paste0(veh, " — Capacity per Vehicle"),
+      field(paste0("transport_", veh, "_capacity"), GRP_LOGISTICS, "Transport Fleet", paste0(veh, " — Capacity per Vehicle"),
             paste0("Number of casualties a single ", veh, " can carry per load."),
             get = function(json) get_transport_field(json, veh, "capacity"),
             set = function(json, v) set_transport_field(json, veh, "capacity", v),

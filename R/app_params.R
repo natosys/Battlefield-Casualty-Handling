@@ -172,10 +172,14 @@ SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport
 #'   even when this field is not Morris-screened (`morris_name = NULL`).
 #'   Used for probability/rate fields where a slider communicates the 0–1
 #'   bound more directly than a bare numeric box.
+#' @param choices Fixed set of values (e.g. `1:3`), rendered as a dropdown
+#'   `selectInput()` instead of a numeric input or slider. Used for small,
+#'   discrete-valued fields (e.g. a priority level) where the field isn't a
+#'   quantity or rate a bare number or slider communicates well.
 field <- function(id, group, subgroup, label, tooltip, get, set,
                    type = "numeric", min = NA, max = NA, step = NA,
                    morris_name = NULL, source = SRC_UNCITED, path = NULL,
-                   slider = FALSE) {
+                   slider = FALSE, choices = NULL) {
   if (!is.null(morris_name)) {
     mp <- morris_params[morris_params$name == morris_name, ]
     if (nrow(mp) == 1) {
@@ -191,7 +195,7 @@ field <- function(id, group, subgroup, label, tooltip, get, set,
   tooltip <- paste0(tooltip, " Source: ", source)
   list(id = id, group = group, subgroup = subgroup, label = label, tooltip = tooltip,
        get = get, set = set, type = type, min = min, max = max, step = step,
-       morris = !is.null(morris_name), path = path, slider = isTRUE(slider))
+       morris = !is.null(morris_name), path = path, slider = isTRUE(slider), choices = choices)
 }
 
 #' Triangular-distribution (min/mode/max) triple of field specs
@@ -234,13 +238,14 @@ tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
 #'   casualty-generation streams were reading/writing generators.dnbi_spt.)
 var_field <- function(id, group, subgroup, elm, acty, var, label, tooltip,
                        type = "numeric", min = 0, max = 1, step = 0.01,
-                       morris_name = NULL, source = SRC_UNCITED, slider = FALSE) {
+                       morris_name = NULL, source = SRC_UNCITED, slider = FALSE,
+                       choices = NULL) {
   force(elm); force(acty); force(var)
   field(id, group, subgroup, label, tooltip,
         get = function(json) get_raw_var(json, elm, acty, var),
         set = function(json, v) set_raw_var(json, elm, acty, var, v),
         type = type, min = min, max = max, step = step, morris_name = morris_name,
-        source = source, path = paste0(elm, ".", acty), slider = slider)
+        source = source, path = paste0(elm, ".", acty), slider = slider, choices = choices)
 }
 
 # ── Registry assembly ────────────────────────────────────────────────────
@@ -479,10 +484,10 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.01, morris_name = "in_theatre_rate", source = SRC_IN_THEATRE_RATE),
     var_field("r2e_post_surgery_rate", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "post_surgery",
               "Post-Surgery Full-Recovery Rate", "Proportion of surgical patients routed to full (long) ICU recovery rather than short recovery.",
-              min = 0, max = 1, step = 0.01),
+              min = 0, max = 1, step = 0.01, slider = TRUE),
     var_field("r2e_icu_p1_bypass", GRP_PROVISION, "R2E — ICU Gating", "r2eheavy", "icu_gating", "p1_bypass_priority_max",
               "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead (Issue #43).",
-              type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING),
+              type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING, choices = 1:3),
     field("r2e_icu_defer_interval", GRP_PROVISION, "R2E — ICU Gating", "OT-Entry Defer Poll Interval",
           "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
@@ -536,7 +541,11 @@ apply_registry_values <- function(registry, json, values) {
   for (f in registry) {
     if (!is.null(values[[f$id]])) {
       v <- values[[f$id]]
-      if (f$type == "integer") v <- as.integer(round(v))
+      # as.numeric() first: selectInput() (used for f$choices fields, e.g.
+      # r2e_icu_p1_bypass) always returns its selected value as a character
+      # string regardless of the type of the choices it was built from, and
+      # round() errors on a plain character vector.
+      if (f$type == "integer") v <- as.integer(round(as.numeric(v)))
       json <- f$set(json, v)
     }
   }

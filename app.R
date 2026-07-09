@@ -400,7 +400,9 @@ wire_range_slider_text_sync <- function(input, session, id) {
 
 field_input <- function(f, value, overridden_paths = NULL) {
   lbl <- field_label(f, overridden_paths)
-  if (isTRUE(f$morris) || isTRUE(f$slider)) {
+  if (!is.null(f$choices)) {
+    selectInput(f$id, lbl, choices = f$choices, selected = value)
+  } else if (isTRUE(f$morris) || isTRUE(f$slider)) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
     # (R/sensitivity.R) has drifted from the baseline after a later
@@ -619,7 +621,14 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'   Casualty Intensity Profile is overriding (see scenario_overridden_paths()
 #'   in the server); passed through to every field's tooltip so overridden
 #'   fields are flagged individually, not just in the panel-level scope note.
-render_group_body <- function(fields, defaults, overridden_paths = NULL) {
+#' @param gen_distributions Named character vector (name = GEN_STREAM_ACTYS
+#'   entry, value = "lognormal"/"exponential"), the active Casualty Intensity
+#'   Profile's resolved distribution family per casualty-generation stream
+#'   (see scenario_json() in the server). Only used by the Casualty
+#'   Generation Rates subgroup, to suppress the Std. Dev. field for streams
+#'   an exponential distribution — fully described by its mean alone —
+#'   currently governs.
+render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_distributions = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
 
   if (all(subgroups == "")) {
@@ -684,18 +693,25 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL) {
       return(tagList(
         h6(class = "text-muted mt-2", sg),
         p(class = "text-muted small",
-          "These are curve parameters, not single values — the shaded area is the actual shape of daily casualty-rate variability implied by the mean and standard deviation below it (dashed line = mean). The curve updates live as you edit the numbers, and its shape (lognormal vs exponential) follows the Casualty Intensity Profile selected above."),
+          "These are curve parameters, not single values — the shaded area is the actual shape of daily casualty-rate variability implied by the mean and standard deviation below it (dashed line = mean). The curve updates live as you edit the numbers, and its shape (lognormal vs exponential) follows the Casualty Intensity Profile selected above. A stream currently governed by an exponential distribution accepts only the mean — exponential is a single-parameter distribution, so its Std. Dev. field is not applicable and is suppressed rather than shown as an editable (but functionally inert) input."),
         layout_column_wrap(
           width = "320px",
           !!!lapply(GEN_STREAM_ACTYS, function(acty) {
             mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
             sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
             stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label)
+            dist <- if (is.null(gen_distributions)) "lognormal" else (gen_distributions[[acty]] %||% "lognormal")
+            sd_input <- if (identical(dist, "exponential")) {
+              p(class = "text-muted small mb-0",
+                "Std. Dev. not applicable — exponential distribution, fully described by the mean.")
+            } else {
+              field_input(sd_f, defaults[[sd_f$id]], overridden_paths)
+            }
             card(
               card_header(stream_label),
               plotOutput(paste0("curve_", acty), height = "110px"),
               field_input(mean_f, defaults[[mean_f$id]], overridden_paths),
-              field_input(sd_f, defaults[[sd_f$id]], overridden_paths)
+              sd_input
             )
           })
         )
@@ -925,11 +941,22 @@ server <- function(input, output, session) {
         ))
   })
 
+  # Resolved distribution family per casualty-generation stream under the
+  # active Casualty Intensity Profile — same lookup render_gen_curve()'s
+  # own renderPlot() uses below, shared here so the Std. Dev. field itself
+  # (not just its curve) reflects which streams are currently exponential.
+  gen_distributions <- reactive({
+    setNames(vapply(GEN_STREAM_ACTYS, function(acty) {
+      d <- get_raw_var(scenario_json(), "generators", acty, "distribution")
+      if (is.null(d)) "lognormal" else d
+    }, character(1)), GEN_STREAM_ACTYS)
+  })
+
   lapply(names(fields_by_group), function(g) {
     output_id <- paste0("group_ui_", make.names(g))
     output[[output_id]] <- renderUI({
       defaults <- registry_defaults(fields_by_group[[g]], scenario_json())
-      render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths())
+      render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(), gen_distributions())
     })
     # Accordion panels other than the initially-open one are hidden
     # (display:none) at first render; Shiny suspends output bindings it

@@ -135,6 +135,7 @@ SRC_DNBI_NBI_PCT      <- "FORECAS (Blood, Zouris & Rotblatt, 1998) empirical dat
 SRC_DISEASE_SURGERY   <- "Informed estimate from population-level appendicitis/cholecystitis/perforated-ulcer incidence in military-age males; see README DNBI Sub-Categorisation. High uncertainty."
 SRC_EVAC_CANDIDACY    <- "ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
 SRC_DOW_CEILING       <- "Calibrated to the Falklands War 1982 DOW/WIA rate of 0.52% (Payne, 1983; Jolly, 2018) via 50-replication Monte Carlo; entangled with the OIF/OEF-era treatment efficacy factors below it. See README Died of Wounds."
+SRC_DOW_SHAPE         <- "Logistic shape (k, t_mid) anchored to the haemorrhagic shock critical window, Eastridge et al. (2012) and Kotwal et al. (2011). Not user-editable in this app. See README Died of Wounds — Survival Function."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
 SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md (Issue #4) for a proposed evidence-based staffing revision (not yet implemented)."

@@ -682,43 +682,50 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' set of legs — so only the text labels are dynamic, not the layout.
 #'
 #' Every line drawn corresponds to an actual seize()/timeout() sequence in
-#' R/trajectories.R, not an aspirational or simplified one:
-#'   - R1 → R2B, WIA (PMVAmb): r1_transport_wia(), with a working
-#'     dead-heading return leg (`return_leg_multiplier` is read inside
-#'     this function). Also the leg used when a full R2B is bypassed
-#'     straight to R2E — not drawn as a second line, since it draws the
-#'     same underlying duration; noted in the caption instead.
+#' R/trajectories.R, not an aspirational or simplified one. All four legs
+#' now carry a working dead-heading return leg (Issue #73 follow-up made
+#' the R2B ↔ R2E legs consistent with the R1 ↔ R2B ones, which have had
+#' this since Issue #6):
+#'   - R1 → R2B, WIA (PMVAmb): r1_transport_wia().
 #'   - R1 → R2B, KIA (HX240M): r1_transport_kia() ("KIA transport from
-#'     Role 1 to mortuary at Role 2"), also with a working return leg.
+#'     Role 1 to mortuary at Role 2").
 #'   - R2B → R2E, WIA: the inline evacuation step inside r2b_treat_wia()
 #'     (all of its "R2B Hold"/"Hold Full"/"Hold Queue"/wait-for-evac
 #'     sub-paths — i.e. every R2B→R2E movement, surgical or bypassed,
-#'     funnels through this one step), which seizes each R2B team's own
-#'     `evac` resource — a deliberate design (Issue #73): this leg
-#'     represents an organic R2B unit asset, distinct from the
-#'     brigade-pooled PMVAmb fleet used for R1 → R2B, and is not
-#'     modelled with a dead-heading return leg. A separate, unused
-#'     PMVAmb-based `r2b_transport_wia()` function that once modelled
-#'     this leg against the shared fleet was removed as dead code when
-#'     this design was formalised.
-#' KIA reaching R2B or R2E do not travel further — r2b_transport_kia()/
-#' r2e_transport_kia() move the casualty to a *collocated* mortuary via
-#' the team's own evacuation-team resource — so these render as a small
-#' in-place ⚱ marker rather than a line to the next echelon, to avoid
-#' implying a KIA leg the model doesn't have.
+#'     funnels through r2b_evac_leg()/r2b_evac_return_leg()), which seizes
+#'     each R2B team's own `evac` resource rather than the shared PMVAmb
+#'     fleet — a deliberate design (Issue #73): this leg represents an
+#'     organic R2B unit asset, distinct from the brigade-pooled fleet used
+#'     for R1 → R2B. The dead-heading return leg is modelled on that same
+#'     organic resource rather than a pooled vehicle.
+#'   - R2B → R2E, KIA/mortuary: r2b_transport_kia(), using the shared
+#'     HX2 40M fleet. The mortuary is modelled as collocated with R2E, not
+#'     R2B (Issue #73 follow-up) — R2B has no organic mortuary asset, so a
+#'     KIA at R2B is transported by road to the R2E-collocated mortuary
+#'     rather than processed in place.
+#' KIA reaching R2E (whether they died there, or arrived by road from R1 or
+#' R2B) travel no further — r2e_transport_kia() moves the casualty to the
+#' *collocated* R2E mortuary via the receiving team's own evacuation-team
+#' resource — so this renders as a small in-place ⚱ marker at R2E only,
+#' rather than a line, to avoid implying a further cross-echelon leg the
+#' model doesn't have.
 #'
 #' @param wia1_mode,wia1_ret R1→R2B WIA transport mode (minutes) and
 #'   dead-heading return-leg multiplier.
 #' @param kia1_mode,kia1_ret R1→R2B KIA transport mode and return-leg
 #'   multiplier.
-#' @param wia2_mode R2B→R2E WIA transport mode (minutes); no return-leg
-#'   parameter — this leg uses an organic team asset with no
-#'   dead-heading return trip modelled (Issue #73).
-#' @param mort2b_mode,mort2e_mode R2B/R2E collocated-mortuary local
-#'   transport mode (minutes) — no return leg, since no vehicle asset is
-#'   used for this movement.
+#' @param wia2_mode,wia2_ret R2B→R2E WIA transport mode (minutes) and
+#'   dead-heading return-leg multiplier, applied to the R2B team's own
+#'   organic evac resource rather than a pooled vehicle (Issue #73).
+#' @param kia2_mode,kia2_ret R2B→R2E KIA/mortuary road-move transport mode
+#'   (minutes) and dead-heading return-leg multiplier, using the shared
+#'   HX2 40M fleet (Issue #73 follow-up).
+#' @param mort2e_mode R2E collocated-mortuary local transport mode
+#'   (minutes) — no return leg, since no vehicle asset is used for this
+#'   final in-place movement.
 evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
-                                wia2_mode, mort2b_mode, mort2e_mode) {
+                                wia2_mode, wia2_ret, kia2_mode, kia2_ret,
+                                mort2e_mode) {
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
   fmt1 <- function(x) if (is.null(x) || is.na(x)) "?" else formatC(x, format = "f", digits = 2)
 
@@ -779,9 +786,11 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
         sprintf("×%s return", fmt1(kia1_ret))),
     leg(y[2], y[3], -1, "#1e824c",
         sprintf("R2B Evac Team: %s min", fmt(wia2_mode)),
-        "(organic asset — no return leg)"),
+        sprintf("×%s return", fmt1(wia2_ret))),
+    leg(y[2], y[3], 1, "#922b21",
+        sprintf("HX240M (mortuary): %s min", fmt(kia2_mode)),
+        sprintf("×%s return", fmt1(kia2_ret))),
 
-    mortuary_marker(y[2], mort2b_mode),
     mortuary_marker(y[3], mort2e_mode),
 
     node(y[1], "R1", "Forward Aid Post"),
@@ -794,20 +803,24 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
 medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
-                                        wia2_mode, mort2b_mode, mort2e_mode) {
+                             wia2_mode, wia2_ret, kia2_mode, kia2_ret,
+                             mort2e_mode) {
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
     p(class = "text-muted", style = "font-size:11px;",
-      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration. ",
+      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration and dead-heading return-leg multiplier — all four legs now carry a working return leg. ",
       tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb, dead-heading return leg)"), "; ",
       tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M, dead-heading return leg)"), "; ",
       tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
-      " (each R2B team's own organic Evac Team resource, not the shared PMVAmb fleet — a deliberate design distinct from the R1 → R2B legs, so no dead-heading return leg is modelled for this leg).",
+      " (each R2B team's own organic Evac Team resource, not the shared PMVAmb fleet — a deliberate design distinct from the R1 → R2B legs — with a dead-heading return leg on that same organic resource); ",
+      tags$span(style = "color:#922b21; font-weight:600;", "maroon = R2B → R2E KIA/mortuary road move"),
+      " (shared HX2 40M fleet — the mortuary is modelled as collocated with R2E, not R2B, since R2B has no organic mortuary asset of its own).",
       " R2B is bypassed to R2E two ways, both reusing the R1→R2B leg time or the green evacuation step already shown rather than drawing a new leg: upstream, before transport starts, if every R2B team's OT beds are fully occupied (",
       tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
-      " KIA reaching R2B or R2E travel no further — the ⚱ marker is a local transfer to a collocated mortuary, not a cross-echelon vehicle leg.",
+      " KIA reaching R2E (whether dying there, or arriving by road from R1 or R2B) travel no further — the ⚱ marker is a local transfer to the collocated R2E mortuary, not a cross-echelon vehicle leg.",
       " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
-    evac_chain_diagram(wia1_mode, wia1_ret, kia1_mode, kia1_ret, wia2_mode, mort2b_mode, mort2e_mode)
+    evac_chain_diagram(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
+                        wia2_mode, wia2_ret, kia2_mode, kia2_ret, mort2e_mode)
   )
 }
 
@@ -1291,17 +1304,16 @@ server <- function(input, output, session) {
 
   # Live medevac chain diagram at the top of the Medevac panel
   # (see medevac_diagram()) — reads the same transport mode/
-  # return-leg-multiplier inputs the fields below it edit. R2B->R2E WIA and
-  # R2B/R2E KIA mortuary times have no *active* return-leg behaviour (see
-  # the function's own docstring for why), so no return-leg input is read
-  # for those legs even though the R2B WIA Transport Return-Leg Multiplier
-  # Configure field still exists and is still readable/settable.
+  # return-leg-multiplier inputs the fields below it edit. All four legs
+  # now carry an active return-leg multiplier (Issue #73 follow-up); R2E's
+  # own local mortuary transfer (mort2e_mode) remains a marker, not a leg,
+  # since no vehicle asset is used for that final in-place movement.
   output$medevac_diagram <- renderUI({
     medevac_diagram(
       wia1_mode = input$r1_wia_transport_mode  %||% 0, wia1_ret = input$r1_wia_transport_return %||% 1,
       kia1_mode = input$r1_kia_transport_mode  %||% 0, kia1_ret = input$r1_kia_transport_return %||% 1,
-      wia2_mode = input$r2b_wia_transport_mode %||% 0,
-      mort2b_mode = input$r2b_kia_transport_mode %||% 0,
+      wia2_mode = input$r2b_wia_transport_mode %||% 0, wia2_ret = input$r2b_wia_transport_return %||% 1,
+      kia2_mode = input$r2b_kia_transport_mode %||% 0, kia2_ret = input$r2b_kia_transport_return %||% 1,
       mort2e_mode = input$r2e_kia_transport_mode %||% 0
     )
   })

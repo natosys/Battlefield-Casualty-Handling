@@ -345,7 +345,7 @@ Time-dependent DOW (#5) and dead-heading transport (#6). Issues #5 and #6 are in
 DNBI sub-categorisation (#7) and individual resource modelling (#4). Issue #7 can be pulled forward alongside Phase 2 if bandwidth allows — its only hard dependencies are #1 and #2, not #3 or #4. Issue #4 is the largest structural change in the project and must be gated until #1, #2, and #3 are all stable.
 
 ### Phase 4 — Scenario Expansion (Issues 9, 10)
-MASCAL stochastic injection (#9, requires #1 + #2 + #5) → comparative scenario runner (#10, requires #1 + #2 + #5 + #8).
+Mass casualty stochastic injection (#9, requires #1 + #2 + #5) → comparative scenario runner (#10, requires #1 + #2 + #5 + #8).
 
 ### Phase 5 — Interface (Issues 14, 15)
 Two-part delivery. Issue #14 (parameter editor + Quick Run + single-run output display) can begin after #1 — the `R/analysis.R` refactor (returning ggplot objects) is the gating task. Issue #15 (Full Analysis mode — multi-run with CI) requires Issues #14, #1, #2, and #3 all complete.
@@ -376,7 +376,7 @@ AFTER #14 + #1 + #2 + #3:
   #15 [Ph.5]    Shiny app — Full Analysis mode (multi-run CI)
 
 AFTER #1 + #2 + #5:
-  #9  [Ph.4]    MASCAL injection
+  #9  [Ph.4]    Mass casualty injection
 
 AFTER #1 + #2 + #5 + #8:
   #10 [Ph.4]    Scenario runner

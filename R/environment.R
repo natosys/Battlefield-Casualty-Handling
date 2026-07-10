@@ -293,7 +293,7 @@ generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
   }
 }
 
-#' Draws event start times for the "poisson" MASCAL mode
+#' Draws event start times for the "poisson" mass casualty mode
 #'
 #' @param n_days Duration in days
 #' @param event_params List with rate_per_day, as read from
@@ -310,7 +310,7 @@ generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
 #'   returns immediately with no RNG draws consumed, so the stream
 #'   downstream of this call is unaffected — the basis for Issue #9's
 #'   disable-path acceptance criterion.
-mascal_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE) {
+mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE) {
   n_minutes    <- day_min * n_days
   rate_per_min <- event_params$rate_per_day / day_min
 
@@ -328,7 +328,7 @@ mascal_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE
   event_starts
 }
 
-#' Draws event start times for the "scheduled" MASCAL mode
+#' Draws event start times for the "scheduled" mass casualty mode
 #'
 #' @param n_days Duration in days
 #' @param schedule_params List with `days` (simulation day, 1-indexed, on
@@ -350,7 +350,7 @@ mascal_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE
 #'   randomness across replications). A fired day's exact start minute is
 #'   drawn Uniform(0, 1440) within that day, so intra-day timing remains
 #'   stochastic even though the day itself is planner-specified.
-mascal_event_starts_scheduled <- function(n_days, schedule_params, antithetic = FALSE) {
+mass_casualty_event_starts_scheduled <- function(n_days, schedule_params, antithetic = FALSE) {
   n_minutes <- day_min * n_days
   days  <- unlist(schedule_params$days)
   probs <- unlist(schedule_params$probabilities)
@@ -374,7 +374,7 @@ mascal_event_starts_scheduled <- function(n_days, schedule_params, antithetic = 
   sort(event_starts[event_starts >= 0 & event_starts < n_minutes])
 }
 
-#' Draws casualty arrival times, count, and injection window for one MASCAL event
+#' Draws casualty arrival times, count, and injection window for one mass casualty event
 #'
 #' @param event_start Event start time (simulation minutes)
 #' @param event_params List with min_cas, max_cas, window_min, window_mode,
@@ -385,7 +385,7 @@ mascal_event_starts_scheduled <- function(n_days, schedule_params, antithetic = 
 #'   generate_mass_casualty_events())
 #' @return Named list: `times` (numeric vector of casualty arrival times)
 #'   and `window` (the drawn injection window duration, minutes)
-mascal_event_casualties <- function(event_start, event_params, n_minutes, antithetic = FALSE) {
+mass_casualty_event_casualties <- function(event_start, event_params, n_minutes, antithetic = FALSE) {
   u_cas <- runif(1)
   if (antithetic) u_cas <- 1 - u_cas
   n_cas_draw <- round(event_params$min_cas + u_cas * (event_params$max_cas - event_params$min_cas))
@@ -403,7 +403,7 @@ mascal_event_casualties <- function(event_start, event_params, n_minutes, antith
   list(times = times, window = window)
 }
 
-#' Generates mass casualty (MASCAL) event arrival timestamps
+#' Generates mass casualty event arrival timestamps
 #'
 #' @param n_days Duration in days
 #' @param params The full env_data$vars$mass_casualty list, with `event`
@@ -426,12 +426,12 @@ mascal_event_casualties <- function(event_start, event_params, n_minutes, antith
 #'   `params$event$mode`: "poisson" (default) implements a compound
 #'   Poisson process for mass casualty injection (Fischer et al., 2025;
 #'   Debacker et al., 2016) — event inter-arrival times are drawn from an
-#'   Exponential(rate_per_day) distribution (`mascal_event_starts_poisson()`);
+#'   Exponential(rate_per_day) distribution (`mass_casualty_event_starts_poisson()`);
 #'   "scheduled" instead takes a planner-specified list of candidate
 #'   simulation days, each with an independent Bernoulli occurrence
-#'   probability (`mascal_event_starts_scheduled()`). Both modes then draw
+#'   probability (`mass_casualty_event_starts_scheduled()`). Both modes then draw
 #'   each fired event's casualty count, injection window, and per-casualty
-#'   offsets identically (`mascal_event_casualties()`): Uniform(min_cas,
+#'   offsets identically (`mass_casualty_event_casualties()`): Uniform(min_cas,
 #'   max_cas) casualties distributed across a Triangular(window_min,
 #'   window_mode, window_max)-minute window. An event schedule/rate that
 #'   produces zero events returns an empty arrival stream — background
@@ -449,14 +449,14 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
                              n_cas = integer(0), window_min = numeric(0))
 
   event_starts <- if (identical(mode, "scheduled")) {
-    mascal_event_starts_scheduled(n_days, params$schedule, antithetic = antithetic)
+    mass_casualty_event_starts_scheduled(n_days, params$schedule, antithetic = antithetic)
   } else {
-    mascal_event_starts_poisson(n_days, params$event, antithetic = antithetic)
+    mass_casualty_event_starts_poisson(n_days, params$event, antithetic = antithetic)
   }
 
   if (length(event_starts) == 0) {
     if (write_file) {
-      write.table(numeric(0), file = file.path("data", "arrivals_mascal.txt"),
+      write.table(numeric(0), file = file.path("data", "arrivals_mass_casualty.txt"),
                  row.names = FALSE, col.names = FALSE)
       write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
                row.names = FALSE)
@@ -470,7 +470,7 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   n_cas_actual  <- c()
 
   for (i in seq_along(event_starts)) {
-    cas <- mascal_event_casualties(event_starts[i], params$event, n_minutes, antithetic = antithetic)
+    cas <- mass_casualty_event_casualties(event_starts[i], params$event, n_minutes, antithetic = antithetic)
 
     arrival_times <- c(arrival_times, cas$times)
     event_id      <- c(event_id, rep(i, length(cas$times)))
@@ -488,7 +488,7 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   )
 
   if (write_file) {
-    write.table(arrival_times, file = file.path("data", "arrivals_mascal.txt"),
+    write.table(arrival_times, file = file.path("data", "arrivals_mass_casualty.txt"),
                row.names = FALSE, col.names = FALSE)
     write.csv(events, file.path("data", "mass_casualty_events.csv"), row.names = FALSE)
   }

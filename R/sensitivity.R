@@ -17,14 +17,14 @@ library(ggplot2)
 #' @details Eleven parameters span treatment durations (surgery, resuscitation,
 #'   ICU), DOW probability, evacuation transport times, surgical decision
 #'   probabilities, in-theatre recovery rate, OT shift availability, and
-#'   mass casualty (MASCAL) event rate/size (Issue #9). Bounds are set to
+#'   mass casualty event rate/size (Issue #9). Bounds are set to
 #'   cover clinically plausible variation around the current baseline; see
 #'   README Sensitivity Analysis section for derivation.
 morris_params <- data.frame(
   name  = c("surg_mode",      "long_resus_mode", "p1_p_max",
             "r1_transport",   "r2b_transport",   "long_icu_mode",
             "pri1_surg_prob", "in_theatre_rate", "ot_hours",
-            "mascal_rate",    "mascal_max_cas"),
+            "mass_casualty_rate",    "mass_casualty_max_cas"),
   lower = c(90,    25,    0.0115, 15,   15,   770,   0.70,  0.05,  8,   0,    40),
   upper = c(150,   70,    0.046,  45,   45,   2160,  0.98,  0.20,  16,  0.4,  80),
   mode  = c(120,   45,    0.023,  30,   30,   1440,  0.90,  0.10,  12,  0,    60),
@@ -51,8 +51,8 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$long_icu$mode            <- p[["long_icu_mode"]]
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
   ed$vars$r2eheavy$recovery$in_theatre_rate <- p[["in_theatre_rate"]]
-  ed$vars$mass_casualty$event$rate_per_day  <- p[["mascal_rate"]]
-  ed$vars$mass_casualty$event$max_cas       <- p[["mascal_max_cas"]]
+  ed$vars$mass_casualty$event$rate_per_day  <- p[["mass_casualty_rate"]]
+  ed$vars$mass_casualty$event$max_cas       <- p[["mass_casualty_max_cas"]]
   ed
 }
 

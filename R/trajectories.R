@@ -323,15 +323,29 @@ r2b_treat_kia <- function(traj, team_id) {
     release_resources(evacuation_team)
 }
 
-#' Simulates Role 2B transport of KIA casualties to collocated mortuary
+#' Simulates Role 2B road-move transport of KIA casualties to the mortuary,
+#' modelled as collocated with Role 2E Heavy rather than Role 2B (Issue #73
+#' follow-up) — R2B has no organic mortuary asset of its own. Uses the
+#' shared HX2 40M fleet with a dead-heading return leg, mirroring
+#' r1_transport_kia()'s pattern: after drop-off, the entity clones into a
+#' vehicle branch (unladen return timeout, then release) and a casualty
+#' branch (no further activity); synchronize(wait = FALSE) lets the
+#' casualty continue immediately while the vehicle clone completes its
+#' return leg independently and is discarded on arrival. On arrival, the
+#' casualty is handed to a selected R2E team's own mortuary intake
+#' (r2e_mortuary_intake()), which sets mortuary_treated.
 #'
 #' @param traj A simmer trajectory object
-#' @param team_id Integer index of the selected Role 2B team
-#' @return Modified trajectory with transport logic and mortuary_treated flag
+#' @param team_id Integer index of the selected Role 2B team (retained for
+#'   call-site signature parity with r2b_treat_kia(); not otherwise used —
+#'   the road move uses the shared HX240M fleet, not an R2B-team-specific
+#'   resource)
+#' @return Modified trajectory with transport and R2E mortuary intake appended
 r2b_transport_kia <- function(traj, team_id) {
-  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   traj %>%
-    seize_resources(evacuation_team) %>%
+    simmer::select(env_data$transports$HX240M, policy = "shortest-queue") %>%
+    seize_selected() %>%
+    set_attribute("r2b_r2e_mortuary_transport_start", function() now(env)) %>%
     timeout(function() {
       rtriangle(
         n = 1,
@@ -340,29 +354,59 @@ r2b_transport_kia <- function(traj, team_id) {
         c = env_data$vars$r2b$kia_transport$mode
       )
     }) %>%
-    set_attribute("mortuary_treated", 1) %>%
-    release_resources(evacuation_team)
+    clone(
+      n = 2,
+      trajectory("HX240M Return Leg (R2B Mortuary Transfer)") %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2b$kia_transport$min,
+            b = env_data$vars$r2b$kia_transport$max,
+            c = env_data$vars$r2b$kia_transport$mode
+          ) * env_data$vars$r2b$kia_transport$return_leg_multiplier
+        }) %>%
+        release_selected(),
+      trajectory("KIA Arrived at R2E Mortuary")
+    ) %>%
+    synchronize(wait = FALSE) %>%
+    set_attribute("r2e", function() select_r2e_team()) %>%
+    branch(
+      option = function() get_attribute(env, "r2e"),
+      continue = TRUE,
+      lapply(1:length(env_data$elms$r2eheavy), r2e_mortuary_intake)
+    )
 }
 
-#' Transports WIA casualties from Role 2B to Role 2E Heavy
+#' Seizes an already-available R2B team evac resource, models the outbound
+#' transport draw, then a dead-heading return leg on that same resource
+#' before releasing it (Issue #73 follow-up). The casualty continues
+#' immediately via synchronize(wait = FALSE); the escort/vehicle clone
+#' returns to R2B independently and is discarded on arrival. Assumes
+#' `evacuation_team` is not yet seized — use r2b_evac_return_leg() directly
+#' when the caller has already seized it as an availability gate.
 #'
-#' @return New trajectory for casualty movement from R2B to R2E
+#' @param traj A simmer trajectory object
+#' @param evacuation_team Character vector naming the R2B team's evac resource
+#' @return Modified trajectory with the seize + outbound leg + dead-head
+#'   return leg appended
+r2b_evac_leg <- function(traj, evacuation_team) {
+  traj %>%
+    seize_resources(evacuation_team) %>%
+    set_attribute("r2b_departure_time", function() now(env)) %>%
+    r2b_evac_return_leg(evacuation_team)
+}
+
+#' Outbound transport draw plus dead-heading return leg for an R2B team's
+#' evac resource that the caller has already seized (Issue #73 follow-up).
+#' Split out from r2b_evac_leg() for the wait_for_evac fallback path, which
+#' seizes `evacuation_team` earlier as its own availability gate.
 #'
-#' @details Selects PMV Ambulance asset (id = 7) using shortest-queue policy.
-#'   Logs transport initiation via r2b_r2e_transport_start attribute and
-#'   simulates outbound leg duration using triangular distribution. Models
-#'   the dead-head return leg (Issue #6): after drop-off, the entity
-#'   clones into a vehicle branch (unladen return timeout, then release
-#'   under id = 7 — listed first so it inherits the pre-clone seize
-#'   record) and a casualty branch (no further activity). The trailing
-#'   synchronize(wait = FALSE) lets the casualty continue immediately
-#'   once it reaches that point, while the vehicle clone is discarded
-#'   when it later arrives there after completing its return leg.
-r2b_transport_wia <- function() {
-  trajectory("R2B to R2E Heavy transport") %>%
-    simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue", id = 7) %>%
-    seize_selected(id = 7) %>%
-    set_attribute("r2b_r2e_transport_start", function() now(env)) %>%
+#' @param traj A simmer trajectory object, with `evacuation_team` already seized
+#' @param evacuation_team Character vector naming the R2B team's evac resource
+#' @return Modified trajectory with the outbound leg and dead-head return
+#'   leg appended; `evacuation_team` is released only after the return leg
+r2b_evac_return_leg <- function(traj, evacuation_team) {
+  traj %>%
     timeout(function() {
       rtriangle(
         n = 1,
@@ -373,7 +417,7 @@ r2b_transport_wia <- function() {
     }) %>%
     clone(
       n = 2,
-      trajectory("Vehicle Return Leg") %>%
+      trajectory("R2B Evac Team Return Leg") %>%
         timeout(function() {
           rtriangle(
             n = 1,
@@ -382,8 +426,8 @@ r2b_transport_wia <- function() {
             c = env_data$vars$r2b$wia_transport$mode
           ) * env_data$vars$r2b$wia_transport$return_leg_multiplier
         }) %>%
-        release_selected(id = 7),
-      trajectory("Casualty Dropped Off")
+        release_resources(evacuation_team),
+      trajectory("Casualty Dropped Off at R2E")
     ) %>%
     synchronize(wait = FALSE)
 }
@@ -414,6 +458,13 @@ r2b_transport_wia <- function() {
 #' # Branches based on evacuation team availability:
 #' # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
 #' # - evac not available → wait in ICU bed until evac is free
+#' # R2B → R2E WIA movement seizes each R2B team's own `evac` resource, not
+#' # the shared PMVAmb fleet — a deliberate design (Issue #73): this leg
+#' # represents an organic R2B unit asset, distinct from the brigade-pooled
+#' # transport fleet used for R1 → R2B. It does model a dead-heading return
+#' # leg on that same organic resource (Issue #73 follow-up): once the R2B
+#' # team's evac asset drops a casualty at R2E, it is unavailable to its own
+#' # team until it completes the return trip.
 r2b_treat_wia <- function(team_id) {
   hold_beds       <- env_data$elms$r2b[[team_id]][["hold_bed"]]
   resus_beds      <- env_data$elms$r2b[[team_id]][["resus_bed"]]
@@ -439,15 +490,7 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_to_r2e", 1) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
     set_attribute("r2b_departure_time", function() now(env)) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2b$wia_transport$min,
-        b = env_data$vars$r2b$wia_transport$max,
-        c = env_data$vars$r2b$wia_transport$mode
-      )
-    }) %>%
-    release_resources(evacuation_team) %>%
+    r2b_evac_return_leg(evacuation_team) %>%
     branch(
       option = function() get_attribute(env, "r2e"),
       continue = TRUE,
@@ -705,17 +748,7 @@ r2b_treat_wia <- function(team_id) {
                 release_selected(id = 5) %>%
                 set_attribute("r2b_to_r2e", 1) %>%
                 set_attribute("r2e", function() select_r2e_team()) %>%
-                seize_resources(evacuation_team) %>%
-                set_attribute("r2b_departure_time", function() now(env)) %>%
-                timeout(function() {
-                  rtriangle(
-                    n = 1,
-                    a = env_data$vars$r2b$wia_transport$min,
-                    b = env_data$vars$r2b$wia_transport$max,
-                    c = env_data$vars$r2b$wia_transport$mode
-                  )
-                }) %>%
-                release_resources(evacuation_team) %>%
+                r2b_evac_leg(evacuation_team) %>%
                 branch(
                   option = function() get_attribute(env, "r2e"),
                   continue = TRUE,
@@ -733,17 +766,7 @@ r2b_treat_wia <- function(team_id) {
             set_attribute("r2b_hold_bypass", 1) %>%
             set_attribute("r2b_to_r2e", 1) %>%
             set_attribute("r2e", function() select_r2e_team()) %>%
-            seize_resources(evacuation_team) %>%
-            set_attribute("r2b_departure_time", function() now(env)) %>%
-            timeout(function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2b$wia_transport$min,
-                b = env_data$vars$r2b$wia_transport$max,
-                c = env_data$vars$r2b$wia_transport$mode
-              )
-            }) %>%
-            release_resources(evacuation_team) %>%
+            r2b_evac_leg(evacuation_team) %>%
             branch(
               option = function() get_attribute(env, "r2e"),
               continue = TRUE,
@@ -782,17 +805,7 @@ r2b_treat_wia <- function(team_id) {
                 release_selected(id = 5) %>%
                 set_attribute("r2b_to_r2e", 1) %>%
                 set_attribute("r2e", function() select_r2e_team()) %>%
-                seize_resources(evacuation_team) %>%
-                set_attribute("r2b_departure_time", function() now(env)) %>%
-                timeout(function() {
-                  rtriangle(
-                    n = 1,
-                    a = env_data$vars$r2b$wia_transport$min,
-                    b = env_data$vars$r2b$wia_transport$max,
-                    c = env_data$vars$r2b$wia_transport$mode
-                  )
-                }) %>%
-                release_resources(evacuation_team) %>%
+                r2b_evac_leg(evacuation_team) %>%
                 branch(
                   option = function() get_attribute(env, "r2e"),
                   continue = TRUE,
@@ -825,17 +838,7 @@ r2b_treat_wia <- function(team_id) {
       trajectory("Immediate Evac") %>%
         set_attribute("r2b_to_r2e", 1) %>%
         set_attribute("r2e", function() select_r2e_team()) %>%
-        seize_resources(evacuation_team) %>%
-        set_attribute("r2b_departure_time", function() now(env)) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2b$wia_transport$min,
-            b = env_data$vars$r2b$wia_transport$max,
-            c = env_data$vars$r2b$wia_transport$mode
-          )
-        }) %>%
-        release_resources(evacuation_team) %>%
+        r2b_evac_leg(evacuation_team) %>%
         branch(
           option = function() get_attribute(env, "r2e"),
           continue = TRUE,
@@ -889,6 +892,24 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
     }) %>%
     set_attribute("mortuary_treated", 1) %>%
     release_resources(evac_team)
+}
+
+#' Builds a per-R2E-team mortuary intake sub-trajectory for KIA casualties
+#' arriving by road from R2B (Issue #73 follow-up: the mortuary is modelled
+#' as collocated with R2E, not R2B). One small trajectory is built per R2E
+#' team at model-graph-construction time — mirroring r2e_treat_wia()'s own
+#' team-selection pattern — and dispatched to at runtime via the "r2e"
+#' attribute set by r2b_transport_kia() before the branch(). evac_team is
+#' resolved once per team here, at build time, matching how r2e_treat_wia()
+#' resolves its own evac_team.
+#'
+#' @param team_id Integer index of the Role 2E Heavy team
+#' @return Simmer trajectory appending that team's KIA mortuary intake
+r2e_mortuary_intake <- function(team_id) {
+  evac_team <- select_subteam("r2eheavy", team_id, "evac")
+  trajectory("R2E Mortuary Intake") %>%
+    r2e_treat_kia(team_id, evac_team) %>%
+    r2e_transport_kia(team_id, evac_team)
 }
 
 #' Models the full R2E Heavy treatment flow for WIA casualties

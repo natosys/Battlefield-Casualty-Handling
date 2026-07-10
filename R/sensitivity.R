@@ -54,6 +54,7 @@ apply_params <- function(ed, p) {
   ed$vars$r1$wia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
   ed$vars$r1$kia_transport$return_leg_multiplier  <- p[["return_leg_multiplier"]]
   ed$vars$r2b$wia_transport$return_leg_multiplier <- p[["return_leg_multiplier"]]
+  ed$vars$r2b$kia_transport$return_leg_multiplier <- p[["return_leg_multiplier"]]
   ed
 }
 

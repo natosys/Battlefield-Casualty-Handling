@@ -318,8 +318,7 @@ MORRIS_LABELS <- c(
   long_icu_mode          = "Long ICU Stay (Mode)",
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   in_theatre_rate        = "In-Theatre Recovery Rate",
-  ot_hours               = "OT Shift Length (Hours per Shift)",
-  return_leg_multiplier  = "Transport Return-Leg Multiplier"
+  ot_hours               = "OT Shift Length (Hours per Shift)"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────
@@ -675,8 +674,10 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' Render the Medevac panel's live medevac chain diagram: a
 #' compact, fixed-topology diagram of the vehicle-transport legs the
 #' trajectory code actually models (R/trajectories.R), labelled with each
-#' leg's current mode duration and dead-heading return-leg multiplier
-#' (Issue #6) as the fields beside it are edited. Unlike force_node_graph()
+#' leg's current mode duration as the fields beside it are edited. Each leg
+#' also carries an unmodified dead-heading return leg — a fresh draw from
+#' the same outbound distribution, with no configurable multiplier (Issue
+#' #74). Unlike force_node_graph()
 #' (Health System Architecture), whose topology scales with team counts,
 #' the medevac chain's topology is fixed — three echelons, a small fixed
 #' set of legs — so only the text labels are dynamic, not the layout.
@@ -710,24 +711,20 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' rather than a line, to avoid implying a further cross-echelon leg the
 #' model doesn't have.
 #'
-#' @param wia1_mode,wia1_ret R1→R2B WIA transport mode (minutes) and
-#'   dead-heading return-leg multiplier.
-#' @param kia1_mode,kia1_ret R1→R2B KIA transport mode and return-leg
-#'   multiplier.
-#' @param wia2_mode,wia2_ret R2B→R2E WIA transport mode (minutes) and
-#'   dead-heading return-leg multiplier, applied to the R2B team's own
-#'   organic evac resource rather than a pooled vehicle (Issue #73).
-#' @param kia2_mode,kia2_ret R2B→R2E KIA/mortuary road-move transport mode
-#'   (minutes) and dead-heading return-leg multiplier, using the shared
-#'   HX2 40M fleet (Issue #73 follow-up).
+#' @param wia1_mode R1→R2B WIA transport mode (minutes); return leg is an
+#'   unmodified fresh draw from the same distribution.
+#' @param kia1_mode R1→R2B KIA transport mode (minutes).
+#' @param wia2_mode R2B→R2E WIA transport mode (minutes), applied to the
+#'   R2B team's own organic evac resource rather than a pooled vehicle
+#'   (Issue #73).
+#' @param kia2_mode R2B→R2E KIA/mortuary road-move transport mode
+#'   (minutes), using the shared HX2 40M fleet (Issue #73 follow-up).
 #' @param mort2e_mode R2E collocated-mortuary local transport mode
 #'   (minutes) — no return leg, since no vehicle asset is used for this
 #'   final in-place movement.
-evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
-                                wia2_mode, wia2_ret, kia2_mode, kia2_ret,
+evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
                                 mort2e_mode) {
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
-  fmt1 <- function(x) if (is.null(x) || is.na(x)) "?" else formatC(x, format = "f", digits = 2)
 
   width <- 300
   y     <- c(20, 130, 240)
@@ -780,16 +777,16 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
 
     leg(y[1], y[2], -1, "#2a78d6",
         sprintf("PMVAmb: %s min", fmt(wia1_mode)),
-        sprintf("×%s return", fmt1(wia1_ret))),
+        "+ dead-heading return"),
     leg(y[1], y[2], 1, "#6c757d",
         sprintf("HX240M: %s min", fmt(kia1_mode)),
-        sprintf("×%s return", fmt1(kia1_ret))),
+        "+ dead-heading return"),
     leg(y[2], y[3], -1, "#1e824c",
         sprintf("R2B Evac Team: %s min", fmt(wia2_mode)),
-        sprintf("×%s return", fmt1(wia2_ret))),
+        "+ dead-heading return"),
     leg(y[2], y[3], 1, "#922b21",
         sprintf("HX240M (mortuary): %s min", fmt(kia2_mode)),
-        sprintf("×%s return", fmt1(kia2_ret))),
+        "+ dead-heading return"),
 
     mortuary_marker(y[3], mort2e_mode),
 
@@ -802,13 +799,12 @@ evac_chain_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
 #' Wrap evac_chain_diagram() with the heading/caption pattern matching
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
-medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
-                             wia2_mode, wia2_ret, kia2_mode, kia2_ret,
+medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
                              mort2e_mode) {
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
     p(class = "text-muted", style = "font-size:11px;",
-      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration and dead-heading return-leg multiplier — all four legs now carry a working return leg. ",
+      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration — all four legs also carry an unmodified dead-heading return leg (a fresh draw from the same outbound distribution, no configurable multiplier; Issue #74). ",
       tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb, dead-heading return leg)"), "; ",
       tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M, dead-heading return leg)"), "; ",
       tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
@@ -819,8 +815,7 @@ medevac_diagram <- function(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
       tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
       " KIA reaching R2E (whether dying there, or arriving by road from R1 or R2B) travel no further — the ⚱ marker is a local transfer to the collocated R2E mortuary, not a cross-echelon vehicle leg.",
       " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
-    evac_chain_diagram(wia1_mode, wia1_ret, kia1_mode, kia1_ret,
-                        wia2_mode, wia2_ret, kia2_mode, kia2_ret, mort2e_mode)
+    evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode)
   )
 }
 
@@ -1303,17 +1298,17 @@ server <- function(input, output, session) {
   outputOptions(output, "force_design_diagram", suspendWhenHidden = FALSE)
 
   # Live medevac chain diagram at the top of the Medevac panel
-  # (see medevac_diagram()) — reads the same transport mode/
-  # return-leg-multiplier inputs the fields below it edit. All four legs
-  # now carry an active return-leg multiplier (Issue #73 follow-up); R2E's
-  # own local mortuary transfer (mort2e_mode) remains a marker, not a leg,
-  # since no vehicle asset is used for that final in-place movement.
+  # (see medevac_diagram()) — reads the same transport mode inputs the
+  # fields below it edit. All four legs carry an unmodified dead-heading
+  # return leg (Issue #74); R2E's own local mortuary transfer (mort2e_mode)
+  # remains a marker, not a leg, since no vehicle asset is used for that
+  # final in-place movement.
   output$medevac_diagram <- renderUI({
     medevac_diagram(
-      wia1_mode = input$r1_wia_transport_mode  %||% 0, wia1_ret = input$r1_wia_transport_return %||% 1,
-      kia1_mode = input$r1_kia_transport_mode  %||% 0, kia1_ret = input$r1_kia_transport_return %||% 1,
-      wia2_mode = input$r2b_wia_transport_mode %||% 0, wia2_ret = input$r2b_wia_transport_return %||% 1,
-      kia2_mode = input$r2b_kia_transport_mode %||% 0, kia2_ret = input$r2b_kia_transport_return %||% 1,
+      wia1_mode = input$r1_wia_transport_mode  %||% 0,
+      kia1_mode = input$r1_kia_transport_mode  %||% 0,
+      wia2_mode = input$r2b_wia_transport_mode %||% 0,
+      kia2_mode = input$r2b_kia_transport_mode %||% 0,
       mort2e_mode = input$r2e_kia_transport_mode %||% 0
     )
   })

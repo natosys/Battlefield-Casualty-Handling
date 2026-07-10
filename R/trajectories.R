@@ -219,7 +219,7 @@ r1_transport_kia <- function() {
             a = env_data$vars$r1$kia_transport$min,
             b = env_data$vars$r1$kia_transport$max,
             c = env_data$vars$r1$kia_transport$mode
-          ) * env_data$vars$r1$kia_transport$return_leg_multiplier
+          )
         }) %>%
         release_selected(),
       trajectory("Casualty Dropped Off")
@@ -293,7 +293,7 @@ r1_transport_wia <- function() {
             a = env_data$vars$r1$wia_transport$min,
             b = env_data$vars$r1$wia_transport$max,
             c = env_data$vars$r1$wia_transport$mode
-          ) * env_data$vars$r1$wia_transport$return_leg_multiplier
+          )
         }) %>%
         release_selected(),
       trajectory("Casualty Dropped Off")
@@ -363,7 +363,7 @@ r2b_transport_kia <- function(traj, team_id) {
             a = env_data$vars$r2b$kia_transport$min,
             b = env_data$vars$r2b$kia_transport$max,
             c = env_data$vars$r2b$kia_transport$mode
-          ) * env_data$vars$r2b$kia_transport$return_leg_multiplier
+          )
         }) %>%
         release_selected(),
       trajectory("KIA Arrived at R2E Mortuary")
@@ -424,7 +424,7 @@ r2b_evac_return_leg <- function(traj, evacuation_team) {
             a = env_data$vars$r2b$wia_transport$min,
             b = env_data$vars$r2b$wia_transport$max,
             c = env_data$vars$r2b$wia_transport$mode
-          ) * env_data$vars$r2b$wia_transport$return_leg_multiplier
+          )
         }) %>%
         release_resources(evacuation_team),
       trajectory("Casualty Dropped Off at R2E")

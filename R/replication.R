@@ -45,7 +45,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
                       env_data$pops$combat, n_days, write_file = write_files,
                       antithetic = antithetic)
   mascal         <- generate_mass_casualty_events(n_days,
-                      env_data$vars$mass_casualty$event, write_file = write_files,
+                      env_data$vars$mass_casualty, write_file = write_files,
                       antithetic = antithetic)
   wia_cbt_times  <- c(wia_cbt_bg, mascal$arrival_times)
   wia_cbt_order  <- order(wia_cbt_times)

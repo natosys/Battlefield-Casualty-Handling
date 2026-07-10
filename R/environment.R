@@ -293,57 +293,29 @@ generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
   }
 }
 
-#' Generates mass casualty (MASCAL) event arrival timestamps via a compound
-#' Poisson process
+#' Draws event start times for the "poisson" MASCAL mode
 #'
 #' @param n_days Duration in days
-#' @param params List with rate_per_day, min_cas, max_cas, window_min,
-#'   window_mode, window_max (as read from
-#'   env_data$vars$mass_casualty$event)
-#' @param seed Optional random seed for reproducibility
-#' @param write_file Write the arrival stream and event log to data/
-#'   (default TRUE; set FALSE for parallel replication workers to avoid
-#'   file-write conflicts)
-#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
-#'   substituted for U in the event inter-arrival, casualty-count, window
-#'   duration, and within-window offset draws. Enables antithetic pairing
-#'   in run_replications().
-#' @return Named list: `arrival_times` (sorted numeric vector of individual
-#'   casualty arrival times, simulation minutes) and `events` (data frame
-#'   with one row per event: event_id, event_start, n_cas, window_min —
-#'   used for the mass casualty event timeline plot in R/analysis.R)
+#' @param event_params List with rate_per_day, as read from
+#'   env_data$vars$mass_casualty$event
+#' @param antithetic Logical; antithetic variate pairing (see
+#'   generate_mass_casualty_events())
+#' @return Numeric vector of event start times (simulation minutes),
+#'   ascending; empty if rate_per_day <= 0
 #'
-#' @details Implements a compound Poisson process for mass casualty
-#'   injection (Fischer et al., 2025; Debacker et al., 2016): event
-#'   inter-arrival times are drawn from an Exponential(rate_per_day)
-#'   distribution, each event injects Uniform(min_cas, max_cas) casualties
-#'   distributed across a Triangular(window_min, window_mode,
-#'   window_max)-minute injection window following the event start.
-#'   `rate_per_day = 0` returns an empty arrival stream — background
-#'   lognormal generation is unaffected, satisfying Issue #9's disable-path
-#'   acceptance criterion.
-generate_mass_casualty_events <- function(n_days, params, seed = NULL,
-                                          write_file = TRUE, antithetic = FALSE) {
-  if (!is.null(seed)) set.seed(seed)
-
+#' @details Event inter-arrival times are drawn from an
+#'   Exponential(rate_per_day) distribution via inverse-CDF, so U can be
+#'   reflected for antithetic pairing (matches
+#'   generate_ln_arrivals()/generate_exp_arrivals()). `rate_per_day = 0`
+#'   returns immediately with no RNG draws consumed, so the stream
+#'   downstream of this call is unaffected — the basis for Issue #9's
+#'   disable-path acceptance criterion.
+mascal_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE) {
   n_minutes    <- day_min * n_days
-  rate_per_min <- params$rate_per_day / day_min
+  rate_per_min <- event_params$rate_per_day / day_min
 
-  empty_events <- data.frame(event_id = integer(0), event_start = numeric(0),
-                             n_cas = integer(0), window_min = numeric(0))
+  if (rate_per_min <= 0) return(numeric(0))
 
-  if (rate_per_min <= 0) {
-    if (write_file) {
-      write.table(numeric(0), file = file.path("data", "arrivals_mascal.txt"),
-                 row.names = FALSE, col.names = FALSE)
-      write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
-               row.names = FALSE)
-    }
-    return(list(arrival_times = numeric(0), events = empty_events))
-  }
-
-  # Exponential inter-arrival times via inverse-CDF, so U can be reflected
-  # for antithetic pairing (matches generate_ln_arrivals()/generate_exp_arrivals()).
   event_starts <- c()
   t <- 0
   repeat {
@@ -353,6 +325,144 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
     if (t >= n_minutes) break
     event_starts <- c(event_starts, t)
   }
+  event_starts
+}
+
+#' Draws event start times for the "scheduled" MASCAL mode
+#'
+#' @param n_days Duration in days
+#' @param schedule_params List with `days` (simulation day, 1-indexed, on
+#'   which a candidate event may occur) and `probabilities` (per-day
+#'   Bernoulli occurrence probability; empty or omitted defaults every day
+#'   to probability 1 — always fires), as read from
+#'   env_data$vars$mass_casualty$schedule
+#' @param antithetic Logical; antithetic variate pairing (see
+#'   generate_mass_casualty_events())
+#' @return Numeric vector of event start times (simulation minutes),
+#'   ascending; empty if no scheduled days are configured
+#'
+#' @details Lets a planner specify a fixed number of events and the exact
+#'   simulation days they may occur on, rather than an inferred rate —
+#'   e.g. scripting a specific historical or exercise timeline. Each
+#'   configured day is independently included via a Bernoulli(probability)
+#'   draw, so per-replication variation is still possible (a day with
+#'   probability 1 always fires; a lower probability introduces controlled
+#'   randomness across replications). A fired day's exact start minute is
+#'   drawn Uniform(0, 1440) within that day, so intra-day timing remains
+#'   stochastic even though the day itself is planner-specified.
+mascal_event_starts_scheduled <- function(n_days, schedule_params, antithetic = FALSE) {
+  n_minutes <- day_min * n_days
+  days  <- unlist(schedule_params$days)
+  probs <- unlist(schedule_params$probabilities)
+
+  if (length(days) == 0) return(numeric(0))
+  if (length(probs) == 0) probs <- rep(1, length(days))
+  if (length(probs) != length(days)) {
+    stop("mass_casualty.schedule.probabilities must be empty (every day fires) or match schedule.days in length")
+  }
+
+  u_occur <- runif(length(days))
+  if (antithetic) u_occur <- 1 - u_occur
+  fired_days <- days[u_occur < probs]
+
+  if (length(fired_days) == 0) return(numeric(0))
+
+  u_intraday <- runif(length(fired_days))
+  if (antithetic) u_intraday <- 1 - u_intraday
+  event_starts <- (fired_days - 1) * day_min + u_intraday * day_min
+
+  sort(event_starts[event_starts >= 0 & event_starts < n_minutes])
+}
+
+#' Draws casualty arrival times, count, and injection window for one MASCAL event
+#'
+#' @param event_start Event start time (simulation minutes)
+#' @param event_params List with min_cas, max_cas, window_min, window_mode,
+#'   window_max, as read from env_data$vars$mass_casualty$event
+#' @param n_minutes Total simulation duration in minutes (arrivals at or
+#'   after this are dropped)
+#' @param antithetic Logical; antithetic variate pairing (see
+#'   generate_mass_casualty_events())
+#' @return Named list: `times` (numeric vector of casualty arrival times)
+#'   and `window` (the drawn injection window duration, minutes)
+mascal_event_casualties <- function(event_start, event_params, n_minutes, antithetic = FALSE) {
+  u_cas <- runif(1)
+  if (antithetic) u_cas <- 1 - u_cas
+  n_cas_draw <- round(event_params$min_cas + u_cas * (event_params$max_cas - event_params$min_cas))
+
+  window <- rtriangle(1, a = event_params$window_min, b = event_params$window_max,
+                      c = event_params$window_mode)
+
+  u_offset <- runif(n_cas_draw)
+  if (antithetic) u_offset <- 1 - u_offset
+  offsets <- sort(u_offset * window)
+
+  times <- event_start + offsets
+  times <- times[times >= 0 & times < n_minutes]
+
+  list(times = times, window = window)
+}
+
+#' Generates mass casualty (MASCAL) event arrival timestamps
+#'
+#' @param n_days Duration in days
+#' @param params The full env_data$vars$mass_casualty list, with `event`
+#'   (mode ["poisson"|"scheduled"], rate_per_day, min_cas, max_cas,
+#'   window_min, window_mode, window_max) and `schedule` (days,
+#'   probabilities — read only when `event$mode == "scheduled"`) elements
+#' @param seed Optional random seed for reproducibility
+#' @param write_file Write the arrival stream and event log to data/
+#'   (default TRUE; set FALSE for parallel replication workers to avoid
+#'   file-write conflicts)
+#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
+#'   substituted for U in every draw this function and its mode-specific
+#'   helpers make. Enables antithetic pairing in run_replications().
+#' @return Named list: `arrival_times` (sorted numeric vector of individual
+#'   casualty arrival times, simulation minutes) and `events` (data frame
+#'   with one row per event: event_id, event_start, n_cas, window_min —
+#'   used for the mass casualty event timeline plot in R/analysis.R)
+#'
+#' @details Two event-timing modes are supported, selected by
+#'   `params$event$mode`: "poisson" (default) implements a compound
+#'   Poisson process for mass casualty injection (Fischer et al., 2025;
+#'   Debacker et al., 2016) — event inter-arrival times are drawn from an
+#'   Exponential(rate_per_day) distribution (`mascal_event_starts_poisson()`);
+#'   "scheduled" instead takes a planner-specified list of candidate
+#'   simulation days, each with an independent Bernoulli occurrence
+#'   probability (`mascal_event_starts_scheduled()`). Both modes then draw
+#'   each fired event's casualty count, injection window, and per-casualty
+#'   offsets identically (`mascal_event_casualties()`): Uniform(min_cas,
+#'   max_cas) casualties distributed across a Triangular(window_min,
+#'   window_mode, window_max)-minute window. An event schedule/rate that
+#'   produces zero events returns an empty arrival stream — background
+#'   lognormal generation is unaffected, satisfying Issue #9's
+#'   disable-path acceptance criterion (shipped default: "poisson" mode,
+#'   rate_per_day = 0).
+generate_mass_casualty_events <- function(n_days, params, seed = NULL,
+                                          write_file = TRUE, antithetic = FALSE) {
+  if (!is.null(seed)) set.seed(seed)
+
+  n_minutes <- day_min * n_days
+  mode <- if (!is.null(params$event$mode)) params$event$mode else "poisson"
+
+  empty_events <- data.frame(event_id = integer(0), event_start = numeric(0),
+                             n_cas = integer(0), window_min = numeric(0))
+
+  event_starts <- if (identical(mode, "scheduled")) {
+    mascal_event_starts_scheduled(n_days, params$schedule, antithetic = antithetic)
+  } else {
+    mascal_event_starts_poisson(n_days, params$event, antithetic = antithetic)
+  }
+
+  if (length(event_starts) == 0) {
+    if (write_file) {
+      write.table(numeric(0), file = file.path("data", "arrivals_mascal.txt"),
+                 row.names = FALSE, col.names = FALSE)
+      write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
+               row.names = FALSE)
+    }
+    return(list(arrival_times = numeric(0), events = empty_events))
+  }
 
   arrival_times <- c()
   event_id      <- c()
@@ -360,24 +470,12 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   n_cas_actual  <- c()
 
   for (i in seq_along(event_starts)) {
-    u_cas <- runif(1)
-    if (antithetic) u_cas <- 1 - u_cas
-    n_cas_draw <- round(params$min_cas + u_cas * (params$max_cas - params$min_cas))
+    cas <- mascal_event_casualties(event_starts[i], params$event, n_minutes, antithetic = antithetic)
 
-    window <- rtriangle(1, a = params$window_min, b = params$window_max,
-                        c = params$window_mode)
-
-    u_offset <- runif(n_cas_draw)
-    if (antithetic) u_offset <- 1 - u_offset
-    offsets <- sort(u_offset * window)
-
-    times <- event_starts[i] + offsets
-    times <- times[times < n_minutes]
-
-    arrival_times <- c(arrival_times, times)
-    event_id      <- c(event_id, rep(i, length(times)))
-    window_dur    <- c(window_dur, window)
-    n_cas_actual  <- c(n_cas_actual, length(times))
+    arrival_times <- c(arrival_times, cas$times)
+    event_id      <- c(event_id, rep(i, length(cas$times)))
+    window_dur    <- c(window_dur, cas$window)
+    n_cas_actual  <- c(n_cas_actual, length(cas$times))
   }
 
   arrival_times <- sort(arrival_times)

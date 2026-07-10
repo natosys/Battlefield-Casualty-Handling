@@ -115,6 +115,11 @@ library(stringr)
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+# A non-character sub_elm (e.g. R1's placeholder integer, which has no named
+# sub-team split in the trajectory logic) denotes the same "no sub-team"
+# case as a missing sub_elm, so both resolve to the same "base" label.
+resolve_sub_elm <- function(x) if (is.null(x) || !is.character(x)) "base" else x
+
 # === Capitalization Helpers ===
 capitalize <- function(x) str_to_title(as.character(x))
 toupper_safe <- function(x) toupper(as.character(x))
@@ -161,14 +166,14 @@ generate_env_summary_section <- function(env_data) {
   }
   
   all_team_types <- unique(unlist(map(env_data$elms, function(elm) {
-    map_chr(elm$sub_elms, ~ .x$sub_elm %||% "base")
+    map_chr(elm$sub_elms, ~ resolve_sub_elm(.x$sub_elm))
   })))
   formatted_team_types <- map_chr(all_team_types, ~ capitalize(.x))
   
   elm_rows <- map(env_data$elms, function(elm) {
     team_resources <- setNames(rep(NA, length(formatted_team_types)), formatted_team_types)
     for (sub in elm$sub_elms) {
-      key <- capitalize(sub$sub_elm %||% "base")
+      key <- capitalize(resolve_sub_elm(sub$sub_elm))
       team_resources[[key]] <- summarise_resources(sub$resources)
     }
     c(

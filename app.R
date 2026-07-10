@@ -178,10 +178,12 @@ render_dow_curve <- function(p_base, p_max, k, t_mid, window_max = NULL) {
 #' there is no separate server-rendered breakdown bar (removed — it was a
 #' full duplicate of what the slider itself now shows).
 SPLIT_SLIDER_META <- list(
-  pri_split  = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
-                     labels = c("P1", "P2", "P3")),
-  dnbi_split = list(colors = c("#8e44ad", "#e08e2d", "#2a78d6"),
-                     labels = c("BF", "Disease", "NBI"))
+  pri_split    = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
+                       labels = c("P1", "P2", "P3")),
+  dnbi_split   = list(colors = c("#8e44ad", "#e08e2d", "#2a78d6"),
+                       labels = c("BF", "Disease", "NBI")),
+  mc_pri_split = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
+                       labels = c("P1", "P2", "P3"))
 )
 
 #' Recolour a two-handle ion.rangeSlider's track to show all three
@@ -306,6 +308,7 @@ inject_split <- function(values, split_id, part_ids) {
 inject_all_splits <- function(values) {
   values <- inject_split(values, "pri_split",  c("pri_one", "pri_two", "pri_three"))
   values <- inject_split(values, "dnbi_split", c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct"))
+  values <- inject_split(values, "mc_pri_split", c("mc_pri_one", "mc_pri_two", "mc_pri_three"))
   values
 }
 
@@ -318,7 +321,9 @@ MORRIS_LABELS <- c(
   long_icu_mode          = "Long ICU Stay (Mode)",
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   in_theatre_rate        = "In-Theatre Recovery Rate",
-  ot_hours               = "OT Shift Length (Hours per Shift)"
+  ot_hours               = "OT Shift Length (Hours per Shift)",
+  mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
+  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────
@@ -957,6 +962,73 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       ))
     }
 
+    # Event Timing Mode (the mode dropdown itself) always renders via the
+    # default fallback below; Random Event Rate and Scheduled Event Days are
+    # each wrapped in a conditionalPanel() keyed off input$mc_mode, so only
+    # the fields relevant to the selected mode are shown — Event Size &
+    # Injection Window and Mass Casualty Priority Split apply to both modes
+    # and are never hidden.
+    if (identical(sg, "Random Event Rate")) {
+      return(conditionalPanel(
+        condition = "input.mc_mode == 'poisson'",
+        tagList(
+          h6(class = "text-muted mt-2", sg),
+          p(class = "text-muted small",
+            "Event start times are drawn from a Poisson process at this rate — event count and timing vary stochastically between replications."),
+          render_field_grid(sg_fields, defaults, overridden_paths)
+        )
+      ))
+    }
+
+    if (identical(sg, "Scheduled Event Days")) {
+      return(conditionalPanel(
+        condition = "input.mc_mode == 'scheduled'",
+        tagList(
+          h6(class = "text-muted mt-2", sg),
+          p(class = "text-muted small",
+            sprintf(
+              "Up to %d candidate events, each independently drawn (Bernoulli) at its own probability every replication — a day at probability 1 fires identically in every replication, a lower value introduces controlled randomness. Leave Day at 0 to leave a slot unused. For more than %d explicit events, edit env_data.json directly.",
+              MASS_CASUALTY_SCHEDULE_SLOTS, MASS_CASUALTY_SCHEDULE_SLOTS
+            )),
+          layout_column_wrap(
+            width = "240px",
+            !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+              day_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),  sg_fields)
+              prob_f <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)), sg_fields)
+              card(
+                card_header(sprintf("Event %d", i)),
+                field_input(day_f,  defaults[[day_f$id]],  overridden_paths),
+                field_input(prob_f, defaults[[prob_f$id]], overridden_paths)
+              )
+            })
+          )
+        )
+      ))
+    }
+
+    if (identical(sg, "Mass Casualty Priority Split")) {
+      one_f <- Find(function(f) identical(f$id, "mc_pri_one"), sg_fields)
+      p1 <- defaults[["mc_pri_one"]]; p2 <- defaults[["mc_pri_two"]]
+      mc_pri_lbl <- field_label(list(
+        label   = "Priority Split (P1 | P2 | P3)",
+        tooltip = paste0(
+          "Drag either handle to reallocate share between adjacent priorities for mass-casualty-derived casualties specifically — ",
+          "Priority 1, 2, and 3 always sum to 100% by construction. Independent of the background Triage Priority Split (Casualty Rates panel). Source: ",
+          SRC_MASS_CASUALTY_PRI
+        ),
+        path = one_f$path
+      ), overridden_paths)
+      return(tagList(
+        h6(class = "text-muted mt-2", sg),
+        p(class = "text-muted small",
+          "Applies only to mass-casualty-derived casualties (see Event Timing Mode above) — the background Triage Priority Split in the Casualty Rates panel is unaffected by this."),
+        card(
+          card_header(sg),
+          range_slider_with_text_input("mc_pri_split", mc_pri_lbl, c(p1, p1 + p2))
+        )
+      ))
+    }
+
     tagList(
       h6(class = "text-muted mt-2", sg),
       render_field_grid(sg_fields, defaults, overridden_paths)
@@ -986,7 +1058,7 @@ ui <- page_navbar(
     uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
-      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY), function(g) {
+      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_MASS_CASUALTY), function(g) {
         sidebar_output_id <- if (identical(g, GRP_HEALTH_ARCH)) {
           "force_design_diagram"
         } else if (identical(g, GRP_LOGISTICS)) {
@@ -1086,6 +1158,7 @@ server <- function(input, output, session) {
   wire_slider_text_sync(input, session, "ot_hours")
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
+  wire_range_slider_text_sync(input, session, "mc_pri_split")
 
   # Live distribution-curve preview for every triangular (min/mode/max)
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),

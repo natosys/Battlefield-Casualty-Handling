@@ -406,7 +406,7 @@ Follow `STYLE_GUIDE.md` at all times. Key points:
 
 These are the validated baseline values from the current single-run analysis. Regression tests must check against these.
 
-> **Provenance caveat (Issue #73 follow-up refresh):** the RNG-shifted rows below (everything from DOW count onward) were captured in an ad-hoc R 4.3.3 sandbox with no `renv` lockfile (Issue #72 — dependency pinning is not yet implemented), not the project's pinned Dev Container (`rocker/rstudio:4.4.2`, `.devcontainer/Dockerfile`). A direct check confirmed this matters: re-running the already-merged, unmodified pre-#73-follow-up code in this same sandbox reproduced the correct *total* casualty/WIA/KIA/DNBI counts, but individual arrival *times* diverged from the committed `data/arrivals_*.txt` baseline — an environment artifact, not a code effect (confirmed by checking out that commit directly and re-running, independent of any change in this PR). `data/arrivals_*.txt`, `logs/logs.txt`, and `images/*.png` were therefore **not** regenerated/committed as part of this refresh, to avoid baking sandbox-specific RNG noise into tracked artifacts a canonical-environment run wouldn't reproduce. The RNG-stream-shift *direction and mechanism* reported below (new `rtriangle()` draws on previously-dead code paths) is correct and verified by within-sandbox before/after comparison; the exact figures should be re-verified in the Dev Container before being treated as strict regression-test ground truth.
+> **Provenance caveat (Issue #76 refresh):** the seed-42 single-run rows below were regenerated in the project's actual pinned Dev Container (`rocker/rstudio:4.4.2`, built directly from `.devcontainer/Dockerfile`), superseding the prior Issue #73 follow-up refresh (which used an unpinned R 4.3.3 sandbox and carried a corresponding accuracy caveat). As a validation step, the pre-Issue-76 configuration (`env_data.json` `r2b.surgery`/`r2eheavy.surgery` = 90/240/120) was re-run first in this pinned container and reproduced every one of the previously documented post-Issue-73 figures exactly (total/WIA/KIA/DNBI counts, DOW count, DNBI sub-types, RTD breakdown, R2B/R2E surgical counts, bypass counts, per-resource OT/ICU/transport utilisation, post-op pathway) — confirming the pinned container is a faithful, reproducible environment. Issue #76 then updated `r2b.surgery`/`r2eheavy.surgery` to 41/210/95 (see Issue #76 for the citation basis) and the seed-42 baseline was re-run again; the rows below reflect that post-Issue-76 configuration. This is an RNG-stream-shifting change: because `simmer` draws from a single global RNG stream shared across all interleaved entity trajectories in event-time order, a shorter/different DAMCON surgery-duration distribution shifts the RNG position for every subsequent draw by any entity for the remainder of the run — so, as with prior RNG-stream-shifting merges (Issue #43, #73), every seed-42 row *below* raw casualty generation (which precedes all trajectory execution and is therefore unaffected) changed. The `R2B OT utilisation — shift time` row and all 50-replication multi-run rows were **not** recomputed as part of this refresh (out of scope for Issue #76's single-run acceptance criterion) and remain flagged pending. Unlike the Issue #73 follow-up refresh, `data/arrivals_*.txt`, `logs/logs.txt`, and `images/*.png` **were** regenerated and committed as part of this refresh, since this run was produced in the genuine pinned container rather than an unpinned sandbox — these tracked artifacts now finally reflect a canonical-environment run for the first time since that caveat was introduced. In the course of this refresh, the previously documented "R2B bypass count ... (upstream R1 threshold: 50 + at-R2B OT-check bypass: 82)" parenthetical was found to be a pre-existing inaccuracy unrelated to Issue #76 — the current codebase's `r2b_pre_bypass_count` (upstream R1-threshold routing) and `r2b_ot_bypass_count` (at-R2B OT-check bypass) are two independent, non-summing counts, not addends of a combined total; the row below corrects this.
 
 | Metric | Baseline value |
 |---|---|
@@ -414,35 +414,35 @@ These are the validated baseline values from the current single-run analysis. Re
 | WIA (combat + support) | 154 |
 | KIA (combat + support) | 70 |
 | DNBI (combat + support) | 176 |
-| Priority 1 share (of 400 total) | ~53.3% |
-| DOW count (seed 42) | 3, all at R2B (stochastic; mean ~0.70/run across replications — this 50-rep figure predates the Issue #73 follow-up RNG-stream shift below and has not been refreshed) |
+| Priority 1 share (of 400 total) | ~53.3% (pre-dates the Issue #73 follow-up RNG-stream shift; not yet re-derived against a current-code baseline — post-Issue-76 seed-42 priority split is P1 202/P2 74/P3 54/KIA 70, i.e. 50.5% P1, but this reflects both the Issue #73 follow-up and Issue #76 shifts combined and should not be treated as isolating either) |
+| DOW count (seed 42) | 0, down from 3 (all previously at R2B) pre-Issue-76 — RNG-stream-shifted by the surgery-duration change, not a change in DOW logic itself; mean ~0.70/run (50-rep, seed=NULL) figure predates both the Issue #73 follow-up and Issue #76 RNG-stream shifts and has not been refreshed |
 | DOW rate — P1 p_max (logistic) | 2.3% ceiling (Falklands 1982 calibration) |
 | DOW rate — P2 p_max (logistic) | 1.9% ceiling (Falklands 1982 calibration) |
 | DOW rate — P3 flat | 0.1% (structural placeholder; P3 never evacuated) |
-| Mean DOW/run (50-rep, seed=NULL) | ~0.70 (0.45% of WIA); 95% CI [0.41, 0.95] — predates Issue #73 follow-up; not yet refreshed |
-| DNBI sub-types (seed 42) | battle_fatigue=46, disease=110, nbi=20 |
-| bf_rtd (seed 42) | 39 |
-| clinical_rtd (seed 42) | 95 (r1: 48, r2b: 42, r2e: 5) |
-| total_rtd (seed 42) | 134 |
-| R2B surgical candidates (seed 42, post-Issue-73) | 132 |
-| R2B surgeries (seed 42, post-Issue-73) | 47 |
-| R2E surgeries — first op (seed 42, post-Issue-73) | 132 |
-| R2B bypass count (seed 42, post-Issue-73) | 132 (upstream R1 threshold: 50 + at-R2B OT-check bypass: 82) |
-| R2B OT bypass reason (seed 42, post-Issue-73) | at-R2B subset (82) decomposed: team off-shift 76 (93%), OT busy/queued 6 (7%) |
-| R2B OT utilisation — 24h room (seed 42, post-Issue-73) | T1: 8.5%, T2: 7.4% |
-| R2B OT utilisation — shift time (seed 42, post-Issue-73) | T1: 14.4%, T2: 13.9% |
-| R2E OT utilisation — 24h room (seed 42, post-Issue-73) | OT1: 47.9%, OT2: 24.4% |
-| R2E ICU utilisation — mean (seed 42, post-Issue-73) | ICU1: 76.8%, ICU2: 74.8%, ICU3: 57.8%, ICU4: 52.8% |
-| R2E ICU queue ≥1 (seed 42, post-Issue-73) | ICU1: 15.3% of run, ICU2: 2.3% of run, ICU3: 0% of run, ICU4: 0% of run |
-| PMV Ambulance utilisation (seed 42, post-Issue-73) | 10.8% (max queue 0 throughout run); per-vehicle 26.2% / 5.2% / 0.9% |
-| HX240M utilisation (seed 42, post-Issue-73) | 5.2% (max queue 0 throughout run); per-vehicle 9.1% / 1.3% — now also carries R2B→R2E mortuary road-move traffic, not R1→mortuary KIA alone |
-| R2B evac team dead-heading (seed 42, Issue #73 follow-up) | R2B→R2E WIA transport now models a dead-heading return leg on the R2B team's own organic evac resource (`r2b_evac_leg()`/`r2b_evac_return_leg()`), matching the R1↔R2B legs; RNG-stream-shifting, not RNG-neutral |
-| R2B→R2E mortuary transport (seed 42, Issue #73 follow-up) | R2B KIA/DOW (73 of 400 casualties: 70 KIA + 3 DOW) now transported by road to the R2E-collocated mortuary via the shared HX2 40M fleet (`r2b_transport_kia()`, dead-heading return leg), then handed to a selected R2E team's mortuary intake (`r2e_mortuary_intake()`) — previously modelled as an instantaneous local R2B transfer with no vehicle leg |
-| R2E post-op pathway (seed 42, Issue #73) | icu=108, hold=24 (ICU saturated, P1 override); surgery_deferred=10 (ICU saturated, P2+) |
-| R2E post-op DOW rate — icu vs hold (seed 42, Issue #73) | 0/108 vs 0/24 (single-run; saturated-ICU 90-day stress test from Issue #43 confirms mechanism fires, hold pathway > icu pathway — stress test predates this baseline refresh and has not been re-run) |
-| Mean DOW/run — pre- vs post-Issue-43 (50-rep, seed=NULL) | 0.84 (95% CI [0.58, 1.10]) → 1.00 (95% CI [0.74, 1.26]); CIs overlap (not significant at n=50); +0.10/run attributable to the new post-op checkpoint alone (5/50 reps) — predates Issue #73 follow-up; not yet refreshed |
-| R2E post-op DOW rate — icu vs hold (50-rep, Issue #43) | icu: 3/5,085 (0.06%); hold: 2/1,223 (0.16%) — hold ≈2.8× icu, consistent with intended design at real (non-stress-tested) parameters — predates Issue #73 follow-up; not yet refreshed |
-| R2E ICU utilisation — mean (50-rep, pre- vs post-Issue-43) | 74.1% → 60.2% — predates Issue #73 follow-up; not yet refreshed |
+| Mean DOW/run (50-rep, seed=NULL) | ~0.70 (0.45% of WIA); 95% CI [0.41, 0.95] — predates the Issue #73 follow-up and Issue #76 RNG-stream shifts; not yet refreshed |
+| DNBI sub-types (seed 42) | battle_fatigue=38, disease=99, nbi=39 (was battle_fatigue=46, disease=110, nbi=20 pre-Issue-76) |
+| bf_rtd (seed 42) | 35 (was 39 pre-Issue-76) |
+| clinical_rtd (seed 42) | 113 (r1: 65, r2b: 39, r2e: 9) (was 95 — r1: 48, r2b: 42, r2e: 5 — pre-Issue-76) |
+| total_rtd (seed 42) | 148 (was 134 pre-Issue-76) |
+| R2B surgical candidates (seed 42, post-Issue-76) | 141 (was 132 pre-Issue-76) |
+| R2B surgeries (seed 42, post-Issue-76) | 62 (was 47 pre-Issue-76) |
+| R2E surgeries — first op (seed 42, post-Issue-76) | 142 (was 132 pre-Issue-76) |
+| R2B pre-transport bypass (seed 42, post-Issue-76) | upstream R1-threshold bypass: 115 (was 132); at-R2B hold-full bypass: 0 (was 1); R2B hold queue (both full): 0 (unchanged) — these are three independent, non-summing counts (see provenance caveat above for a correction to how this row was previously presented) |
+| R2B OT bypass reason (seed 42, post-Issue-76) | at-R2B subset, 78 total (was 82): team off-shift 73 (was 76), OT busy/queued 5 (was 6) |
+| R2B OT utilisation — 24h room (seed 42, post-Issue-76) | T1: 6.7%, T2: 9.3% (was T1: 8.5%, T2: 7.4% pre-Issue-76) |
+| R2B OT utilisation — shift time (seed 42, post-Issue-73) | T1: 14.4%, T2: 13.9% — pre-dates Issue #76; not recomputed in this refresh |
+| R2E OT utilisation — 24h room (seed 42, post-Issue-76) | OT1: 40.8%, OT2: 16.9% (was OT1: 47.9%, OT2: 24.4% pre-Issue-76) |
+| R2E ICU utilisation — mean (seed 42, post-Issue-76) | ICU1: 76.6%, ICU2: 62.1%, ICU3: 59.6%, ICU4: 47.0% (was ICU1: 76.8%, ICU2: 74.8%, ICU3: 57.8%, ICU4: 52.8% pre-Issue-76) |
+| R2E ICU queue ≥1 (seed 42, post-Issue-76) | ICU1: 11.2% of run, ICU2: 2.2% of run, ICU3: 0% of run, ICU4: 0% of run (was ICU1: 15.3%, ICU2: 2.3%, ICU3: 0%, ICU4: 0% pre-Issue-76) |
+| PMV Ambulance utilisation (seed 42, post-Issue-76) | 10.4% (was 10.8%); max queue 0 throughout run; per-vehicle 25.5% / 5.3% / 0.6% (was 26.2% / 5.2% / 0.9%) |
+| HX240M utilisation (seed 42, post-Issue-76) | 4.8% (was 5.2%); max queue 0 throughout run; per-vehicle 8.6% / 1.0% (was 9.1% / 1.3%) — carries R2B→R2E mortuary road-move traffic in addition to R1→mortuary KIA |
+| R2B evac team dead-heading (seed 42, Issue #73 follow-up) | R2B→R2E WIA transport models a dead-heading return leg on the R2B team's own organic evac resource (`r2b_evac_leg()`/`r2b_evac_return_leg()`), matching the R1↔R2B legs; RNG-stream-shifting, not RNG-neutral |
+| R2B→R2E mortuary transport (seed 42, Issue #73 follow-up) | R2B KIA/DOW (70 KIA + 0 DOW = 70 of 400 casualties post-Issue-76, was 70 KIA + 3 DOW = 73 pre-Issue-76) transported by road to the R2E-collocated mortuary via the shared HX2 40M fleet (`r2b_transport_kia()`, dead-heading return leg), then handed to a selected R2E team's mortuary intake (`r2e_mortuary_intake()`) |
+| R2E post-op pathway (seed 42, post-Issue-76) | icu=110, hold=31 (ICU saturated, P1 override); surgery_deferred=13 (ICU saturated, P2+) (was icu=108, hold=24, surgery_deferred=10 pre-Issue-76) |
+| R2E post-op DOW rate — icu vs hold (seed 42, post-Issue-76) | 0/110 vs 0/31 (single-run; was 0/108 vs 0/24 pre-Issue-76; saturated-ICU 90-day stress test from Issue #43 confirms mechanism fires, hold pathway > icu pathway — stress test predates this refresh and has not been re-run) |
+| Mean DOW/run — pre- vs post-Issue-43 (50-rep, seed=NULL) | 0.84 (95% CI [0.58, 1.10]) → 1.00 (95% CI [0.74, 1.26]); CIs overlap (not significant at n=50); +0.10/run attributable to the new post-op checkpoint alone (5/50 reps) — predates the Issue #73 follow-up and Issue #76 RNG-stream shifts; not yet refreshed |
+| R2E post-op DOW rate — icu vs hold (50-rep, Issue #43) | icu: 3/5,085 (0.06%); hold: 2/1,223 (0.16%) — hold ≈2.8× icu, consistent with intended design at real (non-stress-tested) parameters — predates the Issue #73 follow-up and Issue #76 RNG-stream shifts; not yet refreshed |
+| R2E ICU utilisation — mean (50-rep, pre- vs post-Issue-43) | 74.1% → 60.2% — predates the Issue #73 follow-up and Issue #76 RNG-stream shifts; not yet refreshed |
 
 ---
 

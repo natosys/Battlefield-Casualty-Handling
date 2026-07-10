@@ -228,15 +228,15 @@
           "vals": [
             {
               "var": "min",
-              "val": 90
+              "val": 41
             },
             {
               "var": "max",
-              "val": 240
+              "val": 210
             },
             {
               "var": "mode",
-              "val": 120
+              "val": 95
             }
           ]
         },
@@ -412,15 +412,15 @@
           "vals": [
             {
               "var": "min",
-              "val": 90
+              "val": 41
             },
             {
               "var": "max",
-              "val": 240
+              "val": 210
             },
             {
               "var": "mode",
-              "val": 120
+              "val": 95
             }
           ]
         },

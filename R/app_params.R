@@ -140,7 +140,7 @@ SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment 
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
 SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md (Issue #4) for a proposed evidence-based staffing revision (not yet implemented)."
 SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the likely resuscitation steps (see README R2B/R2E Trajectory); constrained to complete within 90 minutes per the cited source there. Not independently cited as a single total."
-SRC_DCS_SURGERY       <- "Derived from damage-control-surgery meta-analyses (see README R2B Trajectory for citations). Note: the current env_data.json baseline (mode 120 min) differs from the worked example in the README narrative (mode 95 min) — a documentation/config discrepancy not addressed by this change."
+SRC_DCS_SURGERY       <- "First-look DCS operative-time data (median 96 min, range 41-210) reported for Sohn et al. (2018) within Zizzo et al.'s (2020) systematic review — see README R2B Trajectory for citations."
 SRC_ICU_STABILISATION <- "Post-DCS-I stabilisation window described as 24-36h in cited DCS research — see README R2E Trajectory."
 SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelons; not independently cited. See README Simulation Design for the triangular-distribution modelling rationale."
 SRC_HOLD_THRESHOLD    <- "Design threshold introduced by Issue #39 (R2B hold-bed saturation routing policy); not literature-derived."

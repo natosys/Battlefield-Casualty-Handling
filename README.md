@@ -78,6 +78,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Development Environment](#development-environment)
   - [Prerequisites](#prerequisites)
   - [First-time setup](#firsttime-setup)
+  - [Restoring dependencies](#restoring-dependencies)
   - [RStudio Server configuration](#rstudio-server-configuration)
   - [Running the simulation with full parallelism](#running-the-simulation-with-full-parallelism)
   - [Git workflow](#git-workflow)
@@ -770,8 +771,21 @@ A Dev Container specification in `.devcontainer/` defines a reproducible Linux R
    ```
 2. Open the repository folder in VS Code: **File → Open Folder**.
 3. VS Code will detect `.devcontainer/devcontainer.json` and display a notification: *"Folder contains a Dev Container configuration file. Reopen folder to develop in a container."* Click **Reopen in Container**. Alternatively, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and select **Dev Containers: Reopen in Container**.
-4. VS Code builds the Docker image and starts the container. The initial build downloads the base image and installs all R packages; this typically takes 5–10 minutes. Subsequent starts use the cached image and complete in seconds.
-5. Once the container starts, open a browser and navigate to `http://localhost:8787` to access RStudio Server. No login credentials are required (`DISABLE_AUTH=true`).
+4. VS Code builds the Docker image and starts the container. The initial build downloads the base image, pre-warms the `renv` package cache from `renv.lock`, and installs all R packages; this typically takes 5–10 minutes. Subsequent starts use the cached image and complete in seconds.
+5. Once the container starts, open a browser and navigate to `http://localhost:8787` to access RStudio Server. No login credentials are required (`DISABLE_AUTH=true`). `postCreateCommand` runs `renv::restore()` against the bind-mounted workspace automatically, so the RStudio session is ready to run the simulation without any manual package installation.
+
+### Restoring dependencies
+
+Package versions are pinned via `renv` (Issue #72): `renv.lock` at the repository root records the exact CRAN version of every package required by `run.R`, `app.R`, `R/*.R`, and `scripts/*.R`. The Dev Container restores from this lockfile automatically (`postCreateCommand`, above); it is the same lockfile the `.devcontainer/Dockerfile` image build uses to pre-warm its package cache, so the container and any host RStudio installation share a single source of truth for package versions.
+
+Contributors running R directly on the host (outside the Dev Container), or after pulling a branch that updates `renv.lock`, should restore the pinned versions with:
+
+```r
+install.packages("renv")  # first-time only, if not already installed
+renv::restore()
+```
+
+`renv::status()` can be used afterwards to confirm the project library matches `renv.lock` exactly.
 
 ### RStudio Server configuration
 
@@ -856,7 +870,7 @@ Rscript run.R --quick
 
 Single-run outputs (monitoring CSVs and markdown tables) are written to `outputs/`. Simulation logs are written to `logs/logs.txt`. Multi-run mode additionally writes `outputs/replication_summary.csv` containing the KPI table (see [Multi-run Replication Framework](#multi-run-replication-framework) below).
 
-> **Note — dependency pinning:** `renv` lockfile initialisation is planned but not yet implemented. Package versions are therefore not pinned. This is a known limitation that will be addressed in a future issue.
+> **Note — dependency pinning:** Package versions are pinned via a committed `renv.lock` (Issue #72). See [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
 
 #### Multi-run Replication Framework
 
@@ -961,7 +975,7 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
-The table below is `outputs/morris_ranking.csv` from a freshly regenerated nine-parameter design (r=20, 5 reps, 30 days, seed 42), executed against the current codebase following `return_leg_multiplier`'s removal (Issue #74), ranked by µ\* on the system OT queue. It supersedes the previous table, which was not a fresh design but the prior ten-parameter design's values with the removed parameter's row struck out — see the note below the table for why that placeholder approach turned out to understate how much the ranking would move. R was run at version 4.4.2, matching the version pinned in `.devcontainer/Dockerfile`; package versions are not pinned via `renv` (Issue #72, still open), so exact package builds may differ from the environment that produced earlier re-runs (Issues #73, #75).
+The table below is `outputs/morris_ranking.csv` from a freshly regenerated nine-parameter design (r=20, 5 reps, 30 days, seed 42), executed against the current codebase following `return_leg_multiplier`'s removal (Issue #74), ranked by µ\* on the system OT queue. It supersedes the previous table, which was not a fresh design but the prior ten-parameter design's values with the removed parameter's row struck out — see the note below the table for why that placeholder approach turned out to understate how much the ranking would move. R was run at version 4.4.2, matching the version pinned in `.devcontainer/Dockerfile`; at the time this table was generated, package versions were not yet pinned via `renv` (Issue #72 was still open), so exact package builds may differ from the environment that produced earlier re-runs (Issues #73, #75). Issue #72 has since introduced a committed `renv.lock`; this historical table has not been re-run against the pinned environment.
 
 | Rank | Parameter | µ\* | σ |
 |---|---|---|---|

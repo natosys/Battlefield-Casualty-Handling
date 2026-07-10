@@ -22,6 +22,6 @@
       }
     }
   },
-  "postCreateCommand": "Rscript -e \"pkgs <- c('simmer','simmer.bricks','simmer.plot','sensitivity','triangle','truncnorm','jsonlite','dplyr','tidyr','stringr','ggplot2','patchwork','knitr','data.table','RColorBrewer','reshape2','scales','shiny','shinyBS','purrr','optparse','languageserver'); missing <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if (length(missing)) install.packages(missing, repos='https://cloud.r-project.org')\"",
+  "postCreateCommand": "Rscript -e \"renv::restore(prompt = FALSE)\"",
   "postStartCommand": "echo 'RStudio Server available at http://localhost:8787 | Working directory: /home/rstudio/workspace'"
 }

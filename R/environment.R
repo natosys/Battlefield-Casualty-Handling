@@ -328,50 +328,78 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic 
   event_starts
 }
 
-#' Draws event start times for the "scheduled" mass casualty mode
+#' Draws event start times and per-event parameters for the "scheduled"
+#' mass casualty mode
 #'
 #' @param n_days Duration in days
 #' @param schedule_params List with `days` (simulation day, 1-indexed, on
-#'   which a candidate event may occur) and `probabilities` (per-day
-#'   Bernoulli occurrence probability; empty or omitted defaults every day
-#'   to probability 1 — always fires), as read from
-#'   env_data$vars$mass_casualty$schedule
+#'   which a candidate event may occur), `probabilities` (per-day Bernoulli
+#'   occurrence probability), and `min_cas`/`max_cas`/`pri_one`/`pri_two`/
+#'   `pri_three` (per-day casualty-count bounds and triage priority split),
+#'   all parallel arrays as read from env_data$vars$mass_casualty$schedule.
+#'   Any array empty or omitted defaults every day to the same value
+#'   (probability 1; min_cas/max_cas 20/60; priority 0.7/0.2/0.1 — the
+#'   Issue #9 Recommended Approach values), so a planner can specify only
+#'   `days` and accept sensible defaults for the rest.
 #' @param antithetic Logical; antithetic variate pairing (see
 #'   generate_mass_casualty_events())
-#' @return Numeric vector of event start times (simulation minutes),
-#'   ascending; empty if no scheduled days are configured
+#' @return Data frame (one row per *fired* event, ascending by start time):
+#'   `start` (simulation minutes), `min_cas`, `max_cas`, `pri_one`,
+#'   `pri_two`, `pri_three` — empty (0 rows) if no scheduled days are
+#'   configured or none fire this draw
 #'
-#' @details Lets a planner specify a fixed number of events and the exact
-#'   simulation days they may occur on, rather than an inferred rate —
-#'   e.g. scripting a specific historical or exercise timeline. Each
+#' @details Lets a planner specify a fixed number of events, the exact
+#'   simulation days they may occur on, and each event's own casualty
+#'   count and triage priority mix independently — e.g. scripting a
+#'   specific historical or exercise timeline where one event is a small,
+#'   low-severity incident and another is a large blast-dominant one. Each
 #'   configured day is independently included via a Bernoulli(probability)
 #'   draw, so per-replication variation is still possible (a day with
 #'   probability 1 always fires; a lower probability introduces controlled
 #'   randomness across replications). A fired day's exact start minute is
 #'   drawn Uniform(0, 1440) within that day, so intra-day timing remains
-#'   stochastic even though the day itself is planner-specified.
+#'   stochastic even though the day itself is planner-specified. The
+#'   injection window (window_min/mode/max) is not customisable per event —
+#'   it remains a single shared value read from `params$event` by the
+#'   caller (generate_mass_casualty_events()) regardless of mode.
 mass_casualty_event_starts_scheduled <- function(n_days, schedule_params, antithetic = FALSE) {
   n_minutes <- day_min * n_days
-  days  <- unlist(schedule_params$days)
-  probs <- unlist(schedule_params$probabilities)
+  empty <- data.frame(start = numeric(0), min_cas = numeric(0), max_cas = numeric(0),
+                      pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
 
-  if (length(days) == 0) return(numeric(0))
-  if (length(probs) == 0) probs <- rep(1, length(days))
-  if (length(probs) != length(days)) {
-    stop("mass_casualty.schedule.probabilities must be empty (every day fires) or match schedule.days in length")
+  days <- unlist(schedule_params$days)
+  if (length(days) == 0) return(empty)
+  n <- length(days)
+
+  fill <- function(var, default) {
+    v <- unlist(schedule_params[[var]])
+    if (length(v) == 0) rep(default, n) else v
+  }
+  probs     <- fill("probabilities", 1)
+  min_cas   <- fill("min_cas",   20)
+  max_cas   <- fill("max_cas",   60)
+  pri_one   <- fill("pri_one",   0.7)
+  pri_two   <- fill("pri_two",   0.2)
+  pri_three <- fill("pri_three", 0.1)
+
+  lens <- c(length(probs), length(min_cas), length(max_cas), length(pri_one), length(pri_two), length(pri_three))
+  if (any(lens != n)) {
+    stop("mass_casualty.schedule arrays must each be empty (defaulted) or match schedule.days in length")
   }
 
-  u_occur <- runif(length(days))
+  u_occur <- runif(n)
   if (antithetic) u_occur <- 1 - u_occur
-  fired_days <- days[u_occur < probs]
+  fire <- u_occur < probs
+  if (!any(fire)) return(empty)
 
-  if (length(fired_days) == 0) return(numeric(0))
-
-  u_intraday <- runif(length(fired_days))
+  u_intraday <- runif(sum(fire))
   if (antithetic) u_intraday <- 1 - u_intraday
-  event_starts <- (fired_days - 1) * day_min + u_intraday * day_min
+  starts <- (days[fire] - 1) * day_min + u_intraday * day_min
 
-  sort(event_starts[event_starts >= 0 & event_starts < n_minutes])
+  out <- data.frame(start = starts, min_cas = min_cas[fire], max_cas = max_cas[fire],
+                    pri_one = pri_one[fire], pri_two = pri_two[fire], pri_three = pri_three[fire])
+  out <- out[out$start >= 0 & out$start < n_minutes, , drop = FALSE]
+  out[order(out$start), , drop = FALSE]
 }
 
 #' Draws casualty arrival times, count, and injection window for one mass casualty event
@@ -408,8 +436,11 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #' @param n_days Duration in days
 #' @param params The full env_data$vars$mass_casualty list, with `event`
 #'   (mode ["poisson"|"scheduled"], rate_per_day, min_cas, max_cas,
-#'   window_min, window_mode, window_max) and `schedule` (days,
-#'   probabilities — read only when `event$mode == "scheduled"`) elements
+#'   window_min, window_mode, window_max), `schedule` (days, probabilities,
+#'   min_cas, max_cas, pri_one/two/three — read only when
+#'   `event$mode == "scheduled"`), and `priority` (one/two/three, the
+#'   shared blast-dominant split used for "poisson"-mode events, since
+#'   only "scheduled" mode supports a per-event priority override)
 #' @param seed Optional random seed for reproducibility
 #' @param write_file Write the arrival stream and event log to data/
 #'   (default TRUE; set FALSE for parallel replication workers to avoid
@@ -418,22 +449,31 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #'   substituted for U in every draw this function and its mode-specific
 #'   helpers make. Enables antithetic pairing in run_replications().
 #' @return Named list: `arrival_times` (sorted numeric vector of individual
-#'   casualty arrival times, simulation minutes) and `events` (data frame
-#'   with one row per event: event_id, event_start, n_cas, window_min —
-#'   used for the mass casualty event timeline plot in R/analysis.R)
+#'   casualty arrival times, simulation minutes), `casualty_event_id`
+#'   (integer vector parallel to `arrival_times`, giving the 1-indexed
+#'   event each casualty belongs to — matches `events$event_id`; consumed
+#'   by build_casualty_trajectory() for per-event priority lookup), and
+#'   `events` (data frame with one row per event: event_id, event_start,
+#'   n_cas, window_min, pri_one, pri_two, pri_three — the pri_* columns
+#'   are NA for "poisson"-mode events, meaning "use the shared
+#'   params$priority split"; used for the mass casualty event timeline
+#'   plot in R/analysis.R)
 #'
 #' @details Two event-timing modes are supported, selected by
 #'   `params$event$mode`: "poisson" (default) implements a compound
 #'   Poisson process for mass casualty injection (Fischer et al., 2025;
 #'   Debacker et al., 2016) — event inter-arrival times are drawn from an
-#'   Exponential(rate_per_day) distribution (`mass_casualty_event_starts_poisson()`);
+#'   Exponential(rate_per_day) distribution (`mass_casualty_event_starts_poisson()`),
+#'   with every event sharing the same min_cas/max_cas and priority split;
 #'   "scheduled" instead takes a planner-specified list of candidate
-#'   simulation days, each with an independent Bernoulli occurrence
-#'   probability (`mass_casualty_event_starts_scheduled()`). Both modes then draw
-#'   each fired event's casualty count, injection window, and per-casualty
-#'   offsets identically (`mass_casualty_event_casualties()`): Uniform(min_cas,
+#'   simulation days, each with its own independent occurrence probability,
+#'   casualty-count bounds, and priority split
+#'   (`mass_casualty_event_starts_scheduled()`). Both modes then draw each
+#'   fired event's casualty count and per-casualty offsets from a shared
+#'   injection window (`mass_casualty_event_casualties()`): Uniform(min_cas,
 #'   max_cas) casualties distributed across a Triangular(window_min,
-#'   window_mode, window_max)-minute window. An event schedule/rate that
+#'   window_mode, window_max)-minute window — the window itself is not
+#'   customisable per event in either mode. An event schedule/rate that
 #'   produces zero events returns an empty arrival stream — background
 #'   lognormal generation is unaffected, satisfying Issue #9's
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
@@ -446,45 +486,63 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   mode <- if (!is.null(params$event$mode)) params$event$mode else "poisson"
 
   empty_events <- data.frame(event_id = integer(0), event_start = numeric(0),
-                             n_cas = integer(0), window_min = numeric(0))
+                             n_cas = integer(0), window_min = numeric(0),
+                             pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
 
-  event_starts <- if (identical(mode, "scheduled")) {
+  sched <- if (identical(mode, "scheduled")) {
     mass_casualty_event_starts_scheduled(n_days, params$schedule, antithetic = antithetic)
   } else {
-    mass_casualty_event_starts_poisson(n_days, params$event, antithetic = antithetic)
+    starts <- mass_casualty_event_starts_poisson(n_days, params$event, antithetic = antithetic)
+    # Built explicitly per-column (not data.frame(start = starts, min_cas =
+    # params$event$min_cas, ...)) because data.frame() cannot recycle a
+    # length-1 scalar against a length-0 `starts` (rate_per_day = 0, the
+    # shipped default) — "arguments imply differing number of rows".
+    n <- length(starts)
+    data.frame(start = starts, min_cas = rep(params$event$min_cas, n), max_cas = rep(params$event$max_cas, n),
+              pri_one = rep(NA_real_, n), pri_two = rep(NA_real_, n), pri_three = rep(NA_real_, n))
   }
 
-  if (length(event_starts) == 0) {
+  if (nrow(sched) == 0) {
     if (write_file) {
       write.table(numeric(0), file = file.path("data", "arrivals_mass_casualty.txt"),
                  row.names = FALSE, col.names = FALSE)
       write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
                row.names = FALSE)
     }
-    return(list(arrival_times = numeric(0), events = empty_events))
+    return(list(arrival_times = numeric(0), casualty_event_id = integer(0), events = empty_events))
   }
 
-  arrival_times <- c()
-  event_id      <- c()
-  window_dur    <- c()
-  n_cas_actual  <- c()
+  arrival_times     <- c()
+  casualty_event_id <- c()
+  window_dur        <- c()
+  n_cas_actual      <- c()
 
-  for (i in seq_along(event_starts)) {
-    cas <- mass_casualty_event_casualties(event_starts[i], params$event, n_minutes, antithetic = antithetic)
+  for (i in seq_len(nrow(sched))) {
+    event_params <- list(min_cas = sched$min_cas[i], max_cas = sched$max_cas[i],
+                         window_min = params$event$window_min, window_mode = params$event$window_mode,
+                         window_max = params$event$window_max)
+    cas <- mass_casualty_event_casualties(sched$start[i], event_params, n_minutes, antithetic = antithetic)
 
-    arrival_times <- c(arrival_times, cas$times)
-    event_id      <- c(event_id, rep(i, length(cas$times)))
-    window_dur    <- c(window_dur, cas$window)
-    n_cas_actual  <- c(n_cas_actual, length(cas$times))
+    arrival_times     <- c(arrival_times, cas$times)
+    casualty_event_id <- c(casualty_event_id, rep(i, length(cas$times)))
+    window_dur         <- c(window_dur, cas$window)
+    n_cas_actual        <- c(n_cas_actual, length(cas$times))
   }
 
-  arrival_times <- sort(arrival_times)
+  # Sort arrivals but keep casualty_event_id correctly paired per-casualty
+  # (order(), not sort(), so the two vectors share one permutation).
+  ord <- order(arrival_times)
+  arrival_times     <- arrival_times[ord]
+  casualty_event_id <- casualty_event_id[ord]
 
   events <- data.frame(
-    event_id    = seq_along(event_starts),
-    event_start = event_starts,
+    event_id    = seq_len(nrow(sched)),
+    event_start = sched$start,
     n_cas       = n_cas_actual,
-    window_min  = window_dur
+    window_min  = window_dur,
+    pri_one     = sched$pri_one,
+    pri_two     = sched$pri_two,
+    pri_three   = sched$pri_three
   )
 
   if (write_file) {
@@ -493,7 +551,7 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
     write.csv(events, file.path("data", "mass_casualty_events.csv"), row.names = FALSE)
   }
 
-  list(arrival_times = arrival_times, events = events)
+  list(arrival_times = arrival_times, casualty_event_id = casualty_event_id, events = events)
 }
 
 # ── Simmer environment construction ─────────────────────────────────────────

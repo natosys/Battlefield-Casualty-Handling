@@ -1325,14 +1325,17 @@ r2e_treat_wia <- function(team_id) {
 #'
 #' # Phase 1: Attribute assignment
 #' # - Assigns R1 team (random selection)
-#' # - Sets mass_casualty_event (Issue #9): 1 if this casualty originated
-#' #   from a compound-Poisson mass casualty injection event merged into the
-#' #   wia_cbt stream (R/environment.R::generate_mass_casualty_events()),
-#' #   looked up via the entity's generator-assigned index into
-#' #   wia_cbt_mass_casualty_flags; 0 otherwise
+#' # - Sets mass_casualty_event_id (Issue #9): the 1-indexed mass casualty
+#' #   event this casualty originated from (R/environment.R::
+#' #   generate_mass_casualty_events()), looked up via the entity's
+#' #   generator-assigned index into wia_cbt_mass_casualty_event_id; 0 for
+#' #   background-generated casualties
+#' # - Sets mass_casualty_event: 1 if mass_casualty_event_id > 0, else 0
 #' # - Sets priority (WIA/DNBI) via weighted sample — mass-casualty-tagged
-#' #   casualties draw from the blast-dominant mass_casualty priority
-#' #   distribution instead of the standard r1 priority distribution
+#' #   casualties draw from that event's own priority split in "scheduled"
+#' #   mode (mass_casualty_event_priority_table), or the shared blast-dominant
+#' #   mass_casualty priority distribution in "poisson" mode, instead of the
+#' #   standard r1 priority distribution
 #' # - Sets dnbi_type (DNBI cases only): 1=battle_fatigue, 2=disease, 3=nbi
 #' # - Computes surgery requirement based on priority tier and dnbi_type
 #'
@@ -1354,22 +1357,38 @@ build_casualty_trajectory <- function() {
     log_(function() paste0(get_name(env))) %>%
     set_attribute("injury_time", function() now(env)) %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
-    set_attribute("mass_casualty_event", function() {
+    set_attribute("mass_casualty_event_id", function() {
       name <- get_name(env)
       if (startsWith(name, "wia_cbt")) {
         idx <- as.integer(sub("^wia_cbt", "", name)) + 1L
-        if (idx >= 1L && idx <= length(wia_cbt_mass_casualty_flags) &&
-            isTRUE(wia_cbt_mass_casualty_flags[idx])) 1 else 0
+        if (idx >= 1L && idx <= length(wia_cbt_mass_casualty_event_id)) {
+          wia_cbt_mass_casualty_event_id[idx]
+        } else {
+          0L
+        }
       } else {
-        0
+        0L
       }
+    }) %>%
+    set_attribute("mass_casualty_event", function() {
+      if (get_attribute(env, "mass_casualty_event_id") > 0) 1 else 0
     }) %>%
     set_attribute("priority", function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
         if (get_attribute(env, "mass_casualty_event") == 1) {
-          sample(1:3, 1, prob = c(env_data$vars$mass_casualty$priority$one,
-                                  env_data$vars$mass_casualty$priority$two,
-                                  env_data$vars$mass_casualty$priority$three))
+          eid    <- get_attribute(env, "mass_casualty_event_id")
+          ev_row <- mass_casualty_event_priority_table[mass_casualty_event_priority_table$event_id == eid, ]
+          # Per-event priority (scheduled mode) if the event's own row has
+          # one; poisson-mode events carry NA pri_one, falling back to the
+          # shared mass_casualty priority split.
+          prob <- if (nrow(ev_row) == 1 && !is.na(ev_row$pri_one[1])) {
+            c(ev_row$pri_one[1], ev_row$pri_two[1], ev_row$pri_three[1])
+          } else {
+            c(env_data$vars$mass_casualty$priority$one,
+              env_data$vars$mass_casualty$priority$two,
+              env_data$vars$mass_casualty$priority$three)
+          }
+          sample(1:3, 1, prob = prob)
         } else {
           sample(1:3, 1, prob = c(env_data$vars$r1$priority$one,
                                   env_data$vars$r1$priority$two,

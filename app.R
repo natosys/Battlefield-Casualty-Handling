@@ -185,6 +185,15 @@ SPLIT_SLIDER_META <- list(
   mc_pri_split = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
                        labels = c("P1", "P2", "P3"))
 )
+# One compositional-split slider per Scheduled Event Days row (Issue #9) —
+# generated rather than hand-written since MASS_CASUALTY_SCHEDULE_SLOTS
+# entries are all identical in colour/labels, just keyed by event index.
+SPLIT_SLIDER_META <- c(SPLIT_SLIDER_META, setNames(
+  lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+    list(colors = c("#c0392b", "#e08e2d", "#2a78d6"), labels = c("P1", "P2", "P3"))
+  }),
+  sprintf("mc_event_pri_split_%d", seq_len(MASS_CASUALTY_SCHEDULE_SLOTS))
+))
 
 #' Recolour a two-handle ion.rangeSlider's track to show all three
 #' compositional segments, and overlay a live per-segment value label
@@ -309,6 +318,10 @@ inject_all_splits <- function(values) {
   values <- inject_split(values, "pri_split",  c("pri_one", "pri_two", "pri_three"))
   values <- inject_split(values, "dnbi_split", c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct"))
   values <- inject_split(values, "mc_pri_split", c("mc_pri_one", "mc_pri_two", "mc_pri_three"))
+  for (i in seq_len(MASS_CASUALTY_SCHEDULE_SLOTS)) {
+    values <- inject_split(values, sprintf("mc_event_pri_split_%d", i),
+                           sprintf(c("mc_sched_pri_one_%d", "mc_sched_pri_two_%d", "mc_sched_pri_three_%d"), i))
+  }
   values
 }
 
@@ -963,42 +976,94 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
     }
 
     # Event Timing Mode (the mode dropdown itself) always renders via the
-    # default fallback below; Random Event Rate and Scheduled Event Days are
-    # each wrapped in a conditionalPanel() keyed off input$mc_mode, so only
-    # the fields relevant to the selected mode are shown — Event Size &
-    # Injection Window and Mass Casualty Priority Split apply to both modes
-    # and are never hidden.
+    # default fallback below. Random Event Rate, Scheduled Event Days, and
+    # Mass Casualty Priority Split are each wrapped in a conditionalPanel()
+    # keyed off input$mc_mode — the shared casualty-count/priority-split
+    # settings (Random Event Rate, Mass Casualty Priority Split) apply only
+    # to Poisson-mode events; Scheduled mode instead gives each event its
+    # own casualty-count and priority fields, rendered inline in its card.
+    # Injection Window (window_min/mode/max, rendered via the default
+    # fallback below) is the one subgroup that is never mode-gated — it is
+    # not customisable per event in either mode.
     if (identical(sg, "Random Event Rate")) {
       return(conditionalPanel(
         condition = "input.mc_mode == 'poisson'",
         tagList(
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
-            "Event start times are drawn from a Poisson process at this rate — event count and timing vary stochastically between replications."),
+            "Event start times are drawn from a Poisson process at this rate — event count and timing vary stochastically between replications. Casualty count is shared across every event this mode generates; for events with independently varying casualty counts, use Scheduled (Deliberate Days) mode instead."),
           render_field_grid(sg_fields, defaults, overridden_paths)
         )
       ))
     }
 
     if (identical(sg, "Scheduled Event Days")) {
+      # Initial visible-row count only — a one-time value read from this
+      # render's defaults, not a reactive dependency. All 20 slots are
+      # always present in the DOM; the +/- buttons (server observeEvent
+      # handlers, see mc_event_count in the server) toggle a single row's
+      # display via a custom message + the client-side handler registered
+      # below, rather than triggering a re-render of this whole group —
+      # re-rendering the group here would also rebuild the Event Timing
+      # Mode dropdown and every other Mass Casualty field at its JSON
+      # default, discarding whatever the user currently has live in the UI.
+      mc_count <- max(1L, sum(vapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+        d <- defaults[[sprintf("mc_sched_day_%d", i)]]
+        !is.null(d) && !is.na(d) && d > 0
+      }, logical(1))))
       return(conditionalPanel(
         condition = "input.mc_mode == 'scheduled'",
         tagList(
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
             sprintf(
-              "Up to %d candidate events, each independently drawn (Bernoulli) at its own probability every replication — a day at probability 1 fires identically in every replication, a lower value introduces controlled randomness. Leave Day at 0 to leave a slot unused. For more than %d explicit events, edit env_data.json directly.",
+              "Each event is independently drawn (Bernoulli) at its own probability every replication — a day at probability 1 fires identically in every replication, a lower value introduces controlled randomness — and has its own casualty count and triage priority mix. Use + / − to add or remove event rows (up to %d); removing a row resets it rather than deleting it, so it stops firing. For more than %d explicit events, edit env_data.json directly.",
               MASS_CASUALTY_SCHEDULE_SLOTS, MASS_CASUALTY_SCHEDULE_SLOTS
             )),
+          tags$script(HTML(
+            "if (!window.__mcToggleHandlerRegistered) {
+               window.__mcToggleHandlerRegistered = true;
+               Shiny.addCustomMessageHandler('mc_toggle_row', function(msg) {
+                 var el = document.getElementById('mc_event_slot_' + msg.index);
+                 if (el) el.style.display = msg.show ? '' : 'none';
+               });
+             }"
+          )),
+          div(style = "display:flex; gap:8px; margin-bottom:10px;",
+              actionButton("mc_event_add",    "+ Add Event",           class = "btn-outline-primary btn-sm"),
+              actionButton("mc_event_remove", "− Remove Last Event", class = "btn-outline-secondary btn-sm")
+          ),
           layout_column_wrap(
-            width = "240px",
+            width = "420px",
             !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
-              day_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),  sg_fields)
-              prob_f <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)), sg_fields)
-              card(
-                card_header(sprintf("Event %d", i)),
-                field_input(day_f,  defaults[[day_f$id]],  overridden_paths),
-                field_input(prob_f, defaults[[prob_f$id]], overridden_paths)
+              day_f      <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),       sg_fields)
+              prob_f     <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)),      sg_fields)
+              min_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_min_cas_%d", i)),   sg_fields)
+              max_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_max_cas_%d", i)),   sg_fields)
+              pri_one_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_pri_one_%d", i)),   sg_fields)
+              p1 <- defaults[[pri_one_f$id]]; p2 <- defaults[[sprintf("mc_sched_pri_two_%d", i)]]
+              pri_lbl <- field_label(list(
+                label   = "Priority Split (P1 | P2 | P3)",
+                tooltip = paste0(
+                  "This event's own triage priority mix — independent of every other event. Source: ", SRC_MASS_CASUALTY_PRI
+                ),
+                path = pri_one_f$path
+              ), overridden_paths)
+              div(
+                id = sprintf("mc_event_slot_%d", i),
+                style = if (i <= mc_count) "" else "display:none;",
+                card(
+                  card_header(sprintf("Event %d", i)),
+                  div(style = "display:flex; gap:8px;",
+                      div(style = "flex:1; min-width:0;", field_input(day_f,     defaults[[day_f$id]],     overridden_paths)),
+                      div(style = "flex:1; min-width:0;", field_input(prob_f,    defaults[[prob_f$id]],    overridden_paths))
+                  ),
+                  div(style = "display:flex; gap:8px;",
+                      div(style = "flex:1; min-width:0;", field_input(min_cas_f, defaults[[min_cas_f$id]], overridden_paths)),
+                      div(style = "flex:1; min-width:0;", field_input(max_cas_f, defaults[[max_cas_f$id]], overridden_paths))
+                  ),
+                  range_slider_with_text_input(sprintf("mc_event_pri_split_%d", i), pri_lbl, c(p1, p1 + p2))
+                )
               )
             })
           )
@@ -1018,13 +1083,16 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
         ),
         path = one_f$path
       ), overridden_paths)
-      return(tagList(
-        h6(class = "text-muted mt-2", sg),
-        p(class = "text-muted small",
-          "Applies only to mass-casualty-derived casualties (see Event Timing Mode above) — the background Triage Priority Split in the Casualty Rates panel is unaffected by this."),
-        card(
-          card_header(sg),
-          range_slider_with_text_input("mc_pri_split", mc_pri_lbl, c(p1, p1 + p2))
+      return(conditionalPanel(
+        condition = "input.mc_mode == 'poisson'",
+        tagList(
+          h6(class = "text-muted mt-2", sg),
+          p(class = "text-muted small",
+            "Applies to every Poisson-mode event equally — the background Triage Priority Split in the Casualty Rates panel is unaffected by this. In Scheduled mode, each event has its own priority split instead (see Scheduled Event Days above)."),
+          card(
+            card_header(sg),
+            range_slider_with_text_input("mc_pri_split", mc_pri_lbl, c(p1, p1 + p2))
+          )
         )
       ))
     }
@@ -1159,6 +1227,9 @@ server <- function(input, output, session) {
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
   wire_range_slider_text_sync(input, session, "mc_pri_split")
+  lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+    wire_range_slider_text_sync(input, session, sprintf("mc_event_pri_split_%d", i))
+  })
 
   # Live distribution-curve preview for every triangular (min/mode/max)
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),
@@ -1329,6 +1400,48 @@ server <- function(input, output, session) {
     }), c("p1", "p2"))
   })
 
+  # Number of Scheduled Event Days rows currently visible in the Mass
+  # Casualty panel (see render_group_body()'s "Scheduled Event Days" case).
+  # Seeded from however many slots already have a non-zero Day in the
+  # loaded config (at least 1, so a fresh/default config shows one empty
+  # starter row rather than none) — raw_env_data() is a plain reactiveVal
+  # seeded synchronously at app startup, so isolate() here just avoids
+  # taking an unnecessary reactive dependency on it for this one-time read.
+  # Tracks how many Scheduled Event Days rows are currently visible. This is
+  # internal server state only — it is never read inside a renderUI, so
+  # changing it does not invalidate (and re-render from JSON defaults) the
+  # Mass Casualty group body. Visibility itself is toggled client-side via
+  # the "mc_toggle_row" custom message (handler registered once in
+  # render_group_body()'s "Scheduled Event Days" case).
+  mc_event_count <- reactiveVal(max(1L, count_active_mass_casualty_events(isolate(raw_env_data()))))
+
+  observeEvent(input$mc_event_add, {
+    n <- mc_event_count()
+    if (n < MASS_CASUALTY_SCHEDULE_SLOTS) {
+      n <- n + 1L
+      mc_event_count(n)
+      session$sendCustomMessage("mc_toggle_row", list(index = n, show = TRUE))
+    }
+  })
+  observeEvent(input$mc_event_remove, {
+    n <- mc_event_count()
+    if (n > 1L) {
+      # Reset the row about to be hidden back to its defaults — hiding via
+      # display:none does not clear its inputs' values, and every Scheduled
+      # Event Days field is always rendered/bound (see MASS_CASUALTY_
+      # SCHEDULE_SLOTS' own comment), so a hidden-but-nonzero Day would
+      # otherwise keep firing silently in Quick Run / Save Configuration.
+      updateNumericInput(session, sprintf("mc_sched_day_%d", n),      value = 0)
+      updateNumericInput(session, sprintf("mc_sched_prob_%d_txt", n), value = 1)
+      updateSliderInput(session,  sprintf("mc_sched_prob_%d", n),     value = 1)
+      updateNumericInput(session, sprintf("mc_sched_min_cas_%d", n),  value = 20)
+      updateNumericInput(session, sprintf("mc_sched_max_cas_%d", n),  value = 60)
+      updateSliderInput(session,  sprintf("mc_event_pri_split_%d", n), value = c(0.7, 0.9))
+      session$sendCustomMessage("mc_toggle_row", list(index = n, show = FALSE))
+      mc_event_count(n - 1L)
+    }
+  })
+
   lapply(names(fields_by_group), function(g) {
     output_id <- paste0("group_ui_", make.names(g))
     output[[output_id]] <- renderUI({
@@ -1468,6 +1581,23 @@ server <- function(input, output, session) {
       cap <- values[[paste0("transport_", veh, "_capacity")]]
       if (!is.null(qty) && qty > 0 && (is.null(cap) || cap < 1)) {
         errors <- c(errors, sprintf("%s: capacity per vehicle must be at least 1 when fleet size > 0.", veh))
+      }
+    }
+
+    # Mass casualty casualties-per-event min/max pairs (Issue #9) — the
+    # shared Poisson-mode pair and every Scheduled Event Days row, whether
+    # or not that row is currently visible (a hidden row is always reset to
+    # defaults, but validating it regardless costs nothing and stays
+    # correct if that assumption ever changes).
+    mc_min_max_ids <- c(list(c("mc_min_cas", "mc_max_cas")),
+                        lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+                          sprintf(c("mc_sched_min_cas_%d", "mc_sched_max_cas_%d"), i)
+                        }))
+    for (ids in mc_min_max_ids) {
+      mn <- values[[ids[1]]]; mx <- values[[ids[2]]]
+      if (!is.null(mn) && !is.null(mx) && mn > mx) {
+        errors <- c(errors, sprintf("%s: minimum casualties (%s) must be ≤ maximum casualties (%s).",
+                                     sub("_min_cas$|_min$", "", ids[1]), mn, mx))
       }
     }
 

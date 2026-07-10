@@ -31,13 +31,17 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   env <<- build_env(env, env_data, ot_hours = ot_hours)
   casualty <- build_casualty_trajectory()
 
-  # Mass casualty injection (Issue #9): a compound Poisson process
-  # of acute casualty surge events is merged into the wia_cbt background
-  # arrival stream (sort combined vector by time). wia_cbt_mass_casualty_flags is a
-  # parallel logical vector, in the same merged/sorted order, marking which
-  # entries originated from a mass casualty event rather than background
-  # generation — build_casualty_trajectory() reads it via the entity's
-  # generator-assigned index to set the mass_casualty_event attribute.
+  # Mass casualty injection (Issue #9): a compound Poisson process (or, in
+  # "scheduled" mode, a planner-specified day/probability list) of acute
+  # casualty surge events is merged into the wia_cbt background arrival
+  # stream (sort combined vector by time). wia_cbt_mass_casualty_event_id is
+  # a parallel integer vector, in the same merged/sorted order, giving which
+  # event (0 = background) each entry originated from —
+  # build_casualty_trajectory() reads it via the entity's generator-assigned
+  # index to set the mass_casualty_event/mass_casualty_event_id attributes
+  # and to look up that event's own priority split (scheduled mode only;
+  # NA pri_one for poisson-mode events falls back to the shared
+  # env_data$vars$mass_casualty$priority split — see mass_casualty_event_priority_table).
   # Global assignment (<<-) mirrors env_data/day_min/counts (run.R); in
   # forked mclapply workers this modifies only the fork's local state.
   wia_cbt_bg     <- generate_casualty_arrivals("wia_cbt",
@@ -50,8 +54,9 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   wia_cbt_times  <- c(wia_cbt_bg, mass_casualty$arrival_times)
   wia_cbt_order  <- order(wia_cbt_times)
   wia_cbt_times  <- wia_cbt_times[wia_cbt_order]
-  wia_cbt_mass_casualty_flags <<- c(rep(FALSE, length(wia_cbt_bg)),
-                             rep(TRUE, length(mass_casualty$arrival_times)))[wia_cbt_order]
+  wia_cbt_mass_casualty_event_id <<- c(rep(0L, length(wia_cbt_bg)),
+                                       mass_casualty$casualty_event_id)[wia_cbt_order]
+  mass_casualty_event_priority_table <<- mass_casualty$events
 
   env <<- env %>%
     add_generator("wia_cbt",  casualty, at(wia_cbt_times), mon = 2) %>%

@@ -787,7 +787,12 @@
           "acty": "schedule",
           "vals": [
             { "var": "days", "val": [] },
-            { "var": "probabilities", "val": [] }
+            { "var": "probabilities", "val": [] },
+            { "var": "min_cas", "val": [] },
+            { "var": "max_cas", "val": [] },
+            { "var": "pri_one", "val": [] },
+            { "var": "pri_two", "val": [] },
+            { "var": "pri_three", "val": [] }
           ]
         }
       ]

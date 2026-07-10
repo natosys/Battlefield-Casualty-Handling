@@ -1033,8 +1033,15 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               actionButton("mc_event_add",    "+ Add Event",           class = "btn-outline-primary btn-sm"),
               actionButton("mc_event_remove", "− Remove Last Event", class = "btn-outline-secondary btn-sm")
           ),
-          layout_column_wrap(
-            width = "420px",
+          # A plain flex-wrap container rather than layout_column_wrap():
+          # bslib's grid locks in a fixed number of explicit row tracks
+          # sized for all MASS_CASUALTY_SCHEDULE_SLOTS cards, so hidden
+          # (display:none) slots still reserved their row's height — every
+          # +/- click left a wall of dead space below the visible cards.
+          # Flexbox correctly drops display:none items from layout, so the
+          # container's height always matches only what's actually shown.
+          div(
+            style = "display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;",
             !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
               day_f      <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),       sg_fields)
               prob_f     <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)),      sg_fields)
@@ -1051,7 +1058,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               ), overridden_paths)
               div(
                 id = sprintf("mc_event_slot_%d", i),
-                style = if (i <= mc_count) "" else "display:none;",
+                style = paste0("flex: 1 1 420px; min-width: 340px; max-width: 460px;",
+                               if (i <= mc_count) "" else " display:none;"),
                 card(
                   card_header(sprintf("Event %d", i)),
                   div(style = "display:flex; gap:8px;",

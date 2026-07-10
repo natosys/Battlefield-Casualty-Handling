@@ -1,7 +1,9 @@
 FROM rocker/rstudio:4.4.2
 
-# System libraries required by R packages (curl, SSL, XML, graphics, igraph/glpk)
+# System libraries required by R packages (curl, SSL, XML, graphics, igraph/glpk,
+# libuv runtime needed by the `fs` package's prebuilt binary)
 RUN apt-get update && apt-get install -y \
+    curl \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
@@ -13,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libharfbuzz-dev \
     libfribidi-dev \
     libglpk-dev \
+    libuv1t64 \
     && rm -rf /var/lib/apt/lists/*
 
 # languageserver is a VS Code editor convenience tool, not a simulation dependency,

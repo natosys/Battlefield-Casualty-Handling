@@ -143,7 +143,6 @@ SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the li
 SRC_DCS_SURGERY       <- "Derived from damage-control-surgery meta-analyses (see README R2B Trajectory for citations). Note: the current env_data.json baseline (mode 120 min) differs from the worked example in the README narrative (mode 95 min) — a documentation/config discrepancy not addressed by this change."
 SRC_ICU_STABILISATION <- "Post-DCS-I stabilisation window described as 24-36h in cited DCS research — see README R2E Trajectory."
 SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelons; not independently cited. See README Simulation Design for the triangular-distribution modelling rationale."
-SRC_RETURN_LEG        <- "Fischer et al. (2025) — tactical rate-of-march for these vehicle classes is not doctrinally differentiated by payload; see README Dead-Heading Return Legs."
 SRC_HOLD_THRESHOLD    <- "Design threshold introduced by Issue #39 (R2B hold-bed saturation routing policy); not literature-derived."
 SRC_ICU_GATING        <- "Design parameter introduced by Issue #43 (OT-ICU gating); not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate (Issue #43); no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
@@ -389,19 +388,9 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r1_wia_transport", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "wia_transport",
                                      "WIA Transport Time", "Transport time from point of injury to R1/R2B for a WIA casualty.",
                                      morris_mode_name = "r1_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
-  registry <- c(registry, list(
-    var_field("r1_wia_transport_return", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "wia_transport", "return_leg_multiplier",
-              "WIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
-              min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
-  ))
   registry <- c(registry, tri_fields("r1_kia_transport", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from point of injury.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
-  registry <- c(registry, list(
-    var_field("r1_kia_transport_return", GRP_LOGISTICS, "R1 — Transport (R1 → R2B)", "r1", "kia_transport", "return_leg_multiplier",
-              "KIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg (Issue #6).",
-              min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
-  ))
 
   # ── Health System Architecture: R2B — Battalion Aid Post ──────────────────
   registry <- c(registry, list(
@@ -450,19 +439,9 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2b_wia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport",
                                      "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty. Seizes each R2B team's own organic evac resource, not the shared PMVAmb fleet, with a dead-heading return leg on that same resource (Issue #73).",
                                      morris_mode_name = "r2b_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
-  registry <- c(registry, list(
-    var_field("r2b_wia_transport_return", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport", "return_leg_multiplier",
-              "WIA Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg, applied to the R2B team's own organic evac resource (Issue #73).",
-              min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
-  ))
   registry <- c(registry, tri_fields("r2b_kia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "kia_transport",
                                      "KIA/Mortuary Transport Time", "Road-move transport time for a KIA casualty from R2B to the mortuary, modelled as collocated with R2E rather than R2B (Issue #73). Uses the shared HX2 40M fleet with a dead-heading return leg.",
                                      bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
-  registry <- c(registry, list(
-    var_field("r2b_kia_transport_return", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "kia_transport", "return_leg_multiplier",
-              "KIA/Mortuary Transport Return-Leg Multiplier", "Return (dead-heading) leg duration as a multiple of the outbound leg for the R2B-to-R2E-mortuary HX2 40M road move (Issue #73).",
-              min = 0.1, max = 3, step = 0.05, morris_name = "return_leg_multiplier", source = SRC_RETURN_LEG)
-  ))
 
   # ── Health System Architecture: R2E — Field Hospital ──────────────────────
   registry <- c(registry, list(

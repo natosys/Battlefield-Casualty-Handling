@@ -73,7 +73,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # pivot_wider only creates a column for an attribute key when at least one
   # casualty in the run had it set; guard against runs with zero DOW events
   # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43).
-  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred")) {
+  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
+                    "mass_casualty_event")) {
     if (!dow_col %in% names(attributes_wide)) {
       attributes_wide[[dow_col]] <- NA_real_
     }
@@ -909,6 +910,94 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     write.csv(r2e_icu_gating_daily, file.path(output_dir, "r2e_icu_gating_daily.csv"), row.names = FALSE)
   }
 
+  # ── KPI 9: Mass casualty (MASCAL) event stress test analysis (Issue #9) ──
+  # mass_casualty_event: 1 = casualty originated from a compound-Poisson
+  # MASCAL injection event (R/environment.R::generate_mass_casualty_events()),
+  # 0 = background lognormal generation. Individual events are reconstructed
+  # from tagged casualties' arrival times by clustering consecutive arrivals
+  # (within each replication) whose inter-arrival gap does not exceed the
+  # configured MASCAL injection window (env_data$vars$mass_casualty$event$
+  # window_max) — casualties from the same event arrive closer together than
+  # this gap by construction (see generate_mass_casualty_events()).
+  mascal_gap_min <- env_data$vars$mass_casualty$event$window_max
+
+  mascal_tagged <- combined %>%
+    filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
+
+  if (nrow(mascal_tagged) > 0) {
+    mascal_events_summary <- mascal_tagged %>%
+      arrange(replication, start_time) %>%
+      group_by(replication) %>%
+      mutate(
+        gap      = start_time - lag(start_time, default = -Inf),
+        event_id = cumsum(gap > mascal_gap_min)
+      ) %>%
+      group_by(replication, event_id) %>%
+      summarise(
+        event_start = min(start_time),
+        event_end   = max(start_time),
+        n_cas       = n(),
+        .groups     = "drop"
+      ) %>%
+      mutate(event_day = floor(event_start / 1440) + 1)
+  } else {
+    mascal_events_summary <- data.frame(
+      replication = integer(0), event_id = integer(0), event_start = numeric(0),
+      event_end = numeric(0), n_cas = integer(0), event_day = numeric(0)
+    )
+  }
+
+  mascal_event_count <- nrow(mascal_events_summary)
+
+  # DOW rate comparison: casualties originating from a MASCAL surge vs.
+  # background-generated casualties, as a proxy for elevated mortality under
+  # mass casualty surge conditions (see README Limitations for the
+  # window-vs-origin comparison design choice).
+  mascal_dow_summary <- combined %>%
+    filter(!is.na(mass_casualty_event)) %>%
+    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+    group_by(origin) %>%
+    summarise(
+      total    = n(),
+      dow      = sum(dow == 1, na.rm = TRUE),
+      dow_rate = dow / total,
+      .groups  = "drop"
+    )
+
+  mascal_timeline_plot <- NULL
+  if (mascal_event_count > 0) {
+    n_sim_days_mascal <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+
+    mascal_timeline_plot <- ggplot(mascal_events_summary,
+                                   aes(x = event_start / 1440, y = n_cas)) +
+      geom_segment(aes(xend = event_start / 1440, y = 0, yend = n_cas), color = "#D62828") +
+      geom_point(size = 3, color = "#D62828") +
+      scale_x_continuous(limits = c(0, n_sim_days_mascal),
+                         breaks = seq(0, n_sim_days_mascal, by = 2)) +
+      labs(
+        title    = "Mass Casualty (MASCAL) Event Timeline",
+        subtitle = sprintf(
+          "%d event(s) across the simulation period (compound Poisson injection, Issue #9)",
+          mascal_event_count
+        ),
+        x = "Simulation Day", y = "Casualties Injected by Event"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank())
+
+    if (n_distinct(mascal_events_summary$replication) > 1) {
+      mascal_timeline_plot <- mascal_timeline_plot + facet_wrap(~ replication, ncol = 1)
+    }
+
+    ggsave(file.path(images_dir, "mass_casualty_events.png"), mascal_timeline_plot,
+           width = 12, height = 6, dpi = 150)
+  }
+
+  write.csv(mascal_events_summary, file.path(output_dir, "mass_casualty_events_summary.csv"),
+           row.names = FALSE)
+  write.csv(mascal_dow_summary,    file.path(output_dir, "mass_casualty_dow_summary.csv"),
+           row.names = FALSE)
+
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
@@ -957,7 +1046,11 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     post_op_pathway_summary     = post_op_pathway_summary,
     surgery_deferred_count      = surgery_deferred_count,
     r2e_icu_gating_daily        = r2e_icu_gating_daily,
-    r2e_icu_gating_plot         = r2e_icu_gating_plot
+    r2e_icu_gating_plot         = r2e_icu_gating_plot,
+    mascal_events_summary       = mascal_events_summary,
+    mascal_event_count          = mascal_event_count,
+    mascal_dow_summary          = mascal_dow_summary,
+    mascal_timeline_plot        = mascal_timeline_plot
   ))
 }
 

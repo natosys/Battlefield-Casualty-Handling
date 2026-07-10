@@ -51,6 +51,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
     - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
     - [4. Temporal Randomisation](#4-temporal-randomisation)
+    - [5. Mass Casualty (MASCAL) Event Injection](#5-mass-casualty-mascal-event-injection)
   - [Wounded In Action (WIA)](#wounded-in-action-wia)
     - [Combat Casualties](#combat-casualties)
     - [Support Casualties](#support-casualties)
@@ -112,6 +113,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
   - [Return to Duty](#return-to-duty)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
+  - [Mass Casualty (MASCAL) Event Stress Test](#mass-casualty-mascal-event-stress-test)
   - [Conclusion](#conclusion)
 - [Limitations](#limitations)
   - [High Impact](#high-impact)
@@ -121,6 +123,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Conclusion](#conclusion)
 - [References](#references)
   <!-- TOC END -->
+
 
 ---
 
@@ -423,6 +426,38 @@ This captures each increment in the expected arrival count.
 #### 4. Temporal Randomisation
 
 Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+
+#### 5. Mass Casualty (MASCAL) Event Injection
+
+The background streams above model a smooth, continuous casualty rate and cannot represent the acute, discrete casualty surges — a single artillery barrage, drone strike, or vehicle-borne IED detonation generating a cluster of casualties within a short window — that form a distinct stress test for surgical and ICU capacity, separate from the sustained background tempo the lognormal/exponential streams already represent. `generate_mass_casualty_events()` (`R/environment.R`) overlays a **compound Poisson process** of mass casualty (MASCAL) events on the background `wia_cbt` combat-WIA stream, following the general compound-Poisson approach used for LSCO casualty generation by Fischer et al. [[44]](#References). This complements the discrete-event mass-casualty-incident stress-testing precedent of SIMEDIS [[47]](#References), which — unlike this implementation — injects a fixed, deterministic victim count per scenario rather than a stochastically varying one (the SIMEDIS authors cite variance reduction as the reason, and note stochastic victim generation as future work).
+
+The feature ships **disabled by default** (`mass_casualty.event.rate_per_day = 0` in `env_data.json`), so the seed-42 baseline documented throughout this README and in `CLAUDE.md` is unaffected by this feature's addition. Issue #9's Recommended Approach rate of 0.2/day (mean 5-day inter-event interval) is used only for the explicit stress-test demonstration in [Simulation Analysis](#simulation-analysis) below; enabling it for a planning run requires setting `mass_casualty.event.rate_per_day` to a non-zero value in `env_data.json`.
+
+**Event arrival.** Event start times are drawn from a Poisson process with rate `mass_casualty.event.rate_per_day` (Issue #9 Recommended Approach value: 0.2/day, i.e. a mean inter-event interval of 5 days), via the standard exponential inter-arrival construction:
+
+$$
+t_{k+1} = t_k - \frac{\ln(1 - U)}{\lambda_{\text{min}}}, \quad U \sim \text{Uniform}(0, 1)
+$$
+
+where $\lambda_{\text{min}} = \text{rate\_per\_day} / 1440$ is the per-minute event rate.
+
+**Event size.** Each event injects a number of casualties drawn from $\text{Uniform}(\text{min\_cas}, \text{max\_cas})$ (default 20–60), rounded to the nearest integer.
+
+**Injection window.** Casualties from a single event are not injected simultaneously. Each event's injection window duration is drawn from $\text{Triangular}(\text{window\_min}, \text{window\_mode}, \text{window\_max})$ minutes (default 60/120/180, i.e. 1–3 hours, mode 2 hours); individual casualty offsets within that window are drawn from $\text{Uniform}(0, \text{window})$ and sorted.
+
+**Triage priority.** MASCAL-derived casualties draw triage priority from a blast-dominant distribution (`mass_casualty.priority`: 70% P1, 20% P2, 10% P3) instead of the standard background distribution (`r1.priority`) — reflecting the higher proportion of immediately life-threatening injuries in blast/fragmentation trauma relative to the mixed injury pattern of the background stream, consistent with the ~70% blast/fragmentation injury share reported for contemporary LSCO [[48]](#References).
+
+**Stream merge and tagging.** MASCAL arrival times are merged into the background `wia_cbt` arrival vector and the combined vector is sorted before being passed to simmer's `at()` generator, so MASCAL and background casualties are dispatched through the same trajectory. Each casualty is tagged with a `mass_casualty_event` attribute (1 = MASCAL-derived, 0 = background) at the point of triage in `build_casualty_trajectory()`, enabling the post-hoc stress-test analysis in [Simulation Analysis](#simulation-analysis). Setting `mass_casualty.event.rate_per_day = 0` returns an empty MASCAL arrival stream, reproducing the background-only baseline exactly.
+
+> **MODEL ASSUMPTION — MASCAL EVENTS INJECT WIA-ONLY COMBAT CASUALTIES:** MASCAL events add casualties exclusively to the combat WIA (`wia_cbt`) stream. Immediate KIA and DNBI are not separately generated by a MASCAL event in the current implementation.
+> **Basis:** The stress test this feature targets (Issue #9) is surgical and ICU throughput under acute surge, which is driven by the WIA (survivor) casualty flow; DNBI is, by definition, a non-battle event with no causal link to a discrete tactical event. Immediate KIA from a MASCAL event are operationally real but not generated here.
+> **Uncertainty:** Medium.
+> **Consequence if wrong:** If a materially significant share of real-world MASCAL casualties are immediate KIA, the current model understates MASCAL-driven contention on R1/mortuary transport and KIA-processing resources specifically, while still correctly capturing the OT/ICU surge this issue targets.
+
+> **MODEL ASSUMPTION — MASCAL PARAMETER DEFAULTS:** Event rate (mean 5-day inter-arrival), casualty count per event (Uniform(20, 60)), injection window (Triangular(60, 120, 180) minutes), and blast-dominant priority split (70/20/10) are the values specified in Issue #9's Recommended Approach.
+> **Basis:** Issue #9 (this repository), informed by the compound Poisson parameterisation approach of Fischer et al. [[44]](#References) and the blast-dominant injury mechanism and high sustained-casualty-tempo context reported for contemporary LSCO [[48]](#References) — noting that [[48]](#References) itself characterises LSCO casualty flow as predominantly *sustained* rather than discretely event-driven; the discrete-event MASCAL framing modelled here targets the acute-surge component layered on that sustained tempo (e.g. a single barrage or strike), not the sustained background itself, which the existing lognormal/exponential streams already represent. No open-access source was identified that tabulates event-level (as opposed to daily aggregate) MASCAL rate/size distributions for a specific comparable historical LSCO campaign, so the specific rate/size/window values remain informed engineering estimates rather than literature-calibrated ones.
+> **Uncertainty:** High.
+> **Consequence if wrong:** A materially different event rate or size would change the absolute magnitude of the surge-capacity stress test (queue depth, DOW elevation) reported in [Simulation Analysis](#simulation-analysis); the qualitative finding that a MASCAL event meaningfully strains OT/ICU capacity relative to background load is expected to be robust in direction even if not in magnitude.
 
 ### Wounded In Action (WIA)
 
@@ -994,6 +1029,8 @@ No parameter dominates on this KPI: the nine parameters' µ\* values span a narr
 **Correction to the prior placeholder note — the ranking moved substantially, not negligibly:** the note previously here (following Issue #74's removal) asserted that "a full re-run cannot change any of [the nine parameters' figures] by more than a rounding-scale amount, since the only code-level change was deleting a `* 1.0` multiplication." This fresh re-run shows that assertion was wrong. Relative to the placeholder table, four parameters moved by four or more rank positions: `ot_hours` fell from 2nd to last (9th), `r1_transport` fell from 1st to 4th, `surg_mode` rose from 5th to 1st, and `pri1_surg_prob` rose from 8th to 2nd; `long_icu_mode` also rose, from last (9th) to 5th. The prior note's reasoning considered only the simulation model's behaviour (correctly, the deleted multiplication was always by 1.0 and so was RNG-neutral for any *fixed* design) but not the screening methodology itself: `morris()` (R's `sensitivity` package) generates its one-at-a-time trajectories pseudorandomly as a function of the factor count `p`; regenerating the design with `p=9` under seed 42 does not reproduce the prior `p=10` design with one column deleted, it produces a materially different sequence of design points altogether. The prior note's own preceding sentence had already identified this mechanism ("dropping a parameter from the design changes the sampling for every other parameter too") but then understated its practical effect. The substantive conclusion of this section is unaffected — no parameter dominates, and all nine show comparable, interaction-dominated influence — but the specific rank ordering should be read as this fresh re-run's result, not inferred from code-level reasoning about a prior design.
 
 **Issue #74 — `return_leg_multiplier` removed after screening, not before:** the finding that motivated the original placeholder table — `return_leg_multiplier` ranking last on system OT queue but becoming the most influential of all ten screened parameters on mean transport utilisation and total DOW count once its scope doubled to four legs — is what prompted its removal (see Limitation L15). Those historical figures (µ\* ≈0.092 on transport utilisation, σ ≈7.4 on DOW count) describe the ten-parameter model as it stood before removal and are unaffected by this re-run; they are not re-measured here since the parameter no longer exists to screen.
+
+**Note — MASCAL parameters added, table not yet regenerated (Issue #9):** `morris_params` (`R/sensitivity.R`) has been extended to eleven parameters with `mascal_rate` (`mass_casualty.event.rate_per_day`, screened 0–0.4/day around a baseline mode of 0, since the feature ships disabled by default) and `mascal_max_cas` (`mass_casualty.event.max_cas`, screened 40–80 around a baseline mode of 60), wired through `apply_params()` and verified functionally with a smoke-scale run. The nine-parameter table above predates this addition and does not reflect either new parameter's influence; a full eleven-parameter re-run (r=20, 5 reps, 30 days, seed 42 — comparable in cost to the prior re-runs documented above) is a follow-up task rather than part of this PR (see Further Development). A quick, non-authoritative smoke-scale check (r=2, 1 rep, 3 days) found both new parameters registering non-trivial µ\* on system OT queue, consistent with `mass_casualty` events being a plausible influence on surgical bottleneck severity once screened at full scale, but this should not be read as a ranking — it is far too small a design to produce a reliable estimate.
 
 ![Morris EE — System OT queue](images/morris_system_ot_q.png)
 
@@ -1615,6 +1652,25 @@ Two scenarios are compared — `moderate_intensity` (Falklands 1982 exemplar) an
 
 The comparison exposes a structural fragility that the single-scenario baseline could not surface. Under `high_intensity` casualty rates, R2E OT and ICU — already the binding constraints at Falklands-equivalent load (see [R2E Heavy Handling](#r2e-heavy-handling)) — become severely saturated: mean R2E OT queue rises from 0.05 to 37.8 casualties, and R2E ICU queue rises from 0.05 to 3.2. R2B OT queue remains at 0 in both scenarios — not because R2B absorbs any of the surge, but because the existing OT-bypass routing (Issues #35, #37, #40) diverts surgical candidates to R2E whenever R2B is off-shift, busy, or queued rather than allowing them to wait; under `high_intensity`, this shunts the entire surge onto an R2E that has no further capacity to absorb it. R2B hold bed queue — already identified as a Falklands-rate bottleneck (see [R2B Hold Bed Saturation](#r2b-hold-bed-saturation-—-stream-decomposition-and-intervention-analysis)) — increases 13.8× (0.27 to 3.68), driven by the proportional increase in non-surgical WIA volume rather than any change to DNBI generation (DNBI is not scenario-eligible; see [Scenario Profiles — Parameter classification](#parameter-classification)). Transport remains the one echelon with genuine headroom: mean queue stays effectively at 0 even at 2.7× total casualty volume, consistent with the [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin) finding that the PMV Ambulance/HX240M pool is not the binding constraint at either intensity level.
 
+### Mass Casualty (MASCAL) Event Stress Test
+
+The preceding sections analyse sustained casualty tempo (the background lognormal/exponential streams, at either Falklands or Okinawa intensity). This section tests a qualitatively different scenario: an acute, discrete casualty surge layered on top of the Falklands-calibrated background tempo, using the compound Poisson MASCAL injection implemented for Issue #9 (see [Casualty Generation — Mass Casualty (MASCAL) Event Injection](#5-mass-casualty-mascal-event-injection)). Because the feature ships disabled by default (`mass_casualty.event.rate_per_day = 0`), this section's results were produced with that parameter temporarily set to the Issue #9 Recommended Approach value (0.2/day, mean 5-day inter-event interval) — the seed-42 baseline documented elsewhere in this README and in `CLAUDE.md` uses the shipped default and is unaffected.
+
+**10 replications × 30 days (seed 42, `mass_casualty.event.rate_per_day = 0.2`):**
+
+| Metric | Background-only baseline | With MASCAL injection |
+|---|---|---|
+| Mean total casualties/run | 400 | 685.4 |
+| Mean MASCAL events/run | 0 | 6.5 |
+| DOW rate — background-origin casualties | — | 0.50% (20/4,000) |
+| DOW rate — MASCAL-origin casualties | — | 1.16% (33/2,854) |
+
+The mean 6.5 events per 30-day run is consistent with the configured 0.2/day event rate (theoretical expectation: 30 × 0.2 = 6); event count varies across replications (observed range 2–12 across the 10 replications), confirming the Poisson process is genuinely stochastic rather than deterministic. MASCAL-origin casualties show a DOW rate 2.3× the background-origin rate (1.16% vs. 0.50%) — consistent with the intended stress-test effect of a blast-dominant priority mix arriving faster than steady-state capacity, though this is a per-casualty-origin comparison rather than a strict temporal-window comparison (see the assumption note in the analysis code, `R/analysis.R`), and DOW remains a rare event at this sample size (33 and 20 occurrences respectively), so the point estimate should be treated as illustrative of direction rather than a precise ratio.
+
+A single seed-42 run (`mass_casualty.event.rate_per_day = 0.2`, no replication averaging) illustrates the mechanism directly: 654 total casualties (400 background + 254 MASCAL-derived) across 6 reconstructed MASCAL events (sizes 27, 24, 43, 49, 75, 36 — the 75-casualty cluster on day 26 likely merges two closely-spaced real events, a known limitation of the gap-based event reconstruction heuristic when two events' independent Poisson-distributed inter-arrival gap happens to fall under the clustering threshold). Relative to the background-only baseline (post_op_pathway: hold=31, icu=110; surgery deferred=13), the MASCAL run shows the R2E OT–ICU gate (Issue #43) engaging far more heavily: post-operative hold-bed overrides (165) now *exceed* ICU recovery (141) — inverted from the background-only ratio — and OT-entry deferrals for ICU-saturated Priority 2+ candidates rise from 13 to 37. R2E OT utilisation over the run rises to 31.3% (vs. R2B's 3.8%), and R1 upstream pre-bypass to R2B rises from 115 to 292 casualties as the surge saturates forward capacity. This directly demonstrates the acceptance criterion that ICU and OT contention spike under MASCAL conditions, and that a single acute event can measurably shift the OT–ICU gating mix toward the sub-optimal hold-bed pathway across an entire 30-day run, not just during the event window itself.
+
+![Mass Casualty (MASCAL) Event Timeline](images/mass_casualty_events.png)
+
 ### Conclusion
 
 The single-run analysis, viewed in its entirety, demonstrates that the modelled deployed health system is capable of sustaining a steady operational tempo for a single brigade under baseline casualty assumptions derived from the Falklands conflict. Role 1 elements show sufficient responsiveness and throughput, and the dual-node R2B configuration absorbs surgical demand effectively through a combination of forward surgery and bypass routing to R2E.
@@ -1652,8 +1708,8 @@ DNBI casualties are now sub-categorised into battle fatigue (25%), disease (58%)
 **L6 — Unidirectional Transport** *(Resolved — Issue #6)*
 PMV Ambulance and HX2 40M transport assets now hold for a return leg (an unmodified fresh draw from the same outbound triangular distribution, i.e. a symmetric round trip — tactical rate-of-march is not doctrinally differentiated by payload) after casualty drop-off, before becoming available for the next pickup. This was originally configurable via `return_leg_multiplier`, but that parameter was removed (Issue #74; see Limitation L15) once Morris screening showed it materially influenced transport utilisation and DOW count with no evidentiary basis for any non-default value. Under the current Falklands-derived casualty rate, the vehicle pool is not saturated, so no persistent queue forms; the effect is visible as an increase in total PMV Ambulance busy-time over a 30-day run. The impact will be more pronounced under MASCAL conditions (Issue #9) where multiple casualties compete for the same limited vehicle pool. Return route conditions are assumed symmetric with the outbound route.
 
-**L7 — No MASCAL Stochastic Injection (Medium Impact on Surge Capacity Assessment)**
-The casualty generation model produces a smooth lognormal daily rate. Discrete tactical events generating 20–50 casualties within a 2–4 hour window — the primary stress test for surgical and ICU capacity in LSCO — are entirely absent. **Impact: Medium.** Addressed in Issue #9 (compound Poisson MASCAL injection).
+**L7 — No MASCAL Stochastic Injection** *(Resolved — Issue #9)*
+`generate_mass_casualty_events()` (`R/environment.R`) now overlays a compound Poisson process of mass casualty (MASCAL) events on the background combat-WIA stream: event inter-arrival times are Poisson-distributed (Issue #9 Recommended Approach: mean 5-day interval), each event injects Uniform(20, 60) casualties across a Triangular(60, 120, 180)-minute injection window, and MASCAL-derived casualties draw a blast-dominant triage priority (70/20/10 P1/P2/P3) distinct from the background distribution — see [Casualty Generation](#casualty-generation) for the full methodology and [Simulation Analysis](#simulation-analysis) for the seed-42 stress-test results. The feature ships **disabled by default** (`mass_casualty.event.rate_per_day = 0`), so it does not alter the documented seed-42 baseline; enabling it is a `env_data.json` parameter change, matching this project's policy of not altering the baseline scenario within a feature PR. Immediate KIA and DNBI are not separately generated by a MASCAL event (see the MASCAL EVENTS INJECT WIA-ONLY COMBAT CASUALTIES assumption block); event-level rate/size parameters are informed engineering estimates rather than literature-calibrated values (see the MASCAL PARAMETER DEFAULTS assumption block).
 
 **L8 — Single Baseline Casualty Rate Scenario** *(Resolved — Issue #10)*
 A comparative scenario runner (`run_scenario()` / `compare_scenarios()`, `R/scenario_runner.R`) now executes the full multi-replication framework under a named scenario profile and reports queue/mortality KPIs in the same mean (p10–p90), 95% CI format used elsewhere in this project. Comparing `moderate_intensity` (Falklands, the existing baseline) against `high_intensity` (Okinawa exemplar, Issue #54) across 10 replications × 30 days each confirms that system adequacy conclusions do not extrapolate to Okinawa-intensity LSCO: R2E OT mean queue rises 773-fold and R2E ICU mean queue 69-fold, and DOW/WIA rate rises from 0.26% to 1.08% (see [Comparative Scenario Analysis](#comparative-scenario-analysis)). A genuinely FORECAS-sourced Vietnam-intensity comparison remains unavailable — FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (see the Issue #54 merge notes and Limitation L12) — so the scenario comparison is bounded to Falklands and Okinawa intensities, not the full historical range originally envisaged.
@@ -1705,7 +1761,7 @@ Another refinement involves pulsing strategic medical evacuation availability to
 
 Model fidelity can also be improved through structured expert consultation. Engaging clinicians, medical planners, and operational commanders would support refinement of treatment durations, triage logic, and evacuation thresholds. This would ensure that the simulation reflects not only doctrinal intent but also clinical realities and operational constraints.
 
-To reflect the unpredictability of LSCO, future simulations should also incorporate rare but high-impact mass-casualty events. These could be triggered stochastically and used to evaluate system shock absorption, surge protocols, and triage degradation under extreme conditions. Such modelling would be particularly valuable in validating the robustness of the R2E Heavy and its ability to maintain throughput under duress.
+Rare but high-impact mass-casualty (MASCAL) events are now implemented (Issue #9; see [Casualty Generation — Mass Casualty (MASCAL) Event Injection](#5-mass-casualty-mascal-event-injection) and [Mass Casualty (MASCAL) Event Stress Test](#mass-casualty-mascal-event-stress-test)), triggered stochastically via a compound Poisson process and used to evaluate R2E OT–ICU shock absorption under an acute surge layered on the sustained background tempo. Two follow-ups remain: the eleven-parameter Morris screen extending `morris_params` with the new MASCAL rate/size parameters has not yet been re-run at full scale (see the note in [Sensitivity Analysis](#sensitivity-analysis)); and MASCAL events currently inject WIA-only combat casualties (no immediate KIA or DNBI), which understates MASCAL-driven contention on R1/mortuary transport and KIA-processing resources specifically (see the MASCAL EVENTS INJECT WIA-ONLY COMBAT CASUALTIES assumption block).
 
 Comparative analysis against other casualty generation models is now implemented (Issue #10; see [Comparative Scenario Analysis](#comparative-scenario-analysis)). Okinawa-intensity casualty rates [[8]](#References), applied via the `high_intensity` scenario profile (Issue #54), confirm severe surgical and ICU capacity shortfalls at R2E under sustained high-intensity LSCO. A genuinely FORECAS-sourced Vietnam-intensity comparison remains a future development item: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table, so no comparison can be added without either a fresh literature source or a documented informed-estimate methodology consistent with this project's citation standards.
 
@@ -1834,6 +1890,10 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [45] Turner, J., & Wilson, A. (2024). Backed into a corner: damage control surgery in the rural or austere setting. *Trauma Surgery & Acute Care Open*, *9*(Suppl 2), e001391. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC11029234/
 
 [46] Hardcastle, T. C., Gaarder, C., Balogh, Z., et al. (2025). Guidelines for Enhanced Recovery After Trauma and Intensive Care (ERATIC): ERAS Society and IATSIC Recommendations: Paper 1: Initial Care — Pre and Intraoperative Care Until ICU, Including Non-Operative Management. *World Journal of Surgery*, *49*(8), 1997–2028. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC12338446/
+
+[47] Debacker, M., Van Utterbeeck, F., Ullrich, C., Dhondt, E., & Hubloue, I. (2016). SIMEDIS: a discrete-event simulation model for testing responses to mass casualty incidents. *Journal of Medical Systems*, *40*(12), 273. Retrieved 10 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC5069323/
+
+[48] Dilday, T. (2026, April 20). *From MASCAL to Campaign Medicine: Aligning Field Hospital Training with LSCO Reality*. U.S. Army. Retrieved 10 Jul 26, from https://www.army.mil/article/290575
 
 ---
 

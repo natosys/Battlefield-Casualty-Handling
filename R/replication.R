@@ -31,12 +31,30 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   env <<- build_env(env, env_data, ot_hours = ot_hours)
   casualty <- build_casualty_trajectory()
 
+  # Mass casualty (MASCAL) injection (Issue #9): a compound Poisson process
+  # of acute casualty surge events is merged into the wia_cbt background
+  # arrival stream (sort combined vector by time). wia_cbt_mascal_flags is a
+  # parallel logical vector, in the same merged/sorted order, marking which
+  # entries originated from a MASCAL event rather than background
+  # generation — build_casualty_trajectory() reads it via the entity's
+  # generator-assigned index to set the mass_casualty_event attribute.
+  # Global assignment (<<-) mirrors env_data/day_min/counts (run.R); in
+  # forked mclapply workers this modifies only the fork's local state.
+  wia_cbt_bg     <- generate_casualty_arrivals("wia_cbt",
+                      env_data$vars$generators$wia_cbt,
+                      env_data$pops$combat, n_days, write_file = write_files,
+                      antithetic = antithetic)
+  mascal         <- generate_mass_casualty_events(n_days,
+                      env_data$vars$mass_casualty$event, write_file = write_files,
+                      antithetic = antithetic)
+  wia_cbt_times  <- c(wia_cbt_bg, mascal$arrival_times)
+  wia_cbt_order  <- order(wia_cbt_times)
+  wia_cbt_times  <- wia_cbt_times[wia_cbt_order]
+  wia_cbt_mascal_flags <<- c(rep(FALSE, length(wia_cbt_bg)),
+                             rep(TRUE, length(mascal$arrival_times)))[wia_cbt_order]
+
   env <<- env %>%
-    add_generator("wia_cbt",  casualty,
-                  at(generate_casualty_arrivals("wia_cbt",
-                    env_data$vars$generators$wia_cbt,
-                    env_data$pops$combat, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+    add_generator("wia_cbt",  casualty, at(wia_cbt_times), mon = 2) %>%
     add_generator("kia_cbt",  casualty,
                   at(generate_casualty_arrivals("kia_cbt",
                     env_data$vars$generators$kia_cbt,

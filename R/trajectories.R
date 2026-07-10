@@ -1325,7 +1325,14 @@ r2e_treat_wia <- function(team_id) {
 #'
 #' # Phase 1: Attribute assignment
 #' # - Assigns R1 team (random selection)
-#' # - Sets priority (WIA/DNBI) via weighted sample
+#' # - Sets mass_casualty_event (Issue #9): 1 if this casualty originated
+#' #   from a compound-Poisson MASCAL injection event merged into the
+#' #   wia_cbt stream (R/environment.R::generate_mass_casualty_events()),
+#' #   looked up via the entity's generator-assigned index into
+#' #   wia_cbt_mascal_flags; 0 otherwise
+#' # - Sets priority (WIA/DNBI) via weighted sample — MASCAL-tagged
+#' #   casualties draw from the blast-dominant mass_casualty priority
+#' #   distribution instead of the standard r1 priority distribution
 #' # - Sets dnbi_type (DNBI cases only): 1=battle_fatigue, 2=disease, 3=nbi
 #' # - Computes surgery requirement based on priority tier and dnbi_type
 #'
@@ -1347,11 +1354,27 @@ build_casualty_trajectory <- function() {
     log_(function() paste0(get_name(env))) %>%
     set_attribute("injury_time", function() now(env)) %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
+    set_attribute("mass_casualty_event", function() {
+      name <- get_name(env)
+      if (startsWith(name, "wia_cbt")) {
+        idx <- as.integer(sub("^wia_cbt", "", name)) + 1L
+        if (idx >= 1L && idx <= length(wia_cbt_mascal_flags) &&
+            isTRUE(wia_cbt_mascal_flags[idx])) 1 else 0
+      } else {
+        0
+      }
+    }) %>%
     set_attribute("priority", function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
-        sample(1:3, 1, prob = c(env_data$vars$r1$priority$one,
-                                env_data$vars$r1$priority$two,
-                                env_data$vars$r1$priority$three))
+        if (get_attribute(env, "mass_casualty_event") == 1) {
+          sample(1:3, 1, prob = c(env_data$vars$mass_casualty$priority$one,
+                                  env_data$vars$mass_casualty$priority$two,
+                                  env_data$vars$mass_casualty$priority$three))
+        } else {
+          sample(1:3, 1, prob = c(env_data$vars$r1$priority$one,
+                                  env_data$vars$r1$priority$two,
+                                  env_data$vars$r1$priority$three))
+        }
       } else {
         NA
       }

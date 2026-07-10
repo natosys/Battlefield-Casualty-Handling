@@ -759,6 +759,30 @@
           ]
         }
       ]
+    },
+    {
+      "elm": "mass_casualty",
+      "actys": [
+        {
+          "acty": "event",
+          "vals": [
+            { "var": "rate_per_day", "val": 0 },
+            { "var": "min_cas", "val": 20 },
+            { "var": "max_cas", "val": 60 },
+            { "var": "window_min", "val": 60 },
+            { "var": "window_mode", "val": 120 },
+            { "var": "window_max", "val": 180 }
+          ]
+        },
+        {
+          "acty": "priority",
+          "vals": [
+            { "var": "one", "val": 0.7 },
+            { "var": "two", "val": 0.2 },
+            { "var": "three", "val": 0.1 }
+          ]
+        }
+      ]
     }
   ],
   "scenarios": {

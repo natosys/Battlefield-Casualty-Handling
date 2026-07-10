@@ -293,6 +293,111 @@ generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
   }
 }
 
+#' Generates mass casualty (MASCAL) event arrival timestamps via a compound
+#' Poisson process
+#'
+#' @param n_days Duration in days
+#' @param params List with rate_per_day, min_cas, max_cas, window_min,
+#'   window_mode, window_max (as read from
+#'   env_data$vars$mass_casualty$event)
+#' @param seed Optional random seed for reproducibility
+#' @param write_file Write the arrival stream and event log to data/
+#'   (default TRUE; set FALSE for parallel replication workers to avoid
+#'   file-write conflicts)
+#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
+#'   substituted for U in the event inter-arrival, casualty-count, window
+#'   duration, and within-window offset draws. Enables antithetic pairing
+#'   in run_replications().
+#' @return Named list: `arrival_times` (sorted numeric vector of individual
+#'   casualty arrival times, simulation minutes) and `events` (data frame
+#'   with one row per event: event_id, event_start, n_cas, window_min —
+#'   used for the mass casualty event timeline plot in R/analysis.R)
+#'
+#' @details Implements a compound Poisson process for mass casualty
+#'   injection (Fischer et al., 2025; Debacker et al., 2016): event
+#'   inter-arrival times are drawn from an Exponential(rate_per_day)
+#'   distribution, each event injects Uniform(min_cas, max_cas) casualties
+#'   distributed across a Triangular(window_min, window_mode,
+#'   window_max)-minute injection window following the event start.
+#'   `rate_per_day = 0` returns an empty arrival stream — background
+#'   lognormal generation is unaffected, satisfying Issue #9's disable-path
+#'   acceptance criterion.
+generate_mass_casualty_events <- function(n_days, params, seed = NULL,
+                                          write_file = TRUE, antithetic = FALSE) {
+  if (!is.null(seed)) set.seed(seed)
+
+  n_minutes    <- day_min * n_days
+  rate_per_min <- params$rate_per_day / day_min
+
+  empty_events <- data.frame(event_id = integer(0), event_start = numeric(0),
+                             n_cas = integer(0), window_min = numeric(0))
+
+  if (rate_per_min <= 0) {
+    if (write_file) {
+      write.table(numeric(0), file = file.path("data", "arrivals_mascal.txt"),
+                 row.names = FALSE, col.names = FALSE)
+      write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
+               row.names = FALSE)
+    }
+    return(list(arrival_times = numeric(0), events = empty_events))
+  }
+
+  # Exponential inter-arrival times via inverse-CDF, so U can be reflected
+  # for antithetic pairing (matches generate_ln_arrivals()/generate_exp_arrivals()).
+  event_starts <- c()
+  t <- 0
+  repeat {
+    u <- runif(1)
+    if (antithetic) u <- 1 - u
+    t <- t - log(1 - u) / rate_per_min
+    if (t >= n_minutes) break
+    event_starts <- c(event_starts, t)
+  }
+
+  arrival_times <- c()
+  event_id      <- c()
+  window_dur    <- c()
+  n_cas_actual  <- c()
+
+  for (i in seq_along(event_starts)) {
+    u_cas <- runif(1)
+    if (antithetic) u_cas <- 1 - u_cas
+    n_cas_draw <- round(params$min_cas + u_cas * (params$max_cas - params$min_cas))
+
+    window <- rtriangle(1, a = params$window_min, b = params$window_max,
+                        c = params$window_mode)
+
+    u_offset <- runif(n_cas_draw)
+    if (antithetic) u_offset <- 1 - u_offset
+    offsets <- sort(u_offset * window)
+
+    times <- event_starts[i] + offsets
+    times <- times[times < n_minutes]
+
+    arrival_times <- c(arrival_times, times)
+    event_id      <- c(event_id, rep(i, length(times)))
+    window_dur    <- c(window_dur, window)
+    n_cas_actual  <- c(n_cas_actual, length(times))
+  }
+
+  arrival_times <- sort(arrival_times)
+
+  events <- data.frame(
+    event_id    = seq_along(event_starts),
+    event_start = event_starts,
+    n_cas       = n_cas_actual,
+    window_min  = window_dur
+  )
+
+  if (write_file) {
+    write.table(arrival_times, file = file.path("data", "arrivals_mascal.txt"),
+               row.names = FALSE, col.names = FALSE)
+    write.csv(events, file.path("data", "mass_casualty_events.csv"), row.names = FALSE)
+  }
+
+  list(arrival_times = arrival_times, events = events)
+}
+
 # ── Simmer environment construction ─────────────────────────────────────────
 
 #' Initializes the simmer environment by adding all resources from env_data

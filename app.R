@@ -47,21 +47,103 @@ options(future.rng.onMisuse = "ignore")
 APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
 
+#' Detect a safe number of concurrent mclapply forks for *this* machine or
+#' container, instead of guessing a fixed number.
+#'
+#' @param mem_per_worker_mb Assumed peak RSS of one forked replication
+#'   worker, in MB. Default 900 is the directly-measured mid-simulation RSS
+#'   of a single forked worker (Issue #15 follow-up — the crash this guards
+#'   against was memory exhaustion, not a CPU-count problem, so bounding by
+#'   detected core count alone is insufficient).
+#' @return Integer >= 1.
+#'
+#' @details parallel::detectCores() reports the host's — or, inside a local
+#'   Docker Desktop dev container without an explicit CPU limit, the
+#'   container's full VM-visible — core count. That number bears no relation
+#'   to how much memory is actually available to run that many concurrent
+#'   forked R sessions (each carrying a full duplicate simmer/ggplot2/dplyr/
+#'   data.table session). Forking one such session per detected core has
+#'   been observed to exhaust a local dev container's memory and crash the
+#'   whole container even at a modest replication count; a first attempt at
+#'   a fixed guessed cap (4, then 2) still saw forked workers OOM-killed
+#'   mid-run on a real local dev container. Rather than keep guessing at a
+#'   smaller fixed number, read the two real, machine-specific signals that
+#'   actually bound safe concurrency:
+#'   1. CPU quota — Linux cgroups (v2 `cpu.max`, or v1
+#'      `cpu.cfs_quota_us`/`cpu.cfs_period_us`) expose the real per-container
+#'      CPU allotment when the container was started with an explicit CPU
+#'      limit, which `detectCores()` does not see (it reads `/proc/cpuinfo`,
+#'      reflecting the whole VM/host).
+#'   2. Memory headroom — the real constraint that actually caused the
+#'      crash. Prefers the cgroup's own memory ceiling minus current usage
+#'      (v2 `memory.max`/`memory.current`, or v1
+#'      `memory.limit_in_bytes`/`memory.usage_in_bytes`) — the container's
+#'      *own* budget, not the host's, since a memory-limited container can be
+#'      OOM-killed well before the host itself runs low. Falls back to the
+#'      host's `/proc/meminfo` `MemAvailable` only when no cgroup memory
+#'      limit is set (or unreadable) — the next-best real signal, still far
+#'      better than a fixed guess. A 70% safety factor is applied to the
+#'      memory-derived bound to leave headroom for the main Shiny process,
+#'      RStudio Server, and any other processes sharing the same container.
+#'   Falls back to `parallel::detectCores()` alone (CPU-only, as before) on
+#'   any platform where none of these files are readable (e.g. non-Linux),
+#'   and always returns at least 1.
+detect_safe_cores <- function(mem_per_worker_mb = 900) {
+  cpu_cores <- parallel::detectCores()
+
+  read_num1 <- function(path) {
+    if (!file.exists(path)) return(NA_real_)
+    tryCatch(suppressWarnings(as.numeric(trimws(readLines(path, warn = FALSE, n = 1)))),
+             error = function(e) NA_real_)
+  }
+
+  # --- CPU: respect a cgroup CPU quota if the container was started with one
+  if (file.exists("/sys/fs/cgroup/cpu.max")) {                    # cgroup v2
+    parts <- strsplit(trimws(readLines("/sys/fs/cgroup/cpu.max", warn = FALSE, n = 1)), "\\s+")[[1]]
+    if (length(parts) == 2 && parts[1] != "max") {
+      quota <- suppressWarnings(as.numeric(parts[1])); period <- suppressWarnings(as.numeric(parts[2]))
+      if (!is.na(quota) && !is.na(period) && period > 0) {
+        cpu_cores <- min(cpu_cores, max(1, floor(quota / period)))
+      }
+    }
+  } else {                                                         # cgroup v1
+    quota  <- read_num1("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
+    period <- read_num1("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
+    if (!is.na(quota) && quota > 0 && !is.na(period) && period > 0) {
+      cpu_cores <- min(cpu_cores, max(1, floor(quota / period)))
+    }
+  }
+
+  # --- Memory: bound concurrency by this container's own real headroom ----
+  mem_cores   <- Inf
+  mem_limit   <- read_num1("/sys/fs/cgroup/memory.max")                     # cgroup v2
+  mem_current <- read_num1("/sys/fs/cgroup/memory.current")
+  if (is.na(mem_limit)) {
+    mem_limit   <- read_num1("/sys/fs/cgroup/memory/memory.limit_in_bytes") # cgroup v1
+    mem_current <- read_num1("/sys/fs/cgroup/memory/memory.usage_in_bytes")
+  }
+  if (!is.na(mem_limit) && !is.na(mem_current)) {
+    headroom_mb <- (mem_limit - mem_current) / (1024^2)
+    if (headroom_mb > 0) mem_cores <- max(1, floor(0.7 * headroom_mb / mem_per_worker_mb))
+  } else if (file.exists("/proc/meminfo")) {
+    avail_line <- grep("^MemAvailable:", readLines("/proc/meminfo", warn = FALSE), value = TRUE)
+    if (length(avail_line) == 1) {
+      avail_kb <- suppressWarnings(as.numeric(regmatches(avail_line, regexpr("[0-9]+", avail_line))))
+      if (!is.na(avail_kb)) mem_cores <- max(1, floor(0.7 * (avail_kb / 1024) / mem_per_worker_mb))
+    }
+  }
+
+  as.integer(max(1, min(cpu_cores, mem_cores)))
+}
+
 # Cap on mclapply's mc.cores (R/replication.R's run_replications()) for every
 # multi-replication path this app triggers (Full Analysis, Morris, Sobol).
-# parallel::detectCores() reports the host's — or, inside a local Docker
-# Desktop dev container, the container's full VM-visible — core count, not
-# how much memory is actually available to run that many concurrent forked R
-# sessions (each carrying a full duplicate simmer/ggplot2/dplyr/data.table
-# session). Forking one such session per detected core has been observed to
-# exhaust a local dev container's memory and crash the whole container even
-# at a modest replication count (Issue #15 follow-up). Capping at 4 bounds
-# peak concurrent forked sessions regardless of how many cores are reported,
-# while still giving meaningful parallelism over strictly serial execution.
 # CLI/scripted callers (scripts/run_sensitivity.R, run.R, R/warmup.R,
 # R/scenario_runner.R) do not pass max_cores and are unaffected — this cap
-# only applies to the interactive, casually-clicked Shiny paths below.
-APP_MAX_CORES   <- min(parallel::detectCores(), 4L)
+# only applies to the interactive, casually-clicked Shiny paths below. See
+# detect_safe_cores()'s own roxygen for why this reads real machine/container
+# limits rather than assuming a fixed guessed number.
+APP_MAX_CORES   <- detect_safe_cores()
 PARAM_REGISTRY  <- build_param_registry()
 
 #' Detect every triangular (min/mode/max) field triple in a registry, by

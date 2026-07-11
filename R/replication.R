@@ -154,10 +154,51 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir =
     cores <- parallel::detectCores()
     if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
     envs <- mclapply(seq_len(n_iterations), worker,
-                     mc.cores    = cores,
-                     mc.set.seed = TRUE)
+                     mc.cores       = cores,
+                     mc.set.seed    = TRUE,
+                     # Only forced off for max_cores-capped (interactive
+                     # Shiny) callers, preserving CLI/script behaviour
+                     # exactly otherwise. mc.preschedule = TRUE (mclapply's
+                     # default) pre-divides the n_iterations jobs into
+                     # `cores` batches, one fork per batch; if a fork is
+                     # OOM-killed mid-run (observed on a memory-constrained
+                     # local dev container even at cores = 4 — Issue #15
+                     # follow-up), mclapply's own warning is explicit that
+                     # *every* job pre-assigned to that fork is lost, not
+                     # just one. mc.preschedule = FALSE forks one process
+                     # per job instead (still capped at `cores` concurrent),
+                     # so a single killed fork costs exactly one
+                     # replication's result, not an unpredictable batch of
+                     # them — smaller, more diagnosable blast radius at the
+                     # cost of more fork() calls.
+                     mc.preschedule = is.null(max_cores))
   } else {
     envs <- lapply(seq_len(n_iterations), worker)
+  }
+
+  # A forked mclapply worker that is killed outright (e.g. OOM-killed by the
+  # host/container) — as opposed to one whose R code merely throws a normal
+  # error, which mclapply already converts into a "try-error" per job — can
+  # leave `envs` containing NULL or malformed entries for every job it had
+  # been assigned. Passing those straight to get_mon_arrivals()/
+  # get_mon_attributes()/get_mon_resources() produces a confusing, unrelated
+  # error deep in simmer's/dplyr's internals (observed: "argument \"x\" is
+  # missing, with no default") rather than a clear diagnosis. Filter them
+  # out here and fail (or warn) with an explicit, actionable message instead.
+  is_valid_env <- function(e) !is.null(e) && !inherits(e, "try-error") && is.environment(e)
+  valid <- vapply(envs, is_valid_env, logical(1))
+  n_failed <- sum(!valid)
+  if (n_failed > 0) {
+    msg <- sprintf(
+      paste0("%d of %d replications did not complete (their worker process was likely ",
+             "killed by the host/container running out of memory). Reduce the replication ",
+             "count, reduce simulation duration, or reduce available parallelism (max_cores) ",
+             "and try again."),
+      n_failed, n_iterations
+    )
+    if (all(!valid)) stop(msg, call. = FALSE)
+    warning(msg, call. = FALSE)
+    envs <- envs[valid]
   }
 
   list(

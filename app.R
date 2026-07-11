@@ -512,6 +512,32 @@ inject_all_splits <- function(values) {
   values
 }
 
+#' Fill in any registry field missing from `values` with its scenario-
+#' resolved default (Issue #77). A field is missing whenever its Configure
+#' accordion panel has never been opened in this session — deferred
+#' rendering (see the group_ui_* renderUI loop in server()) means such a
+#' field's input never bound, so it is simply absent from `values`, not
+#' present with a NULL/default value Shiny populated itself.
+#' apply_registry_values() already falls back to `json` (scenario_json())
+#' for any field missing from its own `values` argument, so current_json()
+#' — and everything built from it (Quick Run, Full Analysis, Morris,
+#' Sobol, Save Configuration) — is unaffected by deferred rendering.
+#' validate_config() runs on the flat `values` list *before* that merge,
+#' though, so it needs the same fallback applied explicitly here or it
+#' would see an absent field as an error-worthy NULL rather than a valid,
+#' merely-unedited default.
+#'
+#' @param values Named list from inject_all_splits(reactiveValuesToList(input))
+#' @param registry List of field specs from build_param_registry()
+#' @param json Parsed, scenario-resolved env_data.json (scenario_json())
+fill_missing_defaults <- function(values, registry, json) {
+  defaults <- registry_defaults(registry, json)
+  for (id in names(defaults)) {
+    if (is.null(values[[id]])) values[[id]] <- defaults[[id]]
+  }
+  values
+}
+
 MORRIS_LABELS <- c(
   surg_mode              = "Surgery Duration (Mode)",
   long_resus_mode        = "Long Resuscitation Duration (Mode)",
@@ -1467,13 +1493,17 @@ server <- function(input, output, session) {
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),
   # reading straight from the three inputs so it redraws as any of them
   # is edited — the same pattern as the casualty-generation curves above.
+  # Left at Shiny's default suspendWhenHidden = TRUE (Issue #77): a curve
+  # only needs to render once its accordion panel is actually opened, and
+  # forcing it eager was part of what made every page load pay the cost of
+  # rendering all 19 of these regardless of which panel (if any) the user
+  # ever opens.
   lapply(names(TRI_TRIPLES), function(prefix) {
     tt <- TRI_TRIPLES[[prefix]]
     output_id <- paste0("tri_curve_", prefix)
     output[[output_id]] <- renderPlot({
       render_tri_curve(input[[tt$min_id]], input[[tt$mode_id]], input[[tt$max_id]])
     })
-    outputOptions(output, output_id, suspendWhenHidden = FALSE)
   })
 
   # ── Casualty Intensity Profile selector ──────────────────────────────────
@@ -1681,13 +1711,18 @@ server <- function(input, output, session) {
       render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(),
                         gen_distributions(), dow_shape())
     })
-    # Accordion panels other than the initially-open one are hidden
-    # (display:none) at first render; Shiny suspends output bindings it
-    # judges invisible, so their inputs would never register unless the
-    # user happens to open every panel first. Force eager rendering so
-    # every field's input exists (and its value is capturable) regardless
-    # of which panels are currently expanded.
-    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+    # Left at Shiny's default suspendWhenHidden = TRUE (Issue #77, reversing
+    # the eager-render override Issue #14 introduced): a panel other than
+    # the initially-open one now renders only once actually opened, rather
+    # than every panel's ~20 fields and curve previews all rendering and
+    # registering their initial values at once on every page load. Values
+    # for a never-opened panel's fields (never bound, so absent from
+    # `input`) are supplied by apply_registry_values()'s existing fallback
+    # to scenario_json() (see current_json()) — every field remains
+    # correctly capturable by Save Configuration/Quick Run/Full
+    # Analysis/Morris/Sobol regardless of which panels are open, exactly as
+    # eager rendering was there to guarantee, just without needing every
+    # field's input to actually exist in `input` to do it.
   })
 
   # Live structural capacity diagram at the top of the Health System
@@ -1713,7 +1748,9 @@ server <- function(input, output, session) {
       input$r2e_team_count %||% 0, r2e_beds
     )
   })
-  outputOptions(output, "force_design_diagram", suspendWhenHidden = FALSE)
+  # Left at the default suspendWhenHidden = TRUE (Issue #77): this lives in
+  # the same accordion panel as the Health System Architecture fields it
+  # illustrates, so there is nothing to show while that panel is collapsed.
 
   # Live medevac chain diagram at the top of the Medevac panel
   # (see medevac_diagram()) — reads the same transport mode inputs the
@@ -1730,7 +1767,8 @@ server <- function(input, output, session) {
       mort2e_mode = input$r2e_kia_transport_mode %||% 0
     )
   })
-  outputOptions(output, "medevac_diagram", suspendWhenHidden = FALSE)
+  # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+  # reasoning as force_design_diagram above, for the Medevac panel.
 
   # Live casualty-generation curve previews (Casualty Rates group). Read
   # live from the mean/sd inputs so the curve redraws as the user edits
@@ -1746,7 +1784,8 @@ server <- function(input, output, session) {
       if (is.null(dist)) dist <- "lognormal"
       render_gen_curve(mean_v, sd_v, dist)
     })
-    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+    # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+    # reasoning as the triangular curve previews above.
   })
 
   # Live DOW survival-function curve previews (Casualty Rates group, Died
@@ -1762,7 +1801,8 @@ server <- function(input, output, session) {
       shp   <- dow_shape()[[pr]]
       render_dow_curve(shp$p_base, p_max, shp$k, shp$t_mid)
     })
-    outputOptions(output, output_id, suspendWhenHidden = FALSE)
+    # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+    # reasoning as the triangular curve previews above.
   })
 
   observeEvent(input$upload_json, {
@@ -1845,6 +1885,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$run_quick, {
     values <- inject_all_splits(reactiveValuesToList(input))
+    values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
     errors <- validate_config(values)
     if (length(errors) > 0) {
       showModal(modalDialog(
@@ -1916,6 +1957,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$run_full, {
     values <- inject_all_splits(reactiveValuesToList(input))
+    values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
     errors <- validate_config(values)
     if (length(errors) > 0) {
       showModal(modalDialog(
@@ -2237,6 +2279,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$run_sensitivity, {
     values <- inject_all_splits(reactiveValuesToList(input))
+    values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
     errors <- validate_config(values)
     if (length(errors) > 0) {
       showModal(modalDialog(

@@ -220,6 +220,18 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
+    # A full production screen runs this loop hundreds of times in one long-
+    # lived process (r=20 x (p+1) = 240 design points, each building and
+    # discarding a full monitoring dataset via eval_params()/run_replications()).
+    # R's own garbage collector is lazy about returning memory to the OS
+    # between iterations of a tight loop like this one; left unforced, that
+    # slow per-iteration accumulation was observed (Issue #15 follow-up) to
+    # grow a local dev container's memory usage steadily over the course of
+    # a multi-hour run until it started swapping/thrashing rather than
+    # failing cleanly. Forcing a full collection after every point trades a
+    # small amount of wall-clock time for keeping steady-state memory flat
+    # across however many points the screen runs.
+    gc(full = TRUE)
     kpis
   }, numeric(7)))
 
@@ -358,6 +370,12 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
+    # See run_morris()'s identical gc() call for why: this loop runs
+    # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
+    # long-lived process — forcing a collection after every point keeps
+    # steady-state memory flat rather than creeping up across the run
+    # (Issue #15 follow-up).
+    gc(full = TRUE)
     res
   }, numeric(5)))
 

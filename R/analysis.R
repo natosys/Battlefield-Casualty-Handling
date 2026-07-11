@@ -1054,6 +1054,359 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ))
 }
 
+#' Bin a resource-queue subset into regular time bins per (replication,
+#' resource), then summarise mean ± 95% CI per bin across replications,
+#' grouped by the given label column(s) already present in `data`.
+#'
+#' @param data Resource-monitor subset with columns replication, resource,
+#'   time, queue, and every column named in group_cols.
+#' @param group_cols Character vector of label columns to facet/aggregate
+#'   by, e.g. c("r1_label", "role_label") — each (replication, resource)
+#'   combination must map to exactly one combination of these labels.
+#' @param bin_size_min Width of each time bin in minutes (default 240 — 6
+#'   bins/day; coarse enough to stay tractable at up to 1000 replications
+#'   while still showing queue dynamics across the run).
+#' @return list(traces = per-(replication, resource) binned queue, for a
+#'   faint per-replication overlay trace; ci = mean/CI per bin per group,
+#'   for the ribbon).
+#'
+#' @details Step-interpolates each resource's queue trace onto a shared grid
+#'   of time bins (mirrors bin_icu_queue(), R/warmup.R), then computes a
+#'   t-distribution 95% CI across replications at each bin. sd is coerced to
+#'   0 when only one replication contributes to a bin (n < 2), so the CI
+#'   collapses to the mean rather than propagating NA.
+bin_queue_ci <- function(data, group_cols, bin_size_min = 240) {
+  max_time <- max(data$time, na.rm = TRUE)
+  bins     <- seq(0, max_time, by = bin_size_min)
+
+  traces <- data %>%
+    group_by(across(all_of(c("replication", "resource", group_cols)))) %>%
+    group_modify(function(d, key) {
+      q <- approx(d$time, d$queue, xout = bins, method = "constant", rule = 2)$y
+      data.frame(bin_min = bins, queue = q)
+    }) %>%
+    ungroup()
+
+  ci <- traces %>%
+    group_by(across(all_of(c("bin_min", group_cols)))) %>%
+    summarise(
+      n      = n(),
+      mean_q = mean(queue, na.rm = TRUE),
+      sd_q   = sd(queue, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      sd_q     = ifelse(n < 2 | is.na(sd_q), 0, sd_q),
+      ci_lower = pmax(mean_q - qt(0.975, df = pmax(n - 1, 1)) * sd_q / sqrt(n), 0),
+      ci_upper = mean_q + qt(0.975, df = pmax(n - 1, 1)) * sd_q / sqrt(n)
+    )
+
+  list(traces = traces, ci = ci)
+}
+
+#' Per-replication resource utilisation (busy-time fraction) matching a
+#' resource-name pattern, one row per replication.
+#'
+#' @param resources Resource-monitor data frame (with replication column)
+#' @param pattern   Regex pattern matched against the resource column
+#' @return Data frame: replication, utilisation (0-1)
+#'
+#' @details Mirrors compute_utilisation() (R/sensitivity.R), but keeps the
+#'   per-replication value rather than collapsing straight to a single
+#'   across-replication mean, so callers can compute a CI across
+#'   replications rather than only a point estimate.
+utilisation_per_replication <- function(resources, pattern) {
+  sub <- resources %>% filter(grepl(pattern, resource))
+  if (nrow(sub) == 0) {
+    return(data.frame(replication = integer(0), utilisation = numeric(0)))
+  }
+  obs_window <- sub %>%
+    group_by(replication) %>%
+    summarise(obs_window = max(time, na.rm = TRUE), .groups = "drop")
+  sub %>%
+    arrange(replication, resource, time) %>%
+    group_by(replication, resource) %>%
+    mutate(duration = lead(time, default = dplyr::last(time)) - time) %>%
+    ungroup() %>%
+    filter(!is.na(duration) & duration > 0) %>%
+    group_by(replication, resource) %>%
+    summarise(busy_time = sum(server * duration, na.rm = TRUE),
+              capacity  = max(capacity, na.rm = TRUE), .groups = "drop") %>%
+    group_by(replication) %>%
+    summarise(busy_time = sum(busy_time), capacity = sum(capacity), .groups = "drop") %>%
+    left_join(obs_window, by = "replication") %>%
+    mutate(utilisation = busy_time / (capacity * obs_window)) %>%
+    select(replication, utilisation)
+}
+
+#' Mean and 95% CI (t-distribution) of a numeric vector across replications
+#'
+#' @param x Numeric vector, one value per replication
+#' @return Named numeric vector: mean, lower, upper, n. When n < 2, lower and
+#'   upper both equal mean (no CI is estimable from a single replication).
+ci_mean <- function(x) {
+  x <- x[!is.na(x)]
+  n <- length(x)
+  m <- if (n > 0) mean(x) else NA_real_
+  if (n < 2) return(c(mean = m, lower = m, upper = m, n = n))
+  s <- sd(x)
+  e <- qt(0.975, df = n - 1) * s / sqrt(n)
+  c(mean = m, lower = m - e, upper = m + e, n = n)
+}
+
+#' Runs the Full Analysis (multi-replication) visualisation pipeline
+#'
+#' @param mon Named list with elements arrivals, attributes, resources as
+#'   returned by run_replications() — each carrying a `replication` column
+#' @param warm_up_period Days to exclude from the start of the analysis
+#'   window (Welch warm-up period; default WARM_UP_DAYS, R/warmup.R — 0 for
+#'   this terminating-simulation model, i.e. no exclusion at baseline)
+#' @param output_dir Directory path for saving CSV outputs (default "outputs")
+#' @param images_dir Directory path for saving PNG plots (default "images")
+#' @return Invisibly returns a named list: casualty_flow, r1_queues,
+#'   r2b_bed_queues, r2e_bed_queues, utilisation, waiting_times (ggplot
+#'   objects, CI-ribbon/error-bar variants of analyse_run()'s single-run
+#'   plots — embeddable directly via renderPlot()); kpi_summary (named list
+#'   of ci_mean() vectors: total_casualties, dow_count, r2e_icu_peak_queue,
+#'   r2b_ot_peak_queue); n_reps; arrivals/attributes/resources (the filtered
+#'   monitoring data frames, for CSV export).
+#'
+#' @details Issue #15's Full Analysis counterpart to analyse_run(): every
+#'   plot shows a mean ± 95% CI ribbon (or error bar, for the single-number
+#'   utilisation summary) across replications, with faint per-replication
+#'   traces overlaid on the queue-depth plots (alpha ≈ 0.1) so an individual
+#'   replication's trajectory remains visible under the aggregate. There is
+#'   no per-replication Gantt or per-bed Gantt-style plot — a Gantt of
+#'   individual bed occupancy has no meaningful multi-replication analogue —
+#'   so the Bed & Resource Utilisation tab is instead a single mean ± CI
+#'   utilisation bar chart per resource group. Replication count guidance,
+#'   CI interpretation, and warm-up exclusion are documented in the README
+#'   (Shiny Application — Full Analysis Mode), citing Romero-Brufau et al.
+#'   (2020) for minimum replication counts in DES healthcare studies.
+analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
+                                 output_dir = "outputs", images_dir = "images") {
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
+
+  warm_up_min    <- as.integer(warm_up_period) * 1440L
+  arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
+  attributes_raw <- mon$attributes
+  resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
+
+  write.csv(arrivals_raw,   file.path(output_dir, "mon_arrivals.csv"),   row.names = FALSE)
+  write.csv(attributes_raw, file.path(output_dir, "mon_attributes.csv"), row.names = FALSE)
+  write.csv(resources_raw,  file.path(output_dir, "mon_resources.csv"),  row.names = FALSE)
+
+  n_reps <- n_distinct(arrivals_raw$replication)
+
+  arrivals <- arrivals_raw %>%
+    mutate(arrival_day = floor(start_time / 1440) + 1)
+
+  # ── KPI summary cards ─────────────────────────────────────────────────────
+
+  total_cas_per_rep <- arrivals_raw %>% count(replication, name = "total")
+
+  dow_per_rep <- attributes_raw %>%
+    filter(key == "dow", value == 1) %>%
+    count(replication, name = "dow_count") %>%
+    right_join(data.frame(replication = unique(arrivals_raw$replication)), by = "replication") %>%
+    mutate(dow_count = coalesce(dow_count, 0L))
+
+  peak_queue_per_rep <- function(resources, pattern) {
+    resources %>%
+      filter(grepl(pattern, resource)) %>%
+      group_by(replication, time) %>%
+      summarise(total_q = sum(queue), .groups = "drop") %>%
+      group_by(replication) %>%
+      summarise(peak_q = max(total_q), .groups = "drop")
+  }
+  r2e_icu_peak_per_rep <- peak_queue_per_rep(resources_raw, "^b_r2eheavy_icu_")
+  r2b_ot_peak_per_rep  <- peak_queue_per_rep(resources_raw, "^b_r2b_ot_")
+
+  # All four KPIs here are non-negative counts by construction; clamp the
+  # lower CI bound at 0 rather than let a small-n/high-variance t-interval
+  # (e.g. DOW count at low replication counts) report a nonsensical negative
+  # lower bound.
+  clamp_ci <- function(cm) { cm[["lower"]] <- max(cm[["lower"]], 0); cm }
+
+  kpi_summary <- list(
+    total_casualties   = clamp_ci(ci_mean(total_cas_per_rep$total)),
+    dow_count          = clamp_ci(ci_mean(dow_per_rep$dow_count)),
+    r2e_icu_peak_queue = clamp_ci(ci_mean(r2e_icu_peak_per_rep$peak_q)),
+    r2b_ot_peak_queue  = clamp_ci(ci_mean(r2b_ot_peak_per_rep$peak_q))
+  )
+
+  # ── Casualty Flow — total casualties per day, mean ± CI across reps ──────
+
+  day_range <- seq(min(arrivals$arrival_day), max(arrivals$arrival_day))
+  daily_totals <- expand.grid(replication = unique(arrivals$replication), arrival_day = day_range) %>%
+    left_join(count(arrivals, replication, arrival_day, name = "count"),
+              by = c("replication", "arrival_day")) %>%
+    mutate(count = coalesce(count, 0L))
+
+  daily_ci <- daily_totals %>%
+    group_by(arrival_day) %>%
+    summarise(n = n(), mean_n = mean(count), sd_n = sd(count), .groups = "drop") %>%
+    mutate(
+      sd_n     = ifelse(n < 2 | is.na(sd_n), 0, sd_n),
+      ci_lower = pmax(mean_n - qt(0.975, df = pmax(n - 1, 1)) * sd_n / sqrt(n), 0),
+      ci_upper = mean_n + qt(0.975, df = pmax(n - 1, 1)) * sd_n / sqrt(n)
+    )
+
+  p_casualty_flow_ci <- ggplot() +
+    geom_line(data = daily_totals, aes(x = arrival_day, y = count, group = replication),
+              color = "steelblue", alpha = 0.1) +
+    geom_ribbon(data = daily_ci, aes(x = arrival_day, ymin = ci_lower, ymax = ci_upper),
+                fill = "steelblue", alpha = 0.3) +
+    geom_line(data = daily_ci, aes(x = arrival_day, y = mean_n), color = "steelblue4", linewidth = 1) +
+    scale_x_continuous(breaks = day_range) +
+    labs(title = "Total Casualties by Arrival Day — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; faint lines are individual replication traces", n_reps),
+         x = "Arrival Day", y = "Casualties per Day") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank())
+
+  # ── Queue depth CI ribbons by echelon ─────────────────────────────────────
+
+  r1_data <- resources_raw %>%
+    filter(grepl("^c_r1_.*_\\d+_t\\d+$", resource)) %>%
+    mutate(
+      r1_id      = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
+      role       = str_extract(resource, "(?<=c_r1_)[^_]+_[^_]+") %>% str_replace_all("_", " ") %>% tools::toTitleCase(),
+      role_idx   = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
+      r1_label   = paste0("R1 ", r1_id),
+      role_label = paste0(role, " ", role_idx)
+    )
+  r1_bins <- bin_queue_ci(r1_data, c("r1_label", "role_label"))
+  p_r1_queues_ci <- ggplot() +
+    geom_step(data = r1_bins$traces,
+              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              color = "steelblue", alpha = 0.06) +
+    geom_ribbon(data = r1_bins$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = role_label),
+                alpha = 0.3) +
+    geom_line(data = r1_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = role_label), linewidth = 0.9) +
+    facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
+    labs(title = "R1 Queue Length Over Time — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
+         x = "Time (Days)", y = "Queue Size", color = "Role", fill = "Role") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
+
+  r2b_data <- resources_raw %>%
+    filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
+    mutate(
+      r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
+      bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
+      bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer(),
+      r2b_label = paste0("R2B ", r2b_id),
+      bed_label = paste0(bed_type, " ", bed_index)
+    )
+  r2b_bins <- bin_queue_ci(r2b_data, c("r2b_label", "bed_label"))
+  p_r2b_queues_ci <- ggplot() +
+    geom_step(data = r2b_bins$traces,
+              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              color = "steelblue", alpha = 0.06) +
+    geom_ribbon(data = r2b_bins$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = bed_label),
+                alpha = 0.3) +
+    geom_line(data = r2b_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = bed_label), linewidth = 0.9) +
+    facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
+    labs(title = "R2B Queue Length Over Time — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
+         x = "Time (Days)", y = "Queue Size", color = "Bed", fill = "Bed") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
+
+  r2e_prepare <- function(resource_type) {
+    pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
+    resources_raw %>%
+      filter(grepl(pattern, resource)) %>%
+      mutate(
+        resource_type  = toupper(resource_type),
+        bed_number     = gsub("^b_r2eheavy_.*?_(\\d+)_t\\d+$", "\\1", resource),
+        resource_label = paste(resource_type, "Bed", bed_number)
+      )
+  }
+  r2e_data <- bind_rows(r2e_prepare("ot"), r2e_prepare("icu"))
+  r2e_bins <- bin_queue_ci(r2e_data, c("resource_type", "resource_label"))
+  p_r2e_queues_ci <- ggplot() +
+    geom_step(data = r2e_bins$traces,
+              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              color = "steelblue", alpha = 0.06) +
+    geom_ribbon(data = r2e_bins$ci,
+                aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = resource_label), alpha = 0.3) +
+    geom_line(data = r2e_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = resource_label), linewidth = 0.9) +
+    facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
+    labs(title = "R2E Heavy Bed Queue Length Over Time — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
+         x = "Time (Days)", y = "Queue Size", color = "Resource", fill = "Resource") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
+
+  # ── Bed & Resource Utilisation — mean ± CI bar chart (no multi-run Gantt) ─
+
+  util_groups <- list(
+    "R2B OT"                     = "^b_r2b_ot_",
+    "R2E OT"                     = "^b_r2eheavy_ot_",
+    "R2E ICU"                    = "^b_r2eheavy_icu_",
+    "Transport (PMVAmb + HX240M)" = "^t_(PMVAmb|HX240M)_"
+  )
+  util_ci <- bind_rows(lapply(names(util_groups), function(g) {
+    df <- utilisation_per_replication(resources_raw, util_groups[[g]])
+    if (nrow(df) == 0) return(NULL)
+    cm <- ci_mean(df$utilisation)
+    data.frame(resource_group = g, mean_u = cm[["mean"]], ci_lower = max(cm[["lower"]], 0),
+               ci_upper = min(cm[["upper"]], 1))
+  }))
+
+  p_utilisation_ci <- ggplot(util_ci, aes(x = resource_group, y = mean_u, fill = resource_group)) +
+    geom_col(width = 0.6) +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2) +
+    scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+    labs(title = "Resource Utilisation — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; bar = mean busy-time fraction, error bar = 95%% CI", n_reps),
+         x = NULL, y = "Utilisation") +
+    theme_minimal(base_size = 13) +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+
+  # ── Waiting Times — p10-p90 quantile band across the pooled replications ─
+
+  arrivals_wait <- arrivals_raw %>%
+    mutate(waiting_time = end_time - start_time - activity_time,
+           arrival_day  = floor(start_time / 1440) + 1) %>%
+    filter(!is.na(waiting_time))
+
+  waiting_by_day <- arrivals_wait %>%
+    group_by(arrival_day) %>%
+    summarise(p10 = quantile(waiting_time, 0.10, na.rm = TRUE),
+              median = quantile(waiting_time, 0.50, na.rm = TRUE),
+              p90 = quantile(waiting_time, 0.90, na.rm = TRUE),
+              .groups = "drop")
+
+  p_waiting_times_ci <- ggplot(waiting_by_day, aes(x = arrival_day)) +
+    geom_ribbon(aes(ymin = p10, ymax = p90), fill = "steelblue", alpha = 0.3) +
+    geom_line(aes(y = median), color = "steelblue4", linewidth = 1) +
+    scale_x_continuous(breaks = day_range) +
+    labs(title = "Casualty Waiting Time by Arrival Day — p10-p90 Band Across Replications",
+         subtitle = sprintf("%d replications pooled; band = 10th-90th percentile, line = median", n_reps),
+         x = "Arrival Day", y = "Waiting Time (min)") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank())
+
+  invisible(list(
+    casualty_flow  = p_casualty_flow_ci,
+    r1_queues      = p_r1_queues_ci,
+    r2b_bed_queues = p_r2b_queues_ci,
+    r2e_bed_queues = p_r2e_queues_ci,
+    utilisation    = p_utilisation_ci,
+    waiting_times  = p_waiting_times_ci,
+    kpi_summary    = kpi_summary,
+    n_reps         = n_reps,
+    arrivals       = arrivals_raw,
+    attributes     = attributes_raw,
+    resources      = resources_raw
+  ))
+}
+
 #' Plot medevac fleet capacity margin across a range of fleet sizes (STUB)
 #'
 #' @param fleet_sizes Named list of integer vectors to sweep, e.g.

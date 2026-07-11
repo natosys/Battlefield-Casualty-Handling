@@ -160,6 +160,12 @@ eval_params <- function(params_row, n_rep, n_days) {
 #' @param r          Number of Morris trajectories (default 20)
 #' @param levels     Number of grid levels (default 4)
 #' @param output_dir Directory for CSV and PNG outputs (default "outputs")
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("point_<i>.done") is written to it as each design point
+#'   finishes evaluating, letting a caller on another process (e.g. the
+#'   Shiny app's main session) observe real "point M of N" progress. NULL
+#'   (default) disables this and preserves prior behaviour for existing
+#'   callers (scripts/run_sensitivity.R).
 #' @return Named list: morris_objs (per-KPI sensitivity objects), Y (KPI matrix),
 #'   X (design matrix), ranking (data frame sorted descending by mu_star)
 #'
@@ -168,7 +174,7 @@ eval_params <- function(params_row, n_rep, n_days) {
 #'   ranking CSV to output_dir. The global env_data is restored to env_data_base
 #'   on exit regardless of errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
-                       output_dir = "outputs") {
+                       output_dir = "outputs", progress_dir = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create("images",   recursive = TRUE, showWarnings = FALSE)
 
@@ -194,7 +200,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   Y <- t(vapply(seq_len(nrow(sa$X)), function(i) {
     message(sprintf("  Point %d / %d", i, nrow(sa$X)))
-    tryCatch(
+    kpis <- tryCatch(
       eval_params(sa$X[i, ], n_rep, n_days),
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
@@ -203,6 +209,10 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
           transport_q = NA_real_, transport_util = NA_real_)
       }
     )
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    kpis
   }, numeric(7)))
 
   env_data <<- env_data_base
@@ -274,6 +284,10 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #' @param n_rep       Replications per Sobol evaluation point (default 5)
 #' @param n_sobol     Sobol sample size N (default 200; total evals = N*(p+2))
 #' @param output_dir  Directory for CSV outputs (default "outputs")
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("point_<i>.done") is written to it as each design point
+#'   finishes evaluating (see run_morris()'s equivalent parameter). NULL
+#'   (default) disables this and preserves prior behaviour.
 #' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q,
 #'   transport_q, transport_util
 #'
@@ -281,7 +295,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #'   pass shared across all five KPIs, giving N*(p+2) total evaluations.
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
-                      n_sobol = 200, output_dir = "outputs") {
+                      n_sobol = 200, output_dir = "outputs", progress_dir = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   p_idx <- which(morris_params$name %in% top_params)
@@ -314,7 +328,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     message(sprintf("  Sobol point %d / %d", i, nrow(sb_r2b$X)))
     row <- full_params
     row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
-    tryCatch(
+    res <- tryCatch(
       {
         kpis <- eval_params(row, n_rep, n_days)
         c(r2b_ot_q       = kpis[["r2b_ot_q"]],
@@ -329,6 +343,10 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
           transport_q = NA_real_, transport_util = NA_real_)
       }
     )
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    res
   }, numeric(5)))
 
   env_data <<- env_data_base

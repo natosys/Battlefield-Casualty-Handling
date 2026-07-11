@@ -99,6 +99,13 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #' @param n_days       Simulation duration in days
 #' @param ot_hours     Hours per day the first OT shift is active (default 12).
 #'   Threaded to run_once() → build_env(); used by sensitivity screening.
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("rep_<i>.done") is written to it as each replication
+#'   completes, letting a caller on another process (e.g. the Shiny app's
+#'   main session, polling this directory via invalidateLater) observe real
+#'   per-replication progress from mclapply's forked workers. NULL (default)
+#'   disables this and preserves prior behaviour exactly for existing callers
+#'   (run_welch_analysis(), run_scenarios(), eval_params()).
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
 #'
@@ -109,7 +116,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'   is set before mclapply for the global stream; individual pair seeds are
 #'   set inside each worker via run_once(seed = ...), overriding the substream
 #'   but preserving pair-level independence. Falls back to lapply on Windows.
-run_replications <- function(n_iterations, n_days, ot_hours = 12) {
+run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
   # Each pair (2k-1, 2k) shares a seed: primary draws U, antithetic draws 1-U
@@ -118,11 +125,15 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12) {
   pair_seeds <- sample.int(.Machine$integer.max, n_pairs)
 
   worker <- function(i) {
-    run_once(n_days,
+    res <- run_once(n_days,
              seed        = pair_seeds[ceiling(i / 2)],
              write_files = FALSE,
              ot_hours    = ot_hours,
              antithetic  = (i %% 2 == 0))
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("rep_%d.done", i)))
+    }
+    res
   }
 
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1

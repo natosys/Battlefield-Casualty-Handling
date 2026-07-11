@@ -36,7 +36,8 @@ print_analysis_plots <- function(results) {
     "casualty_flow", "r1_queues", "r2b_bed_queues",
     "r2b_hold_occupancy_plot", "r2b_bypass_reason_plot", "r2b_treatment",
     "r2b_gantt", "r2e_surgery", "r2e_bed_queues", "waiting_times",
-    "transport_capacity_margin_plot", "r2e_gantt", "r2e_icu_gating_plot"
+    "transport_capacity_margin_plot", "r2e_gantt", "r2e_icu_gating_plot",
+    "mass_casualty_timeline_plot"
   )
   for (plot_name in plot_order) {
     if (!is.null(results[[plot_name]])) print(results[[plot_name]])

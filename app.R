@@ -477,6 +477,37 @@ split_slider_recolor_script <- function(meta_map) {
   tags$script(HTML(js))
 }
 
+#' Client-side companion to wire_slider_text_sync()'s text-box-to-slider
+#' direction (Issue #98). Shiny's own updateSliderInput() sends its update
+#' via session$sendInputMessage() -> the client's generic `inputMessages`
+#' dispatch -> the bound input's receiveMessage(); in this app that path
+#' silently drops the message before it ever reaches the browser (confirmed
+#' by WebSocket frame inspection — no frame referencing the slider id is
+#' transmitted, despite updateSliderInput() itself returning without error
+#' server-side). The ion.rangeSlider widget itself is not at fault: calling
+#' its own `.update({from:})` method — which is exactly what Shiny's slider
+#' receiveMessage() does internally — works correctly when invoked directly
+#' from the browser console. This handler reproduces that same `.update()`
+#' call, reached via `session$sendCustomMessage()` instead of the broken
+#' inputMessages path, so wire_slider_text_sync() can deliver typed values
+#' to the slider without depending on updateSliderInput()'s dispatch.
+#' Registered once, document-scoped (like split_slider_recolor_script()),
+#' so it does not need to be re-registered when a group's UI regenerates.
+slider_text_sync_script <- function() {
+  js <- "
+(function() {
+  Shiny.addCustomMessageHandler('bch_update_slider', function(msg) {
+    var el = document.getElementById(msg.id);
+    if (!el) return;
+    var inst = $(el).data('ionRangeSlider');
+    if (!inst) return;
+    inst.update({from: msg.value});
+  });
+})();
+"
+  tags$script(HTML(js))
+}
+
 #' Merge a two-handle range-slider value into a values list as three
 #' underlying field values, matching the ids apply_registry_values()/
 #' validate_config() expect. Needed because the Configure panel replaces
@@ -617,12 +648,18 @@ range_slider_with_text_input <- function(id, lbl, value, min = 0, max = 1, step 
 #' when a group's UI regenerates (e.g. on a Casualty Intensity Profile
 #' change). The equality check on each side breaks the update loop: an
 #' update that didn't actually change the value doesn't trigger another.
+#'
+#' The text-to-slider direction deliberately does not use
+#' updateSliderInput() — its update message never reaches the client in
+#' this app (Issue #98); see slider_text_sync_script() for the working
+#' replacement path. The slider-to-text direction (updateNumericInput()) is
+#' unaffected and is left as-is.
 wire_slider_text_sync <- function(input, session, id) {
   txt_id <- paste0(id, "_txt")
   observeEvent(input[[txt_id]], {
     v <- input[[txt_id]]; cur <- input[[id]]
     if (!is.null(v) && !is.na(v) && (is.null(cur) || !isTRUE(all.equal(v, cur)))) {
-      updateSliderInput(session, id, value = v)
+      session$sendCustomMessage("bch_update_slider", list(id = id, value = v))
     }
   }, ignoreInit = TRUE)
   observeEvent(input[[id]], {
@@ -1309,6 +1346,7 @@ ui <- page_navbar(
   nav_panel(
     "Configure",
     split_slider_recolor_script(SPLIT_SLIDER_META),
+    slider_text_sync_script(),
     p(class = "text-muted",
       "Adjust simulation parameters below, grouped by operational concept. ",
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",

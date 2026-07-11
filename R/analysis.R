@@ -59,7 +59,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     pivot_wider(
       id_cols    = c(name, replication, time),
       names_from = key,
-      values_fn  = ~ first(.x)
+      values_fn  = ~ dplyr::first(.x)
     ) %>%
     arrange(name, replication, time) %>%
     group_by(name, replication) %>%
@@ -68,7 +68,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ungroup()
 
   attributes_wide <- attributes_wide %>%
-    semi_join(select(arrivals, name, replication), by = c("name", "replication"))
+    semi_join(dplyr::select(arrivals, name, replication), by = c("name", "replication"))
 
   # pivot_wider only creates a column for an attribute key when at least one
   # casualty in the run had it set; guard against runs with zero DOW events
@@ -189,7 +189,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   queue_plot_data_r1 <- resources %>%
     as.data.frame() %>%
     filter(grepl("^c_r1_.*_\\d+_t\\d+$", resource)) %>%
-    select(time, resource, queue) %>%
+    dplyr::select(time, resource, queue) %>%
     mutate(
       r1_id      = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
       role       = str_extract(resource, "(?<=c_r1_)[^_]+_[^_]+") %>% str_replace_all("_", " ") %>% tools::toTitleCase(),
@@ -216,7 +216,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   queue_plot_data <- resources %>%
     as.data.frame() %>%
     filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
-    select(time, resource, queue) %>%
+    dplyr::select(time, resource, queue) %>%
     mutate(
       r2b_id    = str_extract(resource, "_t\\d+$") %>% str_remove("_t") %>% as.integer(),
       bed_type  = str_extract(resource, "(?<=b_r2b_)[^_]+") %>% toupper(),
@@ -538,7 +538,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # ── R2E surgeries ─────────────────────────────────────────────────────────
 
   r2e_summary <- attributes_wide %>%
-    select(name, starts_with("r2e_surgery_")) %>%
+    dplyr::select(name, starts_with("r2e_surgery_")) %>%
     pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
     filter(!is.na(start_min)) %>%
     mutate(r2e_day = floor(start_min / 1440) + 1) %>%
@@ -560,7 +560,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     data %>%
       as.data.frame() %>%
       filter(grepl(pattern, resource)) %>%
-      select(time, resource, queue) %>%
+      dplyr::select(time, resource, queue) %>%
       mutate(
         resource_type  = toupper(resource_type),
         bed_number     = gsub("^b_r2eheavy_.*?_(\\d+)_t\\d+$", "\\1", resource),
@@ -604,7 +604,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   transport_queue_data <- resources %>%
     as.data.frame() %>%
     filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
-    select(time, resource, queue) %>%
+    dplyr::select(time, resource, queue) %>%
     mutate(
       platform   = str_extract(resource, "(?<=^t_)[^_]+"),
       unit_id    = str_extract(resource, "\\d+$") %>% as.integer(),
@@ -1136,7 +1136,7 @@ utilisation_per_replication <- function(resources, pattern) {
     summarise(busy_time = sum(busy_time), capacity = sum(capacity), .groups = "drop") %>%
     left_join(obs_window, by = "replication") %>%
     mutate(utilisation = busy_time / (capacity * obs_window)) %>%
-    select(replication, utilisation)
+    dplyr::select(replication, utilisation)
 }
 
 #' Mean and 95% CI (t-distribution) of a numeric vector across replications

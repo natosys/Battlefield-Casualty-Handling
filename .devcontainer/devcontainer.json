@@ -5,7 +5,11 @@
     "context": ".."
   },
   "overrideCommand": false,
-  "forwardPorts": [8787],
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb"
+  },
+  "forwardPorts": [8787, 3838],
   "containerEnv": {
     "DISABLE_AUTH": "true"
   },

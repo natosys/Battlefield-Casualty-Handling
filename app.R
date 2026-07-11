@@ -35,8 +35,31 @@ source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
 source("R/sensitivity.R")
+source("R/warmup.R")
 source("R/app_params.R")
 
+# Both future backends are unsafe for a future body that itself calls
+# mclapply() (as run_replications()/run_morris()/run_sobol() do), for two
+# different reasons (Issue #15 follow-up): multisession runs the future in
+# a separate process connected over a socket, and a grandchild forked from
+# inside it inherits a copy of that control socket, which a grandchild
+# exiting mid-run can desynchronise — observed as the worker being reported
+# "interrupted" with no OOM or R-level cause. multicore forks the Shiny
+# process directly, including its live httpuv event loop; a forked child
+# can inherit a lock httpuv held on another thread at the instant of the
+# fork, a lock nothing in the child will ever release — observed as the
+# future hanging indefinitely with near-zero CPU in the forked process,
+# never erroring or completing. Full Analysis / Morris / Sobol therefore no
+# longer call these functions in-process at all — see run_shiny_worker()
+# below, which shells out to scripts/shiny_worker.R via system2(). That
+# subprocess is a genuine fork()-then-exec (like any process launch),
+# replacing the child's memory image entirely rather than duplicating this
+# process's state, so it carries neither risk; mclapply inside it is exactly
+# as safe as it already is for run.R's CLI path. Quick Run calls run_once()
+# directly with no inner forking, so it is unaffected by either failure mode
+# and keeps running in-process. Plain multisession is therefore sufficient
+# and correct for every future() in this app now — no per-future strategy
+# selection needed.
 plan(multisession)
 # run_once()/analyse_run() are called from inside future() with a seed
 # supplied explicitly (or intentionally NULL for a random Quick Run); the
@@ -45,6 +68,170 @@ options(future.rng.onMisuse = "ignore")
 
 APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
+
+#' Detect a safe number of concurrent mclapply forks for *this* machine or
+#' container, at *this* moment, instead of guessing a fixed number.
+#'
+#' @param n_days Simulation duration (days) for the run this cap is being
+#'   computed for. Each forked worker's peak memory scales with how much
+#'   monitoring data (arrivals/attributes/resources) accumulates over the
+#'   run, which scales with duration — a fixed per-worker estimate
+#'   calibrated at one duration understates the requirement at a longer one.
+#'   Default 30 matches this app's own default simulation duration and the
+#'   duration `mem_per_worker_base_mb` was directly measured at.
+#' @param mem_per_worker_base_mb Assumed peak RSS of one forked replication
+#'   worker at a 30-day run, in MB. Default 900 is the directly-measured
+#'   mid-simulation RSS of a single forked worker at n_days = 30 (Issue #15
+#'   follow-up — the crash this guards against was memory exhaustion, not a
+#'   CPU-count problem, so bounding by detected core count alone is
+#'   insufficient). Scaled linearly by `n_days / 30` below, floored at 400MB
+#'   (package-loading overhead alone — simmer, ggplot2, dplyr, data.table,
+#'   etc. — is substantial even for a very short run).
+#' @return Integer >= 1.
+#'
+#' @details getOption("mc.cores", parallel::detectCores(logical = FALSE))
+#'   respects the mc.cores option the project's Dockerfile sets in
+#'   Rprofile.site (physical core count), falling back to
+#'   detectCores(logical = FALSE) outside that container — either way, a
+#'   more conservative starting point than parallel::detectCores() alone,
+#'   which reports the host's — or, inside a local Docker Desktop dev
+#'   container without an explicit CPU limit, the container's full
+#'   VM-visible, hyperthread-inclusive — core count. That number bears no
+#'   relation to how much memory is actually available to run that many
+#'   concurrent forked R sessions (each carrying a full duplicate
+#'   simmer/ggplot2/dplyr/data.table session). Forking one such session per
+#'   detected core has been observed to exhaust a local dev container's
+#'   memory and crash the
+#'   whole container even at a modest replication count. Two rounds of fixed
+#'   guessed caps (4, then 2) both still saw the container crash on a real
+#'   local dev container — the second time at 88% of a 7.4GB container
+#'   memory limit, right up against the ceiling despite the earlier
+#'   cgroup-aware detection. Root cause of that miss: this function was
+#'   originally called once, when the R process starts, and cached in a
+#'   top-level constant — by the time a user actually clicked Full Analysis
+#'   after using the app for a while, real memory usage had grown well past
+#'   that stale startup snapshot. Callers must now call this function fresh,
+#'   immediately before each run (see the three call sites below), not cache
+#'   its result. Reads two real, machine-specific signals that actually
+#'   bound safe concurrency:
+#'   1. CPU quota — Linux cgroups (v2 `cpu.max`, or v1
+#'      `cpu.cfs_quota_us`/`cpu.cfs_period_us`) expose the real per-container
+#'      CPU allotment when the container was started with an explicit CPU
+#'      limit, which `detectCores()` does not see (it reads `/proc/cpuinfo`,
+#'      reflecting the whole VM/host).
+#'   2. Memory headroom, measured right now — the real constraint that
+#'      actually caused both crashes. Prefers the cgroup's own memory
+#'      ceiling minus *current* usage (v2 `memory.max`/`memory.current`, or
+#'      v1 `memory.limit_in_bytes`/`memory.usage_in_bytes`) — the
+#'      container's own budget, not the host's, since a memory-limited
+#'      container can be OOM-killed well before the host itself runs low.
+#'      Falls back to the host's `/proc/meminfo` `MemAvailable` only when no
+#'      cgroup memory limit is set (or unreadable) — the next-best real
+#'      signal, still far better than a fixed guess. A 50% safety factor
+#'      (tightened from an initial 70%, which still wasn't conservative
+#'      enough) is applied to the memory-derived bound, to leave headroom
+#'      for the main Shiny process's own further growth during the run,
+#'      RStudio Server, and any other processes sharing the same container.
+#'   Falls back to `parallel::detectCores()` alone (CPU-only, as before) on
+#'   any platform where none of these files are readable (e.g. non-Linux),
+#'   and always returns at least 1.
+#'
+#'   This estimate is inherently best-effort — it cannot know a
+#'   configuration's casualty volume or how much a *different* concurrently
+#'   running process might grow by mid-run. run_replications()'s own
+#'   killed-worker detection (R/replication.R) remains the last line of
+#'   defence when a single forked *child* is OOM-killed while the main
+#'   process survives; it cannot help if memory pressure is severe enough
+#'   that the kernel OOM-kills the main process (or the whole container)
+#'   instead, which is why keeping this estimate conservative matters more
+#'   than keeping it tight.
+detect_safe_cores <- function(n_days = 30, mem_per_worker_base_mb = 900) {
+  mem_per_worker_mb <- max(400, mem_per_worker_base_mb * (n_days / 30))
+  cpu_cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
+
+  read_num1 <- function(path) {
+    if (!file.exists(path)) return(NA_real_)
+    tryCatch(suppressWarnings(as.numeric(trimws(readLines(path, warn = FALSE, n = 1)))),
+             error = function(e) NA_real_)
+  }
+
+  # --- CPU: respect a cgroup CPU quota if the container was started with one
+  if (file.exists("/sys/fs/cgroup/cpu.max")) {                    # cgroup v2
+    parts <- strsplit(trimws(readLines("/sys/fs/cgroup/cpu.max", warn = FALSE, n = 1)), "\\s+")[[1]]
+    if (length(parts) == 2 && parts[1] != "max") {
+      quota <- suppressWarnings(as.numeric(parts[1])); period <- suppressWarnings(as.numeric(parts[2]))
+      if (!is.na(quota) && !is.na(period) && period > 0) {
+        cpu_cores <- min(cpu_cores, max(1, floor(quota / period)))
+      }
+    }
+  } else {                                                         # cgroup v1
+    quota  <- read_num1("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
+    period <- read_num1("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
+    if (!is.na(quota) && quota > 0 && !is.na(period) && period > 0) {
+      cpu_cores <- min(cpu_cores, max(1, floor(quota / period)))
+    }
+  }
+
+  # --- Memory: bound concurrency by this container's own real headroom ----
+  mem_cores   <- Inf
+  mem_limit   <- read_num1("/sys/fs/cgroup/memory.max")                     # cgroup v2
+  mem_current <- read_num1("/sys/fs/cgroup/memory.current")
+  if (is.na(mem_limit)) {
+    mem_limit   <- read_num1("/sys/fs/cgroup/memory/memory.limit_in_bytes") # cgroup v1
+    mem_current <- read_num1("/sys/fs/cgroup/memory/memory.usage_in_bytes")
+  }
+  if (!is.na(mem_limit) && !is.na(mem_current)) {
+    headroom_mb <- (mem_limit - mem_current) / (1024^2)
+    if (headroom_mb > 0) mem_cores <- max(1, floor(0.5 * headroom_mb / mem_per_worker_mb))
+  } else if (file.exists("/proc/meminfo")) {
+    avail_line <- grep("^MemAvailable:", readLines("/proc/meminfo", warn = FALSE), value = TRUE)
+    if (length(avail_line) == 1) {
+      avail_kb <- suppressWarnings(as.numeric(regmatches(avail_line, regexpr("[0-9]+", avail_line))))
+      if (!is.na(avail_kb)) mem_cores <- max(1, floor(0.5 * (avail_kb / 1024) / mem_per_worker_mb))
+    }
+  }
+
+  as.integer(max(1, min(cpu_cores, mem_cores)))
+}
+
+#' Run scripts/shiny_worker.R as a subprocess and return its saved result
+#'
+#' @param args Character vector of command-line arguments for
+#'   scripts/shiny_worker.R (e.g. c("--mode", "full", "--json", json_path,
+#'   ...)); see that script's option_list for the full set.
+#' @param output_rds Path the worker was told (via --output-rds in `args`)
+#'   to saveRDS() its result to; read back and returned on success.
+#' @return The R object scripts/shiny_worker.R saved to `output_rds`.
+#'
+#' @details Full Analysis / Morris / Sobol dispatch through this rather than
+#' calling run_replications()/run_morris()/run_sobol() directly inside a
+#' future() body — see the comment above plan(multisession) for why. This
+#' function itself is called from inside a future() (so it runs on a
+#' multisession worker, safely — it does no forking of its own, only
+#' launching a subprocess via system2(), which is fork-then-exec, not
+#' fork()-without-exec), and blocks that worker until the subprocess exits,
+#' which is fine since the worker is already off the main Shiny process.
+run_shiny_worker <- function(args, output_rds) {
+  worker_script <- file.path(APP_DIR, "scripts", "shiny_worker.R")
+  log_file <- tempfile("bch_worker_log_")
+  status <- system2("Rscript", args = c(worker_script, args),
+                    stdout = log_file, stderr = log_file, wait = TRUE)
+  log_text <- if (file.exists(log_file)) paste(readLines(log_file), collapse = "\n") else "(no log)"
+  if (!identical(status, 0L) || !file.exists(output_rds)) {
+    stop(sprintf("Worker subprocess failed (exit status %s):\n%s", status, log_text))
+  }
+  readRDS(output_rds)
+}
+
+# Cap on mclapply's mc.cores (R/replication.R's run_replications()) for every
+# multi-replication path this app triggers (Full Analysis, Morris, Sobol).
+# CLI/scripted callers (scripts/run_sensitivity.R, run.R, R/warmup.R,
+# R/scenario_runner.R) do not pass max_cores and are unaffected — this cap
+# only applies to the interactive, casually-clicked Shiny paths below. NOT a
+# cached top-level constant (deliberately) — see detect_safe_cores()'s own
+# roxygen for why a stale app-startup snapshot previously understated real
+# usage. Each of the three call sites below calls detect_safe_cores(n_days)
+# fresh, immediately before submitting that run.
 PARAM_REGISTRY  <- build_param_registry()
 
 #' Detect every triangular (min/mode/max) field triple in a registry, by
@@ -1182,14 +1369,20 @@ ui <- page_navbar(
       card(
         card_header("Run Mode"),
         actionButton("run_quick", "▶ Run Quick Run (Single Replication)", class = "btn-primary btn-lg"),
-        tags$div(style = "margin-top: 10px;",
-          tooltip(
-            tags$span(actionButton("run_full", "\U0001F512 Full Analysis (Multi-Run, 95% CI)", disabled = NA)),
-            "Full Analysis mode (multi-replication with confidence intervals) requires Issue #15. Not yet available."
-          )
-        ),
         tags$hr(),
-        uiOutput("run_status")
+        slider_with_text_input("n_reps",
+                    field_label(list(label = "Replication Count (Full Analysis)",
+                                     tooltip = paste0(
+                                       "Number of independent replications for Full Analysis mode. ",
+                                       "Higher counts narrow the 95% CI but take proportionally longer to run. ",
+                                       "Minimum replication-count guidance for planning-grade output follows ",
+                                       "Romero-Brufau et al. (2020) — see README Shiny Application, Full Analysis Mode."))),
+                    min = 10, max = 1000, value = 100, step = 10),
+        actionButton("run_full", "\U0001F4CA Run Full Analysis (Multi-Run, 95% CI)", class = "btn-success btn-lg"),
+        tags$hr(),
+        uiOutput("run_status"),
+        tags$hr(),
+        uiOutput("download_all_ui")
       )
     )
   ),
@@ -1206,11 +1399,41 @@ server <- function(input, output, session) {
 
   raw_env_data     <- reactiveVal(fromJSON(DEFAULT_JSON, simplifyVector = FALSE))
   run_state        <- reactiveVal("idle")   # idle | running | done | error
+  run_mode         <- reactiveVal("quick")  # quick | full — which button started the current/last run
   run_error        <- reactiveVal(NULL)
   progress_pct     <- reactiveVal(0)
   mon_data         <- reactiveVal(NULL)
   analysis_results <- reactiveVal(NULL)
-  pending_future   <- reactiveVal(NULL)
+  pending_future    <- reactiveVal(NULL)
+
+  # Full Analysis replication-level progress: rep_progress_dir holds the
+  # marker-file directory run_replications() writes rep_<i>.done into (see
+  # R/replication.R); rep_progress_total/done are polled from it below so
+  # the UI shows real "k of N replications complete" progress rather than
+  # the simulated ticker Quick Run uses (a single replication can't offer
+  # finer-grained real progress than start/done).
+  rep_progress_dir   <- reactiveVal(NULL)
+  rep_progress_total <- reactiveVal(0)
+  rep_progress_done  <- reactiveVal(0)
+
+  # Sensitivity Screening (Morris) state
+  morris_state        <- reactiveVal("idle")  # idle | running | done | error
+  morris_error         <- reactiveVal(NULL)
+  morris_results       <- reactiveVal(NULL)
+  morris_png_bytes     <- reactiveVal(NULL)
+  morris_progress_dir  <- reactiveVal(NULL)
+  morris_progress_total <- reactiveVal(0)
+  morris_progress_done  <- reactiveVal(0)
+  pending_morris        <- reactiveVal(NULL)
+
+  # Sobol Decomposition state
+  sobol_state         <- reactiveVal("idle")  # idle | running | done | error
+  sobol_error          <- reactiveVal(NULL)
+  sobol_results        <- reactiveVal(NULL)
+  sobol_progress_dir   <- reactiveVal(NULL)
+  sobol_progress_total <- reactiveVal(0)
+  sobol_progress_done  <- reactiveVal(0)
+  pending_sobol         <- reactiveVal(NULL)
 
   # ── Configure panel ───────────────────────────────────────────────────────
 
@@ -1232,6 +1455,7 @@ server <- function(input, output, session) {
   )
   lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))
   wire_slider_text_sync(input, session, "ot_hours")
+  wire_slider_text_sync(input, session, "n_reps")
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
   wire_range_slider_text_sync(input, session, "mc_pri_split")
@@ -1638,6 +1862,7 @@ server <- function(input, output, session) {
     built_env    <- build_environment(current_json())
     app_dir      <- APP_DIR
 
+    run_mode("quick")
     run_state("running")
     run_error(NULL)
     progress_pct(5)
@@ -1687,13 +1912,79 @@ server <- function(input, output, session) {
     invisible(NULL)
   })
 
+  # ── Full Analysis execution (async via future + promises) ────────────────
+
+  observeEvent(input$run_full, {
+    values <- inject_all_splits(reactiveValuesToList(input))
+    errors <- validate_config(values)
+    if (length(errors) > 0) {
+      showModal(modalDialog(
+        title = "Configuration error",
+        tags$ul(lapply(errors, tags$li)),
+        easyClose = TRUE
+      ))
+      return(invisible(NULL))
+    }
+
+    n_reps_val   <- as.integer(input$n_reps)
+    days_val     <- input$n_days
+    ot_hours_val <- input$ot_hours
+    app_dir      <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_full_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    prog_dir <- tempfile("bch_repprogress_")
+    dir.create(prog_dir, recursive = TRUE)
+    rep_progress_dir(prog_dir)
+    rep_progress_total(n_reps_val)
+    rep_progress_done(0)
+
+    run_mode("full")
+    run_state("running")
+    run_error(NULL)
+    progress_pct(0)
+
+    output_rds <- tempfile("bch_full_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "full", "--json", json_path, "--days", days_val,
+      "--ot-hours", ot_hours_val, "--n-reps", n_reps_val,
+      "--max-cores", max_cores_val, "--progress-dir", prog_dir,
+      "--output-rds", output_rds
+    )
+
+    fut <- future({
+      setwd(app_dir)
+      run_shiny_worker(worker_args, output_rds)
+    }, seed = NULL)
+
+    prom <- fut %...>% (function(res) {
+      mon_data(res$mon)
+      analysis_results(res$results)
+      run_state("done")
+      progress_pct(100)
+      rep_progress_done(rep_progress_total())
+    })
+    prom <- catch(prom, function(e) {
+      run_state("error")
+      run_error(conditionMessage(e))
+    })
+    pending_future(prom)
+    invisible(NULL)
+  })
+
   # Simulated progress ticker: future/multisession runs in a separate R
   # process, so exact percentage progress isn't observable from the main
   # session without the progressr package; this ticks toward 90% while the
   # run is in flight and snaps to 100% on completion, keeping the UI
   # responsive rather than frozen for the ~20s a typical Quick Run takes.
+  # Full Analysis instead has real per-replication progress (see the poller
+  # below, which drives rep_progress_done from prog_dir's marker files), so
+  # this ticker only fires in "quick" mode.
   observe({
-    req(run_state() == "running")
+    req(run_state() == "running", identical(run_mode(), "quick"))
     invalidateLater(400, session)
     isolate({
       p <- progress_pct()
@@ -1701,18 +1992,48 @@ server <- function(input, output, session) {
     })
   })
 
+  # Real per-replication progress poller for Full Analysis: counts the
+  # rep_<i>.done marker files run_replications() writes from its (possibly
+  # forked) workers into rep_progress_dir() as each replication completes.
+  observe({
+    req(run_state() == "running", identical(run_mode(), "full"))
+    invalidateLater(500, session)
+    pd <- isolate(rep_progress_dir())
+    if (!is.null(pd) && dir.exists(pd)) {
+      n_done <- length(list.files(pd, pattern = "\\.done$"))
+      isolate({
+        rep_progress_done(n_done)
+        total <- rep_progress_total()
+        if (total > 0) progress_pct(min(99, round(100 * n_done / total)))
+      })
+    }
+  })
+
   output$run_status <- renderUI({
     state <- run_state()
+    mode  <- run_mode()
     if (state == "idle") {
-      p(class = "text-muted", "No run yet. Configure parameters, then click Run Quick Run.")
-    } else if (state == "running") {
+      p(class = "text-muted", "No run yet. Configure parameters, then click Run Quick Run or Run Full Analysis.")
+    } else if (state == "running" && identical(mode, "quick")) {
       tagList(
-        p(sprintf("Running simulation (seed %s, %d days)...",
+        p(sprintf("Running Quick Run (seed %s, %d days)...",
                    if (trimws(input$seed) == "") "random" else trimws(input$seed), input$n_days)),
         div(class = "progress",
             div(class = "progress-bar progress-bar-striped progress-bar-animated",
                 role = "progressbar", style = sprintf("width: %d%%", progress_pct())))
       )
+    } else if (state == "running" && identical(mode, "full")) {
+      tagList(
+        p(sprintf("Running Full Analysis: %d of %d replications complete (%d days each)...",
+                   rep_progress_done(), rep_progress_total(), input$n_days)),
+        div(class = "progress",
+            div(class = "progress-bar progress-bar-striped progress-bar-animated",
+                role = "progressbar", style = sprintf("width: %d%%", progress_pct())))
+      )
+    } else if (state == "done" && identical(mode, "full")) {
+      div(class = "alert alert-success",
+          sprintf("Full Analysis complete (%d replications) — see the Analyse tab for mean ± 95%% CI results.",
+                   rep_progress_total()))
     } else if (state == "done") {
       div(class = "alert alert-success", "Run complete — see the Analyse tab for results.")
     } else {
@@ -1724,22 +2045,80 @@ server <- function(input, output, session) {
 
   combined_plot <- function(...) Reduce(`/`, list(...))
 
+  # tab_plot() reads the same four keys regardless of which mode produced
+  # analysis_results() — analyse_run() (Quick Run) and analyse_replications()
+  # (Full Analysis) both name their per-echelon queue plots identically, so
+  # only the "utilisation" tab (no multi-run Gantt equivalent — see
+  # analyse_replications()'s roxygen) needs a mode-specific branch.
   tab_plot <- reactive({
     res <- analysis_results()
     req(res)
+    utilisation_plot <- if (identical(run_mode(), "full")) {
+      res$utilisation
+    } else {
+      combined_plot(res$r2b_treatment, res$r2b_gantt, res$r2e_surgery, res$r2e_gantt)
+    }
     list(
       casualty_flow = res$casualty_flow,
       queue_depths  = combined_plot(res$r1_queues, res$r2b_bed_queues, res$r2e_bed_queues),
-      utilisation   = combined_plot(res$r2b_treatment, res$r2b_gantt, res$r2e_surgery, res$r2e_gantt),
+      utilisation   = utilisation_plot,
       waiting_times = res$waiting_times
     )
   })
 
+  # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
+  # shown above the output tabs, per Issue #15's acceptance criteria.
+  output$kpi_summary_cards <- renderUI({
+    req(identical(run_mode(), "full"), run_state() == "done", analysis_results())
+    kpi <- analysis_results()$kpi_summary
+    card_ui <- function(label, cm, digits = 1) {
+      fmt <- function(x) formatC(x, format = "f", digits = digits)
+      card(
+        card_header(label),
+        div(style = "font-size: 1.6rem; font-weight: 700;", fmt(cm[["mean"]])),
+        div(class = "text-muted", style = "font-size: 0.85rem;",
+            sprintf("95%% CI [%s, %s] (n = %d reps)", fmt(cm[["lower"]]), fmt(cm[["upper"]]), cm[["n"]]))
+      )
+    }
+    layout_column_wrap(
+      width = "220px",
+      card_ui("Total Casualties", kpi$total_casualties, digits = 1),
+      card_ui("DOW Count", kpi$dow_count, digits = 2),
+      card_ui("R2E ICU Peak Queue", kpi$r2e_icu_peak_queue, digits = 1),
+      card_ui("R2B OT Peak Queue", kpi$r2b_ot_peak_queue, digits = 1)
+    )
+  })
+
+  # Download All — zip of the three monitoring CSVs from the most recent run
+  # (Quick Run or Full Analysis), regardless of which produced mon_data()).
+  output$download_all_ui <- renderUI({
+    req(mon_data())
+    downloadButton("dl_all_zip", "Download All (mon_*.csv, ZIP)", class = "btn-outline-secondary")
+  })
+  output$dl_all_zip <- downloadHandler(
+    filename = function() sprintf("bch_monitoring_%s.zip", format(Sys.time(), "%Y%m%d_%H%M%S")),
+    content = function(file) {
+      mon <- mon_data()
+      req(mon)
+      tmp_dir <- tempfile("bch_dl_all_")
+      dir.create(tmp_dir)
+      write.csv(mon$arrivals,   file.path(tmp_dir, "mon_arrivals.csv"),   row.names = FALSE)
+      write.csv(mon$attributes, file.path(tmp_dir, "mon_attributes.csv"), row.names = FALSE)
+      write.csv(mon$resources,  file.path(tmp_dir, "mon_resources.csv"),  row.names = FALSE)
+      old_wd <- setwd(tmp_dir)
+      on.exit(setwd(old_wd), add = TRUE)
+      zip(file, files = c("mon_arrivals.csv", "mon_attributes.csv", "mon_resources.csv"))
+    },
+    contentType = "application/zip"
+  )
+
   output$analyse_body <- renderUI({
     if (run_state() != "done" || is.null(analysis_results())) {
       return(div(class = "alert alert-info mt-3",
-                  "No results yet. Run a Quick Run from the Run tab to populate this page."))
+                  "No results yet. Run a Quick Run or Full Analysis from the Run tab to populate this page."))
     }
+    tagList(
+    uiOutput("kpi_summary_cards"),
     navset_tab(
       nav_panel("Casualty Flow",
         plotOutput("plot_casualty_flow", height = "700px"),
@@ -1770,14 +2149,26 @@ server <- function(input, output, session) {
           "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
           "These bounds are used as slider ranges for the corresponding fields in the Configure tab."),
         DTOutput("calibration_table"),
-        tags$div(style = "margin-top: 10px;",
-          tooltip(
-            tags$span(actionButton("run_sensitivity", "Run Sensitivity Screening", disabled = NA)),
-            "Running the full Morris/Sobol screen from the app requires Issue #15. Use scripts/run_sensitivity.R until then."
-          )
+        downloadButton("dl_calibration_csv", "Download Table (CSV)"),
+        tags$hr(),
+        h5("Run Sensitivity Screening"),
+        p(class = "text-muted small",
+          "Morris Elementary Effects screening (Morris, 1991) perturbs each parameter across its ",
+          "plausible range while holding the others fixed, repeated over r trajectories, to rank ",
+          "parameters by influence on the R2E ICU queue and other KPIs. Wall-clock time scales with ",
+          "r × (parameters + 1) × replications-per-point × simulation duration — the ",
+          "production configuration (r = 20, 5 reps, 30 days) takes roughly 2-3 hours; use a small r ",
+          "(e.g. 3) for a quick smoke test. See README Shiny Application — Sensitivity Panel."),
+        layout_column_wrap(
+          width = "220px",
+          numericInput("morris_r", "Trajectories (r)", value = 20, min = 3, max = 50, step = 1),
+          numericInput("morris_nrep", "Replications per Point", value = 5, min = 3, max = 20, step = 1)
         ),
-        downloadButton("dl_calibration_csv", "Download Table (CSV)")
+        actionButton("run_sensitivity", "Run Sensitivity Screening", class = "btn-primary"),
+        tags$div(style = "margin-top: 10px;", uiOutput("morris_status")),
+        uiOutput("morris_results_ui")
       )
+    )
     )
   })
 
@@ -1841,6 +2232,336 @@ server <- function(input, output, session) {
     filename = "sensitivity_calibration.csv",
     content  = function(file) write.csv(calibration_df(), file, row.names = FALSE)
   )
+
+  # ── Sensitivity Screening — Morris (async via future + promises) ─────────
+
+  observeEvent(input$run_sensitivity, {
+    values <- inject_all_splits(reactiveValuesToList(input))
+    errors <- validate_config(values)
+    if (length(errors) > 0) {
+      showModal(modalDialog(
+        title = "Configuration error",
+        tags$ul(lapply(errors, tags$li)),
+        easyClose = TRUE
+      ))
+      return(invisible(NULL))
+    }
+
+    r_val     <- as.integer(input$morris_r)
+    nrep_val  <- as.integer(input$morris_nrep)
+    days_val  <- input$n_days
+    app_dir   <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_morris_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    # run_morris() writes "images/<...>.png" and "outputs/*.csv" relative to
+    # the working directory — a scratch work_dir (rather than threading a
+    # new images_dir parameter through run_morris()) keeps a Shiny-triggered
+    # screen from ever touching the repo's own tracked images/ or outputs/.
+    work_dir <- tempfile("bch_morris_work_")
+    dir.create(work_dir)
+
+    prog_dir <- tempfile("bch_morrisprogress_")
+    dir.create(prog_dir, recursive = TRUE)
+    morris_progress_dir(prog_dir)
+    morris_progress_total(r_val * (nrow(morris_params) + 1L))
+    morris_progress_done(0)
+
+    morris_state("running")
+    morris_error(NULL)
+    sobol_state("idle")
+    sobol_results(NULL)
+
+    output_rds <- tempfile("bch_morris_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "morris", "--json", json_path, "--days", days_val,
+      "--r", r_val, "--n-rep", nrep_val, "--max-cores", max_cores_val,
+      "--progress-dir", prog_dir, "--work-dir", work_dir,
+      "--output-rds", output_rds
+    )
+
+    fut <- future({
+      setwd(app_dir)
+      run_shiny_worker(worker_args, output_rds)
+    }, seed = NULL)
+
+    prom <- fut %...>% (function(out) {
+      morris_results(out$res)
+      morris_png_bytes(out$png_bytes)
+      morris_state("done")
+    })
+    prom <- catch(prom, function(e) {
+      morris_state("error")
+      morris_error(conditionMessage(e))
+    })
+    pending_morris(prom)
+    invisible(NULL)
+  })
+
+  observe({
+    req(morris_state() == "running")
+    invalidateLater(500, session)
+    pd <- isolate(morris_progress_dir())
+    if (!is.null(pd) && dir.exists(pd)) {
+      n_done <- length(list.files(pd, pattern = "\\.done$"))
+      isolate(morris_progress_done(n_done))
+    }
+  })
+
+  output$morris_status <- renderUI({
+    state <- morris_state()
+    if (state == "idle") return(NULL)
+    if (state == "running") {
+      total <- morris_progress_total(); done <- morris_progress_done()
+      pct <- if (total > 0) min(99, round(100 * done / total)) else 5
+      tagList(
+        p(sprintf("Evaluating Morris design point %d of %d...", done, total)),
+        div(class = "progress",
+            div(class = "progress-bar progress-bar-striped progress-bar-animated",
+                role = "progressbar", style = sprintf("width: %d%%", pct)))
+      )
+    } else if (state == "done") {
+      div(class = "alert alert-success", "Morris screening complete.")
+    } else {
+      div(class = "alert alert-danger", paste("Morris screening failed:", morris_error()))
+    }
+  })
+
+  #' μ*/σ scatter data for one KPI's Morris object: μ* is the mean absolute
+  #' elementary effect (importance); σ is the standard deviation of
+  #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
+  #' indicates the effect is not consistent across the parameter's range).
+  morris_scatter_df <- function(obj) {
+    ee <- obj$ee
+    data.frame(
+      parameter = colnames(ee),
+      mu_star   = apply(abs(ee), 2, mean, na.rm = TRUE),
+      sigma     = apply(ee, 2, sd, na.rm = TRUE)
+    )
+  }
+
+  output$morris_mu_sigma_plot <- renderPlot({
+    req(morris_results())
+    df <- morris_scatter_df(morris_results()$morris_objs$r2e_icu_q)
+    df$label <- MORRIS_LABELS[df$parameter]
+    ggplot(df, aes(x = mu_star, y = sigma, label = label)) +
+      geom_point(size = 3, color = "#2a78d6") +
+      geom_text(vjust = -0.9, size = 3.2, check_overlap = TRUE) +
+      labs(title = "Morris Screening — μ* vs σ (R2E ICU Queue)",
+           subtitle = "μ* = mean absolute elementary effect (importance); σ = std. dev. of elementary effects (nonlinearity/interaction)",
+           x = "μ* (Importance)", y = "σ (Nonlinearity / Interaction)") +
+      theme_minimal(base_size = 13)
+  })
+
+  output$morris_ranking_table <- renderDT({
+    req(morris_results())
+    rk <- morris_results()$ranking
+    df <- data.frame(
+      Rank      = seq_len(nrow(rk)),
+      Parameter = MORRIS_LABELS[rk$parameter],
+      `Mu Star` = round(rk$mu_star, 4),
+      Sigma     = round(rk$sigma_ee, 4),
+      check.names = FALSE
+    )
+    datatable(df, rownames = FALSE, options = list(dom = "t", pageLength = 20)) %>%
+      formatStyle("Rank", target = "row",
+                  backgroundColor = styleInterval(5.5, c("#fff3cd", "white")))
+  })
+
+  output$dl_morris_ranking_csv <- downloadHandler(
+    filename = "morris_ranking.csv",
+    content  = function(file) write.csv(morris_results()$ranking, file, row.names = FALSE)
+  )
+  output$dl_morris_png_zip <- downloadHandler(
+    filename = "morris_plots.zip",
+    content  = function(file) {
+      pngs <- morris_png_bytes()
+      req(pngs)
+      tmp_dir <- tempfile("bch_morris_dl_")
+      dir.create(tmp_dir)
+      for (nm in names(pngs)) writeBin(pngs[[nm]], file.path(tmp_dir, nm))
+      old_wd <- setwd(tmp_dir)
+      on.exit(setwd(old_wd), add = TRUE)
+      zip(file, files = names(pngs))
+    },
+    contentType = "application/zip"
+  )
+
+  output$morris_results_ui <- renderUI({
+    req(morris_state() == "done", morris_results())
+    top5 <- head(morris_results()$ranking$parameter, 5)
+    tagList(
+      tags$hr(),
+      h5("Morris Screening Results — R2E ICU Queue (Primary KPI)"),
+      plotOutput("morris_mu_sigma_plot", height = "450px"),
+      downloadButton("dl_morris_png_zip", "Download Morris PNGs — All KPIs (ZIP)"),
+      tags$hr(),
+      h5("Ranked Parameter Influence (μ* on System OT Queue)"),
+      p(class = "text-muted small", "Top 5 parameters (highlighted) are pre-selected below for Sobol Decomposition."),
+      DTOutput("morris_ranking_table"),
+      downloadButton("dl_morris_ranking_csv", "Download Ranked Parameter Table (CSV)"),
+      tags$hr(),
+      h5("Sobol Variance Decomposition"),
+      p(class = "text-muted small",
+        "Decomposes each selected parameter's contribution to output variance into first-order (S1 — ",
+        "the parameter acting alone) and total-order (ST — including interactions with every other ",
+        "parameter) indices (Saltelli et al., 2010). Parameters with high ST but low S1 have significant ",
+        "interaction effects. Reuses the \"Replications per Point\" value set above for Morris; n = 200 ",
+        "Sobol design points (Saltelli 2007 estimator default), so wall-clock time is comparable to or ",
+        "greater than the Morris screen above."),
+      checkboxGroupInput("sobol_params", "Parameters to include (top 5 by μ* pre-selected)",
+                        choices  = setNames(morris_params$name, MORRIS_LABELS[morris_params$name]),
+                        selected = top5),
+      actionButton("run_sobol", "Run Sobol Decomposition", class = "btn-primary"),
+      tags$div(style = "margin-top: 10px;", uiOutput("sobol_status")),
+      uiOutput("sobol_results_ui")
+    )
+  })
+
+  # ── Sobol Decomposition (async via future + promises) ────────────────────
+
+  observeEvent(input$run_sobol, {
+    req(morris_state() == "done")
+    top_params <- input$sobol_params
+    if (length(top_params) == 0) {
+      showModal(modalDialog(title = "Configuration error",
+                            "Select at least one parameter for Sobol Decomposition.", easyClose = TRUE))
+      return(invisible(NULL))
+    }
+
+    days_val  <- input$n_days
+    nrep_val  <- as.integer(input$morris_nrep)
+    app_dir   <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_sobol_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    work_dir <- tempfile("bch_sobol_work_")
+    dir.create(work_dir)
+
+    prog_dir <- tempfile("bch_sobolprogress_")
+    dir.create(prog_dir, recursive = TRUE)
+    sobol_progress_dir(prog_dir)
+    n_sobol_default <- 200
+    sobol_progress_total(n_sobol_default * (length(top_params) + 2L))
+    sobol_progress_done(0)
+
+    sobol_state("running")
+    sobol_error(NULL)
+
+    output_rds <- tempfile("bch_sobol_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "sobol", "--json", json_path, "--days", days_val,
+      "--n-rep", nrep_val, "--top-params", paste(top_params, collapse = ","),
+      "--max-cores", max_cores_val, "--progress-dir", prog_dir,
+      "--work-dir", work_dir, "--output-rds", output_rds
+    )
+
+    fut <- future({
+      setwd(app_dir)
+      run_shiny_worker(worker_args, output_rds)
+    }, seed = NULL)
+
+    prom <- fut %...>% (function(out) {
+      sobol_results(out)
+      sobol_state("done")
+    })
+    prom <- catch(prom, function(e) {
+      sobol_state("error")
+      sobol_error(conditionMessage(e))
+    })
+    pending_sobol(prom)
+    invisible(NULL)
+  })
+
+  observe({
+    req(sobol_state() == "running")
+    invalidateLater(500, session)
+    pd <- isolate(sobol_progress_dir())
+    if (!is.null(pd) && dir.exists(pd)) {
+      n_done <- length(list.files(pd, pattern = "\\.done$"))
+      isolate(sobol_progress_done(n_done))
+    }
+  })
+
+  output$sobol_status <- renderUI({
+    state <- sobol_state()
+    if (state == "idle") return(NULL)
+    if (state == "running") {
+      total <- sobol_progress_total(); done <- sobol_progress_done()
+      pct <- if (total > 0) min(99, round(100 * done / total)) else 5
+      tagList(
+        p(sprintf("Evaluating Sobol design point %d of %d...", done, total)),
+        div(class = "progress",
+            div(class = "progress-bar progress-bar-striped progress-bar-animated",
+                role = "progressbar", style = sprintf("width: %d%%", pct)))
+      )
+    } else if (state == "done") {
+      div(class = "alert alert-success", "Sobol decomposition complete.")
+    } else {
+      div(class = "alert alert-danger", paste("Sobol decomposition failed:", sobol_error()))
+    }
+  })
+
+  output$sobol_plot <- renderPlot({
+    out <- sobol_results()
+    req(out, length(out$res) > 0)
+    sb <- out$res$system_ot_q
+    req(!is.null(sb))
+    df <- bind_rows(
+      data.frame(parameter = sb$parameter, index = "S1 (First-Order)", value = sb$S1,
+                lower = sb$S1_lower, upper = sb$S1_upper),
+      data.frame(parameter = sb$parameter, index = "ST (Total-Order)", value = sb$ST,
+                lower = sb$ST_lower, upper = sb$ST_upper)
+    )
+    df$label <- MORRIS_LABELS[df$parameter]
+    ggplot(df, aes(x = label, y = value, fill = index)) +
+      geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+      geom_errorbar(aes(ymin = pmax(lower, 0), ymax = upper),
+                    position = position_dodge(width = 0.7), width = 0.2) +
+      labs(title = "Sobol Indices — System OT Queue (R2B + R2E)",
+           subtitle = "S1 = variance from the parameter alone; ST = variance including interactions with other parameters",
+           x = NULL, y = "Sobol Index", fill = NULL) +
+      theme_minimal(base_size = 13) +
+      theme(legend.position = "bottom", axis.text.x = element_text(angle = 20, hjust = 1))
+  })
+
+  output$dl_sobol_csv_zip <- downloadHandler(
+    filename = "sobol_indices.zip",
+    content  = function(file) {
+      csvs <- sobol_results()$csv_bytes
+      req(csvs)
+      tmp_dir <- tempfile("bch_sobol_dl_")
+      dir.create(tmp_dir)
+      for (nm in names(csvs)) writeBin(csvs[[nm]], file.path(tmp_dir, nm))
+      old_wd <- setwd(tmp_dir)
+      on.exit(setwd(old_wd), add = TRUE)
+      zip(file, files = names(csvs))
+    },
+    contentType = "application/zip"
+  )
+
+  output$sobol_results_ui <- renderUI({
+    req(sobol_state() == "done", sobol_results())
+    if (length(sobol_results()$res) == 0 || is.null(sobol_results()$res$system_ot_q)) {
+      return(div(class = "alert alert-warning",
+                  "Sobol indices could not be estimated for the selected parameters (a near-zero-variance response — see console warnings). Try a different parameter selection."))
+    }
+    tagList(
+      tags$hr(),
+      h5("Sobol S1 / ST Indices"),
+      plotOutput("sobol_plot", height = "450px"),
+      p(class = "text-muted small",
+        "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
+        "system OT queue depends on the value of at least one other parameter, not just their own value."),
+      downloadButton("dl_sobol_csv_zip", "Download Sobol Indices — All KPIs (ZIP)")
+    )
+  })
 }
 
 shinyApp(ui, server)

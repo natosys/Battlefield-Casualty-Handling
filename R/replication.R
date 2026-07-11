@@ -107,15 +107,17 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'   disables this and preserves prior behaviour exactly for existing callers
 #'   (run_welch_analysis(), run_scenarios(), eval_params()).
 #' @param max_cores Optional integer cap on mclapply's mc.cores. NULL
-#'   (default) preserves prior behaviour — parallel::detectCores() — for
-#'   scripted/CLI callers on a dedicated machine. app.R's interactive
-#'   (Shiny-triggered) callers pass a small explicit cap instead:
-#'   parallel::detectCores() reports the host's (or Docker Desktop VM's)
-#'   full core count regardless of the actual memory available to a local
+#'   (default) preserves prior behaviour — getOption("mc.cores",
+#'   parallel::detectCores(logical = FALSE)) — for scripted/CLI callers on
+#'   a dedicated machine. This respects the mc.cores option the project's
+#'   Dockerfile sets in Rprofile.site (physical core count), falling back to
+#'   detectCores(logical = FALSE) outside that container. app.R's interactive
+#'   (Shiny-triggered) callers pass a small explicit cap instead: even the
+#'   physical core count can exceed the memory actually available to a local
 #'   dev container, and each mclapply fork carries a full duplicate R
 #'   session (simmer + the tidyverse-adjacent packages this codebase loads);
-#'   forking one such session per core on an unconstrained detectCores()
-#'   value has been observed to exhaust a local dev container's memory and
+#'   forking one such session per core on an unconstrained core count
+#'   has been observed to exhaust a local dev container's memory and
 #'   crash it even at a modest replication count (Issue #15 follow-up).
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
@@ -151,7 +153,7 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir =
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
   if (use_parallel) {
     RNGkind("L'Ecuyer-CMRG")
-    cores <- parallel::detectCores()
+    cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
     if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
     envs <- mclapply(seq_len(n_iterations), worker,
                      mc.cores       = cores,

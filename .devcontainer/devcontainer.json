@@ -5,6 +5,10 @@
     "context": ".."
   },
   "overrideCommand": false,
+  "hostRequirements": {
+    "cpus": 8,
+    "memory": "32gb"
+  },
   "forwardPorts": [8787],
   "containerEnv": {
     "DISABLE_AUTH": "true"

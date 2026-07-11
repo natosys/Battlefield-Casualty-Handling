@@ -67,13 +67,19 @@ DEFAULT_JSON    <- "env_data.json"
 #'   etc. — is substantial even for a very short run).
 #' @return Integer >= 1.
 #'
-#' @details parallel::detectCores() reports the host's — or, inside a local
-#'   Docker Desktop dev container without an explicit CPU limit, the
-#'   container's full VM-visible — core count. That number bears no relation
-#'   to how much memory is actually available to run that many concurrent
-#'   forked R sessions (each carrying a full duplicate simmer/ggplot2/dplyr/
-#'   data.table session). Forking one such session per detected core has
-#'   been observed to exhaust a local dev container's memory and crash the
+#' @details getOption("mc.cores", parallel::detectCores(logical = FALSE))
+#'   respects the mc.cores option the project's Dockerfile sets in
+#'   Rprofile.site (physical core count), falling back to
+#'   detectCores(logical = FALSE) outside that container — either way, a
+#'   more conservative starting point than parallel::detectCores() alone,
+#'   which reports the host's — or, inside a local Docker Desktop dev
+#'   container without an explicit CPU limit, the container's full
+#'   VM-visible, hyperthread-inclusive — core count. That number bears no
+#'   relation to how much memory is actually available to run that many
+#'   concurrent forked R sessions (each carrying a full duplicate
+#'   simmer/ggplot2/dplyr/data.table session). Forking one such session per
+#'   detected core has been observed to exhaust a local dev container's
+#'   memory and crash the
 #'   whole container even at a modest replication count. Two rounds of fixed
 #'   guessed caps (4, then 2) both still saw the container crash on a real
 #'   local dev container — the second time at 88% of a 7.4GB container
@@ -119,7 +125,7 @@ DEFAULT_JSON    <- "env_data.json"
 #'   than keeping it tight.
 detect_safe_cores <- function(n_days = 30, mem_per_worker_base_mb = 900) {
   mem_per_worker_mb <- max(400, mem_per_worker_base_mb * (n_days / 30))
-  cpu_cores <- parallel::detectCores()
+  cpu_cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
 
   read_num1 <- function(path) {
     if (!file.exists(path)) return(NA_real_)

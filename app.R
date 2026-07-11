@@ -38,26 +38,29 @@ source("R/sensitivity.R")
 source("R/warmup.R")
 source("R/app_params.R")
 
-# multicore forks the Shiny process directly (same fork() mechanism
-# mclapply uses), so a future's own body can safely call mclapply()
-# internally, as run_replications()/run_morris()/run_sobol() do. multisession
-# instead runs each future in a separate process connected over a socket
-# (parallel::makeCluster(type = "PSOCK")); when code running inside that
-# worker calls mclapply(), every forked grandchild inherits a copy of the
-# worker's control socket back to this session, and a grandchild exiting
-# can desynchronise that socket's protocol — observed as the worker being
-# reported "interrupted" with no OOM or R-level error, even though nothing
-# was actually out of memory (Issue #15 follow-up). supportsMulticore() is
-# FALSE on Windows, where run_replications() already falls back to
-# sequential lapply() (no nested forking to conflict with), so multisession
-# remains the correct, portable fallback there. Resolved into a plain
-# string variable first (rather than passed as an inline if/else
-# expression) because plan() captures its argument via non-standard
-# evaluation and does not evaluate a conditional expression there
-# correctly; a string variable is the documented pattern for
-# runtime-conditional strategy selection.
-future_strategy <- if (supportsMulticore()) "multicore" else "multisession"
-plan(future_strategy)
+# Both future backends are unsafe for a future body that itself calls
+# mclapply() (as run_replications()/run_morris()/run_sobol() do), for two
+# different reasons (Issue #15 follow-up): multisession runs the future in
+# a separate process connected over a socket, and a grandchild forked from
+# inside it inherits a copy of that control socket, which a grandchild
+# exiting mid-run can desynchronise — observed as the worker being reported
+# "interrupted" with no OOM or R-level cause. multicore forks the Shiny
+# process directly, including its live httpuv event loop; a forked child
+# can inherit a lock httpuv held on another thread at the instant of the
+# fork, a lock nothing in the child will ever release — observed as the
+# future hanging indefinitely with near-zero CPU in the forked process,
+# never erroring or completing. Full Analysis / Morris / Sobol therefore no
+# longer call these functions in-process at all — see run_shiny_worker()
+# below, which shells out to scripts/shiny_worker.R via system2(). That
+# subprocess is a genuine fork()-then-exec (like any process launch),
+# replacing the child's memory image entirely rather than duplicating this
+# process's state, so it carries neither risk; mclapply inside it is exactly
+# as safe as it already is for run.R's CLI path. Quick Run calls run_once()
+# directly with no inner forking, so it is unaffected by either failure mode
+# and keeps running in-process. Plain multisession is therefore sufficient
+# and correct for every future() in this app now — no per-future strategy
+# selection needed.
+plan(multisession)
 # run_once()/analyse_run() are called from inside future() with a seed
 # supplied explicitly (or intentionally NULL for a random Quick Run); the
 # future package's own parallel-RNG-safety warning does not apply here.
@@ -189,6 +192,35 @@ detect_safe_cores <- function(n_days = 30, mem_per_worker_base_mb = 900) {
   }
 
   as.integer(max(1, min(cpu_cores, mem_cores)))
+}
+
+#' Run scripts/shiny_worker.R as a subprocess and return its saved result
+#'
+#' @param args Character vector of command-line arguments for
+#'   scripts/shiny_worker.R (e.g. c("--mode", "full", "--json", json_path,
+#'   ...)); see that script's option_list for the full set.
+#' @param output_rds Path the worker was told (via --output-rds in `args`)
+#'   to saveRDS() its result to; read back and returned on success.
+#' @return The R object scripts/shiny_worker.R saved to `output_rds`.
+#'
+#' @details Full Analysis / Morris / Sobol dispatch through this rather than
+#' calling run_replications()/run_morris()/run_sobol() directly inside a
+#' future() body — see the comment above plan(multisession) for why. This
+#' function itself is called from inside a future() (so it runs on a
+#' multisession worker, safely — it does no forking of its own, only
+#' launching a subprocess via system2(), which is fork-then-exec, not
+#' fork()-without-exec), and blocks that worker until the subprocess exits,
+#' which is fine since the worker is already off the main Shiny process.
+run_shiny_worker <- function(args, output_rds) {
+  worker_script <- file.path(APP_DIR, "scripts", "shiny_worker.R")
+  log_file <- tempfile("bch_worker_log_")
+  status <- system2("Rscript", args = c(worker_script, args),
+                    stdout = log_file, stderr = log_file, wait = TRUE)
+  log_text <- if (file.exists(log_file)) paste(readLines(log_file), collapse = "\n") else "(no log)"
+  if (!identical(status, 0L) || !file.exists(output_rds)) {
+    stop(sprintf("Worker subprocess failed (exit status %s):\n%s", status, log_text))
+  }
+  readRDS(output_rds)
 }
 
 # Cap on mclapply's mc.cores (R/replication.R's run_replications()) for every
@@ -1897,10 +1929,12 @@ server <- function(input, output, session) {
     n_reps_val   <- as.integer(input$n_reps)
     days_val     <- input$n_days
     ot_hours_val <- input$ot_hours
-    built_env    <- build_environment(current_json())
     app_dir      <- APP_DIR
     # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
     max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_full_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
 
     prog_dir <- tempfile("bch_repprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -1913,26 +1947,17 @@ server <- function(input, output, session) {
     run_error(NULL)
     progress_pct(0)
 
+    output_rds <- tempfile("bch_full_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "full", "--json", json_path, "--days", days_val,
+      "--ot-hours", ot_hours_val, "--n-reps", n_reps_val,
+      "--max-cores", max_cores_val, "--progress-dir", prog_dir,
+      "--output-rds", output_rds
+    )
+
     fut <- future({
       setwd(app_dir)
-      source("R/environment.R"); source("R/trajectories.R")
-      source("R/replication.R"); source("R/analysis.R"); source("R/warmup.R")
-      assign("run", simmer::run, envir = .GlobalEnv)
-      env_data <<- built_env
-      day_min  <<- 1440L
-      counts   <<- sapply(env_data$elms, length)
-
-      mon <- run_replications(n_reps_val, days_val, ot_hours = ot_hours_val, progress_dir = prog_dir,
-                              max_cores = max_cores_val)
-
-      out_dir <- tempfile("bch_full_outputs_")
-      img_dir <- tempfile("bch_full_images_")
-      dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-      dir.create(img_dir, showWarnings = FALSE, recursive = TRUE)
-
-      results <- analyse_replications(mon, output_dir = out_dir, images_dir = img_dir,
-                                      warm_up_period = WARM_UP_DAYS)
-      list(mon = mon, results = results)
+      run_shiny_worker(worker_args, output_rds)
     }, seed = NULL)
 
     prom <- fut %...>% (function(res) {
@@ -2225,10 +2250,19 @@ server <- function(input, output, session) {
     r_val     <- as.integer(input$morris_r)
     nrep_val  <- as.integer(input$morris_nrep)
     days_val  <- input$n_days
-    built_env <- build_environment(current_json())
     app_dir   <- APP_DIR
     # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
     max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_morris_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    # run_morris() writes "images/<...>.png" and "outputs/*.csv" relative to
+    # the working directory — a scratch work_dir (rather than threading a
+    # new images_dir parameter through run_morris()) keeps a Shiny-triggered
+    # screen from ever touching the repo's own tracked images/ or outputs/.
+    work_dir <- tempfile("bch_morris_work_")
+    dir.create(work_dir)
 
     prog_dir <- tempfile("bch_morrisprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -2241,34 +2275,17 @@ server <- function(input, output, session) {
     sobol_state("idle")
     sobol_results(NULL)
 
+    output_rds <- tempfile("bch_morris_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "morris", "--json", json_path, "--days", days_val,
+      "--r", r_val, "--n-rep", nrep_val, "--max-cores", max_cores_val,
+      "--progress-dir", prog_dir, "--work-dir", work_dir,
+      "--output-rds", output_rds
+    )
+
     fut <- future({
       setwd(app_dir)
-      source("R/environment.R"); source("R/trajectories.R")
-      source("R/replication.R"); source("R/analysis.R"); source("R/sensitivity.R")
-      assign("run", simmer::run, envir = .GlobalEnv)
-      env_data <<- built_env
-      day_min  <<- 1440L
-      counts   <<- sapply(env_data$elms, length)
-
-      # run_morris()/eval_params() write "images/<...>.png" and "outputs/*.csv"
-      # relative to the working directory — setwd() to a scratch directory
-      # (rather than threading a new images_dir parameter through
-      # run_morris()) so a Shiny-triggered screen never touches the repo's
-      # own tracked images/ or outputs/ directories.
-      work_dir <- tempfile("bch_morris_work_")
-      dir.create(work_dir)
-      setwd(work_dir)
-
-      res <- run_morris(n_days = days_val, n_rep = nrep_val, r = r_val,
-                        output_dir = "outputs", progress_dir = prog_dir,
-                        max_cores = max_cores_val)
-
-      png_files <- list.files("images", pattern = "^morris_.*\\.png$", full.names = TRUE)
-      png_bytes <- setNames(
-        lapply(png_files, function(f) readBin(f, "raw", file.info(f)$size)),
-        basename(png_files)
-      )
-      list(res = res, png_bytes = png_bytes)
+      run_shiny_worker(worker_args, output_rds)
     }, seed = NULL)
 
     prom <- fut %...>% (function(out) {
@@ -2417,10 +2434,15 @@ server <- function(input, output, session) {
 
     days_val  <- input$n_days
     nrep_val  <- as.integer(input$morris_nrep)
-    built_env <- build_environment(current_json())
     app_dir   <- APP_DIR
     # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
     max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_sobol_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    work_dir <- tempfile("bch_sobol_work_")
+    dir.create(work_dir)
 
     prog_dir <- tempfile("bch_sobolprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -2432,29 +2454,17 @@ server <- function(input, output, session) {
     sobol_state("running")
     sobol_error(NULL)
 
+    output_rds <- tempfile("bch_sobol_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "sobol", "--json", json_path, "--days", days_val,
+      "--n-rep", nrep_val, "--top-params", paste(top_params, collapse = ","),
+      "--max-cores", max_cores_val, "--progress-dir", prog_dir,
+      "--work-dir", work_dir, "--output-rds", output_rds
+    )
+
     fut <- future({
       setwd(app_dir)
-      source("R/environment.R"); source("R/trajectories.R")
-      source("R/replication.R"); source("R/analysis.R"); source("R/sensitivity.R")
-      assign("run", simmer::run, envir = .GlobalEnv)
-      env_data <<- built_env
-      day_min  <<- 1440L
-      counts   <<- sapply(env_data$elms, length)
-
-      work_dir <- tempfile("bch_sobol_work_")
-      dir.create(work_dir)
-      setwd(work_dir)
-
-      res <- run_sobol(top_params, n_days = days_val, n_rep = nrep_val,
-                       output_dir = "outputs", progress_dir = prog_dir,
-                       max_cores = max_cores_val)
-
-      csv_files <- list.files("outputs", pattern = "^sobol_.*\\.csv$", full.names = TRUE)
-      csv_bytes <- setNames(
-        lapply(csv_files, function(f) readBin(f, "raw", file.info(f)$size)),
-        basename(csv_files)
-      )
-      list(res = res, csv_bytes = csv_bytes, top_params = top_params)
+      run_shiny_worker(worker_args, output_rds)
     }, seed = NULL)
 
     prom <- fut %...>% (function(out) {

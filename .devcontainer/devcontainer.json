@@ -9,7 +9,7 @@
     "cpus": 4,
     "memory": "16gb"
   },
-  "forwardPorts": [8787],
+  "forwardPorts": [8787, 3838],
   "containerEnv": {
     "DISABLE_AUTH": "true"
   },

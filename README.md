@@ -1084,7 +1084,10 @@ Results and interpretation are presented in [Comparative Scenario Analysis](#com
 
 ```r
 # Terminal (recommended for Full Analysis / Sensitivity Screening):
-#   Rscript -e 'shiny::runApp("app.R")'
+#   Rscript -e "shiny::runApp(port = 3838, host = '0.0.0.0')"
+#   (port 8787 is already bound by RStudio Server in the dev container —
+#   3838, the conventional Shiny Server port, is forwarded in
+#   .devcontainer/devcontainer.json)
 # RStudio console (Quick Run only — see note below):
 shiny::runApp("app.R")
 ```

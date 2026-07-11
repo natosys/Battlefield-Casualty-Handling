@@ -6,8 +6,8 @@
   },
   "overrideCommand": false,
   "hostRequirements": {
-    "cpus": 8,
-    "memory": "32gb"
+    "cpus": 4,
+    "memory": "16gb"
   },
   "forwardPorts": [8787],
   "containerEnv": {

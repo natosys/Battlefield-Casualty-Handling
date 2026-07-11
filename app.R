@@ -38,7 +38,20 @@ source("R/sensitivity.R")
 source("R/warmup.R")
 source("R/app_params.R")
 
-plan(multisession)
+# multicore forks the Shiny process directly (same fork() mechanism
+# mclapply uses), so a future's own body can safely call mclapply()
+# internally, as run_replications()/run_morris()/run_sobol() do. multisession
+# instead runs each future in a separate process connected over a socket
+# (parallel::makeCluster(type = "PSOCK")); when code running inside that
+# worker calls mclapply(), every forked grandchild inherits a copy of the
+# worker's control socket back to this session, and a grandchild exiting
+# can desynchronise that socket's protocol — observed as the worker being
+# reported "interrupted" with no OOM or R-level error, even though nothing
+# was actually out of memory (Issue #15 follow-up). supportsMulticore() is
+# FALSE on Windows, where run_replications() already falls back to
+# sequential lapply() (no nested forking to conflict with), so multisession
+# remains the correct, portable fallback there.
+plan(if (supportsMulticore()) multicore else multisession)
 # run_once()/analyse_run() are called from inside future() with a seed
 # supplied explicitly (or intentionally NULL for a random Quick Run); the
 # future package's own parallel-RNG-safety warning does not apply here.

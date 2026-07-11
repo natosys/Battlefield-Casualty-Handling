@@ -48,13 +48,23 @@ APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
 
 #' Detect a safe number of concurrent mclapply forks for *this* machine or
-#' container, instead of guessing a fixed number.
+#' container, at *this* moment, instead of guessing a fixed number.
 #'
-#' @param mem_per_worker_mb Assumed peak RSS of one forked replication
-#'   worker, in MB. Default 900 is the directly-measured mid-simulation RSS
-#'   of a single forked worker (Issue #15 follow-up — the crash this guards
-#'   against was memory exhaustion, not a CPU-count problem, so bounding by
-#'   detected core count alone is insufficient).
+#' @param n_days Simulation duration (days) for the run this cap is being
+#'   computed for. Each forked worker's peak memory scales with how much
+#'   monitoring data (arrivals/attributes/resources) accumulates over the
+#'   run, which scales with duration — a fixed per-worker estimate
+#'   calibrated at one duration understates the requirement at a longer one.
+#'   Default 30 matches this app's own default simulation duration and the
+#'   duration `mem_per_worker_base_mb` was directly measured at.
+#' @param mem_per_worker_base_mb Assumed peak RSS of one forked replication
+#'   worker at a 30-day run, in MB. Default 900 is the directly-measured
+#'   mid-simulation RSS of a single forked worker at n_days = 30 (Issue #15
+#'   follow-up — the crash this guards against was memory exhaustion, not a
+#'   CPU-count problem, so bounding by detected core count alone is
+#'   insufficient). Scaled linearly by `n_days / 30` below, floored at 400MB
+#'   (package-loading overhead alone — simmer, ggplot2, dplyr, data.table,
+#'   etc. — is substantial even for a very short run).
 #' @return Integer >= 1.
 #'
 #' @details parallel::detectCores() reports the host's — or, inside a local
@@ -64,31 +74,51 @@ DEFAULT_JSON    <- "env_data.json"
 #'   forked R sessions (each carrying a full duplicate simmer/ggplot2/dplyr/
 #'   data.table session). Forking one such session per detected core has
 #'   been observed to exhaust a local dev container's memory and crash the
-#'   whole container even at a modest replication count; a first attempt at
-#'   a fixed guessed cap (4, then 2) still saw forked workers OOM-killed
-#'   mid-run on a real local dev container. Rather than keep guessing at a
-#'   smaller fixed number, read the two real, machine-specific signals that
-#'   actually bound safe concurrency:
+#'   whole container even at a modest replication count. Two rounds of fixed
+#'   guessed caps (4, then 2) both still saw the container crash on a real
+#'   local dev container — the second time at 88% of a 7.4GB container
+#'   memory limit, right up against the ceiling despite the earlier
+#'   cgroup-aware detection. Root cause of that miss: this function was
+#'   originally called once, when the R process starts, and cached in a
+#'   top-level constant — by the time a user actually clicked Full Analysis
+#'   after using the app for a while, real memory usage had grown well past
+#'   that stale startup snapshot. Callers must now call this function fresh,
+#'   immediately before each run (see the three call sites below), not cache
+#'   its result. Reads two real, machine-specific signals that actually
+#'   bound safe concurrency:
 #'   1. CPU quota — Linux cgroups (v2 `cpu.max`, or v1
 #'      `cpu.cfs_quota_us`/`cpu.cfs_period_us`) expose the real per-container
 #'      CPU allotment when the container was started with an explicit CPU
 #'      limit, which `detectCores()` does not see (it reads `/proc/cpuinfo`,
 #'      reflecting the whole VM/host).
-#'   2. Memory headroom — the real constraint that actually caused the
-#'      crash. Prefers the cgroup's own memory ceiling minus current usage
-#'      (v2 `memory.max`/`memory.current`, or v1
-#'      `memory.limit_in_bytes`/`memory.usage_in_bytes`) — the container's
-#'      *own* budget, not the host's, since a memory-limited container can be
-#'      OOM-killed well before the host itself runs low. Falls back to the
-#'      host's `/proc/meminfo` `MemAvailable` only when no cgroup memory
-#'      limit is set (or unreadable) — the next-best real signal, still far
-#'      better than a fixed guess. A 70% safety factor is applied to the
-#'      memory-derived bound to leave headroom for the main Shiny process,
+#'   2. Memory headroom, measured right now — the real constraint that
+#'      actually caused both crashes. Prefers the cgroup's own memory
+#'      ceiling minus *current* usage (v2 `memory.max`/`memory.current`, or
+#'      v1 `memory.limit_in_bytes`/`memory.usage_in_bytes`) — the
+#'      container's own budget, not the host's, since a memory-limited
+#'      container can be OOM-killed well before the host itself runs low.
+#'      Falls back to the host's `/proc/meminfo` `MemAvailable` only when no
+#'      cgroup memory limit is set (or unreadable) — the next-best real
+#'      signal, still far better than a fixed guess. A 50% safety factor
+#'      (tightened from an initial 70%, which still wasn't conservative
+#'      enough) is applied to the memory-derived bound, to leave headroom
+#'      for the main Shiny process's own further growth during the run,
 #'      RStudio Server, and any other processes sharing the same container.
 #'   Falls back to `parallel::detectCores()` alone (CPU-only, as before) on
 #'   any platform where none of these files are readable (e.g. non-Linux),
 #'   and always returns at least 1.
-detect_safe_cores <- function(mem_per_worker_mb = 900) {
+#'
+#'   This estimate is inherently best-effort — it cannot know a
+#'   configuration's casualty volume or how much a *different* concurrently
+#'   running process might grow by mid-run. run_replications()'s own
+#'   killed-worker detection (R/replication.R) remains the last line of
+#'   defence when a single forked *child* is OOM-killed while the main
+#'   process survives; it cannot help if memory pressure is severe enough
+#'   that the kernel OOM-kills the main process (or the whole container)
+#'   instead, which is why keeping this estimate conservative matters more
+#'   than keeping it tight.
+detect_safe_cores <- function(n_days = 30, mem_per_worker_base_mb = 900) {
+  mem_per_worker_mb <- max(400, mem_per_worker_base_mb * (n_days / 30))
   cpu_cores <- parallel::detectCores()
 
   read_num1 <- function(path) {
@@ -124,12 +154,12 @@ detect_safe_cores <- function(mem_per_worker_mb = 900) {
   }
   if (!is.na(mem_limit) && !is.na(mem_current)) {
     headroom_mb <- (mem_limit - mem_current) / (1024^2)
-    if (headroom_mb > 0) mem_cores <- max(1, floor(0.7 * headroom_mb / mem_per_worker_mb))
+    if (headroom_mb > 0) mem_cores <- max(1, floor(0.5 * headroom_mb / mem_per_worker_mb))
   } else if (file.exists("/proc/meminfo")) {
     avail_line <- grep("^MemAvailable:", readLines("/proc/meminfo", warn = FALSE), value = TRUE)
     if (length(avail_line) == 1) {
       avail_kb <- suppressWarnings(as.numeric(regmatches(avail_line, regexpr("[0-9]+", avail_line))))
-      if (!is.na(avail_kb)) mem_cores <- max(1, floor(0.7 * (avail_kb / 1024) / mem_per_worker_mb))
+      if (!is.na(avail_kb)) mem_cores <- max(1, floor(0.5 * (avail_kb / 1024) / mem_per_worker_mb))
     }
   }
 
@@ -140,10 +170,11 @@ detect_safe_cores <- function(mem_per_worker_mb = 900) {
 # multi-replication path this app triggers (Full Analysis, Morris, Sobol).
 # CLI/scripted callers (scripts/run_sensitivity.R, run.R, R/warmup.R,
 # R/scenario_runner.R) do not pass max_cores and are unaffected — this cap
-# only applies to the interactive, casually-clicked Shiny paths below. See
-# detect_safe_cores()'s own roxygen for why this reads real machine/container
-# limits rather than assuming a fixed guessed number.
-APP_MAX_CORES   <- detect_safe_cores()
+# only applies to the interactive, casually-clicked Shiny paths below. NOT a
+# cached top-level constant (deliberately) — see detect_safe_cores()'s own
+# roxygen for why a stale app-startup snapshot previously understated real
+# usage. Each of the three call sites below calls detect_safe_cores(n_days)
+# fresh, immediately before submitting that run.
 PARAM_REGISTRY  <- build_param_registry()
 
 #' Detect every triangular (min/mode/max) field triple in a registry, by
@@ -1843,6 +1874,8 @@ server <- function(input, output, session) {
     ot_hours_val <- input$ot_hours
     built_env    <- build_environment(current_json())
     app_dir      <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
 
     prog_dir <- tempfile("bch_repprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -1865,7 +1898,7 @@ server <- function(input, output, session) {
       counts   <<- sapply(env_data$elms, length)
 
       mon <- run_replications(n_reps_val, days_val, ot_hours = ot_hours_val, progress_dir = prog_dir,
-                              max_cores = APP_MAX_CORES)
+                              max_cores = max_cores_val)
 
       out_dir <- tempfile("bch_full_outputs_")
       img_dir <- tempfile("bch_full_images_")
@@ -2169,6 +2202,8 @@ server <- function(input, output, session) {
     days_val  <- input$n_days
     built_env <- build_environment(current_json())
     app_dir   <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
 
     prog_dir <- tempfile("bch_morrisprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -2201,7 +2236,7 @@ server <- function(input, output, session) {
 
       res <- run_morris(n_days = days_val, n_rep = nrep_val, r = r_val,
                         output_dir = "outputs", progress_dir = prog_dir,
-                        max_cores = APP_MAX_CORES)
+                        max_cores = max_cores_val)
 
       png_files <- list.files("images", pattern = "^morris_.*\\.png$", full.names = TRUE)
       png_bytes <- setNames(
@@ -2359,6 +2394,8 @@ server <- function(input, output, session) {
     nrep_val  <- as.integer(input$morris_nrep)
     built_env <- build_environment(current_json())
     app_dir   <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
 
     prog_dir <- tempfile("bch_sobolprogress_")
     dir.create(prog_dir, recursive = TRUE)
@@ -2385,7 +2422,7 @@ server <- function(input, output, session) {
 
       res <- run_sobol(top_params, n_days = days_val, n_rep = nrep_val,
                        output_dir = "outputs", progress_dir = prog_dir,
-                       max_cores = APP_MAX_CORES)
+                       max_cores = max_cores_val)
 
       csv_files <- list.files("outputs", pattern = "^sobol_.*\\.csv$", full.names = TRUE)
       csv_bytes <- setNames(

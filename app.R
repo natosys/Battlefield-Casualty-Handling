@@ -46,6 +46,22 @@ options(future.rng.onMisuse = "ignore")
 
 APP_DIR         <- normalizePath(".")
 DEFAULT_JSON    <- "env_data.json"
+
+# Cap on mclapply's mc.cores (R/replication.R's run_replications()) for every
+# multi-replication path this app triggers (Full Analysis, Morris, Sobol).
+# parallel::detectCores() reports the host's — or, inside a local Docker
+# Desktop dev container, the container's full VM-visible — core count, not
+# how much memory is actually available to run that many concurrent forked R
+# sessions (each carrying a full duplicate simmer/ggplot2/dplyr/data.table
+# session). Forking one such session per detected core has been observed to
+# exhaust a local dev container's memory and crash the whole container even
+# at a modest replication count (Issue #15 follow-up). Capping at 4 bounds
+# peak concurrent forked sessions regardless of how many cores are reported,
+# while still giving meaningful parallelism over strictly serial execution.
+# CLI/scripted callers (scripts/run_sensitivity.R, run.R, R/warmup.R,
+# R/scenario_runner.R) do not pass max_cores and are unaffected — this cap
+# only applies to the interactive, casually-clicked Shiny paths below.
+APP_MAX_CORES   <- min(parallel::detectCores(), 4L)
 PARAM_REGISTRY  <- build_param_registry()
 
 #' Detect every triangular (min/mode/max) field triple in a registry, by
@@ -1766,7 +1782,8 @@ server <- function(input, output, session) {
       day_min  <<- 1440L
       counts   <<- sapply(env_data$elms, length)
 
-      mon <- run_replications(n_reps_val, days_val, ot_hours = ot_hours_val, progress_dir = prog_dir)
+      mon <- run_replications(n_reps_val, days_val, ot_hours = ot_hours_val, progress_dir = prog_dir,
+                              max_cores = APP_MAX_CORES)
 
       out_dir <- tempfile("bch_full_outputs_")
       img_dir <- tempfile("bch_full_images_")
@@ -2101,7 +2118,8 @@ server <- function(input, output, session) {
       setwd(work_dir)
 
       res <- run_morris(n_days = days_val, n_rep = nrep_val, r = r_val,
-                        output_dir = "outputs", progress_dir = prog_dir)
+                        output_dir = "outputs", progress_dir = prog_dir,
+                        max_cores = APP_MAX_CORES)
 
       png_files <- list.files("images", pattern = "^morris_.*\\.png$", full.names = TRUE)
       png_bytes <- setNames(
@@ -2284,7 +2302,8 @@ server <- function(input, output, session) {
       setwd(work_dir)
 
       res <- run_sobol(top_params, n_days = days_val, n_rep = nrep_val,
-                       output_dir = "outputs", progress_dir = prog_dir)
+                       output_dir = "outputs", progress_dir = prog_dir,
+                       max_cores = APP_MAX_CORES)
 
       csv_files <- list.files("outputs", pattern = "^sobol_.*\\.csv$", full.names = TRUE)
       csv_bytes <- setNames(

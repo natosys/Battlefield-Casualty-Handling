@@ -106,6 +106,17 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'   per-replication progress from mclapply's forked workers. NULL (default)
 #'   disables this and preserves prior behaviour exactly for existing callers
 #'   (run_welch_analysis(), run_scenarios(), eval_params()).
+#' @param max_cores Optional integer cap on mclapply's mc.cores. NULL
+#'   (default) preserves prior behaviour — parallel::detectCores() — for
+#'   scripted/CLI callers on a dedicated machine. app.R's interactive
+#'   (Shiny-triggered) callers pass a small explicit cap instead:
+#'   parallel::detectCores() reports the host's (or Docker Desktop VM's)
+#'   full core count regardless of the actual memory available to a local
+#'   dev container, and each mclapply fork carries a full duplicate R
+#'   session (simmer + the tidyverse-adjacent packages this codebase loads);
+#'   forking one such session per core on an unconstrained detectCores()
+#'   value has been observed to exhaust a local dev container's memory and
+#'   crash it even at a modest replication count (Issue #15 follow-up).
 #' @return Named list with elements: arrivals, attributes, resources.
 #'   Each data frame includes a 'replication' column (1..n_iterations).
 #'
@@ -116,7 +127,8 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'   is set before mclapply for the global stream; individual pair seeds are
 #'   set inside each worker via run_once(seed = ...), overriding the substream
 #'   but preserving pair-level independence. Falls back to lapply on Windows.
-run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir = NULL) {
+run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir = NULL,
+                             max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
   # Each pair (2k-1, 2k) shares a seed: primary draws U, antithetic draws 1-U
@@ -139,8 +151,10 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir =
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
   if (use_parallel) {
     RNGkind("L'Ecuyer-CMRG")
+    cores <- parallel::detectCores()
+    if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
     envs <- mclapply(seq_len(n_iterations), worker,
-                     mc.cores    = parallel::detectCores(),
+                     mc.cores    = cores,
                      mc.set.seed = TRUE)
   } else {
     envs <- lapply(seq_len(n_iterations), worker)

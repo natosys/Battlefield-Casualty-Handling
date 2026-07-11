@@ -136,18 +136,22 @@ extract_kpis <- function(mon) {
 #' @param params_row Numeric vector (length = nrow(morris_params)), in column order
 #' @param n_rep      Replications per evaluation (5 recommended for Morris)
 #' @param n_days     Simulation duration in days
+#' @param max_cores  Optional integer cap on mclapply's mc.cores, passed
+#'   through to run_replications() (see its own @param for why this
+#'   matters for Shiny-triggered, locally-run screens). NULL preserves
+#'   prior behaviour.
 #' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q,
 #'   dow_count, transport_q, transport_util
 #'
 #' @details Modifies the global env_data via apply_params() then restores it.
 #'   The ot_hours parameter is extracted separately and passed to run_replications()
 #'   because it controls build_env() scheduling, not the vars structure.
-eval_params <- function(params_row, n_rep, n_days) {
+eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
   p    <- setNames(as.numeric(params_row), morris_params$name)
   ot_h <- p[["ot_hours"]]
 
   env_data <<- apply_params(env_data_base, p)
-  mon      <- run_replications(n_rep, n_days, ot_hours = ot_h)
+  mon      <- run_replications(n_rep, n_days, ot_hours = ot_h, max_cores = max_cores)
   extract_kpis(mon)
 }
 
@@ -166,6 +170,10 @@ eval_params <- function(params_row, n_rep, n_days) {
 #'   Shiny app's main session) observe real "point M of N" progress. NULL
 #'   (default) disables this and preserves prior behaviour for existing
 #'   callers (scripts/run_sensitivity.R).
+#' @param max_cores Optional integer cap on mclapply's mc.cores at each
+#'   design point, passed through to run_replications() via eval_params()
+#'   (see run_replications()'s own @param for why this matters for
+#'   Shiny-triggered, locally-run screens). NULL preserves prior behaviour.
 #' @return Named list: morris_objs (per-KPI sensitivity objects), Y (KPI matrix),
 #'   X (design matrix), ranking (data frame sorted descending by mu_star)
 #'
@@ -174,7 +182,7 @@ eval_params <- function(params_row, n_rep, n_days) {
 #'   ranking CSV to output_dir. The global env_data is restored to env_data_base
 #'   on exit regardless of errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
-                       output_dir = "outputs", progress_dir = NULL) {
+                       output_dir = "outputs", progress_dir = NULL, max_cores = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create("images",   recursive = TRUE, showWarnings = FALSE)
 
@@ -201,7 +209,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   Y <- t(vapply(seq_len(nrow(sa$X)), function(i) {
     message(sprintf("  Point %d / %d", i, nrow(sa$X)))
     kpis <- tryCatch(
-      eval_params(sa$X[i, ], n_rep, n_days),
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores),
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
         c(r2e_icu_q = NA_real_, r2b_ot_q = NA_real_, r2e_ot_q = NA_real_,
@@ -288,6 +296,9 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #'   marker file ("point_<i>.done") is written to it as each design point
 #'   finishes evaluating (see run_morris()'s equivalent parameter). NULL
 #'   (default) disables this and preserves prior behaviour.
+#' @param max_cores Optional integer cap on mclapply's mc.cores at each
+#'   design point (see run_morris()'s equivalent parameter). NULL preserves
+#'   prior behaviour.
 #' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q,
 #'   transport_q, transport_util
 #'
@@ -295,7 +306,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #'   pass shared across all five KPIs, giving N*(p+2) total evaluations.
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
-                      n_sobol = 200, output_dir = "outputs", progress_dir = NULL) {
+                      n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
+                      max_cores = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   p_idx <- which(morris_params$name %in% top_params)
@@ -330,7 +342,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
     res <- tryCatch(
       {
-        kpis <- eval_params(row, n_rep, n_days)
+        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores)
         c(r2b_ot_q       = kpis[["r2b_ot_q"]],
           r2e_ot_q       = kpis[["r2e_ot_q"]],
           system_ot_q    = kpis[["system_ot_q"]],

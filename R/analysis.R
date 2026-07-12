@@ -1455,17 +1455,28 @@ transport_rep_kpis <- function(mon, pattern) {
 #'   establishment qty (e.g. from env_data.json's `transports` block).
 #' @param n_rep Replications per fleet-size point, for the plot subtitle;
 #'   NULL (default) uses a subtitle with no replication count.
-#' @return ggplot object: mean transport queue/utilisation vs fleet size,
-#'   faceted by metric x vehicle, with a 95% CI ribbon and a dashed vertical
-#'   line at each vehicle's current establishment qty.
+#' @return ggplot object: four panels arranged as a 2x2 grid — one column
+#'   per vehicle type (PMV Ambulance, HX240M), one row per metric (Mean
+#'   Queue, Mean Utilisation) — each showing that metric vs fleet size, with
+#'   a 95% CI ribbon and a dashed vertical line at that vehicle's current
+#'   establishment qty. A legend below the plot identifies the ribbon, the
+#'   mean line, and the dashed reference line.
 #'
 #' @details Factored out of plot_transport_capacity_margin_by_fleet_size() so
 #'   the Shiny app's Sensitivity Calibration panel (Issue #57 integration)
 #'   can render the identical plot from a worker-returned sweep_df without
 #'   duplicating the ggplot specification — app.R's transport_sweep_plot
-#'   renderPlot() calls this directly.
+#'   renderPlot() calls this directly. Facet column labels use the same
+#'   human-readable vehicle names as the Configure panel's fleet-size
+#'   sliders ("PMV Ambulance" rather than the raw env_data.json name
+#'   "PMVAmb"), and the ribbon/mean-line/reference-line are mapped to named
+#'   aesthetics purely so ggplot2 draws an explanatory legend for them,
+#'   rather than leaving their meaning to prose alone.
 render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
   vehicles <- unique(sweep_df$vehicle)
+  vehicle_labels <- c(PMVAmb = "PMV Ambulance", HX240M = "HX240M")
+  vehicle_labels <- vehicle_labels[vehicles]
+  vehicle_labels[is.na(vehicle_labels)] <- vehicles[is.na(vehicle_labels)]
 
   plot_df <- bind_rows(
     sweep_df %>% transmute(vehicle, qty, metric = "Mean Queue",
@@ -1484,24 +1495,29 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
            qty     = as.numeric(current_qty[as.character(vehicle)]))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per fleet-size point; ribbon = 95%% CI; dashed line = current establishment", n_rep)
+    sprintf("%d replications per fleet-size point", n_rep)
   } else {
-    "Ribbon = 95% CI across replications; dashed line = current establishment"
+    NULL
   }
 
   ggplot(plot_df, aes(x = qty, y = mean)) +
-    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = "steelblue", alpha = 0.3) +
-    geom_line(color = "steelblue4", linewidth = 1) +
-    geom_point(color = "steelblue4", size = 2) +
-    geom_vline(data = vline_df, aes(xintercept = qty),
-              linetype = "dashed", color = "firebrick") +
-    facet_grid(metric ~ vehicle, scales = "free_y") +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = "95% Confidence Interval"), alpha = 0.3) +
+    geom_line(aes(color = "Mean (across replications)"), linewidth = 1) +
+    geom_point(aes(color = "Mean (across replications)"), size = 2) +
+    geom_vline(data = vline_df, aes(xintercept = qty, linetype = "Current Fleet Size"),
+              color = "firebrick", linewidth = 0.6) +
+    facet_grid(metric ~ vehicle, scales = "free_y",
+              labeller = labeller(vehicle = vehicle_labels)) +
     scale_x_continuous(breaks = function(lims) seq(floor(lims[1]), ceiling(lims[2]), by = 1)) +
+    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
+    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
+    scale_linetype_manual(name = NULL, values = c("Current Fleet Size" = "dashed")) +
     labs(title = "Transport Fleet Capacity Margin by Fleet Size",
          subtitle = subtitle,
          x = "Fleet Size (vehicles)", y = NULL) +
     theme_minimal(base_size = 13) +
-    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+         legend.position = "bottom")
 }
 
 #' Plot medevac fleet capacity margin across a range of fleet sizes

@@ -1444,6 +1444,66 @@ transport_rep_kpis <- function(mon, pattern) {
     )
 }
 
+#' Build the fleet-size sweep ggplot from already-computed sweep results
+#'
+#' @param sweep_df Data frame as returned in the `data` element of
+#'   plot_transport_capacity_margin_by_fleet_size() (or, unchanged, by
+#'   scripts/shiny_worker.R's `transport_sweep` mode): one row per vehicle x
+#'   fleet size, with vehicle/qty/mean_q/ci_lower_q/ci_upper_q/mean_util/
+#'   ci_lower_util/ci_upper_util columns.
+#' @param current_qty Named numeric vector, vehicle name -> current
+#'   establishment qty (e.g. from env_data.json's `transports` block).
+#' @param n_rep Replications per fleet-size point, for the plot subtitle;
+#'   NULL (default) uses a subtitle with no replication count.
+#' @return ggplot object: mean transport queue/utilisation vs fleet size,
+#'   faceted by metric x vehicle, with a 95% CI ribbon and a dashed vertical
+#'   line at each vehicle's current establishment qty.
+#'
+#' @details Factored out of plot_transport_capacity_margin_by_fleet_size() so
+#'   the Shiny app's Sensitivity Calibration panel (Issue #57 integration)
+#'   can render the identical plot from a worker-returned sweep_df without
+#'   duplicating the ggplot specification — app.R's transport_sweep_plot
+#'   renderPlot() calls this directly.
+render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
+  vehicles <- unique(sweep_df$vehicle)
+
+  plot_df <- bind_rows(
+    sweep_df %>% transmute(vehicle, qty, metric = "Mean Queue",
+                           mean = mean_q, ci_lower = ci_lower_q, ci_upper = ci_upper_q),
+    sweep_df %>% transmute(vehicle, qty, metric = "Mean Utilisation",
+                           mean = mean_util, ci_lower = ci_lower_util, ci_upper = ci_upper_util)
+  ) %>%
+    mutate(
+      vehicle = factor(vehicle, levels = vehicles),
+      metric  = factor(metric, levels = c("Mean Queue", "Mean Utilisation"))
+    )
+
+  vline_df <- expand.grid(vehicle = vehicles, metric = levels(plot_df$metric),
+                          stringsAsFactors = FALSE) %>%
+    mutate(vehicle = factor(vehicle, levels = vehicles),
+           qty     = as.numeric(current_qty[as.character(vehicle)]))
+
+  subtitle <- if (!is.null(n_rep)) {
+    sprintf("%d replications per fleet-size point; ribbon = 95%% CI; dashed line = current establishment", n_rep)
+  } else {
+    "Ribbon = 95% CI across replications; dashed line = current establishment"
+  }
+
+  ggplot(plot_df, aes(x = qty, y = mean)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = "steelblue", alpha = 0.3) +
+    geom_line(color = "steelblue4", linewidth = 1) +
+    geom_point(color = "steelblue4", size = 2) +
+    geom_vline(data = vline_df, aes(xintercept = qty),
+              linetype = "dashed", color = "firebrick") +
+    facet_grid(metric ~ vehicle, scales = "free_y") +
+    scale_x_continuous(breaks = function(lims) seq(floor(lims[1]), ceiling(lims[2]), by = 1)) +
+    labs(title = "Transport Fleet Capacity Margin by Fleet Size",
+         subtitle = subtitle,
+         x = "Fleet Size (vehicles)", y = NULL) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+}
+
 #' Plot medevac fleet capacity margin across a range of fleet sizes
 #'
 #' @param fleet_sizes Named list of integer vectors to sweep, e.g.
@@ -1455,6 +1515,17 @@ transport_rep_kpis <- function(mon, pattern) {
 #' @param path File path to env_data.json (default "env_data.json").
 #' @param output_dir Directory for CSV output (default "outputs").
 #' @param images_dir Directory for the saved plot (default "images").
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("point_<i>.done") is written to it as each sweep point
+#'   (one vehicle/qty combination) finishes evaluating, letting a caller on
+#'   another process (e.g. the Shiny app's main session) observe real
+#'   "point M of N" progress, mirroring run_morris()'s equivalent parameter
+#'   (R/sensitivity.R). NULL (default) disables this.
+#' @param max_cores Optional integer cap on mclapply's mc.cores at each
+#'   sweep point, passed through to run_replications() (see that function's
+#'   own @param, and run_morris()'s equivalent parameter, for why this
+#'   matters for Shiny-triggered, locally-run sweeps). NULL preserves prior
+#'   behaviour.
 #' @return Named list: data (swept results, one row per vehicle x fleet
 #'   size, with mean/95% CI for queue and utilisation), plot (ggplot object,
 #'   also saved to images_dir/transport_capacity_margin_by_fleet_size.png)
@@ -1479,13 +1550,16 @@ transport_rep_kpis <- function(mon, pattern) {
 #'   (R/scenario_runner.R). Queue CI lower bounds are clamped to 0 and
 #'   utilisation CI bounds to [0, 1], consistent with the CI-clamping
 #'   convention used elsewhere in this file (e.g. p_r1_queues_ci,
-#'   p_utilisation_ci). The global env_data/day_min/counts are restored to
-#'   their pre-call values on completion, consistent with run_morris()'s
-#'   env_data_base restore pattern (R/sensitivity.R).
+#'   p_utilisation_ci). The plot itself is built by render_transport_sweep_plot()
+#'   (shared with app.R's Shiny integration, Issue #57). The global
+#'   env_data/day_min/counts are restored to their pre-call values on
+#'   completion, consistent with run_morris()'s env_data_base restore
+#'   pattern (R/sensitivity.R).
 plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVAmb = 1:5, HX240M = 1:4),
                                                           n_days = 30, n_rep = 5,
                                                           path = "env_data.json",
-                                                          output_dir = "outputs", images_dir = "images") {
+                                                          output_dir = "outputs", images_dir = "images",
+                                                          progress_dir = NULL, max_cores = NULL) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
@@ -1510,41 +1584,52 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
     )
   }
 
-  sweep_df <- bind_rows(lapply(names(fleet_sizes), function(vehicle) {
+  # Flattened to one row per (vehicle, qty) sweep point, rather than a
+  # nested vehicle-then-qty lapply, so a single running index can drive the
+  # progress_dir marker-file count across the whole sweep.
+  sweep_points <- do.call(rbind, lapply(names(fleet_sizes), function(vehicle) {
+    data.frame(vehicle = vehicle, qty = fleet_sizes[[vehicle]])
+  }))
+
+  sweep_df <- bind_rows(lapply(seq_len(nrow(sweep_points)), function(i) {
+    vehicle <- sweep_points$vehicle[i]
+    qty     <- sweep_points$qty[i]
     pattern <- paste0("^t_", vehicle, "_")
 
-    bind_rows(lapply(fleet_sizes[[vehicle]], function(qty) {
-      message(sprintf("Transport fleet-size sweep: %s = %d (%d reps x %d days)...",
-                      vehicle, qty, n_rep, n_days))
+    message(sprintf("Transport fleet-size sweep: %s = %d (%d reps x %d days)...",
+                    vehicle, qty, n_rep, n_days))
 
-      json_data <- json_data_base
-      for (i in seq_along(json_data$transports)) {
-        if (identical(json_data$transports[[i]]$name, vehicle)) {
-          json_data$transports[[i]]$qty <- qty
-        }
+    json_data <- json_data_base
+    for (j in seq_along(json_data$transports)) {
+      if (identical(json_data$transports[[j]]$name, vehicle)) {
+        json_data$transports[[j]]$qty <- qty
       }
+    }
 
-      env_data <<- build_environment(json_data)
-      day_min  <<- 1440L
-      counts   <<- sapply(env_data$elms, length)
+    env_data <<- build_environment(json_data)
+    day_min  <<- 1440L
+    counts   <<- sapply(env_data$elms, length)
 
-      mon      <- run_replications(n_rep, n_days)
-      rep_kpis <- transport_rep_kpis(mon, pattern)
+    mon      <- run_replications(n_rep, n_days, max_cores = max_cores)
+    rep_kpis <- transport_rep_kpis(mon, pattern)
 
-      q_stats    <- summarise_ci(rep_kpis$mean_q)
-      util_stats <- summarise_ci(rep_kpis$mean_util)
+    q_stats    <- summarise_ci(rep_kpis$mean_q)
+    util_stats <- summarise_ci(rep_kpis$mean_util)
 
-      data.frame(
-        vehicle       = vehicle,
-        qty           = qty,
-        mean_q        = q_stats$mean,
-        ci_lower_q    = pmax(q_stats$ci_lower, 0),
-        ci_upper_q    = q_stats$ci_upper,
-        mean_util     = util_stats$mean,
-        ci_lower_util = pmax(util_stats$ci_lower, 0),
-        ci_upper_util = pmin(util_stats$ci_upper, 1)
-      )
-    }))
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+
+    data.frame(
+      vehicle       = vehicle,
+      qty           = qty,
+      mean_q        = q_stats$mean,
+      ci_lower_q    = pmax(q_stats$ci_lower, 0),
+      ci_upper_q    = q_stats$ci_upper,
+      mean_util     = util_stats$mean,
+      ci_lower_util = pmax(util_stats$ci_lower, 0),
+      ci_upper_util = pmin(util_stats$ci_upper, 1)
+    )
   }))
 
   env_data <<- env_data_base
@@ -1555,43 +1640,7 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
   message(sprintf("Transport fleet-size sweep results written to %s/transport_capacity_by_fleet_size.csv",
                   output_dir))
 
-  current_qty_df <- data.frame(
-    vehicle = names(current_qty),
-    qty     = as.numeric(current_qty)
-  ) %>% filter(vehicle %in% names(fleet_sizes))
-
-  plot_df <- bind_rows(
-    sweep_df %>% transmute(vehicle, qty, metric = "Mean Queue",
-                           mean = mean_q, ci_lower = ci_lower_q, ci_upper = ci_upper_q),
-    sweep_df %>% transmute(vehicle, qty, metric = "Mean Utilisation",
-                           mean = mean_util, ci_lower = ci_lower_util, ci_upper = ci_upper_util)
-  ) %>%
-    mutate(
-      vehicle = factor(vehicle, levels = names(fleet_sizes)),
-      metric  = factor(metric, levels = c("Mean Queue", "Mean Utilisation"))
-    )
-
-  vline_df <- expand.grid(vehicle = names(fleet_sizes),
-                          metric  = levels(plot_df$metric),
-                          stringsAsFactors = FALSE) %>%
-    mutate(vehicle = factor(vehicle, levels = names(fleet_sizes))) %>%
-    left_join(current_qty_df %>% mutate(vehicle = factor(vehicle, levels = names(fleet_sizes))),
-              by = "vehicle")
-
-  p <- ggplot(plot_df, aes(x = qty, y = mean)) +
-    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = "steelblue", alpha = 0.3) +
-    geom_line(color = "steelblue4", linewidth = 1) +
-    geom_point(color = "steelblue4", size = 2) +
-    geom_vline(data = vline_df, aes(xintercept = qty),
-              linetype = "dashed", color = "firebrick") +
-    facet_grid(metric ~ vehicle, scales = "free_y") +
-    scale_x_continuous(breaks = function(lims) seq(floor(lims[1]), ceiling(lims[2]), by = 1)) +
-    labs(title = "Transport Fleet Capacity Margin by Fleet Size",
-         subtitle = sprintf("%d replications per fleet-size point; ribbon = 95%% CI; dashed line = current establishment",
-                            n_rep),
-         x = "Fleet Size (vehicles)", y = NULL) +
-    theme_minimal(base_size = 13) +
-    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+  p <- render_transport_sweep_plot(sweep_df, current_qty, n_rep = n_rep)
 
   ggsave(file.path(images_dir, "transport_capacity_margin_by_fleet_size.png"), p,
         width = 12, height = 8, dpi = 150)

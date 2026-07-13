@@ -2761,14 +2761,11 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Transport Fleet Capacity Margin Sweep Results"),
-      plotOutput("transport_sweep_plot", height = "500px"),
       p(class = "text-muted small",
-        "Four panels, one per vehicle type (columns) x metric (rows) — see the legend below the plot for ",
-        "what the shaded band and dashed line mean. Top row: mean casualties queued waiting for that ",
-        "vehicle. Bottom row: how much of the time the vehicles are busy. The x-axis is fleet size (number ",
-        "of vehicles). If the queue line is already flat at zero by the dashed \"Current Fleet Size\" line, ",
-        "that fleet has room to spare — follow the line left to see how far it could shrink before the ",
-        "queue starts climbing, which is the point transport becomes the bottleneck."),
+        "How to read this: in the top (queue) row, find where the line stops being flat at zero — that ",
+        "fleet size is where transport becomes a bottleneck. If it's still flat at the dashed current-fleet ",
+        "line, that fleet has spare capacity."),
+      plotOutput("transport_sweep_plot", height = "500px"),
       downloadButton("dl_transport_sweep_csv", "Download Sweep Results (CSV)")
     )
   })

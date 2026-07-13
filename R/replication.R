@@ -83,9 +83,21 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
     add_generator("dnbi_spt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
                     "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
-    add_generator("force_reinforcement", build_reinforcement_trajectory(),
-                  at(seq(0, (n_days - 1) * day_min, by = day_min)), mon = 0) %>%
     add_global("evac_wait_count", 0)
+
+  # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when
+  # demand_interval_days > 0, so the shipped disabled default consumes no
+  # RNG draws and adds no generator at all, matching the mass-casualty
+  # rate_per_day = 0 disable-path convention elsewhere in this file. First
+  # demand fires at day `demand_interval_days`, not day 0 — a pool starts
+  # at full strength, so an immediate submission would have zero demand.
+  demand_interval <- env_data$vars$force_regeneration$reinforcement$demand_interval_days
+  if (!is.null(demand_interval) && demand_interval > 0) {
+    env <<- env %>%
+      add_generator("force_reinforcement", build_reinforcement_trajectory(),
+                    at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
+                    mon = 0)
+  }
 
   env %>% run(until = n_days * day_min)
 

@@ -1730,37 +1730,70 @@ build_casualty_trajectory <- function() {
 
 # ── Force reinforcement (Issue #18) ─────────────────────────────────────────────
 
-#' Builds the daily force reinforcement trajectory
+#' Builds the reinforcement demand/fulfillment trajectory
 #'
-#' @return A simmer trajectory that, on each firing, adds
-#'   env_data$vars$force_regeneration$reinforcement's combat_size/
-#'   support_size to the effective force pools whenever the current
-#'   simulation day is a positive multiple of interval_days
+#' @return A simmer trajectory representing one reinforcement demand cycle:
+#'   at each firing (a "submission"), computes each pool's shortfall against
+#'   its initial establishment strength, draws a fill fraction of that
+#'   shortfall from a triangular distribution, waits
+#'   fulfillment_lag_days, then credits the drawn amount to the pool.
 #'
 #' @details Driven by its own generator in run_once() (R/replication.R),
-#'   scheduled once per simulation day via at(seq(0, ..., by = day_min)) —
-#'   this is the one genuinely periodic/daily mechanism in the Issue #18
-#'   force regeneration model (injury/RTD crediting is continuous — see
-#'   debit_force_size()/credit_rtd() above). interval_days <= 0 (the shipped
-#'   default) disables reinforcement entirely, reproducing the pre-Issue-18
-#'   constant-force baseline as closely as possible.
+#'   scheduled every demand_interval_days (env_data$vars$force_regeneration$
+#'   reinforcement) — this is the one genuinely periodic/daily-cycle
+#'   mechanism in the Issue #18 force regeneration model (injury/RTD
+#'   crediting is continuous — see debit_force_size()/credit_rtd() above).
+#'
+#'   Demand is assessed at submission time (shortfall = initial - current
+#'   effective force, floored at 0 — a pool already at or above full
+#'   strength submits no demand and fills nothing). The actual fill amount
+#'   is also drawn at submission time (rather than at fulfillment), modelling
+#'   the outcome of a reinforcement request being substantially known when
+#'   submitted, with delivery simply delayed — not a second, independent
+#'   source of uncertainty layered on top of delivery timing.
+#'
+#'   fill_min_frac/fill_mode_frac/fill_max_frac parameterise a
+#'   Triangular(min, mode, max) distribution over the fraction of demand
+#'   actually delivered: mode_frac close to (but below) 1 with min_frac far
+#'   below it gives a long left tail (severe under-fill is more probable
+#'   than a request being fully met), while max_frac only slightly above 1
+#'   gives a short right tail (over-supply is possible but limited in size
+#'   and, since demand shrinks as the pool recovers, self-bounding across
+#'   successive cycles). demand_interval_days <= 0 (the shipped default)
+#'   disables reinforcement entirely — no generator is added in run_once()
+#'   in that case, so no RNG draws are consumed, reproducing the
+#'   pre-Issue-18 constant-force baseline exactly.
 build_reinforcement_trajectory <- function() {
-  reinforce <- function(pool) {
+  demand_fn <- function(pool_global, initial) {
+    function() max(0, initial - get_global(env, pool_global))
+  }
+
+  fill_fn <- function(demand_attr) {
     function() {
       params <- env_data$vars$force_regeneration$reinforcement
-      day <- round(now(env) / day_min)
-      cur <- get_global(env, pool)
-      interval <- params$interval_days
-      if (!is.null(interval) && interval > 0 && day > 0 && day %% interval == 0) {
-        size <- if (pool == "effective_force_combat") params$combat_size else params$support_size
-        cur + size
-      } else {
-        cur
-      }
+      demand <- get_attribute(env, demand_attr)
+      frac <- rtriangle(
+        n = 1,
+        a = params$fill_min_frac,
+        b = params$fill_max_frac,
+        c = params$fill_mode_frac
+      )
+      round(demand * frac)
     }
   }
 
+  credit_fn <- function(pool_global, fill_attr) {
+    function() get_global(env, pool_global) + get_attribute(env, fill_attr)
+  }
+
   trajectory("Force Reinforcement") %>%
-    set_global("effective_force_combat", reinforce("effective_force_combat")) %>%
-    set_global("effective_force_support", reinforce("effective_force_support"))
+    set_attribute("reinf_combat_demand", demand_fn("effective_force_combat", env_data$pops$combat)) %>%
+    set_attribute("reinf_support_demand", demand_fn("effective_force_support", env_data$pops$support)) %>%
+    set_attribute("reinf_combat_fill", fill_fn("reinf_combat_demand")) %>%
+    set_attribute("reinf_support_fill", fill_fn("reinf_support_demand")) %>%
+    timeout(function() {
+      env_data$vars$force_regeneration$reinforcement$fulfillment_lag_days * day_min
+    }) %>%
+    set_global("effective_force_combat", credit_fn("effective_force_combat", "reinf_combat_fill")) %>%
+    set_global("effective_force_support", credit_fn("effective_force_support", "reinf_support_fill"))
 }

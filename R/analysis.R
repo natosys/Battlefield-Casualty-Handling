@@ -1506,7 +1506,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
     geom_point(aes(color = "Mean (across replications)"), size = 2) +
     geom_vline(data = vline_df, aes(xintercept = qty, linetype = "Current Fleet Size"),
               color = "firebrick", linewidth = 0.6) +
-    facet_grid(metric ~ vehicle, scales = "free_y",
+    facet_grid(metric ~ vehicle, scales = "free_y", switch = "y",
               labeller = labeller(vehicle = vehicle_labels)) +
     scale_x_continuous(breaks = function(lims) seq(floor(lims[1]), ceiling(lims[2]), by = 1)) +
     scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
@@ -1517,7 +1517,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
          x = "Fleet Size (vehicles)", y = NULL) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
-         legend.position = "bottom")
+         strip.placement = "outside", legend.position = "bottom")
 }
 
 #' Plot medevac fleet capacity margin across a range of fleet sizes

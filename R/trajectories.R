@@ -33,6 +33,61 @@ release_resources <- function(trj, resources) {
   trj
 }
 
+#' Debits an entity's population pool (combat or support) from the
+#' effective force size at the moment they become a casualty (Issue #18)
+#'
+#' @param trj A simmer trajectory object
+#' @return Modified trajectory with the force-size debit appended
+#'
+#' @details Applied once, at `build_casualty_trajectory()`'s injury_time
+#'   assignment, for every casualty (WIA/KIA/DNBI) in either pool — every
+#'   casualty is momentarily removed from effective fighting strength the
+#'   instant they occur. Pool membership is read from the entity's
+#'   generator-assigned name (e.g. "wia_cbt3", "dnbi_spt1"), the same
+#'   startsWith()/grepl() convention already used elsewhere in this file
+#'   (e.g. the mass_casualty_event_id/priority attributes below) to recover
+#'   stream identity from an entity deep in its trajectory. KIA and
+#'   strategic-evac (r2e_evac = 1) entities never reach credit_rtd() (see
+#'   below), so they remain a permanent loss without a separate subtraction
+#'   term — see README Casualty Generation for the full mechanism.
+debit_force_size <- function(trj) {
+  trj %>%
+    set_global("effective_force_combat", function() {
+      cur <- get_global(env, "effective_force_combat")
+      if (grepl("_cbt", get_name(env))) cur - 1 else cur
+    }) %>%
+    set_global("effective_force_support", function() {
+      cur <- get_global(env, "effective_force_support")
+      if (grepl("_spt", get_name(env))) cur - 1 else cur
+    })
+}
+
+#' Credits an entity's population pool (combat or support) back to the
+#' effective force size at the moment they return to duty (Issue #18)
+#'
+#' @param trj A simmer trajectory object
+#' @return Modified trajectory with the force-size credit appended
+#'
+#' @details Applied at each of R1/R2B/R2E's existing
+#'   `set_attribute("return_day", function() now(env))` RTD sites. Because
+#'   `now(env)` already reflects the actual simulation time each echelon's
+#'   own recovery/hold-bed timeout completes, crediting at this event
+#'   inherently reflects each echelon's real recovery duration — no
+#'   additional `return_echelon`-weighted delay is needed on top (see
+#'   README Casualty Generation, MODEL ASSUMPTION — CONTINUOUS RTD/INJURY
+#'   CREDITING).
+credit_rtd <- function(trj) {
+  trj %>%
+    set_global("effective_force_combat", function() {
+      cur <- get_global(env, "effective_force_combat")
+      if (grepl("_cbt", get_name(env))) cur + 1 else cur
+    }) %>%
+    set_global("effective_force_support", function() {
+      cur <- get_global(env, "effective_force_support")
+      if (grepl("_spt", get_name(env))) cur + 1 else cur
+    })
+}
+
 #' Randomly selects one subteam of the specified type from the given team
 #'
 #' @param elm_type Element type (e.g. "r1", "r2b", "r2eheavy")
@@ -758,6 +813,7 @@ r2b_treat_wia <- function(team_id) {
               trajectory("R2B Hold RTD") %>%
                 set_attribute("return_day", function() now(env)) %>%
                 set_attribute("return_echelon", 2) %>%
+                credit_rtd() %>%
                 release_selected(id = 5) %>%
                 simmer::leave(1)
             ),
@@ -815,6 +871,7 @@ r2b_treat_wia <- function(team_id) {
               trajectory("R2B Hold Queue RTD") %>%
                 set_attribute("return_day", function() now(env)) %>%
                 set_attribute("return_echelon", 2) %>%
+                credit_rtd() %>%
                 release_selected(id = 5) %>%
                 simmer::leave(1)
             )
@@ -1307,7 +1364,8 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("return_day", function() now(env)) %>%
-        set_attribute("return_echelon", 3),
+        set_attribute("return_echelon", 3) %>%
+        credit_rtd(),
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("r2e_evac", 1)
@@ -1356,6 +1414,7 @@ build_casualty_trajectory <- function() {
   trajectory("Casualty") %>%
     log_(function() paste0(get_name(env))) %>%
     set_attribute("injury_time", function() now(env)) %>%
+    debit_force_size() %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
     set_attribute("mass_casualty_event_id", function() {
       name <- get_name(env)
@@ -1496,6 +1555,7 @@ build_casualty_trajectory <- function() {
             }) %>%
             set_attribute("return_day", function() now(env)) %>%
             set_attribute("return_echelon", 1) %>%
+            credit_rtd() %>%
             simmer::leave(1),
 
           # Branch 2: Disease — evacuation decision (no DOW, no surgery candidacy)
@@ -1545,7 +1605,8 @@ build_casualty_trajectory <- function() {
                   )
                 }) %>%
                 set_attribute("return_day", function() now(env)) %>%
-                set_attribute("return_echelon", 1)
+                set_attribute("return_echelon", 1) %>%
+                credit_rtd()
             ),
 
           # Branch 3: NBI or WIA — standard DOW + evac logic
@@ -1649,7 +1710,8 @@ build_casualty_trajectory <- function() {
                       )
                     }) %>%
                     set_attribute("return_day", function() now(env)) %>%
-                    set_attribute("return_echelon", 1)
+                    set_attribute("return_echelon", 1) %>%
+                    credit_rtd()
                 )
             )
         ),
@@ -1664,4 +1726,41 @@ build_casualty_trajectory <- function() {
           })
         )
     )
+}
+
+# ── Force reinforcement (Issue #18) ─────────────────────────────────────────────
+
+#' Builds the daily force reinforcement trajectory
+#'
+#' @return A simmer trajectory that, on each firing, adds
+#'   env_data$vars$force_regeneration$reinforcement's combat_size/
+#'   support_size to the effective force pools whenever the current
+#'   simulation day is a positive multiple of interval_days
+#'
+#' @details Driven by its own generator in run_once() (R/replication.R),
+#'   scheduled once per simulation day via at(seq(0, ..., by = day_min)) —
+#'   this is the one genuinely periodic/daily mechanism in the Issue #18
+#'   force regeneration model (injury/RTD crediting is continuous — see
+#'   debit_force_size()/credit_rtd() above). interval_days <= 0 (the shipped
+#'   default) disables reinforcement entirely, reproducing the pre-Issue-18
+#'   constant-force baseline as closely as possible.
+build_reinforcement_trajectory <- function() {
+  reinforce <- function(pool) {
+    function() {
+      params <- env_data$vars$force_regeneration$reinforcement
+      day <- round(now(env) / day_min)
+      cur <- get_global(env, pool)
+      interval <- params$interval_days
+      if (!is.null(interval) && interval > 0 && day > 0 && day %% interval == 0) {
+        size <- if (pool == "effective_force_combat") params$combat_size else params$support_size
+        cur + size
+      } else {
+        cur
+      }
+    }
+  }
+
+  trajectory("Force Reinforcement") %>%
+    set_global("effective_force_combat", reinforce("effective_force_combat")) %>%
+    set_global("effective_force_support", reinforce("effective_force_support"))
 }

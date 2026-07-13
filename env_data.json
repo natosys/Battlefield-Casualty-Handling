@@ -796,6 +796,19 @@
           ]
         }
       ]
+    },
+    {
+      "elm": "force_regeneration",
+      "actys": [
+        {
+          "acty": "reinforcement",
+          "vals": [
+            { "var": "interval_days", "val": 0 },
+            { "var": "combat_size", "val": 0 },
+            { "var": "support_size", "val": 0 }
+          ]
+        }
+      ]
     }
   ],
   "scenarios": {

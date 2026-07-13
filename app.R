@@ -265,8 +265,8 @@ GEN_STREAM_ACTYS <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "d
 #' Render a small density-curve preview for a casualty generation stream
 #'
 #' @details Mirrors the exact distributional transform used by
-#'   generate_ln_arrivals()/generate_exp_arrivals() (R/environment.R), so the
-#'   curve shown is the real shape that mean_daily/sd_daily imply — not a
+#'   make_ln_arrival_generator()/make_exp_arrival_generator() (R/environment.R),
+#'   so the curve shown is the real shape that mean_daily/sd_daily imply — not a
 #'   generic approximation. distribution is read live from the resolved
 #'   scenario JSON (not user-editable), so switching intensity profiles
 #'   changes the curve shape for the streams that scenario actually

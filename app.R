@@ -10,10 +10,12 @@
 #
 # Three-panel workflow:
 #   Configure — plain-English parameter editor grouped by operational concept
-#   Run       — Quick Run (single replication); Full Analysis mode is a
-#               disabled placeholder pending Issue #15
+#   Run       — Quick Run (single replication) and Full Analysis (multi-run,
+#               95% CI)
 #   Analyse   — four result tabs (rendered from R/analysis.R's ggplot
-#               objects) plus a read-only Sensitivity Calibration tab
+#               objects) plus a Sensitivity Calibration tab hosting Morris
+#               screening, Sobol decomposition, and the Transport Fleet
+#               Capacity Margin Sweep (Issue #57)
 #
 # controller_legacy.R (the previous raw-JSON editor) is superseded by this
 # app and retained only for reference.
@@ -1461,6 +1463,15 @@ server <- function(input, output, session) {
   sobol_progress_done  <- reactiveVal(0)
   pending_sobol         <- reactiveVal(NULL)
 
+  # Transport Fleet Capacity Margin Sweep state (Issue #57)
+  transport_sweep_state         <- reactiveVal("idle")  # idle | running | done | error
+  transport_sweep_error         <- reactiveVal(NULL)
+  transport_sweep_results       <- reactiveVal(NULL)
+  transport_sweep_progress_dir  <- reactiveVal(NULL)
+  transport_sweep_progress_total <- reactiveVal(0)
+  transport_sweep_progress_done  <- reactiveVal(0)
+  pending_transport_sweep        <- reactiveVal(NULL)
+
   # ── Configure panel ───────────────────────────────────────────────────────
 
   fields_by_group <- split(PARAM_REGISTRY, vapply(PARAM_REGISTRY, `[[`, character(1), "group"))
@@ -2208,7 +2219,26 @@ server <- function(input, output, session) {
         ),
         actionButton("run_sensitivity", "Run Sensitivity Screening", class = "btn-primary"),
         tags$div(style = "margin-top: 10px;", uiOutput("morris_status")),
-        uiOutput("morris_results_ui")
+        uiOutput("morris_results_ui"),
+        tags$hr(),
+        h5("Transport Fleet Capacity Margin Sweep"),
+        p(class = "text-muted small",
+          "Answers \"do we have enough ambulances and trucks?\" by re-running the simulation at each ",
+          "fleet size in the ranges below and checking whether casualties start queueing for transport. ",
+          "Use this to confirm the current fleet has spare capacity, or to see how far it could shrink ",
+          "before evacuation becomes a bottleneck. Each fleet size runs its own set of replications, ",
+          "reusing the Replications per Point count set above — a wider range or higher count takes ",
+          "longer to complete."),
+        layout_column_wrap(
+          width = "280px",
+          sliderInput("sweep_pmvamb_range", "PMV Ambulance Fleet Size Range",
+                     min = 1, max = 10, value = c(1, 5), step = 1),
+          sliderInput("sweep_hx240m_range", "HX240M Fleet Size Range",
+                     min = 1, max = 10, value = c(1, 4), step = 1)
+        ),
+        actionButton("run_transport_sweep", "Run Transport Fleet Sweep", class = "btn-primary"),
+        tags$div(style = "margin-top: 10px;", uiOutput("transport_sweep_status")),
+        uiOutput("transport_sweep_results_ui")
       )
     )
     )
@@ -2603,6 +2633,140 @@ server <- function(input, output, session) {
         "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
         "system OT queue depends on the value of at least one other parameter, not just their own value."),
       downloadButton("dl_sobol_csv_zip", "Download Sobol Indices — All KPIs (ZIP)")
+    )
+  })
+
+  # ── Transport Fleet Capacity Margin Sweep (async via future + promises,
+  # Issue #57) ───────────────────────────────────────────────────────────────
+
+  observeEvent(input$run_transport_sweep, {
+    values <- inject_all_splits(reactiveValuesToList(input))
+    values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
+    errors <- validate_config(values)
+    if (length(errors) > 0) {
+      showModal(modalDialog(
+        title = "Configuration error",
+        tags$ul(lapply(errors, tags$li)),
+        easyClose = TRUE
+      ))
+      return(invisible(NULL))
+    }
+
+    pmvamb_range <- as.integer(input$sweep_pmvamb_range)
+    hx240m_range <- as.integer(input$sweep_hx240m_range)
+
+    days_val <- input$n_days
+    nrep_val <- as.integer(input$morris_nrep)
+    app_dir  <- APP_DIR
+    # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
+    max_cores_val <- detect_safe_cores(days_val)
+
+    json_path <- tempfile("bch_transportsweep_config_", fileext = ".json")
+    write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
+
+    # plot_transport_capacity_margin_by_fleet_size() writes "images/<...>.png"
+    # and "outputs/*.csv" relative to the working directory — a scratch
+    # work_dir (mirroring Morris/Sobol's own work_dir convention above) keeps
+    # a Shiny-triggered sweep from ever touching the repo's own tracked
+    # images/ or outputs/.
+    work_dir <- tempfile("bch_transportsweep_work_")
+    dir.create(work_dir)
+
+    prog_dir <- tempfile("bch_transportsweepprogress_")
+    dir.create(prog_dir, recursive = TRUE)
+    transport_sweep_progress_dir(prog_dir)
+    n_points <- (pmvamb_range[2] - pmvamb_range[1] + 1L) + (hx240m_range[2] - hx240m_range[1] + 1L)
+    transport_sweep_progress_total(n_points)
+    transport_sweep_progress_done(0)
+
+    transport_sweep_state("running")
+    transport_sweep_error(NULL)
+
+    output_rds <- tempfile("bch_transportsweep_result_", fileext = ".rds")
+    worker_args <- c(
+      "--mode", "transport_sweep", "--json", json_path, "--days", days_val,
+      "--n-rep", nrep_val,
+      "--pmvamb", sprintf("%d:%d", pmvamb_range[1], pmvamb_range[2]),
+      "--hx240m", sprintf("%d:%d", hx240m_range[1], hx240m_range[2]),
+      "--max-cores", max_cores_val, "--progress-dir", prog_dir,
+      "--work-dir", work_dir, "--output-rds", output_rds
+    )
+
+    fut <- future({
+      setwd(app_dir)
+      run_shiny_worker(worker_args, output_rds)
+    }, seed = NULL)
+
+    prom <- fut %...>% (function(out) {
+      transport_sweep_results(out$res)
+      transport_sweep_state("done")
+    })
+    prom <- catch(prom, function(e) {
+      transport_sweep_state("error")
+      transport_sweep_error(conditionMessage(e))
+    })
+    pending_transport_sweep(prom)
+    invisible(NULL)
+  })
+
+  observe({
+    req(transport_sweep_state() == "running")
+    invalidateLater(500, session)
+    pd <- isolate(transport_sweep_progress_dir())
+    if (!is.null(pd) && dir.exists(pd)) {
+      n_done <- length(list.files(pd, pattern = "\\.done$"))
+      isolate(transport_sweep_progress_done(n_done))
+    }
+  })
+
+  output$transport_sweep_status <- renderUI({
+    state <- transport_sweep_state()
+    if (state == "idle") return(NULL)
+    if (state == "running") {
+      total <- transport_sweep_progress_total(); done <- transport_sweep_progress_done()
+      pct <- if (total > 0) min(99, round(100 * done / total)) else 5
+      tagList(
+        p(sprintf("Evaluating fleet-size sweep point %d of %d...", done, total)),
+        div(class = "progress",
+            div(class = "progress-bar progress-bar-striped progress-bar-animated",
+                role = "progressbar", style = sprintf("width: %d%%", pct)))
+      )
+    } else if (state == "done") {
+      div(class = "alert alert-success", "Transport fleet sweep complete.")
+    } else {
+      div(class = "alert alert-danger", paste("Transport fleet sweep failed:", transport_sweep_error()))
+    }
+  })
+
+  output$transport_sweep_plot <- renderPlot({
+    df <- transport_sweep_results()
+    req(df)
+
+    json <- current_json()
+    current_qty <- setNames(
+      vapply(json$transports, function(t) t$qty, numeric(1)),
+      vapply(json$transports, function(t) t$name, character(1))
+    )
+
+    render_transport_sweep_plot(df, current_qty, n_rep = as.integer(input$morris_nrep))
+  })
+
+  output$dl_transport_sweep_csv <- downloadHandler(
+    filename = "transport_capacity_by_fleet_size.csv",
+    content  = function(file) write.csv(transport_sweep_results(), file, row.names = FALSE)
+  )
+
+  output$transport_sweep_results_ui <- renderUI({
+    req(transport_sweep_state() == "done", transport_sweep_results())
+    tagList(
+      tags$hr(),
+      h5("Transport Fleet Capacity Margin Sweep Results"),
+      p(class = "text-muted small",
+        "How to read this: in the top (queue) row, find where the line stops being flat at zero — that ",
+        "fleet size is where transport becomes a bottleneck. If it's still flat at the dashed current-fleet ",
+        "line, that fleet has spare capacity."),
+      plotOutput("transport_sweep_plot", height = "500px"),
+      downloadButton("dl_transport_sweep_csv", "Download Sweep Results (CSV)")
     )
   })
 }

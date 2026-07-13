@@ -40,6 +40,8 @@ option_list <- list(
   make_option("--n-rep",        type = "integer",   default = 5L),
   make_option("--n-sobol",      type = "integer",   default = 200L),
   make_option("--top-params",   type = "character", default = ""),
+  make_option("--pmvamb",       type = "character", default = ""),
+  make_option("--hx240m",       type = "character", default = ""),
   make_option("--max-cores",    type = "character", default = ""),
   make_option("--progress-dir", type = "character", default = ""),
   make_option("--work-dir",     type = "character", default = ""),
@@ -104,6 +106,24 @@ result <- switch(opt$mode,
       basename(csv_files)
     )
     list(res = res, csv_bytes = csv_bytes, top_params = top_params)
+  },
+
+  "transport_sweep" = {
+    stopifnot(nzchar(opt[["work-dir"]]), nzchar(opt$pmvamb), nzchar(opt$hx240m))
+    setwd(opt[["work-dir"]])
+
+    fleet_sizes <- list(
+      PMVAmb = eval(parse(text = opt$pmvamb)),
+      HX240M = eval(parse(text = opt$hx240m))
+    )
+
+    res <- plot_transport_capacity_margin_by_fleet_size(
+      fleet_sizes = fleet_sizes, n_days = opt$days, n_rep = opt[["n-rep"]],
+      path = opt$json, output_dir = "outputs", images_dir = "images",
+      progress_dir = progress_dir, max_cores = max_cores
+    )
+
+    list(res = res$data)
   },
 
   stop("Unknown --mode: ", opt$mode)

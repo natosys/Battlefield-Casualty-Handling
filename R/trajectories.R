@@ -1012,8 +1012,15 @@ r2e_mortuary_intake <- function(team_id) {
 #' # Phase 5: Final disposition
 #' # Branches on in_theatre_rate probability:
 #' # - recover in theatre → seize hold bed, set return_day
-#' # - strategic evac     → set r2e_evac = 1, evacuation_day, treatment_received
-#' #   (Issue #23 — feeds the Role 4 census and AME sortie demand outputs)
+#' # - strategic evac     → set r2e_evac = 1, evacuation_decision_day,
+#' #   treatment_received; seize an ICU or Hold bed (by acuity) and queue on
+#' #   the theatre-wide "ame" resource (capacity added only by the periodic
+#' #   AME sortie generator, build_ame_sortie_trajectory() below) until an
+#' #   AME sortie has capacity; release the bed only once actually
+#' #   evacuated, setting ame_departure_time, evacuation_day,
+#' #   ame_wait_minutes (Issue #23 follow-up — casualties consume R2E beds
+#' #   until strategic
+#' #   AME is actually available, not merely decided upon)
 r2e_treat_wia <- function(team_id) {
   hold_beds       <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -1347,8 +1354,12 @@ r2e_treat_wia <- function(team_id) {
     # Phase 5: Final disposition
     # Branches on in_theatre_rate probability:
     # - in-theatre recovery → seize hold bed, log return_day
-    # - strategic evac      → set r2e_evac = 1, evacuation_day, treatment_received
-    #   (Issue #23 — feeds the Role 4 census and AME sortie demand outputs)
+    # - strategic evac      → set r2e_evac = 1, evacuation_decision_day,
+    #   treatment_received; seize an ICU or Hold bed (by acuity) and queue on
+    #   the theatre-wide "ame" resource until an AME sortie has capacity;
+    #   release the bed only once actually evacuated, setting
+    #   ame_departure_time, evacuation_day, ame_wait_minutes (Issue #23
+    #   follow-up)
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, 1 - env_data$vars$r2eheavy$recovery$in_theatre_rate)),
       continue = TRUE,
@@ -1368,21 +1379,66 @@ r2e_treat_wia <- function(team_id) {
         set_attribute("return_day", function() now(env)) %>%
         set_attribute("return_echelon", 3) %>%
         credit_rtd(),
-      trajectory("Strategic Evac") %>%
+      trajectory("Strategic Evac — Awaiting AME") %>%
+        # r2e_departure_time keeps its original meaning — clinical care
+        # concluded, disposition decided — so the existing R2E Dwell Time
+        # KPI (Domain 2) is unaffected by this branch. AME wait is tracked
+        # separately below (ame_departure_time, ame_wait_minutes) rather
+        # than folded into r2e_departure_time, so "clinical dwell" and
+        # "evacuation logistics wait" remain distinguishable.
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("r2e_evac", 1) %>%
-        # evacuation_day / treatment_received (Issue #23): captured at the
-        # single point in the model where a casualty departs theatre for
-        # strategic evacuation, feeding the Role 4 census and AME sortie
-        # demand calculations (R/analysis.R::compute_role4_census(),
-        # compute_ame_demand()) — see README Role 4 sub-section.
-        set_attribute("evacuation_day", function() floor(now(env) / 1440) + 1) %>%
+        # evacuation_decision_day / treatment_received (Issue #23): captured
+        # when the Strategic Evac disposition is decided. Feeds the Role 4
+        # ward/LoS category assignment (R/analysis.R::assign_role4_los())
+        # — see README Role 4 sub-section.
+        set_attribute("evacuation_decision_day", function() floor(now(env) / 1440) + 1) %>%
         set_attribute("treatment_received", function() {
           r2b_surg <- get_attribute(env, "r2b_surgery")
           r2e_surg <- get_attribute(env, "r2e_surgery")
           had_surgery <- (!is.na(r2b_surg) && r2b_surg == 1) ||
             (!is.na(r2e_surg) && r2e_surg == 1)
           if (had_surgery) 1 else 0
+        }) %>%
+
+        # Awaiting-AME holding bed (Issue #23 follow-up): the casualty
+        # occupies a real R2E bed for the whole wait, not just the clinical
+        # phase already completed above. Mirrors the Role 4 ward mapping in
+        # R/analysis.R::assign_role4_los() — Priority 1 surgical evacuees
+        # need ICU-level holding; everyone else uses Hold (R2E has no
+        # separate Surgical Ward bed type, so the Role 4 Surgical Ward and
+        # General Ward categories both map to the same R2E hold_bed pool
+        # here).
+        branch(
+          option = function() {
+            prio <- get_attribute(env, "priority")
+            tx   <- get_attribute(env, "treatment_received")
+            if (!is.na(prio) && prio == 1 && !is.na(tx) && tx == 1) return(1)
+            return(2)
+          },
+          continue = TRUE,
+          trajectory("Await AME — ICU Bed") %>%
+            simmer::select(icu_beds, policy = "shortest-queue", id = 9) %>%
+            seize_selected(id = 9),
+          trajectory("Await AME — Hold Bed") %>%
+            simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
+            seize_selected(id = 9)
+        ) %>%
+
+        # Strategic AME seizure (Issue #23 follow-up): blocks/queues on the
+        # single theatre-wide "ame" resource until a scheduled sortie has
+        # added capacity (build_ame_sortie_trajectory() above, driven by its
+        # own generator in R/replication.R::run_once()). Never released — a
+        # boarded casualty permanently consumes that sortie's capacity; no
+        # seats are handed back. Casualties board strictly in queue
+        # (decision) order — no acuity-based boarding priority is modelled;
+        # see README Limitations.
+        seize("ame", 1) %>%
+        release_selected(id = 9) %>%
+        set_attribute("ame_departure_time", function() now(env)) %>%
+        set_attribute("evacuation_day", function() floor(now(env) / 1440) + 1) %>%
+        set_attribute("ame_wait_minutes", function() {
+          now(env) - get_attribute(env, "r2e_departure_time")
         })
     )
 }
@@ -1823,4 +1879,41 @@ build_reinforcement_trajectory <- function() {
     }) %>%
     set_global("effective_force_combat", credit_fn("effective_force_combat", "reinf_combat_fill")) %>%
     set_global("effective_force_support", credit_fn("effective_force_support", "reinf_support_fill"))
+}
+
+# ── Strategic AME (aeromedical evacuation) sortie schedule (Issue #23 follow-up) ──
+
+#' Builds the AME sortie trajectory: one firing = one scheduled sortie
+#' opportunity, which either adds capacity to the theatre-wide "ame"
+#' resource (success) or does nothing (cancelled — weather, tasking,
+#' airframe availability, etc.)
+#'
+#' @return A simmer trajectory
+#'
+#' @details Driven by its own generator in run_once() (R/replication.R),
+#'   scheduled every schedule_interval_days
+#'   (env_data$vars$role4$ame$schedule_interval_days). Capacity is additive
+#'   (mod = "+"), never reset to an absolute value: casualties who seize
+#'   "ame" (r2e_treat_wia()'s Strategic Evac branch, below) never release
+#'   it, so a fixed/reset capacity value would permanently cap total-ever-
+#'   admitted at that value the first time the server count catches up to
+#'   it — the resource would never "reopen" for a later sortie. Additive
+#'   capacity avoids this, at the cost of a simplification documented as
+#'   MODEL ASSUMPTION — AME Capacity Banking in the README: unclaimed
+#'   capacity from an under-subscribed sortie is not lost, and can be
+#'   claimed by a later arrival even between scheduled sorties, rather than
+#'   being wasted the way a real aircraft's empty seats would be once it
+#'   departs.
+build_ame_sortie_trajectory <- function() {
+  trajectory("AME Sortie") %>%
+    branch(
+      option = function() {
+        if (runif(1) < env_data$vars$role4$ame$failure_probability) return(2)
+        return(1)
+      },
+      continue = TRUE,
+      trajectory("Sortie Flies") %>%
+        set_capacity("ame", value = env_data$vars$role4$ame$capacity_per_sortie, mod = "+"),
+      trajectory("Sortie Cancelled")
+    )
 }

@@ -98,6 +98,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
+  - [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)
 - [Model Outputs](#model-outputs)
   - [Domain 1 — Mortality and Preventable Death](#domain-1-—-mortality-and-preventable-death)
   - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2-—-timetocare-from-r1-arrival)
@@ -105,6 +106,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Domain 4 — Echelon Load and Capacity](#domain-4-—-echelon-load-and-capacity)
   - [Domain 5 — Flow and Disposition](#domain-5-—-flow-and-disposition)
   - [Domain 6 — Combat Power](#domain-6-—-combat-power)
+  - [Domain 7 — Strategic Evacuation and National Support Base Demand](#domain-7-—-strategic-evacuation-and-national-support-base-demand)
   - [Output Variable Register cross-reference](#output-variable-register-crossreference)
 - [Simulation Analysis](#simulation-analysis)
   - [Simulation Casualty Generation](#simulation-casualty-generation)
@@ -116,6 +118,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
   - [Return to Duty](#return-to-duty)
   - [Force Regeneration Feedback Loop](#force-regeneration-feedback-loop)
+  - [Strategic Evacuation and Role 4 Demand](#strategic-evacuation-and-role-4-demand)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
   - [Conclusion](#conclusion)
@@ -1404,6 +1407,49 @@ flowchart TD
 
 ---
 
+### Role 4 (National Support Base) Demand Modelling
+
+Prior to Issue #23, casualties reaching the strategic evacuation decision (`r2e_evac = 1`, R2E Heavy Trajectory Phase 5) were recorded as departing the theatre system and produced no downstream output: there was no estimate of Role 4 (national support base) bed occupancy, and no derived metric for strategic aeromedical evacuation (AME) sortie demand. This sub-section completes the causal chain from theatre medical policy through to national health system demand — the outbound complement to Issue #18's inbound force-regeneration modelling (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)):
+
+```
+Theatre policy → evacuation rate → force depletion        (Issue #18)
+Theatre policy → evacuation rate → Role 4 load             (Issue #23, this section)
+```
+
+Role 4 is modelled as **unconstrained demand**, not as a simmer resource with finite capacity: `compute_role4_census()` and `compute_ame_demand()` (`R/analysis.R`) run as a post-simulation calculation over the evacuation event log, consistent with the model's purpose as a theatre-level demand estimation tool rather than a capacity planning model for the national support base. The output is a demand signal for national planners, not a queuing outcome — see Limitations for the consequence of this design choice.
+
+**Attribute capture.** At the single point in the model where a casualty is assigned to strategic evacuation (R2E Heavy Trajectory, Phase 5 — Final Disposition), four attributes are captured: `injury_type` (1 = WIA, 2 = DNBI; set at R1 arrival from the casualty's generator-assigned name), `priority` (already captured at R1), `treatment_received` (1 if the casualty underwent DAMCON surgery at either R2B or R2E, else 0), and `evacuation_day` (the simulation day, 1-indexed, on which `r2e_evac` was set).
+
+**Length-of-stay categories and ward mapping.** Each evacuated casualty is assigned to one of four length-of-stay (LoS) categories, each parameterised as a triangular distribution in `env_data.json` (`vars.role4.los_*`), and a ward category for the occupancy census:
+
+| LoS category | Assignment criteria | Ward | `env_data.json` key |
+|---|---|---|---|
+| P1 Surgical | Priority 1, `treatment_received = 1` | ICU | `los_p1_surgical` |
+| P1 Non-Surgical | Priority 1, `treatment_received = 0` | Surgical Ward | `los_p1_nonsurgical` |
+| P2 | Priority 2 (any `treatment_received`) | Surgical Ward | `los_p2` |
+| P3 / DNBI | Priority 3 WIA, or any DNBI casualty regardless of priority | General Ward | `los_p3_dnbi` |
+
+> **MODEL ASSUMPTION — Role 4 Ward/LoS Category Mapping:** DNBI casualties are assigned the P3/DNBI length-of-stay category and General Ward irrespective of their in-theatre triage priority, and Priority 2 casualties are assigned Surgical Ward irrespective of whether they underwent a theatre-level surgical procedure.
+> **Basis:** Informed estimation. DNBI conditions (disease, non-battle injury, battle fatigue) are treated as inherently lower-acuity for national-level length-of-stay purposes, consistent with this model's existing treatment of `dnbi_type` for DOW exemption and RTD sub-typing (see [Died of Wounds](#died-of-wounds) and [Return to Duty](#return-to-duty)). Priority 2 casualties are assumed to require ongoing orthopaedic/surgical-specialty ward management at the national support base even where no operative procedure occurred in theatre, following the general LoS gradient by injury severity described in Nessen et al. (2008) [[52]](#References). No open-access source tabulates Role 4 ward assignment by this exact category scheme.
+> **Uncertainty:** High
+> **Consequence if wrong:** A different mapping (e.g. splitting P2 by `treatment_received`, or assigning DNBI its own ward category) would redistribute occupancy between Surgical Ward and General Ward without changing total Role 4 bed-days; ICU occupancy (P1 Surgical only) is the least sensitive to this assumption.
+
+> **MODEL ASSUMPTION — Role 4 Length-of-Stay Distribution Parameters:** The four triangular LoS distributions (`env_data.json` `vars.role4.los_p1_surgical/los_p1_nonsurgical/los_p2/los_p3_dnbi`; min/mode/max in days: 10/21/45, 7/14/30, 5/10/21, 2/5/14 respectively) are informed estimates reflecting a general severity gradient — longest stays for surgical Priority 1 casualties, shortest for DNBI/Priority 3 — rather than values extracted directly from a single tabulated source.
+> **Basis:** Informed estimation (Source Prioritisation level 5), directionally consistent with the Role 4/CONUS length-of-stay patterns for combat casualties by injury category described in Nessen et al. (2008) [[52]](#References). This source has not been used to extract exact per-category day counts for this model; a direct extraction of tabulated LoS data from it is identified as further development work.
+> **Uncertainty:** High
+> **Consequence if wrong:** Peak Role 4 occupancy and total bed-days scale roughly linearly with the LoS parameters; an error in the mode values directly biases the peak occupancy estimate reported to national planners, but does not affect any theatre-level (R1/R2B/R2E) output, since Role 4 census is computed downstream of, and independent from, all in-theatre simulation logic.
+
+**AME sortie demand.** Strategic AME sortie demand is a secondary, derived planning metric — not a simulated resource constraint — computed as `sorties_required = ceiling(daily_evacuation_count / ame_capacity_per_sortie)`, with `ame_capacity_per_sortie` configured in `env_data.json` (`vars.role4.ame.capacity_per_sortie`).
+
+> **MODEL ASSUMPTION — AME Platform Capacity per Sortie:** A single strategic AME sortie is assumed to carry 20 casualties.
+> **Basis:** Informed estimation. AJP-4.10(B) [[21]](#References) establishes strategic AME as a planning function without prescribing a universal per-sortie patient capacity, since actual capacity depends on the specific platform, litter/ambulatory mix, and medical crew configuration deployed for a given sortie. No open-access source tabulating a specific per-sortie patient capacity figure has been identified; no casualty-acuity-dependent capacity discount is applied either — the model treats all evacuees as consuming one unit of sortie capacity regardless of LoS category or ward assignment.
+> **Uncertainty:** High
+> **Consequence if wrong:** Total and peak daily sortie demand scale inversely with this parameter; sortie demand is proportional to daily evacuation count by construction, so the demand *pattern* (which days are busiest) is unaffected by the capacity value chosen, only the absolute sortie count.
+
+**Multi-run aggregation.** When `analyse_run()` is called with multi-replication monitoring data (Issue #1 framework), peak Role 4 occupancy and total AME sortie demand are additionally summarised as mean ± 95% CI across replications (`role4_replication_summary`, `ame_replication_summary`), using the same t-distribution CI convention as `summarise_replications()` (`R/replication.R`).
+
+---
+
 ## Model Outputs
 
 The simulation produces a defined set of Key Performance Indicators (KPIs) organised by planner decision domain. Each KPI is selected against five criteria derived from military medical doctrine and discrete event simulation methodology [[22]](#References):
@@ -1517,6 +1563,24 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 ---
 
+### Domain 7 — Strategic Evacuation and National Support Base Demand
+
+> **MODEL OUTPUT — Role 4 Daily Bed Occupancy by Ward:**
+> Mean concurrent Role 4 (national support base) patients by ward category (ICU, Surgical Ward, General Ward) per simulation day, derived from strategically evacuated casualties' assigned length-of-stay (see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)).
+> **Doctrinal basis:** AJP-4.10 [[21]](#References) mandates that Role 4 requirements be derived from theatre casualty estimates.
+> **Criteria:** C2, C3, C5
+> **Computation:** `compute_role4_census()` equivalent logic in `analyse_run()`: assign `los_category`/`ward` from `injury_type`, `priority`, `treatment_received`; draw `los_days` from the matching triangular distribution (`env_data$vars$role4`); expand each casualty into one row per occupied day between `evacuation_day` and `evacuation_day + ceiling(los_days) - 1`; average concurrent occupancy per `(day, ward)` across replications.
+> **Note:** This is an unconstrained demand signal, not a capacity-gated queuing outcome — see Limitations.
+
+> **MODEL OUTPUT — Strategic AME Sortie Demand:**
+> Daily and cumulative strategic aeromedical evacuation sortie requirements, derived from daily strategic evacuation counts and a configurable platform capacity.
+> **Doctrinal basis:** AJP-4.10 [[21]](#References) strategic evacuation planning function.
+> **Criteria:** C2, C4, C5
+> **Computation:** `sorties_required = ceiling(daily_evacuation_count / ame_capacity_per_sortie)` (`env_data$vars$role4$ame$capacity_per_sortie`); `cumulative_sorties = cumsum(sorties_required)`.
+> **Note:** A derived planning metric, not a simulated resource constraint — AME prioritisation and sequencing logic are not modelled (see Limitations).
+
+---
+
 ### Output Variable Register cross-reference
 
 | KPI | Domain | Attributes Required | Criteria | Analysis Function |
@@ -1533,6 +1597,8 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 | RTD rate by echelon × type | Flow/disposition | `return_day`, `return_echelon`, `dnbi_type` | C1, C2, C5 | `rtd_by_echelon` (columns: `return_echelon`, `rtd_type`, `rtd_count`, `rtd_rate`) |
 | R2B bypass rate | Flow/disposition | `r2b_treated`, `r2e_treated` | C2–C4 | derived in `combined` |
 | Total RTD count (bf + clinical) | Combat power | `return_day`, `dnbi_type` | C2, C5 | `bf_rtd`, `clinical_rtd`, `total_rtd` |
+| Role 4 bed occupancy by ward | Strategic evac/Role 4 | `r2e_evac`, `injury_type`, `priority`, `treatment_received`, `evacuation_day` | C2, C3, C5 | `role4_census_daily`, `role4_summary`, `role4_replication_summary` |
+| Strategic AME sortie demand | Strategic evac/Role 4 | `r2e_evac`, `evacuation_day` | C2, C4, C5 | `ame_demand_daily`, `ame_summary`, `ame_replication_summary` |
 
 ---
 
@@ -1747,6 +1813,18 @@ At `high_intensity` casualty rates, the mechanism is unambiguous: daily volume f
 
 > **Reproducibility note:** the table above was produced in an ad hoc R 4.3.3 sandbox (not the project's pinned `rocker/rstudio:4.4.2` Dev Container) for this issue's verification, following the same practice and caveat used for prior unpinned-sandbox figures in this project (see the `CLAUDE.md` Key Parameters provenance caveat). It demonstrates the mechanism's direction and statistical behaviour; it is not a substitute for the seed-42 single-run baseline figures reported elsewhere in this README and in `CLAUDE.md`.
 
+### Strategic Evacuation and Role 4 Demand
+
+This section presents the seed-42 30-day single-run Role 4 (national support base) demand outputs (Issue #23; see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)). Of the 386 total casualties generated, 154 reached the strategic evacuation decision (`r2e_evac = 1`) — a demand signal on the national support base that, prior to this issue, produced no downstream output at all.
+
+![Role 4 (National Support Base) Daily Bed Occupancy by Ward](images/role4_census.png)
+
+Daily bed occupancy rises through the 30-day engagement window, reaching a peak of 89 concurrent patients (all wards combined) on day 30, then decays smoothly to zero by approximately day 66 as assigned lengths of stay expire — the plausible peak-and-decay shape the census is designed to produce. Occupancy is concentrated in ICU (Priority 1 surgical evacuees), consistent with the ICU-bound care pathway already dominant at R2E (see [R2E Heavy Handling](#r2e-heavy-handling)). AME sortie demand, derived from daily evacuation counts at the shipped `ame_capacity_per_sortie = 20`, totals 30 sorties across the run — one sortie on all but the busiest days, none of which reach the 20-casualty single-sortie capacity individually.
+
+As a directional check on the acceptance criterion that Role 4 load should respond correctly to theatre medical policy, re-running the same seed-42 30-day configuration with `r2eheavy.recovery.in_theatre_rate` raised from the shipped 0.1 to 0.5 (i.e. materially more casualties recovering in theatre rather than being strategically evacuated) reduces total strategic evacuations from 154 to 60 and peak Role 4 occupancy from 89 to 31 — confirming that increasing in-theatre recovery capacity reduces Role 4 load, in the expected direction. This comparison run is illustrative only and does not alter the documented `in_theatre_rate = 0.1` baseline.
+
+> **Reproducibility note:** the figures above were produced in an ad hoc R 4.3.3 sandbox (not the project's pinned `rocker/rstudio:4.4.2` Dev Container), following the same practice and caveat used for prior unpinned-sandbox figures in this project (see the `CLAUDE.md` Key Parameters provenance caveat). All other seed-42 KPIs printed by this run (total casualties, R2B routing counts, R2E post-op pathway split) matched the documented post-Issue-18 baseline in `CLAUDE.md` exactly, confirming this issue's changes are RNG-stream-neutral — no other seed-42 baseline figure in this README or `CLAUDE.md` is affected.
+
 ### Comparative Scenario Analysis
 
 The preceding sections analyse a single seed-42 run under the base `env_data.json` configuration, which is Falklands-calibrated (see [Scenario Profiles](#scenario-profiles)). This section extends that analysis using the comparative scenario runner (`run_scenario()` / `compare_scenarios()`, `R/scenario_runner.R`), which executes the full multi-replication framework ([Multi-run Replication Framework](#multirun-replication-framework)) under a named scenario profile and aggregates queue and mortality KPIs across replications in the same mean (p10–p90), 95% CI format used throughout this project.
@@ -1844,6 +1922,9 @@ The Priority 1 override threshold, the post-op hold penalty multiplier (3.0), an
 **L12 — Falklands KIA:WIA Ratio, High Intensity Skeleton Incompleteness, and Missing Vietnam Source (Medium Impact on Scenario Validation)**
 The `moderate_intensity` scenario profile (Issue #54, see [Scenario Profiles](#scenario-profiles)) reproduces a KIA:WIA ratio of 0.452 across 30 replications, against the published 255 KIA : 777 WIA (0.328) South Atlantic campaign record [[43]](#References). This ratio is a pre-existing characteristic of the base `generators.wia_cbt`/`generators.kia_cbt` casualty generation rates (FORECAS Table A.8 [[8]](#References), calibrated under Issue #1) combined with the lognormal-cap generation mechanism ([Casualty Generation](#casualty-generation)); it is not introduced or corrected by Issue #54, which overrides only the DOW ceiling and treatment efficacy factors. Separately, the `high_intensity` profile is an explicitly unvalidated demonstration skeleton: only casualty generation rates and distribution family are sourced (FORECAS Tables A.7/A.9 [[8]](#References)); DOW ceiling, treatment efficacy, priority distribution, DNBI composition, and transport times are inherited from the Falklands-calibrated base rather than sourced for the Okinawa context. No Vietnam-calibrated profile exists in this project: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (only a DNBI table), so no genuinely FORECAS-sourced Vietnam parameters could be identified — a Vietnam scenario should wait for a source that actually tabulates it rather than being estimated without one. **Impact: Medium.** The DOW rate — the parameter Issue #54 is responsible for — is well within tolerance of its historical target; the KIA:WIA discrepancy, the `high_intensity` skeleton's incompleteness, and the absence of a sourced Vietnam profile would need to be addressed by a future issue (most likely Issue #10) revisiting the casualty generator calibration or completing a fully validated `high_intensity` scenario profile.
 
+**L16 — Role 4 Modelled as Unconstrained Demand; AME Prioritisation and Sequencing Not Modelled (Medium Impact on Strategic Evacuation Outputs)**
+The Role 4 census and AME sortie demand outputs (Issue #23; see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) are computed as a post-simulation calculation over the evacuation event log, not as a simmer resource with finite capacity. This means Role 4 bed occupancy can exceed any real-world national support base's actual bed count without producing a queue, deferral, or any other capacity-constrained behaviour in the model — the outputs are a demand *signal* for national planners, not a validated statement that the national support base can absorb that demand. Similarly, AME sortie demand (`ceiling(daily_evacuation_count / ame_capacity_per_sortie)`) assumes evacuees are cleared same-day at the computed sortie count; no prioritisation logic (e.g. P1 patients evacuated ahead of P3/DNBI when sortie capacity is limited on a given day), sequencing constraint (e.g. platform availability, aircrew duty cycles, weather), or backlog-carryover mechanism is modelled — each day's demand is treated independently. The LoS category/ward mapping and distribution parameters are also informed estimates rather than literature-extracted values (see the MODEL ASSUMPTION blocks in the Role 4 sub-section). **Impact: Medium.** The demand *signal* (relative magnitude and timing of Role 4 load and AME sortie requirements, and its correct-direction response to theatre-level policy changes such as `in_theatre_rate`) is the feature's intended contribution and is unaffected by this limitation; only an absolute capacity-adequacy claim about the national support base or AME fleet would require the additional constrained-resource and prioritisation modelling this issue deliberately does not implement (see Further Development).
+
 ### Low Impact
 
 **L10 — No Endogenous Force Feedback** *(Resolved — Issue #18)*
@@ -1878,7 +1959,7 @@ The single run analysis has demonstrated that while the current simulation frame
 
 Dead-heading return legs for pooled transport assets are now modelled (Issue #6; see Transport Assets — Dead-Heading Return Legs), and a fleet-size capacity margin sweep is now implemented (Issue #57; see [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)), quantifying how much margin the current establishment carries and at what fleet size the transport layer becomes a binding constraint. That sweep is run at the Falklands-derived casualty rate only. The immediate follow-on opportunity is to re-run it under Vietnam/Okinawa-intensity casualty rates (Issue #10; see [Comparative Scenario Analysis](#comparative-scenario-analysis)) and under mass casualty injection (Issue #9; see [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)), where the demand side of the margin is materially higher and the current always-large-margin finding may not hold — `plot_transport_capacity_margin_by_fleet_size()`'s `path` parameter allows sweeping against an env_data.json pre-configured for either scenario, but does not yet accept a scenario name directly.
 
-Another refinement involves pulsing strategic medical evacuation availability to simulate its temporal constraints. Rather than assuming continuous access to strategic lift, future iterations should model episodic availability windows, reflecting real-world limitations such as airframe tasking, weather delays, or air superiority conditions. This would allow for more realistic bottleneck formation and better inform prioritisation protocols for high-acuity casualties.
+Another refinement involves pulsing strategic medical evacuation availability to simulate its temporal constraints. Rather than assuming continuous access to strategic lift, future iterations should model episodic availability windows, reflecting real-world limitations such as airframe tasking, weather delays, or air superiority conditions. This would allow for more realistic bottleneck formation and better inform prioritisation protocols for high-acuity casualties. Role 4 bed occupancy and AME sortie demand (Issue #23; see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) now provide the demand-side inputs — daily evacuation counts by acuity — this pulsed-availability model would need to consume; Role 4 remains modelled as unconstrained demand and AME prioritisation/sequencing logic remains unmodelled (Limitation L16) pending that follow-on work.
 
 Model fidelity can also be improved through structured expert consultation. Engaging clinicians, medical planners, and operational commanders would support refinement of treatment durations, triage logic, and evacuation thresholds. This would ensure that the simulation reflects not only doctrinal intent but also clinical realities and operational constraints.
 
@@ -2021,6 +2102,8 @@ Ultimately, this research provides a transparent, modular, and extensible founda
 [50] Morris, M. D. (1991). Factorial sampling plans for preliminary computational experiments. *Technometrics*, *33*(2), 161–174. Retrieved 11 Jul 26, from https://www.stat.cmu.edu/technometrics/90-00/vol-33-02/v3302161.pdf
 
 [51] Saltelli, A., Annoni, P., Azzini, I., Campolongo, F., Ratto, M., & Tarantola, S. (2010). Variance based sensitivity analysis of model output. Design and estimator for the total sensitivity index. *Computer Physics Communications*, *181*(2), 259–270. Retrieved 11 Jul 26, from https://www.andreasaltelli.eu/file/repository/PUBLISHED_PAPER.pdf
+
+[52] Nessen, S. C., Lounsbury, D. E., & Hetz, S. P. (Eds.). (2008). *War Surgery in Afghanistan and Iraq: A Series of Cases, 2003–2007*. Borden Institute, Office of The Surgeon General, US Army. Retrieved 13 Jul 26, from https://medcoe.army.mil/borden-tb-war-surgery-afg-iraq/
 
 ---
 

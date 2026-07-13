@@ -11,6 +11,133 @@ library(patchwork)
 library(knitr)
 library(data.table)
 library(RColorBrewer)
+library(triangle)
+
+# ── Role 4 (national support base) demand model (Issue #23) ────────────────
+# Strategically evacuated casualties (r2e_evac == 1) depart the theatre
+# system and are not simulated further. These functions estimate the
+# resulting demand signal at the national support base as a post-simulation
+# calculation over the evacuation event log — Role 4 is modelled as
+# unconstrained demand, not a simmer resource (see README Role 4 sub-section
+# and Limitations).
+
+#' Assigns each strategically evacuated casualty a Role 4 length-of-stay
+#' category and ward, and draws a length of stay from the matching
+#' triangular distribution
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`); must include r2e_evac, injury_type, priority,
+#'   treatment_received, evacuation_day, replication
+#' @param r4_los_params `env_data$vars$role4` list (los_p1_surgical,
+#'   los_p1_nonsurgical, los_p2, los_p3_dnbi, each with min/mode/max in days)
+#' @return `arrivals_log` filtered to r2e_evac == 1, with added columns
+#'   los_category, ward, los_days, r4_admit_day, r4_discharge_day
+#'
+#' @details Length-of-stay category (MODEL ASSUMPTION — Role 4 Ward/LoS
+#'   Category Mapping, see README Role 4 sub-section): DNBI casualties (any
+#'   priority) and Priority 3 WIA share the p3_dnbi category and General
+#'   Ward; Priority 1 casualties split into ICU (if `treatment_received`) or
+#'   Surgical Ward (if not); Priority 2 casualties are assigned Surgical
+#'   Ward. rtriangle() (package `triangle`) only accepts scalar a/b/c, hence
+#'   the row-at-a-time draw (matches the per-entity draw pattern used
+#'   throughout R/trajectories.R).
+assign_role4_los <- function(arrivals_log, r4_los_params) {
+  role4_evac <- arrivals_log %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1)
+
+  if (nrow(role4_evac) == 0) return(role4_evac)
+
+  los_lookup <- data.frame(
+    los_category = c("p1_surgical", "p1_nonsurgical", "p2", "p3_dnbi"),
+    los_min  = c(r4_los_params$los_p1_surgical$min,  r4_los_params$los_p1_nonsurgical$min,
+                 r4_los_params$los_p2$min,  r4_los_params$los_p3_dnbi$min),
+    los_mode = c(r4_los_params$los_p1_surgical$mode, r4_los_params$los_p1_nonsurgical$mode,
+                 r4_los_params$los_p2$mode, r4_los_params$los_p3_dnbi$mode),
+    los_max  = c(r4_los_params$los_p1_surgical$max,  r4_los_params$los_p1_nonsurgical$max,
+                 r4_los_params$los_p2$max,  r4_los_params$los_p3_dnbi$max)
+  )
+
+  role4_evac %>%
+    mutate(
+      los_category = case_when(
+        !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
+        !is.na(priority) & priority == 3                             ~ "p3_dnbi",
+        !is.na(priority) & priority == 1 &
+          !is.na(treatment_received) & treatment_received == 1       ~ "p1_surgical",
+        !is.na(priority) & priority == 1                             ~ "p1_nonsurgical",
+        !is.na(priority) & priority == 2                             ~ "p2",
+        TRUE                                                          ~ "p3_dnbi"
+      ),
+      ward = case_when(
+        los_category == "p1_surgical"               ~ "ICU",
+        los_category %in% c("p1_nonsurgical", "p2")  ~ "Surgical Ward",
+        TRUE                                          ~ "General Ward"
+      )
+    ) %>%
+    left_join(los_lookup, by = "los_category") %>%
+    rowwise() %>%
+    mutate(
+      los_days          = rtriangle(1, a = los_min, b = los_max, c = los_mode),
+      r4_admit_day      = evacuation_day,
+      r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
+    ) %>%
+    ungroup() %>%
+    select(-los_min, -los_mode, -los_max)
+}
+
+#' Computes daily Role 4 (national support base) bed occupancy by ward
+#' category (Issue #23)
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`) — see assign_role4_los()
+#' @param r4_los_params `env_data$vars$role4` list — see assign_role4_los()
+#' @return Tidy data frame with columns replication, day, ward, occupancy —
+#'   one row per casualty-occupied ward-day per replication. The caller
+#'   aggregates across replications for display (mean occupancy) and within
+#'   replications for the peak-occupancy multi-run CI (see analyse_run()).
+compute_role4_census <- function(arrivals_log, r4_los_params) {
+  role4_evac <- assign_role4_los(arrivals_log, r4_los_params)
+
+  if (nrow(role4_evac) == 0) {
+    return(data.frame(replication = integer(0), day = integer(0),
+                      ward = character(0), occupancy = integer(0)))
+  }
+
+  role4_evac %>%
+    rowwise() %>%
+    mutate(day = list(seq(r4_admit_day, r4_discharge_day))) %>%
+    unnest(day) %>%
+    ungroup() %>%
+    count(replication, day, ward, name = "occupancy")
+}
+
+#' Computes daily strategic AME (aeromedical evacuation) sortie demand
+#' (Issue #23)
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`); must include r2e_evac, evacuation_day, replication
+#' @param ame_capacity Casualties per AME sortie
+#'   (`env_data$vars$role4$ame$capacity_per_sortie`)
+#' @return Tidy data frame with columns replication, day, evacuation_count,
+#'   sorties_required — a derived planning metric
+#'   (`ceiling(evacuation_count / ame_capacity)`), not a simulated resource
+#'   constraint. The caller aggregates across replications for display
+#'   (mean daily count, cumulative sorties) and within replications for the
+#'   total-sorties multi-run CI (see analyse_run()).
+compute_ame_demand <- function(arrivals_log, ame_capacity) {
+  role4_evac <- arrivals_log %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1)
+
+  if (nrow(role4_evac) == 0) {
+    return(data.frame(replication = integer(0), day = integer(0),
+                      evacuation_count = integer(0), sorties_required = integer(0)))
+  }
+
+  role4_evac %>%
+    count(replication, evacuation_day, name = "evacuation_count") %>%
+    rename(day = evacuation_day) %>%
+    mutate(sorties_required = ceiling(evacuation_count / ame_capacity))
+}
 
 #' Runs the full analysis and visualisation pipeline on monitoring data
 #'
@@ -72,9 +199,12 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   # pivot_wider only creates a column for an attribute key when at least one
   # casualty in the run had it set; guard against runs with zero DOW events
-  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43).
+  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43),
+  # and zero strategic evacuations (r2e_evac/evacuation_day/treatment_received
+  # — Issue #23).
   for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
-                    "mass_casualty_event")) {
+                    "mass_casualty_event", "r2e_evac", "evacuation_day",
+                    "treatment_received")) {
     if (!dow_col %in% names(attributes_wide)) {
       attributes_wide[[dow_col]] <- NA_real_
     }
@@ -1052,6 +1182,137 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   write.csv(mass_casualty_dow_summary,    file.path(output_dir, "mass_casualty_dow_summary.csv"),
            row.names = FALSE)
 
+  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
+  # compute_role4_census()/compute_ame_demand() (above) return per-replication
+  # granular tables; this block aggregates them for display (mean across
+  # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
+  # CI (within replications), following the t-distribution CI convention used
+  # by summarise_replications() (R/replication.R).
+  role4_census_daily        <- NULL
+  role4_census_plot         <- NULL
+  role4_summary              <- NULL
+  role4_replication_summary <- NULL
+  ame_demand_daily          <- NULL
+  ame_summary                <- NULL
+  ame_replication_summary   <- NULL
+
+  if (!is.null(env_data$vars$role4)) {
+    role4_params    <- env_data$vars$role4
+    ame_capacity    <- role4_params$ame$capacity_per_sortie
+    role4_daily_by_rep <- compute_role4_census(combined, role4_params)
+    ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
+  }
+
+  if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
+    n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
+    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
+    ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+    total_evacuated   <- sum(!is.na(combined$r2e_evac) & combined$r2e_evac == 1) / n_reps_role4
+
+    role4_census_daily <- role4_daily_by_rep %>%
+      group_by(day, ward) %>%
+      # sum()/n_reps_role4 rather than mean(occupancy): a replication with
+      # zero occupants for this (day, ward) has no row at all in
+      # role4_daily_by_rep, so mean() would silently divide by only the
+      # replications that had a nonzero count, biasing the estimate upward.
+      summarise(mean_occupancy = sum(occupancy) / n_reps_role4, .groups = "drop") %>%
+      complete(
+        day  = seq_len(max_discharge_day),
+        ward = ward_levels,
+        fill = list(mean_occupancy = 0)
+      ) %>%
+      mutate(ward = factor(ward, levels = ward_levels)) %>%
+      arrange(day, ward)
+
+    peak_total_daily <- role4_census_daily %>%
+      group_by(day) %>%
+      summarise(total_occupancy = sum(mean_occupancy), .groups = "drop")
+
+    role4_summary <- data.frame(
+      total_evacuated = total_evacuated,
+      peak_occupancy  = max(peak_total_daily$total_occupancy),
+      peak_day        = peak_total_daily$day[which.max(peak_total_daily$total_occupancy)]
+    )
+
+    role4_census_plot <- ggplot(role4_census_daily, aes(x = day, y = mean_occupancy, fill = ward)) +
+      geom_bar(stat = "identity", position = "stack") +
+      geom_vline(xintercept = n_sim_days_role4 + 0.5, linetype = "dotted", color = "gray40") +
+      scale_fill_brewer(palette = "Set2") +
+      scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
+      labs(
+        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
+        subtitle = sprintf(
+          "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
+          role4_summary$total_evacuated, n_sim_days_role4
+        ),
+        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
+           width = 12, height = 6, dpi = 150)
+    write.csv(role4_census_daily, file.path(output_dir, "role4_census_daily.csv"), row.names = FALSE)
+
+    ame_demand_daily <- ame_by_rep %>%
+      group_by(day) %>%
+      summarise(evacuation_count = sum(evacuation_count) / n_reps_role4, .groups = "drop") %>%
+      complete(day = seq_len(n_sim_days_role4), fill = list(evacuation_count = 0)) %>%
+      arrange(day) %>%
+      mutate(
+        sorties_required   = ceiling(evacuation_count / ame_capacity),
+        cumulative_sorties = cumsum(sorties_required)
+      )
+
+    ame_summary <- data.frame(
+      total_sorties      = sum(ame_demand_daily$sorties_required),
+      peak_daily_sorties = max(ame_demand_daily$sorties_required),
+      mean_daily_sorties = mean(ame_demand_daily$sorties_required)
+    )
+
+    write.csv(ame_demand_daily, file.path(output_dir, "ame_demand_daily.csv"), row.names = FALSE)
+
+    cat(sprintf(
+      "Role 4 demand (Issue #23): %.0f strategically evacuated, peak occupancy %.1f (day %d), %d total AME sorties (capacity %d/sortie)\n",
+      role4_summary$total_evacuated, role4_summary$peak_occupancy, role4_summary$peak_day,
+      ame_summary$total_sorties, ame_capacity
+    ))
+
+    if (n_reps_role4 > 1) {
+      role4_peak_by_rep <- role4_daily_by_rep %>%
+        group_by(replication, day) %>%
+        summarise(total_occupancy = sum(occupancy), .groups = "drop") %>%
+        group_by(replication) %>%
+        summarise(peak_occupancy = max(total_occupancy), .groups = "drop")
+
+      role4_replication_summary <- role4_peak_by_rep %>%
+        summarise(
+          n_reps   = n(),
+          mean_peak_occupancy = mean(peak_occupancy),
+          sd_peak_occupancy   = sd(peak_occupancy),
+          ci_lower = mean_peak_occupancy - qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n()),
+          ci_upper = mean_peak_occupancy + qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n())
+        )
+
+      ame_total_by_rep <- ame_by_rep %>%
+        group_by(replication) %>%
+        summarise(total_sorties = sum(sorties_required), .groups = "drop")
+
+      ame_replication_summary <- ame_total_by_rep %>%
+        summarise(
+          n_reps  = n(),
+          mean_total_sorties = mean(total_sorties),
+          sd_total_sorties   = sd(total_sorties),
+          ci_lower = mean_total_sorties - qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n()),
+          ci_upper = mean_total_sorties + qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n())
+        )
+
+      write.csv(role4_replication_summary, file.path(output_dir, "role4_replication_summary.csv"), row.names = FALSE)
+      write.csv(ame_replication_summary,   file.path(output_dir, "ame_replication_summary.csv"),   row.names = FALSE)
+    }
+  }
+
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
@@ -1106,7 +1367,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     mass_casualty_dow_summary          = mass_casualty_dow_summary,
     mass_casualty_timeline_plot        = mass_casualty_timeline_plot,
     force_regeneration_daily           = force_regeneration_daily,
-    force_regeneration_plot            = force_regeneration_plot
+    force_regeneration_plot            = force_regeneration_plot,
+    role4_census_daily          = role4_census_daily,
+    role4_census_plot           = role4_census_plot,
+    role4_summary                = role4_summary,
+    role4_replication_summary   = role4_replication_summary,
+    ame_demand_daily            = ame_demand_daily,
+    ame_summary                  = ame_summary,
+    ame_replication_summary     = ame_replication_summary
   ))
 }
 

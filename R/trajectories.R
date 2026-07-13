@@ -1012,7 +1012,8 @@ r2e_mortuary_intake <- function(team_id) {
 #' # Phase 5: Final disposition
 #' # Branches on in_theatre_rate probability:
 #' # - recover in theatre → seize hold bed, set return_day
-#' # - strategic evac     → set r2e_evac = 1
+#' # - strategic evac     → set r2e_evac = 1, evacuation_day, treatment_received
+#' #   (Issue #23 — feeds the Role 4 census and AME sortie demand outputs)
 r2e_treat_wia <- function(team_id) {
   hold_beds       <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -1346,7 +1347,8 @@ r2e_treat_wia <- function(team_id) {
     # Phase 5: Final disposition
     # Branches on in_theatre_rate probability:
     # - in-theatre recovery → seize hold bed, log return_day
-    # - strategic evac      → set r2e_evac = 1
+    # - strategic evac      → set r2e_evac = 1, evacuation_day, treatment_received
+    #   (Issue #23 — feeds the Role 4 census and AME sortie demand outputs)
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, 1 - env_data$vars$r2eheavy$recovery$in_theatre_rate)),
       continue = TRUE,
@@ -1368,7 +1370,20 @@ r2e_treat_wia <- function(team_id) {
         credit_rtd(),
       trajectory("Strategic Evac") %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
-        set_attribute("r2e_evac", 1)
+        set_attribute("r2e_evac", 1) %>%
+        # evacuation_day / treatment_received (Issue #23): captured at the
+        # single point in the model where a casualty departs theatre for
+        # strategic evacuation, feeding the Role 4 census and AME sortie
+        # demand calculations (R/analysis.R::compute_role4_census(),
+        # compute_ame_demand()) — see README Role 4 sub-section.
+        set_attribute("evacuation_day", function() floor(now(env) / 1440) + 1) %>%
+        set_attribute("treatment_received", function() {
+          r2b_surg <- get_attribute(env, "r2b_surgery")
+          r2e_surg <- get_attribute(env, "r2e_surgery")
+          had_surgery <- (!is.na(r2b_surg) && r2b_surg == 1) ||
+            (!is.na(r2e_surg) && r2e_surg == 1)
+          if (had_surgery) 1 else 0
+        })
     )
 }
 
@@ -1383,6 +1398,8 @@ r2e_treat_wia <- function(team_id) {
 #'
 #' # Phase 1: Attribute assignment
 #' # - Assigns R1 team (random selection)
+#' # - Sets injury_type (Issue #23): 1=WIA, 2=DNBI, 3=KIA, from casualty name
+#' #   prefix; read by the Role 4 census (R/analysis.R) at strategic evac
 #' # - Sets mass_casualty_event_id (Issue #9): the 1-indexed mass casualty
 #' #   event this casualty originated from (R/environment.R::
 #' #   generate_mass_casualty_events()), looked up via the entity's
@@ -1416,6 +1433,16 @@ build_casualty_trajectory <- function() {
     set_attribute("injury_time", function() now(env)) %>%
     debit_force_size() %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
+    # injury_type (Issue #23): 1 = WIA, 2 = DNBI, 3 = KIA. Read downstream by
+    # the Role 4 census (R/analysis.R::assign_role4_los()) to route DNBI
+    # strategic evacuees to the P3/DNBI length-of-stay category regardless of
+    # their triage priority — see README Role 4 sub-section.
+    set_attribute("injury_type", function() {
+      name <- get_name(env)
+      if (startsWith(name, "wia"))  return(1L)
+      if (startsWith(name, "dnbi")) return(2L)
+      3L
+    }) %>%
     set_attribute("mass_casualty_event_id", function() {
       name <- get_name(env)
       if (startsWith(name, "wia_cbt")) {

@@ -26,7 +26,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
 - [🌍 Scenario Context](#🌍-scenario-context)
-- [🧰 Resource Descriptions](#�-resource-descriptions)
+- [🧰 Resource Descriptions](#🧰-resource-descriptions)
   - [🏥Health Teams](#🏥health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -52,6 +52,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
     - [4. Temporal Randomisation](#4-temporal-randomisation)
     - [5. Mass Casualty Event Injection](#5-mass-casualty-event-injection)
+    - [6. Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)
   - [Wounded In Action (WIA)](#wounded-in-action-wia)
     - [Combat Casualties](#combat-casualties)
     - [Support Casualties](#support-casualties)
@@ -114,6 +115,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Casualty Waiting Time](#casualty-waiting-time)
   - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
   - [Return to Duty](#return-to-duty)
+  - [Force Regeneration Feedback Loop](#force-regeneration-feedback-loop)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
   - [Conclusion](#conclusion)
@@ -397,7 +399,7 @@ $$
 Where:
 
 - $x_i \sim \text{LogNormal}(\mu_{\log}, \sigma_{\log}^2)$ (lognormal streams) or $x_i \sim \text{Exponential}(\lambda)$ (exponential streams)
-- $P$ = population size (support or combat)
+- $P$ = population size (support or combat) — as of Issue #18, this is no longer a fixed constant but a live, time-varying effective force size read at each minute; see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop) below
 - $r_i$ = scaled and capped casualty rate for minute i
 
 The cap itself is **not** the same fixed value for both distribution families. `generate_ln_arrivals()` retains a fixed absolute default (`cap = 5`) for backward compatibility with the validated `default`/`moderate_intensity` baseline (`R/environment.R`; there is no citation for this specific value — see the assumption block below). `generate_exp_arrivals()` instead computes `cap = cap_multiplier × mean_daily` (default `cap_multiplier = 3`), because $P(\text{Exponential}(\mu) > k\mu) = e^{-k}$ is *independent of the mean* — a fixed multiple of the mean truncates the same tail probability (~5% at $k=3$) regardless of how intense the scenario is, whereas a fixed absolute value does not.
@@ -462,6 +464,55 @@ where $\lambda_{\text{min}} = \text{rate\_per\_day} / 1440$ is the per-minute ev
 > **Basis:** Issue #9 (this repository), informed by the compound Poisson parameterisation approach of Fischer et al. [[44]](#References) and the blast-dominant injury mechanism and high sustained-casualty-tempo context reported for contemporary LSCO [[48]](#References) — noting that [[48]](#References) itself characterises LSCO casualty flow as predominantly *sustained* rather than discretely event-driven; the discrete-event mass casualty framing modelled here targets the acute-surge component layered on that sustained tempo (e.g. a single barrage or strike), not the sustained background itself, which the existing lognormal/exponential streams already represent. No open-access source was identified that tabulates event-level (as opposed to daily aggregate) mass casualty rate/size distributions for a specific comparable historical LSCO campaign, so the specific rate/size/window values remain informed engineering estimates rather than literature-calibrated ones.
 > **Uncertainty:** High.
 > **Consequence if wrong:** A materially different event rate or size would change the absolute magnitude of the surge-capacity stress test (queue depth, DOW elevation) reported in [Simulation Analysis](#simulation-analysis); the qualitative finding that a mass casualty event meaningfully strains OT/ICU capacity relative to background load is expected to be robust in direction even if not in magnitude.
+
+#### 6. Force Regeneration and the Endogenous Feedback Loop
+
+Prior to Issue #18, the population term $P$ in the per-minute rate formula (Step 2 above) was a fixed constant — the fighting force was implicitly treated as constant-strength and self-replenishing for the full duration of a run, regardless of casualty flow or evacuation policy. `in_theatre_rate` (the proportion of R2E casualties who recover in theatre rather than being strategically evacuated, [R2E Heavy Trajectory](#r2e-heavy-trajectory)) had no causal pathway to any arrival-rate or resource-load metric: it is applied only after all OT/ICU resources for that casualty have already been released, so its apparent Morris/Sobol influence ([Sensitivity Analysis](#sensitivity-analysis)) reflected an indirect effect on R2E holding-bed occupancy only, not a genuine mechanism linking evacuation policy to force strength. This is the gap FORECAS's own force-size-dependent projection methodology [[8]](#References) and the return-to-duty-as-force-sustainment-lever literature [[35]](#References) both point to: casualty production is a function of *combat power available*, not a fixed rate applied to a static roll strength.
+
+Issue #18 closes this loop. $P$ in Step 2's formula is no longer a fixed constant but a live, time-varying **effective force size**, read fresh at every simulated minute from a simmer global (`effective_force_combat`/`effective_force_support`) that the running simulation itself updates as casualties occur and return to duty:
+
+$$
+r_i = \min(x_i, \text{cap}) \times \frac{F(t_i)}{1000 \times 1440}
+$$
+
+Where $F(t_i)$ is the effective force size (combat or support pool, matching the stream) at simulated minute $t_i$, replacing the fixed $P$ of Step 2.
+
+**Mechanism.** Each pool starts at its full establishment strength (`env_data$pops$combat`/`support`) and is updated at three points, all driven by events the simulation itself generates for that specific replication (not a pre-computed or expected-value schedule):
+
+1. **Debited by 1** the instant any casualty (WIA, KIA, or DNBI, either pool) is generated — `debit_force_size()`, applied at `build_casualty_trajectory()`'s `injury_time` assignment (`R/trajectories.R`). Every casualty is momentarily removed from effective fighting strength from the moment they occur.
+2. **Credited by 1** the instant a casualty reaches return-to-duty — `credit_rtd()`, applied at each of R1/R2B/R2E's existing `return_day` assignment points (`R/trajectories.R`). Because `return_day` is already set to `now(env)` at the actual moment each echelon's own recovery/hold-bed timeout completes, this credit inherently reflects each echelon's real recovery duration.
+3. **Credited via a demand/fulfillment cycle** — every `force_regeneration.reinforcement.demand_interval_days` (`env_data.json`), each pool independently *submits a demand* equal to its current shortfall against establishment strength (`initial − current`, floored at 0), then, after a configurable `fulfillment_lag_days`, is credited with a *fraction* of that demand drawn from a Triangular(`fill_min_frac`, `fill_mode_frac`, `fill_max_frac`) distribution (`build_reinforcement_trajectory()`, `R/trajectories.R`). This is the one genuinely periodic mechanism in the model; it ships disabled (`demand_interval_days = 0`) so no generator is added and no RNG draws are consumed, leaving the documented baseline exactly unaffected.
+
+KIA and strategic-evac (`r2e_evac = 1`) casualties never reach a `return_day` site, so they remain a permanent loss to the pool without a separate subtraction term.
+
+Architecturally, this required replacing the previous batch/`at()` arrival generation (all 30 days' arrival timestamps computed before `run()` starts) with function-based simmer generators (`make_ln_arrival_generator()`/`make_exp_arrival_generator()`, `R/environment.R`): each is a stateful closure, called once per arrival, that walks minute-by-minute through the same capped-rate/cumulative-sum-crossing mechanism as Steps 2–3 above, but reads the live force-size global at each step rather than a value baked in ahead of time — a pre-computed vector cannot react to a replication's own in-run events. Mass casualty event timing (Section 5) remains exogenous and pre-computed exactly as before, since it represents an imposed external shock rather than a population-scaled background rate; `wrap_with_mass_casualty()` interleaves it into the `wia_cbt` stream in strict chronological order.
+
+> **MODEL ASSUMPTION — TWO INDEPENDENT FORCE POOLS:** Combat and support effective force size are tracked as two independent globals rather than a single combined scalar.
+> **Basis:** Combat and support casualties are already separate generated streams drawn against separate population sizes ([Wounded In Action](#wounded-in-action-wia) et seq.); a combat casualty does not reduce support-troop headcount or vice versa, so conflating them into one scalar would misattribute cross-pool effects.
+> **Uncertainty:** Low.
+> **Consequence if wrong:** If the two populations should in practice be fungible (e.g. support personnel cross-employed in a combat role under sustained attrition), the current model would understate combat-pool depletion and overstate support-pool depletion relative to a pooled-strength model.
+
+> **MODEL ASSUMPTION — CONTINUOUS INJURY/RTD CREDITING, NOT A DAILY POLL:** Force size is debited/credited at the exact simulated instant each injury/RTD event occurs, rather than being recomputed once per day from accumulated daily totals.
+> **Basis:** A discrete-event simulation can update state exactly when it happens; polling once daily would introduce an arbitrary lag between an event and its effect on arrival rate with no corresponding gain in accuracy. Reinforcement is genuinely periodic (a planner-specified schedule, not an emergent event) and is the only term retained on a daily trigger.
+> **Uncertainty:** Low.
+> **Consequence if wrong:** None identified — continuous crediting is strictly more accurate than daily discretisation of the same underlying events; this is a refinement of the original Issue #18 proposal (which described "a scheduled trajectory at midnight"), not a simplification of it.
+
+> **MODEL ASSUMPTION — NO ECHELON-WEIGHTED RTD DELAY BEYOND ACTUAL TRAJECTORY TIMING:** `credit_rtd()` applies no additional delay weighting based on `return_echelon` (Issue #22) beyond the recovery/hold-bed duration each echelon's trajectory already models.
+> **Basis:** `return_day` is set to `now(env)` at the actual completion of each echelon's own timeout-governed recovery/holding period (R1: `r1.recovery`; R2B: `r2b.holding`; R2E: `r2eheavy.holding`) — the echelon-specific delay this concern raises is already present in the model's event timing, not absent from it.
+> **Uncertainty:** Low.
+> **Consequence if wrong:** None identified for the mechanism itself; `return_echelon` remains available (Issue #22) for any future disaggregated reporting (e.g. Issue #23's Role 4 occupancy analysis by echelon of prior recovery attempt).
+
+> **MODEL ASSUMPTION — MASS CASUALTY EVENTS ARE NOT FORCE-SIZE-SCALED:** Mass casualty event rate/size ([Mass Casualty Event Injection](#5-mass-casualty-event-injection)) is exogenous and unaffected by the current effective force size.
+> **Basis:** A mass casualty event (barrage, strike, IED) represents an externally imposed tactical shock, not a function of standing force strength the way sustained background attrition is.
+> **Uncertainty:** Low.
+> **Consequence if wrong:** If mass casualty incidence should itself scale with committed force size, the current model would over-weight mass casualty risk once the force has depleted materially — a secondary effect expected to be small relative to the primary background-rate mechanism this issue addresses.
+
+> **MODEL ASSUMPTION — REINFORCEMENT DEMAND, FULFILLMENT LAG, AND TRIANGULAR FILL:** Reinforcement is modelled as a demand/fulfillment cycle rather than a fixed periodic top-up. Each cycle, a pool's demand is its full shortfall against establishment strength (not a planner-set fixed size); the amount actually delivered, credited after `fulfillment_lag_days`, is `demand × frac` where `frac ~ Triangular(fill_min_frac, fill_mode_frac, fill_max_frac)`. The shipped defaults (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`, `fulfillment_lag_days = 7`) give a distribution with a long left tail toward severe under-fill (5th percentile ≈ 0.37 of demand) and a short right tail bounding over-supply (99th percentile ≈ 1.05) — full or over-fulfillment is the *less* likely outcome even though it is the distribution's mode, because the long lower tail pulls the mean well below the mode (≈0.72 vs. 0.85 at the shipped defaults). Demand and the fill fraction are both resolved at submission time, not at fulfillment — the fill outcome is modelled as substantially known when a request is made, with delivery simply delayed, rather than as a second independent source of uncertainty layered on top of delivery timing.
+> **Basis:** No open-access source was identified that quantifies reinforcement fulfillment rates or lag times for a comparable LSCO reinforcement pipeline; all five parameters (the demand cycle, the lag, and the three triangular shape parameters) are informed estimates capturing the intended qualitative shape (reinforcement requests are usually under-met, rarely over-met, and never instantaneous) rather than a literature-calibrated pipeline.
+> **Uncertainty:** High for the specific parameter values; Low for the qualitative shape (under-fill more likely than over-fill, non-zero delivery lag) as a directionally reasonable representation of a real reinforcement/replacement pipeline.
+> **Consequence if wrong:** A shorter lag or a fill distribution weighted further toward full/over-delivery would sustain force size — and therefore casualty production — closer to establishment strength than modelled here; the reverse would deepen depletion. The demand-based (rather than fixed-size) design at least ensures reinforcement cannot itself drive a pool above establishment strength except by the bounded over-fill margin, regardless of parameter choice.
+
+The reinforcement demand cycle, fulfillment lag, and fill distribution are the key modelling levers a planner controls: a baseline run with no reinforcement isolates the pure depletion effect of sustained casualty production against RTD-only regeneration; a run with a short demand cycle, short lag, and a fill distribution weighted toward full delivery approximates well-sustained LSCO reinforcement and keeps daily casualty volume closer to constant. Both are demonstrated in [Simulation Analysis](#simulation-analysis).
 
 ### Wounded In Action (WIA)
 
@@ -1673,6 +1724,29 @@ Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribu
 
 `bf_rtd` is 38, not 46 (the total battle fatigue casualties generated), because 8 battle fatigue entities were still within their R1 hold timeout when the 30-day simulation ended and were not assigned `return_day`. Battle fatigue RTDs are exclusively at R1, consistent with the no-R2-routing design. The majority of clinical RTDs occur at R1 (Priority 3 WIA and NBI completing R1 recovery) and R2B (disease cases discharged from hold beds). R2E clinical RTDs are low (5) because R2E hold-bed discharge is contingent on post-surgical recovery completion, which for many casualties extends beyond the 30-day window. The aggregate RTD rate of 37.0% is within the historical range for in-theatre MTF admissions (7.6–42.1% [[9]](#References)), though direct comparison requires accounting for the simulation's 30-day boundary effect.
 
+### Force Regeneration Feedback Loop
+
+This section demonstrates the [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop) mechanism (Issue #18): a no-reinforcement run should show declining daily casualty volume as the effective force depletes, and an active reinforcement demand cycle should counteract that decline. Because the effect scales with how large casualty production is relative to force size, it is demonstrated here under both the `moderate_intensity` (Falklands-calibrated) baseline and the `high_intensity` (Okinawa exemplar) profile, each averaged across independent replications and fit with an ordinary least-squares trend line against simulation day. The reinforcement configuration used below is a 7-day demand submission cycle with a 7-day fulfillment lag and the shipped default triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
+
+`analyse_run()` (`R/analysis.R`) now always produces a `force_regeneration_plot` — `effective_force_combat`/`effective_force_support` plotted against simulation day, faceted by replication when more than one is present — written to `images/force_regeneration.png`. The seed-42 baseline (no reinforcement, the shipped default) is shown below:
+
+![Effective Force Size Over Time](images/force_regeneration.png)
+
+Both pools decline smoothly and monotonically-in-trend (net depletion outweighing RTD regeneration for most of the run), ending the 30-day run at 2,330 of 2,500 initial combat strength (−6.8%) and 1,176 of 1,250 initial support strength (−5.9%) — small in absolute terms at Falklands-calibrated rates, exactly as the mechanically-real-but-modest effect the trend table below quantifies statistically.
+
+| Scenario | Reinforcement | Daily volume slope | p-value | First-week mean | Last-week mean |
+|---|---|---|---|---|---|
+| `moderate_intensity` (15 reps) | None | −0.006/day | 0.76 | 12.9 | 12.7 |
+| `moderate_intensity` (15 reps) | 7-day demand cycle, 7-day lag | +0.019/day | 0.36 | 12.9 | 13.3 |
+| `high_intensity` (12 reps) | None | −0.204/day | 9.6×10⁻¹⁴ | 34.8 | 29.9 |
+| `high_intensity` (12 reps) | 7-day demand cycle, 7-day lag | −0.018/day | 0.27 | 34.8 | 34.2 |
+
+At `high_intensity` casualty rates, the mechanism is unambiguous: daily volume falls significantly with no reinforcement (a ~14% first-to-last-week decline, p = 9.6×10⁻¹⁴), and the demand-cycle reinforcement configuration reduces that decline by an order of magnitude to a slope statistically indistinguishable from flat (−0.018/day, p = 0.27; <2% first-to-last-week change) — reinforcement substantially arrests depletion *without* overshooting into net growth. This is a direct consequence of the demand-based design: because each cycle's demand is the pool's actual current shortfall rather than a fixed size, a well-sustained pool automatically asks for less on its next cycle, and the triangular fill distribution's long under-fill tail means full or over-delivery is possible but not the likely outcome. At `moderate_intensity` (the documented seed-42 baseline scenario), the same mechanism operates in the same direction — the no-reinforcement slope is negative and the reinforced slope is positive — but neither reaches significance at n = 15 replications, because Falklands-calibrated casualty rates deplete only a low single-digit percentage of either force pool over 30 days (see the regression note in [Simulation Analysis](#simulation-analysis) below and Limitation L10). This is expected, not a defect: the `moderate_intensity` acceptance criterion for this issue is a small, mechanically-real effect, not a dramatic one, and the `high_intensity` demonstration confirms the same mechanism produces an unambiguous, statistically significant effect once casualty production is large relative to force size.
+
+`force_regeneration.reinforcement` (`env_data.json`) remains a fully planner-tunable input — the demand cycle, fulfillment lag, and all three triangular fill parameters — and this project does not attempt to auto-balance it against a scenario's attrition rate; the 7-day/7-day configuration above is illustrative, not a recommended operational setting.
+
+> **Reproducibility note:** the table above was produced in an ad hoc R 4.3.3 sandbox (not the project's pinned `rocker/rstudio:4.4.2` Dev Container) for this issue's verification, following the same practice and caveat used for prior unpinned-sandbox figures in this project (see the `CLAUDE.md` Key Parameters provenance caveat). It demonstrates the mechanism's direction and statistical behaviour; it is not a substitute for the seed-42 single-run baseline figures reported elsewhere in this README and in `CLAUDE.md`.
+
 ### Comparative Scenario Analysis
 
 The preceding sections analyse a single seed-42 run under the base `env_data.json` configuration, which is Falklands-calibrated (see [Scenario Profiles](#scenario-profiles)). This section extends that analysis using the comparative scenario runner (`run_scenario()` / `compare_scenarios()`, `R/scenario_runner.R`), which executes the full multi-replication framework ([Multi-run Replication Framework](#multirun-replication-framework)) under a named scenario profile and aggregates queue and mortality KPIs across replications in the same mean (p10–p90), 95% CI format used throughout this project.
@@ -1772,8 +1846,8 @@ The `moderate_intensity` scenario profile (Issue #54, see [Scenario Profiles](#s
 
 ### Low Impact
 
-**L10 — No Endogenous Force Feedback (Low Impact on Arrival Rates)**
-Casualty arrival rates are fixed exogenous inputs applied to a static force size. The feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production is not represented. **Impact: Low** for 30-day runs; increases with campaign duration. Addressed in Issue #18 (endogenous casualty generation).
+**L10 — No Endogenous Force Feedback** *(Resolved — Issue #18)*
+Casualty arrival rates were previously fixed exogenous inputs applied to a static force size, with no feedback loop between return-to-duty rates, strategic evacuation, force depletion, and future casualty production — `in_theatre_rate` in particular had no causal pathway to any arrival-rate or resource-load metric (its apparent Morris/Sobol influence reflected an indirect effect on R2E holding-bed occupancy only). The casualty arrival generators now scale against a live, time-varying effective force size that the running simulation itself debits at each casualty's injury and credits at each return-to-duty event, plus an optional configurable reinforcement schedule — see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop) for the full mechanism. **Residual impact: Low.** The effect is intentionally modest over a 30-day run at Falklands-calibrated casualty rates (single-digit percentage force depletion absent reinforcement — see [Simulation Analysis](#simulation-analysis)); it is expected to grow materially over longer campaign durations or higher-intensity scenarios, which this issue's acceptance criteria did not require demonstrating.
 
 **L13 — Stale Morris Screening Bounds for `p1_p_max`** *(Resolved — Issue #75)*
 `morris_params` (`R/sensitivity.R`) now screens `p1_p_max` (the Priority 1 DOW ceiling) over 1.15%–4.6%, a 0.5×–2× multiplicative range centred on the shipped 0.023 baseline — replacing the previous 0.25–0.75 range, which predated Issue #5's Falklands recalibration and had drifted an order of magnitude from the baseline it was meant to bracket. Because `morris_params$mode` also supplies the fixed value held for `p1_p_max` while every *other* parameter is screened, the stale 60% mode had been silently biasing every parameter's µ\*/σ ranking, not just `p1_p_max`'s own; the full Morris screen (all ten parameters, r=20, 5 reps, 30 days, seed 42) was re-run against the current codebase to correct this. `app.R`'s Configure panel slider for this field now derives its correct range directly from `morris_params` with no defensive widening needed. See [Sensitivity Analysis](#sensitivity-analysis) for the updated bounds table and re-run Morris plots.

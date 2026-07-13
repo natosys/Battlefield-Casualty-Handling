@@ -796,6 +796,21 @@
           ]
         }
       ]
+    },
+    {
+      "elm": "force_regeneration",
+      "actys": [
+        {
+          "acty": "reinforcement",
+          "vals": [
+            { "var": "demand_interval_days", "val": 0 },
+            { "var": "fulfillment_lag_days", "val": 7 },
+            { "var": "fill_min_frac", "val": 0.2 },
+            { "var": "fill_mode_frac", "val": 0.85 },
+            { "var": "fill_max_frac", "val": 1.1 }
+          ]
+        }
+      ]
     }
   ],
   "scenarios": {

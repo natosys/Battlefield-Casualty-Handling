@@ -191,6 +191,7 @@ SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelo
 SRC_HOLD_THRESHOLD    <- "Design threshold introduced by Issue #39 (R2B hold-bed saturation routing policy); not literature-derived."
 SRC_ICU_GATING        <- "Design parameter introduced by Issue #43 (OT-ICU gating); not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate (Issue #43); no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
+SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model introduced by Issue #18 (endogenous casualty generation / force regeneration feedback loop); not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD, ~42% in-theatre, implying ~13% in-theatre recovery) — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Issue #9 Recommended Approach, informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
@@ -396,7 +397,22 @@ build_param_registry <- function() {
           "Number of support-role personnel exposed to the casualty-generation model.",
           get = function(json) get_pop_count(json, "support"),
           set = function(json, v) set_pop_count(json, "support", v),
-          type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT)
+          type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT),
+    var_field("force_regen_demand_interval", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "demand_interval_days",
+              "Demand Submission Cycle (days)", "How often a reinforcement demand can be submitted for each pool. Each submission asks for the pool's full current shortfall against establishment strength. 0 disables reinforcement entirely (the shipped default) — casualty production and return-to-duty are then the only forces acting on effective force size.",
+              type = "integer", min = 0, max = 30, step = 1, source = SRC_FORCE_REGEN),
+    var_field("force_regen_lag", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fulfillment_lag_days",
+              "Fulfillment Lag (days)", "Delay between a reinforcement demand being submitted and the delivered amount being credited to the effective force pool (ignored if the demand cycle is 0).",
+              type = "integer", min = 0, max = 60, step = 1, source = SRC_FORCE_REGEN),
+    var_field("force_regen_fill_min", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_min_frac",
+              "Fill Distribution — Minimum (fraction of demand)", "Lower bound of the triangular distribution governing what fraction of a submitted demand is actually delivered — the low end of the long under-fill tail.",
+              type = "numeric", min = 0, max = 1, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE),
+    var_field("force_regen_fill_mode", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_mode_frac",
+              "Fill Distribution — Mode (fraction of demand)", "Most likely fraction of a submitted demand actually delivered — set close to (but below) 1, so full fulfillment is the peak of the distribution but under-fill is still more probable in aggregate than over-fill.",
+              type = "numeric", min = 0, max = 1.5, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE),
+    var_field("force_regen_fill_max", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_max_frac",
+              "Fill Distribution — Maximum (fraction of demand)", "Upper bound of the triangular distribution — kept close to 1 so over-supply is possible but limited, unlike the long lower tail toward under-fill.",
+              type = "numeric", min = 1, max = 2, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE)
   ))
 
   # ── Casualty Rates ──────────────────────────────────────────────────────

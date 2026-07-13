@@ -31,63 +31,78 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   env <<- build_env(env, env_data, ot_hours = ot_hours)
   casualty <- build_casualty_trajectory()
 
-  # Mass casualty injection (Issue #9): a compound Poisson process (or, in
-  # "scheduled" mode, a planner-specified day/probability list) of acute
-  # casualty surge events is merged into the wia_cbt background arrival
-  # stream (sort combined vector by time). wia_cbt_mass_casualty_event_id is
-  # a parallel integer vector, in the same merged/sorted order, giving which
-  # event (0 = background) each entry originated from —
-  # build_casualty_trajectory() reads it via the entity's generator-assigned
-  # index to set the mass_casualty_event/mass_casualty_event_id attributes
-  # and to look up that event's own priority split (scheduled mode only;
-  # NA pri_one for poisson-mode events falls back to the shared
+  # Force regeneration feedback loop (Issue #18): the six background
+  # casualty streams are live, force-size-reactive generator closures
+  # (R/environment.R) rather than pre-computed at() vectors, reading the
+  # effective_force_combat/effective_force_support globals initialised
+  # below — those globals are debited at each casualty's injury_time and
+  # credited at each RTD event (R/trajectories.R), plus a periodic
+  # reinforcement trajectory, closing the loop the old fixed-population
+  # generator could not represent.
+  #
+  # Mass casualty injection (Issue #9) stays exogenous/pre-computed (a
+  # compound Poisson process, or in "scheduled" mode a planner-specified
+  # day/probability list) — it is not population-scaled. wrap_with_mass_casualty()
+  # interleaves it into the wia_cbt closure in true chronological order and
+  # builds wia_cbt_mass_casualty_event_id incrementally (0 = background) as
+  # entities are actually emitted, which build_casualty_trajectory() reads
+  # via the entity's generator-assigned index to set the
+  # mass_casualty_event/mass_casualty_event_id attributes and to look up
+  # that event's own priority split (scheduled mode only; NA pri_one for
+  # poisson-mode events falls back to the shared
   # env_data$vars$mass_casualty$priority split — see mass_casualty_event_priority_table).
   # Global assignment (<<-) mirrors env_data/day_min/counts (run.R); in
   # forked mclapply workers this modifies only the fork's local state.
-  wia_cbt_bg     <- generate_casualty_arrivals("wia_cbt",
-                      env_data$vars$generators$wia_cbt,
-                      env_data$pops$combat, n_days, write_file = write_files,
-                      antithetic = antithetic)
-  mass_casualty  <- generate_mass_casualty_events(n_days,
+  mass_casualty <- generate_mass_casualty_events(n_days,
                       env_data$vars$mass_casualty, write_file = write_files,
                       antithetic = antithetic)
-  wia_cbt_times  <- c(wia_cbt_bg, mass_casualty$arrival_times)
-  wia_cbt_order  <- order(wia_cbt_times)
-  wia_cbt_times  <- wia_cbt_times[wia_cbt_order]
-  wia_cbt_mass_casualty_event_id <<- c(rep(0L, length(wia_cbt_bg)),
-                                       mass_casualty$casualty_event_id)[wia_cbt_order]
+  wia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
 
+  wia_cbt_gen <- wrap_with_mass_casualty(
+    generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
+                               "effective_force_combat", n_days, antithetic = antithetic),
+    mass_casualty$arrival_times, mass_casualty$casualty_event_id)
+
   env <<- env %>%
-    add_generator("wia_cbt",  casualty, at(wia_cbt_times), mon = 2) %>%
+    add_global("effective_force_combat", env_data$pops$combat) %>%
+    add_global("effective_force_support", env_data$pops$support) %>%
+    add_generator("wia_cbt",  casualty, wia_cbt_gen, mon = 2) %>%
     add_generator("kia_cbt",  casualty,
-                  at(generate_casualty_arrivals("kia_cbt",
-                    env_data$vars$generators$kia_cbt,
-                    env_data$pops$combat, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+                  generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
+                    "effective_force_combat", n_days, antithetic = antithetic), mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
-                  at(generate_casualty_arrivals("dnbi_cbt",
-                    env_data$vars$generators$dnbi_cbt,
-                    env_data$pops$combat, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+                  generate_casualty_arrivals(env_data$vars$generators$dnbi_cbt,
+                    "effective_force_combat", n_days, antithetic = antithetic), mon = 2) %>%
     add_generator("wia_spt",  casualty,
-                  at(generate_casualty_arrivals("wia_spt",
-                    env_data$vars$generators$wia_spt,
-                    env_data$pops$support, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+                  generate_casualty_arrivals(env_data$vars$generators$wia_spt,
+                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
     add_generator("kia_spt",  casualty,
-                  at(generate_casualty_arrivals("kia_spt",
-                    env_data$vars$generators$kia_spt,
-                    env_data$pops$support, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+                  generate_casualty_arrivals(env_data$vars$generators$kia_spt,
+                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
     add_generator("dnbi_spt", casualty,
-                  at(generate_casualty_arrivals("dnbi_spt",
-                    env_data$vars$generators$dnbi_spt,
-                    env_data$pops$support, n_days, write_file = write_files,
-                    antithetic = antithetic)), mon = 2) %>%
+                  generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
+                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
     add_global("evac_wait_count", 0)
 
+  # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when
+  # demand_interval_days > 0, so the shipped disabled default consumes no
+  # RNG draws and adds no generator at all, matching the mass-casualty
+  # rate_per_day = 0 disable-path convention elsewhere in this file. First
+  # demand fires at day `demand_interval_days`, not day 0 — a pool starts
+  # at full strength, so an immediate submission would have zero demand.
+  demand_interval <- env_data$vars$force_regeneration$reinforcement$demand_interval_days
+  if (!is.null(demand_interval) && demand_interval > 0) {
+    env <<- env %>%
+      add_generator("force_reinforcement", build_reinforcement_trajectory(),
+                    at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
+                    mon = 0)
+  }
+
   env %>% run(until = n_days * day_min)
+
+  if (write_files) write_arrival_diagnostics(env)
+
   wrap(env)
 }
 

@@ -161,136 +161,279 @@ load_scenario <- function(path, scenario = "default") {
   build_environment(json_data)
 }
 
-# ── Casualty rate generation ──────────────────────────────────────────────────
+# ── Casualty rate generation (live, force-size-reactive) ───────────────────────
+#
+# Issue #18: casualty arrival rate is scaled by a time-varying effective force
+# size (env's `effective_force_combat`/`effective_force_support` simmer
+# globals — initialised in run_once(), decremented/incremented by
+# R/trajectories.R at injury/return-to-duty events) rather than a fixed
+# population constant. Because that global can only be known by actually
+# running the simulation, arrival generation switches from the previous
+# batch/at() approach (whole 30-day vector pre-computed before run() starts)
+# to simmer's function-based generator mode: add_generator() is given a
+# closure with no arguments that is called once per arrival, returning the
+# interarrival gap. Internally the closure still walks minute-by-minute using
+# the same capped-rate/cumulative-sum-crossing mechanism as before (see
+# README Casualty Generation), just incrementally instead of vectorised over
+# the whole run, buffering one day of raw distribution draws at a time to
+# keep per-arrival overhead low. Each minute's rate is scaled by whatever the
+# force-size global reads *at that instant* — the live equivalent of the
+# previous fixed `pop` argument — which is what closes the feedback loop.
 
-#' Generates lognormal arrival timestamps using capped log-normal rates
+#' Builds a live, force-size-reactive lognormal arrival generator closure
 #'
-#' @param type Character string identifying casualty stream (e.g. "wia_cbt")
 #' @param mean_daily Expected daily rate
 #' @param sd_daily Standard deviation of daily rate
-#' @param pop Size of target population
+#' @param force_global Name of the simmer global holding the current
+#'   effective force size for this stream's population pool (e.g.
+#'   "effective_force_combat"); read fresh at every minute step
 #' @param n_days Duration in days
 #' @param cap Maximum per-minute rate cap (default 5)
-#' @param seed Optional random seed for reproducibility
-#' @param write_file Write arrival times to data/ directory (default TRUE;
-#'   set FALSE for parallel replication workers to avoid file-write conflicts)
 #' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
 #'   substituted for U in both the log-normal rate draw and the within-minute
 #'   arrival jitter. Enables antithetic pairing in run_replications().
-#' @return Vector of arrival times in simulation minutes
-generate_ln_arrivals <- function(type, mean_daily, sd_daily, pop, n_days,
-                                 cap = 5, seed = NULL, write_file = TRUE,
-                                 antithetic = FALSE) {
-  if (!is.null(seed)) set.seed(seed)
-
-  n_minutes <- day_min * n_days
-
+#' @param buffer_days Number of days' worth of raw per-minute draws to
+#'   vectorise per refill (default 1); amortises R-level closure-call
+#'   overhead relative to drawing one minute at a time.
+#' @return A zero-argument function suitable for add_generator()'s
+#'   `distribution` argument: returns the next interarrival gap (simulation
+#'   minutes), or -1 once n_days has been exhausted (simmer's convention for
+#'   ending a generator)
+make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days,
+                                      cap = 5, antithetic = FALSE, buffer_days = 1) {
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
+  n_minutes <- day_min * n_days
+  buffer_minutes <- day_min * buffer_days
 
-  # Explicit inverse-CDF transform so U can be reflected for antithetic pairing
-  u_rate <- runif(n_minutes)
-  if (antithetic) u_rate <- 1 - u_rate
-  rates      <- pmin(qlnorm(u_rate, meanlog = mu_log, sdlog = sigma_log), cap)
-  rates      <- rates / 1440 * pop / 1000
-  cumulative <- cumsum(rates)
+  minute_ptr  <- 0L
+  cum         <- 0
+  floor_prev  <- 0
+  last_time   <- 0
+  buf_x       <- numeric(0)
+  buf_jitter  <- numeric(0)
+  buf_pos     <- 1L
 
-  arrival_idx  <- which(floor(cumulative) > floor(cumulative - rates))
-  u_jitter     <- runif(length(arrival_idx))
-  if (antithetic) u_jitter <- 1 - u_jitter
-  arrival_times <- sort(arrival_idx + u_jitter)
+  function() {
+    repeat {
+      if (buf_pos > length(buf_x)) {
+        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
+        if (n_draw <= 0) return(-1)
+        u_rate <- runif(n_draw)
+        if (antithetic) u_rate <- 1 - u_rate
+        buf_x <<- pmin(qlnorm(u_rate, meanlog = mu_log, sdlog = sigma_log), cap)
+        u_jit <- runif(n_draw)
+        if (antithetic) u_jit <- 1 - u_jit
+        buf_jitter <<- u_jit
+        buf_pos <<- 1L
+      }
 
-  if (write_file) {
-    filename <- file.path("data", paste0("arrivals_", type, ".txt"))
-    write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
+      minute_ptr <<- minute_ptr + 1L
+      if (minute_ptr > n_minutes) return(-1)
+
+      force_size <- get_global(env, force_global)
+      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
+      jitter <- buf_jitter[buf_pos]
+      buf_pos <<- buf_pos + 1L
+
+      cum <<- cum + rate
+      new_floor <- floor(cum)
+      if (new_floor > floor_prev) {
+        floor_prev <<- new_floor
+        arrival_time <- minute_ptr + jitter
+        gap <- arrival_time - last_time
+        last_time <<- arrival_time
+        return(gap)
+      }
+    }
   }
-
-  return(arrival_times)
 }
 
-#' Generates exponential arrival timestamps using capped exponential rates
+#' Builds a live, force-size-reactive exponential arrival generator closure
 #'
-#' @param type Character string identifying casualty stream (e.g. "wia_cbt")
 #' @param mean_daily Expected daily rate. Fully parameterises the exponential
-#'   rate distribution (rate = 1 / mean_daily); unlike generate_ln_arrivals(),
-#'   there is no separate sd_daily shape parameter for a single-parameter
-#'   exponential distribution.
-#' @param pop Size of target population
+#'   rate distribution (rate = 1 / mean_daily); unlike
+#'   make_ln_arrival_generator(), there is no separate sd_daily shape
+#'   parameter for a single-parameter exponential distribution.
+#' @param force_global Name of the simmer global holding the current
+#'   effective force size for this stream's population pool; read fresh at
+#'   every minute step
 #' @param n_days Duration in days
 #' @param cap_multiplier Per-minute rate cap, expressed as a multiple of
-#'   mean_daily rather than an absolute value (default 3). Because
-#'   P(Exponential(mean) > k * mean) = exp(-k) regardless of mean, this
-#'   yields the same ~5% truncation probability for every exponential
-#'   stream irrespective of intensity — unlike a fixed absolute cap (as
-#'   used by generate_ln_arrivals()), which truncates a rapidly growing
-#'   share of the distribution as mean_daily approaches the cap (e.g.
-#'   ~48% for a mean of 6.86 against a fixed cap of 5; see README
-#'   Casualty Generation section).
-#' @param seed Optional random seed for reproducibility
-#' @param write_file Write arrival times to data/ directory (default TRUE;
-#'   set FALSE for parallel replication workers to avoid file-write conflicts)
-#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
-#'   substituted for U in both the exponential rate draw and the
-#'   within-minute arrival jitter. Enables antithetic pairing in
-#'   run_replications().
-#' @return Vector of arrival times in simulation minutes
+#'   mean_daily rather than an absolute value (default 3) — see the
+#'   equivalent parameter on the previous generate_exp_arrivals()
+#'   implementation and the README Casualty Generation section for the
+#'   mean-invariance rationale.
+#' @param antithetic Logical; antithetic variate pairing (see
+#'   make_ln_arrival_generator())
+#' @param buffer_days Number of days' worth of raw per-minute draws to
+#'   vectorise per refill (default 1)
+#' @return A zero-argument function suitable for add_generator()'s
+#'   `distribution` argument (see make_ln_arrival_generator())
 #'
 #' @details FORECAS (Blood, Zouris & Rotblatt, 1998) fits lognormal and
 #'   exponential distributions to different battle intensities/troop types.
 #'   Used for the high_intensity scenario profile (Issue #54), whose
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
-generate_exp_arrivals <- function(type, mean_daily, pop, n_days,
-                                  cap_multiplier = 3, seed = NULL, write_file = TRUE,
-                                  antithetic = FALSE) {
-  if (!is.null(seed)) set.seed(seed)
-
-  n_minutes <- day_min * n_days
+make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
+                                       cap_multiplier = 3, antithetic = FALSE,
+                                       buffer_days = 1) {
   cap <- cap_multiplier * mean_daily
+  n_minutes <- day_min * n_days
+  buffer_minutes <- day_min * buffer_days
 
-  # Explicit inverse-CDF transform so U can be reflected for antithetic pairing
-  u_rate <- runif(n_minutes)
-  if (antithetic) u_rate <- 1 - u_rate
-  rates      <- pmin(qexp(u_rate, rate = 1 / mean_daily), cap)
-  rates      <- rates / 1440 * pop / 1000
-  cumulative <- cumsum(rates)
+  minute_ptr  <- 0L
+  cum         <- 0
+  floor_prev  <- 0
+  last_time   <- 0
+  buf_x       <- numeric(0)
+  buf_jitter  <- numeric(0)
+  buf_pos     <- 1L
 
-  arrival_idx  <- which(floor(cumulative) > floor(cumulative - rates))
-  u_jitter     <- runif(length(arrival_idx))
-  if (antithetic) u_jitter <- 1 - u_jitter
-  arrival_times <- sort(arrival_idx + u_jitter)
+  function() {
+    repeat {
+      if (buf_pos > length(buf_x)) {
+        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
+        if (n_draw <= 0) return(-1)
+        u_rate <- runif(n_draw)
+        if (antithetic) u_rate <- 1 - u_rate
+        buf_x <<- pmin(qexp(u_rate, rate = 1 / mean_daily), cap)
+        u_jit <- runif(n_draw)
+        if (antithetic) u_jit <- 1 - u_jit
+        buf_jitter <<- u_jit
+        buf_pos <<- 1L
+      }
 
-  if (write_file) {
-    filename <- file.path("data", paste0("arrivals_", type, ".txt"))
-    write.table(arrival_times, file = filename, row.names = FALSE, col.names = FALSE)
+      minute_ptr <<- minute_ptr + 1L
+      if (minute_ptr > n_minutes) return(-1)
+
+      force_size <- get_global(env, force_global)
+      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
+      jitter <- buf_jitter[buf_pos]
+      buf_pos <<- buf_pos + 1L
+
+      cum <<- cum + rate
+      new_floor <- floor(cum)
+      if (new_floor > floor_prev) {
+        floor_prev <<- new_floor
+        arrival_time <- minute_ptr + jitter
+        gap <- arrival_time - last_time
+        last_time <<- arrival_time
+        return(gap)
+      }
+    }
   }
-
-  return(arrival_times)
 }
 
-#' Dispatches to the appropriate arrival generator for a casualty stream
+#' Dispatches to the appropriate live arrival generator for a casualty stream
 #'
-#' @param type Character string identifying casualty stream (e.g. "wia_cbt")
 #' @param gen_vars List with mean_daily and (for lognormal streams) sd_daily,
 #'   as read from env_data$vars$generators[[type]]; an optional `distribution`
 #'   field selects "lognormal" (default, if absent) or "exponential"
-#' @param pop Size of target population
+#' @param force_global Name of the simmer global holding the current
+#'   effective force size for this stream's population pool
 #' @param n_days Duration in days
-#' @param write_file Write arrival times to data/ directory
 #' @param antithetic Logical; antithetic variate pairing (see
-#'   generate_ln_arrivals() / generate_exp_arrivals())
-#' @return Vector of arrival times in simulation minutes
-generate_casualty_arrivals <- function(type, gen_vars, pop, n_days,
-                                       write_file = FALSE, antithetic = FALSE) {
+#'   make_ln_arrival_generator() / make_exp_arrival_generator())
+#' @return A zero-argument distribution function (see
+#'   make_ln_arrival_generator())
+generate_casualty_arrivals <- function(gen_vars, force_global, n_days, antithetic = FALSE) {
   distribution <- if (!is.null(gen_vars$distribution)) gen_vars$distribution else "lognormal"
 
   if (distribution == "exponential") {
-    generate_exp_arrivals(type, gen_vars$mean_daily, pop, n_days,
-                         write_file = write_file, antithetic = antithetic)
+    make_exp_arrival_generator(gen_vars$mean_daily, force_global, n_days,
+                               antithetic = antithetic)
   } else {
-    generate_ln_arrivals(type, gen_vars$mean_daily, gen_vars$sd_daily, pop, n_days,
-                        write_file = write_file, antithetic = antithetic)
+    make_ln_arrival_generator(gen_vars$mean_daily, gen_vars$sd_daily, force_global, n_days,
+                              antithetic = antithetic)
   }
+}
+
+#' Wraps a background arrival generator closure to interleave pre-computed
+#' mass casualty events into the same generator stream
+#'
+#' @param background_fn A zero-argument distribution function as returned by
+#'   generate_casualty_arrivals() (typically the wia_cbt combat stream)
+#' @param mass_casualty_times Sorted numeric vector of mass casualty casualty
+#'   arrival times (simulation minutes), as returned by
+#'   generate_mass_casualty_events()$arrival_times
+#' @param mass_casualty_ids Integer vector parallel to mass_casualty_times
+#'   giving each casualty's 1-indexed source event id
+#' @return A zero-argument distribution function that, on each call, emits
+#'   whichever of (next background candidate, next pending mass casualty
+#'   arrival) is chronologically earliest, preserving a single strictly
+#'   ordered arrival stream through one generator/trajectory
+#'
+#' @details Mass casualty timing is exogenous (an imposed shock, not
+#'   population-scaled — see README Casualty Generation), so it is still
+#'   computed up front by generate_mass_casualty_events() exactly as before;
+#'   only the background stream is force-size-reactive. As a side effect,
+#'   appends 0 (background) or the event id (mass casualty) to the global
+#'   `wia_cbt_mass_casualty_event_id` vector in strict emission order, which
+#'   build_casualty_trajectory() indexes by each entity's generator-assigned
+#'   position to recover its mass_casualty_event_id attribute.
+wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_casualty_ids) {
+  mc_ptr <- 1L
+  n_mc <- length(mass_casualty_times)
+  pending_bg <- NA_real_
+  bg_exhausted <- FALSE
+  last_time <- 0
+
+  function() {
+    if (is.na(pending_bg) && !bg_exhausted) {
+      gap <- background_fn()
+      if (gap < 0) {
+        bg_exhausted <<- TRUE
+        pending_bg <<- NA_real_
+      } else {
+        pending_bg <<- last_time + gap
+      }
+    }
+
+    mc_due <- mc_ptr <= n_mc && (bg_exhausted || mass_casualty_times[mc_ptr] <= pending_bg)
+
+    if (mc_due) {
+      t  <- mass_casualty_times[mc_ptr]
+      id <- mass_casualty_ids[mc_ptr]
+      mc_ptr <<- mc_ptr + 1L
+      wia_cbt_mass_casualty_event_id <<- c(wia_cbt_mass_casualty_event_id, id)
+    } else {
+      if (bg_exhausted) return(-1)
+      t <- pending_bg
+      pending_bg <<- NA_real_
+      wia_cbt_mass_casualty_event_id <<- c(wia_cbt_mass_casualty_event_id, 0L)
+    }
+
+    gap <- t - last_time
+    last_time <<- t
+    gap
+  }
+}
+
+#' Reconstructs the data/arrivals_<type>.txt diagnostic files from a
+#' completed run's monitored arrivals
+#'
+#' @param env A simmer environment that has already been run() to completion
+#' @return Invisibly NULL; called for its file-writing side effect
+#'
+#' @details The six background casualty streams' arrival times are no
+#'   longer known before run() — they depend on the live, force-size-
+#'   reactive generators above — so the arrival-time diagnostics previously
+#'   written inside generate_ln_arrivals()/generate_exp_arrivals() are
+#'   instead reconstructed here from get_mon_arrivals() after the run
+#'   completes, filtered by each stream's generator-name prefix. Mass
+#'   casualty's diagnostic file is unaffected (still written by
+#'   generate_mass_casualty_events(), since that stream remains pre-computed).
+write_arrival_diagnostics <- function(env) {
+  arr <- get_mon_arrivals(env)
+  streams <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
+  for (type in streams) {
+    times <- sort(arr$start_time[startsWith(arr$name, type)])
+    write.table(times, file = file.path("data", paste0("arrivals_", type, ".txt")),
+               row.names = FALSE, col.names = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Draws event start times for the "poisson" mass casualty mode

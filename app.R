@@ -2112,10 +2112,11 @@ server <- function(input, output, session) {
       combined_plot(res$r2b_treatment, res$r2b_gantt, res$r2e_surgery, res$r2e_gantt)
     }
     list(
-      casualty_flow = res$casualty_flow,
-      queue_depths  = combined_plot(res$r1_queues, res$r2b_bed_queues, res$r2e_bed_queues),
-      utilisation   = utilisation_plot,
-      waiting_times = res$waiting_times
+      casualty_flow       = res$casualty_flow,
+      queue_depths        = combined_plot(res$r1_queues, res$r2b_bed_queues, res$r2e_bed_queues),
+      utilisation         = utilisation_plot,
+      waiting_times       = res$waiting_times,
+      force_regeneration  = res$force_regeneration_plot
     )
   })
 
@@ -2197,6 +2198,16 @@ server <- function(input, output, session) {
         downloadButton("dl_waiting_times_pdf", "Download PDF"),
         downloadButton("dl_waiting_times_csv", "Download Data (CSV)")
       ),
+      nav_panel("Force Regeneration",
+        p(class = "text-muted mt-2",
+          "Effective force size (Issue #18) over the run — debited at each casualty's injury, credited ",
+          "at each return-to-duty event, and stepped up by the Configure tab's Reinforcement Schedule ",
+          "(Force Size group) if set above its disabled default."),
+        plotOutput("plot_force_regeneration", height = "500px"),
+        downloadButton("dl_force_regeneration_png", "Download PNG"),
+        downloadButton("dl_force_regeneration_pdf", "Download PDF"),
+        downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
+      ),
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
           "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
@@ -2244,10 +2255,11 @@ server <- function(input, output, session) {
     )
   })
 
-  output$plot_casualty_flow <- renderPlot(tab_plot()$casualty_flow)
-  output$plot_queue_depths  <- renderPlot(tab_plot()$queue_depths)
-  output$plot_utilisation   <- renderPlot(tab_plot()$utilisation)
-  output$plot_waiting_times <- renderPlot(tab_plot()$waiting_times)
+  output$plot_casualty_flow      <- renderPlot(tab_plot()$casualty_flow)
+  output$plot_queue_depths       <- renderPlot(tab_plot()$queue_depths)
+  output$plot_utilisation        <- renderPlot(tab_plot()$utilisation)
+  output$plot_waiting_times      <- renderPlot(tab_plot()$waiting_times)
+  output$plot_force_regeneration <- renderPlot(tab_plot()$force_regeneration)
 
   plot_download_handler <- function(plot_key, width, height, device) {
     downloadHandler(
@@ -2266,6 +2278,8 @@ server <- function(input, output, session) {
   output$dl_utilisation_pdf   <- plot_download_handler("utilisation", 12, 20, "pdf")
   output$dl_waiting_times_png <- plot_download_handler("waiting_times", 10, 6, "png")
   output$dl_waiting_times_pdf <- plot_download_handler("waiting_times", 10, 6, "pdf")
+  output$dl_force_regeneration_png <- plot_download_handler("force_regeneration", 10, 6, "png")
+  output$dl_force_regeneration_pdf <- plot_download_handler("force_regeneration", 10, 6, "pdf")
 
   output$dl_casualty_flow_csv <- downloadHandler(
     filename = "casualty_flow.csv",
@@ -2286,6 +2300,10 @@ server <- function(input, output, session) {
       write.csv(df[, intersect(c("name", "start_time", "waiting_time", "priority"), names(df))],
                 file, row.names = FALSE)
     }
+  )
+  output$dl_force_regeneration_csv <- downloadHandler(
+    filename = "force_regeneration.csv",
+    content  = function(file) write.csv(analysis_results()$force_regeneration_daily, file, row.names = FALSE)
   )
 
   calibration_df <- reactive({

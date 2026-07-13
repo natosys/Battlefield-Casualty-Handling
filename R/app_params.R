@@ -191,6 +191,7 @@ SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelo
 SRC_HOLD_THRESHOLD    <- "Design threshold introduced by Issue #39 (R2B hold-bed saturation routing policy); not literature-derived."
 SRC_ICU_GATING        <- "Design parameter introduced by Issue #43 (OT-ICU gating); not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate (Issue #43); no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
+SRC_FORCE_REGEN       <- "Planner-configured reinforcement schedule introduced by Issue #18 (endogenous casualty generation / force regeneration feedback loop); not literature-derived — this project does not attempt to auto-balance reinforcement size against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD, ~42% in-theatre, implying ~13% in-theatre recovery) — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Issue #9 Recommended Approach, informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
@@ -396,7 +397,16 @@ build_param_registry <- function() {
           "Number of support-role personnel exposed to the casualty-generation model.",
           get = function(json) get_pop_count(json, "support"),
           set = function(json, v) set_pop_count(json, "support", v),
-          type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT)
+          type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT),
+    var_field("force_regen_interval", GRP_FORCE, "Reinforcement Schedule", "force_regeneration", "reinforcement", "interval_days",
+              "Reinforcement Interval (days)", "How often reinforcements are added to the effective force pools. 0 disables reinforcement entirely (the shipped default) — casualty production and return-to-duty are then the only forces acting on effective force size.",
+              type = "integer", min = 0, max = 30, step = 1, source = SRC_FORCE_REGEN),
+    var_field("force_regen_combat", GRP_FORCE, "Reinforcement Schedule", "force_regeneration", "reinforcement", "combat_size",
+              "Reinforcement Size — Combat", "Combat personnel added to the effective force pool on each reinforcement interval (ignored if the interval is 0).",
+              type = "integer", min = 0, max = 5000, step = 10, source = SRC_FORCE_REGEN),
+    var_field("force_regen_support", GRP_FORCE, "Reinforcement Schedule", "force_regeneration", "reinforcement", "support_size",
+              "Reinforcement Size — Support", "Support personnel added to the effective force pool on each reinforcement interval (ignored if the interval is 0).",
+              type = "integer", min = 0, max = 5000, step = 10, source = SRC_FORCE_REGEN)
   ))
 
   # ── Casualty Rates ──────────────────────────────────────────────────────

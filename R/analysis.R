@@ -910,6 +910,60 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     write.csv(r2e_icu_gating_daily, file.path(output_dir, "r2e_icu_gating_daily.csv"), row.names = FALSE)
   }
 
+  # ── Force regeneration — effective force size over time (Issue #18) ──
+  # Visualises effective_force_combat/effective_force_support (simmer
+  # globals set in run_once(), R/replication.R; debited/credited in
+  # R/trajectories.R) across the run: debited at each casualty's
+  # injury_time, credited at each RTD event, and stepped up by any
+  # configured reinforcement schedule (env_data.json
+  # force_regeneration.reinforcement). A flat line at the dashed initial
+  # establishment strength means casualty production and RTD/reinforcement
+  # regeneration are in balance; a declining line shows net depletion.
+  force_regeneration_plot  <- NULL
+  force_regeneration_daily <- NULL
+
+  force_keys <- c("effective_force_combat", "effective_force_support")
+  if (any(force_keys %in% attributes_raw$key)) {
+    force_regeneration_daily <- attributes_raw %>%
+      filter(key %in% force_keys) %>%
+      transmute(
+        replication,
+        day   = time / 1440,
+        pool  = recode(key,
+                        effective_force_combat  = "Combat",
+                        effective_force_support = "Support"),
+        value = as.numeric(value)
+      ) %>%
+      arrange(replication, pool, day)
+
+    initial_force <- data.frame(
+      pool  = c("Combat", "Support"),
+      value = c(env_data$pops$combat, env_data$pops$support)
+    )
+
+    force_regeneration_plot <- ggplot(force_regeneration_daily, aes(x = day, y = value, color = pool)) +
+      geom_step() +
+      geom_hline(data = initial_force, aes(yintercept = value, color = pool),
+                 linetype = "dashed", alpha = 0.5) +
+      scale_color_manual(values = c("Combat" = "#2a78d6", "Support" = "#D62828")) +
+      labs(
+        title    = "Effective Force Size Over Time",
+        subtitle = "Solid = live effective force size (debited at injury, credited at RTD/reinforcement); dashed = initial establishment strength",
+        x = "Simulation Day", y = "Effective Force Size", color = "Pool"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(legend.position = "bottom")
+
+    if (n_distinct(force_regeneration_daily$replication) > 1) {
+      force_regeneration_plot <- force_regeneration_plot + facet_wrap(~ replication, ncol = 1)
+    }
+
+    ggsave(file.path(images_dir, "force_regeneration.png"), force_regeneration_plot,
+           width = 12, height = 6, dpi = 150)
+
+    write.csv(force_regeneration_daily, file.path(output_dir, "force_regeneration.csv"), row.names = FALSE)
+  }
+
   # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
   # mass_casualty_event: 1 = casualty originated from a compound-Poisson
   # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
@@ -1050,7 +1104,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     mass_casualty_events_summary       = mass_casualty_events_summary,
     mass_casualty_event_count          = mass_casualty_event_count,
     mass_casualty_dow_summary          = mass_casualty_dow_summary,
-    mass_casualty_timeline_plot        = mass_casualty_timeline_plot
+    mass_casualty_timeline_plot        = mass_casualty_timeline_plot,
+    force_regeneration_daily           = force_regeneration_daily,
+    force_regeneration_plot            = force_regeneration_plot
   ))
 }
 

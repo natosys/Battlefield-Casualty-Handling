@@ -26,7 +26,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
 - [🌍 Scenario Context](#🌍-scenario-context)
-- [🧰 Resource Descriptions](#�-resource-descriptions)
+- [🧰 Resource Descriptions](#🧰-resource-descriptions)
   - [🏥Health Teams](#🏥health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -1722,6 +1722,12 @@ Under seed 42 (30 days), **148 casualties** were assigned a `return_day` attribu
 ### Force Regeneration Feedback Loop
 
 This section demonstrates the [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop) mechanism (Issue #18): a no-reinforcement run should show declining daily casualty volume as the effective force depletes, and a weekly-reinforcement run should counteract that decline. Because the effect scales with how large casualty production is relative to force size, it is demonstrated here under both the `moderate_intensity` (Falklands-calibrated) baseline and the `high_intensity` (Okinawa exemplar) profile, each averaged across independent replications and fit with an ordinary least-squares trend line against simulation day.
+
+`analyse_run()` (`R/analysis.R`) now always produces a `force_regeneration_plot` — `effective_force_combat`/`effective_force_support` plotted against simulation day, faceted by replication when more than one is present — written to `images/force_regeneration.png`. The seed-42 baseline (no reinforcement, the shipped default) is shown below:
+
+![Effective Force Size Over Time](images/force_regeneration.png)
+
+Both pools decline smoothly and monotonically-in-trend (net depletion outweighing RTD regeneration for most of the run), ending the 30-day run at 2,330 of 2,500 initial combat strength (−6.8%) and 1,176 of 1,250 initial support strength (−5.9%) — small in absolute terms at Falklands-calibrated rates, exactly as the mechanically-real-but-modest effect the trend table below quantifies statistically.
 
 | Scenario | Reinforcement | Daily volume slope | p-value | First-week mean | Last-week mean |
 |---|---|---|---|---|---|

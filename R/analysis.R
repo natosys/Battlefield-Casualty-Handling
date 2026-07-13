@@ -1448,13 +1448,80 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank())
 
+  # ── Force regeneration — effective force size, mean ± CI across reps (Issue #18) ──
+  # Same step-interpolate-onto-a-day-grid approach as bin_queue_ci() above,
+  # applied to the two force-size globals instead of resource queues, since
+  # get_mon_attributes() records them at irregular event times (each
+  # debit/credit), not on a fixed grid.
+  p_force_regeneration_ci  <- NULL
+  force_regeneration_ci    <- NULL
+  force_keys <- c("effective_force_combat", "effective_force_support")
+
+  if (any(force_keys %in% attributes_raw$key)) {
+    force_raw <- attributes_raw %>%
+      filter(key %in% force_keys) %>%
+      transmute(
+        replication, time,
+        pool  = recode(key, effective_force_combat = "Combat", effective_force_support = "Support"),
+        value = as.numeric(value)
+      )
+
+    force_day_bins <- seq(0, max(force_raw$time, na.rm = TRUE), by = 1440)
+    force_binned <- force_raw %>%
+      group_by(replication, pool) %>%
+      group_modify(function(d, key) {
+        v <- approx(d$time, d$value, xout = force_day_bins, method = "constant", rule = 2)$y
+        data.frame(bin_day = force_day_bins / 1440, value = v)
+      }) %>%
+      ungroup()
+
+    force_regeneration_ci <- force_binned %>%
+      group_by(pool, bin_day) %>%
+      summarise(n = n(), mean_v = mean(value), sd_v = sd(value), .groups = "drop") %>%
+      mutate(
+        sd_v     = ifelse(n < 2 | is.na(sd_v), 0, sd_v),
+        ci_lower = pmax(mean_v - qt(0.975, df = pmax(n - 1, 1)) * sd_v / sqrt(n), 0),
+        ci_upper = mean_v + qt(0.975, df = pmax(n - 1, 1)) * sd_v / sqrt(n)
+      )
+
+    force_initial <- data.frame(
+      pool  = c("Combat", "Support"),
+      value = c(env_data$pops$combat, env_data$pops$support)
+    )
+
+    p_force_regeneration_ci <- ggplot() +
+      geom_line(data = force_binned,
+                aes(x = bin_day, y = value, group = interaction(replication, pool), color = pool),
+                alpha = 0.06) +
+      geom_ribbon(data = force_regeneration_ci,
+                  aes(x = bin_day, ymin = ci_lower, ymax = ci_upper, fill = pool), alpha = 0.3) +
+      geom_line(data = force_regeneration_ci, aes(x = bin_day, y = mean_v, color = pool), linewidth = 1) +
+      geom_hline(data = force_initial, aes(yintercept = value, color = pool),
+                 linetype = "dashed", alpha = 0.5) +
+      scale_color_manual(values = c("Combat" = "#2a78d6", "Support" = "#D62828")) +
+      scale_fill_manual(values = c("Combat" = "#2a78d6", "Support" = "#D62828")) +
+      labs(
+        title    = "Effective Force Size Over Time — Mean ± 95% CI Across Replications",
+        subtitle = sprintf("%d replications; faint traces are individual replications; dashed = initial establishment strength", n_reps),
+        x = "Simulation Day", y = "Effective Force Size", color = "Pool", fill = "Pool"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "force_regeneration_multirun.png"), p_force_regeneration_ci,
+           width = 12, height = 6, dpi = 150)
+    write.csv(force_regeneration_ci, file.path(output_dir, "force_regeneration_ci.csv"), row.names = FALSE)
+  }
+
   invisible(list(
-    casualty_flow  = p_casualty_flow_ci,
-    r1_queues      = p_r1_queues_ci,
-    r2b_bed_queues = p_r2b_queues_ci,
-    r2e_bed_queues = p_r2e_queues_ci,
-    utilisation    = p_utilisation_ci,
-    waiting_times  = p_waiting_times_ci,
+    casualty_flow       = p_casualty_flow_ci,
+    r1_queues           = p_r1_queues_ci,
+    r2b_bed_queues      = p_r2b_queues_ci,
+    r2e_bed_queues      = p_r2e_queues_ci,
+    utilisation         = p_utilisation_ci,
+    waiting_times       = p_waiting_times_ci,
+    force_regeneration_plot  = p_force_regeneration_ci,
+    force_regeneration_daily = force_regeneration_ci,
     kpi_summary    = kpi_summary,
     n_reps         = n_reps,
     arrivals       = arrivals_raw,

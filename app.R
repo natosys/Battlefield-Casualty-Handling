@@ -955,29 +955,36 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' @param mort2e_mode R2E collocated-mortuary local transport mode
 #'   (minutes) — no return leg, since no vehicle asset is used for this
 #'   final in-place movement.
-#' @param ame_standard_capacity,ame_critical_capacity Casualties carried per
-#'   successful sortie on the standard (Hold-bed, Casualty Staging
-#'   Unit-equivalent) and critical (ICU-bed, CCATT/CCAST-supported) AME
-#'   pools respectively (Issue #23 follow-up) — two independently
-#'   configurable "aircraft configurations" sharing one sortie schedule
-#'   (e.g. 20 standard/0 critical for an all-routine sortie, or 8
-#'   standard/2 critical when a CCATT/CCAST team is aboard).
+#' @param ame_config_a_critical,ame_config_a_standard,ame_config_b_critical,ame_config_b_standard
+#'   Critical (ICU-bed, CCATT/CCAST-supported) and standard (Hold-bed,
+#'   Casualty Staging Unit-equivalent) capacity per successful sortie for
+#'   each of two independently configurable, planner-named "aircraft
+#'   configurations" (Issue #23 second follow-up) — e.g. Configuration A =
+#'   2 critical/8 standard when a CCATT/CCAST team is aboard, Configuration
+#'   B = 0 critical/20 standard for an all-routine sortie. Both share one
+#'   sortie schedule; the simulation flies whichever configuration
+#'   minimises total unmet need across both pools at each scheduled
+#'   opportunity (build_ame_sortie_trajectory(), R/trajectories.R).
 #' @param ame_schedule_interval Days between scheduled AME sortie
-#'   opportunities (both pools share this schedule).
+#'   opportunities (both configurations share this schedule).
 #' @param ame_failure_probability Probability a scheduled sortie is
-#'   cancelled, carrying zero capacity on both pools that cycle.
+#'   cancelled, carrying zero capacity regardless of which configuration
+#'   would otherwise have flown.
 evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                                mort2e_mode, ame_standard_capacity = NA,
-                                ame_critical_capacity = NA,
+                                mort2e_mode, ame_config_a_critical = NA,
+                                ame_config_a_standard = NA,
+                                ame_config_b_critical = NA,
+                                ame_config_b_standard = NA,
                                 ame_schedule_interval = NA,
                                 ame_failure_probability = NA) {
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
   fmt_pct <- function(x) if (is.null(x) || is.na(x)) "?" else paste0(round(x * 100), "%")
+  fmt_cfg <- function(a, b) sprintf("A=%s/B=%s", fmt(a), fmt(b))
 
   width <- 300
   y     <- c(20, 130, 240, 350)
   cx    <- width / 2
-  height <- y[4] + 26
+  height <- y[4] + 44
 
   node <- function(y, label, sub) {
     tagList(
@@ -1020,8 +1027,12 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
   }
 
   ame_schedule_note <- function(y) {
-    tags$text(x = cx, y = y + 26, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
-               sprintf("Every %s d · %s cancelled", fmt(ame_schedule_interval), fmt_pct(ame_failure_probability)))
+    tagList(
+      tags$text(x = cx, y = y + 26, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
+                 sprintf("Every %s d · %s cancelled", fmt(ame_schedule_interval), fmt_pct(ame_failure_probability))),
+      tags$text(x = cx, y = y + 37, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
+                 "Config flown minimises total unmet demand")
+    )
   }
 
   tags$svg(
@@ -1041,11 +1052,11 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
         sprintf("HX240M (mortuary): %s min", fmt(kia2_mode)),
         "+ dead-heading return"),
     leg(y[3], y[4], -1, "#6f42c1",
-        sprintf("Critical (ICU): %s/sortie", fmt(ame_critical_capacity)),
-        "CCATT/CCAST-supported"),
+        sprintf("Critical: %s/sortie", fmt_cfg(ame_config_a_critical, ame_config_b_critical)),
+        "ICU, CCATT/CCAST"),
     leg(y[3], y[4], 1, "#17a2b8",
-        sprintf("Standard (Hold): %s/sortie", fmt(ame_standard_capacity)),
-        "Casualty Staging Unit"),
+        sprintf("Standard: %s/sortie", fmt_cfg(ame_config_a_standard, ame_config_b_standard)),
+        "Hold, CSU-equivalent"),
 
     mortuary_marker(y[3], mort2e_mode),
     ame_schedule_note(y[4]),
@@ -1061,8 +1072,10 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
 medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                             mort2e_mode, ame_standard_capacity = NA,
-                             ame_critical_capacity = NA,
+                             mort2e_mode, ame_config_a_critical = NA,
+                             ame_config_a_standard = NA,
+                             ame_config_b_critical = NA,
+                             ame_config_b_standard = NA,
                              ame_schedule_interval = NA,
                              ame_failure_probability = NA) {
   tagList(
@@ -1080,10 +1093,11 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
       " KIA reaching R2E (whether dying there, or arriving by road from R1 or R2B) travel no further — the ⚱ marker is a local transfer to the collocated R2E mortuary, not a cross-echelon vehicle leg.",
       " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical strategic AME (ICU bed → AME, CCATT/CCAST-supported)"),
       "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard strategic AME (Hold bed → AME, Casualty Staging Unit-equivalent)"),
-      " (Issue #23 follow-up) — a Priority 1 casualty who has had surgery holds an ICU bed and boards the critical pool; everyone else holds a Hold bed and boards the standard pool. Both pools share one scheduled sortie, are seized permanently (never released) once boarded, and their per-sortie capacities and cadence are independently configurable in the Strategic AME group above — the note beneath the AME node shows the current sortie interval and cancellation probability.",
+      " (Issue #23 second follow-up) — a Priority 1 casualty who has had surgery holds an ICU bed and boards the critical pool; everyone else holds a Hold bed and boards the standard pool. Both pools are seized permanently (never released) once boarded. Each leg's label shows both planner-defined aircraft configurations' capacity for that pool (\"A=…/B=…\", editable in the Strategic AME group above); at each scheduled sortie the simulation flies whichever configuration minimises total casualties left waiting across both pools, not a fixed split — the note beneath the AME node states this rule alongside the current sortie interval and cancellation probability.",
       " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
     evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
-                        ame_standard_capacity, ame_critical_capacity,
+                        ame_config_a_critical, ame_config_a_standard,
+                        ame_config_b_critical, ame_config_b_standard,
                         ame_schedule_interval, ame_failure_probability)
   )
 }
@@ -1812,8 +1826,10 @@ server <- function(input, output, session) {
       wia2_mode = input$r2b_wia_transport_mode %||% 0,
       kia2_mode = input$r2b_kia_transport_mode %||% 0,
       mort2e_mode = input$r2e_kia_transport_mode %||% 0,
-      ame_standard_capacity   = input$ame_standard_capacity   %||% 0,
-      ame_critical_capacity   = input$ame_critical_capacity   %||% 0,
+      ame_config_a_critical   = input$ame_config_a_critical   %||% 0,
+      ame_config_a_standard   = input$ame_config_a_standard   %||% 0,
+      ame_config_b_critical   = input$ame_config_b_critical   %||% 0,
+      ame_config_b_standard   = input$ame_config_b_standard   %||% 0,
       ame_schedule_interval   = input$ame_schedule_interval   %||% 0,
       ame_failure_probability = input$ame_failure_probability %||% 0
     )

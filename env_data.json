@@ -850,10 +850,22 @@
         {
           "acty": "ame",
           "vals": [
-            { "var": "standard_capacity_per_sortie", "val": 20 },
-            { "var": "critical_capacity_per_sortie", "val": 4 },
-            { "var": "schedule_interval_days",        "val": 3 },
-            { "var": "failure_probability",          "val": 0.15 }
+            { "var": "schedule_interval_days", "val": 3 },
+            { "var": "failure_probability",    "val": 0.15 }
+          ]
+        },
+        {
+          "acty": "ame_config_a",
+          "vals": [
+            { "var": "critical_capacity", "val": 2 },
+            { "var": "standard_capacity", "val": 8 }
+          ]
+        },
+        {
+          "acty": "ame_config_b",
+          "vals": [
+            { "var": "critical_capacity", "val": 0 },
+            { "var": "standard_capacity", "val": 20 }
           ]
         }
       ]

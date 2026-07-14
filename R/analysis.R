@@ -121,11 +121,13 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
 #'
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
 #'   `combined`); must include r2e_evac, evacuation_decision_day, replication
-#' @param ame_capacity Casualties per AME sortie — the caller passes
-#'   combined standard + critical throughput
-#'   (`env_data$vars$role4$ame$standard_capacity_per_sortie +
-#'   critical_capacity_per_sortie`), since this baseline does not
-#'   distinguish acuity/route
+#' @param ame_capacity Casualties per AME sortie — the caller passes the
+#'   larger of the two planner-defined configurations' combined standard +
+#'   critical throughput (`max(ame_config_a$critical_capacity +
+#'   ame_config_a$standard_capacity, ame_config_b$critical_capacity +
+#'   ame_config_b$standard_capacity)`, Issue #23 second follow-up), since
+#'   this baseline does not distinguish acuity/route and is meant to
+#'   represent same-day, uncapped best-case throughput
 #' @return Tidy data frame with columns replication, day, evacuation_count,
 #'   sorties_required — a derived planning metric
 #'   (`ceiling(evacuation_count / ame_capacity)`), not a simulated resource
@@ -1220,12 +1222,19 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   if (!is.null(env_data$vars$role4)) {
     role4_params <- env_data$vars$role4
-    # Total per-sortie throughput across both AME pools (Issue #23
-    # follow-up): the unconstrained baseline (compute_ame_demand()) does
-    # not distinguish acuity/route, so it compares against combined
-    # standard + critical capacity rather than either pool alone.
-    ame_capacity <- role4_params$ame$standard_capacity_per_sortie +
-      role4_params$ame$critical_capacity_per_sortie
+    # Best-case per-sortie throughput across the two planner-defined
+    # aircraft configurations (Issue #23 second follow-up): the real
+    # sortie schedule flies whichever configuration minimises total unmet
+    # need at each opportunity (build_ame_sortie_trajectory(),
+    # R/trajectories.R), so no single fixed per-sortie total exists. The
+    # unconstrained baseline (compute_ame_demand()) does not distinguish
+    # acuity/route, so it compares against the larger of the two
+    # configurations' combined standard + critical capacity — same-day,
+    # uncapped, best-case throughput.
+    ame_capacity <- max(
+      role4_params$ame_config_a$critical_capacity + role4_params$ame_config_a$standard_capacity,
+      role4_params$ame_config_b$critical_capacity + role4_params$ame_config_b$standard_capacity
+    )
     role4_daily_by_rep <- compute_role4_census(combined, role4_params)
     ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
   }

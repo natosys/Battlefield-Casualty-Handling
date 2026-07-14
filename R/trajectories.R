@@ -1901,15 +1901,33 @@ build_reinforcement_trajectory <- function() {
 # team (CCAST) "augment[s] the standard aeromedical evacuation crew" on the
 # same sortie to provide in-transit critical care for patients who still
 # need it, "limited by capacity" — modelled as the smaller "ame_critical"
-# pool. Both pools are added to (or both withheld, on a cancelled sortie)
-# by the same generator firing, since CCATT/CCAST augments the standard
-# crew rather than flying a separate mission.
+# pool.
+#
+# Aircraft configuration selection (Issue #23 second follow-up): a real
+# AME sortie flies one fixed loadout, not an arbitrary capacity pair — a
+# CCATT/CCAST-augmented aircraft trades standard litter/seat slots for
+# critical-care equipment and crew, so more critical capacity means less
+# standard capacity on the same airframe. The planner defines exactly two
+# named loadouts (env_data$vars$role4$ame_config_a / ame_config_b, each a
+# {critical_capacity, standard_capacity} pair), and at each scheduled
+# sortie opportunity the simulation selects whichever loadout minimises
+# total unmet need — casualties who would still be left queued after that
+# loadout's capacity is applied to both pools, summed across both pools:
+#   unmet(config) = max(0, queue("ame_critical") - config$critical_capacity) +
+#                   max(0, queue("ame")          - config$standard_capacity)
+# Ties (including the common zero-backlog case) resolve to ame_config_a.
+# This is deliberately a backlog-*minimising* choice rather than a
+# backlog-*proportional* one — it can select the standard-only loadout
+# even with some critical casualties queued, if doing so cumulatively
+# clears more total casualties than the critical-capable loadout would.
+# See MODEL ASSUMPTION — AME Configuration Selection Rule in the README.
 
 #' Builds the AME sortie trajectory: one firing = one scheduled sortie
-#' opportunity, which either adds capacity to both the "ame" (standard) and
-#' "ame_critical" (CCATT/CCAST-supported) resources (success) or does
-#' nothing to either (cancelled — weather, tasking, airframe availability,
-#' etc.)
+#' opportunity, which either flies one of two planner-defined aircraft
+#' configurations — adding that configuration's capacity to both the
+#' "ame" (standard) and "ame_critical" (CCATT/CCAST-supported) resources —
+#' or is cancelled (weather, tasking, airframe availability, etc.) and
+#' adds nothing to either.
 #'
 #' @return A simmer trajectory
 #'
@@ -1928,6 +1946,16 @@ build_reinforcement_trajectory <- function() {
 #'   rather than being wasted the way a real aircraft's empty seats would
 #'   be once it departs.
 build_ame_sortie_trajectory <- function() {
+  select_ame_configuration <- function() {
+    configs <- list(env_data$vars$role4$ame_config_a, env_data$vars$role4$ame_config_b)
+    q_critical <- get_queue_size(env, "ame_critical")
+    q_standard <- get_queue_size(env, "ame")
+    unmet <- sapply(configs, function(cfg) {
+      max(0, q_critical - cfg$critical_capacity) + max(0, q_standard - cfg$standard_capacity)
+    })
+    which.min(unmet)
+  }
+
   trajectory("AME Sortie") %>%
     branch(
       option = function() {
@@ -1936,8 +1964,16 @@ build_ame_sortie_trajectory <- function() {
       },
       continue = TRUE,
       trajectory("Sortie Flies") %>%
-        set_capacity("ame", value = env_data$vars$role4$ame$standard_capacity_per_sortie, mod = "+") %>%
-        set_capacity("ame_critical", value = env_data$vars$role4$ame$critical_capacity_per_sortie, mod = "+"),
+        branch(
+          option = select_ame_configuration,
+          continue = TRUE,
+          trajectory("Configuration A") %>%
+            set_capacity("ame", value = env_data$vars$role4$ame_config_a$standard_capacity, mod = "+") %>%
+            set_capacity("ame_critical", value = env_data$vars$role4$ame_config_a$critical_capacity, mod = "+"),
+          trajectory("Configuration B") %>%
+            set_capacity("ame", value = env_data$vars$role4$ame_config_b$standard_capacity, mod = "+") %>%
+            set_capacity("ame_critical", value = env_data$vars$role4$ame_config_b$critical_capacity, mod = "+")
+        ),
       trajectory("Sortie Cancelled")
     )
 }

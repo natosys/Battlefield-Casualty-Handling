@@ -955,14 +955,29 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' @param mort2e_mode R2E collocated-mortuary local transport mode
 #'   (minutes) — no return leg, since no vehicle asset is used for this
 #'   final in-place movement.
+#' @param ame_standard_capacity,ame_critical_capacity Casualties carried per
+#'   successful sortie on the standard (Hold-bed, Casualty Staging
+#'   Unit-equivalent) and critical (ICU-bed, CCATT/CCAST-supported) AME
+#'   pools respectively (Issue #23 follow-up) — two independently
+#'   configurable "aircraft configurations" sharing one sortie schedule
+#'   (e.g. 20 standard/0 critical for an all-routine sortie, or 8
+#'   standard/2 critical when a CCATT/CCAST team is aboard).
+#' @param ame_schedule_interval Days between scheduled AME sortie
+#'   opportunities (both pools share this schedule).
+#' @param ame_failure_probability Probability a scheduled sortie is
+#'   cancelled, carrying zero capacity on both pools that cycle.
 evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                                mort2e_mode) {
+                                mort2e_mode, ame_standard_capacity = NA,
+                                ame_critical_capacity = NA,
+                                ame_schedule_interval = NA,
+                                ame_failure_probability = NA) {
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
+  fmt_pct <- function(x) if (is.null(x) || is.na(x)) "?" else paste0(round(x * 100), "%")
 
   width <- 300
-  y     <- c(20, 130, 240)
+  y     <- c(20, 130, 240, 350)
   cx    <- width / 2
-  height <- y[3] + 26
+  height <- y[4] + 26
 
   node <- function(y, label, sub) {
     tagList(
@@ -1004,6 +1019,11 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
     )
   }
 
+  ame_schedule_note <- function(y) {
+    tags$text(x = cx, y = y + 26, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
+               sprintf("Every %s d · %s cancelled", fmt(ame_schedule_interval), fmt_pct(ame_failure_probability)))
+  }
+
   tags$svg(
     xmlns = "http://www.w3.org/2000/svg", viewBox = sprintf("0 0 %d %d", width, height),
     style = sprintf("width:100%%; max-width:%dpx; height:%dpx; display:block;", width, height),
@@ -1020,12 +1040,20 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
     leg(y[2], y[3], 1, "#922b21",
         sprintf("HX240M (mortuary): %s min", fmt(kia2_mode)),
         "+ dead-heading return"),
+    leg(y[3], y[4], -1, "#6f42c1",
+        sprintf("Critical (ICU): %s/sortie", fmt(ame_critical_capacity)),
+        "CCATT/CCAST-supported"),
+    leg(y[3], y[4], 1, "#17a2b8",
+        sprintf("Standard (Hold): %s/sortie", fmt(ame_standard_capacity)),
+        "Casualty Staging Unit"),
 
     mortuary_marker(y[3], mort2e_mode),
+    ame_schedule_note(y[4]),
 
     node(y[1], "R1", "Forward Aid Post"),
     node(y[2], "R2B", "Battalion Aid Post"),
-    node(y[3], "R2E", "Field Hospital")
+    node(y[3], "R2E", "Field Hospital"),
+    node(y[4], "AME", "Strategic Evac (Role 4)")
   )
 }
 
@@ -1033,7 +1061,10 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
 medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                             mort2e_mode) {
+                             mort2e_mode, ame_standard_capacity = NA,
+                             ame_critical_capacity = NA,
+                             ame_schedule_interval = NA,
+                             ame_failure_probability = NA) {
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
     p(class = "text-muted", style = "font-size:11px;",
@@ -1047,8 +1078,13 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
       " R2B is bypassed to R2E two ways, both reusing the R1→R2B leg time or the green evacuation step already shown rather than drawing a new leg: upstream, before transport starts, if every R2B team's OT beds are fully occupied (",
       tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
       " KIA reaching R2E (whether dying there, or arriving by road from R1 or R2B) travel no further — the ⚱ marker is a local transfer to the collocated R2E mortuary, not a cross-echelon vehicle leg.",
+      " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical strategic AME (ICU bed → AME, CCATT/CCAST-supported)"),
+      "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard strategic AME (Hold bed → AME, Casualty Staging Unit-equivalent)"),
+      " (Issue #23 follow-up) — a Priority 1 casualty who has had surgery holds an ICU bed and boards the critical pool; everyone else holds a Hold bed and boards the standard pool. Both pools share one scheduled sortie, are seized permanently (never released) once boarded, and their per-sortie capacities and cadence are independently configurable in the Strategic AME group above — the note beneath the AME node shows the current sortie interval and cancellation probability.",
       " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
-    evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode)
+    evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
+                        ame_standard_capacity, ame_critical_capacity,
+                        ame_schedule_interval, ame_failure_probability)
   )
 }
 
@@ -1775,7 +1811,11 @@ server <- function(input, output, session) {
       kia1_mode = input$r1_kia_transport_mode  %||% 0,
       wia2_mode = input$r2b_wia_transport_mode %||% 0,
       kia2_mode = input$r2b_kia_transport_mode %||% 0,
-      mort2e_mode = input$r2e_kia_transport_mode %||% 0
+      mort2e_mode = input$r2e_kia_transport_mode %||% 0,
+      ame_standard_capacity   = input$ame_standard_capacity   %||% 0,
+      ame_critical_capacity   = input$ame_critical_capacity   %||% 0,
+      ame_schedule_interval   = input$ame_schedule_interval   %||% 0,
+      ame_failure_probability = input$ame_failure_probability %||% 0
     )
   })
   # Left at the default suspendWhenHidden = TRUE (Issue #77) — same

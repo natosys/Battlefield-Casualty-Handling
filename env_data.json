@@ -850,7 +850,7 @@
         {
           "acty": "ame",
           "vals": [
-            { "var": "schedule_interval_days", "val": 3 },
+            { "var": "schedule_interval_days", "val": 7 },
             { "var": "failure_probability",    "val": 0.15 }
           ]
         },

@@ -196,6 +196,7 @@ SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Issue #9 Recommended Approach, informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
 SRC_MASS_CASUALTY_PRI <- "Issue #9 Recommended Approach (blast-dominant injury pattern, ~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_AME_SCHEDULE      <- "Issue #23 follow-up. AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence, failure rate, or per-pool patient capacity — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 
 #' Build a single field spec, optionally borrowing Morris screening bounds
 #'
@@ -648,6 +649,28 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2e_kia_transport", GRP_LOGISTICS, "R2E — KIA Transport", "r2eheavy", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
+
+  # ── Medevac: Strategic AME (Issue #23 follow-up) ────────────────────────
+  # Two independently-sized capacity pools sharing one sortie schedule — a
+  # Priority 1 surgical evacuee (ICU bed) queues on the smaller critical
+  # pool (CCATT/CCAST-supported), everyone else (Hold bed) queues on the
+  # larger standard pool (Casualty Staging Unit-equivalent). See README
+  # Role 4 (National Support Base) Demand Modelling for the AJP-4.10(B)
+  # basis for this split.
+  registry <- c(registry, list(
+    var_field("ame_schedule_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "schedule_interval_days",
+              "Sortie Interval (days)", "Days between scheduled strategic AME sortie opportunities. Every strategic evacuee queues indefinitely if this exceeds the run length or is set to 0 — AME never opens.",
+              type = "integer", min = 1, max = 30, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_failure_probability", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "failure_probability",
+              "Sortie Cancellation Probability", "Probability any given scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity on both pools that cycle.",
+              min = 0, max = 1, step = 0.01, source = SRC_AME_SCHEDULE, slider = TRUE),
+    var_field("ame_standard_capacity", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "standard_capacity_per_sortie",
+              "Standard Pool Capacity per Sortie", "Casualties carried on the standard pool per successful sortie — Casualty Staging Unit-equivalent evacuees (Hold bed while awaiting AME): everyone except Priority 1 surgical.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_critical_capacity", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "critical_capacity_per_sortie",
+              "Critical Pool Capacity per Sortie", "Casualties carried on the critical (CCATT/CCAST-supported) pool per successful sortie — Priority 1 surgical evacuees only (ICU bed while awaiting AME). Deliberately smaller than the standard pool: moving even one or two such patients can consume most of this pool's capacity for that sortie.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE)
+  ))
 
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
   registry <- c(registry, list(

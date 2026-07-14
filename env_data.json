@@ -851,7 +851,8 @@
           "acty": "ame",
           "vals": [
             { "var": "schedule_interval_days", "val": 7 },
-            { "var": "failure_probability",    "val": 0.15 }
+            { "var": "failure_probability",    "val": 0.15 },
+            { "var": "dow_check_interval",     "val": 1440 }
           ]
         },
         {

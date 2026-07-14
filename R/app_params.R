@@ -680,7 +680,10 @@ build_param_registry <- function() {
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
     var_field("ame_config_b_standard", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_b", "standard_capacity",
               "Configuration B — Standard Capacity per Sortie", "Standard (Casualty Staging Unit-equivalent, Hold-bed) casualties carried if Configuration B flies.",
-              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE)
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
+              "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint.",
+              type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
   ))
 
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────

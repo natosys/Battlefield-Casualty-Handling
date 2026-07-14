@@ -1193,6 +1193,84 @@ r2e_treat_wia <- function(team_id) {
     }) %>%
     join(r2e_surgery_icu_path)
 
+  # Strategic-Evac AME-wait DOW poll (Issue #23 third follow-up): mirrors
+  # r2e_post_op_dow_check's conditional-increment DOW roll (same
+  # dow_prob_conditional() formula, same priority-based parameters and
+  # dow_ceiling), but polled on an interval (role4.ame.dow_check_interval)
+  # while queued for "ame"/"ame_critical" rather than checked once at a
+  # fixed transition point — the AME wait itself is unbounded, and unlike
+  # every earlier checkpoint (which precedes a further step that would
+  # otherwise price in delay-accrued risk), this is the last checkpoint in
+  # the casualty's journey: without this poll, a casualty who reached
+  # Strategic Evac faced zero further mortality risk regardless of how
+  # long the subsequent AME wait was. See README Died of Wounds — AME Wait
+  # Checkpoint.
+  #
+  # Availability is checked immediately on entry — if capacity is already
+  # free, boarding proceeds with no artificial minimum wait, matching a
+  # plain seize()'s fast path exactly. Only if unavailable does the
+  # casualty enter the poll loop: wait dow_check_interval minutes, roll
+  # DOW, then (if surviving) re-check availability via rollback()'s
+  # `check` and loop again if still unavailable — the same
+  # timeout-then-rollback polling pattern used for R2E OT-ICU gating
+  # deferral (icu_gating$defer_check_interval, above). dow_echelon = 5
+  # distinguishes this checkpoint from the R2E post-operative check
+  # (dow_echelon = 4).
+  ame_dow_poll <- function(resource_name, bed_id) {
+    trajectory("Awaiting AME — DOW Poll") %>%
+      timeout(function() env_data$vars$role4$ame$dow_check_interval, tag = "ame_dow_poll_start") %>%
+      branch(
+        option = function() {
+          injury  <- get_attribute(env, "injury_time")
+          t_prev  <- get_attribute(env, "last_dow_t") - injury
+          t_now   <- now(env) - injury
+          prio    <- get_attribute(env, "priority")
+          dp      <- env_data$vars$dow$params
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (!is.na(prio) && prio == 1) {
+            p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+          } else if (!is.na(prio) && prio == 2) {
+            p <- dow_prob_conditional(t_now, t_prev, dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+          } else {
+            p <- dp$p3_flat
+          }
+          if (runif(1) < p) return(1)
+          return(2)
+        },
+        continue = TRUE,
+        trajectory("Died of Wounds — Awaiting AME") %>%
+          set_attribute("dow", 1) %>%
+          set_attribute("dow_echelon", 5) %>%
+          release_selected(id = bed_id) %>%
+          r2e_treat_kia(team_id, evac_team) %>%
+          r2e_transport_kia(team_id, evac_team) %>%
+          simmer::leave(1),
+        trajectory("Survived Poll Interval")
+      ) %>%
+      set_attribute("last_dow_t", function() now(env)) %>%
+      rollback(target = "ame_dow_poll_start", check = function() {
+        usage <- get_server_count(env, resource_name)
+        cap   <- get_capacity(env, resource_name)
+        !(!is.na(usage) && !is.na(cap) && usage < cap)
+      })
+  }
+
+  ame_wait_and_board <- function(resource_name, bed_id) {
+    trajectory("Awaiting AME") %>%
+      branch(
+        option = function() {
+          usage <- get_server_count(env, resource_name)
+          cap   <- get_capacity(env, resource_name)
+          if (!is.na(usage) && !is.na(cap) && usage < cap) return(2)
+          return(1)
+        },
+        continue = TRUE,
+        ame_dow_poll(resource_name, bed_id),
+        trajectory("Available Immediately")
+      ) %>%
+      seize(resource_name, 1)
+  }
+
   trajectory("R2E Treatment") %>%
     set_attribute("r2e_treated", team_id) %>%
     set_attribute("r2e_handling", 1) %>%
@@ -1361,7 +1439,9 @@ r2e_treat_wia <- function(team_id) {
     #   ICU bed and queue on "ame_critical"; everyone else seizes a Hold
     #   bed and queues on the standard "ame" pool; release the bed only
     #   once actually evacuated, setting ame_departure_time, evacuation_day,
-    #   ame_wait_minutes (Issue #23 follow-up)
+    #   ame_wait_minutes (Issue #23 follow-up). Casualties face a periodic
+    #   DOW poll while queued (Issue #23 third follow-up, ame_dow_poll()
+    #   above).
     branch(
       option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, 1 - env_data$vars$r2eheavy$recovery$in_theatre_rate)),
       continue = TRUE,
@@ -1437,12 +1517,12 @@ r2e_treat_wia <- function(team_id) {
             # strictly in queue (decision) order — no further acuity-based
             # boarding priority beyond the critical/standard split itself
             # is modelled; see README Limitations.
-            seize("ame_critical", 1),
+            join(ame_wait_and_board("ame_critical", 9)),
           trajectory("Await Standard AME — Hold Bed") %>%
             set_attribute("ame_route", 2) %>%
             simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
             seize_selected(id = 9) %>%
-            seize("ame", 1)
+            join(ame_wait_and_board("ame", 9))
         ) %>%
         release_selected(id = 9) %>%
         set_attribute("ame_departure_time", function() now(env)) %>%

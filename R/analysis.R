@@ -900,8 +900,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     )
 
   # KPI 5: DOW count and rate by echelon
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E (post-operative, Issue #43)
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop")
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
+  # (post-operative, Issue #43), 5 = awaiting strategic AME (Issue #23
+  # third follow-up)
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
   total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
   dow_by_echelon <- attributes_wide %>%
     filter(dow == 1 & !is.na(dow_echelon)) %>%

@@ -850,9 +850,10 @@
         {
           "acty": "ame",
           "vals": [
-            { "var": "capacity_per_sortie",   "val": 20 },
-            { "var": "schedule_interval_days", "val": 3 },
-            { "var": "failure_probability",   "val": 0.15 }
+            { "var": "standard_capacity_per_sortie", "val": 20 },
+            { "var": "critical_capacity_per_sortie", "val": 4 },
+            { "var": "schedule_interval_days",        "val": 3 },
+            { "var": "failure_probability",          "val": 0.15 }
           ]
         }
       ]

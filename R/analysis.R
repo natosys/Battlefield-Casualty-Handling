@@ -121,8 +121,11 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
 #'
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
 #'   `combined`); must include r2e_evac, evacuation_decision_day, replication
-#' @param ame_capacity Casualties per AME sortie
-#'   (`env_data$vars$role4$ame$capacity_per_sortie`)
+#' @param ame_capacity Casualties per AME sortie — the caller passes
+#'   combined standard + critical throughput
+#'   (`env_data$vars$role4$ame$standard_capacity_per_sortie +
+#'   critical_capacity_per_sortie`), since this baseline does not
+#'   distinguish acuity/route
 #' @return Tidy data frame with columns replication, day, evacuation_count,
 #'   sorties_required — a derived planning metric
 #'   (`ceiling(evacuation_count / ame_capacity)`), not a simulated resource
@@ -223,7 +226,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
                     "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
                     "treatment_received", "evacuation_day", "ame_departure_time",
-                    "ame_wait_minutes")) {
+                    "ame_wait_minutes", "ame_route")) {
     if (!dow_col %in% names(attributes_wide)) {
       attributes_wide[[dow_col]] <- NA_real_
     }
@@ -1216,8 +1219,13 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ame_replication_summary   <- NULL
 
   if (!is.null(env_data$vars$role4)) {
-    role4_params    <- env_data$vars$role4
-    ame_capacity    <- role4_params$ame$capacity_per_sortie
+    role4_params <- env_data$vars$role4
+    # Total per-sortie throughput across both AME pools (Issue #23
+    # follow-up): the unconstrained baseline (compute_ame_demand()) does
+    # not distinguish acuity/route, so it compares against combined
+    # standard + critical capacity rather than either pool alone.
+    ame_capacity <- role4_params$ame$standard_capacity_per_sortie +
+      role4_params$ame$critical_capacity_per_sortie
     role4_daily_by_rep <- compute_role4_census(combined, role4_params)
     ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
   }
@@ -1339,59 +1347,77 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # ame_demand_daily/ame_summary above are an unconstrained theoretical
   # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
   # schedule entirely). These outputs instead measure the REAL constrained
-  # "ame" simmer resource: wait time from evacuation decision
-  # (r2e_departure_time) to actual boarding (ame_departure_time), and the
-  # backlog of casualties awaiting a sortie over time, from the resource
-  # monitor's queue column.
+  # "ame"/"ame_critical" simmer resources: wait time from evacuation
+  # decision (r2e_departure_time) to actual boarding (ame_departure_time),
+  # decomposed by route (ame_route: 1 = critical/ICU/CCATT-CCAST,
+  # 2 = standard/Hold/Casualty Staging Unit), and the backlog of casualties
+  # awaiting a sortie over time on each pool, from the resource monitor's
+  # queue column.
   ame_wait_time_summary <- NULL
   ame_backlog_plot       <- NULL
 
+  route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
+
   ame_evac_decisions <- combined %>%
-    filter(!is.na(r2e_evac) & r2e_evac == 1)
+    filter(!is.na(r2e_evac) & r2e_evac == 1) %>%
+    mutate(route = route_labels[as.character(ame_route)])
 
   if (nrow(ame_evac_decisions) > 0) {
-    ame_completed <- ame_evac_decisions %>%
-      filter(!is.na(ame_wait_minutes))
+    wait_stats <- function(df) {
+      completed <- df %>% filter(!is.na(ame_wait_minutes))
+      data.frame(
+        n_evacuated       = nrow(completed),
+        n_awaiting        = nrow(df) - nrow(completed),
+        mean_wait_minutes = if (nrow(completed) > 0) mean(completed$ame_wait_minutes) else NA_real_,
+        p10_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.10) else NA_real_,
+        p90_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.90) else NA_real_
+      )
+    }
 
-    ame_wait_time_summary <- data.frame(
-      n_evacuated       = nrow(ame_completed),
-      n_awaiting        = nrow(ame_evac_decisions) - nrow(ame_completed),
-      mean_wait_minutes = if (nrow(ame_completed) > 0) mean(ame_completed$ame_wait_minutes) else NA_real_,
-      p10_wait_minutes  = if (nrow(ame_completed) > 0) quantile(ame_completed$ame_wait_minutes, 0.10) else NA_real_,
-      p90_wait_minutes  = if (nrow(ame_completed) > 0) quantile(ame_completed$ame_wait_minutes, 0.90) else NA_real_
+    ame_wait_time_summary <- bind_rows(
+      data.frame(route = "Overall", wait_stats(ame_evac_decisions)),
+      lapply(setNames(route_labels, route_labels), function(r) {
+        wait_stats(ame_evac_decisions %>% filter(route == r))
+      }) %>%
+        bind_rows(.id = "route")
     )
     write.csv(ame_wait_time_summary, file.path(output_dir, "ame_wait_time_summary.csv"), row.names = FALSE)
 
+    overall <- ame_wait_time_summary %>% filter(route == "Overall")
     cat(sprintf(
       "AME actual performance (Issue #23 follow-up): %d evacuated (mean wait %.1f days, p10-p90 %.1f-%.1f days), %d still awaiting AME at end of run\n",
-      ame_wait_time_summary$n_evacuated,
-      ame_wait_time_summary$mean_wait_minutes / 1440,
-      ame_wait_time_summary$p10_wait_minutes / 1440,
-      ame_wait_time_summary$p90_wait_minutes / 1440,
-      ame_wait_time_summary$n_awaiting
+      overall$n_evacuated, overall$mean_wait_minutes / 1440,
+      overall$p10_wait_minutes / 1440, overall$p90_wait_minutes / 1440,
+      overall$n_awaiting
     ))
   }
 
-  if ("ame" %in% resources$resource) {
+  if (any(c("ame", "ame_critical") %in% resources$resource)) {
     ame_resource_data <- resources %>%
-      filter(resource == "ame") %>%
+      filter(resource %in% c("ame", "ame_critical")) %>%
+      mutate(pool = if_else(resource == "ame_critical",
+                            "Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")) %>%
       arrange(replication, time)
+
+    facet_formula <- if (n_distinct(ame_resource_data$replication) > 1) {
+      ~ pool + replication
+    } else {
+      ~ pool
+    }
 
     ame_backlog_plot <- ggplot(ame_resource_data, aes(x = time / 1440, y = queue)) +
       geom_step(color = "#D62828") +
+      facet_wrap(facet_formula, ncol = if (identical(facet_formula, ~ pool)) 1 else NULL,
+                scales = "free_y") +
       labs(
         title    = "Strategic AME Backlog Over Time",
-        subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed)",
+        subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed) by route",
         x = "Simulation Day", y = "Casualties Awaiting AME"
       ) +
       theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank())
+      theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
 
-    if (n_distinct(ame_resource_data$replication) > 1) {
-      ame_backlog_plot <- ame_backlog_plot + facet_wrap(~ replication, ncol = 1)
-    }
-
-    ggsave(file.path(images_dir, "ame_backlog.png"), ame_backlog_plot, width = 12, height = 6, dpi = 150)
+    ggsave(file.path(images_dir, "ame_backlog.png"), ame_backlog_plot, width = 12, height = 8, dpi = 150)
   }
 
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)

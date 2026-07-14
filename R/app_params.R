@@ -196,6 +196,7 @@ SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Issue #9 Recommended Approach, informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
 SRC_MASS_CASUALTY_PRI <- "Issue #9 Recommended Approach (blast-dominant injury pattern, ~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_AME_SCHEDULE      <- "Issue #23 follow-up. AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence, failure rate, or per-pool patient capacity — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 
 #' Build a single field spec, optionally borrowing Morris screening bounds
 #'
@@ -648,6 +649,42 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2e_kia_transport", GRP_LOGISTICS, "R2E — KIA Transport", "r2eheavy", "kia_transport",
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
+
+  # ── Medevac: Strategic AME (Issue #23 second follow-up) ─────────────────
+  # Two named aircraft configurations (fixed critical/standard capacity
+  # pairs — a CCATT/CCAST-augmented sortie trades standard slots for
+  # critical-care capacity on the same airframe) share one sortie
+  # schedule. At each scheduled opportunity the simulation flies whichever
+  # configuration minimises total unmet need across the critical
+  # (CCATT/CCAST-supported, ICU-bed Priority 1 surgical evacuees) and
+  # standard (Casualty Staging Unit-equivalent, Hold-bed everyone else)
+  # queues — see build_ame_sortie_trajectory(), R/trajectories.R. See
+  # README Role 4 (National Support Base) Demand Modelling for the
+  # AJP-4.10(B) basis for the critical/standard split, and MODEL
+  # ASSUMPTION — AME Configuration Selection Rule for the selection logic.
+  registry <- c(registry, list(
+    var_field("ame_schedule_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "schedule_interval_days",
+              "Sortie Interval (days)", "Days between scheduled strategic AME sortie opportunities. Every strategic evacuee queues indefinitely if this exceeds the run length or is set to 0 — AME never opens.",
+              type = "integer", min = 1, max = 30, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_failure_probability", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "failure_probability",
+              "Sortie Cancellation Probability", "Probability any given scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity, regardless of which configuration would otherwise have flown.",
+              min = 0, max = 1, step = 0.01, source = SRC_AME_SCHEDULE, slider = TRUE),
+    var_field("ame_config_a_critical", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_a", "critical_capacity",
+              "Configuration A — Critical Capacity per Sortie", "Critical (CCATT/CCAST-supported, ICU-bed Priority 1 surgical) casualties carried if Configuration A flies.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_config_a_standard", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_a", "standard_capacity",
+              "Configuration A — Standard Capacity per Sortie", "Standard (Casualty Staging Unit-equivalent, Hold-bed) casualties carried if Configuration A flies.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_config_b_critical", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_b", "critical_capacity",
+              "Configuration B — Critical Capacity per Sortie", "Critical (CCATT/CCAST-supported, ICU-bed Priority 1 surgical) casualties carried if Configuration B flies.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_config_b_standard", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_b", "standard_capacity",
+              "Configuration B — Standard Capacity per Sortie", "Standard (Casualty Staging Unit-equivalent, Hold-bed) casualties carried if Configuration B flies.",
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
+    var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
+              "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint.",
+              type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
+  ))
 
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
   registry <- c(registry, list(

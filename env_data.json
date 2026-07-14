@@ -811,6 +811,65 @@
           ]
         }
       ]
+    },
+    {
+      "elm": "role4",
+      "actys": [
+        {
+          "acty": "los_p1_surgical",
+          "vals": [
+            { "var": "min",  "val": 10 },
+            { "var": "mode", "val": 21 },
+            { "var": "max",  "val": 45 }
+          ]
+        },
+        {
+          "acty": "los_p1_nonsurgical",
+          "vals": [
+            { "var": "min",  "val": 7 },
+            { "var": "mode", "val": 14 },
+            { "var": "max",  "val": 30 }
+          ]
+        },
+        {
+          "acty": "los_p2",
+          "vals": [
+            { "var": "min",  "val": 5 },
+            { "var": "mode", "val": 10 },
+            { "var": "max",  "val": 21 }
+          ]
+        },
+        {
+          "acty": "los_p3_dnbi",
+          "vals": [
+            { "var": "min",  "val": 2 },
+            { "var": "mode", "val": 5 },
+            { "var": "max",  "val": 14 }
+          ]
+        },
+        {
+          "acty": "ame",
+          "vals": [
+            { "var": "schedule_interval_days", "val": 7 },
+            { "var": "failure_probability",    "val": 0.15 },
+            { "var": "dow_check_interval",     "val": 1440 }
+          ]
+        },
+        {
+          "acty": "ame_config_a",
+          "vals": [
+            { "var": "critical_capacity", "val": 2 },
+            { "var": "standard_capacity", "val": 8 }
+          ]
+        },
+        {
+          "acty": "ame_config_b",
+          "vals": [
+            { "var": "critical_capacity", "val": 0 },
+            { "var": "standard_capacity", "val": 20 }
+          ]
+        }
+      ]
     }
   ],
   "scenarios": {

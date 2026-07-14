@@ -11,6 +11,153 @@ library(patchwork)
 library(knitr)
 library(data.table)
 library(RColorBrewer)
+library(triangle)
+
+# ── Role 4 (national support base) demand model (Issue #23) ────────────────
+# Strategically evacuated casualties (r2e_evac == 1) depart the theatre
+# system and are not simulated further. These functions estimate the
+# resulting demand signal at the national support base as a post-simulation
+# calculation over the evacuation event log — Role 4 is modelled as
+# unconstrained demand, not a simmer resource (see README Role 4 sub-section
+# and Limitations).
+
+#' Assigns each strategically evacuated casualty a Role 4 length-of-stay
+#' category and ward, and draws a length of stay from the matching
+#' triangular distribution
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`); must include r2e_evac, injury_type, priority,
+#'   treatment_received, evacuation_day, replication
+#' @param r4_los_params `env_data$vars$role4` list (los_p1_surgical,
+#'   los_p1_nonsurgical, los_p2, los_p3_dnbi, each with min/mode/max in days)
+#' @return `arrivals_log` filtered to r2e_evac == 1, with added columns
+#'   los_category, ward, los_days, r4_admit_day, r4_discharge_day
+#'
+#' @details Length-of-stay category (MODEL ASSUMPTION — Role 4 Ward/LoS
+#'   Category Mapping, see README Role 4 sub-section): DNBI casualties (any
+#'   priority) and Priority 3 WIA share the p3_dnbi category and General
+#'   Ward; Priority 1 casualties split into ICU (if `treatment_received`) or
+#'   Surgical Ward (if not); Priority 2 casualties are assigned Surgical
+#'   Ward. rtriangle() (package `triangle`) only accepts scalar a/b/c, hence
+#'   the row-at-a-time draw (matches the per-entity draw pattern used
+#'   throughout R/trajectories.R).
+assign_role4_los <- function(arrivals_log, r4_los_params) {
+  # evacuation_day requires a completed AME boarding (Issue #23 follow-up)
+  # — r2e_evac == 1 marks the disposition decision, but a casualty can still
+  # be queued awaiting a scheduled sortie at the end of the run (see
+  # ame_wait_minutes/evacuation_day left NA in that case). Only casualties
+  # who actually reached Role 4 have a real admission date to census.
+  role4_evac <- arrivals_log %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1 & !is.na(evacuation_day))
+
+  if (nrow(role4_evac) == 0) return(role4_evac)
+
+  los_lookup <- data.frame(
+    los_category = c("p1_surgical", "p1_nonsurgical", "p2", "p3_dnbi"),
+    los_min  = c(r4_los_params$los_p1_surgical$min,  r4_los_params$los_p1_nonsurgical$min,
+                 r4_los_params$los_p2$min,  r4_los_params$los_p3_dnbi$min),
+    los_mode = c(r4_los_params$los_p1_surgical$mode, r4_los_params$los_p1_nonsurgical$mode,
+                 r4_los_params$los_p2$mode, r4_los_params$los_p3_dnbi$mode),
+    los_max  = c(r4_los_params$los_p1_surgical$max,  r4_los_params$los_p1_nonsurgical$max,
+                 r4_los_params$los_p2$max,  r4_los_params$los_p3_dnbi$max)
+  )
+
+  role4_evac %>%
+    mutate(
+      los_category = case_when(
+        !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
+        !is.na(priority) & priority == 3                             ~ "p3_dnbi",
+        !is.na(priority) & priority == 1 &
+          !is.na(treatment_received) & treatment_received == 1       ~ "p1_surgical",
+        !is.na(priority) & priority == 1                             ~ "p1_nonsurgical",
+        !is.na(priority) & priority == 2                             ~ "p2",
+        TRUE                                                          ~ "p3_dnbi"
+      ),
+      ward = case_when(
+        los_category == "p1_surgical"               ~ "ICU",
+        los_category %in% c("p1_nonsurgical", "p2")  ~ "Surgical Ward",
+        TRUE                                          ~ "General Ward"
+      )
+    ) %>%
+    left_join(los_lookup, by = "los_category") %>%
+    rowwise() %>%
+    mutate(
+      los_days          = rtriangle(1, a = los_min, b = los_max, c = los_mode),
+      r4_admit_day      = evacuation_day,
+      r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
+    ) %>%
+    ungroup() %>%
+    select(-los_min, -los_mode, -los_max)
+}
+
+#' Computes daily Role 4 (national support base) bed occupancy by ward
+#' category (Issue #23)
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`) — see assign_role4_los()
+#' @param r4_los_params `env_data$vars$role4` list — see assign_role4_los()
+#' @return Tidy data frame with columns replication, day, ward, occupancy —
+#'   one row per casualty-occupied ward-day per replication. The caller
+#'   aggregates across replications for display (mean occupancy) and within
+#'   replications for the peak-occupancy multi-run CI (see analyse_run()).
+compute_role4_census <- function(arrivals_log, r4_los_params) {
+  role4_evac <- assign_role4_los(arrivals_log, r4_los_params)
+
+  if (nrow(role4_evac) == 0) {
+    return(data.frame(replication = integer(0), day = integer(0),
+                      ward = character(0), occupancy = integer(0)))
+  }
+
+  role4_evac %>%
+    rowwise() %>%
+    mutate(day = list(seq(r4_admit_day, r4_discharge_day))) %>%
+    unnest(day) %>%
+    ungroup() %>%
+    count(replication, day, ward, name = "occupancy")
+}
+
+#' Computes daily strategic AME (aeromedical evacuation) sortie demand under
+#' an unconstrained-baseline assumption (Issue #23)
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`); must include r2e_evac, evacuation_decision_day, replication
+#' @param ame_capacity Casualties per AME sortie — the caller passes the
+#'   larger of the two planner-defined configurations' combined standard +
+#'   critical throughput (`max(ame_config_a$critical_capacity +
+#'   ame_config_a$standard_capacity, ame_config_b$critical_capacity +
+#'   ame_config_b$standard_capacity)`, Issue #23 second follow-up), since
+#'   this baseline does not distinguish acuity/route and is meant to
+#'   represent same-day, uncapped best-case throughput
+#' @return Tidy data frame with columns replication, day, evacuation_count,
+#'   sorties_required — a derived planning metric
+#'   (`ceiling(evacuation_count / ame_capacity)`), not a simulated resource
+#'   constraint. The caller aggregates across replications for display
+#'   (mean daily count, cumulative sorties) and within replications for the
+#'   total-sorties multi-run CI (see analyse_run()).
+#'
+#' @details Uses `evacuation_decision_day` (when the Strategic Evac
+#'   disposition was decided), not `evacuation_day` (when a casualty
+#'   actually boarded — Issue #23 follow-up, gated by the real scheduled
+#'   "ame" resource). This function models the *unconstrained* theoretical
+#'   demand a same-day sortie capacity would need to clear that day's
+#'   decisions; grouping by the constrained actual departure day would
+#'   circularly smooth demand by the very schedule this baseline is meant
+#'   to be compared against. See analyse_run()'s ame_wait_time_summary and
+#'   ame_backlog_plot for the real constrained-resource outputs.
+compute_ame_demand <- function(arrivals_log, ame_capacity) {
+  role4_evac <- arrivals_log %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1)
+
+  if (nrow(role4_evac) == 0) {
+    return(data.frame(replication = integer(0), day = integer(0),
+                      evacuation_count = integer(0), sorties_required = integer(0)))
+  }
+
+  role4_evac %>%
+    count(replication, evacuation_decision_day, name = "evacuation_count") %>%
+    rename(day = evacuation_decision_day) %>%
+    mutate(sorties_required = ceiling(evacuation_count / ame_capacity))
+}
 
 #' Runs the full analysis and visualisation pipeline on monitoring data
 #'
@@ -72,9 +219,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   # pivot_wider only creates a column for an attribute key when at least one
   # casualty in the run had it set; guard against runs with zero DOW events
-  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43).
+  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43),
+  # zero strategic evacuation decisions (r2e_evac/evacuation_decision_day/
+  # treatment_received — Issue #23), and zero completed AME evacuations
+  # (evacuation_day/ame_departure_time/ame_wait_minutes — Issue #23
+  # follow-up; possible even with r2e_evac == 1 decisions present, in a run
+  # short enough that no scheduled AME sortie has yet occurred).
   for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
-                    "mass_casualty_event")) {
+                    "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
+                    "treatment_received", "evacuation_day", "ame_departure_time",
+                    "ame_wait_minutes", "ame_route")) {
     if (!dow_col %in% names(attributes_wide)) {
       attributes_wide[[dow_col]] <- NA_real_
     }
@@ -746,8 +900,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     )
 
   # KPI 5: DOW count and rate by echelon
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E (post-operative, Issue #43)
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop")
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
+  # (post-operative, Issue #43), 5 = awaiting strategic AME (Issue #23
+  # third follow-up)
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
   total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
   dow_by_echelon <- attributes_wide %>%
     filter(dow == 1 & !is.na(dow_echelon)) %>%
@@ -1052,6 +1208,229 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   write.csv(mass_casualty_dow_summary,    file.path(output_dir, "mass_casualty_dow_summary.csv"),
            row.names = FALSE)
 
+  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
+  # compute_role4_census()/compute_ame_demand() (above) return per-replication
+  # granular tables; this block aggregates them for display (mean across
+  # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
+  # CI (within replications), following the t-distribution CI convention used
+  # by summarise_replications() (R/replication.R).
+  role4_census_daily        <- NULL
+  role4_census_plot         <- NULL
+  role4_summary              <- NULL
+  role4_replication_summary <- NULL
+  ame_demand_daily          <- NULL
+  ame_summary                <- NULL
+  ame_replication_summary   <- NULL
+
+  if (!is.null(env_data$vars$role4)) {
+    role4_params <- env_data$vars$role4
+    # Best-case per-sortie throughput across the two planner-defined
+    # aircraft configurations (Issue #23 second follow-up): the real
+    # sortie schedule flies whichever configuration minimises total unmet
+    # need at each opportunity (build_ame_sortie_trajectory(),
+    # R/trajectories.R), so no single fixed per-sortie total exists. The
+    # unconstrained baseline (compute_ame_demand()) does not distinguish
+    # acuity/route, so it compares against the larger of the two
+    # configurations' combined standard + critical capacity — same-day,
+    # uncapped, best-case throughput.
+    ame_capacity <- max(
+      role4_params$ame_config_a$critical_capacity + role4_params$ame_config_a$standard_capacity,
+      role4_params$ame_config_b$critical_capacity + role4_params$ame_config_b$standard_capacity
+    )
+    role4_daily_by_rep <- compute_role4_census(combined, role4_params)
+    ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
+  }
+
+  if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
+    n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
+    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
+    ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+    # evacuation_day is only set on completed AME boarding (Issue #23
+    # follow-up); r2e_evac == 1 alone would also count casualties still
+    # queued awaiting a sortie at end of run, which have not reached Role 4.
+    total_evacuated   <- sum(!is.na(combined$evacuation_day)) / n_reps_role4
+
+    role4_census_daily <- role4_daily_by_rep %>%
+      group_by(day, ward) %>%
+      # sum()/n_reps_role4 rather than mean(occupancy): a replication with
+      # zero occupants for this (day, ward) has no row at all in
+      # role4_daily_by_rep, so mean() would silently divide by only the
+      # replications that had a nonzero count, biasing the estimate upward.
+      summarise(mean_occupancy = sum(occupancy) / n_reps_role4, .groups = "drop") %>%
+      complete(
+        day  = seq_len(max_discharge_day),
+        ward = ward_levels,
+        fill = list(mean_occupancy = 0)
+      ) %>%
+      mutate(ward = factor(ward, levels = ward_levels)) %>%
+      arrange(day, ward)
+
+    peak_total_daily <- role4_census_daily %>%
+      group_by(day) %>%
+      summarise(total_occupancy = sum(mean_occupancy), .groups = "drop")
+
+    role4_summary <- data.frame(
+      total_evacuated = total_evacuated,
+      peak_occupancy  = max(peak_total_daily$total_occupancy),
+      peak_day        = peak_total_daily$day[which.max(peak_total_daily$total_occupancy)]
+    )
+
+    role4_census_plot <- ggplot(role4_census_daily, aes(x = day, y = mean_occupancy, fill = ward)) +
+      geom_bar(stat = "identity", position = "stack") +
+      geom_vline(xintercept = n_sim_days_role4 + 0.5, linetype = "dotted", color = "gray40") +
+      scale_fill_brewer(palette = "Set2") +
+      scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
+      labs(
+        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
+        subtitle = sprintf(
+          "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
+          role4_summary$total_evacuated, n_sim_days_role4
+        ),
+        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
+           width = 12, height = 6, dpi = 150)
+    write.csv(role4_census_daily, file.path(output_dir, "role4_census_daily.csv"), row.names = FALSE)
+
+    ame_demand_daily <- ame_by_rep %>%
+      group_by(day) %>%
+      summarise(evacuation_count = sum(evacuation_count) / n_reps_role4, .groups = "drop") %>%
+      complete(day = seq_len(n_sim_days_role4), fill = list(evacuation_count = 0)) %>%
+      arrange(day) %>%
+      mutate(
+        sorties_required   = ceiling(evacuation_count / ame_capacity),
+        cumulative_sorties = cumsum(sorties_required)
+      )
+
+    ame_summary <- data.frame(
+      total_sorties      = sum(ame_demand_daily$sorties_required),
+      peak_daily_sorties = max(ame_demand_daily$sorties_required),
+      mean_daily_sorties = mean(ame_demand_daily$sorties_required)
+    )
+
+    write.csv(ame_demand_daily, file.path(output_dir, "ame_demand_daily.csv"), row.names = FALSE)
+
+    cat(sprintf(
+      "Role 4 demand (Issue #23): %.0f reached Role 4 via AME, peak occupancy %.1f (day %d); unconstrained-baseline demand would need %d total AME sorties (capacity %d/sortie)\n",
+      role4_summary$total_evacuated, role4_summary$peak_occupancy, role4_summary$peak_day,
+      ame_summary$total_sorties, ame_capacity
+    ))
+
+    if (n_reps_role4 > 1) {
+      role4_peak_by_rep <- role4_daily_by_rep %>%
+        group_by(replication, day) %>%
+        summarise(total_occupancy = sum(occupancy), .groups = "drop") %>%
+        group_by(replication) %>%
+        summarise(peak_occupancy = max(total_occupancy), .groups = "drop")
+
+      role4_replication_summary <- role4_peak_by_rep %>%
+        summarise(
+          n_reps   = n(),
+          mean_peak_occupancy = mean(peak_occupancy),
+          sd_peak_occupancy   = sd(peak_occupancy),
+          ci_lower = mean_peak_occupancy - qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n()),
+          ci_upper = mean_peak_occupancy + qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n())
+        )
+
+      ame_total_by_rep <- ame_by_rep %>%
+        group_by(replication) %>%
+        summarise(total_sorties = sum(sorties_required), .groups = "drop")
+
+      ame_replication_summary <- ame_total_by_rep %>%
+        summarise(
+          n_reps  = n(),
+          mean_total_sorties = mean(total_sorties),
+          sd_total_sorties   = sd(total_sorties),
+          ci_lower = mean_total_sorties - qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n()),
+          ci_upper = mean_total_sorties + qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n())
+        )
+
+      write.csv(role4_replication_summary, file.path(output_dir, "role4_replication_summary.csv"), row.names = FALSE)
+      write.csv(ame_replication_summary,   file.path(output_dir, "ame_replication_summary.csv"),   row.names = FALSE)
+    }
+  }
+
+  # ── Strategic AME actual performance (Issue #23 follow-up) ──────────────
+  # ame_demand_daily/ame_summary above are an unconstrained theoretical
+  # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
+  # schedule entirely). These outputs instead measure the REAL constrained
+  # "ame"/"ame_critical" simmer resources: wait time from evacuation
+  # decision (r2e_departure_time) to actual boarding (ame_departure_time),
+  # decomposed by route (ame_route: 1 = critical/ICU/CCATT-CCAST,
+  # 2 = standard/Hold/Casualty Staging Unit), and the backlog of casualties
+  # awaiting a sortie over time on each pool, from the resource monitor's
+  # queue column.
+  ame_wait_time_summary <- NULL
+  ame_backlog_plot       <- NULL
+
+  route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
+
+  ame_evac_decisions <- combined %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1) %>%
+    mutate(route = route_labels[as.character(ame_route)])
+
+  if (nrow(ame_evac_decisions) > 0) {
+    wait_stats <- function(df) {
+      completed <- df %>% filter(!is.na(ame_wait_minutes))
+      data.frame(
+        n_evacuated       = nrow(completed),
+        n_awaiting        = nrow(df) - nrow(completed),
+        mean_wait_minutes = if (nrow(completed) > 0) mean(completed$ame_wait_minutes) else NA_real_,
+        p10_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.10) else NA_real_,
+        p90_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.90) else NA_real_
+      )
+    }
+
+    ame_wait_time_summary <- bind_rows(
+      data.frame(route = "Overall", wait_stats(ame_evac_decisions)),
+      lapply(setNames(route_labels, route_labels), function(r) {
+        wait_stats(ame_evac_decisions %>% filter(route == r))
+      }) %>%
+        bind_rows(.id = "route")
+    )
+    write.csv(ame_wait_time_summary, file.path(output_dir, "ame_wait_time_summary.csv"), row.names = FALSE)
+
+    overall <- ame_wait_time_summary %>% filter(route == "Overall")
+    cat(sprintf(
+      "AME actual performance (Issue #23 follow-up): %d evacuated (mean wait %.1f days, p10-p90 %.1f-%.1f days), %d still awaiting AME at end of run\n",
+      overall$n_evacuated, overall$mean_wait_minutes / 1440,
+      overall$p10_wait_minutes / 1440, overall$p90_wait_minutes / 1440,
+      overall$n_awaiting
+    ))
+  }
+
+  if (any(c("ame", "ame_critical") %in% resources$resource)) {
+    ame_resource_data <- resources %>%
+      filter(resource %in% c("ame", "ame_critical")) %>%
+      mutate(pool = if_else(resource == "ame_critical",
+                            "Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")) %>%
+      arrange(replication, time)
+
+    facet_formula <- if (n_distinct(ame_resource_data$replication) > 1) {
+      ~ pool + replication
+    } else {
+      ~ pool
+    }
+
+    ame_backlog_plot <- ggplot(ame_resource_data, aes(x = time / 1440, y = queue)) +
+      geom_step(color = "#D62828") +
+      facet_wrap(facet_formula, ncol = if (identical(facet_formula, ~ pool)) 1 else NULL,
+                scales = "free_y") +
+      labs(
+        title    = "Strategic AME Backlog Over Time",
+        subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed) by route",
+        x = "Simulation Day", y = "Casualties Awaiting AME"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+
+    ggsave(file.path(images_dir, "ame_backlog.png"), ame_backlog_plot, width = 12, height = 8, dpi = 150)
+  }
+
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
@@ -1106,7 +1485,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     mass_casualty_dow_summary          = mass_casualty_dow_summary,
     mass_casualty_timeline_plot        = mass_casualty_timeline_plot,
     force_regeneration_daily           = force_regeneration_daily,
-    force_regeneration_plot            = force_regeneration_plot
+    force_regeneration_plot            = force_regeneration_plot,
+    role4_census_daily          = role4_census_daily,
+    role4_census_plot           = role4_census_plot,
+    role4_summary                = role4_summary,
+    role4_replication_summary   = role4_replication_summary,
+    ame_demand_daily            = ame_demand_daily,
+    ame_summary                  = ame_summary,
+    ame_replication_summary     = ame_replication_summary,
+    ame_wait_time_summary       = ame_wait_time_summary,
+    ame_backlog_plot            = ame_backlog_plot
   ))
 }
 

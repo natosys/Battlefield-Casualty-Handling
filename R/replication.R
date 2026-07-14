@@ -99,6 +99,38 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
                     mon = 0)
   }
 
+  # Strategic AME resources (Issue #23 follow-up): two theatre-wide
+  # resources seized only from the R2E Heavy Strategic Evac disposition
+  # (R/trajectories.R) — "ame" (standard, Casualty Staging Unit-equivalent
+  # Hold-bed evacuees) and "ame_critical" (CCATT/CCAST-supported, ICU-bed
+  # evacuees), both fed by the same sortie schedule (a CCATT/CCAST team
+  # augments the standard crew rather than flying separately — see
+  # build_ame_sortie_trajectory(), R/trajectories.R). Both start at zero
+  # capacity — they always exist (any casualty reaching Strategic Evac
+  # unconditionally tries to seize one of them, so neither can be
+  # conditionally absent the way mass casualty injection or reinforcement
+  # are), but capacity is only ever added to by the periodic AME sortie
+  # generator below. No generator is added at all — so AME never opens and
+  # every strategic evacuee queues indefinitely — when
+  # schedule_interval_days is non-positive (matching reinforcement's
+  # disable convention) or exceeds n_days (no scheduled sortie opportunity
+  # falls within the run at all; seq()'s from > to would otherwise error
+  # rather than silently produce zero opportunities).
+  env <<- env %>%
+    add_resource("ame", capacity = 0) %>%
+    add_resource("ame_critical", capacity = 0)
+
+  ame_params <- env_data$vars$role4$ame
+  if (!is.null(ame_params$schedule_interval_days) &&
+      ame_params$schedule_interval_days > 0 &&
+      ame_params$schedule_interval_days <= n_days) {
+    env <<- env %>%
+      add_generator("ame_sortie", build_ame_sortie_trajectory(),
+                    at(seq(ame_params$schedule_interval_days * day_min, n_days * day_min,
+                           by = ame_params$schedule_interval_days * day_min)),
+                    mon = 0)
+  }
+
   env %>% run(until = n_days * day_min)
 
   if (write_files) write_arrival_diagnostics(env)

@@ -479,6 +479,59 @@ split_slider_recolor_script <- function(meta_map) {
   tags$script(HTML(js))
 }
 
+#' Client-side "shrink-to-fit" scaling for Analyse-tab plots (Issue #121).
+#'
+#' Every Analyse-tab plot is still rendered server-side at its own natural,
+#' data-driven pixel height (e.g. the Gantt row-count height from Issue
+#' #111), so the underlying geometry never overlaps. This script then scales
+#' the *displayed* size of each `.bch-shrink-fit` container down (via CSS
+#' `transform: scale()`, uniform on both axes so aspect ratio — and
+#' therefore Issue #111's row spacing — is preserved) so the full plot
+#' always fits within the browser's visible viewport height, with no page
+#' scrolling needed to see the rest of it. Deliberately done client-side
+#' (rather than by feeding a Shiny `input$window_height` back into a
+#' `renderUI`) so a window resize only restyles the existing DOM nodes —
+#' it does not tear down and rebuild the surrounding `navset_tab`, which
+#' would otherwise reset the user's selected tab on every resize.
+#' Each container carries its own `data-natural-height`/`data-chrome-px`
+#' (set from R at render time); the "Expand" link next to each plot (wired
+#' server-side, see `new_shrink_to_fit_plot()`) opens the same plot at full
+#' natural size in a modal for users who find the shrunk version too dense.
+shrink_to_fit_script <- function() {
+  tags$script(HTML("
+(function() {
+  function applyShrink(el) {
+    var natural = parseFloat(el.getAttribute('data-natural-height'));
+    var chrome  = parseFloat(el.getAttribute('data-chrome-px')) || 260;
+    if (!natural || natural <= 0) return;
+    var avail  = Math.max(window.innerHeight - chrome, 200);
+    var factor = Math.min(1, avail / natural);
+    el.style.height = Math.round(natural * factor) + 'px';
+    var inner = el.querySelector('.bch-shrink-inner');
+    if (!inner) return;
+    if (factor < 0.999) {
+      inner.style.transform = 'scale(' + factor + ')';
+      inner.style.transformOrigin = 'top left';
+      inner.style.width = (100 / factor) + '%';
+    } else {
+      inner.style.transform = '';
+      inner.style.width = '100%';
+    }
+  }
+  function applyAll() {
+    document.querySelectorAll('.bch-shrink-fit').forEach(applyShrink);
+  }
+  $(document).on('shiny:connected', applyAll);
+  $(document).on('shiny:value', applyAll);
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyAll, 150);
+  });
+})();
+"))
+}
+
 #' Merge a two-handle range-slider value into a values list as three
 #' underlying field values, matching the ids apply_registry_values()/
 #' validate_config() expect. Needed because the Configure panel replaces
@@ -1467,6 +1520,7 @@ ui <- page_navbar(
 
   nav_panel(
     "Analyse",
+    shrink_to_fit_script(),
     uiOutput("analyse_body")
   )
 )
@@ -2208,6 +2262,71 @@ server <- function(input, output, session) {
     2 * fixed_panel_height + r2b_gantt_height + r2e_gantt_height
   })
 
+  # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
+  # Every plot in the Analyse tab (Quick Run and Full Analysis alike)
+  # defaults to a size that fits the user's browser viewport without page
+  # scrolling, while remaining fully readable on demand via an "Expand"
+  # link. Each plot still renders server-side at its own natural, data-
+  # driven height (e.g. utilisation_plot_height() above, unchanged from
+  # Issue #111) so row/label geometry is computed exactly as before; only
+  # the *displayed* size is capped, client-side, by shrink_to_fit_script()
+  # (see its roxygen for why this is done in JS rather than by feeding a
+  # viewport height back into a reactive renderUI). chrome_px is a per-tab
+  # allowance for the surrounding navbar/tab-strip/heading/download-button
+  # chrome that a plot's own container does not occupy; tabs with an
+  # explanatory paragraph above the plot use the larger allowance.
+  ANALYSE_PLOT_CHROME_PX            <- 260
+  ANALYSE_PLOT_CHROME_WITH_INTRO_PX <- 360
+
+  #' UI for one shrink-to-fit Analyse-tab plot: a CSS-scalable container
+  #' (sized/scaled entirely client-side by shrink_to_fit_script()) plus an
+  #' "Expand" link that opens the same plot at full natural size in a
+  #' modal (wired server-side by new_shrink_to_fit_plot()).
+  #'
+  #' @param plot_id Output id the plot is/will be rendered to.
+  #' @param natural_height_px Data-driven or fixed pixel height the plot
+  #'   renders at server-side — unchanged by shrinking, so geometry (e.g.
+  #'   Issue #111's Gantt row spacing) is computed exactly as before.
+  #' @param chrome_px Vertical space assumed to be consumed by chrome
+  #'   surrounding this plot; see roxygen above.
+  shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX) {
+    natural_height_px <- round(natural_height_px)
+    tagList(
+      div(class = "bch-shrink-fit",
+          style = "overflow:hidden; position:relative;",
+          `data-natural-height` = natural_height_px,
+          `data-chrome-px`      = chrome_px,
+          div(class = "bch-shrink-inner",
+              plotOutput(plot_id, height = paste0(natural_height_px, "px")))),
+      div(class = "mt-1",
+          actionLink(paste0(plot_id, "_expand"), HTML("&#128269; Expand to full size")))
+    )
+  }
+
+  #' Server wiring for one shrink-to-fit plot: the (shrinkable) primary
+  #' output, a full-size modal companion bound to the same plot content,
+  #' and the "Expand" link's click handler. Both outputs share `plot_fn`
+  #' so the modal is guaranteed to show the same plot the shrunk container
+  #' does, just at full natural size (unscaled, so any Gantt row overlap
+  #' would be visible here too — the modal is also the regression check
+  #' for Issue #111 remaining intact under this issue's shrinking).
+  #'
+  #' @param plot_id Output id (matches shrink_to_fit_plot_ui()'s plot_id).
+  #' @param title Modal dialog title.
+  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
+  #' @param height_fn Zero-arg function returning the natural pixel height
+  #'   (may itself read a reactive, e.g. utilisation_plot_height()).
+  new_shrink_to_fit_plot <- function(plot_id, title, plot_fn, height_fn) {
+    output[[plot_id]] <- renderPlot({ plot_fn() }, height = function() height_fn())
+    output[[paste0(plot_id, "_modal")]] <- renderPlot({ plot_fn() }, height = function() height_fn())
+    observeEvent(input[[paste0(plot_id, "_expand")]], {
+      showModal(modalDialog(
+        title = title, size = "xl", easyClose = TRUE, footer = modalButton("Close"),
+        plotOutput(paste0(plot_id, "_modal"), height = paste0(round(isolate(height_fn())), "px"))
+      ))
+    }, ignoreInit = TRUE)
+  }
+
   # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
   # shown above the output tabs, per Issue #15's acceptance criteria.
   output$kpi_summary_cards <- renderUI({
@@ -2263,25 +2382,25 @@ server <- function(input, output, session) {
     uiOutput("kpi_summary_cards"),
     navset_tab(
       nav_panel("Casualty Flow",
-        plotOutput("plot_casualty_flow", height = "700px"),
+        shrink_to_fit_plot_ui("plot_casualty_flow", 700),
         downloadButton("dl_casualty_flow_png", "Download PNG"),
         downloadButton("dl_casualty_flow_pdf", "Download PDF"),
         downloadButton("dl_casualty_flow_csv", "Download Data (CSV)")
       ),
       nav_panel("Queue Depths",
-        plotOutput("plot_queue_depths", height = "900px"),
+        shrink_to_fit_plot_ui("plot_queue_depths", 900),
         downloadButton("dl_queue_depths_png", "Download PNG"),
         downloadButton("dl_queue_depths_pdf", "Download PDF"),
         downloadButton("dl_queue_depths_csv", "Download Data (CSV)")
       ),
       nav_panel("Bed & Resource Utilisation",
-        plotOutput("plot_utilisation", height = paste0(utilisation_plot_height(), "px")),
+        shrink_to_fit_plot_ui("plot_utilisation", utilisation_plot_height()),
         downloadButton("dl_utilisation_png", "Download PNG"),
         downloadButton("dl_utilisation_pdf", "Download PDF"),
         downloadButton("dl_utilisation_csv", "Download Data (CSV)")
       ),
       nav_panel("Waiting Times",
-        plotOutput("plot_waiting_times", height = "600px"),
+        shrink_to_fit_plot_ui("plot_waiting_times", 600),
         downloadButton("dl_waiting_times_png", "Download PNG"),
         downloadButton("dl_waiting_times_pdf", "Download PDF"),
         downloadButton("dl_waiting_times_csv", "Download Data (CSV)")
@@ -2294,7 +2413,7 @@ server <- function(input, output, session) {
           "its disabled default: each demand asks for the pool's full current shortfall, is fulfilled after ",
           "a configurable lag, and delivers a triangularly-distributed fraction of that shortfall (long ",
           "under-fill tail, limited over-supply)."),
-        plotOutput("plot_force_regeneration", height = "500px"),
+        shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_force_regeneration_png", "Download PNG"),
         downloadButton("dl_force_regeneration_pdf", "Download PDF"),
         downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
@@ -2346,11 +2465,16 @@ server <- function(input, output, session) {
     )
   })
 
-  output$plot_casualty_flow      <- renderPlot(tab_plot()$casualty_flow)
-  output$plot_queue_depths       <- renderPlot(tab_plot()$queue_depths)
-  output$plot_utilisation        <- renderPlot(tab_plot()$utilisation, height = function() utilisation_plot_height())
-  output$plot_waiting_times      <- renderPlot(tab_plot()$waiting_times)
-  output$plot_force_regeneration <- renderPlot(tab_plot()$force_regeneration)
+  new_shrink_to_fit_plot("plot_casualty_flow", "Casualty Flow — Full Size",
+                         function() tab_plot()$casualty_flow, function() 700)
+  new_shrink_to_fit_plot("plot_queue_depths", "Queue Depths — Full Size",
+                         function() tab_plot()$queue_depths, function() 900)
+  new_shrink_to_fit_plot("plot_utilisation", "Bed & Resource Utilisation — Full Size",
+                         function() tab_plot()$utilisation, function() utilisation_plot_height())
+  new_shrink_to_fit_plot("plot_waiting_times", "Waiting Times — Full Size",
+                         function() tab_plot()$waiting_times, function() 600)
+  new_shrink_to_fit_plot("plot_force_regeneration", "Force Regeneration — Full Size",
+                         function() tab_plot()$force_regeneration, function() 500)
 
   plot_download_handler <- function(plot_key, width, height, device) {
     downloadHandler(
@@ -2525,7 +2649,7 @@ server <- function(input, output, session) {
     )
   }
 
-  output$morris_mu_sigma_plot <- renderPlot({
+  new_shrink_to_fit_plot("morris_mu_sigma_plot", "Morris Screening — Full Size", function() {
     req(morris_results())
     df <- morris_scatter_df(morris_results()$morris_objs$r2e_icu_q)
     df$label <- MORRIS_LABELS[df$parameter]
@@ -2536,7 +2660,7 @@ server <- function(input, output, session) {
            subtitle = "μ* = mean absolute elementary effect (importance); σ = std. dev. of elementary effects (nonlinearity/interaction)",
            x = "μ* (Importance)", y = "σ (Nonlinearity / Interaction)") +
       theme_minimal(base_size = 13)
-  })
+  }, function() 450)
 
   output$morris_ranking_table <- renderDT({
     req(morris_results())
@@ -2578,7 +2702,7 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Morris Screening Results — R2E ICU Queue (Primary KPI)"),
-      plotOutput("morris_mu_sigma_plot", height = "450px"),
+      shrink_to_fit_plot_ui("morris_mu_sigma_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_morris_png_zip", "Download Morris PNGs — All KPIs (ZIP)"),
       tags$hr(),
       h5("Ranked Parameter Influence (μ* on System OT Queue)"),
@@ -2690,7 +2814,7 @@ server <- function(input, output, session) {
     }
   })
 
-  output$sobol_plot <- renderPlot({
+  new_shrink_to_fit_plot("sobol_plot", "Sobol Indices — Full Size", function() {
     out <- sobol_results()
     req(out, length(out$res) > 0)
     sb <- out$res$system_ot_q
@@ -2711,7 +2835,7 @@ server <- function(input, output, session) {
            x = NULL, y = "Sobol Index", fill = NULL) +
       theme_minimal(base_size = 13) +
       theme(legend.position = "bottom", axis.text.x = element_text(angle = 20, hjust = 1))
-  })
+  }, function() 450)
 
   output$dl_sobol_csv_zip <- downloadHandler(
     filename = "sobol_indices.zip",
@@ -2737,7 +2861,7 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Sobol S1 / ST Indices"),
-      plotOutput("sobol_plot", height = "450px"),
+      shrink_to_fit_plot_ui("sobol_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       p(class = "text-muted small",
         "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
         "system OT queue depends on the value of at least one other parameter, not just their own value."),
@@ -2847,7 +2971,7 @@ server <- function(input, output, session) {
     }
   })
 
-  output$transport_sweep_plot <- renderPlot({
+  new_shrink_to_fit_plot("transport_sweep_plot", "Transport Fleet Capacity Margin Sweep — Full Size", function() {
     df <- transport_sweep_results()
     req(df)
 
@@ -2858,7 +2982,7 @@ server <- function(input, output, session) {
     )
 
     render_transport_sweep_plot(df, current_qty, n_rep = as.integer(input$morris_nrep))
-  })
+  }, function() 500)
 
   output$dl_transport_sweep_csv <- downloadHandler(
     filename = "transport_capacity_by_fleet_size.csv",
@@ -2874,7 +2998,7 @@ server <- function(input, output, session) {
         "How to read this: in the top (queue) row, find where the line stops being flat at zero — that ",
         "fleet size is where transport becomes a bottleneck. If it's still flat at the dashed current-fleet ",
         "line, that fleet has spare capacity."),
-      plotOutput("transport_sweep_plot", height = "500px"),
+      shrink_to_fit_plot_ui("transport_sweep_plot", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_transport_sweep_csv", "Download Sweep Results (CSV)")
     )
   })

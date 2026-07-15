@@ -2176,6 +2176,38 @@ server <- function(input, output, session) {
     )
   })
 
+  # Issue #111: the Bed & Resource Utilisation plot's fixed 1400px height
+  # caused Gantt rows to overlap once an echelon's individual bed count grew
+  # (R2E routinely plots 20+ beds). Scale the rendered height to the number
+  # of distinct resource rows instead, at a fixed per-row convention (25px,
+  # ~150px floor per section so an empty/small section isn't squashed to
+  # nothing). Full Analysis mode has no per-bed Gantt (see tab_plot() above)
+  # so its single mean ± CI bar chart keeps a static height.
+  gantt_row_height_px <- 25
+  gantt_min_section_height_px <- 150
+
+  utilisation_plot_height <- reactive({
+    res <- analysis_results()
+    req(res)
+    if (identical(run_mode(), "full")) return(500)
+
+    r2b_data <- res$r2b_gantt$data
+    r2b_gantt_height <- if (is.null(r2b_data) || nrow(r2b_data) == 0) {
+      gantt_min_section_height_px
+    } else {
+      rows_per_team <- tapply(r2b_data$resource_label, r2b_data$r2b_team,
+                               function(x) length(unique(x)))
+      sum(pmax(rows_per_team * gantt_row_height_px, gantt_min_section_height_px))
+    }
+
+    r2e_data <- res$r2e_gantt$data
+    r2e_rows <- if (is.null(r2e_data)) 0 else length(unique(r2e_data$resource_label))
+    r2e_gantt_height <- max(r2e_rows * gantt_row_height_px, gantt_min_section_height_px)
+
+    fixed_panel_height <- 400  # r2b_treatment and r2e_surgery panels (not row-scaled)
+    2 * fixed_panel_height + r2b_gantt_height + r2e_gantt_height
+  })
+
   # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
   # shown above the output tabs, per Issue #15's acceptance criteria.
   output$kpi_summary_cards <- renderUI({
@@ -2243,7 +2275,7 @@ server <- function(input, output, session) {
         downloadButton("dl_queue_depths_csv", "Download Data (CSV)")
       ),
       nav_panel("Bed & Resource Utilisation",
-        plotOutput("plot_utilisation", height = "1400px"),
+        plotOutput("plot_utilisation", height = paste0(utilisation_plot_height(), "px")),
         downloadButton("dl_utilisation_png", "Download PNG"),
         downloadButton("dl_utilisation_pdf", "Download PDF"),
         downloadButton("dl_utilisation_csv", "Download Data (CSV)")
@@ -2316,7 +2348,7 @@ server <- function(input, output, session) {
 
   output$plot_casualty_flow      <- renderPlot(tab_plot()$casualty_flow)
   output$plot_queue_depths       <- renderPlot(tab_plot()$queue_depths)
-  output$plot_utilisation        <- renderPlot(tab_plot()$utilisation)
+  output$plot_utilisation        <- renderPlot(tab_plot()$utilisation, height = function() utilisation_plot_height())
   output$plot_waiting_times      <- renderPlot(tab_plot()$waiting_times)
   output$plot_force_regeneration <- renderPlot(tab_plot()$force_regeneration)
 

@@ -481,22 +481,39 @@ split_slider_recolor_script <- function(meta_map) {
 
 #' Client-side "shrink-to-fit" scaling for Analyse-tab plots (Issue #121).
 #'
-#' Every Analyse-tab plot is still rendered server-side at its own natural,
+#' Every Analyse-tab plot still renders server-side at its own natural,
 #' data-driven pixel height (e.g. the Gantt row-count height from Issue
-#' #111), so the underlying geometry never overlaps. This script then scales
-#' the *displayed* size of each `.bch-shrink-fit` container down (via CSS
-#' `transform: scale()`, uniform on both axes so aspect ratio — and
-#' therefore Issue #111's row spacing — is preserved) so the full plot
-#' always fits within the browser's visible viewport height, with no page
-#' scrolling needed to see the rest of it. Deliberately done client-side
-#' (rather than by feeding a Shiny `input$window_height` back into a
-#' `renderUI`) so a window resize only restyles the existing DOM nodes —
-#' it does not tear down and rebuild the surrounding `navset_tab`, which
-#' would otherwise reset the user's selected tab on every resize.
-#' Each container carries its own `data-natural-height`/`data-chrome-px`
-#' (set from R at render time); the "Expand" link next to each plot (wired
-#' server-side, see `new_shrink_to_fit_plot()`) opens the same plot at full
-#' natural size in a modal for users who find the shrunk version too dense.
+#' #111) via an explicit, non-"auto" `renderPlot(height = ...)` (see
+#' `new_shrink_to_fit_plot()`) — so the full-detail image is always
+#' generated at the same resolution regardless of how it is later
+#' displayed, and Shiny is never asked to auto-detect a size from (and so
+#' never re-renders in response to) the container's on-screen size. This
+#' script instead shrinks a `.bch-shrink-fit` container's CSS *height*
+#' only; a matching stylesheet rule (`bch_shrink_to_fit_css()`, in the same
+#' `nav_panel`) makes the `<img>` inside track that height at `height:100%`
+#' with `width:auto`, so the browser itself scales the already-rendered,
+#' full-detail image down losslessly (as a photo, not a re-render) to fit —
+#' preserving every relative proportion, so Issue #111's row/label spacing
+#' cannot re-overlap as a side effect of shrinking — and centres it via
+#' `margin: 0 auto`, since its auto-computed display width will generally
+#' be narrower than the container once shrunk. An earlier version of this
+#' script tried two other approaches that were each dropped for a distinct
+#' failure mode: (1) leaving `renderPlot()` on "auto" sizing so Shiny's own
+#' redraw would fill a JS-shrunk container — this genuinely refits the
+#' image, but ggplot's fixed font sizes then take up a much larger fraction
+#' of a heavily-shrunk canvas, reintroducing label/row overlap; (2) a CSS
+#' `transform: scale()` on a full-size render — but Shiny's resize-sensing
+#' measures a container's on-screen (transformed) size, not its pre-
+#' transform layout size, so it would eventually re-render at the already-
+#' transformed (shrunk) size while the transform remained active,
+#' compounding into a progressively narrower, uncentred image. Deliberately
+#' done client-side (rather than by feeding a Shiny `input$window_height`
+#' back into a `renderUI`) so a window resize only restyles the existing
+#' DOM nodes — it does not tear down and rebuild the surrounding
+#' `navset_tab`, which would otherwise reset the user's selected tab on
+#' every resize. The "Expand" link next to each plot (wired server-side,
+#' see `new_shrink_to_fit_plot()`) opens the same plot at full natural size
+#' in a modal for users who find the shrunk version too dense.
 shrink_to_fit_script <- function() {
   tags$script(HTML("
 (function() {
@@ -507,16 +524,6 @@ shrink_to_fit_script <- function() {
     var avail  = Math.max(window.innerHeight - chrome, 200);
     var factor = Math.min(1, avail / natural);
     el.style.height = Math.round(natural * factor) + 'px';
-    var inner = el.querySelector('.bch-shrink-inner');
-    if (!inner) return;
-    if (factor < 0.999) {
-      inner.style.transform = 'scale(' + factor + ')';
-      inner.style.transformOrigin = 'top left';
-      inner.style.width = (100 / factor) + '%';
-    } else {
-      inner.style.transform = '';
-      inner.style.width = '100%';
-    }
   }
   function applyAll() {
     document.querySelectorAll('.bch-shrink-fit').forEach(applyShrink);
@@ -529,6 +536,25 @@ shrink_to_fit_script <- function() {
     resizeTimer = setTimeout(applyAll, 150);
   });
 })();
+"))
+}
+
+#' Stylesheet paired with shrink_to_fit_script(): makes every plot image
+#' inside a `.bch-shrink-fit` container track that container's (JS-managed)
+#' height while auto-computing and centring its width, rather than being
+#' stretched or left clinging to one edge. `!important` is needed since
+#' Shiny's `plotOutput()` sets the `<img>`'s own inline width/height styles
+#' directly, which would otherwise take precedence over a stylesheet rule.
+bch_shrink_to_fit_css <- function() {
+  tags$style(HTML("
+.bch-shrink-fit { overflow: hidden; }
+.bch-shrink-fit img {
+  height: 100% !important;
+  width: auto !important;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+}
 "))
 }
 
@@ -1521,6 +1547,7 @@ ui <- page_navbar(
   nav_panel(
     "Analyse",
     shrink_to_fit_script(),
+    bch_shrink_to_fit_css(),
     uiOutput("analyse_body")
   )
 )
@@ -2278,26 +2305,28 @@ server <- function(input, output, session) {
   ANALYSE_PLOT_CHROME_PX            <- 260
   ANALYSE_PLOT_CHROME_WITH_INTRO_PX <- 360
 
-  #' UI for one shrink-to-fit Analyse-tab plot: a CSS-scalable container
-  #' (sized/scaled entirely client-side by shrink_to_fit_script()) plus an
+  #' UI for one shrink-to-fit Analyse-tab plot: a container whose CSS
+  #' height is managed client-side by shrink_to_fit_script(), with the
+  #' plot image inside tracking that height (`bch_shrink_to_fit_css()`)
+  #' rather than being rendered at a different resolution, plus an
   #' "Expand" link that opens the same plot at full natural size in a
   #' modal (wired server-side by new_shrink_to_fit_plot()).
   #'
   #' @param plot_id Output id the plot is/will be rendered to.
   #' @param natural_height_px Data-driven or fixed pixel height the plot
-  #'   renders at server-side — unchanged by shrinking, so geometry (e.g.
-  #'   Issue #111's Gantt row spacing) is computed exactly as before.
+  #'   renders at server-side (unchanged by shrinking — see
+  #'   new_shrink_to_fit_plot()) and the container's initial CSS height,
+  #'   before shrink_to_fit_script() adjusts it.
   #' @param chrome_px Vertical space assumed to be consumed by chrome
   #'   surrounding this plot; see roxygen above.
   shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX) {
     natural_height_px <- round(natural_height_px)
     tagList(
       div(class = "bch-shrink-fit",
-          style = "overflow:hidden; position:relative;",
+          style = paste0("height:", natural_height_px, "px;"),
           `data-natural-height` = natural_height_px,
           `data-chrome-px`      = chrome_px,
-          div(class = "bch-shrink-inner",
-              plotOutput(plot_id, height = paste0(natural_height_px, "px")))),
+          plotOutput(plot_id, height = "100%")),
       div(class = "mt-1",
           actionLink(paste0(plot_id, "_expand"), HTML("&#128269; Expand to full size")))
     )
@@ -2306,10 +2335,12 @@ server <- function(input, output, session) {
   #' Server wiring for one shrink-to-fit plot: the (shrinkable) primary
   #' output, a full-size modal companion bound to the same plot content,
   #' and the "Expand" link's click handler. Both outputs share `plot_fn`
-  #' so the modal is guaranteed to show the same plot the shrunk container
-  #' does, just at full natural size (unscaled, so any Gantt row overlap
-  #' would be visible here too — the modal is also the regression check
-  #' for Issue #111 remaining intact under this issue's shrinking).
+  #' and both explicitly force `height_fn()` as their render height (never
+  #' "auto") — see shrink_to_fit_script()'s roxygen for why an explicit,
+  #' un-auto-detected height is what makes the client-side shrinking safe.
+  #' The modal always shows the plot at this same full natural size,
+  #' unscaled by any container CSS, making it the regression check for
+  #' Issue #111 remaining intact under this issue's shrinking.
   #'
   #' @param plot_id Output id (matches shrink_to_fit_plot_ui()'s plot_id).
   #' @param title Modal dialog title.

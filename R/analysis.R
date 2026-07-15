@@ -358,7 +358,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     geom_step(linewidth = 1) +
     labs(title = "Queue Length Over Time by R1 Team", x = "Time (Days)", y = "Queue Size", color = "Role") +
     scale_x_continuous(breaks = seq(0, max_days_r1, by = 1), limits = c(0, max_days_r1), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
@@ -383,7 +383,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     geom_step(linewidth = 1) +
     labs(title = "Queue Length Over Time by R2B", x = "Time (Days)", y = "Queue Size", color = "Bed") +
     scale_x_continuous(breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
@@ -733,7 +733,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     labs(title = "R2E Heavy Bed Queue Length Over Time by Resource Type", x = "Time (Days)", y = "Queue Size", color = "Resource") +
     facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
     scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
-    scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, by = 1), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     theme_minimal(base_size = 14) +
     theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
   ggsave(file.path(images_dir, "r2eheavy_bed_queue_3_teams.png"), p_r2e_bed_queues,

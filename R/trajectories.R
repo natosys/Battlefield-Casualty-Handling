@@ -1930,15 +1930,42 @@ build_casualty_trajectory <- function() {
 #'   actually delivered: mode_frac close to (but below) 1 with min_frac far
 #'   below it gives a long left tail (severe under-fill is more probable
 #'   than a request being fully met), while max_frac only slightly above 1
-#'   gives a short right tail (over-supply is possible but limited in size
-#'   and, since demand shrinks as the pool recovers, self-bounding across
-#'   successive cycles). demand_interval_days <= 0 (the shipped default)
-#'   disables reinforcement entirely — no generator is added in run_once()
-#'   in that case, so no RNG draws are consumed, reproducing the
-#'   pre-Issue-18 constant-force baseline exactly.
+#'   models a single, non-overlapping fulfillment slightly overshooting its
+#'   own submission-time shortfall estimate. demand_interval_days <= 0 (the
+#'   shipped default) disables reinforcement entirely — no generator is
+#'   added in run_once() in that case, so no RNG draws are consumed,
+#'   reproducing the pre-Issue-18 constant-force baseline exactly.
+#'
+#'   Issue #124: a pool's global value only moves at credit time, so a
+#'   naive re-read of the live shortfall on every cycle would let
+#'   overlapping cycles (demand_interval_days < fulfillment_lag_days)
+#'   independently re-claim the same shortfall an earlier, still-pending
+#'   cycle already committed to filling — and, even in the single-cycle
+#'   case, crediting the submission-time fill amount unconditionally
+#'   (rather than re-checking it against the shortfall actually remaining
+#'   fulfillment_lag_days later) could push the pool above its initial
+#'   establishment strength. Two guards address this:
+#'     - A per-pool "pending" global (reinf_*_pending, R/replication.R)
+#'       tracks fill amounts already committed to an in-flight
+#'       (submitted-but-not-yet-credited) cycle: incremented by the drawn
+#'       fill at submission, decremented by that same amount at credit
+#'       time. demand_fn() nets this out of the live shortfall, so a new
+#'       cycle only claims shortfall no earlier cycle has already claimed.
+#'       Because pending tracks the fill actually committed rather than
+#'       the full demand, an under-filled cycle's uncovered remainder is
+#'       never removed from view — it stays visible to the next demand
+#'       computation instead of being silently written off.
+#'     - credit_fn() clamps the credited value to `initial`
+#'       (min(initial, current + fill)) rather than adding the
+#'       submission-time fill unconditionally, so a pool can never be
+#'       credited above establishment strength regardless of how much the
+#'       live shortfall has moved during the fulfillment lag (e.g. RTD
+#'       credits landing on the same pool in the interim).
 build_reinforcement_trajectory <- function() {
-  demand_fn <- function(pool_global, initial) {
-    function() max(0, initial - get_global(env, pool_global))
+  demand_fn <- function(pool_global, pending_global, initial) {
+    function() {
+      max(0, initial - get_global(env, pool_global) - get_global(env, pending_global))
+    }
   }
 
   fill_fn <- function(demand_attr) {
@@ -1955,20 +1982,36 @@ build_reinforcement_trajectory <- function() {
     }
   }
 
-  credit_fn <- function(pool_global, fill_attr) {
-    function() get_global(env, pool_global) + get_attribute(env, fill_attr)
+  claim_fn <- function(pending_global, fill_attr) {
+    function() get_global(env, pending_global) + get_attribute(env, fill_attr)
+  }
+
+  release_fn <- function(pending_global, fill_attr) {
+    function() get_global(env, pending_global) - get_attribute(env, fill_attr)
+  }
+
+  credit_fn <- function(pool_global, fill_attr, initial) {
+    function() min(initial, get_global(env, pool_global) + get_attribute(env, fill_attr))
   }
 
   trajectory("Force Reinforcement") %>%
-    set_attribute("reinf_combat_demand", demand_fn("effective_force_combat", env_data$pops$combat)) %>%
-    set_attribute("reinf_support_demand", demand_fn("effective_force_support", env_data$pops$support)) %>%
+    set_attribute("reinf_combat_demand",
+      demand_fn("effective_force_combat", "reinf_combat_pending", env_data$pops$combat)) %>%
+    set_attribute("reinf_support_demand",
+      demand_fn("effective_force_support", "reinf_support_pending", env_data$pops$support)) %>%
     set_attribute("reinf_combat_fill", fill_fn("reinf_combat_demand")) %>%
     set_attribute("reinf_support_fill", fill_fn("reinf_support_demand")) %>%
+    set_global("reinf_combat_pending", claim_fn("reinf_combat_pending", "reinf_combat_fill")) %>%
+    set_global("reinf_support_pending", claim_fn("reinf_support_pending", "reinf_support_fill")) %>%
     timeout(function() {
       env_data$vars$force_regeneration$reinforcement$fulfillment_lag_days * day_min
     }) %>%
-    set_global("effective_force_combat", credit_fn("effective_force_combat", "reinf_combat_fill")) %>%
-    set_global("effective_force_support", credit_fn("effective_force_support", "reinf_support_fill"))
+    set_global("effective_force_combat",
+      credit_fn("effective_force_combat", "reinf_combat_fill", env_data$pops$combat)) %>%
+    set_global("effective_force_support",
+      credit_fn("effective_force_support", "reinf_support_fill", env_data$pops$support)) %>%
+    set_global("reinf_combat_pending", release_fn("reinf_combat_pending", "reinf_combat_fill")) %>%
+    set_global("reinf_support_pending", release_fn("reinf_support_pending", "reinf_support_fill"))
 }
 
 # ── Strategic AME (aeromedical evacuation) sortie schedule (Issue #23 follow-up) ──

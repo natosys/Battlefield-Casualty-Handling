@@ -94,6 +94,13 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   demand_interval <- env_data$vars$force_regeneration$reinforcement$demand_interval_days
   if (!is.null(demand_interval) && demand_interval > 0) {
     env <<- env %>%
+      # reinf_*_pending (Issue #124): fill amount already committed to an
+      # in-flight (submitted-but-not-yet-credited) reinforcement cycle for
+      # each pool — see build_reinforcement_trajectory() (R/trajectories.R)
+      # for why this is needed to keep overlapping cycles from
+      # independently re-claiming the same shortfall.
+      add_global("reinf_combat_pending", 0) %>%
+      add_global("reinf_support_pending", 0) %>%
       add_generator("force_reinforcement", build_reinforcement_trajectory(),
                     at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
                     mon = 0)

@@ -2303,7 +2303,7 @@ server <- function(input, output, session) {
     # sub-panel's "Casualties" y-axis title to overlap its neighbour's.
     list(r2b_treatment = 700, r2b_gantt = r2b_gantt_height,
          r2e_surgery   = 400, r2e_gantt = r2e_gantt_height,
-         r2e_icu_gating = 500)
+         r2e_icu_gating = 500, r2b_hold_occupancy = 450, r2b_bypass_reason = 450)
   })
 
   # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
@@ -2482,6 +2482,34 @@ server <- function(input, output, session) {
             downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
             downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
             tags$hr(),
+            h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
+            p(class = "text-muted small",
+              "Daily concurrent occupancy of R2B hold beds (Issue #39), decomposed by patient stream ",
+              "(disease DNBI, NBI, WIA). Dashed line marks per-unit bed capacity. No plot means no ",
+              "casualty occupied an R2B hold bed this run."),
+            if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
+              div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded this run.")
+            } else tagList(
+              shrink_to_fit_plot_ui("plot_r2b_hold_occupancy", ph$r2b_hold_occupancy, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+              downloadButton("dl_r2b_hold_occupancy_png", "Download PNG"),
+              downloadButton("dl_r2b_hold_occupancy_pdf", "Download PDF"),
+              downloadButton("dl_r2b_hold_occupancy_csv", "Download Data (CSV)")
+            ),
+            uiOutput("r2b_routing_cards"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
+            p(class = "text-muted small",
+              "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
+              "point (Issue #40): the R2B surgical team was off-shift, or the OT bed was busy/queued."),
+            if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
+              div(class = "alert alert-secondary", "No R2B OT bypasses recorded this run.")
+            } else tagList(
+              shrink_to_fit_plot_ui("plot_r2b_bypass_reason", ph$r2b_bypass_reason, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+              downloadButton("dl_r2b_bypass_reason_png", "Download PNG"),
+              downloadButton("dl_r2b_bypass_reason_pdf", "Download PDF"),
+              downloadButton("dl_r2b_bypass_reason_csv", "Download Data (CSV)")
+            ),
+            tags$hr(),
             h6(class = "text-muted mt-2", "R2E Surgery"),
             shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_surgery_png", "Download PNG"),
@@ -2503,15 +2531,87 @@ server <- function(input, output, session) {
             shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
             downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
-            downloadButton("dl_r2e_icu_gating_csv", "Download Data (CSV)")
+            downloadButton("dl_r2e_icu_gating_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
+            p(class = "text-muted small",
+              "Casualty counts and post-operative DOW rate by recovery pathway (Issue #43): icu = nominal ",
+              "ICU recovery; hold = ICU was saturated at OT entry, so a Priority 1 casualty recovered in a ",
+              "hold bed instead (see R2E OT-ICU Gating above)."),
+            if (is.null(analysis_results()$post_op_pathway_summary)) {
+              div(class = "alert alert-secondary", "No R2E surgeries completed this run.")
+            } else DTOutput("post_op_pathway_table"),
+            downloadButton("dl_post_op_pathway_csv", "Download Data (CSV)"),
+            div(class = "mt-2", uiOutput("surgery_deferred_card")),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "Operating Theatre Utilisation"),
+            p(class = "text-muted small",
+              "Busy-time fraction of OT capacity by echelon (busy time / (capacity × observation window))."),
+            DTOutput("ot_utilisation_table"),
+            downloadButton("dl_ot_utilisation_csv", "Download Data (CSV)")
           )
         })
+      ),
+      nav_panel("Transport",
+        if (!identical(run_mode(), "quick")) {
+          div(class = "alert alert-info mt-3",
+              "Transport fleet capacity margin is only computed by the single-run analysis pipeline ",
+              "(analyse_run()); Full Analysis's multi-replication pipeline does not currently aggregate ",
+              "it across replications. Use Quick Run to inspect this output, or the Sensitivity ",
+              "Calibration tab's Transport Fleet Capacity Margin Sweep for a multi-replication view.")
+        } else tagList(
+          p(class = "text-muted mt-2",
+            "Transport fleet capacity margin (Issue #6) — queue length over time by vehicle for the ",
+            "dead-heading PMV Ambulance and HX240M fleets. A queue that stays at 0 throughout indicates ",
+            "spare capacity; a sustained queue indicates the fleet is a binding constraint."),
+          shrink_to_fit_plot_ui("plot_transport_capacity_margin", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+          downloadButton("dl_transport_capacity_margin_png", "Download PNG"),
+          downloadButton("dl_transport_capacity_margin_pdf", "Download PDF"),
+          downloadButton("dl_transport_capacity_margin_csv", "Download Data (CSV)"),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "Transport Utilisation by Platform"),
+          DTOutput("transport_utilisation_table"),
+          downloadButton("dl_transport_utilisation_csv", "Download Data (CSV)")
+        )
       ),
       nav_panel("Waiting Times",
         shrink_to_fit_plot_ui("plot_waiting_times", 600),
         downloadButton("dl_waiting_times_png", "Download PNG"),
         downloadButton("dl_waiting_times_pdf", "Download PDF"),
-        downloadButton("dl_waiting_times_csv", "Download Data (CSV)")
+        downloadButton("dl_waiting_times_csv", "Download Data (CSV)"),
+        if (identical(run_mode(), "quick")) tagList(
+          tags$hr(),
+          h6(class = "text-muted mt-2", "Time-to-Treatment KPIs"),
+          p(class = "text-muted small",
+            "Time to first surgical incision (from R1 arrival), and dwell/transit times through R2B and R2E ",
+            "(Output Variable Register KPIs)."),
+          DTOutput("dwell_time_table"),
+          downloadButton("dl_dwell_time_csv", "Download Data (CSV)")
+        )
+      ),
+      nav_panel("Return to Duty & DOW",
+        if (!identical(run_mode(), "quick")) {
+          div(class = "alert alert-info mt-3",
+              "Return-to-duty and died-of-wounds breakdowns by echelon are only computed by the ",
+              "single-run analysis pipeline (analyse_run()); Full Analysis's multi-replication pipeline ",
+              "does not currently aggregate them across replications. The headline DOW Count card above ",
+              "(mean ± 95% CI across replications) is Full Analysis's equivalent summary. Use Quick Run ",
+              "to inspect the per-echelon breakdown.")
+        } else tagList(
+          p(class = "text-muted mt-2",
+            "Return-to-duty (RTD) casualties — battle fatigue RTDs return at R1 without clinical ",
+            "treatment; clinical RTDs are discharged from an R1/R2B/R2E hold bed — and died-of-wounds ",
+            "(DOW) casualties, broken down by the echelon at which the outcome occurred."),
+          uiOutput("rtd_dow_cards"),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "DOW Count and Rate by Echelon"),
+          DTOutput("dow_by_echelon_table"),
+          downloadButton("dl_dow_by_echelon_csv", "Download Data (CSV)"),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "RTD Count and Rate by Echelon"),
+          DTOutput("rtd_by_echelon_table"),
+          downloadButton("dl_rtd_by_echelon_csv", "Download Data (CSV)")
+        )
       ),
       nav_panel("Force Regeneration",
         p(class = "text-muted mt-2",
@@ -2532,6 +2632,29 @@ server <- function(input, output, session) {
           "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
           "and the outcome of every scheduled sortie opportunity (configuration selected, seats boarded ",
           "against capacity added, or cancelled)."),
+        if (identical(run_mode(), "quick")) tagList(
+          h6(class = "text-muted mt-2", "Role 4 (National Support Base) Census"),
+          p(class = "text-muted small",
+            "Unconstrained demand signal: daily bed occupancy by ward if every strategically evacuated ",
+            "casualty were admitted with no Role 4 capacity limit."),
+          if (is.null(analysis_results()$role4_census_plot)) {
+            div(class = "alert alert-secondary", "No strategic evacuations recorded this run.")
+          } else tagList(
+            shrink_to_fit_plot_ui("plot_role4_census", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_role4_census_png", "Download PNG"),
+            downloadButton("dl_role4_census_pdf", "Download PDF"),
+            downloadButton("dl_role4_census_csv", "Download Data (CSV)"),
+            uiOutput("role4_summary_cards")
+          ),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "Unconstrained AME Sortie Demand"),
+          p(class = "text-muted small",
+            "Same-day, uncapped, best-case sorties that would be required to keep pace with strategic ",
+            "evacuation decisions, ignoring the real sortie schedule entirely — an upper-bound demand ",
+            "signal, not the actual constrained performance below."),
+          uiOutput("ame_demand_cards"),
+          tags$hr()
+        ),
         h6(class = "text-muted mt-2", "AME Backlog Over Time"),
         shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         downloadButton("dl_ame_backlog_png", "Download PNG"),
@@ -2542,7 +2665,52 @@ server <- function(input, output, session) {
         shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         downloadButton("dl_ame_sortie_png", "Download PNG"),
         downloadButton("dl_ame_sortie_pdf", "Download PDF"),
-        downloadButton("dl_ame_sortie_csv", "Download Data (CSV)")
+        downloadButton("dl_ame_sortie_csv", "Download Data (CSV)"),
+        if (identical(run_mode(), "quick")) tagList(
+          tags$hr(),
+          h6(class = "text-muted mt-2", "Actual AME Wait Time by Route"),
+          p(class = "text-muted small",
+            "Real wait time from evacuation decision to actual sortie boarding on the constrained AME ",
+            "resources, by route (critical vs standard). Compare against the unconstrained demand above ",
+            "to see how much the real schedule lags theoretical best-case throughput."),
+          if (is.null(analysis_results()$ame_wait_time_summary)) {
+            div(class = "alert alert-secondary", "No strategic evacuation decisions recorded this run.")
+          } else tagList(
+            DTOutput("ame_wait_time_table"),
+            downloadButton("dl_ame_wait_time_csv", "Download Data (CSV)")
+          )
+        )
+      ),
+      nav_panel("Mass Casualty Events",
+        if (!identical(run_mode(), "quick")) {
+          div(class = "alert alert-info mt-3",
+              "Mass casualty event reconstruction is only computed by the single-run analysis pipeline ",
+              "(analyse_run()); Full Analysis's multi-replication pipeline does not currently aggregate ",
+              "it across replications. Use Quick Run to inspect mass casualty stress-test output.")
+        } else tagList(
+          p(class = "text-muted mt-2",
+            "Compound-Poisson mass casualty injection events (Issue #9), reconstructed from tagged ",
+            "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
+            "from a mass casualty event vs. background generation."),
+          if (analysis_results()$mass_casualty_event_count == 0) {
+            div(class = "alert alert-secondary",
+                "No mass casualty events occurred this run (env_data.json mass_casualty configuration ",
+                "may be disabled, or none were drawn in this seed).")
+          } else tagList(
+            h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
+            shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_mass_casualty_timeline_png", "Download PNG"),
+            downloadButton("dl_mass_casualty_timeline_pdf", "Download PDF"),
+            downloadButton("dl_mass_casualty_timeline_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "Individual Events"),
+            DTOutput("mass_casualty_events_table")
+          ),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
+          DTOutput("mass_casualty_dow_table"),
+          downloadButton("dl_mass_casualty_dow_csv", "Download Data (CSV)")
+        )
       ),
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
@@ -2625,6 +2793,21 @@ server <- function(input, output, session) {
                          function() tab_plot()$ame_backlog, function() 500)
   new_shrink_to_fit_plot("plot_ame_sortie", "AME Sortie Timeline — Full Size",
                          function() tab_plot()$ame_sortie, function() 500)
+  new_shrink_to_fit_plot("plot_r2b_hold_occupancy", "R2B Hold Bed Occupancy — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2b_hold_occupancy_plot },
+                         function() utilisation_panel_heights()$r2b_hold_occupancy)
+  new_shrink_to_fit_plot("plot_r2b_bypass_reason", "R2B OT Bypass Reason — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2b_bypass_reason_plot },
+                         function() utilisation_panel_heights()$r2b_bypass_reason)
+  new_shrink_to_fit_plot("plot_transport_capacity_margin", "Transport Fleet Capacity Margin — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$transport_capacity_margin_plot },
+                         function() 600)
+  new_shrink_to_fit_plot("plot_role4_census", "Role 4 Census — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$role4_census_plot },
+                         function() 500)
+  new_shrink_to_fit_plot("plot_mass_casualty_timeline", "Mass Casualty Event Timeline — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$mass_casualty_timeline_plot },
+                         function() 500)
 
   #' Generic PNG/PDF download handler for one plot.
   #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
@@ -2665,6 +2848,16 @@ server <- function(input, output, session) {
   output$dl_ame_backlog_pdf <- plot_download_handler(function() tab_plot()$ame_backlog, 12, 8, "pdf")
   output$dl_ame_sortie_png  <- plot_download_handler(function() tab_plot()$ame_sortie, 12, 8, "png")
   output$dl_ame_sortie_pdf  <- plot_download_handler(function() tab_plot()$ame_sortie, 12, 8, "pdf")
+  output$dl_r2b_hold_occupancy_png <- plot_download_handler(function() analysis_results()$r2b_hold_occupancy_plot, 12, 6, "png")
+  output$dl_r2b_hold_occupancy_pdf <- plot_download_handler(function() analysis_results()$r2b_hold_occupancy_plot, 12, 6, "pdf")
+  output$dl_r2b_bypass_reason_png  <- plot_download_handler(function() analysis_results()$r2b_bypass_reason_plot, 12, 6, "png")
+  output$dl_r2b_bypass_reason_pdf  <- plot_download_handler(function() analysis_results()$r2b_bypass_reason_plot, 12, 6, "pdf")
+  output$dl_transport_capacity_margin_png <- plot_download_handler(function() analysis_results()$transport_capacity_margin_plot, 12, 8, "png")
+  output$dl_transport_capacity_margin_pdf <- plot_download_handler(function() analysis_results()$transport_capacity_margin_plot, 12, 8, "pdf")
+  output$dl_role4_census_png <- plot_download_handler(function() analysis_results()$role4_census_plot, 12, 6, "png")
+  output$dl_role4_census_pdf <- plot_download_handler(function() analysis_results()$role4_census_plot, 12, 6, "pdf")
+  output$dl_mass_casualty_timeline_png <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "png")
+  output$dl_mass_casualty_timeline_pdf <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "pdf")
 
   output$dl_casualty_flow_csv <- downloadHandler(
     filename = "casualty_flow.csv",
@@ -2690,7 +2883,15 @@ server <- function(input, output, session) {
   output$dl_r2e_gantt_csv      <- filtered_resources_csv("^b_r2eheavy_\\w+_\\d+_t\\d+$")
   output$dl_utilisation_csv <- downloadHandler(
     filename = "utilisation.csv",
-    content  = function(file) write.csv(analysis_results()$ot_utilisation, file, row.names = FALSE)
+    content  = function(file) {
+      # Quick Run's ot_utilisation (R2B/R2E OT only) and Full Analysis's
+      # utilisation_summary (R2B OT, R2E OT, R2E ICU, Transport, with 95% CI)
+      # are different shapes backing the same tab — see analyse_run() vs
+      # analyse_replications() (R/analysis.R) — so the CSV must follow
+      # whichever pipeline produced the currently displayed plot.
+      df <- if (identical(run_mode(), "full")) analysis_results()$utilisation_summary else analysis_results()$ot_utilisation
+      write.csv(df, file, row.names = FALSE)
+    }
   )
   # r2b_treatment/r2e_surgery have no dedicated per-panel data frame of their
   # own in analysis_results() (they're derived on the fly for plotting); the
@@ -2730,6 +2931,202 @@ server <- function(input, output, session) {
   output$dl_ame_sortie_csv <- downloadHandler(
     filename = "ame_sortie_data.csv",
     content  = function(file) write.csv(analysis_results()$ame_sortie_data, file, row.names = FALSE)
+  )
+
+  # ── Issue #117 — previously-uncovered analyse_run() outputs ──────────────
+  # Every element below is Quick-Run-only: analyse_replications() does not
+  # currently compute an aggregated equivalent (see the "not identical(run_mode(),
+  # "quick")" alert panels above each of these tabs/sections), so there is
+  # nothing to render in Full Analysis mode — an intentional, documented
+  # omission per this issue's acceptance criteria, not a gap.
+
+  small_dt <- function(df) datatable(df, rownames = FALSE, options = list(dom = "t", pageLength = 20))
+
+  output$dl_r2b_hold_occupancy_csv <- downloadHandler(
+    filename = "r2b_hold_occupancy.csv",
+    content  = function(file) write.csv(analysis_results()$r2b_hold_daily, file, row.names = FALSE)
+  )
+  output$dl_r2b_bypass_reason_csv <- downloadHandler(
+    filename = "r2b_bypass_reason.csv",
+    content  = function(file) write.csv(analysis_results()$r2b_bypass_reason_plot$data, file, row.names = FALSE)
+  )
+  output$dl_transport_capacity_margin_csv <- downloadHandler(
+    filename = "transport_capacity_margin.csv",
+    content  = function(file) write.csv(analysis_results()$transport_capacity_margin_plot$data, file, row.names = FALSE)
+  )
+  output$dl_role4_census_csv <- downloadHandler(
+    filename = "role4_census_daily.csv",
+    content  = function(file) write.csv(analysis_results()$role4_census_daily, file, row.names = FALSE)
+  )
+  output$dl_mass_casualty_timeline_csv <- downloadHandler(
+    filename = "mass_casualty_events_summary.csv",
+    content  = function(file) write.csv(analysis_results()$mass_casualty_events_summary, file, row.names = FALSE)
+  )
+
+  # R2B routing diagnostics (Issue #39) — pre-transport and at-R2B-hold
+  # bypass/queue counts; independent, non-summing counts (see CLAUDE.md
+  # Key Parameters table).
+  output$r2b_routing_cards <- renderUI({
+    req(identical(run_mode(), "quick"), analysis_results())
+    res <- analysis_results()
+    count_card <- function(label, n) card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", n))
+    layout_column_wrap(
+      width = "220px",
+      count_card("Upstream R1-Threshold Bypass", res$r2b_pre_bypass_count),
+      count_card("At-R2B Hold-Full Bypass", res$r2b_hold_bypass_count),
+      count_card("R2B Hold Queue (Both Full)", res$r2b_hold_queued_count)
+    )
+  })
+
+  output$surgery_deferred_card <- renderUI({
+    req(identical(run_mode(), "quick"), analysis_results())
+    card(
+      card_header("Surgery Deferred (ICU Saturated, P2+)"),
+      div(style = "font-size: 1.4rem; font-weight: 700;", analysis_results()$surgery_deferred_count)
+    )
+  })
+
+  output$post_op_pathway_table <- renderDT({
+    req(analysis_results()$post_op_pathway_summary)
+    small_dt(analysis_results()$post_op_pathway_summary %>%
+               mutate(postop_dow_rate = round(postop_dow_rate, 4)))
+  })
+  output$dl_post_op_pathway_csv <- downloadHandler(
+    filename = "post_op_pathway_summary.csv",
+    content  = function(file) write.csv(analysis_results()$post_op_pathway_summary, file, row.names = FALSE)
+  )
+
+  output$ot_utilisation_table <- renderDT({
+    req(analysis_results()$ot_utilisation)
+    small_dt(analysis_results()$ot_utilisation %>% mutate(utilisation = round(utilisation, 4)))
+  })
+  output$dl_ot_utilisation_csv <- downloadHandler(
+    filename = "ot_utilisation.csv",
+    content  = function(file) write.csv(analysis_results()$ot_utilisation, file, row.names = FALSE)
+  )
+
+  output$transport_utilisation_table <- renderDT({
+    req(analysis_results()$transport_utilisation)
+    small_dt(analysis_results()$transport_utilisation %>% mutate(utilisation = round(utilisation, 4)))
+  })
+  output$dl_transport_utilisation_csv <- downloadHandler(
+    filename = "transport_utilisation.csv",
+    content  = function(file) write.csv(analysis_results()$transport_utilisation, file, row.names = FALSE)
+  )
+
+  # Time-to-treatment KPIs (Output Variable Register) — combined into one
+  # table; not every KPI has a p10 (only time_to_first_surgery does).
+  output$dwell_time_table <- renderDT({
+    res <- analysis_results()
+    req(res$time_to_first_surgery, res$r2b_dwell_time, res$r2b_r2e_transit_time, res$r2e_dwell_time)
+    df <- bind_rows(
+      data.frame(KPI = "Time to First Surgery", Mean_min = res$time_to_first_surgery$mean_min,
+                 P10_min = res$time_to_first_surgery$p10_min, P90_min = res$time_to_first_surgery$p90_min,
+                 N = res$time_to_first_surgery$n),
+      data.frame(KPI = "R2B Dwell Time", Mean_min = res$r2b_dwell_time$mean_min,
+                 P10_min = NA_real_, P90_min = res$r2b_dwell_time$p90_min, N = res$r2b_dwell_time$n),
+      data.frame(KPI = "R2B to R2E Transit Time", Mean_min = res$r2b_r2e_transit_time$mean_min,
+                 P10_min = NA_real_, P90_min = res$r2b_r2e_transit_time$p90_min, N = res$r2b_r2e_transit_time$n),
+      data.frame(KPI = "R2E Dwell Time", Mean_min = res$r2e_dwell_time$mean_min,
+                 P10_min = NA_real_, P90_min = res$r2e_dwell_time$p90_min, N = res$r2e_dwell_time$n)
+    ) %>% mutate(across(c(Mean_min, P10_min, P90_min), ~ round(., 1)))
+    small_dt(df)
+  })
+  output$dl_dwell_time_csv <- downloadHandler(
+    filename = "dwell_times.csv",
+    content  = function(file) {
+      res <- analysis_results()
+      write.csv(bind_rows(
+        data.frame(kpi = "time_to_first_surgery", res$time_to_first_surgery),
+        data.frame(kpi = "r2b_dwell_time", res$r2b_dwell_time),
+        data.frame(kpi = "r2b_r2e_transit_time", res$r2b_r2e_transit_time),
+        data.frame(kpi = "r2e_dwell_time", res$r2e_dwell_time)
+      ), file, row.names = FALSE)
+    }
+  )
+
+  output$rtd_dow_cards <- renderUI({
+    req(identical(run_mode(), "quick"), analysis_results())
+    res <- analysis_results()
+    count_card <- function(label, n) card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", n))
+    layout_column_wrap(
+      width = "220px",
+      count_card("Battle Fatigue RTD", res$bf_rtd),
+      count_card("Clinical RTD", res$clinical_rtd),
+      count_card("Total RTD", res$total_rtd)
+    )
+  })
+
+  output$dow_by_echelon_table <- renderDT({
+    req(analysis_results()$dow_by_echelon)
+    small_dt(analysis_results()$dow_by_echelon %>% mutate(dow_rate = round(dow_rate, 4)))
+  })
+  output$dl_dow_by_echelon_csv <- downloadHandler(
+    filename = "dow_by_echelon.csv",
+    content  = function(file) write.csv(analysis_results()$dow_by_echelon, file, row.names = FALSE)
+  )
+
+  output$rtd_by_echelon_table <- renderDT({
+    req(analysis_results()$rtd_by_echelon)
+    small_dt(analysis_results()$rtd_by_echelon %>% mutate(rtd_rate = round(rtd_rate, 4)))
+  })
+  output$dl_rtd_by_echelon_csv <- downloadHandler(
+    filename = "rtd_by_echelon.csv",
+    content  = function(file) write.csv(analysis_results()$rtd_by_echelon, file, row.names = FALSE)
+  )
+
+  output$role4_summary_cards <- renderUI({
+    req(identical(run_mode(), "quick"), analysis_results()$role4_summary)
+    s <- analysis_results()$role4_summary
+    val_card <- function(label, v, digits = 1) {
+      card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", formatC(v, format = "f", digits = digits)))
+    }
+    layout_column_wrap(
+      width = "220px",
+      val_card("Total Evacuated to Role 4", s$total_evacuated),
+      val_card("Peak Occupancy", s$peak_occupancy),
+      val_card("Peak Occupancy Day", s$peak_day, digits = 0)
+    )
+  })
+
+  output$ame_demand_cards <- renderUI({
+    req(identical(run_mode(), "quick"), analysis_results()$ame_summary)
+    s <- analysis_results()$ame_summary
+    val_card <- function(label, v, digits = 1) {
+      card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", formatC(v, format = "f", digits = digits)))
+    }
+    layout_column_wrap(
+      width = "220px",
+      val_card("Total Sorties Required", s$total_sorties, digits = 0),
+      val_card("Peak Daily Sorties", s$peak_daily_sorties, digits = 0),
+      val_card("Mean Daily Sorties", s$mean_daily_sorties)
+    )
+  })
+
+  output$ame_wait_time_table <- renderDT({
+    req(analysis_results()$ame_wait_time_summary)
+    df <- analysis_results()$ame_wait_time_summary %>%
+      mutate(across(c(mean_wait_minutes, p10_wait_minutes, p90_wait_minutes),
+                     list(days = ~ round(. / 1440, 1))))
+    small_dt(df)
+  })
+  output$dl_ame_wait_time_csv <- downloadHandler(
+    filename = "ame_wait_time_summary.csv",
+    content  = function(file) write.csv(analysis_results()$ame_wait_time_summary, file, row.names = FALSE)
+  )
+
+  output$mass_casualty_events_table <- renderDT({
+    req(analysis_results()$mass_casualty_events_summary)
+    small_dt(analysis_results()$mass_casualty_events_summary)
+  })
+
+  output$mass_casualty_dow_table <- renderDT({
+    req(analysis_results()$mass_casualty_dow_summary)
+    small_dt(analysis_results()$mass_casualty_dow_summary %>% mutate(dow_rate = round(dow_rate, 4)))
+  })
+  output$dl_mass_casualty_dow_csv <- downloadHandler(
+    filename = "mass_casualty_dow_summary.csv",
+    content  = function(file) write.csv(analysis_results()$mass_casualty_dow_summary, file, row.names = FALSE)
   )
 
   calibration_df <- reactive({

@@ -2257,7 +2257,9 @@ server <- function(input, output, session) {
     list(
       casualty_flow       = res$casualty_flow,
       waiting_times       = res$waiting_times,
-      force_regeneration  = res$force_regeneration_plot
+      force_regeneration  = res$force_regeneration_plot,
+      ame_backlog         = res$ame_backlog_plot,
+      ame_sortie          = res$ame_sortie_plot
     )
   })
 
@@ -2512,6 +2514,24 @@ server <- function(input, output, session) {
         downloadButton("dl_force_regeneration_pdf", "Download PDF"),
         downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
       ),
+      nav_panel("Strategic AME",
+        p(class = "text-muted mt-2",
+          "Strategic aeromedical evacuation (Issue #23) — casualties simultaneously awaiting a scheduled ",
+          "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
+          "and the outcome of every scheduled sortie opportunity (configuration selected, seats boarded ",
+          "against capacity added, or cancelled)."),
+        h6(class = "text-muted mt-2", "AME Backlog Over Time"),
+        shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_ame_backlog_png", "Download PNG"),
+        downloadButton("dl_ame_backlog_pdf", "Download PDF"),
+        downloadButton("dl_ame_backlog_csv", "Download Data (CSV)"),
+        tags$hr(),
+        h6(class = "text-muted mt-2", "AME Sortie Timeline"),
+        shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_ame_sortie_png", "Download PNG"),
+        downloadButton("dl_ame_sortie_pdf", "Download PDF"),
+        downloadButton("dl_ame_sortie_csv", "Download Data (CSV)")
+      ),
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
           "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
@@ -2586,6 +2606,10 @@ server <- function(input, output, session) {
                          function() tab_plot()$waiting_times, function() 600)
   new_shrink_to_fit_plot("plot_force_regeneration", "Force Regeneration — Full Size",
                          function() tab_plot()$force_regeneration, function() 500)
+  new_shrink_to_fit_plot("plot_ame_backlog", "AME Backlog Over Time — Full Size",
+                         function() tab_plot()$ame_backlog, function() 500)
+  new_shrink_to_fit_plot("plot_ame_sortie", "AME Sortie Timeline — Full Size",
+                         function() tab_plot()$ame_sortie, function() 500)
 
   #' Generic PNG/PDF download handler for one plot.
   #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
@@ -2620,6 +2644,10 @@ server <- function(input, output, session) {
   output$dl_waiting_times_pdf <- plot_download_handler(function() tab_plot()$waiting_times, 10, 6, "pdf")
   output$dl_force_regeneration_png <- plot_download_handler(function() tab_plot()$force_regeneration, 10, 6, "png")
   output$dl_force_regeneration_pdf <- plot_download_handler(function() tab_plot()$force_regeneration, 10, 6, "pdf")
+  output$dl_ame_backlog_png <- plot_download_handler(function() tab_plot()$ame_backlog, 12, 8, "png")
+  output$dl_ame_backlog_pdf <- plot_download_handler(function() tab_plot()$ame_backlog, 12, 8, "pdf")
+  output$dl_ame_sortie_png  <- plot_download_handler(function() tab_plot()$ame_sortie, 12, 8, "png")
+  output$dl_ame_sortie_pdf  <- plot_download_handler(function() tab_plot()$ame_sortie, 12, 8, "pdf")
 
   output$dl_casualty_flow_csv <- downloadHandler(
     filename = "casualty_flow.csv",
@@ -2673,6 +2701,14 @@ server <- function(input, output, session) {
   output$dl_force_regeneration_csv <- downloadHandler(
     filename = "force_regeneration.csv",
     content  = function(file) write.csv(analysis_results()$force_regeneration_daily, file, row.names = FALSE)
+  )
+  output$dl_ame_backlog_csv <- downloadHandler(
+    filename = "ame_backlog_data.csv",
+    content  = function(file) write.csv(analysis_results()$ame_backlog_data, file, row.names = FALSE)
+  )
+  output$dl_ame_sortie_csv <- downloadHandler(
+    filename = "ame_sortie_data.csv",
+    content  = function(file) write.csv(analysis_results()$ame_sortie_data, file, row.names = FALSE)
   )
 
   calibration_df <- reactive({

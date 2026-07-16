@@ -515,24 +515,18 @@ split_slider_recolor_script <- function(meta_map) {
 #' see `new_shrink_to_fit_plot()`) opens the same plot at full natural size
 #' in a modal for users who find the shrunk version too dense.
 #'
-#' A container may also carry `data-group="<name>"` (see
-#' `shrink_to_fit_plot_ui()`'s `group` argument) when several plots that
-#' used to be stacked into one combined image (e.g. Queue Depths' R1/R2B/R2E
-#' panels, or Bed & Resource Utilisation's four Quick Run panels — split out
-#' in separate plots, not one shared image, so shrinking doesn't squash them
-#' all into a single tiny image) are shown together in the same tab. Grouped
-#' containers share one combined viewport budget (`window.innerHeight` minus
-#' one shared `data-chrome-px`, covering the whole group's surrounding
-#' chrome) apportioned across the group in proportion to each member's own
-#' natural height, so the group collectively still fits the viewport with no
-#' page scrolling, while a panel with a taller natural height (e.g. an R2E
-#' Gantt with more bed rows) is allotted more of that shared budget than a
-#' fixed-height one, rather than an equal (and for some panels wasteful, for
-#' others insufficient) per-panel split.
+#' Each `.bch-shrink-fit` container is sized independently, against the
+#' *full* viewport height budget, not shared with any other plot on the
+#' page — even where several used-to-be-combined panels (e.g. Queue
+#' Depths' R1/R2B/R2E panels, split apart from one combined image so
+#' shrinking wouldn't squash them all into a single tiny image) are now
+#' stacked in the same tab. The page as a whole is free to scroll *between*
+#' plots in that case; what this script guarantees is that a user is never
+#' forced to scroll *within* a single plot to see the rest of it.
 shrink_to_fit_script <- function() {
   tags$script(HTML("
 (function() {
-  function applySolo(el) {
+  function applyShrink(el) {
     var natural = parseFloat(el.getAttribute('data-natural-height'));
     var chrome  = parseFloat(el.getAttribute('data-chrome-px')) || 260;
     if (!natural || natural <= 0) return;
@@ -540,26 +534,8 @@ shrink_to_fit_script <- function() {
     var factor = Math.min(1, avail / natural);
     el.style.height = Math.round(natural * factor) + 'px';
   }
-  function applyGroup(els) {
-    var chrome = parseFloat(els[0].getAttribute('data-chrome-px')) || 260;
-    var naturals = els.map(function(el) { return parseFloat(el.getAttribute('data-natural-height')) || 0; });
-    var totalNatural = naturals.reduce(function(a, b) { return a + b; }, 0);
-    if (totalNatural <= 0) return;
-    var avail = Math.max(window.innerHeight - chrome, 200);
-    var factor = Math.min(1, avail / totalNatural);
-    els.forEach(function(el, i) {
-      el.style.height = Math.round(naturals[i] * factor) + 'px';
-    });
-  }
   function applyAll() {
-    var seenGroups = {};
-    document.querySelectorAll('.bch-shrink-fit').forEach(function(el) {
-      var group = el.getAttribute('data-group');
-      if (!group) { applySolo(el); return; }
-      if (seenGroups[group]) return;
-      seenGroups[group] = true;
-      applyGroup(Array.from(document.querySelectorAll('.bch-shrink-fit[data-group=\"' + group + '\"]')));
-    });
+    document.querySelectorAll('.bch-shrink-fit').forEach(applyShrink);
   }
   $(document).on('shiny:connected', applyAll);
   $(document).on('shiny:value', applyAll);
@@ -2269,12 +2245,12 @@ server <- function(input, output, session) {
   # tab_plot() previously combined Queue Depths' 3 panels and Quick Run's
   # Bed & Resource Utilisation's 4 panels into one patchwork image each; both
   # are now split into individually shrink-to-fit plots (Issue #121 follow-
-  # up) so shrinking to fit the viewport doesn't squash every constituent
-  # plot into one shared, shared-too-small image — see
-  # ANALYSE_QUEUE_GROUP_CHROME_PX/ANALYSE_UTILISATION_GROUP_CHROME_PX below.
-  # Only the three tabs that are still ever a single combined/standalone
-  # plot remain here; every split-out panel is read directly from
-  # analysis_results() at its own new_shrink_to_fit_plot() call instead.
+  # up) so each panel can be shrunk against its own full viewport-height
+  # budget, rather than every constituent plot in a combined image sharing
+  # (and being squashed to fit) one. Only the three tabs that are still ever
+  # a single combined/standalone plot remain here; every split-out panel is
+  # read directly from analysis_results() at its own new_shrink_to_fit_plot()
+  # call instead.
   tab_plot <- reactive({
     res <- analysis_results()
     req(res)
@@ -2298,10 +2274,8 @@ server <- function(input, output, session) {
   gantt_min_section_height_px <- 150
 
   # Natural height for each of Quick Run's 4 split Bed & Resource Utilisation
-  # panels (r2b_treatment, r2b_gantt, r2e_surgery, r2e_gantt) — used both as
-  # each panel's own shrink_to_fit_plot_ui()/new_shrink_to_fit_plot() render
-  # height and, via ANALYSE_UTILISATION_GROUP_CHROME_PX's grouped shrinking,
-  # as the weight the group's shared viewport budget is apportioned by.
+  # panels (r2b_treatment, r2b_gantt, r2e_surgery, r2e_gantt) — each panel's
+  # own shrink_to_fit_plot_ui()/new_shrink_to_fit_plot() render height.
   utilisation_panel_heights <- reactive({
     res <- analysis_results()
     req(res, identical(run_mode(), "quick"))
@@ -2337,17 +2311,13 @@ server <- function(input, output, session) {
   # allowance for the surrounding navbar/tab-strip/heading/download-button
   # chrome that a plot's own container does not occupy; tabs with an
   # explanatory paragraph above the plot use the larger allowance.
-  ANALYSE_PLOT_CHROME_PX            <- 260
-  ANALYSE_PLOT_CHROME_WITH_INTRO_PX <- 360
-
-  # Split-panel groups (Queue Depths' 3 panels; Bed & Resource Utilisation's
-  # 4 Quick Run panels — each used to be one combined patchwork image, which
-  # meant every constituent plot shrank to fit a single shared budget rather
-  # than getting its own). A group's chrome allowance is larger than a solo
-  # plot's, since it must also cover each member's own heading/download-
-  # button row (~90px) rather than just the shared tab-level chrome once.
-  ANALYSE_QUEUE_GROUP_CHROME_PX       <- 260 + 3 * 90
-  ANALYSE_UTILISATION_GROUP_CHROME_PX <- 260 + 4 * 90
+  ANALYSE_PLOT_CHROME_PX             <- 260
+  ANALYSE_PLOT_CHROME_WITH_INTRO_PX  <- 360
+  # Split-out panels (Queue Depths' 3; Bed & Resource Utilisation's 4 Quick
+  # Run panels) each carry a small heading + an `hr` separator above them,
+  # rather than a solo plot's bare tab content or a full paragraph intro —
+  # an allowance between the other two.
+  ANALYSE_PLOT_CHROME_WITH_HEADING_PX <- 300
 
   #' UI for one shrink-to-fit Analyse-tab plot: a container whose CSS
   #' height is managed client-side by shrink_to_fit_script(), with the
@@ -2363,27 +2333,14 @@ server <- function(input, output, session) {
   #'   before shrink_to_fit_script() adjusts it.
   #' @param chrome_px Vertical space assumed to be consumed by chrome
   #'   surrounding this plot; see roxygen above.
-  #' @param group Optional group name (see shrink_to_fit_script()'s
-  #'   roxygen) shared by every split-out panel that used to be one
-  #'   combined image; NULL (default) for a plot shrunk on its own.
-  shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX, group = NULL) {
+  shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX) {
     natural_height_px <- round(natural_height_px)
-    container <- if (is.null(group)) {
-      div(class = "bch-shrink-fit",
-          style = paste0("height:", natural_height_px, "px;"),
-          `data-natural-height` = natural_height_px,
-          `data-chrome-px`      = chrome_px,
-          plotOutput(plot_id, height = "100%"))
-    } else {
-      div(class = "bch-shrink-fit",
-          style = paste0("height:", natural_height_px, "px;"),
-          `data-natural-height` = natural_height_px,
-          `data-chrome-px`      = chrome_px,
-          `data-group`          = group,
-          plotOutput(plot_id, height = "100%"))
-    }
     tagList(
-      container,
+      div(class = "bch-shrink-fit",
+          style = paste0("height:", natural_height_px, "px;"),
+          `data-natural-height` = natural_height_px,
+          `data-chrome-px`      = chrome_px,
+          plotOutput(plot_id, height = "100%")),
       div(class = "mt-1",
           actionLink(paste0(plot_id, "_expand"), HTML("&#128269; Expand to full size")))
     )
@@ -2477,19 +2434,19 @@ server <- function(input, output, session) {
       ),
       nav_panel("Queue Depths",
         h6(class = "text-muted mt-2", "R1 Queues"),
-        shrink_to_fit_plot_ui("plot_r1_queues", 300, chrome_px = ANALYSE_QUEUE_GROUP_CHROME_PX, group = "queue_depths"),
+        shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         downloadButton("dl_r1_queues_png", "Download PNG"),
         downloadButton("dl_r1_queues_pdf", "Download PDF"),
         downloadButton("dl_r1_queues_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "R2B Bed Queues"),
-        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 300, chrome_px = ANALYSE_QUEUE_GROUP_CHROME_PX, group = "queue_depths"),
+        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         downloadButton("dl_r2b_bed_queues_png", "Download PNG"),
         downloadButton("dl_r2b_bed_queues_pdf", "Download PDF"),
         downloadButton("dl_r2b_bed_queues_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "R2E Bed Queues"),
-        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 300, chrome_px = ANALYSE_QUEUE_GROUP_CHROME_PX, group = "queue_depths"),
+        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         downloadButton("dl_r2e_bed_queues_png", "Download PNG"),
         downloadButton("dl_r2e_bed_queues_pdf", "Download PDF"),
         downloadButton("dl_r2e_bed_queues_csv", "Download Data (CSV)")
@@ -2506,25 +2463,25 @@ server <- function(input, output, session) {
           ph <- utilisation_panel_heights()
           tagList(
             h6(class = "text-muted mt-2", "R2B Treatment"),
-            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_UTILISATION_GROUP_CHROME_PX, group = "utilisation"),
+            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2b_treatment_png", "Download PNG"),
             downloadButton("dl_r2b_treatment_pdf", "Download PDF"),
             downloadButton("dl_r2b_treatment_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2B Bed Resource Usage (Gantt)"),
-            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_UTILISATION_GROUP_CHROME_PX, group = "utilisation"),
+            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2b_gantt_png", "Download PNG"),
             downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
             downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E Surgery"),
-            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_UTILISATION_GROUP_CHROME_PX, group = "utilisation"),
+            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_surgery_png", "Download PNG"),
             downloadButton("dl_r2e_surgery_pdf", "Download PDF"),
             downloadButton("dl_r2e_surgery_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E Bed Resource Usage (Gantt)"),
-            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_UTILISATION_GROUP_CHROME_PX, group = "utilisation"),
+            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_gantt_png", "Download PNG"),
             downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
             downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)")
@@ -2600,11 +2557,11 @@ server <- function(input, output, session) {
   new_shrink_to_fit_plot("plot_casualty_flow", "Casualty Flow — Full Size",
                          function() tab_plot()$casualty_flow, function() 700)
   new_shrink_to_fit_plot("plot_r1_queues", "R1 Queues — Full Size",
-                         function() analysis_results()$r1_queues, function() 300)
+                         function() analysis_results()$r1_queues, function() 600)
   new_shrink_to_fit_plot("plot_r2b_bed_queues", "R2B Bed Queues — Full Size",
-                         function() analysis_results()$r2b_bed_queues, function() 300)
+                         function() analysis_results()$r2b_bed_queues, function() 600)
   new_shrink_to_fit_plot("plot_r2e_bed_queues", "R2E Bed Queues — Full Size",
-                         function() analysis_results()$r2e_bed_queues, function() 300)
+                         function() analysis_results()$r2e_bed_queues, function() 600)
   new_shrink_to_fit_plot("plot_utilisation", "Bed & Resource Utilisation — Full Size",
                          function() { req(identical(run_mode(), "full")); analysis_results()$utilisation },
                          function() UTILISATION_FULL_MODE_HEIGHT_PX)

@@ -2302,7 +2302,8 @@ server <- function(input, output, session) {
     # three stacked panels left too little room per panel, causing each
     # sub-panel's "Casualties" y-axis title to overlap its neighbour's.
     list(r2b_treatment = 700, r2b_gantt = r2b_gantt_height,
-         r2e_surgery   = 400, r2e_gantt = r2e_gantt_height)
+         r2e_surgery   = 400, r2e_gantt = r2e_gantt_height,
+         r2e_icu_gating = 500)
   })
 
   # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
@@ -2491,7 +2492,18 @@ server <- function(input, output, session) {
             shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_gantt_png", "Download PNG"),
             downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
-            downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)")
+            downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2E OT-ICU Gating — Hold Bed Used in Lieu of ICU"),
+            p(class = "text-muted small",
+              "Daily breakdown of R2E post-operative casualties (Issue #43): Sub-Optimal (red) is a Priority 1 ",
+              "casualty whose recovery used a Hold bed instead of ICU because ICU was saturated at the point of ",
+              "OT entry; Delayed (orange) is a Priority 2+ casualty whose OT entry was deferred pending ICU ",
+              "availability; Normal (green) means ICU was available. A run with no ICU saturation shows no plot."),
+            shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
+            downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
+            downloadButton("dl_r2e_icu_gating_csv", "Download Data (CSV)")
           )
         })
       ),
@@ -2602,6 +2614,9 @@ server <- function(input, output, session) {
   new_shrink_to_fit_plot("plot_r2e_gantt", "R2E Bed Resource Usage (Gantt) — Full Size",
                          function() { req(identical(run_mode(), "quick")); analysis_results()$r2e_gantt },
                          function() utilisation_panel_heights()$r2e_gantt)
+  new_shrink_to_fit_plot("plot_r2e_icu_gating", "R2E OT-ICU Gating — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2e_icu_gating_plot },
+                         function() utilisation_panel_heights()$r2e_icu_gating)
   new_shrink_to_fit_plot("plot_waiting_times", "Waiting Times — Full Size",
                          function() tab_plot()$waiting_times, function() 600)
   new_shrink_to_fit_plot("plot_force_regeneration", "Force Regeneration — Full Size",
@@ -2640,6 +2655,8 @@ server <- function(input, output, session) {
   output$dl_r2e_surgery_pdf   <- plot_download_handler(function() analysis_results()$r2e_surgery, 10, 5, "pdf")
   output$dl_r2e_gantt_png     <- plot_download_handler(function() analysis_results()$r2e_gantt, 12, 8, "png")
   output$dl_r2e_gantt_pdf     <- plot_download_handler(function() analysis_results()$r2e_gantt, 12, 8, "pdf")
+  output$dl_r2e_icu_gating_png <- plot_download_handler(function() analysis_results()$r2e_icu_gating_plot, 12, 6, "png")
+  output$dl_r2e_icu_gating_pdf <- plot_download_handler(function() analysis_results()$r2e_icu_gating_plot, 12, 6, "pdf")
   output$dl_waiting_times_png <- plot_download_handler(function() tab_plot()$waiting_times, 10, 6, "png")
   output$dl_waiting_times_pdf <- plot_download_handler(function() tab_plot()$waiting_times, 10, 6, "pdf")
   output$dl_force_regeneration_png <- plot_download_handler(function() tab_plot()$force_regeneration, 10, 6, "png")
@@ -2690,6 +2707,10 @@ server <- function(input, output, session) {
   }
   output$dl_r2b_treatment_csv <- echelon_ot_utilisation_csv("R2B")
   output$dl_r2e_surgery_csv   <- echelon_ot_utilisation_csv("R2E")
+  output$dl_r2e_icu_gating_csv <- downloadHandler(
+    filename = "r2e_icu_gating_daily.csv",
+    content  = function(file) write.csv(analysis_results()$r2e_icu_gating_daily, file, row.names = FALSE)
+  )
   output$dl_waiting_times_csv <- downloadHandler(
     filename = "waiting_times.csv",
     content  = function(file) {

@@ -2293,9 +2293,14 @@ server <- function(input, output, session) {
     r2e_rows <- if (is.null(r2e_data)) 0 else length(unique(r2e_data$resource_label))
     r2e_gantt_height <- max(r2e_rows * gantt_row_height_px, gantt_min_section_height_px)
 
-    fixed_panel_height <- 400  # r2b_treatment and r2e_surgery panels (not row-scaled)
-    list(r2b_treatment = fixed_panel_height, r2b_gantt = r2b_gantt_height,
-         r2e_surgery   = fixed_panel_height, r2e_gantt = r2e_gantt_height)
+    # r2b_treatment is itself a 3-panel patchwork stack (casualties treated /
+    # surgeries started / skipping R2B), like Casualty Flow's 3-panel stack —
+    # so it gets the same generous height as that tab (700px), rather than
+    # r2e_surgery's plain single-panel bar chart height (400px); 400px for
+    # three stacked panels left too little room per panel, causing each
+    # sub-panel's "Casualties" y-axis title to overlap its neighbour's.
+    list(r2b_treatment = 700, r2b_gantt = r2b_gantt_height,
+         r2e_surgery   = 400, r2e_gantt = r2e_gantt_height)
   })
 
   # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────

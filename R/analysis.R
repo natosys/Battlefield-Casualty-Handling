@@ -159,6 +159,197 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
     mutate(sorties_required = ceiling(evacuation_count / ame_capacity))
 }
 
+# ── Strategic AME queue depth and sortie timeline visualisation (Issue #109) ──
+# build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
+# own — every outcome (flown/cancelled, configuration selected) has to be
+# reconstructed from the "ame"/"ame_critical" resource monitor. The schedule
+# itself is fully deterministic (fixed `at(seq(...))` times, R/replication.R),
+# so every scheduled opportunity — including cancelled ones, which leave no
+# capacity change at all — can be enumerated without needing to scan the
+# monitor for events; only the *outcome* at each known time is read from it.
+
+#' Reconstructs the outcome of every scheduled strategic AME sortie
+#' opportunity (Issue #109) from the "ame"/"ame_critical" resource capacity
+#' monitor
+#'
+#' @param resources Tidy resource monitor data frame (analyse_run()'s
+#'   `resources` or analyse_replications()'s `resources_raw`); must include
+#'   replication, resource, time, capacity, queue
+#' @param role4_params `env_data$vars$role4` list — supplies
+#'   `ame$schedule_interval_days` and the two named configurations
+#'   (`ame_config_a`, `ame_config_b`)
+#' @param n_days Simulation duration in days, used to bound the schedule the
+#'   same way `run_once()` (R/replication.R) does
+#' @param day_min Minutes per simulation day (1440)
+#' @return Tidy data frame, one row per (replication, sortie_day, pool) —
+#'   pool one of "Critical (ICU, CCATT/CCAST)"/"Standard (Hold, CSU)" — with
+#'   `capacity_added`, `seats_used`, and `configuration` ("Configuration A"/
+#'   "Configuration B"/"Cancelled"/"Unknown"). Empty (zero rows) when AME
+#'   scheduling is disabled (mirrors `run_once()`'s own disable condition).
+#'
+#' @details `seats_used` is derived, not directly observed: it is
+#'   `min(capacity_added, queue_immediately_before_the_sortie)` — the same
+#'   queue value `select_ame_configuration()` (R/trajectories.R) itself reads
+#'   via `get_queue_size()` immediately before this event, so it is an exact
+#'   reconstruction of how many casualties that pool's added capacity could
+#'   and did immediately clear, not an approximation. "Unknown" configuration
+#'   only occurs if a capacity delta matches neither planner-defined
+#'   configuration exactly — should not occur in practice; guards against a
+#'   future configuration change silently mis-labelling an old run's data.
+compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440) {
+  pool_levels <- c("Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")
+  empty <- data.frame(replication = integer(0), sortie_day = numeric(0),
+                      pool = character(0), capacity_added = numeric(0),
+                      seats_used = numeric(0), configuration = character(0))
+
+  ame_sched <- role4_params$ame
+  if (is.null(ame_sched$schedule_interval_days) ||
+      ame_sched$schedule_interval_days <= 0 ||
+      ame_sched$schedule_interval_days > n_days) {
+    return(empty)
+  }
+
+  sortie_times <- seq(ame_sched$schedule_interval_days * day_min, n_days * day_min,
+                      by = ame_sched$schedule_interval_days * day_min)
+
+  configs <- list("Configuration A" = role4_params$ame_config_a,
+                  "Configuration B" = role4_params$ame_config_b)
+
+  # Step-function lookup: the last recorded value of `value_col` for a
+  # (time-sorted) resource-monitor subset at or before `t` — or strictly
+  # before `t` when `before = TRUE`, to read the state an instant ahead of a
+  # simultaneous change at exactly `t` (e.g. the queue depth the sortie's own
+  # capacity bump is about to drain).
+  step_at <- function(df, value_col, t, before = FALSE) {
+    if (nrow(df) == 0) return(0)
+    query <- if (before) t - 1e-6 else t
+    idx <- findInterval(query, df$time)
+    if (idx < 1) return(0)
+    df[[value_col]][idx]
+  }
+
+  reps <- sort(unique(resources$replication))
+
+  bind_rows(lapply(reps, function(rep_id) {
+    rep_res    <- resources %>% filter(replication == rep_id) %>% arrange(time)
+    ame_res    <- rep_res %>% filter(resource == "ame")
+    crit_res   <- rep_res %>% filter(resource == "ame_critical")
+
+    bind_rows(lapply(sortie_times, function(t) {
+      std_added  <- step_at(ame_res,  "capacity", t) - step_at(ame_res,  "capacity", t, before = TRUE)
+      crit_added <- step_at(crit_res, "capacity", t) - step_at(crit_res, "capacity", t, before = TRUE)
+
+      configuration <- "Cancelled"
+      if (std_added > 0 || crit_added > 0) {
+        match_idx <- vapply(configs, function(cfg) {
+          isTRUE(all.equal(cfg$critical_capacity, crit_added)) &&
+            isTRUE(all.equal(cfg$standard_capacity, std_added))
+        }, logical(1))
+        configuration <- if (any(match_idx)) names(configs)[match_idx][1] else "Unknown"
+      }
+
+      data.frame(
+        replication    = rep_id,
+        sortie_day     = t / day_min,
+        pool           = pool_levels,
+        capacity_added = c(crit_added, std_added),
+        seats_used     = c(min(crit_added, step_at(crit_res, "queue", t, before = TRUE)),
+                           min(std_added,  step_at(ame_res,  "queue", t, before = TRUE))),
+        configuration  = configuration
+      )
+    }))
+  })) %>%
+    mutate(pool = factor(pool, levels = pool_levels))
+}
+
+#' Builds the strategic AME queue-depth (backlog) plot (Issue #109): number
+#' of casualties simultaneously awaiting AME sortie capacity over time, by
+#' pool
+#'
+#' @param resources Tidy resource monitor data frame; must include
+#'   replication, resource, time, queue
+#' @return A ggplot object, or NULL if neither "ame" nor "ame_critical"
+#'   appears in `resources` (AME scheduling disabled)
+#'
+#' @details Y-axis scaling is data-driven per facet (`scales = "free_y"`,
+#'   Issue #110's convention) rather than a fixed range, since the two pools'
+#'   backlogs differ by an order of magnitude in typical scenarios.
+plot_ame_queue <- function(resources) {
+  if (!any(c("ame", "ame_critical") %in% resources$resource)) return(NULL)
+
+  ame_resource_data <- resources %>%
+    filter(resource %in% c("ame", "ame_critical")) %>%
+    mutate(pool = if_else(resource == "ame_critical",
+                          "Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")) %>%
+    arrange(replication, time)
+
+  facet_formula <- if (n_distinct(ame_resource_data$replication) > 1) {
+    ~ pool + replication
+  } else {
+    ~ pool
+  }
+
+  ggplot(ame_resource_data, aes(x = time / 1440, y = queue)) +
+    geom_step(color = "#D62828") +
+    facet_wrap(facet_formula, ncol = if (identical(facet_formula, ~ pool)) 1 else NULL,
+              scales = "free_y") +
+    labs(
+      title    = "Strategic AME Backlog Over Time",
+      subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed) by route",
+      x = "Simulation Day", y = "Casualties Awaiting AME"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
+}
+
+#' Builds the strategic AME sortie timeline plot (Issue #109): each
+#' scheduled sortie opportunity's outcome — configuration selected, and
+#' seats used against capacity — for both AME pools
+#'
+#' @param sortie_data Output of `compute_ame_sorties()`
+#' @return A ggplot object, or NULL if `sortie_data` has no rows (AME
+#'   scheduling disabled)
+#'
+#' @details Values are averaged across replications at each scheduled
+#'   `sortie_day` (a fixed, schedule-determined x-axis shared by every
+#'   replication) before plotting — in single-run mode this mean is simply
+#'   the observed value, so the same code path serves both Quick Run and
+#'   Full Analysis without a branch. The grey bar is mean capacity added
+#'   (seats the sortie brought, 0 for a cancelled sortie); the coloured bar
+#'   is mean seats immediately boarded, coloured by the modal configuration
+#'   selected across contributing replications at that sortie_day. Y-axis
+#'   scaling is data-driven per facet (Issue #110's convention).
+plot_ame_sortie <- function(sortie_data) {
+  if (nrow(sortie_data) == 0) return(NULL)
+
+  sortie_summary <- sortie_data %>%
+    group_by(sortie_day, pool) %>%
+    summarise(
+      mean_capacity_added = mean(capacity_added),
+      mean_seats_used     = mean(seats_used),
+      modal_configuration  = names(sort(table(configuration), decreasing = TRUE))[1],
+      .groups = "drop"
+    )
+
+  ggplot(sortie_summary, aes(x = sortie_day)) +
+    geom_col(aes(y = mean_capacity_added), fill = "grey80", width = 0.6) +
+    geom_col(aes(y = mean_seats_used, fill = modal_configuration), width = 0.6) +
+    facet_wrap(~ pool, ncol = 1, scales = "free_y") +
+    scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
+    scale_fill_manual(
+      values = c("Configuration A" = "#2A9D8F", "Configuration B" = "#E76F51",
+                "Cancelled" = "grey50", "Unknown" = "grey30"),
+      name = "Modal Configuration"
+    ) +
+    labs(
+      title    = "Strategic AME Sortie Timeline",
+      subtitle = "Grey bar = mean seats added (capacity) per scheduled sortie; coloured bar = mean seats boarded immediately",
+      x = "Simulation Day", y = "Seats"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"), legend.position = "bottom")
+}
+
 #' Runs the full analysis and visualisation pipeline on monitoring data
 #'
 #' @param mon Named list with elements arrivals, attributes, resources as
@@ -1403,32 +1594,30 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ))
   }
 
-  if (any(c("ame", "ame_critical") %in% resources$resource)) {
-    ame_resource_data <- resources %>%
-      filter(resource %in% c("ame", "ame_critical")) %>%
-      mutate(pool = if_else(resource == "ame_critical",
-                            "Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")) %>%
-      arrange(replication, time)
-
-    facet_formula <- if (n_distinct(ame_resource_data$replication) > 1) {
-      ~ pool + replication
-    } else {
-      ~ pool
-    }
-
-    ame_backlog_plot <- ggplot(ame_resource_data, aes(x = time / 1440, y = queue)) +
-      geom_step(color = "#D62828") +
-      facet_wrap(facet_formula, ncol = if (identical(facet_formula, ~ pool)) 1 else NULL,
-                scales = "free_y") +
-      labs(
-        title    = "Strategic AME Backlog Over Time",
-        subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed) by route",
-        x = "Simulation Day", y = "Casualties Awaiting AME"
-      ) +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
-
+  ame_backlog_plot <- plot_ame_queue(resources)
+  if (!is.null(ame_backlog_plot)) {
     ggsave(file.path(images_dir, "ame_backlog.png"), ame_backlog_plot, width = 12, height = 8, dpi = 150)
+  }
+
+  # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
+  # compute_ame_sorties() only needs `resources` and the schedule/config
+  # parameters, not `combined` — so it does not require any strategic
+  # evacuation decisions to have occurred yet, unlike the wait-time/backlog
+  # outputs above or the role4-census block further above (which only runs
+  # when a casualty has actually reached Role 4) — n_sim_days_role4 is
+  # recomputed here (it may not be in scope if that block's own guard
+  # condition was false) so a run with sorties scheduled but no completed
+  # evacuations still gets a sortie timeline.
+  ame_sortie_data <- NULL
+  ame_sortie_plot <- NULL
+  if (!is.null(env_data$vars$role4)) {
+    n_sim_days_role4 <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    ame_sortie_data <- compute_ame_sorties(resources, env_data$vars$role4, n_sim_days_role4)
+    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data)
+    if (!is.null(ame_sortie_plot)) {
+      write.csv(ame_sortie_data, file.path(output_dir, "ame_sortie_data.csv"), row.names = FALSE)
+      ggsave(file.path(images_dir, "ame_sortie_timeline.png"), ame_sortie_plot, width = 12, height = 8, dpi = 150)
+    }
   }
 
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
@@ -1494,7 +1683,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ame_summary                  = ame_summary,
     ame_replication_summary     = ame_replication_summary,
     ame_wait_time_summary       = ame_wait_time_summary,
-    ame_backlog_plot            = ame_backlog_plot
+    ame_backlog_plot            = ame_backlog_plot,
+    ame_sortie_data              = ame_sortie_data,
+    ame_sortie_plot              = ame_sortie_plot
   ))
 }
 
@@ -1901,6 +2092,31 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     write.csv(force_regeneration_ci, file.path(output_dir, "force_regeneration_ci.csv"), row.names = FALSE)
   }
 
+  # ── Strategic AME queue depth and sortie timeline (Issue #109) ──────────
+  # plot_ame_queue()/compute_ame_sorties()/plot_ame_sortie() (defined above,
+  # ahead of analyse_run()) only depend on the resource monitor and the
+  # role4 schedule/config parameters — not the per-casualty `combined` join
+  # analyse_run() builds — so they apply unchanged to the pooled
+  # multi-replication resource data, and already average across
+  # replications (compute_ame_sorties()/plot_ame_sortie()) or facet by
+  # replication (plot_ame_queue()) when more than one is present.
+  ame_backlog_plot <- plot_ame_queue(resources_raw)
+  if (!is.null(ame_backlog_plot)) {
+    ggsave(file.path(images_dir, "ame_backlog_multirun.png"), ame_backlog_plot, width = 12, height = 8, dpi = 150)
+  }
+
+  ame_sortie_data <- NULL
+  ame_sortie_plot <- NULL
+  if (!is.null(env_data$vars$role4)) {
+    n_sim_days_ame <- max(day_range)
+    ame_sortie_data <- compute_ame_sorties(resources_raw, env_data$vars$role4, n_sim_days_ame)
+    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data)
+    if (!is.null(ame_sortie_plot)) {
+      write.csv(ame_sortie_data, file.path(output_dir, "ame_sortie_data.csv"), row.names = FALSE)
+      ggsave(file.path(images_dir, "ame_sortie_timeline_multirun.png"), ame_sortie_plot, width = 12, height = 8, dpi = 150)
+    }
+  }
+
   invisible(list(
     casualty_flow       = p_casualty_flow_ci,
     r1_queues           = p_r1_queues_ci,
@@ -1910,6 +2126,9 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     waiting_times       = p_waiting_times_ci,
     force_regeneration_plot  = p_force_regeneration_ci,
     force_regeneration_daily = force_regeneration_ci,
+    ame_backlog_plot    = ame_backlog_plot,
+    ame_sortie_data     = ame_sortie_data,
+    ame_sortie_plot     = ame_sortie_plot,
     kpi_summary    = kpi_summary,
     n_reps         = n_reps,
     arrivals       = arrivals_raw,

@@ -479,6 +479,94 @@ split_slider_recolor_script <- function(meta_map) {
   tags$script(HTML(js))
 }
 
+#' Client-side "shrink-to-fit" scaling for Analyse-tab plots (Issue #121).
+#'
+#' Every Analyse-tab plot still renders server-side at its own natural,
+#' data-driven pixel height (e.g. the Gantt row-count height from Issue
+#' #111) via an explicit, non-"auto" `renderPlot(height = ...)` (see
+#' `new_shrink_to_fit_plot()`) — so the full-detail image is always
+#' generated at the same resolution regardless of how it is later
+#' displayed, and Shiny is never asked to auto-detect a size from (and so
+#' never re-renders in response to) the container's on-screen size. This
+#' script instead shrinks a `.bch-shrink-fit` container's CSS *height*
+#' only; a matching stylesheet rule (`bch_shrink_to_fit_css()`, in the same
+#' `nav_panel`) makes the `<img>` inside track that height at `height:100%`
+#' with `width:auto`, so the browser itself scales the already-rendered,
+#' full-detail image down losslessly (as a photo, not a re-render) to fit —
+#' preserving every relative proportion, so Issue #111's row/label spacing
+#' cannot re-overlap as a side effect of shrinking — and centres it via
+#' `margin: 0 auto`, since its auto-computed display width will generally
+#' be narrower than the container once shrunk. An earlier version of this
+#' script tried two other approaches that were each dropped for a distinct
+#' failure mode: (1) leaving `renderPlot()` on "auto" sizing so Shiny's own
+#' redraw would fill a JS-shrunk container — this genuinely refits the
+#' image, but ggplot's fixed font sizes then take up a much larger fraction
+#' of a heavily-shrunk canvas, reintroducing label/row overlap; (2) a CSS
+#' `transform: scale()` on a full-size render — but Shiny's resize-sensing
+#' measures a container's on-screen (transformed) size, not its pre-
+#' transform layout size, so it would eventually re-render at the already-
+#' transformed (shrunk) size while the transform remained active,
+#' compounding into a progressively narrower, uncentred image. Deliberately
+#' done client-side (rather than by feeding a Shiny `input$window_height`
+#' back into a `renderUI`) so a window resize only restyles the existing
+#' DOM nodes — it does not tear down and rebuild the surrounding
+#' `navset_tab`, which would otherwise reset the user's selected tab on
+#' every resize. The "Expand" link next to each plot (wired server-side,
+#' see `new_shrink_to_fit_plot()`) opens the same plot at full natural size
+#' in a modal for users who find the shrunk version too dense.
+#'
+#' Each `.bch-shrink-fit` container is sized independently, against the
+#' *full* viewport height budget, not shared with any other plot on the
+#' page — even where several used-to-be-combined panels (e.g. Queue
+#' Depths' R1/R2B/R2E panels, split apart from one combined image so
+#' shrinking wouldn't squash them all into a single tiny image) are now
+#' stacked in the same tab. The page as a whole is free to scroll *between*
+#' plots in that case; what this script guarantees is that a user is never
+#' forced to scroll *within* a single plot to see the rest of it.
+shrink_to_fit_script <- function() {
+  tags$script(HTML("
+(function() {
+  function applyShrink(el) {
+    var natural = parseFloat(el.getAttribute('data-natural-height'));
+    var chrome  = parseFloat(el.getAttribute('data-chrome-px')) || 260;
+    if (!natural || natural <= 0) return;
+    var avail  = Math.max(window.innerHeight - chrome, 200);
+    var factor = Math.min(1, avail / natural);
+    el.style.height = Math.round(natural * factor) + 'px';
+  }
+  function applyAll() {
+    document.querySelectorAll('.bch-shrink-fit').forEach(applyShrink);
+  }
+  $(document).on('shiny:connected', applyAll);
+  $(document).on('shiny:value', applyAll);
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyAll, 150);
+  });
+})();
+"))
+}
+
+#' Stylesheet paired with shrink_to_fit_script(): makes every plot image
+#' inside a `.bch-shrink-fit` container track that container's (JS-managed)
+#' height while auto-computing and centring its width, rather than being
+#' stretched or left clinging to one edge. `!important` is needed since
+#' Shiny's `plotOutput()` sets the `<img>`'s own inline width/height styles
+#' directly, which would otherwise take precedence over a stylesheet rule.
+bch_shrink_to_fit_css <- function() {
+  tags$style(HTML("
+.bch-shrink-fit { overflow: hidden; }
+.bch-shrink-fit img {
+  height: 100% !important;
+  width: auto !important;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+}
+"))
+}
+
 #' Merge a two-handle range-slider value into a values list as three
 #' underlying field values, matching the ids apply_registry_values()/
 #' validate_config() expect. Needed because the Configure panel replaces
@@ -1467,6 +1555,8 @@ ui <- page_navbar(
 
   nav_panel(
     "Analyse",
+    shrink_to_fit_script(),
+    bch_shrink_to_fit_css(),
     uiOutput("analyse_body")
   )
 )
@@ -2152,44 +2242,43 @@ server <- function(input, output, session) {
 
   # ── Analyse panel ─────────────────────────────────────────────────────────
 
-  combined_plot <- function(...) Reduce(`/`, list(...))
-
-  # tab_plot() reads the same four keys regardless of which mode produced
-  # analysis_results() — analyse_run() (Quick Run) and analyse_replications()
-  # (Full Analysis) both name their per-echelon queue plots identically, so
-  # only the "utilisation" tab (no multi-run Gantt equivalent — see
-  # analyse_replications()'s roxygen) needs a mode-specific branch.
+  # tab_plot() previously combined Queue Depths' 3 panels and Quick Run's
+  # Bed & Resource Utilisation's 4 panels into one patchwork image each; both
+  # are now split into individually shrink-to-fit plots (Issue #121 follow-
+  # up) so each panel can be shrunk against its own full viewport-height
+  # budget, rather than every constituent plot in a combined image sharing
+  # (and being squashed to fit) one. Only the three tabs that are still ever
+  # a single combined/standalone plot remain here; every split-out panel is
+  # read directly from analysis_results() at its own new_shrink_to_fit_plot()
+  # call instead.
   tab_plot <- reactive({
     res <- analysis_results()
     req(res)
-    utilisation_plot <- if (identical(run_mode(), "full")) {
-      res$utilisation
-    } else {
-      combined_plot(res$r2b_treatment, res$r2b_gantt, res$r2e_surgery, res$r2e_gantt)
-    }
     list(
       casualty_flow       = res$casualty_flow,
-      queue_depths        = combined_plot(res$r1_queues, res$r2b_bed_queues, res$r2e_bed_queues),
-      utilisation         = utilisation_plot,
       waiting_times       = res$waiting_times,
       force_regeneration  = res$force_regeneration_plot
     )
   })
 
+  UTILISATION_FULL_MODE_HEIGHT_PX <- 500  # Full Analysis's single mean +/- CI bar chart (no per-bed Gantt to split)
+
   # Issue #111: the Bed & Resource Utilisation plot's fixed 1400px height
   # caused Gantt rows to overlap once an echelon's individual bed count grew
-  # (R2E routinely plots 20+ beds). Scale the rendered height to the number
-  # of distinct resource rows instead, at a fixed per-row convention (25px,
-  # ~150px floor per section so an empty/small section isn't squashed to
-  # nothing). Full Analysis mode has no per-bed Gantt (see tab_plot() above)
-  # so its single mean ± CI bar chart keeps a static height.
+  # (R2E routinely plots 20+ beds). Scale each Gantt's rendered height to its
+  # own distinct resource row count instead, at a fixed per-row convention
+  # (25px, ~150px floor per section so an empty/small section isn't squashed
+  # to nothing). Full Analysis mode has no per-bed Gantt (see tab_plot()
+  # above) so its single mean ± CI bar chart keeps the static height above.
   gantt_row_height_px <- 25
   gantt_min_section_height_px <- 150
 
-  utilisation_plot_height <- reactive({
+  # Natural height for each of Quick Run's 4 split Bed & Resource Utilisation
+  # panels (r2b_treatment, r2b_gantt, r2e_surgery, r2e_gantt) — each panel's
+  # own shrink_to_fit_plot_ui()/new_shrink_to_fit_plot() render height.
+  utilisation_panel_heights <- reactive({
     res <- analysis_results()
-    req(res)
-    if (identical(run_mode(), "full")) return(500)
+    req(res, identical(run_mode(), "quick"))
 
     r2b_data <- res$r2b_gantt$data
     r2b_gantt_height <- if (is.null(r2b_data) || nrow(r2b_data) == 0) {
@@ -2204,9 +2293,89 @@ server <- function(input, output, session) {
     r2e_rows <- if (is.null(r2e_data)) 0 else length(unique(r2e_data$resource_label))
     r2e_gantt_height <- max(r2e_rows * gantt_row_height_px, gantt_min_section_height_px)
 
-    fixed_panel_height <- 400  # r2b_treatment and r2e_surgery panels (not row-scaled)
-    2 * fixed_panel_height + r2b_gantt_height + r2e_gantt_height
+    # r2b_treatment is itself a 3-panel patchwork stack (casualties treated /
+    # surgeries started / skipping R2B), like Casualty Flow's 3-panel stack —
+    # so it gets the same generous height as that tab (700px), rather than
+    # r2e_surgery's plain single-panel bar chart height (400px); 400px for
+    # three stacked panels left too little room per panel, causing each
+    # sub-panel's "Casualties" y-axis title to overlap its neighbour's.
+    list(r2b_treatment = 700, r2b_gantt = r2b_gantt_height,
+         r2e_surgery   = 400, r2e_gantt = r2e_gantt_height)
   })
+
+  # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
+  # Every plot in the Analyse tab (Quick Run and Full Analysis alike)
+  # defaults to a size that fits the user's browser viewport without page
+  # scrolling, while remaining fully readable on demand via an "Expand"
+  # link. Each plot still renders server-side at its own natural, data-
+  # driven height (e.g. utilisation_panel_heights() above, unchanged from
+  # Issue #111) so row/label geometry is computed exactly as before; only
+  # the *displayed* size is capped, client-side, by shrink_to_fit_script()
+  # (see its roxygen for why this is done in JS rather than by feeding a
+  # viewport height back into a reactive renderUI). chrome_px is a per-tab
+  # allowance for the surrounding navbar/tab-strip/heading/download-button
+  # chrome that a plot's own container does not occupy; tabs with an
+  # explanatory paragraph above the plot use the larger allowance.
+  ANALYSE_PLOT_CHROME_PX             <- 260
+  ANALYSE_PLOT_CHROME_WITH_INTRO_PX  <- 360
+  # Split-out panels (Queue Depths' 3; Bed & Resource Utilisation's 4 Quick
+  # Run panels) each carry a small heading + an `hr` separator above them,
+  # rather than a solo plot's bare tab content or a full paragraph intro —
+  # an allowance between the other two.
+  ANALYSE_PLOT_CHROME_WITH_HEADING_PX <- 300
+
+  #' UI for one shrink-to-fit Analyse-tab plot: a container whose CSS
+  #' height is managed client-side by shrink_to_fit_script(), with the
+  #' plot image inside tracking that height (`bch_shrink_to_fit_css()`)
+  #' rather than being rendered at a different resolution, plus an
+  #' "Expand" link that opens the same plot at full natural size in a
+  #' modal (wired server-side by new_shrink_to_fit_plot()).
+  #'
+  #' @param plot_id Output id the plot is/will be rendered to.
+  #' @param natural_height_px Data-driven or fixed pixel height the plot
+  #'   renders at server-side (unchanged by shrinking — see
+  #'   new_shrink_to_fit_plot()) and the container's initial CSS height,
+  #'   before shrink_to_fit_script() adjusts it.
+  #' @param chrome_px Vertical space assumed to be consumed by chrome
+  #'   surrounding this plot; see roxygen above.
+  shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX) {
+    natural_height_px <- round(natural_height_px)
+    tagList(
+      div(class = "bch-shrink-fit",
+          style = paste0("height:", natural_height_px, "px;"),
+          `data-natural-height` = natural_height_px,
+          `data-chrome-px`      = chrome_px,
+          plotOutput(plot_id, height = "100%")),
+      div(class = "mt-1",
+          actionLink(paste0(plot_id, "_expand"), HTML("&#128269; Expand to full size")))
+    )
+  }
+
+  #' Server wiring for one shrink-to-fit plot: the (shrinkable) primary
+  #' output, a full-size modal companion bound to the same plot content,
+  #' and the "Expand" link's click handler. Both outputs share `plot_fn`
+  #' and both explicitly force `height_fn()` as their render height (never
+  #' "auto") — see shrink_to_fit_script()'s roxygen for why an explicit,
+  #' un-auto-detected height is what makes the client-side shrinking safe.
+  #' The modal always shows the plot at this same full natural size,
+  #' unscaled by any container CSS, making it the regression check for
+  #' Issue #111 remaining intact under this issue's shrinking.
+  #'
+  #' @param plot_id Output id (matches shrink_to_fit_plot_ui()'s plot_id).
+  #' @param title Modal dialog title.
+  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
+  #' @param height_fn Zero-arg function returning the natural pixel height
+  #'   (may itself read a reactive, e.g. utilisation_plot_height()).
+  new_shrink_to_fit_plot <- function(plot_id, title, plot_fn, height_fn) {
+    output[[plot_id]] <- renderPlot({ plot_fn() }, height = function() height_fn())
+    output[[paste0(plot_id, "_modal")]] <- renderPlot({ plot_fn() }, height = function() height_fn())
+    observeEvent(input[[paste0(plot_id, "_expand")]], {
+      showModal(modalDialog(
+        title = title, size = "xl", easyClose = TRUE, footer = modalButton("Close"),
+        plotOutput(paste0(plot_id, "_modal"), height = paste0(round(isolate(height_fn())), "px"))
+      ))
+    }, ignoreInit = TRUE)
+  }
 
   # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
   # shown above the output tabs, per Issue #15's acceptance criteria.
@@ -2263,25 +2432,69 @@ server <- function(input, output, session) {
     uiOutput("kpi_summary_cards"),
     navset_tab(
       nav_panel("Casualty Flow",
-        plotOutput("plot_casualty_flow", height = "700px"),
+        shrink_to_fit_plot_ui("plot_casualty_flow", 700),
         downloadButton("dl_casualty_flow_png", "Download PNG"),
         downloadButton("dl_casualty_flow_pdf", "Download PDF"),
         downloadButton("dl_casualty_flow_csv", "Download Data (CSV)")
       ),
       nav_panel("Queue Depths",
-        plotOutput("plot_queue_depths", height = "900px"),
-        downloadButton("dl_queue_depths_png", "Download PNG"),
-        downloadButton("dl_queue_depths_pdf", "Download PDF"),
-        downloadButton("dl_queue_depths_csv", "Download Data (CSV)")
+        h6(class = "text-muted mt-2", "R1 Queues"),
+        shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_r1_queues_png", "Download PNG"),
+        downloadButton("dl_r1_queues_pdf", "Download PDF"),
+        downloadButton("dl_r1_queues_csv", "Download Data (CSV)"),
+        tags$hr(),
+        h6(class = "text-muted mt-2", "R2B Bed Queues"),
+        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_r2b_bed_queues_png", "Download PNG"),
+        downloadButton("dl_r2b_bed_queues_pdf", "Download PDF"),
+        downloadButton("dl_r2b_bed_queues_csv", "Download Data (CSV)"),
+        tags$hr(),
+        h6(class = "text-muted mt-2", "R2E Bed Queues"),
+        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_r2e_bed_queues_png", "Download PNG"),
+        downloadButton("dl_r2e_bed_queues_pdf", "Download PDF"),
+        downloadButton("dl_r2e_bed_queues_csv", "Download Data (CSV)")
       ),
       nav_panel("Bed & Resource Utilisation",
-        plotOutput("plot_utilisation", height = paste0(utilisation_plot_height(), "px")),
-        downloadButton("dl_utilisation_png", "Download PNG"),
-        downloadButton("dl_utilisation_pdf", "Download PDF"),
-        downloadButton("dl_utilisation_csv", "Download Data (CSV)")
+        if (identical(run_mode(), "full")) {
+          tagList(
+            shrink_to_fit_plot_ui("plot_utilisation", UTILISATION_FULL_MODE_HEIGHT_PX),
+            downloadButton("dl_utilisation_png", "Download PNG"),
+            downloadButton("dl_utilisation_pdf", "Download PDF"),
+            downloadButton("dl_utilisation_csv", "Download Data (CSV)")
+          )
+        } else local({
+          ph <- utilisation_panel_heights()
+          tagList(
+            h6(class = "text-muted mt-2", "R2B Treatment"),
+            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2b_treatment_png", "Download PNG"),
+            downloadButton("dl_r2b_treatment_pdf", "Download PDF"),
+            downloadButton("dl_r2b_treatment_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2B Bed Resource Usage (Gantt)"),
+            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2b_gantt_png", "Download PNG"),
+            downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
+            downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2E Surgery"),
+            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2e_surgery_png", "Download PNG"),
+            downloadButton("dl_r2e_surgery_pdf", "Download PDF"),
+            downloadButton("dl_r2e_surgery_csv", "Download Data (CSV)"),
+            tags$hr(),
+            h6(class = "text-muted mt-2", "R2E Bed Resource Usage (Gantt)"),
+            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2e_gantt_png", "Download PNG"),
+            downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
+            downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)")
+          )
+        })
       ),
       nav_panel("Waiting Times",
-        plotOutput("plot_waiting_times", height = "600px"),
+        shrink_to_fit_plot_ui("plot_waiting_times", 600),
         downloadButton("dl_waiting_times_png", "Download PNG"),
         downloadButton("dl_waiting_times_pdf", "Download PDF"),
         downloadButton("dl_waiting_times_csv", "Download Data (CSV)")
@@ -2294,7 +2507,7 @@ server <- function(input, output, session) {
           "its disabled default: each demand asks for the pool's full current shortfall, is fulfilled after ",
           "a configurable lag, and delivers a triangularly-distributed fraction of that shortfall (long ",
           "under-fill tail, limited over-supply)."),
-        plotOutput("plot_force_regeneration", height = "500px"),
+        shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_force_regeneration_png", "Download PNG"),
         downloadButton("dl_force_regeneration_pdf", "Download PDF"),
         downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
@@ -2346,44 +2559,109 @@ server <- function(input, output, session) {
     )
   })
 
-  output$plot_casualty_flow      <- renderPlot(tab_plot()$casualty_flow)
-  output$plot_queue_depths       <- renderPlot(tab_plot()$queue_depths)
-  output$plot_utilisation        <- renderPlot(tab_plot()$utilisation, height = function() utilisation_plot_height())
-  output$plot_waiting_times      <- renderPlot(tab_plot()$waiting_times)
-  output$plot_force_regeneration <- renderPlot(tab_plot()$force_regeneration)
+  new_shrink_to_fit_plot("plot_casualty_flow", "Casualty Flow — Full Size",
+                         function() tab_plot()$casualty_flow, function() 700)
+  new_shrink_to_fit_plot("plot_r1_queues", "R1 Queues — Full Size",
+                         function() analysis_results()$r1_queues, function() 600)
+  new_shrink_to_fit_plot("plot_r2b_bed_queues", "R2B Bed Queues — Full Size",
+                         function() analysis_results()$r2b_bed_queues, function() 600)
+  new_shrink_to_fit_plot("plot_r2e_bed_queues", "R2E Bed Queues — Full Size",
+                         function() analysis_results()$r2e_bed_queues, function() 600)
+  new_shrink_to_fit_plot("plot_utilisation", "Bed & Resource Utilisation — Full Size",
+                         function() { req(identical(run_mode(), "full")); analysis_results()$utilisation },
+                         function() UTILISATION_FULL_MODE_HEIGHT_PX)
+  new_shrink_to_fit_plot("plot_r2b_treatment", "R2B Treatment — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2b_treatment },
+                         function() utilisation_panel_heights()$r2b_treatment)
+  new_shrink_to_fit_plot("plot_r2b_gantt", "R2B Bed Resource Usage (Gantt) — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2b_gantt },
+                         function() utilisation_panel_heights()$r2b_gantt)
+  new_shrink_to_fit_plot("plot_r2e_surgery", "R2E Surgery — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2e_surgery },
+                         function() utilisation_panel_heights()$r2e_surgery)
+  new_shrink_to_fit_plot("plot_r2e_gantt", "R2E Bed Resource Usage (Gantt) — Full Size",
+                         function() { req(identical(run_mode(), "quick")); analysis_results()$r2e_gantt },
+                         function() utilisation_panel_heights()$r2e_gantt)
+  new_shrink_to_fit_plot("plot_waiting_times", "Waiting Times — Full Size",
+                         function() tab_plot()$waiting_times, function() 600)
+  new_shrink_to_fit_plot("plot_force_regeneration", "Force Regeneration — Full Size",
+                         function() tab_plot()$force_regeneration, function() 500)
 
-  plot_download_handler <- function(plot_key, width, height, device) {
+  #' Generic PNG/PDF download handler for one plot.
+  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
+  plot_download_handler <- function(plot_fn, width, height, device) {
     downloadHandler(
-      filename = function() sprintf("%s.%s", plot_key, device),
+      filename = function() sprintf("plot.%s", device),
       content  = function(file) {
-        ggsave(file, plot = tab_plot()[[plot_key]], width = width, height = height,
+        ggsave(file, plot = plot_fn(), width = width, height = height,
                dpi = 300, device = device)
       }
     )
   }
-  output$dl_casualty_flow_png <- plot_download_handler("casualty_flow", 10, 12, "png")
-  output$dl_casualty_flow_pdf <- plot_download_handler("casualty_flow", 10, 12, "pdf")
-  output$dl_queue_depths_png  <- plot_download_handler("queue_depths", 10, 14, "png")
-  output$dl_queue_depths_pdf  <- plot_download_handler("queue_depths", 10, 14, "pdf")
-  output$dl_utilisation_png   <- plot_download_handler("utilisation", 12, 20, "png")
-  output$dl_utilisation_pdf   <- plot_download_handler("utilisation", 12, 20, "pdf")
-  output$dl_waiting_times_png <- plot_download_handler("waiting_times", 10, 6, "png")
-  output$dl_waiting_times_pdf <- plot_download_handler("waiting_times", 10, 6, "pdf")
-  output$dl_force_regeneration_png <- plot_download_handler("force_regeneration", 10, 6, "png")
-  output$dl_force_regeneration_pdf <- plot_download_handler("force_regeneration", 10, 6, "pdf")
+  output$dl_casualty_flow_png <- plot_download_handler(function() tab_plot()$casualty_flow, 10, 12, "png")
+  output$dl_casualty_flow_pdf <- plot_download_handler(function() tab_plot()$casualty_flow, 10, 12, "pdf")
+  output$dl_r1_queues_png       <- plot_download_handler(function() analysis_results()$r1_queues, 10, 5, "png")
+  output$dl_r1_queues_pdf       <- plot_download_handler(function() analysis_results()$r1_queues, 10, 5, "pdf")
+  output$dl_r2b_bed_queues_png  <- plot_download_handler(function() analysis_results()$r2b_bed_queues, 10, 5, "png")
+  output$dl_r2b_bed_queues_pdf  <- plot_download_handler(function() analysis_results()$r2b_bed_queues, 10, 5, "pdf")
+  output$dl_r2e_bed_queues_png  <- plot_download_handler(function() analysis_results()$r2e_bed_queues, 10, 5, "png")
+  output$dl_r2e_bed_queues_pdf  <- plot_download_handler(function() analysis_results()$r2e_bed_queues, 10, 5, "pdf")
+  output$dl_utilisation_png   <- plot_download_handler(function() analysis_results()$utilisation, 12, 8, "png")
+  output$dl_utilisation_pdf   <- plot_download_handler(function() analysis_results()$utilisation, 12, 8, "pdf")
+  output$dl_r2b_treatment_png <- plot_download_handler(function() analysis_results()$r2b_treatment, 10, 5, "png")
+  output$dl_r2b_treatment_pdf <- plot_download_handler(function() analysis_results()$r2b_treatment, 10, 5, "pdf")
+  output$dl_r2b_gantt_png     <- plot_download_handler(function() analysis_results()$r2b_gantt, 12, 8, "png")
+  output$dl_r2b_gantt_pdf     <- plot_download_handler(function() analysis_results()$r2b_gantt, 12, 8, "pdf")
+  output$dl_r2e_surgery_png   <- plot_download_handler(function() analysis_results()$r2e_surgery, 10, 5, "png")
+  output$dl_r2e_surgery_pdf   <- plot_download_handler(function() analysis_results()$r2e_surgery, 10, 5, "pdf")
+  output$dl_r2e_gantt_png     <- plot_download_handler(function() analysis_results()$r2e_gantt, 12, 8, "png")
+  output$dl_r2e_gantt_pdf     <- plot_download_handler(function() analysis_results()$r2e_gantt, 12, 8, "pdf")
+  output$dl_waiting_times_png <- plot_download_handler(function() tab_plot()$waiting_times, 10, 6, "png")
+  output$dl_waiting_times_pdf <- plot_download_handler(function() tab_plot()$waiting_times, 10, 6, "pdf")
+  output$dl_force_regeneration_png <- plot_download_handler(function() tab_plot()$force_regeneration, 10, 6, "png")
+  output$dl_force_regeneration_pdf <- plot_download_handler(function() tab_plot()$force_regeneration, 10, 6, "pdf")
 
   output$dl_casualty_flow_csv <- downloadHandler(
     filename = "casualty_flow.csv",
     content  = function(file) write.csv(analysis_results()$casualty_summary, file, row.names = FALSE)
   )
-  output$dl_queue_depths_csv <- downloadHandler(
-    filename = "queue_depths.csv",
-    content  = function(file) write.csv(mon_data()$resources, file, row.names = FALSE)
-  )
+  # Filter mon_data()$resources by the same per-echelon resource-name
+  # patterns analyse_run()/analyse_replications() (R/analysis.R) use to
+  # build each split plot, so each panel's CSV matches its own image rather
+  # than dumping every echelon's raw resource data for all three.
+  filtered_resources_csv <- function(pattern) {
+    downloadHandler(
+      filename = function() "resource_data.csv",
+      content  = function(file) {
+        df <- mon_data()$resources
+        write.csv(df[grepl(pattern, df$resource), ], file, row.names = FALSE)
+      }
+    )
+  }
+  output$dl_r1_queues_csv      <- filtered_resources_csv("^c_r1_.*_\\d+_t\\d+$")
+  output$dl_r2b_bed_queues_csv <- filtered_resources_csv("^b_r2b_\\w+_\\d+_t\\d+$")
+  output$dl_r2e_bed_queues_csv <- filtered_resources_csv("^b_r2eheavy_\\w+_\\d+_t\\d+$")
+  output$dl_r2b_gantt_csv      <- filtered_resources_csv("^b_r2b_\\w+_\\d+_t\\d+$")
+  output$dl_r2e_gantt_csv      <- filtered_resources_csv("^b_r2eheavy_\\w+_\\d+_t\\d+$")
   output$dl_utilisation_csv <- downloadHandler(
     filename = "utilisation.csv",
     content  = function(file) write.csv(analysis_results()$ot_utilisation, file, row.names = FALSE)
   )
+  # r2b_treatment/r2e_surgery have no dedicated per-panel data frame of their
+  # own in analysis_results() (they're derived on the fly for plotting); the
+  # closest matching per-echelon data available is ot_utilisation's own
+  # echelon column, so each panel's CSV is that panel's echelon subset.
+  echelon_ot_utilisation_csv <- function(echelon) {
+    downloadHandler(
+      filename = function() "ot_utilisation.csv",
+      content  = function(file) {
+        df <- analysis_results()$ot_utilisation
+        write.csv(df[df$echelon == echelon, ], file, row.names = FALSE)
+      }
+    )
+  }
+  output$dl_r2b_treatment_csv <- echelon_ot_utilisation_csv("R2B")
+  output$dl_r2e_surgery_csv   <- echelon_ot_utilisation_csv("R2E")
   output$dl_waiting_times_csv <- downloadHandler(
     filename = "waiting_times.csv",
     content  = function(file) {
@@ -2525,7 +2803,7 @@ server <- function(input, output, session) {
     )
   }
 
-  output$morris_mu_sigma_plot <- renderPlot({
+  new_shrink_to_fit_plot("morris_mu_sigma_plot", "Morris Screening — Full Size", function() {
     req(morris_results())
     df <- morris_scatter_df(morris_results()$morris_objs$r2e_icu_q)
     df$label <- MORRIS_LABELS[df$parameter]
@@ -2536,7 +2814,7 @@ server <- function(input, output, session) {
            subtitle = "μ* = mean absolute elementary effect (importance); σ = std. dev. of elementary effects (nonlinearity/interaction)",
            x = "μ* (Importance)", y = "σ (Nonlinearity / Interaction)") +
       theme_minimal(base_size = 13)
-  })
+  }, function() 450)
 
   output$morris_ranking_table <- renderDT({
     req(morris_results())
@@ -2578,7 +2856,7 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Morris Screening Results — R2E ICU Queue (Primary KPI)"),
-      plotOutput("morris_mu_sigma_plot", height = "450px"),
+      shrink_to_fit_plot_ui("morris_mu_sigma_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_morris_png_zip", "Download Morris PNGs — All KPIs (ZIP)"),
       tags$hr(),
       h5("Ranked Parameter Influence (μ* on System OT Queue)"),
@@ -2690,7 +2968,7 @@ server <- function(input, output, session) {
     }
   })
 
-  output$sobol_plot <- renderPlot({
+  new_shrink_to_fit_plot("sobol_plot", "Sobol Indices — Full Size", function() {
     out <- sobol_results()
     req(out, length(out$res) > 0)
     sb <- out$res$system_ot_q
@@ -2711,7 +2989,7 @@ server <- function(input, output, session) {
            x = NULL, y = "Sobol Index", fill = NULL) +
       theme_minimal(base_size = 13) +
       theme(legend.position = "bottom", axis.text.x = element_text(angle = 20, hjust = 1))
-  })
+  }, function() 450)
 
   output$dl_sobol_csv_zip <- downloadHandler(
     filename = "sobol_indices.zip",
@@ -2737,7 +3015,7 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Sobol S1 / ST Indices"),
-      plotOutput("sobol_plot", height = "450px"),
+      shrink_to_fit_plot_ui("sobol_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       p(class = "text-muted small",
         "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
         "system OT queue depends on the value of at least one other parameter, not just their own value."),
@@ -2847,7 +3125,7 @@ server <- function(input, output, session) {
     }
   })
 
-  output$transport_sweep_plot <- renderPlot({
+  new_shrink_to_fit_plot("transport_sweep_plot", "Transport Fleet Capacity Margin Sweep — Full Size", function() {
     df <- transport_sweep_results()
     req(df)
 
@@ -2858,7 +3136,7 @@ server <- function(input, output, session) {
     )
 
     render_transport_sweep_plot(df, current_qty, n_rep = as.integer(input$morris_nrep))
-  })
+  }, function() 500)
 
   output$dl_transport_sweep_csv <- downloadHandler(
     filename = "transport_capacity_by_fleet_size.csv",
@@ -2874,7 +3152,7 @@ server <- function(input, output, session) {
         "How to read this: in the top (queue) row, find where the line stops being flat at zero — that ",
         "fleet size is where transport becomes a bottleneck. If it's still flat at the dashed current-fleet ",
         "line, that fleet has spare capacity."),
-      plotOutput("transport_sweep_plot", height = "500px"),
+      shrink_to_fit_plot_ui("transport_sweep_plot", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_transport_sweep_csv", "Download Sweep Results (CSV)")
     )
   })

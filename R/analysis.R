@@ -455,6 +455,86 @@ plot_ame_sortie <- function(sortie_data) {
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"), legend.position = "bottom")
 }
 
+#' Pivot the long-format attribute monitor to one row per (casualty,
+#' replication) — the last non-NA value of every attribute key set on that
+#' casualty within that replication.
+#'
+#' @param attributes Long-format attribute monitor (name, replication, time,
+#'   key, value), as returned by get_mon_attributes()
+#' @param arrivals Arrivals monitor (or a tibble with at least name,
+#'   replication) — used only to drop stray attribute rows for casualties
+#'   excluded from `arrivals` (e.g. by a warm_up filter applied upstream)
+#' @return One row per (name, replication), with one column per attribute
+#'   key. Guarantees the presence (as all-NA) of every key downstream code
+#'   in this file reads directly rather than via `%in% names(...)`, so a run
+#'   with zero DOW events, zero R2E surgeries, zero strategic evacuation
+#'   decisions, or zero completed AME evacuations still returns a
+#'   consistently-shaped data frame.
+#'
+#' @details Shared by analyse_run() and analyse_replications() (Issue #117) —
+#'   grouping by (name, replication) rather than name alone already makes
+#'   this replication-aware, so the identical pivot serves both a
+#'   single-replication and a pooled multi-replication monitor.
+build_attributes_wide <- function(attributes, arrivals) {
+  attributes_wide <- attributes %>%
+    pivot_wider(
+      id_cols    = c(name, replication, time),
+      names_from = key,
+      values_fn  = ~ dplyr::first(.x)
+    ) %>%
+    arrange(name, replication, time) %>%
+    group_by(name, replication) %>%
+    fill(everything(), .direction = "down") %>%
+    slice_tail(n = 1) %>%
+    ungroup()
+
+  attributes_wide <- attributes_wide %>%
+    semi_join(dplyr::select(arrivals, name, replication), by = c("name", "replication"))
+
+  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
+                    "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
+                    "treatment_received", "evacuation_day", "ame_departure_time",
+                    "ame_wait_minutes", "ame_route")) {
+    if (!dow_col %in% names(attributes_wide)) {
+      attributes_wide[[dow_col]] <- NA_real_
+    }
+  }
+
+  attributes_wide
+}
+
+#' Group-wise mean +/- 95% t-distribution CI across replications
+#'
+#' @param df Per-replication values, one row per (group_cols, replication)
+#'   combination — every combination that could occur should have an
+#'   explicit row (fill with 0 first) so a replication with zero occurrences
+#'   is counted as 0, not silently dropped from the mean (see
+#'   role4_census_daily's roxygen in analyse_run() for why this matters)
+#' @param group_cols Character vector of columns to group by (may be
+#'   length 0, for a single overall CI)
+#' @param value_col Column name (string) holding the per-replication value
+#' @param clamp_lower_zero Clamp `ci_lower` to 0 (default TRUE) — every KPI
+#'   this is currently used for is a non-negative count or rate
+#' @return `df` grouped by `group_cols`, collapsed to one row per group, with
+#'   columns n, mean, sd, ci_lower, ci_upper
+#'
+#' @details Same t-distribution construction used ad hoc elsewhere in this
+#'   file (daily_ci/force_regeneration_ci in analyse_replications()) —
+#'   factored out here (Issue #117) so the several new group-wise CI outputs
+#'   added by that issue share one implementation.
+ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
+  out <- df %>%
+    { if (length(group_cols) > 0) group_by(., across(all_of(group_cols))) else . } %>%
+    summarise(n = n(), mean = mean(.data[[value_col]]), sd = sd(.data[[value_col]]), .groups = "drop") %>%
+    mutate(
+      sd       = ifelse(n < 2 | is.na(sd), 0, sd),
+      ci_lower = mean - qt(0.975, df = pmax(n - 1, 1)) * sd / sqrt(n),
+      ci_upper = mean + qt(0.975, df = pmax(n - 1, 1)) * sd / sqrt(n)
+    )
+  if (clamp_lower_zero) out$ci_lower <- pmax(out$ci_lower, 0)
+  out
+}
+
 #' Runs the full analysis and visualisation pipeline on monitoring data
 #'
 #' @param mon Named list with elements arrivals, attributes, resources as
@@ -497,38 +577,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   resources <- resources_raw
 
-  # Pivot attributes wide (last value per key per casualty)
-  attributes_wide <- attributes %>%
-    pivot_wider(
-      id_cols    = c(name, replication, time),
-      names_from = key,
-      values_fn  = ~ dplyr::first(.x)
-    ) %>%
-    arrange(name, replication, time) %>%
-    group_by(name, replication) %>%
-    fill(everything(), .direction = "down") %>%
-    slice_tail(n = 1) %>%
-    ungroup()
-
-  attributes_wide <- attributes_wide %>%
-    semi_join(dplyr::select(arrivals, name, replication), by = c("name", "replication"))
-
-  # pivot_wider only creates a column for an attribute key when at least one
-  # casualty in the run had it set; guard against runs with zero DOW events
-  # (or, for post_op_pathway/surgery_deferred, zero R2E surgeries — Issue #43),
-  # zero strategic evacuation decisions (r2e_evac/evacuation_decision_day/
-  # treatment_received — Issue #23), and zero completed AME evacuations
-  # (evacuation_day/ame_departure_time/ame_wait_minutes — Issue #23
-  # follow-up; possible even with r2e_evac == 1 decisions present, in a run
-  # short enough that no scheduled AME sortie has yet occurred).
-  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
-                    "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
-                    "treatment_received", "evacuation_day", "ame_departure_time",
-                    "ame_wait_minutes", "ame_route")) {
-    if (!dow_col %in% names(attributes_wide)) {
-      attributes_wide[[dow_col]] <- NA_real_
-    }
-  }
+  # Pivot attributes wide (last value per key per casualty); see roxygen on
+  # build_attributes_wide() for the zero-DOW/zero-surgery/etc. column guard.
+  attributes_wide <- build_attributes_wide(attributes, arrivals)
 
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
@@ -1980,6 +2031,453 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     r2b_ot_peak_queue  = clamp_ci(ci_mean(r2b_ot_peak_per_rep$peak_q))
   )
 
+  # ── Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps ──────
+  # Everything below reuses build_attributes_wide()/the same combined join
+  # analyse_run() builds, pooling every replication's casualties into one
+  # wide pivot — group_by(name, replication) inside build_attributes_wide()
+  # already keeps casualties from different replications distinct, so the
+  # identical per-casualty logic analyse_run() uses applies unchanged; only
+  # the final aggregation step (mean ± 95% CI across replications, via
+  # ci_by_group()/ci_mean(), rather than a single-run value) is new. Every
+  # group-wise CI table below completes zero-count combinations before
+  # aggregating (not after) so a replication with no occurrences of a given
+  # group is counted as 0 in the mean rather than silently excluded — the
+  # same bias role4_census_daily's original single-run roxygen (above)
+  # warns against, generalised here to every new breakdown.
+  attributes_wide <- build_attributes_wide(attributes_raw, arrivals_raw)
+  combined <- arrivals %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
+    mutate(
+      casualty_type     = str_extract(name, "^[^_]+"),
+      population_source = str_extract(name, "(?<=_)[a-zA-Z]+")
+    )
+
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
+  rep_ids        <- unique(arrivals_raw$replication)
+
+  # KPI: DOW count by echelon
+  dow_by_echelon_rep <- attributes_wide %>%
+    filter(dow == 1 & !is.na(dow_echelon)) %>%
+    mutate(dow_echelon = echelon_labels[as.character(as.integer(dow_echelon))]) %>%
+    count(replication, dow_echelon, name = "dow_count") %>%
+    complete(replication = rep_ids, dow_echelon = unname(echelon_labels), fill = list(dow_count = 0L))
+
+  dow_by_echelon_ci <- ci_by_group(dow_by_echelon_rep, "dow_echelon", "dow_count") %>%
+    rename(dow_count_mean = mean, dow_count_ci_lower = ci_lower, dow_count_ci_upper = ci_upper) %>%
+    dplyr::select(-sd)
+  write.csv(dow_by_echelon_ci, file.path(output_dir, "dow_by_echelon_ci.csv"), row.names = FALSE)
+
+  # KPI: RTD count by type (battle fatigue vs clinical) and by echelon x type
+  rtd_type_per_rep <- attributes_wide %>%
+    filter(!is.na(return_day)) %>%
+    mutate(rtd_type = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")) %>%
+    count(replication, rtd_type, name = "rtd_count") %>%
+    complete(replication = rep_ids, rtd_type = c("battle_fatigue", "clinical"), fill = list(rtd_count = 0L))
+
+  bf_rtd_ci         <- clamp_ci(ci_mean(rtd_type_per_rep$rtd_count[rtd_type_per_rep$rtd_type == "battle_fatigue"]))
+  clinical_rtd_ci   <- clamp_ci(ci_mean(rtd_type_per_rep$rtd_count[rtd_type_per_rep$rtd_type == "clinical"]))
+  total_rtd_per_rep <- rtd_type_per_rep %>% group_by(replication) %>% summarise(total = sum(rtd_count), .groups = "drop")
+  total_rtd_ci      <- clamp_ci(ci_mean(total_rtd_per_rep$total))
+  rtd_summary_ci    <- list(bf_rtd = bf_rtd_ci, clinical_rtd = clinical_rtd_ci, total_rtd = total_rtd_ci)
+
+  rtd_by_echelon_rep <- attributes_wide %>%
+    filter(!is.na(return_day) & !is.na(return_echelon)) %>%
+    mutate(
+      return_echelon = echelon_labels[as.character(as.integer(return_echelon))],
+      rtd_type       = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")
+    ) %>%
+    count(replication, return_echelon, rtd_type, name = "rtd_count") %>%
+    complete(replication = rep_ids, return_echelon = unname(echelon_labels),
+             rtd_type = c("battle_fatigue", "clinical"), fill = list(rtd_count = 0L))
+
+  rtd_by_echelon_ci <- ci_by_group(rtd_by_echelon_rep, c("return_echelon", "rtd_type"), "rtd_count") %>%
+    rename(rtd_count_mean = mean, rtd_count_ci_lower = ci_lower, rtd_count_ci_upper = ci_upper) %>%
+    dplyr::select(-sd)
+  write.csv(rtd_by_echelon_ci, file.path(output_dir, "rtd_by_echelon_ci.csv"), row.names = FALSE)
+
+  # KPI: R2B routing diagnostics (Issue #39/#40) — six counts, mean ± CI
+  r2b_diag_col_ci <- function(col) {
+    if (!col %in% names(attributes_wide)) return(clamp_ci(ci_mean(rep(0, length(rep_ids)))))
+    per_rep <- attributes_wide %>%
+      filter(!is.na(.data[[col]]) & .data[[col]] == 1L) %>%
+      count(replication, name = "n_evt") %>%
+      complete(replication = rep_ids, fill = list(n_evt = 0L))
+    clamp_ci(ci_mean(per_rep$n_evt))
+  }
+  r2b_routing_summary_ci <- list(
+    r2b_pre_bypass_count  = r2b_diag_col_ci("r2b_bypassed"),
+    r2b_hold_bypass_count = r2b_diag_col_ci("r2b_hold_bypass"),
+    r2b_hold_queued_count = r2b_diag_col_ci("r2b_hold_queued")
+  )
+  if ("r2b_bypass_reason" %in% names(attributes_wide)) {
+    r2b_bypass_reason_per_rep <- attributes_wide %>%
+      filter(!is.na(r2b_bypass_reason)) %>%
+      mutate(reason = ifelse(r2b_bypass_reason == 1, "offshift", "busy")) %>%
+      count(replication, reason, name = "n_evt") %>%
+      complete(replication = rep_ids, reason = c("offshift", "busy"), fill = list(n_evt = 0L))
+  } else {
+    r2b_bypass_reason_per_rep <- expand.grid(replication = rep_ids, reason = c("offshift", "busy"), n_evt = 0L)
+  }
+  r2b_bypass_total_per_rep <- r2b_bypass_reason_per_rep %>% group_by(replication) %>% summarise(total = sum(n_evt), .groups = "drop")
+  r2b_routing_summary_ci$r2b_ot_bypass_offshift_count <-
+    clamp_ci(ci_mean(r2b_bypass_reason_per_rep$n_evt[r2b_bypass_reason_per_rep$reason == "offshift"]))
+  r2b_routing_summary_ci$r2b_ot_bypass_busy_count <-
+    clamp_ci(ci_mean(r2b_bypass_reason_per_rep$n_evt[r2b_bypass_reason_per_rep$reason == "busy"]))
+  r2b_routing_summary_ci$r2b_ot_bypass_count <- clamp_ci(ci_mean(r2b_bypass_total_per_rep$total))
+
+  # R2B Hold Bed Occupancy — mean ± 95% CI ribbon by stream (Issue #39)
+  r2b_hold_occupancy_plot <- NULL
+  r2b_hold_daily_ci       <- NULL
+  if ("r2b_hold_start" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_hold_start))) {
+    n_sim_days_hold <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+
+    hold_patients <- attributes_wide %>%
+      filter(!is.na(r2b_hold_start) & !is.na(return_day)) %>%
+      mutate(
+        stream = case_when(
+          !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
+          !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
+          TRUE                                 ~ "WIA"
+        ),
+        hold_start_min = as.numeric(r2b_hold_start),
+        hold_end_min   = as.numeric(return_day)
+      )
+
+    r2b_hold_daily_rep <- hold_patients %>%
+      rowwise() %>%
+      mutate(day = list(seq(max(1L, floor(hold_start_min / 1440) + 1L),
+                            min(n_sim_days_hold, ceiling(hold_end_min / 1440))))) %>%
+      unnest(day) %>%
+      ungroup() %>%
+      count(replication, day, stream, name = "occupancy") %>%
+      complete(replication = rep_ids, day = seq_len(n_sim_days_hold),
+               stream = c("Disease DNBI", "NBI", "WIA"), fill = list(occupancy = 0))
+
+    r2b_hold_daily_ci <- ci_by_group(r2b_hold_daily_rep, c("day", "stream"), "occupancy")
+
+    n_hold_beds <- 5   # per R2B unit (from env_data.json)
+
+    r2b_hold_occupancy_plot <- ggplot(r2b_hold_daily_ci, aes(x = day, y = mean, color = stream, fill = stream)) +
+      geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.25, color = NA) +
+      geom_line(linewidth = 0.9) +
+      geom_hline(yintercept = n_hold_beds, linetype = "dashed", color = "red", linewidth = 0.8) +
+      annotate("text", x = 1, y = n_hold_beds + 0.3,
+               label = sprintf("Capacity per R2B unit (%d beds)", n_hold_beds),
+               hjust = 0, size = 3.2, color = "red") +
+      scale_x_continuous(breaks = seq(1, n_sim_days_hold, by = 2), expand = c(0, 0)) +
+      labs(
+        title    = "R2B Hold Bed Daily Occupancy by Patient Stream — Mean ± 95% CI Across Replications",
+        subtitle = sprintf("%d replications; dashed line = capacity per R2B unit (%d beds)", n_reps, n_hold_beds),
+        x = "Simulation Day", y = "Mean Concurrent Patients in Hold", color = "Stream", fill = "Stream"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "r2b_hold_occupancy_multirun.png"), r2b_hold_occupancy_plot, width = 12, height = 6, dpi = 150)
+    write.csv(r2b_hold_daily_ci, file.path(output_dir, "r2b_hold_occupancy_ci.csv"), row.names = FALSE)
+  }
+
+  # R2B OT Bypass Reason — mean ± 95% CI per day (Issue #40)
+  r2b_bypass_reason_plot_full <- NULL
+  if ("r2b_bypass_reason" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_bypass_reason))) {
+    day_range_bypass         <- seq(min(floor(combined$start_time / 1440) + 1), max(floor(combined$start_time / 1440) + 1))
+    r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
+
+    r2b_bypass_daily_rep <- attributes_wide %>%
+      filter(!is.na(r2b_bypass_reason)) %>%
+      mutate(
+        day    = floor(r2b_bypass_time / 1440) + 1,
+        reason = factor(ifelse(r2b_bypass_reason == 1, "Team off-shift", "OT busy / queued"),
+                        levels = r2b_bypass_reason_levels)
+      ) %>%
+      count(replication, day, reason, name = "n_evt") %>%
+      complete(replication = rep_ids, day = day_range_bypass, reason = r2b_bypass_reason_levels,
+               fill = list(n_evt = 0L))
+
+    r2b_bypass_daily_ci <- ci_by_group(r2b_bypass_daily_rep, c("day", "reason"), "n_evt")
+
+    r2b_bypass_reason_plot_full <- ggplot(r2b_bypass_daily_ci, aes(x = factor(day), y = mean, fill = reason)) +
+      geom_col(position = position_dodge(width = 0.7), width = 0.65) +
+      geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), position = position_dodge(width = 0.7), width = 0.25) +
+      scale_fill_manual(values = c("Team off-shift" = "#2a78d6", "OT busy / queued" = "#1baf7a")) +
+      labs(
+        title    = "R2B OT Bypass Reason per Simulation Day — Mean ± 95% CI Across Replications",
+        subtitle = sprintf("%d replications", n_reps),
+        x = "Simulation Day", y = "Mean Casualties Bypassed", fill = "Reason"
+      ) +
+      theme_minimal(base_size = 14) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "r2b_ot_bypass_reason_multirun.png"), r2b_bypass_reason_plot_full, width = 12, height = 6, dpi = 150)
+    write.csv(r2b_bypass_daily_ci, file.path(output_dir, "r2b_bypass_reason_ci.csv"), row.names = FALSE)
+  }
+
+  # KPI: R2E post-op pathway (ICU vs Hold) — mean ± CI total/died (Issue #43)
+  post_op_pathway_ci  <- NULL
+  if ("post_op_pathway" %in% names(attributes_wide) && any(!is.na(attributes_wide$post_op_pathway))) {
+    pathway_labels <- c("1" = "icu", "2" = "hold")
+    post_op_per_rep <- attributes_wide %>%
+      filter(!is.na(post_op_pathway)) %>%
+      mutate(
+        pathway    = pathway_labels[as.character(as.integer(post_op_pathway))],
+        postop_dow = as.integer(!is.na(dow_echelon) & dow_echelon == 4 & dow == 1)
+      ) %>%
+      count(replication, pathway, postop_dow, name = "n_cas") %>%
+      complete(replication = rep_ids, pathway = c("icu", "hold"), postop_dow = c(0L, 1L), fill = list(n_cas = 0L)) %>%
+      group_by(replication, pathway) %>%
+      summarise(total = sum(n_cas), died = sum(n_cas[postop_dow == 1]), .groups = "drop")
+
+    total_ci_pop <- ci_by_group(post_op_per_rep, "pathway", "total") %>%
+      rename(total_mean = mean, total_ci_lower = ci_lower, total_ci_upper = ci_upper) %>%
+      dplyr::select(-sd)
+    died_ci_pop <- ci_by_group(post_op_per_rep, "pathway", "died") %>%
+      rename(died_mean = mean, died_ci_lower = ci_lower, died_ci_upper = ci_upper) %>%
+      dplyr::select(pathway, died_mean, died_ci_lower, died_ci_upper)
+
+    post_op_pathway_ci <- total_ci_pop %>%
+      left_join(died_ci_pop, by = "pathway") %>%
+      mutate(postop_dow_rate = died_mean / total_mean)
+    write.csv(post_op_pathway_ci, file.path(output_dir, "post_op_pathway_summary_ci.csv"), row.names = FALSE)
+  }
+
+  surgery_deferred_summary_ci <- clamp_ci(ci_mean(rep(0, length(rep_ids))))
+  if ("surgery_deferred" %in% names(attributes_wide)) {
+    surgery_deferred_per_rep <- attributes_wide %>%
+      filter(!is.na(surgery_deferred) & surgery_deferred == 1L) %>%
+      count(replication, name = "n_evt") %>%
+      complete(replication = rep_ids, fill = list(n_evt = 0L))
+    surgery_deferred_summary_ci <- clamp_ci(ci_mean(surgery_deferred_per_rep$n_evt))
+  }
+
+  # Transport Fleet Capacity Margin — mean ± CI queue by vehicle (Issue #6)
+  transport_queue_data_mr <- resources_raw %>%
+    filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
+    mutate(
+      platform   = str_extract(resource, "(?<=^t_)[^_]+"),
+      unit_id    = str_extract(resource, "\\d+$") %>% as.integer(),
+      unit_label = paste(platform, unit_id)
+    )
+  transport_bins_mr <- bin_queue_ci(transport_queue_data_mr, c("platform", "unit_label"))
+  p_transport_capacity_margin_ci <- ggplot() +
+    geom_step(data = transport_bins_mr$traces,
+              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              color = "steelblue", alpha = 0.06) +
+    geom_ribbon(data = transport_bins_mr$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = unit_label),
+                alpha = 0.3) +
+    geom_line(data = transport_bins_mr$ci, aes(x = bin_min / 1440, y = mean_q, color = unit_label), linewidth = 0.9) +
+    facet_wrap(~ platform, ncol = 1, scales = "free_y") +
+    labs(title = "Transport Fleet Capacity Margin — Queue Over Time — Mean ± 95% CI Across Replications",
+         subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
+         x = "Time (Days)", y = "Queue Size", color = "Vehicle", fill = "Vehicle") +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  ggsave(file.path(images_dir, "transport_capacity_margin_multirun.png"), p_transport_capacity_margin_ci,
+         width = 12, height = 8, dpi = 150)
+
+  transport_utilisation_ci <- bind_rows(lapply(c("PMVAmb", "HX240M"), function(veh) {
+    df <- utilisation_per_replication(resources_raw, paste0("^t_", veh, "_"))
+    if (nrow(df) == 0) return(NULL)
+    cm <- clamp_ci(ci_mean(df$utilisation))
+    data.frame(platform = veh, mean_u = cm[["mean"]], ci_lower = cm[["lower"]], ci_upper = min(cm[["upper"]], 1))
+  }))
+  write.csv(transport_utilisation_ci, file.path(output_dir, "transport_utilisation_ci.csv"), row.names = FALSE)
+
+  # KPI: time-to-treatment KPIs — mean ± CI across replications (per-rep mean pooled)
+  kpi_per_rep_ci <- function(df) {
+    per_rep <- df %>% group_by(replication) %>% summarise(mean_val = mean(.val), .groups = "drop")
+    clamp_ci(ci_mean(per_rep$mean_val))
+  }
+  time_to_first_surgery_rep <- combined %>%
+    mutate(first_surgery_start = pmin(as.numeric(r2b_surgery_start), as.numeric(r2e_surgery_1_start), na.rm = TRUE),
+           .val = first_surgery_start - start_time) %>%
+    filter(casualty_type != "kia", !(dow == 1 & is.na(first_surgery_start)), !is.na(.val))
+  time_to_first_surgery_ci <- kpi_per_rep_ci(time_to_first_surgery_rep)
+
+  r2b_dwell_time_rep <- combined %>%
+    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
+    mutate(.val = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
+    filter(.val >= 0)
+  r2b_dwell_time_ci <- kpi_per_rep_ci(r2b_dwell_time_rep)
+
+  r2b_r2e_transit_time_rep <- combined %>%
+    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
+    mutate(.val = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
+    filter(.val >= 0)
+  r2b_r2e_transit_time_ci <- kpi_per_rep_ci(r2b_r2e_transit_time_rep)
+
+  r2e_dwell_time_rep <- combined %>%
+    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
+    mutate(.val = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
+    filter(.val >= 0)
+  r2e_dwell_time_ci <- kpi_per_rep_ci(r2e_dwell_time_rep)
+
+  dwell_time_summary_ci <- list(
+    time_to_first_surgery = time_to_first_surgery_ci,
+    r2b_dwell_time         = r2b_dwell_time_ci,
+    r2b_r2e_transit_time   = r2b_r2e_transit_time_ci,
+    r2e_dwell_time          = r2e_dwell_time_ci
+  )
+
+  # Role 4 census and unconstrained AME demand — mean ± CI across reps (Issue #23)
+  role4_census_ci_plot     <- NULL
+  role4_census_daily_ci    <- NULL
+  role4_summary_ci         <- NULL
+  ame_summary_ci           <- NULL
+  role4_daily_by_rep       <- data.frame(replication = integer(0), day = integer(0), ward = character(0), occupancy = integer(0))
+
+  if (!is.null(env_data$vars$role4)) {
+    role4_params <- env_data$vars$role4
+    ame_capacity <- max(
+      role4_params$ame_config_a$critical_capacity + role4_params$ame_config_a$standard_capacity,
+      role4_params$ame_config_b$critical_capacity + role4_params$ame_config_b$standard_capacity
+    )
+    role4_daily_by_rep <- compute_role4_census(combined, role4_params)
+    ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
+  }
+
+  if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
+    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+    max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
+
+    role4_census_daily_rep <- role4_daily_by_rep %>%
+      complete(replication = rep_ids, day = seq_len(max_discharge_day), ward = ward_levels,
+               fill = list(occupancy = 0))
+
+    role4_census_daily_ci <- ci_by_group(role4_census_daily_rep, c("day", "ward"), "occupancy") %>%
+      mutate(ward = factor(ward, levels = ward_levels))
+
+    role4_census_ci_plot <- ggplot(role4_census_daily_ci, aes(x = day, y = mean, fill = ward)) +
+      geom_col(position = "stack") +
+      geom_vline(xintercept = n_sim_days_role4 + 0.5, linetype = "dotted", color = "gray40") +
+      scale_fill_brewer(palette = "Set2") +
+      scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
+      labs(
+        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward — Mean Across Replications",
+        subtitle = sprintf(
+          "%d replications; dotted line = end of %d-day engagement window; stacked mean shown, per-ward 95%% CI in downloadable data",
+          n_reps, n_sim_days_role4
+        ),
+        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    ggsave(file.path(images_dir, "role4_census_multirun.png"), role4_census_ci_plot, width = 12, height = 6, dpi = 150)
+    write.csv(role4_census_daily_ci, file.path(output_dir, "role4_census_daily_ci.csv"), row.names = FALSE)
+
+    role4_peak_by_rep <- role4_daily_by_rep %>%
+      group_by(replication, day) %>%
+      summarise(total_occupancy = sum(occupancy), .groups = "drop") %>%
+      group_by(replication) %>%
+      summarise(peak_occupancy = max(total_occupancy), .groups = "drop") %>%
+      complete(replication = rep_ids, fill = list(peak_occupancy = 0))
+
+    total_evac_by_rep <- combined %>%
+      filter(!is.na(evacuation_day)) %>%
+      count(replication, name = "total_evacuated") %>%
+      complete(replication = rep_ids, fill = list(total_evacuated = 0L))
+
+    role4_summary_ci <- list(
+      total_evacuated = clamp_ci(ci_mean(total_evac_by_rep$total_evacuated)),
+      peak_occupancy  = clamp_ci(ci_mean(role4_peak_by_rep$peak_occupancy))
+    )
+
+    ame_demand_by_rep <- ame_by_rep %>%
+      complete(replication = rep_ids, day = seq_len(n_sim_days_role4),
+               fill = list(evacuation_count = 0, sorties_required = 0)) %>%
+      group_by(replication) %>%
+      summarise(total_sorties = sum(sorties_required), peak_daily_sorties = max(sorties_required), .groups = "drop")
+
+    ame_summary_ci <- list(
+      total_sorties      = clamp_ci(ci_mean(ame_demand_by_rep$total_sorties)),
+      peak_daily_sorties = clamp_ci(ci_mean(ame_demand_by_rep$peak_daily_sorties))
+    )
+
+    write.csv(role4_peak_by_rep, file.path(output_dir, "role4_peak_by_rep.csv"), row.names = FALSE)
+    write.csv(ame_demand_by_rep, file.path(output_dir, "ame_demand_by_rep.csv"), row.names = FALSE)
+  }
+
+  # Actual AME wait time by route — pooled across all replications (Issue #23 follow-up)
+  ame_wait_time_summary_mr <- NULL
+  route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
+  ame_evac_decisions_mr <- combined %>%
+    filter(!is.na(r2e_evac) & r2e_evac == 1) %>%
+    mutate(route = route_labels[as.character(ame_route)])
+
+  if (nrow(ame_evac_decisions_mr) > 0) {
+    wait_stats <- function(df) {
+      completed <- df %>% filter(!is.na(ame_wait_minutes))
+      data.frame(
+        n_evacuated       = nrow(completed),
+        n_awaiting        = nrow(df) - nrow(completed),
+        mean_wait_minutes = if (nrow(completed) > 0) mean(completed$ame_wait_minutes) else NA_real_,
+        p10_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.10) else NA_real_,
+        p90_wait_minutes  = if (nrow(completed) > 0) quantile(completed$ame_wait_minutes, 0.90) else NA_real_
+      )
+    }
+    ame_wait_time_summary_mr <- bind_rows(
+      data.frame(route = "Overall", wait_stats(ame_evac_decisions_mr)),
+      lapply(setNames(route_labels, route_labels), function(r) {
+        wait_stats(ame_evac_decisions_mr %>% filter(route == r))
+      }) %>%
+        bind_rows(.id = "route")
+    )
+    write.csv(ame_wait_time_summary_mr, file.path(output_dir, "ame_wait_time_summary_multirun.csv"), row.names = FALSE)
+  }
+
+  # Mass casualty event stress test — pooled across replications (Issue #9)
+  mass_casualty_gap_min   <- env_data$vars$mass_casualty$event$window_max
+  mass_casualty_tagged_mr <- combined %>%
+    filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
+
+  mass_casualty_events_summary_mr <- if (nrow(mass_casualty_tagged_mr) > 0) {
+    mass_casualty_tagged_mr %>%
+      arrange(replication, start_time) %>%
+      group_by(replication) %>%
+      mutate(gap = start_time - lag(start_time, default = -Inf),
+             event_id = cumsum(gap > mass_casualty_gap_min)) %>%
+      group_by(replication, event_id) %>%
+      summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(), .groups = "drop") %>%
+      mutate(event_day = floor(event_start / 1440) + 1)
+  } else {
+    data.frame(replication = integer(0), event_id = integer(0), event_start = numeric(0),
+               event_end = numeric(0), n_cas = integer(0), event_day = numeric(0))
+  }
+
+  mass_casualty_event_count_per_rep <- mass_casualty_events_summary_mr %>%
+    count(replication, name = "n_events") %>%
+    complete(replication = rep_ids, fill = list(n_events = 0L))
+  mass_casualty_event_count_ci <- clamp_ci(ci_mean(mass_casualty_event_count_per_rep$n_events))
+
+  mass_casualty_dow_summary_mr <- combined %>%
+    filter(!is.na(mass_casualty_event)) %>%
+    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+    group_by(origin) %>%
+    summarise(total = n(), dow = sum(dow == 1, na.rm = TRUE), dow_rate = dow / total, .groups = "drop")
+
+  write.csv(mass_casualty_events_summary_mr, file.path(output_dir, "mass_casualty_events_summary_multirun.csv"), row.names = FALSE)
+  write.csv(mass_casualty_dow_summary_mr, file.path(output_dir, "mass_casualty_dow_summary_multirun.csv"), row.names = FALSE)
+
+  mass_casualty_timeline_plot_mr <- NULL
+  if (nrow(mass_casualty_events_summary_mr) > 0) {
+    n_sim_days_mc <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    mass_casualty_timeline_plot_mr <- ggplot(mass_casualty_events_summary_mr, aes(x = event_start / 1440, y = n_cas)) +
+      geom_jitter(width = 0.15, height = 0, alpha = 0.35, color = "#D62828", size = 2) +
+      scale_x_continuous(limits = c(0, n_sim_days_mc), breaks = seq(0, n_sim_days_mc, by = 2)) +
+      labs(
+        title    = "Mass Casualty Event Timeline — All Replications Pooled",
+        subtitle = sprintf(
+          "%d events across %d replications (mean %.2f events/replication); points jittered to reduce overplotting",
+          nrow(mass_casualty_events_summary_mr), n_reps, mass_casualty_event_count_ci[["mean"]]
+        ),
+        x = "Simulation Day", y = "Casualties Injected by Event"
+      ) +
+      theme_minimal(base_size = 13) +
+      theme(panel.grid.minor = element_blank())
+    ggsave(file.path(images_dir, "mass_casualty_events_multirun.png"), mass_casualty_timeline_plot_mr, width = 12, height = 6, dpi = 150)
+  }
+
   # ── Casualty Flow — total casualties per day, mean ± CI across reps ──────
 
   day_range <- seq(min(arrivals$arrival_day), max(arrivals$arrival_day))
@@ -2249,7 +2747,31 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     n_reps         = n_reps,
     arrivals       = arrivals_raw,
     attributes     = attributes_raw,
-    resources      = resources_raw
+    resources      = resources_raw,
+
+    # ── Issue #117 — mean ± 95% CI equivalents of analyse_run()'s per-
+    # casualty breakdowns (see the block above, right after kpi_summary).
+    dow_by_echelon_ci              = dow_by_echelon_ci,
+    rtd_summary_ci                 = rtd_summary_ci,
+    rtd_by_echelon_ci              = rtd_by_echelon_ci,
+    r2b_routing_summary_ci         = r2b_routing_summary_ci,
+    r2b_hold_occupancy_plot        = r2b_hold_occupancy_plot,
+    r2b_hold_daily_ci              = r2b_hold_daily_ci,
+    r2b_bypass_reason_plot         = r2b_bypass_reason_plot_full,
+    post_op_pathway_summary_ci     = post_op_pathway_ci,
+    surgery_deferred_summary_ci    = surgery_deferred_summary_ci,
+    transport_capacity_margin_plot = p_transport_capacity_margin_ci,
+    transport_utilisation_ci       = transport_utilisation_ci,
+    dwell_time_summary_ci          = dwell_time_summary_ci,
+    role4_census_plot              = role4_census_ci_plot,
+    role4_census_daily_ci          = role4_census_daily_ci,
+    role4_summary_ci               = role4_summary_ci,
+    ame_summary_ci                 = ame_summary_ci,
+    ame_wait_time_summary          = ame_wait_time_summary_mr,
+    mass_casualty_timeline_plot    = mass_casualty_timeline_plot_mr,
+    mass_casualty_events_summary   = mass_casualty_events_summary_mr,
+    mass_casualty_event_count_ci   = mass_casualty_event_count_ci,
+    mass_casualty_dow_summary      = mass_casualty_dow_summary_mr
   ))
 }
 

@@ -2702,7 +2702,10 @@ server <- function(input, output, session) {
     filename = "force_regeneration.csv",
     content  = function(file) write.csv(analysis_results()$force_regeneration_daily, file, row.names = FALSE)
   )
-  output$dl_ame_backlog_csv <- filtered_resources_csv("^ame(_critical)?$")
+  output$dl_ame_backlog_csv <- downloadHandler(
+    filename = "ame_backlog_data.csv",
+    content  = function(file) write.csv(analysis_results()$ame_backlog_data, file, row.names = FALSE)
+  )
   output$dl_ame_sortie_csv <- downloadHandler(
     filename = "ame_sortie_data.csv",
     content  = function(file) write.csv(analysis_results()$ame_sortie_data, file, row.names = FALSE)

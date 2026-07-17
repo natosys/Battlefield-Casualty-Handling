@@ -1257,42 +1257,43 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
-**Current table (Issue #112, fifty-three parameters).** The table below is `outputs/morris_ranking.csv` from the Issue #112 fourth-follow-up re-run — r=5, 5 reps, 30 days, seed 42 (see the reduced-r, bound-fix, and category-correction notes above), executed against the current codebase at the corrected fifty-three-parameter set, ranked by µ\* on the system OT queue. It supersedes every earlier table in this section, which are retained below as historical record per this project's practice of not erasing prior verified findings. Wall-clock time was MORRIS_WALLCLOCK_PLACEHOLDER minutes on 4 cores in this development environment. R was run at version 4.3.3 in an unpinned apt-installed environment (no Docker access in this issue's development session to build the project's pinned `rocker/rstudio:4.4.2` Dev Container — the same caveat already documented for the Issue #18/#23 refreshes in `CLAUDE.md`); a maintainer re-run in the pinned container would be needed before this table is fully authoritative in the same sense as the pre-Issue-18 tables.
+**Current table (Issue #112, fifty-three parameters).** The table below is `outputs/morris_ranking.csv` from the Issue #112 fourth-follow-up re-run — r=5, 5 reps, 30 days, seed 42 (see the reduced-r, bound-fix, and category-correction notes above), executed against the current codebase at the corrected fifty-three-parameter set, ranked by µ\* on the system OT queue. It supersedes every earlier table in this section, which are retained below as historical record per this project's practice of not erasing prior verified findings. Wall-clock time was 108 minutes on 4 cores in this development environment. R was run at version 4.3.3 in an unpinned apt-installed environment (no Docker access in this issue's development session to build the project's pinned `rocker/rstudio:4.4.2` Dev Container — the same caveat already documented for the Issue #18/#23 refreshes in `CLAUDE.md`); a maintainer re-run in the pinned container would be needed before this table is fully authoritative in the same sense as the pre-Issue-18 tables.
 
 | Rank | Parameter | µ\* | σ | Rank | Parameter | µ\* | σ |
 |---|---|---|---|---|---|---|---|
-| 1 | `wia_spt_mean` | 3.9995 | 7.9085 | 29 | `pri1_evac_prob` | 0.7112 | 1.0056 |
-| 2 | `p3_flat` | 3.0421 | 6.1289 | 30 | `post_op_hold_mode` | 0.7058 | 1.0223 |
-| 3 | `pri1_surg_prob` | 3.0201 | 2.1694 | 31 | `r1_recovery_mode` | 0.6877 | 0.9458 |
-| 4 | `surg_mode` | 2.6467 | 4.5053 | 32 | `wia_cbt_mean` | 0.6855 | 1.0379 |
-| 5 | `mass_casualty_max_cas` | 2.4830 | 2.4399 | 33 | `kia_spt_mean` | 0.6728 | 1.1324 |
-| 6 | `in_theatre_rate` | 2.2067 | 3.6358 | 34 | `short_icu_mode` | 0.6655 | 0.8692 |
-| 7 | `r2b_hold_threshold` | 2.0532 | 4.4140 | 35 | `r2e_resus_factor` | 0.6429 | 1.0483 |
-| 8 | `post_surgery_prob` | 1.9554 | 3.3979 | 36 | `p1_k` | 0.6279 | 0.9579 |
-| 9 | `dnbi_spt_mean` | 1.9505 | 3.4658 | 37 | `dnbi_cbt_mean` | 0.6144 | 1.0052 |
-| 10 | `p2_k` | 1.8131 | 2.2028 | 38 | `r2e_dcs2_factor` | 0.5905 | 0.8278 |
-| 11 | `ot_hours` | 1.7381 | 2.1452 | 39 | `r2e_postop_hold_penalty` | 0.5362 | 0.6752 |
-| 12 | `ame_failure_probability` | 1.6313 | 2.3152 | 40 | `pri2_surg_prob` | 0.5108 | 0.4005 |
-| 13 | `p1_p_max` | 1.6090 | 3.1999 | 41 | `r1_tccc_factor` | 0.4887 | 0.7351 |
-| 14 | `mass_casualty_rate` | 1.6072 | 1.1438 | 42 | `r1_wia_treat_mode` | 0.4837 | 0.5573 |
-| 15 | `ame_dow_check_interval` | 1.5543 | 2.1272 | 43 | `p2_p_max` | 0.4524 | 0.7386 |
-| 16 | `icu_defer_check_interval` | 1.5012 | 2.1896 | 44 | `r2b_hold_mode` | 0.4396 | 0.8131 |
-| 17 | `r2b_dcs_factor` | 1.3992 | 2.8961 | 45 | `p2_p_base` | 0.4308 | 0.5083 |
-| 18 | `p1_t_mid` | 1.3451 | 2.6230 | 46 | `r2e_hold_mode` | 0.3750 | 0.6290 |
-| 19 | `r2b_transport` | 1.2127 | 1.6602 | 47 | `r2b_resus_factor` | 0.3423 | 0.5330 |
-| 20 | `long_icu_mode` | 1.2064 | 1.9997 | 48 | `r1_transport` | 0.2833 | 0.2997 |
-| 21 | `kia_cbt_mean` | 1.1968 | 1.7685 | 49 | `pri3_dnbi_surg_prob` | 0.2421 | 0.4261 |
-| 22 | `short_resus_mode` | 1.1841 | 0.9722 | 50 | `r2e_dcs1_factor` | 0.2396 | 0.3894 |
-| 23 | `pri3_other_surg_prob` | 1.1469 | 1.9451 | 51 | `mass_casualty_min_cas` | 0.2330 | 0.2682 |
-| 24 | `p2_t_mid` | 1.0453 | 0.8601 | 52 | `ame_schedule_interval_days` | 0.2060 | 0.2197 |
-| 25 | `fr_fulfillment_lag_days` | 0.8543 | 1.8083 | 53 | `pri2_evac_prob` | 0.2052 | 0.3597 |
-| 26 | `fr_demand_interval_days` | 0.8198 | 1.3063 | 54 | `fr_fill_mode_frac` | 0.1907 | 0.2355 |
-| 27 | `disease_surgery_pct` | 0.8063 | 0.9044 | 55 | `p1_p_base` | 0.1890 | 0.2232 |
-| 28 | `long_resus_mode` | 0.7993 | 1.0813 | | | | |
+| 1 | `pri1_evac_prob` | 9.6285 | 11.7767 | 28 | `surg_mode` | 0.8556 | 0.8395 |
+| 2 | `pri1_surg_prob` | 7.4479 | 13.1315 | 29 | `ame_schedule_interval_days` | 0.8553 | 1.0327 |
+| 3 | `r2e_dcs2_factor` | 6.9901 | 11.4911 | 30 | `ame_failure_probability` | 0.7820 | 0.9800 |
+| 4 | `fr_demand_interval_days` | 6.2837 | 9.8554 | 31 | `pri2_evac_prob` | 0.7298 | 0.9768 |
+| 5 | `r2b_hold_mode` | 3.5434 | 7.0305 | 32 | `p1_p_max` | 0.7233 | 1.1000 |
+| 6 | `pri3_other_surg_prob` | 3.3681 | 7.1993 | 33 | `long_resus_mode` | 0.6831 | 1.0911 |
+| 7 | `short_resus_mode` | 3.3210 | 6.9503 | 34 | `r2e_resus_factor` | 0.6591 | 1.1066 |
+| 8 | `wia_spt_mean` | 3.1055 | 6.1896 | 35 | `dnbi_cbt_mean` | 0.5494 | 0.7270 |
+| 9 | `pri3_dnbi_surg_prob` | 2.9054 | 6.2861 | 36 | `short_icu_mode` | 0.5058 | 0.6696 |
+| 10 | `mass_casualty_rate` | 2.8699 | 2.0662 | 37 | `r2b_resus_factor` | 0.4769 | 0.6727 |
+| 11 | `kia_spt_mean` | 2.6471 | 4.5539 | 38 | `r2e_dcs1_factor` | 0.4599 | 0.7370 |
+| 12 | `mass_casualty_max_cas` | 2.6190 | 4.9154 | 39 | `dnbi_spt_mean` | 0.4346 | 0.8547 |
+| 13 | `kia_cbt_mean` | 2.5651 | 3.6500 | 40 | `r2b_transport` | 0.3752 | 0.6840 |
+| 14 | `p2_k` | 2.2704 | 3.4687 | 41 | `post_surgery_prob` | 0.3662 | 0.4883 |
+| 15 | `r1_transport` | 2.2094 | 3.5133 | 42 | `disease_surgery_pct` | 0.3184 | 0.5905 |
+| 16 | `p1_p_base` | 2.1857 | 3.3285 | 43 | `r2e_hold_mode` | 0.3072 | 0.5612 |
+| 17 | `r1_recovery_mode` | 2.1738 | 4.4717 | 44 | `r2b_dcs_factor` | 0.2900 | 0.4154 |
+| 18 | `p3_flat` | 2.0918 | 3.7868 | 45 | `r2b_hold_threshold` | 0.2546 | 0.3494 |
+| 19 | `r1_wia_treat_mode` | 2.0859 | 3.0575 | 46 | `long_icu_mode` | 0.2443 | 0.3731 |
+| 20 | `fr_fill_mode_frac` | 2.0262 | 3.6954 | 47 | `p1_t_mid` | 0.2425 | 0.4887 |
+| 21 | `wia_cbt_mean` | 1.8676 | 3.4164 | 48 | `r1_tccc_factor` | 0.2080 | 0.3922 |
+| 22 | `p1_k` | 1.7930 | 3.2622 | 49 | `post_op_hold_mode` | 0.1786 | 0.2838 |
+| 23 | `p2_p_base` | 1.6900 | 2.7566 | 50 | `r2e_postop_hold_penalty` | 0.1784 | 0.2839 |
+| 24 | `p2_p_max` | 1.5494 | 3.0226 | 51 | `p2_t_mid` | 0.1595 | 0.2713 |
+| 25 | `in_theatre_rate` | 1.2782 | 2.4311 | 52 | `fr_fulfillment_lag_days` | 0.1330 | 0.2019 |
+| 26 | `pri2_surg_prob` | 1.0394 | 1.5161 | 53 | `ot_hours` | 0.1203 | 0.1742 |
+| 27 | `mass_casualty_min_cas` | 0.8707 | 1.4419 | | | | |
 
-Unlike the original nine-parameter screen, this KPI shows a clear order-of-magnitude spread rather than a tightly clustered field: µ\* ranges from 0.189 (`p1_p_base`) to 4.00 (`wia_spt_mean`), a 21-fold span, with the top parameter (`wia_spt_mean`, the support-troop WIA background casualty rate) roughly 6× the median. 49 of 55 parameters (89%) have σ exceeding µ\* (ratio range 0.71–2.15), indicating nonlinear or interaction-dominated effects are the norm across this expanded parameter set, not the exception — consistent with the branching, resource-contingent routing logic in `R/trajectories.R`, where a parameter's effect on system OT queue depends on which branch a casualty happens to take, compounded across 55 interacting inputs rather than 9. The top-ranked parameters span every category added by this audit: casualty generation rate (`wia_spt_mean`, 1st), the DOW logistic curve (`p3_flat`, 2nd; `p2_k`, 10th; `p1_p_max`, 13th; `p1_t_mid`, 18th), mass casualty sizing (`mass_casualty_max_cas`, 5th), R2B routing (`r2b_hold_threshold`, 7th), and strategic AME (`ame_failure_probability`, 12th; `ame_dow_check_interval`, 15th) — none of which the original eleven-parameter screen could have surfaced, since none were screened before this issue. This directly validates the issue's own motivating concern: `mass_casualty_max_cas` (already screened) ranks 5th, but its sibling `mass_casualty_min_cas` (newly added) ranks near the bottom (49th), and the two AME parameters explicitly named in the issue (`ame_failure_probability`, `ame_dow_check_interval`) both rank in the top 15 on the project's primary bottleneck KPI — a materially influential pair of inputs that were completely invisible to sensitivity analysis before this audit.
+This table is a fresh fifty-three-parameter design, not the prior fifty-five-parameter table with two rows deleted — as this project's own precedent already establishes (see the Issue #74 removal note further below), `morris()` regenerates its pseudorandom one-at-a-time trajectories as a function of the factor count, so dropping two parameters changes the sampling for every *remaining* parameter too. The ranking below should be read on its own terms, not as a small perturbation of the fifty-five-parameter table above it: several parameters moved by dozens of rank positions (`wia_spt_mean`, 1st → 8th; `pri1_evac_prob`, 29th → 1st; `fr_demand_interval_days`, 26th → 4th), consistent with this being a genuinely different design, not a refinement of the same one.
 
-The lowest-ranked parameters are dominated by fields this audit added out of completeness rather than a specific expectation of high influence — `p1_p_base` (55th, the residual non-survivable-injury DOW floor, deliberately held fixed across most of its narrow Rule-A range), `fr_fill_mode_frac` (52nd, now bound-corrected — see the incident note above), and `pri2_evac_prob`/`ame_schedule_interval_days`/`mass_casualty_min_cas` (49th–51st) — plausible given each governs a narrow secondary aspect of an already-screened mechanism (the evacuation/AME/mass-casualty pathways) rather than a first-order driver of surgical throughput.
+µ\* ranges from 0.1203 (`ot_hours`) to 9.6285 (`pri1_evac_prob`), an 80-fold span — wider than the fifty-five-parameter table's 21-fold span — with the top parameter roughly 11× the median (0.8707). 51 of 53 parameters (96%) have σ exceeding µ\* (ratio range 0.72–2.16), indicating nonlinear or interaction-dominated effects remain the norm across this parameter set. The top 10 parameters by µ\* span all three categories — seven Context (`pri1_evac_prob` 1st, `pri1_surg_prob` 2nd, `r2e_dcs2_factor` 3rd, `pri3_other_surg_prob` 6th, `wia_spt_mean` 8th, `pri3_dnbi_surg_prob` 9th, `mass_casualty_rate` 10th), two Capacity (`r2b_hold_mode` 5th, `short_resus_mode` 7th), and one Policy (`fr_demand_interval_days`, 4th) — with the reinforcement demand cycle's high ranking notable given it ships disabled by default (`demand_interval_days = 0`) in the baseline configuration; its influence here reflects the screen's own bound (0–14 days) exercising the mechanism away from that default, not the shipped baseline's own behaviour. `mass_casualty_max_cas` and `mass_casualty_rate` both rank in the top 12 (12th and 10th), while their sibling `mass_casualty_min_cas` ranks at the exact median (27th) — a smaller but still-present asymmetry within the mass-casualty sizing trio, consistent with the finding already made in the fifty-five-parameter table. The reinforcement pipeline's three parameters split widely: `fr_demand_interval_days` (4th) and `fr_fill_mode_frac` (20th) rank well inside the top half, while `fr_fulfillment_lag_days` ranks 52nd of 53 — a materially larger spread within one mechanism's own parameters than either mass-casualty trio shows, though not itself evidence for or against the fill/lag-vs-Policy classification question raised during the same follow-up review (see "Reading the plots — colour coding" above). `post_surgery_prob`, reclassified from Policy to Context by the same review, ranks 41st (µ\* = 0.3662) — a below-median but not bottom-tier influence on this KPI, unaffected by the reclassification itself since only the parameter's category label changed, not its screened bounds.
+
+The lowest-ranked parameters — `ot_hours` (53rd), `fr_fulfillment_lag_days` (52nd), `p2_t_mid` (51st), `r2e_postop_hold_penalty` (50th), and `post_op_hold_mode` (49th) — span all three categories rather than clustering in the fields added purely for completeness, unlike the fifty-five-parameter table's bottom tier. Notably `ot_hours` — a Policy parameter and, in the fifty-five-parameter table, ranked 11th — falls to last here, illustrating the same design-sensitivity point made above: a parameter's rank position in one Morris design is not a stable, portable fact about that parameter in isolation, only about its relative influence within that specific trajectory sample. This is expected behaviour for a screening method, not a defect, but it reinforces the wider r=20 re-run's value as a follow-up (see the reduced-r note above and Limitation L18) — more trajectories would narrow the sampling variance driving swings of this kind.
 
 **Historical tables (superseded by the table above).** The nine/ten-parameter tables and analysis immediately below predate Issue #112's full-coverage expansion and are retained as historical record, per this project's practice of not erasing prior verified findings — they remain accurate descriptions of their own, smaller screened set at the time each was run.
 
@@ -1316,7 +1317,7 @@ No parameter dominates on this KPI: the nine parameters' µ\* values span a narr
 
 **Issue #74 — `return_leg_multiplier` removed after screening, not before:** the finding that motivated the original placeholder table — `return_leg_multiplier` ranking last on system OT queue but becoming the most influential of all ten screened parameters on mean transport utilisation and total DOW count once its scope doubled to four legs — is what prompted its removal (see Limitation L15). Those historical figures (µ\* ≈0.092 on transport utilisation, σ ≈7.4 on DOW count) describe the ten-parameter model as it stood before removal and are unaffected by this re-run; they are not re-measured here since the parameter no longer exists to screen.
 
-**Note — mass casualty parameters added, table not regenerated at the time (Issue #9):** `morris_params` (`R/sensitivity.R`) was extended to eleven parameters with `mass_casualty_rate` and `mass_casualty_max_cas`, wired through `apply_params()` and verified functionally with a smoke-scale run, but the nine-parameter table above predated this addition and did not reflect either new parameter's influence at the time. Both are now screened as part of the current fifty-five-parameter table above (`mass_casualty_max_cas` ranks 5th on system OT queue; `mass_casualty_rate` ranks 14th).
+**Note — mass casualty parameters added, table not regenerated at the time (Issue #9):** `morris_params` (`R/sensitivity.R`) was extended to eleven parameters with `mass_casualty_rate` and `mass_casualty_max_cas`, wired through `apply_params()` and verified functionally with a smoke-scale run, but the nine-parameter table above predated this addition and did not reflect either new parameter's influence at the time. Both are now screened as part of the current fifty-three-parameter table above (`mass_casualty_max_cas` ranks 12th on system OT queue; `mass_casualty_rate` ranks 10th).
 
 **Reading the plots — colour coding (Issue #112 follow-up).** Each point below is coloured by `morris_params$category`, which splits into three levels, not two — an initial two-way Context-vs-Design split conflated two kinds of "Design" parameter with very different practical implications for a planner deciding whether to act on a highly-ranked result:
 

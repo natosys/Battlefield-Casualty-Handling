@@ -48,7 +48,21 @@ option_list <- list(
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed for reproducibility [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
-              help = "Directory for CSV and PNG outputs [default: %default]")
+              help = "Directory for CSV and PNG outputs [default: %default]"),
+  make_option("--max-cores",  type = "integer", default = NULL,
+              help = paste(
+                "Cap mclapply's mc.cores per design-point evaluation. A random",
+                "OAT trajectory start can land on several elevated",
+                "casualty-generation-rate parameters simultaneously (Issue #112),",
+                "producing a 30-day run with far more casualties/events than the",
+                "baseline; at full core parallelism this can exceed the",
+                "container's memory and get a worker OOM-killed (see",
+                "run_replications()'s own comment on this, R/replication.R) —",
+                "a partial-replication warning if some workers survive, or a",
+                "hard error (caught by run_morris()'s tryCatch as an NA design",
+                "point) if all do. NULL (default) preserves prior behaviour",
+                "(uses all detected cores)."
+              ))
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
@@ -61,8 +75,9 @@ if (opt$quick) {
 }
 
 message(sprintf(
-  "Sensitivity config: r=%d, reps=%d, days=%d, levels=%d, seed=%d",
-  opt$r, opt$reps, opt$days, opt$levels, opt$seed
+  "Sensitivity config: r=%d, reps=%d, days=%d, levels=%d, seed=%d, max_cores=%s",
+  opt$r, opt$reps, opt$days, opt$levels, opt$seed,
+  if (is.null(opt[["max-cores"]])) "all" else opt[["max-cores"]]
 ))
 
 set.seed(opt$seed)
@@ -75,8 +90,26 @@ morris_result <- run_morris(
   n_rep      = opt$reps,
   r          = opt$r,
   levels     = opt$levels,
-  output_dir = opt[["output-dir"]]
+  output_dir = opt[["output-dir"]],
+  max_cores  = opt[["max-cores"]]
 )
+
+n_na <- sum(!complete.cases(morris_result$Y))
+if (n_na > 0) {
+  warning(sprintf(
+    paste0(
+      "%d of %d design points have at least one NA/failed KPI (see the ",
+      "'X of Y replications did not complete' warning from run_replications(), ",
+      "R/replication.R, likely an OOM-killed mclapply worker at this ",
+      "parameter count — try a lower --max-cores). Elementary effects for ",
+      "any parameter whose trajectory passes through an affected design ",
+      "point will be NA, and sigma_ee may come out NA for some or all ",
+      "parameters as a result — inspect outputs/morris_ranking.csv before ",
+      "treating this run as authoritative."
+    ),
+    n_na, nrow(morris_result$Y)
+  ), call. = FALSE)
+}
 
 if (opt$sobol) {
   top5 <- head(morris_result$ranking$parameter, 5)

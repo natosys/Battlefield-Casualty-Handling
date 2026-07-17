@@ -2770,7 +2770,11 @@ server <- function(input, output, session) {
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
           "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
-          "These bounds are used as slider ranges for the corresponding fields in the Configure tab."),
+          "These bounds are used as slider ranges for the corresponding fields in the Configure tab. The ",
+          "Variable column is the raw parameter code used in outputs/morris_ranking.csv and on the axis ",
+          "labels of every saved images/morris_*.png plot — use this table to look up what a code you've ",
+          "seen elsewhere means, and which category (Scenario Context / Design Capacity / Design Policy) ",
+          "it falls into."),
         DTOutput("calibration_table"),
         downloadButton("dl_calibration_csv", "Download Table (CSV)"),
         tags$hr(),
@@ -3331,13 +3335,22 @@ server <- function(input, output, session) {
 
   calibration_df <- reactive({
     data.frame(
-      Parameter    = MORRIS_LABELS[morris_params$name],
+      Variable      = morris_params$name,
+      Parameter     = MORRIS_LABELS[morris_params$name],
+      Category      = MORRIS_CATEGORY_LABELS[morris_params$category],
       `Lower Bound` = morris_params$lower,
       `Baseline`    = morris_params$mode,
       `Upper Bound` = morris_params$upper,
       check.names   = FALSE
     )
   })
+  # `Variable` (the raw morris_params$name / MORRIS_LABELS key used in
+  # outputs/morris_ranking.csv and the axis labels on every saved
+  # images/morris_*.png scatter) is included alongside the plain-English
+  # `Parameter` title specifically so this table doubles as the variable
+  # name -> human-readable title lookup a planner needs when cross-
+  # referencing a raw code seen in the CSV or plots back to what it means
+  # (Issue #112 third follow-up) — not just a slider-bounds reference.
   output$calibration_table <- renderDT({
     datatable(calibration_df(), rownames = FALSE, options = list(dom = "t", pageLength = 20))
   })
@@ -3494,6 +3507,7 @@ server <- function(input, output, session) {
     rk <- morris_results()$ranking
     df <- data.frame(
       Rank      = seq_len(nrow(rk)),
+      Variable  = rk$parameter,
       Parameter = MORRIS_LABELS[rk$parameter],
       `Mu Star` = round(rk$mu_star, 4),
       Sigma     = round(rk$sigma_ee, 4),

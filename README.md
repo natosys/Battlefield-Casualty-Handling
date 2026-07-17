@@ -1153,6 +1153,70 @@ Not every numeric leaf in `env_data.json`'s `vars` tree is a candidate for Morri
 
 A tenth parameter, the dead-heading return-leg multiplier (`return_leg_multiplier`), was screened here through the Issue #73 follow-up re-run below but has since been removed from the model entirely (Issue #74) rather than retained as a screened input — see the Issue #74 note following the table for why, and Limitation L15 for the full removal rationale.
 
+#### Parameter Name Reference
+
+The grouped tables above and the ranking table below use each parameter's raw `morris_params$name` (the identifier that also appears in `outputs/morris_ranking.csv`, in `R/sensitivity.R`'s `apply_params()`, and on the axis labels of every saved `images/morris_*.png` plot). The table below maps all fifty-five variable names to their plain-English title and category (Issue #112 third follow-up), sorted alphabetically by variable for quick lookup when cross-referencing a code seen in a CSV or plot back to what it means — the same mapping (`MORRIS_LABELS`, `app.R`) drives the Shiny app's Sensitivity Calibration table and ranking table, so the two stay in sync by construction rather than by separately-maintained copies.
+
+| Variable | Title | Category |
+|---|---|---|
+| `ame_dow_check_interval` | AME DOW Poll Interval (Minutes) | Health System Design - Policy |
+| `ame_failure_probability` | AME Sortie Cancellation Probability | Scenario / Casualty Context |
+| `ame_schedule_interval_days` | AME Sortie Interval (Days) | Health System Design - Policy |
+| `disease_surgery_pct` | Disease Surgical Candidacy | Scenario / Casualty Context |
+| `dnbi_cbt_mean` | DNBI — Combat Mean Daily Rate | Scenario / Casualty Context |
+| `dnbi_spt_mean` | DNBI — Support Mean Daily Rate | Scenario / Casualty Context |
+| `fr_demand_interval_days` | Reinforcement Demand Cycle (Days) | Health System Design - Policy |
+| `fr_fill_mode_frac` | Reinforcement Fill Distribution (Mode) | Health System Design - Policy |
+| `fr_fulfillment_lag_days` | Reinforcement Fulfillment Lag (Days) | Health System Design - Policy |
+| `icu_defer_check_interval` | OT-Entry Defer Poll Interval (R2B/R2E) | Health System Design - Policy |
+| `in_theatre_rate` | In-Theatre Recovery Rate | Health System Design - Policy |
+| `kia_cbt_mean` | KIA — Combat Mean Daily Rate | Scenario / Casualty Context |
+| `kia_spt_mean` | KIA — Support Mean Daily Rate | Scenario / Casualty Context |
+| `long_icu_mode` | Long ICU Stay (Mode) | Health System Design - Capacity |
+| `long_resus_mode` | Long Resuscitation Duration (Mode) | Health System Design - Capacity |
+| `mass_casualty_max_cas` | Mass Casualty Event Size (Maximum) | Scenario / Casualty Context |
+| `mass_casualty_min_cas` | Mass Casualty Event Size (Minimum) | Scenario / Casualty Context |
+| `mass_casualty_rate` | Mass Casualty Event Rate (per day) | Scenario / Casualty Context |
+| `ot_hours` | OT Shift Length (Hours per Shift) | Health System Design - Policy |
+| `p1_k` | Priority 1 DOW Logistic Steepness | Scenario / Casualty Context |
+| `p1_p_base` | Priority 1 DOW Base Probability | Scenario / Casualty Context |
+| `p1_p_max` | Priority 1 DOW Ceiling | Scenario / Casualty Context |
+| `p1_t_mid` | Priority 1 DOW Logistic Midpoint | Scenario / Casualty Context |
+| `p2_k` | Priority 2 DOW Logistic Steepness | Scenario / Casualty Context |
+| `p2_p_base` | Priority 2 DOW Base Probability | Scenario / Casualty Context |
+| `p2_p_max` | Priority 2 DOW Ceiling | Scenario / Casualty Context |
+| `p2_t_mid` | Priority 2 DOW Logistic Midpoint | Scenario / Casualty Context |
+| `p3_flat` | Priority 3 Flat DOW Probability | Scenario / Casualty Context |
+| `post_op_hold_mode` | R2E Post-Op Holding-Bed Duration (Mode) | Health System Design - Capacity |
+| `post_surgery_prob` | R2E Post-Surgery Full-Recovery Rate | Health System Design - Policy |
+| `pri1_evac_prob` | Priority 1 Strategic Evacuation Rate | Scenario / Casualty Context |
+| `pri1_surg_prob` | Priority 1 Surgical Candidacy | Scenario / Casualty Context |
+| `pri2_evac_prob` | Priority 2 Strategic Evacuation Rate | Scenario / Casualty Context |
+| `pri2_surg_prob` | Priority 2 Surgical Candidacy | Scenario / Casualty Context |
+| `pri3_dnbi_surg_prob` | Priority 3 DNBI Surgical Candidacy | Scenario / Casualty Context |
+| `pri3_other_surg_prob` | Priority 3 Other Surgical Candidacy | Scenario / Casualty Context |
+| `r1_recovery_mode` | R1 Battle Fatigue Hold Duration (Mode) | Health System Design - Capacity |
+| `r1_tccc_factor` | R1 TCCC Efficacy Factor | Scenario / Casualty Context |
+| `r1_transport` | R1 Transport Time (Mode) | Scenario / Casualty Context |
+| `r1_wia_treat_mode` | R1 WIA Treatment Time (Mode) | Health System Design - Capacity |
+| `r2b_dcs_factor` | R2B DCS Efficacy Factor | Scenario / Casualty Context |
+| `r2b_hold_mode` | R2B Holding Bed Duration (Mode) | Health System Design - Capacity |
+| `r2b_hold_threshold` | R2B Hold-Bed Reroute Threshold | Health System Design - Policy |
+| `r2b_resus_factor` | R2B/R2E DCR (Resus) Efficacy Factor | Scenario / Casualty Context |
+| `r2b_transport` | R2B Transport Time (Mode) | Scenario / Casualty Context |
+| `r2e_dcs1_factor` | R2E DCS 1st-Op Efficacy Factor | Scenario / Casualty Context |
+| `r2e_dcs2_factor` | R2E DCS 2nd-Op Efficacy Factor | Scenario / Casualty Context |
+| `r2e_hold_mode` | R2E Holding Bed Duration (Mode) | Health System Design - Capacity |
+| `r2e_postop_hold_penalty` | R2E Post-Op Hold DOW Penalty (Multiplier) | Scenario / Casualty Context |
+| `r2e_resus_factor` | R2E DCR (Resus) Efficacy Factor | Scenario / Casualty Context |
+| `short_icu_mode` | R2E Short ICU Stay (Mode) | Health System Design - Capacity |
+| `short_resus_mode` | R2E Short Resuscitation Duration (Mode) | Health System Design - Capacity |
+| `surg_mode` | Surgery Duration (Mode) | Health System Design - Capacity |
+| `wia_cbt_mean` | WIA — Combat Mean Daily Rate | Scenario / Casualty Context |
+| `wia_spt_mean` | WIA — Support Mean Daily Rate | Scenario / Casualty Context |
+
+The Shiny app's own Sensitivity Calibration table (**Configure → Sensitivity Calibration** tab) presents the same Variable/Parameter/Category mapping alongside each parameter's screened bounds, with a CSV download button, so a planner working in the app has this lookup available without leaving it — see [Shiny Application](#shiny-application).
+
 Three primary KPI outputs were monitored across all replications at each design point: mean R2B OT queue, mean R2E OT queue (combined as system OT queue), and mean R2E ICU queue. Total DOW count is tracked as a secondary output. Two further KPIs cover the transport layer directly (Issue #6): mean transport queue and mean transport utilisation, pooled across the PMV Ambulance and HX240M resources. The utilisation KPI is necessary alongside the queue KPI because, under the current baseline casualty rate, transport assets rarely queue — their availability is affected well before a queue forms — so a queue-only KPI would under-detect the influence of transport-related parameters. Parameters ranked by µ\* on the system OT queue identify the inputs most responsible for surgical bottleneck severity.
 
 > **Note — sensitivity screening re-run for Issue #75:** The Morris screening reflects a full re-run (r=20, reps=5, 30 days, seed=42) against the codebase current as of that re-run — post DNBI sub-categorisation (Issue #7), time-dependent DOW (Issue #5), dead-heading transport (Issue #6), and OT–ICU gating (Issue #43) — replacing a screen that had last been run before those merges. The re-run was triggered by correcting `p1_p_max`'s screening bounds, which had drifted an order of magnitude from the shipped baseline after Issue #5's Falklands recalibration (25–75%, versus the shipped 2.3%; see Limitation L13, resolved). Because `morris_params$mode` supplies the value every *other* parameter is screened against while `p1_p_max` itself varies, the stale 60% mode had been silently biasing every parameter's µ\*/σ, not just `p1_p_max`'s own — the re-run corrects this for all ten screened parameters. The parameter set still does not include `disease_surgery_pct` (the disease DNBI emergency surgical rate — rated High uncertainty); adding it as an eleventh parameter and re-screening remains a separate follow-up task (see Further Development).

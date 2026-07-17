@@ -87,7 +87,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
       r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
     ) %>%
     ungroup() %>%
-    select(-los_min, -los_mode, -los_max)
+    dplyr::select(-los_min, -los_mode, -los_max)
 }
 
 #' Computes daily Role 4 (national support base) bed occupancy by ward

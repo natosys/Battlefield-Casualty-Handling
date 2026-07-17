@@ -33,6 +33,33 @@ library(ggplot2)
 #'   See README Sensitivity Analysis section for the full per-parameter
 #'   derivation and the parameter-surface diff this expansion is based on.
 #'
+#'   `fr_fill_mode_frac`'s upper bound is capped at 1.05, not the 1.4
+#'   Rule-B-multiplicative bound Rule B would otherwise give (baseline
+#'   0.85 x 2.0 = 1.7, clipped to the field's own registry max of 1.5)
+#'   — env_data.json's `fill_min_frac`/`fill_max_frac` (0.2/1.1) are NOT
+#'   screened here (only the triangular mode is, matching every other
+#'   triangular parameter's convention), so they stay fixed at those
+#'   values for every design point. `fill_fn()` (R/trajectories.R) calls
+#'   `rtriangle(n=1, a=fill_min_frac, b=fill_max_frac, c=fill_mode_frac)`,
+#'   which requires a <= c <= b; screening fill_mode_frac past 1.1 (with
+#'   fill_max_frac fixed at 1.1) produces an invalid triangular
+#'   distribution and rtriangle() silently returns NA — discovered via a
+#'   real Issue #112 re-run where every parameter's sigma_ee came out NA,
+#'   root-caused to this single out-of-envelope bound corrupting the
+#'   simulation state (and therefore every downstream KPI) for the
+#'   remainder of any OAT trajectory that perturbed this parameter above
+#'   1.1. See README Limitation L18 follow-up note for the incident.
+#'
+#'   `post_op_hold_mode`'s lower bound is 380, not the Rule-B-multiplicative
+#'   300 (baseline 600 x 0.5) — the same class of bug, one field over:
+#'   `env_data.json`'s `r2eheavy.post_op_hold.min`/`.max` (360/1440) are
+#'   fixed (unscreened, matching the min/max-not-screened convention), and
+#'   `rtriangle(a=min, b=max, c=mode)` (R/trajectories.R) again requires
+#'   a <= c <= b — 300 < 360 would have produced the identical NA-cascade
+#'   failure. Found by auditing every newly-added triangular mode's bound
+#'   against its own JSON min/max after the fill_mode_frac incident above,
+#'   not from a second independent re-run failure.
+#'
 #'   Not every numeric leaf in env_data.json's `vars` tree is screened here;
 #'   see the README's "Parameters Excluded from Screening" note for the
 #'   full exclusion rationale (KIA/mortuary processing durations, simplex-
@@ -71,7 +98,7 @@ morris_params <- data.frame(
   ),
   lower = c(
     90,    25,    0.0115, 15,   15,   770,   0.70,  0.05,  8,   0,    40,
-    17,    36,    3600,   7800,   300,   1440,  12,    15,
+    17,    36,    3600,   7800,   380,   1440,  12,    15,
     0.55,  0.15,  0.35,  0.03,  0.70,  0.65,
     0.0005, 0.024, 72,   0.00025, 0.0095, 0.015, 108, 0.0005,
     0.68,  0.41,  0.17,  0.41,  0.10,  0.42,  1.5,
@@ -89,7 +116,7 @@ morris_params <- data.frame(
     0.98,  0.71,  0.47,  0.71,  0.40,  0.72,  6.0,
     2.48,  0.95,  2.86,  2.48,  0.95,  1.32,
     30,
-    14,   14,   1.4,
+    14,   14,   1.05,
     14,   0.30, 2880,
     0.95, 0.95
   ),

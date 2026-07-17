@@ -3448,12 +3448,19 @@ server <- function(input, output, session) {
   #' elementary effect (importance); σ is the standard deviation of
   #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
   #' indicates the effect is not consistent across the parameter's range).
+  #' category distinguishes a scenario/casualty assumption (Issue #112
+  #' second follow-up) from a health-system-design lever — see the comment
+  #' on morris_params$category (R/sensitivity.R) for the assignment rule.
   morris_scatter_df <- function(obj) {
     ee <- obj$ee
     data.frame(
       parameter = colnames(ee),
       mu_star   = apply(abs(ee), 2, mean, na.rm = TRUE),
-      sigma     = apply(ee, 2, sd, na.rm = TRUE)
+      sigma     = apply(ee, 2, sd, na.rm = TRUE),
+      category  = ifelse(
+        morris_params$category[match(colnames(ee), morris_params$name)] == "Context",
+        "Scenario / Casualty Context", "Health System Design"
+      )
     )
   }
 
@@ -3461,13 +3468,25 @@ server <- function(input, output, session) {
     req(morris_results())
     df <- morris_scatter_df(morris_results()$morris_objs$r2e_icu_q)
     df$label <- MORRIS_LABELS[df$parameter]
-    ggplot(df, aes(x = mu_star, y = sigma, label = label)) +
-      geom_point(size = 3, color = "#2a78d6") +
-      geom_text(vjust = -0.9, size = 3.2, check_overlap = TRUE) +
+    # ggrepel::geom_text_repel(), not geom_text(check_overlap = TRUE): the
+    # latter only ever *drops* a colliding label (silently missing from a
+    # dense plot), it does not reposition it — unreadable/incomplete once
+    # the screen grew to 55 parameters (Issue #112 follow-up). See the
+    # equivalent fix and its full rationale on plot_morris_scatter()
+    # (R/sensitivity.R), which this mirrors for the Shiny panel.
+    ggplot(df, aes(x = mu_star, y = sigma, label = label, color = category)) +
+      geom_point(size = 3) +
+      ggrepel::geom_text_repel(
+        size = 3.2, max.overlaps = Inf, segment.size = 0.25,
+        show.legend = FALSE, min.segment.length = 0,
+        box.padding = 0.3, point.padding = 0.15, seed = 42
+      ) +
+      scale_color_manual(values = MORRIS_CATEGORY_COLORS, name = NULL) +
       labs(title = "Morris Screening — μ* vs σ (R2E ICU Queue)",
            subtitle = "μ* = mean absolute elementary effect (importance); σ = std. dev. of elementary effects (nonlinearity/interaction)",
            x = "μ* (Importance)", y = "σ (Nonlinearity / Interaction)") +
-      theme_minimal(base_size = 13)
+      theme_minimal(base_size = 13) +
+      theme(legend.position = "top")
   }, function() 450)
 
   output$morris_ranking_table <- renderDT({

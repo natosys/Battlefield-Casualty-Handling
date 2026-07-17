@@ -10,35 +10,63 @@ library(ggplot2)
 
 # ── Plotting helpers ──────────────────────────────────────────────────────────
 
-#' Render a Morris mu*/sigma scatter plot with overlap-avoiding labels
+#' Colour assignment for the Scenario/Design parameter category split
+#'
+#' @details Okabe-Ito colourblind-safe pair (Okabe & Ito, 2008) — the same
+#'   blue/orange combination used throughout the `dataviz` categorical
+#'   palette convention this project's Shiny app otherwise follows.
+MORRIS_CATEGORY_COLORS <- c(
+  "Scenario / Casualty Context" = "#E69F00",
+  "Health System Design"        = "#0072B2"
+)
+
+#' Render a Morris mu*/sigma scatter plot with overlap-avoiding, category-coloured labels
 #'
 #' @param obj A tell()-populated morris object (has a populated $ee matrix)
 #' @param title Plot title
 #' @return A ggplot2 object
 #'
-#' @details Base R's plot.morris() (the previous implementation here) places
+#' @details Base R's plot.morris() (the original implementation here) places
 #'   every parameter's label with text() at a fixed offset with no collision
 #'   avoidance — unreadable once the screen grew past roughly 15 parameters
 #'   and became a dense, illegible cluster at p = 55 (Issue #112 follow-up).
 #'   ggrepel::geom_text_repel() displaces overlapping labels and draws a
 #'   thin leader line back to the point they belong to instead.
+#'
+#'   Points and labels are also coloured by `morris_params$category` (Issue
+#'   #112 second follow-up) — "Scenario / Casualty Context" (a fact about
+#'   the operational environment or casualty population: generation rates,
+#'   DOW calibration, clinical-need composition, treatment efficacy) versus
+#'   "Health System Design" (a capacity, duration, threshold, or scheduling
+#'   policy the health system's own structure determines). The distinction
+#'   tells a planner, at a glance, whether a highly-ranked parameter is an
+#'   assumption about the scenario they are testing against or a lever the
+#'   health system's design actually controls — the former means "our
+#'   findings are sensitive to how bad the scenario is," the latter means
+#'   "this is worth investing in changing." See the category column's own
+#'   comment in `morris_params` for the assignment rule and its limits.
 plot_morris_scatter <- function(obj, title) {
   ee      <- obj$ee
   mu_star <- apply(abs(ee), 2, mean, na.rm = TRUE)
   sigma   <- apply(ee, 2, sd, na.rm = TRUE)
   df <- data.frame(parameter = colnames(ee), mu_star = mu_star, sigma = sigma)
+  df$category <- ifelse(
+    morris_params$category[match(df$parameter, morris_params$name)] == "Context",
+    "Scenario / Casualty Context", "Health System Design"
+  )
 
   if (all(!is.finite(df$mu_star)) || all(!is.finite(df$sigma))) {
     stop("insufficient variation to plot")
   }
 
-  ggplot(df, aes(x = mu_star, y = sigma, label = parameter)) +
-    geom_point(size = 2, color = "#2a78d6") +
+  ggplot(df, aes(x = mu_star, y = sigma, label = parameter, color = category)) +
+    geom_point(size = 2) +
     ggrepel::geom_text_repel(
       size = 3, max.overlaps = Inf, segment.size = 0.25,
-      segment.color = "grey50", min.segment.length = 0,
+      show.legend = FALSE, min.segment.length = 0,
       box.padding = 0.3, point.padding = 0.15, seed = 42
     ) +
+    scale_color_manual(values = MORRIS_CATEGORY_COLORS, name = NULL) +
     # expression(), not a literal "μ*"/"σ" string: ggplot2's Cairo/PNG device
     # in this project's containerised environments has repeatedly lacked a
     # font covering the Greek-letter Unicode codepoints (rendering as blank
@@ -48,7 +76,8 @@ plot_morris_scatter <- function(obj, title) {
     labs(title = title,
          x = expression(mu * "* (importance)"),
          y = expression(sigma * " (nonlinearity / interaction)")) +
-    theme_minimal(base_size = 12)
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "top")
 }
 
 # ── Parameter definitions ─────────────────────────────────────────────────────
@@ -174,6 +203,32 @@ morris_params <- data.frame(
     0,    7,    0.85,
     7,    0.15, 1440,
     0.75, 0.80
+  ),
+  # "Scenario / Casualty Context" = an assumption about the operational
+  # environment or the casualty population itself (generation rates, DOW
+  # calibration, clinical-need composition, treatment efficacy) — a
+  # planner does not choose these, they describe what happens *to* the
+  # force. "Health System Design" = a capacity, duration, threshold, or
+  # scheduling policy the health system's own structure determines — a
+  # planner can actually adjust these (add a shift, change a reroute
+  # threshold, retune a sortie interval) to change how the system
+  # *responds*. Requested by the issue #112 follow-up so a planner
+  # reading the screening plot can immediately tell which kind of lever
+  # a highly-ranked parameter is before deciding whether to act on it.
+  # A few parameters sit close to the line (see README note below the
+  # plot for the specific calls this project made and why); this is an
+  # interpretive aid, not a claim of a clean, uncontested partition.
+  category = c(
+    "Design", "Design", "Context", "Design", "Design", "Design", "Context", "Design", "Design", "Context", "Context",
+    "Design", "Design", "Design", "Design", "Design", "Design", "Design", "Design",
+    "Context", "Context", "Context", "Context", "Context", "Context",
+    "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",
+    "Context", "Context", "Context", "Context", "Context", "Context", "Context",
+    "Context", "Context", "Context", "Context", "Context", "Context",
+    "Context",
+    "Design", "Design", "Design",
+    "Design", "Context", "Design",
+    "Design", "Design"
   ),
   stringsAsFactors = FALSE
 )

@@ -1534,7 +1534,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       labs(
         title    = "Mass Casualty Event Timeline",
         subtitle = sprintf(
-          "%d event(s) across the simulation period (compound Poisson injection, Issue #9)",
+          "%d event(s) across the simulation period (compound Poisson injection)",
           mass_casualty_event_count
         ),
         x = "Simulation Day", y = "Casualties Injected by Event"

@@ -639,7 +639,61 @@ MORRIS_LABELS <- c(
   in_theatre_rate        = "In-Theatre Recovery Rate",
   ot_hours               = "OT Shift Length (Hours per Shift)",
   mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
-  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)"
+  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
+
+  # ── Added by Issue #112 full-coverage audit ──────────────────────────────
+  short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
+  short_icu_mode               = "R2E Short ICU Stay (Mode)",
+  r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
+  r2e_hold_mode                 = "R2E Holding Bed Duration (Mode)",
+  post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
+  r1_recovery_mode               = "R1 Battle Fatigue Hold Duration (Mode)",
+  r1_wia_treat_mode              = "R1 WIA Treatment Time (Mode)",
+  icu_defer_check_interval       = "OT-Entry Defer Poll Interval (R2B/R2E)",
+
+  pri2_surg_prob            = "Priority 2 Surgical Candidacy",
+  pri3_dnbi_surg_prob       = "Priority 3 DNBI Surgical Candidacy",
+  pri3_other_surg_prob      = "Priority 3 Other Surgical Candidacy",
+  disease_surgery_pct        = "Disease Surgical Candidacy",
+  pri1_evac_prob             = "Priority 1 Strategic Evacuation Rate",
+  pri2_evac_prob             = "Priority 2 Strategic Evacuation Rate",
+
+  p1_p_base = "Priority 1 DOW Base Probability",
+  p1_k      = "Priority 1 DOW Logistic Steepness",
+  p1_t_mid  = "Priority 1 DOW Logistic Midpoint",
+  p2_p_base = "Priority 2 DOW Base Probability",
+  p2_p_max  = "Priority 2 DOW Ceiling",
+  p2_k      = "Priority 2 DOW Logistic Steepness",
+  p2_t_mid  = "Priority 2 DOW Logistic Midpoint",
+  p3_flat   = "Priority 3 Flat DOW Probability",
+
+  r1_tccc_factor           = "R1 TCCC Efficacy Factor",
+  r2b_resus_factor         = "R2B/R2E DCR (Resus) Efficacy Factor",
+  r2b_dcs_factor           = "R2B DCS Efficacy Factor",
+  r2e_resus_factor         = "R2E DCR (Resus) Efficacy Factor",
+  r2e_dcs1_factor          = "R2E DCS 1st-Op Efficacy Factor",
+  r2e_dcs2_factor          = "R2E DCS 2nd-Op Efficacy Factor",
+  r2e_postop_hold_penalty  = "R2E Post-Op Hold DOW Penalty (Multiplier)",
+
+  wia_cbt_mean  = "WIA — Combat Mean Daily Rate",
+  kia_cbt_mean  = "KIA — Combat Mean Daily Rate",
+  dnbi_cbt_mean = "DNBI — Combat Mean Daily Rate",
+  wia_spt_mean  = "WIA — Support Mean Daily Rate",
+  kia_spt_mean  = "KIA — Support Mean Daily Rate",
+  dnbi_spt_mean = "DNBI — Support Mean Daily Rate",
+
+  mass_casualty_min_cas = "Mass Casualty Event Size (Minimum)",
+
+  fr_demand_interval_days = "Reinforcement Demand Cycle (Days)",
+  fr_fulfillment_lag_days = "Reinforcement Fulfillment Lag (Days)",
+  fr_fill_mode_frac       = "Reinforcement Fill Distribution (Mode)",
+
+  ame_schedule_interval_days = "AME Sortie Interval (Days)",
+  ame_failure_probability    = "AME Sortie Cancellation Probability",
+  ame_dow_check_interval     = "AME DOW Poll Interval (Minutes)",
+
+  post_surgery_prob   = "R2E Post-Surgery Full-Recovery Rate",
+  r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────

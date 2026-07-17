@@ -8,11 +8,19 @@
 #   Rscript scripts/run_sensitivity.R                    # full Morris (r=20, reps=5)
 #   Rscript scripts/run_sensitivity.R --quick            # smoke test (r=3, reps=3, days=5)
 #   Rscript scripts/run_sensitivity.R --sobol            # Morris then Sobol on top 5
+#   Rscript scripts/run_sensitivity.R --r 5              # reduced-r full-coverage run (see below)
 #
 # RStudio Console (interactive):
 #   source("R/sensitivity.R")                            # loads helpers only
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
+#
+# morris_params (R/sensitivity.R) covers 55 parameters as of Issue #112 (up
+# from 11); r=20 at this parameter count is r*(p+1) = 1,120 design points x
+# 5 reps = 5,600 simulation runs, impractical outside a long-lived compute
+# session. --r 5 was used for the Issue #112 re-run documented in the
+# README (280 design points x 5 reps = 1,400 runs, ~20s/run on 4 cores);
+# scale --r up when a longer session is available.
 
 source("R/environment.R")
 source("R/trajectories.R")

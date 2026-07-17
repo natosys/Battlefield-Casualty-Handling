@@ -3448,19 +3448,19 @@ server <- function(input, output, session) {
   #' elementary effect (importance); σ is the standard deviation of
   #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
   #' indicates the effect is not consistent across the parameter's range).
-  #' category distinguishes a scenario/casualty assumption (Issue #112
-  #' second follow-up) from a health-system-design lever — see the comment
-  #' on morris_params$category (R/sensitivity.R) for the assignment rule.
+  #' category distinguishes a scenario/casualty assumption from a
+  #' health-system-design lever, itself split into Capacity (a
+  #' throughput/process time, changeable only through investment) versus
+  #' Policy (a threshold/cadence a standing order can change directly) —
+  #' Issue #112 second follow-up. See the comment on morris_params$category
+  #' (R/sensitivity.R) for the assignment rule.
   morris_scatter_df <- function(obj) {
     ee <- obj$ee
     data.frame(
       parameter = colnames(ee),
       mu_star   = apply(abs(ee), 2, mean, na.rm = TRUE),
       sigma     = apply(ee, 2, sd, na.rm = TRUE),
-      category  = ifelse(
-        morris_params$category[match(colnames(ee), morris_params$name)] == "Context",
-        "Scenario / Casualty Context", "Health System Design"
-      )
+      category  = MORRIS_CATEGORY_LABELS[morris_params$category[match(colnames(ee), morris_params$name)]]
     )
   }
 

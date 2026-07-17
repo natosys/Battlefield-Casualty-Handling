@@ -10,14 +10,26 @@ library(ggplot2)
 
 # ── Plotting helpers ──────────────────────────────────────────────────────────
 
-#' Colour assignment for the Scenario/Design parameter category split
+#' Colour assignment for the Context/Capacity/Policy parameter category split
 #'
-#' @details Okabe-Ito colourblind-safe pair (Okabe & Ito, 2008) — the same
-#'   blue/orange combination used throughout the `dataviz` categorical
-#'   palette convention this project's Shiny app otherwise follows.
+#' @details Three-colour subset of the Okabe-Ito colourblind-safe palette
+#'   (Okabe & Ito, 2008). Orange for Context (unchanged from the original
+#'   two-way split); Design's two sub-categories get their own distinct
+#'   hues rather than shades of one colour, since the Capacity/Policy
+#'   distinction is the point of splitting them apart in the first place —
+#'   a shade difference reads as "still basically Design" at a glance,
+#'   which is exactly what Issue #112's second follow-up asked not to do.
 MORRIS_CATEGORY_COLORS <- c(
-  "Scenario / Casualty Context" = "#E69F00",
-  "Health System Design"        = "#0072B2"
+  "Scenario / Casualty Context"        = "#E69F00",
+  "Health System Design - Capacity"    = "#009E73",
+  "Health System Design - Policy"      = "#0072B2"
+)
+
+#' Short morris_params$category code -> full plot-legend label
+MORRIS_CATEGORY_LABELS <- c(
+  "Context"  = "Scenario / Casualty Context",
+  "Capacity" = "Health System Design - Capacity",
+  "Policy"   = "Health System Design - Policy"
 )
 
 #' Render a Morris mu*/sigma scatter plot with overlap-avoiding, category-coloured labels
@@ -34,26 +46,27 @@ MORRIS_CATEGORY_COLORS <- c(
 #'   thin leader line back to the point they belong to instead.
 #'
 #'   Points and labels are also coloured by `morris_params$category` (Issue
-#'   #112 second follow-up) — "Scenario / Casualty Context" (a fact about
-#'   the operational environment or casualty population: generation rates,
-#'   DOW calibration, clinical-need composition, treatment efficacy) versus
-#'   "Health System Design" (a capacity, duration, threshold, or scheduling
-#'   policy the health system's own structure determines). The distinction
-#'   tells a planner, at a glance, whether a highly-ranked parameter is an
-#'   assumption about the scenario they are testing against or a lever the
-#'   health system's design actually controls — the former means "our
-#'   findings are sensitive to how bad the scenario is," the latter means
-#'   "this is worth investing in changing." See the category column's own
-#'   comment in `morris_params` for the assignment rule and its limits.
+#'   #112 second follow-up) — three levels, not two: "Scenario / Casualty
+#'   Context" (a fact about the operational environment or casualty
+#'   population: generation rates, DOW calibration, clinical-need
+#'   composition, treatment efficacy — not a planner's to choose); "Health
+#'   System Design — Capacity" (a throughput/process time, changeable only
+#'   through resourcing investment, not a standing-order decision); "Health
+#'   System Design — Policy" (a threshold, cadence, or scheduling rule the
+#'   health system's own standing orders set directly, no investment
+#'   required). The original Context-vs-Design two-way split conflated the
+#'   latter two — "a highly-ranked duration and a highly-ranked scheduling
+#'   threshold are not equally actionable," per the issue that asked for
+#'   this refinement — a planner can rewrite a threshold today, but cannot
+#'   simply command a procedure to take less time. See the category
+#'   column's own comment in `morris_params` for the assignment rule and
+#'   its limits.
 plot_morris_scatter <- function(obj, title) {
   ee      <- obj$ee
   mu_star <- apply(abs(ee), 2, mean, na.rm = TRUE)
   sigma   <- apply(ee, 2, sd, na.rm = TRUE)
   df <- data.frame(parameter = colnames(ee), mu_star = mu_star, sigma = sigma)
-  df$category <- ifelse(
-    morris_params$category[match(df$parameter, morris_params$name)] == "Context",
-    "Scenario / Casualty Context", "Health System Design"
-  )
+  df$category <- MORRIS_CATEGORY_LABELS[morris_params$category[match(df$parameter, morris_params$name)]]
 
   if (all(!is.finite(df$mu_star)) || all(!is.finite(df$sigma))) {
     stop("insufficient variation to plot")
@@ -204,31 +217,44 @@ morris_params <- data.frame(
     7,    0.15, 1440,
     0.75, 0.80
   ),
-  # "Scenario / Casualty Context" = an assumption about the operational
-  # environment or the casualty population itself (generation rates, DOW
-  # calibration, clinical-need composition, treatment efficacy) — a
-  # planner does not choose these, they describe what happens *to* the
-  # force. "Health System Design" = a capacity, duration, threshold, or
-  # scheduling policy the health system's own structure determines — a
-  # planner can actually adjust these (add a shift, change a reroute
-  # threshold, retune a sortie interval) to change how the system
-  # *responds*. Requested by the issue #112 follow-up so a planner
-  # reading the screening plot can immediately tell which kind of lever
-  # a highly-ranked parameter is before deciding whether to act on it.
-  # A few parameters sit close to the line (see README note below the
-  # plot for the specific calls this project made and why); this is an
-  # interpretive aid, not a claim of a clean, uncontested partition.
+  # "Context" = an assumption about the operational environment or the
+  # casualty population itself (generation rates, DOW calibration,
+  # clinical-need composition, treatment efficacy) — a planner does not
+  # choose these, they describe what happens *to* the force.
+  #
+  # "Health System Design" splits further into two sub-categories with a
+  # materially different practical implication for a planner deciding
+  # whether to act on a highly-ranked parameter (Issue #112 second
+  # follow-up — the original two-way split conflated them):
+  #   "Capacity" = a throughput/process time (how long a procedure, stay,
+  #     or transport leg inherently takes at current resourcing). Only
+  #     changeable through investment — more staff, better equipment,
+  #     training, faster vehicles — not by a standing-order decision;
+  #     r1_wia_treat_mode is a clinical process duration a planner cannot
+  #     simply command to be shorter, unlike a genuine policy lever.
+  #   "Policy" = a threshold, cadence, or scheduling rule the health
+  #     system's own standing orders set directly (a shift roster length,
+  #     a reroute threshold, a sortie interval) — a planner can change one
+  #     of these by writing a new order, with no resourcing investment
+  #     required to take effect.
+  # Requested by the issue #112 follow-up so a planner reading the
+  # screening plot can immediately tell which kind of lever a
+  # highly-ranked parameter is — and how directly they can pull it —
+  # before deciding whether to act on it. A few parameters sit close to
+  # the line (see README note below the plot for the specific calls this
+  # project made and why); this is an interpretive aid, not a claim of a
+  # clean, uncontested partition.
   category = c(
-    "Design", "Design", "Context", "Design", "Design", "Design", "Context", "Design", "Design", "Context", "Context",
-    "Design", "Design", "Design", "Design", "Design", "Design", "Design", "Design",
+    "Capacity", "Capacity", "Context", "Capacity", "Capacity", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
+    "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Policy",
     "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context",
     "Context",
-    "Design", "Design", "Design",
-    "Design", "Context", "Design",
-    "Design", "Design"
+    "Policy", "Policy", "Policy",
+    "Policy", "Context", "Policy",
+    "Policy", "Policy"
   ),
   stringsAsFactors = FALSE
 )

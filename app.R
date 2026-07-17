@@ -1296,9 +1296,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
           label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
           tooltip = paste0(
             "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
-            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction. ",
-            "Sources: Battle Fatigue — ", SRC_DNBI_BF_PCT, " Disease — ", SRC_DNBI_DISEASE_PCT,
-            " NBI — ", SRC_DNBI_NBI_PCT
+            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction."
           ),
           path = bf_f$path
         ), overridden_paths)

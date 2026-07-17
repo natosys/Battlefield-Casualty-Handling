@@ -220,18 +220,22 @@ morris_params <- data.frame(
   # "Context" = an assumption about the operational environment or the
   # casualty population itself (generation rates, DOW calibration,
   # clinical-need composition, treatment efficacy) — a planner does not
-  # choose these, they describe what happens *to* the force.
+  # choose these, they describe what happens *to* the force. Inter-echelon
+  # transport time (r1_transport, r2b_transport) lives here too, not under
+  # Capacity: geography and terrain, not vehicle procurement, dominate how
+  # long a given leg takes in a given scenario, unlike a treatment duration
+  # a staffing/equipment investment can genuinely shorten.
   #
   # "Health System Design" splits further into two sub-categories with a
   # materially different practical implication for a planner deciding
   # whether to act on a highly-ranked parameter (Issue #112 second
   # follow-up — the original two-way split conflated them):
-  #   "Capacity" = a throughput/process time (how long a procedure, stay,
-  #     or transport leg inherently takes at current resourcing). Only
-  #     changeable through investment — more staff, better equipment,
-  #     training, faster vehicles — not by a standing-order decision;
-  #     r1_wia_treat_mode is a clinical process duration a planner cannot
-  #     simply command to be shorter, unlike a genuine policy lever.
+  #   "Capacity" = a treatment/holding throughput or process time (how
+  #     long a procedure or stay inherently takes at current resourcing).
+  #     Only changeable through investment — more staff, better equipment,
+  #     training — not by a standing-order decision; r1_wia_treat_mode is
+  #     a clinical process duration a planner cannot simply command to be
+  #     shorter, unlike a genuine policy lever.
   #   "Policy" = a threshold, cadence, or scheduling rule the health
   #     system's own standing orders set directly (a shift roster length,
   #     a reroute threshold, a sortie interval) — a planner can change one
@@ -242,10 +246,10 @@ morris_params <- data.frame(
   # highly-ranked parameter is — and how directly they can pull it —
   # before deciding whether to act on it. A few parameters sit close to
   # the line (see README note below the plot for the specific calls this
-  # project made and why); this is an interpretive aid, not a claim of a
-  # clean, uncontested partition.
+  # project made and why, including the transport-time call above); this
+  # is an interpretive aid, not a claim of a clean, uncontested partition.
   category = c(
-    "Capacity", "Capacity", "Context", "Capacity", "Capacity", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
+    "Capacity", "Capacity", "Context", "Context", "Context", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
     "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Policy",
     "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",

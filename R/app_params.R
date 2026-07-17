@@ -401,16 +401,16 @@ build_param_registry <- function() {
           type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT),
     var_field("force_regen_demand_interval", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "demand_interval_days",
               "Demand Submission Cycle (days)", "How often a reinforcement demand can be submitted for each pool. Each submission asks for the pool's full current shortfall against establishment strength. 0 disables reinforcement entirely (the shipped default) — casualty production and return-to-duty are then the only forces acting on effective force size.",
-              type = "integer", min = 0, max = 30, step = 1, source = SRC_FORCE_REGEN),
+              type = "integer", min = 0, max = 30, step = 1, morris_name = "fr_demand_interval_days", source = SRC_FORCE_REGEN),
     var_field("force_regen_lag", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fulfillment_lag_days",
               "Fulfillment Lag (days)", "Delay between a reinforcement demand being submitted and the delivered amount being credited to the effective force pool (ignored if the demand cycle is 0).",
-              type = "integer", min = 0, max = 60, step = 1, source = SRC_FORCE_REGEN),
+              type = "integer", min = 0, max = 60, step = 1, morris_name = "fr_fulfillment_lag_days", source = SRC_FORCE_REGEN),
     var_field("force_regen_fill_min", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_min_frac",
               "Fill Distribution — Minimum (fraction of demand)", "Lower bound of the triangular distribution governing what fraction of a submitted demand is actually delivered — the low end of the long under-fill tail.",
               type = "numeric", min = 0, max = 1, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE),
     var_field("force_regen_fill_mode", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_mode_frac",
               "Fill Distribution — Mode (fraction of demand)", "Most likely fraction of a submitted demand actually delivered — set close to (but below) 1, so full fulfillment is the peak of the distribution but under-fill is still more probable in aggregate than over-fill.",
-              type = "numeric", min = 0, max = 1.5, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE),
+              type = "numeric", min = 0, max = 1.5, step = 0.05, morris_name = "fr_fill_mode_frac", source = SRC_FORCE_REGEN, slider = TRUE),
     var_field("force_regen_fill_max", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_max_frac",
               "Fill Distribution — Maximum (fraction of demand)", "Upper bound of the triangular distribution — kept close to 1 so over-supply is possible but limited, unlike the long lower tail toward under-fill.",
               type = "numeric", min = 1, max = 2, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE)
@@ -435,7 +435,8 @@ build_param_registry <- function() {
                 "generators", acty, "mean_daily",
                 paste0(label, " — Mean Daily Rate"),
                 "Expected daily casualties per 1,000 population (lognormal rate model).",
-                type = "numeric", min = 0, max = 20, step = 0.01, source = src),
+                type = "numeric", min = 0, max = 20, step = 0.01,
+                morris_name = paste0(acty, "_mean"), source = src),
       var_field(paste0("gen_", acty, "_sd"), GRP_CASUALTY, "Casualty Generation Rates",
                 "generators", acty, "sd_daily",
                 paste0(label, " — Daily Rate Std. Dev."),
@@ -467,28 +468,28 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.01, morris_name = "pri1_surg_prob", source = SRC_PRIORITY_SPLIT),
     var_field("surg_pri2", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "pri2_surgery",
               "Priority 2 Surgical Candidacy", "Proportion of Priority 2 WIA requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "pri2_surg_prob", source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("surg_pri3_dnbi", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "pri3_dnbi_surgery",
               "Priority 3 DNBI Surgical Candidacy", "Proportion of Priority 3 DNBI casualties requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "pri3_dnbi_surg_prob", source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("surg_pri3_other", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "pri3_other_surgery",
               "Priority 3 Other Surgical Candidacy", "Proportion of other Priority 3 casualties requiring surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "pri3_other_surg_prob", source = SRC_PRIORITY_SPLIT, slider = TRUE),
     var_field("dnbi_disease_surgery_pct", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "disease_surgery_pct",
               "Disease Surgical Candidacy", "Proportion of disease DNBI casualties who nonetheless require surgery.",
-              min = 0, max = 1, step = 0.01, source = SRC_DISEASE_SURGERY, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "disease_surgery_pct", source = SRC_DISEASE_SURGERY, slider = TRUE),
     var_field("evac_pri1", GRP_CASUALTY, "Strategic Evacuation Rates", "r1", "other", "pri1_evac",
               "Priority 1 Strategic Evacuation Rate", "Proportion of treated Priority 1 casualties evacuated out of theatre.",
-              min = 0, max = 1, step = 0.01, source = SRC_EVAC_CANDIDACY, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "pri1_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),
     var_field("evac_pri2", GRP_CASUALTY, "Strategic Evacuation Rates", "r1", "other", "pri2_evac",
               "Priority 2 Strategic Evacuation Rate", "Proportion of treated Priority 2 casualties evacuated out of theatre.",
-              min = 0, max = 1, step = 0.01, source = SRC_EVAC_CANDIDACY, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "pri2_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),
     var_field("dow_p1_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p1_p_max",
               "Priority 1 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 1 casualty (Falklands 1982 calibration, Issue #5).",
               min = 0, max = 1, step = 0.001, morris_name = "p1_p_max", source = SRC_DOW_CEILING),
     var_field("dow_p2_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p2_p_max",
               "Priority 2 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 2 casualty (Falklands 1982 calibration, Issue #5).",
-              min = 0, max = 1, step = 0.001, source = SRC_DOW_CEILING, slider = TRUE)
+              min = 0, max = 1, step = 0.001, morris_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE)
   ))
 
   # ── Health System Architecture: R1 — Forward Aid Post ─────────────────────
@@ -502,12 +503,14 @@ build_param_registry <- function() {
 
   # ── Health Provision: R1 — Forward Aid Post ───────────────────────────────
   registry <- c(registry, tri_fields("r1_wia_treat", GRP_PROVISION, "R1 — Treatment Durations", "r1", "wia_treat",
-                                     "WIA Treatment Time", "Time to stabilise a WIA casualty at R1.", bound = c(0, 200),
+                                     "WIA Treatment Time", "Time to stabilise a WIA casualty at R1.",
+                                     morris_mode_name = "r1_wia_treat_mode", bound = c(0, 200),
                                      source = SRC_R1_WIA_TREAT))
   registry <- c(registry, tri_fields("r1_kia_treat", GRP_PROVISION, "R1 — Treatment Durations", "r1", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R1.", bound = c(0, 200)))
   registry <- c(registry, tri_fields("r1_recovery", GRP_PROVISION, "R1 — Treatment Durations", "r1", "recovery",
-                                     "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.", bound = c(0, 20000),
+                                     "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.",
+                                     morris_mode_name = "r1_recovery_mode", bound = c(0, 20000),
                                      source = SRC_R1_RECOVERY))
 
   # ── Medevac: Transport Fleet ──────────────────────────────────────────────
@@ -566,18 +569,20 @@ build_param_registry <- function() {
                                      "Long Resuscitation Duration", "Time occupying an R2B resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
   registry <- c(registry, tri_fields("r2b_holding", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding",
-                                     "Holding Bed Duration", "Time occupying an R2B holding bed.", bound = c(0, 20000)))
+                                     "Holding Bed Duration", "Time occupying an R2B holding bed.",
+                                     morris_mode_name = "r2b_hold_mode", bound = c(0, 20000)))
   registry <- c(registry, list(
     var_field("r2b_hold_threshold", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding", "hold_threshold",
               "Hold-Bed Reroute Threshold", "Occupancy fraction above which new patients are rerouted to R2E rather than queuing at R2B (Issue #39).",
-              min = 0, max = 1, step = 0.05, source = SRC_HOLD_THRESHOLD, slider = TRUE)
+              min = 0, max = 1, step = 0.05, morris_name = "r2b_hold_threshold", source = SRC_HOLD_THRESHOLD, slider = TRUE)
   ))
   registry <- c(registry, list(
     field("r2b_icu_defer_interval", GRP_PROVISION, "R2B — ICU Gating", "OT-Entry Defer Poll Interval",
           "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
           get = function(json) get_raw_var(json, "r2b", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2b", "icu_gating", "defer_check_interval", v),
-          type = "integer", min = 5, max = 180, step = 5, source = SRC_ICU_GATING)
+          type = "integer", min = 5, max = 180, step = 5, morris_name = "icu_defer_check_interval",
+          source = SRC_ICU_GATING, path = "r2b.icu_gating")
   ))
 
   # ── Medevac: R2B — Battalion Aid Post ─────────────────────────────────────
@@ -610,21 +615,25 @@ build_param_registry <- function() {
                                      "Surgery Duration", "Time occupying an R2E operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
   registry <- c(registry, tri_fields("r2e_short_resus", GRP_PROVISION, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "short_resus",
-                                     "Short Resuscitation Duration", "Time occupying an R2E resuscitation bay for a straightforward case.", bound = c(0, 200),
+                                     "Short Resuscitation Duration", "Time occupying an R2E resuscitation bay for a straightforward case.",
+                                     morris_mode_name = "short_resus_mode", bound = c(0, 200),
                                      source = SRC_RESUS_TASK_TABLE))
   registry <- c(registry, tri_fields("r2e_long_resus", GRP_PROVISION, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2E resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
   registry <- c(registry, tri_fields("r2e_short_icu", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "short_icu",
-                                     "Short ICU Stay", "Time occupying an R2E ICU bed after a short-recovery case.", bound = c(0, 500)))
+                                     "Short ICU Stay", "Time occupying an R2E ICU bed after a short-recovery case.",
+                                     morris_mode_name = "short_icu_mode", bound = c(0, 500)))
   registry <- c(registry, tri_fields("r2e_long_icu", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "long_icu",
                                      "Long ICU Stay", "Time occupying an R2E ICU bed after a full-recovery case.",
                                      morris_mode_name = "long_icu_mode", bound = c(0, 5000), source = SRC_ICU_STABILISATION))
   registry <- c(registry, tri_fields("r2e_holding", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "holding",
-                                     "Holding Bed Duration", "Time occupying an R2E holding bed.", bound = c(0, 40000),
+                                     "Holding Bed Duration", "Time occupying an R2E holding bed.",
+                                     morris_mode_name = "r2e_hold_mode", bound = c(0, 40000),
                                      source = SRC_IN_THEATRE_RATE))
   registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "post_op_hold",
-                                     "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation (Issue #43).", bound = c(0, 3000),
+                                     "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation (Issue #43).",
+                                     morris_mode_name = "post_op_hold_mode", bound = c(0, 3000),
                                      source = SRC_POST_OP_HOLD))
   registry <- c(registry, list(
     var_field("r2e_in_theatre_rate", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "in_theatre_rate",
@@ -632,7 +641,7 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.01, morris_name = "in_theatre_rate", source = SRC_IN_THEATRE_RATE),
     var_field("r2e_post_surgery_rate", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "post_surgery",
               "Post-Surgery Full-Recovery Rate", "Proportion of surgical patients routed to full (long) ICU recovery rather than short recovery.",
-              min = 0, max = 1, step = 0.01, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "post_surgery_prob", slider = TRUE),
     var_field("r2e_icu_p1_bypass", GRP_PROVISION, "R2E — ICU Gating", "r2eheavy", "icu_gating", "p1_bypass_priority_max",
               "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead (Issue #43).",
               type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING, choices = 1:3),
@@ -640,7 +649,8 @@ build_param_registry <- function() {
           "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval", v),
-          type = "integer", min = 5, max = 180, step = 5, source = SRC_ICU_GATING)
+          type = "integer", min = 5, max = 180, step = 5, morris_name = "icu_defer_check_interval",
+          source = SRC_ICU_GATING, path = "r2eheavy.icu_gating")
   ))
   registry <- c(registry, tri_fields("r2e_kia_treat", GRP_PROVISION, "R2E — KIA Treatment", "r2eheavy", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R2E.", bound = c(0, 200)))
@@ -665,10 +675,10 @@ build_param_registry <- function() {
   registry <- c(registry, list(
     var_field("ame_schedule_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "schedule_interval_days",
               "Sortie Interval (days)", "Days between scheduled strategic AME sortie opportunities. Every strategic evacuee queues indefinitely if this exceeds the run length or is set to 0 — AME never opens.",
-              type = "integer", min = 1, max = 30, step = 1, source = SRC_AME_SCHEDULE),
+              type = "integer", min = 1, max = 30, step = 1, morris_name = "ame_schedule_interval_days", source = SRC_AME_SCHEDULE),
     var_field("ame_failure_probability", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "failure_probability",
               "Sortie Cancellation Probability", "Probability any given scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity, regardless of which configuration would otherwise have flown.",
-              min = 0, max = 1, step = 0.01, source = SRC_AME_SCHEDULE, slider = TRUE),
+              min = 0, max = 1, step = 0.01, morris_name = "ame_failure_probability", source = SRC_AME_SCHEDULE, slider = TRUE),
     var_field("ame_config_a_critical", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_a", "critical_capacity",
               "Configuration A — Critical Capacity per Sortie", "Critical (CCATT/CCAST-supported, ICU-bed Priority 1 surgical) casualties carried if Configuration A flies.",
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
@@ -683,7 +693,7 @@ build_param_registry <- function() {
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
     var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
               "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint.",
-              type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
+              type = "integer", min = 60, max = 10080, step = 60, morris_name = "ame_dow_check_interval", source = SRC_AME_SCHEDULE)
   ))
 
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
@@ -704,7 +714,7 @@ build_param_registry <- function() {
     # render_group_body() in app.R) rather than a mode-independent subgroup.
     var_field("mc_min_cas", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "min_cas",
               "Casualties per Event — Minimum", "Minimum number of casualties injected by a single fired event (Uniform distribution). Shared across every Poisson-mode event.",
-              type = "integer", min = 1, max = 500, step = 1, source = SRC_MASS_CASUALTY),
+              type = "integer", min = 1, max = 500, step = 1, morris_name = "mass_casualty_min_cas", source = SRC_MASS_CASUALTY),
     var_field("mc_max_cas", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "max_cas",
               "Casualties per Event — Maximum", "Maximum number of casualties injected by a single fired event (Uniform distribution). Shared across every Poisson-mode event.",
               type = "integer", min = 1, max = 500, step = 1, morris_name = "mass_casualty_max_cas", source = SRC_MASS_CASUALTY)

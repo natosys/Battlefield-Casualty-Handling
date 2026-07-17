@@ -639,7 +639,61 @@ MORRIS_LABELS <- c(
   in_theatre_rate        = "In-Theatre Recovery Rate",
   ot_hours               = "OT Shift Length (Hours per Shift)",
   mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
-  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)"
+  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
+
+  # ── Added by Issue #112 full-coverage audit ──────────────────────────────
+  short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
+  short_icu_mode               = "R2E Short ICU Stay (Mode)",
+  r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
+  r2e_hold_mode                 = "R2E Holding Bed Duration (Mode)",
+  post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
+  r1_recovery_mode               = "R1 Battle Fatigue Hold Duration (Mode)",
+  r1_wia_treat_mode              = "R1 WIA Treatment Time (Mode)",
+  icu_defer_check_interval       = "OT-Entry Defer Poll Interval (R2B/R2E)",
+
+  pri2_surg_prob            = "Priority 2 Surgical Candidacy",
+  pri3_dnbi_surg_prob       = "Priority 3 DNBI Surgical Candidacy",
+  pri3_other_surg_prob      = "Priority 3 Other Surgical Candidacy",
+  disease_surgery_pct        = "Disease Surgical Candidacy",
+  pri1_evac_prob             = "Priority 1 Strategic Evacuation Rate",
+  pri2_evac_prob             = "Priority 2 Strategic Evacuation Rate",
+
+  p1_p_base = "Priority 1 DOW Base Probability",
+  p1_k      = "Priority 1 DOW Logistic Steepness",
+  p1_t_mid  = "Priority 1 DOW Logistic Midpoint",
+  p2_p_base = "Priority 2 DOW Base Probability",
+  p2_p_max  = "Priority 2 DOW Ceiling",
+  p2_k      = "Priority 2 DOW Logistic Steepness",
+  p2_t_mid  = "Priority 2 DOW Logistic Midpoint",
+  p3_flat   = "Priority 3 Flat DOW Probability",
+
+  r1_tccc_factor           = "R1 TCCC Efficacy Factor",
+  r2b_resus_factor         = "R2B/R2E DCR (Resus) Efficacy Factor",
+  r2b_dcs_factor           = "R2B DCS Efficacy Factor",
+  r2e_resus_factor         = "R2E DCR (Resus) Efficacy Factor",
+  r2e_dcs1_factor          = "R2E DCS 1st-Op Efficacy Factor",
+  r2e_dcs2_factor          = "R2E DCS 2nd-Op Efficacy Factor",
+  r2e_postop_hold_penalty  = "R2E Post-Op Hold DOW Penalty (Multiplier)",
+
+  wia_cbt_mean  = "WIA — Combat Mean Daily Rate",
+  kia_cbt_mean  = "KIA — Combat Mean Daily Rate",
+  dnbi_cbt_mean = "DNBI — Combat Mean Daily Rate",
+  wia_spt_mean  = "WIA — Support Mean Daily Rate",
+  kia_spt_mean  = "KIA — Support Mean Daily Rate",
+  dnbi_spt_mean = "DNBI — Support Mean Daily Rate",
+
+  mass_casualty_min_cas = "Mass Casualty Event Size (Minimum)",
+
+  fr_demand_interval_days = "Reinforcement Demand Cycle (Days)",
+  fr_fulfillment_lag_days = "Reinforcement Fulfillment Lag (Days)",
+  fr_fill_mode_frac       = "Reinforcement Fill Distribution (Mode)",
+
+  ame_schedule_interval_days = "AME Sortie Interval (Days)",
+  ame_failure_probability    = "AME Sortie Cancellation Probability",
+  ame_dow_check_interval     = "AME DOW Poll Interval (Minutes)",
+
+  post_surgery_prob   = "R2E Post-Surgery Full-Recovery Rate",
+  r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────
@@ -2716,7 +2770,11 @@ server <- function(input, output, session) {
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
           "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
-          "These bounds are used as slider ranges for the corresponding fields in the Configure tab."),
+          "These bounds are used as slider ranges for the corresponding fields in the Configure tab. The ",
+          "Variable column is the raw parameter code used in outputs/morris_ranking.csv and on the axis ",
+          "labels of every saved images/morris_*.png plot — use this table to look up what a code you've ",
+          "seen elsewhere means, and which category (Scenario Context / Design Capacity / Design Policy) ",
+          "it falls into."),
         DTOutput("calibration_table"),
         downloadButton("dl_calibration_csv", "Download Table (CSV)"),
         tags$hr(),
@@ -3277,13 +3335,22 @@ server <- function(input, output, session) {
 
   calibration_df <- reactive({
     data.frame(
-      Parameter    = MORRIS_LABELS[morris_params$name],
+      Variable      = morris_params$name,
+      Parameter     = MORRIS_LABELS[morris_params$name],
+      Category      = MORRIS_CATEGORY_LABELS[morris_params$category],
       `Lower Bound` = morris_params$lower,
       `Baseline`    = morris_params$mode,
       `Upper Bound` = morris_params$upper,
       check.names   = FALSE
     )
   })
+  # `Variable` (the raw morris_params$name / MORRIS_LABELS key used in
+  # outputs/morris_ranking.csv and the axis labels on every saved
+  # images/morris_*.png scatter) is included alongside the plain-English
+  # `Parameter` title specifically so this table doubles as the variable
+  # name -> human-readable title lookup a planner needs when cross-
+  # referencing a raw code seen in the CSV or plots back to what it means
+  # (Issue #112 third follow-up) — not just a slider-bounds reference.
   output$calibration_table <- renderDT({
     datatable(calibration_df(), rownames = FALSE, options = list(dom = "t", pageLength = 20))
   })
@@ -3394,12 +3461,19 @@ server <- function(input, output, session) {
   #' elementary effect (importance); σ is the standard deviation of
   #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
   #' indicates the effect is not consistent across the parameter's range).
+  #' category distinguishes a scenario/casualty assumption from a
+  #' health-system-design lever, itself split into Capacity (a
+  #' throughput/process time, changeable only through investment) versus
+  #' Policy (a threshold/cadence a standing order can change directly) —
+  #' Issue #112 second follow-up. See the comment on morris_params$category
+  #' (R/sensitivity.R) for the assignment rule.
   morris_scatter_df <- function(obj) {
     ee <- obj$ee
     data.frame(
       parameter = colnames(ee),
       mu_star   = apply(abs(ee), 2, mean, na.rm = TRUE),
-      sigma     = apply(ee, 2, sd, na.rm = TRUE)
+      sigma     = apply(ee, 2, sd, na.rm = TRUE),
+      category  = MORRIS_CATEGORY_LABELS[morris_params$category[match(colnames(ee), morris_params$name)]]
     )
   }
 
@@ -3407,13 +3481,25 @@ server <- function(input, output, session) {
     req(morris_results())
     df <- morris_scatter_df(morris_results()$morris_objs$r2e_icu_q)
     df$label <- MORRIS_LABELS[df$parameter]
-    ggplot(df, aes(x = mu_star, y = sigma, label = label)) +
-      geom_point(size = 3, color = "#2a78d6") +
-      geom_text(vjust = -0.9, size = 3.2, check_overlap = TRUE) +
+    # ggrepel::geom_text_repel(), not geom_text(check_overlap = TRUE): the
+    # latter only ever *drops* a colliding label (silently missing from a
+    # dense plot), it does not reposition it — unreadable/incomplete once
+    # the screen grew to 55 parameters (Issue #112 follow-up). See the
+    # equivalent fix and its full rationale on plot_morris_scatter()
+    # (R/sensitivity.R), which this mirrors for the Shiny panel.
+    ggplot(df, aes(x = mu_star, y = sigma, label = label, color = category)) +
+      geom_point(size = 3) +
+      ggrepel::geom_text_repel(
+        size = 3.2, max.overlaps = Inf, segment.size = 0.25,
+        show.legend = FALSE, min.segment.length = 0,
+        box.padding = 0.3, point.padding = 0.15, seed = 42
+      ) +
+      scale_color_manual(values = MORRIS_CATEGORY_COLORS, name = NULL) +
       labs(title = "Morris Screening — μ* vs σ (R2E ICU Queue)",
            subtitle = "μ* = mean absolute elementary effect (importance); σ = std. dev. of elementary effects (nonlinearity/interaction)",
            x = "μ* (Importance)", y = "σ (Nonlinearity / Interaction)") +
-      theme_minimal(base_size = 13)
+      theme_minimal(base_size = 13) +
+      theme(legend.position = "top")
   }, function() 450)
 
   output$morris_ranking_table <- renderDT({
@@ -3421,6 +3507,7 @@ server <- function(input, output, session) {
     rk <- morris_results()$ranking
     df <- data.frame(
       Rank      = seq_len(nrow(rk)),
+      Variable  = rk$parameter,
       Parameter = MORRIS_LABELS[rk$parameter],
       `Mu Star` = round(rk$mu_star, 4),
       Sigma     = round(rk$sigma_ee, 4),

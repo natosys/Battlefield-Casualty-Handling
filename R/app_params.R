@@ -578,10 +578,10 @@ build_param_registry <- function() {
   ))
   registry <- c(registry, list(
     field("r2b_icu_defer_interval", GRP_PROVISION, "R2B — ICU Gating", "OT-Entry Defer Poll Interval",
-          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
+          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43). Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
           get = function(json) get_raw_var(json, "r2b", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2b", "icu_gating", "defer_check_interval", v),
-          type = "integer", min = 5, max = 180, step = 5, morris_name = "icu_defer_check_interval",
+          type = "integer", min = 5, max = 180, step = 5,
           source = SRC_ICU_GATING, path = "r2b.icu_gating")
   ))
 
@@ -646,10 +646,10 @@ build_param_registry <- function() {
               "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead (Issue #43).",
               type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING, choices = 1:3),
     field("r2e_icu_defer_interval", GRP_PROVISION, "R2E — ICU Gating", "OT-Entry Defer Poll Interval",
-          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43).",
+          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43). Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval", v),
-          type = "integer", min = 5, max = 180, step = 5, morris_name = "icu_defer_check_interval",
+          type = "integer", min = 5, max = 180, step = 5,
           source = SRC_ICU_GATING, path = "r2eheavy.icu_gating")
   ))
   registry <- c(registry, tri_fields("r2e_kia_treat", GRP_PROVISION, "R2E — KIA Treatment", "r2eheavy", "kia_treat",
@@ -692,8 +692,8 @@ build_param_registry <- function() {
               "Configuration B — Standard Capacity per Sortie", "Standard (Casualty Staging Unit-equivalent, Hold-bed) casualties carried if Configuration B flies.",
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
     var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
-              "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint.",
-              type = "integer", min = 60, max = 10080, step = 60, morris_name = "ame_dow_check_interval", source = SRC_AME_SCHEDULE)
+              "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint. Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
+              type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
   ))
 
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────

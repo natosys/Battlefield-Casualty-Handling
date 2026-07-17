@@ -649,7 +649,6 @@ MORRIS_LABELS <- c(
   post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
   r1_recovery_mode               = "R1 Battle Fatigue Hold Duration (Mode)",
   r1_wia_treat_mode              = "R1 WIA Treatment Time (Mode)",
-  icu_defer_check_interval       = "OT-Entry Defer Poll Interval (R2B/R2E)",
 
   pri2_surg_prob            = "Priority 2 Surgical Candidacy",
   pri3_dnbi_surg_prob       = "Priority 3 DNBI Surgical Candidacy",
@@ -690,7 +689,6 @@ MORRIS_LABELS <- c(
 
   ame_schedule_interval_days = "AME Sortie Interval (Days)",
   ame_failure_probability    = "AME Sortie Cancellation Probability",
-  ame_dow_check_interval     = "AME DOW Poll Interval (Minutes)",
 
   post_surgery_prob   = "R2E Post-Surgery Full-Recovery Rate",
   r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"

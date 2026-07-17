@@ -8,6 +8,49 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
+# ── Plotting helpers ──────────────────────────────────────────────────────────
+
+#' Render a Morris mu*/sigma scatter plot with overlap-avoiding labels
+#'
+#' @param obj A tell()-populated morris object (has a populated $ee matrix)
+#' @param title Plot title
+#' @return A ggplot2 object
+#'
+#' @details Base R's plot.morris() (the previous implementation here) places
+#'   every parameter's label with text() at a fixed offset with no collision
+#'   avoidance — unreadable once the screen grew past roughly 15 parameters
+#'   and became a dense, illegible cluster at p = 55 (Issue #112 follow-up).
+#'   ggrepel::geom_text_repel() displaces overlapping labels and draws a
+#'   thin leader line back to the point they belong to instead.
+plot_morris_scatter <- function(obj, title) {
+  ee      <- obj$ee
+  mu_star <- apply(abs(ee), 2, mean, na.rm = TRUE)
+  sigma   <- apply(ee, 2, sd, na.rm = TRUE)
+  df <- data.frame(parameter = colnames(ee), mu_star = mu_star, sigma = sigma)
+
+  if (all(!is.finite(df$mu_star)) || all(!is.finite(df$sigma))) {
+    stop("insufficient variation to plot")
+  }
+
+  ggplot(df, aes(x = mu_star, y = sigma, label = parameter)) +
+    geom_point(size = 2, color = "#2a78d6") +
+    ggrepel::geom_text_repel(
+      size = 3, max.overlaps = Inf, segment.size = 0.25,
+      segment.color = "grey50", min.segment.length = 0,
+      box.padding = 0.3, point.padding = 0.15, seed = 42
+    ) +
+    # expression(), not a literal "μ*"/"σ" string: ggplot2's Cairo/PNG device
+    # in this project's containerised environments has repeatedly lacked a
+    # font covering the Greek-letter Unicode codepoints (rendering as blank
+    # tofu boxes), where base R's plotmath typesets the same symbols as
+    # vector glyphs independent of font coverage — matching the axis labels
+    # base R's plot.morris() (the function this replaced) always produced.
+    labs(title = title,
+         x = expression(mu * "* (importance)"),
+         y = expression(sigma * " (nonlinearity / interaction)")) +
+    theme_minimal(base_size = 12)
+}
+
 # ── Parameter definitions ─────────────────────────────────────────────────────
 
 #' Parameter bounds for Morris Elementary Effects screening
@@ -409,6 +452,15 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   env_data <<- env_data_base
 
+  # Persisted so a plotting-only change (e.g. Issue #112's follow-up fixing
+  # illegible overlapping labels at p=55) can re-render images/*.png from
+  # the same design + responses without re-running the full simulation
+  # sweep — a 94-minute cost at r=5/p=55 in this project's development
+  # environment (see the README's reduced-r note) that a labelling tweak
+  # alone should never require paying twice.
+  saveRDS(list(X = sa$X, Y = Y, binf = sa$binf, bsup = sa$bsup),
+          file.path(output_dir, "morris_design_and_responses.rds"))
+
   kpi_labels <- list(
     r2b_ot_q       = "Mean R2B OT Queue",
     r2e_ot_q       = "Mean R2E OT Queue",
@@ -423,17 +475,22 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     obj <- sa
     tell(obj, Y[, kpi])
 
-    png(file.path("images", sprintf("morris_%s.png", kpi)),
-        width = 900, height = 650, res = 120)
-    tryCatch(
-      plot(obj, main = sprintf("Morris Screening — %s", kpi_labels[[kpi]])),
+    plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
+    p <- tryCatch(
+      plot_morris_scatter(obj, plot_title),
       error = function(e) {
-        plot.new()
-        title(main = sprintf("Morris Screening — %s\n(insufficient variation to plot)",
-                             kpi_labels[[kpi]]))
+        ggplot() +
+          annotate("text", x = 0.5, y = 0.5,
+                   label = paste0(plot_title, "\n(insufficient variation to plot)")) +
+          theme_void()
       }
     )
-    dev.off()
+    # Sized well above the original 900x650/res=120 base-R default — a
+    # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
+    # per label than the nine/ten/eleven-parameter screens this project's
+    # image dimensions were originally tuned for.
+    ggsave(file.path("images", sprintf("morris_%s.png", kpi)), plot = p,
+           width = 12, height = 9, dpi = 130)
 
     obj
   })

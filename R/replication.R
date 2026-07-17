@@ -92,7 +92,14 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   # demand fires at day `demand_interval_days`, not day 0 — a pool starts
   # at full strength, so an immediate submission would have zero demand.
   demand_interval <- env_data$vars$force_regeneration$reinforcement$demand_interval_days
-  if (!is.null(demand_interval) && demand_interval > 0) {
+  # demand_interval > n_days (e.g. a long demand cycle screened against a
+  # short smoke-test/Morris-screening run length, Issue #112) would make
+  # the first scheduled demand day fall after the run ends — seq()'s
+  # `from` (demand_interval * day_min) would exceed its `to` (n_days *
+  # day_min) with a positive `by`, throwing "wrong sign in 'by' argument".
+  # No demand cycle fitting within the run means no reinforcement fires at
+  # all, which is the semantically correct behaviour here, not an error.
+  if (!is.null(demand_interval) && demand_interval > 0 && demand_interval <= n_days) {
     env <<- env %>%
       # reinf_*_pending (Issue #124): fill amount already committed to an
       # in-flight (submitted-but-not-yet-credited) reinforcement cycle for

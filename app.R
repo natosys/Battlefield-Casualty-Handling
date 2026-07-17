@@ -1221,20 +1221,19 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
     p(class = "text-muted", style = "font-size:11px;",
-      "Each line is one transport leg modelled in the trajectory code (R/trajectories.R), labelled with its current mode duration — all four legs also carry an unmodified dead-heading return leg (a fresh draw from the same outbound distribution, no configurable multiplier; Issue #74). ",
-      tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb, dead-heading return leg)"), "; ",
-      tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M, dead-heading return leg)"), "; ",
-      tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
-      " (each R2B team's own organic Evac Team resource, not the shared PMVAmb fleet — a deliberate design distinct from the R1 → R2B legs — with a dead-heading return leg on that same organic resource); ",
-      tags$span(style = "color:#922b21; font-weight:600;", "maroon = R2B → R2E KIA/mortuary road move"),
-      " (shared HX2 40M fleet — the mortuary is modelled as collocated with R2E, not R2B, since R2B has no organic mortuary asset of its own).",
-      " R2B is bypassed to R2E two ways, both reusing the R1→R2B leg time or the green evacuation step already shown rather than drawing a new leg: upstream, before transport starts, if every R2B team's OT beds are fully occupied (",
-      tags$code("select_available_r2b_team()"), "); or after arrival at R2B, at the surgical decision point, if the selected team is off-shift or its OT is busy/queued — surgery is skipped but the casualty still evacuates to R2E via the same green step.",
-      " KIA reaching R2E (whether dying there, or arriving by road from R1 or R2B) travel no further — the ⚱ marker is a local transfer to the collocated R2E mortuary, not a cross-echelon vehicle leg.",
-      " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical strategic AME (ICU bed → AME, CCATT/CCAST-supported)"),
-      "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard strategic AME (Hold bed → AME, Casualty Staging Unit-equivalent)"),
-      " (Issue #23 second follow-up) — a Priority 1 casualty who has had surgery holds an ICU bed and boards the critical pool; everyone else holds a Hold bed and boards the standard pool. Both pools are seized permanently (never released) once boarded. Each leg's label shows both planner-defined aircraft configurations' capacity for that pool (\"A=…/B=…\", editable in the Strategic AME group above); at each scheduled sortie the simulation flies whichever configuration minimises total casualties left waiting across both pools, not a fixed split — the note beneath the AME node states this rule alongside the current sortie interval and cancellation probability.",
-      " This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
+      "Each line is a transport leg (duration shown); every leg also has a return trip. ",
+      tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb)"), "; ",
+      tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M)"), "; ",
+      tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evac"),
+      " (R2B's own Evac Team); ",
+      tags$span(style = "color:#922b21; font-weight:600;", "maroon = R2B → R2E KIA/mortuary move"),
+      " (mortuary is collocated with R2E, not R2B).",
+      " R2B is bypassed straight to R2E when its OT beds are full, or the team is off-shift/busy.",
+      " KIA reaching R2E go no further — ⚱ is a local mortuary transfer, not a vehicle leg.",
+      " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical AME (ICU bed)"),
+      "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard AME (Hold bed)"),
+      " — post-surgery Priority 1 boards critical, everyone else boards standard (aircraft capacity is editable in the Strategic AME group above).",
+      " Structural diagram only — run Quick Run for actual queueing and casualty results."),
     evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
                         ame_config_a_critical, ame_config_a_standard,
                         ame_config_b_critical, ame_config_b_standard,
@@ -1279,7 +1278,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
         label   = "Priority Split (P1 | P2 | P3)",
         tooltip = paste0(
           "Drag either handle to reallocate share between adjacent priorities — ",
-          "Priority 1, 2, and 3 always sum to 100% by construction. Source: ", SRC_PRIORITY_SPLIT
+          "Priority 1, 2, and 3 always sum to 100% by construction."
         ),
         path = one_f$path
       ), overridden_paths)
@@ -1297,9 +1296,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
           label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
           tooltip = paste0(
             "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
-            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction. ",
-            "Sources: Battle Fatigue — ", SRC_DNBI_BF_PCT, " Disease — ", SRC_DNBI_DISEASE_PCT,
-            " NBI — ", SRC_DNBI_NBI_PCT
+            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction."
           ),
           path = bf_f$path
         ), overridden_paths)
@@ -1321,7 +1318,9 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(tagList(
         h6(class = "text-muted mt-2", sg),
         p(class = "text-muted small",
-          "These are curve parameters, not single values — the shaded area is the actual shape of daily casualty-rate variability implied by the mean and standard deviation below it (dashed line = mean). The curve updates live as you edit the numbers, and its shape (lognormal vs exponential) follows the Casualty Intensity Profile selected above. A stream currently governed by an exponential distribution accepts only the mean — exponential is a single-parameter distribution, so its Std. Dev. field is not applicable and is suppressed rather than shown as an editable (but functionally inert) input."),
+          "These define a distribution shape, not a fixed value — the shaded curve shows daily ",
+          "casualty-rate variability (dashed line = mean) and updates live as you edit. Streams using ",
+          "an exponential distribution take only a mean, so Std. Dev. is hidden for those."),
         layout_column_wrap(
           width = "320px",
           !!!lapply(GEN_STREAM_ACTYS, function(acty) {
@@ -1350,7 +1349,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(tagList(
         h6(class = "text-muted mt-2", sg),
         p(class = "text-muted small",
-          "The ceiling below is the only editable value; the curve shows the full time-dependent survival function F(t) the simulation evaluates at each DOW check, using the fixed shape parameters shown alongside it — p_base (floor at t=0) and k/t_mid (rise steepness/inflection) are not user-editable in this app. See README Died of Wounds — Survival Function."),
+          "The ceiling below is the only editable value; the curve shows the full survival function evaluated at each DOW check, using the fixed shape parameters (p_base, k, t_mid) shown alongside it."),
         layout_column_wrap(
           width = "340px",
           !!!lapply(list(
@@ -1365,13 +1364,13 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
               div(style = "display:flex; gap:6px; margin-top:4px;",
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("p_base", SRC_DOW_CEILING, shp$p_base, digits = 4,
+                    readonly_numeric("p_base", "Baseline (time-zero) DOW probability in the logistic curve.", shp$p_base, digits = 4,
                                      path = "dow.params", overridden_paths = overridden_paths)),
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("k", SRC_DOW_SHAPE, shp$k, digits = 3,
+                    readonly_numeric("k", "Logistic curve steepness constant.", shp$k, digits = 3,
                                      path = "dow.params", overridden_paths = overridden_paths)),
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("t_mid", SRC_DOW_SHAPE, shp$t_mid, digits = 0,
+                    readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
                                      path = "dow.params", overridden_paths = overridden_paths))
               )
             )
@@ -1396,7 +1395,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
         tagList(
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
-            "Event start times are drawn from a Poisson process at this rate — event count and timing vary stochastically between replications. Casualty count is shared across every event this mode generates; for events with independently varying casualty counts, use Scheduled (Deliberate Days) mode instead."),
+            "Event timing is drawn from a Poisson process at this rate, varying between replications. All events share the casualty-count range below; use Scheduled mode for per-event control."),
           render_field_grid(sg_fields, defaults, overridden_paths)
         )
       ))
@@ -1422,8 +1421,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
             sprintf(
-              "Each event is independently drawn (Bernoulli) at its own probability every replication — a day at probability 1 fires identically in every replication, a lower value introduces controlled randomness — and has its own casualty count and triage priority mix. Use + / − to add or remove event rows (up to %d); removing a row resets it rather than deleting it, so it stops firing. For more than %d explicit events, edit env_data.json directly.",
-              MASS_CASUALTY_SCHEDULE_SLOTS, MASS_CASUALTY_SCHEDULE_SLOTS
+              "Each event fires independently at its own probability (1 = always) and has its own casualty count and priority mix. Use +/− to add or remove rows (up to %d); removing resets a row rather than deleting it. For more events, edit env_data.json directly.",
+              MASS_CASUALTY_SCHEDULE_SLOTS
             )),
           tags$script(HTML(
             "if (!window.__mcToggleHandlerRegistered) {
@@ -1456,9 +1455,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               p1 <- defaults[[pri_one_f$id]]; p2 <- defaults[[sprintf("mc_sched_pri_two_%d", i)]]
               pri_lbl <- field_label(list(
                 label   = "Priority Split (P1 | P2 | P3)",
-                tooltip = paste0(
-                  "This event's own triage priority mix — independent of every other event. Source: ", SRC_MASS_CASUALTY_PRI
-                ),
+                tooltip = "This event's own triage priority mix — independent of every other event.",
                 path = pri_one_f$path
               ), overridden_paths)
               div(
@@ -1490,9 +1487,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       mc_pri_lbl <- field_label(list(
         label   = "Priority Split (P1 | P2 | P3)",
         tooltip = paste0(
-          "Drag either handle to reallocate share between adjacent priorities for mass-casualty-derived casualties specifically — ",
-          "Priority 1, 2, and 3 always sum to 100% by construction. Independent of the background Triage Priority Split (Casualty Rates panel). Source: ",
-          SRC_MASS_CASUALTY_PRI
+          "Drag either handle to reallocate this event's Priority 1/2/3 share — ",
+          "independent of the background Triage Priority Split."
         ),
         path = one_f$path
       ), overridden_paths)
@@ -1530,7 +1526,7 @@ ui <- page_navbar(
     p(class = "text-muted",
       "Adjust simulation parameters below, grouped by operational concept. ",
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",
-      "Sliders show the plausible range screened in the project's Morris sensitivity analysis (Issue #3)."),
+      "Sliders show the plausible range screened in the project's Morris sensitivity analysis."),
     fluidRow(
       column(4, uiOutput("scenario_selector_ui")),
       column(3, fileInput("upload_json", "Load Configuration (.json)", accept = ".json")),
@@ -1576,10 +1572,9 @@ ui <- page_navbar(
                                      tooltip = paste0(
                                        "Hours the first operating theatre shift is active each day ",
                                        "(the second shift covers the remainder of the 24h day). ",
-                                       sprintf("Screened in Morris sensitivity analysis (Issue #3); plausible range %s–%s.",
+                                       sprintf("Plausible range %s–%s (Morris-screened).",
                                                morris_params$lower[morris_params$name == "ot_hours"],
-                                               morris_params$upper[morris_params$name == "ot_hours"]),
-                                       " Source: README Schedules and Rosters — surgical team shift length; not independently cited (informed establishment planning assumption)."))),
+                                               morris_params$upper[morris_params$name == "ot_hours"])))),
                     min = morris_params$lower[morris_params$name == "ot_hours"],
                     max = morris_params$upper[morris_params$name == "ot_hours"],
                     value = morris_params$mode[morris_params$name == "ot_hours"], step = 1)
@@ -1770,26 +1765,9 @@ server <- function(input, output, session) {
       field_label(list(
         label = "Casualty Intensity Profile",
         tooltip = paste(
-          "Selects a named scenario profile that overlays casualty-generation,",
-          "DOW, and treatment-efficacy parameters onto the base configuration.",
-          "Structural fields (force size, team/bed counts, transport fleet)",
-          "are never affected by this selector.",
-          "\"Falklands — Modified\" (the base configuration) keeps",
-          "Falklands-sourced casualty generation and a Falklands-calibrated",
-          "DOW ceiling but pairs them with modern (OIF/OEF-era) treatment",
-          "efficacy factors. \"Falklands — Unmodified\" re-derives both the",
-          "DOW ceiling and the treatment efficacy factors to be internally",
-          "consistent for 1982, so the two produce different DOW outcomes",
-          "despite both being Falklands-sourced.",
-          "\"Okinawa — Casualty Rates\" overrides only the WIA/KIA",
-          "casualty-generation distributions; it still inherits the",
-          "Falklands DOW ceiling and modern treatment efficacy from the",
-          "base configuration rather than being a complete second scenario",
-          "(a documented demonstration skeleton — see README Scenario",
-          "Profiles).",
-          "Source: README Scenario Profiles (Issue #54); only the profiles",
-          "actually defined and cited in env_data.json are offered — no",
-          "fabricated intermediate intensity tiers."
+          "Applies a named profile's casualty and DOW parameters over the base",
+          "configuration (structural fields are unaffected). Pick one to see what",
+          "it changes below; see README Scenario Profiles for details."
         )
       )),
       choices  = scenario_choices(),
@@ -2487,26 +2465,41 @@ server <- function(input, output, session) {
     uiOutput("kpi_summary_cards"),
     navset_tab(
       nav_panel("Casualty Flow",
-        shrink_to_fit_plot_ui("plot_casualty_flow", 700),
+        p(class = "text-muted mt-2",
+          "Total casualties per simulation day, stacked by type, population source, and triage ",
+          "priority (top to bottom) — check this first to confirm the casualty-generation rates you ",
+          "configured are producing the daily intensity and mix you expect, since this demand drives ",
+          "every queue and utilisation result elsewhere on this page."),
+        shrink_to_fit_plot_ui("plot_casualty_flow", 700, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_casualty_flow_png", "Download PNG"),
         downloadButton("dl_casualty_flow_pdf", "Download PDF"),
         downloadButton("dl_casualty_flow_csv", "Download Data (CSV)")
       ),
       nav_panel("Queue Depths",
         h6(class = "text-muted mt-2", "R1 Queues"),
-        shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        p(class = "text-muted small",
+          "Queue length over time for each R1 team's treatment slots, faceted by team. A queue above ",
+          "0 means casualties are waiting; a queue that persists or grows over the run suggests that ",
+          "team is under-resourced for its casualty inflow."),
+        shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_r1_queues_png", "Download PNG"),
         downloadButton("dl_r1_queues_pdf", "Download PDF"),
         downloadButton("dl_r1_queues_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "R2B Bed Queues"),
-        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        p(class = "text-muted small",
+          "Queue length over time for each R2B team's beds, faceted by team and coloured by bed type — ",
+          "a bed type with a sustained queue is a capacity bottleneck worth increasing."),
+        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_r2b_bed_queues_png", "Download PNG"),
         downloadButton("dl_r2b_bed_queues_pdf", "Download PDF"),
         downloadButton("dl_r2b_bed_queues_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "R2E Bed Queues"),
-        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        p(class = "text-muted small",
+          "Queue length over time for R2E's OT and ICU beds, faceted by resource type — a sustained ",
+          "queue on either identifies which resource is constraining R2E throughput."),
+        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_r2e_bed_queues_png", "Download PNG"),
         downloadButton("dl_r2e_bed_queues_pdf", "Download PDF"),
         downloadButton("dl_r2e_bed_queues_csv", "Download Data (CSV)")
@@ -2514,12 +2507,19 @@ server <- function(input, output, session) {
       nav_panel("Bed & Resource Utilisation",
         if (identical(run_mode(), "full")) {
           tagList(
-            shrink_to_fit_plot_ui("plot_utilisation", UTILISATION_FULL_MODE_HEIGHT_PX),
+            p(class = "text-muted mt-2",
+              "Mean busy-time fraction (utilisation) for each key resource group, averaged across ",
+              "replications with 95% CI error bars — a bar near 100% signals a binding constraint."),
+            shrink_to_fit_plot_ui("plot_utilisation", UTILISATION_FULL_MODE_HEIGHT_PX, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
             downloadButton("dl_utilisation_png", "Download PNG"),
             downloadButton("dl_utilisation_pdf", "Download PDF"),
             downloadButton("dl_utilisation_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
+            p(class = "text-muted small",
+              "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
+              "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
+              "capacity line to see which days risk saturating hold beds, and which stream drives it."),
             if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
               div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded across these replications.")
             } else tagList(
@@ -2531,6 +2531,10 @@ server <- function(input, output, session) {
             uiOutput("r2b_routing_cards"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
+            p(class = "text-muted small",
+              "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
+              "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
+              "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
             if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
               div(class = "alert alert-secondary", "No R2B OT bypasses recorded across these replications.")
             } else tagList(
@@ -2551,22 +2555,32 @@ server <- function(input, output, session) {
           ph <- utilisation_panel_heights()
           tagList(
             h6(class = "text-muted mt-2", "R2B Treatment"),
-            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            p(class = "text-muted small",
+              "Three daily counts, top to bottom: casualties treated at each R2B station, R2B ",
+              "surgeries started, and casualties who skipped R2B entirely. A rising skip count ",
+              "alongside flat treatment counts suggests R2B capacity, not casualty demand, is the ",
+              "limiting factor."),
+            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
             downloadButton("dl_r2b_treatment_png", "Download PNG"),
             downloadButton("dl_r2b_treatment_pdf", "Download PDF"),
             downloadButton("dl_r2b_treatment_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2B Bed Resource Usage (Gantt)"),
-            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            p(class = "text-muted small",
+              "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
+              "or no gaps is running near-continuously and is a candidate for added capacity; long ",
+              "gaps mean spare capacity."),
+            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
             downloadButton("dl_r2b_gantt_png", "Download PNG"),
             downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
             downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
             p(class = "text-muted small",
-              "Daily concurrent occupancy of R2B hold beds (Issue #39), decomposed by patient stream ",
-              "(disease DNBI, NBI, WIA). Dashed line marks per-unit bed capacity. No plot means no ",
-              "casualty occupied an R2B hold bed this run."),
+              "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
+              "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
+              "capacity line to see which days risk saturating hold beds, and which stream drives it. ",
+              "No plot means no casualty occupied an R2B hold bed this run."),
             if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
               div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded this run.")
             } else tagList(
@@ -2580,7 +2594,8 @@ server <- function(input, output, session) {
             h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
             p(class = "text-muted small",
               "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
-              "point (Issue #40): the R2B surgical team was off-shift, or the OT bed was busy/queued."),
+              "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
+              "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
             if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
               div(class = "alert alert-secondary", "No R2B OT bypasses recorded this run.")
             } else tagList(
@@ -2591,23 +2606,30 @@ server <- function(input, output, session) {
             ),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E Surgery"),
-            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            p(class = "text-muted small",
+              "Number of R2E surgeries completed per simulation day — compare against the Gantt chart ",
+              "below to see whether surgical throughput is keeping pace with casualty arrivals."),
+            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
             downloadButton("dl_r2e_surgery_png", "Download PNG"),
             downloadButton("dl_r2e_surgery_pdf", "Download PDF"),
             downloadButton("dl_r2e_surgery_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E Bed Resource Usage (Gantt)"),
-            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            p(class = "text-muted small",
+              "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
+              "or no gaps is running near-continuously and is a candidate for added capacity; long ",
+              "gaps mean spare capacity."),
+            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
             downloadButton("dl_r2e_gantt_png", "Download PNG"),
             downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
             downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)"),
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E OT-ICU Gating — Hold Bed Used in Lieu of ICU"),
             p(class = "text-muted small",
-              "Daily breakdown of R2E post-operative casualties (Issue #43): Sub-Optimal (red) is a Priority 1 ",
-              "casualty whose recovery used a Hold bed instead of ICU because ICU was saturated at the point of ",
-              "OT entry; Delayed (orange) is a Priority 2+ casualty whose OT entry was deferred pending ICU ",
-              "availability; Normal (green) means ICU was available. A run with no ICU saturation shows no plot."),
+              "Daily breakdown of R2E post-operative casualties: Sub-Optimal (red) recovered in a Hold bed ",
+              "instead of ICU because ICU was full at OT entry; Delayed (orange) had OT entry deferred pending ",
+              "an ICU bed; Normal (green) means ICU was available. A meaningful Sub-Optimal or Delayed ",
+              "share signals R2E ICU capacity is undersized for the casualty load."),
             shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
             downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
@@ -2615,9 +2637,10 @@ server <- function(input, output, session) {
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
             p(class = "text-muted small",
-              "Casualty counts and post-operative DOW rate by recovery pathway (Issue #43): icu = nominal ",
+              "Casualty counts and post-operative DOW rate by recovery pathway: icu = nominal ",
               "ICU recovery; hold = ICU was saturated at OT entry, so a Priority 1 casualty recovered in a ",
-              "hold bed instead (see R2E OT-ICU Gating above)."),
+              "hold bed instead (see R2E OT-ICU Gating above). A materially higher DOW rate on hold than ",
+              "icu is the clinical cost of that ICU saturation."),
             if (is.null(analysis_results()$post_op_pathway_summary)) {
               div(class = "alert alert-secondary", "No R2E surgeries completed this run.")
             } else DTOutput("post_op_pathway_table"),
@@ -2626,7 +2649,8 @@ server <- function(input, output, session) {
             tags$hr(),
             h6(class = "text-muted mt-2", "Operating Theatre Utilisation"),
             p(class = "text-muted small",
-              "Busy-time fraction of OT capacity by echelon (busy time / (capacity × observation window))."),
+              "Busy-time fraction of OT capacity by echelon (busy time / (capacity × observation window)) — ",
+              "a figure near 100% signals that echelon's OT capacity is a binding constraint."),
             DTOutput("ot_utilisation_table"),
             downloadButton("dl_ot_utilisation_csv", "Download Data (CSV)")
           )
@@ -2634,7 +2658,7 @@ server <- function(input, output, session) {
       ),
       nav_panel("Transport",
         p(class = "text-muted mt-2",
-          "Transport fleet capacity margin (Issue #6) — queue length over time by vehicle for the ",
+          "Transport fleet capacity margin — queue length over time by vehicle for the ",
           "dead-heading PMV Ambulance and HX240M fleets. A queue that stays at 0 throughout indicates ",
           "spare capacity; a sustained queue indicates the fleet is a binding constraint."),
         shrink_to_fit_plot_ui("plot_transport_capacity_margin", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
@@ -2643,11 +2667,18 @@ server <- function(input, output, session) {
         downloadButton("dl_transport_capacity_margin_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "Transport Utilisation by Platform"),
+        p(class = "text-muted small",
+          "Busy-time fraction of each vehicle fleet's capacity — a figure near 100% confirms that ",
+          "fleet is the binding constraint behind a sustained queue in the plot above."),
         DTOutput("transport_utilisation_table"),
         downloadButton("dl_transport_utilisation_csv", "Download Data (CSV)")
       ),
       nav_panel("Waiting Times",
-        shrink_to_fit_plot_ui("plot_waiting_times", 600),
+        p(class = "text-muted mt-2",
+          "Each point is one casualty's total time spent waiting for treatment (not treatment time ",
+          "itself), plotted against when they arrived; the red line is the smoothed trend. A trend ",
+          "that rises over the run signals growing system-wide congestion, not a one-off delay."),
+        shrink_to_fit_plot_ui("plot_waiting_times", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_waiting_times_png", "Download PNG"),
         downloadButton("dl_waiting_times_pdf", "Download PDF"),
         downloadButton("dl_waiting_times_csv", "Download Data (CSV)"),
@@ -2655,7 +2686,8 @@ server <- function(input, output, session) {
         h6(class = "text-muted mt-2", "Time-to-Treatment KPIs"),
         p(class = "text-muted small",
           "Time to first surgical incision (from R1 arrival), and dwell/transit times through R2B and R2E ",
-          "(Output Variable Register KPIs)."),
+          "(Output Variable Register KPIs) — benchmark these against your own planning timelines for ",
+          "time-critical intervention."),
         DTOutput("dwell_time_table"),
         downloadButton("dl_dwell_time_csv", "Download Data (CSV)")
       ),
@@ -2663,7 +2695,8 @@ server <- function(input, output, session) {
         p(class = "text-muted mt-2",
           "Return-to-duty (RTD) casualties — battle fatigue RTDs return at R1 without clinical ",
           "treatment; clinical RTDs are discharged from an R1/R2B/R2E hold bed — and died-of-wounds ",
-          "(DOW) casualties, broken down by the echelon at which the outcome occurred.",
+          "(DOW) casualties, broken down by the echelon at which the outcome occurred. Use this to see ",
+          "how much of the casualty stream is recovered versus lost, and where deaths concentrate.",
           if (identical(run_mode(), "full")) " Counts below are mean ± 95% CI across replications." else ""),
         uiOutput("rtd_dow_cards"),
         tags$hr(),
@@ -2677,12 +2710,10 @@ server <- function(input, output, session) {
       ),
       nav_panel("Force Regeneration",
         p(class = "text-muted mt-2",
-          "Effective force size (Issue #18) over the run — debited at each casualty's injury, credited ",
-          "at each return-to-duty event, and stepped up by periodic reinforcement demands (Configure tab's ",
-          "Reinforcement Demand & Fulfillment group, Force Size section) if the demand cycle is set above ",
-          "its disabled default: each demand asks for the pool's full current shortfall, is fulfilled after ",
-          "a configurable lag, and delivers a triangularly-distributed fraction of that shortfall (long ",
-          "under-fill tail, limited over-supply)."),
+          "Effective force size over the run — debited at each injury, credited at each return-to-duty ",
+          "event, and stepped up by reinforcement demands after a lag and a partial fill, if enabled ",
+          "(Configure tab's Reinforcement Demand & Fulfillment group). A persistently declining line ",
+          "signals the force is attritting faster than it recovers or is reinforced."),
         shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_force_regeneration_png", "Download PNG"),
         downloadButton("dl_force_regeneration_pdf", "Download PDF"),
@@ -2690,14 +2721,16 @@ server <- function(input, output, session) {
       ),
       nav_panel("Strategic AME",
         p(class = "text-muted mt-2",
-          "Strategic aeromedical evacuation (Issue #23) — casualties simultaneously awaiting a scheduled ",
+          "Strategic aeromedical evacuation — casualties simultaneously awaiting a scheduled ",
           "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
           "and the outcome of every scheduled sortie opportunity (configuration selected, seats boarded ",
-          "against capacity added, or cancelled)."),
+          "against capacity added, or cancelled). Use the panels below to judge whether the AME schedule ",
+          "you've configured can keep pace with strategic evacuation demand."),
         h6(class = "text-muted mt-2", "Role 4 (National Support Base) Census"),
         p(class = "text-muted small",
           "Unconstrained demand signal: daily bed occupancy by ward if every strategically evacuated ",
-          "casualty were admitted with no Role 4 capacity limit."),
+          "casualty were admitted with no Role 4 capacity limit — use this to size Role 4 (national ",
+          "support base) bed capacity, independent of how well the current AME schedule keeps pace."),
         if (is.null(analysis_results()$role4_census_plot)) {
           div(class = "alert alert-secondary", "No strategic evacuations recorded across these replications.")
         } else tagList(
@@ -2716,13 +2749,21 @@ server <- function(input, output, session) {
         uiOutput("ame_demand_cards"),
         tags$hr(),
         h6(class = "text-muted mt-2", "AME Backlog Over Time"),
-        shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        p(class = "text-muted small",
+          "Casualties awaiting AME sortie capacity over time, by pool — a rising line means the ",
+          "sortie schedule isn't keeping pace with strategic evacuation demand."),
+        shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_ame_backlog_png", "Download PNG"),
         downloadButton("dl_ame_backlog_pdf", "Download PDF"),
         downloadButton("dl_ame_backlog_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "AME Sortie Timeline"),
-        shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        p(class = "text-muted small",
+          "Grey bar = seats added at each scheduled sortie; coloured bar = seats actually boarded ",
+          "before the next sortie, coloured by which aircraft configuration flew. A coloured bar ",
+          "consistently at or above grey signals a backlog is being drawn down; consistently below ",
+          "means capacity exceeds demand at that point."),
+        shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_ame_sortie_png", "Download PNG"),
         downloadButton("dl_ame_sortie_pdf", "Download PDF"),
         downloadButton("dl_ame_sortie_csv", "Download Data (CSV)"),
@@ -2741,7 +2782,7 @@ server <- function(input, output, session) {
       ),
       nav_panel("Mass Casualty Events",
         p(class = "text-muted mt-2",
-          "Compound-Poisson mass casualty injection events (Issue #9), reconstructed from tagged ",
+          "Compound-Poisson mass casualty injection events, reconstructed from tagged ",
           "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
           "from a mass casualty event vs. background generation.",
           if (identical(run_mode(), "full")) " Events are pooled across every replication." else ""),
@@ -2752,7 +2793,11 @@ server <- function(input, output, session) {
               "configuration may be disabled, or none were drawn).")
         } else tagList(
           h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
-          shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+          p(class = "text-muted small",
+            "Each point is one mass casualty event: when it occurred and how many casualties it ",
+            "injected — use this to confirm your configured event schedule or rate produced the timing ",
+            "and scale of surge you intended."),
+          shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
           downloadButton("dl_mass_casualty_timeline_png", "Download PNG"),
           downloadButton("dl_mass_casualty_timeline_pdf", "Download PDF"),
           downloadButton("dl_mass_casualty_timeline_csv", "Download Data (CSV)"),
@@ -2762,28 +2807,26 @@ server <- function(input, output, session) {
         ),
         tags$hr(),
         h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
+        p(class = "text-muted small",
+          "Compares died-of-wounds rate for casualties from a mass casualty event against ",
+          "background-generated casualties — a higher event-origin rate suggests surge conditions ",
+          "are degrading care, not just adding volume."),
         DTOutput("mass_casualty_dow_table"),
         downloadButton("dl_mass_casualty_dow_csv", "Download Data (CSV)")
       ),
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
-          "Parameters screened in the project's Morris Elementary Effects sensitivity analysis (Issue #3). ",
-          "These bounds are used as slider ranges for the corresponding fields in the Configure tab. The ",
-          "Variable column is the raw parameter code used in outputs/morris_ranking.csv and on the axis ",
-          "labels of every saved images/morris_*.png plot — use this table to look up what a code you've ",
-          "seen elsewhere means, and which category (Scenario Context / Design Capacity / Design Policy) ",
-          "it falls into."),
+          "Parameters screened in the project's Morris sensitivity analysis; their bounds set the ",
+          "Configure tab's slider ranges. The Variable column is the raw code used in ",
+          "outputs/morris_ranking.csv and the morris_*.png plots."),
         DTOutput("calibration_table"),
         downloadButton("dl_calibration_csv", "Download Table (CSV)"),
         tags$hr(),
         h5("Run Sensitivity Screening"),
         p(class = "text-muted small",
-          "Morris Elementary Effects screening (Morris, 1991) perturbs each parameter across its ",
-          "plausible range while holding the others fixed, repeated over r trajectories, to rank ",
-          "parameters by influence on the R2E ICU queue and other KPIs. Wall-clock time scales with ",
-          "r × (parameters + 1) × replications-per-point × simulation duration — the ",
-          "production configuration (r = 20, 5 reps, 30 days) takes roughly 2-3 hours; use a small r ",
-          "(e.g. 3) for a quick smoke test. See README Shiny Application — Sensitivity Panel."),
+          "Perturbs each parameter across its plausible range to rank its influence on key outputs ",
+          "(Morris method). Time scales with trajectories × parameters × replications × run length — ",
+          "the default (r = 20) takes roughly 2-3 hours; try r = 3 for a quick test."),
         layout_column_wrap(
           width = "220px",
           numericInput("morris_r", "Trajectories (r)", value = 20, min = 3, max = 50, step = 1),
@@ -2796,11 +2839,8 @@ server <- function(input, output, session) {
         h5("Transport Fleet Capacity Margin Sweep"),
         p(class = "text-muted small",
           "Answers \"do we have enough ambulances and trucks?\" by re-running the simulation at each ",
-          "fleet size in the ranges below and checking whether casualties start queueing for transport. ",
-          "Use this to confirm the current fleet has spare capacity, or to see how far it could shrink ",
-          "before evacuation becomes a bottleneck. Each fleet size runs its own set of replications, ",
-          "reusing the Replications per Point count set above — a wider range or higher count takes ",
-          "longer to complete."),
+          "fleet size below and checking for transport queueing. A wider range or higher replication ",
+          "count (set above) takes longer to complete."),
         layout_column_wrap(
           width = "280px",
           sliderInput("sweep_pmvamb_range", "PMV Ambulance Fleet Size Range",
@@ -3541,6 +3581,10 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Morris Screening Results — R2E ICU Queue (Primary KPI)"),
+      p(class = "text-muted small",
+        "Each point is one parameter: x-axis (μ*) is its overall influence on the queue, y-axis (σ) is ",
+        "how much that influence varies — points toward the top-right matter most and are least ",
+        "predictable in isolation."),
       shrink_to_fit_plot_ui("morris_mu_sigma_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_morris_png_zip", "Download Morris PNGs — All KPIs (ZIP)"),
       tags$hr(),
@@ -3551,12 +3595,10 @@ server <- function(input, output, session) {
       tags$hr(),
       h5("Sobol Variance Decomposition"),
       p(class = "text-muted small",
-        "Decomposes each selected parameter's contribution to output variance into first-order (S1 — ",
-        "the parameter acting alone) and total-order (ST — including interactions with every other ",
-        "parameter) indices (Saltelli et al., 2010). Parameters with high ST but low S1 have significant ",
-        "interaction effects. Reuses the \"Replications per Point\" value set above for Morris; n = 200 ",
-        "Sobol design points (Saltelli 2007 estimator default), so wall-clock time is comparable to or ",
-        "greater than the Morris screen above."),
+        "Decomposes each parameter's contribution to output variance into first-order (S1, acting ",
+        "alone) and total-order (ST, including interactions) indices. High ST but low S1 means strong ",
+        "interaction effects. Uses 200 design points at the Replications per Point count above — ",
+        "comparable to or longer than the Morris screen."),
       checkboxGroupInput("sobol_params", "Parameters to include (top 5 by μ* pre-selected)",
                         choices  = setNames(morris_params$name, MORRIS_LABELS[morris_params$name]),
                         selected = top5),
@@ -3700,10 +3742,10 @@ server <- function(input, output, session) {
     tagList(
       tags$hr(),
       h5("Sobol S1 / ST Indices"),
-      shrink_to_fit_plot_ui("sobol_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       p(class = "text-muted small",
         "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
         "system OT queue depends on the value of at least one other parameter, not just their own value."),
+      shrink_to_fit_plot_ui("sobol_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_sobol_csv_zip", "Download Sobol Indices — All KPIs (ZIP)")
     )
   })

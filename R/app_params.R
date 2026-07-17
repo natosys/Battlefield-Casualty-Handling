@@ -180,30 +180,33 @@ SRC_DNBI_NBI_PCT      <- "FORECAS (Blood, Zouris & Rotblatt, 1998) empirical dat
 SRC_DISEASE_SURGERY   <- "Informed estimate from population-level appendicitis/cholecystitis/perforated-ulcer incidence in military-age males; see README DNBI Sub-Categorisation. High uncertainty."
 SRC_EVAC_CANDIDACY    <- "ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
 SRC_DOW_CEILING       <- "Calibrated to the Falklands War 1982 DOW/WIA rate of 0.52% (Payne, 1983; Jolly, 2018) via 50-replication Monte Carlo; entangled with the OIF/OEF-era treatment efficacy factors below it. See README Died of Wounds."
-SRC_DOW_SHAPE         <- "Logistic shape (k, t_mid) anchored to the haemorrhagic shock critical window, Eastridge et al. (2012) and Kotwal et al. (2011). Not user-editable in this app. See README Died of Wounds — Survival Function."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
-SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md (Issue #4) for a proposed evidence-based staffing revision (not yet implemented)."
+SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md for a proposed evidence-based staffing revision (not yet implemented)."
 SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the likely resuscitation steps (see README R2B/R2E Trajectory); constrained to complete within 90 minutes per the cited source there. Not independently cited as a single total."
 SRC_DCS_SURGERY       <- "First-look DCS operative-time data (median 96 min, range 41-210) reported for Sohn et al. (2018) within Zizzo et al.'s (2020) systematic review — see README R2B Trajectory for citations."
 SRC_ICU_STABILISATION <- "Post-DCS-I stabilisation window described as 24-36h in cited DCS research — see README R2E Trajectory."
 SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelons; not independently cited. See README Simulation Design for the triangular-distribution modelling rationale."
-SRC_HOLD_THRESHOLD    <- "Design threshold introduced by Issue #39 (R2B hold-bed saturation routing policy); not literature-derived."
-SRC_ICU_GATING        <- "Design parameter introduced by Issue #43 (OT-ICU gating); not literature-derived."
-SRC_POST_OP_HOLD      <- "Informed estimate (Issue #43); no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
-SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model introduced by Issue #18 (endogenous casualty generation / force regeneration feedback loop); not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
+SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routing policy; not literature-derived."
+SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
+SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
+SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD, ~42% in-theatre, implying ~13% in-theatre recovery) — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
-SRC_MASS_CASUALTY     <- "Issue #9 Recommended Approach, informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
-SRC_MASS_CASUALTY_PRI <- "Issue #9 Recommended Approach (blast-dominant injury pattern, ~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
-SRC_AME_SCHEDULE      <- "Issue #23 follow-up. AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence, failure rate, or per-pool patient capacity — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
+SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_AME_SCHEDULE      <- "AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence, failure rate, or per-pool patient capacity — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 
 #' Build a single field spec, optionally borrowing Morris screening bounds
 #'
 #' @param source One-sentence statement of where this field's baseline value
 #'   comes from — a citation (matching the README's numbered references) or
 #'   an explicit "informed estimate" disclosure. Defaults to SRC_UNCITED so
-#'   no field is silently left without a provenance statement.
+#'   no field is silently left without a provenance statement. Stored as
+#'   metadata on the returned spec ($source) but *not* rendered into the
+#'   interactive tooltip — the README's numbered references are the citation
+#'   of record; the in-app hover tooltip is kept to a short, glanceable
+#'   description of what the control does (Issue #114).
 #' @param path "elm.acty" string identifying this field's location in
 #'   env_data.json's vars tree (e.g. "generators.wia_cbt"), or NULL for
 #'   fields outside that tree (force size, team/bed counts, transport —
@@ -213,9 +216,8 @@ SRC_AME_SCHEDULE      <- "Issue #23 follow-up. AJP-4.10(B) establishes strategic
 #'
 #' @details When morris_name matches a row in morris_params, the field's
 #'   min/max are overridden with the screened lower/upper bounds and the
-#'   tooltip gains a note naming the screened range, per Issue #14
-#'   acceptance criteria ("parameters appearing in morris_params use
-#'   lower/upper as slider bounds").
+#'   tooltip gains a short note naming the screened range ("parameters
+#'   appearing in morris_params use lower/upper as slider bounds").
 #' @param slider Force single-value slider rendering in the Configure panel
 #'   even when this field is not Morris-screened (`morris_name = NULL`).
 #'   Used for probability/rate fields where a slider communicates the 0–1
@@ -235,15 +237,14 @@ field <- function(id, group, subgroup, label, tooltip, get, set,
       max <- mp$upper
       tooltip <- paste0(
         tooltip,
-        sprintf(" Screened in Morris sensitivity analysis (Issue #3); plausible range %s–%s.",
-                format(mp$lower), format(mp$upper))
+        sprintf(" Plausible range %s–%s (Morris-screened).", format(mp$lower), format(mp$upper))
       )
     }
   }
-  tooltip <- paste0(tooltip, " Source: ", source)
   list(id = id, group = group, subgroup = subgroup, label = label, tooltip = tooltip,
        get = get, set = set, type = type, min = min, max = max, step = step,
-       morris = !is.null(morris_name), path = path, slider = isTRUE(slider), choices = choices)
+       morris = !is.null(morris_name), path = path, slider = isTRUE(slider), choices = choices,
+       source = source)
 }
 
 #' Triangular-distribution (min/mode/max) triple of field specs
@@ -254,20 +255,20 @@ tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
   list(
     field(paste0(id_prefix, "_min"), group, subgroup,
           paste0(label, " — Minimum"),
-          paste0(tooltip, " Minimum duration (triangular distribution), minutes."),
+          paste0(tooltip, " Minutes (triangular min)."),
           get = function(json) get_raw_var(json, elm, acty, "min"),
           set = function(json, v) set_raw_var(json, elm, acty, "min", v),
           type = "integer", min = bound[1], max = bound[2], step = 1, source = source, path = path),
     field(paste0(id_prefix, "_mode"), group, subgroup,
           paste0(label, " — Most Likely (Mode)"),
-          paste0(tooltip, " Most likely duration (triangular distribution mode), minutes."),
+          paste0(tooltip, " Minutes (triangular mode)."),
           get = function(json) get_raw_var(json, elm, acty, "mode"),
           set = function(json, v) set_raw_var(json, elm, acty, "mode", v),
           type = "integer", min = bound[1], max = bound[2], step = 1,
           morris_name = morris_mode_name, source = source, path = path),
     field(paste0(id_prefix, "_max"), group, subgroup,
           paste0(label, " — Maximum"),
-          paste0(tooltip, " Maximum duration (triangular distribution), minutes."),
+          paste0(tooltip, " Minutes (triangular max)."),
           get = function(json) get_raw_var(json, elm, acty, "max"),
           set = function(json, v) set_raw_var(json, elm, acty, "max", v),
           type = "integer", min = bound[1], max = bound[2], step = 1, source = source, path = path)
@@ -321,7 +322,7 @@ mass_casualty_schedule_slot_fields <- function(index) {
           path = "mass_casualty.schedule"),
     field(sprintf("mc_sched_prob_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
           sprintf("Event %d — Occurrence Probability", index),
-          "Probability this event actually fires on its configured day, drawn independently (Bernoulli) each replication — 1 always fires, a lower value introduces controlled replication-to-replication variation.",
+          "Probability this event actually fires on its day (drawn independently each replication). 1 = always fires.",
           get = function(json) get_mass_casualty_schedule_slot(json, "probabilities", index, 1),
           set = function(json, v) set_mass_casualty_schedule_slot(json, "probabilities", index, v, 1),
           type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY,
@@ -383,7 +384,8 @@ count_active_mass_casualty_events <- function(json) {
 #'
 #' @return List of field specs (see field()); each has $id, $group,
 #'   $subgroup, $label, $tooltip, $get(json), $set(json, value), $type,
-#'   $min, $max, $step, $morris
+#'   $min, $max, $step, $morris, $source (provenance citation, not rendered
+#'   in the interactive tooltip — see field())
 build_param_registry <- function() {
   registry <- list()
 
@@ -400,19 +402,19 @@ build_param_registry <- function() {
           set = function(json, v) set_pop_count(json, "support", v),
           type = "integer", min = 1, max = 20000, step = 50, source = SRC_ESTABLISHMENT),
     var_field("force_regen_demand_interval", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "demand_interval_days",
-              "Demand Submission Cycle (days)", "How often a reinforcement demand can be submitted for each pool. Each submission asks for the pool's full current shortfall against establishment strength. 0 disables reinforcement entirely (the shipped default) — casualty production and return-to-duty are then the only forces acting on effective force size.",
+              "Demand Submission Cycle (days)", "How often a reinforcement demand can be submitted for each pool, requesting its full current shortfall. 0 disables reinforcement (the default).",
               type = "integer", min = 0, max = 30, step = 1, morris_name = "fr_demand_interval_days", source = SRC_FORCE_REGEN),
     var_field("force_regen_lag", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fulfillment_lag_days",
-              "Fulfillment Lag (days)", "Delay between a reinforcement demand being submitted and the delivered amount being credited to the effective force pool (ignored if the demand cycle is 0).",
+              "Fulfillment Lag (days)", "Delay between a reinforcement demand being submitted and the delivered amount being credited (ignored if disabled).",
               type = "integer", min = 0, max = 60, step = 1, morris_name = "fr_fulfillment_lag_days", source = SRC_FORCE_REGEN),
     var_field("force_regen_fill_min", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_min_frac",
-              "Fill Distribution — Minimum (fraction of demand)", "Lower bound of the triangular distribution governing what fraction of a submitted demand is actually delivered — the low end of the long under-fill tail.",
+              "Fill Distribution — Minimum (fraction of demand)", "Lower bound on the fraction of a submitted demand actually delivered — the low end of the under-fill tail.",
               type = "numeric", min = 0, max = 1, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE),
     var_field("force_regen_fill_mode", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_mode_frac",
-              "Fill Distribution — Mode (fraction of demand)", "Most likely fraction of a submitted demand actually delivered — set close to (but below) 1, so full fulfillment is the peak of the distribution but under-fill is still more probable in aggregate than over-fill.",
+              "Fill Distribution — Mode (fraction of demand)", "Most likely fraction of a submitted demand delivered. Typically set near but below 1, since under-fill is more likely than over-fill.",
               type = "numeric", min = 0, max = 1.5, step = 0.05, morris_name = "fr_fill_mode_frac", source = SRC_FORCE_REGEN, slider = TRUE),
     var_field("force_regen_fill_max", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_max_frac",
-              "Fill Distribution — Maximum (fraction of demand)", "Upper bound of the triangular distribution — kept close to 1 so over-supply is possible but limited, unlike the long lower tail toward under-fill.",
+              "Fill Distribution — Maximum (fraction of demand)", "Upper bound on the fraction delivered — kept close to 1, so over-supply is possible but limited.",
               type = "numeric", min = 1, max = 2, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE)
   ))
 
@@ -455,13 +457,13 @@ build_param_registry <- function() {
               "Priority 3 (Delayed) Share", "Proportion of WIA triaged as Priority 3 at R1.",
               min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT),
     var_field("dnbi_bf_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "battle_fatigue_pct",
-              "Battle Fatigue Share of DNBI", "Proportion of DNBI casualties returned to duty at R1 without clinical treatment (Issue #7).",
+              "Battle Fatigue Share of DNBI", "Proportion of DNBI casualties returned to duty at R1 without clinical treatment.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_BF_PCT),
     var_field("dnbi_disease_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "disease_pct",
-              "Disease Share of DNBI", "Proportion of DNBI casualties routed to R2B holding for disease management (Issue #7).",
+              "Disease Share of DNBI", "Proportion of DNBI casualties routed to R2B holding for disease management.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_DISEASE_PCT),
     var_field("dnbi_nbi_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "nbi_pct",
-              "Non-Battle Injury Share of DNBI", "Proportion of DNBI casualties following the full WIA-equivalent clinical pathway (Issue #7).",
+              "Non-Battle Injury Share of DNBI", "Proportion of DNBI casualties following the full WIA-equivalent clinical pathway.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_NBI_PCT),
     var_field("surg_pri1", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "pri1_surgery",
               "Priority 1 Surgical Candidacy", "Proportion of Priority 1 WIA requiring surgery.",
@@ -485,10 +487,10 @@ build_param_registry <- function() {
               "Priority 2 Strategic Evacuation Rate", "Proportion of treated Priority 2 casualties evacuated out of theatre.",
               min = 0, max = 1, step = 0.01, morris_name = "pri2_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),
     var_field("dow_p1_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p1_p_max",
-              "Priority 1 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 1 casualty (Falklands 1982 calibration, Issue #5).",
+              "Priority 1 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 1 casualty (Falklands 1982 calibration).",
               min = 0, max = 1, step = 0.001, morris_name = "p1_p_max", source = SRC_DOW_CEILING),
     var_field("dow_p2_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p2_p_max",
-              "Priority 2 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 2 casualty (Falklands 1982 calibration, Issue #5).",
+              "Priority 2 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 2 casualty (Falklands 1982 calibration).",
               min = 0, max = 1, step = 0.001, morris_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE)
   ))
 
@@ -573,12 +575,12 @@ build_param_registry <- function() {
                                      morris_mode_name = "r2b_hold_mode", bound = c(0, 20000)))
   registry <- c(registry, list(
     var_field("r2b_hold_threshold", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding", "hold_threshold",
-              "Hold-Bed Reroute Threshold", "Occupancy fraction above which new patients are rerouted to R2E rather than queuing at R2B (Issue #39).",
+              "Hold-Bed Reroute Threshold", "Occupancy fraction above which new patients are rerouted to R2E rather than queuing at R2B.",
               min = 0, max = 1, step = 0.05, morris_name = "r2b_hold_threshold", source = SRC_HOLD_THRESHOLD, slider = TRUE)
   ))
   registry <- c(registry, list(
     field("r2b_icu_defer_interval", GRP_PROVISION, "R2B — ICU Gating", "OT-Entry Defer Poll Interval",
-          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43). Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
+          "How often ICU availability is re-checked while OT entry is deferred pending a bed. A polling interval, not a standing-order lever.",
           get = function(json) get_raw_var(json, "r2b", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2b", "icu_gating", "defer_check_interval", v),
           type = "integer", min = 5, max = 180, step = 5,
@@ -587,10 +589,10 @@ build_param_registry <- function() {
 
   # ── Medevac: R2B — Battalion Aid Post ─────────────────────────────────────
   registry <- c(registry, tri_fields("r2b_wia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "wia_transport",
-                                     "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty. Seizes each R2B team's own organic evac resource, not the shared PMVAmb fleet, with a dead-heading return leg on that same resource (Issue #73).",
+                                     "WIA Transport Time", "Transport time from R2B to R2E for a WIA casualty (R2B's own Evac Team, not the shared PMVAmb fleet).",
                                      morris_mode_name = "r2b_transport", bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
   registry <- c(registry, tri_fields("r2b_kia_transport", GRP_LOGISTICS, "R2B — Transport (R2B ↔ R2E)", "r2b", "kia_transport",
-                                     "KIA/Mortuary Transport Time", "Road-move transport time for a KIA casualty from R2B to the mortuary, modelled as collocated with R2E rather than R2B (Issue #73). Uses the shared HX2 40M fleet with a dead-heading return leg.",
+                                     "KIA/Mortuary Transport Time", "Road-move transport time for a KIA casualty from R2B to the mortuary (collocated with R2E, not R2B).",
                                      bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
 
   # ── Health System Architecture: R2E — Field Hospital ──────────────────────
@@ -632,7 +634,7 @@ build_param_registry <- function() {
                                      morris_mode_name = "r2e_hold_mode", bound = c(0, 40000),
                                      source = SRC_IN_THEATRE_RATE))
   registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "post_op_hold",
-                                     "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation (Issue #43).",
+                                     "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation.",
                                      morris_mode_name = "post_op_hold_mode", bound = c(0, 3000),
                                      source = SRC_POST_OP_HOLD))
   registry <- c(registry, list(
@@ -643,10 +645,10 @@ build_param_registry <- function() {
               "Post-Surgery Full-Recovery Rate", "Proportion of surgical patients routed to full (long) ICU recovery rather than short recovery.",
               min = 0, max = 1, step = 0.01, morris_name = "post_surgery_prob", slider = TRUE),
     var_field("r2e_icu_p1_bypass", GRP_PROVISION, "R2E — ICU Gating", "r2eheavy", "icu_gating", "p1_bypass_priority_max",
-              "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead (Issue #43).",
+              "ICU-Full Priority Override Threshold", "Maximum priority level (1 = most severe) permitted to bypass a full ICU by recovering in a holding bed instead.",
               type = "integer", min = 1, max = 3, step = 1, source = SRC_ICU_GATING, choices = 1:3),
     field("r2e_icu_defer_interval", GRP_PROVISION, "R2E — ICU Gating", "OT-Entry Defer Poll Interval",
-          "Interval between ICU-availability checks while OT entry is deferred pending a bed (Issue #43). Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
+          "How often ICU availability is re-checked while OT entry is deferred pending a bed. A polling interval, not a standing-order lever.",
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval", v),
           type = "integer", min = 5, max = 180, step = 5,
@@ -674,10 +676,10 @@ build_param_registry <- function() {
   # ASSUMPTION — AME Configuration Selection Rule for the selection logic.
   registry <- c(registry, list(
     var_field("ame_schedule_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "schedule_interval_days",
-              "Sortie Interval (days)", "Days between scheduled strategic AME sortie opportunities. Every strategic evacuee queues indefinitely if this exceeds the run length or is set to 0 — AME never opens.",
+              "Sortie Interval (days)", "Days between scheduled strategic AME sorties. 0, or a value longer than the run, means AME never opens.",
               type = "integer", min = 1, max = 30, step = 1, morris_name = "ame_schedule_interval_days", source = SRC_AME_SCHEDULE),
     var_field("ame_failure_probability", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "failure_probability",
-              "Sortie Cancellation Probability", "Probability any given scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity, regardless of which configuration would otherwise have flown.",
+              "Sortie Cancellation Probability", "Probability a scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity.",
               min = 0, max = 1, step = 0.01, morris_name = "ame_failure_probability", source = SRC_AME_SCHEDULE, slider = TRUE),
     var_field("ame_config_a_critical", GRP_LOGISTICS, "Strategic AME", "role4", "ame_config_a", "critical_capacity",
               "Configuration A — Critical Capacity per Sortie", "Critical (CCATT/CCAST-supported, ICU-bed Priority 1 surgical) casualties carried if Configuration A flies.",
@@ -692,7 +694,7 @@ build_param_registry <- function() {
               "Configuration B — Standard Capacity per Sortie", "Standard (Casualty Staging Unit-equivalent, Hold-bed) casualties carried if Configuration B flies.",
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_SCHEDULE),
     var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
-              "DOW Poll Interval (minutes)", "How often a casualty queued for AME (either pool) is re-assessed for died-of-wounds risk while waiting (Issue #23 third follow-up) — the same time-dependent conditional-increment formula used at every other DOW checkpoint, applied periodically since the AME wait itself has no fixed endpoint. Not Morris-screened (Issue #112 follow-up) — a timeout()/rollback() polling-loop interval approximating continuous monitoring, not a real standing-order lever.",
+              "DOW Poll Interval (minutes)", "How often a casualty queued for AME is re-assessed for died-of-wounds risk while waiting. A polling interval, not a standing-order lever.",
               type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
   ))
 
@@ -700,7 +702,7 @@ build_param_registry <- function() {
   registry <- c(registry, list(
     var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
               "Event Timing Mode",
-              "Selects how mass casualty events are timed: a stochastic Poisson process (random inter-event interval, event count varies by replication) or a fixed set of planner-specified simulation days.",
+              "How mass casualty events are timed: random (Poisson process) or a fixed list of planner-specified days.",
               source = SRC_MASS_CASUALTY,
               choices = c("Random (Poisson Rate)" = "poisson", "Scheduled (Deliberate Days)" = "scheduled")),
     var_field("mc_rate", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "rate_per_day",
@@ -734,13 +736,13 @@ build_param_registry <- function() {
   # renders unconditionally, unlike Random Event Rate/Scheduled Event Days.
   registry <- c(registry, list(
     var_field("mc_window_min", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_min",
-              "Injection Window — Minimum", "Minimum duration over which a fired event's casualties are distributed (triangular distribution), minutes. Applies to every event regardless of timing mode.",
+              "Injection Window — Minimum", "Minutes over which a fired event's casualties arrive (triangular min). Applies to every event.",
               type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY),
     var_field("mc_window_mode", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_mode",
-              "Injection Window — Most Likely (Mode)", "Most likely duration over which a fired event's casualties are distributed (triangular distribution mode), minutes. Applies to every event regardless of timing mode.",
+              "Injection Window — Most Likely (Mode)", "Minutes over which a fired event's casualties arrive (triangular mode). Applies to every event.",
               type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY),
     var_field("mc_window_max", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_max",
-              "Injection Window — Maximum", "Maximum duration over which a fired event's casualties are distributed (triangular distribution), minutes. Applies to every event regardless of timing mode.",
+              "Injection Window — Maximum", "Minutes over which a fired event's casualties arrive (triangular max). Applies to every event.",
               type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY)
   ))
   # Shared priority split — like Casualties per Event above, this only

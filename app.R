@@ -1221,19 +1221,19 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
   tagList(
     h6(class = "text-muted mt-2", "Medevac Chain"),
     p(class = "text-muted", style = "font-size:11px;",
-      "Each line is one transport leg, labelled with its current duration; every leg also has an unmodified return trip. ",
+      "Each line is a transport leg (duration shown); every leg also has a return trip. ",
       tags$span(style = "color:#2a78d6; font-weight:600;", "Blue = WIA (PMVAmb)"), "; ",
       tags$span(style = "color:#6c757d; font-weight:600;", "grey = KIA (HX240M)"), "; ",
-      tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evacuation"),
-      " (R2B's own Evac Team, not the shared PMVAmb fleet); ",
-      tags$span(style = "color:#922b21; font-weight:600;", "maroon = R2B → R2E KIA/mortuary road move"),
-      " (shared HX240M fleet — the mortuary is collocated with R2E, not R2B).",
-      " R2B is bypassed straight to R2E, reusing the transport time already shown, when every R2B team's OT beds are full, or when the selected team is off-shift or busy at the surgical decision point.",
-      " KIA arriving at R2E travel no further — the ⚱ marker is a local mortuary transfer, not a vehicle leg.",
-      " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical strategic AME (ICU bed → AME, CCATT/CCAST-supported)"),
-      "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard strategic AME (Hold bed → AME, Casualty Staging Unit-equivalent)"),
-      " — a Priority 1 casualty who has had surgery boards the critical pool, everyone else boards standard. Each leg's label shows both aircraft configurations' capacity (\"A=…/B=…\", editable in the Strategic AME group above); the simulation flies whichever configuration leaves the fewest casualties waiting.",
-      " This diagram is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
+      tags$span(style = "color:#1e824c; font-weight:600;", "green = R2B → R2E WIA evac"),
+      " (R2B's own Evac Team); ",
+      tags$span(style = "color:#922b21; font-weight:600;", "maroon = R2B → R2E KIA/mortuary move"),
+      " (mortuary is collocated with R2E, not R2B).",
+      " R2B is bypassed straight to R2E when its OT beds are full, or the team is off-shift/busy.",
+      " KIA reaching R2E go no further — ⚱ is a local mortuary transfer, not a vehicle leg.",
+      " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical AME (ICU bed)"),
+      "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard AME (Hold bed)"),
+      " — post-surgery Priority 1 boards critical, everyone else boards standard (aircraft capacity is editable in the Strategic AME group above).",
+      " Structural diagram only — run Quick Run for actual queueing and casualty results."),
     evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
                         ame_config_a_critical, ame_config_a_standard,
                         ame_config_b_critical, ame_config_b_standard,
@@ -1278,7 +1278,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
         label   = "Priority Split (P1 | P2 | P3)",
         tooltip = paste0(
           "Drag either handle to reallocate share between adjacent priorities — ",
-          "Priority 1, 2, and 3 always sum to 100% by construction. Source: ", SRC_PRIORITY_SPLIT
+          "Priority 1, 2, and 3 always sum to 100% by construction."
         ),
         path = one_f$path
       ), overridden_paths)
@@ -1320,7 +1320,9 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(tagList(
         h6(class = "text-muted mt-2", sg),
         p(class = "text-muted small",
-          "These are curve parameters, not single values — the shaded area is the actual shape of daily casualty-rate variability implied by the mean and standard deviation below it (dashed line = mean). The curve updates live as you edit the numbers, and its shape (lognormal vs exponential) follows the Casualty Intensity Profile selected above. A stream currently governed by an exponential distribution accepts only the mean — exponential is a single-parameter distribution, so its Std. Dev. field is not applicable and is suppressed rather than shown as an editable (but functionally inert) input."),
+          "These define a distribution shape, not a fixed value — the shaded curve shows daily ",
+          "casualty-rate variability (dashed line = mean) and updates live as you edit. Streams using ",
+          "an exponential distribution take only a mean, so Std. Dev. is hidden for those."),
         layout_column_wrap(
           width = "320px",
           !!!lapply(GEN_STREAM_ACTYS, function(acty) {
@@ -1349,7 +1351,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(tagList(
         h6(class = "text-muted mt-2", sg),
         p(class = "text-muted small",
-          "The ceiling below is the only editable value; the curve shows the full time-dependent survival function F(t) the simulation evaluates at each DOW check, using the fixed shape parameters shown alongside it — p_base (floor at t=0) and k/t_mid (rise steepness/inflection) are not user-editable in this app. See README Died of Wounds — Survival Function."),
+          "The ceiling below is the only editable value; the curve shows the full survival function evaluated at each DOW check, using the fixed shape parameters (p_base, k, t_mid) shown alongside it."),
         layout_column_wrap(
           width = "340px",
           !!!lapply(list(
@@ -1364,13 +1366,13 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
               div(style = "display:flex; gap:6px; margin-top:4px;",
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("p_base", SRC_DOW_CEILING, shp$p_base, digits = 4,
+                    readonly_numeric("p_base", "Baseline (time-zero) DOW probability in the logistic curve.", shp$p_base, digits = 4,
                                      path = "dow.params", overridden_paths = overridden_paths)),
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("k", SRC_DOW_SHAPE, shp$k, digits = 3,
+                    readonly_numeric("k", "Logistic curve steepness constant.", shp$k, digits = 3,
                                      path = "dow.params", overridden_paths = overridden_paths)),
                 div(style = "flex:1; min-width:0;",
-                    readonly_numeric("t_mid", SRC_DOW_SHAPE, shp$t_mid, digits = 0,
+                    readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
                                      path = "dow.params", overridden_paths = overridden_paths))
               )
             )
@@ -1395,7 +1397,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
         tagList(
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
-            "Event start times are drawn from a Poisson process at this rate — event count and timing vary stochastically between replications. Casualty count is shared across every event this mode generates; for events with independently varying casualty counts, use Scheduled (Deliberate Days) mode instead."),
+            "Event timing is drawn from a Poisson process at this rate, varying between replications. All events share the casualty-count range below; use Scheduled mode for per-event control."),
           render_field_grid(sg_fields, defaults, overridden_paths)
         )
       ))
@@ -1421,8 +1423,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
           h6(class = "text-muted mt-2", sg),
           p(class = "text-muted small",
             sprintf(
-              "Each event is independently drawn (Bernoulli) at its own probability every replication — a day at probability 1 fires identically in every replication, a lower value introduces controlled randomness — and has its own casualty count and triage priority mix. Use + / − to add or remove event rows (up to %d); removing a row resets it rather than deleting it, so it stops firing. For more than %d explicit events, edit env_data.json directly.",
-              MASS_CASUALTY_SCHEDULE_SLOTS, MASS_CASUALTY_SCHEDULE_SLOTS
+              "Each event fires independently at its own probability (1 = always) and has its own casualty count and priority mix. Use +/− to add or remove rows (up to %d); removing resets a row rather than deleting it. For more events, edit env_data.json directly.",
+              MASS_CASUALTY_SCHEDULE_SLOTS
             )),
           tags$script(HTML(
             "if (!window.__mcToggleHandlerRegistered) {
@@ -1455,9 +1457,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
               p1 <- defaults[[pri_one_f$id]]; p2 <- defaults[[sprintf("mc_sched_pri_two_%d", i)]]
               pri_lbl <- field_label(list(
                 label   = "Priority Split (P1 | P2 | P3)",
-                tooltip = paste0(
-                  "This event's own triage priority mix — independent of every other event. Source: ", SRC_MASS_CASUALTY_PRI
-                ),
+                tooltip = "This event's own triage priority mix — independent of every other event.",
                 path = pri_one_f$path
               ), overridden_paths)
               div(
@@ -1489,9 +1489,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       mc_pri_lbl <- field_label(list(
         label   = "Priority Split (P1 | P2 | P3)",
         tooltip = paste0(
-          "Drag either handle to reallocate share between adjacent priorities for mass-casualty-derived casualties specifically — ",
-          "Priority 1, 2, and 3 always sum to 100% by construction. Independent of the background Triage Priority Split (Casualty Rates panel). Source: ",
-          SRC_MASS_CASUALTY_PRI
+          "Drag either handle to reallocate this event's Priority 1/2/3 share — ",
+          "independent of the background Triage Priority Split."
         ),
         path = one_f$path
       ), overridden_paths)
@@ -1575,10 +1574,9 @@ ui <- page_navbar(
                                      tooltip = paste0(
                                        "Hours the first operating theatre shift is active each day ",
                                        "(the second shift covers the remainder of the 24h day). ",
-                                       sprintf("Screened in the project's Morris sensitivity analysis; plausible range %s–%s.",
+                                       sprintf("Plausible range %s–%s (Morris-screened).",
                                                morris_params$lower[morris_params$name == "ot_hours"],
-                                               morris_params$upper[morris_params$name == "ot_hours"]),
-                                       " Source: README Schedules and Rosters — surgical team shift length; not independently cited (informed establishment planning assumption)."))),
+                                               morris_params$upper[morris_params$name == "ot_hours"])))),
                     min = morris_params$lower[morris_params$name == "ot_hours"],
                     max = morris_params$upper[morris_params$name == "ot_hours"],
                     value = morris_params$mode[morris_params$name == "ot_hours"], step = 1)
@@ -1769,26 +1767,9 @@ server <- function(input, output, session) {
       field_label(list(
         label = "Casualty Intensity Profile",
         tooltip = paste(
-          "Selects a named scenario profile that overlays casualty-generation,",
-          "DOW, and treatment-efficacy parameters onto the base configuration.",
-          "Structural fields (force size, team/bed counts, transport fleet)",
-          "are never affected by this selector.",
-          "\"Falklands — Modified\" (the base configuration) keeps",
-          "Falklands-sourced casualty generation and a Falklands-calibrated",
-          "DOW ceiling but pairs them with modern (OIF/OEF-era) treatment",
-          "efficacy factors. \"Falklands — Unmodified\" re-derives both the",
-          "DOW ceiling and the treatment efficacy factors to be internally",
-          "consistent for 1982, so the two produce different DOW outcomes",
-          "despite both being Falklands-sourced.",
-          "\"Okinawa — Casualty Rates\" overrides only the WIA/KIA",
-          "casualty-generation distributions; it still inherits the",
-          "Falklands DOW ceiling and modern treatment efficacy from the",
-          "base configuration rather than being a complete second scenario",
-          "(a documented demonstration skeleton — see README Scenario",
-          "Profiles).",
-          "Source: README Scenario Profiles; only the profiles",
-          "actually defined and cited in env_data.json are offered — no",
-          "fabricated intermediate intensity tiers."
+          "Applies a named profile's casualty and DOW parameters over the base",
+          "configuration (structural fields are unaffected). Pick one to see what",
+          "it changes below; see README Scenario Profiles for details."
         )
       )),
       choices  = scenario_choices(),
@@ -2603,10 +2584,9 @@ server <- function(input, output, session) {
             tags$hr(),
             h6(class = "text-muted mt-2", "R2E OT-ICU Gating — Hold Bed Used in Lieu of ICU"),
             p(class = "text-muted small",
-              "Daily breakdown of R2E post-operative casualties: Sub-Optimal (red) is a Priority 1 ",
-              "casualty whose recovery used a Hold bed instead of ICU because ICU was saturated at the point of ",
-              "OT entry; Delayed (orange) is a Priority 2+ casualty whose OT entry was deferred pending ICU ",
-              "availability; Normal (green) means ICU was available. A run with no ICU saturation shows no plot."),
+              "Daily breakdown of R2E post-operative casualties: Sub-Optimal (red) recovered in a Hold bed ",
+              "instead of ICU because ICU was full at OT entry; Delayed (orange) had OT entry deferred pending ",
+              "an ICU bed; Normal (green) means ICU was available."),
             shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
             downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
             downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
@@ -2676,12 +2656,9 @@ server <- function(input, output, session) {
       ),
       nav_panel("Force Regeneration",
         p(class = "text-muted mt-2",
-          "Effective force size over the run — debited at each casualty's injury, credited ",
-          "at each return-to-duty event, and stepped up by periodic reinforcement demands (Configure tab's ",
-          "Reinforcement Demand & Fulfillment group, Force Size section) if the demand cycle is set above ",
-          "its disabled default: each demand asks for the pool's full current shortfall, is fulfilled after ",
-          "a configurable lag, and delivers a triangularly-distributed fraction of that shortfall (long ",
-          "under-fill tail, limited over-supply)."),
+          "Effective force size over the run — debited at each injury, credited at each return-to-duty ",
+          "event, and stepped up by reinforcement demands after a lag and a partial fill, if enabled ",
+          "(Configure tab's Reinforcement Demand & Fulfillment group)."),
         shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         downloadButton("dl_force_regeneration_png", "Download PNG"),
         downloadButton("dl_force_regeneration_pdf", "Download PDF"),
@@ -2766,23 +2743,17 @@ server <- function(input, output, session) {
       ),
       nav_panel("Sensitivity Calibration",
         p(class = "text-muted mt-2",
-          "Parameters screened in the project's Morris Elementary Effects sensitivity analysis. ",
-          "These bounds are used as slider ranges for the corresponding fields in the Configure tab. The ",
-          "Variable column is the raw parameter code used in outputs/morris_ranking.csv and on the axis ",
-          "labels of every saved images/morris_*.png plot — use this table to look up what a code you've ",
-          "seen elsewhere means, and which category (Scenario Context / Design Capacity / Design Policy) ",
-          "it falls into."),
+          "Parameters screened in the project's Morris sensitivity analysis; their bounds set the ",
+          "Configure tab's slider ranges. The Variable column is the raw code used in ",
+          "outputs/morris_ranking.csv and the morris_*.png plots."),
         DTOutput("calibration_table"),
         downloadButton("dl_calibration_csv", "Download Table (CSV)"),
         tags$hr(),
         h5("Run Sensitivity Screening"),
         p(class = "text-muted small",
-          "Morris Elementary Effects screening (Morris, 1991) perturbs each parameter across its ",
-          "plausible range while holding the others fixed, repeated over r trajectories, to rank ",
-          "parameters by influence on the R2E ICU queue and other KPIs. Wall-clock time scales with ",
-          "r × (parameters + 1) × replications-per-point × simulation duration — the ",
-          "production configuration (r = 20, 5 reps, 30 days) takes roughly 2-3 hours; use a small r ",
-          "(e.g. 3) for a quick smoke test. See README Shiny Application — Sensitivity Panel."),
+          "Perturbs each parameter across its plausible range to rank its influence on key outputs ",
+          "(Morris method). Time scales with trajectories × parameters × replications × run length — ",
+          "the default (r = 20) takes roughly 2-3 hours; try r = 3 for a quick test."),
         layout_column_wrap(
           width = "220px",
           numericInput("morris_r", "Trajectories (r)", value = 20, min = 3, max = 50, step = 1),
@@ -2795,11 +2766,8 @@ server <- function(input, output, session) {
         h5("Transport Fleet Capacity Margin Sweep"),
         p(class = "text-muted small",
           "Answers \"do we have enough ambulances and trucks?\" by re-running the simulation at each ",
-          "fleet size in the ranges below and checking whether casualties start queueing for transport. ",
-          "Use this to confirm the current fleet has spare capacity, or to see how far it could shrink ",
-          "before evacuation becomes a bottleneck. Each fleet size runs its own set of replications, ",
-          "reusing the Replications per Point count set above — a wider range or higher count takes ",
-          "longer to complete."),
+          "fleet size below and checking for transport queueing. A wider range or higher replication ",
+          "count (set above) takes longer to complete."),
         layout_column_wrap(
           width = "280px",
           sliderInput("sweep_pmvamb_range", "PMV Ambulance Fleet Size Range",
@@ -3550,12 +3518,10 @@ server <- function(input, output, session) {
       tags$hr(),
       h5("Sobol Variance Decomposition"),
       p(class = "text-muted small",
-        "Decomposes each selected parameter's contribution to output variance into first-order (S1 — ",
-        "the parameter acting alone) and total-order (ST — including interactions with every other ",
-        "parameter) indices (Saltelli et al., 2010). Parameters with high ST but low S1 have significant ",
-        "interaction effects. Reuses the \"Replications per Point\" value set above for Morris; n = 200 ",
-        "Sobol design points (Saltelli 2007 estimator default), so wall-clock time is comparable to or ",
-        "greater than the Morris screen above."),
+        "Decomposes each parameter's contribution to output variance into first-order (S1, acting ",
+        "alone) and total-order (ST, including interactions) indices. High ST but low S1 means strong ",
+        "interaction effects. Uses 200 design points at the Replications per Point count above — ",
+        "comparable to or longer than the Morris screen."),
       checkboxGroupInput("sobol_params", "Parameters to include (top 5 by μ* pre-selected)",
                         choices  = setNames(morris_params$name, MORRIS_LABELS[morris_params$name]),
                         selected = top5),

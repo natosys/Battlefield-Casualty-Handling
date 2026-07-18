@@ -26,7 +26,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
 - [🌍 Scenario Context](#🌍-scenario-context)
-- [🧰 Resource Descriptions](#�-resource-descriptions)
+- [🧰 Resource Descriptions](#�-resource-descriptions)
   - [🏥Health Teams](#🏥health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
@@ -962,7 +962,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/app_params.R` | Parameter registry for the Shiny Configure panel (Issue #14) — plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
 | `R/scenario.R` | Named scenario profile definitions (e.g. `moderate_intensity`, `high_intensity`) and the override logic applied on top of the base `env_data.json` |
 | `R/scenario_runner.R` | Comparative scenario runner — `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
-| `app.R` | Shiny app — Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
+| `app.R` | Shiny app — Getting Started/Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
@@ -974,7 +974,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `data/` | Read-only input data plus a small set of diagnostic/event files regenerated at run time (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv` — Issue #9) |
 | `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of PRs that shift the RNG stream or simulation outputs |
 | `logs/` | Tracked seed-42 baseline console log (`logs.txt`) |
-| `docs/` | Project documentation — action plan, task-role allocation supplement, and the R code style guide |
+| `docs/` | Project documentation — action plan, task-role allocation supplement, the R code style guide, and the in-app Getting Started guide (`Getting_Started.md`, Issue #115, also rendered inside `app.R`'s Getting Started tab) |
 
 #### Running the simulation
 
@@ -1378,7 +1378,7 @@ Results and interpretation are presented in [Comparative Scenario Analysis](#com
 
 #### Shiny Application
 
-`app.R` (Issue #14) is a Shiny console intended to let military planners, medical officers, and research analysts explore the parameter space without reading source code. It replaces `controller_legacy.R`'s raw JSON field editor with a three-panel Configure → Run → Analyse workflow.
+`app.R` (Issue #14) is a Shiny console intended to let military planners, medical officers, and research analysts explore the parameter space without reading source code. It replaces `controller_legacy.R`'s raw JSON field editor with a Configure → Run → Analyse workflow, preceded by a **Getting Started** landing tab (Issue #115) that renders `docs/Getting_Started.md` in-app via `shiny::includeMarkdown()`. That document is a short, task-oriented onboarding guide — what the app does, the Configure → Run → Analyse workflow, which parameters are worth adjusting first, and how to read each Analyse-tab graph — aimed at a first-time, non-developer user who is unlikely to read this README's full academic treatment before using the tool; it is a companion to, not a replacement for, the fuller treatment of the model in this document.
 
 ```r
 # Terminal (recommended for Full Analysis / Sensitivity Screening):

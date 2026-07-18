@@ -10,20 +10,40 @@ All work must meet academic research standards: reasoning must be explicit, sour
 
 ## Repository Structure
 
+The codebase is organised into a modular layout under `R/`, with `run.R` as the single CLI entry point. See the README's [Codebase Structure](README.md#codebase-structure) table for full detail on each `R/` module; this table covers the repository as a whole.
+
 | File / Directory | Purpose |
 |---|---|
-| `Battlefield Casualty Handling.R` | Main simulation engine — trajectories, resource seizure, casualty routing |
-| `data_import.R` | Reads `env_data.json` and builds the simmer environment |
-| `single-run_analysis.R` | Analysis and visualisation pipeline (currently single-run; being extended) |
+| `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
+| `R/environment.R` | Data import, arrival generation, and simmer environment construction |
+| `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
+| `R/replication.R` | Multi-run replication framework (`run_once`, `run_replications`, `summarise_replications`) |
+| `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) |
+| `R/sensitivity.R` | Morris EE screening and Sobol variance decomposition |
+| `R/warmup.R` | Welch warm-up analysis |
+| `R/app_params.R` | Parameter registry for the Shiny Configure panel |
+| `R/scenario.R` | Named scenario profile definitions and override logic |
+| `R/scenario_runner.R` | Comparative scenario runner — executes the replication framework under a named scenario profile |
 | `app.R` | Shiny console — Configure/Run/Analyse workflow for interactive `env_data.json` parameter editing, Quick Run, Full Analysis (multi-run with 95% CI), and Sensitivity Screening (Morris/Sobol) execution (Issues #14, #15) |
 | `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `env_data.json` | All simulation parameters — populations, resources, distributions, schedules |
-| `distribution_graphs.R` | Triangle distribution demonstration |
-| `README.md` | Primary academic document — introduction, literature review, methodology, results, limitations, references |
-| `README_inputs.md` | Auto-generated environment summary (do not edit manually) |
-| `STYLE_GUIDE.md` | R code style conventions — follow at all times |
-| `scripts/check_env_data_summary.R` | Regenerates the `README_inputs.md` environment summary |
+| `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis |
+| `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
+| `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner |
+| `scripts/run_transport_sweep.R` | CLI entry point for the transport fleet-size sweep |
+| `scripts/shiny_worker.R` | Background worker sourced by `app.R` for async Quick Run / Full Analysis execution |
+| `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY -->` block inside `README.md` from `env_data.json` |
 | `scripts/check_markdown.R` | Maintains README TOC and reference links |
+| `README.md` | Primary academic document — introduction, literature review, methodology, results, limitations, references |
+| `docs/BCH_Simulation_Action_Plan.md` | Issue tracker cross-reference — phase sequencing, dependency graph, merged-issue log |
+| `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
+| `docs/STYLE_GUIDE.md` | R code style conventions — follow at all times |
+| `data/` | Read-only input data (arrival schedules) plus a small set of live-regenerated diagnostic/event files (`arrivals_*.txt`, `mass_casualty_events.csv`) written by `R/environment.R` |
+| `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of baseline-affecting PRs |
+| `logs/` | Tracked seed-42 baseline console log (`logs.txt`), regenerated as part of baseline-affecting PRs |
+| `outputs/` | Gitignored destination for CSV/markdown outputs written by `analyse_run()`; tracked via `.gitkeep` only |
+| `renv/`, `renv.lock`, `.Rprofile` | R package environment management |
+| `.devcontainer/` | Pinned Dev Container definition (`rocker/rstudio:4.4.2`) used for canonical baseline runs |
 
 ---
 
@@ -80,11 +100,11 @@ For each issue newly unblocked by the merge: change its label from `status: bloc
 
 **3. Update `CLAUDE.md` baseline table (if simulation outputs changed)**
 
-If the merged PR modified `Battlefield Casualty Handling.R` or `env_data.json` in a way that shifts the RNG stream or alters stochastic outputs, re-run the simulation at seed 42 and update the Key Parameters table at the bottom of this file. Document the change in the action plan entry.
+If the merged PR modified `R/trajectories.R`, `R/environment.R`, or `env_data.json` in a way that shifts the RNG stream or alters stochastic outputs, re-run the simulation at seed 42 and update the Key Parameters table at the bottom of this file. Document the change in the action plan entry.
 
-**4. Regenerate `README_inputs.md` (if `env_data.json` changed)**
+**4. Regenerate the README environment summary (if `env_data.json` changed)**
 
-If the merged PR modified `env_data.json`, run `scripts/check_env_data_summary.R` to regenerate `README_inputs.md` and include the updated file in the chore PR.
+If the merged PR modified `env_data.json`, run `scripts/check_env_data_summary.R` to refresh the `<!-- ENV SUMMARY START/END -->` block inside `README.md` and include the updated `README.md` in the chore PR.
 
 ---
 
@@ -208,7 +228,7 @@ Example entry:
 ### Test: Multi-replication output (Issue 1)
 **Setup:** n_iterations = 10, n_days = 30, seed = NULL (independent per replication)
 **Steps:**
-1. Source `Battlefield Casualty Handling.R`
+1. Source `run.R`
 2. Inspect `queue_summary` output object
 3. Confirm 10 rows present in replication-level resource monitor output
 **Expected:** `mean_queue` values differ across replications; p10 < mean < p90 for at least one resource
@@ -386,7 +406,7 @@ AFTER #1 + #2 + #5 + #8:
 
 ## Code Standards
 
-Follow `STYLE_GUIDE.md` at all times. Key points:
+Follow `docs/STYLE_GUIDE.md` at all times. Key points:
 
 - Use roxygen-style header comments for all functions (`#'` tags with `@param`, `@return`).
 - Branch logic must include a comment block describing the branch structure and decision criteria before the `branch()` call.

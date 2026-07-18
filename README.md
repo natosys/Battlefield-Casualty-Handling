@@ -199,7 +199,7 @@ Moving from a single illustrative run to a defensible multi-run analytical frame
 
 Disease DNBI sub-categorisation and its emergency surgical candidacy rate draw on documented evidence of acute surgical disease conditions occurring in deployed populations. Acute appendicitis incidence among deployed Japanese soldiers in Burma is reported in [[51]](#References), and humanitarian surgical care delivered at US military treatment facilities in Afghanistan is documented in [[52]](#References), together supporting the inclusion of conditions such as appendicitis, cholecystitis, and perforated peptic ulcer within the disease DNBI pathway's surgical candidacy branch, distinct from the battle fatigue and NBI sub-types that do not carry the same surgical risk profile.
 
-Several parameters in this project remain informed estimates rather than directly sourced values — for example, the force regeneration reinforcement fill distribution, the symmetric round-trip assumption for transport dead-heading, and the mass casualty event rate/size defaults — because no open-access source was identified that tabulates the specific quantity required. These gaps, and the reasoning used to derive each estimate in their absence, are catalogued in full in the [Limitations](#limitations) section rather than repeated here.
+Because no open-access source was identified that tabulates the specific quantity required several parameters in this project remain informed estimates rather than directly sourced values, described in detail in the [Limitations](#limitations) section.
 
 This literature review enabled the design of a model suitable to support the assessment of the deployed health system capacity within LSCO.
 

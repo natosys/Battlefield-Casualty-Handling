@@ -963,7 +963,6 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/scenario.R` | Named scenario profile definitions (e.g. `moderate_intensity`, `high_intensity`) and the override logic applied on top of the base `env_data.json` |
 | `R/scenario_runner.R` | Comparative scenario runner — `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
 | `app.R` | Shiny app — Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
-| `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |

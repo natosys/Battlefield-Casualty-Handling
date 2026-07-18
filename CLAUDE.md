@@ -25,7 +25,6 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `R/scenario.R` | Named scenario profile definitions and override logic |
 | `R/scenario_runner.R` | Comparative scenario runner — executes the replication framework under a named scenario profile |
 | `app.R` | Shiny console — Configure/Run/Analyse workflow for interactive `env_data.json` parameter editing, Quick Run, Full Analysis (multi-run with 95% CI), and Sensitivity Screening (Morris/Sobol) execution (Issues #14, #15) |
-| `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `env_data.json` | All simulation parameters — populations, resources, distributions, schedules |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |

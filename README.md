@@ -189,7 +189,7 @@ The strategic AME and Role 4 demand model draws on [[33]](#References), which es
 
 #### Mass Casualty Event Simulation
 
-The compound Poisson mass casualty event mechanism follows the general approach to LSCO casualty-surge simulation described in [[35]](#References), and complements the discrete-event mass-casualty-incident stress-testing precedent of SIMEDIS [[36]](#References), which injects a fixed, deterministic victim count rather than a stochastically varying one. An account of aligning field hospital training with LSCO reality [[37]](#References) informed the blast-dominant triage priority distribution applied to mass-casualty-derived casualties. This same source [[35]](#References) additionally informed the project's transport dead-heading model: tactical vehicle rate-of-march is governed by terrain, threat, and route conditions rather than payload.
+The compound Poisson mass casualty event mechanism follows the general approach to LSCO casualty-surge simulation described in [[35]](#References), and complements the discrete-event mass-casualty-incident stress-testing precedent of SIMEDIS [[36]](#References), which injects a fixed, deterministic victim count rather than a stochastically varying one. An account of aligning field hospital training with LSCO reality [[37]](#References) informed the blast-dominant triage priority distribution applied to mass-casualty-derived casualties.
 
 #### Statistical Methods for Simulation Verification, Replication, and Sensitivity Analysis
 

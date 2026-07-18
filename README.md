@@ -28,8 +28,8 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
     - [Damage Control Surgery and Post-Operative Critical Care](#damage-control-surgery-and-postoperative-critical-care)
     - [Preventable Death and Time-Dependent Mortality](#preventable-death-and-timedependent-mortality)
-    - [Strategic Aeromedical Evacuation and Role 4 Doctrine](#strategic-aeromedical-evacuation-and-role-4-doctrine)
-    - [Mass Casualty Event and MASCAL Simulation](#mass-casualty-event-and-mascal-simulation)
+    - [Strategic Aeromedical Evacuation (AME) and Role 4 Doctrine](#strategic-aeromedical-evacuation-ame-and-role-4-doctrine)
+    - [Mass Casualty Event Simulation](#mass-casualty-event-simulation)
     - [Statistical Methods for Simulation Verification, Replication, and Sensitivity Analysis](#statistical-methods-for-simulation-verification-replication-and-sensitivity-analysis)
     - [Disease and Non-Battle Injury Evidence](#disease-and-nonbattle-injury-evidence)
 - [Scenario Context](#scenario-context)
@@ -183,11 +183,11 @@ A systematic review [[20]](#References) and an account of damage control techniq
 
 An analysis of 4,596 battlefield deaths during Operations Enduring Freedom and Iraqi Freedom [[29]](#References) found that 87.3% resulted from haemorrhage, predominantly within 30–90 minutes of injury; a study of a "golden hour" surgical-capability policy [[30]](#References) found it reduced preventable prehospital death from 32% to 3.5% in a Special Operations context. Together these establish the direct empirical link between time-to-care and survivability that motivates modelling died-of-wounds probability as a function of elapsed time since injury; the logistic curve's shape parameters are anchored to the mortality time-windows these two studies report. The treatment-efficacy multipliers that further modify the died-of-wounds ceiling by care received at each phase are similarly evidence-based rather than estimated outright: a 41% relative mortality reduction from balanced-component damage control resuscitation is reported in [[31]](#References), and the PROMMTT study [[32]](#References) provides the haemorrhage-specific mortality basis used to derive the surgical efficacy factor.
 
-#### Strategic Aeromedical Evacuation and Role 4 Doctrine
+#### Strategic Aeromedical Evacuation (AME) and Role 4 Doctrine
 
-The strategic AME and Role 4 demand model draws on NATO's AJP-4.10 allied joint doctrine for medical support [[33]](#References), which establishes the triage framework, echelon functions, and the Casualty Staging Unit/CCATT-CCAST acuity concepts underpinning the model's critical/standard AME pool split. Role 4 ward assignment and length-of-stay parameters follow the general injury-severity length-of-stay gradient described in the *War Surgery in Afghanistan and Iraq* case series [[34]](#References), applied by informed extension since no open-access source tabulates Role 4 ward assignment by this project's exact category scheme.
+The strategic AME and Role 4 demand model draws on [[33]](#References), which establishes the triage framework, echelon functions, and the Casualty Staging Unit/CCATT-CCAST acuity concepts underpinning the model's critical/standard AME pool split. Role 4 ward assignment and length-of-stay parameters follow the general injury-severity length-of-stay gradient described in [[34]](#References), applied by informed extension since no open-access source tabulates Role 4 ward assignment by this project's exact category scheme.
 
-#### Mass Casualty Event and MASCAL Simulation
+#### Mass Casualty Event Simulation
 
 The compound Poisson mass casualty event mechanism follows the general approach to LSCO casualty-surge simulation described in [[35]](#References), and complements the discrete-event mass-casualty-incident stress-testing precedent of SIMEDIS [[36]](#References), which injects a fixed, deterministic victim count rather than a stochastically varying one. An account of aligning field hospital training with LSCO reality [[37]](#References) informed the blast-dominant triage priority distribution applied to mass-casualty-derived casualties. This same source [[35]](#References) additionally informed the project's transport dead-heading model: tactical vehicle rate-of-march is governed by terrain, threat, and route conditions rather than payload.
 

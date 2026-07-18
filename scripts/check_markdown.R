@@ -176,9 +176,35 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   }
 }
 
+check_no_emoji_headings <- function(file_path) {
+  lines <- readLines(file_path)
+  headings <- grep("^#{1,6} ", lines, value = TRUE)
+
+  # Same character class update_or_check_toc() strips when generating anchors
+  # (\p{So} = Symbol/Other, covers most emoji; \p{Cn} = unassigned code points,
+  # covers emoji not yet classified as symbols in this R build's Unicode data).
+  emoji_headings <- headings[grepl("[\\p{So}\\p{Cn}]", headings, perl = TRUE)]
+
+  if (length(emoji_headings) > 0) {
+    cat(sprintf("Found in %s:\n", file_path))
+    for (h in emoji_headings) cat(sprintf("  - %s\n", trimws(h)))
+    TRUE
+  } else {
+    FALSE
+  }
+}
+
 markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
 
 for (doc in markdown_docs) {
   update_or_check_toc(doc, "replace")
   enforce_return_links(doc, "replace")
+}
+
+emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)
+if (isTRUE(emoji_found)) {
+  cat("⚠️ Headings must not contain emoji or symbol characters — remove them from the heading text above and re-run.\n")
+  quit(status = 1)
+} else {
+  cat("✓ No emoji found in any heading.\n")
 }

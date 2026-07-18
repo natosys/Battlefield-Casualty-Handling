@@ -104,7 +104,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Shiny Application](#shiny-application)
       - [Full Analysis Mode](#full-analysis-mode)
       - [Sensitivity Panel](#sensitivity-panel)
-  - [🔧Simulation Environment Setup](#simulation-environment-setup)
+  - [Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
@@ -1473,7 +1473,7 @@ A **Transport Fleet Capacity Margin Sweep** panel (Issue #57) sits below Sobol D
 
 Wall-clock time scales with r × (p + 1) × reps, where p is the number of screened parameters — as of Issue #112's expansion to 55 parameters (up from 11), the "production configuration" default of r = 20, 5 reps, 30 days is a materially larger run than the ~2–3 hours previously quoted for the eleven-parameter screen (a figure that no longer applies at p = 55). Issue #112's own re-run used a reduced r = 5 at this parameter count (280 design points × 5 reps, 94 minutes total — ≈20 seconds per design point — on 4 cores in that development environment) — actual wall-clock time is hardware-dependent, and a planner intending to run the r = 20 default at p = 55 (1,120 design points × 5 reps, a proportional extrapolation would suggest roughly 6 hours) should budget accordingly, or reduce `r` via the Sensitivity Calibration tab's control. Sobol's default of 200 design points (`n_sobol`, the `sobol2007`/Saltelli 2007 estimator's own default) times (parameters + 2) evaluations is comparable or greater at whatever parameter subset is selected. A quick smoke test (r = 3, 3 reps per point) completes much faster but produces high-uncertainty μ\*/σ estimates — some parameters may show near-zero effect at this scale — and is intended to verify the screening pipeline runs end-to-end, not to draw scientific conclusions from. Download buttons provide the Morris PNGs (all seven tracked KPIs, zipped), the ranked parameter CSV, and the Sobol indices (all evaluated KPIs, zipped).
 
-### 🔧Simulation Environment Setup
+### Simulation Environment Setup
 
 The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
 

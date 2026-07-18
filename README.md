@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This repository contains a Discrete Event Simulation (DES) framework, written in R using the `simmer` package, developed to evaluate resource utilisation and casualty processing within a deployed battlefield medical system under Large Scale Combat Operations (LSCO). Leveraging parameterised inputs published in open-access literature, the simulation models per-minute casualty arrivals, triage, and surgical throughput across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced – Heavy (R2E Heavy) treatment nodes, embedding a three-stage damage control surgery model to reflect treatment pathways and operational constraints.
+This repository contains a Discrete Event Simulation (DES) framework, written in R using the `simmer` package, developed to evaluate resource utilisation and casualty processing within a deployed battlefield medical system under Large Scale Combat Operations (LSCO). Providing baseline parameterised inputs derived from open-access literature, the simulation models per-minute casualty arrivals, triage, and surgical throughput across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced – Heavy (R2E Heavy) treatment nodes, embedding a three-stage damage control surgery model to reflect treatment pathways and operational constraints.
 
 This document is the project's **system reference**: it describes the codebase structure, the literature and doctrinal basis for every modelled algorithm and parameter, the resource and trajectory model (including the R1/R2B/R2E Heavy trajectory flowcharts), the model's known limitations, and the development environment. It does not present simulation results — those are published as two companion analysis documents:
 
@@ -16,37 +16,38 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
-- [📘 Introduction](#-introduction)
-- [📚 Literature Review](#-literature-review)
+- [Introduction](#-introduction)
+- [Literature Review](#-literature-review)
   - [Methodology](#methodology)
   - [Findings](#findings)
     - [Battlefield Casualty Rates and Estimation Models](#battlefield-casualty-rates-and-estimation-models)
     - [Casualty Simulation and DES](#casualty-simulation-and-des)
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
-- [🌍 Scenario Context](#-scenario-context)
-- [🧰 Resource Descriptions](#-resource-descriptions)
-  - [🏥Health Teams](#health-teams)
+- [Scenario Context](#-scenario-context)
+- [Resource Descriptions](#-resource-descriptions)
+  - [Health Teams](#health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
     - [Role 2 Basic (R2B)](#role-2-basic-r2b)
     - [Role 2 Enhanced Heavy (R2E Heavy)](#role-2-enhanced-heavy-r2e-heavy)
-  - [🛏️ Bed Types](#-bed-types)
+  - [Bed Types](#-bed-types)
     - [Operating Theatre (OT)](#operating-theatre-ot)
     - [Resuscitation (Resus) (alternatively Emergency)](#resuscitation-resus-alternatively-emergency)
     - [Intensive Care Unit (ICU)](#intensive-care-unit-icu)
     - [Holding (Hold)](#holding-hold)
-  - [🚑 Transport Assets](#-transport-assets)
+  - [Transport Assets](#-transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
     - [Dead-Heading Return Legs](#deadheading-return-legs)
-- [📊 Environment Data Summary](#-environment-data-summary)
-  - [👥 Population Groups](#-population-groups)
-  - [🚑 Transport Resources](#-transport-resources)
-  - [🏥 Medical Resources](#-medical-resources)
+- [Environment Data Summary](#-environment-data-summary)
+  - [Population Groups](#-population-groups)
+  - [Transport Resources](#-transport-resources)
+  - [Medical Resources](#-medical-resources)
   - [Schedules and Rosters](#schedules-and-rosters)
-- [🤕 Casualties](#-casualties)
+- [Casualties](#-casualties)
   - [Casualty Generation](#casualty-generation)
     - [1. Distribution Parameterisation](#1-distribution-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
@@ -98,7 +99,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Shiny Application](#shiny-application)
       - [Full Analysis Mode](#full-analysis-mode)
       - [Sensitivity Panel](#sensitivity-panel)
-  - [🔧Simulation Environment Setup](#simulation-environment-setup)
+  - [Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
@@ -119,25 +120,26 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Further Development](#further-development)
 - [Conclusion](#conclusion)
 - [References](#references)
-<!-- TOC END -->
+  
+  <!-- TOC END -->
 
 ---
 
-## 📘 Introduction
+## Introduction
 
 <small>[Return to Top](#contents)</small>
 
-Large‑scale combat operations (LSCO) represent the most demanding form of conventional warfare, characterised by high‑tempo, multi‑domain action against peer or near‑peer adversaries. Defined in contemporary doctrine such as extensive joint combat operations conducted at division (and above) scale to achieve strategic objectives, LSCO require the orchestration of manoeuvre, fires, logistics, intelligence, and command across vast, often nonlinear battlespaces [[1]](#References), [[2]](#References). Unlike the western experience in Middle-East conflicts, forces in LSCO will not have guaranteed air superiority, uncontested lines of communication, and predictable casualty flows. LSCO is expected to unfold in contested, degraded, and dynamic operational conditions [[1]](#References), [[2]](#References), [[3]](#References). Historical and contemporary case studies - from the industrial battlefields of the Second World War to recent fighting in Ukraine - demonstrate that such operations generate high casualty densities, impose unprecedented logistical demands, and challenge even the most sophisticated forces’ ability to sustain tempo over time [[2]](#References), [[4]](#References).
+Large‑scale combat operations (LSCO) represent the most demanding form of conventional warfare, characterised by high‑tempo, multi‑domain action against peer or near‑peer adversaries. LSCO require the orchestration of manoeuvre, fires, logistics, intelligence, and command across vast, often nonlinear battlespaces [[1]](#References), [[2]](#References). Unlike the western experience in Middle-East conflicts, forces in LSCO will not have guaranteed air superiority, uncontested lines of communication, and predictable casualty flows. LSCO is expected to unfold in contested, degraded, and dynamic operational conditions [[1]](#References), [[2]](#References), [[3]](#References). Historical and contemporary case studies - from the industrial battlefields of the Second World War to recent fighting in Ukraine - demonstrate that such operations generate high casualty densities, impose unprecedented logistical demands, and challenge even the most sophisticated forces’ ability to sustain tempo over time [[2]](#References), [[4]](#References).
 
-The medical implications of LSCO are profound. Estimates consistently project casualty volumes in the order of 50,000 to 60,000 per 100,000 personnel over a matter of weeks, with thousands of those potentially able to return to duty if treated effectively and without delay [[5]](#References). The deployed health system — encompassing point‑of‑injury care, medical evacuation, forward surgical capabilities, hospitalisation, force health protection, and medical command and control — is therefore not a peripheral service but a critical combat enabler. Its capacity to preserve fighting strength underpins the force’s ability to seize, retain, and exploit the initiative. In LSCO, battlefield clearance must be achieved despite contested airspace and disrupted communications, injury patterns will reflect the lethality of modern munitions, and medical logistics must adapt to disrupted supply chains and fluid front lines.
+The medical implications of LSCO are profound. Estimates consistently project casualty high casualty rates, recent literature suggests that a significant amount of those potentially could and should be able to return to duty (potentially without evacuation from theatre) if treated effectively and without delay [[5]](#References). The deployed health system is therefore not a peripheral service but a critical combat enabler. Its capacity to preserve fighting strength underpins the force’s ability to seize, retain, and exploit the initiative. In LSCO, battlefield clearance must be achieved despite contested airspace and disrupted communications, injury patterns will reflect the lethality of modern munitions, and medical logistics must adapt to disrupted supply chains and fluid front lines.
 
 Yet, existing medical doctrine and force design have evolved largely from counterinsurgency campaigns where operational conditions were comparatively permissive [[5]](#References). In a peer‑conflict LSCO scenario, planners must expect prolonged field care, delays in evacuation, and the need for smaller, more mobile surgical teams positioned closer to the fight [[3]](#References), [[5]](#References). A resilient and agile, deployed health system serves not only to save lives, but to sustain operational momentum and, ultimately, to enable the successful prosecution of the campaign.
 
-This thesis looks to explore the performance of the deployed health system within the through simulation with an eye to understanding its implications for participation in LSCO. By modelling casualty flows, evacuation timelines, treatment capacities, and return‑to‑duty rates, the study seeks to identify key vulnerabilities, and resource requirements. The simulation approach allows for the exploration of scenarios that are difficult to replicate in live exercises, offering evidence‑based insights to refine doctrine, optimise medical force posture, and ensure that health support is adequate for LSCO. In doing so, it contributes to the broader imperative of preparing the force for the realities of high‑intensity warfare in an era of renewed great‑power competition [[6]](#References), [[7]](#References).
+This research looks to explore the performance of the deployed health system through simulation with an eye to understanding its implications for participation in LSCO. The simulation approach allows for the exploration of scenarios that are difficult to replicate in live exercises, offering evidence‑based insights to refine doctrine, optimise medical force posture, and ensure that health support is adequate for LSCO. In doing so, it contributes to the broader imperative of preparing the force for the realities of high‑intensity warfare in an era of renewed great‑power competition [[6]](#References), [[7]](#References).
 
 ---
 
-## 📚 Literature Review
+## Literature Review
 
 ### Methodology
 
@@ -174,7 +176,7 @@ This literature review enabled the design of a model suitable to support the ass
 
 ---
 
-## 🌍 Scenario Context
+## Scenario Context
 
 <small>[Return to Top](#contents)</small>
 
@@ -192,11 +194,11 @@ An [Interactive Diagram](https://www.map.army/?ShareID=1041883&UserType=RO-xOMjf
 
 ---
 
-## 🧰 Resource Descriptions
+## Resource Descriptions
 
 <small>[Return to Top](#contents)</small>
 
-### 🏥Health Teams
+### Health Teams
 
 #### Role 1 (R1) Treatment Team
 
@@ -214,7 +216,7 @@ A R2E Heavy facility delivers advanced surgical and critical care capabilities i
 
 The R2E Heavy is a static field hospital with designed to handle complex trauma, prolonged care, and high casualty volumes—bridging the gap between battlefield stabilization and full hospital-level treatment.
 
-### 🛏️ Bed Types
+### Bed Types
 
 #### Operating Theatre (OT)
 
@@ -260,7 +262,7 @@ They’re often used for:
 
 Holding beds help to maintain patient flow and prevent bottlenecks in critical care areas.
 
-### 🚑 Transport Assets
+### Transport Assets
 
 #### Protected Mobility Vehicle Ambulance (PMV Ambulance)
 
@@ -289,40 +291,41 @@ Return leg duration for all four legs is modelled as a fresh, unconditional tria
 
 ---
 
-## 📊 Environment Data Summary
+## Environment Data Summary
 
 <small>[Return to Top](#contents)</small>
 
 <!-- ENV SUMMARY START -->
+
 <!-- This section is auto-generated. Do not edit manually. -->
 
-### 👥 Population Groups
+### Population Groups
 
 The following population groups are defined in the simulation environment:
 
 | Population | Count |
-|------------|-------|
-| Combat | 2500 |
-| Support | 1250 |
+| ---------- | ----- |
+| Combat     | 2500  |
+| Support    | 1250  |
 
-### 🚑 Transport Resources
+### Transport Resources
 
 These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
-|----------|----------|----------|
-| PMVAMB | 3 | 4 |
-| HX240M | 4 | 50 |
+| -------- | -------- | -------- |
+| PMVAMB   | 3        | 4        |
+| HX240M   | 4        | 50       |
 
-### 🏥 Medical Resources
+### Medical Resources
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
-| Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| R1 | 3 | NA | Medic (3), Nurse (1), Doctor (1) | NA | NA | NA | NA |
-| R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
-| R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
+| Element  | Quantity | Beds                                  | Base                             | Surg                                    | Emerg                           | Icu                        | Evac      |
+| -------- | -------- | ------------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------- | -------------------------- | --------- |
+| R1       | 3        | NA                                    | Medic (3), Nurse (1), Doctor (1) | NA                                      | NA                              | NA                         | NA        |
+| R2B      | 2        | OT (1); Resus (2); ICU (2); Hold (5)  | NA                               | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2)       | Medic (2) |
+| R2EHEAVY | 1        | OT (2); Resus (4); ICU (4); Hold (30) | NA                               | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
 <!-- ENV SUMMARY END -->
 
@@ -332,7 +335,7 @@ Some resource teams have rosters/schedules. Due to the limited size and structur
 
 ---
 
-## 🤕 Casualties
+## Casualties
 
 <small>[Return to Top](#contents)</small>
 
@@ -560,11 +563,11 @@ $$
 
 DNBI casualties are sub-categorised at generation time into three distinct clinical groups, each assigned a differentiated treatment pathway that reflects the substantially different resource demands of each sub-type.
 
-| Sub-category | Proportion | Pathway |
-|---|---|---|
-| Battle fatigue / psychiatric | 25% | R1 hold → RTD. No R2 routing, no surgery candidacy, no DOW check. |
-| Disease (febrile, GI, respiratory) | 58% | R1 treatment → R2B holding if evacuation threshold met. 6% surgical candidacy for emergency conditions (appendicitis, cholecystitis, perforated ulcer). No DOW check. |
-| Non-battle injury (musculoskeletal, accidental) | 17% | Standard WIA-equivalent routing, including DOW check and surgical candidacy. |
+| Sub-category                                    | Proportion | Pathway                                                                                                                                                               |
+| ----------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Battle fatigue / psychiatric                    | 25%        | R1 hold → RTD. No R2 routing, no surgery candidacy, no DOW check.                                                                                                     |
+| Disease (febrile, GI, respiratory)              | 58%        | R1 treatment → R2B holding if evacuation threshold met. 6% surgical candidacy for emergency conditions (appendicitis, cholecystitis, perforated ulcer). No DOW check. |
+| Non-battle injury (musculoskeletal, accidental) | 17%        | Standard WIA-equivalent routing, including DOW check and surgical candidacy.                                                                                          |
 
 The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). The remaining split between battle fatigue and disease is derived from historical LSCO data: Izaguirre et al. (2025) document that psychiatric and battle fatigue cases constitute approximately 25–30% of total DNBI evacuations across conflict periods ([[20]](#References)). With NBI fixed at 17% from [[8]](#References), disease is the residual category, representing approximately 53–58% of total DNBI — rounded to 58% as the central estimate for the model.
 
@@ -652,11 +655,11 @@ where *t* is elapsed minutes since injury, *p_base* is the irreducible DOW proba
 
 ### Parameter Calibration
 
-| Priority | p_base | p_max | k (min⁻¹) | t_mid (min) |
-|---|---|---|---|---|
-| P1 (urgent) | 0.001 | 0.023 | 0.04 | 120 |
-| P2 (priority) | 0.0005 | 0.019 | 0.025 | 180 |
-| P3 (non-urgent) | — | — | flat | 0.001 |
+| Priority        | p_base | p_max | k (min⁻¹) | t_mid (min) |
+| --------------- | ------ | ----- | --------- | ----------- |
+| P1 (urgent)     | 0.001  | 0.023 | 0.04      | 120         |
+| P2 (priority)   | 0.0005 | 0.019 | 0.025     | 180         |
+| P3 (non-urgent) | —      | —     | flat      | 0.001       |
 
 The logistic shape parameters (*k*, *t_mid*) are anchored to the haemorrhagic shock critical window. Eastridge et al. (2012) [[24]](#References) describe the majority of potentially survivable haemorrhagic deaths as occurring within 60–180 minutes post-injury. The inflection point *t_mid* = 120 minutes centres the logistic rise within this window; the P2 inflection is set to 180 minutes, reflecting the lower urgency of the Priority 2 cohort.
 
@@ -690,15 +693,15 @@ dow_ceiling ← dow_ceiling × treatment_efficacy_factor
 
 The *p_base* term is held fixed throughout: it represents non-survivable injuries (non-compressible truncal and junctional haemorrhage, unsurvivable CNS trauma) for which no care can alter the outcome. Only the treatable fraction of the ceiling is reduced.
 
-| Care phase | Factor | Rationale |
-|---|---|---|
-| R1 TCCC | 0.83 | Eastridge et al. (2012) [[24]](#References) identify non-compressible haemorrhage (truncal, junctional) as the mechanism in 90% of potentially preventable battlefield deaths — injuries beyond the scope of TCCC intervention. TCCC skills (tourniquet, wound packing, airway management) address the remaining 10%, yielding a modest 17% ceiling reduction. |
-| R2B DCR (resus) | 0.56 | Braverman et al. (2021) [[28]](#References) report that damage control resuscitation with balanced haemostatic products reduces laparotomy mortality from 22% to 13% — a 41% relative reduction — reflecting the haemostatic benefit of early plasma and platelet administration. |
-| R2B DCS (surgery) | 0.32 | Holcomb et al. (2013) PROMMTT [[29]](#References) reported a 40% overall mortality rate in massively transfused surgical patients, with exsanguination accounting for 33.3% of deaths — approximately 13% haemorrhage-specific post-DCS mortality. This implies a 68% relative reduction from the pre-DCS ceiling, applied as a factor of 0.32. |
-| R2E DCR (resus) | 0.56 | Same factor as R2B DCR [[28]](#References); applied only when full resuscitation occurs at R2E (i.e., the casualty bypassed R2B). Casualties pre-resuscitated at R2B receive a short resus at R2E; this factor is not re-applied, avoiding double-counting the DCR effect. |
-| R2E DCS 1st op | 0.25 | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[28]](#References). |
-| R2E DCS 2nd op | 0.57 | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS. |
-| R2E post-op hold (penalty) | 3.0 | Informed estimate (Issue #43). Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See Post-Operative Checkpoint below. |
+| Care phase                 | Factor | Rationale                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 TCCC                    | 0.83   | Eastridge et al. (2012) [[24]](#References) identify non-compressible haemorrhage (truncal, junctional) as the mechanism in 90% of potentially preventable battlefield deaths — injuries beyond the scope of TCCC intervention. TCCC skills (tourniquet, wound packing, airway management) address the remaining 10%, yielding a modest 17% ceiling reduction. |
+| R2B DCR (resus)            | 0.56   | Braverman et al. (2021) [[28]](#References) report that damage control resuscitation with balanced haemostatic products reduces laparotomy mortality from 22% to 13% — a 41% relative reduction — reflecting the haemostatic benefit of early plasma and platelet administration.                                                                              |
+| R2B DCS (surgery)          | 0.32   | Holcomb et al. (2013) PROMMTT [[29]](#References) reported a 40% overall mortality rate in massively transfused surgical patients, with exsanguination accounting for 33.3% of deaths — approximately 13% haemorrhage-specific post-DCS mortality. This implies a 68% relative reduction from the pre-DCS ceiling, applied as a factor of 0.32.                |
+| R2E DCR (resus)            | 0.56   | Same factor as R2B DCR [[28]](#References); applied only when full resuscitation occurs at R2E (i.e., the casualty bypassed R2B). Casualties pre-resuscitated at R2B receive a short resus at R2E; this factor is not re-applied, avoiding double-counting the DCR effect.                                                                                     |
+| R2E DCS 1st op             | 0.25   | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[28]](#References).                                                                                                                                                                                |
+| R2E DCS 2nd op             | 0.57   | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS.                                                                                                                                     |
+| R2E post-op hold (penalty) | 3.0    | Informed estimate (Issue #43). Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See Post-Operative Checkpoint below.                                                                       |
 
 The cumulative effect on a P1 casualty (initial ceiling = 0.023) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
 
@@ -782,15 +785,15 @@ A distribution family is itself a scenario-specific choice, not just a distribut
 
 Only variables that genuinely differ by battle intensity/historical context are scenario-eligible. Structural configuration — element/bed/team counts (`elms`), transport fleet sizes (`transports`), and population sizes (`pops`) — is never overridden by a scenario profile; these describe the deployed force structure being tested against a scenario, not the scenario itself.
 
-| Parameter group | Scenario-specific? | `moderate_intensity` profile |
-|---|---|---|
-| Casualty generation rates and distribution family (`generators.*`) | Yes | Inherited from base — already Falklands-sourced (FORECAS Table A.8 [[8]](#References), lognormal) |
-| DOW ceiling and shape (`dow.params`) | Yes | **Overridden** — re-calibrated (see below) |
-| DOW treatment efficacy (`dow.treatment_efficacy`) | Yes | **Overridden** — era-appropriate factors (see below) |
-| Priority distribution (`r1.priority`) | Yes | Inherited from base — no Falklands-specific triage data identified |
-| DNBI composition, surgery/evacuation probabilities (`r1.other`) | Yes | Inherited from base — already Falklands/FORECAS-sourced where cited |
-| Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Yes | Inherited from base — no Falklands-specific transport-time source identified |
-| Element/bed/team counts, transport fleet sizes, population sizes | No (structural) | Not scenario-eligible |
+| Parameter group                                                     | Scenario-specific? | `moderate_intensity` profile                                                                      |
+| ------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------- |
+| Casualty generation rates and distribution family (`generators.*`)  | Yes                | Inherited from base — already Falklands-sourced (FORECAS Table A.8 [[8]](#References), lognormal) |
+| DOW ceiling and shape (`dow.params`)                                | Yes                | **Overridden** — re-calibrated (see below)                                                        |
+| DOW treatment efficacy (`dow.treatment_efficacy`)                   | Yes                | **Overridden** — era-appropriate factors (see below)                                              |
+| Priority distribution (`r1.priority`)                               | Yes                | Inherited from base — no Falklands-specific triage data identified                                |
+| DNBI composition, surgery/evacuation probabilities (`r1.other`)     | Yes                | Inherited from base — already Falklands/FORECAS-sourced where cited                               |
+| Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Yes                | Inherited from base — no Falklands-specific transport-time source identified                      |
+| Element/bed/team counts, transport fleet sizes, population sizes    | No (structural)    | Not scenario-eligible                                                                             |
 
 "Inherited from base" is a deliberate choice, not an oversight: restating identical values under the scenario key would duplicate a second source of truth with no behavioural effect. Where the base value is not actually Falklands-specific (transport time distributions, priority distribution), this is recorded as a limitation below rather than silently assumed correct.
 
@@ -798,13 +801,13 @@ Only variables that genuinely differ by battle intensity/historical context are 
 
 The `moderate_intensity` profile overrides `dow.params` and `dow.treatment_efficacy` to disentangle the co-dependence flagged in the [Parameter Calibration](#parameter-calibration) MODEL ASSUMPTION block.
 
-| Factor | Base (OIF/OEF-era) | `moderate_intensity` | Rationale |
-|---|---|---|---|
-| R1 TCCC | 0.83 | 1.0 | TCCC is a post-1990s doctrine [[24]](#References); no equivalent tourniquet-forward/haemostatic-dressing prehospital doctrine is documented for 1982 British forces in the available sources. No additional ceiling reduction is attributed to this checkpoint. |
-| R2B / R2E resuscitation | 0.56 | 0.90 | Braverman et al.'s (2021) [[28]](#References) 0.56 factor is specific to balanced-component damage control resuscitation. A modest benefit from whole-blood/crystalloid resuscitation (available in 1982) is retained; the specific balanced-ratio benefit is not. |
-| R2B DCS / R2E DCS 1st op | 0.32 / 0.25 | 0.55 | Payne (1983) [[26]](#References) records near-zero post-operative mortality among casualties who reached the Ajax Bay Advanced Surgical Centre, so definitive surgical intervention itself is retained as materially protective; the more aggressive modern factors reflect additional staged damage-control/haemostatic-adjunct technique not available in 1982. |
-| R2E DCS 2nd op | 0.57 | 0.80 | Era-appropriate weakening of the (already informed-estimate) second-operation factor, consistent with the same reasoning as the first operation. |
-| R2E post-op hold penalty | 3.0 | 3.0 (unchanged) | A within-era relative degradation factor (ICU vs. non-ICU recovery), not a period-specific treatment technology; not scenario-eligible. |
+| Factor                   | Base (OIF/OEF-era) | `moderate_intensity` | Rationale                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------ | ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 TCCC                  | 0.83               | 1.0                  | TCCC is a post-1990s doctrine [[24]](#References); no equivalent tourniquet-forward/haemostatic-dressing prehospital doctrine is documented for 1982 British forces in the available sources. No additional ceiling reduction is attributed to this checkpoint.                                                                                                   |
+| R2B / R2E resuscitation  | 0.56               | 0.90                 | Braverman et al.'s (2021) [[28]](#References) 0.56 factor is specific to balanced-component damage control resuscitation. A modest benefit from whole-blood/crystalloid resuscitation (available in 1982) is retained; the specific balanced-ratio benefit is not.                                                                                                |
+| R2B DCS / R2E DCS 1st op | 0.32 / 0.25        | 0.55                 | Payne (1983) [[26]](#References) records near-zero post-operative mortality among casualties who reached the Ajax Bay Advanced Surgical Centre, so definitive surgical intervention itself is retained as materially protective; the more aggressive modern factors reflect additional staged damage-control/haemostatic-adjunct technique not available in 1982. |
+| R2E DCS 2nd op           | 0.57               | 0.80                 | Era-appropriate weakening of the (already informed-estimate) second-operation factor, consistent with the same reasoning as the first operation.                                                                                                                                                                                                                  |
+| R2E post-op hold penalty | 3.0                | 3.0 (unchanged)      | A within-era relative degradation factor (ICU vs. non-ICU recovery), not a period-specific treatment technology; not scenario-eligible.                                                                                                                                                                                                                           |
 
 > **MODEL ASSUMPTION — FALKLANDS-ERA TREATMENT EFFICACY:** The `moderate_intensity` treatment efficacy factors are informed estimates, not literature-derived values — no open-access source quantifies 1982 British field-surgical efficacy in the same multiplicative-ceiling terms used by this model. They were constructed by reasoning from the absence of specific modern techniques (TCCC, balanced DCR, staged DCS) documented in [[24]](#References), [[28]](#References), [[29]](#References), while preserving Payne's (1983) [[26]](#References) and Jolly's (2018) [[27]](#References) evidence that 1982 field surgery itself was highly effective for casualties who reached it.
 > **Basis:** Payne (1983) [[26]](#References); Jolly (2018) [[27]](#References); absence of a documented equivalent to [[24]](#References), [[28]](#References), [[29]](#References) for the 1982 conflict.
@@ -813,11 +816,11 @@ The `moderate_intensity` profile overrides `dow.params` and `dow.treatment_effic
 
 With these weaker factors, `dow.params` was re-calibrated (the same iterative Monte Carlo procedure used for the base configuration in Issue #5) to reproduce the same 0.52% DOW/WIA historical target: `p1_p_max` = 0.0089, `p2_p_max` = 0.0074 (down from the base 0.023 / 0.019 — a lower ceiling is required to compensate for the weaker treatment efficacy factors' smaller ceiling reduction). A 30-replication run (30 days, `seed = NULL`) of `moderate_intensity` produced:
 
-| Metric | `moderate_intensity` (30-rep) | Historical target |
-|---|---|---|
-| Mean DOW/run | 0.767 (95% CI [0.431, 1.102]) | 0.80 (= 0.52% × 154 baseline WIA) |
-| DOW/WIA rate | 0.498% (95% CI [0.280%, 0.715%]) | 0.52% [[26]](#References), [[27]](#References) |
-| KIA:WIA ratio | 0.452 | 0.328 (255 KIA : 777 WIA [[27]](#References)) |
+| Metric        | `moderate_intensity` (30-rep)    | Historical target                              |
+| ------------- | -------------------------------- | ---------------------------------------------- |
+| Mean DOW/run  | 0.767 (95% CI [0.431, 1.102])    | 0.80 (= 0.52% × 154 baseline WIA)              |
+| DOW/WIA rate  | 0.498% (95% CI [0.280%, 0.715%]) | 0.52% [[26]](#References), [[27]](#References) |
+| KIA:WIA ratio | 0.452                            | 0.328 (255 KIA : 777 WIA [[27]](#References))  |
 
 The DOW/WIA rate is within the ±2 percentage point acceptance tolerance (well within it — the 95% CI spans the historical target). The KIA:WIA ratio is a pre-existing characteristic of the base casualty generator calibration (Issue #1), not something this issue's DOW/treatment-efficacy disentanglement changes — the FORECAS-derived `kia_cbt`/`wia_cbt` generation rates that both `default` and `moderate_intensity` inherit already produce this ratio under the current lognormal-cap generation mechanism, before any scenario override is applied. See Limitations (L12).
 
@@ -838,11 +841,11 @@ DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition
 
 A 30-replication run (30 days) of each produced:
 
-| Metric | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
-|---|---|---|
-| Mean WIA/run | 154.0 | 733.0 |
-| Mean KIA/run | 69.6 | 173.4 |
-| WIA+KIA ratio vs. `moderate_intensity` | 1.00× | 4.05× |
+| Metric                                 | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
+| -------------------------------------- | ----------------------------- | ------------------------- |
+| Mean WIA/run                           | 154.0                         | 733.0                     |
+| Mean KIA/run                           | 69.6                          | 173.4                     |
+| WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 4.05×                     |
 
 These figures use `generate_exp_arrivals()`'s mean-relative rate cap (`cap = 3 × mean_daily`, see [Casualty Generation](#casualty-generation)); an earlier version of this profile used the same fixed absolute cap as the lognormal streams, which truncated ~48% of `high_intensity` WIA draws and understated the WIA count by nearly half.
 
@@ -866,15 +869,16 @@ A Dev Container specification in `.devcontainer/` defines a reproducible Linux R
 
 ### Prerequisites
 
-| Requirement | Notes |
-|---|---|
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Provides the container runtime. Enable "Use the WSL 2 based engine" on Windows. |
-| [VS Code](https://code.visualstudio.com/) | Host IDE used to manage the container lifecycle. |
+| Requirement                                                                                                        | Notes                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/)                                                  | Provides the container runtime. Enable "Use the WSL 2 based engine" on Windows.                       |
+| [VS Code](https://code.visualstudio.com/)                                                                          | Host IDE used to manage the container lifecycle.                                                      |
 | [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | VS Code extension (`ms-vscode-remote.remote-containers`) that adds the "Reopen in Container" command. |
 
 ### First-time setup
 
 1. Clone the repository to the local machine:
+   
    ```sh
    git clone https://github.com/natosys/Battlefield-Casualty-Handling.git
    cd Battlefield-Casualty-Handling
@@ -902,15 +906,19 @@ renv::restore()
 After connecting to RStudio Server at `http://localhost:8787`:
 
 1. Set the working directory to the workspace mount point:
+   
    ```r
    setwd("/home/rstudio/workspace")
    ```
+   
    This can be made permanent via **Tools → Global Options → General → Default working directory**.
 2. Verify the parallel core configuration:
+   
    ```r
    parallel::detectCores(logical = FALSE)  # should return > 2 on a multi-core host
    getOption("mc.cores")                   # should match the above
    ```
+   
    Both values are set automatically by `Rprofile.site` during the image build; no per-session configuration is required.
 
 ### Running the simulation with full parallelism
@@ -946,31 +954,31 @@ The simulation is built as a Discrete Event Simulation (DES), it is written in R
 
 The codebase is organised into a modular layout under an `R/` directory, with a single CLI entry point (`run.R`). The split allows each module to be tested and extended independently, and provides a clear separation between data loading, simulation logic, execution, and analysis.
 
-| File / Directory | Purpose |
-|---|---|
-| `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
-| `R/environment.R` | Data import (`load_elms`, `build_environment`), arrival generation (`generate_ln_arrivals`), and simmer environment construction (`build_env`) |
-| `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
-| `R/replication.R` | Multi-run replication framework — `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), `summarise_replications` (time-weighted KPI summary with 95% CI), and `run_single` backwards-compat shim |
-| `R/analysis.R` | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths |
-| `R/sensitivity.R` | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`) — parameter bounds table, `apply_params` for env_data override, `eval_params` for single design-point evaluation |
-| `R/warmup.R` | Welch warm-up analysis — `compute_welch_cma`, `plot_welch`, `run_welch_analysis`; `WARM_UP_DAYS` constant |
-| `R/app_params.R` | Parameter registry for the Shiny Configure panel (Issue #14) — plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
-| `R/scenario.R` | Named scenario profile definitions (e.g. `moderate_intensity`, `high_intensity`) and the override logic applied on top of the base `env_data.json` |
-| `R/scenario_runner.R` | Comparative scenario runner — `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
-| `app.R` | Shiny app — Getting Started/Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
-| `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
-| `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
-| `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
-| `scripts/run_transport_sweep.R` | CLI entry point for the transport fleet-size sweep (see Issue #57 in [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) |
-| `scripts/shiny_worker.R` | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session |
-| `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
-| `scripts/check_markdown.R` | Maintains this README's table of contents and numbered reference links |
-| `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep`, gitignored otherwise |
-| `data/` | Read-only input data plus a small set of diagnostic/event files regenerated at run time (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv` — Issue #9) |
-| `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of PRs that shift the RNG stream or simulation outputs |
-| `logs/` | Tracked seed-42 baseline console log (`logs.txt`) |
-| `docs/` | Project documentation — action plan, task-role allocation supplement, the R code style guide, and the in-app Getting Started guide (`Getting_Started.md`, Issue #115, also rendered inside `app.R`'s Getting Started tab) |
+| File / Directory                   | Purpose                                                                                                                                                                                                                                                   |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run.R`                            | CLI entry point — parses arguments, orchestrates modules, and writes outputs                                                                                                                                                                              |
+| `R/environment.R`                  | Data import (`load_elms`, `build_environment`), arrival generation (`generate_ln_arrivals`), and simmer environment construction (`build_env`)                                                                                                            |
+| `R/trajectories.R`                 | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow                                                                                                                                                                              |
+| `R/replication.R`                  | Multi-run replication framework — `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), `summarise_replications` (time-weighted KPI summary with 95% CI), and `run_single` backwards-compat shim |
+| `R/analysis.R`                     | Analysis and visualisation pipeline (`analyse_run`) — accepts monitoring data objects rather than reading from hardcoded CSV paths                                                                                                                        |
+| `R/sensitivity.R`                  | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`) — parameter bounds table, `apply_params` for env_data override, `eval_params` for single design-point evaluation                                                        |
+| `R/warmup.R`                       | Welch warm-up analysis — `compute_welch_cma`, `plot_welch`, `run_welch_analysis`; `WARM_UP_DAYS` constant                                                                                                                                                 |
+| `R/app_params.R`                   | Parameter registry for the Shiny Configure panel (Issue #14) — plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable                                          |
+| `R/scenario.R`                     | Named scenario profile definitions (e.g. `moderate_intensity`, `high_intensity`) and the override logic applied on top of the base `env_data.json`                                                                                                        |
+| `R/scenario_runner.R`              | Comparative scenario runner — `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile                                                                                                           |
+| `app.R`                            | Shiny app — Getting Started/Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below)                                                                                                                                             |
+| `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags                                                                                                                                             |
+| `scripts/run_warmup.R`             | CLI entry point for Welch warm-up analysis                                                                                                                                                                                                                |
+| `scripts/run_scenarios.R`          | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner))                                                                                                                                     |
+| `scripts/run_transport_sweep.R`    | CLI entry point for the transport fleet-size sweep (see Issue #57 in [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin))                                                                                      |
+| `scripts/shiny_worker.R`           | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session                                                                                                                            |
+| `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json`                                                                                                                                                   |
+| `scripts/check_markdown.R`         | Maintains this README's table of contents and numbered reference links                                                                                                                                                                                    |
+| `outputs/`                         | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep`, gitignored otherwise                                                                                                                                     |
+| `data/`                            | Read-only input data plus a small set of diagnostic/event files regenerated at run time (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv` — Issue #9)                                                                           |
+| `images/`                          | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of PRs that shift the RNG stream or simulation outputs                                                                                                                         |
+| `logs/`                            | Tracked seed-42 baseline console log (`logs.txt`)                                                                                                                                                                                                         |
+| `docs/`                            | Project documentation — action plan, task-role allocation supplement, the R code style guide, and the in-app Getting Started guide (`Getting_Started.md`, Issue #115, also rendered inside `app.R`'s Getting Started tab)                                 |
 
 #### Running the simulation
 
@@ -1058,85 +1066,85 @@ Fifty-three parameters are screened, spanning the main uncertain inputs across a
 
 **R1 — Forward Aid Post**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| R1→R2B transport time | `r1_transport` | 30 min | 15 | 45 | A |
-| WIA treatment time | `r1_wia_treat_mode` | 20 min | 12 | 28 | A |
-| Battle fatigue hold duration | `r1_recovery_mode` | 2880 min | 1440 | 5760 | B |
-| P1 surgical candidacy | `pri1_surg_prob` | 90% | 70% | 98% | A |
-| P2 surgical candidacy | `pri2_surg_prob` | 80% | 55% | 95% | B |
-| P3 DNBI surgical candidacy | `pri3_dnbi_surg_prob` | 40% | 15% | 55% | B |
-| P3 other surgical candidacy | `pri3_other_surg_prob` | 60% | 35% | 75% | B |
-| Disease DNBI surgical candidacy | `disease_surgery_pct` | 6% | 3% | 12% | B |
-| P1 strategic evacuation rate | `pri1_evac_prob` | 95% | 70% | 99% | B |
-| P2 strategic evacuation rate | `pri2_evac_prob` | 90% | 65% | 98% | B |
+| Parameter                       | Variable               | Baseline | Lower | Upper | Rule |
+| ------------------------------- | ---------------------- | -------- | ----- | ----- | ---- |
+| R1→R2B transport time           | `r1_transport`         | 30 min   | 15    | 45    | A    |
+| WIA treatment time              | `r1_wia_treat_mode`    | 20 min   | 12    | 28    | A    |
+| Battle fatigue hold duration    | `r1_recovery_mode`     | 2880 min | 1440  | 5760  | B    |
+| P1 surgical candidacy           | `pri1_surg_prob`       | 90%      | 70%   | 98%   | A    |
+| P2 surgical candidacy           | `pri2_surg_prob`       | 80%      | 55%   | 95%   | B    |
+| P3 DNBI surgical candidacy      | `pri3_dnbi_surg_prob`  | 40%      | 15%   | 55%   | B    |
+| P3 other surgical candidacy     | `pri3_other_surg_prob` | 60%      | 35%   | 75%   | B    |
+| Disease DNBI surgical candidacy | `disease_surgery_pct`  | 6%       | 3%    | 12%   | B    |
+| P1 strategic evacuation rate    | `pri1_evac_prob`       | 95%      | 70%   | 99%   | B    |
+| P2 strategic evacuation rate    | `pri2_evac_prob`       | 90%      | 65%   | 98%   | B    |
 
 **R2B — Battalion Aid Post**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| Surgery duration (shared R2B/R2E) | `surg_mode` | 120 min | 90 | 150 | A |
-| Long resuscitation duration (shared) | `long_resus_mode` | 45 min | 25 | 70 | A |
-| R2B→R2E transport time | `r2b_transport` | 30 min | 15 | 45 | A |
-| Holding bed duration | `r2b_hold_mode` | 7200 min | 3600 | 14400 | B |
-| Hold-bed reroute threshold | `r2b_hold_threshold` | 80% | 60% | 95% | B |
+| Parameter                            | Variable             | Baseline | Lower | Upper | Rule |
+| ------------------------------------ | -------------------- | -------- | ----- | ----- | ---- |
+| Surgery duration (shared R2B/R2E)    | `surg_mode`          | 120 min  | 90    | 150   | A    |
+| Long resuscitation duration (shared) | `long_resus_mode`    | 45 min   | 25    | 70    | A    |
+| R2B→R2E transport time               | `r2b_transport`      | 30 min   | 15    | 45    | A    |
+| Holding bed duration                 | `r2b_hold_mode`      | 7200 min | 3600  | 14400 | B    |
+| Hold-bed reroute threshold           | `r2b_hold_threshold` | 80%      | 60%   | 95%   | B    |
 
 **R2E — Field Hospital**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| Long ICU duration | `long_icu_mode` | 1440 min | 770 | 2160 | A |
-| Short resuscitation duration | `short_resus_mode` | 28 min | 17 | 39 | A |
-| Short ICU duration | `short_icu_mode` | 60 min | 36 | 84 | B |
-| Holding bed duration | `r2e_hold_mode` | 12960 min | 7800 | 18150 | A |
-| Post-op holding-bed duration | `post_op_hold_mode` | 600 min | 380 | 1200 | B |
-| In-theatre recovery rate | `in_theatre_rate` | 10% | 5% | 20% | A |
-| Post-surgery full-recovery rate | `post_surgery_prob` | 75% | 55% | 95% | B |
-| OT shift duration | `ot_hours` | 12 hr | 8 | 16 | A |
+| Parameter                       | Variable            | Baseline  | Lower | Upper | Rule |
+| ------------------------------- | ------------------- | --------- | ----- | ----- | ---- |
+| Long ICU duration               | `long_icu_mode`     | 1440 min  | 770   | 2160  | A    |
+| Short resuscitation duration    | `short_resus_mode`  | 28 min    | 17    | 39    | A    |
+| Short ICU duration              | `short_icu_mode`    | 60 min    | 36    | 84    | B    |
+| Holding bed duration            | `r2e_hold_mode`     | 12960 min | 7800  | 18150 | A    |
+| Post-op holding-bed duration    | `post_op_hold_mode` | 600 min   | 380   | 1200  | B    |
+| In-theatre recovery rate        | `in_theatre_rate`   | 10%       | 5%    | 20%   | A    |
+| Post-surgery full-recovery rate | `post_surgery_prob` | 75%       | 55%   | 95%   | B    |
+| OT shift duration               | `ot_hours`          | 12 hr     | 8     | 16    | A    |
 
 **Died of Wounds — logistic curve and treatment efficacy**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| P1 DOW max probability | `p1_p_max` | 2.3% | 1.15% | 4.6% | A |
-| P1 DOW base probability | `p1_p_base` | 0.1% | 0.05% | 0.2% | A |
-| P1 logistic steepness | `p1_k` | 0.04 | 0.024 | 0.056 | A |
-| P1 logistic midpoint | `p1_t_mid` | 120 min | 72 | 168 | A |
-| P2 DOW max probability | `p2_p_max` | 1.9% | 0.95% | 3.8% | A |
-| P2 DOW base probability | `p2_p_base` | 0.05% | 0.025% | 0.1% | A |
-| P2 logistic steepness | `p2_k` | 0.025 | 0.015 | 0.035 | A |
-| P2 logistic midpoint | `p2_t_mid` | 180 min | 108 | 252 | A |
-| P3 flat DOW probability | `p3_flat` | 0.1% | 0.05% | 0.2% | B |
-| R1 TCCC efficacy factor | `r1_tccc_factor` | 0.83 | 0.68 | 0.98 | A |
-| R2B/R2E DCR (resus) efficacy factor | `r2b_resus_factor` / `r2e_resus_factor` | 0.56 | 0.41 | 0.71 | A |
-| R2B DCS efficacy factor | `r2b_dcs_factor` | 0.32 | 0.17 | 0.47 | A |
-| R2E DCS 1st-op efficacy factor | `r2e_dcs1_factor` | 0.25 | 0.10 | 0.40 | A |
-| R2E DCS 2nd-op efficacy factor | `r2e_dcs2_factor` | 0.57 | 0.42 | 0.72 | B |
-| R2E post-op hold penalty | `r2e_postop_hold_penalty` | 3.0× | 1.5 | 6.0 | B |
+| Parameter                           | Variable                                | Baseline | Lower  | Upper | Rule |
+| ----------------------------------- | --------------------------------------- | -------- | ------ | ----- | ---- |
+| P1 DOW max probability              | `p1_p_max`                              | 2.3%     | 1.15%  | 4.6%  | A    |
+| P1 DOW base probability             | `p1_p_base`                             | 0.1%     | 0.05%  | 0.2%  | A    |
+| P1 logistic steepness               | `p1_k`                                  | 0.04     | 0.024  | 0.056 | A    |
+| P1 logistic midpoint                | `p1_t_mid`                              | 120 min  | 72     | 168   | A    |
+| P2 DOW max probability              | `p2_p_max`                              | 1.9%     | 0.95%  | 3.8%  | A    |
+| P2 DOW base probability             | `p2_p_base`                             | 0.05%    | 0.025% | 0.1%  | A    |
+| P2 logistic steepness               | `p2_k`                                  | 0.025    | 0.015  | 0.035 | A    |
+| P2 logistic midpoint                | `p2_t_mid`                              | 180 min  | 108    | 252   | A    |
+| P3 flat DOW probability             | `p3_flat`                               | 0.1%     | 0.05%  | 0.2%  | B    |
+| R1 TCCC efficacy factor             | `r1_tccc_factor`                        | 0.83     | 0.68   | 0.98  | A    |
+| R2B/R2E DCR (resus) efficacy factor | `r2b_resus_factor` / `r2e_resus_factor` | 0.56     | 0.41   | 0.71  | A    |
+| R2B DCS efficacy factor             | `r2b_dcs_factor`                        | 0.32     | 0.17   | 0.47  | A    |
+| R2E DCS 1st-op efficacy factor      | `r2e_dcs1_factor`                       | 0.25     | 0.10   | 0.40  | A    |
+| R2E DCS 2nd-op efficacy factor      | `r2e_dcs2_factor`                       | 0.57     | 0.42   | 0.72  | B    |
+| R2E post-op hold penalty            | `r2e_postop_hold_penalty`               | 3.0×     | 1.5    | 6.0   | B    |
 
 **Casualty Generation Rates**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| WIA — combat, mean daily rate | `wia_cbt_mean` | 1.77 | 1.06 | 2.48 | A |
-| KIA — combat, mean daily rate | `kia_cbt_mean` | 0.68 | 0.41 | 0.95 | A |
-| DNBI — combat, mean daily rate | `dnbi_cbt_mean` | 2.04 | 1.22 | 2.86 | A |
-| WIA — support, mean daily rate | `wia_spt_mean` | 1.77 | 1.06 | 2.48 | A |
-| KIA — support, mean daily rate | `kia_spt_mean` | 0.68 | 0.41 | 0.95 | A |
-| DNBI — support, mean daily rate | `dnbi_spt_mean` | 0.94 | 0.56 | 1.32 | A |
+| Parameter                       | Variable        | Baseline | Lower | Upper | Rule |
+| ------------------------------- | --------------- | -------- | ----- | ----- | ---- |
+| WIA — combat, mean daily rate   | `wia_cbt_mean`  | 1.77     | 1.06  | 2.48  | A    |
+| KIA — combat, mean daily rate   | `kia_cbt_mean`  | 0.68     | 0.41  | 0.95  | A    |
+| DNBI — combat, mean daily rate  | `dnbi_cbt_mean` | 2.04     | 1.22  | 2.86  | A    |
+| WIA — support, mean daily rate  | `wia_spt_mean`  | 1.77     | 1.06  | 2.48  | A    |
+| KIA — support, mean daily rate  | `kia_spt_mean`  | 0.68     | 0.41  | 0.95  | A    |
+| DNBI — support, mean daily rate | `dnbi_spt_mean` | 0.94     | 0.56  | 1.32  | A    |
 
 **Mass Casualty, Force Regeneration, Strategic AME**
 
-| Parameter | Variable | Baseline | Lower | Upper | Rule |
-|---|---|---|---|---|---|
-| Mass casualty event rate | `mass_casualty_rate` | 0/day | 0 | 0.4 | B |
-| Mass casualty size — maximum | `mass_casualty_max_cas` | 60 | 40 | 80 | B |
-| Mass casualty size — minimum | `mass_casualty_min_cas` | 20 | 10 | 30 | B |
-| Reinforcement demand cycle | `fr_demand_interval_days` | 0 (disabled) | 0 | 14 | B |
-| Reinforcement fulfillment lag | `fr_fulfillment_lag_days` | 7 days | 4 | 14 | B |
-| Reinforcement fill distribution mode | `fr_fill_mode_frac` | 0.85 | 0.5 | 1.05 | B |
-| AME sortie interval | `ame_schedule_interval_days` | 7 days | 4 | 14 | B |
-| AME sortie cancellation probability | `ame_failure_probability` | 15% | 8% | 30% | B |
+| Parameter                            | Variable                     | Baseline     | Lower | Upper | Rule |
+| ------------------------------------ | ---------------------------- | ------------ | ----- | ----- | ---- |
+| Mass casualty event rate             | `mass_casualty_rate`         | 0/day        | 0     | 0.4   | B    |
+| Mass casualty size — maximum         | `mass_casualty_max_cas`      | 60           | 40    | 80    | B    |
+| Mass casualty size — minimum         | `mass_casualty_min_cas`      | 20           | 10    | 30    | B    |
+| Reinforcement demand cycle           | `fr_demand_interval_days`    | 0 (disabled) | 0     | 14    | B    |
+| Reinforcement fulfillment lag        | `fr_fulfillment_lag_days`    | 7 days       | 4     | 14    | B    |
+| Reinforcement fill distribution mode | `fr_fill_mode_frac`          | 0.85         | 0.5   | 1.05  | B    |
+| AME sortie interval                  | `ame_schedule_interval_days` | 7 days       | 4     | 14    | B    |
+| AME sortie cancellation probability  | `ame_failure_probability`    | 15%          | 8%    | 30%   | B    |
 
 #### Parameters Excluded from Screening
 
@@ -1164,61 +1172,61 @@ A tenth parameter, the dead-heading return-leg multiplier (`return_leg_multiplie
 
 The grouped tables above and the ranking table below use each parameter's raw `morris_params$name` (the identifier that also appears in `outputs/morris_ranking.csv`, in `R/sensitivity.R`'s `apply_params()`, and on the axis labels of every saved `images/morris_*.png` plot). The table below maps all fifty-three variable names to their plain-English title and category (Issue #112 third follow-up, updated by a fourth follow-up that corrected `post_surgery_prob`'s category and removed two polling-interval parameters from screening — see [Parameters Excluded from Screening](#parameters-excluded-from-screening) above), sorted alphabetically by variable for quick lookup when cross-referencing a code seen in a CSV or plot back to what it means — the same mapping (`MORRIS_LABELS`, `app.R`) drives the Shiny app's Sensitivity Calibration table and ranking table, so the two stay in sync by construction rather than by separately-maintained copies.
 
-| Variable | Title | Category |
-|---|---|---|
-| `ame_failure_probability` | AME Sortie Cancellation Probability | Scenario / Casualty Context |
-| `ame_schedule_interval_days` | AME Sortie Interval (Days) | Health System Design - Policy |
-| `disease_surgery_pct` | Disease Surgical Candidacy | Scenario / Casualty Context |
-| `dnbi_cbt_mean` | DNBI — Combat Mean Daily Rate | Scenario / Casualty Context |
-| `dnbi_spt_mean` | DNBI — Support Mean Daily Rate | Scenario / Casualty Context |
-| `fr_demand_interval_days` | Reinforcement Demand Cycle (Days) | Health System Design - Policy |
-| `fr_fill_mode_frac` | Reinforcement Fill Distribution (Mode) | Health System Design - Policy |
-| `fr_fulfillment_lag_days` | Reinforcement Fulfillment Lag (Days) | Health System Design - Policy |
-| `in_theatre_rate` | In-Theatre Recovery Rate | Health System Design - Policy |
-| `kia_cbt_mean` | KIA — Combat Mean Daily Rate | Scenario / Casualty Context |
-| `kia_spt_mean` | KIA — Support Mean Daily Rate | Scenario / Casualty Context |
-| `long_icu_mode` | Long ICU Stay (Mode) | Health System Design - Capacity |
-| `long_resus_mode` | Long Resuscitation Duration (Mode) | Health System Design - Capacity |
-| `mass_casualty_max_cas` | Mass Casualty Event Size (Maximum) | Scenario / Casualty Context |
-| `mass_casualty_min_cas` | Mass Casualty Event Size (Minimum) | Scenario / Casualty Context |
-| `mass_casualty_rate` | Mass Casualty Event Rate (per day) | Scenario / Casualty Context |
-| `ot_hours` | OT Shift Length (Hours per Shift) | Health System Design - Policy |
-| `p1_k` | Priority 1 DOW Logistic Steepness | Scenario / Casualty Context |
-| `p1_p_base` | Priority 1 DOW Base Probability | Scenario / Casualty Context |
-| `p1_p_max` | Priority 1 DOW Ceiling | Scenario / Casualty Context |
-| `p1_t_mid` | Priority 1 DOW Logistic Midpoint | Scenario / Casualty Context |
-| `p2_k` | Priority 2 DOW Logistic Steepness | Scenario / Casualty Context |
-| `p2_p_base` | Priority 2 DOW Base Probability | Scenario / Casualty Context |
-| `p2_p_max` | Priority 2 DOW Ceiling | Scenario / Casualty Context |
-| `p2_t_mid` | Priority 2 DOW Logistic Midpoint | Scenario / Casualty Context |
-| `p3_flat` | Priority 3 Flat DOW Probability | Scenario / Casualty Context |
-| `post_op_hold_mode` | R2E Post-Op Holding-Bed Duration (Mode) | Health System Design - Capacity |
-| `post_surgery_prob` | R2E Post-Surgery Full-Recovery Rate | Scenario / Casualty Context |
-| `pri1_evac_prob` | Priority 1 Strategic Evacuation Rate | Scenario / Casualty Context |
-| `pri1_surg_prob` | Priority 1 Surgical Candidacy | Scenario / Casualty Context |
-| `pri2_evac_prob` | Priority 2 Strategic Evacuation Rate | Scenario / Casualty Context |
-| `pri2_surg_prob` | Priority 2 Surgical Candidacy | Scenario / Casualty Context |
-| `pri3_dnbi_surg_prob` | Priority 3 DNBI Surgical Candidacy | Scenario / Casualty Context |
-| `pri3_other_surg_prob` | Priority 3 Other Surgical Candidacy | Scenario / Casualty Context |
-| `r1_recovery_mode` | R1 Battle Fatigue Hold Duration (Mode) | Health System Design - Capacity |
-| `r1_tccc_factor` | R1 TCCC Efficacy Factor | Scenario / Casualty Context |
-| `r1_transport` | R1 Transport Time (Mode) | Scenario / Casualty Context |
-| `r1_wia_treat_mode` | R1 WIA Treatment Time (Mode) | Health System Design - Capacity |
-| `r2b_dcs_factor` | R2B DCS Efficacy Factor | Scenario / Casualty Context |
-| `r2b_hold_mode` | R2B Holding Bed Duration (Mode) | Health System Design - Capacity |
-| `r2b_hold_threshold` | R2B Hold-Bed Reroute Threshold | Health System Design - Policy |
-| `r2b_resus_factor` | R2B/R2E DCR (Resus) Efficacy Factor | Scenario / Casualty Context |
-| `r2b_transport` | R2B Transport Time (Mode) | Scenario / Casualty Context |
-| `r2e_dcs1_factor` | R2E DCS 1st-Op Efficacy Factor | Scenario / Casualty Context |
-| `r2e_dcs2_factor` | R2E DCS 2nd-Op Efficacy Factor | Scenario / Casualty Context |
-| `r2e_hold_mode` | R2E Holding Bed Duration (Mode) | Health System Design - Capacity |
-| `r2e_postop_hold_penalty` | R2E Post-Op Hold DOW Penalty (Multiplier) | Scenario / Casualty Context |
-| `r2e_resus_factor` | R2E DCR (Resus) Efficacy Factor | Scenario / Casualty Context |
-| `short_icu_mode` | R2E Short ICU Stay (Mode) | Health System Design - Capacity |
-| `short_resus_mode` | R2E Short Resuscitation Duration (Mode) | Health System Design - Capacity |
-| `surg_mode` | Surgery Duration (Mode) | Health System Design - Capacity |
-| `wia_cbt_mean` | WIA — Combat Mean Daily Rate | Scenario / Casualty Context |
-| `wia_spt_mean` | WIA — Support Mean Daily Rate | Scenario / Casualty Context |
+| Variable                     | Title                                     | Category                        |
+| ---------------------------- | ----------------------------------------- | ------------------------------- |
+| `ame_failure_probability`    | AME Sortie Cancellation Probability       | Scenario / Casualty Context     |
+| `ame_schedule_interval_days` | AME Sortie Interval (Days)                | Health System Design - Policy   |
+| `disease_surgery_pct`        | Disease Surgical Candidacy                | Scenario / Casualty Context     |
+| `dnbi_cbt_mean`              | DNBI — Combat Mean Daily Rate             | Scenario / Casualty Context     |
+| `dnbi_spt_mean`              | DNBI — Support Mean Daily Rate            | Scenario / Casualty Context     |
+| `fr_demand_interval_days`    | Reinforcement Demand Cycle (Days)         | Health System Design - Policy   |
+| `fr_fill_mode_frac`          | Reinforcement Fill Distribution (Mode)    | Health System Design - Policy   |
+| `fr_fulfillment_lag_days`    | Reinforcement Fulfillment Lag (Days)      | Health System Design - Policy   |
+| `in_theatre_rate`            | In-Theatre Recovery Rate                  | Health System Design - Policy   |
+| `kia_cbt_mean`               | KIA — Combat Mean Daily Rate              | Scenario / Casualty Context     |
+| `kia_spt_mean`               | KIA — Support Mean Daily Rate             | Scenario / Casualty Context     |
+| `long_icu_mode`              | Long ICU Stay (Mode)                      | Health System Design - Capacity |
+| `long_resus_mode`            | Long Resuscitation Duration (Mode)        | Health System Design - Capacity |
+| `mass_casualty_max_cas`      | Mass Casualty Event Size (Maximum)        | Scenario / Casualty Context     |
+| `mass_casualty_min_cas`      | Mass Casualty Event Size (Minimum)        | Scenario / Casualty Context     |
+| `mass_casualty_rate`         | Mass Casualty Event Rate (per day)        | Scenario / Casualty Context     |
+| `ot_hours`                   | OT Shift Length (Hours per Shift)         | Health System Design - Policy   |
+| `p1_k`                       | Priority 1 DOW Logistic Steepness         | Scenario / Casualty Context     |
+| `p1_p_base`                  | Priority 1 DOW Base Probability           | Scenario / Casualty Context     |
+| `p1_p_max`                   | Priority 1 DOW Ceiling                    | Scenario / Casualty Context     |
+| `p1_t_mid`                   | Priority 1 DOW Logistic Midpoint          | Scenario / Casualty Context     |
+| `p2_k`                       | Priority 2 DOW Logistic Steepness         | Scenario / Casualty Context     |
+| `p2_p_base`                  | Priority 2 DOW Base Probability           | Scenario / Casualty Context     |
+| `p2_p_max`                   | Priority 2 DOW Ceiling                    | Scenario / Casualty Context     |
+| `p2_t_mid`                   | Priority 2 DOW Logistic Midpoint          | Scenario / Casualty Context     |
+| `p3_flat`                    | Priority 3 Flat DOW Probability           | Scenario / Casualty Context     |
+| `post_op_hold_mode`          | R2E Post-Op Holding-Bed Duration (Mode)   | Health System Design - Capacity |
+| `post_surgery_prob`          | R2E Post-Surgery Full-Recovery Rate       | Scenario / Casualty Context     |
+| `pri1_evac_prob`             | Priority 1 Strategic Evacuation Rate      | Scenario / Casualty Context     |
+| `pri1_surg_prob`             | Priority 1 Surgical Candidacy             | Scenario / Casualty Context     |
+| `pri2_evac_prob`             | Priority 2 Strategic Evacuation Rate      | Scenario / Casualty Context     |
+| `pri2_surg_prob`             | Priority 2 Surgical Candidacy             | Scenario / Casualty Context     |
+| `pri3_dnbi_surg_prob`        | Priority 3 DNBI Surgical Candidacy        | Scenario / Casualty Context     |
+| `pri3_other_surg_prob`       | Priority 3 Other Surgical Candidacy       | Scenario / Casualty Context     |
+| `r1_recovery_mode`           | R1 Battle Fatigue Hold Duration (Mode)    | Health System Design - Capacity |
+| `r1_tccc_factor`             | R1 TCCC Efficacy Factor                   | Scenario / Casualty Context     |
+| `r1_transport`               | R1 Transport Time (Mode)                  | Scenario / Casualty Context     |
+| `r1_wia_treat_mode`          | R1 WIA Treatment Time (Mode)              | Health System Design - Capacity |
+| `r2b_dcs_factor`             | R2B DCS Efficacy Factor                   | Scenario / Casualty Context     |
+| `r2b_hold_mode`              | R2B Holding Bed Duration (Mode)           | Health System Design - Capacity |
+| `r2b_hold_threshold`         | R2B Hold-Bed Reroute Threshold            | Health System Design - Policy   |
+| `r2b_resus_factor`           | R2B/R2E DCR (Resus) Efficacy Factor       | Scenario / Casualty Context     |
+| `r2b_transport`              | R2B Transport Time (Mode)                 | Scenario / Casualty Context     |
+| `r2e_dcs1_factor`            | R2E DCS 1st-Op Efficacy Factor            | Scenario / Casualty Context     |
+| `r2e_dcs2_factor`            | R2E DCS 2nd-Op Efficacy Factor            | Scenario / Casualty Context     |
+| `r2e_hold_mode`              | R2E Holding Bed Duration (Mode)           | Health System Design - Capacity |
+| `r2e_postop_hold_penalty`    | R2E Post-Op Hold DOW Penalty (Multiplier) | Scenario / Casualty Context     |
+| `r2e_resus_factor`           | R2E DCR (Resus) Efficacy Factor           | Scenario / Casualty Context     |
+| `short_icu_mode`             | R2E Short ICU Stay (Mode)                 | Health System Design - Capacity |
+| `short_resus_mode`           | R2E Short Resuscitation Duration (Mode)   | Health System Design - Capacity |
+| `surg_mode`                  | Surgery Duration (Mode)                   | Health System Design - Capacity |
+| `wia_cbt_mean`               | WIA — Combat Mean Daily Rate              | Scenario / Casualty Context     |
+| `wia_spt_mean`               | WIA — Support Mean Daily Rate             | Scenario / Casualty Context     |
 
 The Shiny app's own Sensitivity Calibration table (**Configure → Sensitivity Calibration** tab) presents the same Variable/Parameter/Category mapping alongside each parameter's screened bounds, with a CSV download button, so a planner working in the app has this lookup available without leaving it — see [Shiny Application](#shiny-application).
 
@@ -1229,9 +1237,10 @@ Three primary KPI outputs were monitored across all replications at each design 
 > **Note — sensitivity screening re-run for Issue #73 follow-up:** The Morris screening table below reflects a second full re-run (r=20, reps=5, 30 days, seed=42), triggered by the Issue #73 follow-up extending `return_leg_multiplier` from two dead-heading legs (R1↔R2B) to four (adding both R2B↔R2E legs). This re-run was carried out specifically to check a claim made during that PR's own review — that `return_leg_multiplier` ranking last on system OT queue under the two-leg screen meant "a material ranking change is not expected" from doubling its scope — **that claim was checked and found to be materially wrong for two of the seven screened KPIs.** On **system OT queue** (the table below) and the other queue-based KPIs, the claim holds: `return_leg_multiplier` still ranks 9th of 10 (µ\* = 0.0132, up from 0.0095 but still near the bottom of a tightly-clustered field), consistent with transport timing having limited leverage over surgical bottleneck queues specifically. But on **mean transport utilisation** and **total DOW count** — two of the same seven KPIs this exact screen has tracked since Issue #6 — `return_leg_multiplier` is now the most influential parameter screened: on transport utilisation its µ\* (≈0.092) is the highest of all ten parameters, roughly 18% above the next-highest (`pri1_surg_prob`, ≈0.078), with the largest σ (≈0.122) in the screen; on DOW count it has the largest σ (≈7.4) of any parameter and the second-highest µ\* (≈5.6, behind only `p1_p_max`'s ≈6.0). This is mechanistically expected once seen — doubling the number of legs the multiplier scales directly doubles its reach over both occupied-resource time (driving utilisation) and elapsed time-to-treatment (driving the DOW survival function, [Died of Wounds](#died-of-wounds)) — but it directly contradicts the "no material change expected" assertion made without re-running the screen. See `images/morris_transport_util.png` and `images/morris_dow_count.png`. The two figures quoted for these KPIs are read from the saved Morris scatter plots, not from `outputs/morris_ranking.csv` — `run_morris()` (`R/sensitivity.R`) only writes a ranking CSV for its primary KPI (system OT queue); exporting per-KPI ranking CSVs for all seven tracked KPIs, not just the primary one, is a worthwhile follow-up (tracked in Further Development) so this class of finding doesn't require reading pixel positions off a plot.
 
 > **MODEL ASSUMPTION — SENSITIVITY PARAMETER BOUNDS:** The bounds in the Morris screening table are set to cover clinically plausible variation around the current baseline values, derived from expert judgement and the literature reviewed in the Simulation Design section, using one of two rules applied per-parameter (Issue #112):
+> 
 > - **Rule A (citation-anchored, moderate uncertainty):** approximately baseline ±40%, applied to parameters whose baseline value traces to a specific open-access source already cited elsewhere in this README (e.g. the DOW logistic shape parameters to Eastridge et al. (2012) [[24]](#References) and Kotwal et al. (2011) [[25]](#References); the treatment-efficacy factors with a named clinical-trial basis to Braverman et al. (2021) [[28]](#References) or Holcomb et al. (2013) [[29]](#References); the casualty generation rates to FORECAS [[8]](#References)).
 > - **Rule B (informed estimate, no literature anchor):** baseline ×0.5–×2.0 for duration/rate parameters, or approximately baseline ±0.15–0.25 for [0,1] probabilities (clipped to a clinically sensible range), applied to parameters whose own citation in `R/app_params.R` (the `SRC_*` constants) explicitly discloses "not literature-derived," "informed estimate," or "no open-access source" — e.g. the R2B hold-bed reroute threshold (Issue #39), the OT–ICU gating poll interval and post-op hold penalty (Issue #43), the force regeneration reinforcement cycle (Issue #18), and the strategic AME sortie cadence (Issue #23).
->
+> 
 > The original nine duration/probability parameters and the two mass-casualty parameters retain their previously-derived bounds (approximately ±25–50% for durations, 0.5×–2× for small-proportion parameters, full clinically plausible range for mid-range probabilities); Rule A/B above formalise and extend the same underlying logic to the 44 parameters added by Issue #112.
 > **Basis:** As stated per-rule above; see the citations already established in [Died of Wounds](#died-of-wounds), [Casualty Generation](#casualty-generation), and the `source=` fields in `R/app_params.R` for each parameter's specific provenance.
 > **Uncertainty:** Medium — bounds represent informed clinical/logistics judgement rather than empirically derived uncertainty intervals; Rule B parameters carry High uncertainty individually (inherited from their own citation's own uncertainty rating), reflected in this project's academic standard of disclosing "informed estimate" sourcing rather than fabricating a citation. Wider bounds would increase µ\* values without changing parameter ranking if the model is monotone.
@@ -1262,35 +1271,35 @@ Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* f
 
 **Current table (Issue #112, fifty-three parameters).** The table below is `outputs/morris_ranking.csv` from the Issue #112 fourth-follow-up re-run — r=5, 5 reps, 30 days, seed 42 (see the reduced-r, bound-fix, and category-correction notes above), executed against the current codebase at the corrected fifty-three-parameter set, ranked by µ\* on the system OT queue. It supersedes every earlier table in this section, which are retained below as historical record per this project's practice of not erasing prior verified findings. Wall-clock time was 108 minutes on 4 cores in this development environment. R was run at version 4.3.3 in an unpinned apt-installed environment (no Docker access in this issue's development session to build the project's pinned `rocker/rstudio:4.4.2` Dev Container — the same caveat already documented for the Issue #18/#23 refreshes in `CLAUDE.md`); a maintainer re-run in the pinned container would be needed before this table is fully authoritative in the same sense as the pre-Issue-18 tables.
 
-| Rank | Parameter | µ\* | σ | Rank | Parameter | µ\* | σ |
-|---|---|---|---|---|---|---|---|
-| 1 | `pri1_evac_prob` | 9.6285 | 11.7767 | 28 | `surg_mode` | 0.8556 | 0.8395 |
-| 2 | `pri1_surg_prob` | 7.4479 | 13.1315 | 29 | `ame_schedule_interval_days` | 0.8553 | 1.0327 |
-| 3 | `r2e_dcs2_factor` | 6.9901 | 11.4911 | 30 | `ame_failure_probability` | 0.7820 | 0.9800 |
-| 4 | `fr_demand_interval_days` | 6.2837 | 9.8554 | 31 | `pri2_evac_prob` | 0.7298 | 0.9768 |
-| 5 | `r2b_hold_mode` | 3.5434 | 7.0305 | 32 | `p1_p_max` | 0.7233 | 1.1000 |
-| 6 | `pri3_other_surg_prob` | 3.3681 | 7.1993 | 33 | `long_resus_mode` | 0.6831 | 1.0911 |
-| 7 | `short_resus_mode` | 3.3210 | 6.9503 | 34 | `r2e_resus_factor` | 0.6591 | 1.1066 |
-| 8 | `wia_spt_mean` | 3.1055 | 6.1896 | 35 | `dnbi_cbt_mean` | 0.5494 | 0.7270 |
-| 9 | `pri3_dnbi_surg_prob` | 2.9054 | 6.2861 | 36 | `short_icu_mode` | 0.5058 | 0.6696 |
-| 10 | `mass_casualty_rate` | 2.8699 | 2.0662 | 37 | `r2b_resus_factor` | 0.4769 | 0.6727 |
-| 11 | `kia_spt_mean` | 2.6471 | 4.5539 | 38 | `r2e_dcs1_factor` | 0.4599 | 0.7370 |
-| 12 | `mass_casualty_max_cas` | 2.6190 | 4.9154 | 39 | `dnbi_spt_mean` | 0.4346 | 0.8547 |
-| 13 | `kia_cbt_mean` | 2.5651 | 3.6500 | 40 | `r2b_transport` | 0.3752 | 0.6840 |
-| 14 | `p2_k` | 2.2704 | 3.4687 | 41 | `post_surgery_prob` | 0.3662 | 0.4883 |
-| 15 | `r1_transport` | 2.2094 | 3.5133 | 42 | `disease_surgery_pct` | 0.3184 | 0.5905 |
-| 16 | `p1_p_base` | 2.1857 | 3.3285 | 43 | `r2e_hold_mode` | 0.3072 | 0.5612 |
-| 17 | `r1_recovery_mode` | 2.1738 | 4.4717 | 44 | `r2b_dcs_factor` | 0.2900 | 0.4154 |
-| 18 | `p3_flat` | 2.0918 | 3.7868 | 45 | `r2b_hold_threshold` | 0.2546 | 0.3494 |
-| 19 | `r1_wia_treat_mode` | 2.0859 | 3.0575 | 46 | `long_icu_mode` | 0.2443 | 0.3731 |
-| 20 | `fr_fill_mode_frac` | 2.0262 | 3.6954 | 47 | `p1_t_mid` | 0.2425 | 0.4887 |
-| 21 | `wia_cbt_mean` | 1.8676 | 3.4164 | 48 | `r1_tccc_factor` | 0.2080 | 0.3922 |
-| 22 | `p1_k` | 1.7930 | 3.2622 | 49 | `post_op_hold_mode` | 0.1786 | 0.2838 |
-| 23 | `p2_p_base` | 1.6900 | 2.7566 | 50 | `r2e_postop_hold_penalty` | 0.1784 | 0.2839 |
-| 24 | `p2_p_max` | 1.5494 | 3.0226 | 51 | `p2_t_mid` | 0.1595 | 0.2713 |
-| 25 | `in_theatre_rate` | 1.2782 | 2.4311 | 52 | `fr_fulfillment_lag_days` | 0.1330 | 0.2019 |
-| 26 | `pri2_surg_prob` | 1.0394 | 1.5161 | 53 | `ot_hours` | 0.1203 | 0.1742 |
-| 27 | `mass_casualty_min_cas` | 0.8707 | 1.4419 | | | | |
+| Rank | Parameter                 | µ\*    | σ       | Rank | Parameter                    | µ\*    | σ      |
+| ---- | ------------------------- | ------ | ------- | ---- | ---------------------------- | ------ | ------ |
+| 1    | `pri1_evac_prob`          | 9.6285 | 11.7767 | 28   | `surg_mode`                  | 0.8556 | 0.8395 |
+| 2    | `pri1_surg_prob`          | 7.4479 | 13.1315 | 29   | `ame_schedule_interval_days` | 0.8553 | 1.0327 |
+| 3    | `r2e_dcs2_factor`         | 6.9901 | 11.4911 | 30   | `ame_failure_probability`    | 0.7820 | 0.9800 |
+| 4    | `fr_demand_interval_days` | 6.2837 | 9.8554  | 31   | `pri2_evac_prob`             | 0.7298 | 0.9768 |
+| 5    | `r2b_hold_mode`           | 3.5434 | 7.0305  | 32   | `p1_p_max`                   | 0.7233 | 1.1000 |
+| 6    | `pri3_other_surg_prob`    | 3.3681 | 7.1993  | 33   | `long_resus_mode`            | 0.6831 | 1.0911 |
+| 7    | `short_resus_mode`        | 3.3210 | 6.9503  | 34   | `r2e_resus_factor`           | 0.6591 | 1.1066 |
+| 8    | `wia_spt_mean`            | 3.1055 | 6.1896  | 35   | `dnbi_cbt_mean`              | 0.5494 | 0.7270 |
+| 9    | `pri3_dnbi_surg_prob`     | 2.9054 | 6.2861  | 36   | `short_icu_mode`             | 0.5058 | 0.6696 |
+| 10   | `mass_casualty_rate`      | 2.8699 | 2.0662  | 37   | `r2b_resus_factor`           | 0.4769 | 0.6727 |
+| 11   | `kia_spt_mean`            | 2.6471 | 4.5539  | 38   | `r2e_dcs1_factor`            | 0.4599 | 0.7370 |
+| 12   | `mass_casualty_max_cas`   | 2.6190 | 4.9154  | 39   | `dnbi_spt_mean`              | 0.4346 | 0.8547 |
+| 13   | `kia_cbt_mean`            | 2.5651 | 3.6500  | 40   | `r2b_transport`              | 0.3752 | 0.6840 |
+| 14   | `p2_k`                    | 2.2704 | 3.4687  | 41   | `post_surgery_prob`          | 0.3662 | 0.4883 |
+| 15   | `r1_transport`            | 2.2094 | 3.5133  | 42   | `disease_surgery_pct`        | 0.3184 | 0.5905 |
+| 16   | `p1_p_base`               | 2.1857 | 3.3285  | 43   | `r2e_hold_mode`              | 0.3072 | 0.5612 |
+| 17   | `r1_recovery_mode`        | 2.1738 | 4.4717  | 44   | `r2b_dcs_factor`             | 0.2900 | 0.4154 |
+| 18   | `p3_flat`                 | 2.0918 | 3.7868  | 45   | `r2b_hold_threshold`         | 0.2546 | 0.3494 |
+| 19   | `r1_wia_treat_mode`       | 2.0859 | 3.0575  | 46   | `long_icu_mode`              | 0.2443 | 0.3731 |
+| 20   | `fr_fill_mode_frac`       | 2.0262 | 3.6954  | 47   | `p1_t_mid`                   | 0.2425 | 0.4887 |
+| 21   | `wia_cbt_mean`            | 1.8676 | 3.4164  | 48   | `r1_tccc_factor`             | 0.2080 | 0.3922 |
+| 22   | `p1_k`                    | 1.7930 | 3.2622  | 49   | `post_op_hold_mode`          | 0.1786 | 0.2838 |
+| 23   | `p2_p_base`               | 1.6900 | 2.7566  | 50   | `r2e_postop_hold_penalty`    | 0.1784 | 0.2839 |
+| 24   | `p2_p_max`                | 1.5494 | 3.0226  | 51   | `p2_t_mid`                   | 0.1595 | 0.2713 |
+| 25   | `in_theatre_rate`         | 1.2782 | 2.4311  | 52   | `fr_fulfillment_lag_days`    | 0.1330 | 0.2019 |
+| 26   | `pri2_surg_prob`          | 1.0394 | 1.5161  | 53   | `ot_hours`                   | 0.1203 | 0.1742 |
+| 27   | `mass_casualty_min_cas`   | 0.8707 | 1.4419  |      |                              |        |        |
 
 This table is a fresh fifty-three-parameter design, not the prior fifty-five-parameter table with two rows deleted — as this project's own precedent already establishes (see the Issue #74 removal note further below), `morris()` regenerates its pseudorandom one-at-a-time trajectories as a function of the factor count, so dropping two parameters changes the sampling for every *remaining* parameter too. The ranking below should be read on its own terms, not as a small perturbation of the fifty-five-parameter table above it: several parameters moved by dozens of rank positions (`wia_spt_mean`, 1st → 8th; `pri1_evac_prob`, 29th → 1st; `fr_demand_interval_days`, 26th → 4th), consistent with this being a genuinely different design, not a refinement of the same one.
 
@@ -1302,17 +1311,17 @@ The lowest-ranked parameters — `ot_hours` (53rd), `fr_fulfillment_lag_days` (5
 
 The table below is `outputs/morris_ranking.csv` from a freshly regenerated nine-parameter design (r=20, 5 reps, 30 days, seed 42), executed against the current codebase following `return_leg_multiplier`'s removal (Issue #74), ranked by µ\* on the system OT queue. It supersedes the previous table, which was not a fresh design but the prior ten-parameter design's values with the removed parameter's row struck out — see the note below the table for why that placeholder approach turned out to understate how much the ranking would move. R was run at version 4.4.2, matching the version pinned in `.devcontainer/Dockerfile`; at the time this table was generated, package versions were not yet pinned via `renv` (Issue #72 was still open), so exact package builds may differ from the environment that produced earlier re-runs (Issues #73, #75). Issue #72 has since introduced a committed `renv.lock`; this historical table has not been re-run against the pinned environment.
 
-| Rank | Parameter | µ\* | σ |
-|---|---|---|---|
-| 1 | `surg_mode` | 0.0228 | 0.0246 |
-| 2 | `pri1_surg_prob` | 0.0221 | 0.0255 |
-| 3 | `in_theatre_rate` | 0.0204 | 0.0276 |
-| 4 | `r1_transport` | 0.0191 | 0.0253 |
-| 5 | `long_icu_mode` | 0.0188 | 0.0244 |
-| 6 | `p1_p_max` | 0.0175 | 0.0216 |
-| 7 | `r2b_transport` | 0.0171 | 0.0241 |
-| 8 | `long_resus_mode` | 0.0148 | 0.0176 |
-| 9 | `ot_hours` | 0.0139 | 0.0171 |
+| Rank | Parameter         | µ\*    | σ      |
+| ---- | ----------------- | ------ | ------ |
+| 1    | `surg_mode`       | 0.0228 | 0.0246 |
+| 2    | `pri1_surg_prob`  | 0.0221 | 0.0255 |
+| 3    | `in_theatre_rate` | 0.0204 | 0.0276 |
+| 4    | `r1_transport`    | 0.0191 | 0.0253 |
+| 5    | `long_icu_mode`   | 0.0188 | 0.0244 |
+| 6    | `p1_p_max`        | 0.0175 | 0.0216 |
+| 7    | `r2b_transport`   | 0.0171 | 0.0241 |
+| 8    | `long_resus_mode` | 0.0148 | 0.0176 |
+| 9    | `ot_hours`        | 0.0139 | 0.0171 |
 
 No parameter dominates on this KPI: the nine parameters' µ\* values span a narrow range (0.0139–0.0228), narrower even than the placeholder table's 0.0116–0.0259, rather than showing the order-of-magnitude separation that would identify one or two clearly rate-limiting inputs. Every parameter's σ now meets or exceeds its µ\* (σ/µ\* ranging 1.08–1.40, up from 0.84–1.34), indicating nonlinear or interaction-dominated effects across all nine screened parameters rather than the simple linear effect a low-σ, high-µ\* parameter would show — consistent with the branching, resource-contingent routing logic in `R/trajectories.R`, where a parameter's effect depends on which branch a casualty happens to take.
 
@@ -1677,12 +1686,12 @@ The model has two distinct layers, developed in two stages. **Role 4** (the nati
 
 **Length-of-stay categories and ward mapping.** Each evacuated casualty is assigned to one of four length-of-stay (LoS) categories, each parameterised as a triangular distribution in `env_data.json` (`vars.role4.los_*`), and a ward category used both for the Role 4 occupancy census *and* — new in this section — to decide which R2E bed type a casualty occupies while awaiting AME:
 
-| LoS category | Assignment criteria | Ward | R2E bed while awaiting AME | AME pool | `env_data.json` key |
-|---|---|---|---|---|---|
-| P1 Surgical | Priority 1, `treatment_received = 1` | ICU | ICU bed | `ame_critical` | `los_p1_surgical` |
-| P1 Non-Surgical | Priority 1, `treatment_received = 0` | Surgical Ward | Hold bed | `ame` | `los_p1_nonsurgical` |
-| P2 | Priority 2 (any `treatment_received`) | Surgical Ward | Hold bed | `ame` | `los_p2` |
-| P3 / DNBI | Priority 3 WIA, or any DNBI casualty regardless of priority | General Ward | Hold bed | `ame` | `los_p3_dnbi` |
+| LoS category    | Assignment criteria                                         | Ward          | R2E bed while awaiting AME | AME pool       | `env_data.json` key  |
+| --------------- | ----------------------------------------------------------- | ------------- | -------------------------- | -------------- | -------------------- |
+| P1 Surgical     | Priority 1, `treatment_received = 1`                        | ICU           | ICU bed                    | `ame_critical` | `los_p1_surgical`    |
+| P1 Non-Surgical | Priority 1, `treatment_received = 0`                        | Surgical Ward | Hold bed                   | `ame`          | `los_p1_nonsurgical` |
+| P2              | Priority 2 (any `treatment_received`)                       | Surgical Ward | Hold bed                   | `ame`          | `los_p2`             |
+| P3 / DNBI       | Priority 3 WIA, or any DNBI casualty regardless of priority | General Ward  | Hold bed                   | `ame`          | `los_p3_dnbi`        |
 
 R2E has no physical Surgical Ward or General Ward bed type — only ICU and Hold — so both non-ICU ward categories share the R2E `hold_bed` pool while awaiting AME.
 
@@ -1889,25 +1898,25 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 
 ### Output Variable Register cross-reference
 
-| KPI | Domain | Attributes Required | Criteria | Analysis Function |
-|---|---|---|---|---|
-| Total DOW count | Mortality | `dow` | C1, C2, C5 | `sum(dow == 1)` |
-| DOW rate by echelon | Mortality | `dow`, `dow_echelon` | C1–C3, C5 | `dow_by_echelon` |
-| Time to first surgery | Time-to-care | `r2b_surgery_start`, `r2e_surgery_1_start`, `start_time` | C1–C3, C5 | `time_to_first_surgery` |
-| R2B dwell time | Time-to-care | `r2b_treatment_start_time`, `r2b_departure_time` | C1, C3, C4 | `r2b_dwell_time` |
-| R2B→R2E transit | Time-to-care | `r2b_departure_time`, `r2e_arrival_time` | C1, C3 | `r2b_r2e_transit_time` |
-| R2E dwell time | Time-to-care | `r2e_arrival_time`, `r2e_departure_time` | C1, C3, C4 | `r2e_dwell_time` |
-| OT utilisation | Surgical | resource monitor | C3, C4 | `ot_utilisation` |
-| Surgery counts/day | Surgical | `r2b_surgery_start`, `r2e_surgery_*` | C2–C4 | `r2b_summary`, `r2e_summary` |
-| Queue length over time | Echelon load | resource monitor | C3, C4 | resource plots |
-| RTD rate by echelon × type | Flow/disposition | `return_day`, `return_echelon`, `dnbi_type` | C1, C2, C5 | `rtd_by_echelon` (columns: `return_echelon`, `rtd_type`, `rtd_count`, `rtd_rate`) |
-| R2B bypass rate | Flow/disposition | `r2b_treated`, `r2e_treated` | C2–C4 | derived in `combined` |
-| Total RTD count (bf + clinical) | Combat power | `return_day`, `dnbi_type` | C2, C5 | `bf_rtd`, `clinical_rtd`, `total_rtd` |
-| Role 4 bed occupancy by ward | Strategic evac/Role 4 | `r2e_evac`, `injury_type`, `priority`, `treatment_received`, `evacuation_day` | C2, C3, C5 | `role4_census_daily`, `role4_summary`, `role4_replication_summary` |
-| Unconstrained-baseline AME sortie demand | Strategic evac/Role 4 | `r2e_evac`, `evacuation_decision_day` | C2, C4, C5 | `ame_demand_daily`, `ame_summary`, `ame_replication_summary` |
-| Strategic AME wait time by route | Strategic evac/Role 4 | `r2e_departure_time`, `ame_departure_time`, `ame_wait_minutes`, `ame_route` | C2, C4, C5 | `ame_wait_time_summary` |
-| Strategic AME backlog over time by pool | Strategic evac/Role 4 | resource monitor (`"ame"`, `"ame_critical"`) | C3–C5 | `plot_ame_queue()` (`ame_backlog_plot`) |
-| Strategic AME sortie timeline | Strategic evac/Role 4 | resource monitor (`"ame"`, `"ame_critical"`) | C3–C5 | `compute_ame_sorties()`, `plot_ame_sortie()` (`ame_sortie_data`, `ame_sortie_plot`) |
+| KPI                                      | Domain                | Attributes Required                                                           | Criteria   | Analysis Function                                                                   |
+| ---------------------------------------- | --------------------- | ----------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| Total DOW count                          | Mortality             | `dow`                                                                         | C1, C2, C5 | `sum(dow == 1)`                                                                     |
+| DOW rate by echelon                      | Mortality             | `dow`, `dow_echelon`                                                          | C1–C3, C5  | `dow_by_echelon`                                                                    |
+| Time to first surgery                    | Time-to-care          | `r2b_surgery_start`, `r2e_surgery_1_start`, `start_time`                      | C1–C3, C5  | `time_to_first_surgery`                                                             |
+| R2B dwell time                           | Time-to-care          | `r2b_treatment_start_time`, `r2b_departure_time`                              | C1, C3, C4 | `r2b_dwell_time`                                                                    |
+| R2B→R2E transit                          | Time-to-care          | `r2b_departure_time`, `r2e_arrival_time`                                      | C1, C3     | `r2b_r2e_transit_time`                                                              |
+| R2E dwell time                           | Time-to-care          | `r2e_arrival_time`, `r2e_departure_time`                                      | C1, C3, C4 | `r2e_dwell_time`                                                                    |
+| OT utilisation                           | Surgical              | resource monitor                                                              | C3, C4     | `ot_utilisation`                                                                    |
+| Surgery counts/day                       | Surgical              | `r2b_surgery_start`, `r2e_surgery_*`                                          | C2–C4      | `r2b_summary`, `r2e_summary`                                                        |
+| Queue length over time                   | Echelon load          | resource monitor                                                              | C3, C4     | resource plots                                                                      |
+| RTD rate by echelon × type               | Flow/disposition      | `return_day`, `return_echelon`, `dnbi_type`                                   | C1, C2, C5 | `rtd_by_echelon` (columns: `return_echelon`, `rtd_type`, `rtd_count`, `rtd_rate`)   |
+| R2B bypass rate                          | Flow/disposition      | `r2b_treated`, `r2e_treated`                                                  | C2–C4      | derived in `combined`                                                               |
+| Total RTD count (bf + clinical)          | Combat power          | `return_day`, `dnbi_type`                                                     | C2, C5     | `bf_rtd`, `clinical_rtd`, `total_rtd`                                               |
+| Role 4 bed occupancy by ward             | Strategic evac/Role 4 | `r2e_evac`, `injury_type`, `priority`, `treatment_received`, `evacuation_day` | C2, C3, C5 | `role4_census_daily`, `role4_summary`, `role4_replication_summary`                  |
+| Unconstrained-baseline AME sortie demand | Strategic evac/Role 4 | `r2e_evac`, `evacuation_decision_day`                                         | C2, C4, C5 | `ame_demand_daily`, `ame_summary`, `ame_replication_summary`                        |
+| Strategic AME wait time by route         | Strategic evac/Role 4 | `r2e_departure_time`, `ame_departure_time`, `ame_wait_minutes`, `ame_route`   | C2, C4, C5 | `ame_wait_time_summary`                                                             |
+| Strategic AME backlog over time by pool  | Strategic evac/Role 4 | resource monitor (`"ame"`, `"ame_critical"`)                                  | C3–C5      | `plot_ame_queue()` (`ame_backlog_plot`)                                             |
+| Strategic AME sortie timeline            | Strategic evac/Role 4 | resource monitor (`"ame"`, `"ame_critical"`)                                  | C3–C5      | `compute_ame_sorties()`, `plot_ame_sortie()` (`ame_sortie_data`, `ame_sortie_plot`) |
 
 ---
 

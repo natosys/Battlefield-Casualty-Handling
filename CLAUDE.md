@@ -4,7 +4,7 @@
 
 This is an **academic research project** producing a Discrete Event Simulation (DES) of deployed battlefield casualty handling. The simulation is written in R using the `simmer` package and is intended to provide evidence-based options to military planners for improving health outcomes in Large Scale Combat Operations (LSCO).
 
-All work must meet academic research standards: reasoning must be explicit, sources must be cited, and limitations must be acknowledged. The README functions as the thesis document — it is kept current with the code and written to the standard of a published academic paper.
+All work must meet academic research standards: reasoning must be explicit, sources must be cited, and limitations must be acknowledged. The project's academic output is split across three documents, each kept current with the code and written to the standard of a published academic paper: `README.md` (system reference — code structure, algorithms, trajectory logic, resource model, MODEL ASSUMPTION blocks, and Limitations), `docs/Single_Run_Analysis.md` (the illustrative single-run, seed-42 results narrative), and `docs/Multi_Run_Analysis.md` (the multi-run, n≥30/95% CI comparative results narrative). See [README Maintenance](#readme-maintenance) below for which PR types update which document.
 
 ---
 
@@ -32,8 +32,10 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/run_transport_sweep.R` | CLI entry point for the transport fleet-size sweep |
 | `scripts/shiny_worker.R` | Background worker sourced by `app.R` for async Quick Run / Full Analysis execution |
 | `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY -->` block inside `README.md` from `env_data.json` |
-| `scripts/check_markdown.R` | Maintains README TOC and reference links |
-| `README.md` | Primary academic document — introduction, literature review, methodology, results, limitations, references |
+| `scripts/check_markdown.R` | Maintains the TOC and "Return to Top" links across `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md` |
+| `README.md` | System reference — introduction, literature review, methodology, codebase structure, trajectory logic, resource model, Mermaid diagrams, MODEL ASSUMPTION blocks, limitations, references. Does not contain simulation results. |
+| `docs/Single_Run_Analysis.md` | Illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline — the project's original per-echelon results walk-through |
+| `docs/Multi_Run_Analysis.md` | Multi-run (n≥30 replications, 95% CI) comparative results narrative — Falklands-modified vs. Okinawa-intensity scenario comparison |
 | `docs/BCH_Simulation_Action_Plan.md` | Issue tracker cross-reference — phase sequencing, dependency graph, merged-issue log |
 | `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
 | `docs/STYLE_GUIDE.md` | R code style conventions — follow at all times |
@@ -61,7 +63,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 1. Raise a GitHub Issue describing the work (see Issue Format below).
 2. Create a feature branch from `main`.
 3. Implement the changes.
-4. Update the README as part of the same PR (see README Maintenance below).
+4. Update the relevant document(s) — `README.md` and/or the `docs/` analysis documents — as part of the same PR (see README Maintenance below).
 5. Open a PR against `main` with a test plan (see Test Plans below).
 6. Await owner merge — do not self-merge.
 
@@ -218,7 +220,7 @@ Test plans must include:
 1. **Setup** — seed, run duration, any parameter changes required to observe the behaviour under test.
 2. **Steps** — numbered list of actions to execute.
 3. **Expected outputs** — specific, observable values or patterns (e.g., "mean R2E ICU queue across replications should be non-zero and vary between replications").
-4. **Regression checks** — confirm that outputs from unmodified pathways remain consistent with the baseline single-run (seed 42) values documented in the README.
+4. **Regression checks** — confirm that outputs from unmodified pathways remain consistent with the baseline single-run (seed 42) values documented in `docs/Single_Run_Analysis.md` and this file's Key Parameters table.
 5. **Known limitations** — anything the test plan does not cover, and why.
 
 Example entry:
@@ -238,18 +240,29 @@ Example entry:
 
 ## README Maintenance
 
-The README is the primary academic output of this project. It must be updated **as part of every PR** — not retrospectively.
+The project's academic output is split across three documents (see [Academic Standards](#academic-standards) intro and the Repository Structure table above):
+
+- **`README.md`** (system reference) — code structure, algorithms, trajectory logic, resource model, Mermaid diagrams, MODEL ASSUMPTION blocks, and Limitations. Contains no simulation results.
+- **`docs/Single_Run_Analysis.md`** — the illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline.
+- **`docs/Multi_Run_Analysis.md`** — the multi-run (n≥30 replications, 95% CI) comparative results narrative (Falklands-modified vs. Okinawa-intensity).
+
+All three must be updated **as part of every PR that touches the section(s) they own** — not retrospectively. A PR that only changes code structure or trajectory logic updates `README.md` alone; a PR that changes seed-42 single-run findings updates `docs/Single_Run_Analysis.md`; a PR that changes multi-run/scenario-comparison findings updates `docs/Multi_Run_Analysis.md`. Cross-references between the three documents (`[text](../README.md#anchor)`, `[text](docs/Single_Run_Analysis.md#anchor)`, `[text](docs/Multi_Run_Analysis.md#anchor)` as appropriate to the source document's location) must stay valid — re-run `scripts/check_markdown.R` after moving or renaming any heading referenced from another document.
 
 ### What to update per PR
 
-| Section | Update trigger |
-|---|---|
-| Abstract | When the scope or findings of the simulation change materially |
-| Simulation Design | When trajectories, resource logic, or distributions are changed |
-| Simulation Analysis | When new results are generated (replace or supplement existing analysis) |
-| Limitations | When a known gap is addressed (remove or update) or a new one is identified |
-| Further Development | Remove completed items; add newly identified items |
-| References | Add any new sources used in the implementation |
+| Document | Section | Update trigger |
+|---|---|---|
+| `README.md` | Abstract | When the scope of the codebase or system reference changes materially |
+| `README.md` | Simulation Design | When trajectories, resource logic, or distributions are changed |
+| `README.md` | Limitations | When a known gap is addressed (remove or update) or a new one is identified |
+| `README.md` | Further Development | Remove completed items; add newly identified items |
+| `README.md` | References | Add any new sources used in the implementation that `README.md` itself cites |
+| `docs/Single_Run_Analysis.md` | Relevant echelon/domain section | When new seed-42 single-run results are generated (replace or supplement existing analysis) |
+| `docs/Single_Run_Analysis.md` | References | Add any new sources this document itself cites |
+| `docs/Multi_Run_Analysis.md` | Comparative Scenario Analysis | When new multi-run/scenario-comparison results are generated (replace or supplement existing analysis) |
+| `docs/Multi_Run_Analysis.md` | References | Add any new sources this document itself cites |
+
+Each document's References section lists only the sources that document itself cites, numbered in order of first appearance within that document — not a shared numbering scheme across all three. A source cited in more than one document is renumbered independently in each.
 
 ### Style
 
@@ -285,9 +298,9 @@ The README contains Mermaid flowcharts representing the R1, R2B, and R2E traject
 
 The model contains assumptions at two levels:
 
-### Inline — throughout the README
+### Inline — throughout `README.md`
 
-Where a specific parameter, role allocation, or pathway decision rests on an assumption rather than validated evidence, document it inline using a named assumption block:
+Where a specific parameter, role allocation, or pathway decision rests on an assumption rather than validated evidence, document it inline in `README.md` (the system reference document — MODEL ASSUMPTION blocks are not split into the analysis documents) using a named assumption block:
 
 ```markdown
 > **MODEL ASSUMPTION — [Short Name]:** <Description of the assumption.>
@@ -304,7 +317,7 @@ Example:
 
 ### Holistic — Limitations section
 
-The README `Limitations` section (to be added if not present, or maintained if it exists) provides a consolidated review of all model assumptions, organised by impact. It should cross-reference the inline blocks. Update this section whenever an assumption is added, resolved, or reclassified.
+`README.md`'s `Limitations` section (to be added if not present, or maintained if it exists) provides a consolidated review of all model assumptions, organised by impact. It should cross-reference the inline blocks. Update this section whenever an assumption is added, resolved, or reclassified.
 
 ---
 
@@ -314,12 +327,12 @@ The README `Limitations` section (to be added if not present, or maintained if i
 
 - All parameters must be cited. If a value is estimated or derived, state this explicitly and describe the derivation.
 - **All sources must be openly accessible on the internet without a paywall.** Paywalled journal articles, restricted doctrine, and books with no freely available full text must not be used.
-- Use the numbered reference format already established in the README (`[[n]](#References)`).
-- New references are appended to the References section in the order they first appear in the text.
+- Use the numbered reference format already established in these documents (`[[n]](#References)`).
+- New references are appended to the References section of the document that cites them, in the order they first appear in that document's text. Each of `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md` maintains its own independently-numbered References section (see README Maintenance above) — a source cited in more than one document gets its own number in each.
 
 ### Reference List Rules
 
-These rules apply to every entry in the README References section and to references listed in GitHub Issues:
+These rules apply to every entry in the References section of `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md`, and to references listed in GitHub Issues:
 
 - **No annotations, notes, or comments.** Each reference entry contains only the bibliographic citation and URL. Do not append `—` followed by any explanatory text, relevance notes, or context.
 - **Open access only.** Every source must be freely accessible via its URL without login, institutional access, or payment. Acceptable sources include: government and military publications on official sites, open-access journals (DOAJ, PubMed Central full text, Frontiers, MDPI, etc.), DTIC/arXiv/institutional repositories with direct PDF links, and free reference/educational websites. Unacceptable: paywalled journal articles (even with a direct PDF URL if the journal is not open access), books or textbook chapters, ADF/NATO restricted doctrine with no public URL.
@@ -472,7 +485,7 @@ These are the validated baseline values from the current single-run analysis. Re
 | R2E post-op DOW rate — icu vs hold (50-rep, Issue #43) | icu: 3/5,085 (0.06%); hold: 2/1,223 (0.16%) — hold ≈2.8× icu, consistent with intended design at real (non-stress-tested) parameters — predates the Issue #73 follow-up, Issue #76, Issue #18, and Issue #23 RNG-stream shifts; not yet refreshed |
 | R2E ICU utilisation — mean (50-rep, pre- vs post-Issue-43) | 74.1% → 60.2% — predates the Issue #73 follow-up, Issue #76, Issue #18, and Issue #23 RNG-stream shifts; not yet refreshed |
 | Role 4 demand (seed 42, post-Issue-23, new row) | 133 strategic evacuation decisions (97 critical-route, 36 standard-route); 40 boarded and reached Role 4 by day 30 (8 critical, 32 standard), 93 still queued at R2E (89 critical, 4 standard); Role 4 peak occupancy 19.0 concurrent patients (day 22); unconstrained-baseline demand would need 30 sorties at same-day/uncapped/best-case (20/sortie) capacity |
-| Strategic AME actual performance (seed 42, post-Issue-23, new row) | Configuration A (2 critical/8 standard) selected at all 4 of 4 successful sorties (7-day interval, 15% failure probability, 0 cancellations drawn); critical-pool mean wait 12.8 days (p10–p90 5.9–19.6); standard-pool mean wait 2.1 days (p10–p90 0.0–4.0); see README [Strategic Evacuation and Role 4 Demand](README.md#strategic-evacuation-and-role-4-demand) |
+| Strategic AME actual performance (seed 42, post-Issue-23, new row) | Configuration A (2 critical/8 standard) selected at all 4 of 4 successful sorties (7-day interval, 15% failure probability, 0 cancellations drawn); critical-pool mean wait 12.8 days (p10–p90 5.9–19.6); standard-pool mean wait 2.1 days (p10–p90 0.0–4.0); see [Strategic Evacuation and Role 4 Demand](docs/Single_Run_Analysis.md#strategic-evacuation-and-role-4-demand) |
 | AME wait-time DOW poll (seed 42, post-Issue-23, new row) | `dow_echelon=5`, daily poll interval (`role4.ame.dow_check_interval = 1440` min); 1 death observed in this seed-42 run, on the standard route; see README [AME Wait Checkpoint](README.md#ame-wait-checkpoint-issue-23-third-followup) for why this single-run count should not be read as validating the mechanism's magnitude |
 
 ---
@@ -482,4 +495,4 @@ These are the validated baseline values from the current single-run analysis. Re
 - Merging to `main` — owner only.
 - Changing the casualty rate baseline scenario without raising and discussing an issue first.
 - Modifying `env_data.json` schema without a corresponding issue and PR.
-- Removing or replacing existing references in the README without explicit instruction.
+- Removing or replacing existing references in `README.md`, `docs/Single_Run_Analysis.md`, or `docs/Multi_Run_Analysis.md` without explicit instruction.

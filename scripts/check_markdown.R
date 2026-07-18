@@ -176,5 +176,9 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   }
 }
 
-update_or_check_toc("README.md", "replace")
-enforce_return_links("README.md", "replace")
+markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
+
+for (doc in markdown_docs) {
+  update_or_check_toc(doc, "replace")
+  enforce_return_links(doc, "replace")
+}

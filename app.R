@@ -8,7 +8,9 @@
 # Launch with:
 #   shiny::runApp("app.R")
 #
-# Three-panel workflow:
+# Four-panel workflow:
+#   Getting Started — in-app onboarding guide (docs/Getting_Started.md,
+#               Issue #115), rendered via includeMarkdown()
 #   Configure — plain-English parameter editor grouped by operational concept
 #   Run       — Quick Run (single replication) and Full Analysis (multi-run,
 #               95% CI)
@@ -1521,6 +1523,12 @@ ui <- page_navbar(
   id    = "main_nav",
 
   nav_panel(
+    "Getting Started",
+    div(style = "max-width: 900px; margin: 0 auto; padding: 1rem 0 3rem;",
+        includeMarkdown("docs/Getting_Started.md"))
+  ),
+
+  nav_panel(
     "Configure",
     split_slider_recolor_script(SPLIT_SLIDER_META),
     p(class = "text-muted",
@@ -1604,6 +1612,9 @@ ui <- page_navbar(
     "Analyse",
     shrink_to_fit_script(),
     bch_shrink_to_fit_css(),
+    p(class = "text-muted small",
+      "New to these results? ",
+      actionLink("goto_getting_started", "See Getting Started for how to read each graph below.")),
     uiOutput("analyse_body")
   )
 )
@@ -1611,6 +1622,10 @@ ui <- page_navbar(
 # ── Server ────────────────────────────────────────────────────────────────
 
 server <- function(input, output, session) {
+
+  observeEvent(input$goto_getting_started, {
+    updateNavbarPage(session, "main_nav", selected = "Getting Started")
+  })
 
   raw_env_data     <- reactiveVal(fromJSON(DEFAULT_JSON, simplifyVector = FALSE))
   run_state        <- reactiveVal("idle")   # idle | running | done | error

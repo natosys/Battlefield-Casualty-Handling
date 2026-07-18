@@ -1,6 +1,7 @@
 .RData
 .RHistory
 .Rproj.user
+.vscode/
 log.log
 outputs/*
 !outputs/.gitkeep

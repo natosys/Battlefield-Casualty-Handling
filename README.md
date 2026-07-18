@@ -960,14 +960,21 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/sensitivity.R` | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`) — parameter bounds table, `apply_params` for env_data override, `eval_params` for single design-point evaluation |
 | `R/warmup.R` | Welch warm-up analysis — `compute_welch_cma`, `plot_welch`, `run_welch_analysis`; `WARM_UP_DAYS` constant |
 | `R/app_params.R` | Parameter registry for the Shiny Configure panel (Issue #14) — plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
+| `R/scenario.R` | Named scenario profile definitions (e.g. `moderate_intensity`, `high_intensity`) and the override logic applied on top of the base `env_data.json` |
+| `R/scenario_runner.R` | Comparative scenario runner — `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
 | `app.R` | Shiny app — Configure/Run/Analyse console (see [Shiny Application](#shiny-application) below) |
-| `controller_legacy.R` | Superseded by `app.R`; retained for reference only |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis — `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol` flags |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
-| `data_import.R` | Compatibility shim — sources `R/environment.R` so existing code continues to work |
-| `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep` |
-| `data/` | Read-only input data — arrival schedules and environment data |
-| `docs/` | Project documentation — action plans and role allocation tables |
+| `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
+| `scripts/run_transport_sweep.R` | CLI entry point for the transport fleet-size sweep (see Issue #57 in [Fleet-size sweep](#comparative-scenario-analysis)) |
+| `scripts/shiny_worker.R` | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session |
+| `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
+| `scripts/check_markdown.R` | Maintains this README's table of contents and numbered reference links |
+| `outputs/` | Generated outputs directory — CSVs and markdown tables are written here; tracked via `.gitkeep`, gitignored otherwise |
+| `data/` | Read-only input data plus a small set of diagnostic/event files regenerated at run time (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv` — Issue #9) |
+| `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of PRs that shift the RNG stream or simulation outputs |
+| `logs/` | Tracked seed-42 baseline console log (`logs.txt`) |
+| `docs/` | Project documentation — action plan, task-role allocation supplement, and the R code style guide |
 
 #### Running the simulation
 

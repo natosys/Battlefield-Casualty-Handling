@@ -27,6 +27,16 @@ Both run in the background so the app stays responsive; a progress indicator tra
 
 Results appear as a set of tabs (see below). Full Analysis mode adds four KPI summary cards above the tabs (total casualties, DOW count, R2E ICU peak queue, R2B OT peak queue, each with a 95% CI) and shows every plot as a mean ± CI band rather than a single trace. Every plot and table has PNG/PDF/CSV download buttons, and a *Download All* button zips the raw per-casualty and per-resource monitoring data from the most recent run for offline analysis.
 
+### 4. (Optional) Sensitivity Screening
+
+The last Analyse tab, **Sensitivity Calibration**, is a separate activity from a normal Quick Run/Full Analysis cycle: instead of showing one configuration's results, it tells you which parameters are worth the effort of getting right in the first place. Run it when you want to prioritise where to spend limited data-gathering or expert-consultation effort, not as a routine step. It runs three things, each building on the last:
+
+- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all ~55 screened parameters.
+- **Run Sobol Decomposition** — a more expensive, more precise variance breakdown, pre-selecting the top 5 parameters Morris ranked highest. Use this to confirm Morris's ranking and see how much of a parameter's effect is independent versus dependent on other parameters.
+- **Run Transport Fleet Sweep** — tests a range of PMV Ambulance/HX240M fleet sizes directly, independent of Morris/Sobol, to see how much margin the current fleet size carries.
+
+All three run in the background with a real progress counter and can take from a couple of minutes (a quick smoke-test setting) to several hours (the full default settings) depending on the trajectory/replication counts chosen — see the panel's own wall-clock guidance before running the larger settings.
+
 ## Key Parameters Worth Adjusting First
 
 Before exploring the full field set, these are the parameters most likely to change your results materially:
@@ -55,7 +65,7 @@ Each tab's own on-screen text explains what it shows and why it matters; this is
 - **Force Regeneration** — effective force size over time, debited by injury and credited by return-to-duty/reinforcement. A persistently declining line means losses are outpacing recovery and reinforcement.
 - **Strategic AME** — aeromedical evacuation backlog and sortie performance, Role 4 (national support base) census and unconstrained bed demand, and actual wait time by route versus the theoretical best case.
 - **Mass Casualty Events** — the reconstructed timeline of any configured surge events and whether they carry a higher died-of-wounds rate than background casualties.
-- **Sensitivity Calibration** — the Morris-screened parameter list and, if you run one, live Morris/Sobol sensitivity screening and transport fleet sweep results.
+- **Sensitivity Calibration** — the full list of screened parameters and their plausible ranges (the same ranges the Configure sliders use), plus the controls for the optional screening described above. If you run Morris, look at μ\* (how much a parameter moves the result overall) and σ (how much that effect depends on other parameters' values — high σ means the parameter interacts with others rather than acting alone). If you run Sobol, S1 is the share of variance a parameter causes acting alone, ST is its share including every interaction — a parameter with high ST but low S1 is easy to miss with a simpler one-at-a-time check. The transport sweep plot shows queue margin against fleet size directly, no statistics needed to read it.
 
 ## Where to Go for More Detail
 

@@ -163,8 +163,7 @@ Historical and predictive models of casualty rates were central to the review. T
 
 #### Casualty Simulation and DES
 
-Simulation methodologies were explored through both military-specific and general DES literature. The simmer package for R [[15]](#References) was identified as a suitable framework for implementing modular, auditable, and event-driven logic. Studies such as [[16]](#References) demonstrated DES applications in healthcare contexts, while [[17]](#References) and [[4]](#References) provided high-level casualty rate numbers that allowed the evaluation of the performance of DES models and [[2]](#References) provided insights into trauma system design under combat conditions.
-These sources informed the architectural decisions for the simulation engine, including event scheduling, resource constraints, and patient flow logic.
+Simulation methodologies were explored through both military-specific and general DES literature. The simmer package for R [[15]](#References) was identified as a suitable framework for implementing modular, auditable, and event-driven logic. Studies such as [[16]](#References) demonstrated DES applications in healthcare contexts, while [[17]](#References) and [[4]](#References) provided high-level casualty rate numbers that allowed the evaluation of the performance of DES models and [[2]](#References) provided insights into trauma system design under combat conditions. These sources informed the architectural decisions for the simulation engine, including event scheduling, resource constraints, and patient flow logic.
 
 #### Statistical Distributions and Modelling Algorithms
 

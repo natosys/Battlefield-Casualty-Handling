@@ -131,7 +131,7 @@ generate_env_summary_section <- function(env_data) {
   elm_section <- c(
     "### Health System Architecture",
     "",
-    "The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:",
+    "The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds. `Quantity` (team counts) and `Beds` (bed counts per team) are editable directly in `env_data.json` or via the Shiny Configure panel's Health System Architecture group (`app.R`); the personnel/team composition columns (`Base`/`Surg`/`Emerg`/`Icu`/`Evac`) are a fixed part of the establishment definition and are not independently configurable.",
     "",
     paste0("| ", paste(elm_colnames, collapse = " | "), " |"),
     paste0("| ", paste(rep("---", length(elm_colnames)), collapse = " | "), " |"),

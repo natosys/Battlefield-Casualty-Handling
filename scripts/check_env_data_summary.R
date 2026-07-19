@@ -37,12 +37,15 @@ generate_env_summary_section <- function(env_data) {
   # Field labels match R/app_params.R's GRP_FORCE / "Reinforcement Demand &
   # Fulfillment" subgroup exactly, so this table and the Configure panel
   # read as the same parameter set under the same names.
+  # Symbol column matches the triangular distribution formula below: a/b/c
+  # are the PDF's own lower-limit/upper-limit/mode variables (not tied to
+  # this project's other symbol conventions elsewhere in the README).
   reinforcement_params <- list(
-    list("Demand Submission Cycle (days)", get_var_value(env_data, "force_regeneration", "reinforcement", "demand_interval_days")),
-    list("Fulfillment Lag (days)", get_var_value(env_data, "force_regeneration", "reinforcement", "fulfillment_lag_days")),
-    list("Fill Distribution — Minimum (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_min_frac")),
-    list("Fill Distribution — Mode (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_mode_frac")),
-    list("Fill Distribution — Maximum (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_max_frac"))
+    list("Demand Submission Cycle (days)", "—", get_var_value(env_data, "force_regeneration", "reinforcement", "demand_interval_days")),
+    list("Fulfillment Lag (days)", "—", get_var_value(env_data, "force_regeneration", "reinforcement", "fulfillment_lag_days")),
+    list("Fill Distribution — Minimum (fraction of demand)", "a", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_min_frac")),
+    list("Fill Distribution — Mode (fraction of demand)", "c", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_mode_frac")),
+    list("Fill Distribution — Maximum (fraction of demand)", "b", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_max_frac"))
   )
 
   pop_section <- c(
@@ -60,11 +63,24 @@ generate_env_summary_section <- function(env_data) {
     "",
     "A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.",
     "",
-    "| Parameter | Value |",
-    "|-----------|-------|",
-    map_chr(reinforcement_params, ~ paste0("| ", .x[[1]], " | ", as.character(.x[[2]]), " |")),
+    "| Parameter | Variable | Value |",
+    "|-----------|----------|-------|",
+    map_chr(reinforcement_params, ~ paste0("| ", .x[[1]], " | ", .x[[2]], " | ", as.character(.x[[3]]), " |")),
     "",
-    "Each reinforcement cycle computes a pool's demand as its shortfall against initial establishment strength, net of any shortfall an earlier, still-pending cycle has already claimed (`initial − current − pending`, floored at 0) — this prevents overlapping cycles from independently re-claiming the same shortfall when the demand submission cycle is shorter than the fulfillment lag. The amount actually delivered is drawn, at submission time rather than at fulfillment, as a fraction of that demand from a Triangular(min, mode, max) distribution parameterised by the three fill values above, then credited to the pool once the fulfillment lag elapses, clamped so a pool can never be credited above its initial establishment strength. The model has no sortie-failure rate or binary success/failure roll for reinforcement.",
+    "Each reinforcement cycle computes a pool's demand as its shortfall against initial establishment strength, net of any shortfall an earlier, still-pending cycle has already claimed (`initial − current − pending`, floored at 0) — this prevents overlapping cycles from independently re-claiming the same shortfall when the demand submission cycle is shorter than the fulfillment lag. The amount actually delivered is drawn, at submission time rather than at fulfillment, as a fraction of that demand from a Triangular(*a*, *b*, *c*) distribution parameterised by the three fill values above, then credited to the pool once the fulfillment lag elapses, clamped so a pool can never be credited above its initial establishment strength. The model has no sortie-failure rate or binary success/failure roll for reinforcement.",
+    "",
+    "The fraction of demand *x* actually delivered in a single cycle is drawn from the following probability density function:",
+    "",
+    "$$",
+    "f(x) =",
+    "\\begin{cases}",
+    "\\dfrac{2(x-a)}{(b-a)(c-a)} & a \\le x < c \\\\[4pt]",
+    "\\dfrac{2}{b-a} & x = c \\\\[4pt]",
+    "\\dfrac{2(b-x)}{(b-a)(b-c)} & c < x \\le b",
+    "\\end{cases}",
+    "$$",
+    "",
+    "Where *a*, *b*, and *c* are the Fill Distribution Minimum, Maximum, and Mode values in the table above respectively.",
     ""
   )
 

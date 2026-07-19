@@ -328,6 +328,8 @@ The following population groups are defined in the simulation environment:
 | Fill Distribution — Mode (fraction of demand) | 0.85 |
 | Fill Distribution — Maximum (fraction of demand) | 1.1 |
 
+Each reinforcement cycle computes a pool's demand as its shortfall against initial establishment strength, net of any shortfall an earlier, still-pending cycle has already claimed (`initial − current − pending`, floored at 0) — this prevents overlapping cycles from independently re-claiming the same shortfall when the demand submission cycle is shorter than the fulfillment lag (`build_reinforcement_trajectory()`, `R/trajectories.R`; Issue #124). The amount actually delivered is drawn, at submission time rather than at fulfillment, as a fraction of that demand from the fill distribution above, then credited to the pool once the fulfillment lag elapses, clamped so a pool can never be credited above its initial establishment strength. The model has no sortie-failure rate or binary success/failure roll for reinforcement: under-delivery is represented entirely by the fill distribution's long left tail toward severe under-fill, not by a discrete chance of a reinforcement shipment failing to arrive.
+
 ### Health System Architecture
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:

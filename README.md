@@ -47,7 +47,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
     - [Dead-Heading Return Legs](#deadheading-return-legs)
-- [Environment Data and Casualties](#environment-data-and-casualties)
+- [Model Parameters](#model-parameters)
   - [Force Size](#force-size)
   - [Health System Architecture](#health-system-architecture)
   - [Medevac — Transport Fleet](#medevac-transport-fleet)
@@ -300,7 +300,7 @@ Dead-heading is implemented for all four WIA/KIA transport legs using simmer's `
 
 ---
 
-## Environment Data and Casualties
+## Model Parameters
 
 <small>[Return to Top](#contents)</small>
 

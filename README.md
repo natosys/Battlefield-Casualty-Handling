@@ -49,6 +49,8 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Dead-Heading Return Legs](#deadheading-return-legs)
 - [Model Parameters and Model Configuration](#model-parameters-and-model-configuration)
   - [Force Size](#force-size)
+    - [Population](#population)
+    - [Reinforcement Demand & Fulfillment](#reinforcement-demand-fulfillment)
   - [Health System Architecture](#health-system-architecture)
   - [Medevac — Transport Fleet](#medevac-transport-fleet)
   - [Schedules and Rosters](#schedules-and-rosters)
@@ -311,14 +313,18 @@ The population sizes, health system establishment, transport fleet, and casualty
 
 ### Force Size
 
-**Population.** The following population groups are defined in the simulation environment:
+#### Population
+
+The following population groups are defined in the simulation environment:
 
 | Population | Count |
 |------------|-------|
 | Combat | 2500 |
 | Support | 1250 |
 
-**Reinforcement Demand & Fulfillment.** A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.
+#### Reinforcement Demand & Fulfillment
+
+A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.
 
 | Parameter | Value |
 |-----------|-------|
@@ -332,7 +338,7 @@ Each reinforcement cycle computes a pool's demand as its shortfall against initi
 
 ### Health System Architecture
 
-**Establishment.** The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
+The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
 | Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -342,7 +348,7 @@ Each reinforcement cycle computes a pool's demand as its shortfall against initi
 
 ### Medevac — Transport Fleet
 
-**Transport Platforms.** These are the available transport platforms and their characteristics:
+These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
 |----------|----------|----------|
@@ -353,7 +359,7 @@ Each reinforcement cycle computes a pool's demand as its shortfall against initi
 
 ### Schedules and Rosters
 
-**Surgical Team Rosters.** Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
+Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
 
 ### Casualty Generation
 

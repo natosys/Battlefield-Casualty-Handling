@@ -60,16 +60,14 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [4. Temporal Randomisation](#4-temporal-randomisation)
     - [5. Mass Casualty Event Injection](#5-mass-casualty-event-injection)
     - [6. Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)
-  - [Wounded In Action (WIA)](#wounded-in-action-wia)
-    - [Combat Casualties](#combat-casualties)
-    - [Support Casualties](#support-casualties)
-  - [Killed In Action (KIA)](#killed-in-action-kia)
-    - [Combat Casualties](#combat-casualties)
-    - [Support Casualties](#support-casualties)
-  - [Disease and Non-Battle Injury (DNBI)](#disease-and-nonbattle-injury-dnbi)
-    - [Combat Casualties](#combat-casualties)
-    - [Support Casualties](#support-casualties)
-    - [DNBI Sub-Categorisation](#dnbi-subcategorisation)
+  - [Casualty Generation Rates](#casualty-generation-rates)
+    - [WIA — Combat](#wia-combat)
+    - [KIA — Combat](#kia-combat)
+    - [DNBI — Combat](#dnbi-combat)
+    - [WIA — Support](#wia-support)
+    - [KIA — Support](#kia-support)
+    - [DNBI — Support](#dnbi-support)
+  - [DNBI Sub-Type Split](#dnbi-subtype-split)
 - [Casualty Priorities](#casualty-priorities)
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
@@ -498,7 +496,7 @@ KIA and strategic-evac (`r2e_evac = 1`) casualties never reach a `return_day` si
 Architecturally, this required replacing the previous batch/`at()` arrival generation (all 30 days' arrival timestamps computed before `run()` starts) with function-based simmer generators (`make_ln_arrival_generator()`/`make_exp_arrival_generator()`, `R/environment.R`): each is a stateful closure, called once per arrival, that walks minute-by-minute through the same capped-rate/cumulative-sum-crossing mechanism as Steps 2–3 above, but reads the live force-size global at each step rather than a value baked in ahead of time — a pre-computed vector cannot react to a replication's own in-run events. Mass casualty event timing (Section 5) remains exogenous and pre-computed exactly as before, since it represents an imposed external shock rather than a population-scaled background rate; `wrap_with_mass_casualty()` interleaves it into the `wia_cbt` stream in strict chronological order.
 
 > **MODEL ASSUMPTION — TWO INDEPENDENT FORCE POOLS:** Combat and support effective force size are tracked as two independent globals rather than a single combined scalar.
-> **Basis:** Combat and support casualties are already separate generated streams drawn against separate population sizes ([Wounded In Action](#wounded-in-action-wia) et seq.); a combat casualty does not reduce support-troop headcount or vice versa, so conflating them into one scalar would misattribute cross-pool effects.
+> **Basis:** Combat and support casualties are already separate generated streams drawn against separate population sizes ([Casualty Generation Rates](#casualty-generation-rates)); a combat casualty does not reduce support-troop headcount or vice versa, so conflating them into one scalar would misattribute cross-pool effects.
 > **Uncertainty:** Low.
 > **Consequence if wrong:** If the two populations should in practice be fungible (e.g. support personnel cross-employed in a combat role under sustained attrition), the current model would understate combat-pool depletion and overstate support-pool depletion relative to a pooled-strength model.
 
@@ -524,37 +522,25 @@ Architecturally, this required replacing the previous batch/`at()` arrival gener
 
 The reinforcement demand cycle, fulfillment lag, and fill distribution are the key modelling levers a planner controls: a baseline run with no reinforcement isolates the pure depletion effect of sustained casualty production against RTD-only regeneration; a run with a short demand cycle, short lag, and a fill distribution weighted toward full delivery approximates well-sustained LSCO reinforcement and keeps daily casualty volume closer to constant. Both are demonstrated in [Force Regeneration Feedback Loop](docs/Single_Run_Analysis.md#force-regeneration-feedback-loop).
 
-### Wounded In Action (WIA)
+### Casualty Generation Rates
 
-#### Combat Casualties
+#### WIA — Combat
 
-Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[a8]](#References), table A.8 p32).
+Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[8]](#References), table A.8 p32).
 
 $$
 \mu = 1.77, \quad \sigma = 3.56
 $$
 
-#### Support Casualties
+#### KIA — Combat
 
-Support casualties employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[17]](#References) and [[10]](#References) p 2-4).
-
-### Killed In Action (KIA)
-
-#### Combat Casualties
-
-Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[8]](#References), table A.8 p32).
+Combat KIA casualty generation has been based on Falklands combat troop KIA rates ([[8]](#References), table A.8 p32).
 
 $$
 \mu = 0.68, \quad \sigma = 1.39
 $$
 
-#### Support Casualties
-
-Similar to WIA, support casualty KIA employ the same casualty generation outlined above (except using the support population estimate of 1250 instead of the combatt population of 2250) (see [[17]](#References) and [[10]](#References) p 2-4).
-
-### Disease and Non-Battle Injury (DNBI)
-
-#### Combat Casualties
+#### DNBI — Combat
 
 Combat DNBI casualty generation has been based on Vietnam combat troop DNBI rates ([[8]](#References), table A.5 p31).
 
@@ -562,7 +548,15 @@ $$
 \mu = 2.04, \quad \sigma = 1.89
 $$
 
-#### Support Casualties
+#### WIA — Support
+
+Support WIA casualties employ the same casualty generation outlined above for combat WIA (except using the support population estimate of 1250 instead of the combat population of 2500). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[17]](#References) and [[10]](#References) p 2-4).
+
+#### KIA — Support
+
+Similar to WIA, support casualty KIA employ the same casualty generation outlined above for combat KIA (except using the support population estimate of 1250 instead of the combat population of 2500) (see [[17]](#References) and [[10]](#References) p 2-4).
+
+#### DNBI — Support
 
 Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[8]](#References), table A.2 p29).
 
@@ -570,7 +564,7 @@ $$
 \mu = 0.94, \sigma = 0.56
 $$
 
-#### DNBI Sub-Categorisation
+### DNBI Sub-Type Split
 
 DNBI casualties are sub-categorised at generation time into three distinct clinical groups, each assigned a differentiated treatment pathway that reflects the substantially different resource demands of each sub-type.
 
@@ -580,7 +574,7 @@ DNBI casualties are sub-categorised at generation time into three distinct clini
 | Disease (febrile, GI, respiratory)              | 58%        | R1 treatment → R2B holding if evacuation threshold met. 6% surgical candidacy for emergency conditions (appendicitis, cholecystitis, perforated ulcer). No DOW check. |
 | Non-battle injury (musculoskeletal, accidental) | 17%        | Standard WIA-equivalent routing, including DOW check and surgical candidacy.                                                                                          |
 
-The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). The remaining split between battle fatigue and disease is derived from historical LSCO data: Izaguirre et al. (2025) document that psychiatric and battle fatigue cases constitute approximately 25–30% of total DNBI evacuations across conflict periods ([[19]](#References)). With NBI fixed at 17% from [[8]](#References), disease is the residual category, representing approximately 53–58% of total DNBI — rounded to 58% as the central estimate for the model.
+The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). The remaining split between battle fatigue and disease is derived from historical LSCO data: approximately 25–30% of total DNBI evacuations across conflict periods are documented as psychiatric and battle fatigue cases [[19]](#References). With NBI fixed at 17% from [[8]](#References), disease is the residual category, representing approximately 53–58% of total DNBI — rounded to 58% as the central estimate for the model.
 
 In the simulation, each DNBI casualty is assigned a `dnbi_type` attribute (1 = battle fatigue, 2 = disease, 3 = NBI) on arrival. Battle fatigue cases are held at R1 and returned to duty after a recovery period equivalent to minor injury convalescence, with no surgical candidacy. Disease cases proceed through the standard evacuation decision at R1 with a 6% surgical candidacy applied unconditionally across priorities, reflecting emergency conditions such as appendicitis, cholecystitis, and perforated peptic ulcer that occur in deployed disease DNBI populations [[51]](#References)[[52]](#References); if evacuated to R2B without surgical candidacy, they enter the holding bed pathway only. NBI cases follow the full WIA-equivalent trajectory, including DOW branch and surgical candidacy at all echelons.
 
@@ -592,7 +586,7 @@ This sub-categorisation removes approximately 83% of DNBI from the routine surgi
 > **Consequence if wrong:** Over-estimating battle fatigue proportion reduces R2B and R2E load artificially; under-estimating it over-loads the surgical pathway with non-surgical cases.
 
 > **MODEL ASSUMPTION — DNBI Disease Proportion:** Disease (febrile, gastrointestinal, respiratory) cases are assumed to constitute 58% of DNBI casualties, with the remaining 17% classified as NBI.
-> **Basis:** Informed estimation derived by subtraction. NBI proportion (17%) is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). Battle fatigue proportion (~25%) is drawn from Izaguirre et al. (2025) ([[19]](#References)). Disease is the residual: 100% − 17% − 25% = 58%. No open-access source providing a direct empirical measurement for the deployed disease DNBI proportion has been identified.
+> **Basis:** Informed estimation derived by subtraction. NBI proportion (17%) is drawn from FORECAS empirical data ([[8]](#References), pp 22–23). Battle fatigue proportion (~25%) is drawn from [[19]](#References). Disease is the residual: 100% − 17% − 25% = 58%. No open-access source providing a direct empirical measurement for the deployed disease DNBI proportion has been identified.
 > **Uncertainty:** High
 > **Consequence if wrong:** Disease proportion directly determines the fraction of DNBI routed to R2B holding. A higher disease proportion increases holding bed demand without affecting OT throughput.
 

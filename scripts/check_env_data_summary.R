@@ -19,8 +19,32 @@ capitalize_bed <- function(name) {
 }
 capitalize_platform <- function(name) toupper(as.character(name))
 
+# Looks up a single `vars.<elm>.<acty>.<var>` leaf value (the same JSON path
+# convention var_field() uses in R/app_params.R) from a parsed env_data.json
+# tree, returning NA if the elm/acty/var isn't present.
+get_var_value <- function(env_data, elm_name, acty_name, var_name) {
+  elm_entry <- keep(env_data$vars, ~ .x$elm == elm_name)
+  if (length(elm_entry) == 0) return(NA)
+  acty_entry <- keep(elm_entry[[1]]$actys, ~ .x$acty == acty_name)
+  if (length(acty_entry) == 0) return(NA)
+  val_entry <- keep(acty_entry[[1]]$vals, ~ .x$var == var_name)
+  if (length(val_entry) == 0) return(NA)
+  val_entry[[1]]$val
+}
+
 # === Section Generator ===
 generate_env_summary_section <- function(env_data) {
+  # Field labels match R/app_params.R's GRP_FORCE / "Reinforcement Demand &
+  # Fulfillment" subgroup exactly, so this table and the Configure panel
+  # read as the same parameter set under the same names.
+  reinforcement_params <- list(
+    list("Demand Submission Cycle (days)", get_var_value(env_data, "force_regeneration", "reinforcement", "demand_interval_days")),
+    list("Fulfillment Lag (days)", get_var_value(env_data, "force_regeneration", "reinforcement", "fulfillment_lag_days")),
+    list("Fill Distribution — Minimum (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_min_frac")),
+    list("Fill Distribution — Mode (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_mode_frac")),
+    list("Fill Distribution — Maximum (fraction of demand)", get_var_value(env_data, "force_regeneration", "reinforcement", "fill_max_frac"))
+  )
+
   pop_section <- c(
     "### Force Size",
     "",
@@ -29,6 +53,12 @@ generate_env_summary_section <- function(env_data) {
     "| Population | Count |",
     "|------------|-------|",
     paste0("| ", map_chr(env_data$pops, ~ capitalize(.x$name)), " | ", map_chr(env_data$pops, ~ as.character(.x$count)), " |"),
+    "",
+    "**Reinforcement Demand & Fulfillment.** A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.",
+    "",
+    "| Parameter | Value |",
+    "|-----------|-------|",
+    map_chr(reinforcement_params, ~ paste0("| ", .x[[1]], " | ", as.character(.x[[2]]), " |")),
     ""
   )
 

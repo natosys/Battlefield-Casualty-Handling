@@ -318,6 +318,16 @@ The following population groups are defined in the simulation environment:
 | Combat | 2500 |
 | Support | 1250 |
 
+**Reinforcement Demand & Fulfillment.** A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.
+
+| Parameter | Value |
+|-----------|-------|
+| Demand Submission Cycle (days) | 0 |
+| Fulfillment Lag (days) | 7 |
+| Fill Distribution — Minimum (fraction of demand) | 0.2 |
+| Fill Distribution — Mode (fraction of demand) | 0.85 |
+| Fill Distribution — Maximum (fraction of demand) | 1.1 |
+
 ### Health System Architecture
 
 The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:

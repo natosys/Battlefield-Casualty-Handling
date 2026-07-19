@@ -311,7 +311,7 @@ The population sizes, health system establishment, transport fleet, and casualty
 
 ### Force Size
 
-The following population groups are defined in the simulation environment:
+**Population.** The following population groups are defined in the simulation environment:
 
 | Population | Count |
 |------------|-------|

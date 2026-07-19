@@ -48,7 +48,7 @@ generate_env_summary_section <- function(env_data) {
   pop_section <- c(
     "### Force Size",
     "",
-    "The following population groups are defined in the simulation environment:",
+    "**Population.** The following population groups are defined in the simulation environment:",
     "",
     "| Population | Count |",
     "|------------|-------|",

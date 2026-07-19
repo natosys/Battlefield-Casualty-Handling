@@ -374,6 +374,15 @@ These are the available transport platforms and their characteristics:
 
 Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
 
+| Resource | Roster applied | Configurable variable | Default | Where configured |
+|---|---|---|---|---|
+| R1 Treatment Team | No — no shift schedule; available continuously | — | — | — |
+| R2B Surgical Team | Yes — alternating two-shift roster across R2B's surgical teams (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
+| R2E Surgical Team | Yes — alternating two-shift roster across R2E's surgical teams (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
+| R2B / R2E Operating Theatre beds | No — the physical OT bed is available 24 hours per day; only the surgical team carries the shift schedule | — | — | — |
+
+`ot_hours` is a single shared parameter: it sets the first shift's length (the second shift covers the remainder of the 24-hour day) identically at both R2B and R2E, not independently per echelon. It is not part of `env_data.json` and has no CLI flag; it is Morris-screened (see [Sensitivity Analysis](#sensitivity-analysis)) and is otherwise fixed at its 12-hour default unless changed in the Shiny app or passed explicitly by calling code.
+
 ### Casualty Generation
 
 Casualties are generated based on rates outlined in [[8]](#References) and refined with analysis provided in [[10]](#References) and supported by [[17]](#References), with the implementation outlined below.

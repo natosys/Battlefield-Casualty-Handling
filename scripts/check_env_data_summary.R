@@ -67,7 +67,7 @@ generate_env_summary_section <- function(env_data) {
   transport_section <- c(
     "### Medevac — Transport Fleet",
     "",
-    "These are the available transport platforms and their characteristics:",
+    "**Transport Platforms.** These are the available transport platforms and their characteristics:",
     "",
     "| Platform | Quantity | Capacity |",
     "|----------|----------|----------|",
@@ -111,7 +111,7 @@ generate_env_summary_section <- function(env_data) {
   elm_section <- c(
     "### Health System Architecture",
     "",
-    "The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:",
+    "**Establishment.** The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:",
     "",
     paste0("| ", paste(elm_colnames, collapse = " | "), " |"),
     paste0("| ", paste(rep("---", length(elm_colnames)), collapse = " | "), " |"),

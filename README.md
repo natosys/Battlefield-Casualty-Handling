@@ -332,7 +332,7 @@ Each reinforcement cycle computes a pool's demand as its shortfall against initi
 
 ### Health System Architecture
 
-The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
+**Establishment.** The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:
 
 | Element | Quantity | Beds | Base | Surg | Emerg | Icu | Evac |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -342,7 +342,7 @@ The following table summarises the medical elements configured in `env_data.json
 
 ### Medevac — Transport Fleet
 
-These are the available transport platforms and their characteristics:
+**Transport Platforms.** These are the available transport platforms and their characteristics:
 
 | Platform | Quantity | Capacity |
 |----------|----------|----------|
@@ -353,7 +353,7 @@ These are the available transport platforms and their characteristics:
 
 ### Schedules and Rosters
 
-Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
+**Surgical Team Rosters.** Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
 
 ### Casualty Generation
 

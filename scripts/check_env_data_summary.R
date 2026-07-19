@@ -22,7 +22,7 @@ capitalize_platform <- function(name) toupper(as.character(name))
 # === Section Generator ===
 generate_env_summary_section <- function(env_data) {
   pop_section <- c(
-    "### 👥 Population Groups",
+    "### Force Size",
     "",
     "The following population groups are defined in the simulation environment:",
     "",
@@ -31,9 +31,9 @@ generate_env_summary_section <- function(env_data) {
     paste0("| ", map_chr(env_data$pops, ~ capitalize(.x$name)), " | ", map_chr(env_data$pops, ~ as.character(.x$count)), " |"),
     ""
   )
-  
+
   transport_section <- c(
-    "### 🚑 Transport Resources",
+    "### Medevac — Transport Fleet",
     "",
     "These are the available transport platforms and their characteristics:",
     "",
@@ -77,7 +77,7 @@ generate_env_summary_section <- function(env_data) {
   
   elm_colnames <- c("Element", "Quantity", "Beds", formatted_team_types)
   elm_section <- c(
-    "### 🏥 Medical Resources",
+    "### Health System Architecture",
     "",
     "The following table summarises the medical elements configured in `env_data.json`, including team types, personnel, and beds:",
     "",
@@ -94,8 +94,8 @@ generate_env_summary_section <- function(env_data) {
     "<!-- This section is auto-generated. Do not edit manually. -->",
     "",
     pop_section,
-    transport_section,
     elm_section,
+    transport_section,
     "<!-- ENV SUMMARY END -->"
   )
 }

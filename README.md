@@ -47,12 +47,11 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
     - [Dead-Heading Return Legs](#deadheading-return-legs)
-- [Environment Data Summary](#environment-data-summary)
+- [Environment Data and Casualties](#environment-data-and-casualties)
   - [Force Size](#force-size)
   - [Health System Architecture](#health-system-architecture)
   - [Medevac — Transport Fleet](#medevac-transport-fleet)
   - [Schedules and Rosters](#schedules-and-rosters)
-- [Casualties](#casualties)
   - [Casualty Generation](#casualty-generation)
     - [1. Distribution Parameterisation](#1-distribution-parameterisation)
     - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
@@ -301,9 +300,11 @@ Dead-heading is implemented for all four WIA/KIA transport legs using simmer's `
 
 ---
 
-## Environment Data Summary
+## Environment Data and Casualties
 
 <small>[Return to Top](#contents)</small>
+
+The population sizes, health system establishment, transport fleet, and casualty generation rates described in this section are the simulation's shipped defaults. Each is derived from the open-access research and analysis cited alongside it, but none is a fixed property of the model: every value is a configurable input, editable directly in `env_data.json` or via the Shiny Configure panel (`app.R`).
 
 <!-- ENV SUMMARY START -->
 <!-- This section is auto-generated. Do not edit manually. -->
@@ -342,11 +343,7 @@ These are the available transport platforms and their characteristics:
 
 Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
 
----
-
-## Casualties
-
-<small>[Return to Top](#contents)</small>
+### Casualty Generation
 
 Casualties are generated based on rates outlined in [[8]](#References) and refined with analysis provided in [[10]](#References) and supported by [[17]](#References), with the implementation outlined below.
 
@@ -355,8 +352,6 @@ Initially, WIA and KIA rates from US historical analysis of the Battle of Okinaw
 Given this discrepancy, a planning baseline was re-evaluated using historical data from the Falklands War, which suggests a casualty rate of ~0.37% [[8]](#References). This adjustment accounts for both the likely under-reporting in Russian casualty estimates, particularly of non-critical wounded personnel and over three years of varied combat intensity in Ukraine, with seasonal fluctuations in operational tempo (source TBD).
 
 Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitable estimate for operational planning.
-
-### Casualty Generation
 
 For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 

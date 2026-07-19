@@ -304,7 +304,7 @@ Dead-heading is implemented for all four WIA/KIA transport legs using simmer's `
 
 <small>[Return to Top](#contents)</small>
 
-The population sizes, health system establishment, transport fleet, and casualty generation rates described in this section are the simulation's shipped defaults. Each is derived from the open-access research and analysis cited alongside it, but none is a fixed property of the model: every value is a configurable input, editable directly in `env_data.json` or via the Shiny Configure panel (`app.R`).
+The population sizes, health system establishment, transport fleet, and casualty generation rates described in this section are the simulation's shipped defaults. Each is derived from the open-access research and analysis cited alongside it; each value is a configurable input, editable directly in `env_data.json` or via the Shiny Configure panel (`app.R`).
 
 <!-- ENV SUMMARY START -->
 <!-- This section is auto-generated. Do not edit manually. -->

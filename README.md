@@ -239,7 +239,7 @@ It’s designed to be mobile, logistically lean, and capable of stabilizing casu
 
 A R2E Heavy facility delivers advanced surgical and critical care capabilities in forward-deployed military operations. Its purpose is to provide damage-control surgery, intensive care, inpatient services, and scalable resuscitation for casualties who require more than basic stabilization but are not yet ready for strategic evacuation.
 
-The R2E Heavy is a static field hospital with designed to handle complex trauma, prolonged care, and high casualty volumes—bridging the gap between battlefield stabilization and full hospital-level treatment.
+The R2E Heavy is a static field hospital designed to handle complex trauma, prolonged care, and high casualty volumes.
 
 ### Bed Types
 

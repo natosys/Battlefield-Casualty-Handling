@@ -391,7 +391,7 @@ Initially, WIA and KIA rates from US historical analysis of the Battle of Okinaw
 
 Given this discrepancy, a planning baseline was re-evaluated using historical data from the Falklands War, which suggests a casualty rate of ~0.37% [[8]](#References). This adjustment accounts for both the likely under-reporting in Russian casualty estimates, particularly of non-critical wounded personnel and over three years of varied combat intensity in Ukraine, with seasonal fluctuations in operational tempo (source TBD).
 
-Based on this reasoning, a daily casualty rate of ~0.37% is considered a suitable estimate for operational planning.
+Based on this reasoning, a daily casualty rate of ~0.37% underpins the `moderate_intensity` profile, the simulation's shipped default baseline rather than a fixed constraint. The simulation supports multiple named casualty-rate profiles — `moderate_intensity` and `high_intensity` (see [Scenario Profiles](#scenario-profiles)), selectable live via the Shiny app's Casualty Intensity Profile dropdown — and every individual stream's mean and standard deviation (see [Casualty Generation Rates](#casualty-generation-rates)) is independently re-parameterisable via the Configure panel or directly in `env_data.json`, regardless of which profile is active.
 
 For simulation efficiency, arrival times for cases were pre-computed and then introduced deterministically to the simulation environment for processing. Rather than sampling explicit arrival times, the function models continuous per-minute intensity and converts this to discrete arrival events using cumulative thresholds. The general process is outlined below.
 

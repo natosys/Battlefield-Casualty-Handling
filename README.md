@@ -467,7 +467,7 @@ This captures each increment in the expected arrival count.
 
 #### 4. Temporal Randomisation
 
-Introduces sub-minute jitter to avoid clustering arrivals on discrete time ticks and returns a sorted list of event timestamps.
+Introduces sub-minute jitter — a Uniform(0, 1) offset added to each detected arrival's whole-minute timestamp (`arrival_time <- minute_ptr + jitter`) — so arrivals are not artefactually tied to the exact minute boundary the discrete per-minute computation grid produces them on. Without this offset, every arrival from every one of the six independent casualty-generation streams would fall on a whole-minute timestamp, and two streams (e.g. combat WIA and combat KIA) could easily register an arrival in the same simulated minute, producing simultaneous, tied event times with no principled ordering between them. The jitter spreads each stream's arrivals continuously within their detected minute, giving simmer's event queue a well-ordered sequence of distinct timestamps to schedule against rather than a discretised, tick-aligned one. Each call to the generator closure returns the gap, in simulation minutes, between this arrival and the previous one — the value simmer's `add_generator()` `distribution` argument itself expects — rather than a pre-computed, already-sorted vector of arrival times; because each stream's own arrivals are produced in strictly increasing time order by construction, no separate sorting step is needed.
 
 #### 5. Mass Casualty Event Injection
 

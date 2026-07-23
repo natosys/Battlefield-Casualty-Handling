@@ -475,7 +475,7 @@ The background streams above model a continuous casualty rate and cannot represe
 
 The feature ships disabled by default (`mode = "poisson"`, `mass_casualty.event.rate_per_day = 0` in `env_data.json`).
 
-**Mode 1 — `"poisson"` (default).** A **compound Poisson process**, following the general approach used for LSCO casualty generation by Fischer et al. [[35]](#References). Event start times are drawn from a Poisson process with rate `mass_casualty.event.rate_per_day` (Issue #9 Recommended Approach value: 0.2/day, i.e. a mean inter-event interval of 5 days; used only for the explicit stress-test demonstration in [Mass Casualty Event Stress Test](docs/Single_Run_Analysis.md#mass-casualty-event-stress-test)), via the standard exponential inter-arrival construction (`mass_casualty_event_starts_poisson()`):
+**Mode 1 — `"poisson"` (default).** A compound Poisson process, following the general approach used for LSCO casualty generation by Fischer et al. [[35]](#References). Event start times are drawn from a Poisson process with rate `mass_casualty.event.rate_per_day` via the standard exponential inter-arrival construction (`mass_casualty_event_starts_poisson()`):
 
 $$
 t_{k+1} = t_k - \frac{\ln(1 - U)}{\lambda_{\text{min}}}, \quad U \sim \text{Uniform}(0, 1)

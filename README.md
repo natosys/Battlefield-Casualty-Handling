@@ -599,10 +599,7 @@ The following casualty priority rates were used with the rates requiring surgery
   
   - 60% of other priority 3 casualties requiring surgery. 
 
-> **MODEL ASSUMPTION — Casualty Priority Distribution:** The priority distribution (65% Priority 1, 20% Priority 2, 15% Priority 3) and associated surgical requirement rates (90%, 80%, and 40–60% respectively) are derived from ADF operational planning guidance that is not publicly accessible. NATO doctrine (AJP-4.10 [[33]](#References)) establishes the triage framework and echelon functions but does not prescribe specific priority distribution percentages for simulation planning.
-> **Basis:** ADF internal operational planning norms; no open-access source of equivalent specificity exists. The values reflect planning assumptions for a brigade-level ADF deployment rather than empirical data from a named conflict.
-> **Uncertainty:** High
-> **Consequence if wrong:** If the true priority distribution differs materially from that assumed, surgical resource utilisation at R2B and R2E shifts correspondingly. Over-representation of P1 increases OT and ICU demand; over-representation of P3 increases R1 holding time and reduces forward surgical load.
+This priority distribution and its associated surgical requirement rates are derived from ADF internal operational planning norms, which are not publicly accessible; NATO doctrine (AJP-4.10 [[33]](#References)) establishes the triage framework and echelon functions but does not prescribe specific priority distribution percentages for simulation planning, and no open-access source of equivalent specificity to the ADF planning norms exists. The values therefore reflect planning assumptions for a brigade-level ADF deployment rather than empirical data from a named conflict. A materially different true priority distribution would shift surgical resource utilisation at R2B and R2E correspondingly — over-representation of Priority 1 would increase OT and ICU demand, while over-representation of Priority 3 would increase R1 holding time and reduce forward surgical load.
 
 ---
 

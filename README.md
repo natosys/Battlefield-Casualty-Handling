@@ -657,10 +657,6 @@ A lower $p_{max}$ caps how high DOW probability can rise even under severe queue
 
 $p_{max}$ and the treatment efficacy factors ([Treatment Efficacy Modifiers](#treatment-efficacy-modifiers), below) were calibrated together: $p_{max} = 0.023$ reproduces the 0.52% historical rate specifically in combination with the OIF/OEF-era multipliers detailed there, so the two are entangled. The `moderate_intensity` scenario profile ([Scenario Profiles](#scenario-profiles)) resolves this by pairing era-appropriate (weaker) treatment efficacy factors with an independently re-calibrated, lower ceiling, reproducing the same historical DOW/WIA target through a mechanistically consistent route; the `default` scenario runs this base configuration, retaining the OIF/OEF-era factors.
 
-The low Falklands DOW rate reflects the compact geography of the islands (short evacuation windows), the innovative field surgical care established at Ajax Bay, and the predominantly young, fit demographic of land-force casualties.
-
-The P3 flat rate of 0.1% applies only at R2B and R2E echelons. P3 casualties recover at R1 and are not evacuated; this parameter is therefore practically inactive in the current routing logic and is retained for structural completeness.
-
 ### Multi-Echelon Check and Conditional Increment
 
 DOW checks are performed at four points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, and on completion of post-operative recovery at R2E (ICU or holding bed — see [Post-Operative Checkpoint](#postoperative-checkpoint) below). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:

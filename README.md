@@ -530,7 +530,7 @@ Combat WIA casualty generation has been based on Falklands combat troop WIA rate
 | Profile | Distribution | Parameters |
 |---|---|---|
 | default / `moderate_intensity` | Lognormal | $\mu = 1.77$, $\sigma = 3.56$ |
-| `high_intensity` | Exponential | $\mu = 6.86$ (historical SD 6.65, not used in generation — an exponential distribution is fully described by its rate alone) |
+| `high_intensity` | Exponential | $\mu = 6.86$ |
 
 #### KIA — Combat
 
@@ -539,7 +539,7 @@ Combat KIA casualty generation has been based on Falklands combat troop KIA rate
 | Profile | Distribution | Parameters |
 |---|---|---|
 | default / `moderate_intensity` | Lognormal | $\mu = 0.68$, $\sigma = 1.39$ |
-| `high_intensity` | Exponential | $\mu = 1.63$ (historical SD 1.73, not used in generation) |
+| `high_intensity` | Exponential | $\mu = 1.63$ |
 
 #### DNBI — Combat
 

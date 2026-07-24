@@ -521,27 +521,29 @@ The reinforcement demand cycle, fulfillment lag, and fill distribution are the k
 
 ### Casualty Generation Rates
 
-The rates below are the base configuration's values, shared unchanged by the shipped default and `moderate_intensity` profiles; the `high_intensity` profile overrides the WIA/KIA streams with a different distribution family and parameters (see [Scenario Profiles](#scenario-profiles)).
+This section documents the casualty generation rate parameters for every stream across all three selectable profiles ([Scenario Profiles](#scenario-profiles) describes the override mechanism itself). The shipped default and `moderate_intensity` share identical lognormal parameters; `high_intensity` overrides the WIA and KIA streams with an exponential distribution, while DNBI remains lognormal and inherited from the base configuration unchanged across all three profiles.
 
 #### WIA — Combat
 
-Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[8]](#References), table A.8 p32).
+Combat WIA casualty generation has been based on Falklands combat troop WIA rates for the default and `moderate_intensity` profiles, and Okinawa combat troop WIA rates for `high_intensity` ([[8]](#References), tables A.8 p32 and A.7 respectively).
 
-$$
-\mu = 1.77, \quad \sigma = 3.56
-$$
+| Profile | Distribution | Parameters |
+|---|---|---|
+| default / `moderate_intensity` | Lognormal | $\mu = 1.77$, $\sigma = 3.56$ |
+| `high_intensity` | Exponential | mean = 6.86 (historical SD 6.65, not used in generation — an exponential distribution is fully described by its rate alone) |
 
 #### KIA — Combat
 
-Combat KIA casualty generation has been based on Falklands combat troop KIA rates ([[8]](#References), table A.8 p32).
+Combat KIA casualty generation has been based on Falklands combat troop KIA rates for the default and `moderate_intensity` profiles, and Okinawa combat troop KIA rates for `high_intensity` ([[8]](#References), tables A.8 p32 and A.9 respectively).
 
-$$
-\mu = 0.68, \quad \sigma = 1.39
-$$
+| Profile | Distribution | Parameters |
+|---|---|---|
+| default / `moderate_intensity` | Lognormal | $\mu = 0.68$, $\sigma = 1.39$ |
+| `high_intensity` | Exponential | mean = 1.63 (historical SD 1.73, not used in generation) |
 
 #### DNBI — Combat
 
-Combat DNBI casualty generation has been based on Vietnam combat troop DNBI rates ([[8]](#References), table A.5 p31).
+Combat DNBI casualty generation has been based on Vietnam combat troop DNBI rates ([[8]](#References), table A.5 p31). This stream is inherited from the base configuration unchanged across all three profiles.
 
 $$
 \mu = 2.04, \quad \sigma = 1.89
@@ -549,15 +551,15 @@ $$
 
 #### WIA — Support
 
-Support WIA casualties employ the same casualty generation outlined above for combat WIA (except using the support population estimate of 1250 instead of the combat population of 2500). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[17]](#References) and [[10]](#References) p 2-4).
+Support WIA casualties employ the same casualty generation outlined above for combat WIA (except using the support population estimate of 1250 instead of the combat population of 2500), including the same `high_intensity` exponential override applied to the support population (see [Scenario Profiles](#scenario-profiles) for the rationale). This is on the basis that most historical modelling of force casualties include support elements at or below division in division and below casualty estimation due to their integral nature to combat operations and close proximity to the Forward Edge of the Battle Area (FEBA) (see [[17]](#References) and [[10]](#References) p 2-4).
 
 #### KIA — Support
 
-Similar to WIA, support casualty KIA employ the same casualty generation outlined above for combat KIA (except using the support population estimate of 1250 instead of the combat population of 2500) (see [[17]](#References) and [[10]](#References) p 2-4).
+Similar to WIA, support casualty KIA employ the same casualty generation outlined above for combat KIA (except using the support population estimate of 1250 instead of the combat population of 2500), including the same `high_intensity` exponential override applied to the support population (see [[17]](#References) and [[10]](#References) p 2-4).
 
 #### DNBI — Support
 
-Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[8]](#References), table A.2 p29).
+Support DNBI casualty generation has been based on Okinawa support troop DNBI rates ([[8]](#References), table A.2 p29). This stream is inherited from the base configuration unchanged across all three profiles.
 
 $$
 \mu = 0.94, \sigma = 0.56
@@ -832,7 +834,7 @@ The DOW/WIA rate is within the ±2 percentage point acceptance tolerance (well w
 
 The `high_intensity` profile demonstrates that the mechanism generalises beyond `moderate_intensity`, and that the underlying **distribution family** — not just its parameters — is itself scenario-specific per FORECAS's own methodology. It is **not** a fully validated second scenario, only a skeleton per Issue #54's acceptance criteria; Issue #10 (comparative scenario runner) owns extending it to a fully parameterised scenario.
 
-FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, `W ~ exponential(mean)`, rather than the lognormal distribution used at moderate/light intensity. Table A.7 gives `Expon(6.86)` as the fitted combat-troop WIA distribution for Okinawa (historical data mean 6.86, SD 6.65); Table A.9 gives `Expon(1.63)` for combat-troop KIA (historical mean 1.63, SD 1.73) [[8]](#References). `generators.wia_cbt`/`kia_cbt` are overridden with `distribution = "exponential"` using these means.
+FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, `W ~ exponential(mean)`, rather than the lognormal distribution used at moderate/light intensity [[8]](#References) — the fitted Okinawa WIA/KIA means are given alongside the base lognormal parameters in [Casualty Generation Rates](#casualty-generation-rates). `generators.wia_cbt`/`kia_cbt` are overridden with `distribution = "exponential"` using these means.
 
 FORECAS itself further distinguishes three troop categories with different casualty-rate treatments: INFANTRY (exponential at high intensity), SUPPORT (intra-divisional combat support — tank, artillery, light-armoured infantry, combat engineer; lognormal at all intensities), and SERVICE SUPPORT (extra-divisional sustainment — Force Service Support Group, Surveillance Reconnaissance Intelligence Group; lognormal, no autocorrelation, at all intensities) [[8]](#References). This simulation models a single brigade (division and below); it has no extra-divisional "service support" population, and the `support` population group represents an organic brigade element exposed to the same battle risk as the `combat` population — not FORECAS's rear-area service support troops. Both `generators.wia_cbt`/`kia_cbt` **and** `generators.wia_spt`/`kia_spt` are therefore overridden with `distribution = "exponential"` using the same Table A.7/A.9 means.
 

@@ -625,7 +625,7 @@ Per [[9]](#References), historical in-theatre return-to-duty rates for those adm
 
 The simulation implements a time-dependent Died of Wounds (DOW) probability model calibrated from combat casualty survival literature, so that DOW risk is sensitive to queue saturation and evacuation delay rather than reflecting a flat, time-invariant rate.
 
-The clinical motivation is the well-documented relationship between time from injury and preventable death. An analysis of 4,596 battlefield deaths during Operations Enduring Freedom and Iraqi Freedom [[29]](#References) found that 87.3% resulted from haemorrhage — predominantly junctional and truncal wounds inaccessible to tourniquet — with the majority occurring within 30–90 minutes of injury. A study of a "golden hour" policy mandating surgical capability within 60 minutes of injury [[30]](#References) found it reduced preventable prehospital death rates from 32% to 3.5% in a Special Operations context, establishing a direct empirical link between time-to-care and survivability.
+This allows the incorporation of the well-documented relationship between time from injury and preventable death. An analysis of 4,596 battlefield deaths during Operations Enduring Freedom and Iraqi Freedom [[29]](#References) found that 87.3% resulted from haemorrhage, with the majority occurring within 30–90 minutes of injury. A study of a "golden hour" policy mandating surgical capability within 60 minutes of injury [[30]](#References) found it reduced preventable prehospital death rates from 32% to 3.5% in a Special Operations context, establishing a direct empirical link between time-to-care and survivability.
 
 ### Survival Function
 
@@ -639,7 +639,7 @@ where $t$ is elapsed minutes since injury, $p_{base}$ is the irreducible DOW pro
 
 ![DOW Survival Function](../images/dow_survival_function.png)
 
-*Figure: DOW probability F(t) for P1 (urgent, red) and P2 (priority, blue) cohorts. Both curves are near-flat before 60 minutes — the window in which most simulated casualties reach R1 treatment. The sigmoid rise through the haemorrhagic shock critical window (shaded, 60–180 min) represents the period of greatest time-sensitivity. Dashed horizontal lines show the p_max asymptotes; the curves approach but never exceed these ceilings.*
+The plotted curves show DOW probability $F(t)$ for the P1 (urgent, red) and P2 (priority, blue) cohorts. Both curves are near-flat before 60 minutes — the window in which most simulated casualties reach R1 treatment — before rising through the critical window (shaded, 60–180 min), the period of greatest time-sensitivity. The dashed horizontal lines show the $p_{max}$ asymptotes; the curves approach but never exceed these ceilings.
 
 ### Parameter Calibration
 

@@ -69,4 +69,4 @@ Each tab's own on-screen text explains what it shows and why it matters; this is
 
 ## Where to Go for More Detail
 
-This guide covers the workflow; it deliberately leaves out the model's citations, algorithms, and full results narrative. For that, see the [README](../README.md) — in particular the Simulation Design, Model Outputs, and Simulation Analysis sections, and the Limitations section for what the model does not represent.
+This guide covers the workflow; it deliberately leaves out the model's citations, algorithms, and full results narrative. For that, see the [README](../README.md) — in particular the Simulation Design, Model Outputs, and Limitations sections for how the model works and what it does not represent — and the companion analysis documents, [Single_Run_Analysis.md](Single_Run_Analysis.md) and [Multi_Run_Analysis.md](Multi_Run_Analysis.md), for results.

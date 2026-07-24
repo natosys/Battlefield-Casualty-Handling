@@ -521,6 +521,8 @@ The reinforcement demand cycle, fulfillment lag, and fill distribution are the k
 
 ### Casualty Generation Rates
 
+The rates below are the base configuration's values, shared unchanged by the shipped default and `moderate_intensity` profiles; the `high_intensity` profile overrides the WIA/KIA streams with a different distribution family and parameters (see [Scenario Profiles](#scenario-profiles)).
+
 #### WIA — Combat
 
 Combat WIA casualty generation has been based on Falklands combat troop WIA rates ([[8]](#References), table A.8 p32).

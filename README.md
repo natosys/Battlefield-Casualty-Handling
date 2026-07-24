@@ -521,7 +521,7 @@ The reinforcement demand cycle, fulfillment lag, and fill distribution are the k
 
 ### Casualty Generation Rates
 
-This section documents the casualty generation rate parameters for every stream across all three selectable profiles ([Scenario Profiles](#scenario-profiles) describes the override mechanism itself). The shipped default and `moderate_intensity` share identical lognormal parameters; `high_intensity` overrides the WIA and KIA streams with an exponential distribution, while DNBI remains lognormal and inherited from the base configuration unchanged across all three profiles.
+The shipped default and `moderate_intensity` share identical lognormal parameters; `high_intensity` overrides the WIA and KIA streams with an exponential distribution, while DNBI remains lognormal and inherited from the base configuration unchanged across all three profiles.
 
 #### WIA — Combat
 

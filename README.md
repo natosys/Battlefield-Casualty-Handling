@@ -599,7 +599,7 @@ The following casualty priority rates were used with the rates requiring surgery
   
   - 60% of other priority 3 casualties requiring surgery. 
 
-This priority distribution and its associated surgical requirement rates are derived from ADF internal operational planning norms, which are not publicly accessible; NATO doctrine (AJP-4.10 [[33]](#References)) establishes the triage framework and echelon functions but does not prescribe specific priority distribution percentages for simulation planning, and no open-access source of equivalent specificity to the ADF planning norms exists. The values therefore reflect planning assumptions for a brigade-level ADF deployment rather than empirical data from a named conflict. A materially different true priority distribution would shift surgical resource utilisation at R2B and R2E correspondingly — over-representation of Priority 1 would increase OT and ICU demand, while over-representation of Priority 3 would increase R1 holding time and reduce forward surgical load.
+The values reflect planning assumptions for a brigade-level deployment rather than empirical data from a named conflict.
 
 ---
 

@@ -267,6 +267,7 @@ Each document's References section lists only the sources that document itself c
 ### Style
 
 - Write in academic third-person prose. Avoid first person.
+- **Write at a post-graduate research level that stays accessible to non-experts.** Use clear, plain prose and only standard dictionary words; do not coin non-standard terms (e.g. write "has not undergone surgery," not "unsurgicated").
 - All parameters, probabilities, and distributions must be cited to their source.
 - New methods introduced must reference the algorithm or statistical technique by name, with citation (e.g., "Morris Elementary Effects screening (Morris, 1991) was applied using R's `sensitivity` package").
 - Tables and flowcharts must be kept synchronised with the code.

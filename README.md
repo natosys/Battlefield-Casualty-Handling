@@ -699,7 +699,7 @@ $$
 
 This residual ceiling of 0.085% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with the Falklands 1982 historical outcome of effectively zero post-operative deaths in patients who survived to definitive surgical care at Ajax Bay.
 
-The multiplicative reduction factors are derived from aggregate post-care survival rates in open-access literature rather than fitted to individual-level combat casualty data, and have not been validated against a specifically comparable conflict dataset. Overestimating a factor would reduce modelled DOW sensitivity to system overload for treated casualties, while underestimating one would inflate DOW for patients who received definitive care; the relative ordering (DCS reduces the ceiling more than DCR, DCR more than TCCC) reflects clinical consensus and is unlikely to reverse under parameter uncertainty.
+The multiplicative reduction factors are derived from aggregate post-care survival rates found in academic literature rather than fitted to individual-level combat casualty data, and have not been validated against a specifically comparable conflict dataset. Overestimating a factor would reduce modelled DOW sensitivity to system overload for treated casualties, while underestimating one would inflate DOW for patients who received definitive care; the relative ordering (DCS reduces the ceiling more than DCR, DCR more than TCCC) reflects clinical consensus and is unlikely to reverse under parameter uncertainty.
 
 ### Post-Operative Checkpoint
 

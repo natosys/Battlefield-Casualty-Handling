@@ -717,7 +717,7 @@ Priority 1 casualties are always committed to surgery, even when no post-operati
 
 ### AME Wait Checkpoint
 
-Every DOW checkpoint described above fires once, at a fixed transition point, and precedes a further step in the casualty's journey that would otherwise price in any delay-accrued risk at the next checkpoint. The Strategic Evac disposition (see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) breaks this pattern: once a casualty is queued awaiting strategic AME, the R2E post-operative check (`dow_echelon == 4`, above) is the last checkpoint in the model, and the subsequent wait is unbounded — a critical-route casualty can wait multiple weeks under the shipped configuration (see [Strategic Evacuation and Role 4 Demand](docs/Single_Run_Analysis.md#strategic-evacuation-and-role-4-demand)).
+Each DOW checkpoint fires once, at a fixed transition point, and precedes a further step in the casualty's journey that would otherwise price in any delay-accrued risk at the next checkpoint. The Strategic Evacuation disposition (see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) breaks this pattern: once a casualty is queued awaiting strategic AME, the R2E post-operative check (`dow_echelon == 4`, above) is the last checkpoint in the model, and the subsequent wait is unbounded (see [Strategic Evacuation and Role 4 Demand](docs/Single_Run_Analysis.md#strategic-evacuation-and-role-4-demand)).
 
 `ame_dow_poll()` (`R/trajectories.R`) closes this gap using the same conditional-increment logistic mechanism as every other checkpoint (`dow_prob_conditional()`, the same priority-based parameters and `dow_ceiling`), applied periodically rather than once:
 

@@ -793,7 +793,7 @@ With these weaker factors, `dow.params` was re-calibrated by the same iterative 
 | DOW/WIA rate  | 0.498% (95% CI [0.280%, 0.715%]) | 0.52% [[13]](#References), [[14]](#References) |
 | KIA:WIA ratio | 0.452                            | 0.328 (255 KIA : 777 WIA [[14]](#References))  |
 
-The DOW/WIA rate falls well within the ±2 percentage point acceptance tolerance, with the 95% CI spanning the historical target. The KIA:WIA ratio is a characteristic of the base casualty generator calibration rather than of this profile's separation of the DOW ceiling from the treatment efficacy factors: the FORECAS-derived `kia_cbt`/`wia_cbt` generation rates that both `default` and `moderate_intensity` inherit produce this ratio under the lognormal-cap generation mechanism before any scenario override is applied (see Limitations, L12).
+The DOW/WIA rate matches the historical target: the 95% confidence interval, [0.280%, 0.715%], contains the 0.52% target used to calibrate the base configuration. The KIA:WIA ratio does not match, but this is a characteristic of the base casualty generation rates that both profiles share rather than something this profile introduced, since the profile overrides only the DOW ceiling and treatment efficacy factors (see Limitations).
 
 ### High Intensity profile (Okinawa exemplar, demonstration skeleton)
 
@@ -2034,7 +2034,7 @@ Ultimately, this repository provides a transparent, modular, and extensible foun
 
 [13] Payne, R. (1983). The Falklands war: Army field surgical experience. *Annals of the Royal College of Surgeons of England*, *65*(5), 281–285. Retrieved 02 Jul 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC2494365/
 
-[14] Jolly, R. (2018). Obituary: Surgeon Commander Rick Jolly OBE. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 02 Jul 26, from https://jmvh.org/article/obituary-surgeon-commander-rick-jolly-obe/
+[14] Westphalen, N. (2018). Surgeon Captain Richard Tadeusz 'Rick' Jolly OBE RN Rtd. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 26 Jul 26, from https://jmvh.org/article/surgeon-captain-richard-tadeusz-rick-jolly-obe-rn-rtd/
 
 [15] Ucar I, Smeets B, Azcorra A (2019). “simmer: Discrete-Event Simulation for R.” *Journal of Statistical Software*, 90(2), 1–30. [doi:10.18637/jss.v090.i02](https://doi.org/10.18637/jss.v090.i02).
 

@@ -69,6 +69,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [KIA — Support](#kia-support)
     - [DNBI — Support](#dnbi-support)
   - [DNBI Sub-Type Split](#dnbi-subtype-split)
+  - [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible)
 - [Casualty Priorities](#casualty-priorities)
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
@@ -579,6 +580,15 @@ The 17% NBI proportion is drawn from FORECAS empirical data ([[8]](#References),
 The disease sub-type's 6% emergency surgical candidacy rate is an informed estimate derived from population-level surgical incidence in military-age males: appendicitis alone occurs at approximately 35–50 per 10,000 per year in this demographic [[51]](#References), with acute cholecystitis, perforated peptic ulcer, and complicated soft tissue infections adding further surgical demand, and against approximately 100 disease DNBI presentations per month in the modelled force these conditions yield approximately 3–6 surgical cases — consistent with emergency surgical care for disease conditions being documented as a significant component of deployed hospital workload [[52]](#References).
 
 Only the NBI sub-type (17% of DNBI) enters the routine surgical pathway on the same terms as WIA; disease contributes a small additional load through its 6% emergency surgical candidacy, and battle fatigue contributes none. OT demand is therefore driven primarily by WIA and NBI casualties. Across 100 replications (30 days, seed 42), the mean number of casualties requiring surgery per replication was 158.6 (SD 6.8; range 143–177). Of DNBI sub-types, NBI cases generated surgical candidacy at a rate of 79.6% (consistent with the WIA-equivalent trajectory), disease cases at 5.7% (reflecting the 6% emergency surgical rate assumption), and battle fatigue cases at 0.0% (by design).
+
+### Parameters Not Scenario-Eligible
+
+The `moderate_intensity` and `high_intensity` scenario profiles ([Scenario Profiles](#scenario-profiles)) override only casualty generation, DOW, priority, DNBI, and transport-time parameters. Several other `env_data.json` parameter groups sit outside that framework entirely, either because neither shipped profile has yet been sourced to override them, or because they describe something other than a historically-variable casualty-rate or mortality fact:
+
+- **Mass casualty event parameters** (`mass_casualty.event`, `mass_casualty.priority`, `mass_casualty.schedule`; see [Mass Casualty Event Injection](#5-mass-casualty-event-injection)) are plausibly scenario-relevant, since event rate, size, and the blast-dominant priority mix could differ by battle intensity, but neither shipped profile currently overrides them; sourcing era-specific mass casualty parameters is the same class of gap already noted for `high_intensity`'s DOW ceiling and treatment efficacy.
+- **Force regeneration reinforcement parameters** (`force_regeneration.reinforcement`; see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)) are a planner-configured logistics lever, the reinforcement demand cadence, fulfillment lag, and fill distribution, rather than a fact about a historical casualty rate, so they are not treated as scenario-eligible.
+- **Role 4 and strategic AME parameters** (`role4.*`; see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) are inherited unchanged by both shipped profiles. Strategic fixed-wing aeromedical evacuation as modelled here is a distinctly modern capability, so applying it unchanged to `high_intensity`'s Okinawa-era casualty stream is the same kind of era mismatch already acknowledged for that profile's DOW ceiling and treatment efficacy factors.
+- **Per-echelon treatment and process parameters** (`r1.recovery`/`kia_treat`/`wia_treat`; `r2b.surgery`/`long_resus`/`holding`/`kia_treat`/`icu_gating`; `r2eheavy.surgery`/`short_resus`/`long_resus`/`long_icu`/`short_icu`/`holding`/`recovery`/`kia_treat`/`icu_gating`/`post_op_hold`; see [Core Trajectory](#core-trajectory), [R2B Trajectory](#r2b-trajectory), and [R2E Heavy Trajectory](#r2e-heavy-trajectory)) describe how long a clinical task takes and when a gating threshold triggers, not how effective that task is. Only the treatment efficacy factors that modify DOW risk ([Treatment Efficacy Modifiers](#treatment-efficacy-modifiers)) are treated as era-specific; the task durations themselves are held constant across profiles.
 
 ---
 

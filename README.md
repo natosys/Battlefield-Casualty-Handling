@@ -759,7 +759,7 @@ A distribution family is itself a scenario-specific choice, not just a distribut
 
 ### Parameter classification
 
-Only variables that genuinely differ by battle intensity or historical context are scenario-eligible. Structural configuration (element, bed, and team counts in `elms`; transport fleet sizes in `transports`; and population sizes in `pops`) is never overridden by a scenario profile, since these describe the deployed force structure being tested against a scenario rather than the scenario itself.
+Only variables that genuinely differ by battle intensity or historical context are scenario-eligible; structural configuration is never overridden by a scenario profile, since it describes the deployed force structure being tested against a scenario rather than the scenario itself. Several other parameter groups also fall outside this mechanism for their own reasons; see [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible).
 
 | Parameter group                                                     | Scenario-specific? | `moderate_intensity` profile                                                                     |
 | ------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------ |

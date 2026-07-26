@@ -813,7 +813,7 @@ A 30-replication run (30 days, seed 42) of each profile produced:
 | Mean KIA/run                           | 67.2                          | 155.5                     |
 | WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 3.76×                     |
 
-These figures use `make_exp_arrival_generator()`'s mean-relative rate cap (`cap = 3 × mean_daily`), which trims the same small share of draws whatever the stream's mean (see [Casualty Generation](#casualty-generation)).
+The two profiles cap their draws differently (see [Casualty Generation](#casualty-generation)). `make_exp_arrival_generator()` applies a mean-relative cap (`cap = 3 × mean_daily`) that trims a constant 5% of draws whatever the stream's mean. `make_ln_arrival_generator()` applies a fixed cap of 5 on the same per-1,000-troops daily scale, so the share it trims varies by stream, from 7.3% for the WIA streams to 1.4% for KIA. DNBI is not overridden by either profile and stays lognormal under both.
 
 Mean DNBI per run falls under `high_intensity`, from 169.9 to 157.3, even though the profile leaves DNBI generation untouched. Casualty rates are set per 1,000 troops and scaled by the live force size (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)), so heavier battle attrition leaves fewer troops in theatre to fall sick.
 

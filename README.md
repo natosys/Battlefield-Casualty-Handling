@@ -797,7 +797,7 @@ The DOW/WIA rate matches the historical target: the 95% confidence interval, [0.
 
 ### High Intensity profile (Okinawa exemplar)
 
-The `high_intensity` profile demonstrates that the mechanism generalises beyond `moderate_intensity`, and that the underlying **distribution family**, not merely its parameters, is scenario-specific under FORECAS's own methodology. It is not a fully validated second scenario (see Limitations).
+The `high_intensity` profile implements exponential casualty generation in line with casualty models published by FORECAS [[8]](#References). It is not a fully validated second scenario (see Limitations).
 
 FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, $W \sim \text{exponential}(\mu)$, rather than the lognormal distribution used at moderate and light intensity [[8]](#References). The fitted Okinawa WIA and KIA means are given alongside the base lognormal parameters in [Casualty Generation Rates](#casualty-generation-rates), and `generators.wia_cbt`/`kia_cbt` are overridden with `distribution = "exponential"` using them.
 

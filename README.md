@@ -33,6 +33,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Statistical Methods for Simulation Verification, Replication, and Sensitivity Analysis](#statistical-methods-for-simulation-verification-replication-and-sensitivity-analysis)
     - [Disease and Non-Battle Injury Evidence](#disease-and-nonbattle-injury-evidence)
 - [Scenario Context](#scenario-context)
+- [Simulation Framework](#simulation-framework)
 - [Resource Descriptions](#resource-descriptions)
   - [Health Teams](#health-teams)
     - [Role 1 (R1) Treatment Team](#role-1-r1-treatment-team)
@@ -103,7 +104,6 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Shiny Application](#shiny-application)
       - [Full Analysis Mode](#full-analysis-mode)
       - [Sensitivity Panel](#sensitivity-panel)
-  - [Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
@@ -218,6 +218,66 @@ An [Interactive Diagram](https://www.map.army/?ShareID=1041883&UserType=RO-xOMjf
 
 ---
 
+## Simulation Framework
+
+<small>[Return to Top](#contents)</small>
+
+The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
+
+The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree. The diagram below provides an outline of the role and function design applied for this simulation using the three-stage Damage Control Surgery (DCS) model of care described in [[20]](#References) and [[21]](#References).
+
+```mermaid
+block-beta
+  columns 13
+
+  a["Casualty Care"]:13
+  b["R1"]:3
+  c["R2B"]:4 space:9
+  e["R2E"]:7 space:6
+  f["R4"]:10
+
+  g["Triage"]
+  h["POI Care"]
+  i["MEDIVAC"]
+  j["Resus/Emergency"]
+  k["Abbreviated Surgery"]
+  l["ICU Stabilisation"]
+  m["MEDIVAC"]
+  n["Definitive Surgery"]
+  o["Recovery"]
+  p["MEDIVAC"]
+  q["Reconstructive Surgery"]
+  r["Rehabilitation"]
+  s["Long Term Recovery"]
+
+  %% Role 1 — Deep Navy
+  style b fill:#336699,stroke:#003366,color:#ffffff
+  style g fill:#336699,stroke:#003366,color:#ffffff
+  style h fill:#336699,stroke:#003366,color:#ffffff
+  style i fill:#336699,stroke:#003366,color:#ffffff
+
+  %% Role 2B — Dark Sea Green
+  style c fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style j fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style k fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style l fill:#2e8b57,stroke:#14532d,color:#ffffff
+  style m fill:#2e8b57,stroke:#14532d,color:#ffffff
+
+  %% Role 2E — Olive Gold
+  style e fill:#b5a900,stroke:#665c00,color:#ffffff
+  style n fill:#b5a900,stroke:#665c00,color:#ffffff
+  style o fill:#b5a900,stroke:#665c00,color:#ffffff
+  style p fill:#b5a900,stroke:#665c00,color:#ffffff
+
+  %% Role 4 — Burnt Amber
+  style f fill:#cc6600,stroke:#663300,color:#ffffff
+  style q fill:#cc6600,stroke:#663300,color:#ffffff
+  style r fill:#cc6600,stroke:#663300,color:#ffffff
+  style s fill:#cc6600,stroke:#663300,color:#ffffff
+```
+
+---
+
 ## Resource Descriptions
 
 <small>[Return to Top](#contents)</small>
@@ -307,6 +367,8 @@ Dead-heading is implemented for all four WIA/KIA transport legs using simmer's `
 <small>[Return to Top](#contents)</small>
 
 The population sizes, health system establishment, transport fleet, and casualty generation rates described in this section are the simulation's shipped defaults. Each is derived from the open-access research and analysis cited alongside it; each value is a configurable input, editable directly in `env_data.json` or via the Shiny Configure panel (`app.R`).
+
+The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). Triangular distributions were employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[18]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[16]](#References).
 
 <!-- ENV SUMMARY START -->
 <!-- This section is auto-generated. Do not edit manually. -->
@@ -1404,66 +1466,6 @@ A *Run Sobol Decomposition* button activates once Morris completes, pre-selectin
 A **Transport Fleet Capacity Margin Sweep** panel (Issue #57) sits below Sobol Decomposition, independent of Morris/Sobol state — it does not require either to have run first. Two range sliders (PMV Ambulance, default 1–5; HX240M, default 1–4, both adjustable up to 10) set the swept fleet-size range for each vehicle type; a *Run Transport Fleet Sweep* button dispatches `plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`, [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) through the same `run_shiny_worker()` subprocess mechanism as Morris/Sobol, reusing the "Replications per Point" value set above for Morris and the Run panel's `n_days`, with the same real "evaluating sweep point M of N" progress-counter mechanism (one marker per vehicle/fleet-size combination swept). On completion, the sweep's raw per-point results (not a pre-rendered image) are returned from the worker and rendered via `render_transport_sweep_plot()` — factored out of `plot_transport_capacity_margin_by_fleet_size()` specifically so the app's on-screen plot is built from the identical `ggplot2` specification the CLI/README path uses, rather than a separately maintained copy — with the dashed current-establishment reference line read live from the Configure panel's current PMVAmb/HX240M fleet-size fields rather than hardcoded. A CSV download button provides the full per-point sweep table, including the 95% CI bounds the plot's ribbons are drawn from.
 
 Wall-clock time scales with r × (p + 1) × reps, where p is the number of screened parameters — as of Issue #112's expansion to 55 parameters (up from 11), the "production configuration" default of r = 20, 5 reps, 30 days is a materially larger run than the ~2–3 hours previously quoted for the eleven-parameter screen (a figure that no longer applies at p = 55). Issue #112's own re-run used a reduced r = 5 at this parameter count (280 design points × 5 reps, 94 minutes total — ≈20 seconds per design point — on 4 cores in that development environment) — actual wall-clock time is hardware-dependent, and a planner intending to run the r = 20 default at p = 55 (1,120 design points × 5 reps, a proportional extrapolation would suggest roughly 6 hours) should budget accordingly, or reduce `r` via the Sensitivity Calibration tab's control. Sobol's default of 200 design points (`n_sobol`, the `sobol2007`/Saltelli 2007 estimator's own default) times (parameters + 2) evaluations is comparable or greater at whatever parameter subset is selected. A quick smoke test (r = 3, 3 reps per point) completes much faster but produces high-uncertainty μ\*/σ estimates — some parameters may show near-zero effect at this scale — and is intended to verify the screening pipeline runs end-to-end, not to draw scientific conclusions from. Download buttons provide the Morris PNGs (all seven tracked KPIs, zipped), the ranked parameter CSV, and the Sobol indices (all evaluated KPIs, zipped).
-
-### Simulation Environment Setup
-
-The simulation models casualty handling across echelons of care in a battlefield environment, structured around modular trajectories and dynamic resource availability. It operates within a discrete-event simulation framework using `simmer`, and is driven by probabilistic rates, conditional branching, and resource interactions across Role 1 (R1), Role 2 Basic (R2B), and Role 2 Enhanced Heavy (R2E) facilities.
-
-The simulation was designed around the general functions of each role of health element as outlined in the diagram below. Where roles overlap they are able to provide the same functions to varying degree. The diagram below provides an outline of the role and function design applied for this simulation using the three-stage Damage Control Surgery (DCS) model of care described in [[20]](#References) and [[21]](#References).
-
-```mermaid
-block-beta
-  columns 13
-
-  a["Casualty Care"]:13
-  b["R1"]:3
-  c["R2B"]:4 space:9
-  e["R2E"]:7 space:6
-  f["R4"]:10
-
-  g["Triage"]
-  h["POI Care"]
-  i["MEDIVAC"]
-  j["Resus/Emergency"]
-  k["Abbreviated Surgery"]
-  l["ICU Stabilisation"]
-  m["MEDIVAC"]
-  n["Definitive Surgery"]
-  o["Recovery"]
-  p["MEDIVAC"]
-  q["Reconstructive Surgery"]
-  r["Rehabilitation"]
-  s["Long Term Recovery"]
-
-  %% Role 1 — Deep Navy
-  style b fill:#336699,stroke:#003366,color:#ffffff
-  style g fill:#336699,stroke:#003366,color:#ffffff
-  style h fill:#336699,stroke:#003366,color:#ffffff
-  style i fill:#336699,stroke:#003366,color:#ffffff
-
-  %% Role 2B — Dark Sea Green
-  style c fill:#2e8b57,stroke:#14532d,color:#ffffff
-  style j fill:#2e8b57,stroke:#14532d,color:#ffffff
-  style k fill:#2e8b57,stroke:#14532d,color:#ffffff
-  style l fill:#2e8b57,stroke:#14532d,color:#ffffff
-  style m fill:#2e8b57,stroke:#14532d,color:#ffffff
-
-  %% Role 2E — Olive Gold
-  style e fill:#b5a900,stroke:#665c00,color:#ffffff
-  style n fill:#b5a900,stroke:#665c00,color:#ffffff
-  style o fill:#b5a900,stroke:#665c00,color:#ffffff
-  style p fill:#b5a900,stroke:#665c00,color:#ffffff
-
-  %% Role 4 — Burnt Amber
-  style f fill:#cc6600,stroke:#663300,color:#ffffff
-  style q fill:#cc6600,stroke:#663300,color:#ffffff
-  style r fill:#cc6600,stroke:#663300,color:#ffffff
-  style s fill:#cc6600,stroke:#663300,color:#ffffff
-```
-
-The simulation heavily uses triangular distributions to model the duration of activities undertaken in the model (treatment, transport and other handling tasks). A triangular distributions was employed as they are generally used when the underlying distribution is unknown, but a minimal value, some maximal value, and a most likely value are available [[18]](#References). This approach is similar to other applications of DES in clinical settings, as shown in [[16]](#References). 
-
----
 
 ### Core Trajectory
 

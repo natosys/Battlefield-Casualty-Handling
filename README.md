@@ -585,6 +585,7 @@ Only the NBI sub-type (17% of DNBI) enters the routine surgical pathway on the s
 
 The `moderate_intensity` and `high_intensity` scenario profiles ([Scenario Profiles](#scenario-profiles)) override only casualty generation, DOW, priority, DNBI, and transport-time parameters. Several other `env_data.json` parameter groups sit outside that framework entirely, either because neither shipped profile has yet been sourced to override them, or because they describe something other than a historically-variable casualty-rate or mortality fact:
 
+- **Structural configuration** (element, bed, and team counts in `elms`; transport fleet sizes in `transports`; and population sizes in `pops`) describes the deployed force structure being tested against a scenario rather than the scenario itself, so it is never overridden by a scenario profile.
 - **Mass casualty event parameters** (`mass_casualty.event`, `mass_casualty.priority`, `mass_casualty.schedule`; see [Mass Casualty Event Injection](#5-mass-casualty-event-injection)) are plausibly scenario-relevant, since event rate, size, and the blast-dominant priority mix could differ by battle intensity, but neither shipped profile currently overrides them; sourcing era-specific mass casualty parameters is the same class of gap already noted for `high_intensity`'s DOW ceiling and treatment efficacy.
 - **Force regeneration reinforcement parameters** (`force_regeneration.reinforcement`; see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)) are a planner-configured logistics lever, the reinforcement demand cadence, fulfillment lag, and fill distribution, rather than a fact about a historical casualty rate, so they are not treated as scenario-eligible.
 - **Role 4 and strategic AME parameters** (`role4.*`; see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)) are inherited unchanged by both shipped profiles. Strategic fixed-wing aeromedical evacuation as modelled here is a distinctly modern capability, so applying it unchanged to `high_intensity`'s Okinawa-era casualty stream is the same kind of era mismatch already acknowledged for that profile's DOW ceiling and treatment efficacy factors.
@@ -759,17 +760,16 @@ A distribution family is itself a scenario-specific choice, not just a distribut
 
 ### Parameter classification
 
-Only variables that genuinely differ by battle intensity or historical context are scenario-eligible; structural configuration is never overridden by a scenario profile, since it describes the deployed force structure being tested against a scenario rather than the scenario itself. Several other parameter groups also fall outside this mechanism for their own reasons; see [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible).
+Only variables that genuinely differ by battle intensity or historical context are scenario-eligible. See [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible) for the parameter groups this excludes.
 
-| Parameter group                                                     | Scenario-specific? | `moderate_intensity` profile                                                                     |
-| ------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------ |
-| Casualty generation rates and distribution family (`generators.*`)  | Yes                | Inherited from base (already Falklands-sourced: FORECAS Table A.8 [[8]](#References), lognormal) |
-| DOW ceiling and shape (`dow.params`)                                | Yes                | **Overridden**, re-calibrated (see below)                                                        |
-| DOW treatment efficacy (`dow.treatment_efficacy`)                   | Yes                | **Overridden**, era-appropriate factors (see below)                                              |
-| Priority distribution (`r1.priority`)                               | Yes                | Inherited from base (no Falklands-specific triage data identified)                               |
-| DNBI composition, surgery/evacuation probabilities (`r1.other`)     | Yes                | Inherited from base (already Falklands/FORECAS-sourced where cited)                              |
-| Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Yes                | Inherited from base (no Falklands-specific transport-time source identified)                     |
-| Element/bed/team counts, transport fleet sizes, population sizes    | No (structural)    | Not scenario-eligible                                                                            |
+| Parameter group                                                     | `moderate_intensity` profile                                                                     |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Casualty generation rates and distribution family (`generators.*`)  | Inherited from base (already Falklands-sourced: FORECAS Table A.8 [[8]](#References), lognormal) |
+| DOW ceiling and shape (`dow.params`)                                | **Overridden**, re-calibrated (see below)                                                        |
+| DOW treatment efficacy (`dow.treatment_efficacy`)                   | **Overridden**, era-appropriate factors (see below)                                              |
+| Priority distribution (`r1.priority`)                               | Inherited from base (no Falklands-specific triage data identified)                               |
+| DNBI composition, surgery/evacuation probabilities (`r1.other`)     | Inherited from base (already Falklands/FORECAS-sourced where cited)                              |
+| Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Inherited from base (no Falklands-specific transport-time source identified)                     |
 
 "Inherited from base" is a deliberate choice rather than an oversight: restating identical values under the scenario key would create a second source of truth with no behavioural effect. Where the base value is not actually Falklands-specific (transport time distributions, priority distribution), this is recorded as a limitation rather than silently assumed correct.
 

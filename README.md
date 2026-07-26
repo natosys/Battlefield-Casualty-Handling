@@ -803,15 +803,15 @@ FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in hig
 
 FORECAS further distinguishes three troop categories with different casualty-rate treatments: INFANTRY (ground combat troops, exponential at high intensity), SUPPORT (intra-divisional combat support such as tank, artillery, light-armoured infantry, and combat engineer, lognormal at all intensities), and SERVICE SUPPORT (extra-divisional sustainment such as Force Service Support Group and Surveillance Reconnaissance Intelligence Group, lognormal and without autocorrelation at all intensities) [[8]](#References). This simulation models a single brigade (division and below), so it has no extra-divisional service support population, and its `support` group represents an organic brigade element exposed to the same battle risk as the `combat` group rather than FORECAS's rear-area category. Both `generators.wia_cbt`/`kia_cbt` **and** `generators.wia_spt`/`kia_spt` are therefore overridden with `distribution = "exponential"` using the same Table A.7 and A.9 means. This is a considered reclassification rather than a literature-derived value, following FORECAS's own category definitions and this project's documented force structure ([Scenario Context](#scenario-context)); were the `support` group better treated as FORECAS's lognormal-always SUPPORT category, `generators.wia_spt`/`kia_spt` would revert to `distribution = "lognormal"` under this profile, somewhat reducing realised support-troop casualty counts without affecting `combat` output.
 
-DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are not sourced for Okinawa and are inherited unchanged from the Falklands-calibrated base, so this profile pairs Okinawa-intensity casualty production with a mortality calibration validated for a different context (see Limitations).
+DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are not sourced for Okinawa and are inherited unchanged from the Falklands-calibrated base (see Limitations).
 
-A 30-replication run (30 days) of each profile produced:
+A 30-replication run (30 days, seed 42) of each profile produced:
 
 | Metric                                 | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
 | -------------------------------------- | ----------------------------- | ------------------------- |
-| Mean WIA/run                           | 154.0                         | 733.0                     |
-| Mean KIA/run                           | 69.6                          | 173.4                     |
-| WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 4.05×                     |
+| Mean WIA/run                           | 148.9                         | 656.7                     |
+| Mean KIA/run                           | 67.2                          | 155.5                     |
+| WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 3.76×                     |
 
 These figures use `make_exp_arrival_generator()`'s mean-relative rate cap (`cap = 3 × mean_daily`), which trims the same small share of draws whatever the stream's mean (see [Casualty Generation](#casualty-generation)).
 

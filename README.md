@@ -817,8 +817,6 @@ The two profiles cap their draws differently (see [Casualty Generation](#casualt
 
 Mean DNBI per run falls under `high_intensity`, from 169.9 to 157.3, even though the profile leaves DNBI generation untouched. Casualty rates are set per 1,000 troops and scaled by the live force size (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)), so heavier battle attrition leaves fewer troops in theatre to fall sick.
 
-No Vietnam-calibrated profile exists: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 covers Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters are available in the source document. Adding one would require either fabricating a citation or estimating a value without a source, neither of which meets this project's citation standards; a Vietnam-calibrated scenario awaits a source that actually tabulates it.
-
 ---
 
 ## Development Environment

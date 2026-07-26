@@ -771,8 +771,6 @@ Only variables that genuinely differ by battle intensity or historical context a
 | DNBI composition, surgery/evacuation probabilities (`r1.other`)     | Inherited from base (already Falklands/FORECAS-sourced where cited)                              |
 | Transport time distributions (`*.wia_transport`, `*.kia_transport`) | Inherited from base (no Falklands-specific transport-time source identified)                     |
 
-"Inherited from base" is a deliberate choice rather than an oversight: restating identical values under the scenario key would create a second source of truth with no behavioural effect. Where the base value is not actually Falklands-specific (transport time distributions, priority distribution), this is recorded as a limitation rather than silently assumed correct.
-
 ### Moderate Intensity profile (Falklands 1982 exemplar)
 
 The `moderate_intensity` profile overrides `dow.params` and `dow.treatment_efficacy` to separate the DOW ceiling from the treatment efficacy factors it was jointly calibrated with (see [Parameter Calibration](#parameter-calibration)).

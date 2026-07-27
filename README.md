@@ -1020,11 +1020,16 @@ Rscript run.R --seed 99 --days 14 --iterations 10
 
 # Quick smoke test (5 days, 5 iterations, seed 42)
 Rscript run.R --quick
+
+# Exclude a warm-up period from the analysis window
+Rscript run.R --days 30 --iterations 10 --warm-up 5
 ```
 
-Single-run outputs (monitoring CSVs and markdown tables) are written to `outputs/`. Simulation logs are written to `logs/logs.txt`. Multi-run mode additionally writes `outputs/replication_summary.csv` containing the KPI table (see [Multi-run Replication Framework](#multirun-replication-framework) below).
+`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warmup-period-analysis) below for why).
 
-> **Note — dependency pinning:** Package versions are pinned via a committed `renv.lock` (Issue #72). See [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
+Both run modes write monitoring CSVs and markdown tables to `outputs/`. A single run additionally captures its console output to `logs/logs.txt` and writes arrival diagnostics to `data/`, neither of which a multi-run produces; a multi-run instead writes `outputs/replication_summary.csv` containing the KPI table (see [Multi-run Replication Framework](#multirun-replication-framework) below).
+
+Package versions are pinned via a committed `renv.lock`; see [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
 
 #### Multi-run Replication Framework
 

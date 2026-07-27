@@ -22,7 +22,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `R/sensitivity.R` | Morris EE screening and Sobol variance decomposition |
 | `R/warmup.R` | Welch warm-up analysis |
 | `R/app_params.R` | Parameter registry for the Shiny Configure panel |
-| `R/scenario.R` | Named scenario profile definitions and override logic |
+| `R/scenario.R` | Scenario overlay mechanism (`resolve_scenario`, `merge_scenario_vars`); the profiles themselves are defined in `env_data.json`'s `scenarios` block |
 | `R/scenario_runner.R` | Comparative scenario runner — executes the replication framework under a named scenario profile |
 | `app.R` | Shiny console — Configure/Run/Analyse workflow for interactive `env_data.json` parameter editing, Quick Run, Full Analysis (multi-run with 95% CI), and Sensitivity Screening (Morris/Sobol) execution (Issues #14, #15) |
 | `env_data.json` | All simulation parameters — populations, resources, distributions, schedules |

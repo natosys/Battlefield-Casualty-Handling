@@ -1063,7 +1063,7 @@ Rscript scripts/run_warmup.R
 Rscript scripts/run_warmup.R --reps 5 --days 60
 ```
 
-The resulting Welch plot shows the cross-replication CMA of the R2E ICU queue across 90 days. The figures below were regenerated against the current codebase in an unpinned R sandbox rather than the project's pinned Dev Container, so they carry the same provenance caveat as the Issue #18 and Issue #23 baseline refreshes recorded in `CLAUDE.md`.
+The resulting Welch plot shows the cross-replication CMA of the R2E ICU queue across 90 days.
 
 ![Welch plot of the R2E ICU queue CMA across 90 days](../images/welch_plot_icu_queue.png)
 

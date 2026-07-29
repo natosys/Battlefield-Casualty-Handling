@@ -1267,7 +1267,7 @@ The screen is currently run at r = 5 Morris trajectories rather than the `--r` d
 The sensitivity analysis is implemented in `R/sensitivity.R` and executed via:
 
 ```bash
-# Full Morris screening: r=20 trajectories × (9 + 1) = 200 evaluations, 5 reps each
+# Full Morris screening: r=20 trajectories × (53 + 1) = 1,080 design points, 5 reps each
 Rscript scripts/run_sensitivity.R
 
 # Smoke test: r=3, reps=3, days=5 (completes in <5 minutes)

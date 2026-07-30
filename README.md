@@ -1578,8 +1578,6 @@ flowchart TD
 
 ### R2E Heavy Trajectory
 
-R2E Heavy is the theatre's field hospital, providing resuscitation, surgery, intensive care, holding, and the route to strategic evacuation.
-
 Casualties are checked for died of wounds on arrival (see [Died of Wounds](#died-of-wounds)) and those who have died are handled as KIA. Elapsed time since injury is typically 60 to 180 minutes by this point, a window over which the Priority 1 risk rises steeply, so reception matters most for casualties who have not yet had surgery. Survivors queue for a resuscitation bay. A casualty already resuscitated at R2B receives a short resuscitation of 13 to 55 minutes, most often 28, built from task estimates in the same way as the R2B distribution; anyone else receives the full resuscitation, using the R2B distribution of 25 to 70 minutes, most often 45.
 
 | Short Resuscitation      |           |            |           |

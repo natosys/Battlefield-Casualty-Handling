@@ -1611,13 +1611,16 @@ flowchart TD
     G --> I["Release Emerg Team & Resus"]
     H --> I
     I --> J{"Surgery?"}
-    J -- No --> P{"Prior R2B Surg?"}
+    J -- No --> P{"R2E Surgery,<br>No Prior R2B Surg?"}
     J -- Yes --> K{"ICU Available?"}
     K -- "Yes" --> L["Seize OT"]
     L --> M["Surgery (First)"]
     M --> N["Release OT"]
-    N --> O["ICU (Short or Long)"]
-    O --> O2["Release ICU"]
+    N --> O{"Prior R2B Surg?"}
+    O -- Yes --> Osh["Short ICU"]
+    O -- No --> Olo["Long ICU"]
+    Osh --> O2["Release ICU"]
+    Olo --> O2
     O2 --> PD{"Post-Op DOW?"}
     K -- "Full, Priority 1" --> L2["Seize OT"]
     L2 --> M2["Surgery (First)"]
@@ -1629,11 +1632,11 @@ flowchart TD
     KD --> K
     PD -- Yes --> C
     PD -- No --> P
-    P -- No --> Q["Seize OT"]
+    P -- Yes --> Q["Seize OT"]
     Q --> R["Surgery (Second)"]
     R --> S["Release OT"]
     S --> T{"Recover in Theatre?"}
-    P -- Yes --> T
+    P -- No --> T
     T -- Yes --> U["Seize Hold Bed"]
     U --> V["Recover at R2E"]
     V --> W["Release Hold Bed"]
@@ -1641,9 +1644,13 @@ flowchart TD
     X --> Z
     T -- No --> Y{"Priority 1 &<br>Surgical?"}
     Y -- Yes --> Y1["Seize ICU Bed"]
-    Y1 --> Y1a["Seize ame_critical<br>(CCATT/CCAST, small capacity)"]
+    Y1 --> YW{"DOW While<br>Awaiting AME?"}
+    YW -- Yes --> C
+    YW -- No --> Y1a["Seize ame_critical<br>(CCATT/CCAST, small capacity)"]
     Y -- No --> Y2["Seize Hold Bed"]
-    Y2 --> Y2a["Seize ame<br>(standard, CSU, larger capacity)"]
+    Y2 --> YW2{"DOW While<br>Awaiting AME?"}
+    YW2 -- Yes --> C
+    YW2 -- No --> Y2a["Seize ame<br>(standard, CSU, larger capacity)"]
     Y1a --> Y4["Release ICU/Hold Bed"]
     Y2a --> Y4
     Y4 --> Z

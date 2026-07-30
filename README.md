@@ -1527,7 +1527,7 @@ Resuscitation takes 25 to 70 minutes, most often 45. No published duration for t
 | Documentation/Prep       | 2         | 3          | 5         |
 | **TOTAL**                | 25        | 45         | 70        |
 
-Casualties not needing surgery move to a holding bed and recover over 0.5 to 10 days, most often 5.
+Casualties not needing surgery need a holding bed, and where that bed is found depends on capacity. A team is only chosen if its holding beds are less than 80% occupied, which reserves headroom for new arrivals rather than letting long-stay patients fill the unit. If a team has room the casualty recovers at R2B over 0.5 to 10 days, most often 5, and returns to duty. If no R2B team is below the threshold but R2E has holding capacity, the casualty is sent to R2E instead. If both are full, the casualty queues for an R2B bed, subject to a cap on queue length.
 
 Surgical candidacy is assessed next, behind an ICU availability gate. Priority 1 casualties proceed regardless of ICU status; Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. R2B surgery does not use ICU beds for post-operative recovery: the `icu_bed` resources checked here are the same ones the evacuation-wait fallback uses. The gate is therefore expected to be inert at baseline load, though R2B ICU utilisation is not among the reported outputs, so that expectation has not been checked against a run.
 
@@ -1555,11 +1555,16 @@ flowchart TD
     L --> M["Surgery"]
     M --> N["Release Resources"]
     K -- Not Available --> O{"Evac Ready?"}
-    J -- No --> P["Seize Hold Bed"]
+    J -- No --> P0{"R2B Hold < 80%?"}
+    P0 -- Yes --> P["Seize Hold Bed"]
     P --> Q["Recover at R2B"]
     Q --> R["Release Hold Bed"]
     R --> S["Return to Duty"]
     S --> Z
+    P0 -- "No, R2E has room" --> PB["Bypass to R2E"]
+    PB --> Z
+    P0 -- "No, both full" --> PC["Queue for R2B Hold Bed"]
+    PC --> P
     N --> O
     O -- Yes --> T["Select R2E"]
     T --> U["Transfer to R2E"]

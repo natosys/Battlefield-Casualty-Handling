@@ -1676,7 +1676,7 @@ Each evacuated casualty is assigned one of four length-of-stay categories, each 
 | P3 / DNBI       | Priority 3 WIA, or any DNBI casualty regardless of priority | General Ward  | Hold bed                   | `ame`          | `los_p3_dnbi`        |
 
 
-R2E has no surgical or general ward beds, only ICU and holding, so both non-ICU categories share the R2E holding beds while awaiting evacuation.
+R2E has no bed type corresponding to a surgical or general ward, so the three categories mapped to those wards all wait in its holding beds.
 
 Two parts of this mapping are informed estimates rather than sourced rules. DNBI casualties take the P3/DNBI category and general ward whatever their in-theatre priority, treating disease, non-battle injury and battle fatigue as lower-acuity for national length-of-stay purposes, consistent with how the model already handles DNBI sub-types elsewhere. Priority 2 casualties take the surgical ward whether or not they were operated on in theatre, on the assumption they need continuing surgical-specialty management, which follows the severity gradient described in [[34]](#References). No open-access source tabulates ward assignment by this scheme, so uncertainty is high. A different mapping would move occupancy between the surgical and general wards without changing total Role 4 bed-days, and would change which R2E bed type evacuees hold while waiting; ICU occupancy is the least affected, since only Priority 1 surgical casualties reach it.
 

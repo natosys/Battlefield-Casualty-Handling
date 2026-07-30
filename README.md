@@ -1387,7 +1387,7 @@ Results and interpretation are presented in [Comparative Scenario Analysis](docs
 
 #### Shiny Application
 
-`app.R` is a Shiny console that lets military planners, medical officers, and research analysts explore the parameter space without reading source code, through a Configure, Run, Analyse workflow. A **Getting Started** landing tab renders `docs/Getting_Started.md` in the app: a short, task-oriented guide covering what the app does, the workflow, which parameters are worth adjusting first, and how to read each Analyse tab. It is aimed at a first-time user and is a companion to this document rather than a replacement for it.
+`app.R` is a Shiny console that lets users explore the parameter space without reading source code, through a Configure, Run, Analyse workflow.
 
 ```r
 # Terminal (recommended for Full Analysis / Sensitivity Screening):

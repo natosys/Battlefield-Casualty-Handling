@@ -1926,13 +1926,11 @@ Beyond these, model fidelity would benefit from structured expert consultation. 
 
 <small>[Return to Top](#contents)</small>
 
-This project has advanced the modelling of deployed health system performance by combining casualty generation calibrated on historical conflict casualty data with a discrete event simulation framework capable of brigade-level, multi-week campaign simulation. Through systematic literature review, previously published casualty models were identified, restructured, and adapted to support per-minute simulation granularity, enabling evaluation of medical infrastructure across 30-day (and longer) campaigns.
+This project models deployed health system performance by combining casualty generation calibrated on historical conflict data with a discrete event simulation capable of brigade-level, multi-week campaign runs. Published casualty models were identified through systematic literature review, then restructured to support per-minute granularity, so medical infrastructure can be evaluated across 30-day and longer campaigns.
 
-A representative deployed health system was constructed, encompassing triage, evacuation, and definitive care, incorporating a three-stage model of damage control surgery derived from academic sources, and a statistical replication framework (multi-run execution, warm-up analysis, and Morris/Sobol sensitivity screening) that allows every reported finding to be characterised by its uncertainty rather than read from a single simulated run alone. Simulation results — both the single-run illustrative analysis and the multi-run comparative analysis — are published as the two companion documents linked above ([Single-Run Analysis](docs/Single_Run_Analysis.md), [Multi-Run Analysis](docs/Multi_Run_Analysis.md)), which together supersede this document's own results narrative in earlier revisions of this project.
+The modelled system covers triage, evacuation and definitive care, including a phased model of damage control surgery drawn from the clinical literature. A statistical framework of multi-run replication, warm-up analysis, and Morris and Sobol sensitivity screening allows each reported finding to carry its uncertainty rather than rest on a single run. Results are published separately, in [Single-Run Analysis](docs/Single_Run_Analysis.md) and [Multi-Run Analysis](docs/Multi_Run_Analysis.md).
 
-Ultimately, this repository provides a transparent, modular, and extensible foundation for future simulation efforts. It enables planners, clinicians, and commanders to interrogate system performance, anticipate failure points, and iteratively refine medical support doctrine. With continued development and rigorous testing, this framework can evolve into a decision-support tool capable of guiding health system design for the most demanding operational environments.
-
----
+The repository is a foundation for further work rather than a finished decision-support tool. Planners, clinicians and commanders can use it to interrogate system performance and identify where it fails; what would need closing before it could support a planning decision is set out in [Further Development](#further-development).
 
 ## References
 

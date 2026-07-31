@@ -242,7 +242,7 @@ Example entry:
 
 The project's academic output is split across three documents (see [Academic Standards](#academic-standards) intro and the Repository Structure table above):
 
-- **`README.md`** (system reference) — code structure, algorithms, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, and Limitations. Contains no simulation results.
+- **`README.md`** (system reference) — code structure, algorithms, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, and Further Development. Contains no simulation results.
 - **`docs/Single_Run_Analysis.md`** — the illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline.
 - **`docs/Multi_Run_Analysis.md`** — the multi-run (n≥30 replications, 95% CI) comparative results narrative (Falklands-modified vs. Okinawa-intensity).
 
@@ -254,8 +254,7 @@ All three must be updated **as part of every PR that touches the section(s) they
 |---|---|---|
 | `README.md` | Abstract | When the scope of the codebase or system reference changes materially |
 | `README.md` | Simulation Design | When trajectories, resource logic, or distributions are changed |
-| `README.md` | Limitations | When a known gap is addressed (remove or update) or a new one is identified |
-| `README.md` | Further Development | Remove completed items; add newly identified items |
+| `README.md` | Further Development | When a gap is closed (delete the entry) or a new one is identified (add one, with a new identifier) |
 | `README.md` | References | Add any new sources used in the implementation that `README.md` itself cites |
 | `docs/Single_Run_Analysis.md` | Relevant echelon/domain section | When new seed-42 single-run results are generated (replace or supplement existing analysis) |
 | `docs/Single_Run_Analysis.md` | References | Add any new sources this document itself cites |
@@ -314,7 +313,7 @@ Nursing Officers from the R2B emergency section are assumed to flex to scrub and
 
 ### Holistic — Limitations section
 
-`README.md`'s `Limitations` section (to be added if not present, or maintained if it exists) provides a consolidated review of all model assumptions, organised by impact. It should cross-reference the inline assumptions. Update this section whenever an assumption is added, resolved, or reclassified.
+`README.md`'s `Further Development` section provides a consolidated review of all model assumptions, organised by impact. It should cross-reference the inline assumptions. Update this section whenever an assumption is added, resolved, or reclassified.
 
 ---
 
@@ -347,12 +346,19 @@ When selecting methods or parameter values, prefer sources in this order:
 
 **Do not use:** paywalled journal articles, Springer/Elsevier/Oxford subscription content, textbooks, or any source requiring login or payment.
 
-### Limitations Section
+### Further Development Section
 
-The README must maintain a Limitations section that:
+The README must maintain a single `Further Development` section, combining what was previously split between Limitations and Further Development, that:
 - Identifies what the model does not represent and why
-- Rates the impact of each limitation on findings (High / Medium / Low)
-- Notes whether the limitation is addressed in the action plan and under which issue
+- Rates the impact of each gap on findings (High / Medium / Low), stated once, in the group heading
+- States, for each gap, what would close it
+- Opens with a scan table of identifier, one-line gap, and impact
+
+Entry rules:
+- Each entry carries a stable `L<n>` identifier, cited from the analysis documents and the action plan. **Identifiers are never reused or renumbered**, since renumbering silently redirects every existing citation.
+- **A closed gap is deleted, not marked resolved.** The section describes the model's current gaps only; resolution history belongs to `docs/BCH_Simulation_Action_Plan.md`. When deleting an entry, search all four documents for citations of its identifier and repair them in the same PR.
+- Do not cite issue numbers here. This section is not exempt from the issue-reference rule; the action plan is the tracker.
+- Group entries under `### High Impact`, `### Medium Impact` and `### Low Impact`, in that order, numerically within each group. **A grouped list must be re-checked against its headings after any reordering.**
 
 ---
 

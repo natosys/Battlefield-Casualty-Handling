@@ -56,6 +56,11 @@
 | 116 | Repo cleanup — audit and resolve orphaned objects and file/folder structure | Low | Medium | **Merged (PR #141)** |
 | 115 | Add an in-app Getting Started guide | Medium | Low | **Merged (PR #143)** |
 | 113 | Split README into system reference plus single-run and multi-run analysis documents | Medium | High | **Merged (PR #145)** |
+| 157 | Morris screens seven availability-selected KPIs, not the seventeen criteria-selected model outputs | Medium | Medium | Open |
+| 158 | Nine simplex-constrained parameters unscreened; needs a Dirichlet-aware design | Medium | Medium | Open |
+| 159 | Total surgery and ICU time not conserved across treatment location | High | High | Open |
+| 160 | AME sortie configurations understate RAAF C-17A capacity 9x overall, 18x on the critical pool | High | Low | Open |
+| 161 | R2E surgery seizes no surgical team, regressing merged Issue #8 | Critical | Low | Open |
 
 ---
 
@@ -1577,6 +1582,11 @@ Dev Container specification merged (PR #21). All contributors now develop in a r
 26. ~~**Issue 116** — Repo cleanup: audit every tracked file for whether it is still sourced, read, or linked; record and execute an explicit keep/remove/relocate decision for each orphan found; sync CLAUDE.md/README structure tables to match.~~ — **Merged PR #141.**
 27. ~~**Issue 115** — In-app Getting Started guide: author `docs/Getting_Started.md` (workflow, key parameters, graph-reading guidance, plus a same-PR follow-up covering sensitivity screening) and surface it inside `app.R` as a default-landing tab, cross-linked from the Analyse tab.~~ — **Merged PR #143.**
 28. ~~**Issue 113** — Split the README into a system reference plus two analysis documents (single-run and multi-run), generate the multi-run comparative analysis, and review every section of the resulting README against the project's documentation standards.~~ — **Merged PR #145.**
+29. **Issue 161** — Restore the R2E surgical team seizure. Two seize/release pairs, mirroring R2B, plus the diagram and a baseline re-run. Ship first: its absence leaves R2E surgical throughput limited only by beds and the R2E shift roster inert.
+30. **Issue 160** — Set the AME sortie configuration capacities from the RAAF C-17A aeromedical evacuation fit, name the airframe in the scenario profile, and re-check whether the configuration-selection rule still discriminates at realistic capacity.
+31. **Issue 159** — Conserve total surgery and ICU time across treatment location: add post-operative stabilisation at R2B behind a configurable share parameter, with a capability penalty on forward ICU time, and retire `post_surgery` as a free parameter.
+32. **Issue 157** — Extend the Morris response set from the seven measures reachable from the resource monitor to the seventeen criteria-selected model outputs, with a documented scalar reduction per output and per-response ranking files.
+33. **Issue 158** — Screen the nine simplex-constrained composition parameters via an isometric log-ratio transform inside the existing Morris design, confirmed by Dirichlet-sampled Sobol indices where a group ranks highly.
 
 ### Dependency graph
 
@@ -1837,7 +1847,16 @@ IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  (none)
+  #161 R2E surgical team seizure   (no dependencies; regression of merged #8,
+       which the plan records as having invalidated all prior R2E OT results)
+  #160 AME sortie configurations   (no dependencies; source-anchored values,
+       re-run folds into #155)
+  #159 Conserve surgery/ICU time   (no dependencies; interacts with #161,
+       which also affects R2E surgical constraint)
+  #157 Morris response-set coverage (implementation independent; screening
+       run folds into #155)
+  #158 Simplex parameter screening  (implementation independent; screening
+       run folds into #155)
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -1864,4 +1883,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 30 July 2026 to reflect: completion of Issue #113 (split the README into a system reference plus single-run and multi-run analysis documents, PR #145), which also corrected a series of factual errors in the README's parameter and trajectory descriptions and merged the Limitations section into Further Development.*
+*Prepared June 2026. Updated 30 July 2026 to reflect: completion of Issue #113 (split the README into a system reference plus single-run and multi-run analysis documents, PR #145), which also corrected a series of factual errors in the README's parameter and trajectory descriptions and merged the Limitations section into Further Development; and the addition of Issues #157 to #161, raised during that review. Issues #146 to #156 are open but not yet recorded in this document.*

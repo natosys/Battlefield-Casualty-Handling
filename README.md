@@ -436,7 +436,7 @@ These are the available transport platforms and their characteristics:
 
 ### Schedules and Rosters
 
-Some resource teams have rosters/schedules. Due to the limited size and structure, surgical teams are rostered as available for12 hour shifts. This results in there being 12 hours of time available for surgery at the R2B in every 24 hours and 36 hours of surgery time available in every 24 hours across two OT in the R2E Heavy. 
+Some resource teams carry a roster. Given their limited size and structure, surgical sections are rostered in 12-hour shifts, alternating across successive sections so that cover is staggered rather than simultaneous. Each R2B facility fields a single surgical section, giving 12 hours of surgical cover per facility in every 24. R2E fields three sections, two rostered to the first shift and one to the second, giving 36 section-hours of cover in every 24 across its two operating theatres. Because both echelons seize the section as well as the theatre (see [R2B Trajectory](#r2b-trajectory) and [R2E Heavy Trajectory](#r2e-heavy-trajectory)), these hours bound surgical throughput rather than describing it: at R2E two operations can run at once during the first shift and one during the second, and at R2B a casualty arriving when the section is off shift bypasses to R2E rather than waiting.
 
 | Resource | Roster applied | Configurable variable | Default | Where configured |
 |---|---|---|---|---|
@@ -1468,7 +1468,7 @@ Every resource carries a structured identifier recording where it sits in that i
 
 The trailing `t<instance>` counter identifies which team of that element type the resource belongs to, so `b_r2b_hold_3_t1` is the third holding bed of the first R2B team. Transport identifiers carry no such counter because the fleet is pooled across the theatre rather than held by any one element (see [Transport Assets](#transport-assets)).
 
-`build_env()` registers these with `add_resource()`. Most are added with no schedule and are continuously available. The exception is the surgical sections at R2B and R2E, which are assigned alternating day and night shifts across successive teams so that surgical cover is staggered rather than simultaneous; operating theatre rooms themselves are registered without a schedule, since a room is a physical space available at any hour while the team staffing it is not (see [Schedules and Rosters](#schedules-and-rosters) for the shift boundary and its parameter).
+`build_env()` registers these with `add_resource()`. Most are added with no schedule and are continuously available. The exception is the surgical sections at R2B and R2E, which are assigned alternating day and night shifts across successive teams so that surgical cover is staggered rather than simultaneous; operating theatre rooms themselves are registered without a schedule, since a room is a physical space available at any hour while the team staffing it is not (see [Schedules and Rosters](#schedules-and-rosters) for the shift boundary and its parameter). A section is registered as a vector of individually named resources and is seized and released as a block, which is what makes a roster binding: an off-shift section holds zero capacity, so no procedure can begin against it, while a procedure already under way retains what it holds until release and so is never interrupted by a shift change.
 
 Two strategic aeromedical evacuation resources, `ame` and `ame_critical`, are added when a run is set up (`run_once()`, `R/replication.R`) rather than during environment construction, since they represent a theatre-level airlift capability rather than anything held by a deployed element. Both are created with zero capacity and always exist, because any casualty reaching the strategic evacuation disposition attempts to seize one of them. Capacity is added only when a sortie arrives, so a configuration that schedules no sorties leaves both permanently closed and every strategic evacuee queued (see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)).
 
@@ -1591,6 +1591,8 @@ Casualties are checked for died of wounds on arrival (see [Died of Wounds](#died
 
 Surgical candidacy is assessed next, behind an ICU availability gate that is checked before theatre entry rather than at the point of post-operative admission. If an ICU bed is free, surgery proceeds and ICU recovery follows. If ICU is full and the casualty is Priority 1, surgery still proceeds, because withholding it would leave an unoperated Priority 1 casualty at near-certain risk of dying of wounds, but recovery is in a holding bed instead, at elevated risk. If ICU is full and the casualty is Priority 2 or lower, theatre entry is deferred until a bed frees. Surgery takes 41 to 210 minutes, most often 95, drawn from the same operative-time data as R2B [[20]](#References).
 
+A procedure requires both a theatre and the staff for it. R2E fields three surgical sections against two operating theatres, so which section takes a case is decided per casualty rather than fixed in advance, by `select_r2e_surg_section()` (`R/trajectories.R`). Sections on shift are preferred over sections that are not, and among those the least loaded is chosen, the section-level counterpart of the shortest-queue policy used for bed selection. The chosen section is then held complete for the duration of the operation and released before the theatre, mirroring the seizure order used at R2B so that the two echelons cannot deadlock against each other. Because a section carries the alternating day and night roster described in [Schedules and Rosters](#schedules-and-rosters) while a theatre does not, the number of operations that can run at once is set by whichever is scarcer at that hour: two by day, when two sections are rostered on, and one by night, when one is. A casualty arriving to find no section free waits rather than proceeding, and an operation already under way when a shift closes runs to completion rather than being interrupted. This is what makes the establishment's 36 section-hours per day the real constraint on R2E throughput rather than a nominal figure.
+
 Post-operative care depends on which route the gate sent the casualty down. With ICU available, the first ICU stay runs 770 to 2,160 minutes, most often 1,440, matching the 24 to 36 hours of post-damage-control stabilisation described in the literature [[20]](#References), [[24]](#References), [[27]](#References). A second, shorter ICU stay of 30 to 90 minutes, most often 60, follows a second operation, covering monitoring before transfer to holding. On the saturated Priority 1 route, recovery is in a holding bed for 360 to 1,440 minutes, most often 600: shorter than a full ICU stay, but carrying an elevated risk of dying of wounds. Both routes then meet at a shared post-operative check for died of wounds. A casualty who needed surgery and had none before arriving is queued for a second operation after recovery.
 
 After post-operative recovery a casualty either stays in theatre or is evacuated. About 10% recover at R2E over 1 to 21 days, most often 9, and return to duty; the rest go to strategic evacuation. The in-theatre share is set from Vietnam data [[9]](#References) showing 31% of casualties returned to duty and 42% of those did so in theatre, which gives roughly 13%. The shipped value is 10%, and the reason for the difference is not recorded.
@@ -1610,18 +1612,18 @@ flowchart TD
     I --> J{"Surgery?"}
     J -- No --> P{"R2E Surgery,<br>No Prior R2B Surg?"}
     J -- Yes --> K{"ICU Available?"}
-    K -- "Yes" --> L["Seize OT"]
+    K -- "Yes" --> L["Select Surg Section <br> Seize OT & Surg Section"]
     L --> M["Surgery (First)"]
-    M --> N["Release OT"]
+    M --> N["Release Surg Section & OT"]
     N --> O{"Prior R2B Surg?"}
     O -- Yes --> Osh["Short ICU"]
     O -- No --> Olo["Long ICU"]
     Osh --> O2["Release ICU"]
     Olo --> O2
     O2 --> PD{"Post-Op DOW?"}
-    K -- "Full, Priority 1" --> L2["Seize OT"]
+    K -- "Full, Priority 1" --> L2["Select Surg Section <br> Seize OT & Surg Section"]
     L2 --> M2["Surgery (First)"]
-    M2 --> N2["Release OT"]
+    M2 --> N2["Release Surg Section & OT"]
     N2 --> O3["Seize Hold Bed (Post-Op)"]
     O3 --> O4["Release Hold Bed"]
     O4 --> PD
@@ -1629,9 +1631,9 @@ flowchart TD
     KD --> K
     PD -- Yes --> C
     PD -- No --> P
-    P -- Yes --> Q["Seize OT"]
+    P -- Yes --> Q["Select Surg Section <br> Seize OT & Surg Section"]
     Q --> R["Surgery (Second)"]
-    R --> S["Release OT"]
+    R --> S["Release Surg Section & OT"]
     S --> T{"Recover in Theatre?"}
     P -- No --> T
     T -- Yes --> U["Seize Hold Bed"]
@@ -1877,7 +1879,7 @@ This section records what the model does not represent, how much each gap matter
 
 | | Gap | Impact |
 |---|---|---|
-| L3 | Resource seizure granularity, and no surgical team seized at R2E | High |
+| L3 | Resource seizure granularity | High |
 | L17 | Casualties awaiting strategic evacuation hold R2E ICU beds | High |
 | L1 | Point of injury to R1 transit not modelled | Medium |
 | L4 | R2B holding capacity below expected occupancy | Medium |
@@ -1892,7 +1894,7 @@ This section records what the model does not represent, how much each gap matter
 
 ### High Impact
 
-**L3 — Resource seizure granularity, and no surgical team seized at R2E.** Resources are taken as whole team vectors, so a second casualty cannot use any member of a team even when the first needs only a subset of its skills. Skill-specific bottlenecks between surgeon, anaesthetist and nursing staff are therefore invisible, as is task sharing under surge. Separately and more seriously, the R2E trajectory seizes an operating theatre bed but no surgical team at all, so R2E surgical throughput is limited only by its two theatre beds, the alternating day and night roster built for R2E has no effect, and surgery can begin at any hour. R2B, which does seize its team, is constrained on both counts, so throughput is not comparable between the two echelons. Closing it has two independent parts: adding the team seizure at R2E to match R2B, which is small; and moving from team-block to individual resource seizure, which is a structural refactor.
+**L3 — Resource seizure granularity.** Resources are taken as whole team vectors, so a second casualty cannot use any member of a team even when the first needs only a subset of its skills. A surgical section is held complete for the duration of a procedure, which means its four nursing staff are unavailable to any other task for as long as the anaesthetist and surgeons are operating, and an operation cannot begin because one member is committed elsewhere even where the remaining members would suffice. Skill-specific bottlenecks between surgeon, anaesthetist and nursing staff are therefore invisible, as is task sharing under surge. The direction of the resulting error is not uniform: whole-team seizure overstates scarcity where a procedure needs only part of a section, and understates it where staff are in practice shared across concurrent cases. Closing the gap requires moving from team-block to individual resource seizure, a structural refactor of every trajectory that seizes a clinical team.
 
 **L17 — Casualties awaiting strategic evacuation hold R2E ICU beds.** A casualty on the critical evacuation route occupies a real ICU bed for the whole of its wait, competing for the same finite pool as post-operative recovery. This is intended behaviour, since a casualty awaiting evacuation genuinely still occupies theatre capacity, but at the shipped configuration it dominates: the post-operative pathway split runs at four casualties through ICU against 104 through holding beds, with surgeries deferred pending ICU availability where previously there were almost none. Any R2E ICU or theatre-gating capacity finding must therefore be read alongside the strategic evacuation outputs rather than in isolation. More critical capacity per sortie, a shorter sortie interval, or a dedicated holding pool for evacuation-awaiting casualties would each reduce the coupling; the defaults were deliberately not tuned to hide it.
 

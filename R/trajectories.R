@@ -179,6 +179,43 @@ select_r2e_team <- function() {
   return(selected)
 }
 
+#' Selects the R2E surgical section best placed to take the next case
+#'
+#' @param team_id Index of the R2E team within env_data$elms$r2eheavy
+#' @return Integer index (1-based) of the chosen surgical section within that
+#'   team's "surg" sub-element list
+#'
+#' @details R2E fields more surgical sections than operating theatres, and
+#'   build_env() gives each section its own alternating day/night shift, so the
+#'   section that takes a case must be chosen per casualty rather than fixed
+#'   when the trajectory is built. Sections are scored on current load, the sum
+#'   of in-use and queued units across the section's member resources, which is
+#'   the section-level analogue of the "shortest-queue" policy used for bed
+#'   selection elsewhere in this file. On-shift sections (every member holding
+#'   non-zero capacity) are preferred outright: an off-shift section is chosen
+#'   only when no section is on shift, in which case the casualty queues until
+#'   the next shift opens. Ties are broken by random selection among the
+#'   equally-loaded candidates, matching select_r2e_team() above.
+select_r2e_surg_section <- function(team_id) {
+  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+
+  section_load <- sapply(sections, function(members) {
+    sum(sapply(members, function(res) {
+      get_server_count(env, res) + get_queue_count(env, res)
+    }))
+  })
+
+  on_shift <- sapply(sections, function(members) {
+    all(sapply(members, function(res) get_capacity(env, res) > 0))
+  })
+
+  eligible   <- if (any(on_shift)) which(on_shift) else seq_along(sections)
+  candidates <- eligible[section_load[eligible] == min(section_load[eligible])]
+
+  if (length(candidates) == 1) return(candidates)
+  return(sample(candidates, 1))
+}
+
 # ── DOW survival functions ────────────────────────────────────────────────────
 
 #' Time-dependent DOW probability (shifted logistic)
@@ -1027,15 +1064,62 @@ r2e_treat_wia <- function(team_id) {
   resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
   ot_beds         <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
   icu_beds        <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
-  emergency_teams <- env_data$elms$r2eheavy[[team_id]][["emerg"]]
-  evacuation_teams <- env_data$elms$r2eheavy[[team_id]][["evac"]]
   surg_teams      <- env_data$elms$r2eheavy[[team_id]][["surg"]]
-  icu_teams       <- env_data$elms$r2eheavy[[team_id]][["icu"]]
 
   emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
-  surg_team      <- select_subteam("r2eheavy", team_id, "surg")
   evac_team      <- select_subteam("r2eheavy", team_id, "evac")
   icu_team       <- select_subteam("r2eheavy", team_id, "icu")
+
+  # Surgical sections are seized per casualty, not fixed at build time as the
+  # emergency, evacuation and ICU sections above are, because R2E fields three
+  # of them against two operating theatres and each carries its own shift.
+  # build_r2e_surgery_block() below constructs one seize-operate-release block
+  # per section; the caller branches over them on select_r2e_surg_section().
+  #
+  # @param section_id Index of the surgical section within surg_teams
+  # @param select_id  simmer selection id used for the OT bed in this block
+  # @param start_attr Attribute name recording incision time
+  # @param end_attr   Attribute name recording closure time
+  # @param efficacy   dow_ceiling multiplier applied on completion
+  # @param set_flag   Whether to set the r2e_surgery marker attribute
+  # @return A simmer trajectory performing one DAMCON procedure
+  #
+  # Seizure order is bed then team, released team then bed, matching
+  # r2b_ot_check_path() so the two echelons cannot deadlock against each
+  # other's ordering. A section already mid-procedure when its shift closes
+  # retains the resources it holds until release, so a shift change cannot
+  # interrupt an operation in progress.
+  build_r2e_surgery_block <- function(section_id, select_id, start_attr,
+                                      end_attr, efficacy, set_flag) {
+    force(section_id); force(select_id); force(start_attr)
+    force(end_attr);   force(efficacy);  force(set_flag)
+
+    trj <- trajectory(sprintf("R2E DAMCON Surgery — Section %d", section_id)) %>%
+      simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
+      seize_selected(id = select_id) %>%
+      seize_resources(surg_teams[[section_id]])
+
+    if (set_flag) trj <- trj %>% set_attribute("r2e_surgery", 1)
+
+    trj %>%
+      set_attribute(start_attr, function() now(env)) %>%
+      timeout(function() {
+        rtriangle(
+          n = 1,
+          a = env_data$vars$r2eheavy$surgery$min,
+          b = env_data$vars$r2eheavy$surgery$max,
+          c = env_data$vars$r2eheavy$surgery$mode
+        )
+      }) %>%
+      set_attribute(end_attr, function() now(env)) %>%
+      release_resources(surg_teams[[section_id]]) %>%
+      release_selected(id = select_id) %>%
+      set_attribute("dow_ceiling", function() {
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (is.na(ceiling)) return(ceiling)
+        ceiling * efficacy
+      })
+  }
 
   # ── OT–ICU gating sub-trajectories (Issue #43) ──────────────────────────────
   # Built once per team and joined at the points below. Shared post-operative
@@ -1149,26 +1233,21 @@ r2e_treat_wia <- function(team_id) {
   # Shared surgery portion (OT seizure through DAMCON surgery). Recovery
   # (ICU vs post-op hold) is decided upstream at the pre-OT gating branch
   # and joined on afterwards, so this portion is identical for both paths.
+  # Branch structure: one sub-trajectory per R2E surgical section, selected on
+  # entry by select_r2e_surg_section(). Every branch performs the same
+  # procedure and differs only in which section's resources it seizes, so the
+  # choice affects contention and shift availability, not clinical outcome.
   r2e_ot_surgery <- trajectory("R2E OT — DAMCON Surgery") %>%
-    simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-    seize_selected(id = 4) %>%
-    set_attribute("r2e_surgery", 1) %>%
-    set_attribute("r2e_surgery_1_start", function() now(env)) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2eheavy$surgery$min,
-        b = env_data$vars$r2eheavy$surgery$max,
-        c = env_data$vars$r2eheavy$surgery$mode
-      )
-    }) %>%
-    set_attribute("r2e_surgery_1_end", function() now(env)) %>%
-    release_selected(id = 4) %>%
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor
-    })
+    branch(
+      option = function() select_r2e_surg_section(team_id),
+      continue = TRUE,
+      lapply(seq_along(surg_teams), function(section_id) {
+        build_r2e_surgery_block(
+          section_id, 4, "r2e_surgery_1_start", "r2e_surgery_1_end",
+          env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor, TRUE
+        )
+      })
+    )
 
   r2e_surgery_icu_path <- trajectory("R2E Surgery — ICU Available") %>%
     join(r2e_ot_surgery) %>%
@@ -1408,25 +1487,21 @@ r2e_treat_wia <- function(team_id) {
         return(2)
       },
       continue = TRUE,
+      # Second procedure. Re-selects a surgical section rather than reusing the
+      # one that performed the first: the two operations are separated by ICU
+      # or post-operative hold recovery, over which the shift will usually have
+      # turned over.
       trajectory("Second Surgery Before Disposition") %>%
-        simmer::select(ot_beds, policy = "shortest-queue", id = 7) %>%
-        seize_selected(id = 7) %>%
-        set_attribute("r2e_surgery_2_start", function() now(env)) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$surgery$min,
-            b = env_data$vars$r2eheavy$surgery$max,
-            c = env_data$vars$r2eheavy$surgery$mode
-          )
-        }) %>%
-        set_attribute("r2e_surgery_2_end", function() now(env)) %>%
-        release_selected(id = 7) %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
-        }),
+        branch(
+          option = function() select_r2e_surg_section(team_id),
+          continue = TRUE,
+          lapply(seq_along(surg_teams), function(section_id) {
+            build_r2e_surgery_block(
+              section_id, 7, "r2e_surgery_2_start", "r2e_surgery_2_end",
+              env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor, FALSE
+            )
+          })
+        ),
       trajectory("No Second Surgery Needed")
     ) %>%
 

@@ -162,7 +162,7 @@ Resources not required for a given task remain available for concurrent use by o
 | R2B casualty in resus, surgery required | FACEM counted as occupied if in resus team block | FACEM releases from resus as patient moves to OT; available for next arrival |
 | R2B surgery and new P3 arrival simultaneously | FACEM locked in surgical team block | FACEM not required for surgery; available immediately for P3 triage and treatment |
 | R2B: two concurrent resus with one NO in surgery | Invisible — team block prevents this state | NO scarcity surfaces correctly: simultaneous resus and surgery may not have enough NOs to fully staff both |
-| R2E two concurrent surgeries | Surgical team not seized (current bug); effectively unlimited throughput | Each OT correctly seizes surgeon + anaesthetist + 2 NOs; concurrent cases contend for the four surgical NOs |
+| R2E two concurrent surgeries | Whole surgical section seized per case, so throughput is capped by rostered sections (two by day, one by night) rather than by the roles a procedure actually needs | Each OT correctly seizes surgeon + anaesthetist + 2 NOs; concurrent cases contend for the four surgical NOs |
 | R2E long ICU + new surgical case | Intensivist locked in ICU team block | Intensivist released when active critical phase ends; available for pre-op assessment |
 | R2E ICU at capacity + concurrent resus | ICU NOs locked in team block | ICU NOs held only in 1:1 ratio; remaining ICU NOs potentially available for resus support if census allows |
 | R2B post-op recovery | Full hold team seized per patient | One medic seized per recovering patient; NOs and FACEM available for new arrivals |

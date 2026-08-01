@@ -55,7 +55,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Population](#population)
     - [Reinforcement Demand & Fulfillment](#reinforcement-demand-fulfillment)
   - [Health System Architecture](#health-system-architecture)
-  - [Medevac — Transport Fleet](#medevac-transport-fleet)
+  - [Medevac — Transport Fleet](#medevac-—-transport-fleet)
   - [Schedules and Rosters](#schedules-and-rosters)
   - [Casualty Generation](#casualty-generation)
     - [1. Distribution Parameterisation](#1-distribution-parameterisation)
@@ -65,12 +65,12 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [5. Mass Casualty Event Injection](#5-mass-casualty-event-injection)
     - [6. Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)
   - [Casualty Generation Rates](#casualty-generation-rates)
-    - [WIA — Combat](#wia-combat)
-    - [KIA — Combat](#kia-combat)
-    - [DNBI — Combat](#dnbi-combat)
-    - [WIA — Support](#wia-support)
-    - [KIA — Support](#kia-support)
-    - [DNBI — Support](#dnbi-support)
+    - [WIA — Combat](#wia-—-combat)
+    - [KIA — Combat](#kia-—-combat)
+    - [DNBI — Combat](#dnbi-—-combat)
+    - [WIA — Support](#wia-—-support)
+    - [KIA — Support](#kia-—-support)
+    - [DNBI — Support](#dnbi-—-support)
   - [DNBI Sub-Type Split](#dnbi-subtype-split)
   - [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible)
 - [Casualty Priorities](#casualty-priorities)
@@ -112,13 +112,13 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
   - [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)
 - [Model Outputs](#model-outputs)
-  - [Domain 1 — Mortality and Preventable Death](#domain-1-mortality-and-preventable-death)
-  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2-timetocare-from-r1-arrival)
-  - [Domain 3 — Surgical Throughput](#domain-3-surgical-throughput)
-  - [Domain 4 — Echelon Load and Capacity](#domain-4-echelon-load-and-capacity)
-  - [Domain 5 — Flow and Disposition](#domain-5-flow-and-disposition)
-  - [Domain 6 — Combat Power](#domain-6-combat-power)
-  - [Domain 7 — Strategic Evacuation and National Support Base Demand](#domain-7-strategic-evacuation-and-national-support-base-demand)
+  - [Domain 1 — Mortality and Preventable Death](#domain-1-—-mortality-and-preventable-death)
+  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2-—-timetocare-from-r1-arrival)
+  - [Domain 3 — Surgical Throughput](#domain-3-—-surgical-throughput)
+  - [Domain 4 — Echelon Load and Capacity](#domain-4-—-echelon-load-and-capacity)
+  - [Domain 5 — Flow and Disposition](#domain-5-—-flow-and-disposition)
+  - [Domain 6 — Combat Power](#domain-6-—-combat-power)
+  - [Domain 7 — Strategic Evacuation and National Support Base Demand](#domain-7-—-strategic-evacuation-and-national-support-base-demand)
   - [Output Variable Register cross-reference](#output-variable-register-crossreference)
 - [Further Development](#further-development)
   - [High Impact](#high-impact)
@@ -160,7 +160,7 @@ In total, 52 resources have been reviewed and incorporated into the simulation f
 
 #### Battlefield Casualty Rates and Estimation Models
 
-Historical and predictive models of casualty rates were central to the review. The FORECAS system [[8]](#References) provided a statistically grounded approach to projecting wounded-in-action (WIA), killed-in-action (KIA), and disease/non-battle injury (DNBI) rates using empirical data from past conflicts. Complementary studies [[9]](#References), [[10]](#References), [[11]](#References) and [[12]](#References) highlighted the operational implications of casualty rates in LSCO, emphasizing the disproportionate impact of DNBI on lost duty days and the need for robust force health protection (FHP) strategies. The Falklands War 1982 (Operation CORPORATE) serves as this project's principal historical validation exemplar for a moderate-intensity casualty rate. Field-surgical mortality outcomes at the Ajax Bay Advanced Surgical Centre and forward stations are documented in [[13]](#References), and an aggregate died-of-wounds rate of 0.52% among 580 British soldiers and marines wounded in action is confirmed in [[14]](#References); these are the figures the `moderate_intensity` scenario profile's died-of-wounds calibration is tuned to reproduce (see [Scenario Profiles](#scenario-profiles)).
+Historical and predictive models of casualty rates were central to the review. The FORECAS system [[8]](#References) provided a statistically grounded approach to projecting wounded-in-action (WIA), killed-in-action (KIA), and disease/non-battle injury (DNBI) rates using empirical data from past conflicts. Complementary studies [[9]](#References), [[10]](#References), [[11]](#References) and [[12]](#References) highlighted the operational implications of casualty rates in LSCO, emphasizing the disproportionate impact of DNBI on lost duty days and the need for robust force health protection (FHP) strategies. The Falklands War 1982 (Operation CORPORATE) serves as this project's principal historical validation exemplar for a moderate-intensity casualty rate. Field-surgical mortality outcomes at the Ajax Bay Advanced Surgical Centre and forward stations are documented in [[13]](#References), and [[14]](#References) records that of the more than 650 combat casualties from both sides who passed through that medical chain, three died of wounds; these are the figures the `moderate_intensity` scenario profile's died-of-wounds calibration is tuned to reproduce (see [Scenario Profiles](#scenario-profiles)).
 
 #### Casualty Simulation and DES
 
@@ -719,13 +719,17 @@ The plotted curves show DOW probability $F(t)$ for the P1 (urgent, red) and P2 (
 
 | Priority        | p_base | p_max | k (min⁻¹) | t_mid (min) |
 | --------------- | ------ | ----- | --------- | ----------- |
-| P1 (urgent)     | 0.001  | 0.023 | 0.04      | 120         |
-| P2 (priority)   | 0.0005 | 0.019 | 0.025     | 180         |
+| P1 (urgent)     | 0.001  | 0.0123 | 0.04     | 120         |
+| P2 (priority)   | 0.0005 | 0.0100 | 0.025    | 180         |
 | P3 (non-urgent) | —      | —     | flat      | 0.001       |
 
 The logistic shape parameters ($k$, $t_{mid}$) are anchored to the haemorrhagic shock critical window. The majority of potentially survivable haemorrhagic deaths occur within 60–180 minutes post-injury [[29]](#References). The inflection point $t_{mid} = 120$ minutes centres the logistic rise within this window; the P2 inflection is set to 180 minutes, reflecting the lower urgency of the Priority 2 cohort.
 
-The ceiling $p_{max}$ and floor $p_{base}$ values, and the shape parameters, are calibrated to the Falklands War 1982 (Operation CORPORATE) historical DOW outcome rather than fitted to a per-minute individual-level survival curve, which no published dataset provides. Four British Army Field Surgical Teams operated on 233 casualties across the Ajax Bay Advanced Surgical Centre and two forward stations (Teal Inlet, Fitzroy), with three post-operative deaths recorded [[13]](#References). Accounts of the Ajax Bay medical system confirm that only three of the 580 British soldiers and marines wounded in action died of wounds — a DOW/WIA rate of 0.52% [[14]](#References). The ceiling values (`p1_p_max` = 0.023, `p2_p_max` = 0.019) were iteratively calibrated until 50-replication Monte Carlo output produced a mean of approximately 0.70 DOW/run (0.45% of the 154 baseline WIA), with a 95% confidence interval that spans the historical target ([0.41, 0.95] per run). The shape parameters are anchored to the aggregate mortality time-window analysis in [[29]](#References) and [[30]](#References); the logistic form itself is a standard S-shaped approximation for time-dependent failure processes [[41]](#References).
+The ceiling $p_{max}$ and floor $p_{base}$ values, and the shape parameters, are calibrated to the Falklands War 1982 (Operation CORPORATE) historical DOW outcome rather than fitted to a per-minute individual-level survival curve, which no published dataset provides. Two figures are available from the open-access record of that campaign's forward surgical care. Four British Army Field Surgical Teams operated on 233 casualties across the Ajax Bay Advanced Surgical Centre and two forward stations (Teal Inlet, Fitzroy), with three post-operative deaths recorded [[13]](#References). Separately, an account of the Ajax Bay medical system records that more than 650 combat casualties from both sides passed through it, of whom three died of wounds [[14]](#References).
+
+The second of these is the calibration target. Its denominator is the casualties who reached the deployed surgical chain alive, and that is the population the model applies the rate to: the entities exposed to the model's DOW checks are those who survive to receive R1 treatment, since casualties killed outright are generated as a separate stream (`kia_cbt`, `kia_spt`) that never enters the DOW pathway. Because the source states the denominator as a lower bound, the rate it yields, $3 / 650 = 0.46\%$, is an upper bound on the historical outcome: the true rate is at or below 0.46%. Calibrating to the bound itself reproduces the highest mortality consistent with the source, which is the conservative choice for a planning model. No open-access source reporting a British Falklands DOW count against a whole-of-campaign wounded-in-action denominator could be identified, so a genuine whole-of-WIA target cannot be formed from the available record; this is recorded as a limitation in [Further Development](#further-development).
+
+The ceiling values (`p1_p_max` = 0.0123, `p2_p_max` = 0.0100) were iteratively calibrated until 50-replication Monte Carlo output (30 days, `seed = 42`) produced a DOW rate of 0.484% of the wounded-in-action cohort, with a 95% confidence interval, [0.340%, 0.629%], that spans the 0.46% target; the corresponding count is a mean of 0.720 DOW per run against a target of 0.684. The same run measured 0.406% (95% CI [0.285%, 0.527%]) against the wider denominator of every casualty actually exposed to a DOW check, which adds the non-battle-injury sub-type of DNBI to the wounded in action; the narrower wounded-in-action denominator is reported as the headline because the source figure counts combat casualties. Mean DOW per run is under one at these settings, so the Monte Carlo estimate is coarse relative to the spacing of candidate ceilings, and the calibration should be read as locating the ceiling to within roughly a tenth of a percentage point of DOW rate rather than more finely. The shape parameters are anchored to the aggregate mortality time-window analysis in [[29]](#References) and [[30]](#References); the logistic form itself is a standard S-shaped approximation for time-dependent failure processes [[41]](#References).
 
 A lower $p_{max}$ caps how high DOW probability can rise even under severe queue saturation or evacuation delay, so the total DOW count becomes less sensitive to those conditions. A later $t_{mid}$ delays the point at which DOW probability starts climbing steeply, so the model becomes less sensitive specifically to delays that occur early, at R1.
 
@@ -849,15 +853,14 @@ The `moderate_intensity` profile overrides `dow.params` and `dow.treatment_effic
 
 These treatment efficacy factors are informed estimates. They were constructed by reasoning from the absence of the specific modern techniques (TCCC, balanced DCR, staged DCS) documented in [[29]](#References), [[31]](#References), and [[32]](#References), while preserving the evidence in [[13]](#References) and [[14]](#References) that 1982 field surgery was highly effective for casualties who reached it. The paired ceiling re-calibration below absorbs the magnitude of the estimate, so the aggregate DOW rate stays close to the historical target regardless of the precise factor values; what different values would change is the distribution of mortality risk across care phases, not the aggregate rate.
 
-With these weaker factors, `dow.params` was re-calibrated by the same iterative Monte Carlo procedure used for the base configuration, reproducing the same 0.52% DOW/WIA historical target at `p1_p_max` = 0.0089 and `p2_p_max` = 0.0074, down from the base 0.023 and 0.019. A lower ceiling is required to compensate for the weaker factors' smaller ceiling reduction. The floors (`p1_p_base`, `p2_p_base`), the shape parameters ($k$, $t_{mid}$ for both priorities), and the P3 flat rate (`p3_flat`) are unchanged from base under this profile; only the two ceilings are re-calibrated. Each of these terms is defined by the shifted logistic curve given in [Survival Function](#survival-function). A 30-replication run (30 days, `seed = NULL`) of `moderate_intensity` produced:
+With these weaker factors, `dow.params` was re-calibrated by the same iterative Monte Carlo procedure used for the base configuration, reproducing the same historical target at `p1_p_max` = 0.0089 and `p2_p_max` = 0.0074, below the base 0.0123 and 0.0100. A lower ceiling is required to compensate for the weaker factors' smaller ceiling reduction. The floors (`p1_p_base`, `p2_p_base`), the shape parameters ($k$, $t_{mid}$ for both priorities), and the P3 flat rate (`p3_flat`) are unchanged from base under this profile; only the two ceilings are re-calibrated. Each of these terms is defined by the shifted logistic curve given in [Survival Function](#survival-function). A 50-replication run (30 days, `seed = 42`) of `moderate_intensity` produced:
 
-| Metric        | `moderate_intensity` (30-rep)    | Historical target                              |
-| ------------- | -------------------------------- | ---------------------------------------------- |
-| Mean DOW/run  | 0.767 (95% CI [0.431, 1.102])    | 0.80 (= 0.52% × 154 baseline WIA)              |
-| DOW/WIA rate  | 0.498% (95% CI [0.280%, 0.715%]) | 0.52% [[13]](#References), [[14]](#References) |
-| KIA:WIA ratio | 0.452                            | 0.328 (255 KIA : 777 WIA [[14]](#References))  |
+| Metric       | `moderate_intensity` (50-rep)    | Historical target                                       |
+| ------------ | -------------------------------- | ------------------------------------------------------- |
+| Mean DOW/run | 0.68 (95% CI [0.46, 0.90])       | at most 0.68 (= 0.46% × 148.7 mean WIA)                 |
+| DOW rate     | 0.458% (95% CI [0.311%, 0.605%]) | at most 0.46% (3 of more than 650) [[14]](#References)  |
 
-The DOW/WIA rate matches the historical target: the 95% confidence interval, [0.280%, 0.715%], contains the 0.52% target used to calibrate the base configuration. The KIA:WIA ratio does not match, but this is a characteristic of the base casualty generation rates that both profiles share rather than something this profile introduced, since the profile overrides only the DOW ceiling and treatment efficacy factors (see Further Development).
+The rate matches the historical target: the 95% confidence interval, [0.311%, 0.605%], contains the 0.46% upper bound derived in [Parameter Calibration](#parameter-calibration), and the point estimate sits marginally below it, which is the side of the bound the source permits. These ceilings were not changed when the target was corrected; the profile already reproduced the corrected target, and re-validation confirmed it. No killed-to-wounded comparator is reported against this profile, because no open-access campaign record gives killed and wounded counts covering the same population (see [Further Development](#further-development), L12).
 
 ### High Intensity profile (Okinawa exemplar)
 
@@ -1133,11 +1136,11 @@ Fifty-three parameters are screened, spanning the main uncertain inputs across a
 
 | Parameter                           | Variable                                | Baseline | Lower  | Upper | Rule |
 | ----------------------------------- | --------------------------------------- | -------- | ------ | ----- | ---- |
-| P1 DOW max probability              | `p1_p_max`                              | 2.3%     | 1.15%  | 4.6%  | A    |
+| P1 DOW max probability              | `p1_p_max`                              | 1.23%    | 0.615% | 2.46% | A    |
 | P1 DOW base probability             | `p1_p_base`                             | 0.1%     | 0.05%  | 0.2%  | A    |
 | P1 logistic steepness               | `p1_k`                                  | 0.04     | 0.024  | 0.056 | A    |
 | P1 logistic midpoint                | `p1_t_mid`                              | 120 min  | 72     | 168   | A    |
-| P2 DOW max probability              | `p2_p_max`                              | 1.9%     | 0.95%  | 3.8%  | A    |
+| P2 DOW max probability              | `p2_p_max`                              | 1.0%     | 0.5%   | 2.0%  | A    |
 | P2 DOW base probability             | `p2_p_base`                             | 0.05%    | 0.025% | 0.1%  | A    |
 | P2 logistic steepness               | `p2_k`                                  | 0.025    | 0.015  | 0.035 | A    |
 | P2 logistic midpoint                | `p2_t_mid`                              | 180 min  | 108    | 252   | A    |
@@ -1890,6 +1893,7 @@ This section records what the model does not represent, how much each gap matter
 | L19 | Transport capacity margin tested at one casualty rate | Medium |
 | L20 | Mass casualty events generate wounded only | Medium |
 | L21 | R2B surgical throughput options cannot be tested | Medium |
+| L22 | DOW calibration target is an upper bound on a treated cohort | Medium |
 | L9 | Antithetic variates applied to arrivals only | Low |
 
 ### High Impact
@@ -1906,17 +1910,19 @@ This section records what the model does not represent, how much each gap matter
 
 **L11 — OT and ICU gating parameters are informed estimates.** The Priority 1 override threshold, the post-operative hold mortality multiplier and the post-operative hold length of stay are all informed estimates: no open-access source gives a ward-against-ICU mortality ratio for post-damage-control trauma patients, or a typical recovery length of stay outside ICU in an austere setting. Priority 2 and below casualties deferring theatre entry while ICU is saturated also have no escape route, so under sustained saturation one could in principle wait indefinitely rather than being triaged to non-operative management. The direction of the findings should be robust; the absolute post-operative mortality rates should be read as illustrative pending clinical review or a calibration target.
 
-**L12 — Scenario calibration incomplete.** The moderate intensity profile reproduces a killed-to-wounded ratio of 0.452 against a published campaign record of 0.328. This follows from the underlying casualty generation rates combined with the capped lognormal mechanism rather than from the profile itself. The high intensity profile is an explicitly unvalidated skeleton: only its generation rates and distribution family are sourced, while its mortality ceiling, treatment efficacy, priority split, sub-type composition and transport times are all inherited from the Falklands-calibrated base. A third, Vietnam-intensity profile cannot be added from the current source, whose appendix carries no standalone Vietnam combat-troop distribution table. Each part needs different work: recalibrating the generator, completing the high intensity profile from Okinawa-specific sources, and finding a source that tabulates Vietnam rates.
+**L12 — Scenario calibration incomplete.** The moderate intensity profile reproduces a killed-to-wounded ratio of 0.452, and no campaign comparator can be formed against it from open sources at a matching population. The official parliamentary return tabulating British Falklands injuries totals 777 [[53]](#References), but that total covers Service personnel and civilians together and includes 109 cold injuries, 17 cases of shock, 39 dislocations and sprains and 39 minor or unknown injuries, making it a total-injury count that spans both wounded in action and non-battle injury rather than a count of wounded in action. The Ministry of Defence separately records 237 UK Armed Forces deaths during the campaign [[54]](#References), which excludes the Royal Fleet Auxiliary, Merchant Navy, Hong Kong and Falkland Islander deaths absorbed into the higher totals in general circulation. Dividing one by the other compares populations that do not correspond, so the resulting ratio is reported here as context rather than as a validation target. The killed-to-wounded ratio the model produces follows from the underlying casualty generation rates combined with the capped lognormal mechanism rather than from the profile itself. The high intensity profile is an explicitly unvalidated skeleton: only its generation rates and distribution family are sourced, while its mortality ceiling, treatment efficacy, priority split, sub-type composition and transport times are all inherited from the Falklands-calibrated base. A third, Vietnam-intensity profile cannot be added from the current source, whose appendix carries no standalone Vietnam combat-troop distribution table. Each part needs different work: finding a campaign record whose killed and wounded counts cover the same population before the generator can be recalibrated against it, completing the high intensity profile from Okinawa-specific sources, and finding a source that tabulates Vietnam rates.
 
 **L16 — Role 4 modelled as unconstrained demand.** The national support base is a post-simulation calculation over the evacuation log rather than a resource with finite capacity, so its occupancy can exceed any real bed count without producing a queue or a deferral. The output is a demand signal for national planners, not a claim that the base can absorb that demand. Strategic evacuation itself is constrained and scheduled, but four narrower gaps remain: boarding within a pool is strictly first come, first served once the critical and standard split has applied; the interval at which waiting casualties are re-assessed for mortality risk is an informed estimate and has been observed to fire only once, so its magnitude is unvalidated; unclaimed sortie capacity carries forward rather than departing with the aircraft, which has no real-world analogue; and exactly two aircraft configurations are supported, with no third loadout and no time-varying preference for an anticipated surge.
 
-**L18 — Screening precision and coverage.** The Morris screen covers fifty-three parameters, derived by auditing every numeric parameter in the configuration rather than by expert selection. It runs at five trajectories rather than the default twenty, because the full design at twenty would need 5,400 simulation runs. The method is unbiased at any trajectory count, so the estimates are not skewed, but they are noisier, and parameters close together in influence should be read with more caution than the same gap would warrant at twenty. Two further gaps: a ranking file is written for the primary response only, so a finding on any other response has to be read off a plot image; and nine parameters constrained to sum to one remain unscreened, because a one-at-a-time design cannot vary them without a renormalisation that would itself bias the result. A wider re-run, per-response ranking files, and a Dirichlet-aware design would close these in turn.
+**L18 — Screening precision and coverage.** The Morris screen covers fifty-three parameters, derived by auditing every numeric parameter in the configuration rather than by expert selection. It runs at five trajectories rather than the default twenty, because the full design at twenty would need 5,400 simulation runs. The method is unbiased at any trajectory count, so the estimates are not skewed, but they are noisier, and parameters close together in influence should be read with more caution than the same gap would warrant at twenty. Two further gaps: a ranking file is written for the primary response only, so a finding on any other response has to be read off a plot image; and nine parameters constrained to sum to one remain unscreened, because a one-at-a-time design cannot vary them without a renormalisation that would itself bias the result. A wider re-run, per-response ranking files, and a Dirichlet-aware design would close these in turn. A fourth gap is that the published ranking predates the current screening bounds for the two DOW ceilings: those bounds are anchored to the ceilings' calibrated values, which have since been re-derived, so the ranking reported below was produced over the wider interval the previous values implied. Because the method's trajectory generation depends on the full factor set, correcting this means re-running the whole screen rather than adjusting the two affected rows.
 
 **L19 — Transport capacity margin tested at one casualty rate.** The fleet-size sweep runs at the Falklands-derived rate only, so the margin it reports is untested under the conditions most likely to consume it. Re-running it at high intensity and under mass casualty injection would establish whether the finding holds. The sweep function accepts a path to a pre-configured environment file but not a scenario name, so a small interface change is needed first.
 
 **L20 — Mass casualty events generate wounded only.** A mass casualty event injects wounded combat casualties with no immediate deaths and no disease or non-battle injury, which understates the load such an event places on mortuary handling and on R1 transport specifically.
 
 **L21 — R2B surgical throughput options cannot be tested.** Two ways of raising forward surgical throughput are deliberately out of reach. Extending shift hours needs a clinician fatigue and error-rate model the simulation does not have, without which longer hours would appear free. Adding a second surgical team per unit is an establishment decision for planners rather than something the model should assume. The shift-length parameter already threads through to environment construction for the first; the second needs the R2B surgical sub-element at a quantity of two and a rework of the shift-alternation counter, which alternates across units rather than within one.
+
+**L22 — The DOW calibration target is an upper bound measured on a treated cohort.** The historical target the mortality ceilings are tuned to is three deaths among the more than 650 casualties who reached the Ajax Bay medical chain [[14]](#References). Two things follow. The denominator is reported as a lower bound, so the rate derived from it, 0.46%, bounds the historical outcome from above rather than estimating it, and the ceilings are therefore tuned to the most pessimistic reading the source allows. The denominator is also a treated cohort, counting only casualties who survived long enough to reach forward surgical care; a whole-of-campaign wounded-in-action denominator would include casualties who died before reaching care and would give a different, and for planning purposes more useful, rate. No open-access source reporting a British Falklands DOW count against such a denominator could be identified, and the parliamentary return that gives a campaign injury total counts Service personnel and civilians together while mixing wounded in action with cold injury and other non-battle injury [[53]](#References), so it cannot supply one either. A source pairing a DOW count with a whole-of-WIA denominator for any conflict of comparable intensity would close this, and would let the ceilings be tuned to an estimate rather than to a bound.
 
 ### Low Impact
 
@@ -2043,5 +2049,9 @@ The repository is a foundation for further work rather than a finished decision-
 [51] Black, J. (2002). Acute appendicitis in Japanese soldiers in Burma: support for the "fibre" theory. *Gut*, *51*(2), 297. Retrieved 26 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC1773321/
 
 [52] Weeks, S. R., Oh, J. S., Elster, E. A., & Learn, P. A. (2017). Humanitarian surgical care in the US military treatment facilities in Afghanistan from 2002 to 2013. *JAMA Surgery*, *153*(1), 84–86. Retrieved 26 Jun 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC5833623/
+
+[53] Blaker, P. (1982). Falkland Islands (Casualties). Written answer, *House of Commons Debates*, 18 October 1982, vol. 29, c50W. UK Parliament. Retrieved 01 Aug 26, from https://api.parliament.uk/historic-hansard/written-answers/1982/oct/18/falkland-islands-casualties
+
+[54] Defence Statistics (Health). (2013). *A study of deaths among UK Armed Forces personnel deployed to the 1982 Falklands Campaign: 1982 to 2012*. Ministry of Defence. Retrieved 01 Aug 26, from https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/365217/Falkland-deaths-31_december_2012.pdf
 
 <!-- REFERENCES END -->

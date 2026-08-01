@@ -441,9 +441,9 @@ Some resource teams carry a roster. Given their limited size and structure, surg
 | Resource | Roster applied | Configurable variable | Default | Where configured |
 |---|---|---|---|---|
 | R1 Treatment Team | No — no shift schedule; available continuously | — | — | — |
-| R2B Surgical Team | Yes — alternating two-shift roster across R2B's surgical teams (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
-| R2E Surgical Team | Yes — alternating two-shift roster across R2E's surgical teams (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
-| R2B / R2E Operating Theatre beds | No — the physical OT bed is available 24 hours per day; only the surgical team carries the shift schedule | — | — | — |
+| R2B Surgical Section | Yes — alternating two-shift roster across successive R2B surgical sections (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
+| R2E Surgical Section | Yes — alternating two-shift roster across R2E's three surgical sections, two on the first shift and one on the second (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
+| R2B / R2E Operating Theatre beds | No — the physical OT bed is available 24 hours per day; only the surgical section carries the shift schedule | — | — | — |
 
 `ot_hours` is a single shared parameter: it sets the first shift's length (the second shift covers the remainder of the 24-hour day) identically at both R2B and R2E, not independently per echelon. It is not part of `env_data.json` and has no CLI flag; it is Morris-screened (see [Sensitivity Analysis](#sensitivity-analysis)) and is otherwise fixed at its 12-hour default unless changed in the Shiny app or passed explicitly by calling code.
 
@@ -1000,6 +1000,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/shiny_worker.R`           | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session |
 | `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
 | `scripts/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, and rejects any heading containing emoji |
+| `scripts/check_r2e_surgery_seizure.R` | Regression check asserting that every R2E surgery seizes a surgical section, structurally by reading the built trajectory and behaviourally by running the model (see [R2E Heavy Trajectory](#r2e-heavy-trajectory)); exits non-zero on failure |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
 | `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
 | `outputs/`                         | Generated outputs directory; CSVs and markdown tables are written here, tracked via `.gitkeep` and otherwise gitignored |

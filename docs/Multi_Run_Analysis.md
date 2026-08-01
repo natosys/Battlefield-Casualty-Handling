@@ -55,9 +55,9 @@ Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity --
 | Metric | `moderate_intensity` (Falklands) | `high_intensity` (Okinawa) | Ratio |
 |---|---|---|---|
 | Total casualties/run | 385.6 (p10–p90: 384.0–387.0) | 969.4 (p10–p90: 966.8–973.0) | 2.51× |
-| WIA/run | 148.5 (147.9–149.1) | 656.5 (654.0–659.0) | 4.42× |
-| DOW/run | 1.07 (0–2.1) | 3.53 (1.9–7.1) | 3.31× |
-| DOW/WIA rate | 0.717% (95% CI [0.471%, 0.963%]) | 0.538% (95% CI [0.412%, 0.664%]) | 0.75× |
+| WIA/run | 148.6 (148.0–149.1) | 656.5 (654.0–659.0) | 4.42× |
+| DOW/run | 0.87 (0–2.0) | 3.53 (1.9–7.1) | 4.08× |
+| DOW/WIA rate | 0.582% (95% CI [0.367%, 0.798%]) | 0.538% (95% CI [0.412%, 0.664%]) | 0.92× |
 
 ### Resource Queue Comparison (mean of per-resource mean queue, by group)
 
@@ -69,7 +69,7 @@ Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity --
 | R2E ICU | 8.818 | 25.62 | 2.91× |
 | Transport (PMV Ambulance / HX240M) | 0.0000179 | 0.000139 | 7.78× (negligible in both) |
 
-The casualty and mortality totals above were re-measured against the re-derived died-of-wounds ceilings; the queue figures in this second table were not, and are carried forward from the run that preceded them. Lowering the ceilings returns roughly half a casualty per run under `moderate_intensity`, and roughly two per run under `high_intensity`, to the treatment chain rather than removing them from it, against per-run casualty totals of 386 and 969, so the effect on mean queue depth is far smaller than the precision at which these figures are reported. The shifted random-number stream means they would not reproduce exactly on a re-run even so.
+The casualty and mortality totals above were re-measured against the re-derived died-of-wounds ceilings; the queue figures in this second table were not, and are carried forward from the run that preceded them. Lowering the ceilings returns roughly a fifth of a casualty per run under `moderate_intensity`, and roughly two per run under `high_intensity`, to the treatment chain rather than removing them from it, against per-run casualty totals of 386 and 969, so the effect on mean queue depth is far smaller than the precision at which these figures are reported. The shifted random-number stream means they would not reproduce exactly on a re-run even so.
 
 ![Comparative Scenario Analysis](../images/scenario_comparison.png)
 
@@ -81,7 +81,7 @@ R2B OT queue remains at 0 in both scenarios — not because R2B absorbs any of t
 
 Transport remains the one echelon with genuine headroom: mean queue stays a small fraction of a casualty even at 2.5× total casualty volume, consistent with the single-run analysis's [Transport Fleet Capacity Margin](Single_Run_Analysis.md#transport-fleet-capacity-margin) finding that the PMV Ambulance/HX240M pool is not the binding constraint at the Falklands-derived rate — though the roughly 7.8-fold rise in mean queue (still negligible in absolute terms at this casualty rate) indicates this margin is not unlimited, and a Vietnam/Okinawa-intensity re-run of the dedicated fleet-size sweep would be needed to establish exactly where it is exhausted.
 
-DOW/WIA rate does not rise with intensity: it reads 0.717% under `moderate_intensity` against 0.538% under `high_intensity`, and the two confidence intervals overlap, so the apparent fall is not established either. Two things drive this. The profiles do not share a mortality ceiling — `moderate_intensity` overrides `dow.params` with its own era-appropriate ceilings while `high_intensity` inherits the base configuration's, so the comparison is not holding mortality parameters constant. And DOW remains a rare event at both intensities, at roughly one and three and a half deaths per run respectively, so a 30-replication estimate is coarse. The queue-length findings above are the reliable surge signal in this comparison; the DOW rows are not, and a properly powered mortality comparison would need both a shared ceiling and a far larger replication count.
+DOW/WIA rate does not rise with intensity: it reads 0.582% under `moderate_intensity` against 0.538% under `high_intensity`, and the two confidence intervals overlap almost entirely, so the two are indistinguishable at this replication count. Two things drive this. The profiles do not share a mortality ceiling: `moderate_intensity` overrides `dow.params` with its own era-appropriate ceilings while `high_intensity` inherits the base configuration's, so the comparison is not holding mortality parameters constant. And DOW remains a rare event at both intensities, at roughly one and three and a half deaths per run respectively, so a 30-replication estimate is coarse (see README L22). The queue-length findings above are the reliable surge signal in this comparison; the DOW rows are not, and a properly powered mortality comparison would need both a shared ceiling and a far larger replication count.
 
 ---
 

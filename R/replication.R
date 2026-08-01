@@ -12,8 +12,12 @@ library(parallel)
 #'
 #' @param n_days      Simulation duration in days
 #' @param seed        Random seed (NULL = random, for independent replications)
-#' @param write_files Write arrival data to data/ directory (TRUE for single-run
-#'   diagnostics; FALSE for parallel replication workers)
+#' @param write_files Write arrival diagnostics to `data_dir` (TRUE for
+#'   single-run diagnostics; FALSE for parallel replication workers)
+#' @param data_dir    Directory the arrival diagnostics are written to when
+#'   `write_files` is TRUE (default "data", the tracked baseline location).
+#'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
+#'   refresh was explicitly requested (Issue #154).
 #' @param ot_hours    Hours per day the first OT shift is active (default 12).
 #'   Passed to build_env(); used by sensitivity screening to vary OT availability.
 #' @param antithetic  Logical; when TRUE antithetic arrival variates are used
@@ -24,7 +28,7 @@ library(parallel)
 #' @details Sets env globally (<<-) so trajectory closures can resolve it.
 #'   In forked mclapply workers, <<- modifies only the fork's global state.
 run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
-                     antithetic = FALSE) {
+                     antithetic = FALSE, data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")
@@ -55,7 +59,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
   # forked mclapply workers this modifies only the fork's local state.
   mass_casualty <- generate_mass_casualty_events(n_days,
                       env_data$vars$mass_casualty, write_file = write_files,
-                      antithetic = antithetic)
+                      antithetic = antithetic, data_dir = data_dir)
   wia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
 
@@ -147,7 +151,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 
   env %>% run(until = n_days * day_min)
 
-  if (write_files) write_arrival_diagnostics(env)
+  if (write_files) write_arrival_diagnostics(env, data_dir = data_dir)
 
   wrap(env)
 }
@@ -285,6 +289,10 @@ run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir =
 #'   analysis, then summarises across replications. 95% CI uses the t-distribution.
 #'   Under antithetic pairing, replications are correlated within pairs but the
 #'   summary statistics remain valid estimators of the population mean and variance.
+#'   A single replication has no dispersion to report, so sd_q and both CI
+#'   bounds are returned as NA rather than as the NaN that qt(0.975, df = 0)
+#'   would otherwise produce (Issue #154, which emits this table from the
+#'   single-run path as well as the multi-run one).
 summarise_replications <- function(mon, warm_up_days = 0) {
   warm_up_min <- as.integer(warm_up_days) * 1440L
 
@@ -308,10 +316,12 @@ summarise_replications <- function(mon, warm_up_days = 0) {
       p10_q    = quantile(rep_mean_q, 0.10, na.rm = TRUE),
       p90_q    = quantile(rep_mean_q, 0.90, na.rm = TRUE),
       max_q    = max(rep_max_q),
-      ci_lower = mean_q - qt(0.975, df = n() - 1) * sd_q / sqrt(n()),
-      ci_upper = mean_q + qt(0.975, df = n() - 1) * sd_q / sqrt(n()),
+      half_w   = if (n() > 1) qt(0.975, df = n() - 1) * sd_q / sqrt(n()) else NA_real_,
+      ci_lower = mean_q - half_w,
+      ci_upper = mean_q + half_w,
       .groups  = "drop"
     ) %>%
+    select(-half_w) %>%
     arrange(desc(mean_q))
 }
 

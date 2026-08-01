@@ -1002,10 +1002,10 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, and rejects any heading containing emoji |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
 | `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
-| `outputs/`                         | Generated outputs directory; CSVs and markdown tables are written here, tracked via `.gitkeep` and otherwise gitignored |
-| `data/`                            | Read-only input data plus a small set of diagnostic/event files regenerated at run time (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv`) |
-| `images/`                          | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of PRs that shift the RNG stream or simulation outputs |
-| `logs/`                            | Tracked seed-42 baseline console log (`logs.txt`) |
+| `outputs/`                         | Generated outputs directory; every run writes its CSVs, markdown tables, plots (`outputs/images/`), console log and arrival diagnostics (`outputs/data/`) here. Tracked via `.gitkeep` and otherwise gitignored |
+| `data/`                            | Read-only input data plus a small set of diagnostic/event files (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv`) forming part of the tracked seed-42 baseline, rewritten only under `--refresh-baseline` |
+| `images/`                          | Tracked seed-42 baseline plots and reference diagrams, rewritten only under `--refresh-baseline` as part of PRs that shift the RNG stream or simulation outputs |
+| `logs/`                            | Tracked seed-42 baseline console log (`logs.txt`), rewritten only under `--refresh-baseline` |
 | `docs/`                            | Project documentation: the two companion analysis documents, the action plan, the task-role allocation supplement, the R code style guide, and the in-app Getting Started guide (`Getting_Started.md`, also rendered inside `app.R`'s Getting Started tab) |
 
 #### Running the simulation
@@ -1022,11 +1022,26 @@ Rscript run.R --quick
 
 # Exclude a warm-up period from the analysis window
 Rscript run.R --days 30 --iterations 10 --warm-up 5
+
+# Regenerate the tracked seed-42 baseline evidence set
+Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
 ```
 
 `--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warmup-period-analysis) below for why).
 
-Both run modes write monitoring CSVs and markdown tables to `outputs/`. A single run additionally captures its console output to `logs/logs.txt` and writes arrival diagnostics to `data/`, neither of which a multi-run produces; a multi-run instead writes `outputs/replication_summary.csv` containing the KPI table (see [Multi-run Replication Framework](#multirun-replication-framework) below).
+Artifacts fall into two categories, distinguished by whether they are a disposable record of one particular run or the repository's tracked regression evidence. Every run writes only the first category, all of it beneath `outputs/`, which is gitignored apart from its `.gitkeep`. The tracked baseline set is written only when `--refresh-baseline` is passed, and then every part of it is written together from that one run, so no invocation can leave `images/`, `logs/logs.txt` and `data/` describing a mixture of different runs:
+
+| Artifact | Default destination | Under `--refresh-baseline` | Single run | Multi-run |
+|---|---|---|---|---|
+| Monitoring CSVs and markdown tables | `outputs/` | `outputs/` | Yes | Yes |
+| KPI summary (`replication_summary.csv`) | `outputs/` | `outputs/` | Yes | Yes |
+| Plots | `outputs/images/` | `images/` (tracked) | Yes | Yes |
+| Console log | `outputs/logs.txt` | `logs/logs.txt` (tracked) | Yes | No |
+| Arrival diagnostics (`arrivals_*.txt`, `mass_casualty_events.csv`) | `outputs/data/` | `data/` (tracked) | Yes | No |
+
+The console log and the arrival diagnostics record one specific run's event stream and have no multi-replication equivalent: the parallel replication workers cannot write concurrently to a single path, and an aggregate of thirty arrival streams would not be a diagnostic of any of them. `--refresh-baseline` therefore requires `--iterations 1` and stops with an explanatory error otherwise, since a multi-run refresh could only ever produce part of the set. The KPI summary is emitted in both modes, computed by `summarise_replications()` on the monitoring structure both paths produce; at one iteration its dispersion and confidence-interval columns are `NA`, there being no second observation from which to estimate spread.
+
+Not every file in `images/` belongs to the baseline set. The directory also holds reference diagrams that no run produces, figures written by the other entry points in `scripts/` (Morris screening, the Welch warm-up plot, the scenario comparison, the transport fleet sweep), and figures deliberately generated under a non-default configuration, such as the mass casualty event timeline, which requires `mass_casualty.event.rate_per_day` to be set above its shipped value of zero. `--refresh-baseline` rewrites only the figures a seed-42 run produces under the shipped configuration and leaves the rest untouched, so those categories must be regenerated by whichever command produced them.
 
 Package versions are pinned via a committed `renv.lock`; see [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
 
@@ -1044,7 +1059,7 @@ Non-overlapping streams are assumed rather than measured here, on the basis that
 
 **Antithetic variate variance reduction** is applied to arrival generation. Replication pairs ($2k-1$, $2k$) share a seed drawn from the parent RNG: both workers call `run_once()` with the same `seed` value, so their RNG streams start from an identical state. The primary replication (odd index) draws $U \sim \mathrm{Uniform}(0,1)$ and computes $X = F^{-1}(U)$ through the active stream's quantile function; the antithetic replication (even index) substitutes $U' = 1 - U$. Because both use the same initial uniform sequence, the reflection is exact: $\mathrm{Cor}(X, X') < 0$ and the estimator variance $\mathrm{Var}[\bar{Y}]$ is reduced without increasing replication count [[45]](#References). Independence across pairs is ensured by drawing a distinct seed per pair. The within-minute arrival jitter is also antithetised. Antithetic application is limited to arrival times; service times and routing probabilities generated internally by simmer cannot be antithetised without deep trajectory instrumentation (see Further Development).
 
-A key-performance-indicator summary is computed by `summarise_replications(mon)` using the time-weighted mean queue per replication as the unit of analysis. The across-replication summary reports mean, p10, p90, max queue, and a 95% confidence interval ($t$-distribution, $\mathit{df} = n - 1$) for each resource, sorted descending by mean queue. `run.R` writes it to `outputs/replication_summary.csv`.
+A key-performance-indicator summary is computed by `summarise_replications(mon)` using the time-weighted mean queue per replication as the unit of analysis. The across-replication summary reports mean, p10, p90, max queue, and a 95% confidence interval ($t$-distribution, $\mathit{df} = n - 1$) for each resource, sorted descending by mean queue. `run.R` writes it to `outputs/replication_summary.csv` in both run modes; where $n = 1$ the standard deviation and both interval bounds are reported as `NA`, since a single replication supplies no estimate of dispersion.
 
 #### Warm-up Period Analysis
 

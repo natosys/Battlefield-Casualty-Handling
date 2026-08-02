@@ -156,7 +156,7 @@ In the second phase the simulation was extended feature by feature, each additio
 
 ### Findings
 
-In total, 52 resources have been reviewed and incorporated into the simulation framework as of the current codebase, spanning peer-reviewed journals, technical reports, doctrinal publications, and internet publications. The review covers ten thematic domains.
+In total, 54 resources have been reviewed and incorporated into the simulation framework as of the current codebase, spanning peer-reviewed journals, technical reports, doctrinal publications, and internet publications. The review covers ten thematic domains.
 
 #### Battlefield Casualty Rates and Estimation Models
 

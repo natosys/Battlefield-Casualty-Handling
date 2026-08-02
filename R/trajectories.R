@@ -1046,16 +1046,20 @@ r2e_mortuary_intake <- function(team_id) {
 #' # - r2e_surgery == 1 AND r2b_surgery != 1 → perform second surgery at R2E
 #' # - else (not a surgical candidate, or had R2B DAMCON)  → skip second surgery
 #'
-#' # Phase 5: Final disposition
-#' # Branches on in_theatre_rate probability:
-#' # - recover in theatre → seize hold bed, set return_day
-#' # - strategic evac     → set r2e_evac = 1, evacuation_decision_day,
-#' #   treatment_received; route by acuity to one of two AME pools sharing a
-#' #   single sortie schedule (build_ame_sortie_trajectory() below):
-#' #   Priority 1 surgical evacuees seize an ICU bed and queue on the
-#' #   smaller "ame_critical" (CCATT/CCAST-supported) pool; everyone else
-#' #   seizes a Hold bed (Casualty Staging Unit-equivalent) and queues on
-#' #   the standard "ame" pool. Release the bed only once actually
+#' # Phase 5: Final disposition — theatre evacuation policy
+#' # Draws recovery_to_duty_days (draw_recovery_to_duty(), severity-keyed)
+#' # and branches on it against recovery$evacuation_policy_days:
+#' # - recovery within policy → recover in theatre: seize hold bed for the
+#' #   drawn duration, set return_day
+#' # - recovery beyond policy → strategic evac: set r2e_evac = 1,
+#' #   evacuation_decision_day, treatment_received; route by acuity to one of
+#' #   two AME pools sharing a single sortie schedule
+#' #   (build_ame_sortie_trajectory() below): Priority 1 surgical evacuees
+#' #   queue on the smaller "ame_critical" (CCATT/CCAST-supported) pool,
+#' #   everyone else on the standard "ame" pool. Both stage in a Hold bed
+#' #   (Casualty Staging Unit-equivalent); the ventilated share of the
+#' #   critical pool first holds an ICU bed for a bounded pre-flight period
+#' #   (critical_pre_flight_care()). Release the bed only once actually
 #' #   evacuated, setting ame_departure_time, evacuation_day,
 #' #   ame_wait_minutes (Issue #23 follow-up — casualties consume R2E beds
 #' #   until strategic AME is actually available, not merely decided upon)
@@ -1334,6 +1338,98 @@ r2e_treat_wia <- function(team_id) {
       })
   }
 
+  # Expected recovery-to-duty duration, in days, drawn at the end of R2E
+  # clinical care. A theatre evacuation policy is a duration threshold — "a
+  # theater that evacuates out of the theater all patients requiring 30 or
+  # more days of hospitalization is said to have a '30-day evacuation
+  # policy'" [[55]] — so disposition needs a per-casualty clinical duration
+  # to compare against the policy rather than a fixed share of admissions.
+  # The draw is the shared base convalescence distribution
+  # (r2eheavy$holding) scaled by a severity factor keyed to the same four
+  # categories R/analysis.R::assign_role4_los() uses, so a casualty's
+  # prognosis, its Role 4 ward and its AME route all follow from one
+  # severity classification rather than from independent draws.
+  draw_recovery_to_duty <- function() {
+    prio  <- get_attribute(env, "priority")
+    itype <- get_attribute(env, "injury_type")
+    surg  <- get_attribute(env, "r2b_surgery")
+    surg2 <- get_attribute(env, "r2e_surgery")
+    had_surgery <- (!is.na(surg) && surg == 1) || (!is.na(surg2) && surg2 == 1)
+    f <- env_data$vars$r2eheavy$recovery_to_duty
+    severity <- if (!is.na(itype) && itype == 2) {
+      f$p3_dnbi
+    } else if (!is.na(prio) && prio == 3) {
+      f$p3_dnbi
+    } else if (!is.na(prio) && prio == 1 && had_surgery) {
+      f$p1_surgical
+    } else if (!is.na(prio) && prio == 1) {
+      f$p1_nonsurgical
+    } else if (!is.na(prio) && prio == 2) {
+      f$p2
+    } else {
+      f$p3_dnbi
+    }
+    base <- rtriangle(
+      n = 1,
+      a = env_data$vars$r2eheavy$holding$min,
+      b = env_data$vars$r2eheavy$holding$max,
+      c = env_data$vars$r2eheavy$holding$mode
+    )
+    (base * severity) / 1440
+  }
+
+  # Pre-flight critical care (Issue #156). A ventilated casualty awaiting a
+  # critical-care sortie genuinely needs ICU-level care, but a deployed ICU
+  # study at Camp Bastion records that coalition soldiers "are usually
+  # evacuated within 24 h of admission" [[56]], so that need is bounded
+  # rather than lasting the whole evacuation wait. A configurable share of
+  # the critical pool (critical_hold$ventilated_share) holds an ICU bed for
+  # a critical_hold-distributed period and then steps down to a Casualty
+  # Staging Unit hold bed; the rest stage in a hold bed immediately.
+  #
+  # The step-down seizes the hold bed before releasing the ICU bed, so a
+  # casualty is never discharged from intensive care to nowhere. The cost is
+  # that a full hold pool blocks the ICU bed for as long as the casualty
+  # queues, which ame_icu_hold_minutes measures. This is bed-blocking, not
+  # deadlock: no trajectory in the model holds a hold bed while waiting on
+  # ICU, so the two acquisition orders cannot form a cycle.
+  critical_pre_flight_care <- trajectory("Pre-Flight Critical Care") %>%
+    branch(
+      option = function() {
+        if (runif(1) < env_data$vars$r2eheavy$critical_hold$ventilated_share) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("Ventilated — ICU Pending Flight") %>%
+        set_attribute("ame_icu_hold", 1) %>%
+        simmer::select(icu_beds, policy = "shortest-queue", id = 10) %>%
+        seize_selected(id = 10) %>%
+        set_attribute("ame_icu_hold_start", function() now(env)) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$critical_hold$min,
+            b = env_data$vars$r2eheavy$critical_hold$max,
+            c = env_data$vars$r2eheavy$critical_hold$mode
+          )
+        }) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
+        seize_selected(id = 9) %>%
+        release_selected(id = 10) %>%
+        # Realised ICU occupancy pending evacuation. Exceeds the drawn
+        # pre-flight period whenever the holding pool is full at step-down,
+        # since the casualty is not moved out of ICU until a holding bed
+        # exists for it; that gap is the measure of bed-blocking pushed back
+        # into ICU by the strategic evacuation backlog.
+        set_attribute("ame_icu_hold_minutes", function() {
+          now(env) - get_attribute(env, "ame_icu_hold_start")
+        }),
+      trajectory("Stable — Staged for Flight") %>%
+        set_attribute("ame_icu_hold", 0) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
+        seize_selected(id = 9)
+    )
+
   ame_wait_and_board <- function(resource_name, bed_id) {
     trajectory("Awaiting AME") %>%
       branch(
@@ -1505,32 +1601,35 @@ r2e_treat_wia <- function(team_id) {
       trajectory("No Second Surgery Needed")
     ) %>%
 
-    # Phase 5: Final disposition
-    # Branches on in_theatre_rate probability:
-    # - in-theatre recovery → seize hold bed, log return_day
-    # - strategic evac      → set r2e_evac = 1, evacuation_decision_day,
-    #   treatment_received; route by acuity to one of two AME pools sharing
-    #   a single sortie schedule — Priority 1 surgical evacuees seize an
-    #   ICU bed and queue on "ame_critical"; everyone else seizes a Hold
-    #   bed and queues on the standard "ame" pool; release the bed only
-    #   once actually evacuated, setting ame_departure_time, evacuation_day,
-    #   ame_wait_minutes (Issue #23 follow-up). Casualties face a periodic
-    #   DOW poll while queued (Issue #23 third follow-up, ame_dow_poll()
-    #   above).
+    # Phase 5: Final disposition — theatre evacuation policy
+    # recovery_to_duty_days is drawn first (draw_recovery_to_duty(), above)
+    # and the branch compares it against recovery$evacuation_policy_days:
+    # - expected recovery within the policy → retain in theatre: seize hold
+    #   bed for that drawn duration, log return_day
+    # - expected recovery beyond the policy → strategic evac: set r2e_evac = 1,
+    #   evacuation_decision_day, treatment_received; route by acuity to one of
+    #   two AME pools sharing a single sortie schedule — Priority 1 surgical
+    #   evacuees queue on "ame_critical", everyone else on the standard "ame"
+    #   pool; both stage in a Hold bed, released only once actually evacuated,
+    #   setting ame_departure_time, evacuation_day, ame_wait_minutes
+    #   (Issue #23 follow-up). Casualties face a periodic DOW poll while
+    #   queued (Issue #23 third follow-up, ame_dow_poll() above).
+    set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
     branch(
-      option = function() sample(1:2, 1, prob = c(env_data$vars$r2eheavy$recovery$in_theatre_rate, 1 - env_data$vars$r2eheavy$recovery$in_theatre_rate)),
+      option = function() {
+        rtd    <- get_attribute(env, "recovery_to_duty_days")
+        policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+        if (!is.na(rtd) && rtd <= policy) return(1)
+        return(2)
+      },
       continue = TRUE,
       trajectory("Recover at R2E") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$holding$min,
-            b = env_data$vars$r2eheavy$holding$max,
-            c = env_data$vars$r2eheavy$holding$mode
-          )
-        }) %>%
+        # The hold bed is held for the same duration the disposition was
+        # decided on, so a retained casualty's bed-days and the prognosis
+        # that retained them cannot disagree.
+        timeout(function() get_attribute(env, "recovery_to_duty_days") * 1440) %>%
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("return_day", function() now(env)) %>%
@@ -1562,19 +1661,19 @@ r2e_treat_wia <- function(team_id) {
         # [[21]]): a Casualty Staging Unit "collocate[s] already stabilized
         # patients" pending transport — every casualty reaching this branch
         # has, by construction, already completed R2E's post-operative
-        # ICU/Hold recovery timeout, so the default is Hold-bed staging on
-        # the standard "ame" pool. Priority 1 surgical evacuees (the same
-        # population assigned the Role 4 ICU ward — R/analysis.R::
-        # assign_role4_los()) are the exception: modelled as still requiring
-        # in-transit critical care, they hold an ICU bed and queue on the
-        # smaller "ame_critical" pool instead — a critical care air
+        # ICU/Hold recovery timeout, so staging is in a Hold bed on both
+        # routes. Priority 1 surgical evacuees (the same population assigned
+        # the Role 4 ICU ward — R/analysis.R::assign_role4_los()) queue on
+        # the smaller "ame_critical" pool instead — a critical care air
         # transport team (CCATT) or critical care aeromedical evacuation
         # support team (CCAST) "augment[ing] the standard aeromedical
         # evacuation crew" on the same sortie (see build_ame_sortie_
-        # trajectory(), below), "limited by capacity" per AJP-4.10(B).
-        # ame_route: 1 = critical (ICU bed, ame_critical pool), 2 = standard
-        # (Hold bed, ame pool) — read by R/analysis.R for the
-        # route-decomposed wait-time/backlog outputs.
+        # trajectory(), below), "limited by capacity" per AJP-4.10(B). The
+        # critical/standard split is therefore a distinction in airlift seat
+        # type, not in bed type.
+        # ame_route: 1 = critical (ame_critical pool), 2 = standard (ame
+        # pool) — read by R/analysis.R for the route-decomposed wait-time/
+        # backlog outputs.
         branch(
           option = function() {
             prio <- get_attribute(env, "priority")
@@ -1583,15 +1682,15 @@ r2e_treat_wia <- function(team_id) {
             return(2)
           },
           continue = TRUE,
-          trajectory("Await Critical AME — ICU Bed") %>%
+          trajectory("Await Critical AME") %>%
             set_attribute("ame_route", 1) %>%
-            simmer::select(icu_beds, policy = "shortest-queue", id = 9) %>%
-            seize_selected(id = 9) %>%
-            # Never released — a boarded casualty permanently consumes that
-            # sortie's capacity; no seats are handed back. Casualties board
-            # strictly in queue (decision) order — no further acuity-based
-            # boarding priority beyond the critical/standard split itself
-            # is modelled; see README Limitations.
+            join(critical_pre_flight_care) %>%
+            # The AME pool seat is never released — a boarded casualty
+            # permanently consumes that sortie's capacity; no seats are
+            # handed back. Casualties board strictly in queue (decision)
+            # order — no further acuity-based boarding priority beyond the
+            # critical/standard split itself is modelled; see README
+            # Further Development.
             join(ame_wait_and_board("ame_critical", 9)),
           trajectory("Await Standard AME — Hold Bed") %>%
             set_attribute("ame_route", 2) %>%

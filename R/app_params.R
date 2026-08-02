@@ -191,7 +191,9 @@ SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routi
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
-SRC_IN_THEATRE_RATE   <- "Derived from Vietnam-era return-to-duty data (~31% RTD, ~42% in-theatre, implying ~13% in-theatre recovery) — see README R2E Heavy Trajectory."
+SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army Medical Department Center and School subcourse MD0002 — see README R2E Heavy Trajectory."
+SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% historical range. High uncertainty — see README R2E Heavy Trajectory."
+SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
 SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
@@ -630,17 +632,36 @@ build_param_registry <- function() {
                                      "Long ICU Stay", "Time occupying an R2E ICU bed after a full-recovery case.",
                                      morris_mode_name = "long_icu_mode", bound = c(0, 5000), source = SRC_ICU_STABILISATION))
   registry <- c(registry, tri_fields("r2e_holding", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "holding",
-                                     "Holding Bed Duration", "Time occupying an R2E holding bed.",
+                                     "Base Recovery-to-Duty Duration", "Convalescence time for the least severe casualty category, before the severity factors below scale it. Sets the R2E holding bed occupancy of a casualty retained in theatre.",
                                      morris_mode_name = "r2e_hold_mode", bound = c(0, 40000),
-                                     source = SRC_IN_THEATRE_RATE))
+                                     source = SRC_RECOVERY_TO_DUTY))
+  registry <- c(registry, tri_fields("r2e_critical_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "critical_hold",
+                                     "Pre-Flight Critical Care Duration", "Time a ventilated critical-route evacuee occupies an R2E ICU bed before stepping down to a holding bed to await its sortie.",
+                                     bound = c(0, 4320), source = SRC_PRE_FLIGHT_ICU))
   registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "post_op_hold",
                                      "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation.",
                                      morris_mode_name = "post_op_hold_mode", bound = c(0, 3000),
                                      source = SRC_POST_OP_HOLD))
   registry <- c(registry, list(
-    var_field("r2e_in_theatre_rate", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "in_theatre_rate",
-              "In-Theatre Recovery Rate", "Proportion of R2E casualties who recover in theatre rather than being strategically evacuated.",
-              min = 0, max = 1, step = 0.01, morris_name = "in_theatre_rate", source = SRC_IN_THEATRE_RATE),
+    var_field("r2e_evacuation_policy_days", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "evacuation_policy_days",
+              "Theatre Evacuation Policy", "Days. A casualty expected back on duty within this many days is retained in theatre; everyone else is strategically evacuated.",
+              type = "integer", min = 1, max = 120, step = 1,
+              morris_name = "evacuation_policy_days", source = SRC_EVAC_POLICY),
+    var_field("r2e_rtd_p1_surgical", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p1_surgical",
+              "Recovery Factor — P1 Surgical", "Multiplier applied to the base recovery-to-duty duration for an operated Priority 1 casualty.",
+              min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
+    var_field("r2e_rtd_p1_nonsurgical", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p1_nonsurgical",
+              "Recovery Factor — P1 Non-Surgical", "Multiplier applied to the base recovery-to-duty duration for an unoperated Priority 1 casualty.",
+              min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
+    var_field("r2e_rtd_p2", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p2",
+              "Recovery Factor — P2", "Multiplier applied to the base recovery-to-duty duration for a Priority 2 casualty.",
+              min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
+    var_field("r2e_rtd_p3_dnbi", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p3_dnbi",
+              "Recovery Factor — P3 / DNBI", "Multiplier applied to the base recovery-to-duty duration for a Priority 3 or DNBI casualty.",
+              min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
+    var_field("r2e_ame_vent_share", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "critical_hold", "ventilated_share",
+              "Ventilated Share — Critical AME Pool", "Proportion of critical-route evacuees needing an ICU bed for a bounded pre-flight period before staging in a holding bed.",
+              min = 0, max = 1, step = 0.01, slider = TRUE, source = SRC_PRE_FLIGHT_ICU),
     var_field("r2e_post_surgery_rate", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "post_surgery",
               "Post-Surgery Full-Recovery Rate", "Proportion of surgical patients routed to full (long) ICU recovery rather than short recovery.",
               min = 0, max = 1, step = 0.01, morris_name = "post_surgery_prob", slider = TRUE),

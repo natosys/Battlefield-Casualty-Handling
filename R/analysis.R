@@ -1290,6 +1290,31 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
   stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
 
+  # KPI 6b: realised in-theatre share at the R2E evacuation-policy decision
+  # (Issue #156). The share is an output of the policy, not an input to it:
+  # every casualty reaching R2E disposition draws recovery_to_duty_days and
+  # is retained when that falls within recovery$evacuation_policy_days. It is
+  # measured at the decision, not on completed returns to duty, because a
+  # retained casualty's convalescence routinely outlasts the run. Compared
+  # against the 7.6%-42.1% historical range in README Return to Duty.
+  # The attribute is absent entirely when no casualty reached R2E disposition
+  # within the observation window, which a short or low-intensity run can
+  # produce, so the column is guarded rather than assumed.
+  policy_decisions <- if ("recovery_to_duty_days" %in% names(attributes_wide)) {
+    attributes_wide %>% filter(!is.na(recovery_to_duty_days))
+  } else {
+    attributes_wide[0, , drop = FALSE]
+  }
+  in_theatre_share <- if (nrow(policy_decisions) == 0) NA_real_ else {
+    mean(policy_decisions$recovery_to_duty_days <=
+           env_data$vars$r2eheavy$recovery$evacuation_policy_days)
+  }
+  evacuation_policy_summary <- list(
+    policy_days      = env_data$vars$r2eheavy$recovery$evacuation_policy_days,
+    decisions        = nrow(policy_decisions),
+    in_theatre_share = in_theatre_share
+  )
+
   # KPI 7: OT utilisation rate per echelon
   # Server time as proportion of (capacity × observation window)
   obs_window <- max(resources_raw$time, na.rm = TRUE)
@@ -1342,6 +1367,12 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
                                   na.rm = TRUE)
   }
   cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
+  if (!is.na(evacuation_policy_summary$in_theatre_share)) {
+    cat(sprintf(
+      "R2E evacuation policy (Issue #156): %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
+      evacuation_policy_summary$policy_days, evacuation_policy_summary$decisions,
+      100 * evacuation_policy_summary$in_theatre_share))
+  }
   if (!is.null(post_op_pathway_summary)) print(post_op_pathway_summary)
 
   # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
@@ -1816,6 +1847,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     clinical_rtd                = clinical_rtd,
     total_rtd                   = total_rtd,
     rtd_by_echelon              = rtd_by_echelon,
+    evacuation_policy_summary   = evacuation_policy_summary,
     ot_utilisation              = ot_utilisation,
     r2b_hold_daily              = r2b_hold_daily,
     r2b_hold_occupancy_plot     = r2b_hold_occupancy_plot,

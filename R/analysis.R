@@ -122,12 +122,10 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
 #'   `combined`); must include r2e_evac, evacuation_decision_day, replication
 #' @param ame_capacity Casualties per AME sortie — the caller passes the
-#'   larger of the two planner-defined configurations' combined standard +
-#'   critical throughput (`max(ame_config_a$critical_capacity +
-#'   ame_config_a$standard_capacity, ame_config_b$critical_capacity +
-#'   ame_config_b$standard_capacity)`, Issue #23 second follow-up), since
-#'   this baseline does not distinguish acuity/route and is meant to
-#'   represent same-day, uncapped best-case throughput
+#'   configured airframe's combined critical + standard capacity
+#'   (`resolve_ame_airframe()`, R/environment.R), since this baseline does
+#'   not distinguish acuity/route and is meant to represent same-day,
+#'   uncapped best-case throughput
 #' @return Tidy data frame with columns replication, day, evacuation_count,
 #'   sorties_required — a derived planning metric
 #'   (`ceiling(evacuation_count / ame_capacity)`), not a simulated resource
@@ -161,8 +159,8 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 
 # ── Strategic AME queue depth and sortie timeline visualisation (Issue #109) ──
 # build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
-# own — every outcome (flown/cancelled, configuration selected) has to be
-# reconstructed from the "ame"/"ame_critical" resource monitor. The schedule
+# own — every outcome (flown or cancelled) has to be reconstructed from
+# the "ame"/"ame_critical" resource monitor. The schedule
 # itself is fully deterministic (fixed `at(seq(...))` times, R/replication.R),
 # so every scheduled opportunity — including cancelled ones, which leave no
 # capacity change at all — can be enumerated without needing to scan the
@@ -176,16 +174,15 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 #'   `resources` or analyse_replications()'s `resources_raw`); must include
 #'   replication, resource, time, capacity, queue
 #' @param role4_params `env_data$vars$role4` list — supplies
-#'   `ame$schedule_interval_days` and the two named configurations
-#'   (`ame_config_a`, `ame_config_b`)
+#'   `ame$schedule_interval_days` and the configured airframe's capacity
+#'   pair (via `resolve_ame_airframe()`, R/environment.R)
 #' @param n_days Simulation duration in days, used to bound the schedule the
 #'   same way `run_once()` (R/replication.R) does
 #' @param day_min Minutes per simulation day (1440)
 #' @return Tidy data frame, one row per (replication, sortie_day, pool) —
 #'   pool one of "Critical (ICU, CCATT/CCAST)"/"Standard (Hold, CSU)" — with
-#'   `capacity_added`, `seats_used`, and `configuration` ("Configuration A"/
-#'   "Configuration B"/"Cancelled"/"Unknown"). Empty (zero rows) when AME
-#'   scheduling is disabled (mirrors `run_once()`'s own disable condition).
+#'   `capacity_added`, `seats_used`, and `outcome` ("Flown"/"Cancelled"/
+#'   "Unknown"). Empty (zero rows) when AME scheduling is disabled (mirrors `run_once()`'s own disable condition).
 #'
 #' @details `seats_used` is derived, not directly observed, and is *not* the
 #'   backlog waiting at the exact instant this sortie fires — a first-pass
@@ -210,7 +207,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440)
   pool_levels <- c("Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")
   empty <- data.frame(replication = integer(0), sortie_day = numeric(0),
                       pool = character(0), capacity_added = numeric(0),
-                      seats_used = numeric(0), configuration = character(0))
+                      seats_used = numeric(0), outcome = character(0))
 
   ame_sched <- role4_params$ame
   if (is.null(ame_sched$schedule_interval_days) ||
@@ -225,8 +222,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440)
   # run for the last one — see seats_used in the roxygen above.
   window_ends <- c(sortie_times[-1], n_days * day_min)
 
-  configs <- list("Configuration A" = role4_params$ame_config_a,
-                  "Configuration B" = role4_params$ame_config_b)
+  airframe <- resolve_ame_airframe(role4_params)
 
   # Step-function lookup: the last recorded value of `value_col` for a
   # (time-sorted) resource-monitor subset at or before `t` — or strictly
@@ -255,13 +251,11 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440)
       std_added  <- step_at(ame_res,  "capacity", t) - step_at(ame_res,  "capacity", t, before = TRUE)
       crit_added <- step_at(crit_res, "capacity", t) - step_at(crit_res, "capacity", t, before = TRUE)
 
-      configuration <- "Cancelled"
+      outcome <- "Cancelled"
       if (std_added > 0 || crit_added > 0) {
-        match_idx <- vapply(configs, function(cfg) {
-          isTRUE(all.equal(cfg$critical_capacity, crit_added)) &&
-            isTRUE(all.equal(cfg$standard_capacity, std_added))
-        }, logical(1))
-        configuration <- if (any(match_idx)) names(configs)[match_idx][1] else "Unknown"
+        flew <- isTRUE(all.equal(airframe$critical_capacity, crit_added)) &&
+          isTRUE(all.equal(airframe$standard_capacity, std_added))
+        outcome <- if (flew) "Flown" else "Unknown"
       }
 
       data.frame(
@@ -271,7 +265,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440)
         capacity_added = c(crit_added, std_added),
         seats_used     = c(step_at(crit_res, "server", window_end) - step_at(crit_res, "server", t, before = TRUE),
                            step_at(ame_res,  "server", window_end) - step_at(ame_res,  "server", t, before = TRUE)),
-        configuration  = configuration
+        outcome        = outcome
       )
     }))
   })) %>%
@@ -402,10 +396,13 @@ plot_ame_queue <- function(backlog_data) {
 }
 
 #' Builds the strategic AME sortie timeline plot (Issue #109): each
-#' scheduled sortie opportunity's outcome — configuration selected, and
+#' scheduled sortie opportunity's outcome — flown or cancelled, and
 #' seats used against capacity — for both AME pools
 #'
 #' @param sortie_data Output of `compute_ame_sorties()`
+#' @param airframe_label Name of the configured airframe
+#'   (`resolve_ame_airframe()$label`), reported in the subtitle so the
+#'   capacity the bars are measured against is attributable
 #' @return A ggplot object, or NULL if `sortie_data` has no rows (AME
 #'   scheduling disabled)
 #'
@@ -417,14 +414,13 @@ plot_ame_queue <- function(backlog_data) {
 #'   (seats the sortie brought, 0 for a cancelled sortie); the coloured bar
 #'   is mean seats boarded before the next scheduled sortie (see
 #'   `compute_ame_sorties()`'s `seats_used` roxygen), coloured by the modal
-#'   configuration selected across contributing replications at that
-#'   sortie_day. Because capacity is additive and never expires (MODEL
+#'   outcome across contributing replications at that sortie_day. Because capacity is additive and never expires (MODEL
 #'   ASSUMPTION — AME Capacity Banking), the coloured bar can exceed the
 #'   grey bar at a given sortie_day — that sortie's window drew on capacity
 #'   banked from an earlier, under-subscribed sortie, not solely its own
 #'   contribution. Y-axis scaling is data-driven per facet (Issue #110's
 #'   convention).
-plot_ame_sortie <- function(sortie_data) {
+plot_ame_sortie <- function(sortie_data, airframe_label = NULL) {
   if (nrow(sortie_data) == 0) return(NULL)
 
   sortie_summary <- sortie_data %>%
@@ -432,23 +428,27 @@ plot_ame_sortie <- function(sortie_data) {
     summarise(
       mean_capacity_added = mean(capacity_added),
       mean_seats_used     = mean(seats_used),
-      modal_configuration  = names(sort(table(configuration), decreasing = TRUE))[1],
+      modal_outcome       = names(sort(table(outcome), decreasing = TRUE))[1],
       .groups = "drop"
     )
 
+  subtitle <- "Grey bar = mean seats added (capacity) per scheduled sortie; coloured bar = mean seats boarded before the next sortie"
+  if (!is.null(airframe_label)) {
+    subtitle <- paste0(subtitle, "\nAirframe: ", airframe_label)
+  }
+
   ggplot(sortie_summary, aes(x = sortie_day)) +
     geom_col(aes(y = mean_capacity_added), fill = "grey80", width = 0.6) +
-    geom_col(aes(y = mean_seats_used, fill = modal_configuration), width = 0.6) +
+    geom_col(aes(y = mean_seats_used, fill = modal_outcome), width = 0.6) +
     facet_wrap(~ pool, ncol = 1, scales = "free_y") +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     scale_fill_manual(
-      values = c("Configuration A" = "#2A9D8F", "Configuration B" = "#E76F51",
-                "Cancelled" = "grey50", "Unknown" = "grey30"),
-      name = "Modal Configuration"
+      values = c("Flown" = "#2A9D8F", "Cancelled" = "grey50", "Unknown" = "grey30"),
+      name = "Modal Sortie Outcome"
     ) +
     labs(
       title    = "Strategic AME Sortie Timeline",
-      subtitle = "Grey bar = mean seats added (capacity) per scheduled sortie; coloured bar = mean seats boarded before the next sortie",
+      subtitle = subtitle,
       x = "Simulation Day", y = "Seats"
     ) +
     theme_minimal(base_size = 13) +
@@ -1606,19 +1606,12 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   if (!is.null(env_data$vars$role4)) {
     role4_params <- env_data$vars$role4
-    # Best-case per-sortie throughput across the two planner-defined
-    # aircraft configurations (Issue #23 second follow-up): the real
-    # sortie schedule flies whichever configuration minimises total unmet
-    # need at each opportunity (build_ame_sortie_trajectory(),
-    # R/trajectories.R), so no single fixed per-sortie total exists. The
-    # unconstrained baseline (compute_ame_demand()) does not distinguish
-    # acuity/route, so it compares against the larger of the two
-    # configurations' combined standard + critical capacity — same-day,
-    # uncapped, best-case throughput.
-    ame_capacity <- max(
-      role4_params$ame_config_a$critical_capacity + role4_params$ame_config_a$standard_capacity,
-      role4_params$ame_config_b$critical_capacity + role4_params$ame_config_b$standard_capacity
-    )
+    # Best-case per-sortie throughput: the unconstrained baseline
+    # (compute_ame_demand()) does not distinguish acuity/route, so it
+    # compares against the configured airframe's combined critical +
+    # standard capacity — same-day, uncapped, best-case throughput.
+    ame_airframe <- resolve_ame_airframe(role4_params)
+    ame_capacity <- ame_airframe$critical_capacity + ame_airframe$standard_capacity
     role4_daily_by_rep <- compute_role4_census(combined, role4_params)
     ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
   }
@@ -1799,7 +1792,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   }
 
   # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
-  # compute_ame_sorties() only needs `resources` and the schedule/config
+  # compute_ame_sorties() only needs `resources` and the schedule/airframe
   # parameters, not `combined` — so it does not require any strategic
   # evacuation decisions to have occurred yet, unlike the backlog output
   # above.
@@ -1807,7 +1800,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ame_sortie_plot <- NULL
   if (!is.null(env_data$vars$role4)) {
     ame_sortie_data <- compute_ame_sorties(resources, env_data$vars$role4, n_sim_days_role4)
-    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data)
+    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data,
+                                       resolve_ame_airframe(env_data$vars$role4)$label)
     if (!is.null(ame_sortie_plot)) {
       write.csv(ame_sortie_data, file.path(output_dir, "ame_sortie_data.csv"), row.names = FALSE)
       ggsave(file.path(images_dir, "ame_sortie_timeline.png"), ame_sortie_plot, width = 12, height = 8, dpi = 150)
@@ -2367,10 +2361,8 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
 
   if (!is.null(env_data$vars$role4)) {
     role4_params <- env_data$vars$role4
-    ame_capacity <- max(
-      role4_params$ame_config_a$critical_capacity + role4_params$ame_config_a$standard_capacity,
-      role4_params$ame_config_b$critical_capacity + role4_params$ame_config_b$standard_capacity
-    )
+    ame_airframe <- resolve_ame_airframe(role4_params)
+    ame_capacity <- ame_airframe$critical_capacity + ame_airframe$standard_capacity
     role4_daily_by_rep <- compute_role4_census(combined, role4_params)
     ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
   }
@@ -2762,7 +2754,8 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   ame_sortie_plot <- NULL
   if (!is.null(env_data$vars$role4)) {
     ame_sortie_data <- compute_ame_sorties(resources_raw, env_data$vars$role4, n_sim_days_ame)
-    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data)
+    ame_sortie_plot <- plot_ame_sortie(ame_sortie_data,
+                                       resolve_ame_airframe(env_data$vars$role4)$label)
     if (!is.null(ame_sortie_plot)) {
       write.csv(ame_sortie_data, file.path(output_dir, "ame_sortie_data.csv"), row.names = FALSE)
       ggsave(file.path(images_dir, "ame_sortie_timeline_multirun.png"), ame_sortie_plot, width = 12, height = 8, dpi = 150)

@@ -161,6 +161,51 @@ load_scenario <- function(path, scenario = "default") {
   build_environment(json_data)
 }
 
+# ── Strategic AME airframe selection ─────────────────────────────────────────
+#
+# The strategic aeromedical evacuation sortie carries the patient capacity of
+# whichever airframe the run is configured to fly. Each airframe the model
+# knows about is held as its own `role4.airframe_<id>` block (a label plus a
+# critical/standard capacity pair, sourced per airframe), and
+# `role4.ame.airframe` names the one in use. Keeping the pairs separate from
+# the selection means a scenario profile, or the Shiny selector, changes the
+# aircraft by naming it rather than by overwriting two capacity numbers whose
+# provenance is then lost.
+
+#' Resolves the strategic AME airframe a run is configured to fly
+#'
+#' @param role4_params `env_data$vars$role4` list — supplies the selector
+#'   (`ame$airframe`) and the `airframe_<id>` capacity blocks
+#' @return Named list with `id`, `label`, `critical_capacity` and
+#'   `standard_capacity`
+#'
+#' @details Errors rather than falling back when the named airframe has no
+#'   matching block, since a silent default would fly an aircraft the planner
+#'   did not choose and report its capacity as theirs.
+resolve_ame_airframe <- function(role4_params) {
+  id <- role4_params$ame$airframe
+  if (is.null(id)) {
+    stop("resolve_ame_airframe: role4.ame.airframe is not set in env_data.json")
+  }
+
+  block <- role4_params[[paste0("airframe_", id)]]
+  if (is.null(block)) {
+    available <- sub("^airframe_", "", grep("^airframe_", names(role4_params), value = TRUE))
+    stop(sprintf(
+      "resolve_ame_airframe: unknown airframe '%s'. Available airframes: %s",
+      id,
+      if (length(available) == 0) "(none defined)" else paste(available, collapse = ", ")
+    ))
+  }
+
+  list(
+    id                = id,
+    label             = if (!is.null(block$label)) block$label else id,
+    critical_capacity = block$critical_capacity,
+    standard_capacity = block$standard_capacity
+  )
+}
+
 # ── Casualty rate generation (live, force-size-reactive) ───────────────────────
 #
 # Issue #18: casualty arrival rate is scaled by a time-varying effective force

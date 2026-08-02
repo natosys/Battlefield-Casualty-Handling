@@ -1097,31 +1097,25 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' @param mort2e_mode R2E collocated-mortuary local transport mode
 #'   (minutes) — no return leg, since no vehicle asset is used for this
 #'   final in-place movement.
-#' @param ame_config_a_critical,ame_config_a_standard,ame_config_b_critical,ame_config_b_standard
-#'   Critical (ICU-bed, CCATT/CCAST-supported) and standard (Hold-bed,
-#'   Casualty Staging Unit-equivalent) capacity per successful sortie for
-#'   each of two independently configurable, planner-named "aircraft
-#'   configurations" (Issue #23 second follow-up) — e.g. Configuration A =
-#'   2 critical/8 standard when a CCATT/CCAST team is aboard, Configuration
-#'   B = 0 critical/20 standard for an all-routine sortie. Both share one
-#'   sortie schedule; the simulation flies whichever configuration
-#'   minimises total unmet need across both pools at each scheduled
-#'   opportunity (build_ame_sortie_trajectory(), R/trajectories.R).
+#' @param ame_critical,ame_standard Critical (ICU-bed, CCATT/CCAST-supported)
+#'   and standard (Hold-bed, Casualty Staging Unit-equivalent) capacity per
+#'   successful sortie, taken from the selected airframe's fitted patient
+#'   capacity (build_ame_sortie_trajectory(), R/trajectories.R). Both pools
+#'   fill on the same sortie.
+#' @param ame_airframe_label Name of the selected aircraft, shown so the
+#'   capacities above are attributable to a platform.
 #' @param ame_schedule_interval Days between scheduled AME sortie
-#'   opportunities (both configurations share this schedule).
+#'   opportunities.
 #' @param ame_failure_probability Probability a scheduled sortie is
-#'   cancelled, carrying zero capacity regardless of which configuration
-#'   would otherwise have flown.
+#'   cancelled, carrying zero capacity.
 evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                                mort2e_mode, ame_config_a_critical = NA,
-                                ame_config_a_standard = NA,
-                                ame_config_b_critical = NA,
-                                ame_config_b_standard = NA,
+                                mort2e_mode, ame_critical = NA,
+                                ame_standard = NA,
+                                ame_airframe_label = NULL,
                                 ame_schedule_interval = NA,
                                 ame_failure_probability = NA) {
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
   fmt_pct <- function(x) if (is.null(x) || is.na(x)) "?" else paste0(round(x * 100), "%")
-  fmt_cfg <- function(a, b) sprintf("A=%s/B=%s", fmt(a), fmt(b))
 
   width <- 300
   y     <- c(20, 130, 240, 350)
@@ -1173,7 +1167,7 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
       tags$text(x = cx, y = y + 26, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
                  sprintf("Every %s d · %s cancelled", fmt(ame_schedule_interval), fmt_pct(ame_failure_probability))),
       tags$text(x = cx, y = y + 37, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
-                 "Config flown minimises total unmet demand")
+                 if (is.null(ame_airframe_label)) "" else ame_airframe_label)
     )
   }
 
@@ -1194,10 +1188,10 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
         sprintf("HX240M (mortuary): %s min", fmt(kia2_mode)),
         "+ dead-heading return"),
     leg(y[3], y[4], -1, "#6f42c1",
-        sprintf("Critical: %s/sortie", fmt_cfg(ame_config_a_critical, ame_config_b_critical)),
+        sprintf("Critical: %s/sortie", fmt(ame_critical)),
         "ICU, CCATT/CCAST"),
     leg(y[3], y[4], 1, "#17a2b8",
-        sprintf("Standard: %s/sortie", fmt_cfg(ame_config_a_standard, ame_config_b_standard)),
+        sprintf("Standard: %s/sortie", fmt(ame_standard)),
         "Hold, CSU-equivalent"),
 
     mortuary_marker(y[3], mort2e_mode),
@@ -1214,10 +1208,9 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
 medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
-                             mort2e_mode, ame_config_a_critical = NA,
-                             ame_config_a_standard = NA,
-                             ame_config_b_critical = NA,
-                             ame_config_b_standard = NA,
+                             mort2e_mode, ame_critical = NA,
+                             ame_standard = NA,
+                             ame_airframe_label = NULL,
                              ame_schedule_interval = NA,
                              ame_failure_probability = NA) {
   tagList(
@@ -1234,11 +1227,11 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
       " KIA reaching R2E go no further — ⚱ is a local mortuary transfer, not a vehicle leg.",
       " ", tags$span(style = "color:#6f42c1; font-weight:600;", "Purple = Critical AME (ICU bed)"),
       "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard AME (Hold bed)"),
-      " — post-surgery Priority 1 boards critical, everyone else boards standard (aircraft capacity is editable in the Strategic AME group above).",
+      " — post-surgery Priority 1 boards critical, everyone else boards standard; both pools fill on the same sortie",
+      " (the airframe and its capacity are editable in the Strategic AME group above).",
       " Structural diagram only — run Quick Run for actual queueing and casualty results."),
     evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
-                        ame_config_a_critical, ame_config_a_standard,
-                        ame_config_b_critical, ame_config_b_standard,
+                        ame_critical, ame_standard, ame_airframe_label,
                         ame_schedule_interval, ame_failure_probability)
   )
 }
@@ -1955,16 +1948,22 @@ server <- function(input, output, session) {
   # remains a marker, not a leg, since no vehicle asset is used for that
   # final in-place movement.
   output$medevac_diagram <- renderUI({
+    # The airframe selector picks which pair of capacity fields the AME leg
+    # labels read, so the diagram follows a change of aircraft without the
+    # user having to re-run anything.
+    airframe <- input$ame_airframe %||% "c17a"
+    airframe_labels <- c(c17a  = "C-17A Globemaster III",
+                         c130j = "C-130J-30 Hercules",
+                         c27j  = "C-27J Spartan")
     medevac_diagram(
       wia1_mode = input$r1_wia_transport_mode  %||% 0,
       kia1_mode = input$r1_kia_transport_mode  %||% 0,
       wia2_mode = input$r2b_wia_transport_mode %||% 0,
       kia2_mode = input$r2b_kia_transport_mode %||% 0,
       mort2e_mode = input$r2e_kia_transport_mode %||% 0,
-      ame_config_a_critical   = input$ame_config_a_critical   %||% 0,
-      ame_config_a_standard   = input$ame_config_a_standard   %||% 0,
-      ame_config_b_critical   = input$ame_config_b_critical   %||% 0,
-      ame_config_b_standard   = input$ame_config_b_standard   %||% 0,
+      ame_critical            = input[[paste0("ame_", airframe, "_critical")]] %||% 0,
+      ame_standard            = input[[paste0("ame_", airframe, "_standard")]] %||% 0,
+      ame_airframe_label      = unname(airframe_labels[airframe]),
       ame_schedule_interval   = input$ame_schedule_interval   %||% 0,
       ame_failure_probability = input$ame_failure_probability %||% 0
     )
@@ -2738,8 +2737,8 @@ server <- function(input, output, session) {
         p(class = "text-muted mt-2",
           "Strategic aeromedical evacuation — casualties simultaneously awaiting a scheduled ",
           "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
-          "and the outcome of every scheduled sortie opportunity (configuration selected, seats boarded ",
-          "against capacity added, or cancelled). Use the panels below to judge whether the AME schedule ",
+          "and the outcome of every scheduled sortie opportunity (flown or cancelled, seats boarded ",
+          "against capacity added). Use the panels below to judge whether the AME schedule ",
           "you've configured can keep pace with strategic evacuation demand."),
         h6(class = "text-muted mt-2", "Role 4 (National Support Base) Census"),
         p(class = "text-muted small",
@@ -2775,7 +2774,7 @@ server <- function(input, output, session) {
         h6(class = "text-muted mt-2", "AME Sortie Timeline"),
         p(class = "text-muted small",
           "Grey bar = seats added at each scheduled sortie; coloured bar = seats actually boarded ",
-          "before the next sortie, coloured by which aircraft configuration flew. A coloured bar ",
+          "before the next sortie, coloured by whether the sortie flew or was cancelled. A coloured bar ",
           "consistently at or above grey signals a backlog is being drawn down; consistently below ",
           "means capacity exceeds demand at that point."),
         shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),

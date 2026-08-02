@@ -894,21 +894,32 @@
           "vals": [
             { "var": "schedule_interval_days", "val": 7 },
             { "var": "failure_probability",    "val": 0.15 },
-            { "var": "dow_check_interval",     "val": 1440 }
+            { "var": "dow_check_interval",     "val": 1440 },
+            { "var": "airframe",               "val": "c17a" }
           ]
         },
         {
-          "acty": "ame_config_a",
+          "acty": "airframe_c17a",
           "vals": [
-            { "var": "critical_capacity", "val": 2 },
-            { "var": "standard_capacity", "val": 8 }
+            { "var": "label",             "val": "C-17A Globemaster III" },
+            { "var": "critical_capacity", "val": 36 },
+            { "var": "standard_capacity", "val": 54 }
           ]
         },
         {
-          "acty": "ame_config_b",
+          "acty": "airframe_c130j",
           "vals": [
+            { "var": "label",             "val": "C-130J-30 Hercules" },
             { "var": "critical_capacity", "val": 0 },
-            { "var": "standard_capacity", "val": 20 }
+            { "var": "standard_capacity", "val": 97 }
+          ]
+        },
+        {
+          "acty": "airframe_c27j",
+          "vals": [
+            { "var": "label",             "val": "C-27J Spartan" },
+            { "var": "critical_capacity", "val": 0 },
+            { "var": "standard_capacity", "val": 21 }
           ]
         }
       ]

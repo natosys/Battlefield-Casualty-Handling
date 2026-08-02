@@ -159,8 +159,8 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 
 # ── Strategic AME queue depth and sortie timeline visualisation (Issue #109) ──
 # build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
-# own — every outcome (flown or cancelled) has to be
-# reconstructed from the "ame"/"ame_critical" resource monitor. The schedule
+# own — every outcome (flown or cancelled) has to be reconstructed from
+# the "ame"/"ame_critical" resource monitor. The schedule
 # itself is fully deterministic (fixed `at(seq(...))` times, R/replication.R),
 # so every scheduled opportunity — including cancelled ones, which leave no
 # capacity change at all — can be enumerated without needing to scan the
@@ -182,8 +182,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 #' @return Tidy data frame, one row per (replication, sortie_day, pool) —
 #'   pool one of "Critical (ICU, CCATT/CCAST)"/"Standard (Hold, CSU)" — with
 #'   `capacity_added`, `seats_used`, and `outcome` ("Flown"/"Cancelled"/
-#'   "Unknown"). Empty (zero rows) when AME
-#'   scheduling is disabled (mirrors `run_once()`'s own disable condition).
+#'   "Unknown"). Empty (zero rows) when AME scheduling is disabled (mirrors `run_once()`'s own disable condition).
 #'
 #' @details `seats_used` is derived, not directly observed, and is *not* the
 #'   backlog waiting at the exact instant this sortie fires — a first-pass
@@ -415,8 +414,7 @@ plot_ame_queue <- function(backlog_data) {
 #'   (seats the sortie brought, 0 for a cancelled sortie); the coloured bar
 #'   is mean seats boarded before the next scheduled sortie (see
 #'   `compute_ame_sorties()`'s `seats_used` roxygen), coloured by the modal
-#'   outcome across contributing replications at that
-#'   sortie_day. Because capacity is additive and never expires (MODEL
+#'   outcome across contributing replications at that sortie_day. Because capacity is additive and never expires (MODEL
 #'   ASSUMPTION — AME Capacity Banking), the coloured bar can exceed the
 #'   grey bar at a given sortie_day — that sortie's window drew on capacity
 #'   banked from an earlier, under-subscribed sortie, not solely its own

@@ -42,7 +42,7 @@ Two scenarios are compared — `moderate_intensity` (Falklands 1982 exemplar) an
 Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity --iterations 50 --days 30 --seed 42
 ```
 
-`moderate_intensity` total casualties (385.6, 95% CI [385.2, 386.0]) match the documented seed-42 single-run baseline (385, `CLAUDE.md` Key Parameters) within 0.2%, confirming that the comparative runner reproduces the single-run baseline under the Falklands profile it is scenario-explicit about, consistent with the scenario mechanism's no-op guarantee for `default`.
+`moderate_intensity` total casualties (385.7, 95% CI [385.3, 386.1]) match the documented seed-42 single-run baseline (386, `CLAUDE.md` Key Parameters) within 0.1%, confirming that the comparative runner reproduces the single-run baseline under the Falklands profile it is scenario-explicit about, consistent with the scenario mechanism's no-op guarantee for `default`.
 
 ---
 
@@ -54,33 +54,33 @@ Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity --
 
 | Metric | `moderate_intensity` (Falklands) | `high_intensity` (Okinawa) | Ratio |
 |---|---|---|---|
-| Total casualties/run | 385.6 (p10–p90: 384.0–387.0) | 969.3 (p10–p90: 965.0–973.0) | 2.51× |
-| WIA/run | 148.8 (148.0–150.0) | 656.5 (653.0–660.0) | 4.41× |
-| DOW/run | 0.80 (0–2) | 5.66 (3.0–9.0) | 7.08× |
-| DOW/WIA rate | 0.537% (95% CI [0.398%, 0.676%]) | 0.862% (95% CI [0.764%, 0.960%]) | 1.60× |
+| Total casualties/run | 385.7 (p10–p90: 384.0–388.0) | 969.5 (p10–p90: 966.0–973.0) | 2.51× |
+| WIA/run | 148.8 (148.0–150.0) | 656.8 (654.0–660.0) | 4.41× |
+| DOW/run | 0.64 (0–1.1) | 6.10 (2.0–10.0) | 9.53× |
+| DOW/WIA rate | 0.429% (95% CI [0.303%, 0.555%]) | 0.929% (95% CI [0.813%, 1.044%]) | 2.16× |
 
 ### Resource Queue Comparison (mean of per-resource mean queue, by group)
 
 | Resource group | `moderate_intensity` mean queue | `high_intensity` mean queue | Ratio |
 |---|---|---|---|
 | R2B OT | 0.000 | 0.000 | — |
-| R2B Hold | 0.287 | 3.113 | 10.84× |
-| R2E OT | 0.355 | 50.75 | 142.8× |
-| R2E ICU | 0.269 | 3.444 | 12.80× |
-| R2E Hold | 1.209 | 2.556 | 2.11× |
-| Transport (PMV Ambulance / HX240M) | 0.0000039 | 0.000118 | 30.4× (negligible in both) |
+| R2B Hold | 0.275 | 3.068 | 11.17× |
+| R2E OT | 0.622 | 62.95 | 101.2× |
+| R2E ICU | 0.117 | 2.605 | 22.21× |
+| R2E Hold | 0.188 | 0.611 | 3.25× |
+| Transport (PMV Ambulance / HX240M) | 0.0000082 | 0.000092 | 11.1× (negligible in both) |
 
 ![Comparative Scenario Analysis](../images/scenario_comparison.png)
 
 ### Interpretation
 
-The comparison exposes a structural fragility that the single-run baseline could not surface on its own, and it now locates that fragility in the operating theatres rather than the ICU. Mean R2E OT queue rises from 0.36 casualties at Falklands-equivalent load to 50.75 under `high_intensity`, a factor of roughly 143, which is by a wide margin the largest movement anywhere in the model. The mechanism is the surgical roster: a casualty seizes a theatre before it seizes one of the three surgical sections that staff them, so a room reads as queued while its occupant waits for staff, and at Okinawa-intensity arrival rates that wait dominates. R2E ICU rises from 0.27 to 3.44 (≈12.8-fold), a much steeper ratio than previously reported but from a far lower base, because casualties awaiting strategic aeromedical evacuation now stage in holding beds rather than holding ICU beds for the whole of their wait (see the single-run analysis's [R2E Heavy Handling](Single_Run_Analysis.md#r2e-heavy-handling) finding). The evacuation backlog instead lands on R2E holding beds, whose mean queue is the one group already materially non-zero at Falklands-equivalent load (1.21) and which roughly doubles under surge rather than exploding, since the 30-bed pool is already close to saturated at the lower rate.
+The comparison exposes a structural fragility that the single-run baseline could not surface on its own, and it locates that fragility in the operating theatres. Mean R2E OT queue rises from 0.62 casualties at Falklands-equivalent load to 62.95 under `high_intensity`, a factor of roughly 101, which is by a wide margin the largest movement anywhere in the model. The mechanism is the surgical roster: a casualty seizes a theatre before it seizes one of the three surgical sections that staff them, so a room reads as queued while its occupant waits for staff, and at Okinawa-intensity arrival rates that wait dominates. R2E ICU rises from 0.12 to 2.60, a factor of 22, the steepest ratio in the table but from the lowest base of any bed group, because casualties awaiting strategic aeromedical evacuation stage in holding beds and clear them within a day or two at the sourced airframe capacity. R2E holding beds, which carried the evacuation backlog when sortie capacity was 2 critical places, now show the smallest queue of the three R2E groups at Falklands load (0.19) and rise only to 0.61 under surge: the pool is loaded but no longer congested, so the surge lands on theatre staff rather than on beds.
 
-R2B OT queue remains at 0 in both scenarios — not because R2B absorbs any of the surge, but because the existing OT-bypass routing diverts casualties requiring surgery to R2E whenever R2B is off-shift, busy, or queued rather than allowing them to wait; under `high_intensity`, this shunts the entire surge onto an R2E that has limited further capacity to absorb it. R2B Hold bed queue — already identified as a Falklands-rate bottleneck (see the single-run analysis's [R2B Hold Bed Saturation](Single_Run_Analysis.md#r2b-hold-bed-saturation-stream-decomposition-and-intervention-analysis) finding) — increases roughly 10.8-fold (0.29 to 3.11), driven by the proportional increase in non-surgical WIA volume rather than any change to DNBI generation, since DNBI generation rate is not one of the parameters a scenario profile overrides.
+R2B OT queue remains at 0 in both scenarios — not because R2B absorbs any of the surge, but because the existing OT-bypass routing diverts casualties requiring surgery to R2E whenever R2B is off-shift, busy, or queued rather than allowing them to wait; under `high_intensity`, this shunts the entire surge onto an R2E that has limited further capacity to absorb it. R2B Hold bed queue — already identified as a Falklands-rate bottleneck (see the single-run analysis's [R2B Hold Bed Saturation](Single_Run_Analysis.md#r2b-hold-bed-saturation-stream-decomposition-and-intervention-analysis) finding) — increases roughly 11.2-fold (0.28 to 3.07), driven by the proportional increase in non-surgical WIA volume rather than any change to DNBI generation, since DNBI generation rate is not one of the parameters a scenario profile overrides.
 
-Transport remains the one echelon with genuine headroom: mean queue stays a small fraction of a casualty even at 2.5× total casualty volume, consistent with the single-run analysis's [Transport Fleet Capacity Margin](Single_Run_Analysis.md#transport-fleet-capacity-margin) finding that the PMV Ambulance/HX240M pool is not the binding constraint at the Falklands-derived rate — though the roughly 30-fold rise in mean queue (still negligible in absolute terms at this casualty rate, at around one ten-thousandth of a casualty) indicates this margin is not unlimited, and a Vietnam/Okinawa-intensity re-run of the dedicated fleet-size sweep would be needed to establish exactly where it is exhausted.
+Transport remains the one echelon with genuine headroom: mean queue stays a small fraction of a casualty even at 2.5× total casualty volume, consistent with the single-run analysis's [Transport Fleet Capacity Margin](Single_Run_Analysis.md#transport-fleet-capacity-margin) finding that the PMV Ambulance/HX240M pool is not the binding constraint at the Falklands-derived rate — though the roughly 11-fold rise in mean queue (still negligible in absolute terms, at around one ten-thousandth of a casualty) indicates this margin is not unlimited, and a Vietnam/Okinawa-intensity re-run of the dedicated fleet-size sweep would be needed to establish exactly where it is exhausted.
 
-DOW/WIA rate rises from 0.54% to 0.86% — a smaller proportional increase than the queue-length findings above, consistent with DOW remaining a comparatively rare event even at Okinawa-intensity casualty production over a 30-day window; a longer run or a larger replication count would sharpen this estimate further.
+DOW/WIA rate rises from 0.43% to 0.93%, a factor of 2.2, a larger separation than the previous comparison showed and one whose confidence intervals do not overlap. Both figures fall as strategic evacuation clears faster, but the Falklands-load figure falls further, since at Okinawa intensity the deaths are driven by treatment queues that airlift capacity does not relieve.
 
 ---
 
@@ -88,9 +88,9 @@ DOW/WIA rate rises from 0.54% to 0.86% — a smaller proportional increase than 
 
 <small>[Return to Top](#contents)</small>
 
-The system's resilience to surge is now directly quantified rather than inferred. This multi-run comparison confirms that neither R2B nor R2E can absorb Okinawa-intensity casualty rates without fundamental redesign: R2E OT mean queue rises approximately 143-fold and R2E ICU mean queue approximately 12.8-fold relative to the Falklands-modified baseline, R2B Hold queue rises approximately 10.8-fold, and DOW/WIA rate rises from 0.54% to 0.86% — all while R2B OT queue remains at zero only because the existing bypass routing shunts all surgical overflow onto an already-saturated R2E rather than R2B absorbing any of the surge itself. Effective LSCO medical support at Okinawa intensity would require scalable holding capacity at forward echelons, adaptable evacuation architecture, and dynamic load-balancing between R2B and R2E — capabilities the current static establishment does not provide.
+The system's resilience to surge is directly quantified rather than inferred. This multi-run comparison confirms that neither R2B nor R2E can absorb Okinawa-intensity casualty rates without fundamental redesign: R2E OT mean queue rises approximately 101-fold and R2E ICU mean queue approximately 22-fold relative to the Falklands-modified baseline, R2B Hold queue rises approximately 11-fold, and DOW/WIA rate rises from 0.43% to 0.93% — all while R2B OT queue remains at zero only because the existing bypass routing shunts all surgical overflow onto an already-saturated R2E rather than R2B absorbing any of the surge itself. Effective LSCO medical support at Okinawa intensity would require scalable holding capacity at forward echelons, a deeper surgical roster at R2E, and dynamic load-balancing between R2B and R2E — capabilities the current static establishment does not provide.
 
-These figures were regenerated at 50 replications per scenario after the R2E disposition mechanism was rebuilt around the theatre evacuation policy, and they supersede the earlier 30-replication comparison. That change moved the strategic evacuation backlog off ICU beds and onto holding beds, which is why the R2E ICU and R2E Hold rows differ qualitatively rather than merely numerically from the previous version of this table; the R2E OT row moved for a separate reason, namely that relieving the ICU constraint admits far more casualties to theatre. The run was made in an unpinned R 4.3.3 sandbox rather than the project's pinned Dev Container, under the same caveat as the other figures refreshed alongside it (see `CLAUDE.md`'s Key Parameters provenance caveats). `images/scenario_comparison.png` was **not** regenerated: the plotting stage of `scripts/run_scenarios.R` fails outside a UTF-8 locale, a defect tracked separately, and the fallback renders the figure's title incorrectly, so the tracked plot still depicts the previous comparison and should be read against the tables above rather than in place of them. A comparable Vietnam-intensity comparison remains unavailable pending a genuine FORECAS-sourced Vietnam combat-troop WIA/KIA table.
+These figures were regenerated at 50 replications per scenario after the strategic evacuation airframe capacity was sourced to the RAAF's published C-17A aeromedical evacuation fit, and they supersede the comparison made under the previous two-configuration sortie model. That change clears the evacuation backlog off R2E holding beds within a day or two of the disposition, which is why the R2E Hold row falls rather than rises and the R2E ICU row falls further; the R2E OT row rises for the consequent reason, that a faster-turning bed pool admits more casualties to theatre. The run was made in an unpinned R 4.3.3 sandbox rather than the project's pinned Dev Container, under the same caveat as the other figures refreshed alongside it (see `CLAUDE.md`'s Key Parameters provenance caveats). `images/scenario_comparison.png` was **not** regenerated: the plotting stage of `scripts/run_scenarios.R` fails outside a UTF-8 locale, a defect tracked separately, so the tracked plot still depicts an earlier comparison and should be read against the tables above rather than in place of them. A comparable Vietnam-intensity comparison remains unavailable pending a genuine FORECAS-sourced Vietnam combat-troop WIA/KIA table.
 
 ---
 

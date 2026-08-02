@@ -1297,8 +1297,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # measured at the decision, not on completed returns to duty, because a
   # retained casualty's convalescence routinely outlasts the run. Compared
   # against the 7.6%-42.1% historical range in README Return to Duty.
-  policy_decisions <- attributes_wide %>%
-    filter(!is.na(recovery_to_duty_days))
+  # The attribute is absent entirely when no casualty reached R2E disposition
+  # within the observation window, which a short or low-intensity run can
+  # produce, so the column is guarded rather than assumed.
+  policy_decisions <- if ("recovery_to_duty_days" %in% names(attributes_wide)) {
+    attributes_wide %>% filter(!is.na(recovery_to_duty_days))
+  } else {
+    attributes_wide[0, , drop = FALSE]
+  }
   in_theatre_share <- if (nrow(policy_decisions) == 0) NA_real_ else {
     mean(policy_decisions$recovery_to_duty_days <=
            env_data$vars$r2eheavy$recovery$evacuation_policy_days)

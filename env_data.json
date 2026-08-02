@@ -313,15 +313,15 @@
           "vals": [
             {
               "var": "min",
-              "val": 1440
+              "val": 4320
             },
             {
               "var": "max",
-              "val": 30240
+              "val": 90720
             },
             {
               "var": "mode",
-              "val": 12960
+              "val": 38880
             }
           ]
         },
@@ -329,12 +329,54 @@
           "acty": "recovery",
           "vals": [
             {
-              "var": "in_theatre_rate",
-              "val": 0.1
+              "var": "evacuation_policy_days",
+              "val": 30
             },
             {
               "var": "post_surgery",
               "val": 0.75
+            }
+          ]
+        },
+        {
+          "acty": "recovery_to_duty",
+          "vals": [
+            {
+              "var": "p1_surgical",
+              "val": 2.33
+            },
+            {
+              "var": "p1_nonsurgical",
+              "val": 1.67
+            },
+            {
+              "var": "p2",
+              "val": 1.33
+            },
+            {
+              "var": "p3_dnbi",
+              "val": 1.0
+            }
+          ]
+        },
+        {
+          "acty": "critical_hold",
+          "vals": [
+            {
+              "var": "ventilated_share",
+              "val": 0.15
+            },
+            {
+              "var": "min",
+              "val": 720
+            },
+            {
+              "var": "max",
+              "val": 2160
+            },
+            {
+              "var": "mode",
+              "val": 1440
             }
           ]
         },

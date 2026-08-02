@@ -543,7 +543,11 @@ ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
 #'   (default: "outputs")
 #' @param warm_up_days Days to exclude from the start of the analysis window
 #'   (applied to arrivals by start_time and resources by time; default 0)
-#' @param images_dir Directory path for saving PNG plots (default: "images")
+#' @param images_dir Directory path for saving PNG plots. Defaults to
+#'   `file.path(output_dir, "images")`, which is gitignored, so calling this
+#'   function cannot overwrite the tracked seed-42 baseline plots in `images/`
+#'   unless the caller names that directory explicitly (Issue #154). run.R
+#'   does so only under `--refresh-baseline`.
 #' @return Invisibly returns a named list. Nine elements are always-present
 #'   ggplot objects (Issue #14 — embeddable in a Shiny reactive context via
 #'   e.g. renderPlot()): casualty_flow, r1_queues, r2b_treatment,
@@ -557,7 +561,7 @@ ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
 #'   display — see run.R for the CLI path, which prints each plot in the
 #'   original on-screen order for interactive/RStudio use).
 analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
-                        images_dir = "images") {
+                        images_dir = file.path(output_dir, "images")) {
   dir.create(output_dir,  showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
@@ -1957,7 +1961,10 @@ ci_mean <- function(x) {
 #'   window (Welch warm-up period; default WARM_UP_DAYS, R/warmup.R — 0 for
 #'   this terminating-simulation model, i.e. no exclusion at baseline)
 #' @param output_dir Directory path for saving CSV outputs (default "outputs")
-#' @param images_dir Directory path for saving PNG plots (default "images")
+#' @param images_dir Directory path for saving PNG plots. Defaults to
+#'   `file.path(output_dir, "images")` for the same reason as analyse_run()'s
+#'   (Issue #154): the tracked `images/` directory is written only when a
+#'   caller names it explicitly.
 #' @return Invisibly returns a named list: casualty_flow, r1_queues,
 #'   r2b_bed_queues, r2e_bed_queues, utilisation, waiting_times (ggplot
 #'   objects, CI-ribbon/error-bar variants of analyse_run()'s single-run
@@ -1979,7 +1986,8 @@ ci_mean <- function(x) {
 #'   (Shiny Application — Full Analysis Mode), citing Romero-Brufau et al.
 #'   (2020) for minimum replication counts in DES healthcare studies.
 analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
-                                 output_dir = "outputs", images_dir = "images") {
+                                 output_dir = "outputs",
+                                 images_dir = file.path(output_dir, "images")) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 

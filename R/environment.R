@@ -415,6 +415,11 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
 #' completed run's monitored arrivals
 #'
 #' @param env A simmer environment that has already been run() to completion
+#' @param data_dir Directory to write the arrivals_<type>.txt files into
+#'   (default "data", the tracked baseline location). run_bch() passes a
+#'   run-scoped directory under outputs/ unless the caller has explicitly
+#'   asked to refresh the tracked baseline, so that an ordinary run cannot
+#'   overwrite tracked evidence (Issue #154).
 #' @return Invisibly NULL; called for its file-writing side effect
 #'
 #' @details The six background casualty streams' arrival times are no
@@ -425,12 +430,13 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
 #'   completes, filtered by each stream's generator-name prefix. Mass
 #'   casualty's diagnostic file is unaffected (still written by
 #'   generate_mass_casualty_events(), since that stream remains pre-computed).
-write_arrival_diagnostics <- function(env) {
+write_arrival_diagnostics <- function(env, data_dir = "data") {
+  dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
   arr <- get_mon_arrivals(env)
   streams <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
   for (type in streams) {
     times <- sort(arr$start_time[startsWith(arr$name, type)])
-    write.table(times, file = file.path("data", paste0("arrivals_", type, ".txt")),
+    write.table(times, file = file.path(data_dir, paste0("arrivals_", type, ".txt")),
                row.names = FALSE, col.names = FALSE)
   }
   invisible(NULL)
@@ -585,9 +591,13 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #'   shared blast-dominant split used for "poisson"-mode events, since
 #'   only "scheduled" mode supports a per-event priority override)
 #' @param seed Optional random seed for reproducibility
-#' @param write_file Write the arrival stream and event log to data/
+#' @param write_file Write the arrival stream and event log to `data_dir`
 #'   (default TRUE; set FALSE for parallel replication workers to avoid
 #'   file-write conflicts)
+#' @param data_dir Directory the two diagnostic files are written to when
+#'   `write_file` is TRUE (default "data", the tracked baseline location).
+#'   Threaded from run_once() so that only an explicit baseline refresh
+#'   writes to the tracked directory (Issue #154).
 #' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
 #'   substituted for U in every draw this function and its mode-specific
 #'   helpers make. Enables antithetic pairing in run_replications().
@@ -622,8 +632,10 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
 generate_mass_casualty_events <- function(n_days, params, seed = NULL,
-                                          write_file = TRUE, antithetic = FALSE) {
+                                          write_file = TRUE, antithetic = FALSE,
+                                          data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
+  if (write_file) dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
   n_minutes <- day_min * n_days
   mode <- if (!is.null(params$event$mode)) params$event$mode else "poisson"
@@ -647,9 +659,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
 
   if (nrow(sched) == 0) {
     if (write_file) {
-      write.table(numeric(0), file = file.path("data", "arrivals_mass_casualty.txt"),
+      write.table(numeric(0), file = file.path(data_dir, "arrivals_mass_casualty.txt"),
                  row.names = FALSE, col.names = FALSE)
-      write.csv(empty_events, file.path("data", "mass_casualty_events.csv"),
+      write.csv(empty_events, file.path(data_dir, "mass_casualty_events.csv"),
                row.names = FALSE)
     }
     return(list(arrival_times = numeric(0), casualty_event_id = integer(0), events = empty_events))
@@ -689,9 +701,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   )
 
   if (write_file) {
-    write.table(arrival_times, file = file.path("data", "arrivals_mass_casualty.txt"),
+    write.table(arrival_times, file = file.path(data_dir, "arrivals_mass_casualty.txt"),
                row.names = FALSE, col.names = FALSE)
-    write.csv(events, file.path("data", "mass_casualty_events.csv"), row.names = FALSE)
+    write.csv(events, file.path(data_dir, "mass_casualty_events.csv"), row.names = FALSE)
   }
 
   list(arrival_times = arrival_times, casualty_event_id = casualty_event_id, events = events)

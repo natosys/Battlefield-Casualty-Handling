@@ -247,6 +247,109 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
   pmax(0, (f_now - f_prev) / (1 - f_prev))
 }
 
+# ── Post-operative intensive care requirement ─────────────────────────────────
+#
+# Damage control is a staged sequence, and a casualty who goes through it needs
+# intensive care at two separate points for two different reasons:
+#
+#   1. STABILISATION, between the abbreviated operation and the definitive one.
+#      This is the classic damage control resuscitation phase: rewarming, and
+#      correcting the coagulopathy and acidosis that would make definitive
+#      repair unsurvivable. It is what the 24 to 36 hour window in the cited
+#      literature refers to.
+#   2. POST-DEFINITIVE care, after the final operation. Ventilation weaning,
+#      organ support and monitoring for complications.
+#
+# The model draws each separately, because they answer to different things: a
+# stabilisation episode can be delivered at either echelon and is what the
+# forward-holding policy moves, whereas post-definitive care necessarily
+# follows the definitive operation and so is always served at R2E, which is
+# the only echelon that performs one. Keeping them apart is what lets the
+# forward-holding lever move stabilisation forward without hollowing out the
+# care that has to come afterwards.
+#
+# Both are theatre-level episodes. A casualty evacuated out of theatre
+# continues critical care at Role 4, which this model treats as unconstrained
+# demand rather than as a resource (README Further Development L16), so the
+# post-definitive episode here is bounded by the deployed evacuation norm and
+# not by a civilian intensive care length of stay.
+
+#' Draws a casualty's whole stabilisation intensive care requirement, in minutes
+#'
+#' @return Minutes drawn from the R2E stabilisation-ICU triangular distribution
+#'
+#' @details How much stabilisation a casualty needs follows from the injury
+#'   rather than from the facility that happens to hold them, so one draw
+#'   covers the whole episode wherever it is served.
+#'   r2b_stabilisation_minutes() and r2e_stabilisation_minutes() below divide
+#'   that single draw between the echelons, which is what makes the total the
+#'   same on every route by construction rather than by two parameters being
+#'   kept consistent with each other. Each echelon records the minutes it
+#'   served as an attribute (`r2b_post_op_min`, `r2e_post_op_min`) so the
+#'   invariant is observable in a run's output rather than merely asserted
+#'   here; scripts/check_icu_time_conservation.R checks it across all three
+#'   routes a casualty requiring surgery can take.
+draw_stabilisation_icu <- function() {
+  rtriangle(
+    n = 1,
+    a = env_data$vars$r2eheavy$stabilisation_icu$min,
+    b = env_data$vars$r2eheavy$stabilisation_icu$max,
+    c = env_data$vars$r2eheavy$stabilisation_icu$mode
+  )
+}
+
+#' Draws a casualty's post-definitive intensive care requirement, in minutes
+#'
+#' @return Minutes drawn from the R2E post-definitive-ICU triangular
+#'   distribution
+#'
+#' @details Served at R2E after the casualty's final operation, on every route.
+#'   Independent of the stabilisation draw: needing a long resuscitation phase
+#'   before definitive repair does not imply a long recovery after it.
+draw_post_definitive_icu <- function() {
+  rtriangle(
+    n = 1,
+    a = env_data$vars$r2eheavy$post_definitive_icu$min,
+    b = env_data$vars$r2eheavy$post_definitive_icu$max,
+    c = env_data$vars$r2eheavy$post_definitive_icu$mode
+  )
+}
+
+#' Minutes of the stabilisation requirement delivered forward at R2B
+#'
+#' @return The lesser of `r2b.post_op_icu.share` x the casualty's
+#'   `stabilisation_total` attribute and `r2b.post_op_icu.forward_hold_max`
+#'
+#' @details Two levers, because a commander sets forward holding in two
+#'   different terms. The share is the intent: how much of the stabilisation
+#'   phase to attempt forward at all. The cap is the operational limit: how
+#'   long a scarce forward intensive care bed may be tied up by one casualty
+#'   before they are moved on regardless. The cap binds first, so setting it
+#'   to zero disables forward holding whatever the share says, and setting it
+#'   above the longest drawn requirement leaves the share acting alone.
+r2b_stabilisation_minutes <- function() {
+  intended <- get_attribute(env, "stabilisation_total") *
+    env_data$vars$r2b$post_op_icu$share
+  cap <- env_data$vars$r2b$post_op_icu$forward_hold_max
+  if (is.null(cap) || is.na(cap)) return(intended)
+  min(intended, cap)
+}
+
+#' Minutes of the stabilisation requirement remaining for R2E
+#'
+#' @return The casualty's `stabilisation_total`, less whatever was served
+#'   forward. A casualty who was not operated on at R2B served nothing
+#'   forward, whatever the share and cap are set to, so receives the whole
+#'   requirement here — the same amount, on either route.
+r2e_stabilisation_minutes <- function() {
+  total <- get_attribute(env, "stabilisation_total")
+  prior <- get_attribute(env, "r2b_surgery")
+  if (!is.na(prior) && prior == 1) {
+    return(max(0, total - r2b_stabilisation_minutes()))
+  }
+  total
+}
+
 # ── Role 1 trajectories ───────────────────────────────────────────────────────
 
 #' Simulates mortuary treatment pathway for KIA casualties at Role 1
@@ -540,7 +643,10 @@ r2b_evac_return_leg <- function(traj, evacuation_team) {
 #' # - surgery == 1 → pre-OT ICU availability gate (Issue #43; P1 always
 #' #     proceeds, P2+ defers OT entry while this unit's ICU is saturated),
 #' #     then check OT bed AND surgical team availability
-#' #     - OT bed free, no queue, team on shift → seize OT + team, perform DAMCON surgery
+#' #     - OT bed free, no queue, team on shift → seize OT + team, perform
+#' #         DAMCON surgery, then post-operative stabilisation for the share
+#' #         of the ICU requirement served forward (r2b.post_op_icu.share;
+#' #         ICU bed, or holding bed at elevated risk when ICU is saturated)
 #' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E
 #' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
 #' #          r2b_bypass_time = simulation time of the bypass decision)
@@ -590,6 +696,92 @@ r2b_treat_wia <- function(team_id) {
     ) %>%
     leave(1)
 
+  # Forward stabilisation, joined at the end of the Surgery Path below. This
+  # is the damage control resuscitation phase, which belongs between the
+  # abbreviated operation just performed here and the definitive one waiting
+  # at R2E — see the post-operative intensive care requirement block at the
+  # top of this file for why the two episodes are modelled separately.
+  # `r2b.post_op_icu.share` and `r2b.post_op_icu.forward_hold_max` set how
+  # much of it is served here, the remainder falling to R2E, where it is
+  # served before the definitive operation rather than after it.
+  #
+  # Branches on the forward minutes, then on R2B ICU availability:
+  # - nothing to serve forward   → no forward stay (r2b_post_op_pathway unset);
+  #                                the whole requirement is served at R2E
+  # - ICU bed free               → ICU bed for the forward minutes
+  #                                (r2b_post_op_pathway = 1)
+  # - ICU saturated              → holding bed for the same duration, at a
+  #                                further elevated dow_ceiling
+  #                                (r2b_post_op_pathway = 2), mirroring the
+  #                                R2E post-op hold pathway
+  #
+  # Either forward path multiplies dow_ceiling by r2b_icu_penalty: an R2B ICU
+  # section fields two nurses and two medics and no intensivist, against R2E's
+  # intensivist-led section, and the penalty is the mortality cost of that
+  # difference. Without it, forward holding would be free in the model and any
+  # sweep of the share would recommend its maximum as an artefact of relieving
+  # the R2E queue at no cost. See README "Died of Wounds — Treatment Efficacy
+  # Modifiers".
+  #
+  # The stay lengthens the casualty's journey but opens no DOW checkpoint of
+  # its own: dow_prob_conditional() prices elapsed time at the next checkpoint
+  # the casualty reaches (the R2E arrival check), so the delay is charged
+  # there, against the ceiling this trajectory has already raised.
+  r2b_post_op_stabilisation <- trajectory("R2B Post-Operative Stabilisation") %>%
+    set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
+    branch(
+      option = function() {
+        if (r2b_stabilisation_minutes() <= 0) return(2)
+        return(1)
+      },
+      continue = TRUE,
+
+      trajectory("R2B Forward Stabilisation") %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
+        }) %>%
+        branch(
+          option = function() {
+            usage <- sum(get_server_count(env, resources = icu_beds))
+            cap   <- sum(get_capacity(env, resources = icu_beds))
+            if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+            return(2)
+          },
+          continue = TRUE,
+
+          # ICU bed available — the nominal forward pathway
+          trajectory("R2B Post-Op ICU") %>%
+            set_attribute("r2b_post_op_pathway", 1) %>%
+            set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
+            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+            seize_selected(id = 6) %>%
+            timeout(function() r2b_stabilisation_minutes()) %>%
+            release_selected(id = 6),
+
+          # ICU saturated — the same stay in a holding bed, at the same
+          # elevated risk the R2E post-op hold pathway carries for the same
+          # reason (reduced post-operative monitoring). The duration is the
+          # casualty's requirement either way: the bed changes what the stay
+          # is worth clinically, not how long they need it for.
+          trajectory("R2B Post-Op Hold — ICU Full") %>%
+            set_attribute("r2b_post_op_pathway", 2) %>%
+            set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
+            set_attribute("dow_ceiling", function() {
+              ceiling <- get_attribute(env, "dow_ceiling")
+              if (is.na(ceiling)) return(ceiling)
+              ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+            }) %>%
+            simmer::select(hold_beds, policy = "shortest-queue", id = 7) %>%
+            seize_selected(id = 7) %>%
+            timeout(function() r2b_stabilisation_minutes()) %>%
+            release_selected(id = 7)
+        ),
+
+      trajectory("No Forward Stabilisation")
+    )
+
   # OT availability check (unchanged from pre-Issue-43 logic). Joined
   # directly when the pre-OT ICU gate above clears immediately, and again
   # after the P2+ ICU-defer wait loop resolves.
@@ -630,7 +822,8 @@ r2b_treat_wia <- function(team_id) {
           ceiling <- get_attribute(env, "dow_ceiling")
           if (is.na(ceiling)) return(ceiling)
           ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
-        }),
+        }) %>%
+        join(r2b_post_op_stabilisation),
 
       # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E.
       # r2b_bypass_reason decomposes the cause (Issue #40): 1 = surgical team
@@ -734,15 +927,15 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
 
       # Branch 1: Surgery required
-      # Pre-OT ICU availability gate (Issue #43), mirroring the R2E pattern for
-      # consistency and forward compatibility. R2B surgery does not seize
-      # icu_beds for post-operative recovery (icu_beds here are used only by
-      # the wait_for_evac fallback path above), so Priority 1 candidates
-      # proceed unconditionally; only Priority 2+ candidates defer OT entry
-      # while this unit's ICU is fully saturated, preserving ICU headroom for
-      # existing evac-holding patients. Under current establishment sizing,
-      # R2B ICU utilisation is effectively zero, so this branch is expected to
-      # be inert in practice.
+      # Pre-OT ICU availability gate (Issue #43), mirroring the R2E pattern.
+      # Priority 1 casualties proceed unconditionally; Priority 2+ casualties
+      # defer OT entry while this unit's ICU is fully saturated, preserving
+      # ICU headroom for those already in it. How much work the gate does
+      # depends on `r2b.post_op_icu.share`: at zero the two ICU beds per team
+      # serve only the wait_for_evac fallback and the gate is close to inert,
+      # while at a non-zero share every casualty operated on here also
+      # recovers here (r2b_post_op_stabilisation above), and the gate becomes
+      # a real constraint on forward surgical throughput.
       trajectory("Needs Surgery") %>%
         branch(
           option = function() {
@@ -1026,8 +1219,9 @@ r2e_mortuary_intake <- function(team_id) {
 #' # Branches based on attribute "surgery":
 #' # - surgery == 1 → pre-OT ICU availability check, then:
 #' #     - ICU available            → seize OT, DAMCON surgery, then ICU recovery
-#' #                                   (short/full per prior R2B surgery + recovery
-#' #                                   prob, unchanged from pre-Issue-43 behaviour)
+#' #                                   for whatever remains of the post-operative
+#' #                                   ICU requirement after any share served
+#' #                                   forward at R2B (r2e_post_op_icu_minutes())
 #' #     - ICU full, priority <= icu_gating$p1_bypass_priority_max (P1)
 #' #                                → seize OT, DAMCON surgery, then post-operative
 #' #                                   HOLDING bed recovery (post_op_pathway = 2) with
@@ -1162,45 +1356,62 @@ r2e_treat_wia <- function(team_id) {
     ) %>%
     set_attribute("last_dow_t", function() now(env))
 
-  # Nominal pathway: ICU bed available at time of OT entry. Recovery duration
-  # (short vs full ICU) unchanged from pre-Issue-43 behaviour.
-  r2e_icu_recovery <- trajectory("R2E ICU Recovery") %>%
+  # Stabilisation at R2E, for whatever the forward echelon did not serve.
+  # Where it sits in the sequence depends on which operation this casualty's
+  # definitive repair is:
+  #
+  #  - Operated at R2B already: the R2E procedure IS their definitive repair,
+  #    so any remaining stabilisation must come BEFORE it. Joined at
+  #    r2e_pre_surgery_stabilisation below.
+  #  - Not operated at R2B: the R2E procedure is their abbreviated operation
+  #    and the Phase 4 procedure is the definitive one, so stabilisation sits
+  #    BETWEEN them, which is where this trajectory is joined.
+  #
+  # Splitting it this way is what puts the resuscitation phase between the
+  # two operations on both routes, rather than after both of them on one.
+  r2e_stabilisation_recovery <- trajectory("R2E Stabilisation") %>%
     set_attribute("post_op_pathway", 1) %>%
     branch(
+      # A casualty operated on at R2B took their stabilisation before this
+      # procedure, and must not momentarily occupy a bed to repeat it.
       option = function() {
-        prior_surg <- get_attribute(env, "r2b_surgery")
-        if (!is.na(prior_surg) && prior_surg == 1) {
-          return(sample(1:2, size = 1, prob = c(env_data$vars$r2eheavy$recovery$post_surgery, 1 - env_data$vars$r2eheavy$recovery$post_surgery)))
-        }
-        return(2)
+        prior <- get_attribute(env, "r2b_surgery")
+        if (!is.na(prior) && prior == 1) return(2)
+        return(1)
       },
       continue = TRUE,
-      trajectory("Short ICU Recovery") %>%
+      trajectory("R2E Stabilisation Stay") %>%
+        set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
+        set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$short_icu$min,
-            b = env_data$vars$r2eheavy$short_icu$max,
-            c = env_data$vars$r2eheavy$short_icu$mode
-          )
-        }) %>%
+        timeout(function() r2e_stabilisation_minutes()) %>%
         release_selected(id = 6),
-      trajectory("Full ICU Recovery") %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-        seize_selected(id = 6) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$long_icu$min,
-            b = env_data$vars$r2eheavy$long_icu$max,
-            c = env_data$vars$r2eheavy$long_icu$mode
-          )
-        }) %>%
-        release_selected(id = 6)
+      trajectory("Stabilised Before This Procedure")
     ) %>%
     join(r2e_post_op_dow_check)
+
+  # Remaining stabilisation for a casualty operated on at R2B, served before
+  # their definitive repair. Nothing to do when the forward echelon served
+  # the whole requirement, which is what a forward share of one produces.
+  r2e_pre_surgery_stabilisation <- trajectory("R2E Pre-Definitive Stabilisation") %>%
+    branch(
+      option = function() {
+        prior <- get_attribute(env, "r2b_surgery")
+        if (is.na(prior) || prior != 1) return(2)
+        if (r2e_stabilisation_minutes() <= 0) return(2)
+        return(1)
+      },
+      continue = TRUE,
+      trajectory("R2E Pre-Definitive Stabilisation Stay") %>%
+        set_attribute("post_op_pathway", 1) %>%
+        set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
+        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+        seize_selected(id = 6) %>%
+        timeout(function() r2e_stabilisation_minutes()) %>%
+        release_selected(id = 6),
+      trajectory("No Stabilisation Outstanding")
+    )
 
   # Bypass pathway: ICU full and priority within the P1 override threshold
   # (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
@@ -1254,12 +1465,66 @@ r2e_treat_wia <- function(team_id) {
     )
 
   r2e_surgery_icu_path <- trajectory("R2E Surgery — ICU Available") %>%
+    join(r2e_pre_surgery_stabilisation) %>%
     join(r2e_ot_surgery) %>%
-    join(r2e_icu_recovery)
+    join(r2e_stabilisation_recovery)
 
   r2e_surgery_hold_path <- trajectory("R2E Surgery — ICU Full, P1 to Post-Op Hold") %>%
     join(r2e_ot_surgery) %>%
     join(r2e_hold_recovery)
+
+  # Post-definitive intensive care, joined after Phase 4 for every casualty
+  # who had an operation, on either route. This is the episode that follows
+  # the definitive repair — ventilation weaning, organ support, watching for
+  # complications — as distinct from the stabilisation phase that precedes
+  # it. Guideline-recommended standard after major trauma surgery; see README
+  # "Died of Wounds — Post-Operative Checkpoint" for the citation.
+  #
+  # Unlike stabilisation, this episode is never served forward: R2B performs
+  # no definitive repair, so there is nothing for it to follow there. That is
+  # what stops the forward-holding lever from emptying out post-definitive
+  # care as the share rises.
+  #
+  # Takes the same degraded-care fallback as the post-operative hold pathway
+  # above, for the same reason: a casualty who has already been operated on
+  # cannot be made to wait indefinitely for a bed, so when intensive care is
+  # saturated they recover in a holding bed at an elevated dow_ceiling. The
+  # pathway taken is recorded in post_definitive_pathway (1 = ICU, 2 = hold).
+  r2e_post_definitive_care <- trajectory("R2E Post-Definitive Care") %>%
+    branch(
+      option = function() {
+        had_surgery <- get_attribute(env, "surgery")
+        if (is.na(had_surgery) || had_surgery != 1) return(3)
+        usage <- sum(get_server_count(env, resources = icu_beds))
+        cap   <- sum(get_capacity(env, resources = icu_beds))
+        if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+        return(2)
+      },
+      continue = TRUE,
+
+      trajectory("R2E Post-Definitive ICU") %>%
+        set_attribute("post_definitive_pathway", 1) %>%
+        set_attribute("post_definitive_min", function() draw_post_definitive_icu()) %>%
+        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+        seize_selected(id = 6) %>%
+        timeout(function() get_attribute(env, "post_definitive_min")) %>%
+        release_selected(id = 6),
+
+      trajectory("R2E Post-Definitive Hold — ICU Full") %>%
+        set_attribute("post_definitive_pathway", 2) %>%
+        set_attribute("post_definitive_min", function() draw_post_definitive_icu()) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+        }) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
+        seize_selected(id = 8) %>%
+        timeout(function() get_attribute(env, "post_definitive_min")) %>%
+        release_selected(id = 8),
+
+      trajectory("No Operation, No Post-Definitive Care")
+    )
 
   # Deferral pathway: ICU full and priority above the P1 override threshold
   # (P2+). OT entry is deferred rather than proceeding without ICU backup;
@@ -1600,6 +1865,12 @@ r2e_treat_wia <- function(team_id) {
         ),
       trajectory("No Second Surgery Needed")
     ) %>%
+
+    # Post-definitive intensive care, after whichever operation was this
+    # casualty's definitive repair — the Phase 4 procedure for a casualty
+    # operated on only at R2E, the Phase 3 one for a casualty who had their
+    # abbreviated operation at R2B.
+    join(r2e_post_definitive_care) %>%
 
     # Phase 5: Final disposition — theatre evacuation policy
     # recovery_to_duty_days is drawn first (draw_recovery_to_duty(), above)

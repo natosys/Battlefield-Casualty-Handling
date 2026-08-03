@@ -636,7 +636,7 @@ MORRIS_LABELS <- c(
   p1_p_max               = "Priority 1 DOW Ceiling",
   r1_transport           = "R1 Transport Time (Mode)",
   r2b_transport          = "R2B Transport Time (Mode)",
-  long_icu_mode          = "Long ICU Stay (Mode)",
+  stabilisation_icu_mode = "Stabilisation ICU Requirement (Mode)",
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   evacuation_policy_days = "Theatre Evacuation Policy (Days)",
   ot_hours               = "OT Shift Length (Hours per Shift)",
@@ -645,7 +645,6 @@ MORRIS_LABELS <- c(
 
   # ── Added by Issue #112 full-coverage audit ──────────────────────────────
   short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
-  short_icu_mode               = "R2E Short ICU Stay (Mode)",
   r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
   r2e_hold_mode                 = "R2E Base Recovery-to-Duty Duration (Mode)",
   post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
@@ -675,6 +674,7 @@ MORRIS_LABELS <- c(
   r2e_dcs1_factor          = "R2E DCS 1st-Op Efficacy Factor",
   r2e_dcs2_factor          = "R2E DCS 2nd-Op Efficacy Factor",
   r2e_postop_hold_penalty  = "R2E Post-Op Hold DOW Penalty (Multiplier)",
+  r2b_icu_penalty          = "R2B Forward ICU DOW Penalty (Multiplier)",
 
   wia_cbt_mean  = "WIA — Combat Mean Daily Rate",
   kia_cbt_mean  = "KIA — Combat Mean Daily Rate",
@@ -692,7 +692,9 @@ MORRIS_LABELS <- c(
   ame_schedule_interval_days = "AME Sortie Interval (Days)",
   ame_failure_probability    = "AME Sortie Cancellation Probability",
 
-  post_surgery_prob   = "R2E Post-Surgery Full-Recovery Rate",
+  r2b_icu_share        = "R2B Forward ICU Share",
+  r2b_forward_hold_max = "R2B Forward Hold Time Limit (Minutes)",
+  post_definitive_icu_mode = "R2E Post-Definitive ICU Duration (Mode)",
   r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"
 )
 

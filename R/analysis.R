@@ -3064,3 +3064,227 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
 
   list(data = sweep_df, plot = p)
 }
+
+#' Build the forward-ICU-share frontier ggplot from computed sweep results
+#'
+#' @param sweep_df Data frame as returned in the `data` element of
+#'   plot_r2b_icu_share_frontier(): one row per swept share, with
+#'   share/mean_*/ci_lower_*/ci_upper_* columns for the R2E ICU queue, the
+#'   R2B and R2E ICU utilisations, and the DOW count.
+#' @param baseline_share The shipped `r2b.post_op_icu.share`, marked on each
+#'   panel with a dashed reference line; NULL omits the line.
+#' @param n_rep Replications per sweep point, for the plot subtitle; NULL
+#'   (default) uses a subtitle with no replication count.
+#' @return ggplot object: five stacked panels sharing the share axis — R2E
+#'   ICU mean queue, R2B ICU utilisation, R2E ICU utilisation, the share of
+#'   post-definitive care served in an ICU bed rather than the degraded
+#'   holding-bed fallback, and DOW count — each with a 95% CI ribbon.
+#'
+#' @details Factored out of plot_r2b_icu_share_frontier() on the same
+#'   rationale as render_transport_sweep_plot() above, so a caller holding
+#'   only a sweep_df can redraw the figure without re-running the sweep.
+#'   The two quantities a planner is actually trading off, the R2E ICU queue
+#'   and the DOW count, are the first and last panels; the panels between
+#'   them show where the load moved and whether moving it bought better
+#'   post-definitive care.
+render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep = NULL) {
+  metrics <- c("R2E ICU Mean Queue", "R2B ICU Utilisation",
+               "R2E ICU Utilisation", "Post-Definitive Care in ICU", "DOW Count")
+
+  plot_df <- bind_rows(
+    sweep_df %>% transmute(share, metric = metrics[1],
+                           mean = mean_r2e_icu_q, ci_lower = ci_lower_r2e_icu_q, ci_upper = ci_upper_r2e_icu_q),
+    sweep_df %>% transmute(share, metric = metrics[2],
+                           mean = mean_r2b_icu_util, ci_lower = ci_lower_r2b_icu_util, ci_upper = ci_upper_r2b_icu_util),
+    sweep_df %>% transmute(share, metric = metrics[3],
+                           mean = mean_r2e_icu_util, ci_lower = ci_lower_r2e_icu_util, ci_upper = ci_upper_r2e_icu_util),
+    sweep_df %>% transmute(share, metric = metrics[4],
+                           mean = mean_pd_icu_share, ci_lower = ci_lower_pd_icu_share, ci_upper = ci_upper_pd_icu_share),
+    sweep_df %>% transmute(share, metric = metrics[5],
+                           mean = mean_dow, ci_lower = ci_lower_dow, ci_upper = ci_upper_dow)
+  ) %>%
+    mutate(metric = factor(metric, levels = metrics))
+
+  subtitle <- if (!is.null(n_rep)) {
+    sprintf("%d replications per share point; the ribbon is a 95%% confidence interval across replications", n_rep)
+  } else {
+    NULL
+  }
+
+  p <- ggplot(plot_df, aes(x = share, y = mean)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = "95% Confidence Interval"), alpha = 0.3) +
+    geom_line(aes(color = "Mean (across replications)"), linewidth = 1) +
+    geom_point(aes(color = "Mean (across replications)"), size = 2)
+
+  if (!is.null(baseline_share)) {
+    p <- p + geom_vline(aes(xintercept = baseline_share, linetype = "Shipped Default"),
+                        color = "firebrick", linewidth = 0.6) +
+      scale_linetype_manual(name = NULL, values = c("Shipped Default" = "dashed"))
+  }
+
+  p +
+    facet_wrap(~ metric, ncol = 1, scales = "free_y", strip.position = "left") +
+    scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+    scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
+    scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
+    labs(title = "Forward ICU Share — Decision Frontier",
+         subtitle = subtitle,
+         x = "Share of post-operative ICU requirement delivered at R2B", y = NULL) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          strip.placement = "outside", legend.position = "bottom")
+}
+
+#' Sweep the forward ICU share and report the resulting decision frontier
+#'
+#' @param shares Numeric vector of `r2b.post_op_icu.share` values to sweep,
+#'   each in [0, 1] (default `seq(0, 1, by = 0.25)`).
+#' @param n_days Simulation duration per replication (default 30).
+#' @param n_rep Replications per share point, for CI bounds (default 10).
+#' @param path File path to env_data.json (default "env_data.json").
+#' @param output_dir Directory for CSV output (default "outputs").
+#' @param images_dir Directory for the saved plot (default "images").
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("point_<i>.done") is written to it as each share point
+#'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
+#' @param max_cores Optional integer cap on mclapply's mc.cores at each
+#'   share point, passed through to run_replications().
+#' @return Named list: data (one row per swept share, with mean and 95% CI
+#'   for the R2E ICU queue, R2B and R2E ICU utilisation, and DOW count),
+#'   plot (ggplot object, also saved to
+#'   images_dir/r2b_icu_share_frontier.png)
+#'
+#' @details Answers the question the forward ICU share exists to pose: how
+#'   much of the R2E ICU constraint can be relieved by holding
+#'   post-operative casualties forward at R2B, and what that costs in
+#'   mortality. Shifting the share forward moves ICU load from an
+#'   intensivist-led facility to one without an intensivist, and
+#'   `r2b_icu_penalty` prices that difference into the DOW ceiling (see
+#'   r2b_post_op_stabilisation(), R/trajectories.R), so the two panels move
+#'   in opposite directions and the frontier between them is the planner's
+#'   actual decision surface. Reporting the frontier is more useful than
+#'   choosing a single split on the planner's behalf, which is why the
+#'   shipped default stays at zero.
+#'
+#'   Structurally this mirrors plot_transport_capacity_margin_by_fleet_size()
+#'   above and reuses the same replication engine, aggregation convention
+#'   (mean and t-distribution 95% CI across replications) and
+#'   global-state save/restore. It differs in that the swept quantity is a
+#'   `vars` entry rather than an `elms`/`transports` one, so the share is
+#'   overwritten on the built env_data directly instead of on the parsed
+#'   JSON before building.
+plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
+                                        n_days = 30, n_rep = 10,
+                                        path = "env_data.json",
+                                        output_dir = "outputs", images_dir = "images",
+                                        progress_dir = NULL, max_cores = NULL) {
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
+
+  env_data_base <- env_data
+  day_min_base  <- day_min
+  counts_base   <- counts
+
+  baseline_share <- env_data_base$vars$r2b$post_op_icu$share
+
+  summarise_ci <- function(x) {
+    n <- length(x)
+    m <- mean(x, na.rm = TRUE)
+    s <- sd(x, na.rm = TRUE)
+    data.frame(
+      mean     = m,
+      ci_lower = m - qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n),
+      ci_upper = m + qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n)
+    )
+  }
+
+  # Share of post-definitive care served in an ICU bed rather than the
+  # degraded holding-bed fallback, per replication. This is the quality
+  # measure the lever is ultimately for: relieving stabilisation load off
+  # R2E only matters if the beds it frees go to the casualties who need
+  # intensive care after their definitive repair.
+  pd_icu_share_rep <- function(mon) {
+    mon$attributes %>%
+      filter(key == "post_definitive_pathway") %>%
+      group_by(replication, name) %>%
+      summarise(pathway = dplyr::last(value), .groups = "drop") %>%
+      group_by(replication) %>%
+      summarise(pd_icu_share = mean(pathway == 1), .groups = "drop")
+  }
+
+  # Per-replication rather than pooled, since a CI across replications is the
+  # point of the sweep. transport_rep_kpis() above already returns queue and
+  # utilisation this way for an arbitrary resource pattern; only the DOW
+  # count needs its own per-replication reduction.
+  dow_rep_counts <- function(mon) {
+    mon$attributes %>%
+      filter(key == "dow", value == 1) %>%
+      count(replication, name = "dow") %>%
+      right_join(data.frame(replication = unique(mon$attributes$replication)),
+                 by = "replication") %>%
+      mutate(dow = ifelse(is.na(dow), 0, dow))
+  }
+
+  sweep_df <- bind_rows(lapply(seq_along(shares), function(i) {
+    share <- shares[i]
+    message(sprintf("Forward ICU share sweep: share = %.2f (%d reps x %d days)...",
+                    share, n_rep, n_days))
+
+    ed <- env_data_base
+    ed$vars$r2b$post_op_icu$share <- share
+    env_data <<- ed
+    day_min  <<- day_min_base
+    counts   <<- counts_base
+
+    mon <- run_replications(n_rep, n_days, max_cores = max_cores)
+
+    r2b_icu <- transport_rep_kpis(mon, "^b_r2b_icu_")
+    r2e_icu <- transport_rep_kpis(mon, "^b_r2eheavy_icu_")
+    dow     <- dow_rep_counts(mon)
+    pd      <- pd_icu_share_rep(mon)
+
+    q_stats         <- summarise_ci(r2e_icu$mean_q)
+    r2b_util_stats  <- summarise_ci(r2b_icu$mean_util)
+    r2e_util_stats  <- summarise_ci(r2e_icu$mean_util)
+    dow_stats       <- summarise_ci(dow$dow)
+    pd_stats        <- summarise_ci(pd$pd_icu_share)
+
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+
+    data.frame(
+      share                 = share,
+      mean_r2e_icu_q        = q_stats$mean,
+      ci_lower_r2e_icu_q    = pmax(q_stats$ci_lower, 0),
+      ci_upper_r2e_icu_q    = q_stats$ci_upper,
+      mean_r2b_icu_util     = r2b_util_stats$mean,
+      ci_lower_r2b_icu_util = pmax(r2b_util_stats$ci_lower, 0),
+      ci_upper_r2b_icu_util = pmin(r2b_util_stats$ci_upper, 1),
+      mean_r2e_icu_util     = r2e_util_stats$mean,
+      ci_lower_r2e_icu_util = pmax(r2e_util_stats$ci_lower, 0),
+      ci_upper_r2e_icu_util = pmin(r2e_util_stats$ci_upper, 1),
+      mean_pd_icu_share     = pd_stats$mean,
+      ci_lower_pd_icu_share = pmax(pd_stats$ci_lower, 0),
+      ci_upper_pd_icu_share = pmin(pd_stats$ci_upper, 1),
+      mean_dow              = dow_stats$mean,
+      ci_lower_dow          = pmax(dow_stats$ci_lower, 0),
+      ci_upper_dow          = dow_stats$ci_upper
+    )
+  }))
+
+  env_data <<- env_data_base
+  day_min  <<- day_min_base
+  counts   <<- counts_base
+
+  write.csv(sweep_df, file.path(output_dir, "r2b_icu_share_frontier.csv"), row.names = FALSE)
+  message(sprintf("Forward ICU share sweep results written to %s/r2b_icu_share_frontier.csv",
+                  output_dir))
+
+  p <- render_icu_share_sweep_plot(sweep_df, baseline_share = baseline_share, n_rep = n_rep)
+
+  ggsave(file.path(images_dir, "r2b_icu_share_frontier.png"), p,
+         width = 10, height = 14, dpi = 150)
+
+  list(data = sweep_df, plot = p)
+}

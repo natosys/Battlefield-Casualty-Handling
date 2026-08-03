@@ -24,6 +24,7 @@ This analysis uses the simulation's shipped default health system configuration:
 - [R2E Heavy Handling](#r2e-heavy-handling)
 - [Casualty Waiting Time](#casualty-waiting-time)
 - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
+- [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
 - [Return to Duty](#return-to-duty)
 - [Force Regeneration Feedback Loop](#force-regeneration-feedback-loop)
 - [Strategic Evacuation and Role 4 Demand](#strategic-evacuation-and-role-4-demand)
@@ -213,7 +214,27 @@ Under seed 42 (30 days), the queue for every PMV Ambulance and HX240M unit remai
 
 At a single vehicle, both fleets show a materially non-zero mean queue — confirming the sweep can locate a genuine capacity boundary rather than only reproducing the current always-zero finding. Queue collapses to a negligible fraction of a casualty by two vehicles for both platforms and stays there through the current three/four-vehicle establishment and beyond, out to the top of the swept range. This demonstrates the current fleet carries margin well beyond what a single additional vehicle of headroom would provide: PMV Ambulance could in principle be reduced from three to two vehicles, and HX240M from four to two, while the mean queue at the current Falklands-derived casualty rate would remain close to zero. Mean utilisation across the swept range is noisy rather than monotonically decreasing (e.g. HX240M utilisation is higher at 2–3 vehicles than at 4) — expected at this casualty rate, since so few transport events occur per replication that the busy-time estimate at each sweep point carries wide sampling variance, visible in the correspondingly wide 95% CI ribbons on the utilisation panels of the plot above. `outputs/transport_capacity_by_fleet_size.csv` provides the full per-point results, including CI bounds omitted from the table above.
 
-This sweep varies fleet size only, at the Falklands-derived casualty rate; it does not establish how the capacity boundary shifts under Vietnam/Okinawa-intensity rates (Issue #10) or mass casualty injection (Issue #9), where the demand side of this margin would be materially higher.
+## Forward ICU Share Decision Frontier
+
+A casualty's stabilisation requirement is a single quantity divided between R2B and R2E by the forward-holding policy, and the post-definitive care that follows their definitive repair is a separate episode served only at R2E (see README [Post-Operative Stabilisation](../README.md#postoperative-stabilisation)). Because the stabilisation total is conserved at every setting, sweeping the policy moves load between the echelons without changing how much care is delivered, which makes it a genuine planning lever rather than a way of quietly reducing treatment. `scripts/run_icu_share_sweep.R` swept it at 20 replications per point over 30 days.
+
+![Forward ICU Share Decision Frontier](../images/r2b_icu_share_frontier.png)
+
+| Forward ICU share | R2E ICU mean queue (95% CI) | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU (95% CI) | Mean DOW per run (95% CI) |
+|---|---|---|---|---|---|
+| 0% (shipped) | 0.122 (0.106–0.138) | 8.8% | 91.8% | 35.5% (32.9–38.2) | 1.10 (0.48–1.72) |
+| 25% | 0.127 (0.111–0.144) | 15.2% | 91.6% | 37.8% (35.6–39.9) | 1.15 (0.58–1.72) |
+| 50% | 0.146 (0.104–0.189) | 22.4% | 90.9% | 39.4% (36.1–42.7) | 0.95 (0.53–1.37) |
+| 75% | 0.146 (0.101–0.191) | 31.1% | 89.2% | 43.3% (40.3–46.3) | 1.15 (0.77–1.53) |
+| 100% | 0.109 (0.087–0.132) | 38.0% | 89.2% | 47.5% (44.6–50.3) | 1.15 (0.66–1.64) |
+
+The benefit of forward holding is real, and it is not the one a queue-based reading would look for. The R2E intensive care queue barely moves across the swept range, and R2E utilisation falls only from 91.8% to 89.2%: the unit is saturated at every setting, so relieving it of stabilisation work does not leave it idle. What changes is what the freed capacity is spent on. The share of casualties receiving post-definitive care in an intensive care bed, rather than the degraded holding-bed fallback, rises monotonically from 35.5% to 47.5%, and the confidence intervals at the two ends do not overlap. Forward holding converts stabilisation load, which R2B can absorb, into rearward capacity for the episode only R2E can provide.
+
+R2B intensive care utilisation rises monotonically in step, from 8.8% to 38.0%. The 8.8% at a zero share is not post-operative occupancy, which is nil by definition at that setting, but casualties holding a bed while waiting on an evacuation asset. Even at a full forward share the forward units run at well under half occupancy, so the constraint does not simply move: R2B has genuine headroom that the shipped configuration leaves unused.
+
+The mortality side of the trade remains unresolved. Mean deaths of wounds per run move 1.10, 1.15, 0.95, 1.15, 1.15 across the five points, with every confidence interval overlapping every other. This is a limitation of the experiment rather than evidence that forward holding is free: deaths of wounds are rare at this casualty rate, at roughly one per run, and the capability penalty applies only to the fraction of casualties operated on forward, so 20 replications cannot separate an effect of this size from sampling noise. Establishing it would need a replication count well beyond what the other sweeps in this document use, a higher casualty rate at which deaths of wounds are less rare, or both.
+
+The shipped default nonetheless stays at zero, for a reason beyond the unresolved mortality column. The frontier above overstates the population the lever acts on: only casualties taking the staged damage control pathway have a stabilisation phase to move forward, and the model currently routes every operated casualty through that pathway, where the literature puts it at roughly a quarter of emergent trauma laparotomies (README Further Development L25). Both the size of the gain and the size of its cost will change once that split is modelled, so choosing a non-zero default now would be fixing a policy against a frontier known to be provisional.
 
 ## Return to Duty
 

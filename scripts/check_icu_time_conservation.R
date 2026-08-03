@@ -50,11 +50,15 @@ CHECK_DAYS <- if (quick) 10L else 30L
 CHECK_SEED <- 42L
 SHARES     <- if (quick) c(0, 1) else c(0, 0.25, 0.5, 1)
 
-# Triangular draws mean two routes' sample means never match exactly. The
-# tolerance is on the relative difference between route means, generous
-# enough to absorb ordinary sampling noise at a 30-day cohort size and tight
-# enough that the 72% shortfall this check was written for could not pass.
-ROUTE_TOLERANCE <- 0.15
+# Two routes' sample means never match exactly, so the route comparison needs
+# a criterion that scales with the noise rather than a fixed percentage. A
+# flat relative tolerance fails on both sides: too tight at small cohort
+# sizes or wide distributions, too loose at large ones. The test is instead a
+# Welch t statistic on the drawn requirement between routes, flagged only
+# beyond ROUTE_T_MAX standard errors. At 4 SE, ordinary sampling noise
+# essentially never trips it, while the 72% shortfall this check was written
+# for would register at many times that.
+ROUTE_T_MAX <- 4
 
 failures <- character(0)
 
@@ -180,17 +184,31 @@ for (share in SHARES) {
 
   print(as.data.frame(by_route), row.names = FALSE)
 
-  comparable <- by_route %>% filter(n >= 5)
-  if (nrow(comparable) >= 2) {
-    spread <- (max(comparable$mean_total) - min(comparable$mean_total)) /
-      mean(comparable$mean_total)
-    ok <- spread <= ROUTE_TOLERANCE
+  route_t <- function(df, value_col) {
+    grps <- split(df[[value_col]], df$route)
+    grps <- grps[vapply(grps, length, integer(1)) >= 5]
+    if (length(grps) < 2) return(NULL)
+    pairs <- utils::combn(names(grps), 2, simplify = FALSE)
+    stats <- vapply(pairs, function(pr) {
+      x <- grps[[pr[1]]]; y <- grps[[pr[2]]]
+      se <- sqrt(var(x) / length(x) + var(y) / length(y))
+      if (!is.finite(se) || se == 0) return(0)
+      abs(mean(x) - mean(y)) / se
+    }, numeric(1))
+    list(max_t = max(stats), spread = (max(vapply(grps, mean, numeric(1))) -
+                                       min(vapply(grps, mean, numeric(1)))) /
+                                      mean(vapply(grps, mean, numeric(1))))
+  }
+
+  rt <- route_t(completed, "total")
+  if (!is.null(rt)) {
+    ok <- rt$max_t <= ROUTE_T_MAX
     if (!ok) {
-      fail("share %.2f: mean post-operative requirement differs by %.1f%% across routes (tolerance %.0f%%)",
-           share, 100 * spread, 100 * ROUTE_TOLERANCE)
+      fail("share %.2f: mean requirement differs across routes by %.1f standard errors (limit %.0f); relative gap %.1f%%",
+           share, rt$max_t, ROUTE_T_MAX, 100 * rt$spread)
     }
-    report(ok, "share %.2f: route means agree within %.1f%% (tolerance %.0f%%)",
-           share, 100 * spread, 100 * ROUTE_TOLERANCE)
+    report(ok, "share %.2f: route means agree within %.1f standard errors (limit %.0f); relative gap %.1f%%",
+           share, rt$max_t, ROUTE_T_MAX, 100 * rt$spread)
   } else {
     report(TRUE, "share %.2f: fewer than two routes carried 5+ casualties, route comparison skipped",
            share)
@@ -258,18 +276,15 @@ for (share in SHARES) {
   # R2E performs, so no amount of forward holding may reduce it.
   pd <- cas %>% filter(pd_pathway > 0)
   if (nrow(pd)) {
-    by_route_pd <- pd %>% group_by(route) %>%
-      summarise(n = n(), mean_pd = mean(pd_min), .groups = "drop") %>%
-      filter(n >= 5)
-    if (nrow(by_route_pd) >= 2) {
-      spread <- (max(by_route_pd$mean_pd) - min(by_route_pd$mean_pd)) / mean(by_route_pd$mean_pd)
-      ok <- spread <= ROUTE_TOLERANCE
+    rt_pd <- route_t(pd, "pd_min")
+    if (!is.null(rt_pd)) {
+      ok <- rt_pd$max_t <= ROUTE_T_MAX
       if (!ok) {
-        fail("share %.2f: mean post-definitive ICU differs by %.1f%% across routes (tolerance %.0f%%)",
-             share, 100 * spread, 100 * ROUTE_TOLERANCE)
+        fail("share %.2f: mean post-definitive ICU differs across routes by %.1f standard errors (limit %.0f)",
+             share, rt_pd$max_t, ROUTE_T_MAX)
       }
-      report(ok, "share %.2f: post-definitive ICU route means agree within %.1f%%",
-             share, 100 * spread)
+      report(ok, "share %.2f: post-definitive ICU route means agree within %.1f standard errors; relative gap %.1f%%",
+             share, rt_pd$max_t, 100 * rt_pd$spread)
     }
     report(TRUE, "share %.2f: %d casualties received post-definitive care (%d in ICU, %d in a holding bed)",
            share, nrow(pd), sum(pd$pd_pathway == 1), sum(pd$pd_pathway == 2))

@@ -190,7 +190,9 @@ SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelo
 SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routing policy; not literature-derived."
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
-SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much post-operative intensive care a commander elects to deliver forward rather than evacuating for it. Ships at zero (all post-operative ICU at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
+SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much of the stabilisation phase a commander elects to deliver forward rather than evacuating for it. Ships at zero (all stabilisation at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
+SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of stabilisation outstanding. Ships at 24h, the deployed evacuation norm below. Binds ahead of the forward ICU share, so zero disables forward holding outright."
+SRC_POST_DEFINITIVE_ICU <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission, which sets the mode; the spread around it is an informed estimate, as no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The remainder of critical care occurs at Role 4. See README R2E Heavy Trajectory."
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). See README Died of Wounds — Treatment Efficacy Modifiers."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army Medical Department Center and School subcourse MD0002 — see README R2E Heavy Trajectory."
@@ -589,11 +591,15 @@ build_param_registry <- function() {
   # what it costs, and a planner moving one needs to see the other.
   registry <- c(registry, list(
     var_field("r2b_icu_share", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "r2b", "post_op_icu", "share",
-              "Forward ICU Share", "Fraction of an operated casualty's post-operative ICU requirement delivered forward at R2B rather than at R2E. The total is the same whatever the split.",
+              "Forward ICU Share", "Fraction of an operated casualty's stabilisation requirement delivered forward at R2B rather than at R2E, subject to the time limit below. The total is the same whatever the split.",
               min = 0, max = 1, step = 0.05, morris_name = "r2b_icu_share",
               source = SRC_R2B_ICU_SHARE, slider = TRUE),
+    var_field("r2b_forward_hold_max", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "r2b", "post_op_icu", "forward_hold_max",
+              "Forward Hold Time Limit", "Maximum minutes an operated casualty may hold an R2B ICU bed before moving on to R2E, whatever stabilisation is outstanding. Caps the forward ICU share; zero disables forward holding entirely.",
+              type = "integer", min = 0, max = 4320, step = 30, morris_name = "r2b_forward_hold_max",
+              source = SRC_R2B_FORWARD_CAP),
     var_field("r2b_icu_penalty", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "dow", "treatment_efficacy", "r2b_icu_penalty",
-              "Forward ICU DOW Penalty (Multiplier)", "Multiplier applied to the DOW ceiling for time spent in an R2B ICU bed, which has no intensivist, rather than an R2E one, which does.",
+              "Forward ICU DOW Penalty (Multiplier)", "Multiplier applied to the DOW ceiling for stabilisation time spent in an R2B ICU bed, which has no intensivist, rather than an R2E one, which does.",
               min = 1, max = 6, step = 0.01, morris_name = "r2b_icu_penalty",
               source = SRC_R2B_ICU_PENALTY)
   ))
@@ -642,9 +648,12 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2e_long_resus", GRP_PROVISION, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2E resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
-  registry <- c(registry, tri_fields("r2e_long_icu", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "long_icu",
-                                     "Post-Operative ICU Requirement", "A casualty's whole post-operative ICU requirement, however it is divided between R2B and R2E by the forward ICU share.",
-                                     morris_mode_name = "long_icu_mode", bound = c(0, 5000), source = SRC_ICU_STABILISATION))
+  registry <- c(registry, tri_fields("r2e_stabilisation_icu", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "stabilisation_icu",
+                                     "Stabilisation ICU Requirement", "Intensive care between a casualty's abbreviated operation and their definitive repair: rewarming and correcting coagulopathy. Divided between R2B and R2E by the forward ICU share.",
+                                     morris_mode_name = "stabilisation_icu_mode", bound = c(0, 5000), source = SRC_ICU_STABILISATION))
+  registry <- c(registry, tri_fields("r2e_post_definitive_icu", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "post_definitive_icu",
+                                     "Post-Definitive ICU Duration", "Intensive care after a casualty's definitive repair. Always served at R2E, and bounded by the deployed norm of evacuating out of theatre within about a day rather than by a full civilian intensive care stay.",
+                                     morris_mode_name = "post_definitive_icu_mode", bound = c(0, 5000), source = SRC_POST_DEFINITIVE_ICU))
   registry <- c(registry, tri_fields("r2e_holding", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "holding",
                                      "Base Recovery-to-Duty Duration", "Convalescence time for the least severe casualty category, before the severity factors below scale it. Sets the R2E holding bed occupancy of a casualty retained in theatre.",
                                      morris_mode_name = "r2e_hold_mode", bound = c(0, 40000),

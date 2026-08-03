@@ -636,7 +636,7 @@ MORRIS_LABELS <- c(
   p1_p_max               = "Priority 1 DOW Ceiling",
   r1_transport           = "R1 Transport Time (Mode)",
   r2b_transport          = "R2B Transport Time (Mode)",
-  long_icu_mode          = "Long ICU Stay (Mode)",
+  stabilisation_icu_mode = "Stabilisation ICU Requirement (Mode)",
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   evacuation_policy_days = "Theatre Evacuation Policy (Days)",
   ot_hours               = "OT Shift Length (Hours per Shift)",
@@ -692,7 +692,9 @@ MORRIS_LABELS <- c(
   ame_schedule_interval_days = "AME Sortie Interval (Days)",
   ame_failure_probability    = "AME Sortie Cancellation Probability",
 
-  r2b_icu_share       = "R2B Forward ICU Share",
+  r2b_icu_share        = "R2B Forward ICU Share",
+  r2b_forward_hold_max = "R2B Forward Hold Time Limit (Minutes)",
+  post_definitive_icu_mode = "R2E Post-Definitive ICU Duration (Mode)",
   r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"
 )
 

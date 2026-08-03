@@ -11,17 +11,26 @@
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
 # pre-merge hook or CI step.
 #
-# Why this check exists: a casualty's post-operative ICU requirement follows
-# from the injury, so the total should not depend on which mix of echelons
-# delivers it. The model once failed this badly and silently — R2B provided
-# no post-operative ICU at all, while R2E separately shortened its own
+# Why this check exists: a casualty's intensive care requirement follows from
+# the injury, so the total should not depend on which mix of echelons delivers
+# it. The model once failed this badly and silently — R2B provided no
+# post-operative intensive care at all, while R2E separately shortened its own
 # episode for the very casualties R2B had operated on, so an R2B-operated
 # casualty received about 28% of the ICU time an otherwise identical
 # R2E-operated one did. Nothing in the run output said so: both routes
 # produced plausible casualty counts, plausible bed utilisation and plausible
-# mortality. The invariant is now structural — one requirement is drawn and
-# split by `r2b.post_op_icu.share` — and this check confirms the structure
-# holds at every share, across all three routes a surgical casualty can take.
+# mortality.
+#
+# Two invariants are now structural, and this check confirms both hold at
+# every forward share:
+#   1. The stabilisation requirement is drawn once and split between the
+#      echelons by the forward share and the forward-hold time cap, so the
+#      total is the same on all three routes a casualty requiring surgery
+#      can take.
+#   2. Post-definitive care follows the definitive repair, which only R2E
+#      performs, so no amount of forward holding may reduce it. Without this,
+#      raising the forward share would quietly empty out the intensive care
+#      that has to come after the final operation.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -71,8 +80,9 @@ env_data_base <- env_data
 #'   minutes each echelon served, zero where it served none), r2b_surgery and
 #'   r2b_bypassed route markers
 per_casualty <- function(attrs) {
-  wanted <- c("post_op_icu_total", "r2b_post_op_min", "r2e_post_op_min",
-              "r2b_surgery", "r2b_bypassed", "post_op_pathway", "dow")
+  wanted <- c("stabilisation_total", "r2b_post_op_min", "r2e_post_op_min",
+              "r2b_surgery", "r2b_bypassed", "post_op_pathway", "dow",
+              "post_definitive_min", "post_definitive_pathway", "surgery")
 
   attrs %>%
     filter(key %in% wanted) %>%
@@ -82,16 +92,18 @@ per_casualty <- function(attrs) {
     # A casualty who never entered a given step has no row for its attribute;
     # absent means zero minutes served there, not an unknown quantity.
     mutate(across(any_of(wanted), ~ ifelse(is.na(.x), 0, .x))) %>%
-    filter(post_op_icu_total > 0) %>%
+    filter(stabilisation_total > 0) %>%
     transmute(
       name,
-      total        = post_op_icu_total,
+      total        = stabilisation_total,
       r2b          = if ("r2b_post_op_min" %in% names(.)) r2b_post_op_min else 0,
       r2e          = if ("r2e_post_op_min" %in% names(.)) r2e_post_op_min else 0,
       r2b_surgery  = if ("r2b_surgery" %in% names(.)) r2b_surgery else 0,
       r2b_bypassed = if ("r2b_bypassed" %in% names(.)) r2b_bypassed else 0,
       pathway      = if ("post_op_pathway" %in% names(.)) post_op_pathway else 0,
-      dow          = if ("dow" %in% names(.)) dow else 0
+      dow          = if ("dow" %in% names(.)) dow else 0,
+      pd_min       = if ("post_definitive_min" %in% names(.)) post_definitive_min else 0,
+      pd_pathway   = if ("post_definitive_pathway" %in% names(.)) post_definitive_pathway else 0
     )
 }
 
@@ -140,7 +152,7 @@ for (share in SHARES) {
   #    was saturated (post_op_pathway == 2). That pathway substitutes a
   #    shorter holding-bed stay for the ICU episode by design and predates
   #    the forward share, so the requirement is genuinely not conserved for
-  #    them at an intermediate share. See README Further Development (L20).
+  #    them at an intermediate share. See README Further Development (L24).
   nominal  <- cas %>% filter(pathway == 1)
   degraded <- cas %>% filter(pathway == 2, r2b > 0, r2b < total)
   unfinished <- cas %>% filter(pathway == 0)
@@ -184,44 +196,86 @@ for (share in SHARES) {
            share)
   }
 
-  # Check 3: the split matches the share, for casualties operated at R2B.
-  # Casualties on the other two routes must serve their whole requirement at
-  # R2E whatever the share is set to.
-  r2b_route <- completed %>% filter(r2b_surgery == 1)
+  # Check 3: the split matches the policy. The forward minutes are the lesser
+  # of the intended share and the forward-hold time cap, so this tests both
+  # levers at once: a casualty whose share of a long requirement exceeds the
+  # cap must be moved on at the cap, not held for the whole share.
+  cap <- env_data$vars$r2b$post_op_icu$forward_hold_max
+  r2b_route <- completed %>%
+    filter(r2b_surgery == 1) %>%
+    mutate(expected_r2b = pmin(total * share, cap))
+
   if (nrow(r2b_route)) {
-    realised <- sum(r2b_route$r2b) / sum(r2b_route$total)
-    ok <- abs(realised - share) < 1e-6
+    worst_split <- max(abs(r2b_route$r2b - r2b_route$expected_r2b))
+    ok <- worst_split < 1e-6
     if (!ok) {
-      fail("share %.2f: R2B-operated casualties served %.4f of their requirement forward, not %.4f",
-           share, realised, share)
+      fail("share %.2f: forward minutes differ from min(share x requirement, cap) by up to %.3f minutes",
+           share, worst_split)
     }
-    report(ok, "share %.2f: R2B-operated casualties served %.4f of the requirement forward",
-           share, realised)
+    n_capped <- sum(r2b_route$total * share > cap + 1e-9)
+    report(ok, "share %.2f: forward minutes match min(share x requirement, %g min cap) for all %d R2B-operated casualties (%d capped)",
+           share, cap, nrow(r2b_route), n_capped)
   }
 
   other_route <- completed %>% filter(r2b_surgery != 1)
   if (nrow(other_route)) {
     ok <- all(other_route$r2b == 0) && all(abs(other_route$r2e - other_route$total) < 1e-6)
     if (!ok) {
-      fail("share %.2f: a casualty not operated on at R2B served post-operative time forward anyway",
+      fail("share %.2f: a casualty not operated on at R2B served stabilisation time forward anyway",
            share)
     }
     report(ok, "share %.2f: all %d casualties not operated at R2B served their whole requirement at R2E",
            share, nrow(other_route))
   }
 
-  # Check 4: the boundary shares behave as their definitions demand.
+  # Check 4: the boundary shares behave as their definitions demand. At a
+  # share of one the cap, not the share, is what can still send stabilisation
+  # rearward, so the assertion is conditional on it not binding.
   if (share == 0) {
     ok <- all(completed$r2b == 0)
-    if (!ok) fail("share 0: %d casualties held an R2B bed for post-operative recovery",
+    if (!ok) fail("share 0: %d casualties held an R2B bed for stabilisation",
                   sum(completed$r2b > 0))
-    report(ok, "share 0: no casualty held an R2B bed for post-operative recovery")
+    report(ok, "share 0: no casualty held an R2B bed for stabilisation")
   }
   if (share == 1 && nrow(r2b_route)) {
-    ok <- all(r2b_route$r2e == 0)
-    if (!ok) fail("share 1: %d R2B-operated casualties still spent post-operative time at R2E",
-                  sum(r2b_route$r2e > 0))
-    report(ok, "share 1: no R2B-operated casualty spent post-operative time at R2E")
+    uncapped <- r2b_route %>% filter(total <= cap + 1e-9)
+    if (nrow(uncapped)) {
+      ok <- all(uncapped$r2e == 0)
+      if (!ok) fail("share 1: %d R2B-operated casualties within the hold cap still stabilised at R2E",
+                    sum(uncapped$r2e > 0))
+      report(ok, "share 1: none of the %d R2B-operated casualties within the hold cap stabilised at R2E",
+             nrow(uncapped))
+    }
+    capped <- r2b_route %>% filter(total > cap + 1e-9)
+    if (nrow(capped)) {
+      report(TRUE, "share 1: %d casualties exceeded the %g min hold cap and finished stabilising at R2E, as intended",
+             nrow(capped), cap)
+    }
+  }
+
+  # Check 5: post-definitive care is served at R2E on every route and is not
+  # eroded by the forward share. It follows the definitive repair, which only
+  # R2E performs, so no amount of forward holding may reduce it.
+  pd <- cas %>% filter(pd_pathway > 0)
+  if (nrow(pd)) {
+    by_route_pd <- pd %>% group_by(route) %>%
+      summarise(n = n(), mean_pd = mean(pd_min), .groups = "drop") %>%
+      filter(n >= 5)
+    if (nrow(by_route_pd) >= 2) {
+      spread <- (max(by_route_pd$mean_pd) - min(by_route_pd$mean_pd)) / mean(by_route_pd$mean_pd)
+      ok <- spread <= ROUTE_TOLERANCE
+      if (!ok) {
+        fail("share %.2f: mean post-definitive ICU differs by %.1f%% across routes (tolerance %.0f%%)",
+             share, 100 * spread, 100 * ROUTE_TOLERANCE)
+      }
+      report(ok, "share %.2f: post-definitive ICU route means agree within %.1f%%",
+             share, 100 * spread)
+    }
+    report(TRUE, "share %.2f: %d casualties received post-definitive care (%d in ICU, %d in a holding bed)",
+           share, nrow(pd), sum(pd$pd_pathway == 1), sum(pd$pd_pathway == 2))
+  } else {
+    fail("share %.2f: no casualty received post-definitive care", share)
+    report(FALSE, "share %.2f: no casualty received post-definitive care", share)
   }
 
   results[[as.character(share)]] <- by_route

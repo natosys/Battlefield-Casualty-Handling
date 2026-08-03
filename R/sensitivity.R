@@ -168,12 +168,13 @@ morris_params <- data.frame(
   name  = c(
     # ── Original eleven (Issue #3, #75, #9) ──────────────────────────────
     "surg_mode",      "long_resus_mode", "p1_p_max",
-    "r1_transport",   "r2b_transport",   "long_icu_mode",
+    "r1_transport",   "r2b_transport",   "stabilisation_icu_mode",
     "pri1_surg_prob", "evacuation_policy_days", "ot_hours",
     "mass_casualty_rate",    "mass_casualty_max_cas",
     # ── R1/R2B/R2E durations ───────────────────────────────────────────────
     "short_resus_mode", "r2b_hold_mode", "r2e_hold_mode",
     "post_op_hold_mode", "r1_recovery_mode", "r1_wia_treat_mode",
+    "post_definitive_icu_mode",
     # ── R1 surgical candidacy / evacuation probabilities ─────────────────
     "pri2_surg_prob", "pri3_dnbi_surg_prob", "pri3_other_surg_prob",
     "disease_surgery_pct", "pri1_evac_prob", "pri2_evac_prob",
@@ -192,11 +193,11 @@ morris_params <- data.frame(
     "fr_demand_interval_days", "fr_fulfillment_lag_days", "fr_fill_mode_frac",
     "ame_schedule_interval_days", "ame_failure_probability",
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
-    "r2b_icu_share", "r2b_hold_threshold"
+    "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold"
   ),
   lower = c(
     90,    25,    0.0115, 15,   15,   770,   0.70,  15,    8,   0,    40,
-    17,    3600,   23400,  380,   1440,  12,
+    17,    3600,   23400,  380,   1440,  12,   720,
     0.55,  0.15,  0.35,  0.03,  0.70,  0.65,
     0.0005, 0.024, 72,   0.00025, 0.0095, 0.015, 108, 0.0005,
     0.68,  0.41,  0.17,  0.41,  0.10,  0.42,  1.5,  1.09,
@@ -204,11 +205,11 @@ morris_params <- data.frame(
     10,
     0,    4,    0.5,
     4,    0.08,
-    0,    0.60
+    0,    0,     0.60
   ),
   upper = c(
     150,   70,    0.046,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
-    39,    14400,  54450,  1200,  5760,  28,
+    39,    14400,  54450,  1200,  5760,  28,   2880,
     0.95,  0.55,  0.75,  0.12,  0.99,  0.98,
     0.002, 0.056, 168,  0.001,  0.038,  0.035, 252, 0.002,
     0.98,  0.71,  0.47,  0.71,  0.40,  0.72,  6.0,  1.59,
@@ -216,11 +217,11 @@ morris_params <- data.frame(
     30,
     14,   14,   1.05,
     14,   0.30,
-    1,    0.95
+    1,    2880,  0.95
   ),
   mode  = c(
     120,   45,    0.023,  30,   30,   1440,  0.90,  0.10,  12,  0,    60,
-    28,    7200,   12960,  600,   2880,  20,
+    28,    7200,   12960,  600,   2880,  20,   1440,
     0.80,  0.40,  0.60,  0.06,  0.95,  0.90,
     0.001, 0.04,  120,  0.0005, 0.019, 0.025, 180, 0.001,
     0.83,  0.56,  0.32,  0.56,  0.25,  0.57,  3.0,  1.31,
@@ -228,7 +229,7 @@ morris_params <- data.frame(
     20,
     0,    7,    0.85,
     7,    0.15,
-    0,    0.80
+    0,    1440,  0.80
   ),
   # "Context" = an assumption about the operational environment or the
   # casualty population itself (generation rates, DOW calibration,
@@ -278,6 +279,7 @@ morris_params <- data.frame(
   category = c(
     "Capacity", "Capacity", "Context", "Context", "Context", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
     "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity",
+    "Capacity",
     "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",
@@ -285,7 +287,7 @@ morris_params <- data.frame(
     "Context",
     "Policy", "Policy", "Policy",
     "Policy", "Context",
-    "Policy", "Policy"
+    "Policy", "Policy", "Policy"
   ),
   stringsAsFactors = FALSE
 )
@@ -313,7 +315,7 @@ apply_params <- function(ed, p) {
   ed$vars$dow$params$p1_p_max               <- p[["p1_p_max"]]
   ed$vars$r1$wia_transport$mode             <- p[["r1_transport"]]
   ed$vars$r2b$wia_transport$mode            <- p[["r2b_transport"]]
-  ed$vars$r2eheavy$long_icu$mode            <- p[["long_icu_mode"]]
+  ed$vars$r2eheavy$stabilisation_icu$mode   <- p[["stabilisation_icu_mode"]]
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
   ed$vars$r2eheavy$recovery$evacuation_policy_days <- p[["evacuation_policy_days"]]
   ed$vars$mass_casualty$event$rate_per_day  <- p[["mass_casualty_rate"]]
@@ -326,6 +328,7 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$post_op_hold$mode          <- p[["post_op_hold_mode"]]
   ed$vars$r1$recovery$mode                    <- p[["r1_recovery_mode"]]
   ed$vars$r1$wia_treat$mode                   <- p[["r1_wia_treat_mode"]]
+  ed$vars$r2eheavy$post_definitive_icu$mode   <- p[["post_definitive_icu_mode"]]
 
   # ── R1 surgical candidacy / evacuation probabilities (Issue #112) ──────
   ed$vars$r1$other$pri2_surgery       <- p[["pri2_surg_prob"]]
@@ -374,7 +377,8 @@ apply_params <- function(ed, p) {
   ed$vars$role4$ame$failure_probability    <- p[["ame_failure_probability"]]
 
   # ── R2B/R2E routing thresholds (Issue #112) ─────────────────────────────
-  ed$vars$r2b$post_op_icu$share      <- p[["r2b_icu_share"]]
+  ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
+  ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
 
   ed

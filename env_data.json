@@ -275,7 +275,7 @@
           ]
         },
         {
-          "acty": "long_icu",
+          "acty": "stabilisation_icu",
           "vals": [
             {
               "var": "min",
@@ -284,6 +284,23 @@
             {
               "var": "max",
               "val": 2160
+            },
+            {
+              "var": "mode",
+              "val": 1440
+            }
+          ]
+        },
+        {
+          "acty": "post_definitive_icu",
+          "vals": [
+            {
+              "var": "min",
+              "val": 360
+            },
+            {
+              "var": "max",
+              "val": 2880
             },
             {
               "var": "mode",
@@ -549,6 +566,10 @@
             {
               "var": "share",
               "val": 0
+            },
+            {
+              "var": "forward_hold_max",
+              "val": 1440
             }
           ]
         }

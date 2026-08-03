@@ -3075,19 +3075,21 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
 #'   panel with a dashed reference line; NULL omits the line.
 #' @param n_rep Replications per sweep point, for the plot subtitle; NULL
 #'   (default) uses a subtitle with no replication count.
-#' @return ggplot object: four stacked panels sharing the share axis — R2E
-#'   ICU mean queue, R2B ICU utilisation, R2E ICU utilisation, and DOW count
-#'   — each with a 95% CI ribbon.
+#' @return ggplot object: five stacked panels sharing the share axis — R2E
+#'   ICU mean queue, R2B ICU utilisation, R2E ICU utilisation, the share of
+#'   post-definitive care served in an ICU bed rather than the degraded
+#'   holding-bed fallback, and DOW count — each with a 95% CI ribbon.
 #'
 #' @details Factored out of plot_r2b_icu_share_frontier() on the same
 #'   rationale as render_transport_sweep_plot() above, so a caller holding
 #'   only a sweep_df can redraw the figure without re-running the sweep.
 #'   The two quantities a planner is actually trading off, the R2E ICU queue
-#'   and the DOW count, are the first and last panels; the two utilisations
-#'   between them show where the load moved.
+#'   and the DOW count, are the first and last panels; the panels between
+#'   them show where the load moved and whether moving it bought better
+#'   post-definitive care.
 render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep = NULL) {
   metrics <- c("R2E ICU Mean Queue", "R2B ICU Utilisation",
-               "R2E ICU Utilisation", "DOW Count")
+               "R2E ICU Utilisation", "Post-Definitive Care in ICU", "DOW Count")
 
   plot_df <- bind_rows(
     sweep_df %>% transmute(share, metric = metrics[1],
@@ -3097,6 +3099,8 @@ render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep =
     sweep_df %>% transmute(share, metric = metrics[3],
                            mean = mean_r2e_icu_util, ci_lower = ci_lower_r2e_icu_util, ci_upper = ci_upper_r2e_icu_util),
     sweep_df %>% transmute(share, metric = metrics[4],
+                           mean = mean_pd_icu_share, ci_lower = ci_lower_pd_icu_share, ci_upper = ci_upper_pd_icu_share),
+    sweep_df %>% transmute(share, metric = metrics[5],
                            mean = mean_dow, ci_lower = ci_lower_dow, ci_upper = ci_upper_dow)
   ) %>%
     mutate(metric = factor(metric, levels = metrics))
@@ -3194,6 +3198,20 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
     )
   }
 
+  # Share of post-definitive care served in an ICU bed rather than the
+  # degraded holding-bed fallback, per replication. This is the quality
+  # measure the lever is ultimately for: relieving stabilisation load off
+  # R2E only matters if the beds it frees go to the casualties who need
+  # intensive care after their definitive repair.
+  pd_icu_share_rep <- function(mon) {
+    mon$attributes %>%
+      filter(key == "post_definitive_pathway") %>%
+      group_by(replication, name) %>%
+      summarise(pathway = dplyr::last(value), .groups = "drop") %>%
+      group_by(replication) %>%
+      summarise(pd_icu_share = mean(pathway == 1), .groups = "drop")
+  }
+
   # Per-replication rather than pooled, since a CI across replications is the
   # point of the sweep. transport_rep_kpis() above already returns queue and
   # utilisation this way for an arbitrary resource pattern; only the DOW
@@ -3223,11 +3241,13 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
     r2b_icu <- transport_rep_kpis(mon, "^b_r2b_icu_")
     r2e_icu <- transport_rep_kpis(mon, "^b_r2eheavy_icu_")
     dow     <- dow_rep_counts(mon)
+    pd      <- pd_icu_share_rep(mon)
 
     q_stats         <- summarise_ci(r2e_icu$mean_q)
     r2b_util_stats  <- summarise_ci(r2b_icu$mean_util)
     r2e_util_stats  <- summarise_ci(r2e_icu$mean_util)
     dow_stats       <- summarise_ci(dow$dow)
+    pd_stats        <- summarise_ci(pd$pd_icu_share)
 
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
@@ -3244,6 +3264,9 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
       mean_r2e_icu_util     = r2e_util_stats$mean,
       ci_lower_r2e_icu_util = pmax(r2e_util_stats$ci_lower, 0),
       ci_upper_r2e_icu_util = pmin(r2e_util_stats$ci_upper, 1),
+      mean_pd_icu_share     = pd_stats$mean,
+      ci_lower_pd_icu_share = pmax(pd_stats$ci_lower, 0),
+      ci_upper_pd_icu_share = pmin(pd_stats$ci_upper, 1),
       mean_dow              = dow_stats$mean,
       ci_lower_dow          = pmax(dow_stats$ci_lower, 0),
       ci_upper_dow          = dow_stats$ci_upper
@@ -3261,7 +3284,7 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
   p <- render_icu_share_sweep_plot(sweep_df, baseline_share = baseline_share, n_rep = n_rep)
 
   ggsave(file.path(images_dir, "r2b_icu_share_frontier.png"), p,
-         width = 10, height = 12, dpi = 150)
+         width = 10, height = 14, dpi = 150)
 
   list(data = sweep_df, plot = p)
 }

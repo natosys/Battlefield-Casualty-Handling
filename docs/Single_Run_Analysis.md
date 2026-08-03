@@ -216,26 +216,11 @@ At a single vehicle, both fleets show a materially non-zero mean queue — confi
 
 ## Forward ICU Share Decision Frontier
 
-The post-operative intensive care requirement is a single quantity divided between R2B and R2E by `r2b.post_op_icu.share` (see README [Post-Operative Stabilisation](../README.md#postoperative-stabilisation)). Because the total is conserved at every value, sweeping the share moves load between the echelons without changing how much care is delivered, which makes it a genuine planning lever rather than a way of quietly reducing treatment. `scripts/run_icu_share_sweep.R` sweeps it at 20 replications per point over 30 days.
+A casualty's stabilisation requirement is a single quantity divided between R2B and R2E by the forward-holding policy, and the post-definitive care that follows their definitive repair is a separate episode served only at R2E (see README [Post-Operative Stabilisation](../README.md#postoperative-stabilisation)). Because the stabilisation total is conserved at every setting, sweeping the policy moves load between the echelons without changing how much care is delivered, which makes it a genuine planning lever rather than a way of quietly reducing treatment. `scripts/run_icu_share_sweep.R` sweeps it and reports four quantities: the R2E intensive care queue, the utilisation of both echelons' intensive care beds, the proportion of post-definitive care served in an intensive care bed rather than the degraded holding-bed fallback, and the death-of-wounds count.
 
-![Forward ICU Share Decision Frontier](../images/r2b_icu_share_frontier.png)
+That fourth quantity is what the lever is ultimately for. The seed-42 run shows four R2E intensive care beds cannot cover both episodes at Falklands-equivalent load: only 29 of 93 casualties received post-definitive care in an intensive care bed, the remaining 64 taking the holding-bed fallback at elevated risk. If moving stabilisation forward to R2B's otherwise idle beds frees rear capacity for the casualties who need it after their definitive repair, that proportion should rise as the share rises.
 
-| Forward ICU share | R2E ICU mean queue (95% CI) | R2B ICU mean utilisation | R2E ICU mean utilisation | Mean DOW per run (95% CI) |
-|---|---|---|---|---|
-| 0% (shipped) | 0.194 (0.150–0.239) | 15.5% | 79.9% | 1.15 (0.58–1.72) |
-| 25% | 0.115 (0.083–0.148) | 21.5% | 74.1% | 1.20 (0.68–1.72) |
-| 50% | 0.112 (0.073–0.151) | 24.3% | 73.3% | 0.50 (0.18–0.82) |
-| 75% | 0.084 (0.057–0.110) | 36.0% | 67.5% | 0.70 (0.36–1.04) |
-| 100% | 0.040 (0.023–0.057) | 42.7% | 61.1% | 1.35 (0.76–1.94) |
-
-The capacity half of the frontier is unambiguous. The R2E intensive care queue falls monotonically across the swept range, from 0.194 to 0.040 casualties, a reduction of roughly four fifths, and R2E utilisation falls with it from 79.9% to 61.1%. R2B intensive care utilisation rises monotonically in step, from 15.5% to 42.7%. The 15.5% at a zero share is not post-operative occupancy, which is nil by definition at that setting, but casualties holding a bed while waiting on an evacuation asset. Holding post-operative casualties forward therefore does relieve the model's binding constraint, and relieves it substantially, at a forward facility that has the beds to absorb it.
-
-The mortality half of the frontier is not resolved by this sweep. Mean deaths of wounds per run move 1.15, 1.20, 0.50, 0.70, 1.35 across the five points, which is not monotonic, and every confidence interval overlaps every other. This is a limitation of the experiment rather than evidence that forward holding is free: a death of wounds is a rare event at this casualty rate, at roughly one per run, and the capability penalty applies only to the fraction of casualties operated on at R2B, so 20 replications cannot separate an effect of this size from sampling noise. A planner reading this table should take the capacity finding as established and treat the mortality column as unmeasured. Establishing it would need a replication count well beyond what the other sweeps in this document use, a higher casualty rate at which deaths of wounds are less rare, or both.
-
-That is why the shipped default stays at zero. The sweep shows a real and sizeable capacity gain available from moving the lever, but the cost side of the trade is exactly what the model cannot yet quantify, and a default chosen on half a frontier would be a recommendation the evidence does not support.
-
-
-This sweep varies fleet size only, at the Falklands-derived casualty rate; it does not establish how the capacity boundary shifts under Vietnam/Okinawa-intensity rates (Issue #10) or mass casualty injection (Issue #9), where the demand side of this margin would be materially higher.
+> **Pending re-measurement.** The frontier was last swept against the single-episode model, before post-definitive care was separated out, and those figures are not comparable to the current configuration. The sweep is being re-run at 20 replications per point across shares of 0 to 1; this section will carry the new table and its reading. The single-run figures above are current.
 
 ## Return to Duty
 

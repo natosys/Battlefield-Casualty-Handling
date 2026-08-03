@@ -109,6 +109,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Simulation Environment Setup](#simulation-environment-setup)
   - [Core Trajectory](#core-trajectory)
   - [R2B Trajectory](#r2b-trajectory)
+    - [Post-Operative Stabilisation](#postoperative-stabilisation)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
   - [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)
 - [Model Outputs](#model-outputs)
@@ -768,6 +769,7 @@ The $p_{base}$ term is held fixed throughout: it represents non-survivable injur
 | R2E DCS 1st op             | 0.25   | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[31]](#References).                                                                                                                                                                                |
 | R2E DCS 2nd op             | 0.57   | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS.                                                                                                                                     |
 | R2E post-op hold (penalty) | 3.0    | Informed estimate. Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See [Post-Operative Checkpoint](#postoperative-checkpoint) below.                                                                       |
+| R2B forward ICU (penalty)  | 1.31   | Applied instead of a reduction to post-operative intensive care served forward at R2B rather than at R2E (see [Post-Operative Stabilisation](#postoperative-stabilisation)). A meta-analysis of open-format against closed-format intensive care units, the difference being whether a trained intensivist holds responsibility for the patient, reports a pooled odds ratio for ICU mortality of 1.31 (95% CI 1.09 to 1.59) [[59]](#References). An R2B section fields two nurses and two medics with no intensivist; an R2E section fields an intensivist and four nurses. |
 
 The cumulative effect on a P1 casualty (initial ceiling = 0.023) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
 
@@ -789,7 +791,7 @@ The R2E surgical trajectory performs a pre-OT ICU availability check before seiz
 
 Both the ICU and post-op-hold pathways lead into the same post-operative DOW check afterward, using the same conditional-increment mechanism as the three earlier arrival-time checkpoints, each evaluated against its own `dow_ceiling`. Because both pathways share this check, their resulting mortality is directly comparable in the output (`outputs/post_op_pathway_summary.csv`; `post_op_pathway` attribute: 1 = ICU, 2 = post-op hold).
 
-R2B has the same pre-OT ICU check, for consistency with R2E, but R2B does not actually use ICU beds for post-operative recovery. So at R2B, only the Priority 2+ deferral rule matters, and only when its own two-bed ICU (normally reserved for the `wait_for_evac` fallback) is already full. Existing analysis shows this essentially never happens under baseline casualty load.
+R2B has the same pre-OT ICU check, and at R2B only the Priority 2+ deferral rule matters, since no Priority 1 override applies there. What the check constrains depends on the forward ICU share (see [Post-Operative Stabilisation](#postoperative-stabilisation)): at the shipped share of zero the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while at a non-zero share the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
 
 Priority 1 casualties are always committed to surgery, even when no post-operative ICU bed is available, accepting elevated post-operative mortality risk in preference to withholding surgery, which would leave them facing near-certain DOW. The clinical trade-off is described in [[25]](#References) and [[2]](#References), and the standard of post-operative ICU/HDU care against which the "hold" pathway is a departure is set out in [[26]](#References); the default 3.0× penalty multiplier is an informed estimate, chosen to produce a materially higher, but not overwhelming, realised DOW rate for the hold pathway relative to ICU.
 
@@ -1002,10 +1004,12 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/run_warmup.R`             | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R`          | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
 | `scripts/run_transport_sweep.R`    | CLI entry point for the transport fleet-size sweep (see [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) |
+| `scripts/run_icu_share_sweep.R`    | CLI entry point for the forward ICU share sweep (see [Post-Operative Stabilisation](#postoperative-stabilisation)) |
 | `scripts/shiny_worker.R`           | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session |
 | `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
 | `scripts/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, and rejects any heading containing emoji |
 | `scripts/check_r2e_surgery_seizure.R` | Checks that every R2E surgery seizes a surgical section, by reading the built trajectory and by running the model; exits non-zero on failure |
+| `scripts/check_icu_time_conservation.R` | Checks that a casualty's post-operative ICU requirement is conserved across all three routes and at every forward ICU share; exits non-zero on failure |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
 | `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
 | `outputs/`                         | Generated outputs directory; every run writes its CSVs, markdown tables, plots (`outputs/images/`), console log and arrival diagnostics (`outputs/data/`) here. Tracked via `.gitkeep` and otherwise gitignored |
@@ -1141,13 +1145,12 @@ Fifty-three parameters are screened, spanning the main uncertain inputs across a
 
 | Parameter                       | Variable            | Baseline  | Lower | Upper | Rule |
 | ------------------------------- | ------------------- | --------- | ----- | ----- | ---- |
-| Long ICU duration               | `long_icu_mode`     | 1440 min  | 770   | 2160  | A    |
+| Post-operative ICU requirement   | `long_icu_mode`     | 1440 min  | 770   | 2160  | A    |
 | Short resuscitation duration    | `short_resus_mode`  | 28 min    | 17    | 39    | A    |
-| Short ICU duration              | `short_icu_mode`    | 60 min    | 36    | 84    | B    |
 | Base recovery-to-duty duration  | `r2e_hold_mode`     | 38880 min | 23400 | 54450 | A    |
 | Post-op holding-bed duration    | `post_op_hold_mode` | 600 min   | 380   | 1200  | B    |
 | Theatre evacuation policy       | `evacuation_policy_days` | 30 days | 15 | 60 | A    |
-| Post-surgery full-recovery rate | `post_surgery_prob` | 75%       | 55%   | 95%   | B    |
+| Forward ICU share               | `r2b_icu_share`     | 0%        | 0%    | 100%  | —    |
 | OT shift duration               | `ot_hours`          | 12 hr     | 8     | 16    | A    |
 
 **Died of Wounds — logistic curve and treatment efficacy**
@@ -1169,6 +1172,7 @@ Fifty-three parameters are screened, spanning the main uncertain inputs across a
 | R2E DCS 1st-op efficacy factor      | `r2e_dcs1_factor`                       | 0.25     | 0.10   | 0.40  | A    |
 | R2E DCS 2nd-op efficacy factor      | `r2e_dcs2_factor`                       | 0.57     | 0.42   | 0.72  | B    |
 | R2E post-op hold penalty            | `r2e_postop_hold_penalty`               | 3.0×     | 1.5    | 6.0   | B    |
+| R2B forward ICU penalty             | `r2b_icu_penalty`                       | 1.31×    | 1.09   | 1.59  | A    |
 
 **Casualty Generation Rates**
 
@@ -1247,7 +1251,6 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `p2_t_mid`                   | Priority 2 DOW Logistic Midpoint          | Scenario / Casualty Context     |
 | `p3_flat`                    | Priority 3 Flat DOW Probability           | Scenario / Casualty Context     |
 | `post_op_hold_mode`          | R2E Post-Op Holding-Bed Duration (Mode)   | Health System Design - Capacity |
-| `post_surgery_prob`          | R2E Post-Surgery Full-Recovery Rate       | Scenario / Casualty Context     |
 | `pri1_evac_prob`             | Priority 1 Strategic Evacuation Rate      | Scenario / Casualty Context     |
 | `pri1_surg_prob`             | Priority 1 Surgical Candidacy             | Scenario / Casualty Context     |
 | `pri2_evac_prob`             | Priority 2 Strategic Evacuation Rate      | Scenario / Casualty Context     |
@@ -1261,6 +1264,8 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `r2b_dcs_factor`             | R2B DCS Efficacy Factor                   | Scenario / Casualty Context     |
 | `r2b_hold_mode`              | R2B Holding Bed Duration (Mode)           | Health System Design - Capacity |
 | `r2b_hold_threshold`         | R2B Hold-Bed Reroute Threshold            | Health System Design - Policy   |
+| `r2b_icu_penalty`            | R2B Forward ICU DOW Penalty (Multiplier)  | Scenario / Casualty Context     |
+| `r2b_icu_share`              | R2B Forward ICU Share                     | Health System Design - Policy   |
 | `r2b_resus_factor`           | R2B/R2E DCR (Resus) Efficacy Factor       | Scenario / Casualty Context     |
 | `r2b_transport`              | R2B Transport Time (Mode)                 | Scenario / Casualty Context     |
 | `r2e_dcs1_factor`            | R2E DCS 1st-Op Efficacy Factor            | Scenario / Casualty Context     |
@@ -1268,7 +1273,6 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `r2e_hold_mode`              | R2E Base Recovery-to-Duty Duration (Mode) | Health System Design - Capacity |
 | `r2e_postop_hold_penalty`    | R2E Post-Op Hold DOW Penalty (Multiplier) | Scenario / Casualty Context     |
 | `r2e_resus_factor`           | R2E DCR (Resus) Efficacy Factor           | Scenario / Casualty Context     |
-| `short_icu_mode`             | R2E Short ICU Stay (Mode)                 | Health System Design - Capacity |
 | `short_resus_mode`           | R2E Short Resuscitation Duration (Mode)   | Health System Design - Capacity |
 | `surg_mode`                  | Surgery Duration (Mode)                   | Health System Design - Capacity |
 | `wia_cbt_mean`               | WIA — Combat Mean Daily Rate              | Scenario / Casualty Context     |
@@ -1279,6 +1283,8 @@ Seven response variables are computed at each design point. Five are time-weight
 Screening bounds cover clinically plausible variation around each baseline, under two rules that record where the baseline came from. **Rule A** covers parameters traceable to an open-access source cited in this document, including the DOW logistic shape parameters [[29]](#References), [[30]](#References), the treatment efficacy factors [[31]](#References), [[32]](#References), and the casualty generation rates [[8]](#References). **Rule B** covers parameters whose entry in `R/app_params.R` states the value is an informed estimate with no published source.
 
 Bound width depends on what kind of quantity a parameter is. Durations and rates are scaled: `r1_recovery_mode`, a 2880-minute hold, spans half to twice that at 1440 to 5760, while `surg_mode`, at 120 minutes, spans a narrower 90 to 150 because a cited source constrains it. Probabilities and efficacy factors instead move by a fixed amount, usually 0.15 to 0.25: `r1_tccc_factor` spans 0.68 to 0.98 around a baseline of 0.83. Where that margin would carry a value past a clinical limit it is clipped, which is what makes some bounds lopsided: `pri1_evac_prob` runs from 70% to 99% around a 95% baseline, since 95% plus 25 points would exceed certainty.
+
+Two parameters take their bounds from neither rule. `r2b_icu_share` is swept across the whole of its domain, 0 to 1, because it is a policy lever with no baseline to vary around: the shipped value of zero is one end of the range a planner may choose from rather than an estimate of anything. `r2b_icu_penalty` takes the 95% confidence interval its own source reports, 1.09 to 1.59, in preference to a fixed proportional margin around the point estimate, which is both better grounded and narrower than Rule A would give.
 
 One further constraint applies whatever the width. A screened triangular mode must stay inside its own distribution's fixed minimum and maximum, because `rtriangle()` requires $a \leq c \leq b$ and returns `NA` otherwise. `fr_fill_mode_frac` and `post_op_hold_mode` are bounded to respect this, with the reason recorded in `R/sensitivity.R`.
 
@@ -1304,7 +1310,7 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Outputs are written to `outputs/morris_ranking.csv` (parameter ranking by µ\* for system OT queue) and per-KPI scatter plots to `images/morris_<kpi>.png`. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
-**Current ranking.** The table below is `outputs/morris_ranking.csv` for the shipped fifty-three-parameter set, run at r = 5 with 5 replications over 30 days at seed 42, ranked by µ\* on the system OT queue. Wall-clock time was 108 minutes on 4 cores. The screen has not been re-run since the R2E disposition mechanism was rebuilt around the theatre evacuation policy, so two entries name the parameters as they stood when it was measured: `in_theatre_rate` at rank 25 is the parameter `evacuation_policy_days` replaced, and `r2e_hold_mode` was screened over its earlier, unscaled range. The ranks of the other fifty-one parameters are unaffected in definition, but every µ\* in the table was measured against the earlier disposition logic and a re-run is outstanding.
+**Current ranking.** The table below is `outputs/morris_ranking.csv` for the shipped fifty-three-parameter set, run at r = 5 with 5 replications over 30 days at seed 42, ranked by µ\* on the system OT queue. Wall-clock time was 108 minutes on 4 cores. The screen has not been re-run since the R2E disposition mechanism was rebuilt around the theatre evacuation policy, nor since post-operative intensive care time was made conserved across echelons, so four entries name the parameters as they stood when it was measured. `in_theatre_rate` at rank 25 is the parameter `evacuation_policy_days` replaced, and `r2e_hold_mode` was screened over its earlier, unscaled range. `short_icu_mode` at rank 36 and `post_surgery_prob` at rank 41 no longer exist at all: the R2E intensive care stay now follows from the casualty's requirement and the forward ICU share rather than from a short-against-full draw, and the two parameters `r2b_icu_share` and `r2b_icu_penalty` that replaced them in the screened set have no measured rank yet. The ranks of the other forty-nine parameters are unaffected in definition, but every µ\* in the table was measured against the earlier disposition and post-operative logic, and a re-run is outstanding.
 
 | Rank | Parameter                 | µ\*    | σ       | Rank | Parameter                    | µ\*    | σ      |
 | ---- | ------------------------- | ------ | ------- | ---- | ---------------------------- | ------ | ------ |
@@ -1549,11 +1555,21 @@ Resuscitation takes 25 to 70 minutes, most often 45. No published duration for t
 
 Casualties not needing surgery need a holding bed, and where that bed is found depends on capacity. A team is only chosen if its holding beds are less than 80% occupied, which reserves headroom for new arrivals rather than letting long-stay patients fill the unit. If a team has room the casualty recovers at R2B over 0.5 to 10 days, most often 5, and returns to duty. If no R2B team is below the threshold but R2E has holding capacity, the casualty is sent to R2E instead. If both are full, the casualty queues for an R2B bed, subject to a cap on queue length.
 
-Surgical candidacy is assessed next, behind an ICU availability gate. Priority 1 casualties proceed regardless of ICU status; Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. R2B surgery does not use ICU beds for post-operative recovery: the `icu_bed` resources checked here are the same ones the evacuation-wait fallback uses. The gate is therefore expected to be inert at baseline load, though R2B ICU utilisation is not among the reported outputs, so that expectation has not been checked against a run.
+Surgical candidacy is assessed next, behind an ICU availability gate. Priority 1 casualties proceed regardless of ICU status; Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. How much work the gate does depends on the forward ICU share described below: at the shipped share of zero the two ICU beds per team serve only the evacuation-wait fallback and the gate is close to inert, while at a non-zero share every casualty operated on here also recovers here, and the gate becomes a real constraint on forward surgical throughput.
 
 Once the gate clears, operating theatre availability decides the route. If a theatre is free, the casualty undergoes damage control surgery taking 41 to 210 minutes, most often 95. Surgical durations vary too widely for a single reliable figure; these bounds are the first-look operative-time range reported for a damage control cohort in a systematic review [[20]](#References), whose median of 96 minutes the mode approximates, and they sit within the rapid-closure window of about 90 minutes that damage control technique aims for [[22]](#References). If no theatre is free, the casualty is evacuated to R2E instead.
 
 Casualties needing further surgery under the damage control model [[20]](#References), [[21]](#References) are evacuated to R2E, a move taking 15 to 45 minutes, most often 30. If no evacuation asset is free, they hold an ICU bed until one becomes available.
+
+#### Post-Operative Stabilisation
+
+Damage control surgery is one half of a phased sequence. The abbreviated operation controls haemorrhage and contamination, and the intensive care that follows corrects the hypothermia, coagulopathy and acidosis that would make definitive repair unsurvivable; only then is the casualty returned to theatre [[20]](#References), [[21]](#References). How much of that intensive care a casualty needs follows from the injury rather than from the facility holding them. The model therefore draws the whole post-operative requirement once, from the distribution set out under [R2E Heavy Trajectory](#r2e-heavy-trajectory), and divides that single draw between the two echelons.
+
+`r2b.post_op_icu.share` sets the division: a casualty operated on here spends that fraction of the requirement at R2B and the remainder at R2E, while a casualty operated on at R2E spends all of it there. The total is the same on either route and at every value of the share, because one quantity is being divided rather than two being drawn and kept consistent with each other. That is a property of the design rather than an observation about any particular run, and `scripts/check_icu_time_conservation.R` asserts it across all three routes a casualty requiring surgery can take.
+
+The share is a command lever rather than a clinical fact: holding a post-operative casualty forward, against evacuating them for rearward intensive care, is a disposition a commander decides by order. It is not free. An R2B intensive care section fields two nurses and two medics against an R2E section's intensivist and four nurses, so time served forward is served without a resident intensivist, and `r2b_icu_penalty` prices that difference into the casualty's risk of dying of wounds (see [Treatment Efficacy Modifiers](#treatment-efficacy-modifiers)). Where every R2B intensive care bed is already occupied, the stay happens in a holding bed instead, for the same duration and at the further elevated risk the equivalent R2E pathway carries.
+
+The share ships at zero, placing all post-operative intensive care at R2E. That is the conservative setting rather than a recommendation, since it leaves forward bed occupancy where it was while the requirement is conserved. Choosing any other value is a question for evidence rather than for a default, and `scripts/run_icu_share_sweep.R` produces that evidence: it sweeps the share and reports how far the R2E intensive care queue falls, how far forward occupancy rises, and what the movement costs in deaths.
 
 ```mermaid
 flowchart TD
@@ -1574,6 +1590,12 @@ flowchart TD
     K -- Available --> L["Seize OT & Surg Team"]
     L --> M["Surgery"]
     M --> N["Release Resources"]
+    N --> NS{"Forward ICU<br>Share > 0?"}
+    NS -- Yes --> NI{"R2B ICU<br>Bed Free?"}
+    NI -- Yes --> NI1["Seize ICU Bed <br> Post-Op Stabilisation"]
+    NI -- No --> NI2["Seize Hold Bed <br> Post-Op Stabilisation <br> (elevated DOW risk)"]
+    NI1 --> NI3["Release Bed"]
+    NI2 --> NI3
     K -- Not Available --> O{"Evac Ready?"}
     J -- No --> P0{"R2B Hold < 80%?"}
     P0 -- Yes --> P["Seize Hold Bed"]
@@ -1585,7 +1607,8 @@ flowchart TD
     PB --> Z
     P0 -- "No, both full" --> PC["Queue for R2B Hold Bed"]
     PC --> P
-    N --> O
+    NS -- No --> O
+    NI3 --> O
     O -- Yes --> T["Select R2E"]
     T --> U["Transfer to R2E"]
     U --> V["Release Evac Team"]
@@ -1614,7 +1637,7 @@ Surgical candidacy is assessed next, behind an ICU availability gate that is che
 
 A procedure needs both a theatre and the staff for it. R2E has three surgical sections and two theatres, so `select_r2e_surg_section()` (`R/trajectories.R`) picks a section for each casualty rather than fixing one in advance: sections on shift are preferred, and the least busy of those is chosen. The section is held for the whole operation and released before the theatre. Since a section is rostered and a theatre is not (see [Schedules and Rosters](#schedules-and-rosters)), whichever is scarcer at that hour sets how many operations can run at once. A casualty who finds no section free waits, and an operation already under way is not interrupted when the shift ends.
 
-Post-operative care depends on which route the gate sent the casualty down. With ICU available, the first ICU stay runs 770 to 2,160 minutes, most often 1,440, matching the 24 to 36 hours of post-damage-control stabilisation described in the literature [[20]](#References), [[24]](#References), [[27]](#References). A second, shorter ICU stay of 30 to 90 minutes, most often 60, follows a second operation, covering monitoring before transfer to holding. On the saturated Priority 1 route, recovery is in a holding bed for 360 to 1,440 minutes, most often 600: shorter than a full ICU stay, but carrying an elevated risk of dying of wounds. Both routes then meet at a shared post-operative check for died of wounds. A casualty who needed surgery and had none before arriving is queued for a second operation after recovery.
+Post-operative care depends on which route the gate sent the casualty down. The whole post-operative intensive care requirement runs 770 to 2,160 minutes, most often 1,440, matching the 24 to 36 hours of post-damage-control stabilisation described in the literature [[20]](#References), [[24]](#References), [[27]](#References). With ICU available, the casualty occupies an ICU bed for whatever remains of that requirement after any share already served forward at R2B (see [Post-Operative Stabilisation](#postoperative-stabilisation)), which for a casualty operated on here is all of it. On the saturated Priority 1 route, recovery is in a holding bed for 360 to 1,440 minutes, most often 600: shorter than a full ICU stay, but carrying an elevated risk of dying of wounds. Both routes then meet at a shared post-operative check for died of wounds. A casualty who needed surgery and had none before arriving is queued for a second operation after recovery.
 
 After post-operative recovery a casualty either stays in theatre or is evacuated, and the model decides which by representing the theatre evacuation policy rather than by drawing a fixed share. Doctrine defines the policy as a duration threshold: "a theater that evacuates out of the theater all patients requiring 30 or more days of hospitalization is said to have a '30-day evacuation policy'", and the threshold itself is a command decision, so that "a theater may have an evacuation policy of 15 days whereas another theater may have one of 60 days" [[55]](#References). `draw_recovery_to_duty()` (`R/trajectories.R`) therefore draws each casualty an expected recovery duration at the close of clinical care, and the disposition follows from comparing it against `evacuation_policy_days`, shipped at the doctrinal 30 days and exposed as a planning lever in the Configure panel. The source states the threshold in days of hospitalisation; the model treats that as the casualty's expected time to being fit for duty, which is the same quantity only where a casualty is held until fit, so the two diverge for anyone who would convalesce outside a hospital bed and the model retains such casualties slightly too readily. A casualty retained in theatre then occupies a holding bed for exactly the duration that retained it, so its bed-days and its prognosis cannot disagree.
 
@@ -1640,12 +1663,11 @@ flowchart TD
     K -- "Yes" --> L["Select Surg Section <br> Seize OT & Surg Section"]
     L --> M["Surgery (First)"]
     M --> N["Release Surg Section & OT"]
-    N --> O{"Prior R2B Surg?"}
-    O -- Yes --> Osh["Short ICU"]
-    O -- No --> Olo["Long ICU"]
-    Osh --> O2["Release ICU"]
-    Olo --> O2
-    O2 --> PD{"Post-Op DOW?"}
+    N --> O{"Requirement Already<br>Served at R2B?"}
+    O -- Fully --> PD{"Post-Op DOW?"}
+    O -- "Partly, or not at all" --> Olo["Seize ICU Bed <br> Remainder of Requirement"]
+    Olo --> O2["Release ICU"]
+    O2 --> PD
     K -- "Full, Priority 1" --> L2["Select Surg Section <br> Seize OT & Surg Section"]
     L2 --> M2["Surgery (First)"]
     M2 --> N2["Release Surg Section & OT"]
@@ -1934,6 +1956,7 @@ This section records what the model does not represent, how much each gap matter
 | L21 | R2B surgical throughput options cannot be tested | Medium |
 | L22 | DOW calibration target is a bounded treated-cohort rate | Medium |
 | L23 | Recovery-to-duty severity factors are uncalibrated | Medium |
+| L24 | Saturated-ICU recovery does not conserve the post-operative requirement | Medium |
 | L9 | Antithetic variates applied to arrivals only | Low |
 
 ### High Impact
@@ -1965,6 +1988,8 @@ This section records what the model does not represent, how much each gap matter
 **L22 — The died-of-wounds calibration target is a bounded treated-cohort rate.** The historical anchor for the mortality ceilings is three deaths among the "over 650" casualties who reached the Ajax Bay Advanced Surgical Centre, a cohort drawn from both sides of the conflict and reported with an inexact denominator. Three consequences follow. The rate of approximately 0.46% is an upper bound rather than a point estimate, so the validation test is whether the model's confidence interval spans it, not whether the central values agree. The cohort mixes British and Argentine casualties, whose prior treatment and evacuation timelines differ, while the model represents a single force. And because the target constrains only casualties who survived to reach surgical care, the model's whole-of-wounded mortality rate is unconstrained by any historical figure, which is the quantity a planner is most likely to read off the output. Closing this would need a source reporting a campaign died-of-wounds count against an exact wounded-in-action denominator for one force; no open-access source doing so was identified.
 
 **L23 — Recovery-to-duty severity factors are uncalibrated.** The theatre evacuation policy compares each casualty's drawn recovery-to-duty duration against a configurable threshold, which makes disposition a function of severity, but the four severity factors that scale the base convalescence distribution are informed estimates. No open-access source tabulates time to fitness for duty by triage priority for a battlefield trauma population, so the factors were anchored to the severity gradient in the Role 4 length-of-stay values and then set so that the realised in-theatre share falls inside the historical range. That range spans 7.6% to 42.1%, which is wide enough to admit many factor sets, so agreement with it is a weak test: the mechanism is defensible and the ordering between categories is not in doubt, but the specific values are not calibrated. Because the same factors set both the retention share and the holding-bed occupancy of everyone retained, an error moves R2E bed demand and strategic airlift demand together in opposite directions, and the policy sweep reported in the single-run analysis will be correspondingly too steep or too shallow. Closing the gap needs a source giving recovery-to-duty durations by severity, or a calibration target sharper than the in-theatre share.
+
+**L24 — Saturated-ICU recovery does not conserve the post-operative requirement.** A casualty's post-operative intensive care requirement is drawn once and divided between the echelons, so the total is the same on every ordinary route. One route is outside that guarantee. When R2E intensive care is saturated and a Priority 1 casualty recovers in a holding bed instead, the stay is drawn from its own shorter distribution rather than from what remains of the requirement, so a casualty who served part of it forward at R2B loses the rest. That pathway predates the conservation rule and its holding-bed duration is itself an informed estimate (see L11), which is why it was not simply rebased onto the requirement: doing so would silently lengthen the degraded pathway by a factor of roughly two and change the mortality comparison the pathway exists to expose. At the shipped forward share of zero the gap cannot arise, since nothing is served forward to be lost; at an intermediate share it affected 12 of 93 casualties at 0.25 and 15 of 108 at 0.50 in a 30-day run. Closing it needs either a sourced holding-bed recovery duration to rebase onto, or an explicit decision that degraded recovery is shorter by intent rather than by inheritance.
 
 ### Low Impact
 
@@ -2103,5 +2128,7 @@ The repository is a foundation for further work rather than a finished decision-
 [57] Royal Australian Air Force. *Aeromedical evacuation*. Australian Government, Department of Defence. Retrieved 02 Aug 26, from https://www.airforce.gov.au/our-work/humanitarian-support/aeromedical-evacuation
 
 [58] U.S. Air Force. *C-130 Hercules*. Air Force Fact Sheet. Retrieved 02 Aug 26, from https://www.af.mil/About-Us/Fact-Sheets/Display/Article/1555054/c-130-hercules
+
+[59] Yang, Q., Du, J. L., & Shao, F. (2019). Mortality rate and other clinical features observed in open vs closed format intensive care units: A systematic review and meta-analysis. *Medicine*, *98*(27), e16261. Retrieved 03 Aug 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC6635169/
 
 <!-- REFERENCES END -->

@@ -292,23 +292,6 @@
           ]
         },
         {
-          "acty": "short_icu",
-          "vals": [
-            {
-              "var": "min",
-              "val": 30
-            },
-            {
-              "var": "max",
-              "val": 90
-            },
-            {
-              "var": "mode",
-              "val": 60
-            }
-          ]
-        },
-        {
           "acty": "holding",
           "vals": [
             {
@@ -331,10 +314,6 @@
             {
               "var": "evacuation_policy_days",
               "val": 30
-            },
-            {
-              "var": "post_surgery",
-              "val": 0.75
             }
           ]
         },
@@ -563,6 +542,15 @@
               "val": 30
             }
           ]
+        },
+        {
+          "acty": "post_op_icu",
+          "vals": [
+            {
+              "var": "share",
+              "val": 0
+            }
+          ]
         }
       ]
     },
@@ -744,7 +732,8 @@
             { "var": "r2e_resus_factor", "val": 0.56 },
             { "var": "r2e_dcs1_factor",  "val": 0.25 },
             { "var": "r2e_dcs2_factor",  "val": 0.57 },
-            { "var": "r2e_postop_hold_penalty", "val": 3.0 }
+            { "var": "r2e_postop_hold_penalty", "val": 3.0 },
+            { "var": "r2b_icu_penalty",         "val": 1.31 }
           ]
         }
       ]

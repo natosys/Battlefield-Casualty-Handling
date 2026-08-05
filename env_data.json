@@ -716,6 +716,18 @@
               "val": 0.6
             },
             {
+              "var": "pri1_dcs_rate",
+              "val": 0.55
+            },
+            {
+              "var": "pri2_dcs_rate",
+              "val": 0.2
+            },
+            {
+              "var": "pri3_dcs_rate",
+              "val": 0.05
+            },
+            {
               "var": "pri1_evac",
               "val": 0.95
             },

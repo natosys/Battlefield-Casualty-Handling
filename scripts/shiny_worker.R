@@ -34,7 +34,11 @@ option_list <- list(
   make_option("--mode",         type = "character", default = ""),
   make_option("--json",         type = "character", default = ""),
   make_option("--days",         type = "integer",   default = 30L),
-  make_option("--ot-hours",     type = "double",    default = 12),
+  # No literal default: omitting the flag leaves ot_hours NULL, which
+  # run_replications() resolves to the shift length configured in the JSON
+  # this worker was handed (--json). Passing the flag overrides it for this
+  # run only, which is what app.R's Run tab slider does.
+  make_option("--ot-hours",     type = "double",    default = NULL),
   make_option("--n-reps",       type = "integer",   default = 100L),
   make_option("--r",            type = "integer",   default = 20L),
   make_option("--n-rep",        type = "integer",   default = 5L),

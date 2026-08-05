@@ -945,6 +945,17 @@
           ]
         }
       ]
+    },
+    {
+      "elm": "surgical_roster",
+      "actys": [
+        {
+          "acty": "shift",
+          "vals": [
+            { "var": "ot_hours", "val": 12 }
+          ]
+        }
+      ]
     }
   ],
   "scenarios": {

@@ -238,6 +238,30 @@ run_shiny_worker <- function(args, output_rds) {
 # fresh, immediately before submitting that run.
 PARAM_REGISTRY  <- build_param_registry()
 
+#' Look up one registry field spec by its id
+#'
+#' @details Used where a control outside the Configure panel needs a field's
+#'   label, tooltip or bounds — the Run tab's OT Shift Length slider is the
+#'   only such case. Reading them from the registry rather than restating
+#'   them keeps the two controls describing one parameter in one voice.
+registry_field <- function(id) {
+  hit <- Filter(function(f) identical(f$id, id), PARAM_REGISTRY)
+  if (length(hit) != 1) stop(sprintf("registry_field: no unique field with id '%s'", id))
+  hit[[1]]
+}
+
+# The Run tab carries a per-run override of the OT shift length, alongside
+# the same parameter's Configure-panel field. Its bounds, label and tooltip
+# come from that field's registry spec (which in turn borrows the Morris
+# screening bounds), and its initial value from the shipped env_data.json —
+# so the shift length has one definition, in the JSON, rather than a
+# literal repeated here. A Configure edit follows through to this slider
+# (see the ot_shift_hours observer in server()); moving this slider
+# afterwards overrides the configured value for the next run only, and does
+# not write back to the configuration.
+OT_HOURS_FIELD   <- registry_field("ot_shift_hours")
+OT_HOURS_DEFAULT <- OT_HOURS_FIELD$get(fromJSON(DEFAULT_JSON, simplifyVector = FALSE))
+
 #' Detect every triangular (min/mode/max) field triple in a registry, by
 #' shared id prefix (tri_fields() in R/app_params.R always names them
 #' "<prefix>_min"/"<prefix>_mode"/"<prefix>_max"). Computed once from the
@@ -1575,16 +1599,11 @@ ui <- page_navbar(
         numericInput("n_days", "Simulation Duration (days)", value = 30, min = 1, max = 180, step = 1),
         textInput("seed", "Random Seed (blank = random)", value = "42"),
         slider_with_text_input("ot_hours",
-                    field_label(list(label = "OT Shift Length (hours per shift)",
-                                     tooltip = paste0(
-                                       "Hours the first operating theatre shift is active each day ",
-                                       "(the second shift covers the remainder of the 24h day). ",
-                                       sprintf("Plausible range %s–%s (Morris-screened).",
-                                               morris_params$lower[morris_params$name == "ot_hours"],
-                                               morris_params$upper[morris_params$name == "ot_hours"])))),
-                    min = morris_params$lower[morris_params$name == "ot_hours"],
-                    max = morris_params$upper[morris_params$name == "ot_hours"],
-                    value = morris_params$mode[morris_params$name == "ot_hours"], step = 1)
+                    field_label(list(label = OT_HOURS_FIELD$label,
+                                     tooltip = paste(OT_HOURS_FIELD$tooltip,
+                                                     "Overrides the configured value for this run only."))),
+                    min = OT_HOURS_FIELD$min, max = OT_HOURS_FIELD$max,
+                    value = OT_HOURS_DEFAULT, step = OT_HOURS_FIELD$step)
       ),
       card(
         card_header("Run Mode"),
@@ -1700,6 +1719,24 @@ server <- function(input, output, session) {
   lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
     wire_range_slider_text_sync(input, session, sprintf("mc_event_pri_split_%d", i))
   })
+
+  # Keep the Run tab's per-run OT shift override following the configured
+  # value: editing the Configure field, or loading a configuration file that
+  # carries a different shift length, moves the Run slider with it. Without
+  # this the two controls for one parameter could sit at different values
+  # with nothing on screen saying which the next run would use. Moving the
+  # Run slider afterwards is still an override and is left alone — it does
+  # not feed back into the configuration, so nothing here resets it.
+  observeEvent(input$ot_shift_hours, {
+    v <- input$ot_shift_hours
+    if (!is.null(v) && !is.na(v) && !isTRUE(all.equal(v, input$ot_hours))) {
+      updateSliderInput(session, "ot_hours", value = v)
+    }
+  }, ignoreInit = TRUE)
+  observeEvent(input$upload_json, {
+    v <- OT_HOURS_FIELD$get(raw_env_data())
+    if (!is.null(v) && !is.na(v)) updateSliderInput(session, "ot_hours", value = v)
+  }, ignoreInit = TRUE, priority = -1)
 
   # Live distribution-curve preview for every triangular (min/mode/max)
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),

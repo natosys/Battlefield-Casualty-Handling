@@ -183,6 +183,7 @@ SRC_EVAC_CANDIDACY    <-"ADF operational planning norms (not open-access), paire
 SRC_DOW_CEILING       <- "Validated against the Falklands War 1982 Ajax Bay treated-cohort DOW rate of ~0.46% (3 deaths among over 650 casualties reaching forward surgery; Westphalen, 2018) via 50-replication Monte Carlo; entangled with the OIF/OEF-era treatment efficacy factors below it. See README Died of Wounds."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
+SRC_OT_ROSTER         <- "Standing-order rostering assumption: a two-shift day splitting 24 hours evenly between successive surgical sections. No open-access source prescribes a deployed surgical shift length, so the 12-hour default is an informed estimate. See README Schedules and Rosters."
 SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md for a proposed evidence-based staffing revision (not yet implemented)."
 SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the likely resuscitation steps (see README R2B/R2E Trajectory); constrained to complete within 90 minutes per the cited source there. Not independently cited as a single total."
 SRC_DCS_SURGERY       <- "First-look DCS operative-time data (median 96 min, range 41-210) reported for Sohn et al. (2018) within Zizzo et al.'s (2020) systematic review — see README R2B Trajectory for citations."
@@ -509,6 +510,19 @@ build_param_registry <- function() {
     var_field("dow_p2_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p2_p_max",
               "Priority 2 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 2 casualty (Falklands 1982 calibration).",
               min = 0, max = 1, step = 0.001, morris_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE)
+  ))
+
+  # ── Health System Architecture: Surgical Shift Roster ─────────────────────
+  # Placed first in the group because it is the one architecture field that
+  # is not per-echelon: the same shift length rosters R2B's single surgical
+  # section and all three of R2E's (see build_env(), R/environment.R).
+  registry <- c(registry, list(
+    var_field("ot_shift_hours", GRP_HEALTH_ARCH, "Surgical Shift Roster",
+              "surgical_roster", "shift", "ot_hours",
+              "OT Shift Length (Hours per Shift)",
+              "Hours the first surgical shift is active each day; the second shift covers the remainder of the 24-hour day. Applies identically at R2B and R2E.",
+              type = "integer", min = 1, max = 24, step = 1,
+              morris_name = "ot_hours", source = SRC_OT_ROSTER)
   ))
 
   # ── Health System Architecture: R1 — Forward Aid Post ─────────────────────

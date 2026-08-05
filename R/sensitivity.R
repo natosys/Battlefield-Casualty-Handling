@@ -161,6 +161,11 @@ plot_morris_scatter <- function(obj, title) {
 #'   against its own JSON min/max after the fill_mode_frac incident above,
 #'   not from a second independent re-run failure.
 #'
+#'   `ot_hours`'s screening bounds bracket the shift length configured at
+#'   `vars.surgical_roster.shift.ot_hours` in env_data.json, which is where
+#'   apply_params() writes the screened value and where build_env() reads it
+#'   from — the same route every other parameter in this table takes.
+#'
 #'   Not every numeric leaf in env_data.json's `vars` tree is screened here;
 #'   see the README's "Parameters Excluded from Screening" note for the
 #'   full exclusion rationale (KIA/mortuary processing durations, simplex-
@@ -306,8 +311,6 @@ morris_params <- data.frame(
 #'
 #' @param ed  A copy of the env_data list (not modified in place)
 #' @param p   Named numeric vector — names must match morris_params$name.
-#'   The ot_hours entry is excluded here; it is passed directly to
-#'   run_replications() because it affects build_env() scheduling, not vars.
 #' @return Modified env_data copy
 #'
 #' @details Issue #112 expanded this from eleven to fifty-five parameters,
@@ -325,6 +328,7 @@ apply_params <- function(ed, p) {
   ed$vars$r2b$wia_transport$mode            <- p[["r2b_transport"]]
   ed$vars$r2eheavy$stabilisation_icu$mode   <- p[["stabilisation_icu_mode"]]
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
+  ed$vars$surgical_roster$shift$ot_hours    <- p[["ot_hours"]]
   ed$vars$r2eheavy$recovery$evacuation_policy_days <- p[["evacuation_policy_days"]]
   ed$vars$mass_casualty$event$rate_per_day  <- p[["mass_casualty_rate"]]
   ed$vars$mass_casualty$event$max_cas       <- p[["mass_casualty_max_cas"]]
@@ -485,14 +489,14 @@ extract_kpis <- function(mon) {
 #'   dow_count, transport_q, transport_util
 #'
 #' @details Modifies the global env_data via apply_params() then restores it.
-#'   The ot_hours parameter is extracted separately and passed to run_replications()
-#'   because it controls build_env() scheduling, not the vars structure.
+#'   Every screened parameter, ot_hours included, reaches the model through
+#'   the vars tree; build_env() reads the shift length from there, so no
+#'   parameter needs extracting and threading separately.
 eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
-  p    <- setNames(as.numeric(params_row), morris_params$name)
-  ot_h <- p[["ot_hours"]]
+  p <- setNames(as.numeric(params_row), morris_params$name)
 
   env_data <<- apply_params(env_data_base, p)
-  mon      <- run_replications(n_rep, n_days, ot_hours = ot_h, max_cores = max_cores)
+  mon      <- run_replications(n_rep, n_days, max_cores = max_cores)
   extract_kpis(mon)
 }
 

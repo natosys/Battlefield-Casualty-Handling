@@ -31,6 +31,15 @@
 #      performs, so no amount of forward holding may reduce it. Without this,
 #      raising the forward share would quietly empty out the intensive care
 #      that has to come after the final operation.
+#
+# The first invariant applies to the damage control cohort alone. A
+# single-stage casualty has no stabilisation phase to conserve, since their
+# one operation is their definitive repair, so they are excluded from the
+# conservation universe rather than counted as a shortfall. That exclusion is
+# itself checked: a single-stage casualty must draw no stabilisation
+# requirement, hold no bed for one, and never return to theatre. The second
+# invariant applies to both pathways, every operated casualty receiving
+# post-definitive care.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -80,13 +89,20 @@ env_data_base <- env_data
 #' One casualty per row, with the post-operative minutes each echelon served
 #'
 #' @param attrs get_mon_attributes() output for a completed run
-#' @return Data frame: name, total (the drawn requirement), r2b and r2e (the
-#'   minutes each echelon served, zero where it served none), r2b_surgery and
-#'   r2b_bypassed route markers
+#' @return Data frame covering every casualty who reached a surgical decision:
+#'   name, dcs (1 damage control, 0 single-stage), total (the stabilisation
+#'   requirement drawn, zero where none was), r2b and r2e (the minutes each
+#'   echelon served, zero where it served none), the r2b_surgery and
+#'   r2b_bypassed route markers, and the post-definitive care outcome
 per_casualty <- function(attrs) {
-  wanted <- c("stabilisation_total", "r2b_post_op_min", "r2e_post_op_min",
-              "r2b_surgery", "r2b_bypassed", "post_op_pathway", "dow",
-              "post_definitive_min", "post_definitive_pathway", "surgery")
+  # dcs_pathway is kept out of the zero-fill below: 0 is a meaningful value
+  # there (single-stage), so an absent attribute must stay absent rather than
+  # become a casualty this check believes took the single-stage pathway.
+  numeric_fill <- c("stabilisation_total", "r2b_post_op_min", "r2e_post_op_min",
+                    "r2b_surgery", "r2b_bypassed", "post_op_pathway", "dow",
+                    "post_definitive_min", "post_definitive_pathway",
+                    "r2e_surgery_2_start")
+  wanted <- c(numeric_fill, "surgery", "dcs_pathway")
 
   attrs %>%
     filter(key %in% wanted) %>%
@@ -95,11 +111,12 @@ per_casualty <- function(attrs) {
     pivot_wider(names_from = key, values_from = value) %>%
     # A casualty who never entered a given step has no row for its attribute;
     # absent means zero minutes served there, not an unknown quantity.
-    mutate(across(any_of(wanted), ~ ifelse(is.na(.x), 0, .x))) %>%
-    filter(stabilisation_total > 0) %>%
+    mutate(across(any_of(numeric_fill), ~ ifelse(is.na(.x), 0, .x))) %>%
+    filter(!is.na(dcs_pathway)) %>%
     transmute(
       name,
-      total        = stabilisation_total,
+      dcs          = dcs_pathway,
+      total        = if ("stabilisation_total" %in% names(.)) stabilisation_total else 0,
       r2b          = if ("r2b_post_op_min" %in% names(.)) r2b_post_op_min else 0,
       r2e          = if ("r2e_post_op_min" %in% names(.)) r2e_post_op_min else 0,
       r2b_surgery  = if ("r2b_surgery" %in% names(.)) r2b_surgery else 0,
@@ -107,7 +124,8 @@ per_casualty <- function(attrs) {
       pathway      = if ("post_op_pathway" %in% names(.)) post_op_pathway else 0,
       dow          = if ("dow" %in% names(.)) dow else 0,
       pd_min       = if ("post_definitive_min" %in% names(.)) post_definitive_min else 0,
-      pd_pathway   = if ("post_definitive_pathway" %in% names(.)) post_definitive_pathway else 0
+      pd_pathway   = if ("post_definitive_pathway" %in% names(.)) post_definitive_pathway else 0,
+      second_op    = if ("r2e_surgery_2_start" %in% names(.)) r2e_surgery_2_start else 0
     )
 }
 
@@ -131,7 +149,39 @@ for (share in SHARES) {
     wrapped <- run_once(n_days = CHECK_DAYS, seed = CHECK_SEED)
   )))
 
-  cas <- per_casualty(get_mon_attributes(wrapped))
+  all_cas <- per_casualty(get_mon_attributes(wrapped))
+
+  # Check 0: the pathway split is real and the single-stage cohort carries
+  # none of the staged pathway's consumption. This is what makes the
+  # conservation universe below a pathway-aware subset rather than a silently
+  # shrinking one: a single-stage casualty missing from the conservation
+  # counts must be missing because they have no stabilisation phase, not
+  # because a stabilisation phase went unserved.
+  single <- all_cas %>% filter(dcs == 0)
+  report(TRUE, "share %.2f: %d casualties on the damage control pathway, %d single-stage",
+         share, sum(all_cas$dcs == 1), nrow(single))
+
+  if (nrow(single)) {
+    ok <- all(single$total == 0) && all(single$r2b == 0) && all(single$r2e == 0)
+    if (!ok) {
+      fail("share %.2f: %d single-stage casualties drew or served a stabilisation requirement",
+           share, sum(single$total > 0 | single$r2b > 0 | single$r2e > 0))
+    }
+    report(ok, "share %.2f: none of the %d single-stage casualties drew or served a stabilisation requirement",
+           share, nrow(single))
+
+    ok <- all(single$second_op == 0)
+    if (!ok) {
+      fail("share %.2f: %d single-stage casualties returned to theatre for a second procedure",
+           share, sum(single$second_op > 0))
+    }
+    report(ok, "share %.2f: none of the %d single-stage casualties returned to theatre",
+           share, nrow(single))
+  }
+
+  # The conservation universe: the damage control cohort, which is the only
+  # cohort with a stabilisation requirement to conserve.
+  cas <- all_cas %>% filter(dcs == 1, total > 0)
 
   if (nrow(cas) == 0) {
     fail("share %.2f: no casualty reached post-operative ICU recovery, so nothing could be checked",
@@ -273,9 +323,13 @@ for (share in SHARES) {
 
   # Check 5: post-definitive care is served at R2E on every route and is not
   # eroded by the forward share. It follows the definitive repair, which only
-  # R2E performs, so no amount of forward holding may reduce it.
-  pd <- cas %>% filter(pd_pathway > 0)
+  # R2E performs, so no amount of forward holding may reduce it. Unlike
+  # stabilisation this applies to both surgical pathways, every operated
+  # casualty having a definitive repair for it to follow, so the whole cohort
+  # is in scope here rather than the damage control subset.
+  pd <- all_cas %>% filter(pd_pathway > 0)
   if (nrow(pd)) {
+    pd$route <- route_of(pd)
     rt_pd <- route_t(pd, "pd_min")
     if (!is.null(rt_pd)) {
       ok <- rt_pd$max_t <= ROUTE_T_MAX
@@ -296,10 +350,14 @@ for (share in SHARES) {
   results[[as.character(share)]] <- by_route
 }
 
-# ── Check 5: surgical time is unchanged across routes ───────────────────────
+# ── Check 6: surgical time is unchanged across routes ───────────────────────
 # The second R2E procedure is skipped for anyone who had R2B damage control
 # surgery, which is what conserves surgical time. That behaviour predates this
-# check and must survive it.
+# check and must survive it. Every operated casualty must also receive
+# post-definitive care on one pathway or the other, which is the assertion the
+# single-stage split most easily breaks: a casualty routed around the
+# stabilisation phase must not be routed around the episode that follows their
+# definitive repair as well.
 
 cat("\n-- Surgical time remains conserved --\n")
 
@@ -308,7 +366,9 @@ invisible(capture.output(suppressWarnings(
   wrapped <- run_once(n_days = CHECK_DAYS, seed = CHECK_SEED)
 )))
 
-surg <- get_mon_attributes(wrapped) %>%
+attrs_final <- get_mon_attributes(wrapped)
+
+surg <- attrs_final %>%
   filter(key %in% c("r2b_surgery", "r2e_surgery_2_start")) %>%
   group_by(name, key) %>%
   summarise(value = dplyr::last(value), .groups = "drop") %>%
@@ -325,6 +385,29 @@ if (!ok) {
        nrow(both))
 }
 report(ok, "no casualty received both R2B damage control surgery and the R2E second procedure")
+
+# Every operated casualty receives post-definitive care, on either pathway.
+# The universe is casualties who reached R2E's final disposition, marked by
+# recovery_to_duty_days, which is drawn immediately after post-definitive
+# care. Anyone short of that point either died or was still in the pipeline
+# when the run ended, and has no missing episode to explain; anyone past it
+# has had their one chance at the episode and must have taken it.
+reached_disposition <- attrs_final %>%
+  filter(key == "recovery_to_duty_days") %>%
+  distinct(name)
+
+operated <- per_casualty(attrs_final) %>%
+  semi_join(reached_disposition, by = "name")
+missing_pd <- operated %>% filter(pd_pathway == 0)
+
+ok <- nrow(operated) > 0 && nrow(missing_pd) == 0
+if (nrow(operated) == 0) {
+  fail("no casualty was operated on, so post-definitive coverage could not be checked")
+} else if (nrow(missing_pd)) {
+  fail("%d surviving operated casualties received no post-definitive care", nrow(missing_pd))
+}
+report(ok, "all %d surviving operated casualties received post-definitive care (%d damage control, %d single-stage)",
+       nrow(operated), sum(operated$dcs == 1), sum(operated$dcs == 0))
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

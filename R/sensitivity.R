@@ -99,13 +99,15 @@ plot_morris_scatter <- function(obj, title) {
 #'
 #' @format Data frame with columns: name, lower, upper, mode (current baseline value)
 #'
-#' @details Fifty-three parameters (Issue #112 full-coverage audit, expanded
-#'   from the original eleven, then reduced from an intermediate fifty-five
-#'   by a same-issue follow-up review — see the exclusion note below) span
-#'   treatment durations (surgery, resuscitation, ICU, holding), DOW
-#'   probability (both the full P1/P2 logistic curve and treatment-efficacy
-#'   multipliers), evacuation transport times, surgical/evacuation decision
-#'   probabilities, in-theatre recovery rate, OT shift availability, mass
+#' @details Fifty-eight parameters (Issue #112 full-coverage audit, expanded
+#'   from the original eleven, then reduced by a same-issue follow-up review
+#'   — see the exclusion note below — and grown since by the parameters
+#'   later issues introduced) span treatment durations (surgery,
+#'   resuscitation, ICU, holding), DOW probability (both the full P1/P2
+#'   logistic curve and treatment-efficacy multipliers), evacuation transport
+#'   times, surgical/evacuation decision probabilities, the damage control
+#'   versus single-stage surgical pathway split (Issue #173),
+#'   in-theatre recovery rate, OT shift availability, mass
 #'   casualty event rate/size (Issue #9), force regeneration reinforcement
 #'   timing (Issue #18), strategic AME sortie cadence (Issue #23), and
 #'   casualty generation rates. Bounds are set to cover clinically plausible
@@ -193,7 +195,9 @@ morris_params <- data.frame(
     "fr_demand_interval_days", "fr_fulfillment_lag_days", "fr_fill_mode_frac",
     "ame_schedule_interval_days", "ame_failure_probability",
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
-    "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold"
+    "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold",
+    # ── Surgical pathway split (Issue #173) ───────────────────────────────
+    "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate"
   ),
   lower = c(
     90,    25,    0.0115, 15,   15,   770,   0.70,  15,    8,   0,    40,
@@ -205,7 +209,8 @@ morris_params <- data.frame(
     10,
     0,    4,    0.5,
     4,    0.08,
-    0,    0,     0.60
+    0,    0,     0.60,
+    0.30, 0.08, 0.00
   ),
   upper = c(
     150,   70,    0.046,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
@@ -217,7 +222,8 @@ morris_params <- data.frame(
     30,
     14,   14,   1.05,
     14,   0.30,
-    1,    2880,  0.95
+    1,    2880,  0.95,
+    0.80, 0.40, 0.20
   ),
   mode  = c(
     120,   45,    0.023,  30,   30,   1440,  0.90,  0.10,  12,  0,    60,
@@ -229,7 +235,8 @@ morris_params <- data.frame(
     20,
     0,    7,    0.85,
     7,    0.15,
-    0,    1440,  0.80
+    0,    1440,  0.80,
+    0.55, 0.20, 0.05
   ),
   # "Context" = an assumption about the operational environment or the
   # casualty population itself (generation rates, DOW calibration,
@@ -287,7 +294,8 @@ morris_params <- data.frame(
     "Context",
     "Policy", "Policy", "Policy",
     "Policy", "Context",
-    "Policy", "Policy", "Policy"
+    "Policy", "Policy", "Policy",
+    "Context", "Context", "Context"
   ),
   stringsAsFactors = FALSE
 )
@@ -337,6 +345,11 @@ apply_params <- function(ed, p) {
   ed$vars$r1$other$disease_surgery_pct <- p[["disease_surgery_pct"]]
   ed$vars$r1$other$pri1_evac          <- p[["pri1_evac_prob"]]
   ed$vars$r1$other$pri2_evac          <- p[["pri2_evac_prob"]]
+
+  # ── Surgical pathway split (Issue #173) ─────────────────────────────────
+  ed$vars$r1$other$pri1_dcs_rate <- p[["pri1_dcs_rate"]]
+  ed$vars$r1$other$pri2_dcs_rate <- p[["pri2_dcs_rate"]]
+  ed$vars$r1$other$pri3_dcs_rate <- p[["pri3_dcs_rate"]]
 
   # ── DOW logistic curve (Issue #112) ─────────────────────────────────────
   ed$vars$dow$params$p1_p_base <- p[["p1_p_base"]]

@@ -695,7 +695,11 @@ MORRIS_LABELS <- c(
   r2b_icu_share        = "R2B Forward ICU Share",
   r2b_forward_hold_max = "R2B Forward Hold Time Limit (Minutes)",
   post_definitive_icu_mode = "R2E Post-Definitive ICU Duration (Mode)",
-  r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold"
+  r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold",
+
+  pri1_dcs_rate = "Priority 1 Damage Control Rate",
+  pri2_dcs_rate = "Priority 2 Damage Control Rate",
+  pri3_dcs_rate = "Priority 3 Damage Control Rate"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────

@@ -298,6 +298,80 @@ draw_stabilisation_icu <- function() {
   )
 }
 
+#' Draws whether a casualty's operation is staged damage control or single-stage
+#'
+#' @return 1 for the damage control pathway, 0 for a single-stage definitive
+#'   procedure, NA for a casualty who does not require surgery
+#'
+#' @details Damage control is indicated by physiology rather than by the
+#'   presence of an injury: it is chosen for a casualty exhausted by
+#'   hypothermia, coagulopathy and acidosis, who would not survive a prolonged
+#'   definitive procedure. A casualty stable on the table receives their
+#'   definitive repair in one operation and needs neither a stabilisation phase
+#'   nor a return to theatre. The rate is keyed to triage priority, which is
+#'   the model's only representation of physiological derangement.
+#'
+#'   Drawn once, where surgical candidacy itself is decided, so that both
+#'   echelons read the same value: a casualty's physiology does not change
+#'   because a forward theatre happened to be free.
+#'
+#'   A rate of exactly zero or one consumes no random number, since a
+#'   degenerate Bernoulli trial has only one outcome. That keeps the run's
+#'   random stream identical to a model without the split when every rate is
+#'   set to one, which is what makes the all-damage-control configuration a
+#'   reproducible special case of this one rather than merely a similar run.
+draw_dcs_pathway <- function() {
+  needs_surg <- get_attribute(env, "surgery")
+  if (is.na(needs_surg) || needs_surg != 1) return(NA_real_)
+
+  prio  <- get_attribute(env, "priority")
+  other <- env_data$vars$r1$other
+  rate  <- if (is.na(prio)) other$pri3_dcs_rate
+           else if (prio == 1) other$pri1_dcs_rate
+           else if (prio == 2) other$pri2_dcs_rate
+           else other$pri3_dcs_rate
+
+  if (is.null(rate) || is.na(rate)) return(1)
+  if (rate >= 1) return(1)
+  if (rate <= 0) return(0)
+  as.numeric(runif(1) < rate)
+}
+
+#' Whether this casualty is on the single-stage surgical pathway
+#'
+#' @return TRUE when the casualty's operation is a single-stage definitive
+#'   procedure, FALSE for damage control and for anyone not requiring surgery
+single_stage <- function() {
+  pathway <- get_attribute(env, "dcs_pathway")
+  !is.na(pathway) && pathway == 0
+}
+
+#' Treatment efficacy multiplier earned by an operation, by surgical pathway
+#'
+#' @param abbreviated_factor The multiplier the staged pathway earns at this
+#'   operation, which for damage control is an abbreviated procedure
+#' @param definitive_factor The multiplier the staged pathway earns later, at
+#'   the operation that completes its definitive repair
+#' @return A closure returning the multiplier to apply to `dow_ceiling`
+#'
+#' @details Two casualties who both leave theatre with their definitive repair
+#'   complete have reached the same clinical state, so the single-stage
+#'   pathway earns at its one operation what the staged pathway earns across
+#'   its two. What separates them is how long the staged casualty took to get
+#'   there, and the model already prices that: dow_prob_conditional() charges
+#'   elapsed time at every checkpoint, so the interval between an abbreviated
+#'   operation and the definitive one carries its own mortality. Giving the
+#'   single-stage operation only the abbreviated multiplier would instead
+#'   leave a casualty who needed no staging at a higher residual ceiling than
+#'   one who did, which inverts the indication.
+definitive_efficacy <- function(abbreviated_factor, definitive_factor) {
+  force(abbreviated_factor); force(definitive_factor)
+  function() {
+    if (single_stage()) return(abbreviated_factor * definitive_factor)
+    abbreviated_factor
+  }
+}
+
 #' Draws a casualty's post-definitive intensive care requirement, in minutes
 #'
 #' @return Minutes drawn from the R2E post-definitive-ICU triangular
@@ -644,9 +718,11 @@ r2b_evac_return_leg <- function(traj, evacuation_team) {
 #' #     proceeds, P2+ defers OT entry while this unit's ICU is saturated),
 #' #     then check OT bed AND surgical team availability
 #' #     - OT bed free, no queue, team on shift → seize OT + team, perform
-#' #         DAMCON surgery, then post-operative stabilisation for the share
-#' #         of the ICU requirement served forward (r2b.post_op_icu.share;
-#' #         ICU bed, or holding bed at elevated risk when ICU is saturated)
+#' #         surgery, then, on the damage control pathway only, post-operative
+#' #         stabilisation for the share of the ICU requirement served forward
+#' #         (r2b.post_op_icu.share; ICU bed, or holding bed at elevated risk
+#' #         when ICU is saturated). A single-stage casualty's operation is
+#' #         their definitive repair, so no stabilisation phase follows it here
 #' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E
 #' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
 #' #          r2b_bypass_time = simulation time of the bypass decision)
@@ -705,7 +781,15 @@ r2b_treat_wia <- function(team_id) {
   # much of it is served here, the remainder falling to R2E, where it is
   # served before the definitive operation rather than after it.
   #
-  # Branches on the forward minutes, then on R2B ICU availability:
+  # A single-stage casualty has no stabilisation phase at all: their operation
+  # was their definitive repair, so there is no interval between two
+  # procedures for one to occupy. They take neither the draw nor a bed here,
+  # and their post-operative intensive care is the post-definitive episode
+  # served at R2E.
+  #
+  # Branches on the surgical pathway, then on the forward minutes, then on R2B
+  # ICU availability:
+  # - single-stage               → no stabilisation phase exists
   # - nothing to serve forward   → no forward stay (r2b_post_op_pathway unset);
   #                                the whole requirement is served at R2E
   # - ICU bed free               → ICU bed for the forward minutes
@@ -728,58 +812,68 @@ r2b_treat_wia <- function(team_id) {
   # the casualty reaches (the R2E arrival check), so the delay is charged
   # there, against the ceiling this trajectory has already raised.
   r2b_post_op_stabilisation <- trajectory("R2B Post-Operative Stabilisation") %>%
-    set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
     branch(
-      option = function() {
-        if (r2b_stabilisation_minutes() <= 0) return(2)
-        return(1)
-      },
+      # The draw itself sits inside the branch, not before it, so a
+      # single-stage casualty consumes no requirement they will never serve.
+      option = function() if (single_stage()) 2 else 1,
       continue = TRUE,
 
-      trajectory("R2B Forward Stabilisation") %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
-        }) %>%
+      trajectory("R2B Damage Control Stabilisation") %>%
+        set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
         branch(
           option = function() {
-            usage <- sum(get_server_count(env, resources = icu_beds))
-            cap   <- sum(get_capacity(env, resources = icu_beds))
-            if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
-            return(2)
+            if (r2b_stabilisation_minutes() <= 0) return(2)
+            return(1)
           },
           continue = TRUE,
 
-          # ICU bed available — the nominal forward pathway
-          trajectory("R2B Post-Op ICU") %>%
-            set_attribute("r2b_post_op_pathway", 1) %>%
-            set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
-            simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-            seize_selected(id = 6) %>%
-            timeout(function() r2b_stabilisation_minutes()) %>%
-            release_selected(id = 6),
-
-          # ICU saturated — the same stay in a holding bed, at the same
-          # elevated risk the R2E post-op hold pathway carries for the same
-          # reason (reduced post-operative monitoring). The duration is the
-          # casualty's requirement either way: the bed changes what the stay
-          # is worth clinically, not how long they need it for.
-          trajectory("R2B Post-Op Hold — ICU Full") %>%
-            set_attribute("r2b_post_op_pathway", 2) %>%
-            set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
+          trajectory("R2B Forward Stabilisation") %>%
             set_attribute("dow_ceiling", function() {
               ceiling <- get_attribute(env, "dow_ceiling")
               if (is.na(ceiling)) return(ceiling)
-              ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+              ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
             }) %>%
-            simmer::select(hold_beds, policy = "shortest-queue", id = 7) %>%
-            seize_selected(id = 7) %>%
-            timeout(function() r2b_stabilisation_minutes()) %>%
-            release_selected(id = 7)
+            branch(
+              option = function() {
+                usage <- sum(get_server_count(env, resources = icu_beds))
+                cap   <- sum(get_capacity(env, resources = icu_beds))
+                if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+                return(2)
+              },
+              continue = TRUE,
+
+              # ICU bed available — the nominal forward pathway
+              trajectory("R2B Post-Op ICU") %>%
+                set_attribute("r2b_post_op_pathway", 1) %>%
+                set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
+                simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
+                seize_selected(id = 6) %>%
+                timeout(function() r2b_stabilisation_minutes()) %>%
+                release_selected(id = 6),
+
+              # ICU saturated — the same stay in a holding bed, at the same
+              # elevated risk the R2E post-op hold pathway carries for the same
+              # reason (reduced post-operative monitoring). The duration is the
+              # casualty's requirement either way: the bed changes what the stay
+              # is worth clinically, not how long they need it for.
+              trajectory("R2B Post-Op Hold — ICU Full") %>%
+                set_attribute("r2b_post_op_pathway", 2) %>%
+                set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
+                set_attribute("dow_ceiling", function() {
+                  ceiling <- get_attribute(env, "dow_ceiling")
+                  if (is.na(ceiling)) return(ceiling)
+                  ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+                }) %>%
+                simmer::select(hold_beds, policy = "shortest-queue", id = 7) %>%
+                seize_selected(id = 7) %>%
+                timeout(function() r2b_stabilisation_minutes()) %>%
+                release_selected(id = 7)
+            ),
+
+          trajectory("No Forward Stabilisation")
         ),
 
-      trajectory("No Forward Stabilisation")
+      trajectory("Single-Stage — No Stabilisation Phase")
     )
 
   # OT availability check (unchanged from pre-Issue-43 logic). Joined
@@ -818,10 +912,15 @@ r2b_treat_wia <- function(team_id) {
         set_attribute("r2b_surgery_end", function() now(env)) %>%
         release_resources(surg_team) %>%
         release_selected(id = 4) %>%
+        # A damage control casualty's forward operation is abbreviated and
+        # earns r2b_dcs_factor; a single-stage casualty's is their definitive
+        # repair and earns what the staged route earns on completing one at
+        # R2E as well (definitive_efficacy(), top of this file).
         set_attribute("dow_ceiling", function() {
           ceiling <- get_attribute(env, "dow_ceiling")
           if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2b_dcs_factor
+          te <- env_data$vars$dow$treatment_efficacy
+          ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
         }) %>%
         join(r2b_post_op_stabilisation),
 
@@ -1233,12 +1332,18 @@ r2e_mortuary_intake <- function(team_id) {
 #' #                                   minutes until free, then proceed as "ICU available"
 #' #   Both ICU and post-op-hold recovery paths converge on a shared post-operative
 #' #   DOW check (time-dependent conditional increment, Issue #5) before Phase 4.
+#' #   The stabilisation episode itself is served only on the damage control
+#' #   pathway; a single-stage casualty passes straight to the DOW check.
+#' # - surgery == 1, single-stage, already operated on at R2B → no theatre here,
+#' #   their definitive repair having been performed forward; the post-operative
+#' #   DOW check alone
 #' # - surgery != 1 → no surgery needed
 #'
-#' # Phase 4: Second surgery (only if R2E Phase 3 surgery occurred without prior R2B DAMCON)
-#' # Branches based on attributes "r2e_surgery" and "r2b_surgery":
-#' # - r2e_surgery == 1 AND r2b_surgery != 1 → perform second surgery at R2E
-#' # - else (not a surgical candidate, or had R2B DAMCON)  → skip second surgery
+#' # Phase 4: Second surgery (damage control pathway only, and only if R2E
+#' # Phase 3 surgery occurred without prior R2B DAMCON)
+#' # Branches based on attributes "dcs_pathway", "r2e_surgery" and "r2b_surgery":
+#' # - dcs_pathway == 1 AND r2e_surgery == 1 AND r2b_surgery != 1 → second surgery
+#' # - else (single-stage, not a surgical candidate, or had R2B DAMCON) → skip
 #'
 #' # Phase 5: Final disposition — theatre evacuation policy
 #' # Draws recovery_to_duty_days (draw_recovery_to_duty(), severity-keyed)
@@ -1278,9 +1383,11 @@ r2e_treat_wia <- function(team_id) {
   # @param select_id  simmer selection id used for the OT bed in this block
   # @param start_attr Attribute name recording incision time
   # @param end_attr   Attribute name recording closure time
-  # @param efficacy   dow_ceiling multiplier applied on completion
+  # @param efficacy   Zero-argument function returning the dow_ceiling
+  #                   multiplier to apply on completion, so the multiplier can
+  #                   depend on the casualty's surgical pathway
   # @param set_flag   Whether to set the r2e_surgery marker attribute
-  # @return A simmer trajectory performing one DAMCON procedure
+  # @return A simmer trajectory performing one operation
   #
   # Seizure order is bed then team, released team then bed, matching
   # r2b_ot_check_path() so the two echelons cannot deadlock against each
@@ -1292,7 +1399,7 @@ r2e_treat_wia <- function(team_id) {
     force(section_id); force(select_id); force(start_attr)
     force(end_attr);   force(efficacy);  force(set_flag)
 
-    trj <- trajectory(sprintf("R2E DAMCON Surgery — Section %d", section_id)) %>%
+    trj <- trajectory(sprintf("R2E Surgery — Section %d", section_id)) %>%
       simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
       seize_selected(id = select_id) %>%
       seize_resources(surg_teams[[section_id]])
@@ -1315,7 +1422,7 @@ r2e_treat_wia <- function(team_id) {
       set_attribute("dow_ceiling", function() {
         ceiling <- get_attribute(env, "dow_ceiling")
         if (is.na(ceiling)) return(ceiling)
-        ceiling * efficacy
+        ceiling * efficacy()
       })
   }
 
@@ -1369,25 +1476,28 @@ r2e_treat_wia <- function(team_id) {
   #
   # Splitting it this way is what puts the resuscitation phase between the
   # two operations on both routes, rather than after both of them on one.
+  # A single-stage casualty has no interval between two operations and so no
+  # stabilisation phase; they pass straight to the post-operative DOW check.
   r2e_stabilisation_recovery <- trajectory("R2E Stabilisation") %>%
     set_attribute("post_op_pathway", 1) %>%
     branch(
       # A casualty operated on at R2B took their stabilisation before this
       # procedure, and must not momentarily occupy a bed to repeat it.
       option = function() {
+        if (single_stage()) return(2)
         prior <- get_attribute(env, "r2b_surgery")
         if (!is.na(prior) && prior == 1) return(2)
         return(1)
       },
       continue = TRUE,
-      trajectory("R2E Stabilisation Stay") %>%
+      trajectory("R2E Damage Control Stabilisation Stay") %>%
         set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
         set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
         timeout(function() r2e_stabilisation_minutes()) %>%
         release_selected(id = 6),
-      trajectory("Stabilised Before This Procedure")
+      trajectory("No Stabilisation Due at This Step")
     ) %>%
     join(r2e_post_op_dow_check)
 
@@ -1397,6 +1507,7 @@ r2e_treat_wia <- function(team_id) {
   r2e_pre_surgery_stabilisation <- trajectory("R2E Pre-Definitive Stabilisation") %>%
     branch(
       option = function() {
+        if (single_stage()) return(2)
         prior <- get_attribute(env, "r2b_surgery")
         if (is.na(prior) || prior != 1) return(2)
         if (r2e_stabilisation_minutes() <= 0) return(2)
@@ -1425,41 +1536,57 @@ r2e_treat_wia <- function(team_id) {
   # accepting elevated post-operative mortality risk rather than withholding
   # surgery (which would expose an unsurgicated P1 casualty to near-certain
   # DOW). See README Limitations for basis, uncertainty, and consequence.
+  #
+  # This is the degraded form of the stabilisation phase, so it applies only to
+  # the damage control pathway. A single-stage casualty has no stabilisation
+  # phase to degrade; their post-operative intensive care is the
+  # post-definitive episode, which carries its own holding-bed fallback.
   r2e_hold_recovery <- trajectory("R2E Post-Op Hold Recovery") %>%
-    set_attribute("post_op_pathway", 2) %>%
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
-    }) %>%
-    simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
-    seize_selected(id = 8) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2eheavy$post_op_hold$min,
-        b = env_data$vars$r2eheavy$post_op_hold$max,
-        c = env_data$vars$r2eheavy$post_op_hold$mode
-      )
-    }) %>%
-    release_selected(id = 8) %>%
+    branch(
+      option = function() if (single_stage()) 2 else 1,
+      continue = TRUE,
+
+      trajectory("R2E Damage Control Post-Op Hold") %>%
+        set_attribute("post_op_pathway", 2) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+        }) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
+        seize_selected(id = 8) %>%
+        timeout(function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$post_op_hold$min,
+            b = env_data$vars$r2eheavy$post_op_hold$max,
+            c = env_data$vars$r2eheavy$post_op_hold$mode
+          )
+        }) %>%
+        release_selected(id = 8),
+
+      trajectory("Single-Stage — No Stabilisation Phase to Degrade")
+    ) %>%
     join(r2e_post_op_dow_check)
 
-  # Shared surgery portion (OT seizure through DAMCON surgery). Recovery
+  # Shared surgery portion (OT seizure through the operation itself). Recovery
   # (ICU vs post-op hold) is decided upstream at the pre-OT gating branch
   # and joined on afterwards, so this portion is identical for both paths.
   # Branch structure: one sub-trajectory per R2E surgical section, selected on
   # entry by select_r2e_surg_section(). Every branch performs the same
   # procedure and differs only in which section's resources it seizes, so the
   # choice affects contention and shift availability, not clinical outcome.
-  r2e_ot_surgery <- trajectory("R2E OT — DAMCON Surgery") %>%
+  r2e_ot_surgery <- trajectory("R2E OT — Surgery") %>%
     branch(
       option = function() select_r2e_surg_section(team_id),
       continue = TRUE,
       lapply(seq_along(surg_teams), function(section_id) {
         build_r2e_surgery_block(
           section_id, 4, "r2e_surgery_1_start", "r2e_surgery_1_end",
-          env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor, TRUE
+          definitive_efficacy(
+            env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor,
+            env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+          ), TRUE
         )
       })
     )
@@ -1812,11 +1939,18 @@ r2e_treat_wia <- function(team_id) {
     #     - ICU full, priority above threshold (P2+)           → r2e_surgery_defer_path
     #         (OT entry deferred; polls ICU availability on a timer, then
     #         proceeds as the ICU-available path)
+    # - surgery == 1 but the definitive repair was already performed forward
+    #   (single-stage casualty operated on at R2B) → no theatre here; the
+    #   post-operative DOW checkpoint alone, so the checkpoint is not skipped
+    #   for the one route that reaches R2E already repaired
     # - surgery != 1 → no surgery needed
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
         if (is.na(needs_surg) || needs_surg != 1) return(4)
+
+        prior <- get_attribute(env, "r2b_surgery")
+        if (single_stage() && !is.na(prior) && prior == 1) return(5)
 
         usage  <- sum(get_server_count(env, resources = icu_beds))
         cap    <- sum(get_capacity(env, resources = icu_beds))
@@ -1832,15 +1966,21 @@ r2e_treat_wia <- function(team_id) {
       r2e_surgery_icu_path,
       r2e_surgery_hold_path,
       r2e_surgery_defer_path,
-      trajectory("No Surgery Needed")
+      trajectory("No Surgery Needed"),
+      trajectory("Definitive Repair Already Performed at R2B") %>%
+        join(r2e_post_op_dow_check)
     ) %>%
 
-    # Phase 4: Second surgery if patient had R2E Phase 3 surgery but not prior R2B DAMCON
-    # A second procedure is only meaningful for patients who underwent Phase 3 surgery
-    # at R2E (r2e_surgery == 1) without a prior R2B DAMCON (r2b_surgery != 1).
+    # Phase 4: Second surgery, for a damage control casualty whose abbreviated
+    # operation was the R2E Phase 3 one. A second procedure is only meaningful
+    # for patients who underwent Phase 3 surgery at R2E (r2e_surgery == 1)
+    # without a prior R2B DAMCON (r2b_surgery != 1), and only on the damage
+    # control pathway: a single-stage casualty's Phase 3 procedure was already
+    # their definitive repair, so there is nothing to return to theatre for.
     # Patients with surgery == 0 never set r2e_surgery, so is.na(r2e_surg) guards them out.
     branch(
       option = function() {
+        if (single_stage()) return(2)
         r2e_surg   <- get_attribute(env, "r2e_surgery")
         prior_surg <- get_attribute(env, "r2b_surgery")
         if (!is.na(r2e_surg) && r2e_surg == 1 &&
@@ -1859,7 +1999,10 @@ r2e_treat_wia <- function(team_id) {
           lapply(seq_along(surg_teams), function(section_id) {
             build_r2e_surgery_block(
               section_id, 7, "r2e_surgery_2_start", "r2e_surgery_2_end",
-              env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor, FALSE
+              local({
+                factor <- env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+                function() factor
+              }), FALSE
             )
           })
         ),
@@ -2121,6 +2264,11 @@ build_casualty_trajectory <- function() {
         return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))
       }
     }) %>%
+
+    # Staged damage control or a single-stage definitive procedure, decided
+    # here rather than at either theatre so both echelons read one value; see
+    # draw_dcs_pathway() above.
+    set_attribute("dcs_pathway", draw_dcs_pathway) %>%
     set_attribute("team", function() sample(1:counts[["r1"]], 1)) %>%
 
     # Phase 2: Casualty type branch

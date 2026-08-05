@@ -178,7 +178,8 @@ SRC_DNBI_BF_PCT       <- "Izaguirre et al. (2025), historical LSCO psychiatric/b
 SRC_DNBI_DISEASE_PCT  <- "Residual estimate (100% minus the NBI and battle-fatigue shares); no direct empirical source identified. High uncertainty — see README DNBI Sub-Categorisation."
 SRC_DNBI_NBI_PCT      <- "FORECAS (Blood, Zouris & Rotblatt, 1998) empirical data, pp.22-23."
 SRC_DISEASE_SURGERY   <- "Informed estimate from population-level appendicitis/cholecystitis/perforated-ulcer incidence in military-age males; see README DNBI Sub-Categorisation. High uncertainty."
-SRC_EVAC_CANDIDACY    <- "ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
+SRC_DCS_RATE          <- "Informed estimate keyed to triage priority, anchored on Harvin et al. (2019): 24% of 872 emergent laparotomies across six United States Level 1 trauma centres were damage control, with institutional rates of 16-34%. Uplifted for a more penetrating and blast-dominated combat population, and weighted towards Priority 1, damage control being indicated by physiological derangement rather than by injury site. High uncertainty — see README Core Trajectory — Surgical Pathway."
+SRC_EVAC_CANDIDACY    <-"ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
 SRC_DOW_CEILING       <- "Validated against the Falklands War 1982 Ajax Bay treated-cohort DOW rate of ~0.46% (3 deaths among over 650 casualties reaching forward surgery; Westphalen, 2018) via 50-replication Monte Carlo; entangled with the OIF/OEF-era treatment efficacy factors below it. See README Died of Wounds."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
@@ -192,7 +193,7 @@ SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-der
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
 SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much of the stabilisation phase a commander elects to deliver forward rather than evacuating for it. Ships at zero (all stabilisation at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
 SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of stabilisation outstanding. Ships at 24h, the deployed evacuation norm below. Binds ahead of the forward ICU share, so zero disables forward holding outright."
-SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README Further Development (L25). The remainder of critical care occurs at Role 4."
+SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). See README Died of Wounds — Treatment Efficacy Modifiers."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army Medical Department Center and School subcourse MD0002 — see README R2E Heavy Trajectory."
@@ -487,6 +488,15 @@ build_param_registry <- function() {
     var_field("dnbi_disease_surgery_pct", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "disease_surgery_pct",
               "Disease Surgical Candidacy", "Proportion of disease DNBI casualties who nonetheless require surgery.",
               min = 0, max = 1, step = 0.01, morris_name = "disease_surgery_pct", source = SRC_DISEASE_SURGERY, slider = TRUE),
+    var_field("dcs_pri1", GRP_CASUALTY, "Surgical Pathway", "r1", "other", "pri1_dcs_rate",
+              "Priority 1 Damage Control Rate", "Proportion of operated Priority 1 casualties whose operation is staged damage control rather than a single-stage definitive procedure.",
+              min = 0, max = 1, step = 0.01, morris_name = "pri1_dcs_rate", source = SRC_DCS_RATE, slider = TRUE),
+    var_field("dcs_pri2", GRP_CASUALTY, "Surgical Pathway", "r1", "other", "pri2_dcs_rate",
+              "Priority 2 Damage Control Rate", "Proportion of operated Priority 2 casualties whose operation is staged damage control rather than a single-stage definitive procedure.",
+              min = 0, max = 1, step = 0.01, morris_name = "pri2_dcs_rate", source = SRC_DCS_RATE, slider = TRUE),
+    var_field("dcs_pri3", GRP_CASUALTY, "Surgical Pathway", "r1", "other", "pri3_dcs_rate",
+              "Priority 3 Damage Control Rate", "Proportion of operated Priority 3 casualties whose operation is staged damage control rather than a single-stage definitive procedure.",
+              min = 0, max = 1, step = 0.01, morris_name = "pri3_dcs_rate", source = SRC_DCS_RATE, slider = TRUE),
     var_field("evac_pri1", GRP_CASUALTY, "Strategic Evacuation Rates", "r1", "other", "pri1_evac",
               "Priority 1 Strategic Evacuation Rate", "Proportion of treated Priority 1 casualties evacuated out of theatre.",
               min = 0, max = 1, step = 0.01, morris_name = "pri1_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),

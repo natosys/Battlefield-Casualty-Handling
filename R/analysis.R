@@ -492,6 +492,7 @@ build_attributes_wide <- function(attributes, arrivals) {
     semi_join(dplyr::select(arrivals, name, replication), by = c("name", "replication"))
 
   for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
+                    "dcs_pathway", "r2b_surgery", "r2e_surgery",
                     "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
                     "treatment_received", "evacuation_day", "ame_departure_time",
                     "ame_wait_minutes", "ame_route")) {
@@ -1366,6 +1367,43 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
                                     attributes_wide$surgery_deferred == 1L,
                                   na.rm = TRUE)
   }
+  # KPI 8a: surgical pathway split (Issue #173)
+  # dcs_pathway: 1 = staged damage control (abbreviated operation, stabilisation,
+  # definitive repair), 0 = single-stage definitive procedure. Reported over
+  # casualties who actually reached theatre, by priority, so the realised share
+  # can be read against the configured `pri*_dcs_rate` it is drawn from.
+  surgical_pathway_summary <- NULL
+  if (all(c("dcs_pathway", "priority") %in% names(attributes_wide))) {
+    operated <- attributes_wide %>%
+      filter(!is.na(dcs_pathway)) %>%
+      mutate(
+        had_surgery = (!is.na(r2b_surgery) & r2b_surgery == 1) |
+                      (!is.na(r2e_surgery) & r2e_surgery == 1)
+      ) %>%
+      filter(had_surgery)
+
+    if (nrow(operated)) {
+      surgical_pathway_summary <- operated %>%
+        mutate(priority_group = ifelse(is.na(priority), "unclassified",
+                                       paste0("Priority ", as.integer(priority)))) %>%
+        group_by(priority_group) %>%
+        summarise(
+          operated       = n(),
+          damage_control = sum(dcs_pathway == 1),
+          single_stage   = sum(dcs_pathway == 0),
+          dcs_share      = damage_control / operated,
+          .groups        = "drop"
+        )
+      write.csv(surgical_pathway_summary,
+                file.path(output_dir, "surgical_pathway_summary.csv"), row.names = FALSE)
+      cat(sprintf(
+        "Surgical pathway split (Issue #173): %d operated, %d damage control (%.1f%%), %d single-stage\n",
+        nrow(operated), sum(operated$dcs_pathway == 1),
+        100 * mean(operated$dcs_pathway == 1), sum(operated$dcs_pathway == 0)))
+      print(surgical_pathway_summary)
+    }
+  }
+
   cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
   if (!is.na(evacuation_policy_summary$in_theatre_share)) {
     cat(sprintf(
@@ -1855,6 +1893,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     transport_utilisation       = transport_utilisation,
     transport_capacity_margin_plot = p_transport_capacity_margin,
     post_op_pathway_summary     = post_op_pathway_summary,
+    surgical_pathway_summary    = surgical_pathway_summary,
     surgery_deferred_count      = surgery_deferred_count,
     r2e_icu_gating_daily        = r2e_icu_gating_daily,
     r2e_icu_gating_plot         = r2e_icu_gating_plot,

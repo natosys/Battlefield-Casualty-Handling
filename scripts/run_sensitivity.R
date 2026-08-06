@@ -54,7 +54,16 @@ option_list <- list(
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed for reproducibility [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
-              help = "Directory for CSV and PNG outputs [default: %default]"),
+              help = "Directory for CSV outputs [default: %default]"),
+  make_option("--images-dir", type = "character", default = NULL,
+              help = paste(
+                "Directory for the per-response PNG plots [default:",
+                "<output-dir>/images, which is gitignored]. Pass 'images' to",
+                "refresh the tracked baseline plots, which is a deliberate act:",
+                "a screen writes one plot per response, so the default keeps an",
+                "ordinary run from scattering untracked files through the",
+                "tracked images/ directory (Issue #154's contract)."
+              )),
   make_option("--max-cores",  type = "integer", default = NULL,
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
@@ -97,6 +106,8 @@ morris_result <- run_morris(
   r          = opt$r,
   levels     = opt$levels,
   output_dir = opt[["output-dir"]],
+  images_dir = if (is.null(opt[["images-dir"]])) file.path(opt[["output-dir"]], "images")
+               else opt[["images-dir"]],
   max_cores  = opt[["max-cores"]]
 )
 

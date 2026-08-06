@@ -878,6 +878,14 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
 #'   Shiny-triggered, locally-run screens). NULL preserves prior behaviour.
+#' @param images_dir Directory path for saving the per-response PNG plots.
+#'   Defaults to `file.path(output_dir, "images")`, which is gitignored, so
+#'   an ordinary screening run cannot overwrite the tracked baseline plots in
+#'   `images/` or scatter untracked ones alongside them unless the caller
+#'   names that directory explicitly — the same contract analyse_run() has
+#'   carried since Issue #154. A screen writes one plot per response rather
+#'   than the seven this function once produced, so a default of `images/`
+#'   would now leave twenty-nine untracked files in a tracked directory.
 #' @return Named list: morris_objs (per-response sensitivity objects), Y
 #'   (response matrix), X (design matrix), ranking (the primary system OT
 #'   queue ranking, sorted descending by mu_star), rankings (the same data
@@ -888,14 +896,15 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   response matrix, so the number of responses screened does not change the
 #'   number of simulation runs — the marginal cost of a response is one
 #'   `tell()`, one `ggsave()` and one `write.csv()`. Saves a Morris plot
-#'   (mu* vs sigma) per response to images/ and a ranking CSV per response to
-#'   output_dir, plus `morris_ranking.csv` for the primary response. The
+#'   (mu* vs sigma) per response to images_dir and a ranking CSV per response
+#'   to output_dir, plus `morris_ranking.csv` for the primary response. The
 #'   global env_data is restored to env_data_base on exit regardless of
 #'   errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
-                       output_dir = "outputs", progress_dir = NULL, max_cores = NULL) {
+                       output_dir = "outputs", progress_dir = NULL, max_cores = NULL,
+                       images_dir = file.path(output_dir, "images")) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-  dir.create("images",   recursive = TRUE, showWarnings = FALSE)
+  dir.create(images_dir, recursive = TRUE, showWarnings = FALSE)
 
   n_eval <- r * (nrow(morris_params) + 1L)
   message(sprintf(
@@ -1034,14 +1043,14 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
     # per label than the nine/ten/eleven-parameter screens this project's
     # image dimensions were originally tuned for.
-    ggsave(file.path("images", sprintf("morris_%s.png", kpi)), plot = p,
+    ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
            width = 12, height = 9, dpi = 130)
 
     obj
   })
   names(morris_objs) <- names(kpi_labels)
 
-  message(sprintf("Morris plots saved to images/ (%d responses)", length(kpi_labels)))
+  message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
   message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
   if (length(degenerates) > 0) {
     warning(sprintf(

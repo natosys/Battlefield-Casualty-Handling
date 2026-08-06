@@ -3435,10 +3435,11 @@ server <- function(input, output, session) {
     json_path <- tempfile("bch_morris_config_", fileext = ".json")
     write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
 
-    # run_morris() writes "images/<...>.png" and "outputs/*.csv" relative to
-    # the working directory — a scratch work_dir (rather than threading a
-    # new images_dir parameter through run_morris()) keeps a Shiny-triggered
-    # screen from ever touching the repo's own tracked images/ or outputs/.
+    # run_morris() writes "outputs/*.csv" and "outputs/images/<...>.png"
+    # relative to the working directory — a scratch work_dir keeps a
+    # Shiny-triggered screen from ever touching the repo's own outputs/, on
+    # top of the gitignored default images_dir that already keeps any screen
+    # away from the tracked images/.
     work_dir <- tempfile("bch_morris_work_")
     dir.create(work_dir)
 

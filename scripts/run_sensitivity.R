@@ -15,12 +15,18 @@
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
 #
-# morris_params (R/sensitivity.R) covers 55 parameters as of Issue #112 (up
-# from 11); r=20 at this parameter count is r*(p+1) = 1,120 design points x
-# 5 reps = 5,600 simulation runs, impractical outside a long-lived compute
-# session. --r 5 was used for the Issue #112 re-run documented in the
-# README (280 design points x 5 reps = 1,400 runs, ~20s/run on 4 cores);
-# scale --r up when a longer session is available.
+# morris_params (R/sensitivity.R) covers 58 parameters; r=20 at this
+# parameter count is r*(p+1) = 1,180 design points x 5 reps = 5,900
+# simulation runs, impractical outside a long-lived compute session. --r 5
+# was used for the Issue #112 re-run documented in the README (280 design
+# points x 5 reps = 1,400 runs, ~20s/run on 4 cores); scale --r up when a
+# longer session is available.
+#
+# Every response in morris_kpis (R/sensitivity.R) is ranked against the same
+# design, so the response count does not change how long the sweep takes.
+# Each writes outputs/morris_ranking_<response>.csv and
+# images/morris_<response>.png; outputs/morris_ranking.csv repeats the
+# primary system OT queue ranking.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -94,21 +100,36 @@ morris_result <- run_morris(
   max_cores  = opt[["max-cores"]]
 )
 
-n_na <- sum(!complete.cases(morris_result$Y))
-if (n_na > 0) {
+# A design point at which *every* response is NA is a failed evaluation. A
+# design point at which only some responses are NA is ordinary: a response
+# measured over a cohort nobody entered (a mean AME wait in a run too short
+# for a sortie to be scheduled, say) has no value to report, and
+# extract_kpis() returns NA rather than a fictitious zero. The two are
+# reported separately, since only the first indicates something went wrong.
+n_failed <- sum(apply(morris_result$Y, 1, function(r) all(!is.finite(r))))
+if (n_failed > 0) {
   warning(sprintf(
     paste0(
-      "%d of %d design points have at least one NA/failed KPI (see the ",
+      "%d of %d design points failed outright — every response is NA (see the ",
       "'X of Y replications did not complete' warning from run_replications(), ",
       "R/replication.R, likely an OOM-killed mclapply worker at this ",
       "parameter count — try a lower --max-cores). Elementary effects for ",
       "any parameter whose trajectory passes through an affected design ",
-      "point will be NA, and sigma_ee may come out NA for some or all ",
-      "parameters as a result — inspect outputs/morris_ranking.csv before ",
-      "treating this run as authoritative."
+      "point will be NA — inspect the per-response ranking CSVs' n_finite_ee ",
+      "column before treating this run as authoritative."
     ),
-    n_na, nrow(morris_result$Y)
+    n_failed, nrow(morris_result$Y)
   ), call. = FALSE)
+}
+
+partial <- colSums(!is.finite(morris_result$Y))
+partial <- partial[partial > 0]
+if (length(partial) > 0) {
+  message(sprintf(
+    "\n%d response(s) could not be measured at every design point (response_na_pts in each ranking CSV): %s",
+    length(partial),
+    paste(sprintf("%s (%d/%d)", names(partial), partial, nrow(morris_result$Y)), collapse = ", ")
+  ))
 }
 
 if (opt$sobol) {

@@ -7,6 +7,17 @@ library(simmer)
 library(simmer.bricks)
 library(triangle)
 
+# ── Shared trajectory names ───────────────────────────────────────────────────
+
+#' Name format for the per-section R2E surgical blocks
+#'
+#' Used by r2e_treat_wia() to name each seize-operate-release block it builds,
+#' one per surgical section, and by scripts/check_r2e_surgery_seizure.R to
+#' locate those blocks in the printed trajectory. Holding the format in one
+#' place means renaming the blocks cannot leave the regression check searching
+#' for a label the model no longer uses. The single "%d" is the section index.
+R2E_SURGERY_SECTION_FMT <- "R2E Surgery — Section %d"
+
 # ── Helper functions ──────────────────────────────────────────────────────────
 
 #' Seizes one unit of each resource in the provided list
@@ -1399,7 +1410,7 @@ r2e_treat_wia <- function(team_id) {
     force(section_id); force(select_id); force(start_attr)
     force(end_attr);   force(efficacy);  force(set_flag)
 
-    trj <- trajectory(sprintf("R2E Surgery — Section %d", section_id)) %>%
+    trj <- trajectory(sprintf(R2E_SURGERY_SECTION_FMT, section_id)) %>%
       simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
       seize_selected(id = select_id) %>%
       seize_resources(surg_teams[[section_id]])

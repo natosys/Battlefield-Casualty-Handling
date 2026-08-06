@@ -19,6 +19,13 @@
 # ordinary inspection of run output. The two halves below check for it
 # structurally, by reading the built trajectory, and behaviourally, by
 # running the model and inspecting the resource monitor.
+#
+# The structural half locates the surgical blocks by the name format
+# R2E_SURGERY_SECTION_FMT, which R/trajectories.R owns and this script reads,
+# so renaming those blocks cannot leave the check searching for a label the
+# model no longer uses. A pattern that matches nothing is reported as a
+# check-integrity problem rather than a model defect, since the two call for
+# entirely different responses.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -34,12 +41,34 @@ source("R/replication.R")
 CHECK_DAYS <- 30L
 CHECK_SEED <- 42L
 
-failures <- character(0)
+failures  <- character(0)
+integrity <- character(0)
 
 fail <- function(...) failures <<- c(failures, sprintf(...))
 
+# A check-integrity failure means the check can no longer see the model — the
+# blocks it reads were renamed, or the model was restructured out from under
+# it. That is a different problem from the model being wrong, and reporting it
+# as a model defect sends the next reader looking in the wrong place, so the
+# two are accumulated and printed separately.
+broken <- function(...) integrity <<- c(integrity, sprintf(...))
+
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
+}
+
+#' Regex matching a surgical section block header, derived from its name format
+#'
+#' The format is owned by R/trajectories.R, so the check follows a rename
+#' rather than carrying its own copy of the label. Literal regex metacharacters
+#' in the format are escaped and the "%d" becomes a capturing group, so the
+#' section index can be read back off each matched header.
+#'
+#' @param fmt sprintf format string naming one section block
+#' @return Regex with one capturing group over the section index
+section_header_pattern <- function(fmt) {
+  escaped <- gsub("([][{}()*+?.\\\\^$|])", "\\\\\\1", fmt)
+  paste0("trajectory: ", sub("%d", "([0-9]+)", escaped, fixed = TRUE))
 }
 
 # ── Setup ───────────────────────────────────────────────────────────────────
@@ -58,6 +87,15 @@ counts   <<- sapply(env_data$elms, length)
 
 cat("\n-- Structural: R2E surgery blocks seize a surgical section --\n")
 
+block_pattern <- section_header_pattern(R2E_SURGERY_SECTION_FMT)
+
+if (!grepl("%d", R2E_SURGERY_SECTION_FMT, fixed = TRUE)) {
+  broken(paste("R2E_SURGERY_SECTION_FMT ('%s') carries no '%%d' section index,",
+               "so section coverage cannot be read back from the block names"),
+         R2E_SURGERY_SECTION_FMT)
+  report(FALSE, "section name format carries no section index")
+}
+
 for (team_id in seq_along(env_data$elms$r2eheavy)) {
   env <<- simmer("check") %>% build_env(env_data)
 
@@ -68,15 +106,41 @@ for (team_id in seq_along(env_data$elms$r2eheavy)) {
 
   # Each surgery block is a named fork; the activities belonging to it run
   # from its header line to the next trajectory header.
-  block_starts <- grep("trajectory: R2E DAMCON Surgery", listing)
+  block_starts <- grep(block_pattern, listing)
   header_lines <- grep("trajectory:", listing)
 
   if (length(block_starts) == 0) {
-    fail("team %d: no R2E DAMCON surgery blocks found in the built trajectory",
-         team_id)
-    report(FALSE, "team %d: no surgery blocks found", team_id)
+    broken(paste("team %d: this check could not locate any R2E surgical",
+                 "section block matching /%s/ — the model may be sound and the",
+                 "check unable to see it, so confirm the block names in",
+                 "R/trajectories.R before treating this as a model defect"),
+           team_id, block_pattern)
+    report(FALSE, "team %d: no block matched /%s/ — check integrity, not model",
+           team_id, block_pattern)
     next
   }
+
+  # Coverage: every configured section must appear, and appear the same number
+  # of times as every other, since each is built from the same call sites. A
+  # branch dropped or a section left uncovered shrinks what the per-block
+  # assertions below examine, which would otherwise pass silently on less.
+  n_sections   <- length(env_data$elms$r2eheavy[[team_id]][["surg"]])
+  found_ids    <- as.integer(sub(paste0(".*", block_pattern, ".*"), "\\1",
+                                 listing[block_starts]))
+  per_section  <- table(factor(found_ids, levels = seq_len(n_sections)))
+  n_sites      <- length(block_starts) / n_sections
+
+  ok <- all(per_section > 0) && length(unique(as.integer(per_section))) == 1 &&
+    !any(found_ids > n_sections)
+  if (!ok) {
+    fail(paste("team %d: %d surgery blocks do not cover the %d configured",
+               "surgical sections evenly (blocks per section: %s)"),
+         team_id, length(block_starts), n_sections,
+         paste(sprintf("%d:%d", seq_len(n_sections), as.integer(per_section)),
+               collapse = ", "))
+  }
+  report(ok, "team %d: %d surgery blocks cover all %d surgical sections at %g site(s) each",
+         team_id, length(block_starts), n_sections, n_sites)
 
   for (start in block_starts) {
     following <- header_lines[header_lines > start]
@@ -196,11 +260,17 @@ for (team_id in seq_along(env_data$elms$r2eheavy)) {
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")
+if (length(integrity)) {
+  cat(sprintf("%d check-integrity problem(s) — this check could not read the model,\n",
+              length(integrity)))
+  cat("which is not in itself evidence that the model is wrong:\n")
+  for (f in integrity) cat(" - ", f, "\n", sep = "")
+}
 if (length(failures)) {
   cat(sprintf("%d check(s) failed:\n", length(failures)))
   for (f in failures) cat(" - ", f, "\n", sep = "")
-  quit(status = 1)
 }
+if (length(integrity) || length(failures)) quit(status = 1)
 
 cat("All R2E surgical seizure checks passed.\n")
 quit(status = 0)

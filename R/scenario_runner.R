@@ -94,8 +94,9 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #' @param n_iterations Number of replications (default 10)
 #' @param n_days Simulation duration in days (default 30)
 #' @param path File path to env_data.json (default "env_data.json")
-#' @param ot_hours Hours per day the first OT shift is active (default 12);
-#'   threaded to run_replications() -> build_env()
+#' @param ot_hours Hours per day the first OT shift is active. NULL (the
+#'   default) uses the value configured in env_data.json; threaded to
+#'   run_replications() -> build_env()
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0 = no exclusion)
 #' @return Named list: scenario (name), label (scenario's `label` field, or
@@ -110,7 +111,7 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'   directly (rather than calling load_scenario() a second time) purely to
 #'   recover the scenario's `label` field for reporting.
 run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
-                         path = "env_data.json", ot_hours = 12,
+                         path = "env_data.json", ot_hours = NULL,
                          warm_up_days = 0) {
   json_data <- jsonlite::fromJSON(path, simplifyVector = FALSE)
   resolved  <- resolve_scenario(json_data, scenario)
@@ -213,7 +214,8 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
 #' @param n_iterations Replications per scenario (default 10)
 #' @param n_days Simulation duration per replication (default 30)
 #' @param path File path to env_data.json (default "env_data.json")
-#' @param ot_hours Hours per day the first OT shift is active (default 12)
+#' @param ot_hours Hours per day the first OT shift is active. NULL (the
+#'   default) uses the value configured in env_data.json
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0)
 #' @param output_dir Directory for CSV outputs (default "outputs")
@@ -231,7 +233,7 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
 #'   across replications within a scenario via mclapply.
 compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensity"),
                               n_iterations = 10, n_days = 30,
-                              path = "env_data.json", ot_hours = 12,
+                              path = "env_data.json", ot_hours = NULL,
                               warm_up_days = 0,
                               output_dir = "outputs", images_dir = "images") {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)

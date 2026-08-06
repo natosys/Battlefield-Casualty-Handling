@@ -18,8 +18,9 @@ library(parallel)
 #'   `write_files` is TRUE (default "data", the tracked baseline location).
 #'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
 #'   refresh was explicitly requested (Issue #154).
-#' @param ot_hours    Hours per day the first OT shift is active (default 12).
-#'   Passed to build_env(); used by sensitivity screening to vary OT availability.
+#' @param ot_hours    Hours per day the first OT shift is active. NULL (the
+#'   default) uses the value configured in env_data.json; an explicit value
+#'   overrides it for this replication only. Passed to build_env().
 #' @param antithetic  Logical; when TRUE antithetic arrival variates are used
 #'   (U' = 1 - U in both rate draws and within-minute jitter). Set TRUE for
 #'   even-indexed replications in run_replications() antithetic pairing.
@@ -27,7 +28,7 @@ library(parallel)
 #'
 #' @details Sets env globally (<<-) so trajectory closures can resolve it.
 #'   In forked mclapply workers, <<- modifies only the fork's global state.
-run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
+run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
                      antithetic = FALSE, data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
 
@@ -162,8 +163,9 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'
 #' @param n_iterations Number of replications
 #' @param n_days       Simulation duration in days
-#' @param ot_hours     Hours per day the first OT shift is active (default 12).
-#'   Threaded to run_once() → build_env(); used by sensitivity screening.
+#' @param ot_hours     Hours per day the first OT shift is active. NULL (the
+#'   default) uses the value configured in env_data.json. Threaded to
+#'   run_once() → build_env().
 #' @param progress_dir Optional directory path; when supplied, an empty
 #'   marker file ("rep_<i>.done") is written to it as each replication
 #'   completes, letting a caller on another process (e.g. the Shiny app's
@@ -194,7 +196,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = 12,
 #'   is set before mclapply for the global stream; individual pair seeds are
 #'   set inside each worker via run_once(seed = ...), overriding the substream
 #'   but preserving pair-level independence. Falls back to lapply on Windows.
-run_replications <- function(n_iterations, n_days, ot_hours = 12, progress_dir = NULL,
+run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir = NULL,
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 

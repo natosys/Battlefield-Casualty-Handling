@@ -756,19 +756,44 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
 
 # ── Simmer environment construction ─────────────────────────────────────────
 
+#' Reads the configured operating theatre shift length from a built env_data
+#'
+#' @param env_data Built environment list (build_environment() output)
+#' @return Numeric hours per day the first OT shift is active
+#'
+#' @details The single source of truth for OT shift length is
+#'   `vars.surgical_roster.shift.ot_hours` in env_data.json. Every caller
+#'   that used to carry its own literal default reaches the value through
+#'   here, so changing the configuration file changes the shift length
+#'   everywhere at once. A configuration missing the field is an error
+#'   rather than a silently substituted default, on the same basis as every
+#'   other required parameter in the vars tree.
+get_ot_hours <- function(env_data) {
+  v <- env_data$vars$surgical_roster$shift$ot_hours
+  if (is.null(v)) {
+    stop("env_data.json is missing vars.surgical_roster.shift.ot_hours ",
+         "(operating theatre shift length).")
+  }
+  as.numeric(v)
+}
+
 #' Initializes the simmer environment by adding all resources from env_data
 #'
 #' @param env A simmer environment object
 #' @param env_data Nested list defining resources for each echelon/unit type
-#' @param ot_hours Hours per day that the first OT shift is active (default 12).
-#'   Shift 1 covers 0 to ot_hours; Shift 2 covers ot_hours to 24. Used by
-#'   sensitivity analysis to screen OT availability as a screened parameter.
+#' @param ot_hours Hours per day that the first OT shift is active. NULL
+#'   (the default) reads the configured value from `env_data`; an explicit
+#'   value overrides it for this build only, which is how sensitivity
+#'   screening and the Shiny Run tab vary OT availability without editing
+#'   the configuration. Shift 1 covers 0 to ot_hours; Shift 2 covers
+#'   ot_hours to 24.
 #' @return Modified simmer environment with all resources added
 #'
 #' @details Schedules operating theatre shifts for surgical staff and beds.
 #' Counters r2e_surg_counter, r2e_ot_bed_counter, r2b_surg_counter, and
 #' r2b_ot_bed_counter alternate shift assignments across teams.
-build_env <- function(env, env_data, ot_hours = 12) {
+build_env <- function(env, env_data, ot_hours = NULL) {
+  if (is.null(ot_hours)) ot_hours <- get_ot_hours(env_data)
   ot_break   <- as.integer(ot_hours * 60L)
   ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = 1440)
   ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)

@@ -55,6 +55,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Population](#population)
     - [Reinforcement Demand & Fulfillment](#reinforcement-demand-fulfillment)
   - [Health System Architecture](#health-system-architecture)
+    - [Surgical Shift Roster](#surgical-shift-roster)
   - [Medevac — Transport Fleet](#medevac-—-transport-fleet)
   - [Schedules and Rosters](#schedules-and-rosters)
   - [Casualty Generation](#casualty-generation)
@@ -425,6 +426,14 @@ The following table summarises the medical elements configured in `env_data.json
 | R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
 | R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
+#### Surgical Shift Roster
+
+One shift length rosters every surgical section in the theatre, at R2B and R2E alike. It sets the first shift's length; the second covers the remainder of the 24-hour day. See [Schedules and Rosters](#schedules-and-rosters) for how the sections alternate across the two shifts.
+
+| Parameter | Value |
+|-----------|-------|
+| OT Shift Length (hours per shift) | 12 |
+
 ### Medevac — Transport Fleet
 
 These are the available transport platforms and their characteristics:
@@ -443,11 +452,11 @@ Some resources carry a roster. Surgical sections work 12-hour shifts, alternatin
 | Resource | Roster applied | Configurable variable | Default | Where configured |
 |---|---|---|---|---|
 | R1 Treatment Team | No — no shift schedule; available continuously | — | — | — |
-| R2B Surgical Section | Yes — alternating two-shift roster across successive R2B surgical sections (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
-| R2E Surgical Section | Yes — alternating two-shift roster across R2E's three surgical sections, two on the first shift and one on the second (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | Shiny app "Run" tab (`app.R`); otherwise the `ot_hours` argument to `build_env()`/`run_once()` |
+| R2B Surgical Section | Yes — alternating two-shift roster across successive R2B surgical sections (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | `env_data.json` (`vars.surgical_roster.shift.ot_hours`), or the Shiny Configure panel's Health System Architecture group |
+| R2E Surgical Section | Yes — alternating two-shift roster across R2E's three surgical sections, two on the first shift and one on the second (`build_env()`, `R/environment.R`) | `ot_hours` | 12 (hours) | `env_data.json` (`vars.surgical_roster.shift.ot_hours`), or the Shiny Configure panel's Health System Architecture group |
 | R2B / R2E Operating Theatre beds | No — the physical OT bed is available 24 hours per day; only the surgical section carries the shift schedule | — | — | — |
 
-`ot_hours` is a single shared parameter: it sets the first shift's length (the second shift covers the remainder of the 24-hour day) identically at both R2B and R2E, not independently per echelon. It is not part of `env_data.json` and has no CLI flag; it is Morris-screened (see [Sensitivity Analysis](#sensitivity-analysis)) and is otherwise fixed at its 12-hour default unless changed in the Shiny app or passed explicitly by calling code.
+`ot_hours` is a single shared parameter: it sets the first shift's length (the second shift covers the remainder of the 24-hour day) identically at both R2B and R2E, not independently per echelon. Its configured value lives at `vars.surgical_roster.shift.ot_hours` in `env_data.json` and is read from there by `get_ot_hours()` (`R/environment.R`), so a change to that one field reaches every entry point at once: `build_env()`, `run_once()`, `run_replications()`, the scenario runner, the Shiny console and the sensitivity screen. Each of those also accepts an explicit `ot_hours` argument overriding the configured value for that call alone, which programmatic callers use to sweep the shift length without rewriting the configuration; Morris screening (see [Sensitivity Analysis](#sensitivity-analysis)) instead varies it through the same configuration path as every other screened parameter. The Shiny console offers no separate run-time control for it, since a shift length is a property of the health system being simulated rather than of one execution, and a control outside the configuration would govern a run without appearing in the configuration that run is saved and reproduced from. The 12-hour default is a rostering assumption rather than a sourced quantity, no open-access source prescribing a deployed surgical shift length; a two-shift day splitting 24 hours evenly is the simplest arrangement consistent with the section counts above, and were it wrong in either direction surgical throughput would scale with it, which is why the parameter is screened.
 
 ### Casualty Generation
 
@@ -1113,7 +1122,7 @@ The triangular distribution parameters carry significant epistemic uncertainty. 
 
 **Morris Elementary Effects (EE) screening** [[47]](#References) was applied using R's `sensitivity` package [[48]](#References). Morris EE is a global, one-at-a-time (OAT) method that identifies the few influential parameters from a larger set at low computational cost, requiring r × (p + 1) model evaluations, where r is the trajectory count and p is the number of parameters. It produces two statistics per parameter: µ\* (the mean absolute Elementary Effect, indicating overall influence) and σ (the standard deviation of Elementary Effects, indicating nonlinearity and interaction). Parameters with large µ\* and small σ have large, approximately linear effects; large µ\* and large σ indicate nonlinear or interaction-dominated effects.
 
-**Parameter coverage.** The screened set is derived from the full parameter surface rather than by expert selection. Every numeric leaf in `env_data.json`'s `vars` tree is enumerated by combining `R/app_params.R`'s `build_param_registry()` (269 fields, the same registry the Shiny Configure panel renders from, each carrying a `path` into the vars tree and, where established, a `source` citation) with a direct read of `env_data.json` for the parameters that are calibrated constants rather than user-editable fields, namely the DOW logistic curve's shape and base terms and the treatment efficacy multipliers (see [Died of Wounds](#died-of-wounds)).
+**Parameter coverage.** The screened set is derived from the full parameter surface rather than by expert selection. Every numeric leaf in `env_data.json`'s `vars` tree is enumerated by combining `R/app_params.R`'s `build_param_registry()` (286 fields, the same registry the Shiny Configure panel renders from, each carrying a `path` into the vars tree and, where established, a `source` citation) with a direct read of `env_data.json` for the parameters that are calibrated constants rather than user-editable fields, namely the DOW logistic curve's shape and base terms and the treatment efficacy multipliers (see [Died of Wounds](#died-of-wounds)).
 
 Two classes of parameter are then held out of the screen. Polling-loop intervals are excluded because they discretise continuous monitoring rather than represent a decision a planner could make, and the categories listed under [Parameters Excluded from Screening](#parameters-excluded-from-screening) are excluded for the reasons given there. `post_surgery_prob` is classified as Context rather than Policy: it decides whether a casualty who already had R2B surgery needs a short or a full R2E ICU stay (`r2e_icu_recovery`, `R/trajectories.R`), which is a clinical-severity fact about that casualty, unlike its sibling `evacuation_policy_days`, which is a genuine command decision and remains Policy.
 

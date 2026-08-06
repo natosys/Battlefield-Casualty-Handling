@@ -1573,18 +1573,14 @@ ui <- page_navbar(
       card(
         card_header("Run Configuration"),
         numericInput("n_days", "Simulation Duration (days)", value = 30, min = 1, max = 180, step = 1),
-        textInput("seed", "Random Seed (blank = random)", value = "42"),
-        slider_with_text_input("ot_hours",
-                    field_label(list(label = "OT Shift Length (hours per shift)",
-                                     tooltip = paste0(
-                                       "Hours the first operating theatre shift is active each day ",
-                                       "(the second shift covers the remainder of the 24h day). ",
-                                       sprintf("Plausible range %s–%s (Morris-screened).",
-                                               morris_params$lower[morris_params$name == "ot_hours"],
-                                               morris_params$upper[morris_params$name == "ot_hours"])))),
-                    min = morris_params$lower[morris_params$name == "ot_hours"],
-                    max = morris_params$upper[morris_params$name == "ot_hours"],
-                    value = morris_params$mode[morris_params$name == "ot_hours"], step = 1)
+        textInput("seed", "Random Seed (blank = random)", value = "42")
+        # OT shift length is not offered here. It is a property of the health
+        # system being simulated, not of this particular execution, so it is
+        # edited in the Configure panel (Health System Architecture →
+        # Surgical Shift Roster) along with every other model parameter. That
+        # keeps it inside the configuration a run is saved and reproduced
+        # from; a Run tab override would have governed the run without
+        # appearing in the saved JSON.
       ),
       card(
         card_header("Run Mode"),
@@ -1692,7 +1688,6 @@ server <- function(input, output, session) {
     function(f) f$id, character(1)
   )
   lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))
-  wire_slider_text_sync(input, session, "ot_hours")
   wire_slider_text_sync(input, session, "n_reps")
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
@@ -2106,7 +2101,6 @@ server <- function(input, output, session) {
     seed_val <- suppressWarnings(as.integer(trimws(input$seed)))
     seed_val <- if (length(seed_val) == 0 || is.na(seed_val)) NULL else seed_val
     days_val     <- input$n_days
-    ot_hours_val <- input$ot_hours
     built_env    <- build_environment(current_json())
     app_dir      <- APP_DIR
 
@@ -2130,7 +2124,7 @@ server <- function(input, output, session) {
       day_min  <<- 1440L
       counts   <<- sapply(env_data$elms, length)
 
-      wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE, ot_hours = ot_hours_val)
+      wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE)
       mon <- list(
         arrivals   = get_mon_arrivals(list(wrapped),   ongoing = TRUE),
         attributes = get_mon_attributes(list(wrapped)),
@@ -2177,7 +2171,6 @@ server <- function(input, output, session) {
 
     n_reps_val   <- as.integer(input$n_reps)
     days_val     <- input$n_days
-    ot_hours_val <- input$ot_hours
     app_dir      <- APP_DIR
     # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
     max_cores_val <- detect_safe_cores(days_val)
@@ -2199,7 +2192,7 @@ server <- function(input, output, session) {
     output_rds <- tempfile("bch_full_result_", fileext = ".rds")
     worker_args <- c(
       "--mode", "full", "--json", json_path, "--days", days_val,
-      "--ot-hours", ot_hours_val, "--n-reps", n_reps_val,
+      "--n-reps", n_reps_val,
       "--max-cores", max_cores_val, "--progress-dir", prog_dir,
       "--output-rds", output_rds
     )

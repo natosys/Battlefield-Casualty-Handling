@@ -138,6 +138,15 @@ generate_env_summary_section <- function(env_data) {
     map_chr(elm_rows, function(row) {
       paste0("| ", paste(map_chr(elm_colnames, ~ as.character(row[[.x]] %||% "")), collapse = " | "), " |")
     }),
+    "",
+    "#### Surgical Shift Roster",
+    "",
+    "One shift length rosters every surgical section in the theatre, at R2B and R2E alike. It sets the first shift's length; the second covers the remainder of the 24-hour day. See [Schedules and Rosters](#schedules-and-rosters) for how the sections alternate across the two shifts.",
+    "",
+    "| Parameter | Value |",
+    "|-----------|-------|",
+    paste0("| OT Shift Length (hours per shift) | ",
+           as.character(get_var_value(env_data, "surgical_roster", "shift", "ot_hours")), " |"),
     ""
   )
   

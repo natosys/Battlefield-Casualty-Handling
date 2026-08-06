@@ -238,30 +238,6 @@ run_shiny_worker <- function(args, output_rds) {
 # fresh, immediately before submitting that run.
 PARAM_REGISTRY  <- build_param_registry()
 
-#' Look up one registry field spec by its id
-#'
-#' @details Used where a control outside the Configure panel needs a field's
-#'   label, tooltip or bounds — the Run tab's OT Shift Length slider is the
-#'   only such case. Reading them from the registry rather than restating
-#'   them keeps the two controls describing one parameter in one voice.
-registry_field <- function(id) {
-  hit <- Filter(function(f) identical(f$id, id), PARAM_REGISTRY)
-  if (length(hit) != 1) stop(sprintf("registry_field: no unique field with id '%s'", id))
-  hit[[1]]
-}
-
-# The Run tab carries a per-run override of the OT shift length, alongside
-# the same parameter's Configure-panel field. Its bounds, label and tooltip
-# come from that field's registry spec (which in turn borrows the Morris
-# screening bounds), and its initial value from the shipped env_data.json —
-# so the shift length has one definition, in the JSON, rather than a
-# literal repeated here. A Configure edit follows through to this slider
-# (see the ot_shift_hours observer in server()); moving this slider
-# afterwards overrides the configured value for the next run only, and does
-# not write back to the configuration.
-OT_HOURS_FIELD   <- registry_field("ot_shift_hours")
-OT_HOURS_DEFAULT <- OT_HOURS_FIELD$get(fromJSON(DEFAULT_JSON, simplifyVector = FALSE))
-
 #' Detect every triangular (min/mode/max) field triple in a registry, by
 #' shared id prefix (tri_fields() in R/app_params.R always names them
 #' "<prefix>_min"/"<prefix>_mode"/"<prefix>_max"). Computed once from the
@@ -1597,13 +1573,14 @@ ui <- page_navbar(
       card(
         card_header("Run Configuration"),
         numericInput("n_days", "Simulation Duration (days)", value = 30, min = 1, max = 180, step = 1),
-        textInput("seed", "Random Seed (blank = random)", value = "42"),
-        slider_with_text_input("ot_hours",
-                    field_label(list(label = OT_HOURS_FIELD$label,
-                                     tooltip = paste(OT_HOURS_FIELD$tooltip,
-                                                     "Overrides the configured value for this run only."))),
-                    min = OT_HOURS_FIELD$min, max = OT_HOURS_FIELD$max,
-                    value = OT_HOURS_DEFAULT, step = OT_HOURS_FIELD$step)
+        textInput("seed", "Random Seed (blank = random)", value = "42")
+        # OT shift length is not offered here. It is a property of the health
+        # system being simulated, not of this particular execution, so it is
+        # edited in the Configure panel (Health System Architecture →
+        # Surgical Shift Roster) along with every other model parameter. That
+        # keeps it inside the configuration a run is saved and reproduced
+        # from; a Run tab override would have governed the run without
+        # appearing in the saved JSON.
       ),
       card(
         card_header("Run Mode"),
@@ -1711,7 +1688,6 @@ server <- function(input, output, session) {
     function(f) f$id, character(1)
   )
   lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))
-  wire_slider_text_sync(input, session, "ot_hours")
   wire_slider_text_sync(input, session, "n_reps")
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
@@ -1719,24 +1695,6 @@ server <- function(input, output, session) {
   lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
     wire_range_slider_text_sync(input, session, sprintf("mc_event_pri_split_%d", i))
   })
-
-  # Keep the Run tab's per-run OT shift override following the configured
-  # value: editing the Configure field, or loading a configuration file that
-  # carries a different shift length, moves the Run slider with it. Without
-  # this the two controls for one parameter could sit at different values
-  # with nothing on screen saying which the next run would use. Moving the
-  # Run slider afterwards is still an override and is left alone — it does
-  # not feed back into the configuration, so nothing here resets it.
-  observeEvent(input$ot_shift_hours, {
-    v <- input$ot_shift_hours
-    if (!is.null(v) && !is.na(v) && !isTRUE(all.equal(v, input$ot_hours))) {
-      updateSliderInput(session, "ot_hours", value = v)
-    }
-  }, ignoreInit = TRUE)
-  observeEvent(input$upload_json, {
-    v <- OT_HOURS_FIELD$get(raw_env_data())
-    if (!is.null(v) && !is.na(v)) updateSliderInput(session, "ot_hours", value = v)
-  }, ignoreInit = TRUE, priority = -1)
 
   # Live distribution-curve preview for every triangular (min/mode/max)
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),
@@ -2143,7 +2101,6 @@ server <- function(input, output, session) {
     seed_val <- suppressWarnings(as.integer(trimws(input$seed)))
     seed_val <- if (length(seed_val) == 0 || is.na(seed_val)) NULL else seed_val
     days_val     <- input$n_days
-    ot_hours_val <- input$ot_hours
     built_env    <- build_environment(current_json())
     app_dir      <- APP_DIR
 
@@ -2167,7 +2124,7 @@ server <- function(input, output, session) {
       day_min  <<- 1440L
       counts   <<- sapply(env_data$elms, length)
 
-      wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE, ot_hours = ot_hours_val)
+      wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE)
       mon <- list(
         arrivals   = get_mon_arrivals(list(wrapped),   ongoing = TRUE),
         attributes = get_mon_attributes(list(wrapped)),
@@ -2214,7 +2171,6 @@ server <- function(input, output, session) {
 
     n_reps_val   <- as.integer(input$n_reps)
     days_val     <- input$n_days
-    ot_hours_val <- input$ot_hours
     app_dir      <- APP_DIR
     # Computed fresh right now, not cached — see detect_safe_cores()'s roxygen.
     max_cores_val <- detect_safe_cores(days_val)
@@ -2236,7 +2192,7 @@ server <- function(input, output, session) {
     output_rds <- tempfile("bch_full_result_", fileext = ".rds")
     worker_args <- c(
       "--mode", "full", "--json", json_path, "--days", days_val,
-      "--ot-hours", ot_hours_val, "--n-reps", n_reps_val,
+      "--n-reps", n_reps_val,
       "--max-cores", max_cores_val, "--progress-dir", prog_dir,
       "--output-rds", output_rds
     )

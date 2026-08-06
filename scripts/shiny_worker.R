@@ -34,11 +34,6 @@ option_list <- list(
   make_option("--mode",         type = "character", default = ""),
   make_option("--json",         type = "character", default = ""),
   make_option("--days",         type = "integer",   default = 30L),
-  # No literal default: omitting the flag leaves ot_hours NULL, which
-  # run_replications() resolves to the shift length configured in the JSON
-  # this worker was handed (--json). Passing the flag overrides it for this
-  # run only, which is what app.R's Run tab slider does.
-  make_option("--ot-hours",     type = "double",    default = NULL),
   make_option("--n-reps",       type = "integer",   default = 100L),
   make_option("--r",            type = "integer",   default = 20L),
   make_option("--n-rep",        type = "integer",   default = 5L),
@@ -66,7 +61,9 @@ counts   <<- sapply(env_data$elms, length)
 result <- switch(opt$mode,
 
   "full" = {
-    mon <- run_replications(opt[["n-reps"]], opt$days, ot_hours = opt[["ot-hours"]],
+    # No ot_hours argument: the shift length is part of the configuration
+    # this worker was handed (--json), like every other model parameter.
+    mon <- run_replications(opt[["n-reps"]], opt$days,
                             progress_dir = progress_dir, max_cores = max_cores)
 
     out_dir <- tempfile("bch_full_outputs_")

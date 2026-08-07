@@ -84,7 +84,8 @@ result <- switch(opt$mode,
                       output_dir = "outputs", progress_dir = progress_dir,
                       max_cores = max_cores)
 
-    png_files <- list.files("images", pattern = "^morris_.*\\.png$", full.names = TRUE)
+    png_files <- list.files(file.path("outputs", "images"),
+                            pattern = "^morris_.*\\.png$", full.names = TRUE)
     png_bytes <- setNames(
       lapply(png_files, function(f) readBin(f, "raw", file.info(f)$size)),
       basename(png_files)

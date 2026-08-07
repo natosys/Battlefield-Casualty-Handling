@@ -3435,10 +3435,11 @@ server <- function(input, output, session) {
     json_path <- tempfile("bch_morris_config_", fileext = ".json")
     write_json(current_json(), json_path, pretty = TRUE, auto_unbox = TRUE)
 
-    # run_morris() writes "images/<...>.png" and "outputs/*.csv" relative to
-    # the working directory — a scratch work_dir (rather than threading a
-    # new images_dir parameter through run_morris()) keeps a Shiny-triggered
-    # screen from ever touching the repo's own tracked images/ or outputs/.
+    # run_morris() writes "outputs/*.csv" and "outputs/images/<...>.png"
+    # relative to the working directory — a scratch work_dir keeps a
+    # Shiny-triggered screen from ever touching the repo's own outputs/, on
+    # top of the gitignored default images_dir that already keeps any screen
+    # away from the tracked images/.
     work_dir <- tempfile("bch_morris_work_")
     dir.create(work_dir)
 
@@ -3593,15 +3594,17 @@ server <- function(input, output, session) {
     top5 <- head(morris_results()$ranking$parameter, 5)
     tagList(
       tags$hr(),
-      h5("Morris Screening Results — R2E ICU Queue (Primary KPI)"),
+      h5("Morris Screening Results — R2E ICU Queue"),
       p(class = "text-muted small",
         "Each point is one parameter: x-axis (μ*) is its overall influence on the queue, y-axis (σ) is ",
         "how much that influence varies — points toward the top-right matter most and are least ",
-        "predictable in isolation."),
+        "predictable in isolation. The screen ranks every parameter against each response in the ",
+        "documented model output set; this is one of them, shown inline, with a plot for each of the ",
+        "others in the ZIP below and a ranking CSV for each written to the run's output directory."),
       shrink_to_fit_plot_ui("morris_mu_sigma_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-      downloadButton("dl_morris_png_zip", "Download Morris PNGs — All KPIs (ZIP)"),
+      downloadButton("dl_morris_png_zip", "Download Morris PNGs — All Responses (ZIP)"),
       tags$hr(),
-      h5("Ranked Parameter Influence (μ* on System OT Queue)"),
+      h5("Ranked Parameter Influence — μ* on System OT Queue (Primary Response)"),
       p(class = "text-muted small", "Top 5 parameters (highlighted) are pre-selected below for Sobol Decomposition."),
       DTOutput("morris_ranking_table"),
       downloadButton("dl_morris_ranking_csv", "Download Ranked Parameter Table (CSV)"),

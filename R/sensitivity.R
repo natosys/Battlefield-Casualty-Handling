@@ -6,6 +6,7 @@
 library(sensitivity)
 library(dplyr)
 library(tidyr)
+library(stringr)
 library(ggplot2)
 
 # ── Plotting helpers ──────────────────────────────────────────────────────────
@@ -429,16 +430,203 @@ compute_utilisation <- function(mon, pattern) {
   mean(util$rep_util, na.rm = TRUE)
 }
 
-#' Extract KPIs from a run_replications() monitoring list
+# ── Response variable registry ────────────────────────────────────────────────
+
+#' Morris response variables, their plain-English labels, their decision
+#' domain, the selection criteria they satisfy, and the scalar reduction
+#' applied where the underlying KPI is not itself a scalar
+#'
+#' @format Data frame with columns: name (the identifier used in
+#'   `outputs/morris_ranking_<name>.csv` and `images/morris_<name>.png`),
+#'   label, domain, criteria, reduction
+#'
+#' @details The response set is the Model Outputs KPI set (see README Model
+#'   Outputs), not a separate selection. Each of the seventeen documented
+#'   KPIs contributes one or more responses here; a KPI that is a vector, a
+#'   distribution, or a time series contributes one response per element or
+#'   one per named summary statistic, because Morris requires a single
+#'   response value per design point. The `criteria` column records which of
+#'   the five documented selection criteria (C1 doctrinal standard
+#'   compliance, C2 planner decision relevance, C3 causal pathway position,
+#'   C4 binding constraint identification, C5 health outcome attribution)
+#'   the parent KPI satisfies, carried across unchanged from its Model
+#'   Outputs entry, so the screen's response set is self-documenting in code
+#'   rather than only in the README.
+#'
+#'   Two responses have no Model Outputs parent and are retained as derived
+#'   aggregates rather than as KPIs in their own right: `system_ot_q`, the
+#'   sum of the two theatre queue responses, which is the ranking reported in
+#'   `outputs/morris_ranking.csv` and in the README's published table; and
+#'   `transport_util`, which applies Domain 3's utilisation reduction to the
+#'   transport fleet, whose queues stay near zero under baseline demand and
+#'   would otherwise register no sensitivity at all (Issue #6). Both are
+#'   marked as derived in the `domain` column.
+#'
+#'   Counts are reported as the per-replication mean rather than as a total
+#'   across the replications evaluated at a design point, so a response keeps
+#'   the same scale whether a screen runs at three replications per point or
+#'   at five. Rates are already replication-count invariant, being divided by
+#'   the arrival count over the same replications.
+morris_kpis <- data.frame(
+  name = c(
+    # ── Domain 1 — Mortality and preventable death ──────────────────────
+    "dow_count",
+    "dow_rate_r1", "dow_rate_r2b", "dow_rate_r2e",
+    "dow_rate_r2e_postop", "dow_rate_ame_wait",
+    # ── Domain 2 — Time-to-care from R1 arrival ─────────────────────────
+    "time_to_surgery_mean", "time_to_surgery_p90",
+    "r2b_dwell_mean", "r2b_r2e_transit_mean", "r2e_dwell_mean",
+    # ── Domain 3 — Surgical throughput ──────────────────────────────────
+    "ot_util_r2b", "ot_util_r2e",
+    "r2b_surgery_count", "r2e_surgery_count",
+    # ── Domain 4 — Echelon load and capacity ────────────────────────────
+    "r2b_ot_q", "r2e_ot_q", "r2e_icu_q", "transport_q",
+    # ── Domain 5 — Flow and disposition ─────────────────────────────────
+    "rtd_rate_r1", "rtd_rate_r2b", "rtd_rate_r2e", "r2b_bypass_rate",
+    # ── Domain 6 — Combat power ─────────────────────────────────────────
+    "total_rtd",
+    # ── Domain 7 — Strategic evacuation and Role 4 demand ───────────────
+    "role4_peak_occupancy", "role4_mean_occupancy",
+    "ame_sortie_demand",
+    "ame_wait_critical_mean", "ame_wait_standard_mean",
+    "ame_backlog_critical_mean", "ame_backlog_critical_peak",
+    "ame_backlog_standard_mean", "ame_backlog_standard_peak",
+    "ame_sorties_flown",
+    # ── Derived aggregates (no Model Outputs parent) ────────────────────
+    "system_ot_q", "transport_util"
+  ),
+  label = c(
+    "Total DOW Count",
+    "DOW Rate — R1", "DOW Rate — R2B", "DOW Rate — R2E Arrival",
+    "DOW Rate — R2E Post-Operative", "DOW Rate — Awaiting Strategic AME",
+    "Mean Time to First Surgical Incision", "p90 Time to First Surgical Incision",
+    "Mean R2B Dwell Time", "Mean R2B to R2E Transit Time", "Mean R2E Dwell Time",
+    "R2B OT Utilisation", "R2E OT Utilisation",
+    "R2B Surgeries per Run", "R2E Surgical Episodes per Run",
+    "Mean R2B OT Queue", "Mean R2E OT Queue", "Mean R2E ICU Queue",
+    "Mean Transport Queue (PMV Amb + HX240M)",
+    "RTD Rate — R1", "RTD Rate — R2B", "RTD Rate — R2E", "R2B Bypass Rate",
+    "Total RTD Count",
+    "Role 4 Peak Bed Occupancy", "Role 4 Mean Bed Occupancy",
+    "Unconstrained-Baseline AME Sortie Demand",
+    "Mean Strategic AME Wait — Critical Route",
+    "Mean Strategic AME Wait — Standard Route",
+    "Mean Strategic AME Backlog — Critical Pool",
+    "Peak Strategic AME Backlog — Critical Pool",
+    "Mean Strategic AME Backlog — Standard Pool",
+    "Peak Strategic AME Backlog — Standard Pool",
+    "Strategic AME Sorties Flown",
+    "System OT Queue (R2B + R2E)",
+    "Mean Transport Utilisation (PMV Amb + HX240M)"
+  ),
+  domain = c(
+    rep("1 — Mortality", 6),
+    rep("2 — Time-to-care", 5),
+    rep("3 — Surgical throughput", 4),
+    rep("4 — Echelon load", 4),
+    rep("5 — Flow and disposition", 4),
+    "6 — Combat power",
+    rep("7 — Strategic evacuation", 10),
+    rep("Derived", 2)
+  ),
+  criteria = c(
+    "C1, C2, C5",
+    rep("C1, C2, C3, C5", 5),
+    rep("C1, C2, C3, C5", 2),
+    "C1, C3, C4", "C1, C3", "C1, C3, C4",
+    "C3, C4", "C3, C4", "C2, C3, C4", "C2, C3, C4",
+    rep("C3, C4", 4),
+    rep("C1, C2, C5", 3), "C2, C3, C4",
+    "C2, C5",
+    "C2, C3, C5", "C2, C3, C5",
+    "C2, C4, C5",
+    "C2, C4, C5", "C2, C4, C5",
+    rep("C3, C4, C5", 4),
+    "C3, C4, C5",
+    "C3, C4", "C3, C4"
+  ),
+  reduction = c(
+    "scalar — per-replication mean count",
+    rep("one response per echelon; deaths at that echelon over total arrivals", 5),
+    "distribution — mean", "distribution — p90",
+    "distribution — mean", "distribution — mean", "distribution — mean",
+    "one response per echelon; time-weighted mean fraction of theatre capacity busy",
+    "one response per echelon; time-weighted mean fraction of theatre capacity busy",
+    "time series — per-replication mean total over the run",
+    "time series — per-replication mean total over the run",
+    rep("time series — time-weighted mean queue length", 4),
+    rep("one response per echelon; returns at that echelon over total arrivals", 3),
+    "scalar — bypassed casualties over WIA arrivals",
+    "scalar — per-replication mean count",
+    "time series — per-replication mean of the peak concurrent census",
+    "time series — patient-days over the engagement window",
+    "scalar — per-replication mean total sorties required",
+    "distribution — mean, per route", "distribution — mean, per route",
+    "time series — time-weighted mean, per pool",
+    "time series — peak, per pool",
+    "time series — time-weighted mean, per pool",
+    "time series — peak, per pool",
+    "event series — per-replication mean count of sorties flown",
+    "time series — time-weighted mean queue length, summed across echelons",
+    "time series — time-weighted mean fraction of fleet busy"
+  ),
+  stringsAsFactors = FALSE
+)
+
+#' Plain-English label per response, keyed by response name
+#'
+#' @details Retained as a named list for the per-response plotting and
+#'   ranking loops in run_morris(); `morris_kpis` is the authority.
+kpi_labels <- setNames(as.list(morris_kpis$label), morris_kpis$name)
+
+# ── KPI extraction ────────────────────────────────────────────────────────────
+
+#' Evaluate an expression against a fixed RNG stream, restoring the caller's
+#' stream afterwards
+#'
+#' @param expr Expression to evaluate
+#' @param seed Integer seed applied for the duration of the evaluation
+#' @return The value of `expr`
+#'
+#' @details Two of the reused analysis derivations draw random numbers
+#'   (`compute_role4_census()` draws each evacuee's Role 4 length of stay
+#'   from a triangular distribution). Left unguarded, those draws would
+#'   advance the screening process's own RNG stream between design points and
+#'   so change the replication seeds every later design point runs under.
+#'   Fixing the seed also makes the length-of-stay draws a common random
+#'   number across design points, removing a source of noise from the Role 4
+#'   responses that has nothing to do with the parameter being perturbed.
+with_fixed_rng <- function(expr, seed = 20260729L) {
+  has_seed <- exists(".Random.seed", envir = globalenv())
+  if (has_seed) {
+    old <- get(".Random.seed", envir = globalenv())
+    on.exit(assign(".Random.seed", old, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(suppressWarnings(rm(".Random.seed", envir = globalenv())), add = TRUE)
+  }
+  set.seed(seed)
+  force(expr)
+}
+
+#' Extract the Morris response vector from a run_replications() monitoring list
 #'
 #' @param mon Named list with arrivals, attributes, resources
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q,
-#'   dow_count, transport_q, transport_util
+#' @return Named numeric vector, one element per row of `morris_kpis`, in
+#'   that order. An element is NA when the design point produced no casualty
+#'   in the cohort the response is measured over (for example a mean AME wait
+#'   on a route nobody took); NA is returned rather than zero because zero
+#'   would assert a measured value of zero minutes rather than the absence of
+#'   a measurement, and run_morris() reports the count of such points
+#'   alongside each ranking.
 #'
-#' @details Uses summarise_replications() for queue KPIs. DOW count is taken
-#'   directly from the attributes monitor to avoid dependency on warm-up
-#'   filtering. transport_q and transport_util (Issue #6) cover the pooled
-#'   PMV Ambulance and HX240M transport assets.
+#' @details Queue and utilisation responses come from
+#'   `summarise_replications()` and `compute_utilisation()` over the resource
+#'   monitor. Every other response is a per-casualty measure read from the
+#'   arrivals and attributes monitors, reusing the derivations already
+#'   present in `R/analysis.R` — `build_attributes_wide()` for the pivot to
+#'   one row per casualty, and `compute_role4_census()`, `compute_ame_demand()`,
+#'   `compute_ame_backlog()` and `compute_ame_sorties()` for the Role 4 and
+#'   strategic evacuation measures — rather than restating them here.
 extract_kpis <- function(mon) {
   kpi <- summarise_replications(mon)
 
@@ -450,6 +638,37 @@ extract_kpis <- function(mon) {
     if (length(v) == 0 || is.na(v)) 0 else v
   }
 
+  # Empty cohorts are routine at an extreme design point, so every summary
+  # below goes through these rather than through mean()/quantile()/max()
+  # directly, all three of which return NaN, an error, or -Inf on no input.
+  safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
+  safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
+  safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
+
+  arrivals <- mon$arrivals
+  n_arrivals <- nrow(arrivals)
+  n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
+  # The engagement window every "per day" and "over the run" reduction below
+  # is measured against, derived the same way analyse_run() derives it.
+  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / 1440))
+
+  attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
+  combined <- arrivals %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
+    mutate(casualty_type = str_extract(name, "^[^_]+"))
+
+  # build_attributes_wide() guarantees the columns analyse_run() reads
+  # directly; these are the remainder this function reads, absent from a run
+  # in which no casualty ever reached the stage that sets them.
+  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
+               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
+               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
+               "dnbi_type", "r2b_treated", "r2e_treated")) {
+    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
+  }
+  a <- function(nm) as.numeric(combined[[nm]])
+
+  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
   r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
   r2b_ot_q    <- safe_q("^b_r2b_ot_")
   r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
@@ -458,20 +677,160 @@ extract_kpis <- function(mon) {
   transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
   transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
 
-  dow_count <- sum(
-    mon$attributes$key == "dow" & mon$attributes$value == 1,
-    na.rm = TRUE
+  # ── Domain 1 — mortality ───────────────────────────────────────────────
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E arrival, 4 = R2E
+  # post-operative, 5 = awaiting strategic AME. The Model Outputs entry
+  # names three echelons and predates the post-operative and AME-wait
+  # checkpoints; all five the model can set are screened.
+  dow     <- a("dow")
+  dow_ech <- a("dow_echelon")
+  died    <- !is.na(dow) & dow == 1
+  dow_count <- sum(died) / n_reps
+  dow_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
+  }
+
+  # ── Domain 2 — time-to-care ────────────────────────────────────────────
+  first_surgery_start <- pmin(a("r2b_surgery_start"), a("r2e_surgery_1_start"), na.rm = TRUE)
+  time_to_surgery <- first_surgery_start - combined$start_time
+  time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
+  time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
+
+  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
+  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
+  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
+  non_negative <- function(x) x[is.finite(x) & x >= 0]
+
+  # ── Domain 3 — surgical throughput ─────────────────────────────────────
+  ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
+  ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
+  r2b_surgery_count <- sum(!is.na(a("r2b_surgery_start"))) / n_reps
+  # Theatre episodes, not casualties: a damage control casualty operated on
+  # at R2E occupies theatre twice and is counted twice.
+  r2e_surgery_count <- (sum(!is.na(a("r2e_surgery_1_start"))) +
+                        sum(!is.na(a("r2e_surgery_2_start")))) / n_reps
+
+  # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
+  returned  <- !is.na(a("return_day"))
+  ret_ech   <- a("return_echelon")
+  rtd_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
+  }
+  total_rtd <- sum(returned) / n_reps
+
+  n_wia <- sum(combined$casualty_type == "wia", na.rm = TRUE)
+  r2b_bypass_rate <- if (n_wia == 0) NA_real_ else {
+    sum(!is.na(a("r2e_treated")) & is.na(a("r2b_treated"))) / n_wia
+  }
+
+  # ── Domain 7 — strategic evacuation and Role 4 demand ──────────────────
+  role4_params <- env_data$vars$role4
+  role4_peak <- NA_real_
+  role4_mean <- NA_real_
+  ame_sortie_demand <- NA_real_
+  if (!is.null(role4_params)) {
+    census <- with_fixed_rng(compute_role4_census(combined, role4_params))
+    if (nrow(census) > 0) {
+      daily <- census %>%
+        group_by(replication, day) %>%
+        summarise(total = sum(occupancy), .groups = "drop")
+      # Peak is taken over every censused day, including the tail of
+      # convalescence past the end of the engagement, matching the peak
+      # analyse_run() reports. The mean is instead patient-days accrued
+      # within the engagement window over the length of that window, so it
+      # is a concurrent-occupancy rate rather than a figure whose
+      # denominator moves with how long the last evacuee stays.
+      role4_peak <- safe_mean(
+        (daily %>% group_by(replication) %>% summarise(pk = max(total), .groups = "drop"))$pk
+      )
+      role4_mean <- sum(daily$total[daily$day <= n_days]) / (n_reps * n_days)
+    } else {
+      role4_peak <- 0
+      role4_mean <- 0
+    }
+
+    ame_capacity <- with(resolve_ame_airframe(role4_params),
+                         critical_capacity + standard_capacity)
+    demand <- compute_ame_demand(combined, ame_capacity)
+    ame_sortie_demand <- if (nrow(demand) == 0) 0 else sum(demand$sorties_required) / n_reps
+  }
+
+  ame_wait  <- a("ame_wait_minutes")
+  ame_route <- a("ame_route")
+  ame_wait_route <- function(k) safe_mean(ame_wait[!is.na(ame_route) & ame_route == k])
+
+  backlog <- compute_ame_backlog(mon$attributes, n_days)
+  backlog_stat <- function(pool_label, stat) {
+    sub <- backlog %>% filter(as.character(pool) == pool_label)
+    if (nrow(sub) == 0) return(0)
+    per_rep <- sub %>%
+      group_by(replication) %>%
+      arrange(time, .by_group = TRUE) %>%
+      mutate(dt = pmax(lead(time, default = max(time)) - time, 0)) %>%
+      summarise(
+        # A replication whose backlog events all fall at one instant carries
+        # no elapsed time to weight by, which would make weighted.mean() NaN.
+        mean_backlog = if (sum(dt) > 0) weighted.mean(backlog, w = dt, na.rm = TRUE)
+                       else mean(backlog, na.rm = TRUE),
+        peak_backlog = max(backlog, na.rm = TRUE),
+        .groups      = "drop"
+      )
+    safe_mean(per_rep[[if (stat == "mean") "mean_backlog" else "peak_backlog"]])
+  }
+
+  ame_sorties_flown <- 0
+  if (!is.null(role4_params)) {
+    sorties <- compute_ame_sorties(mon$resources, role4_params, n_days)
+    # One row per (replication, sortie_day, pool) with the outcome repeated
+    # across both pools, so the flown count is over distinct opportunities.
+    ame_sorties_flown <- if (nrow(sorties) == 0) 0 else {
+      nrow(distinct(sorties %>% filter(outcome == "Flown"), replication, sortie_day)) / n_reps
+    }
+  }
+
+  out <- c(
+    dow_count                 = dow_count,
+    dow_rate_r1               = dow_rate(1),
+    dow_rate_r2b              = dow_rate(2),
+    dow_rate_r2e              = dow_rate(3),
+    dow_rate_r2e_postop       = dow_rate(4),
+    dow_rate_ame_wait         = dow_rate(5),
+    time_to_surgery_mean      = safe_mean(time_to_surgery),
+    time_to_surgery_p90       = safe_p90(time_to_surgery),
+    r2b_dwell_mean            = safe_mean(non_negative(r2b_dwell)),
+    r2b_r2e_transit_mean      = safe_mean(non_negative(transit)),
+    r2e_dwell_mean            = safe_mean(non_negative(r2e_dwell)),
+    ot_util_r2b               = ot_util_r2b,
+    ot_util_r2e               = ot_util_r2e,
+    r2b_surgery_count         = r2b_surgery_count,
+    r2e_surgery_count         = r2e_surgery_count,
+    r2b_ot_q                  = r2b_ot_q,
+    r2e_ot_q                  = r2e_ot_q,
+    r2e_icu_q                 = r2e_icu_q,
+    transport_q               = transport_q,
+    rtd_rate_r1               = rtd_rate(1),
+    rtd_rate_r2b              = rtd_rate(2),
+    rtd_rate_r2e              = rtd_rate(3),
+    r2b_bypass_rate           = r2b_bypass_rate,
+    total_rtd                 = total_rtd,
+    role4_peak_occupancy      = role4_peak,
+    role4_mean_occupancy      = role4_mean,
+    ame_sortie_demand         = ame_sortie_demand,
+    ame_wait_critical_mean    = ame_wait_route(1),
+    ame_wait_standard_mean    = ame_wait_route(2),
+    ame_backlog_critical_mean = backlog_stat("Critical (ICU, CCATT/CCAST)", "mean"),
+    ame_backlog_critical_peak = backlog_stat("Critical (ICU, CCATT/CCAST)", "peak"),
+    ame_backlog_standard_mean = backlog_stat("Standard (Hold, CSU)", "mean"),
+    ame_backlog_standard_peak = backlog_stat("Standard (Hold, CSU)", "peak"),
+    ame_sorties_flown         = ame_sorties_flown,
+    system_ot_q               = system_ot_q,
+    transport_util            = transport_util
   )
 
-  c(
-    r2e_icu_q      = r2e_icu_q,
-    r2b_ot_q       = r2b_ot_q,
-    r2e_ot_q       = r2e_ot_q,
-    system_ot_q    = system_ot_q,
-    dow_count      = as.numeric(dow_count),
-    transport_q    = transport_q,
-    transport_util = transport_util
-  )
+  # Order and completeness are a hard contract: run_morris() indexes the
+  # response matrix by name and vapply()s against a fixed length.
+  stopifnot(identical(names(out), morris_kpis$name))
+  out
 }
 
 # ── Single-point evaluation ───────────────────────────────────────────────────
@@ -485,8 +844,8 @@ extract_kpis <- function(mon) {
 #'   through to run_replications() (see its own @param for why this
 #'   matters for Shiny-triggered, locally-run screens). NULL preserves
 #'   prior behaviour.
-#' @return Named numeric vector: r2e_icu_q, r2b_ot_q, r2e_ot_q, system_ot_q,
-#'   dow_count, transport_q, transport_util
+#' @return Named numeric vector, one element per row of `morris_kpis` — see
+#'   extract_kpis()
 #'
 #' @details Modifies the global env_data via apply_params() then restores it.
 #'   Every screened parameter, ot_hours included, reaches the model through
@@ -519,17 +878,33 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
 #'   Shiny-triggered, locally-run screens). NULL preserves prior behaviour.
-#' @return Named list: morris_objs (per-KPI sensitivity objects), Y (KPI matrix),
-#'   X (design matrix), ranking (data frame sorted descending by mu_star)
+#' @param images_dir Directory path for saving the per-response PNG plots.
+#'   Defaults to `file.path(output_dir, "images")`, which is gitignored, so
+#'   an ordinary screening run cannot overwrite the tracked baseline plots in
+#'   `images/` or scatter untracked ones alongside them unless the caller
+#'   names that directory explicitly — the same contract analyse_run() has
+#'   carried since Issue #154. A screen writes one plot per response rather
+#'   than the seven this function once produced, so a default of `images/`
+#'   would now leave twenty-nine untracked files in a tracked directory.
+#' @return Named list: morris_objs (per-response sensitivity objects), Y
+#'   (response matrix), X (design matrix), ranking (the primary system OT
+#'   queue ranking, sorted descending by mu_star), rankings (the same data
+#'   frame per response, named by response), kpis (`morris_kpis`)
 #'
-#' @details Runs r*(p+1) model evaluations where p = nrow(morris_params).
-#'   Saves per-KPI Morris plots (mu* vs sigma) to images/ and a parameter
-#'   ranking CSV to output_dir. The global env_data is restored to env_data_base
-#'   on exit regardless of errors.
+#' @details Runs r*(p+1) model evaluations where p = nrow(morris_params). The
+#'   design is generated once and every response is told against the same
+#'   response matrix, so the number of responses screened does not change the
+#'   number of simulation runs — the marginal cost of a response is one
+#'   `tell()`, one `ggsave()` and one `write.csv()`. Saves a Morris plot
+#'   (mu* vs sigma) per response to images_dir and a ranking CSV per response
+#'   to output_dir, plus `morris_ranking.csv` for the primary response. The
+#'   global env_data is restored to env_data_base on exit regardless of
+#'   errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
-                       output_dir = "outputs", progress_dir = NULL, max_cores = NULL) {
+                       output_dir = "outputs", progress_dir = NULL, max_cores = NULL,
+                       images_dir = file.path(output_dir, "images")) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-  dir.create("images",   recursive = TRUE, showWarnings = FALSE)
+  dir.create(images_dir, recursive = TRUE, showWarnings = FALSE)
 
   n_eval <- r * (nrow(morris_params) + 1L)
   message(sprintf(
@@ -557,9 +932,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
       eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores),
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
-        c(r2e_icu_q = NA_real_, r2b_ot_q = NA_real_, r2e_ot_q = NA_real_,
-          system_ot_q = NA_real_, dow_count = NA_real_,
-          transport_q = NA_real_, transport_util = NA_real_)
+        setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
       }
     )
     if (!is.null(progress_dir)) {
@@ -578,7 +951,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     # across however many points the screen runs.
     gc(full = TRUE)
     kpis
-  }, numeric(7)))
+  }, numeric(nrow(morris_kpis))))
 
   env_data <<- env_data_base
 
@@ -591,23 +964,74 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   saveRDS(list(X = sa$X, Y = Y, binf = sa$binf, bsup = sa$bsup),
           file.path(output_dir, "morris_design_and_responses.rds"))
 
-  kpi_labels <- list(
-    r2b_ot_q       = "Mean R2B OT Queue",
-    r2e_ot_q       = "Mean R2E OT Queue",
-    system_ot_q    = "System OT Queue (R2B + R2E)",
-    r2e_icu_q      = "Mean R2E ICU Queue",
-    dow_count      = "Total DOW Count",
-    transport_q    = "Mean Transport Queue (PMV Amb + HX240M)",
-    transport_util = "Mean Transport Utilisation (PMV Amb + HX240M)"
-  )
+  # A response carrying no variation across the design gives a mu* that is
+  # arithmetically zero but carries no information, which reads identically
+  # to a confident finding that no parameter influences it. The two are
+  # distinguished here: a degenerate response's mu*/sigma are written as NA
+  # with the reason recorded in the ranking's own `note` column, never as
+  # zero. The threshold is relative to the response's own magnitude, so it
+  # catches a constant response at any scale rather than only near zero.
+  is_degenerate <- function(y) {
+    y <- y[is.finite(y)]
+    if (length(y) < 2) return(TRUE)
+    sd(y) <= 1e-9 * max(1, abs(mean(y)))
+  }
+
+  #' Per-parameter mu*/sigma for one response, with the diagnostics needed to
+  #' tell an uninformative response from an uninfluenced parameter.
+  rank_response <- function(obj, kpi) {
+    y          <- Y[, kpi]
+    n_na       <- sum(!is.finite(y))
+    degenerate <- is_degenerate(y)
+    ee         <- obj$ee
+
+    n_finite <- apply(ee, 2, function(v) sum(is.finite(v)))
+    mu_star  <- apply(ee, 2, function(v) if (any(is.finite(v))) mean(abs(v), na.rm = TRUE) else NA_real_)
+    sigma    <- apply(ee, 2, function(v) if (sum(is.finite(v)) > 1) sd(v, na.rm = TRUE) else NA_real_)
+
+    note <- rep("", length(n_finite))
+    note[n_finite < nrow(ee)] <- "some trajectories produced a non-finite elementary effect"
+    note[n_finite == 0]       <- "no finite elementary effect at any trajectory"
+    if (degenerate) {
+      note[]    <- "degenerate response — insufficient variation across the design"
+      mu_star[] <- NA_real_
+      sigma[]   <- NA_real_
+    }
+
+    data.frame(
+      parameter        = morris_params$name,
+      mu_star          = as.numeric(mu_star),
+      sigma_ee         = as.numeric(sigma),
+      n_finite_ee      = as.integer(n_finite),
+      kpi              = kpi,
+      criteria         = morris_kpis$criteria[match(kpi, morris_kpis$name)],
+      response_mean    = if (any(is.finite(y))) mean(y, na.rm = TRUE) else NA_real_,
+      response_sd      = if (sum(is.finite(y)) > 1) sd(y, na.rm = TRUE) else NA_real_,
+      response_na_pts  = as.integer(n_na),
+      degenerate       = degenerate,
+      note             = note,
+      row.names        = NULL,
+      stringsAsFactors = FALSE
+    ) %>% arrange(desc(mu_star))
+  }
+
+  rankings    <- list()
+  degenerates <- character(0)
 
   morris_objs <- lapply(names(kpi_labels), function(kpi) {
     obj <- sa
     tell(obj, Y[, kpi])
 
+    ranking_kpi <- rank_response(obj, kpi)
+    rankings[[kpi]] <<- ranking_kpi
+    if (isTRUE(ranking_kpi$degenerate[1])) degenerates <<- c(degenerates, kpi)
+    write.csv(ranking_kpi, file.path(output_dir, sprintf("morris_ranking_%s.csv", kpi)),
+              row.names = FALSE)
+
     plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
     p <- tryCatch(
-      plot_morris_scatter(obj, plot_title),
+      if (isTRUE(ranking_kpi$degenerate[1])) stop("degenerate response")
+      else plot_morris_scatter(obj, plot_title),
       error = function(e) {
         ggplot() +
           annotate("text", x = 0.5, y = 0.5,
@@ -619,39 +1043,33 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
     # per label than the nine/ten/eleven-parameter screens this project's
     # image dimensions were originally tuned for.
-    ggsave(file.path("images", sprintf("morris_%s.png", kpi)), plot = p,
+    ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
            width = 12, height = 9, dpi = 130)
 
     obj
   })
   names(morris_objs) <- names(kpi_labels)
 
-  message("Morris plots saved to images/")
+  message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
+  message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
+  if (length(degenerates) > 0) {
+    warning(sprintf(
+      "%d response(s) carried no usable variation across the design and are flagged degenerate in their ranking CSV (mu*/sigma written as NA, not zero): %s",
+      length(degenerates), paste(degenerates, collapse = ", ")
+    ), call. = FALSE)
+  }
 
-  # Rank parameters by mu* on system OT queue (primary bottleneck KPI)
-  primary  <- morris_objs$system_ot_q
-  mu_star  <- setNames(
-    as.numeric(apply(abs(primary$ee), 2, mean, na.rm = TRUE)),
-    morris_params$name
-  )
-  sigma_ee <- setNames(
-    as.numeric(apply(primary$ee, 2, sd, na.rm = TRUE)),
-    morris_params$name
-  )
-
-  ranking <- data.frame(
-    parameter = names(mu_star),
-    mu_star   = mu_star,
-    sigma_ee  = sigma_ee,
-    row.names = NULL
-  ) %>% arrange(desc(mu_star))
-
+  # The primary ranking remains system OT queue, the aggregate bottleneck
+  # response the README's published table reports, written under its
+  # historical filename as well as its per-response one.
+  ranking <- rankings[["system_ot_q"]]
   write.csv(ranking, file.path(output_dir, "morris_ranking.csv"), row.names = FALSE)
-  message("Parameter ranking written to outputs/morris_ranking.csv")
+  message("Primary parameter ranking written to outputs/morris_ranking.csv")
   message("\nTop parameters by mu* (system OT queue):")
   print(ranking, digits = 4)
 
-  list(morris_objs = morris_objs, Y = Y, X = sa$X, ranking = ranking)
+  list(morris_objs = morris_objs, Y = Y, X = sa$X,
+       ranking = ranking, rankings = rankings, kpis = morris_kpis)
 }
 
 # ── Sobol variance decomposition ──────────────────────────────────────────────

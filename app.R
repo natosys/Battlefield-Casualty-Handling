@@ -699,7 +699,18 @@ MORRIS_LABELS <- c(
 
   pri1_dcs_rate = "Priority 1 Damage Control Rate",
   pri2_dcs_rate = "Priority 2 Damage Control Rate",
-  pri3_dcs_rate = "Priority 3 Damage Control Rate"
+  pri3_dcs_rate = "Priority 3 Damage Control Rate",
+
+  # ── Composition balance coordinates (Issue #158) ─────────────────────────
+  # A balance carries a mu* for a contrast between parts, not for a single
+  # named share, so each label names the two sides of its contrast — without
+  # that, a reader has no way to tell what a high mu* on one of these means.
+  triage_p1_balance    = "Triage Balance — Priority 1 against Priority 2 and 3",
+  triage_p2_p3_balance = "Triage Balance — Priority 2 against Priority 3",
+  dnbi_disease_balance = "DNBI Balance — Disease against Battle Fatigue and NBI",
+  dnbi_bf_nbi_balance  = "DNBI Balance — Battle Fatigue against Non-Battle Injury",
+  mc_p1_balance        = "Mass Casualty Triage Balance — Priority 1 against Priority 2 and 3",
+  mc_p2_p3_balance     = "Mass Casualty Triage Balance — Priority 2 against Priority 3"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────

@@ -94,13 +94,170 @@ plot_morris_scatter <- function(obj, title) {
     theme(legend.position = "top")
 }
 
+# ── Simplex-constrained compositions ──────────────────────────────────────────
+
+#' Isometric log-ratio (ILR) transform of a three-part composition
+#'
+#' @param x Numeric vector of length 3, strictly positive. It need not sum to
+#'   one; it is closed to the simplex first.
+#' @return Numeric vector of length 2 — the two balance coordinates.
+#'
+#' @details A composition of k parts constrained to sum to one carries only
+#'   k - 1 degrees of freedom, which is why a one-at-a-time design cannot
+#'   perturb its members directly: moving one part while holding the others
+#'   fixed leaves the simplex. The ILR transform (Pawlowsky-Glahn, Egozcue &
+#'   Tolosana-Delgado, 2007) maps the composition onto k - 1 unconstrained
+#'   real coordinates that can be varied independently and mapped back, so
+#'   the sum-to-one constraint holds by construction rather than by
+#'   renormalising after the fact — the renormalisation being the design
+#'   decision that kept these parameters out of the screen until now.
+#'
+#'   The basis is the sequential binary partition separating part 1 from
+#'   parts 2 and 3, then part 2 from part 3, so each coordinate reads as a
+#'   balance: the first contrasts the leading part against the geometric mean
+#'   of the other two, the second contrasts those two with each other. Each
+#'   group in `MORRIS_COMPOSITIONS` orders its parts so the first coordinate
+#'   is the contrast of planning interest.
+#'
+#'   Implemented here rather than taken from the `compositions` package: the
+#'   three-part case is two lines each way, against a dependency carrying a
+#'   large transitive tree into `renv.lock` for no other use in the project.
+ilr3 <- function(x) {
+  x <- x / sum(x)
+  c(sqrt(2 / 3) * log(x[1] / sqrt(x[2] * x[3])),
+    sqrt(1 / 2) * log(x[2] / x[3]))
+}
+
+#' Inverse ILR transform — balance coordinates back to a three-part composition
+#'
+#' @param z Numeric vector of length 2, the two balance coordinates.
+#' @return Numeric vector of length 3, strictly positive and summing to one.
+#'
+#' @details The two defining relations, `u1 - (u2 + u3) / 2 = z1 / sqrt(2/3)`
+#'   and `u2 - u3 = z2 / sqrt(1/2)` on the part logarithms, are satisfied by
+#'   `u = (a1, a2/2, -a2/2)` up to the additive constant that closing to the
+#'   simplex removes. Every real coordinate pair maps to a valid interior
+#'   composition, which is what makes a corner of the screened coordinate box
+#'   safe: no design point can produce a negative or above-one part.
+ilr3_inv <- function(z) {
+  a1 <- z[1] * sqrt(3 / 2)
+  a2 <- z[2] * sqrt(2)
+  u  <- c(a1, a2 / 2, -a2 / 2)
+  # Shifted before exponentiating: a coordinate far from the baseline could
+  # otherwise overflow exp() and return NaN in place of a composition.
+  e <- exp(u - max(u))
+  e / sum(e)
+}
+
+#' The three simplex-constrained composition groups, as screened coordinates
+#'
+#' @format Named list, one element per group, each carrying:
+#'   `coords` (the two `morris_params` names), `parts` (plain-English part
+#'   names in basis order), `baseline` (the `env_data.json` composition, in
+#'   the same order), `lead_range` (the plausible range of the leading part's
+#'   share, from which the first coordinate's bounds are derived), and
+#'   `apply` (writes a composition back into an env_data copy).
+#'
+#' @details Nine parameters across three groups were previously excluded from
+#'   screening for the reason `ilr3()` describes, leaving the two
+#'   highest-ranked parameters in the screen — both conditional on a casualty
+#'   being Priority 1 — with no companion evidence on the share of casualties
+#'   that are Priority 1 at all. The nine become six coordinates here, added
+#'   to the same Morris design at the same cost per trajectory.
+#'
+#'   Part order is chosen per group so the first balance is the contrast a
+#'   planner cares about: the Priority 1 share for the two triage splits, and
+#'   the disease share for the DNBI composition, disease being the part whose
+#'   own onward surgical candidacy (`disease_surgery_pct`) is already
+#'   screened while the share it applies to was not.
+#'
+#'   All three are Context. Each is a fact about the casualty population the
+#'   force sustains, not a decision the health system makes: a planner
+#'   chooses neither the severity mix of the wounded nor the split of
+#'   non-battle admissions between psychological, medical, and injury causes.
+MORRIS_COMPOSITIONS <- list(
+  triage = list(
+    coords     = c("triage_p1_balance", "triage_p2_p3_balance"),
+    parts      = c("Priority 1", "Priority 2", "Priority 3"),
+    baseline   = c(0.65, 0.20, 0.15),
+    lead_range = c(0.45, 0.80),
+    apply = function(ed, x) {
+      ed$vars$r1$priority$one   <- x[1]
+      ed$vars$r1$priority$two   <- x[2]
+      ed$vars$r1$priority$three <- x[3]
+      ed
+    }
+  ),
+  dnbi = list(
+    coords     = c("dnbi_disease_balance", "dnbi_bf_nbi_balance"),
+    parts      = c("Disease", "Battle fatigue", "Non-battle injury"),
+    baseline   = c(0.58, 0.25, 0.17),
+    lead_range = c(0.40, 0.75),
+    apply = function(ed, x) {
+      ed$vars$r1$other$disease_pct        <- x[1]
+      ed$vars$r1$other$battle_fatigue_pct <- x[2]
+      ed$vars$r1$other$nbi_pct            <- x[3]
+      ed
+    }
+  ),
+  mass_casualty = list(
+    coords     = c("mc_p1_balance", "mc_p2_p3_balance"),
+    parts      = c("Priority 1", "Priority 2", "Priority 3"),
+    baseline   = c(0.70, 0.20, 0.10),
+    lead_range = c(0.55, 0.85),
+    apply = function(ed, x) {
+      ed$vars$mass_casualty$priority$one   <- x[1]
+      ed$vars$mass_casualty$priority$two   <- x[2]
+      ed$vars$mass_casualty$priority$three <- x[3]
+      ed
+    }
+  )
+)
+
+#' Screening bounds for one composition group's two balance coordinates
+#'
+#' @param g One element of `MORRIS_COMPOSITIONS`
+#' @return Data frame with the `morris_params` columns for the group's two
+#'   coordinates
+#'
+#' @details A bound stated directly in coordinate space would have no
+#'   intuitive meaning, so both are derived by transforming a compositional
+#'   range. The first coordinate's bounds transform the group's `lead_range`,
+#'   holding the ratio of the two trailing parts at its baseline, which is
+#'   exactly the sub-composition the first balance leaves untouched. The
+#'   second coordinate's bounds apply Rule B multiplicatively to that ratio
+#'   (x0.5 to x2.0), which in coordinate space is the symmetric interval
+#'   `baseline +/- sqrt(1/2) ln 2`, since a balance is a scaled log ratio.
+#'
+#'   A balance contrasts the leading part against the *geometric* mean of the
+#'   other two, so the realised leading share at a corner where both
+#'   coordinates sit at an extreme differs slightly from the nominal
+#'   `lead_range` endpoint (for the triage split, 0.42 to 0.80 across the
+#'   whole coordinate box against a nominal 0.45 to 0.80). The realised
+#'   composition is always valid; only the endpoint is approximate.
+composition_coord_bounds <- function(g) {
+  sub  <- g$baseline[2:3] / sum(g$baseline[2:3])
+  mode <- ilr3(g$baseline)
+  lead <- vapply(g$lead_range, function(s) ilr3(c(s, (1 - s) * sub))[1], numeric(1))
+  d2   <- sqrt(1 / 2) * log(2)
+
+  data.frame(
+    name     = g$coords,
+    lower    = c(lead[1], mode[2] - d2),
+    upper    = c(lead[2], mode[2] + d2),
+    mode     = mode,
+    category = c("Context", "Context"),
+    stringsAsFactors = FALSE
+  )
+}
+
 # ── Parameter definitions ─────────────────────────────────────────────────────
 
 #' Parameter bounds for Morris Elementary Effects screening
 #'
 #' @format Data frame with columns: name, lower, upper, mode (current baseline value)
 #'
-#' @details Fifty-eight parameters (Issue #112 full-coverage audit, expanded
+#' @details Sixty-four parameters (Issue #112 full-coverage audit, expanded
 #'   from the original eleven, then reduced by a same-issue follow-up review
 #'   — see the exclusion note below — and grown since by the parameters
 #'   later issues introduced) span treatment durations (surgery,
@@ -111,7 +268,12 @@ plot_morris_scatter <- function(obj, title) {
 #'   in-theatre recovery rate, OT shift availability, mass
 #'   casualty event rate/size (Issue #9), force regeneration reinforcement
 #'   timing (Issue #18), strategic AME sortie cadence (Issue #23), and
-#'   casualty generation rates. Bounds are set to cover clinically plausible
+#'   casualty generation rates. The last six rows are the balance coordinates
+#'   of the three simplex-constrained composition groups, appended below from
+#'   `MORRIS_COMPOSITIONS` rather than written out here because their bounds
+#'   are derived by transforming a compositional range rather than stated
+#'   directly (see `composition_coord_bounds()`).
+#'   Bounds are otherwise set to cover clinically plausible
 #'   variation around the current baseline using one of two rules, applied
 #'   per-parameter based on how well its baseline value is externally
 #'   grounded (see the `source` citations in `R/app_params.R` where a
@@ -169,9 +331,8 @@ plot_morris_scatter <- function(obj, title) {
 #'
 #'   Not every numeric leaf in env_data.json's `vars` tree is screened here;
 #'   see the README's "Parameters Excluded from Screening" note for the
-#'   full exclusion rationale (KIA/mortuary processing durations, simplex-
-#'   constrained composition splits, discrete/categorical switches, and
-#'   fixed establishment/capacity counts).
+#'   full exclusion rationale (KIA/mortuary processing durations,
+#'   discrete/categorical switches, and fixed establishment/capacity counts).
 morris_params <- data.frame(
   name  = c(
     # ── Original eleven (Issue #3, #75, #9) ──────────────────────────────
@@ -306,6 +467,16 @@ morris_params <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# The six balance coordinates are appended rather than written into the table
+# above so that their bounds stay derived from the compositional ranges in
+# MORRIS_COMPOSITIONS, where a reader can see what range was assumed, instead
+# of appearing as six unexplained real numbers among the literals.
+morris_params <- rbind(
+  morris_params,
+  do.call(rbind, lapply(MORRIS_COMPOSITIONS, composition_coord_bounds))
+)
+rownames(morris_params) <- NULL
+
 # ── Parameter application ─────────────────────────────────────────────────────
 
 #' Apply a named parameter vector to a copy of env_data
@@ -317,7 +488,10 @@ morris_params <- data.frame(
 #' @details Issue #112 expanded this from eleven to fifty-five parameters,
 #'   then a same-issue follow-up review reduced it to fifty-three by
 #'   removing two polling-interval parameters from screening (see
-#'   morris_params's own comment).
+#'   morris_params's own comment). Later issues have grown it to sixty-four,
+#'   the last six being balance coordinates rather than direct writes: each
+#'   pair is back-transformed to a whole composition at the end of this
+#'   function.
 apply_params <- function(ed, p) {
   # ── Original eleven (Issue #3, #75, #9) ────────────────────────────────
   ed$vars$r2b$surgery$mode                  <- p[["surg_mode"]]
@@ -398,6 +572,24 @@ apply_params <- function(ed, p) {
   ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
   ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
+
+  # ── Simplex-constrained compositions (Issue #158) ───────────────────────
+  # Each group's two balance coordinates are back-transformed to a whole
+  # composition before the run. The assertion is the guarantee the screen
+  # rests on: every design point, including the corners of the coordinate
+  # box, must yield three strictly positive parts summing to one, since a
+  # composition that had drifted off the simplex would make the design point
+  # a run of a model configuration nobody chose.
+  for (g in MORRIS_COMPOSITIONS) {
+    x <- ilr3_inv(c(p[[g$coords[1]]], p[[g$coords[2]]]))
+    stopifnot(
+      length(x) == 3L,
+      all(is.finite(x)),
+      all(x > 0), all(x < 1),
+      abs(sum(x) - 1) < 1e-9
+    )
+    ed <- g$apply(ed, x)
+  }
 
   ed
 }
@@ -1074,6 +1266,48 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
 # ── Sobol variance decomposition ──────────────────────────────────────────────
 
+#' Concentration parameter for a composition group's Dirichlet sampler
+#'
+#' @param g One element of `MORRIS_COMPOSITIONS`
+#' @return Numeric scalar concentration
+#'
+#' @details Chosen so the sampler spans the same planning range the group's
+#'   Morris bounds span rather than an arbitrary spread. Under a Dirichlet
+#'   with concentration $\kappa$ the leading part has standard deviation
+#'   $\sqrt{p(1-p)/(\kappa+1)}$; setting two standard deviations equal to the
+#'   half-width of the group's `lead_range` and solving for $\kappa$ gives
+#'   roughly 29 for the triage split, 31 for the DNBI composition and 36 for
+#'   the mass casualty split. A single figure would have been a spread nobody
+#'   had argued for; this one is the spread already documented.
+composition_concentration <- function(g) {
+  p    <- g$baseline[1] / sum(g$baseline)
+  half <- diff(g$lead_range) / 2
+  p * (1 - p) / (half / 2)^2 - 1
+}
+
+#' Sample whole compositions from a Dirichlet centred on a group's baseline
+#'
+#' @param n Number of compositions to draw
+#' @param g One element of `MORRIS_COMPOSITIONS`
+#' @return Numeric matrix, n rows by 2 columns — the sampled compositions in
+#'   balance coordinates, ready to substitute for the uniform draws
+#'   `run_sobol()` would otherwise make on those columns.
+#'
+#' @details The confirmatory treatment the Morris screen cannot give. Morris
+#'   varies each balance coordinate independently and reports a mu* per
+#'   coordinate, which answers whether a contrast matters but not how much of
+#'   the output variance the composition as a whole explains. Sampling whole
+#'   compositions and decomposing the variance answers the second question,
+#'   which is the form a planner can act on. Drawn as normalised gamma
+#'   variates, the standard construction.
+rdirichlet_coords <- function(n, g) {
+  alpha <- g$baseline / sum(g$baseline) * composition_concentration(g)
+  draws <- matrix(rgamma(n * length(alpha), shape = rep(alpha, each = n)),
+                  nrow = n)
+  draws <- draws / rowSums(draws)
+  t(apply(draws, 1, ilr3))
+}
+
 #' Run Sobol variance decomposition on a selected parameter subset
 #'
 #' @param top_params  Character vector of parameter names from morris_params$name
@@ -1081,6 +1315,13 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #' @param n_rep       Replications per Sobol evaluation point (default 5)
 #' @param n_sobol     Sobol sample size N (default 200; total evals = N*(p+2))
 #' @param output_dir  Directory for CSV outputs (default "outputs")
+#' @param dirichlet   Whether a composition group represented in `top_params`
+#'   is sampled as whole compositions from a Dirichlet centred on its
+#'   baseline (default TRUE) rather than by independent uniform draws on its
+#'   balance coordinates. Both of a group's coordinates are added to the
+#'   design whenever either is selected, since a first-order index on one
+#'   coordinate of a composition sampled a coordinate at a time would not be
+#'   an index on the composition.
 #' @param progress_dir Optional directory path; when supplied, an empty
 #'   marker file ("point_<i>.done") is written to it as each design point
 #'   finishes evaluating (see run_morris()'s equivalent parameter). NULL
@@ -1096,8 +1337,18 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
-                      max_cores = NULL) {
+                      max_cores = NULL, dirichlet = TRUE) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+  # A composition group enters the decomposition whole or not at all.
+  dirichlet_groups <- character(0)
+  for (nm in names(MORRIS_COMPOSITIONS)) {
+    g <- MORRIS_COMPOSITIONS[[nm]]
+    if (any(g$coords %in% top_params)) {
+      top_params <- union(top_params, g$coords)
+      if (dirichlet) dirichlet_groups <- c(dirichlet_groups, nm)
+    }
+  }
 
   p_idx <- which(morris_params$name %in% top_params)
   if (length(p_idx) == 0) stop("None of top_params found in morris_params$name")
@@ -1116,6 +1367,20 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
                               p_def$lower, p_def$upper, SIMPLIFY = FALSE))
   names(X1) <- names(X2) <- p_def$name
+
+  # A composition group's columns are overwritten with the coordinates of
+  # Dirichlet-sampled whole compositions, so the group is varied as one
+  # object over a plausible planning spread rather than as two coordinates
+  # drawn independently over a box.
+  for (nm in dirichlet_groups) {
+    g <- MORRIS_COMPOSITIONS[[nm]]
+    message(sprintf(
+      "  %s composition sampled from a Dirichlet at concentration %.1f",
+      nm, composition_concentration(g)
+    ))
+    X1[, g$coords] <- rdirichlet_coords(n_sobol, g)
+    X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
+  }
 
   sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
   sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)

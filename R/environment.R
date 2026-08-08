@@ -234,9 +234,6 @@ resolve_ame_airframe <- function(role4_params) {
 #'   "effective_force_combat"); read fresh at every minute step
 #' @param n_days Duration in days
 #' @param cap Maximum per-minute rate cap (default 5)
-#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
-#'   substituted for U in both the log-normal rate draw and the within-minute
-#'   arrival jitter. Enables antithetic pairing in run_replications().
 #' @param buffer_days Number of days' worth of raw per-minute draws to
 #'   vectorise per refill (default 1); amortises R-level closure-call
 #'   overhead relative to drawing one minute at a time.
@@ -245,7 +242,7 @@ resolve_ame_airframe <- function(role4_params) {
 #'   minutes), or -1 once n_days has been exhausted (simmer's convention for
 #'   ending a generator)
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days,
-                                      cap = 5, antithetic = FALSE, buffer_days = 1) {
+                                      cap = 5, buffer_days = 1) {
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
   n_minutes <- day_min * n_days
@@ -264,12 +261,8 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
       if (buf_pos > length(buf_x)) {
         n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
         if (n_draw <= 0) return(-1)
-        u_rate <- runif(n_draw)
-        if (antithetic) u_rate <- 1 - u_rate
-        buf_x <<- pmin(qlnorm(u_rate, meanlog = mu_log, sdlog = sigma_log), cap)
-        u_jit <- runif(n_draw)
-        if (antithetic) u_jit <- 1 - u_jit
-        buf_jitter <<- u_jit
+        buf_x <<- pmin(qlnorm(runif(n_draw), meanlog = mu_log, sdlog = sigma_log), cap)
+        buf_jitter <<- runif(n_draw)
         buf_pos <<- 1L
       }
 
@@ -309,8 +302,6 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   equivalent parameter on the previous generate_exp_arrivals()
 #'   implementation and the README Casualty Generation section for the
 #'   mean-invariance rationale.
-#' @param antithetic Logical; antithetic variate pairing (see
-#'   make_ln_arrival_generator())
 #' @param buffer_days Number of days' worth of raw per-minute draws to
 #'   vectorise per refill (default 1)
 #' @return A zero-argument function suitable for add_generator()'s
@@ -322,8 +313,7 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
-                                       cap_multiplier = 3, antithetic = FALSE,
-                                       buffer_days = 1) {
+                                       cap_multiplier = 3, buffer_days = 1) {
   cap <- cap_multiplier * mean_daily
   n_minutes <- day_min * n_days
   buffer_minutes <- day_min * buffer_days
@@ -341,12 +331,8 @@ make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
       if (buf_pos > length(buf_x)) {
         n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
         if (n_draw <= 0) return(-1)
-        u_rate <- runif(n_draw)
-        if (antithetic) u_rate <- 1 - u_rate
-        buf_x <<- pmin(qexp(u_rate, rate = 1 / mean_daily), cap)
-        u_jit <- runif(n_draw)
-        if (antithetic) u_jit <- 1 - u_jit
-        buf_jitter <<- u_jit
+        buf_x <<- pmin(qexp(runif(n_draw), rate = 1 / mean_daily), cap)
+        buf_jitter <<- runif(n_draw)
         buf_pos <<- 1L
       }
 
@@ -379,19 +365,15 @@ make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool
 #' @param n_days Duration in days
-#' @param antithetic Logical; antithetic variate pairing (see
-#'   make_ln_arrival_generator() / make_exp_arrival_generator())
 #' @return A zero-argument distribution function (see
 #'   make_ln_arrival_generator())
-generate_casualty_arrivals <- function(gen_vars, force_global, n_days, antithetic = FALSE) {
+generate_casualty_arrivals <- function(gen_vars, force_global, n_days) {
   distribution <- if (!is.null(gen_vars$distribution)) gen_vars$distribution else "lognormal"
 
   if (distribution == "exponential") {
-    make_exp_arrival_generator(gen_vars$mean_daily, force_global, n_days,
-                               antithetic = antithetic)
+    make_exp_arrival_generator(gen_vars$mean_daily, force_global, n_days)
   } else {
-    make_ln_arrival_generator(gen_vars$mean_daily, gen_vars$sd_daily, force_global, n_days,
-                              antithetic = antithetic)
+    make_ln_arrival_generator(gen_vars$mean_daily, gen_vars$sd_daily, force_global, n_days)
   }
 }
 
@@ -492,19 +474,15 @@ write_arrival_diagnostics <- function(env, data_dir = "data") {
 #' @param n_days Duration in days
 #' @param event_params List with rate_per_day, as read from
 #'   env_data$vars$mass_casualty$event
-#' @param antithetic Logical; antithetic variate pairing (see
-#'   generate_mass_casualty_events())
 #' @return Numeric vector of event start times (simulation minutes),
 #'   ascending; empty if rate_per_day <= 0
 #'
 #' @details Event inter-arrival times are drawn from an
-#'   Exponential(rate_per_day) distribution via inverse-CDF, so U can be
-#'   reflected for antithetic pairing (matches
-#'   generate_ln_arrivals()/generate_exp_arrivals()). `rate_per_day = 0`
+#'   Exponential(rate_per_day) distribution via inverse-CDF. `rate_per_day = 0`
 #'   returns immediately with no RNG draws consumed, so the stream
 #'   downstream of this call is unaffected — the basis for Issue #9's
 #'   disable-path acceptance criterion.
-mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic = FALSE) {
+mass_casualty_event_starts_poisson <- function(n_days, event_params) {
   n_minutes    <- day_min * n_days
   rate_per_min <- event_params$rate_per_day / day_min
 
@@ -513,9 +491,7 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic 
   event_starts <- c()
   t <- 0
   repeat {
-    u <- runif(1)
-    if (antithetic) u <- 1 - u
-    t <- t - log(1 - u) / rate_per_min
+    t <- t - log(1 - runif(1)) / rate_per_min
     if (t >= n_minutes) break
     event_starts <- c(event_starts, t)
   }
@@ -535,8 +511,6 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic 
 #'   (probability 1; min_cas/max_cas 20/60; priority 0.7/0.2/0.1 — the
 #'   Issue #9 Recommended Approach values), so a planner can specify only
 #'   `days` and accept sensible defaults for the rest.
-#' @param antithetic Logical; antithetic variate pairing (see
-#'   generate_mass_casualty_events())
 #' @return Data frame (one row per *fired* event, ascending by start time):
 #'   `start` (simulation minutes), `min_cas`, `max_cas`, `pri_one`,
 #'   `pri_two`, `pri_three` — empty (0 rows) if no scheduled days are
@@ -556,7 +530,7 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params, antithetic 
 #'   injection window (window_min/mode/max) is not customisable per event —
 #'   it remains a single shared value read from `params$event` by the
 #'   caller (generate_mass_casualty_events()) regardless of mode.
-mass_casualty_event_starts_scheduled <- function(n_days, schedule_params, antithetic = FALSE) {
+mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
   n_minutes <- day_min * n_days
   empty <- data.frame(start = numeric(0), min_cas = numeric(0), max_cas = numeric(0),
                       pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
@@ -581,14 +555,10 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params, antith
     stop("mass_casualty.schedule arrays must each be empty (defaulted) or match schedule.days in length")
   }
 
-  u_occur <- runif(n)
-  if (antithetic) u_occur <- 1 - u_occur
-  fire <- u_occur < probs
+  fire <- runif(n) < probs
   if (!any(fire)) return(empty)
 
-  u_intraday <- runif(sum(fire))
-  if (antithetic) u_intraday <- 1 - u_intraday
-  starts <- (days[fire] - 1) * day_min + u_intraday * day_min
+  starts <- (days[fire] - 1) * day_min + runif(sum(fire)) * day_min
 
   out <- data.frame(start = starts, min_cas = min_cas[fire], max_cas = max_cas[fire],
                     pri_one = pri_one[fire], pri_two = pri_two[fire], pri_three = pri_three[fire])
@@ -603,21 +573,16 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params, antith
 #'   window_max, as read from env_data$vars$mass_casualty$event
 #' @param n_minutes Total simulation duration in minutes (arrivals at or
 #'   after this are dropped)
-#' @param antithetic Logical; antithetic variate pairing (see
-#'   generate_mass_casualty_events())
 #' @return Named list: `times` (numeric vector of casualty arrival times)
 #'   and `window` (the drawn injection window duration, minutes)
-mass_casualty_event_casualties <- function(event_start, event_params, n_minutes, antithetic = FALSE) {
-  u_cas <- runif(1)
-  if (antithetic) u_cas <- 1 - u_cas
-  n_cas_draw <- round(event_params$min_cas + u_cas * (event_params$max_cas - event_params$min_cas))
+mass_casualty_event_casualties <- function(event_start, event_params, n_minutes) {
+  n_cas_draw <- round(event_params$min_cas +
+                        runif(1) * (event_params$max_cas - event_params$min_cas))
 
   window <- rtriangle(1, a = event_params$window_min, b = event_params$window_max,
                       c = event_params$window_mode)
 
-  u_offset <- runif(n_cas_draw)
-  if (antithetic) u_offset <- 1 - u_offset
-  offsets <- sort(u_offset * window)
+  offsets <- sort(runif(n_cas_draw) * window)
 
   times <- event_start + offsets
   times <- times[times >= 0 & times < n_minutes]
@@ -643,9 +608,6 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #'   `write_file` is TRUE (default "data", the tracked baseline location).
 #'   Threaded from run_once() so that only an explicit baseline refresh
 #'   writes to the tracked directory (Issue #154).
-#' @param antithetic Logical; when TRUE the antithetic variate U' = 1 - U is
-#'   substituted for U in every draw this function and its mode-specific
-#'   helpers make. Enables antithetic pairing in run_replications().
 #' @return Named list: `arrival_times` (sorted numeric vector of individual
 #'   casualty arrival times, simulation minutes), `casualty_event_id`
 #'   (integer vector parallel to `arrival_times`, giving the 1-indexed
@@ -677,8 +639,7 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes,
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
 generate_mass_casualty_events <- function(n_days, params, seed = NULL,
-                                          write_file = TRUE, antithetic = FALSE,
-                                          data_dir = "data") {
+                                          write_file = TRUE, data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
   if (write_file) dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -690,9 +651,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
                              pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
 
   sched <- if (identical(mode, "scheduled")) {
-    mass_casualty_event_starts_scheduled(n_days, params$schedule, antithetic = antithetic)
+    mass_casualty_event_starts_scheduled(n_days, params$schedule)
   } else {
-    starts <- mass_casualty_event_starts_poisson(n_days, params$event, antithetic = antithetic)
+    starts <- mass_casualty_event_starts_poisson(n_days, params$event)
     # Built explicitly per-column (not data.frame(start = starts, min_cas =
     # params$event$min_cas, ...)) because data.frame() cannot recycle a
     # length-1 scalar against a length-0 `starts` (rate_per_day = 0, the
@@ -721,7 +682,7 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
     event_params <- list(min_cas = sched$min_cas[i], max_cas = sched$max_cas[i],
                          window_min = params$event$window_min, window_mode = params$event$window_mode,
                          window_max = params$event$window_max)
-    cas <- mass_casualty_event_casualties(sched$start[i], event_params, n_minutes, antithetic = antithetic)
+    cas <- mass_casualty_event_casualties(sched$start[i], event_params, n_minutes)
 
     arrival_times     <- c(arrival_times, cas$times)
     casualty_event_id <- c(casualty_event_id, rep(i, length(cas$times)))

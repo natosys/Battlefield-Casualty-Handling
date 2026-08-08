@@ -15,12 +15,18 @@
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
 #
-# morris_params (R/sensitivity.R) covers 58 parameters; r=20 at this
-# parameter count is r*(p+1) = 1,180 design points x 5 reps = 5,900
+# morris_params (R/sensitivity.R) covers 64 parameters; r=20 at this
+# parameter count is r*(p+1) = 1,300 design points x 5 reps = 6,500
 # simulation runs, impractical outside a long-lived compute session. --r 5
 # was used for the Issue #112 re-run documented in the README (280 design
 # points x 5 reps = 1,400 runs, ~20s/run on 4 cores); scale --r up when a
 # longer session is available.
+#
+# The last six of the 64 are the balance coordinates of the three
+# simplex-constrained composition groups (Issue #158). --sobol samples any
+# selected group's composition from a Dirichlet centred on its baseline
+# rather than drawing its coordinates independently; --no-dirichlet reverts
+# to uniform coordinate draws.
 #
 # Every response in morris_kpis (R/sensitivity.R) is ranked against the same
 # design, so the response count does not change how long the sweep takes.
@@ -51,6 +57,13 @@ option_list <- list(
               help = "Run Sobol decomposition on top 5 parameters after Morris"),
   make_option("--n-sobol",    type = "integer", default = 200L,
               help = "Sobol sample size N [default: %default]"),
+  make_option("--no-dirichlet", action = "store_true", default = FALSE,
+              help = paste(
+                "Draw a selected composition group's balance coordinates",
+                "independently over their screened bounds instead of",
+                "sampling whole compositions from a Dirichlet centred on the",
+                "baseline. Only affects --sobol runs."
+              )),
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed for reproducibility [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
@@ -143,6 +156,23 @@ if (length(partial) > 0) {
   ))
 }
 
+# Where each composition group's coordinates landed in the primary ranking,
+# reported whether or not --sobol follows: the comparison against the two
+# Priority 1 conditional rates is the specific question the compositions were
+# brought into the screen to answer (Issue #158).
+comp_rank <- match(unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords")),
+                   morris_result$ranking$parameter)
+names(comp_rank) <- unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords"))
+message("\nComposition balance coordinates in the primary ranking (of ",
+        nrow(morris_result$ranking), "):")
+for (nm in names(comp_rank)) {
+  message(sprintf("  %-22s rank %s", nm, comp_rank[[nm]]))
+}
+for (ref in c("pri1_evac_prob", "pri1_surg_prob")) {
+  message(sprintf("  %-22s rank %s (comparison)", ref,
+                  match(ref, morris_result$ranking$parameter)))
+}
+
 if (opt$sobol) {
   top5 <- head(morris_result$ranking$parameter, 5)
   message(sprintf("\nRunning Sobol on top 5 parameters: %s", paste(top5, collapse = ", ")))
@@ -151,7 +181,8 @@ if (opt$sobol) {
     n_days      = opt$days,
     n_rep       = opt$reps,
     n_sobol     = opt[["n-sobol"]],
-    output_dir  = opt[["output-dir"]]
+    output_dir  = opt[["output-dir"]],
+    dirichlet   = !opt[["no-dirichlet"]]
   )
 }
 

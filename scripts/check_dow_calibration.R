@@ -1,0 +1,210 @@
+#!/usr/bin/env Rscript
+##############################################################################
+## scripts/check_dow_calibration.R                                          ##
+## Regression check — died-of-wounds rate against the Ajax Bay bound        ##
+##############################################################################
+#
+# Usage:
+#   Rscript scripts/check_dow_calibration.R                     # both profiles, 3 x 50 reps each
+#   Rscript scripts/check_dow_calibration.R --quick             # 2 x 10 reps, 10 days — smoke test only
+#   Rscript scripts/check_dow_calibration.R --scenario default  # one profile
+#   Rscript scripts/check_dow_calibration.R --measurements 5 --reps 50
+#
+# Exits 0 when every check passes, 1 otherwise, so it can be wired into a
+# pre-merge hook or CI step. A full run executes 300 replications and takes a
+# few hours on four cores; --quick finishes in about a minute but is a wiring
+# test, not a calibration test, and says so in its output.
+#
+# Why this check exists: the model's mortality ceilings are calibrated against
+# a single historical anchor, the Ajax Bay Advanced Surgical Centre's three
+# deaths among the "over 650" casualties who reached forward surgical care,
+# a rate of approximately 0.46% (README — Parameter Calibration). Nothing in
+# an ordinary run compares the model against it. The comparison was made by
+# hand at each recalibration, which is how the model came to be reported as
+# overshooting the bound by roughly a third when it was not.
+#
+# Two properties of the target govern what this check asserts.
+#
+#   1. The denominator is the treated cohort — casualties who reached a
+#      surgical facility alive — not all wounded. The model's matching cohort
+#      is the set of casualties reaching an R2B or R2E facility, identified by
+#      the r2b_treated/r2e_treated attributes, which are set on entry to each
+#      facility's trajectory and therefore before that facility's own DOW
+#      check, so a casualty who dies there is inside their own denominator.
+#
+#   2. The rate is an upper bound, not a point estimate, because "over 650"
+#      is inexact. The failure condition is therefore one-sided: the model
+#      overshooting the bound. A configuration sitting comfortably below it
+#      is consistent with the historical record and passes, which is why
+#      moderate_intensity passes at roughly 0.27%.
+#
+# The check pools independent measurements rather than taking one, and treats
+# the antithetic pair as the unit of analysis rather than the replication.
+# Both departures from this project's usual practice are deliberate, and both
+# are why the overshoot was reported. Died of wounds averages about one death
+# per replication, so a single 50-replication measurement does not resolve it:
+# three measurements of one unchanged configuration returned 0.348%, 0.400%
+# and 0.499%. And run_replications() pairs replications (2k-1, 2k) on a shared
+# seed, negating only the arrival-generation uniforms, so partners share an
+# unnegated trajectory stream and correlate positively on mortality (+0.38
+# measured). An interval dividing by the replication count is correspondingly
+# too narrow. Issue #189 tracks that defect where it affects the rest of the
+# project; this check does not depend on its resolution.
+
+suppressPackageStartupMessages({
+  library(simmer)
+  library(simmer.bricks)
+  library(triangle)
+  library(dplyr)
+})
+
+source("R/environment.R")
+source("R/trajectories.R")
+source("R/replication.R")
+
+args  <- commandArgs(trailingOnly = TRUE)
+quick <- "--quick" %in% args
+
+arg_value <- function(flag, default) {
+  i <- match(flag, args)
+  if (is.na(i) || i == length(args)) return(default)
+  args[i + 1]
+}
+
+# The Ajax Bay treated-cohort rate: 3 deaths among "over 650" casualties
+# reaching forward surgical care (Westphalen, 2018). An upper bound.
+DOW_TARGET <- 0.0046
+
+SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
+                  c("default", "moderate_intensity")
+N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
+N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
+CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
+# Fixed control seeds so a run is reproducible and two runs of this check on
+# unchanged code agree exactly. Each seeds one independent measurement.
+CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)
+
+if (N_MEASURE > length(CONTROL_SEEDS)) {
+  stop(sprintf("--measurements above %d needs more control seeds", length(CONTROL_SEEDS)))
+}
+if (N_REPS %% 2L != 0L) {
+  stop("--reps must be even: replications are antithetically paired and the ",
+       "pair is this check's unit of analysis")
+}
+
+failures <- character(0)
+
+fail <- function(...) failures <<- c(failures, sprintf(...))
+
+report <- function(ok, fmt, ...) {
+  cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
+}
+
+# ── Measurement ─────────────────────────────────────────────────────────────
+
+#' Treated-cohort DOW rate for one replication set
+#'
+#' @param mon Monitoring list from run_replications()
+#' @return Numeric vector of per-replication rates, in replication order, so
+#'   the caller can fold adjacent entries into antithetic pair means
+treated_cohort_rates <- function(mon) {
+  treated <- mon$attributes %>%
+    filter(key %in% c("r2b_treated", "r2e_treated")) %>%
+    distinct(replication, name)
+  died <- mon$attributes %>%
+    filter(key == "dow", value == 1) %>%
+    distinct(replication, name)
+
+  vapply(sort(unique(mon$arrivals$replication)), function(r) {
+    cohort <- treated$name[treated$replication == r]
+    if (!length(cohort)) return(NA_real_)
+    sum(died$name[died$replication == r] %in% cohort) / length(cohort)
+  }, numeric(1))
+}
+
+#' One independent measurement of a scenario at a given control seed
+run_measurement <- function(scenario, seed) {
+  json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
+  env_data <<- build_environment(resolve_scenario(json, scenario))
+  day_min  <<- 1440L
+  counts   <<- sapply(env_data$elms, length)
+
+  set.seed(seed)
+  treated_cohort_rates(run_replications(N_REPS, CHECK_DAYS))
+}
+
+# Antithetic partners (2k-1, 2k) are one observation, not two.
+pair_means <- function(x) (x[seq(1, length(x) - 1L, 2L)] + x[seq(2, length(x), 2L)]) / 2
+
+# ── Checks ──────────────────────────────────────────────────────────────────
+
+cat(sprintf("DOW calibration check: %d measurement(s) x %d replications x %d days per scenario\n",
+            N_MEASURE, N_REPS, CHECK_DAYS))
+cat(sprintf("Target: treated-cohort DOW rate at or below %.2f%% (Ajax Bay, upper bound)\n\n",
+            100 * DOW_TARGET))
+if (quick) {
+  cat("QUICK MODE — too few replications to judge calibration. Wiring test only.\n\n")
+}
+
+for (scenario in SCENARIOS) {
+  singles <- numeric(0)
+  pairs   <- numeric(0)
+
+  for (k in seq_len(N_MEASURE)) {
+    rates <- run_measurement(scenario, CONTROL_SEEDS[k])
+    if (all(is.na(rates))) {
+      fail("%s: no casualty reached a facility in measurement %d", scenario, k)
+      next
+    }
+    singles <- c(singles, mean(rates, na.rm = TRUE))
+    pairs   <- c(pairs, pair_means(rates))
+  }
+
+  if (!length(pairs)) next
+
+  n  <- length(pairs)
+  m  <- mean(pairs)
+  hw <- qt(0.975, df = n - 1) * sd(pairs) / sqrt(n)
+  # Clamped at zero on the same basis as clamp_ci() (R/analysis.R): a
+  # mortality rate cannot be negative. Clamping cannot mask an overshoot,
+  # since it only ever moves the lower bound further below the bound.
+  lo <- max(m - hw, 0)
+  hi <- m + hw
+
+  cat(sprintf("\n%s — %d pairs (%d replications)\n", scenario, n, 2L * n))
+  cat(sprintf("  individual measurements: %s\n",
+              paste(sprintf("%.3f%%", 100 * singles), collapse = ", ")))
+  cat(sprintf("  pooled: %.3f%%  95%% CI [%.3f%%, %.3f%%]\n", 100 * m, 100 * lo, 100 * hi))
+
+  # The bound is one-sided. A model below it agrees with the record; only a
+  # model whose whole interval clears it is overshooting.
+  ok <- lo <= DOW_TARGET
+  if (!ok) {
+    fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) overshoots ",
+                "the %.2f%% bound — the entire interval sits above it"),
+         scenario, 100 * m, 100 * lo, 100 * hi, 100 * DOW_TARGET)
+  }
+  report(ok, "%s does not overshoot the %.2f%% treated-cohort bound", scenario, 100 * DOW_TARGET)
+
+  # Not a failure, but the reason this check pools: if the individual
+  # measurements disagree by more than the pooled interval spans, one
+  # measurement on its own would not have been evidence either way.
+  if (length(singles) > 1) {
+    spread <- max(singles) - min(singles)
+    cat(sprintf("  [note] single-measurement spread %.3f pp against a pooled half-width of %.3f pp%s\n",
+                100 * spread, 100 * hw,
+                if (spread > 2 * hw) " — a single measurement would not have settled this" else ""))
+  }
+}
+
+# ── Result ──────────────────────────────────────────────────────────────────
+
+cat("\n")
+if (length(failures)) {
+  cat(sprintf("%d check(s) failed:\n", length(failures)))
+  for (f in failures) cat(" - ", f, "\n", sep = "")
+  quit(status = 1)
+}
+
+cat("All died-of-wounds calibration checks passed.\n")
+quit(status = 0)

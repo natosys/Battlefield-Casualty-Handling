@@ -257,6 +257,20 @@ composition_coord_bounds <- function(g) {
 #'
 #' @format Data frame with columns: name, lower, upper, mode (current baseline value)
 #'
+#' @details The `mode` column carries the value the parameter holds in
+#'   `env_data.json`, and carries it for two purposes. `run_sobol()` reads it
+#'   as the held-fixed background for every parameter not selected into the
+#'   decomposition, so a `mode` that has drifted from the shipped
+#'   configuration silently measures variance contributions against a
+#'   configuration nobody chose; the Shiny Sensitivity Calibration tab
+#'   displays the same column to a planner under the heading `Baseline`.
+#'   Neither use is exercised by an ordinary run, which is why two values
+#'   were able to drift out of their own bounds and a third out of agreement
+#'   with `env_data.json` before Issue #186 found them. Two guards now hold
+#'   the column: the bounds assertion below, and
+#'   `scripts/check_morris_baseline.R`, which asserts agreement with
+#'   `env_data.json` itself.
+#'
 #' @details Sixty-four parameters (Issue #112 full-coverage audit, expanded
 #'   from the original eleven, then reduced by a same-issue follow-up review
 #'   — see the exclusion note below — and grown since by the parameters
@@ -393,8 +407,8 @@ morris_params <- data.frame(
     0.80, 0.40, 0.20
   ),
   mode  = c(
-    120,   45,    0.023,  30,   30,   1440,  0.90,  0.10,  12,  0,    60,
-    28,    7200,   12960,  600,   2880,  20,   1440,
+    95,    45,    0.023,  30,   30,   1440,  0.90,  30,    12,  0,    60,
+    28,    7200,   38880,  600,   2880,  20,   1440,
     0.80,  0.40,  0.60,  0.06,  0.95,  0.90,
     0.001, 0.04,  120,  0.0005, 0.019, 0.025, 180, 0.001,
     0.83,  0.56,  0.32,  0.56,  0.25,  0.57,  3.0,  1.31,
@@ -476,6 +490,46 @@ morris_params <- rbind(
   do.call(rbind, lapply(MORRIS_COMPOSITIONS, composition_coord_bounds))
 )
 rownames(morris_params) <- NULL
+
+# A row whose baseline sits outside its own screening range describes a
+# parameter no design point can reach, and every Sobol run that does not
+# select that parameter holds it there. The invariant is cheap and is checked
+# at source time, where the offending row is named, rather than at design-point
+# evaluation, where it is invisible.
+local({
+  bad <- which(!(morris_params$mode >= morris_params$lower &
+                 morris_params$mode <= morris_params$upper))
+  if (length(bad) > 0) {
+    stop(sprintf(
+      "morris_params: %d row(s) carry a mode outside their own bounds: %s",
+      length(bad),
+      paste(sprintf("%s (mode %g, bounds %g to %g)",
+                    morris_params$name[bad], morris_params$mode[bad],
+                    morris_params$lower[bad], morris_params$upper[bad]),
+            collapse = "; ")
+    ), call. = FALSE)
+  }
+})
+
+#' Screened parameters whose `mode` cannot be compared against a single
+#' `env_data.json` value, with the reason for each
+#'
+#' @format Named character vector — names are `morris_params$name`, values the
+#'   reason the comparison does not apply.
+#'
+#' @details Read by `scripts/check_morris_baseline.R`. Held here, and stated
+#'   as an explicit list rather than left to the check's own omissions, so that
+#'   a parameter added to the screen without a corresponding entry fails the
+#'   check instead of quietly escaping it.
+MORRIS_MODE_CHECK_EXCLUSIONS <- local({
+  coords <- unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords"), use.names = FALSE)
+  setNames(
+    rep(paste("balance coordinate - writes a whole three-part composition rather",
+              "than a scalar; agreement with env_data.json is asserted by",
+              "scripts/check_composition_ilr.R"), length(coords)),
+    coords
+  )
+})
 
 # ── Parameter application ─────────────────────────────────────────────────────
 

@@ -38,18 +38,17 @@
 #      is consistent with the historical record and passes, which is why
 #      moderate_intensity passes at roughly 0.27%.
 #
-# The check pools independent measurements rather than taking one, and treats
-# the antithetic pair as the unit of analysis rather than the replication.
-# Both departures from this project's usual practice are deliberate, and both
-# are why the overshoot was reported. Died of wounds averages about one death
-# per replication, so a single 50-replication measurement does not resolve it:
+# The check pools independent measurements rather than taking one. That
+# departure from this project's usual practice is deliberate, and is why the
+# overshoot was reported. Died of wounds averages about one death per
+# replication, so a single 50-replication measurement does not resolve it:
 # three measurements of one unchanged configuration returned 0.348%, 0.400%
-# and 0.499%. And run_replications() pairs replications (2k-1, 2k) on a shared
-# seed, negating only the arrival-generation uniforms, so partners share an
-# unnegated trajectory stream and correlate positively on mortality (+0.38
-# measured). An interval dividing by the replication count is correspondingly
-# too narrow. Issue #189 tracks that defect where it affects the rest of the
-# project; this check does not depend on its resolution.
+# and 0.499%, a spread wider than the interval any one of them reported.
+# The replication is the unit of analysis, which it is entitled to be because
+# run_replications() makes replications independent. It did not while they
+# were antithetically paired, and this check folded partners into pair means
+# to work around that; the pairing has since been withdrawn (Issue #189), so
+# the fold is gone and every replication counts once.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -87,11 +86,6 @@ CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)
 if (N_MEASURE > length(CONTROL_SEEDS)) {
   stop(sprintf("--measurements above %d needs more control seeds", length(CONTROL_SEEDS)))
 }
-if (N_REPS %% 2L != 0L) {
-  stop("--reps must be even: replications are antithetically paired and the ",
-       "pair is this check's unit of analysis")
-}
-
 failures <- character(0)
 
 fail <- function(...) failures <<- c(failures, sprintf(...))
@@ -105,8 +99,7 @@ report <- function(ok, fmt, ...) {
 #' Treated-cohort DOW rate for one replication set
 #'
 #' @param mon Monitoring list from run_replications()
-#' @return Numeric vector of per-replication rates, in replication order, so
-#'   the caller can fold adjacent entries into antithetic pair means
+#' @return Numeric vector of per-replication rates, in replication order
 treated_cohort_rates <- function(mon) {
   treated <- mon$attributes %>%
     filter(key %in% c("r2b_treated", "r2e_treated")) %>%
@@ -133,9 +126,6 @@ run_measurement <- function(scenario, seed) {
   treated_cohort_rates(run_replications(N_REPS, CHECK_DAYS))
 }
 
-# Antithetic partners (2k-1, 2k) are one observation, not two.
-pair_means <- function(x) (x[seq(1, length(x) - 1L, 2L)] + x[seq(2, length(x), 2L)]) / 2
-
 # ── Checks ──────────────────────────────────────────────────────────────────
 
 cat(sprintf("DOW calibration check: %d measurement(s) x %d replications x %d days per scenario\n",
@@ -148,7 +138,7 @@ if (quick) {
 
 for (scenario in SCENARIOS) {
   singles <- numeric(0)
-  pairs   <- numeric(0)
+  pooled  <- numeric(0)
 
   for (k in seq_len(N_MEASURE)) {
     rates <- run_measurement(scenario, CONTROL_SEEDS[k])
@@ -157,21 +147,21 @@ for (scenario in SCENARIOS) {
       next
     }
     singles <- c(singles, mean(rates, na.rm = TRUE))
-    pairs   <- c(pairs, pair_means(rates))
+    pooled  <- c(pooled, rates[!is.na(rates)])
   }
 
-  if (!length(pairs)) next
+  if (!length(pooled)) next
 
-  n  <- length(pairs)
-  m  <- mean(pairs)
-  hw <- qt(0.975, df = n - 1) * sd(pairs) / sqrt(n)
+  n  <- length(pooled)
+  m  <- mean(pooled)
+  hw <- qt(0.975, df = n - 1) * sd(pooled) / sqrt(n)
   # Clamped at zero on the same basis as clamp_ci() (R/analysis.R): a
   # mortality rate cannot be negative. Clamping cannot mask an overshoot,
   # since it only ever moves the lower bound further below the bound.
   lo <- max(m - hw, 0)
   hi <- m + hw
 
-  cat(sprintf("\n%s — %d pairs (%d replications)\n", scenario, n, 2L * n))
+  cat(sprintf("\n%s — %d replications\n", scenario, n))
   cat(sprintf("  individual measurements: %s\n",
               paste(sprintf("%.3f%%", 100 * singles), collapse = ", ")))
   cat(sprintf("  pooled: %.3f%%  95%% CI [%.3f%%, %.3f%%]\n", 100 * m, 100 * lo, 100 * hi))

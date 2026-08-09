@@ -73,7 +73,15 @@
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-*No PRs currently open against main.*
+### Issue 189 — Replication Confidence Intervals Treat Antithetically Paired Runs as Independent
+
+**Branch:** `claude/issue-189-c6qadz`
+
+Withdraws the antithetic pairing from `run_replications()` so that every replication draws its own seed and the replication is the unit of analysis, which is what the `qt(0.975, df = n - 1) * sd / sqrt(n)` arithmetic throughout the project already assumed. Withdrawal was chosen over extending the negation to the trajectory draws: simmer takes service times from the global stream inside its own event loop, in an order the negated arrivals have already changed, so partners have no corresponding draws to reflect, and measurement showed the scheme buying nothing where it did reach (within-pair correlation on total casualties -0.04 over 75 pairs, a variance reduction of about 3%). The +0.38 correlation on died-of-wounds count reported in the issue does not replicate; over 75 pairs it is -0.005, and single 50-replication measurements of it span -0.25 to +0.65. The defect fixed is the unit-of-analysis error, which is structural and holds whatever correlation a given seed set realises.
+
+Removing the machinery consumes no random draws, so the seed-42 single run reproduces bit-identically. Every 50- and 150-replication interval in `README.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` is re-measured, and the conflicting `moderate_intensity` died-of-wounds figures are reconciled onto the README's pooled 150-replication figure. The replication count the issue asked to be established is documented in README L22: the per-replication standard deviation of the treated-cohort rate is 0.0044, so 0.15 pp of half-width needs 33 replications, 0.10 pp needs 73 and 0.05 pp needs 292, and the third decimal place these documents used is not supported at any count they run at.
+
+`scripts/check_replication_independence.R` is new. It asserts independence structurally, `run_once()` being a pure function of its seed and `run_replications()` drawing a distinct seed per replication, after a correlation-based version of the check failed on a signal that turned out to carry no information about the replication scheme: the R2E ICU queue reads +0.18 at lag 1 and -0.16 at lag 3, identically under prescheduled shared forks and one fork per job, and identically under the withdrawn pairing. `scripts/check_dow_calibration.R` drops its pair folding and both shipped configurations pass its full 300-replication path, previously unexercised. Gap L9 is deleted from Further Development, the scheme it described no longer existing.
 
 ---
 

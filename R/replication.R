@@ -21,15 +21,12 @@ library(parallel)
 #' @param ot_hours    Hours per day the first OT shift is active. NULL (the
 #'   default) uses the value configured in env_data.json; an explicit value
 #'   overrides it for this replication only. Passed to build_env().
-#' @param antithetic  Logical; when TRUE antithetic arrival variates are used
-#'   (U' = 1 - U in both rate draws and within-minute jitter). Set TRUE for
-#'   even-indexed replications in run_replications() antithetic pairing.
 #' @return A wrapped simmer environment (use get_mon_*() on a list of these)
 #'
 #' @details Sets env globally (<<-) so trajectory closures can resolve it.
 #'   In forked mclapply workers, <<- modifies only the fork's global state.
 run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
-                     antithetic = FALSE, data_dir = "data") {
+                     data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")
@@ -60,13 +57,13 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
   # forked mclapply workers this modifies only the fork's local state.
   mass_casualty <- generate_mass_casualty_events(n_days,
                       env_data$vars$mass_casualty, write_file = write_files,
-                      antithetic = antithetic, data_dir = data_dir)
+                      data_dir = data_dir)
   wia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
 
   wia_cbt_gen <- wrap_with_mass_casualty(
     generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
-                               "effective_force_combat", n_days, antithetic = antithetic),
+                               "effective_force_combat", n_days),
     mass_casualty$arrival_times, mass_casualty$casualty_event_id)
 
   env <<- env %>%
@@ -75,19 +72,19 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
     add_generator("wia_cbt",  casualty, wia_cbt_gen, mon = 2) %>%
     add_generator("kia_cbt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
-                    "effective_force_combat", n_days, antithetic = antithetic), mon = 2) %>%
+                    "effective_force_combat", n_days), mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_cbt,
-                    "effective_force_combat", n_days, antithetic = antithetic), mon = 2) %>%
+                    "effective_force_combat", n_days), mon = 2) %>%
     add_generator("wia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$wia_spt,
-                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
+                    "effective_force_support", n_days), mon = 2) %>%
     add_generator("kia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$kia_spt,
-                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
+                    "effective_force_support", n_days), mon = 2) %>%
     add_generator("dnbi_spt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
-                    "effective_force_support", n_days, antithetic = antithetic), mon = 2) %>%
+                    "effective_force_support", n_days), mon = 2) %>%
     add_global("evac_wait_count", 0)
 
   # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when
@@ -186,31 +183,42 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'   forking one such session per core on an unconstrained core count
 #'   has been observed to exhaust a local dev container's memory and
 #'   crash it even at a modest replication count (Issue #15 follow-up).
-#' @return Named list with elements: arrivals, attributes, resources.
-#'   Each data frame includes a 'replication' column (1..n_iterations).
+#' @return Named list with elements: arrivals, attributes, resources, seeds.
+#'   Each data frame includes a 'replication' column (1..n_iterations); `seeds`
+#'   is the per-replication seed vector, in the same order.
 #'
-#' @details Antithetic pairing: replications (2k-1, 2k) share a seed so that
-#'   run_once() draws uniforms U for the primary and 1-U for the antithetic,
-#'   inducing negative arrival-count correlation within each pair. Independence
-#'   across pairs is ensured by distinct pair_seeds. RNGkind("L'Ecuyer-CMRG")
-#'   is set before mclapply for the global stream; individual pair seeds are
-#'   set inside each worker via run_once(seed = ...), overriding the substream
-#'   but preserving pair-level independence. Falls back to lapply on Windows.
+#' @details Every replication is independent: each draws its own seed from the
+#'   parent RNG and sets it inside its worker via run_once(seed = ...), so the
+#'   replication is the unit of analysis and an interval dividing by the
+#'   replication count is correctly specified. RNGkind("L'Ecuyer-CMRG") is set
+#'   before mclapply for the global stream; the per-replication seed overrides
+#'   the worker's substream. Falls back to lapply on Windows.
+#'
+#'   Replications were formerly paired antithetically, (2k-1, 2k) sharing a
+#'   seed with the even member negating its arrival uniforms, which made the
+#'   pair and not the replication the unit the design supplied while every
+#'   interval went on dividing by the replication count. The scheme was
+#'   withdrawn rather than corrected for, on two grounds. It bought nothing
+#'   measurable: over 75 pairs the within-pair correlation on total casualties,
+#'   the only response the negation reached, was -0.04, and on R2E ICU mean
+#'   queue it was +0.18, a penalty rather than a saving. And extending the
+#'   negation past the arrival generators is not available, since simmer draws
+#'   service times from the global stream inside its own event loop, in an
+#'   order set by event timing that the negated arrivals have already changed,
+#'   so partners have no corresponding draws to reflect. See README (Multi-run
+#'   Replication Framework) for the measurement and
+#'   scripts/check_replication_independence.R for the regression guard.
 run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir = NULL,
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
-  # Each pair (2k-1, 2k) shares a seed: primary draws U, antithetic draws 1-U
-  # from the same starting RNG state, giving Cor(primary, antithetic) < 0.
-  n_pairs    <- ceiling(n_iterations / 2)
-  pair_seeds <- sample.int(.Machine$integer.max, n_pairs)
+  rep_seeds <- sample.int(.Machine$integer.max, n_iterations)
 
   worker <- function(i) {
     res <- run_once(n_days,
-             seed        = pair_seeds[ceiling(i / 2)],
+             seed        = rep_seeds[i],
              write_files = FALSE,
-             ot_hours    = ot_hours,
-             antithetic  = (i %% 2 == 0))
+             ot_hours    = ot_hours)
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("rep_%d.done", i)))
     }
@@ -273,7 +281,14 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
   list(
     arrivals   = get_mon_arrivals(envs, ongoing = TRUE),
     attributes = get_mon_attributes(envs),
-    resources  = get_mon_resources(envs)
+    resources  = get_mon_resources(envs),
+    # The seed each surviving replication ran under, in replication order.
+    # run_once() is a pure function of its seed, so this is the whole of what
+    # distinguishes one replication from another: distinct seeds here are what
+    # makes the replications independent, and one seed appearing twice is what
+    # a reintroduced pairing would look like.
+    # scripts/check_replication_independence.R asserts both properties.
+    seeds      = rep_seeds[valid]
   )
 }
 
@@ -288,9 +303,13 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
 #'   and 95% CI bounds, sorted descending by mean queue length
 #'
 #' @details Uses time-weighted mean queue per replication as the unit of
-#'   analysis, then summarises across replications. 95% CI uses the t-distribution.
-#'   Under antithetic pairing, replications are correlated within pairs but the
-#'   summary statistics remain valid estimators of the population mean and variance.
+#'   analysis, then summarises across replications. 95% CI uses the
+#'   t-distribution, dividing by the replication count, which is correct
+#'   because run_replications() makes every replication independent. It was
+#'   not while replications were antithetically paired: the mean stayed
+#'   unbiased, but the variance of that mean did not, since dividing by n
+#'   assumes an independence the pairing did not supply. See
+#'   run_replications() for why the pairing was withdrawn.
 #'   A single replication has no dispersion to report, so sd_q and both CI
 #'   bounds are returned as NA rather than as the NaN that qt(0.975, df = 0)
 #'   would otherwise produce (Issue #154, which emits this table from the

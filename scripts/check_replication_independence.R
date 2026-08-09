@@ -19,20 +19,20 @@
 # computed as qt(0.975, df = n - 1) * sd / sqrt(n) with n set to the number of
 # replications, which is correct only if the replications are independent.
 # They were not. run_replications() used to pair them, (2k-1, 2k) sharing a
-# seed with the even member negating its arrival-generation uniforms. Because
-# the negation reached the arrival generators alone, partners shared an
-# unnegated trajectory stream and correlated *positively* on any response
-# driven by treatment rather than by arrival counts: +0.38 measured on the
-# died-of-wounds count. Positive correlation between observations narrows an
-# interval that divides by n, and a too-narrow interval makes the model look
-# more precisely calibrated than it is. The pairing was withdrawn (Issue #189,
-# README — Multi-run Replication Framework); this check is what keeps it
-# withdrawn.
+# seed with the even member negating its arrival-generation uniforms, so the
+# pair rather than the replication was the unit the design supplied. That is a
+# specification error whatever correlation the pairing happened to realise:
+# positive correlation between observations narrows an interval that divides
+# by n, and a too-narrow interval makes the model look more precisely
+# calibrated than it is. The pairing was withdrawn rather than corrected for,
+# because measurement showed it delivering no variance reduction even on the
+# arrival-driven response it reached (Issue #189, README — Multi-run
+# Replication Framework); this check is what keeps it withdrawn.
 #
-# What it asserts. For each response it measures the lag-1 correlation across
-# replications in run order, which is where a reintroduced pairing would show
-# up, since partners were adjacent. The failure condition is one-sided: only
-# positive correlation understates variance and so narrows the published
+# What it asserts. For each response it measures the lag-1 rank correlation
+# across replications in run order, which is where a reintroduced pairing would
+# show up, since partners were adjacent. The failure condition is one-sided:
+# only positive correlation understates variance and so narrows the published
 # intervals. A negative correlation makes them conservative instead, which is
 # a variance-reduction scheme working rather than a defect, so it is reported
 # and not failed on.
@@ -127,7 +127,10 @@ run_measurement <- function(scenario, seed) {
   counts   <<- sapply(env_data$elms, length)
 
   set.seed(seed)
-  responses(run_replications(N_REPS, CHECK_DAYS))
+  # run_once() writes a per-arrival trace to stdout from every worker; at this
+  # replication count it buries the check's own output.
+  invisible(capture.output(mon <- run_replications(N_REPS, CHECK_DAYS)))
+  responses(mon)
 }
 
 # ── Checks ──────────────────────────────────────────────────────────────────
@@ -138,7 +141,7 @@ RESPONSES <- c(total_casualties = "total casualties (arrival-driven)",
 
 cat(sprintf("Replication independence check: %s, %d measurement(s) x %d replications x %d days\n",
             SCENARIO, N_MEASURE, N_REPS, CHECK_DAYS))
-cat("Failure condition: lag-1 correlation significantly positive (one-sided, 95%)\n\n")
+cat("Failure condition: lag-1 rank correlation significantly positive (one-sided, 95%)\n\n")
 if (quick) {
   cat("QUICK MODE — too few replications to detect a dependence. Wiring test only.\n\n")
 }
@@ -169,24 +172,37 @@ for (col in names(RESPONSES)) {
     next
   }
 
-  ct <- suppressWarnings(cor.test(a, b))
-  # One-sided: a lower bound above zero is a positive dependence, which is
-  # what narrows the published intervals.
-  ok <- ct$conf.int[1] <= 0
+  # Spearman is the decision statistic and Pearson is reported alongside it.
+  # Two of the three responses are strongly right-skewed — the R2E ICU queue
+  # has a coefficient of variation near 0.8, and the died-of-wounds count is a
+  # rare-event count with a floor at zero — and a Pearson estimate on a skewed
+  # variable is dominated by its few largest observations, so it wanders far
+  # enough at this sample size to sit near the threshold by chance. Spearman
+  # answers the question actually being asked, which is whether one replication
+  # carries information about the next, without assuming either variable is
+  # near-normal.
+  sp <- suppressWarnings(cor.test(a, b, method = "spearman"))
+  pe <- suppressWarnings(cor.test(a, b))
+
+  # One-sided: only positive dependence understates variance and so narrows
+  # the published intervals.
+  ok <- !(sp$p.value < 0.05 && sp$estimate > 0)
 
   cat(sprintf("\n%s\n", RESPONSES[[col]]))
-  cat(sprintf("  lag-1 r = %+.3f  95%% CI [%+.3f, %+.3f]  n = %d pairs\n",
-              ct$estimate, ct$conf.int[1], ct$conf.int[2], length(a)))
+  cat(sprintf("  lag-1 Spearman rho = %+.3f  p = %.3f  n = %d pairs\n",
+              sp$estimate, sp$p.value, length(a)))
+  cat(sprintf("  lag-1 Pearson  r   = %+.3f  95%% CI [%+.3f, %+.3f]\n",
+              pe$estimate, pe$conf.int[1], pe$conf.int[2]))
 
   if (!ok) {
-    fail(paste0("%s: lag-1 correlation %+.3f (95%% CI [%+.3f, %+.3f]) is significantly ",
-                "positive — replications are not independent, so every interval computed ",
-                "over them is too narrow"),
-         RESPONSES[[col]], ct$estimate, ct$conf.int[1], ct$conf.int[2])
+    fail(paste0("%s: lag-1 rank correlation %+.3f (p = %.3f) is significantly positive — ",
+                "replications are not independent, so every interval computed over them ",
+                "is too narrow"),
+         RESPONSES[[col]], sp$estimate, sp$p.value)
   }
   report(ok, "%s shows no positive dependence between replications", RESPONSES[[col]])
 
-  if (ct$conf.int[2] < 0) {
+  if (sp$p.value < 0.05 && sp$estimate < 0) {
     cat("  [note] significantly negative — variance reduction, not a defect; the published\n")
     cat("         intervals are conservative rather than too narrow\n")
   }

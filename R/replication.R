@@ -194,17 +194,19 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'   the worker's substream. Falls back to lapply on Windows.
 #'
 #'   Replications were formerly paired antithetically, (2k-1, 2k) sharing a
-#'   seed with the even member negating its arrival uniforms. The negation
-#'   reached the arrival generators alone, so partners shared an unnegated
-#'   trajectory stream and correlated positively on any response driven by
-#'   treatment rather than by arrival counts, which inflates rather than
-#'   reduces the variance of their mean. Extending the negation past the
-#'   arrival generators is not available: simmer draws service times from the
-#'   global stream inside its own event loop, in an order set by event timing
-#'   that the negated arrivals have already changed, so there is no
-#'   correspondence between partners' draws to reflect. The scheme was
-#'   therefore withdrawn rather than extended (README — Multi-run Replication
-#'   Framework).
+#'   seed with the even member negating its arrival uniforms, which made the
+#'   pair and not the replication the unit the design supplied while every
+#'   interval went on dividing by the replication count. The scheme was
+#'   withdrawn rather than corrected for, on two grounds. It bought nothing
+#'   measurable: over 75 pairs the within-pair correlation on total casualties,
+#'   the only response the negation reached, was -0.04, and on R2E ICU mean
+#'   queue it was +0.18, a penalty rather than a saving. And extending the
+#'   negation past the arrival generators is not available, since simmer draws
+#'   service times from the global stream inside its own event loop, in an
+#'   order set by event timing that the negated arrivals have already changed,
+#'   so partners have no corresponding draws to reflect. See README (Multi-run
+#'   Replication Framework) for the measurement and
+#'   scripts/check_replication_independence.R for the regression guard.
 run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir = NULL,
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))

@@ -183,8 +183,9 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'   forking one such session per core on an unconstrained core count
 #'   has been observed to exhaust a local dev container's memory and
 #'   crash it even at a modest replication count (Issue #15 follow-up).
-#' @return Named list with elements: arrivals, attributes, resources.
-#'   Each data frame includes a 'replication' column (1..n_iterations).
+#' @return Named list with elements: arrivals, attributes, resources, seeds.
+#'   Each data frame includes a 'replication' column (1..n_iterations); `seeds`
+#'   is the per-replication seed vector, in the same order.
 #'
 #' @details Every replication is independent: each draws its own seed from the
 #'   parent RNG and sets it inside its worker via run_once(seed = ...), so the
@@ -280,7 +281,14 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
   list(
     arrivals   = get_mon_arrivals(envs, ongoing = TRUE),
     attributes = get_mon_attributes(envs),
-    resources  = get_mon_resources(envs)
+    resources  = get_mon_resources(envs),
+    # The seed each surviving replication ran under, in replication order.
+    # run_once() is a pure function of its seed, so this is the whole of what
+    # distinguishes one replication from another: distinct seeds here are what
+    # makes the replications independent, and one seed appearing twice is what
+    # a reintroduced pairing would look like.
+    # scripts/check_replication_independence.R asserts both properties.
+    seeds      = rep_seeds[valid]
   )
 }
 

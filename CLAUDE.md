@@ -341,7 +341,7 @@ Nursing Officers from the R2B emergency section are assumed to flex to scrub and
 
 - All parameters must be cited. If a value is estimated or derived, state this explicitly and describe the derivation.
 - **All sources must be openly accessible on the internet without a paywall.** Paywalled journal articles, restricted doctrine, and books with no freely available full text must not be used.
-- Use the numbered reference format already established in these documents (`[[n]](#References)`).
+- Use the numbered reference format already established in these documents (`[[n]](#references)`).
 - New references are appended to the References section of the document that cites them, in the order they first appear in that document's text. Each of `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md` maintains its own independently-numbered References section (see README Maintenance above) — a source cited in more than one document gets its own number in each.
 
 ### Reference List Rules

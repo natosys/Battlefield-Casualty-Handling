@@ -265,16 +265,12 @@ document_anchors <- function(file_path) {
 #'   scope, named by path relative to the repository root
 #' @return Number of links that resolve to nothing
 #'
-#' @details Links whose only discrepancy is letter case are reported
-#'   separately and not counted as failures. GitHub does not resolve them
-#'   either, the ids it generates being lower-cased, but the citation format
-#'   this project uses throughout its documents (`[[n]](#References)`) is
-#'   established convention rather than an error introduced by an edit, and
-#'   failing the whole run on it would make the check unusable.
+#' @details The comparison is case-sensitive, because GitHub's is: the ids it
+#'   generates are lower-cased, so a link differing from its heading only in
+#'   letter case resolves to nothing and is reported like any other.
 check_anchor_links <- function(file_path, anchors_by_doc) {
   lines <- readLines(file_path, encoding = "UTF-8")
   broken <- 0
-  case_only <- 0
 
   for (i in seq_along(lines)) {
     links <- regmatches(lines[i], gregexpr("\\]\\([^) ]*#[^) ]+\\)", lines[i], perl = TRUE))[[1]]
@@ -290,22 +286,13 @@ check_anchor_links <- function(file_path, anchors_by_doc) {
       target_doc <- sub(paste0("^", getwd(), "/"), "", target_doc)
       if (!(target_doc %in% names(anchors_by_doc))) next   # outside the checked set
 
-      available <- anchors_by_doc[[target_doc]]
-      if (anchor %in% available) next
-      if (tolower(anchor) %in% available) {
-        case_only <- case_only + 1
-        next
-      }
+      if (anchor %in% anchors_by_doc[[target_doc]]) next
       broken <- broken + 1
       cat(sprintf("  %s:%d links to %s#%s, which no heading generates\n",
                   file_path, i, target_doc, anchor))
     }
   }
 
-  if (case_only > 0) {
-    cat(sprintf("  %s: %d link(s) differ from their heading only in letter case\n",
-                file_path, case_only))
-  }
   broken
 }
 

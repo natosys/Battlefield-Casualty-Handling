@@ -958,7 +958,7 @@ Replaces the single `total_rtd` count with two operationally distinct sub-totals
 
 `bf_rtd` = 38, not 46, because 8 of 46 battle fatigue casualties were still within their R1 hold timeout when the 30-day simulation ended — `return_day` is only assigned on timeout completion. Confirmed across a 10-replication run with both `stopifnot()` guards passing in all replications.
 
-**Significance:** The decomposition preserves the operational distinction between forward behavioural health management (R1 battle fatigue hold) and clinical treatment throughput at each Role 2 echelon. The combined total previously obscured both. The 37.0% aggregate RTD rate is within the historical in-theatre range of 7.6–42.1% [[9]](#References).
+**Significance:** The decomposition preserves the operational distinction between forward behavioural health management (R1 battle fatigue hold) and clinical treatment throughput at each Role 2 echelon. The combined total previously obscured both. The 37.0% aggregate RTD rate is within the historical in-theatre range of 7.6–42.1% [[9]](#references).
 
 **Unblocked by this merge:** No new issues — all Phase 2 issues were already unblocked before #44.
 

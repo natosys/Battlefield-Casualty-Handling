@@ -299,6 +299,19 @@ composition_coord_bounds <- function(g) {
 #'   See README Sensitivity Analysis section for the full per-parameter
 #'   derivation and the parameter-surface diff this expansion is based on.
 #'
+#'   `surg_mode` spans 57 to 133 minutes, Rule A around the shipped 95-minute
+#'   mode. The bounds were previously 90 to 150, derived against a 120-minute
+#'   mode that Issue #76 superseded, which left the baseline 0.083 of the way
+#'   along its own range: every design point of the screen then ran a longer
+#'   operation than the model ships, biasing every theatre-mediated
+#'   parameter's rank rather than this row's alone (Issue #195). The lower
+#'   endpoint was read against the source as well as derived from the rule:
+#'   57 minutes lies inside
+#'   the 41-to-210-minute operative-time range the mode's own source reports,
+#'   above its fastest observed case, and both endpoints sit inside the fixed
+#'   `r2b.surgery`/`r2eheavy.surgery` min and max, so no design point can
+#'   produce the invalid triangular draw described in the two notes below.
+#'
 #'   `icu_defer_check_interval` (R2B/R2E OT-entry defer poll, Issue #43) and
 #'   `ame_dow_check_interval` (strategic-AME-wait DOW poll, Issue #23 third
 #'   follow-up) were screened in the initial Issue #112 pass but removed by
@@ -381,7 +394,7 @@ morris_params <- data.frame(
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate"
   ),
   lower = c(
-    90,    25,    0.0115, 15,   15,   770,   0.70,  15,    8,   0,    40,
+    57,    25,    0.0115, 15,   15,   770,   0.70,  15,    8,   0,    40,
     17,    3600,   23400,  380,   1440,  12,   720,
     0.55,  0.15,  0.35,  0.03,  0.70,  0.65,
     0.0005, 0.024, 72,   0.00025, 0.0095, 0.015, 108, 0.0005,
@@ -394,7 +407,7 @@ morris_params <- data.frame(
     0.30, 0.08, 0.00
   ),
   upper = c(
-    150,   70,    0.046,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
+    133,   70,    0.046,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
     39,    14400,  54450,  1200,  5760,  28,   2880,
     0.95,  0.55,  0.75,  0.12,  0.99,  0.98,
     0.002, 0.056, 168,  0.001,  0.038,  0.035, 252, 0.002,

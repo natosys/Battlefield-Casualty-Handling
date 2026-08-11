@@ -164,10 +164,31 @@ classify_resource_group <- function(resource) {
   )
 }
 
+#' Short display label for a scenario, derived from its identifier
+#'
+#' @param scenario Character vector of scenario identifiers as they appear in
+#'   the `scenarios` block of env_data.json (e.g. "moderate_intensity"), or
+#'   "default"
+#' @return Character vector of title-cased labels with underscores replaced by
+#'   spaces (e.g. "Moderate Intensity")
+#'
+#' @details The identifier is used in preference to trimming the scenario's
+#'   long `label` field, which cannot be done portably. A label read from
+#'   env_data.json is flagged UTF-8 by jsonlite::fromJSON(), whereas a pattern
+#'   written as an R source literal carries the session's native encoding, so
+#'   under a C locale R cannot translate a non-ASCII pattern for matching and
+#'   sub() rejects it outright (Issue #153). Identifiers are ASCII, so this
+#'   derivation needs no such match and behaves identically in every locale.
+scenario_short_label <- function(scenario) {
+  vapply(strsplit(gsub("_", " ", scenario), " ", fixed = TRUE), function(words) {
+    paste(toupper(substring(words, 1, 1)), substring(words, 2), sep = "", collapse = " ")
+  }, character(1))
+}
+
 #' Faceted bar chart comparing mean queue length by resource group and scenario
 #'
 #' @param queue_table Combined per-resource queue KPI table, as produced by
-#'   compare_scenarios() (columns include scenario_label, resource, mean_q,
+#'   compare_scenarios() (columns include scenario, resource, mean_q,
 #'   p10_q, p90_q)
 #' @param images_dir Directory for the saved plot (default "images")
 #' @return ggplot object (also saved to images_dir/scenario_comparison.png)
@@ -179,7 +200,7 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
   group_summary <- queue_table %>%
     mutate(
       group      = classify_resource_group(resource),
-      short_label = sub(" — .*", "", scenario_label)
+      short_label = scenario_short_label(scenario)
     ) %>%
     filter(!is.na(group)) %>%
     group_by(short_label, group) %>%
@@ -195,7 +216,11 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
     geom_errorbar(aes(ymin = p10_q, ymax = p90_q), width = 0.2) +
     facet_wrap(~ group, scales = "free_y") +
     scale_fill_brewer(palette = "Set2") +
-    labs(title = "Comparative Scenario Analysis — Mean Queue by Resource Group",
+    # The em dash is written as a \u escape, not a literal: an escape yields a
+    # UTF-8-flagged string in any locale, whereas a literal carries the
+    # session's native encoding and the PNG device renders it as raw bytes
+    # under a C locale (Issue #153)
+    labs(title = "Comparative Scenario Analysis \u2014 Mean Queue by Resource Group",
          subtitle = "Error bars show mean of per-resource p10-p90 across replications",
          x = NULL, y = "Mean Queue Length", fill = "Scenario") +
     theme_minimal(base_size = 13) +

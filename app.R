@@ -257,7 +257,9 @@ detect_tri_triples <- function(registry) {
   setNames(lapply(prefixes, function(p) {
     mode_f <- registry[[which(ids == paste0(p, "_mode"))]]
     list(min_id = paste0(p, "_min"), mode_id = paste0(p, "_mode"), max_id = paste0(p, "_max"),
-         label = sub(" — Most Likely \\(Mode\\)$", "", mode_f$label))
+         # useBytes: the pattern is non-ASCII, so a locale-dependent match
+         # would break if the label ever moved into env_data.json (Issue #153)
+         label = sub(" — Most Likely \\(Mode\\)$", "", mode_f$label, useBytes = TRUE))
   }), prefixes)
 }
 TRI_TRIPLES <- detect_tri_triples(PARAM_REGISTRY)
@@ -1338,7 +1340,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
           !!!lapply(GEN_STREAM_ACTYS, function(acty) {
             mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
             sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
-            stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label)
+            # useBytes: see detect_tri_triples() above (Issue #153)
+            stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label, useBytes = TRUE)
             dist <- if (is.null(gen_distributions)) "lognormal" else (gen_distributions[[acty]] %||% "lognormal")
             sd_input <- if (identical(dist, "exponential")) {
               p(class = "text-muted small mb-0",

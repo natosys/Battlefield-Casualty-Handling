@@ -1027,6 +1027,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/check_morris_baseline.R`  | Checks that every screened parameter's baseline lies inside its own screening bounds and equals the value it holds in `env_data.json`, deriving the parameter-to-path mapping from `apply_params()` rather than restating it; exits non-zero on failure |
 | `scripts/check_dow_calibration.R`  | Checks that neither shipped configuration's treated-cohort died-of-wounds rate overshoots the Ajax Bay historical bound, pooling independent measurements because one does not resolve a response averaging about one death per replication; exits non-zero on failure |
 | `scripts/check_replication_independence.R` | Checks that `run_once()` is a pure function of its seed and that `run_replications()` draws a distinct seed per replication, which together make the replications independent; exits non-zero on failure |
+| `scripts/check_scenario_labels.R`  | Checks that the comparative scenario plot renders in a C locale and byte-for-byte matches the same plot rendered under UTF-8, reaching the plotting stage from a synthetic queue table rather than from a full replication run; exits non-zero on failure |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
 | `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
 | `outputs/`                         | Generated outputs directory; every run writes its CSVs, markdown tables, plots (`outputs/images/`), console log and arrival diagnostics (`outputs/data/`) here. Tracked via `.gitkeep` and otherwise gitignored |
@@ -1498,6 +1499,8 @@ Two profiles ship in `env_data.json`, `moderate_intensity` and `high_intensity` 
 - `outputs/scenario_comparison_queues.csv`
 - `outputs/scenario_comparison_totals.csv`
 - `images/scenario_comparison.png`, mean queue by scenario, faceted across R2B OT, R2E OT, R2E ICU and Transport
+
+The plot labels each scenario by a title-cased form of its identifier (`moderate_intensity` becomes "Moderate Intensity") rather than by trimming its long display label, and the entry point requests a UTF-8 character locale at startup, reporting the fact when none can be set. The long labels contain characters a C locale cannot represent, and these two measures together make the three files identical whatever locale the session runs in.
 
 ```bash
 # Default comparison: moderate_intensity vs high_intensity, 10 reps x 30 days

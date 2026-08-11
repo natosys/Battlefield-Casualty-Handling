@@ -14,6 +14,31 @@
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
 #   cmp <- compare_scenarios(c("moderate_intensity", "high_intensity"), n_iterations = 10, n_days = 30)
+#
+# The script runs to completion in any locale. Where a UTF-8 LC_CTYPE cannot be
+# obtained, the only difference is that the em dash inside the scenario_label
+# column of the two CSVs is escaped as <U+2014> by write.csv(); every figure,
+# every plot label and the saved PNG are byte-identical either way.
+
+# ── Locale guard ──────────────────────────────────────────────────────────────
+# The scenario labels in env_data.json contain an em dash, and jsonlite flags
+# them UTF-8 regardless of the session's locale. A C locale cannot represent
+# that character natively, so any handling of these strings is locale-sensitive
+# (Issue #153). The code itself no longer depends on the locale, but a UTF-8
+# LC_CTYPE keeps the written CSVs identical to a UTF-8 session's, so one is
+# requested here and its absence is reported at startup rather than after a
+# full run has completed.
+if (!grepl("UTF-8|utf8", Sys.getlocale("LC_CTYPE"), ignore.case = TRUE)) {
+  for (loc in c("C.UTF-8", "en_US.UTF-8", "en_AU.UTF-8")) {
+    if (nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", loc)))) break
+  }
+  if (!grepl("UTF-8|utf8", Sys.getlocale("LC_CTYPE"), ignore.case = TRUE)) {
+    message("Note: no UTF-8 locale available (LC_CTYPE is '", Sys.getlocale("LC_CTYPE"),
+            "'). The run will complete, but the em dash in the scenario_label ",
+            "CSV column will be written escaped as <U+2014>. Set ",
+            "LANG=en_US.UTF-8 to avoid this.")
+  }
+}
 
 source("R/environment.R")
 source("R/trajectories.R")

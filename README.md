@@ -28,12 +28,12 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
     - [Casualty Simulation and DES](#casualty-simulation-and-des)
     - [Statistical Distributions and Modelling Algorithms](#statistical-distributions-and-modelling-algorithms)
     - [Military Doctrine and Operational Health Support Policy](#military-doctrine-and-operational-health-support-policy)
-    - [Damage Control Surgery and Post-Operative Critical Care](#damage-control-surgery-and-postoperative-critical-care)
-    - [Preventable Death and Time-Dependent Mortality](#preventable-death-and-timedependent-mortality)
+    - [Damage Control Surgery and Post-Operative Critical Care](#damage-control-surgery-and-post-operative-critical-care)
+    - [Preventable Death and Time-Dependent Mortality](#preventable-death-and-time-dependent-mortality)
     - [Strategic Aeromedical Evacuation (AME) and Role 4 Doctrine](#strategic-aeromedical-evacuation-ame-and-role-4-doctrine)
     - [Mass Casualty Event Simulation](#mass-casualty-event-simulation)
     - [Statistical Methods for Simulation Verification, Replication, and Sensitivity Analysis](#statistical-methods-for-simulation-verification-replication-and-sensitivity-analysis)
-    - [Disease and Non-Battle Injury Evidence](#disease-and-nonbattle-injury-evidence)
+    - [Disease and Non-Battle Injury Evidence](#disease-and-non-battle-injury-evidence)
 - [Scenario Context](#scenario-context)
 - [Simulation Framework](#simulation-framework)
 - [Resource Descriptions](#resource-descriptions)
@@ -49,39 +49,39 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Transport Assets](#transport-assets)
     - [Protected Mobility Vehicle Ambulance (PMV Ambulance)](#protected-mobility-vehicle-ambulance-pmv-ambulance)
     - [HX2 40M](#hx2-40m)
-    - [Dead-Heading Return Legs](#deadheading-return-legs)
+    - [Dead-Heading Return Legs](#dead-heading-return-legs)
 - [Model Parameters and Model Configuration](#model-parameters-and-model-configuration)
   - [Force Size](#force-size)
     - [Population](#population)
-    - [Reinforcement Demand & Fulfillment](#reinforcement-demand-fulfillment)
+    - [Reinforcement Demand & Fulfillment](#reinforcement-demand--fulfillment)
   - [Health System Architecture](#health-system-architecture)
     - [Surgical Shift Roster](#surgical-shift-roster)
-  - [Medevac — Transport Fleet](#medevac-—-transport-fleet)
+  - [Medevac — Transport Fleet](#medevac--transport-fleet)
   - [Schedules and Rosters](#schedules-and-rosters)
   - [Casualty Generation](#casualty-generation)
     - [1. Distribution Parameterisation](#1-distribution-parameterisation)
-    - [2. Per-Minute Rate Sampling and Scaling](#2-perminute-rate-sampling-and-scaling)
+    - [2. Per-Minute Rate Sampling and Scaling](#2-per-minute-rate-sampling-and-scaling)
     - [3. Arrival Detection via Cumulative Sum](#3-arrival-detection-via-cumulative-sum)
     - [4. Temporal Randomisation](#4-temporal-randomisation)
     - [5. Mass Casualty Event Injection](#5-mass-casualty-event-injection)
     - [6. Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)
   - [Casualty Generation Rates](#casualty-generation-rates)
-    - [WIA — Combat](#wia-—-combat)
-    - [KIA — Combat](#kia-—-combat)
-    - [DNBI — Combat](#dnbi-—-combat)
-    - [WIA — Support](#wia-—-support)
-    - [KIA — Support](#kia-—-support)
-    - [DNBI — Support](#dnbi-—-support)
-  - [DNBI Sub-Type Split](#dnbi-subtype-split)
-  - [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible)
+    - [WIA — Combat](#wia--combat)
+    - [KIA — Combat](#kia--combat)
+    - [DNBI — Combat](#dnbi--combat)
+    - [WIA — Support](#wia--support)
+    - [KIA — Support](#kia--support)
+    - [DNBI — Support](#dnbi--support)
+  - [DNBI Sub-Type Split](#dnbi-sub-type-split)
+  - [Parameters Not Scenario-Eligible](#parameters-not-scenario-eligible)
 - [Casualty Priorities](#casualty-priorities)
 - [Return to Duty](#return-to-duty)
 - [Died of Wounds](#died-of-wounds)
   - [Survival Function](#survival-function)
   - [Parameter Calibration](#parameter-calibration)
-  - [Multi-Echelon Check and Conditional Increment](#multiechelon-check-and-conditional-increment)
+  - [Multi-Echelon Check and Conditional Increment](#multi-echelon-check-and-conditional-increment)
   - [Treatment Efficacy Modifiers](#treatment-efficacy-modifiers)
-  - [Post-Operative Checkpoint](#postoperative-checkpoint)
+  - [Post-Operative Checkpoint](#post-operative-checkpoint)
   - [AME Wait Checkpoint](#ame-wait-checkpoint)
 - [Scenario Profiles](#scenario-profiles)
   - [Mechanism](#mechanism)
@@ -90,7 +90,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [High Intensity profile (Okinawa exemplar)](#high-intensity-profile-okinawa-exemplar)
 - [Development Environment](#development-environment)
   - [Prerequisites](#prerequisites)
-  - [First-time setup](#firsttime-setup)
+  - [First-time setup](#first-time-setup)
   - [Restoring dependencies](#restoring-dependencies)
   - [RStudio Server configuration](#rstudio-server-configuration)
   - [Running the simulation with full parallelism](#running-the-simulation-with-full-parallelism)
@@ -98,10 +98,10 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
     - [Running the simulation](#running-the-simulation)
-    - [Multi-run Replication Framework](#multirun-replication-framework)
-    - [Warm-up Period Analysis](#warmup-period-analysis)
+    - [Multi-run Replication Framework](#multi-run-replication-framework)
+    - [Warm-up Period Analysis](#warm-up-period-analysis)
     - [Sensitivity Analysis](#sensitivity-analysis)
-      - [Simplex-Constrained Compositions](#simplexconstrained-compositions)
+      - [Simplex-Constrained Compositions](#simplex-constrained-compositions)
     - [Parameters Excluded from Screening](#parameters-excluded-from-screening)
     - [Screening Response Set](#screening-response-set)
     - [Parameter Name Reference](#parameter-name-reference)
@@ -113,18 +113,18 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
   - [Core Trajectory](#core-trajectory)
     - [Surgical Pathway](#surgical-pathway)
   - [R2B Trajectory](#r2b-trajectory)
-    - [Post-Operative Stabilisation](#postoperative-stabilisation)
+    - [Post-Operative Stabilisation](#post-operative-stabilisation)
   - [R2E Heavy Trajectory](#r2e-heavy-trajectory)
   - [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)
 - [Model Outputs](#model-outputs)
-  - [Domain 1 — Mortality and Preventable Death](#domain-1-—-mortality-and-preventable-death)
-  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2-—-timetocare-from-r1-arrival)
-  - [Domain 3 — Surgical Throughput](#domain-3-—-surgical-throughput)
-  - [Domain 4 — Echelon Load and Capacity](#domain-4-—-echelon-load-and-capacity)
-  - [Domain 5 — Flow and Disposition](#domain-5-—-flow-and-disposition)
-  - [Domain 6 — Combat Power](#domain-6-—-combat-power)
-  - [Domain 7 — Strategic Evacuation and National Support Base Demand](#domain-7-—-strategic-evacuation-and-national-support-base-demand)
-  - [Output Variable Register cross-reference](#output-variable-register-crossreference)
+  - [Domain 1 — Mortality and Preventable Death](#domain-1--mortality-and-preventable-death)
+  - [Domain 2 — Time-to-Care from R1 Arrival](#domain-2--time-to-care-from-r1-arrival)
+  - [Domain 3 — Surgical Throughput](#domain-3--surgical-throughput)
+  - [Domain 4 — Echelon Load and Capacity](#domain-4--echelon-load-and-capacity)
+  - [Domain 5 — Flow and Disposition](#domain-5--flow-and-disposition)
+  - [Domain 6 — Combat Power](#domain-6--combat-power)
+  - [Domain 7 — Strategic Evacuation and National Support Base Demand](#domain-7--strategic-evacuation-and-national-support-base-demand)
+  - [Output Variable Register cross-reference](#output-variable-register-cross-reference)
 - [Further Development](#further-development)
   - [High Impact](#high-impact)
   - [Medium Impact](#medium-impact)
@@ -749,7 +749,7 @@ $p_{max}$ and the treatment efficacy factors ([Treatment Efficacy Modifiers](#tr
 
 ### Multi-Echelon Check and Conditional Increment
 
-DOW checks are performed at four points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, and on completion of post-operative recovery at R2E (ICU or holding bed — see [Post-Operative Checkpoint](#postoperative-checkpoint) below). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
+DOW checks are performed at four points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, and on completion of post-operative recovery at R2E (ICU or holding bed — see [Post-Operative Checkpoint](#post-operative-checkpoint) below). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
 
 $$
 p_{conditional} = \max\left(0, \frac{F(t_{now}) - F(t_{prev})}{1 - F(t_{prev})}\right)
@@ -779,8 +779,8 @@ The $p_{base}$ term is held fixed throughout: it represents non-survivable injur
 | R2E DCR (resus)            | 0.56   | Same factor as R2B DCR [[31]](#References); applied only when full resuscitation occurs at R2E (i.e., the casualty bypassed R2B). Casualties pre-resuscitated at R2B receive a short resus at R2E; this factor is not re-applied, avoiding double-counting the DCR effect.                                                                                     |
 | R2E DCS 1st op             | 0.25   | Post-operative mortality in optimally resuscitated DCS patients is approximately 3–5% at 30 days — a 75% relative reduction from the pre-first-DCS ceiling [[31]](#References).                                                                                                                                                                                |
 | R2E DCS 2nd op             | 0.57   | Informed estimate. The second definitive procedure addresses residual injury load after initial damage control; mortality reduction is smaller than the first operation. Applied only to casualties without prior R2B DCS.                                                                                                                                     |
-| R2E post-op hold (penalty) | 3.0    | Informed estimate. Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See [Post-Operative Checkpoint](#postoperative-checkpoint) below.                                                                       |
-| R2B forward ICU (penalty)  | 1.31   | Applied instead of a reduction to post-operative intensive care served forward at R2B rather than at R2E (see [Post-Operative Stabilisation](#postoperative-stabilisation)). A meta-analysis of open-format against closed-format intensive care units, the difference being whether a trained intensivist holds responsibility for the patient, reports a pooled odds ratio for ICU mortality of 1.31 (95% CI 1.09 to 1.59) [[59]](#References). An R2B section fields two nurses and two medics with no intensivist; an R2E section fields an intensivist and four nurses. |
+| R2E post-op hold (penalty) | 3.0    | Informed estimate. Applied instead of a reduction when post-operative recovery occurs in a holding bed rather than ICU, partially reversing the R2E DCS 1st op reduction to reflect the absence of continuous critical-care monitoring. See [Post-Operative Checkpoint](#post-operative-checkpoint) below.                                                                       |
+| R2B forward ICU (penalty)  | 1.31   | Applied instead of a reduction to post-operative intensive care served forward at R2B rather than at R2E (see [Post-Operative Stabilisation](#post-operative-stabilisation)). A meta-analysis of open-format against closed-format intensive care units, the difference being whether a trained intensivist holds responsibility for the patient, reports a pooled odds ratio for ICU mortality of 1.31 (95% CI 1.09 to 1.59) [[59]](#References). An R2B section fields two nurses and two medics with no intensivist; an R2E section fields an intensivist and four nurses. |
 
 The cumulative effect on a P1 casualty (initial ceiling = 0.023) who receives the full care pathway (TCCC → R2B DCR → R2B DCS → R2E DCS first op) is:
 
@@ -804,7 +804,7 @@ Both the ICU and post-op-hold pathways lead into the same post-operative DOW che
 
 The post-definitive care that follows the definitive repair takes the same two-way split, recorded separately as `post_definitive_pathway`, and for the same reason: a casualty who has already been operated on cannot be made to wait indefinitely for a bed, so when intensive care is saturated they recover in a holding bed at the elevated ceiling instead. This is where the model's intensive care constraint now shows most clearly. At the shipped establishment of four beds, most casualties reaching this point take the holding-bed route, because the same four beds are also serving the stabilisation episode.
 
-R2B has the same pre-OT ICU check, and at R2B only the Priority 2+ deferral rule matters, since no Priority 1 override applies there. What the check constrains depends on the forward ICU share (see [Post-Operative Stabilisation](#postoperative-stabilisation)): at the shipped share of zero the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while at a non-zero share the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
+R2B has the same pre-OT ICU check, and at R2B only the Priority 2+ deferral rule matters, since no Priority 1 override applies there. What the check constrains depends on the forward ICU share (see [Post-Operative Stabilisation](#post-operative-stabilisation)): at the shipped share of zero the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while at a non-zero share the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
 
 Priority 1 casualties are always committed to surgery, even when no post-operative ICU bed is available, accepting elevated post-operative mortality risk in preference to withholding surgery, which would leave them facing near-certain DOW. The clinical trade-off is described in [[25]](#References) and [[2]](#References), and the standard of post-operative ICU/HDU care against which the "hold" pathway is a departure is set out in [[26]](#References); the default 3.0× penalty multiplier is an informed estimate, chosen to produce a materially higher, but not overwhelming, realised DOW rate for the hold pathway relative to ICU.
 
@@ -815,7 +815,7 @@ Once a casualty is queued awaiting strategic AME (see [Role 4 (National Support 
 1. **Capacity already available** — the casualty boards immediately, with no poll and no artificial minimum wait.
 2. **Capacity unavailable** — the casualty enters a poll loop: wait `role4.ame.dow_check_interval` minutes, roll DOW (conditional on elapsed time since injury, same as every other checkpoint), then re-check AME capacity and repeat if still unavailable. A casualty who dies during this poll releases the R2E bed they were holding and is routed to KIA processing exactly as at every other DOW checkpoint. `dow_echelon = 5` distinguishes this checkpoint in `outputs/dow_by_echelon.csv` (`"ame_wait"`).
 
-This uses the same `timeout()`-then-`rollback()` polling pattern already used for R2E OT–ICU gating deferral (`icu_gating.defer_check_interval`, [Post-Operative Checkpoint](#postoperative-checkpoint) above).
+This uses the same `timeout()`-then-`rollback()` polling pattern already used for R2E OT–ICU gating deferral (`icu_gating.defer_check_interval`, [Post-Operative Checkpoint](#post-operative-checkpoint) above).
 
 The shipped default polls every `dow_check_interval = 1440` minutes (once daily). No open-access source specifies a periodic mortality-reassessment cadence for this wait, so daily polling is an informed estimate, chosen to manage simulation cost without materially affecting outcomes. A shorter interval increases the number of conditional-increment rolls per unit time without changing the model's asymptotic DOW ceiling.
 
@@ -843,7 +843,7 @@ A distribution family is itself a scenario-specific choice, not just a distribut
 
 ### Parameter classification
 
-Only variables that genuinely differ by battle intensity or historical context are scenario-eligible. See [Parameters Not Scenario-Eligible](#parameters-not-scenarioeligible) for the parameter groups this excludes.
+Only variables that genuinely differ by battle intensity or historical context are scenario-eligible. See [Parameters Not Scenario-Eligible](#parameters-not-scenario-eligible) for the parameter groups this excludes.
 
 | Parameter group                                                     | `moderate_intensity` profile                                                                     |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -1017,10 +1017,10 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/run_warmup.R`             | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R`          | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
 | `scripts/run_transport_sweep.R`    | CLI entry point for the transport fleet-size sweep (see [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) |
-| `scripts/run_icu_share_sweep.R`    | CLI entry point for the forward ICU share sweep (see [Post-Operative Stabilisation](#postoperative-stabilisation)) |
+| `scripts/run_icu_share_sweep.R`    | CLI entry point for the forward ICU share sweep (see [Post-Operative Stabilisation](#post-operative-stabilisation)) |
 | `scripts/shiny_worker.R`           | Background worker script sourced by `app.R` to run Quick Run / Full Analysis asynchronously without blocking the Shiny session |
 | `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
-| `scripts/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, and rejects any heading containing emoji |
+| `scripts/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, reproducing the anchor GitHub itself generates for each heading; rejects any heading containing emoji, and reports any anchor link pointing at no heading |
 | `scripts/check_r2e_surgery_seizure.R` | Checks that every R2E surgery seizes a surgical section, by reading the built trajectory and by running the model; exits non-zero on failure |
 | `scripts/check_icu_time_conservation.R` | Checks that a casualty's post-operative ICU requirement is conserved across all three routes and at every forward ICU share; exits non-zero on failure |
 | `scripts/check_composition_ilr.R`  | Checks that each simplex-constrained composition survives the round trip through its balance coordinates, at every design point of a Morris design and at each corner of each coordinate box; exits non-zero on failure |
@@ -1055,7 +1055,7 @@ Rscript run.R --days 30 --iterations 10 --warm-up 5
 Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
 ```
 
-`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warmup-period-analysis) below for why).
+`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warm-up-period-analysis) below for why).
 
 Artifacts fall into two categories, distinguished by whether they are a disposable record of one particular run or the repository's tracked regression evidence. Every run writes only the first category, all of it beneath `outputs/`, which is gitignored apart from its `.gitkeep`. The tracked baseline set is written only when `--refresh-baseline` is passed, and then every part of it is written together from that one run, so no invocation can leave `images/`, `logs/logs.txt` and `data/` describing a mixture of different runs:
 
@@ -1134,11 +1134,11 @@ The triangular distribution parameters carry significant epistemic uncertainty. 
 
 **Parameter coverage.** The screened set is derived from the full parameter surface rather than by expert selection. Every numeric leaf in `env_data.json`'s `vars` tree is enumerated by combining `R/app_params.R`'s `build_param_registry()` (286 fields, the same registry the Shiny Configure panel renders from, each carrying a `path` into the vars tree and, where established, a `source` citation) with a direct read of `env_data.json` for the parameters that are calibrated constants rather than user-editable fields, namely the DOW logistic curve's shape and base terms and the treatment efficacy multipliers (see [Died of Wounds](#died-of-wounds)).
 
-Two classes of parameter are then held out of the screen. Polling-loop intervals are excluded because they discretise continuous monitoring rather than represent a decision a planner could make, and the categories listed under [Parameters Excluded from Screening](#parameters-excluded-from-screening) are excluded for the reasons given there. The three casualty composition splits, previously held out as a third class, are now screened through a transform that satisfies their sum-to-one constraint by construction ([Simplex-Constrained Compositions](#simplexconstrained-compositions)).
+Two classes of parameter are then held out of the screen. Polling-loop intervals are excluded because they discretise continuous monitoring rather than represent a decision a planner could make, and the categories listed under [Parameters Excluded from Screening](#parameters-excluded-from-screening) are excluded for the reasons given there. The three casualty composition splits, previously held out as a third class, are now screened through a transform that satisfies their sum-to-one constraint by construction ([Simplex-Constrained Compositions](#simplex-constrained-compositions)).
 
 Each screened parameter carries a baseline alongside its bounds, and the baseline does more work than the tables below suggest. Morris moves every parameter across its own range and never reads the baseline at all. A Sobol decomposition instead selects a subset and holds every parameter outside it fixed, at its baseline, at each of the $N \times (p+2)$ design points, so a baseline that has drifted from the shipped configuration decomposes the variance of a system nobody described. The Shiny Sensitivity Calibration tab displays the same column to a planner. Because neither use is exercised by an ordinary run, `scripts/check_morris_baseline.R` asserts the agreement rather than leaving it to inspection: that every baseline lies inside its own bounds, and that applying the whole baseline vector through `apply_params()` leaves `env_data.json` unchanged, which is precisely the condition under which a Sobol run's held-fixed background is the shipped configuration whatever subset it selects. The parameter-to-path mapping the second assertion needs is derived by perturbing each parameter in turn and observing which values move, so the check cannot itself drift from the code it describes.
 
-Sixty-four parameters are screened, spanning the main uncertain inputs across all three echelons plus the casualty generation, force regeneration, and strategic evacuation subsystems. Fifty-eight are ordinary scalars whose bounds are set using one of two rules, described below: **Rule A** (citation-anchored, moderate uncertainty) spans approximately baseline ±40%; **Rule B** (informed estimate, no literature anchor) spans baseline ×0.5–×2.0 (duration/rate parameters) or approximately baseline ±0.15–0.25 (probabilities), clipped to a clinically sensible range. The remaining six are the balance coordinates of the three casualty composition splits, which take their bounds by a transformation of a compositional range rather than from either rule (see [Simplex-Constrained Compositions](#simplexconstrained-compositions)).
+Sixty-four parameters are screened, spanning the main uncertain inputs across all three echelons plus the casualty generation, force regeneration, and strategic evacuation subsystems. Fifty-eight are ordinary scalars whose bounds are set using one of two rules, described below: **Rule A** (citation-anchored, moderate uncertainty) spans approximately baseline ±40%; **Rule B** (informed estimate, no literature anchor) spans baseline ×0.5–×2.0 (duration/rate parameters) or approximately baseline ±0.15–0.25 (probabilities), clipped to a clinically sensible range. The remaining six are the balance coordinates of the three casualty composition splits, which take their bounds by a transformation of a compositional range rather than from either rule (see [Simplex-Constrained Compositions](#simplex-constrained-compositions)).
 
 **R1 — Forward Aid Post**
 
@@ -1260,7 +1260,7 @@ The Dirichlet is used because it is the natural distribution over the simplex: e
 
 #### Parameters Excluded from Screening
 
-Not every numeric leaf in `env_data.json`'s `vars` tree is a candidate for Morris OAT screening. The following categories are deliberately excluded, each for a reason specific to the category rather than a blanket omission. The three composition splits are no longer among them: they are screened through the transform described under [Simplex-Constrained Compositions](#simplexconstrained-compositions).
+Not every numeric leaf in `env_data.json`'s `vars` tree is a candidate for Morris OAT screening. The following categories are deliberately excluded, each for a reason specific to the category rather than a blanket omission. The three composition splits are no longer among them: they are screened through the transform described under [Simplex-Constrained Compositions](#simplex-constrained-compositions).
 
 **Triangular-distribution minimum/maximum bounds.** For every duration modelled as a triangular distribution (surgery, resuscitation, transport, ICU, holding, and Role 4 length of stay), only the *mode* is screened. The mode carries the primary epistemic uncertainty; the min/max define the distribution's outer envelope and are treated as fixed shape parameters. This excludes 36 fields.
 
@@ -1575,7 +1575,7 @@ Four summary cards sit above the tabs: total casualties, DOW count, R2E ICU peak
 
 The replication slider runs from 10, for a quick exploratory check, to 1,000 for a final planning figure, and defaults to 100. Reporting confidence intervals rather than a single seeded run follows published practice for defensible discrete event simulation output in healthcare [[50]](#References). A figure intended for planning use should use a count high enough that raising it further narrows the interval without moving the mean.
 
-Warm-up exclusion is applied identically in both modes and ships at zero (see [Warm-up Period Analysis](#warmup-period-analysis)).
+Warm-up exclusion is applied identically in both modes and ships at zero (see [Warm-up Period Analysis](#warm-up-period-analysis)).
 
 ##### Sensitivity Panel
 
@@ -1764,7 +1764,7 @@ For everyone else, surgical candidacy is assessed next, behind an ICU availabili
 
 A procedure needs both a theatre and the staff for it. R2E has three surgical sections and two theatres, so `select_r2e_surg_section()` (`R/trajectories.R`) picks a section for each casualty rather than fixing one in advance: sections on shift are preferred, and the least busy of those is chosen. The section is held for the whole operation and released before the theatre. Since a section is rostered and a theatre is not (see [Schedules and Rosters](#schedules-and-rosters)), whichever is scarcer at that hour sets how many operations can run at once. A casualty who finds no section free waits, and an operation already under way is not interrupted when the shift ends.
 
-Post-operative care depends on which route the gate sent the casualty down. The stabilisation requirement runs 360 to 2,160 minutes, most often 1,440. Each bound is separately sourced. A position paper on abdominal damage control states that return to theatre "can vary from 6-72 hours from the time of the primary procedure", which sets the 6-hour lower bound, and reports that the majority of surveyed trauma surgeons wait approximately 24 hours, which sets the mode [[60]](#References). A Cochrane review describes the definitive phase as "usually" taking place "within 24 to 36 hours" of the first operation, which sets the 36-hour upper bound [[24]](#References), consistent with the wider damage control literature [[20]](#References), [[27]](#References). The position paper's 72-hour outer limit is deliberately not used as the maximum: a triangular distribution reaching it would place around two casualties in five beyond the window both sources describe as usual. Where it falls in the sequence depends on which operation is this casualty's definitive repair. A casualty operated on only at R2E has their abbreviated procedure here and their definitive one at the second operation below, so stabilisation sits between the two. A casualty already operated on at R2B had their abbreviated procedure forward, which makes the R2E procedure their definitive repair, so whatever stabilisation the forward echelon did not serve is served here before it (see [Post-Operative Stabilisation](#postoperative-stabilisation)). A single-stage casualty has no stabilisation phase at all and takes neither the draw nor a bed for one. On the saturated Priority 1 route, recovery is in a holding bed for 360 to 1,440 minutes, most often 600: shorter than a full ICU stay, but carrying an elevated risk of dying of wounds, and again only for the damage control cohort, the holding-bed stay being the degraded form of the stabilisation phase rather than a separate episode. All routes then meet at a shared post-operative check for died of wounds.
+Post-operative care depends on which route the gate sent the casualty down. The stabilisation requirement runs 360 to 2,160 minutes, most often 1,440. Each bound is separately sourced. A position paper on abdominal damage control states that return to theatre "can vary from 6-72 hours from the time of the primary procedure", which sets the 6-hour lower bound, and reports that the majority of surveyed trauma surgeons wait approximately 24 hours, which sets the mode [[60]](#References). A Cochrane review describes the definitive phase as "usually" taking place "within 24 to 36 hours" of the first operation, which sets the 36-hour upper bound [[24]](#References), consistent with the wider damage control literature [[20]](#References), [[27]](#References). The position paper's 72-hour outer limit is deliberately not used as the maximum: a triangular distribution reaching it would place around two casualties in five beyond the window both sources describe as usual. Where it falls in the sequence depends on which operation is this casualty's definitive repair. A casualty operated on only at R2E has their abbreviated procedure here and their definitive one at the second operation below, so stabilisation sits between the two. A casualty already operated on at R2B had their abbreviated procedure forward, which makes the R2E procedure their definitive repair, so whatever stabilisation the forward echelon did not serve is served here before it (see [Post-Operative Stabilisation](#post-operative-stabilisation)). A single-stage casualty has no stabilisation phase at all and takes neither the draw nor a bed for one. On the saturated Priority 1 route, recovery is in a holding bed for 360 to 1,440 minutes, most often 600: shorter than a full ICU stay, but carrying an elevated risk of dying of wounds, and again only for the damage control cohort, the holding-bed stay being the degraded form of the stabilisation phase rather than a separate episode. All routes then meet at a shared post-operative check for died of wounds.
 
 A second procedure follows for a damage control casualty whose abbreviated operation was performed here, that operation being their definitive repair. A casualty who had their abbreviated procedure at R2B has already received their definitive repair on arrival here, and a single-stage casualty never had a staged sequence to complete, so neither returns to theatre.
 

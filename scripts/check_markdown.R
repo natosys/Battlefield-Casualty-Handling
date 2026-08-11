@@ -1,26 +1,77 @@
-Sys.setlocale("LC_CTYPE", "")
+#' Anchor GitHub generates for a heading, reproduced exactly
+#'
+#' @param title Character vector of heading text, with the leading hashes and
+#'   surrounding whitespace already removed
+#' @return Character vector of anchors, without the leading "#"
+#'
+#' @details GitHub derives a heading's id by deleting every character outside
+#'   letters, numbers, combining marks, connector punctuation and the
+#'   hyphen-minus, lower-casing what remains, and replacing each space with a
+#'   hyphen. Two details of that sequence matter and are easy to get wrong.
+#'   Spaces are replaced one for one rather than collapsed, so a heading whose
+#'   punctuation sits between spaces (as an em dash does) yields two adjacent
+#'   hyphens, not one. And the deletion is by Unicode property rather than by
+#'   POSIX class, which is what makes it independent of the session's locale:
+#'   an em dash is punctuation to a UTF-8 locale but an ordinary byte sequence
+#'   to a C locale, so a POSIX class would strip it in one and keep it in the
+#'   other, producing a different anchor from the same document.
+#'
+#'   Verified character for character against the ids GitHub itself generates
+#'   for all 140 headings across the three documents this script maintains.
+github_anchor <- function(title) {
+  kept <- gsub("[^\\p{L}\\p{N}\\p{M}\\p{Pc}\\- ]", "", title, perl = TRUE)
+  gsub(" ", "-", tolower(kept), fixed = TRUE)
+}
+
+#' Disambiguate repeated anchors the way GitHub does
+#'
+#' @param anchors Character vector of anchors in document order
+#' @return The same vector with the second and later occurrences of any
+#'   repeated anchor suffixed "-1", "-2", and so on
+disambiguate_anchors <- function(anchors) {
+  seen <- list()
+  vapply(anchors, function(a) {
+    n <- seen[[a]]
+    if (is.null(n)) {
+      seen[[a]] <<- 0L
+      a
+    } else {
+      seen[[a]] <<- n + 1L
+      paste0(a, "-", n + 1L)
+    }
+  }, character(1), USE.NAMES = FALSE)
+}
+
+#' Heading lines of a document, excluding those inside fenced code blocks
+#'
+#' @param lines Character vector of the document's lines
+#' @param levels Regular expression matching the heading levels wanted
+#' @return Logical vector, TRUE for each line that is a heading
+#'
+#' @details A comment line inside a fenced block can open with hashes and a
+#'   space without being a heading; GitHub renders it as code and gives it no
+#'   id, so it must not reach the table of contents either.
+heading_lines <- function(lines, levels = "^#{2,6} ") {
+  fence <- grepl("^\\s*```", lines)
+  inside_fence <- cumsum(fence) %% 2 == 1
+  grepl(levels, lines) & !(fence | inside_fence)
+}
 
 update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_start = "<!-- TOC START -->", toc_end = "<!-- TOC END -->") {
   mode <- match.arg(mode)
-  lines <- readLines(file_path)
-  
+  lines <- readLines(file_path, encoding = "UTF-8")
+
   # Extract headings H2 to H6
-  headings <- grep("^#{2,6} ", lines, value = TRUE)
-  toc <- lapply(headings, function(h) {
-    level <- attr(regexpr("^#+", h), "match.length")
-    title <- trimws(sub("^#{2,6} ", "", h))
-    
-    # Remove emojis and punctuation for anchor
-    title_clean <- gsub("[\\p{So}\\p{Cn}]", "", title, perl = TRUE)
-    anchor <- tolower(title_clean)
-    anchor <- gsub("[[:punct:]]", "", anchor)
-    anchor <- gsub("\\s+", "-", anchor)
-    
+  headings <- lines[heading_lines(lines)]
+  titles <- trimws(sub("^#{2,6} ", "", headings))
+  anchors <- disambiguate_anchors(github_anchor(titles))
+  toc <- lapply(seq_along(headings), function(i) {
+    level <- attr(regexpr("^#+", headings[i]), "match.length")
     indent <- paste(rep("  ", level - 2), collapse = "")
-    paste0(indent, "- [", title, "](#", anchor, ")")
+    paste0(indent, "- [", titles[i], "](#", anchors[i], ")")
   })
   new_toc <- paste(unlist(toc), collapse = "\n")
-  
+
   # Identify TOC block boundaries
   start_line <- grep(toc_start, lines)
   end_line <- grep(toc_end, lines)
@@ -42,7 +93,10 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
         new_toc,
         lines[end_line:length(lines)]
       )
-      writeLines(updated_lines, file_path)
+      # useBytes: the lines are UTF-8-flagged by readLines() above, and a C
+      # locale cannot represent every character in them natively, so writing
+      # them through the locale would replace those with escapes
+      writeLines(updated_lines, file_path, useBytes = TRUE)
       cat("✅ TOC block replaced.\n")
       # Logging
       log_entry <- sprintf("[%s] TOC updated in %s", Sys.time(), file_path)
@@ -102,7 +156,7 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
                                  return_text = "<sub>[Return to Top](#contents)</sub>",
                                  log_path = "log.log") {
   mode <- match.arg(mode)
-  lines <- readLines(file_path)
+  lines <- readLines(file_path, encoding = "UTF-8")
   new_lines <- c()
   i <- 1
   missing_count <- 0
@@ -177,7 +231,7 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
 }
 
 check_no_emoji_headings <- function(file_path) {
-  lines <- readLines(file_path)
+  lines <- readLines(file_path, encoding = "UTF-8")
   headings <- grep("^#{1,6} ", lines, value = TRUE)
 
   # Same character class update_or_check_toc() strips when generating anchors
@@ -194,11 +248,69 @@ check_no_emoji_headings <- function(file_path) {
   }
 }
 
+#' Every anchor a document's headings offer, in document order
+#'
+#' @param file_path Path to the markdown file
+#' @return Character vector of anchors, without the leading "#"
+document_anchors <- function(file_path) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  headings <- lines[heading_lines(lines, "^#{1,6} ")]
+  disambiguate_anchors(github_anchor(trimws(sub("^#{1,6} ", "", headings))))
+}
+
+#' Report anchor links that do not resolve to a heading
+#'
+#' @param file_path Path to the markdown file to check
+#' @param anchors_by_doc Named list of anchor vectors, one per document in
+#'   scope, named by path relative to the repository root
+#' @return Number of links that resolve to nothing
+#'
+#' @details The comparison is case-sensitive, because GitHub's is: the ids it
+#'   generates are lower-cased, so a link differing from its heading only in
+#'   letter case resolves to nothing and is reported like any other.
+check_anchor_links <- function(file_path, anchors_by_doc) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  broken <- 0
+
+  for (i in seq_along(lines)) {
+    links <- regmatches(lines[i], gregexpr("\\]\\([^) ]*#[^) ]+\\)", lines[i], perl = TRUE))[[1]]
+    for (link in links) {
+      target <- sub("\\)$", "", sub("^\\]\\(", "", link))
+      file_part <- sub("#.*$", "", target)
+      anchor <- sub("^[^#]*#", "", target)
+      target_doc <- if (nzchar(file_part)) {
+        normalizePath(file.path(dirname(file_path), file_part), mustWork = FALSE)
+      } else {
+        normalizePath(file_path, mustWork = FALSE)
+      }
+      target_doc <- sub(paste0("^", getwd(), "/"), "", target_doc)
+      if (!(target_doc %in% names(anchors_by_doc))) next   # outside the checked set
+
+      if (anchor %in% anchors_by_doc[[target_doc]]) next
+      broken <- broken + 1
+      cat(sprintf("  %s:%d links to %s#%s, which no heading generates\n",
+                  file_path, i, target_doc, anchor))
+    }
+  }
+
+  broken
+}
+
 markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
 
 for (doc in markdown_docs) {
   update_or_check_toc(doc, "replace")
   enforce_return_links(doc, "replace")
+}
+
+anchors_by_doc <- setNames(lapply(markdown_docs, document_anchors), markdown_docs)
+broken_links <- sum(vapply(markdown_docs, check_anchor_links, numeric(1),
+                           anchors_by_doc = anchors_by_doc))
+if (broken_links > 0) {
+  cat(sprintf("⚠️ %d anchor link(s) point at no heading — repair them and re-run.\n", broken_links))
+  quit(status = 1)
+} else {
+  cat("✓ Every anchor link resolves to a heading.\n")
 }
 
 emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)

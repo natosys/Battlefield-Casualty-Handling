@@ -233,7 +233,10 @@ resolve_ame_airframe <- function(role4_params) {
 #'   effective force size for this stream's population pool (e.g.
 #'   "effective_force_combat"); read fresh at every minute step
 #' @param n_days Duration in days
-#' @param cap Maximum per-minute rate cap (default 5)
+#' @param cap_multiplier Per-minute rate cap, expressed as a multiple of
+#'   mean_daily rather than an absolute value (default 3, matching
+#'   make_exp_arrival_generator()) — see the README Casualty Generation
+#'   section.
 #' @param buffer_days Number of days' worth of raw per-minute draws to
 #'   vectorise per refill (default 1); amortises R-level closure-call
 #'   overhead relative to drawing one minute at a time.
@@ -241,8 +244,18 @@ resolve_ame_airframe <- function(role4_params) {
 #'   `distribution` argument: returns the next interarrival gap (simulation
 #'   minutes), or -1 once n_days has been exhausted (simmer's convention for
 #'   ending a generator)
+#'
+#' @details The cap scales with the stream's own mean, so re-parameterising a
+#'   stream to a higher mean rescales its cap with it rather than compressing
+#'   the realised rate toward a fixed absolute ceiling. Unlike the exponential
+#'   case, this does not make the truncated share mean-invariant: a
+#'   lognormal's tail probability above `k × mean` also depends on its
+#'   coefficient of variation `sd_daily / mean_daily`, which genuinely differs
+#'   between streams. It narrows the cross-stream spread rather than removing
+#'   it.
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days,
-                                      cap = 5, buffer_days = 1) {
+                                      cap_multiplier = 3, buffer_days = 1) {
+  cap       <- cap_multiplier * mean_daily
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
   n_minutes <- day_min * n_days

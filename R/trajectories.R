@@ -734,7 +734,12 @@ r2b_evac_return_leg <- function(traj, evacuation_team) {
 #' #         (r2b.post_op_icu.share; ICU bed, or holding bed at elevated risk
 #' #         when ICU is saturated). A single-stage casualty's operation is
 #' #         their definitive repair, so no stabilisation phase follows it here
-#' #     - OT full, OR queued, OR team off-shift → bypass immediately to R2E
+#' #     - OT bed free, no queue, team off shift but reopening within
+#' #         r2b.surgery.pre_open_window_min → hold forward for the section and
+#' #         then operate as above (r2b_pre_open_wait = 1;
+#' #         r2b_pre_open_wait_min = realised hold in minutes)
+#' #     - OT full, OR queued, OR team off-shift for longer than the window →
+#' #         bypass immediately to R2E
 #' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
 #' #          r2b_bypass_time = simulation time of the bypass decision)
 #' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
@@ -887,9 +892,69 @@ r2b_treat_wia <- function(team_id) {
       trajectory("Single-Stage — No Stabilisation Phase")
     )
 
-  # OT availability check (unchanged from pre-Issue-43 logic). Joined
-  # directly when the pre-OT ICU gate above clears immediately, and again
-  # after the P2+ ICU-defer wait loop resolves.
+  # Forward surgery itself, from theatre seizure through to the stabilisation
+  # phase. Built rather than written once because it is reached by two routes,
+  # a casualty whose theatre and section are both free on arrival and one held
+  # briefly for a section about to reopen, and only the second records how
+  # long it waited.
+  #
+  # @param pre_open Whether this copy is the held route
+  # @return A simmer trajectory performing one forward operation
+  build_r2b_surgery_path <- function(pre_open) {
+    force(pre_open)
+
+    trj <- trajectory("Surgery Path")
+
+    if (pre_open) {
+      trj <- trj %>%
+        set_attribute("r2b_pre_open_wait", 1) %>%
+        set_attribute("r2b_pre_open_start", function() now(env))
+    }
+
+    trj <- trj %>%
+      simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
+      seize_selected(id = 4) %>%
+      seize_resources(surg_team)
+
+    # Realised hold, recorded once both theatre and section are in hand. It
+    # can exceed the window the casualty was admitted on, the section
+    # reopening to a theatre that another case has since taken.
+    if (pre_open) {
+      trj <- trj %>%
+        set_attribute("r2b_pre_open_wait_min", function() {
+          now(env) - get_attribute(env, "r2b_pre_open_start")
+        })
+    }
+
+    trj %>%
+      set_attribute("r2b_surgery_start", function() now(env)) %>%
+      timeout(function() {
+        rtriangle(
+          n = 1,
+          a = env_data$vars$r2b$surgery$min,
+          b = env_data$vars$r2b$surgery$max,
+          c = env_data$vars$r2b$surgery$mode
+        )
+      }) %>%
+      set_attribute("r2b_surgery", 1) %>%
+      set_attribute("r2b_surgery_end", function() now(env)) %>%
+      release_resources(surg_team) %>%
+      release_selected(id = 4) %>%
+      # A damage control casualty's forward operation is abbreviated and
+      # earns r2b_dcs_factor; a single-stage casualty's is their definitive
+      # repair and earns what the staged route earns on completing one at
+      # R2E as well (definitive_efficacy(), top of this file).
+      set_attribute("dow_ceiling", function() {
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (is.na(ceiling)) return(ceiling)
+        te <- env_data$vars$dow$treatment_efficacy
+        ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
+      }) %>%
+      join(r2b_post_op_stabilisation)
+  }
+
+  # OT availability check. Joined directly when the pre-OT ICU gate above
+  # clears immediately, and again after the P2+ ICU-defer wait loop resolves.
   r2b_ot_check_path <- trajectory("R2B OT Check") %>%
     branch(
       option = function() {
@@ -897,50 +962,34 @@ r2b_treat_wia <- function(team_id) {
         cap      <- sum(get_capacity(env, resources = ot_beds))
         queue    <- sum(get_queue_count(env, resources = ot_beds))
         team_cap <- sum(get_capacity(env, resources = surg_team))
-        # OT available only when a bed is free, no queue exists, and team is on shift.
-        # Any of these failing means the patient should bypass to R2E immediately.
-        if (!is.na(usage) && !is.na(cap) && usage < cap && queue == 0 &&
-            !is.na(team_cap) && team_cap > 0) return(1)
+        # A theatre is available when a bed is free and nobody is queued for
+        # it; the section is available when its shift is open.
+        bed_ok  <- !is.na(usage) && !is.na(cap) && usage < cap && queue == 0
+        team_ok <- !is.na(team_cap) && team_cap > 0
+        if (bed_ok && team_ok) return(1)
+        # Theatre free, section closed, and closed for no longer than the
+        # pre-open window: hold the casualty forward rather than divert them.
+        # The bed condition is required here as well as above, so at most one
+        # casualty per team is ever held; a second arriving to find the first
+        # already holding the theatre sees a full bed and diverts as before.
+        if (bed_ok && !team_ok) {
+          window <- env_data$vars$r2b$surgery$pre_open_window_min
+          if (!is.null(window) && !is.na(window) && window > 0 &&
+              minutes_to_shift_open(now(env)) <= window) return(3)
+        }
         return(2)
       },
       continue = TRUE,
 
-      # Sub-branch 1: OT bed free and team on shift — perform DAMCON surgery
-      trajectory("Surgery Path") %>%
-        simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-        seize_selected(id = 4) %>%
-        seize_resources(surg_team) %>%
-        set_attribute("r2b_surgery_start", function() now(env)) %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2b$surgery$min,
-            b = env_data$vars$r2b$surgery$max,
-            c = env_data$vars$r2b$surgery$mode
-          )
-        }) %>%
-        set_attribute("r2b_surgery", 1) %>%
-        set_attribute("r2b_surgery_end", function() now(env)) %>%
-        release_resources(surg_team) %>%
-        release_selected(id = 4) %>%
-        # A damage control casualty's forward operation is abbreviated and
-        # earns r2b_dcs_factor; a single-stage casualty's is their definitive
-        # repair and earns what the staged route earns on completing one at
-        # R2E as well (definitive_efficacy(), top of this file).
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          te <- env_data$vars$dow$treatment_efficacy
-          ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
-        }) %>%
-        join(r2b_post_op_stabilisation),
+      # Sub-branch 1: theatre free and section on shift — operate now
+      build_r2b_surgery_path(pre_open = FALSE),
 
-      # Sub-branch 2: OT busy, queued, or team off-shift — bypass to R2E.
-      # r2b_bypass_reason decomposes the cause (Issue #40): 1 = surgical team
-      # off-shift (team_cap <= 0), 2 = OT bed busy or queued. Re-reads the same
-      # resource state as the option() check above — no timeout intervenes
-      # between the branch decision and this sub-trajectory, so state cannot
-      # have changed.
+      # Sub-branch 2: OT busy, queued, or the section closed for longer than
+      # the pre-open window — bypass to R2E. r2b_bypass_reason decomposes the
+      # cause: 1 = surgical section off shift (team_cap <= 0), 2 = OT bed busy
+      # or queued. Re-reads the same resource state as the option() check
+      # above — no timeout intervenes between the branch decision and this
+      # sub-trajectory, so state cannot have changed.
       trajectory("OT Unavailable – Bypass to R2E") %>%
         set_attribute("r2b_bypassed", 1) %>%
         set_attribute("r2b_bypass_reason", function() {
@@ -948,7 +997,21 @@ r2b_treat_wia <- function(team_id) {
           if (!is.na(team_cap) && team_cap <= 0) return(1)
           return(2)
         }) %>%
-        set_attribute("r2b_bypass_time", function() now(env))
+        set_attribute("r2b_bypass_time", function() now(env)),
+
+      # Sub-branch 3: section reopening within the pre-open window — hold the
+      # casualty forward for it. The seizes inside the surgery path do the
+      # waiting: a section whose shift is closed carries zero capacity, so
+      # seizing it queues the casualty until the shift reopens, with no
+      # timeout to align against the roster's own capacity change. Holding
+      # the theatre through the wait is what the hold means, the casualty
+      # being received into it rather than moved on.
+      #
+      # The hold opens no died-of-wounds checkpoint of its own. As with
+      # forward stabilisation above, dow_prob_conditional() prices elapsed
+      # time at the next checkpoint the casualty reaches, so the delay is
+      # charged there rather than going unpriced.
+      build_r2b_surgery_path(pre_open = TRUE)
     )
 
   trajectory("R2B Basic Flow") %>%

@@ -459,6 +459,10 @@
             {
               "var": "mode",
               "val": 95
+            },
+            {
+              "var": "pre_open_window_min",
+              "val": 60
             }
           ]
         },

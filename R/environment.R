@@ -751,6 +751,29 @@ get_ot_hours <- function(env_data) {
   as.numeric(v)
 }
 
+#' Minutes from a simulation time until the surgical roster next opens a shift
+#'
+#' @param t Simulation time in minutes
+#' @return Numeric minutes until the currently closed shift reopens, or Inf
+#'   when the roster leaves one shift permanently closed
+#'
+#' @details The roster is two alternating shifts over a 1,440-minute day, the
+#'   first covering 0 to `ot_shift_break_min` and the second the remainder
+#'   (build_env() below). A section that is closed at time `t` is therefore
+#'   the second shift when `t` falls before the break and the first shift when
+#'   it falls at or after it, which fixes the next opening without needing to
+#'   know which of the two the caller's section is on. Callers reach this only
+#'   after finding a section closed, so the ambiguous case (both shifts open,
+#'   which cannot happen) never arises. A degenerate roster, one whose break
+#'   falls at either end of the day and so leaves a shift that never opens,
+#'   returns Inf.
+minutes_to_shift_open <- function(t) {
+  brk <- ot_shift_break_min
+  if (is.null(brk) || is.na(brk) || brk <= 0 || brk >= 1440) return(Inf)
+  m <- t %% 1440
+  if (m < brk) brk - m else 1440 - m
+}
+
 #' Initializes the simmer environment by adding all resources from env_data
 #'
 #' @param env A simmer environment object
@@ -771,6 +794,15 @@ build_env <- function(env, env_data, ot_hours = NULL) {
   ot_break   <- as.integer(ot_hours * 60L)
   ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = 1440)
   ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)
+
+  # Published for minutes_to_shift_open() above, which trajectory closures call
+  # to find how long a closed surgical section has left before it reopens. The
+  # break is republished here rather than re-read from env_data because an
+  # explicit ot_hours argument overrides the configured value for this build
+  # only, and the trajectories must see the roster they are actually running
+  # against. Global assignment mirrors env/env_data (R/replication.R); in
+  # forked mclapply workers it modifies only the fork's own state.
+  ot_shift_break_min <<- ot_break
 
   r2e_surg_counter   <- 1
   r2b_surg_counter   <- 1

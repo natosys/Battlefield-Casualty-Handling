@@ -891,6 +891,32 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
   ))
 
+  # ── R2B pre-open hold ────────────────────────────────────────────────────
+  # The complement of the off-shift bypass count above: casualties who found
+  # the surgical section closed but close enough to reopening to be held
+  # forward for it rather than diverted. r2b_pre_open_wait_min is set only
+  # once theatre and section are both in hand, so a casualty still holding at
+  # the end of the run carries the marker without a duration and is counted
+  # but not averaged.
+  r2b_pre_open_count <- 0L
+  r2b_pre_open_waits <- numeric(0)
+  if ("r2b_pre_open_wait" %in% names(attributes_wide)) {
+    r2b_pre_open_count <- sum(!is.na(attributes_wide$r2b_pre_open_wait) &
+                                attributes_wide$r2b_pre_open_wait == 1L,
+                              na.rm = TRUE)
+  }
+  if ("r2b_pre_open_wait_min" %in% names(attributes_wide)) {
+    r2b_pre_open_waits <- attributes_wide$r2b_pre_open_wait_min[
+      !is.na(attributes_wide$r2b_pre_open_wait_min)]
+  }
+  cat(sprintf(
+    "R2B pre-open hold (window %d min): %d held forward, %d operated, mean hold %.1f min, max %.1f min\n",
+    as.integer(env_data$vars$r2b$surgery$pre_open_window_min),
+    r2b_pre_open_count, length(r2b_pre_open_waits),
+    if (length(r2b_pre_open_waits) > 0) mean(r2b_pre_open_waits) else 0,
+    if (length(r2b_pre_open_waits) > 0) max(r2b_pre_open_waits) else 0
+  ))
+
   # Averaged per replication before plotting (matches the r2b_hold_daily
   # convention, Issue #39) so multi-replication runs show mean bypasses per
   # simulation day rather than a raw sum across replications, which would

@@ -390,6 +390,7 @@ morris_params <- data.frame(
     "ame_schedule_interval_days", "ame_failure_probability",
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
     "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold",
+    "r2b_pre_open_window",
     # ── Surgical pathway split (Issue #173) ───────────────────────────────
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate"
   ),
@@ -404,6 +405,7 @@ morris_params <- data.frame(
     0,    4,    0.5,
     4,    0.08,
     0,    0,     0.60,
+    0,
     0.30, 0.08, 0.00
   ),
   upper = c(
@@ -417,6 +419,7 @@ morris_params <- data.frame(
     14,   14,   1.05,
     14,   0.30,
     1,    2880,  0.95,
+    360,
     0.80, 0.40, 0.20
   ),
   mode  = c(
@@ -430,6 +433,7 @@ morris_params <- data.frame(
     0,    7,    0.85,
     7,    0.15,
     0,    1440,  0.80,
+    60,
     0.55, 0.20, 0.05
   ),
   # "Context" = an assumption about the operational environment or the
@@ -489,6 +493,7 @@ morris_params <- data.frame(
     "Policy", "Policy", "Policy",
     "Policy", "Context",
     "Policy", "Policy", "Policy",
+    "Policy",
     "Context", "Context", "Context"
   ),
   stringsAsFactors = FALSE
@@ -639,6 +644,7 @@ apply_params <- function(ed, p) {
   ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
   ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
+  ed$vars$r2b$surgery$pre_open_window_min <- p[["r2b_pre_open_window"]]
 
   # ── Simplex-constrained compositions (Issue #158) ───────────────────────
   # Each group's two balance coordinates are back-transformed to a whole

@@ -195,6 +195,7 @@ SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a 
 SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much of the stabilisation phase a commander elects to deliver forward rather than evacuating for it. Ships at zero (all stabilisation at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
 SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of stabilisation outstanding. Ships at 24h, the deployed evacuation norm below. Binds ahead of the forward ICU share, so zero disables forward holding outright."
 SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."
+SRC_R2B_PRE_OPEN      <- "Informed estimate; no open-access source states how far ahead of a surgical section's shift a forward facility should hold a casualty rather than divert them. Anchored on the 60-minute time-to-surgical-care standard and on the 15 to 45 minute road move to R2E that is the alternative. High uncertainty — see README R2B Trajectory."
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). See README Died of Wounds — Treatment Efficacy Modifiers."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army Medical Department Center and School subcourse MD0002 — see README R2E Heavy Trajectory."
@@ -598,6 +599,14 @@ build_param_registry <- function() {
   registry <- c(registry, tri_fields("r2b_surgery", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations", "r2b", "surgery",
                                      "Surgery Duration", "Time occupying an R2B operating theatre per case.",
                                      morris_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
+  registry <- c(registry, list(
+    var_field("r2b_pre_open_window", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations",
+              "r2b", "surgery", "pre_open_window_min",
+              "Pre-Open Hold Window",
+              "Longest a casualty requiring surgery is held at R2B for a surgical section whose shift is about to reopen, rather than being diverted to R2E. Zero diverts every casualty who finds the section closed, however soon it reopens.",
+              type = "integer", min = 0, max = 360, step = 15,
+              morris_name = "r2b_pre_open_window", source = SRC_R2B_PRE_OPEN)
+  ))
   registry <- c(registry, tri_fields("r2b_long_resus", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations", "r2b", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2B resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))

@@ -895,13 +895,13 @@ A 30-replication run (30 days, seed 42) of each profile produced:
 
 | Metric                                 | `moderate_intensity` (30-rep) | `high_intensity` (30-rep) |
 | -------------------------------------- | ----------------------------- | ------------------------- |
-| Mean WIA/run                           | 148.9                         | 656.7                     |
-| Mean KIA/run                           | 67.2                          | 155.5                     |
-| WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 3.76×                     |
+| Mean WIA/run                           | 151.1                         | 655.7                     |
+| Mean KIA/run                           | 57.1                          | 155.3                     |
+| WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 3.90×                     |
 
 Both profiles cap their draws at three times the stream's own mean (see [Casualty Generation](#casualty-generation)). Under `high_intensity` the overridden WIA and KIA streams are exponential, so that cap trims exactly 5% of their draws; under `moderate_intensity` they are lognormal, so it trims 6.7% of each. DNBI is not overridden by either profile and stays lognormal under both.
 
-Mean DNBI per run falls under `high_intensity`, from 169.9 to 157.3, even though the profile leaves DNBI generation untouched. Casualty rates are set per 1,000 troops and scaled by the live force size (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)), so heavier battle attrition leaves fewer troops in theatre to fall sick.
+Mean DNBI per run falls under `high_intensity`, from 173.1 to 160.6, even though the profile leaves DNBI generation untouched. Casualty rates are set per 1,000 troops and scaled by the live force size (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)), so heavier battle attrition leaves fewer troops in theatre to fall sick.
 
 ---
 

@@ -302,6 +302,11 @@ expand_bracket <- function(f, lo, step, max_steps = 60L) {
 #'   can only reduce a mean), and tends to `cap` from below, so a unique root
 #'   exists whenever the cap exceeds the configured mean.
 solve_ln_location <- function(mean_daily, sigma_log, cap) {
+  # A stream configured to a mean of zero is a stream switched off, which the
+  # Configure panel allows; there is nothing to correct and -Inf is the
+  # location whose draws are all zero.
+  if (mean_daily <= 0) return(-Inf)
+
   mu_uncorrected <- log(mean_daily) - sigma_log^2 / 2
   if (sigma_log <= 0) return(mu_uncorrected)
   if (!(cap > mean_daily)) {
@@ -327,6 +332,9 @@ solve_ln_location <- function(mean_daily, sigma_log, cap) {
 #'   at the shipped multiplier of three the factor is 1.0633 for every stream,
 #'   the same mean-invariance the truncated share already has.
 solve_exp_mean <- function(mean_daily, cap) {
+  # As in solve_ln_location(): a mean of zero is a stream switched off.
+  if (mean_daily <= 0) return(0)
+
   if (!(cap > mean_daily)) {
     stop(sprintf(paste0("solve_exp_mean: rate cap (%.4f) does not exceed the configured ",
                         "mean (%.4f), so no parameterisation can realise that mean; raise ",

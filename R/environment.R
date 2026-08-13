@@ -236,6 +236,97 @@ resolve_ame_airframe <- function(role4_params) {
 # Each stream now draws from the distribution its configuration names and
 # realises that distribution's mean directly.
 
+#' Builds the minute-walk arrival closure shared by both generator families
+#'
+#' @param draw_rates Function of one argument returning that many per-minute
+#'   rate draws, in casualties per day per 1,000 personnel
+#' @param force_global Name of the simmer global holding the current effective
+#'   force size for this stream's population pool; read fresh at every minute
+#' @param n_days Duration in days
+#' @param buffer_days Number of days' worth of raw per-minute draws to
+#'   vectorise per refill (default 1); amortises R-level closure-call overhead
+#'   relative to drawing one minute at a time
+#' @return A zero-argument function suitable for add_generator()'s
+#'   `distribution` argument: returns the next interarrival gap (simulation
+#'   minutes), or -1 once n_days has been exhausted (simmer's convention for
+#'   ending a generator)
+#'
+#' @details The two families differ only in how a minute's rate is drawn, so
+#'   the walk itself lives here and each constructor supplies `draw_rates`.
+#'
+#'   A minute may accrue more than one whole casualty. The closure therefore
+#'   records what it owes and discharges one casualty per call, advancing the
+#'   minute only once the debt is clear: `floor_prev` increments by one per
+#'   emission rather than jumping to the new floor, which is what makes the
+#'   number of arrivals equal the accumulated rate exactly rather than the
+#'   number of minutes in which a crossing happened.
+#'
+#'   Each casualty owed by a minute needs its own offset within it, or the
+#'   arrivals share a timestamp and simmer has no principled order for them
+#'   (see README Casualty Generation, Temporal Randomisation). The minute's
+#'   own jitter serves the first, and the shortfall is drawn and the whole set
+#'   sorted. A minute owing one casualty therefore draws nothing extra and
+#'   places it exactly where it always did, which is what lets this change
+#'   reproduce every shipped parameterisation bit-for-bit.
+make_rate_walk_generator <- function(draw_rates, force_global, n_days, buffer_days = 1) {
+  n_minutes      <- day_min * n_days
+  buffer_minutes <- day_min * buffer_days
+
+  minute_ptr  <- 0L
+  cum         <- 0
+  floor_prev  <- 0
+  last_time   <- 0
+  buf_x       <- numeric(0)
+  buf_jitter  <- numeric(0)
+  buf_pos     <- 1L
+
+  # Whole casualties accrued by the minute at `owed_minute` and not yet
+  # emitted, with their offsets within it.
+  owed        <- 0
+  owed_minute <- 0L
+  owed_times  <- numeric(0)
+  owed_pos    <- 1L
+
+  function() {
+    repeat {
+      if (owed > 0) {
+        arrival_time <- owed_minute + owed_times[owed_pos]
+        owed_pos   <<- owed_pos + 1L
+        owed       <<- owed - 1
+        floor_prev <<- floor_prev + 1
+        gap <- arrival_time - last_time
+        last_time <<- arrival_time
+        return(gap)
+      }
+
+      if (buf_pos > length(buf_x)) {
+        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
+        if (n_draw <= 0) return(-1)
+        buf_x <<- draw_rates(n_draw)
+        buf_jitter <<- runif(n_draw)
+        buf_pos <<- 1L
+      }
+
+      minute_ptr <<- minute_ptr + 1L
+      if (minute_ptr > n_minutes) return(-1)
+
+      force_size <- get_global(env, force_global)
+      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
+      jitter <- buf_jitter[buf_pos]
+      buf_pos <<- buf_pos + 1L
+
+      cum <<- cum + rate
+      k <- floor(cum) - floor_prev
+      if (k > 0) {
+        owed_minute <<- minute_ptr
+        owed_times  <<- if (k == 1) jitter else sort(c(jitter, runif(k - 1)))
+        owed_pos    <<- 1L
+        owed        <<- k
+      }
+    }
+  }
+}
+
 #' Builds a live, force-size-reactive lognormal arrival generator closure
 #'
 #' @param mean_daily Expected daily rate
@@ -260,46 +351,11 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
                                       buffer_days = 1) {
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
-  n_minutes <- day_min * n_days
-  buffer_minutes <- day_min * buffer_days
 
-  minute_ptr  <- 0L
-  cum         <- 0
-  floor_prev  <- 0
-  last_time   <- 0
-  buf_x       <- numeric(0)
-  buf_jitter  <- numeric(0)
-  buf_pos     <- 1L
-
-  function() {
-    repeat {
-      if (buf_pos > length(buf_x)) {
-        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
-        if (n_draw <= 0) return(-1)
-        buf_x <<- qlnorm(runif(n_draw), meanlog = mu_log, sdlog = sigma_log)
-        buf_jitter <<- runif(n_draw)
-        buf_pos <<- 1L
-      }
-
-      minute_ptr <<- minute_ptr + 1L
-      if (minute_ptr > n_minutes) return(-1)
-
-      force_size <- get_global(env, force_global)
-      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
-      jitter <- buf_jitter[buf_pos]
-      buf_pos <<- buf_pos + 1L
-
-      cum <<- cum + rate
-      new_floor <- floor(cum)
-      if (new_floor > floor_prev) {
-        floor_prev <<- new_floor
-        arrival_time <- minute_ptr + jitter
-        gap <- arrival_time - last_time
-        last_time <<- arrival_time
-        return(gap)
-      }
-    }
-  }
+  make_rate_walk_generator(
+    function(n) qlnorm(runif(n), meanlog = mu_log, sdlog = sigma_log),
+    force_global, n_days, buffer_days
+  )
 }
 
 #' Builds a live, force-size-reactive exponential arrival generator closure
@@ -324,46 +380,10 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
                                        buffer_days = 1) {
-  n_minutes <- day_min * n_days
-  buffer_minutes <- day_min * buffer_days
-
-  minute_ptr  <- 0L
-  cum         <- 0
-  floor_prev  <- 0
-  last_time   <- 0
-  buf_x       <- numeric(0)
-  buf_jitter  <- numeric(0)
-  buf_pos     <- 1L
-
-  function() {
-    repeat {
-      if (buf_pos > length(buf_x)) {
-        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
-        if (n_draw <= 0) return(-1)
-        buf_x <<- qexp(runif(n_draw), rate = 1 / mean_daily)
-        buf_jitter <<- runif(n_draw)
-        buf_pos <<- 1L
-      }
-
-      minute_ptr <<- minute_ptr + 1L
-      if (minute_ptr > n_minutes) return(-1)
-
-      force_size <- get_global(env, force_global)
-      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
-      jitter <- buf_jitter[buf_pos]
-      buf_pos <<- buf_pos + 1L
-
-      cum <<- cum + rate
-      new_floor <- floor(cum)
-      if (new_floor > floor_prev) {
-        floor_prev <<- new_floor
-        arrival_time <- minute_ptr + jitter
-        gap <- arrival_time - last_time
-        last_time <<- arrival_time
-        return(gap)
-      }
-    }
-  }
+  make_rate_walk_generator(
+    function(n) qexp(runif(n), rate = 1 / mean_daily),
+    force_global, n_days, buffer_days
+  )
 }
 
 #' Dispatches to the appropriate live arrival generator for a casualty stream

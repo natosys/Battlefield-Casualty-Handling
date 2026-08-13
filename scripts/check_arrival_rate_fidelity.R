@@ -234,34 +234,52 @@ spread <- diff(range(sapply(inv, function(r) r$m$mean)))
 cat(sprintf("   spread across sd_daily: %.4f/day over a %.1f-fold range of coefficient of variation\n",
             spread, max(INVARIANCE_SDS) / min(INVARIANCE_SDS)))
 
-# ── 3. The one-arrival-per-minute ceiling stays out of reach ────────────────
+# ── 3. A minute owing several casualties emits all of them ──────────────────
 #
-# The closure advances to the new floor and returns a single arrival, so a
-# minute whose accumulated rate crosses more than one whole casualty discards
-# the remainder silently. This is the only clipping left in the generator now
-# that the rate cap is gone. It is measured rather than assumed: the check
-# reports the probability per minute for each shipped stream at full
-# establishment strength, and fails if any stream is close enough to the
-# ceiling for the loss to be material over a campaign.
+# The closure discharges one casualty per call and advances the minute only
+# once the debt is clear, so the number of arrivals equals the accumulated
+# rate rather than the number of minutes in which a crossing happened. Before
+# that drain the closure jumped to the new floor and emitted one, silently
+# discarding the rest; at a stream configured well above the shipped rates it
+# lost the majority of its casualties that way. The property is asserted where
+# it bites, on parameterisations whose per-minute rate approaches one whole
+# casualty, since at shipped rates it is unreachable and therefore untested.
 
-cat("\n-- the one-arrival-per-minute ceiling stays out of reach --\n")
+cat("\n-- a minute owing several casualties emits all of them --\n")
 
-# Full establishment strength, the largest the force-size global ever reads,
-# so this is the worst case for each stream.
+DRAIN <- list(
+  list(label = "lognormal mean 500/day, sd 5000", mean_daily = 500, sd_daily = 5000,
+       distribution = "lognormal"),
+  list(label = "lognormal mean 2000/day, sd 20000", mean_daily = 2000, sd_daily = 20000,
+       distribution = "lognormal"),
+  list(label = "exponential mean 1000/day", mean_daily = 1000, distribution = "exponential")
+)
+
+set.seed(SEED)
+for (spec in DRAIN) {
+  m <- measure_stream(spec, 200L)
+  band <- m$tol
+  ok <- abs(m$mean - spec$mean_daily) <= band
+  report(ok, "%-34s realised %8.1f/day against configured %8.1f (%.1f%%)",
+         spec$label, m$mean, spec$mean_daily, 100 * m$mean / spec$mean_daily)
+  if (!ok) {
+    fail(paste0("%s: realised %.1f casualties/day against a configured mean_daily of %.1f ",
+                "(%.1f%% of it). At this rate a minute routinely accrues more than one whole ",
+                "casualty, so a shortfall here means the closure is discarding the remainder ",
+                "instead of emitting it"),
+         spec$label, m$mean, spec$mean_daily, 100 * m$mean / spec$mean_daily)
+  }
+}
+
+# How often the drain is exercised at the shipped parameterisations, reported
+# rather than gated: it is what makes the change above inert on every figure
+# this project publishes.
+
+cat("\n   minutes owing more than one casualty, per 30-day run at full establishment:\n")
 FORCE <- list(cbt = 2500, spt = 1250)
-
-# One casualty in one minute needs a drawn daily rate this large, per 1,000
-# personnel at the pool's establishment strength.
-ceiling_rate <- function(force) day_min * 1000 / force
-
-# A stream losing more than this many casualties over a 30-day run would be
-# materially under-generating; at the shipped parameterisations the expected
-# loss is many orders of magnitude below it.
-LOSS_BUDGET <- 0.01
-
 for (s in streams) {
-  force <- if (grepl("_spt$", s$label)) FORCE$spt else FORCE$cbt
-  x_break <- ceiling_rate(force)
+  force   <- if (grepl("_spt$", s$label)) FORCE$spt else FORCE$cbt
+  x_break <- day_min * 1000 / force
   p <- if (s$distribution == "exponential") {
     exp(-x_break / s$mean_daily)
   } else {
@@ -269,23 +287,17 @@ for (s in streams) {
     mu_log    <- log(s$mean_daily^2 / sqrt(s$sd_daily^2 + s$mean_daily^2))
     pnorm((log(x_break) - mu_log) / sigma_log, lower.tail = FALSE)
   }
-  expected_loss <- p * day_min * 30
-  ok <- expected_loss < LOSS_BUDGET
-  report(ok, "%-32s P(>1 arrival in a minute) = %.1e, expected loss %.2e per 30-day run",
-         s$label, p, expected_loss)
-  if (!ok) {
-    fail(paste0("%s: a minute's draw crosses more than one whole casualty with probability ",
-                "%.2e, so about %.3f casualties per 30-day run are discarded by the closure's ",
-                "one-arrival-per-minute emission without being reported anywhere"),
-         s$label, p, expected_loss)
-  }
+  cat(sprintf("     %-32s %.2e\n", s$label, p * day_min * 30))
 }
 
 # ── 4. Run time stays bounded well above the shipped means ──────────────────
 #
-# With the cap gone this is the whole of the guarantee that a heavy-tailed
-# draw cannot inflate run time, so it is asserted directly: the closure emits
-# at most one arrival per simulated minute whatever the draws.
+# The minute walk is exactly n_minutes iterations whatever the draws, so the
+# cost of the walk itself is set by the horizon. What the drain removes is the
+# ceiling on how many arrivals a walk may emit, so the entity count is now
+# bounded only in expectation, at the accumulated rate. This exercises streams
+# two orders of magnitude above anything shipped and checks the emitted count
+# against that expectation rather than against a structural ceiling.
 
 cat("\n-- generator run time stays bounded well above the shipped means --\n")
 
@@ -300,13 +312,17 @@ STRESS <- list(
 set.seed(SEED)
 for (spec in STRESS) {
   elapsed <- system.time(m <- measure_stream(spec, 30L))["elapsed"]
-  ceiling_count <- day_min * 30
-  ok <- m$arrivals <= ceiling_count
-  report(ok, "%-32s %d arrivals over 30 days in %.1fs (ceiling %d)",
-         spec$label, m$arrivals, elapsed, ceiling_count)
+  # Expected arrivals at full establishment strength, which the run is at
+  # here since no casualty is generated to deplete it. A factor of two either
+  # side is loose enough not to fail on sampling and tight enough to catch a
+  # walk emitting orders of magnitude more than the rate calls for.
+  expected <- spec$mean_daily * 30 * 1000 / 1000
+  ok <- m$arrivals <= 2 * expected && elapsed < 60
+  report(ok, "%-34s %d arrivals over 30 days in %.1fs (expected ~%.0f)",
+         spec$label, m$arrivals, elapsed, expected)
   if (!ok) {
-    fail("%s emitted %d arrivals over 30 days, above the closure's ceiling of %d",
-         spec$label, m$arrivals, ceiling_count)
+    fail("%s emitted %d arrivals over 30 days in %.1fs against an expectation of %.0f",
+         spec$label, m$arrivals, elapsed, expected)
   }
 }
 

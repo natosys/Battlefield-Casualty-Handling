@@ -224,6 +224,119 @@ resolve_ame_airframe <- function(role4_params) {
 # keep per-arrival overhead low. Each minute's rate is scaled by whatever the
 # force-size global reads *at that instant* — the live equivalent of the
 # previous fixed `pop` argument — which is what closes the feedback loop.
+#
+# Issue #203: the per-minute rate cap that bounds the closure's iteration
+# count also truncates the right tail of the rate distribution, so a stream
+# parameterised straight from its configured mean realises less than that
+# mean. The generators therefore do not parameterise the distribution from
+# the configured mean directly; they solve for the location that makes the
+# *capped* draw average to it (solve_ln_location()/solve_exp_mean() below).
+# The solve happens once, at generator construction, so the per-draw path is
+# unchanged.
+
+# ── Cap-corrected distribution parameterisation ───────────────────────────────
+
+#' Mean of a lognormal distribution after clamping draws at a cap
+#'
+#' @param mu_log Log-space location parameter
+#' @param sigma_log Log-space scale parameter
+#' @param cap Value at which draws are clamped
+#' @return $E[\min(X, cap)]$ for $X \sim \text{LogNormal}(mu\_log, sigma\_log^2)$
+#'
+#' @details The generators clamp draws at the cap rather than discarding them,
+#'   so the quantity that matters is the mean of the clamped variable, not the
+#'   mean of the distribution conditioned on falling below the cap. Clamping
+#'   splits into the mass below the cap, which contributes the partial
+#'   expectation, and the mass above it, which contributes the cap itself.
+capped_lnorm_mean <- function(mu_log, sigma_log, cap) {
+  if (sigma_log <= 0) return(min(exp(mu_log), cap))
+  z <- (log(cap) - mu_log) / sigma_log
+  exp(mu_log + sigma_log^2 / 2) * pnorm(z - sigma_log) +
+    cap * pnorm(z, lower.tail = FALSE)
+}
+
+#' Mean of an exponential distribution after clamping draws at a cap
+#'
+#' @param mean_raw Mean of the underlying (unclamped) exponential distribution
+#' @param cap Value at which draws are clamped
+#' @return $E[\min(X, cap)]$ for $X \sim \text{Exponential}(1 / mean\_raw)$
+capped_exp_mean <- function(mean_raw, cap) {
+  if (mean_raw <= 0) return(0)
+  mean_raw * (1 - exp(-cap / mean_raw))
+}
+
+#' Expands a root-finding bracket upward until the function turns positive
+#'
+#' @param f Function increasing in its argument, negative at `lo`
+#' @param lo Lower bracket endpoint
+#' @param step Initial increment added to `lo`
+#' @param max_steps Maximum number of doublings before giving up
+#' @return Upper bracket endpoint at which `f` is positive
+#'
+#' @details Both solves below are monotone with a limit strictly above their
+#'   target, so an upper bracket always exists; where it sits depends on the
+#'   cap multiplier and the stream's variability, so it is found rather than
+#'   assumed.
+expand_bracket <- function(f, lo, step, max_steps = 60L) {
+  hi <- lo + step
+  for (i in seq_len(max_steps)) {
+    if (f(hi) > 0) return(hi)
+    step <- step * 2
+    hi <- hi + step
+  }
+  stop("expand_bracket: no upper bracket found; the cap may not exceed the target mean")
+}
+
+#' Solves for the lognormal location that makes the capped draw average to a
+#' configured mean
+#'
+#' @param mean_daily Configured daily mean the capped draw is to realise
+#' @param sigma_log Log-space scale parameter, held fixed by the solve
+#' @param cap Value at which draws are clamped
+#' @return Log-space location parameter
+#'
+#' @details Only the location moves, so the underlying distribution's
+#'   coefficient of variation is preserved and the correction is a pure shift
+#'   in log space. `capped_lnorm_mean()` is strictly increasing in the
+#'   location, is at most `mean_daily` at the uncorrected location (clamping
+#'   can only reduce a mean), and tends to `cap` from below, so a unique root
+#'   exists whenever the cap exceeds the configured mean.
+solve_ln_location <- function(mean_daily, sigma_log, cap) {
+  mu_uncorrected <- log(mean_daily) - sigma_log^2 / 2
+  if (sigma_log <= 0) return(mu_uncorrected)
+  if (!(cap > mean_daily)) {
+    stop(sprintf(paste0("solve_ln_location: rate cap (%.4f) does not exceed the configured ",
+                        "mean (%.4f), so no parameterisation can realise that mean; raise ",
+                        "cap_multiplier above 1"), cap, mean_daily))
+  }
+
+  f <- function(mu) capped_lnorm_mean(mu, sigma_log, cap) - mean_daily
+  hi <- expand_bracket(f, mu_uncorrected, sigma_log^2 / 2 + log(cap / mean_daily))
+  uniroot(f, c(mu_uncorrected, hi), tol = .Machine$double.eps^0.5)$root
+}
+
+#' Solves for the exponential mean that makes the capped draw average to a
+#' configured mean
+#'
+#' @param mean_daily Configured daily mean the capped draw is to realise
+#' @param cap Value at which draws are clamped
+#' @return Mean of the underlying (unclamped) exponential distribution
+#'
+#' @details The returned mean is a fixed multiple of `mean_daily` whenever the
+#'   cap is set as a multiple of it, since the exponential is a scale family:
+#'   at the shipped multiplier of three the factor is 1.0633 for every stream,
+#'   the same mean-invariance the truncated share already has.
+solve_exp_mean <- function(mean_daily, cap) {
+  if (!(cap > mean_daily)) {
+    stop(sprintf(paste0("solve_exp_mean: rate cap (%.4f) does not exceed the configured ",
+                        "mean (%.4f), so no parameterisation can realise that mean; raise ",
+                        "cap_multiplier above 1"), cap, mean_daily))
+  }
+
+  f <- function(mean_raw) capped_exp_mean(mean_raw, cap) - mean_daily
+  hi <- expand_bracket(f, mean_daily, cap - mean_daily)
+  uniroot(f, c(mean_daily, hi), tol = .Machine$double.eps^0.5)$root
+}
 
 #' Builds a live, force-size-reactive lognormal arrival generator closure
 #'
@@ -240,6 +353,11 @@ resolve_ame_airframe <- function(role4_params) {
 #' @param buffer_days Number of days' worth of raw per-minute draws to
 #'   vectorise per refill (default 1); amortises R-level closure-call
 #'   overhead relative to drawing one minute at a time.
+#' @param bias_correct Whether to solve for the cap-corrected log-space
+#'   location (default TRUE). FALSE parameterises straight from the
+#'   configured mean and so realises less than it; it exists for
+#'   scripts/check_arrival_rate_fidelity.R, which needs the uncorrected
+#'   generator to demonstrate that the check fails without the correction.
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument: returns the next interarrival gap (simulation
 #'   minutes), or -1 once n_days has been exhausted (simmer's convention for
@@ -247,17 +365,23 @@ resolve_ame_airframe <- function(role4_params) {
 #'
 #' @details The cap scales with the stream's own mean, so re-parameterising a
 #'   stream to a higher mean rescales its cap with it rather than compressing
-#'   the realised rate toward a fixed absolute ceiling. Unlike the exponential
-#'   case, this does not make the truncated share mean-invariant: a
-#'   lognormal's tail probability above `k × mean` also depends on its
-#'   coefficient of variation `sd_daily / mean_daily`, which genuinely differs
-#'   between streams. It narrows the cross-stream spread rather than removing
-#'   it.
+#'   the realised rate toward a fixed absolute ceiling. What share of draws
+#'   the cap clamps still varies between streams, since a lognormal's tail
+#'   probability above `k × mean` also depends on its coefficient of variation
+#'   `sd_daily / mean_daily`. That variation no longer reaches the realised
+#'   mean: `solve_ln_location()` sets the location so the clamped draw
+#'   averages to `mean_daily` whatever the coefficient of variation, so the
+#'   configured mean is realised and editing `sd_daily` alone leaves it alone.
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days,
-                                      cap_multiplier = 3, buffer_days = 1) {
+                                      cap_multiplier = 3, buffer_days = 1,
+                                      bias_correct = TRUE) {
   cap       <- cap_multiplier * mean_daily
-  mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
+  mu_log    <- if (bias_correct) {
+    solve_ln_location(mean_daily, sigma_log, cap)
+  } else {
+    log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
+  }
   n_minutes <- day_min * n_days
   buffer_minutes <- day_min * buffer_days
 
@@ -317,6 +441,9 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   mean-invariance rationale.
 #' @param buffer_days Number of days' worth of raw per-minute draws to
 #'   vectorise per refill (default 1)
+#' @param bias_correct Whether to solve for the cap-corrected exponential
+#'   mean (default TRUE); see the equivalent parameter on
+#'   make_ln_arrival_generator()
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument (see make_ln_arrival_generator())
 #'
@@ -326,8 +453,10 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
-                                       cap_multiplier = 3, buffer_days = 1) {
+                                       cap_multiplier = 3, buffer_days = 1,
+                                       bias_correct = TRUE) {
   cap <- cap_multiplier * mean_daily
+  draw_mean <- if (bias_correct) solve_exp_mean(mean_daily, cap) else mean_daily
   n_minutes <- day_min * n_days
   buffer_minutes <- day_min * buffer_days
 
@@ -344,7 +473,7 @@ make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
       if (buf_pos > length(buf_x)) {
         n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
         if (n_draw <= 0) return(-1)
-        buf_x <<- pmin(qexp(runif(n_draw), rate = 1 / mean_daily), cap)
+        buf_x <<- pmin(qexp(runif(n_draw), rate = 1 / draw_mean), cap)
         buf_jitter <<- runif(n_draw)
         buf_pos <<- 1L
       }

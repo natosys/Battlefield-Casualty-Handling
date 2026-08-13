@@ -473,35 +473,40 @@ Arrival times for the casualty streams are driven by a stateful generator closur
 
 #### 1. Distribution Parameterisation
 
-**Lognormal** (`make_ln_arrival_generator()`) converts the daily mean and standard deviation into log-space parameters, preserving the shape of the empirical distribution:
-
-Mean (log-space):
-
-$$
-\mu_{\log} = \ln\left(\frac{\mu^2}{\sqrt{\sigma^2 + \mu^2}}\right)
-$$
-
-Standard deviation (log-space):
+**Lognormal** (`make_ln_arrival_generator()`) converts the daily standard deviation into a log-space scale parameter, preserving the shape of the empirical distribution:
 
 $$
 \sigma_{\log} = \sqrt{\ln\left(1 + \frac{\sigma^2}{\mu^2}\right)}
 $$
 
-Where:
-
-- \mu = expected number of casualties per day
-- \sigma = daily standard deviation
-
-**Exponential** (`make_exp_arrival_generator()`) is single-parameter — the rate is fully determined by the mean, with no separate shape parameter, following FORECAS's own formula $W \sim \text{exponential}(\mu)$:
+The log-space location is not the matching closed form $\ln(\mu^2 / \sqrt{\sigma^2 + \mu^2})$, which would give a distribution whose *unclamped* mean is $\mu$. Every draw is clamped at the cap described in Step 2 below, and clamping lowers a mean, so a stream parameterised that way realises less than the daily mean its configuration names. `solve_ln_location()` (`R/environment.R`) instead solves for the location at which the clamped draw averages to $\mu$:
 
 $$
-\lambda = \frac{1}{\mu}
+E[\min(X, c)] = e^{\mu_{\log} + \sigma_{\log}^2 / 2}\,\Phi\!\left(\frac{\ln c - \mu_{\log} - \sigma_{\log}^2}{\sigma_{\log}}\right) + c\,\Phi\!\left(-\frac{\ln c - \mu_{\log}}{\sigma_{\log}}\right) = \mu
 $$
 
 Where:
 
-- \mu = expected number of casualties per day
-- \lambda = exponential rate parameter passed to the per-minute draw (no \sigma term — a reported standard deviation for an exponential-fitted stream is retained in `env_data.json` for citation only and plays no role in generation)
+- $\mu$ = expected number of casualties per day, as configured
+- $\sigma$ = daily standard deviation, as configured
+- $c$ = the per-minute rate cap (Step 2)
+- $\Phi$ = the standard normal cumulative distribution function
+
+The clamped mean is strictly increasing in $\mu_{\log}$, is at most $\mu$ at the closed form above, and tends to $c$ from below, so a unique solution exists whenever the cap exceeds the configured mean. It is found by a one-dimensional root search once, when the generator is constructed, so the per-draw path costs no more than it did. Only the location moves, leaving $\sigma_{\log}$ and therefore the coefficient of variation as configured, which is what makes the correction a pure shift in log space rather than a reshaping of the distribution FORECAS fitted.
+
+**Exponential** (`make_exp_arrival_generator()`) is single-parameter — the rate is fully determined by one mean, with no separate shape parameter, following FORECAS's own formula $W \sim \text{exponential}(\mu)$. The same correction applies, `solve_exp_mean()` solving the exponential's own clamped mean for the underlying mean $\mu'$ that realises the configured one:
+
+$$
+E[\min(X, c)] = \mu'\left(1 - e^{-c / \mu'}\right) = \mu, \qquad \lambda = \frac{1}{\mu'}
+$$
+
+Where:
+
+- $\lambda$ = exponential rate parameter passed to the per-minute draw (no $\sigma$ term — a reported standard deviation for an exponential-fitted stream is retained in `env_data.json` for citation only and plays no role in generation)
+
+Because the exponential is a scale family and the cap is set as a multiple of the configured mean, $\mu' / \mu$ is the same for every exponential stream whatever its mean: 1.0633 at the shipped multiplier of three.
+
+`scripts/check_arrival_rate_fidelity.R` holds both families to the property, exercising the shipped generator closures over a 1,000-day horizon and comparing each stream's realised daily mean against its configured `mean_daily`. It measures every stream a second time with the correction disabled and fails if any of those measurements would have passed the same band, so the check registers its own removal rather than quietly continuing to pass.
 
 #### 2. Per-Minute Rate Sampling and Scaling
 
@@ -523,7 +528,9 @@ The cap exists primarily to keep the per-minute generator's execution time pract
 
 Both generators set the cap relative to the stream's own mean rather than at a fixed absolute value: `cap = cap_multiplier × mean_daily`, with `cap_multiplier` defaulting to 3 in `make_ln_arrival_generator()` and `make_exp_arrival_generator()` alike. A mean-relative cap is what keeps the cap meaningful when a stream is re-parameterised. Because every stream's mean is independently editable, through the Configure panel or `env_data.json` directly, a cap fixed in absolute terms binds harder the higher the mean a planner enters, until it stops bounding outliers and starts setting the rate: a lognormal stream entered at a mean of 6.86 per day, the value FORECAS reports for high-intensity combat troop WIA, would have half its draws truncated by a fixed cap of 5 and would realise only 57% of the mean asked for.
 
-How uniformly the multiplier binds across streams differs between the two families. For an exponential distribution the share of draws above $k \times \mu$ depends on $k$ alone, so a cap at three times the mean trims 5.0% of draws whatever the mean; the property is exact. A lognormal's tail above $k \times \mu$ also depends on its coefficient of variation $\sigma / \mu$, which genuinely differs between streams, so the same multiplier trims 6.7% of the WIA streams' draws ($\sigma/\mu \approx 2.0$), 6.7% of the KIA streams', 3.7% of `dnbi_cbt`'s ($\approx 0.93$) and 1.2% of `dnbi_spt`'s ($\approx 0.60$). The mean-relative cap therefore narrows the spread across the shipped lognormal streams rather than removing it, from a factor of roughly 150 under a fixed cap of 5 to a factor of under 6. It is the raw scale of the mean, not the coefficient of variation, that produces the large disparity, so removing the first is what matters; a quantile-based cap would equalise the truncated share exactly but would bind harder on the low-variability streams, which a fixed share of draws does not distinguish from the high-variability ones.
+How uniformly the multiplier binds across streams differs between the two families. For an exponential distribution the share of draws above $k \times \mu'$ depends on $k$ alone, so a cap at three times the mean clamps 6.0% of draws whatever the mean; the property is exact. A lognormal's tail above the cap also depends on its coefficient of variation $\sigma / \mu$, which genuinely differs between streams, so the same multiplier clamps 10.7% of the WIA streams' draws ($\sigma/\mu \approx 2.0$), 10.9% of the KIA streams', 4.3% of `dnbi_cbt`'s ($\approx 0.93$) and 1.2% of `dnbi_spt`'s ($\approx 0.60$). The mean-relative cap therefore narrows the spread across the shipped lognormal streams rather than removing it, from a factor of roughly 150 under a fixed cap of 5 to a factor of under 9. It is the raw scale of the mean, not the coefficient of variation, that produces the large disparity, so removing the first is what matters; a quantile-based cap would equalise the clamped share exactly but would bind harder on the low-variability streams, which a fixed share of draws does not distinguish from the high-variability ones.
+
+What that remaining spread no longer reaches is the realised mean. The clamped share differs between streams because their variability genuinely differs, but the location solved for in Step 1 absorbs whatever share the cap clamps, so each stream still averages the daily rate its configuration names and editing a stream's standard deviation alone leaves its realised mean where it was. The cost is paid in the distribution's shape rather than its mean: a clamped draw is returned at the cap rather than at the value drawn, so roughly a tenth of the WIA and KIA streams' minutes sit at exactly three times the mean, day-to-day variability is understated, and the peak-day casualty volume that drives contention is understated with it (see [Further Development](#further-development), L27).
 
 #### 3. Arrival Detection via Cumulative Sum
 
@@ -879,7 +886,7 @@ With these weaker factors, `dow.params` was re-calibrated by the same iterative 
 | DOW/WIA rate            | 0.40% (95% CI [0.31%, 0.49%])      | Not historically constrained (see Further Development, L22)        |
 | KIA:WIA ratio           | 0.377                              | 0.328 (255 killed : 777 injured [[53]](#references), [[54]](#references)) |
 
-The treated-cohort rate, measured over the casualties that reach an R2B or R2E facility, sits below the historical comparator rather than spanning it. Because that comparator is an upper bound rather than a point estimate, sitting beneath it is consistent with the historical record, and the ceilings are left as they are: raising them to bring the interval up onto the bound would add modelled deaths that no source evidences. The base configuration reaches 0.44% (95% CI [0.36%, 0.51%]) by the different mechanistic route described in [Parameter Calibration](#parameter-calibration), an interval spanning the bound rather than sitting below it. Both figures are pooled over 150 replications rather than measured once, for the reason given there. At that precision the two intervals no longer overlap, so the profiles are separated on mortality where earlier measurements left them indistinguishable. See [Further Development](#further-development), L22. The KIA:WIA ratio still does not match, though it is closer than it was, since the mean-relative rate cap lowered killed-in-action generation more than any other stream (see [Casualty Generation](#casualty-generation)). What remains is a characteristic of the base casualty generation rates that both profiles share rather than something this profile introduced, since the profile overrides only the DOW ceiling and treatment efficacy factors (see Further Development).
+The treated-cohort rate, measured over the casualties that reach an R2B or R2E facility, sits below the historical comparator rather than spanning it. Because that comparator is an upper bound rather than a point estimate, sitting beneath it is consistent with the historical record, and the ceilings are left as they are: raising them to bring the interval up onto the bound would add modelled deaths that no source evidences. The base configuration reaches 0.44% (95% CI [0.36%, 0.51%]) by the different mechanistic route described in [Parameter Calibration](#parameter-calibration), an interval spanning the bound rather than sitting below it. Both figures are pooled over 150 replications rather than measured once, for the reason given there. At that precision the two intervals no longer overlap, so the profiles are separated on mortality where earlier measurements left them indistinguishable. See [Further Development](#further-development), L22. The KIA:WIA ratio still does not match, and the comparison is now a clean one: each stream realises the daily mean its configuration names (see [Casualty Generation](#casualty-generation)), so the realised ratio is the configured ratio of the two means rather than that ratio modified by whatever share the rate cap clamped from each stream, and the disagreement is attributable to the sourced rates alone. What remains is a characteristic of the base casualty generation rates that both profiles share rather than something this profile introduced, since the profile overrides only the DOW ceiling and treatment efficacy factors (see Further Development).
 
 ### High Intensity profile (Okinawa exemplar)
 
@@ -899,7 +906,7 @@ A 30-replication run (30 days, seed 42) of each profile produced:
 | Mean KIA/run                           | 57.1                          | 155.3                     |
 | WIA+KIA ratio vs. `moderate_intensity` | 1.00×                         | 3.90×                     |
 
-Both profiles cap their draws at three times the stream's own mean (see [Casualty Generation](#casualty-generation)). Under `high_intensity` the overridden WIA and KIA streams are exponential, so that cap trims exactly 5% of their draws; under `moderate_intensity` they are lognormal, so it trims 6.7% of each. DNBI is not overridden by either profile and stays lognormal under both.
+Both profiles cap their draws at three times the stream's own mean (see [Casualty Generation](#casualty-generation)). Under `high_intensity` the overridden WIA and KIA streams are exponential, so that cap clamps exactly 6.0% of their draws; under `moderate_intensity` they are lognormal, so it clamps 10.7% and 10.9% respectively. DNBI is not overridden by either profile and stays lognormal under both. What is clamped no longer changes what is realised: every stream under every profile averages the daily rate its configuration names.
 
 Mean DNBI per run falls under `high_intensity`, from 173.1 to 160.6, even though the profile leaves DNBI generation untouched. Casualty rates are set per 1,000 troops and scaled by the live force size (see [Force Regeneration and the Endogenous Feedback Loop](#6-force-regeneration-and-the-endogenous-feedback-loop)), so heavier battle attrition leaves fewer troops in theatre to fall sick.
 
@@ -2116,7 +2123,7 @@ This section records what the model does not represent, how much each gap matter
 | L23 | Recovery-to-duty severity factors are uncalibrated | Medium |
 | L24 | Saturated-ICU recovery does not conserve the post-operative requirement | Medium |
 | L26 | Theatre occupancy does not vary with casualty severity | Medium |
-| L27 | The rate cap holds realised generation below its configured mean | Medium |
+| L27 | The rate cap flattens the top of every stream's distribution | Medium |
 | L28 | The R2B pre-open hold window has no source | Medium |
 
 ### High Impact
@@ -2159,7 +2166,7 @@ Two further consequences follow for how the bound is used. A test asking whether
 
 **L26 — Theatre occupancy does not vary with casualty severity.** One surgery duration distribution serves every casualty who reaches an operating theatre, at both echelons and on both surgical pathways, so a Priority 3 casualty occupies a theatre for as long as a Priority 1 one. Registry data does not support that. Sampling the United States Department of Defense Trauma Registry across two decades of operations, mean operative asset occupancy at a Role 2 facility runs from 93.9 minutes for the mildest injury severity band to 182.9 minutes for the most critical, roughly a twofold spread, and is statistically indistinguishable between Role 2 and Role 3 [[64]](#references). The total load the model places on theatre is nonetheless about right: weighting those band means by the registry's own severity mix gives 123.6 minutes against the 115.3 minute mean of the distribution the model draws from, so the defect is in how theatre time is distributed across casualties rather than in how much of it there is. What follows is that peak contention is understated whenever the casualty mix is more severe than average, which is exactly the condition a mass casualty event creates, and every finding resting on the operating theatre queues should be read with that in mind. Closing it properly would need per-severity distributions the registry source cannot supply, since it reports means and standard deviations without medians, ranges or distribution shape; the lighter alternative is a severity-keyed multiplier on the single distribution, taking the ratios between the published band means and assuming the shape is otherwise unchanged, which the roughly constant coefficient of variation across bands supports.
 
-**L27 — The rate cap holds realised generation below its configured mean.** The per-minute rate cap that keeps the generator's iteration count bounded (see [Casualty Generation](#casualty-generation)) truncates the right tail of a stream's own distribution, so a stream realises less than the daily mean its configuration names. At the shipped multiplier of three, the WIA streams realise 79% of their nominal mean, the KIA streams 79%, `dnbi_cbt` 95% and `dnbi_spt` 99%; an exponential stream realises 95% whatever its mean. Two consequences follow. Absolute casualty volumes are lower than the cited FORECAS rates specify, by an amount differing per stream, so the model's casualty mix is not exactly the historical mix even where every mean is sourced. And the shortfall depends on each stream's coefficient of variation, which is a configured quantity, so editing a stream's standard deviation alone changes its realised mean. Raising the multiplier reduces the shortfall but widens the spread between streams, the two properties trading directly against one another. Closing the gap needs the cap removed rather than retuned, which in turn needs a generator that samples arrival times directly instead of walking the run minute by minute, since it is the minute-by-minute walk that makes an extreme draw expensive rather than merely implausible.
+**L27 — The rate cap flattens the top of every stream's distribution.** The per-minute rate cap that keeps the generator's iteration count bounded (see [Casualty Generation](#casualty-generation)) returns a clamped draw at the cap rather than at the value drawn. The location the generator is parameterised at absorbs that clamping, so each stream averages the daily rate its configuration names, but the shape it averages to is not the shape FORECAS fitted: about 11% of the WIA and KIA streams' minutes sit at exactly three times the mean, against 4% of `dnbi_cbt`'s, 1% of `dnbi_spt`'s and 6% of any exponential stream's. What follows is that day-to-day variability is understated, and with it the peak-day casualty volume that drives contention for theatres, intensive care beds and airlift, so every queue and utilisation figure in the analysis documents should be read as a lower bound on its own peak rather than on its mean. Raising the multiplier moves probability mass back out of the spike but lengthens the generator's walk on the rare extreme draw, the two properties trading directly against one another; the mean is unaffected either way, since the parameterisation is solved against whatever cap is in force. Closing the gap needs the cap removed rather than retuned, which in turn needs a generator that samples arrival times directly instead of walking the run minute by minute, since it is the minute-by-minute walk that makes an extreme draw expensive rather than merely implausible. Simulating the arrival process by thinning [[65]](#references) is the established way to do that, generating candidate times under a dominating rate and rejecting a controlled fraction, and is compatible with the live force-size dependence because the intensity would be read at the candidate time rather than at every minute.
 
 **L28 — The R2B pre-open hold window has no source.** How long a forward facility should hold a casualty for a surgical section about to come on shift, rather than moving them rearward, is a standing-order decision no open-access source quantifies. The shipped 60 minutes is an informed estimate anchored between two quantities the model already carries, the golden-hour standard above it and the road move to R2E below it (see [R2B Trajectory](#r2b-trajectory)), which bounds it plausibly without calibrating it. Two things follow. The window's own value is uncertain in both directions, and because the held casualty occupies the single forward theatre for the whole hold, the parameter trades forward operations against one another rather than simply adding them, so the sign of its effect on forward throughput is a property of the configuration rather than of the mechanism. The screening bounds run from zero to six hours, which is wide enough to admit the whole of that trade. Closing the gap needs either a doctrinal statement of the holding decision or a calibration target on forward surgical throughput; short of either, the parameter is best read as a lever to sweep rather than a default to trust.
 
@@ -2308,5 +2315,7 @@ The repository is a foundation for further work rather than a finished decision-
 [63] Law, A. M. (2020). Statistical analysis of simulation output data: the practical state of the art. In *Proceedings of the 2020 Winter Simulation Conference* (pp. 1117-1127). INFORMS Simulation Society. Retrieved 08 Aug 26, from https://informs-sim.org/wsc20papers/134.pdf
 
 [64] Hall, A., Graham, B., Hanson, M., & Stern, C. (2023). Surgical capability utilization time for military casualties at role 2 and role 3 facilities. *Military Medicine*, *188*(11-12), e3368-e3370. Retrieved 10 Aug 26, from https://academic.oup.com/milmed/article/188/11-12/e3368/6961509
+
+[65] Lewis, P. A. W., & Shedler, G. S. (1979). Simulation of nonhomogeneous Poisson processes by thinning. *Naval Research Logistics Quarterly*, *26*(3), 403-413. Naval Postgraduate School Calhoun repository. Retrieved 13 Aug 26, from https://calhoun.nps.edu/handle/10945/63159
 
 <!-- REFERENCES END -->

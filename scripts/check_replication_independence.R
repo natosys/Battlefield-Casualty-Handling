@@ -43,6 +43,12 @@
 # on a finite sample can make, and it is deterministic, so this check does not
 # pass or fail on the luck of a particular seed set.
 #
+# What these two properties do not establish is that a *measurement* is a
+# function of its control seed: replications can be perfectly independent of
+# one another within a measurement that does not reproduce. That is a separate
+# property with a separate check, scripts/check_measurement_reproducibility.R
+# (Issue #208).
+#
 # The --diagnostic mode measures the lag-1 rank correlation across replications
 # anyway, on an arrival-driven response and two treatment-driven ones, and
 # reports it without gating on it. That is deliberate. Independence follows

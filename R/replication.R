@@ -194,8 +194,8 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'   mclapply, falling back to lapply on Windows and at a single replication.
 #'
 #'   A measurement is a function of its control seed alone, and of nothing
-#'   else about the session it was taken in (Issue #208). Two properties
-#'   deliver that, and both are asserted by
+#'   else about the session it was taken in (Issue #208). The properties
+#'   below are what deliver that, and each is asserted by
 #'   scripts/check_measurement_reproducibility.R.
 #'
 #'   The caller's generator kind and stream position are snapshotted on entry

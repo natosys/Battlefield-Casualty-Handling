@@ -63,7 +63,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 
   wia_cbt_gen <- wrap_with_mass_casualty(
     generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
-                               "effective_force_combat", n_days),
+                               "effective_force_combat", env_data$pops$combat, n_days),
     mass_casualty$arrival_times, mass_casualty$casualty_event_id)
 
   env <<- env %>%
@@ -72,19 +72,19 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
     add_generator("wia_cbt",  casualty, wia_cbt_gen, mon = 2) %>%
     add_generator("kia_cbt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
-                    "effective_force_combat", n_days), mon = 2) %>%
+                    "effective_force_combat", env_data$pops$combat, n_days), mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_cbt,
-                    "effective_force_combat", n_days), mon = 2) %>%
+                    "effective_force_combat", env_data$pops$combat, n_days), mon = 2) %>%
     add_generator("wia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$wia_spt,
-                    "effective_force_support", n_days), mon = 2) %>%
+                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
     add_generator("kia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$kia_spt,
-                    "effective_force_support", n_days), mon = 2) %>%
+                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
     add_generator("dnbi_spt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
-                    "effective_force_support", n_days), mon = 2) %>%
+                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
     add_global("evac_wait_count", 0)
 
   # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when

@@ -76,8 +76,12 @@
 | 203 | Per-minute rate cap holds realised casualty generation below every stream's configured mean | High | Medium | **Merged (PR #209)** |
 | 208 | `run_replications()` draws different replication seeds on its first call in a session | High | Low | **Merged (PR #211)** |
 | 201 | Action plan phase sequence lists have gaps, and the document's anchor links are unverified | Medium | Low | **Merged (PR #213)** |
-| 206 | Casualty arrivals are far less variable day to day than a real arrival process | Medium | High | Open |
+| 206 | Casualty arrivals are far less variable day to day than a real arrival process | Medium | High | **Merged (PR #215)** |
+| 149 | Mass casualty events do not generate immediate KIA or DNBI casualties | Medium | Medium | Open |
+| 150 | DNBI sub-type surgical-candidacy statistics predate multiple RNG-stream-shifting merges | Medium | Low | Open |
+| 151 | Okinawa-specific DOW ceiling and treatment efficacy calibration for `high_intensity` | Medium | High | Open |
 | 207 | Two configured parameters have a realised effect that is clipped | Low | Low | Open |
+| 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | Open (blocked) |
 
 ---
 
@@ -88,6 +92,28 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 206 — Casualty Arrivals Are Far Less Variable Day to Day Than a Real Arrival Process ✓
+
+**Merged:** PR #215, branch `claude/issue-206-heito1`
+
+Each casualty stream drew a fresh rate for every simulated minute and emitted a casualty at each whole-casualty crossing of the running total, so a day's count was an average of 1,440 draws and the central limit theorem flattened the stream long before those draws could reach a daily total: the combat WIA stream realised a daily standard deviation of 0.50 against the 2.10 of a Poisson process at the same rate, and in 5,000 simulated days never produced a day worse than six casualties. Peak-day volume is what drives contention for theatres, intensive care beds and airlift, so the model understated every queue it exists to measure, in the direction that is not conservative for planning. The minute grid is replaced by direct arrival-time sampling on two recorded design decisions. The intensity is a Cox process whose rate is redrawn once per simulated day, the timescale FORECAS fitted `mean_daily` and `sd_daily` at, rather than once per minute; and `sd_daily` is honoured rather than discarded in favour of the Poisson value, arrivals within the day being Poisson so that by the law of total variance the stream realises the configured mean plus the configured between-day variance on top of the Poisson term. Placement uses thinning (Lewis & Shedler, 1979) against a dominating rate holding the pool at establishment strength, each candidate accepted at `F/P_max` for the live force size, which preserves the Issue #18 feedback loop; `P_max` bounds `F` for the whole run because every casualty debits its pool and `credit_fn()` clamps the reinforcement credit at establishment strength. The sub-minute jitter step is gone with the grid, arrival times being continuous, and generation cost is now linear in the drawn rate rather than fixed at 1,440 iterations per day. Measured over 30,000 days at the shipped combat WIA parameterisation the daily count has a mean of 4.41 and a standard deviation of 9.5 against the 9.1 the construction predicts, a median day of two, a 99th-percentile day of 38 and a busiest day of 564. `scripts/check_arrival_rate_fidelity.R` gains the realised-variance assertion alongside the mean it already checked, and its sections on the retired one-arrival-per-minute discard are removed with the grid. The mass casualty parameters were reconsidered against a background stream that now varies and deliberately left unchanged: the background does now reach into the event size band, delivering twenty or more casualties within a two-hour window about once in fifty 30-day runs, but only an injected event tags its casualties as a cohort that can be followed through the system. Neither died-of-wounds ceiling was re-fitted; the calibration was re-measured at 150 replications per shipped configuration and `scripts/check_dow_calibration.R` passes for both against the one-sided Ajax Bay bound. README Further Development L27 is deleted.
+
+**Seed-42 baseline (30 days, single run):** this moves casualty generation itself rather than only the draw order downstream of it, and it moves in both directions, the configured means being untouched while only their dispersion changes. No row below should be read as the effect of the change: one 30-day run is now a draw from a far wider distribution, which is the point of it.
+
+| Metric | Before (post-Issue-203) | After (post-Issue-206) |
+|---|---|---|
+| Total casualties | 437 | 530 |
+| WIA / KIA / DNBI | 187 / 71 / 179 | 287 / 72 / 171 |
+| R2B surgical decision point | 152 (74 operated, 78 bypassed) | 210 (69 operated, 141 bypassed) |
+| R2E surgeries — first / second | 115 / 31 | 171 / 41 |
+| R2E OT queue ≥1 (OT1 / OT2) | 3.0% / 0.6% of run | 46.3% / 34.6% |
+| R2E ICU utilisation (4 beds) | 97.3 / 92.2 / 88.1 / 82.0% | 93.7 / 92.1 / 92.2 / 85.8% |
+| `surgery_deferred` | 15 | 29 |
+| Strategic AME mean wait | 1.1 days | 10.1 days (two of four sorties cancelled at this seed) |
+| Treated-cohort DOW rate (150 reps) | 0.417% [0.354%, 0.480%] | 0.474% [0.412%, 0.536%] |
+
+**Unblocked by this merge:** No new issues unblocked. No open issue lists Issue #206 as a dependency; #207 was already unblocked, and Issue #155 remains blocked by its own terms until every issue is closed.
 
 ### Issue 201 — Action Plan Phase Sequence Lists Have Gaps, and the Document's Anchor Links Are Unverified ✓
 
@@ -2016,7 +2042,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 13. **Issue 40** — R2B OT utilisation improvement. ~~Add `r2b_bypass_reason` attribute~~ — **Merged PR #64** (67 off-shift, 10 OT busy/queued, of 77 at-R2B bypasses). Remaining scope: scenario-test `ot_hours` at 12/14/16/20h; evaluate second surgical team option (partial result without Issue #4) — both deferred pending a clinician fatigue model (Scenario A) and a directed establishment-size decision (Scenario B). **Backlog** — not currently planned; unblocked but on hold pending that design work.
 14. **Issue 4** — Individual resource seizure. Read `BCH_Task_Role_Allocation.md` in full before beginning. Gated until Issues 1, 2, and 3 are all stable (satisfied). Address the six validation assumptions in `BCH_Task_Role_Allocation.md` Part 5 — document each as a named model assumption in the README, and include the two highest-priority assumptions (NO flex to surgical roles; second-surgeon probability) in the Morris screening from Phase 1. **Backlog** — unblocked but deprioritised given its size/risk; may not be resourced in the near term.
 
-### Phase 4 — Scenario Expansion (Issues 54 ✓, 9 ✓, 10 ✓, 57 ✓, 18 ✓, 23 ✓, 124 ✓, 160 ✓, 153 ✓, 148 ✓, 203 ✓)
+### Phase 4 — Scenario Expansion (Issues 54 ✓, 9 ✓, 10 ✓, 57 ✓, 18 ✓, 23 ✓, 124 ✓, 160 ✓, 153 ✓, 148 ✓, 203 ✓, 206 ✓)
 *Estimated effort: 3–4 weeks. Builds on Phase 1–3 outputs. **Complete.***
 
 11a. ~~**Issue 54** — Scenario-level parameter profiles (schema, `load_scenario()`, `moderate_intensity`/`high_intensity` — prerequisite for Issue 10).~~ — **Merged PR #67.**
@@ -2030,6 +2056,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 15c. ~~**Issue 153** — Derive each comparative scenario's axis label from its own ASCII identifier through `scenario_short_label()`, so `scripts/run_scenarios.R` no longer aborts at its plotting stage in any locale that is not UTF-8, and escape the plot title's em dash, which had been drawn as three raw bytes once the pattern was repaired. `scripts/check_markdown.R`'s anchor generation was corrected in the same PR to reproduce GitHub's algorithm, repairing 45 table of contents anchors, 15 body cross-references and 216 citation links, and gained the link check this document is now inside. Added `scripts/check_scenario_labels.R`. Requires Issue 10.~~ — **Merged PR #199.**
 15d. ~~**Issue 148** — Replace `make_ln_arrival_generator()`'s fixed absolute per-minute rate cap of 5 with the mean-relative `cap_multiplier × mean_daily` the exponential generator has used since Issue #54, narrowing the cross-stream truncation spread from roughly 150-fold to under 6-fold. Raised Issue #203 for the residual, that a cap of any multiplier holds realised generation below the configured mean.~~ — **Merged PR #202.**
 15e. ~~**Issue 203** — Remove the per-minute rate cap outright rather than correct for it, the closure that replaced the vectorised generator having no run-time failure mode for the cap to prevent; every stream now realises the daily mean its configuration names. Emission also corrected so a minute accruing several casualties emits all of them. Died-of-wounds ceilings re-fitted 0.023/0.019 to 0.020/0.016 for the corrected rates. Raised Issues #206, #207 and #208.~~ — **Merged PR #209.**
+15f. ~~**Issue 206** — Replace the per-minute rate walk with direct arrival-time sampling: the rate is drawn once per simulated day, the timescale FORECAS fitted it at, and arrivals are placed within the day by thinning, so the stream realises the between-day variance `sd_daily` names instead of averaging it away across 1,440 draws. Combat WIA daily standard deviation moves 0.50 to 9.5 against a Poisson 2.10, with a busiest day of 564 against six. Moves casualty generation itself; both died-of-wounds ceilings re-verified and left unchanged. README Further Development L27 deleted. Requires Issue 203.~~ — **Merged PR #215.**
 
 ### Phase 5 — Interface (Issues 72 ✓, 93 ✓, 15 ✓, 77 ✓, 110 ✓, 111 ✓, 121 ✓, 109 ✓, 128 ✓, 117 ✓, 112 ✓, 114 ✓, 116 ✓, 115 ✓, 154 ✓, 152 ✓, 147 ✓, 201 ✓)
 *Estimated effort: 1–2 weeks.*
@@ -2489,6 +2516,21 @@ COMPLETE (merged to main):
        change — no seed-42 shift; DOW calibration re-measured to 0.417%
        (default) and 0.353% (moderate_intensity), comparative scenario
        tables re-measured (PR #211)
+  #206 Per-minute rate walk replaced with direct arrival-time sampling:
+       the rate is drawn once per simulated day, the timescale FORECAS
+       fitted it at, and arrivals are placed within the day by thinning
+       (Lewis & Shedler 1979) against a dominating rate at establishment
+       strength, each candidate accepted at the live force size so the
+       #18 feedback loop is preserved. The daily count is Poisson given
+       the day's rate, so the stream realises the configured mean plus
+       the configured between-day variance. Combat WIA daily sd 0.50 to
+       9.5 against a Poisson 2.10, busiest day 6 to 564. Sub-minute
+       jitter removed with the grid; cost now linear in the drawn rate.
+       check_arrival_rate_fidelity.R gains the variance assertion. Moves
+       casualty generation itself: seed-42 total 437 to 530, WIA 187 to
+       287, DNBI 179 to 171. DOW ceilings re-verified at 150 reps and
+       left unchanged. Mass casualty parameters reconsidered and left
+       unchanged. L27 deleted (PR #215)
   #201 Thirteen merged issues backfilled into the phase sequence lists
        and their phase heading rosters, five reported and eight found by
        audit; every issue the summary table records as merged now has
@@ -2502,13 +2544,39 @@ IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  #206 Casualty arrivals are far less variable day to day than a real
-       arrival process — daily sd 0.50 against a Poisson 2.10 at the same
-       rate. Not caused by the rate cap; a property of the minute-by-minute
-       accumulation. Needs thinning. Unblocked by #203.
+  #149 Mass casualty events generate only combat WIA — a fired event
+       injects no immediate KIA, so mortuary and KIA-transport resources
+       see none of a surge's mortality load, and a "40-casualty event"
+       means 40 survivors rather than 40 casualties. Needs a configurable
+       per-event KIA fraction routed through the existing mortuary
+       pathway. DNBI stays out of scope on causal-link grounds. RNG-stream
+       -shifting. Gating satisfied by #9.
+  #150 DNBI sub-type surgical-candidacy statistics in README predate
+       multiple RNG-stream-shifting merges — the 100-replication figures
+       (158.6 surgical candidates, SD 6.8; 79.6% NBI / 5.7% disease /
+       0.0% battle fatigue) date from Issue #7 and have not been recomputed
+       across #18, #23, #76, #161, #159, #173, #148, #146, #203 or #206.
+       Presented in the system reference as current. Needs the same
+       100-replication run against the current codebase, plus a provenance
+       caveat. No gating dependency.
+  #151 high_intensity inherits the Falklands-calibrated DOW ceiling and
+       the OIF/OEF-era treatment efficacy factors unchanged, so any
+       mortality finding under that profile conflates casualty intensity
+       with a borrowed calibration from two unrelated eras. Needs the
+       disentanglement moderate_intensity already had: era-appropriate
+       efficacy factors and an independently re-calibrated ceiling against
+       a sourced Pacific-theatre target. Gating satisfied by #54 + #10.
   #207 Two configured parameters have a realised effect that is clipped —
        the reinforcement fill fraction and the R2B holding evacuation
        threshold. Neither affects a shipped figure; both ship disabled.
+
+BLOCKED (gated on other issues):
+  #155 Final canonical re-run and documentation refresh — one sweep in the
+       pinned container producing the authoritative seed-42 baseline, the
+       production Morris/Sobol screen deferred to it by #157 and #158, and
+       a documentation pass over every figure carrying an unpinned-sandbox
+       caveat. Blocked by its own terms until every other issue is closed,
+       so it clears only once #4, #40, #149, #150, #151 and #207 do.
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -2535,4 +2603,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 16 August 2026 to reflect: completion of Issue #201 (action plan phase sequence lists have gaps, and the document's anchor links are unverified, PR #213) — thirteen merged issues had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit the issue asked for, so a reader auditing what a phase delivered could not tell a complete list from an incomplete one. Each is backfilled at its position in merge order under the existing letter-suffix convention, and every issue the summary table records as merged now has both an item and a roster entry. `scripts/check_markdown.R`'s anchor link check is widened from the three documents carrying a table of contents block to every tracked markdown document, this one included, with links inside backticks excluded and the table of contents and return-link maintenance left scoped to the three. The Issue 44 citation, which resolved to another entry's References block, now points at README's. `CLAUDE.md`'s post-merge checklist is corrected where it stated the strikethrough obligation alone, which is the maintenance gap that let the thirteen go unrecorded. No model code, parameter or artifact is touched and no baseline value moves. Also reflects: completion of Issue #208 (`run_replications()` draws different replication seeds on its first call in a session, PR #211) — the per-replication seeds were drawn before `RNGkind("L'Ecuyer-CMRG")` was set, and the kind persists for the rest of the session, so a measurement was a function of its position in the invocation as well as of its control seed. The caller's kind and stream position are now snapshotted and restored, and both dispatch paths run under one generator; the kind is deliberately still set after the seeds are drawn, `RNGkind()` re-initialising `.Random.seed` from the clock whenever it is called. `scripts/check_measurement_reproducibility.R` is new. No model code changes and the seed-42 baseline is byte-identical; the died-of-wounds calibration re-measures to 0.417% (`default`) and 0.353% (`moderate_intensity`), both still passing the Ajax Bay bound though no longer separated from each other, and the comparative scenario tables were re-measured. Every scenario in a comparison and every point in a sweep now runs on common random numbers. Also reflects: completion of Issue #203 (per-minute rate cap holds realised casualty generation below every stream's configured mean, PR #209) — both arrival generators clamped each rate draw at three times the stream's own mean, which lowered the mean the stream realised to between 78.7% and 99.2% of the configured value and made that shortfall depend on the stream's coefficient of variation, so editing `sd_daily` alone moved a mean nobody had touched. The cap is removed rather than corrected for: its justification was a run-time blow-up in the vectorised generator that preceded the current closure, and the closure performs exactly `n_minutes` iterations whatever the draws. A bias-corrected parameterisation was built first and removed with the cap. The emission logic is corrected alongside it, a minute accruing several whole casualties now emitting all of them rather than one, which reproduces every shipped parameterisation bit-for-bit while recovering the majority of a stream configured far above shipped rates. `scripts/check_arrival_rate_fidelity.R` is new. The died-of-wounds ceilings are re-fitted from 0.023/0.019 to 0.020/0.016 after the corrected rates carried the base configuration above the Ajax Bay bound at 250 replications, with the Morris bounds and mode vector rescaled to match; both shipped configurations pass at 0.443% and 0.290%. Three issues were raised from the work: #206 (arrival variability, unblocked by this merge), #207 (clipped configured parameters) and #208 (replication seeds differ on the first call in a session).*
+*Prepared June 2026. Updated 16 August 2026 to reflect: completion of Issue #206 (casualty arrivals are far less variable day to day than a real arrival process, PR #215) — each stream drew a fresh rate for every simulated minute and emitted a casualty at each whole-casualty crossing, so a day's count was an average of 1,440 draws and the central limit theorem flattened the stream to a daily standard deviation of 0.50 on the combat WIA stream against the 2.10 of a Poisson process at the same rate, with a busiest day in 5,000 of six casualties. Peak-day volume drives contention for theatres, intensive care beds and airlift, so every queue the model exists to measure was understated in the direction that is not conservative. The minute grid is replaced by direct arrival-time sampling on two recorded decisions: the rate is redrawn once per simulated day, the timescale FORECAS fitted `mean_daily` and `sd_daily` at, and arrivals within the day are Poisson, placed by thinning (Lewis & Shedler, 1979) against a dominating rate at establishment strength with each candidate accepted at the live force size, which preserves the Issue #18 feedback loop. The stream therefore realises the configured mean plus the configured between-day variance on top of the Poisson term; measured over 30,000 days the combat WIA daily count has a standard deviation of 9.5 against the 9.1 the construction predicts and a busiest day of 564. The sub-minute jitter step is removed with the grid and generation cost is now linear in the drawn rate. `scripts/check_arrival_rate_fidelity.R` gains the realised-variance assertion. This moves casualty generation itself: seed-42 total casualties 437 to 530, WIA 187 to 287, KIA 71 to 72 and DNBI 179 to 171, with the R2E theatre queue moving from 3.0% and 0.6% of the run to 46.3% and 34.6%. Both died-of-wounds ceilings were re-verified at 150 replications per configuration and left unchanged, and the mass casualty parameters were reconsidered against the corrected background and left unchanged with the reason recorded. Every ratio in the comparative scenario tables compresses, the R2E theatre ratio from roughly 180 to roughly 37, because the Falklands-load arm rises while the surge arm is close to unmoved; that is recorded as a finding rather than as a robustness result. README Further Development L27 is deleted. Also reflects the backfill of three open issues this document had never recorded: #149 (mass casualty events generate no immediate KIA), #150 (DNBI surgical-candidacy statistics predate several RNG-stream-shifting merges, now including this one) and #151 (`high_intensity` inherits a Falklands-calibrated mortality ceiling), each added to the summary table and to the dependency graph's unblocked list. All three carry `status: ready` and none was tracked here, which is the open-side counterpart of the merged-side gap Issue #201 closed. Also reflects: completion of Issue #201 (action plan phase sequence lists have gaps, and the document's anchor links are unverified, PR #213) — thirteen merged issues had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit the issue asked for, so a reader auditing what a phase delivered could not tell a complete list from an incomplete one. Each is backfilled at its position in merge order under the existing letter-suffix convention, and every issue the summary table records as merged now has both an item and a roster entry. `scripts/check_markdown.R`'s anchor link check is widened from the three documents carrying a table of contents block to every tracked markdown document, this one included, with links inside backticks excluded and the table of contents and return-link maintenance left scoped to the three. The Issue 44 citation, which resolved to another entry's References block, now points at README's. `CLAUDE.md`'s post-merge checklist is corrected where it stated the strikethrough obligation alone, which is the maintenance gap that let the thirteen go unrecorded. No model code, parameter or artifact is touched and no baseline value moves. Also reflects: completion of Issue #208 (`run_replications()` draws different replication seeds on its first call in a session, PR #211) — the per-replication seeds were drawn before `RNGkind("L'Ecuyer-CMRG")` was set, and the kind persists for the rest of the session, so a measurement was a function of its position in the invocation as well as of its control seed. The caller's kind and stream position are now snapshotted and restored, and both dispatch paths run under one generator; the kind is deliberately still set after the seeds are drawn, `RNGkind()` re-initialising `.Random.seed` from the clock whenever it is called. `scripts/check_measurement_reproducibility.R` is new. No model code changes and the seed-42 baseline is byte-identical; the died-of-wounds calibration re-measures to 0.417% (`default`) and 0.353% (`moderate_intensity`), both still passing the Ajax Bay bound though no longer separated from each other, and the comparative scenario tables were re-measured. Every scenario in a comparison and every point in a sweep now runs on common random numbers. Also reflects: completion of Issue #203 (per-minute rate cap holds realised casualty generation below every stream's configured mean, PR #209) — both arrival generators clamped each rate draw at three times the stream's own mean, which lowered the mean the stream realised to between 78.7% and 99.2% of the configured value and made that shortfall depend on the stream's coefficient of variation, so editing `sd_daily` alone moved a mean nobody had touched. The cap is removed rather than corrected for: its justification was a run-time blow-up in the vectorised generator that preceded the current closure, and the closure performs exactly `n_minutes` iterations whatever the draws. A bias-corrected parameterisation was built first and removed with the cap. The emission logic is corrected alongside it, a minute accruing several whole casualties now emitting all of them rather than one, which reproduces every shipped parameterisation bit-for-bit while recovering the majority of a stream configured far above shipped rates. `scripts/check_arrival_rate_fidelity.R` is new. The died-of-wounds ceilings are re-fitted from 0.023/0.019 to 0.020/0.016 after the corrected rates carried the base configuration above the Ajax Bay bound at 250 replications, with the Morris bounds and mode vector rescaled to match; both shipped configurations pass at 0.443% and 0.290%. Three issues were raised from the work: #206 (arrival variability, unblocked by this merge), #207 (clipped configured parameters) and #208 (replication seeds differ on the first call in a session).*

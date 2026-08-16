@@ -74,7 +74,7 @@
 | 148 | Lognormal casualty generator uses a fixed absolute rate cap, not a mean-relative one | High | Medium | **Merged (PR #202)** |
 | 146 | R2B surgical team under-utilisation — pre-open OT queue window ahead of shift start | Medium | Medium | **Merged (PR #204)** |
 | 203 | Per-minute rate cap holds realised casualty generation below every stream's configured mean | High | Medium | **Merged (PR #209)** |
-| 208 | `run_replications()` draws different replication seeds on its first call in a session | High | Low | Open |
+| 208 | `run_replications()` draws different replication seeds on its first call in a session | High | Low | **Merged (PR #211)** |
 | 206 | Casualty arrivals are far less variable day to day than a real arrival process | Medium | High | Open |
 | 207 | Two configured parameters have a realised effect that is clipped | Low | Low | Open |
 
@@ -87,6 +87,20 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 208 — `run_replications()` Draws Different Replication Seeds on Its First Call in a Session ✓
+
+**Merged:** PR #211, branch `claude/issue-208-c9thw4`
+
+`run_replications()` drew its per-replication seeds before setting `RNGkind("L'Ecuyer-CMRG")`, and the kind persists for the rest of the R session, so the first call in a session drew its seeds under Mersenne-Twister and every later call drew them under L'Ecuyer-CMRG. The seeds were good seeds either way, so no published point estimate was biased and no interval was wrong for the replications it was computed over; what did not hold was that a measurement could be reproduced from the control seed it is stated at, or compared with a measurement taken in a different position in the invocation. The caller's generator kind and stream position are now snapshotted on entry and restored on exit, so the function mutates no global random number state, and the kind is set on both dispatch paths rather than the parallel one alone, so a replication's output depends on its seed rather than on whether `mclapply` or `lapply` dispatched it. `scripts/check_measurement_reproducibility.R` is new and asserts the four properties this rests on; it was verified to fail on the pre-change code, reporting the same two seed vectors the issue documents.
+
+The issue's recommended fix, moving `RNGkind()` above the seed draw, was not taken, and the reason is worth recording because it is not obvious. `RNGkind()` re-initialises `.Random.seed` from the system clock every time it is called, including when called with the kind already in effect, so drawing the seeds after it would have made them a function of the wall clock rather than of `set.seed()` and would have removed reproducibility altogether rather than restored it. The seeds are therefore still drawn first, under a kind the function no longer changes, and the intent behind the suggestion is met by making the kind stable across calls rather than by setting it earlier. Restoring the stream position as well as the kind is what satisfies the issue's second acceptance criterion: restoring only the kind would leave the seeds reproducible but the stream advancing, so a scenario measured third in a comparison would still disagree with the same scenario measured on its own. One consequence follows and was taken deliberately. Every scenario in a comparison, and every point in a sweep or Morris design, now runs on the same per-replication seeds, which makes the arms a comparison on common random numbers and estimates the difference between them more precisely; replications within an arm remain independent, so every published per-arm interval is still correctly specified.
+
+The re-measurement cascade separates cleanly along first-call lines. The died-of-wounds calibration was re-measured at 150 replications per shipped configuration: `default` moves from 0.443% to 0.417% (95% CI [0.354%, 0.480%]), its first of three measurements unchanged at 0.524% and the two behind it moving, and `moderate_intensity` from 0.290% to 0.353% ([0.293%, 0.413%]), all three of its measurements moving because all three sat behind `default`. `moderate_intensity` at control seed 42 now returns 0.392%, the figure the issue reports for measuring that profile on its own, against the 0.248% the standard both-scenario invocation had returned for the same seed. Both configurations still pass the one-sided Ajax Bay bound, but their intervals now overlap, so the claim that 150 replications separate the profiles from each other on mortality is withdrawn while each remains separated from the bound. In the 50-replication comparative scenario tables the whole `moderate_intensity` arm is unchanged to the precision published, and `high_intensity` moves by the amount replication-to-replication variation produces at that count.
+
+**Seed-42 baseline (30 days, single run):** unchanged, and byte-identically so. `run.R --iterations 1` calls `run_once()` directly rather than through `run_replications()`, and the run's console log reproduces the tracked `logs/logs.txt` byte for byte, which is both the confirmation that the single-run path does not move and the fidelity evidence for the sandbox. No tracked artifact in `images/`, `logs/` or `data/` was regenerated apart from `images/scenario_comparison.png`, which the comparative scenario runner rewrites alongside its tables. Measurements were made in an unpinned R 4.3.3 sandbox under the same caveat as the Issue #18, #23, #161, #154, #156, #160, #159, #173, #178, #189, #148, #146 and #203 refreshes.
+
+**Unblocked by this merge:** No new issues unblocked. No open issue lists Issue #208 as a dependency; #206 and #207 were already unblocked, and Issue #155 remains blocked by its own terms until every issue is closed.
 
 ### Issue 203 — Per-Minute Rate Cap Holds Realised Generation Below the Configured Mean ✓
 
@@ -2435,16 +2449,22 @@ COMPLETE (merged to main):
        DOW ceilings re-fitted 0.023/0.019 to 0.020/0.016 after the larger
        treated cohort overshot the Ajax Bay bound at 250 replications
        (PR #209)
+  #208 run_replications() now snapshots and restores the caller's RNG
+       kind and stream position, so a measurement is a function of its
+       control seed alone rather than of its position in the invocation.
+       The kind is deliberately still set after the seeds are drawn:
+       RNGkind() re-initialises .Random.seed from the clock whenever it
+       is called, so setting it first would have removed reproducibility
+       rather than restored it. Both dispatch paths now run under one
+       generator. check_measurement_reproducibility.R added. No model
+       change — no seed-42 shift; DOW calibration re-measured to 0.417%
+       (default) and 0.353% (moderate_intensity), comparative scenario
+       tables re-measured (PR #211)
 
 IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  #208 run_replications() draws different replication seeds on its first
-       call in a session — RNGkind("L'Ecuyer-CMRG") is set after the seeds
-       are drawn, so a measurement depends on its position in the
-       invocation as well as its control seed. Reproducibility defect
-       reaching every multi-replication figure the project publishes.
   #206 Casualty arrivals are far less variable day to day than a real
        arrival process — daily sd 0.50 against a Poisson 2.10 at the same
        rate. Not caused by the rate cap; a property of the minute-by-minute
@@ -2478,4 +2498,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 15 August 2026 to reflect: completion of Issue #203 (per-minute rate cap holds realised casualty generation below every stream's configured mean, PR #209) — both arrival generators clamped each rate draw at three times the stream's own mean, which lowered the mean the stream realised to between 78.7% and 99.2% of the configured value and made that shortfall depend on the stream's coefficient of variation, so editing `sd_daily` alone moved a mean nobody had touched. The cap is removed rather than corrected for: its justification was a run-time blow-up in the vectorised generator that preceded the current closure, and the closure performs exactly `n_minutes` iterations whatever the draws. A bias-corrected parameterisation was built first and removed with the cap. The emission logic is corrected alongside it, a minute accruing several whole casualties now emitting all of them rather than one, which reproduces every shipped parameterisation bit-for-bit while recovering the majority of a stream configured far above shipped rates. `scripts/check_arrival_rate_fidelity.R` is new. The died-of-wounds ceilings are re-fitted from 0.023/0.019 to 0.020/0.016 after the corrected rates carried the base configuration above the Ajax Bay bound at 250 replications, with the Morris bounds and mode vector rescaled to match; both shipped configurations pass at 0.443% and 0.290%. Three issues were raised from the work: #206 (arrival variability, unblocked by this merge), #207 (clipped configured parameters) and #208 (replication seeds differ on the first call in a session).*
+*Prepared June 2026. Updated 16 August 2026 to reflect: completion of Issue #208 (`run_replications()` draws different replication seeds on its first call in a session, PR #211) — the per-replication seeds were drawn before `RNGkind("L'Ecuyer-CMRG")` was set, and the kind persists for the rest of the session, so a measurement was a function of its position in the invocation as well as of its control seed. The caller's kind and stream position are now snapshotted and restored, and both dispatch paths run under one generator; the kind is deliberately still set after the seeds are drawn, `RNGkind()` re-initialising `.Random.seed` from the clock whenever it is called. `scripts/check_measurement_reproducibility.R` is new. No model code changes and the seed-42 baseline is byte-identical; the died-of-wounds calibration re-measures to 0.417% (`default`) and 0.353% (`moderate_intensity`), both still passing the Ajax Bay bound though no longer separated from each other, and the comparative scenario tables were re-measured. Every scenario in a comparison and every point in a sweep now runs on common random numbers. Also reflects: completion of Issue #203 (per-minute rate cap holds realised casualty generation below every stream's configured mean, PR #209) — both arrival generators clamped each rate draw at three times the stream's own mean, which lowered the mean the stream realised to between 78.7% and 99.2% of the configured value and made that shortfall depend on the stream's coefficient of variation, so editing `sd_daily` alone moved a mean nobody had touched. The cap is removed rather than corrected for: its justification was a run-time blow-up in the vectorised generator that preceded the current closure, and the closure performs exactly `n_minutes` iterations whatever the draws. A bias-corrected parameterisation was built first and removed with the cap. The emission logic is corrected alongside it, a minute accruing several whole casualties now emitting all of them rather than one, which reproduces every shipped parameterisation bit-for-bit while recovering the majority of a stream configured far above shipped rates. `scripts/check_arrival_rate_fidelity.R` is new. The died-of-wounds ceilings are re-fitted from 0.023/0.019 to 0.020/0.016 after the corrected rates carried the base configuration above the Ajax Bay bound at 250 replications, with the Morris bounds and mode vector rescaled to match; both shipped configurations pass at 0.443% and 0.290%. Three issues were raised from the work: #206 (arrival variability, unblocked by this merge), #207 (clipped configured parameters) and #208 (replication seeds differ on the first call in a session).*

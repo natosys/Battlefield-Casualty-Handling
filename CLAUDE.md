@@ -33,7 +33,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/run_icu_share_sweep.R` | CLI entry point for the forward ICU share (R2B post-operative stabilisation) sweep |
 | `scripts/shiny_worker.R` | Background worker sourced by `app.R` for async Quick Run / Full Analysis execution |
 | `scripts/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY -->` block inside `README.md` from `env_data.json` |
-| `scripts/check_markdown.R` | Maintains the TOC and "Return to Top" links across `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md`, generating each anchor as GitHub does; exits non-zero if any anchor link points at no heading |
+| `scripts/check_markdown.R` | Maintains the TOC and "Return to Top" links across `README.md`, `docs/Single_Run_Analysis.md`, and `docs/Multi_Run_Analysis.md`, generating each anchor as GitHub does; exits non-zero if any anchor link points at no heading, checked across every tracked markdown document including this one and `docs/BCH_Simulation_Action_Plan.md` (which carry no TOC block and must not be given one) |
 | `scripts/check_r2e_surgery_seizure.R` | Regression check asserting that every R2E surgery seizes a surgical section, structurally and behaviourally; exits non-zero on failure |
 | `scripts/check_icu_time_conservation.R` | Regression check asserting that a casualty's post-operative ICU requirement is conserved across all three routes and at every forward ICU share; exits non-zero on failure |
 | `scripts/check_composition_ilr.R` | Regression check asserting that each simplex-constrained composition group stays on the simplex through its screened balance coordinates; exits non-zero on failure |
@@ -88,7 +88,7 @@ After the repository owner merges a PR to `main`, perform the following tasks on
 | Summary table | Change the issue's Status from `Open` → `**Merged (PR #N)**` |
 | "Issues In Review" section | Remove the merged issue's entry; if the section is now empty, restore the placeholder: `*No PRs currently open against main.*` |
 | "Recently Merged Issues" section | Add a new entry (see format below) above the previous most-recent entry |
-| Phase sequence list | Strike through the item with `~~double tildes~~` |
+| Phase sequence list | Strike through the item with `~~double tildes~~`. An issue raised after its phase's list was written has no item to strike, so add one at its position in merge order, numbered with a letter suffix on the item it follows (`6a`, `15b`); re-letter the items after it if merge order requires. Add the issue to the roster in the phase heading at the same time |
 | Dependency graph | Move the issue node from UNBLOCKED to COMPLETE; move any newly unblocked issues from BLOCKED to UNBLOCKED |
 | Footer | Update the "last updated" date |
 

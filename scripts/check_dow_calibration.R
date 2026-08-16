@@ -42,8 +42,9 @@
 # departure from this project's usual practice is deliberate, and is why the
 # overshoot was reported. Died of wounds averages about one death per
 # replication, so a single 50-replication measurement does not resolve it:
-# three measurements of one unchanged configuration returned 0.348%, 0.400%
-# and 0.499%, a spread wider than the interval any one of them reported.
+# three measurements of the shipped base configuration returned 0.524%,
+# 0.359% and 0.368%, a spread of 0.17 percentage points, about as wide as the
+# whole interval any one of them reports.
 # The replication is the unit of analysis, which it is entitled to be because
 # run_replications() makes replications independent. It did not while they
 # were antithetically paired, and this check folded partners into pair means

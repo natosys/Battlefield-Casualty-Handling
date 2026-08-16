@@ -190,9 +190,42 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #' @details Every replication is independent: each draws its own seed from the
 #'   parent RNG and sets it inside its worker via run_once(seed = ...), so the
 #'   replication is the unit of analysis and an interval dividing by the
-#'   replication count is correctly specified. RNGkind("L'Ecuyer-CMRG") is set
-#'   before mclapply for the global stream; the per-replication seed overrides
-#'   the worker's substream. Falls back to lapply on Windows.
+#'   replication count is correctly specified. Replications are dispatched by
+#'   mclapply, falling back to lapply on Windows and at a single replication.
+#'
+#'   A measurement is a function of its control seed alone, and of nothing
+#'   else about the session it was taken in (Issue #208). The properties
+#'   below are what deliver that, and each is asserted by
+#'   scripts/check_measurement_reproducibility.R.
+#'
+#'   The caller's generator kind and stream position are snapshotted on entry
+#'   and restored on exit, so this function mutates no global RNG state. It
+#'   previously set RNGkind("L'Ecuyer-CMRG") on the parallel path only, after
+#'   drawing rep_seeds and without restoring it. RNGkind() persists for the
+#'   rest of the session, so the first call in a session drew its seeds under
+#'   Mersenne-Twister and every later call drew them under L'Ecuyer-CMRG,
+#'   which give different streams from the same set.seed() value: a
+#'   measurement was a function of its position in the session as well as of
+#'   its seed. Restoring the stream position as well as the kind is what makes
+#'   a scenario measured on its own agree with the same scenario measured
+#'   third in a comparison, since the caller's stream is then in the same
+#'   place at the start of each.
+#'
+#'   Both dispatch paths then run under L'Ecuyer-CMRG, so a replication's
+#'   output depends on its seed and not on whether it was dispatched in
+#'   parallel. mc.set.seed = TRUE gives each worker a distinct substream of
+#'   the underlying MRG32k3a generator; the per-replication seed overrides
+#'   that substream, and is the whole of what the replication's output
+#'   depends on.
+#'
+#'   The kind is deliberately not set before the rep_seeds draw, which the
+#'   obvious reading of the defect would suggest. RNGkind() re-initialises
+#'   .Random.seed from the clock, even when called with the kind already in
+#'   effect, so drawing the seeds after it would make them a function of the
+#'   wall clock rather than of the caller's set.seed() value and would remove
+#'   reproducibility altogether rather than restore it. Drawing them before,
+#'   under a kind this function no longer changes, is what leaves them
+#'   reproducible.
 #'
 #'   Replications were formerly paired antithetically, (2k-1, 2k) sharing a
 #'   seed with the even member negating its arrival uniforms, which made the
@@ -212,7 +245,41 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
+  # Snapshot the caller's RNG kind and stream position, and restore both on
+  # exit, so a measurement depends on the caller's control seed and not on how
+  # many measurements preceded it in the session (Issue #208). Restoring the
+  # kind alone would leave the seeds reproducible but the stream advancing, so
+  # a scenario measured third in a comparison would still disagree with the
+  # same scenario measured on its own.
+  prev_kind <- RNGkind()
+  prev_seed <- if (exists(".Random.seed", envir = globalenv())) {
+    get(".Random.seed", envir = globalenv())
+  } else {
+    NULL
+  }
+  on.exit({
+    # RNGkind() re-initialises .Random.seed, so the saved vector is restored
+    # after it rather than before; it is a valid state for prev_kind, having
+    # been read under it.
+    do.call(RNGkind, as.list(prev_kind))
+    if (is.null(prev_seed)) {
+      if (exists(".Random.seed", envir = globalenv())) {
+        rm(".Random.seed", envir = globalenv())
+      }
+    } else {
+      assign(".Random.seed", prev_seed, envir = globalenv())
+    }
+  }, add = TRUE)
+
+  # Drawn under the caller's kind, which this function no longer changes, and
+  # therefore reproducible from the caller's set.seed() value on every call.
   rep_seeds <- sample.int(.Machine$integer.max, n_iterations)
+
+  # Set for both dispatch paths, not the parallel one alone: a worker's
+  # set.seed(rep_seeds[i]) resolves to a different stream under a different
+  # kind, so a replication run through lapply would otherwise differ from the
+  # same replication run through mclapply.
+  RNGkind("L'Ecuyer-CMRG")
 
   worker <- function(i) {
     res <- run_once(n_days,
@@ -227,7 +294,6 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
 
   use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
   if (use_parallel) {
-    RNGkind("L'Ecuyer-CMRG")
     cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
     if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
     envs <- mclapply(seq_len(n_iterations), worker,

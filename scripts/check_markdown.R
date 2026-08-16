@@ -248,6 +248,23 @@ check_no_emoji_headings <- function(file_path) {
   }
 }
 
+#' Blank out the parts of a document GitHub renders as code
+#'
+#' @param lines Character vector of the document's lines
+#' @return The same vector with every fenced block and inline code span
+#'   emptied, its length and so its line numbering unchanged
+#'
+#' @details A link written inside backticks is rendered as literal text and is
+#'   not a link, so its target need not exist and it must not be checked.
+#'   These documents state their own cross-reference conventions by example,
+#'   and those examples name placeholder anchors that no heading generates.
+strip_code <- function(lines) {
+  fence <- grepl("^\\s*```", lines)
+  inside_fence <- cumsum(fence) %% 2 == 1
+  lines[fence | inside_fence] <- ""
+  gsub("`+[^`]*`+", "", lines)
+}
+
 #' Every anchor a document's headings offer, in document order
 #'
 #' @param file_path Path to the markdown file
@@ -269,7 +286,7 @@ document_anchors <- function(file_path) {
 #'   generates are lower-cased, so a link differing from its heading only in
 #'   letter case resolves to nothing and is reported like any other.
 check_anchor_links <- function(file_path, anchors_by_doc) {
-  lines <- readLines(file_path, encoding = "UTF-8")
+  lines <- strip_code(readLines(file_path, encoding = "UTF-8"))
   broken <- 0
 
   for (i in seq_along(lines)) {
@@ -296,15 +313,30 @@ check_anchor_links <- function(file_path, anchors_by_doc) {
   broken
 }
 
+# The three documents that carry a table of contents block and the return
+# links beneath their H2 headings. Only these are rewritten.
 markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
+
+# Every tracked markdown document, which is the scope of the link check alone.
+# A document listed here is checked in both directions: its own anchor links
+# must resolve, and a link from elsewhere in the set to one of its headings is
+# resolved against the headings it actually offers. The five beyond the three
+# above carry no table of contents block and must not be given one, the
+# maintenance above being scoped deliberately to the documents that do. A new
+# markdown document added to the repository belongs here.
+link_check_docs <- c(markdown_docs, "CLAUDE.md",
+                     "docs/BCH_Simulation_Action_Plan.md",
+                     "docs/BCH_Task_Role_Allocation.md",
+                     "docs/Getting_Started.md",
+                     "docs/STYLE_GUIDE.md")
 
 for (doc in markdown_docs) {
   update_or_check_toc(doc, "replace")
   enforce_return_links(doc, "replace")
 }
 
-anchors_by_doc <- setNames(lapply(markdown_docs, document_anchors), markdown_docs)
-broken_links <- sum(vapply(markdown_docs, check_anchor_links, numeric(1),
+anchors_by_doc <- setNames(lapply(link_check_docs, document_anchors), link_check_docs)
+broken_links <- sum(vapply(link_check_docs, check_anchor_links, numeric(1),
                            anchors_by_doc = anchors_by_doc))
 if (broken_links > 0) {
   cat(sprintf("⚠️ %d anchor link(s) point at no heading — repair them and re-run.\n", broken_links))

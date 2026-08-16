@@ -213,115 +213,126 @@ resolve_ame_airframe <- function(role4_params) {
 # globals — initialised in run_once(), decremented/incremented by
 # R/trajectories.R at injury/return-to-duty events) rather than a fixed
 # population constant. Because that global can only be known by actually
-# running the simulation, arrival generation switches from the previous
-# batch/at() approach (whole 30-day vector pre-computed before run() starts)
-# to simmer's function-based generator mode: add_generator() is given a
-# closure with no arguments that is called once per arrival, returning the
-# interarrival gap. Internally the closure still walks minute-by-minute using
-# the same cumulative-sum-crossing mechanism as before (see README Casualty
-# Generation), just incrementally instead of vectorised over
-# the whole run, buffering one day of raw distribution draws at a time to
-# keep per-arrival overhead low. Each minute's rate is scaled by whatever the
-# force-size global reads *at that instant* — the live equivalent of the
-# previous fixed `pop` argument — which is what closes the feedback loop.
+# running the simulation, arrival generation uses simmer's function-based
+# generator mode: add_generator() is given a closure with no arguments that is
+# called once per arrival, returning the interarrival gap.
 #
-# Issue #203: the closure previously clamped each per-minute rate draw at a
-# multiple of the stream's own mean, to bound the iteration count of an
-# earlier, vectorised generator in which one extreme draw emitted an
-# unbounded burst of entities. This closure has no such failure mode: it
-# emits at most one arrival per simulated minute and iterates exactly
-# n_minutes times whatever the draws, so run time is set by the horizon
-# rather than by the tail. The clamp was therefore removed, along with the
-# parameterisation correction that had been needed to undo the mean it cost.
-# Each stream now draws from the distribution its configuration names and
-# realises that distribution's mean directly.
+# Issue #206: the closure previously drew a fresh rate for every simulated
+# minute and emitted a casualty at each whole-casualty crossing of the running
+# total. A day's count was therefore an average of 1,440 draws, and the central
+# limit theorem flattened the stream long before the draws could reach a daily
+# total: the combat WIA stream realised a daily standard deviation of 0.50
+# against the 2.10 of a Poisson process at the same rate, and in 5,000
+# simulated days never produced a day worse than six casualties. Peak-day
+# volume is what drives contention for theatres, intensive care beds and
+# airlift, so a generator that reproduces the mean while suppressing the peaks
+# understates every queue the model exists to measure.
+#
+# The minute grid is replaced by direct arrival-time sampling, which fixes both
+# the timescale the configured distribution acts on and the way arrivals are
+# placed within it:
+#
+#   Intensity. The stream is a Cox process whose rate is redrawn once per
+#   simulated day rather than once per minute. FORECAS (Blood, Zouris &
+#   Rotblatt, 1998) fits a *daily* casualty rate, so `mean_daily`/`sd_daily`
+#   are between-day quantities; drawing at that timescale is what makes the
+#   configured distribution the between-day distribution it was fitted as.
+#   Within a day the rate is constant apart from the live force-size factor.
+#
+#   Placement. Arrivals within the day are Poisson, sampled by thinning (Lewis
+#   & Shedler, 1979): candidate gaps are drawn under a dominating rate that
+#   holds the pool at establishment strength, and each candidate is accepted
+#   with probability F/P_max for the force size F read at that point. A
+#   candidate falling past the day's end is discarded and sampling restarts at
+#   the boundary under the next day's rate, which is exact for a
+#   piecewise-constant intensity by the memorylessness of the exponential.
+#
+# Together these give a daily count that is Poisson conditional on the day's
+# rate, so by the law of total variance the stream realises
+#
+#   E[N] = mu * P / 1000            Var[N] = mu * P / 1000 + (sigma * P / 1000)^2
+#
+# per day at force size P: the configured mean is preserved, and the configured
+# between-day standard deviation is honoured on top of the Poisson term rather
+# than averaged away. scripts/check_arrival_rate_fidelity.R asserts both.
+#
+# P_max is the pool's establishment strength, which bounds F for the whole run:
+# every casualty debits the pool, and the reinforcement credit is clamped at
+# establishment strength (`credit_fn()`, R/trajectories.R), so nothing can
+# carry it above the value it starts at.
 
-#' Builds the minute-walk arrival closure shared by both generator families
+#' Builds the thinning arrival closure shared by both generator families
 #'
-#' @param draw_rates Function of one argument returning that many per-minute
-#'   rate draws, in casualties per day per 1,000 personnel
+#' @param draw_daily_rate Zero-argument function returning one day's rate, in
+#'   casualties per day per 1,000 personnel
 #' @param force_global Name of the simmer global holding the current effective
-#'   force size for this stream's population pool; read fresh at every minute
+#'   force size for this stream's population pool
+#' @param force_bound Establishment strength of that pool, the upper bound on
+#'   the force size and so the dominating rate's population term
 #' @param n_days Duration in days
-#' @param buffer_days Number of days' worth of raw per-minute draws to
-#'   vectorise per refill (default 1); amortises R-level closure-call overhead
-#'   relative to drawing one minute at a time
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument: returns the next interarrival gap (simulation
 #'   minutes), or -1 once n_days has been exhausted (simmer's convention for
 #'   ending a generator)
 #'
-#' @details The two families differ only in how a minute's rate is drawn, so
-#'   the walk itself lives here and each constructor supplies `draw_rates`.
+#' @details The two families differ only in how a day's rate is drawn, so the
+#'   sampler itself lives here and each constructor supplies `draw_daily_rate`.
 #'
-#'   A minute may accrue more than one whole casualty. The closure therefore
-#'   records what it owes and discharges one casualty per call, advancing the
-#'   minute only once the debt is clear: `floor_prev` increments by one per
-#'   emission rather than jumping to the new floor, which is what makes the
-#'   number of arrivals equal the accumulated rate exactly rather than the
-#'   number of minutes in which a crossing happened.
+#'   Arrival times are continuous, so no jitter step is needed to separate
+#'   them: two streams tie with probability zero, which is what the retired
+#'   minute grid needed a sub-minute offset to achieve.
 #'
-#'   Each casualty owed by a minute needs its own offset within it, or the
-#'   arrivals share a timestamp and simmer has no principled order for them
-#'   (see README Casualty Generation, Temporal Randomisation). The minute's
-#'   own jitter serves the first, and the shortfall is drawn and the whole set
-#'   sorted. A minute owing one casualty therefore draws nothing extra and
-#'   places it exactly where it always did, which is what lets this change
-#'   reproduce every shipped parameterisation bit-for-bit.
-make_rate_walk_generator <- function(draw_rates, force_global, n_days, buffer_days = 1) {
-  n_minutes      <- day_min * n_days
-  buffer_minutes <- day_min * buffer_days
+#'   The force size is read once per candidate. simmer calls this closure at
+#'   the previous arrival's time, so the clock does not advance while it runs
+#'   and every candidate within one call sees the same value; that was equally
+#'   true of the retired minute walk, which re-read the global at each of its
+#'   minutes without the clock having moved between them. The coupling is
+#'   therefore as live as a generator closure can be, resolving at each arrival
+#'   rather than at each of the arrivals the run has yet to produce.
+#'
+#'   Cost is linear in the drawn rate rather than fixed by the horizon: a day
+#'   proposes `X * P_max / 1000` candidates in expectation, where the minute
+#'   walk performed 1,440 iterations whatever the draws. The expectation is
+#'   finite for both families, so a heavy-tailed draw costs time in proportion
+#'   to the casualties it generates.
+make_thinned_arrival_generator <- function(draw_daily_rate, force_global,
+                                           force_bound, n_days) {
+  n_minutes <- day_min * n_days
 
-  minute_ptr  <- 0L
-  cum         <- 0
-  floor_prev  <- 0
-  last_time   <- 0
-  buf_x       <- numeric(0)
-  buf_jitter  <- numeric(0)
-  buf_pos     <- 1L
+  if (force_bound <= 0) return(function() -1)
 
-  # Whole casualties accrued by the minute at `owed_minute` and not yet
-  # emitted, with their offsets within it.
-  owed        <- 0
-  owed_minute <- 0L
-  owed_times  <- numeric(0)
-  owed_pos    <- 1L
+  t          <- 0
+  last_time  <- 0
+  day_end    <- 0
+  lambda_bar <- 0
 
   function() {
     repeat {
-      if (owed > 0) {
-        arrival_time <- owed_minute + owed_times[owed_pos]
-        owed_pos   <<- owed_pos + 1L
-        owed       <<- owed - 1
-        floor_prev <<- floor_prev + 1
-        gap <- arrival_time - last_time
-        last_time <<- arrival_time
+      if (t >= n_minutes) return(-1)
+
+      if (t >= day_end) {
+        day_end    <<- (floor(t / day_min) + 1) * day_min
+        lambda_bar <<- draw_daily_rate() * force_bound / (1000 * day_min)
+      }
+
+      # A rate of zero generates nothing for the rest of the day.
+      if (lambda_bar <= 0) {
+        t <<- day_end
+        next
+      }
+
+      t <<- t - log(1 - runif(1)) / lambda_bar
+
+      if (t >= day_end) {
+        t <<- day_end
+        next
+      }
+      if (t >= n_minutes) return(-1)
+
+      if (runif(1) * force_bound < get_global(env, force_global)) {
+        gap <- t - last_time
+        last_time <<- t
         return(gap)
-      }
-
-      if (buf_pos > length(buf_x)) {
-        n_draw <- min(buffer_minutes, n_minutes - minute_ptr)
-        if (n_draw <= 0) return(-1)
-        buf_x <<- draw_rates(n_draw)
-        buf_jitter <<- runif(n_draw)
-        buf_pos <<- 1L
-      }
-
-      minute_ptr <<- minute_ptr + 1L
-      if (minute_ptr > n_minutes) return(-1)
-
-      force_size <- get_global(env, force_global)
-      rate <- buf_x[buf_pos] / 1440 * force_size / 1000
-      jitter <- buf_jitter[buf_pos]
-      buf_pos <<- buf_pos + 1L
-
-      cum <<- cum + rate
-      k <- floor(cum) - floor_prev
-      if (k > 0) {
-        owed_minute <<- minute_ptr
-        owed_times  <<- if (k == 1) jitter else sort(c(jitter, runif(k - 1)))
-        owed_pos    <<- 1L
-        owed        <<- k
       }
     }
   }
@@ -333,28 +344,28 @@ make_rate_walk_generator <- function(draw_rates, force_global, n_days, buffer_da
 #' @param sd_daily Standard deviation of daily rate
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool (e.g.
-#'   "effective_force_combat"); read fresh at every minute step
+#'   "effective_force_combat")
+#' @param force_bound Establishment strength of that pool
 #' @param n_days Duration in days
-#' @param buffer_days Number of days' worth of raw per-minute draws to
-#'   vectorise per refill (default 1); amortises R-level closure-call
-#'   overhead relative to drawing one minute at a time.
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument: returns the next interarrival gap (simulation
 #'   minutes), or -1 once n_days has been exhausted (simmer's convention for
 #'   ending a generator)
 #'
-#' @details The per-minute draw is unbounded, so the stream realises the mean
-#'   and the coefficient of variation its configuration names, and editing
-#'   `sd_daily` alone leaves the realised mean alone. Both properties are
-#'   asserted by scripts/check_arrival_rate_fidelity.R.
-make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days,
-                                      buffer_days = 1) {
+#' @details The day's rate is drawn from the configured lognormal untrimmed, so
+#'   the stream realises the mean and the coefficient of variation its
+#'   configuration names, and editing `sd_daily` alone leaves the realised mean
+#'   alone. Both properties are asserted by
+#'   scripts/check_arrival_rate_fidelity.R, alongside the realised daily
+#'   variance.
+make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
+                                      force_bound, n_days) {
   sigma_log <- sqrt(log(1 + (sd_daily^2 / mean_daily^2)))
   mu_log    <- log(mean_daily^2 / sqrt(sd_daily^2 + mean_daily^2))
 
-  make_rate_walk_generator(
-    function(n) qlnorm(runif(n), meanlog = mu_log, sdlog = sigma_log),
-    force_global, n_days, buffer_days
+  make_thinned_arrival_generator(
+    function() qlnorm(runif(1), meanlog = mu_log, sdlog = sigma_log),
+    force_global, force_bound, n_days
   )
 }
 
@@ -365,11 +376,9 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   make_ln_arrival_generator(), there is no separate sd_daily shape
 #'   parameter for a single-parameter exponential distribution.
 #' @param force_global Name of the simmer global holding the current
-#'   effective force size for this stream's population pool; read fresh at
-#'   every minute step
+#'   effective force size for this stream's population pool
+#' @param force_bound Establishment strength of that pool
 #' @param n_days Duration in days
-#' @param buffer_days Number of days' worth of raw per-minute draws to
-#'   vectorise per refill (default 1)
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument (see make_ln_arrival_generator())
 #'
@@ -378,11 +387,13 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global, n_days
 #'   Used for the high_intensity scenario profile (Issue #54), whose
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
-make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
-                                       buffer_days = 1) {
-  make_rate_walk_generator(
-    function(n) qexp(runif(n), rate = 1 / mean_daily),
-    force_global, n_days, buffer_days
+#'   An exponential's standard deviation equals its mean, so such a stream's
+#'   between-day variation is fixed by `mean_daily` alone.
+make_exp_arrival_generator <- function(mean_daily, force_global, force_bound,
+                                       n_days) {
+  make_thinned_arrival_generator(
+    function() qexp(runif(1), rate = 1 / mean_daily),
+    force_global, force_bound, n_days
   )
 }
 
@@ -393,16 +404,18 @@ make_exp_arrival_generator <- function(mean_daily, force_global, n_days,
 #'   field selects "lognormal" (default, if absent) or "exponential"
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool
+#' @param force_bound Establishment strength of that pool
 #' @param n_days Duration in days
 #' @return A zero-argument distribution function (see
 #'   make_ln_arrival_generator())
-generate_casualty_arrivals <- function(gen_vars, force_global, n_days) {
+generate_casualty_arrivals <- function(gen_vars, force_global, force_bound, n_days) {
   distribution <- if (!is.null(gen_vars$distribution)) gen_vars$distribution else "lognormal"
 
   if (distribution == "exponential") {
-    make_exp_arrival_generator(gen_vars$mean_daily, force_global, n_days)
+    make_exp_arrival_generator(gen_vars$mean_daily, force_global, force_bound, n_days)
   } else {
-    make_ln_arrival_generator(gen_vars$mean_daily, gen_vars$sd_daily, force_global, n_days)
+    make_ln_arrival_generator(gen_vars$mean_daily, gen_vars$sd_daily, force_global,
+                              force_bound, n_days)
   }
 }
 

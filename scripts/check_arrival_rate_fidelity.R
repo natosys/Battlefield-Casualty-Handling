@@ -1,52 +1,57 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## scripts/check_arrival_rate_fidelity.R                                    ##
-## Regression check — each stream realises the daily mean it is configured  ##
+## Regression check — each stream realises the daily mean and variance it   ##
+## is configured for                                                        ##
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_arrival_rate_fidelity.R                # 1000-day draws
-#   Rscript scripts/check_arrival_rate_fidelity.R --days 2000    # tighter band
+#   Rscript scripts/check_arrival_rate_fidelity.R                # 20,000-day draws
+#   Rscript scripts/check_arrival_rate_fidelity.R --days 50000   # tighter band
 #   Rscript scripts/check_arrival_rate_fidelity.R --seed 777     # other seed
 #
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
 # pre-merge hook or CI step.
 #
-# Why this check exists. Each stream's `mean_daily` is a planner-facing
-# promise: the configuration names a daily casualty rate and the model is
-# expected to generate it. Nothing in a run's output checks that promise, and a
-# 30-day run is far too short to separate a 20% shortfall from ordinary
-# variability, which is how the generators came to be running roughly a fifth
-# below their configured WIA and KIA rates without it showing anywhere
-# (Issue #203). Two properties are asserted here:
+# Why this check exists. Each stream's `mean_daily` and `sd_daily` are
+# planner-facing promises: the configuration names a daily casualty rate and a
+# day-to-day variation around it, and the model is expected to generate both.
+# Nothing in a run's output checks either promise, and a 30-day run is far too
+# short to separate a shortfall from ordinary variability. That is how the
+# generators came to be running roughly a fifth below their configured WIA and
+# KIA rates without it showing anywhere (Issue #203), and how they came to be
+# running at roughly a quarter of the day-to-day variation of even a plain
+# Poisson process (Issue #206). Three properties are asserted here:
 #
 #   1. Each shipped stream's realised long-run daily mean equals its configured
 #      mean_daily.
 #
-#   2. The realised mean does not move when sd_daily alone is edited. These are
+#   2. Each shipped stream's realised daily variance equals the variance its
+#      construction targets. Arrivals are Poisson within a day whose rate is
+#      itself drawn from the configured distribution, so by the law of total
+#      variance the target at force size P is
+#
+#        Var[N] = mu * P / 1000 + (sigma * P / 1000)^2
+#
+#      the Poisson term plus the between-day term the configuration names. The
+#      retired minute walk averaged 1,440 draws into each day and delivered
+#      neither: the combat WIA stream realised a daily standard deviation of
+#      0.50 against a Poisson 2.10 and a target here of 3.80.
+#
+#   3. The realised mean does not move when sd_daily alone is edited. These are
 #      independently editable configuration fields and one must not move the
 #      other. Under the retired per-minute rate cap it did, because what the cap
 #      clamped depended on the stream's coefficient of variation.
 #
-# Both are measured by exercising the shipped generator closures themselves
-# over a long horizon, rather than by reasoning about the distributions the
-# closures are parameterised from.
+# All three are measured by exercising the shipped generator closures
+# themselves over a long horizon, rather than by reasoning about the
+# distributions the closures are parameterised from.
 #
-# A third property is checked because removing the cap made it the only
-# clipping left in the generator. The closure emits at most one arrival per
-# simulated minute: when the accumulated rate crosses more than one whole
-# casualty within a minute it advances to the new floor and returns a single
-# arrival, discarding the rest (R/environment.R). Nothing reports that when it
-# happens. At the shipped parameterisations it is vanishingly rare, and this
-# check measures how rare rather than assuming it, so a later re-parameterisation
-# that pushes a stream close to the ceiling is caught here rather than silently
-# under-generating.
-#
-# Run time is checked as well, on a stream parameterised well above any shipped
-# mean. With no cap, the guarantee that a heavy-tailed draw cannot inflate run
-# time rests entirely on the closure's structure: it iterates exactly
-# n_minutes times across all calls and emits at most one arrival per minute
-# whatever the draws. That is worth asserting rather than trusting.
+# Run time is checked as well, on streams parameterised well above any shipped
+# mean. Sampling arrival times directly makes the cost linear in the drawn
+# rate, where the retired minute walk paid a fixed 1,440 iterations per day; a
+# heavy-tailed draw therefore costs time in proportion to the casualties it
+# generates, and that is worth asserting rather than trusting.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -64,14 +69,30 @@ arg_value <- function(flag, default) {
   args[i + 1]
 }
 
-DRAW_DAYS <- as.integer(arg_value("--days", 1000L))
+DRAW_DAYS <- as.integer(arg_value("--days", 20000L))
 SEED      <- as.integer(arg_value("--seed", 42L))
 
-# Two-sided band on the realised mean, in standard errors of the mean of the
-# per-minute draws. At four the check fails by chance about once in 15,000
-# measurements, which is negligible against the roughly 20% shortfall it is
-# there to catch.
-SIGMA_BAND <- 4
+# Two-sided band on the realised mean, in standard errors. At five the check
+# fails by chance far less often than the roughly 20% shortfall it is there to
+# catch would pass, with headroom for the skew a lognormal-mixed count carries
+# into the sampling distribution of its own mean.
+SIGMA_BAND <- 5
+
+# Multiplicative band on the realised variance. A sample variance of a
+# lognormal-mixed count is a heavy-tailed estimator — the shipped WIA
+# parameterisation has a daily-count kurtosis near a thousand, so even a
+# 20,000-day measurement carries a relative error around a fifth — and no
+# additive band would be both stable and meaningful. A factor of two is several
+# of those standard errors wide while still separating the target decisively
+# from what the minute walk delivered, which was low by a factor of 58.
+VAR_BAND <- 2
+
+# The force size the streams are measured at. Holding it at 1,000 makes the
+# population term exactly 1, so a stream's realised daily mean is its drawn
+# rate and its target variance is mu + sigma^2 with no scaling in the way. It
+# is also the establishment strength passed as the thinning bound, so the
+# dominating rate is the true one and no candidate is rejected.
+CHECK_FORCE <- 1000
 
 day_min <<- 1440L
 
@@ -113,69 +134,79 @@ signature <- sapply(streams, function(s) {
 })
 streams <- streams[!duplicated(signature)]
 
-#' Realised daily mean of a generator closure, measured by running it
+#' Standard deviation of a stream's drawn daily rate
 #'
 #' @param spec Stream description: mean_daily, sd_daily, distribution
-#' @param n_days Horizon over which to exercise the closure
-#' @return Named list: `mean` (realised casualties per day), `se` (standard
-#'   error of that estimate), `tol` (the band the check judges it against) and
-#'   `arrivals` (count the closure emitted)
-#'
-#' @details The force-size global is held at 1,000 so a minute's rate is the
-#'   drawn value divided by 1,440 and the realised daily mean is exactly the
-#'   mean of the per-minute draws, with no force-regeneration feedback in the
-#'   way. The closure is driven to exhaustion rather than sampled, so what is
-#'   measured is the shipped draw path itself.
-measure_stream <- function(spec, n_days) {
-  env <<- simmer("rate fidelity check") %>%
-    add_global("effective_force_check", 1000)
-
-  gen <- if (spec$distribution == "exponential") {
-    make_exp_arrival_generator(spec$mean_daily, "effective_force_check", n_days)
-  } else {
-    make_ln_arrival_generator(spec$mean_daily, spec$sd_daily, "effective_force_check",
-                              n_days)
-  }
-
-  arrivals <- 0L
-  repeat {
-    if (gen() < 0) break
-    arrivals <- arrivals + 1L
-  }
-
-  # The closure emits an arrival on each whole-casualty crossing of the
-  # accumulated rate, so the count divided by the horizon is the realised
-  # daily mean up to the fractional casualty in progress at the end.
-  n_minutes <- day_min * n_days
-  realised  <- arrivals / n_days
-
-  # Tolerance has two parts. The sampling band is the standard error of a mean
-  # over n_minutes draws, taken at SIGMA_BAND. The second term is
-  # discretisation: the closure emits whole casualties, so the fractional
-  # casualty still accumulating when the horizon ends is never emitted and the
-  # count is short by up to one over the whole run. That bias falls as 1/n_days
-  # where the sampling band falls as its square root, so it stops mattering
-  # first, but at any workable horizon it is the same size as the band and
-  # would otherwise fail the check on the low-variability streams.
-  sd_draw <- draw_sd(spec)
-  list(mean     = realised,
-       se       = sd_draw / sqrt(n_minutes),
-       tol      = SIGMA_BAND * sd_draw / sqrt(n_minutes) + 1 / n_days,
-       arrivals = arrivals)
-}
-
-#' Standard deviation of a stream's per-minute draw, in daily units
-#'
-#' @param spec Stream description (see measure_stream())
 #' @return Standard deviation of the drawn rate
 #'
-#' @details With no cap this is simply the configured standard deviation for a
-#'   lognormal stream, and the mean for an exponential one, the exponential
-#'   being a one-parameter family whose standard deviation equals its mean.
-#'   That identity is itself worth stating: it is only true because nothing
-#'   trims the draw.
-draw_sd <- function(spec) {
+#' @details Nothing trims the draw, so this is the configured standard
+#'   deviation for a lognormal stream and the mean for an exponential one, the
+#'   exponential being a one-parameter family whose standard deviation equals
+#'   its mean. That identity is itself worth stating: it is only true because
+#'   the draw is passed through untouched.
+rate_sd <- function(spec) {
   if (spec$distribution == "exponential") spec$mean_daily else spec$sd_daily
+}
+
+#' Target variance of a stream's daily casualty count
+#'
+#' @param spec Stream description (see rate_sd())
+#' @return Variance the construction targets, at a force size of CHECK_FORCE
+#'
+#' @details The law of total variance applied to a count that is Poisson
+#'   conditional on a randomly drawn daily rate: the mean of the conditional
+#'   variance (the rate itself) plus the variance of the conditional mean (the
+#'   rate's own variance).
+target_var <- function(spec) {
+  p <- CHECK_FORCE / 1000
+  spec$mean_daily * p + (rate_sd(spec) * p)^2
+}
+
+#' Daily casualty counts realised by a generator closure, measured by running it
+#'
+#' @param spec Stream description (see rate_sd())
+#' @param n_days Horizon over which to exercise the closure
+#' @return Named list: `counts` (integer vector of casualties per day),
+#'   `arrivals` (total the closure emitted), `mean` and `var` (realised daily
+#'   mean and variance)
+#'
+#' @details The force-size global is held at CHECK_FORCE, with no
+#'   force-regeneration feedback in the way, so what is measured is the shipped
+#'   draw path itself rather than a run's depletion of it. The closure is
+#'   driven to exhaustion and its gaps accumulated back into arrival times,
+#'   which is the only way to see the day a casualty actually lands in.
+measure_stream <- function(spec, n_days) {
+  env <<- simmer("rate fidelity check") %>%
+    add_global("effective_force_check", CHECK_FORCE)
+
+  gen <- if (spec$distribution == "exponential") {
+    make_exp_arrival_generator(spec$mean_daily, "effective_force_check",
+                               CHECK_FORCE, n_days)
+  } else {
+    make_ln_arrival_generator(spec$mean_daily, spec$sd_daily, "effective_force_check",
+                              CHECK_FORCE, n_days)
+  }
+
+  times <- numeric(0)
+  chunk <- numeric(1e5)
+  n     <- 0L
+  t     <- 0
+  repeat {
+    gap <- gen()
+    if (gap < 0) break
+    t <- t + gap
+    n <- n + 1L
+    if (n > length(chunk)) chunk <- c(chunk, numeric(length(chunk)))
+    chunk[n] <- t
+  }
+  times <- chunk[seq_len(n)]
+
+  # tabulate() over the 1-indexed day each arrival falls in, padded to the full
+  # horizon so days with no casualties count as zeroes rather than dropping out
+  # of the variance.
+  counts <- tabulate(floor(times / day_min) + 1L, nbins = n_days)
+
+  list(counts = counts, arrivals = n, mean = mean(counts), var = var(counts))
 }
 
 cat(sprintf("Arrival rate fidelity check: %d-day draws, seed %d, %d streams\n\n",
@@ -191,7 +222,7 @@ measured <- lapply(streams, measure_stream, n_days = DRAW_DAYS)
 for (i in seq_along(streams)) {
   s <- streams[[i]]
   m <- measured[[i]]
-  band <- m$tol
+  band <- SIGMA_BAND * sqrt(target_var(s) / DRAW_DAYS)
   ok   <- abs(m$mean - s$mean_daily) <= band
   report(ok, "%-32s realised %.4f/day against configured %.4f (%.1f%%, band +/- %.4f)",
          s$label, m$mean, s$mean_daily, 100 * m$mean / s$mean_daily, band)
@@ -202,10 +233,36 @@ for (i in seq_along(streams)) {
   }
 }
 
-# ── 2. The realised mean is invariant to sd_daily ───────────────────────────
+# ── 2. Each stream realises the daily variance its construction targets ─────
+#
+# The property Issue #206 exists to restore. Reported against the Poisson
+# variance as well as the target, since Poisson is the floor any arrival
+# process should clear and the retired minute walk did not.
+
+cat("\n-- each shipped stream's realised daily variance matches its target --\n")
+
+for (i in seq_along(streams)) {
+  s      <- streams[[i]]
+  m      <- measured[[i]]
+  target <- target_var(s)
+  ratio  <- m$var / target
+  ok     <- ratio >= 1 / VAR_BAND && ratio <= VAR_BAND
+  report(ok, "%-32s realised sd %7.3f/day against target %7.3f (Poisson %6.3f, ratio %.2f)",
+         s$label, sqrt(m$var), sqrt(target), sqrt(s$mean_daily * CHECK_FORCE / 1000), ratio)
+  if (!ok) {
+    fail(paste0("%s: realised a daily variance of %.3f against a target of %.3f ",
+                "(a factor of %.2f), outside the band of %.0fx. The stream is not ",
+                "delivering the day-to-day variation its sd_daily names"),
+         s$label, m$var, target, ratio, VAR_BAND)
+  }
+}
+
+# ── 3. The realised mean is invariant to sd_daily ───────────────────────────
 #
 # The planner-facing symptom the rate cap used to produce: two fields that are
 # independently editable in the Configure panel, one of which moved the other.
+# The variance is expected to move with sd_daily, and is reported alongside to
+# show that it does.
 
 cat("\n-- realised mean is invariant to sd_daily at fixed mean_daily --\n")
 
@@ -215,18 +272,18 @@ INVARIANCE_SDS  <- c(0.5, 1.77, 3.56, 8.0)
 set.seed(SEED)
 inv <- lapply(INVARIANCE_SDS, function(sd_daily) {
   spec <- list(mean_daily = INVARIANCE_MEAN, sd_daily = sd_daily, distribution = "lognormal")
-  list(sd = sd_daily, m = measure_stream(spec, DRAW_DAYS))
+  list(spec = spec, m = measure_stream(spec, DRAW_DAYS))
 })
 
 for (r in inv) {
-  band <- r$m$tol
+  band <- SIGMA_BAND * sqrt(target_var(r$spec) / DRAW_DAYS)
   ok   <- abs(r$m$mean - INVARIANCE_MEAN) <= band
-  report(ok, "sd_daily = %-5.2f (CV %.2f)          realised %.4f/day (band +/- %.4f)",
-         r$sd, r$sd / INVARIANCE_MEAN, r$m$mean, band)
+  report(ok, "sd_daily = %-5.2f (CV %.2f)   realised %.4f/day (band +/- %.4f), daily sd %6.3f",
+         r$spec$sd_daily, r$spec$sd_daily / INVARIANCE_MEAN, r$m$mean, band, sqrt(r$m$var))
   if (!ok) {
     fail(paste0("sd_daily = %.2f at mean_daily = %.2f realises %.4f/day, outside the ",
                 "band of +/- %.4f: the realised mean still depends on sd_daily"),
-         r$sd, INVARIANCE_MEAN, r$m$mean, band)
+         r$spec$sd_daily, INVARIANCE_MEAN, r$m$mean, band)
   }
 }
 
@@ -234,70 +291,14 @@ spread <- diff(range(sapply(inv, function(r) r$m$mean)))
 cat(sprintf("   spread across sd_daily: %.4f/day over a %.1f-fold range of coefficient of variation\n",
             spread, max(INVARIANCE_SDS) / min(INVARIANCE_SDS)))
 
-# ── 3. A minute owing several casualties emits all of them ──────────────────
-#
-# The closure discharges one casualty per call and advances the minute only
-# once the debt is clear, so the number of arrivals equals the accumulated
-# rate rather than the number of minutes in which a crossing happened. Before
-# that drain the closure jumped to the new floor and emitted one, silently
-# discarding the rest; at a stream configured well above the shipped rates it
-# lost the majority of its casualties that way. The property is asserted where
-# it bites, on parameterisations whose per-minute rate approaches one whole
-# casualty, since at shipped rates it is unreachable and therefore untested.
-
-cat("\n-- a minute owing several casualties emits all of them --\n")
-
-DRAIN <- list(
-  list(label = "lognormal mean 500/day, sd 5000", mean_daily = 500, sd_daily = 5000,
-       distribution = "lognormal"),
-  list(label = "lognormal mean 2000/day, sd 20000", mean_daily = 2000, sd_daily = 20000,
-       distribution = "lognormal"),
-  list(label = "exponential mean 1000/day", mean_daily = 1000, distribution = "exponential")
-)
-
-set.seed(SEED)
-for (spec in DRAIN) {
-  m <- measure_stream(spec, 200L)
-  band <- m$tol
-  ok <- abs(m$mean - spec$mean_daily) <= band
-  report(ok, "%-34s realised %8.1f/day against configured %8.1f (%.1f%%)",
-         spec$label, m$mean, spec$mean_daily, 100 * m$mean / spec$mean_daily)
-  if (!ok) {
-    fail(paste0("%s: realised %.1f casualties/day against a configured mean_daily of %.1f ",
-                "(%.1f%% of it). At this rate a minute routinely accrues more than one whole ",
-                "casualty, so a shortfall here means the closure is discarding the remainder ",
-                "instead of emitting it"),
-         spec$label, m$mean, spec$mean_daily, 100 * m$mean / spec$mean_daily)
-  }
-}
-
-# How often the drain is exercised at the shipped parameterisations, reported
-# rather than gated: it is what makes the change above inert on every figure
-# this project publishes.
-
-cat("\n   minutes owing more than one casualty, per 30-day run at full establishment:\n")
-FORCE <- list(cbt = 2500, spt = 1250)
-for (s in streams) {
-  force   <- if (grepl("_spt$", s$label)) FORCE$spt else FORCE$cbt
-  x_break <- day_min * 1000 / force
-  p <- if (s$distribution == "exponential") {
-    exp(-x_break / s$mean_daily)
-  } else {
-    sigma_log <- sqrt(log(1 + (s$sd_daily^2 / s$mean_daily^2)))
-    mu_log    <- log(s$mean_daily^2 / sqrt(s$sd_daily^2 + s$mean_daily^2))
-    pnorm((log(x_break) - mu_log) / sigma_log, lower.tail = FALSE)
-  }
-  cat(sprintf("     %-32s %.2e\n", s$label, p * day_min * 30))
-}
-
 # ── 4. Run time stays bounded well above the shipped means ──────────────────
 #
-# The minute walk is exactly n_minutes iterations whatever the draws, so the
-# cost of the walk itself is set by the horizon. What the drain removes is the
-# ceiling on how many arrivals a walk may emit, so the entity count is now
-# bounded only in expectation, at the accumulated rate. This exercises streams
-# two orders of magnitude above anything shipped and checks the emitted count
-# against that expectation rather than against a structural ceiling.
+# Sampling arrival times directly removes the fixed per-minute cost, so a day
+# proposes candidates in proportion to the rate it drew rather than 1,440
+# whatever it drew. Cost is therefore linear in the casualties generated, and
+# what needs asserting is that the count itself stays at the rate configured
+# and the wall time stays workable. This exercises streams two orders of
+# magnitude above anything shipped.
 
 cat("\n-- generator run time stays bounded well above the shipped means --\n")
 
@@ -311,17 +312,18 @@ STRESS <- list(
 
 set.seed(SEED)
 for (spec in STRESS) {
-  elapsed <- system.time(m <- measure_stream(spec, 30L))["elapsed"]
-  # Expected arrivals at full establishment strength, which the run is at
-  # here since no casualty is generated to deplete it. A factor of two either
-  # side is loose enough not to fail on sampling and tight enough to catch a
-  # walk emitting orders of magnitude more than the rate calls for.
-  expected <- spec$mean_daily * 30 * 1000 / 1000
-  ok <- m$arrivals <= 2 * expected && elapsed < 60
-  report(ok, "%-34s %d arrivals over 30 days in %.1fs (expected ~%.0f)",
+  elapsed <- system.time(m <- measure_stream(spec, 200L))["elapsed"]
+  # Expected arrivals at CHECK_FORCE, which the measurement holds the pool at.
+  # A factor of two either side is loose enough not to fail on the sampling
+  # variation a 200-day window carries at these coefficients of variation, and
+  # tight enough to catch a sampler emitting orders of magnitude more than the
+  # rate calls for.
+  expected <- spec$mean_daily * 200 * CHECK_FORCE / 1000
+  ok <- m$arrivals <= 2 * expected && m$arrivals >= expected / 2 && elapsed < 60
+  report(ok, "%-34s %d arrivals over 200 days in %.1fs (expected ~%.0f)",
          spec$label, m$arrivals, elapsed, expected)
   if (!ok) {
-    fail("%s emitted %d arrivals over 30 days in %.1fs against an expectation of %.0f",
+    fail("%s emitted %d arrivals over 200 days in %.1fs against an expectation of %.0f",
          spec$label, m$arrivals, elapsed, expected)
   }
 }

@@ -1003,9 +1003,39 @@
     },
     "high_intensity": {
       "label": "High Intensity — Okinawa (peer-conflict, mass casualty production)",
-      "source": "Blood, Zouris & Rotblatt (1998), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated)",
-      "notes": "SKELETON PROFILE (Issue #54): demonstrates that the scenario mechanism generalises beyond moderate_intensity, and that the underlying distribution family (not just its parameters) is itself scenario-specific per FORECAS's own methodology. Named for FORECAS's own battle-intensity framing rather than a specific historical engagement; Okinawa is the high-intensity calibration exemplar. It is not a fully validated second scenario. FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, W ~ exponential(mean); FORECAS separately keeps its own 'SUPPORT' category (intra-divisional combat support: tank, artillery, light-armoured infantry, combat engineer) lognormal at all intensities, and reserves the fully lognormal, non-autocorrelated treatment for its distinct 'SERVICE SUPPORT' category (extra-divisional sustainment: FSSG, SRIG). This simulation models a single brigade (division and below); it has no extra-divisional 'service support' population, and this project's 'support' population group represents an organic brigade element exposed to the same battle risk as the 'combat' population, not FORECAS's rear-area service support troops. Both generators.wia_cbt/kia_cbt AND generators.wia_spt/kia_spt are therefore overridden with distribution=exponential, using Table A.7's Expon(6.86) (historical data mean 6.86, SD 6.65) and Table A.9's Expon(1.63) (historical mean 1.63, SD 1.73) — sd_daily is retained for reference but unused by generate_exp_arrivals(), a single-parameter distribution. DOW ceiling, treatment efficacy factors, priority distribution, DNBI composition, and transport time distributions are NOT sourced for Okinawa in this issue and are inherited from the base (Falklands-calibrated) configuration as a known placeholder — see README Limitations. Issue #10 (comparative scenario runner) owns extending this to a fully parameterised scenario. A companion Vietnam-calibrated profile was considered but dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in this document.",
+      "source": "Blood, Zouris & Rotblatt (1998), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated); Marble (2025), Joint Force Quarterly 117, for the Okinawa died-of-wounds calibration target; Holcomb et al. (2006) for the died-of-wounds definition and the World War II comparator",
+      "notes": "PARTIALLY CALIBRATED PROFILE: casualty generation and the died-of-wounds model are both sourced to Okinawa; the priority split, DNBI composition and transport times are not, and are inherited from base. Demonstrates that the scenario mechanism generalises beyond moderate_intensity, and that the underlying distribution family (not just its parameters) is itself scenario-specific per FORECAS's own methodology. Named for FORECAS's own battle-intensity framing rather than a specific historical engagement; Okinawa is the high-intensity calibration exemplar. FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, W ~ exponential(mean); FORECAS separately keeps its own 'SUPPORT' category (intra-divisional combat support: tank, artillery, light-armoured infantry, combat engineer) lognormal at all intensities, and reserves the fully lognormal, non-autocorrelated treatment for its distinct 'SERVICE SUPPORT' category (extra-divisional sustainment: FSSG, SRIG). This simulation models a single brigade (division and below); it has no extra-divisional 'service support' population, and this project's 'support' population group represents an organic brigade element exposed to the same battle risk as the 'combat' population, not FORECAS's rear-area service support troops. Both generators.wia_cbt/kia_cbt AND generators.wia_spt/kia_spt are therefore overridden with distribution=exponential, using Table A.7's Expon(6.86) (historical data mean 6.86, SD 6.65) and Table A.9's Expon(1.63) (historical mean 1.63, SD 1.73) — sd_daily is retained for reference but unused by generate_exp_arrivals(), a single-parameter distribution. The DOW ceiling and the treatment efficacy factors are overridden here on the same basis as moderate_intensity, so that the profile's mortality model belongs to the era its casualty rates are drawn from rather than to the Falklands/OIF-OEF pairing of the base configuration. The calibration target is the Okinawa-specific died-of-wounds rate of 3.4% among casualties who reached a hospital alive, reported for the US Army on Okinawa by Marble (2025) and measured on the same treated cohort the model reports (casualties reaching R2B or R2E). The treatment efficacy factors are informed estimates for 1945 Pacific-theatre surgical and resuscitative care, reasoned from the absence of TCCC, balanced damage control resuscitation and staged damage control surgery; the two within-era penalties (r2e_postop_hold_penalty, r2b_icu_penalty) are not era-specific and are inherited from base. With those factors the ceilings re-calibrate to p1_p_max=0.052 and p2_p_max=0.042. Priority distribution, DNBI composition and transport time distributions remain unsourced for Okinawa and are inherited from base — see README Further Development. A companion Vietnam-calibrated profile was considered but dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in this document.",
       "vars": [
+        {
+          "elm": "dow",
+          "actys": [
+            {
+              "acty": "params",
+              "vals": [
+                { "var": "p1_p_base", "val": 0.001 },
+                { "var": "p1_p_max",  "val": 0.052 },
+                { "var": "p1_k",      "val": 0.04  },
+                { "var": "p1_t_mid",  "val": 120   },
+                { "var": "p2_p_base", "val": 0.0005 },
+                { "var": "p2_p_max",  "val": 0.042 },
+                { "var": "p2_k",      "val": 0.025 },
+                { "var": "p2_t_mid",  "val": 180   },
+                { "var": "p3_flat",   "val": 0.001 }
+              ]
+            },
+            {
+              "acty": "treatment_efficacy",
+              "vals": [
+                { "var": "r1_tccc_factor",   "val": 1.0  },
+                { "var": "r2b_resus_factor", "val": 0.95 },
+                { "var": "r2b_dcs_factor",   "val": 0.70 },
+                { "var": "r2e_resus_factor", "val": 0.95 },
+                { "var": "r2e_dcs1_factor",  "val": 0.70 },
+                { "var": "r2e_dcs2_factor",  "val": 0.90 }
+              ]
+            }
+          ]
+        },
         {
           "elm": "generators",
           "actys": [

@@ -423,12 +423,16 @@ generate_casualty_arrivals <- function(gen_vars, force_global, force_bound, n_da
 #' mass casualty events into the same generator stream
 #'
 #' @param background_fn A zero-argument distribution function as returned by
-#'   generate_casualty_arrivals() (typically the wia_cbt combat stream)
+#'   generate_casualty_arrivals() (the wia_cbt or kia_cbt combat stream)
 #' @param mass_casualty_times Sorted numeric vector of mass casualty casualty
 #'   arrival times (simulation minutes), as returned by
 #'   generate_mass_casualty_events()$arrival_times
 #' @param mass_casualty_ids Integer vector parallel to mass_casualty_times
 #'   giving each casualty's 1-indexed source event id
+#' @param id_sink Name of the global vector this wrapper appends each
+#'   emitted entity's event id to — "wia_cbt_mass_casualty_event_id" for
+#'   the wounded overlay, "kia_cbt_mass_casualty_event_id" for the
+#'   immediate-killed one
 #' @return A zero-argument distribution function that, on each call, emits
 #'   whichever of (next background candidate, next pending mass casualty
 #'   arrival) is chronologically earliest, preserving a single strictly
@@ -439,15 +443,27 @@ generate_casualty_arrivals <- function(gen_vars, force_global, force_bound, n_da
 #'   computed up front by generate_mass_casualty_events() exactly as before;
 #'   only the background stream is force-size-reactive. As a side effect,
 #'   appends 0 (background) or the event id (mass casualty) to the global
-#'   `wia_cbt_mass_casualty_event_id` vector in strict emission order, which
+#'   `id_sink` vector in strict emission order, which
 #'   build_casualty_trajectory() indexes by each entity's generator-assigned
-#'   position to recover its mass_casualty_event_id attribute.
-wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_casualty_ids) {
+#'   position to recover its mass_casualty_event_id attribute. Two streams
+#'   are wrapped, the combat wounded and the combat killed, each keeping its
+#'   own sink because each generator numbers its own entities from zero.
+wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_casualty_ids,
+                                    id_sink = "wia_cbt_mass_casualty_event_id") {
   mc_ptr <- 1L
   n_mc <- length(mass_casualty_times)
   pending_bg <- NA_real_
   bg_exhausted <- FALSE
   last_time <- 0
+
+  # The sink is global rather than an enclosed vector because the trajectory
+  # reads it by name at run time (R/trajectories.R); assign() rather than
+  # <<- because the name is a parameter. In a forked mclapply worker this
+  # reaches only that fork's own global environment, as every other <<- in
+  # the run path does.
+  append_event_id <- function(id) {
+    assign(id_sink, c(get(id_sink, envir = globalenv()), id), envir = globalenv())
+  }
 
   function() {
     if (is.na(pending_bg) && !bg_exhausted) {
@@ -466,12 +482,12 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
       t  <- mass_casualty_times[mc_ptr]
       id <- mass_casualty_ids[mc_ptr]
       mc_ptr <<- mc_ptr + 1L
-      wia_cbt_mass_casualty_event_id <<- c(wia_cbt_mass_casualty_event_id, id)
+      append_event_id(id)
     } else {
       if (bg_exhausted) return(-1)
       t <- pending_bg
       pending_bg <<- NA_real_
-      wia_cbt_mass_casualty_event_id <<- c(wia_cbt_mass_casualty_event_id, 0L)
+      append_event_id(0L)
     }
 
     gap <- t - last_time
@@ -608,15 +624,29 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
   out[order(out$start), , drop = FALSE]
 }
 
-#' Draws casualty arrival times, count, and injection window for one mass casualty event
+#' Draws casualty arrival times, count, injection window, and wounded/killed
+#' split for one mass casualty event
 #'
 #' @param event_start Event start time (simulation minutes)
 #' @param event_params List with min_cas, max_cas, window_min, window_mode,
-#'   window_max, as read from env_data$vars$mass_casualty$event
+#'   window_max, kia_fraction, as read from
+#'   env_data$vars$mass_casualty$event
 #' @param n_minutes Total simulation duration in minutes (arrivals at or
 #'   after this are dropped)
-#' @return Named list: `times` (numeric vector of casualty arrival times)
+#' @return Named list: `times` (numeric vector of wounded casualty arrival
+#'   times), `kia_times` (numeric vector of immediate-killed arrival times),
 #'   and `window` (the drawn injection window duration, minutes)
+#'
+#' @details The event's drawn casualty count is a total, not a survivor
+#'   count, and is split between the two pathways by a single
+#'   Binomial(n, kia_fraction) draw. The killed are then taken as the first
+#'   `n_kia` of the *unsorted* offsets: those offsets are independent
+#'   Uniform(0, window) draws and so are exchangeable, which makes the
+#'   subset a uniformly random one without spending a further draw on
+#'   choosing it. Each pathway's own offsets are sorted afterwards, since
+#'   the caller merges each into a chronological stream. `kia_fraction = 0`
+#'   consumes no additional draw beyond the binomial itself and yields an
+#'   empty `kia_times`.
 mass_casualty_event_casualties <- function(event_start, event_params, n_minutes) {
   n_cas_draw <- round(event_params$min_cas +
                         runif(1) * (event_params$max_cas - event_params$min_cas))
@@ -624,12 +654,19 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
   window <- rtriangle(1, a = event_params$window_min, b = event_params$window_max,
                       c = event_params$window_mode)
 
-  offsets <- sort(runif(n_cas_draw) * window)
+  kia_fraction <- if (!is.null(event_params$kia_fraction)) event_params$kia_fraction else 0
+  n_kia <- rbinom(1, n_cas_draw, kia_fraction)
 
-  times <- event_start + offsets
-  times <- times[times >= 0 & times < n_minutes]
+  offsets <- runif(n_cas_draw) * window
+  kia_offsets <- sort(offsets[seq_len(n_kia)])
+  wia_offsets <- sort(offsets[seq_len(n_cas_draw - n_kia) + n_kia])
 
-  list(times = times, window = window)
+  in_run <- function(offs) {
+    t <- event_start + offs
+    t[t >= 0 & t < n_minutes]
+  }
+
+  list(times = in_run(wia_offsets), kia_times = in_run(kia_offsets), window = window)
 }
 
 #' Generates mass casualty event arrival timestamps
@@ -651,15 +688,19 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
 #'   Threaded from run_once() so that only an explicit baseline refresh
 #'   writes to the tracked directory (Issue #154).
 #' @return Named list: `arrival_times` (sorted numeric vector of individual
-#'   casualty arrival times, simulation minutes), `casualty_event_id`
-#'   (integer vector parallel to `arrival_times`, giving the 1-indexed
-#'   event each casualty belongs to — matches `events$event_id`; consumed
-#'   by build_casualty_trajectory() for per-event priority lookup), and
-#'   `events` (data frame with one row per event: event_id, event_start,
-#'   n_cas, window_min, pri_one, pri_two, pri_three — the pri_* columns
-#'   are NA for "poisson"-mode events, meaning "use the shared
-#'   params$priority split"; used for the mass casualty event timeline
-#'   plot in R/analysis.R)
+#'   wounded casualty arrival times, simulation minutes),
+#'   `casualty_event_id` (integer vector parallel to `arrival_times`,
+#'   giving the 1-indexed event each casualty belongs to — matches
+#'   `events$event_id`; consumed by build_casualty_trajectory() for
+#'   per-event priority lookup), `kia_arrival_times` and
+#'   `kia_casualty_event_id` (the same pair for the event's immediate
+#'   killed, overlaid on the `kia_cbt` stream instead), and `events`
+#'   (data frame with one row per event: event_id, event_start, n_cas,
+#'   n_wia, n_kia, window_min, pri_one, pri_two, pri_three — `n_cas` is
+#'   the event's total, of which `n_wia` and `n_kia` are the two
+#'   pathways; the pri_* columns are NA for "poisson"-mode events,
+#'   meaning "use the shared params$priority split"; used for the mass
+#'   casualty event timeline plot in R/analysis.R)
 #'
 #' @details Two event-timing modes are supported, selected by
 #'   `params$event$mode`: "poisson" (default) implements a compound
@@ -675,7 +716,12 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
 #'   injection window (`mass_casualty_event_casualties()`): Uniform(min_cas,
 #'   max_cas) casualties distributed across a Triangular(window_min,
 #'   window_mode, window_max)-minute window — the window itself is not
-#'   customisable per event in either mode. An event schedule/rate that
+#'   customisable per event in either mode. That count is a total, of which
+#'   a Binomial(n, `event$kia_fraction`) share are immediate killed,
+#'   returned separately so the caller can overlay them on the `kia_cbt`
+#'   stream and leave them to the mortuary pathway the background killed
+#'   stream already takes; the fraction is shared by both modes, as the
+#'   injection window is. An event schedule/rate that
 #'   produces zero events returns an empty arrival stream — background
 #'   lognormal generation is unaffected, satisfying Issue #9's
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
@@ -689,7 +735,8 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   mode <- if (!is.null(params$event$mode)) params$event$mode else "poisson"
 
   empty_events <- data.frame(event_id = integer(0), event_start = numeric(0),
-                             n_cas = integer(0), window_min = numeric(0),
+                             n_cas = integer(0), n_wia = integer(0), n_kia = integer(0),
+                             window_min = numeric(0),
                              pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
 
   sched <- if (identical(mode, "scheduled")) {
@@ -712,36 +759,53 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
       write.csv(empty_events, file.path(data_dir, "mass_casualty_events.csv"),
                row.names = FALSE)
     }
-    return(list(arrival_times = numeric(0), casualty_event_id = integer(0), events = empty_events))
+    return(list(arrival_times = numeric(0), casualty_event_id = integer(0),
+                kia_arrival_times = numeric(0), kia_casualty_event_id = integer(0),
+                events = empty_events))
   }
 
-  arrival_times     <- c()
-  casualty_event_id <- c()
-  window_dur        <- c()
-  n_cas_actual      <- c()
+  arrival_times         <- c()
+  casualty_event_id     <- c()
+  kia_arrival_times     <- c()
+  kia_casualty_event_id <- c()
+  window_dur            <- c()
+  n_wia_actual          <- c()
+  n_kia_actual          <- c()
 
   for (i in seq_len(nrow(sched))) {
     event_params <- list(min_cas = sched$min_cas[i], max_cas = sched$max_cas[i],
                          window_min = params$event$window_min, window_mode = params$event$window_mode,
-                         window_max = params$event$window_max)
+                         window_max = params$event$window_max,
+                         kia_fraction = params$event$kia_fraction)
     cas <- mass_casualty_event_casualties(sched$start[i], event_params, n_minutes)
 
     arrival_times     <- c(arrival_times, cas$times)
     casualty_event_id <- c(casualty_event_id, rep(i, length(cas$times)))
+    kia_arrival_times     <- c(kia_arrival_times, cas$kia_times)
+    kia_casualty_event_id <- c(kia_casualty_event_id, rep(i, length(cas$kia_times)))
     window_dur         <- c(window_dur, cas$window)
-    n_cas_actual        <- c(n_cas_actual, length(cas$times))
+    n_wia_actual        <- c(n_wia_actual, length(cas$times))
+    n_kia_actual        <- c(n_kia_actual, length(cas$kia_times))
   }
 
   # Sort arrivals but keep casualty_event_id correctly paired per-casualty
-  # (order(), not sort(), so the two vectors share one permutation).
+  # (order(), not sort(), so the two vectors share one permutation). The
+  # wounded and killed streams are sorted separately because each is
+  # merged into a different background generator downstream.
   ord <- order(arrival_times)
   arrival_times     <- arrival_times[ord]
   casualty_event_id <- casualty_event_id[ord]
 
+  kia_ord <- order(kia_arrival_times)
+  kia_arrival_times     <- kia_arrival_times[kia_ord]
+  kia_casualty_event_id <- kia_casualty_event_id[kia_ord]
+
   events <- data.frame(
     event_id    = seq_len(nrow(sched)),
     event_start = sched$start,
-    n_cas       = n_cas_actual,
+    n_cas       = n_wia_actual + n_kia_actual,
+    n_wia       = n_wia_actual,
+    n_kia       = n_kia_actual,
     window_min  = window_dur,
     pri_one     = sched$pri_one,
     pri_two     = sched$pri_two,
@@ -749,12 +813,17 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
   )
 
   if (write_file) {
-    write.table(arrival_times, file = file.path(data_dir, "arrivals_mass_casualty.txt"),
+    # Both pathways' arrivals, since the file records when an event's
+    # casualties reach the system rather than which stream carries them.
+    write.table(sort(c(arrival_times, kia_arrival_times)),
+               file = file.path(data_dir, "arrivals_mass_casualty.txt"),
                row.names = FALSE, col.names = FALSE)
     write.csv(events, file.path(data_dir, "mass_casualty_events.csv"), row.names = FALSE)
   }
 
-  list(arrival_times = arrival_times, casualty_event_id = casualty_event_id, events = events)
+  list(arrival_times = arrival_times, casualty_event_id = casualty_event_id,
+       kia_arrival_times = kia_arrival_times, kia_casualty_event_id = kia_casualty_event_id,
+       events = events)
 }
 
 # ── Simmer environment construction ─────────────────────────────────────────

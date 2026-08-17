@@ -1569,7 +1569,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
   # mass_casualty_event: 1 = casualty originated from a compound-Poisson
   # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
-  # 0 = background lognormal generation. Individual events are reconstructed
+  # 0 = background lognormal generation. Both of the event's pathways carry
+  # the tag, the wounded and the immediately killed (Issue #149), so n_cas
+  # below is an event's total and n_wia/n_kia its two components.
+  # Individual events are reconstructed
   # from tagged casualties' arrival times by clustering consecutive arrivals
   # (within each replication) whose inter-arrival gap does not exceed the
   # configured mass casualty injection window (env_data$vars$mass_casualty$event$
@@ -1593,13 +1596,16 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
         event_start = min(start_time),
         event_end   = max(start_time),
         n_cas       = n(),
+        n_kia       = sum(!is.na(injury_type) & injury_type == 3),
+        n_wia       = n_cas - n_kia,
         .groups     = "drop"
       ) %>%
       mutate(event_day = floor(event_start / 1440) + 1)
   } else {
     mass_casualty_events_summary <- data.frame(
       replication = integer(0), event_id = integer(0), event_start = numeric(0),
-      event_end = numeric(0), n_cas = integer(0), event_day = numeric(0)
+      event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
+      n_wia = integer(0), event_day = numeric(0)
     )
   }
 
@@ -2535,11 +2541,14 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
       mutate(gap = start_time - lag(start_time, default = -Inf),
              event_id = cumsum(gap > mass_casualty_gap_min)) %>%
       group_by(replication, event_id) %>%
-      summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(), .groups = "drop") %>%
+      summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(),
+                n_kia = sum(!is.na(injury_type) & injury_type == 3),
+                n_wia = n_cas - n_kia, .groups = "drop") %>%
       mutate(event_day = floor(event_start / 1440) + 1)
   } else {
     data.frame(replication = integer(0), event_id = integer(0), event_start = numeric(0),
-               event_end = numeric(0), n_cas = integer(0), event_day = numeric(0))
+               event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
+               n_wia = integer(0), event_day = numeric(0))
   }
 
   mass_casualty_event_count_per_rep <- mass_casualty_events_summary_mr %>%

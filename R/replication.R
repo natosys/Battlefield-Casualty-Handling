@@ -53,26 +53,36 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
   # that event's own priority split (scheduled mode only; NA pri_one for
   # poisson-mode events falls back to the shared
   # env_data$vars$mass_casualty$priority split — see mass_casualty_event_priority_table).
+  # An event's immediate killed (Issue #149) are overlaid the same way on
+  # kia_cbt, with their own sink, so they take the mortuary pathway the
+  # background killed stream already takes rather than the wounded
+  # trajectory.
   # Global assignment (<<-) mirrors env_data/day_min/counts (run.R); in
   # forked mclapply workers this modifies only the fork's local state.
   mass_casualty <- generate_mass_casualty_events(n_days,
                       env_data$vars$mass_casualty, write_file = write_files,
                       data_dir = data_dir)
   wia_cbt_mass_casualty_event_id <<- integer(0)
+  kia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
 
   wia_cbt_gen <- wrap_with_mass_casualty(
     generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
                                "effective_force_combat", env_data$pops$combat, n_days),
-    mass_casualty$arrival_times, mass_casualty$casualty_event_id)
+    mass_casualty$arrival_times, mass_casualty$casualty_event_id,
+    id_sink = "wia_cbt_mass_casualty_event_id")
+
+  kia_cbt_gen <- wrap_with_mass_casualty(
+    generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
+                               "effective_force_combat", env_data$pops$combat, n_days),
+    mass_casualty$kia_arrival_times, mass_casualty$kia_casualty_event_id,
+    id_sink = "kia_cbt_mass_casualty_event_id")
 
   env <<- env %>%
     add_global("effective_force_combat", env_data$pops$combat) %>%
     add_global("effective_force_support", env_data$pops$support) %>%
     add_generator("wia_cbt",  casualty, wia_cbt_gen, mon = 2) %>%
-    add_generator("kia_cbt",  casualty,
-                  generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
-                    "effective_force_combat", env_data$pops$combat, n_days), mon = 2) %>%
+    add_generator("kia_cbt",  casualty, kia_cbt_gen, mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_cbt,
                     "effective_force_combat", env_data$pops$combat, n_days), mon = 2) %>%

@@ -840,7 +840,8 @@
             { "var": "max_cas", "val": 60 },
             { "var": "window_min", "val": 60 },
             { "var": "window_mode", "val": 120 },
-            { "var": "window_max", "val": 180 }
+            { "var": "window_max", "val": 180 },
+            { "var": "kia_fraction", "val": 0.28 }
           ]
         },
         {

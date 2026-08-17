@@ -1402,9 +1402,10 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
     # settings (Random Event Rate, Mass Casualty Priority Split) apply only
     # to Poisson-mode events; Scheduled mode instead gives each event its
     # own casualty-count and priority fields, rendered inline in its card.
-    # Injection Window (window_min/mode/max, rendered via the default
-    # fallback below) is the one subgroup that is never mode-gated — it is
-    # not customisable per event in either mode.
+    # Injection Window (window_min/mode/max) and Wounded and Killed Split
+    # (kia_fraction), both rendered via the default fallback below, are the
+    # subgroups that are never mode-gated — neither is customisable per
+    # event in either mode.
     if (identical(sg, "Random Event Rate")) {
       return(conditionalPanel(
         condition = "input.mc_mode == 'poisson'",

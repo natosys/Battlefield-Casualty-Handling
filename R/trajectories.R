@@ -2211,8 +2211,9 @@ r2e_treat_wia <- function(team_id) {
 #' # - Sets mass_casualty_event_id (Issue #9): the 1-indexed mass casualty
 #' #   event this casualty originated from (R/environment.R::
 #' #   generate_mass_casualty_events()), looked up via the entity's
-#' #   generator-assigned index into wia_cbt_mass_casualty_event_id; 0 for
-#' #   background-generated casualties
+#' #   generator-assigned index into wia_cbt_mass_casualty_event_id, or
+#' #   kia_cbt_mass_casualty_event_id for an event's immediate killed
+#' #   (Issue #149); 0 for background-generated casualties
 #' # - Sets mass_casualty_event: 1 if mass_casualty_event_id > 0, else 0
 #' # - Sets priority (WIA/DNBI) via weighted sample — mass-casualty-tagged
 #' #   casualties draw from that event's own priority split in "scheduled"
@@ -2253,16 +2254,18 @@ build_casualty_trajectory <- function() {
     }) %>%
     set_attribute("mass_casualty_event_id", function() {
       name <- get_name(env)
-      if (startsWith(name, "wia_cbt")) {
-        idx <- as.integer(sub("^wia_cbt", "", name)) + 1L
-        if (idx >= 1L && idx <= length(wia_cbt_mass_casualty_event_id)) {
-          wia_cbt_mass_casualty_event_id[idx]
-        } else {
-          0L
-        }
+      # Two streams carry a mass casualty overlay, the combat wounded and
+      # the combat killed, each with its own sink built in emission order
+      # by wrap_with_mass_casualty() (R/environment.R).
+      sink <- if (startsWith(name, "wia_cbt")) {
+        wia_cbt_mass_casualty_event_id
+      } else if (startsWith(name, "kia_cbt")) {
+        kia_cbt_mass_casualty_event_id
       } else {
-        0L
+        return(0L)
       }
+      idx <- as.integer(sub("^[a-z]+_cbt", "", name)) + 1L
+      if (idx >= 1L && idx <= length(sink)) sink[idx] else 0L
     }) %>%
     set_attribute("mass_casualty_event", function() {
       if (get_attribute(env, "mass_casualty_event_id") > 0) 1 else 0

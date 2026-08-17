@@ -203,6 +203,7 @@ SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earl
 SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
 SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_MASS_CASUALTY_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Mass Casualty Event Injection."
 SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
 SRC_AME_SCHEDULE      <- "AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence or failure rate — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an AME-configured C-17A carries 54 ambulatory and 36 high dependency stretcher patients; the C-130J and C-27J carry 97 and 21 stretcher patients respectively. See README Role 4 (National Support Base) Demand Modelling."
@@ -829,6 +830,15 @@ build_param_registry <- function() {
     var_field("mc_window_max", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_max",
               "Injection Window — Maximum", "Minutes over which a fired event's casualties arrive (triangular max). Applies to every event.",
               type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY)
+  ))
+  # Immediate-killed share (Issue #149) — applies in both modes, as the
+  # injection window does, so it takes its own subgroup and renders
+  # unconditionally through app.R's default subgroup fallback rather than
+  # joining the Poisson-gated priority split below.
+  registry <- c(registry, list(
+    var_field("mc_kia_fraction", GRP_MASS_CASUALTY, "Wounded and Killed Split", "mass_casualty", "event", "kia_fraction",
+              "Immediate Killed Share", "Proportion of a fired event's casualties killed at or near the point of injury, taking the mortuary pathway rather than the wounded trajectory. Applies to every event in both modes.",
+              min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_KIA)
   ))
   # Shared priority split — like Casualties per Event above, this only
   # applies in "poisson" mode; "scheduled" mode uses each event's own

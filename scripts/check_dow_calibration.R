@@ -1,26 +1,27 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## scripts/check_dow_calibration.R                                          ##
-## Regression check — died-of-wounds rate against the Ajax Bay bound        ##
+## Regression check — died-of-wounds rate against its campaign's anchor     ##
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_dow_calibration.R                     # both profiles, 3 x 50 reps each
+#   Rscript scripts/check_dow_calibration.R                     # all profiles, 3 x 50 reps each
 #   Rscript scripts/check_dow_calibration.R --quick             # 2 x 10 reps, 10 days — smoke test only
 #   Rscript scripts/check_dow_calibration.R --scenario default  # one profile
 #   Rscript scripts/check_dow_calibration.R --measurements 5 --reps 50
 #
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
-# pre-merge hook or CI step. A full run executes 300 replications and takes a
+# pre-merge hook or CI step. A full run executes 450 replications and takes a
 # few hours on four cores; --quick finishes in about a minute but is a wiring
 # test, not a calibration test, and says so in its output.
 #
-# Why this check exists: the model's mortality ceilings are calibrated against
-# a single historical anchor, the Ajax Bay Advanced Surgical Centre's three
-# deaths among the "over 650" casualties who reached forward surgical care,
-# a rate of approximately 0.46% (README — Parameter Calibration). Nothing in
-# an ordinary run compares the model against it. The comparison was made by
-# hand at each recalibration, which is how the model came to be reported as
+# Why this check exists: each configuration's mortality ceilings are
+# calibrated against a historical anchor, and for the two Falklands-calibrated
+# configurations that anchor is the Ajax Bay Advanced Surgical Centre's three
+# deaths among the "over 650" casualties who reached forward surgical care, a
+# rate of approximately 0.46% (README — Parameter Calibration). Nothing in an
+# ordinary run compares the model against it. The comparison was made by hand
+# at each recalibration, which is how the model came to be reported as
 # overshooting the bound by roughly a third when it was not.
 #
 # Two properties of the target govern what this check asserts.
@@ -37,6 +38,15 @@
 #      overshooting the bound. A configuration sitting comfortably below it
 #      is consistent with the historical record and passes, which is why
 #      moderate_intensity passes at roughly 0.27%.
+#
+# high_intensity is checked against a different anchor, because it models a
+# different campaign under a different standard of care: the US Army on
+# Okinawa reported 3.4% of casualties who reached a hospital alive dying
+# there (Marble, 2025). That figure is a reported rate against a stated
+# denominator rather than a bound derived from an inexact one, so the test
+# is two-sided — the profile is calibrated to reproduce it, not merely to
+# stay under it — at the same plus or minus 2 percentage point tolerance
+# the profile was calibrated to.
 #
 # The check pools independent measurements rather than taking one. That
 # departure from this project's usual practice is deliberate, and is why the
@@ -71,12 +81,24 @@ arg_value <- function(flag, default) {
   args[i + 1]
 }
 
-# The Ajax Bay treated-cohort rate: 3 deaths among "over 650" casualties
-# reaching forward surgical care (Westphalen, 2018). An upper bound.
-DOW_TARGET <- 0.0046
+# Each shipped configuration is checked against the historical anchor of the
+# campaign it models. "bound" is one-sided (only an overshoot fails); "point"
+# is two-sided, against TOLERANCE.
+#
+#   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
+#     care (Westphalen, 2018), an upper bound because the denominator is
+#     inexact. Applies to the two Falklands-calibrated configurations.
+#   Okinawa: 3.4% of casualties who reached a hospital alive died there
+#     (Marble, 2025), a reported rate against a stated denominator.
+DOW_TARGETS <- list(
+  default            = list(rate = 0.0046, kind = "bound", label = "Ajax Bay"),
+  moderate_intensity = list(rate = 0.0046, kind = "bound", label = "Ajax Bay"),
+  high_intensity     = list(rate = 0.0340, kind = "point", label = "Okinawa")
+)
+TOLERANCE <- 0.02
 
 SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
-                  c("default", "moderate_intensity")
+                  names(DOW_TARGETS)
 N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
 N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
 CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
@@ -131,8 +153,15 @@ run_measurement <- function(scenario, seed) {
 
 cat(sprintf("DOW calibration check: %d measurement(s) x %d replications x %d days per scenario\n",
             N_MEASURE, N_REPS, CHECK_DAYS))
-cat(sprintf("Target: treated-cohort DOW rate at or below %.2f%% (Ajax Bay, upper bound)\n\n",
-            100 * DOW_TARGET))
+for (sc in SCENARIOS) {
+  tgt <- DOW_TARGETS[[sc]]
+  if (is.null(tgt)) stop(sprintf("no died-of-wounds target defined for scenario '%s'", sc))
+  cat(sprintf("Target (%s): treated-cohort DOW rate %s %.2f%% (%s)\n", sc,
+              if (tgt$kind == "bound") "at or below" else
+                sprintf("within %.0f pp of", 100 * TOLERANCE),
+              100 * tgt$rate, tgt$label))
+}
+cat("\n")
 if (quick) {
   cat("QUICK MODE — too few replications to judge calibration. Wiring test only.\n\n")
 }
@@ -167,15 +196,34 @@ for (scenario in SCENARIOS) {
               paste(sprintf("%.3f%%", 100 * singles), collapse = ", ")))
   cat(sprintf("  pooled: %.3f%%  95%% CI [%.3f%%, %.3f%%]\n", 100 * m, 100 * lo, 100 * hi))
 
-  # The bound is one-sided. A model below it agrees with the record; only a
-  # model whose whole interval clears it is overshooting.
-  ok <- lo <= DOW_TARGET
-  if (!ok) {
-    fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) overshoots ",
-                "the %.2f%% bound — the entire interval sits above it"),
-         scenario, 100 * m, 100 * lo, 100 * hi, 100 * DOW_TARGET)
+  tgt <- DOW_TARGETS[[scenario]]
+  if (tgt$kind == "bound") {
+    # The bound is one-sided. A model below it agrees with the record; only a
+    # model whose whole interval clears it is overshooting.
+    ok <- lo <= tgt$rate
+    if (!ok) {
+      fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) overshoots ",
+                  "the %.2f%% bound — the entire interval sits above it"),
+           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate)
+    }
+    report(ok, "%s does not overshoot the %.2f%% treated-cohort bound (%s)",
+           scenario, 100 * tgt$rate, tgt$label)
+  } else {
+    # A reported rate is a point estimate, so the model has to reach it as
+    # well as stay under it. The tolerance is the one the profile was
+    # calibrated to; the interval spanning the target is reported alongside
+    # but is not the failure condition, since a wide interval would then
+    # pass more easily than a narrow one.
+    ok <- abs(m - tgt$rate) <= TOLERANCE
+    if (!ok) {
+      fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) misses ",
+                  "the %.2f%% %s target by more than %.0f pp"),
+           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label, 100 * TOLERANCE)
+    }
+    report(ok, "%s reproduces the %.2f%% %s target within %.0f pp (interval %s it)",
+           scenario, 100 * tgt$rate, tgt$label, 100 * TOLERANCE,
+           if (lo <= tgt$rate && hi >= tgt$rate) "spans" else "does not span")
   }
-  report(ok, "%s does not overshoot the %.2f%% treated-cohort bound", scenario, 100 * DOW_TARGET)
 
   # Not a failure, but the reason this check pools: if the individual
   # measurements disagree by more than the pooled interval spans, one

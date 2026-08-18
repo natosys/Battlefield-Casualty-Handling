@@ -30,7 +30,7 @@
 | 35 | R2B OT bypass check — `<=` rather than `<` allows queuing | High | Low | **Merged (PR #36)** |
 | 37 | OT bed incorrectly scheduled — rooms must be 24h | High | Low | **Merged (PR #38)** |
 | 39 | R2B holding bed saturation — DNBI disease exhausts hold capacity | High | Medium | **Merged (PR #48)** |
-| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B **Backlog** |
+| 40 | R2B OT suboptimal utilisation — 12h shift window limits forward surgery | Medium | Medium | Bypass-reason diagnostic **Merged (PR #64)**; Scenario A/B **Closed (not planned, 13 Jul 26)** |
 | 43 | OT–ICU gating absent — surgery proceeds regardless of ICU availability | Medium | Medium | **Merged (PR #59)** |
 | 44 | RTD KPI implicitly includes battle fatigue RTDs without annotation | Low | Low | **Merged (#47)** |
 | 54 | Scenario-level parameter profiles for historical conflict calibration | High | Medium | **Merged (PR #67)** |
@@ -101,7 +101,7 @@ The `high_intensity` profile overrode only its casualty generation rates, inheri
 
 **Seed-42 baseline (30 days, single run):** Unaffected, and verified rather than assumed. The change touches no trajectory, no base-configuration parameter and no random draw outside the profile, so the seed-42 console log reproduces `logs/logs.txt` byte for byte and no row of `CLAUDE.md`'s Key Parameters table changes; a provenance note records why. No tracked artifact in `data/`, `logs/` or `images/` was regenerated apart from `images/scenario_comparison.png`, which the comparative scenario runner rewrites alongside the tables re-measured for it. Pooling three independent 50-replication measurements gives a treated-cohort died-of-wounds rate of 3.471% (95% CI [3.360%, 3.583%]) against individual measurements of 3.592%, 3.463% and 3.359%, an interval spanning the target; DOW/WIA measures 3.164% (95% CI [3.066%, 3.262%]). The 50-replication comparative tables in `docs/Multi_Run_Analysis.md` were re-measured, the profile's own rows moving as the calibration intends (DOW/run 5.80 to 23.58, DOW/WIA 0.88% to 3.43%) and its queue rows moving in two directions with them: the theatre and intensive care queues shorten, 39.8 to 38.2 and 0.618 to 0.564, because a casualty who dies of wounds leaves the queue for the resource that would have treated them, while the queues further from the point of death lengthen alongside a casualty count reading 1,021.0 against 992.3. The `moderate_intensity` arm reproduced every published figure exactly, each queue group to the precision published, which is the evidence that the two arms differ only where they are meant to. Two stale figures surfaced in the course of the work and are corrected with it: the document's abstract carried queue ratios predating the arrival-generator rebuild, and the README's 30-replication profile comparison table had held 151.1 WIA and 57.1 KIA per run for `moderate_intensity` since before the same rebuild, measuring 184.8 and 68.7 now.
 
-**Unblocked by this merge:** No new issues unblocked. No open issue lists Issue #151 as a dependency; Issue #155 remains blocked by its own terms until every other issue is closed, and now clears once #4, #40 and #207 do. No label changes were needed.
+**Unblocked by this merge:** No new issues unblocked. No open issue lists Issue #151 as a dependency; Issue #155 remains blocked by its own terms until every other issue is closed, and now clears once #4 and #207 do. No label changes were needed. Issue #40, named as one of #155's remaining blockers by the three preceding entries, was closed as not planned on 13 July 2026 and is dropped from that list here; the summary table and the dependency graph are corrected with it.
 
 ### Issue 149 — Mass Casualty Events Do Not Generate Immediate KIA or DNBI Casualties ✓
 
@@ -2616,15 +2616,11 @@ BLOCKED (gated on other issues):
        production Morris/Sobol screen deferred to it by #157 and #158, and
        a documentation pass over every figure carrying an unpinned-sandbox
        caveat. Blocked by its own terms until every other issue is closed,
-       so it clears only once #4, #40 and #207 do.
+       so it clears only once #4 and #207 do.
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
        parked given its size/risk — largest structural change in the project)
-  #40  R2B OT utilisation analysis   (remaining scope: Scenario A extended
-       shift hours — deferred pending a clinician fatigue model; Scenario B
-       second surgical team — deferred pending a directed establishment
-       change. Bypass-reason diagnostic merged, PR #64.)
 ```
 
 ---

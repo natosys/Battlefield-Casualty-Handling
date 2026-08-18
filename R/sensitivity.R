@@ -324,22 +324,27 @@ composition_coord_bounds <- function(g) {
 #'   planner can pull that lever in reality, which is misleading. See the
 #'   README's "Parameters Excluded from Screening" note.
 #'
-#'   `fr_fill_mode_frac`'s upper bound is capped at 1.05, not the 1.4
+#'   `fr_fill_mode_frac`'s upper bound is capped at 1.00, not the 1.4
 #'   Rule-B-multiplicative bound Rule B would otherwise give (baseline
 #'   0.85 x 2.0 = 1.7, clipped to the field's own registry max of 1.5)
-#'   — env_data.json's `fill_min_frac`/`fill_max_frac` (0.2/1.1) are NOT
+#'   — env_data.json's `fill_min_frac`/`fill_max_frac` (0.2/1.0) are NOT
 #'   screened here (only the triangular mode is, matching every other
 #'   triangular parameter's convention), so they stay fixed at those
 #'   values for every design point. `fill_fn()` (R/trajectories.R) calls
 #'   `rtriangle(n=1, a=fill_min_frac, b=fill_max_frac, c=fill_mode_frac)`,
-#'   which requires a <= c <= b; screening fill_mode_frac past 1.1 (with
-#'   fill_max_frac fixed at 1.1) produces an invalid triangular
-#'   distribution and rtriangle() silently returns NA — discovered via a
-#'   real Issue #112 re-run where every parameter's sigma_ee came out NA,
-#'   root-caused to this single out-of-envelope bound corrupting the
-#'   simulation state (and therefore every downstream KPI) for the
-#'   remainder of any OAT trajectory that perturbed this parameter above
-#'   1.1. See README Limitation L18 follow-up note for the incident.
+#'   which requires a <= c <= b; screening fill_mode_frac past
+#'   fill_max_frac produces an invalid triangular distribution and
+#'   rtriangle() silently returns NA — discovered via a real Issue #112
+#'   re-run where every parameter's sigma_ee came out NA, root-caused to
+#'   this single out-of-envelope bound corrupting the simulation state
+#'   (and therefore every downstream KPI) for the remainder of any OAT
+#'   trajectory that perturbed this parameter above the maximum. See
+#'   README Limitation L18 follow-up note for the incident. The bound
+#'   moved from 1.05 to 1.00 with fill_max_frac itself under Issue #207,
+#'   a fill fraction above 1 naming personnel a pool at establishment
+#'   strength has no room for; validate_fill_distribution()
+#'   (R/trajectories.R) now rejects such a configuration outright rather
+#'   than leaving it to surface as an NA cascade.
 #'
 #'   `post_op_hold_mode`'s lower bound is 380, not the Rule-B-multiplicative
 #'   300 (baseline 600 x 0.5) — the same class of bug, one field over:
@@ -416,7 +421,7 @@ morris_params <- data.frame(
     0.98,  0.71,  0.47,  0.71,  0.40,  0.72,  6.0,  1.59,
     2.48,  0.95,  2.86,  2.48,  0.95,  1.32,
     30,
-    14,   14,   1.05,
+    14,   14,   1.00,
     14,   0.30,
     1,    2880,  0.95,
     360,

@@ -100,24 +100,31 @@ per_arrival <- function(attrs, keys) {
 # attributes are not recorded in an ordinary run, and the pool it credits is
 # moved by casualty debits and return-to-duty credits at the same time, which
 # would leave the quantity of interest unobservable. The harness runs the same
-# build_reinforcement_trajectory() against a monitored generator and a
-# deterministic attrition stream, so every cycle's demand, fill and absorbed
-# amount is visible and the pool moves for exactly two reasons.
-#
-# Attrition alternates week by week rather than running steadily. A pool
-# depleting throughout the fulfillment lag always has room for whatever
-# arrives, so a steady stream would never reach the behaviour under test; the
-# quiet weeks are what put a cycle's delivery against an unchanged shortfall,
-# which is the case in which a fill fraction above 1 has more to deliver than
-# the pool can hold.
+# build_reinforcement_trajectory() against a monitored generator and
+# deterministic attrition and return-to-duty streams, so every cycle's demand,
+# fill and absorbed amount is visible and the pool moves for reasons the check
+# controls.
 
 ATTRITION_PER_DAY <- 12
 
-# Debits the pool on attrition weeks and leaves it alone on quiet ones.
+# Debits the pool on attrition weeks and leaves it alone on quiet ones, so the
+# pool both depletes and steadies within one run.
 debit_pool <- function(pool_global, n) {
   function() {
     if (floor(now(env) / (7 * day_min)) %% 2 != 0) return(get_global(env, pool_global))
     max(0, get_global(env, pool_global) - n)
+  }
+}
+
+# Credits the pool the way return to duty does, on the weeks attrition is
+# quiet. Used only by the harness that measures what a pool refilled during the
+# fulfillment lag cannot absorb: a cycle submitted at the end of an attrition
+# week is delivered at the end of the recovery week that follows it, by which
+# time the shortfall it was drawn against has partly closed on its own.
+credit_pool <- function(pool_global, n, initial) {
+  function() {
+    if (floor(now(env) / (7 * day_min)) %% 2 == 0) return(get_global(env, pool_global))
+    min(initial, get_global(env, pool_global) + n)
   }
 }
 
@@ -126,8 +133,11 @@ debit_pool <- function(pool_global, n) {
 #' @param n_days Run length in days
 #' @param seed Random seed
 #' @param fill Named list of fill_min_frac/fill_mode_frac/fill_max_frac
+#' @param rtd_per_day Personnel returned to duty each day, on top of attrition.
+#'   Zero for the measurement harness; positive for the harness that forces the
+#'   pool to refill during the fulfillment lag.
 #' @return The completed simmer environment
-run_reinforcement_harness <- function(n_days, seed, fill) {
+run_reinforcement_harness <- function(n_days, seed, fill, rtd_per_day = 0) {
   ed <- env_data_base
   ed$vars$force_regeneration$reinforcement$demand_interval_days <- 7
   ed$vars$force_regeneration$reinforcement$fulfillment_lag_days <- 7
@@ -144,17 +154,33 @@ run_reinforcement_harness <- function(n_days, seed, fill) {
     set_global("effective_force_support",
                debit_pool("effective_force_support", ATTRITION_PER_DAY))
 
+  recovery <- trajectory("Return to Duty") %>%
+    set_global("effective_force_combat",
+               credit_pool("effective_force_combat", rtd_per_day, env_data$pops$combat)) %>%
+    set_global("effective_force_support",
+               credit_pool("effective_force_support", rtd_per_day, env_data$pops$support))
+
   env <<- simmer("Reinforcement Harness") %>%
     add_global("effective_force_combat", env_data$pops$combat) %>%
     add_global("effective_force_support", env_data$pops$support) %>%
     add_global("reinf_combat_pending", 0) %>%
     add_global("reinf_support_pending", 0) %>%
-    add_global("reinf_combat_carry", 0) %>%
-    add_global("reinf_support_carry", 0) %>%
+    add_global("reinf_combat_unabsorbed", 0) %>%
+    add_global("reinf_support_unabsorbed", 0) %>%
     add_generator("attrition", attrition,
-                  at(seq(day_min, n_days * day_min, by = day_min)), mon = 0) %>%
-    # mon = 2, unlike run_once(): the per-cycle attributes are the quantity
-    # under test here.
+                  at(seq(day_min, n_days * day_min, by = day_min)), mon = 0)
+
+  if (rtd_per_day > 0) {
+    # Offset half a day from attrition so the two do not resolve at the same
+    # instant, which would make the order they are applied in matter.
+    env <<- env %>%
+      add_generator("recovery", recovery,
+                    at(seq(1.5 * day_min, n_days * day_min, by = day_min)), mon = 0)
+  }
+
+  # mon = 2, unlike run_once(): the per-cycle attributes are the quantity
+  # under test here.
+  env <<- env %>%
     add_generator("force_reinforcement", build_reinforcement_trajectory(),
                   at(seq(7 * day_min, n_days * day_min, by = 7 * day_min)),
                   mon = 2)
@@ -209,8 +235,9 @@ for (pool in c("combat", "support")) {
     next
   }
 
-  # Check 1: the pool is never credited above establishment strength. The
-  # clamp that caused the clipping was correct in itself and must survive.
+  # Check 1: the pool is never credited above establishment strength.
+  # Reinforcement joins the population on arrival, so this ceiling is what
+  # makes a fill fraction above 1 undeliverable rather than merely unusual.
   peak <- max(attrs_a %>% filter(key == paste0("effective_force_", pool)) %>% pull(value))
   ok <- peak <= initial + 1e-9
   if (!ok) fail("%s: effective force reached %.0f against an establishment of %d",
@@ -218,19 +245,24 @@ for (pool in c("combat", "support")) {
   report(ok, "%s: effective force never exceeded establishment strength (peak %.0f of %d)",
          pool, peak, initial)
 
-  # Check 2: nothing delivered is discarded. Every person of fill either
-  # entered the pool or is still held as carry, so the two account for the
-  # whole of what the fill fractions drew.
-  final_carry <- final_global(attrs_a, paste0("reinf_", pool, "_carry"))
-  delivered   <- sum(credited$fill)
-  accounted   <- sum(credited$absorbed) + final_carry
-  ok <- abs(delivered - accounted) < 1e-6
+  # Check 2: every person delivered enters the population. With the fill
+  # bounded at 1 and no return-to-duty credits landing during the lag, the
+  # shortfall at delivery is at least what was drawn against it, so absorbed
+  # equals fill on every cycle and nothing is left over.
+  worst <- max(abs(credited$fill - credited$absorbed))
+  ok <- worst < 1e-9
   if (!ok) {
-    fail("%s: %.0f personnel were drawn as fill but %.0f were absorbed or carried",
-         pool, delivered, accounted)
+    fail("%s: %.0f personnel were delivered but not credited to the pool, across %d cycles",
+         pool, sum(pmax(0, credited$fill - credited$absorbed)),
+         sum(credited$fill > credited$absorbed + 1e-9))
   }
-  report(ok, "%s: all %.0f personnel drawn as fill are accounted for (%.0f absorbed, %.0f still carried)",
-         pool, delivered, sum(credited$absorbed), final_carry)
+  report(ok, "%s: all %.0f personnel delivered over %d cycles entered the population",
+         pool, sum(credited$fill), nrow(credited))
+
+  ok <- final_global(attrs_a, paste0("reinf_", pool, "_unabsorbed")) < 1e-9
+  if (!ok) fail("%s: the unabsorbed counter is non-zero without any return-to-duty credit",
+                pool)
+  report(ok, "%s: nothing was recorded as unabsorbed", pool)
 
   # Check 3: the realised mean fill fraction matches the configured
   # distribution's own mean, which is the point of the whole exercise.
@@ -250,94 +282,101 @@ for (pool in c("combat", "support")) {
     report(TRUE, "%s: fewer than five cycles carried demand, mean fill comparison skipped", pool)
   }
 
-  # Check 4: carry is netted out of demand, so a pool holding reinforcement it
-  # has not yet absorbed does not request that reinforcement a second time.
-  # This is what bounds the carry rather than letting it accumulate.
+  # Check 4: a pool never submits demand above its own establishment.
   ok <- all(cycles$demand <= initial + 1e-9)
   if (!ok) fail("%s: a cycle submitted demand above establishment strength", pool)
   report(ok, "%s: no cycle submitted demand above establishment strength (largest %.0f of %d)",
          pool, max(cycles$demand), initial)
 }
 
-# ── Harness B: a fill distribution wholly above 1 ───────────────────────────
-# Over-delivery is a tail event at the shipped distribution, so a run of a few
-# dozen cycles is not a reliable place to observe it. This configuration
-# over-delivers on every cycle, which is what makes the carry path exercised by
-# construction rather than by luck.
+# ── Harness B: return to duty refilling the pool during the lag ─────────────
+# The one case in which a delivery can still find no room, the fill being
+# bounded at 1. It is a residual of the establishment ceiling rather than of
+# the fill distribution, and what this checks is that it is counted rather than
+# dropped silently. See README Further Development (L29).
 
-cat(sprintf("\n-- Reinforcement fill above 1.0 on every cycle (%d days, seed %d) --\n",
+cat(sprintf("\n-- Return to duty during the fulfillment lag (%d days, seed %d) --\n",
             REINF_DAYS, CHECK_SEED))
 
-over_fill <- list(fill_min_frac = 1.05, fill_mode_frac = 1.10, fill_max_frac = 1.15)
-attrs_b <- get_mon_attributes(run_reinforcement_harness(REINF_DAYS, CHECK_SEED, over_fill))
+attrs_b <- get_mon_attributes(
+  run_reinforcement_harness(REINF_DAYS, CHECK_SEED, shipped_fill,
+                            rtd_per_day = ATTRITION_PER_DAY %/% 2))
 
 for (pool in c("combat", "support")) {
   initial  <- env_data_base$pops[[pool]]
-  cycles   <- cycles_of(attrs_b, pool)
-  credited <- cycles %>% filter(!is.na(absorbed))
+  credited <- cycles_of(attrs_b, pool) %>% filter(!is.na(absorbed))
 
   if (nrow(credited) == 0) {
-    fail("%s: no reinforcement cycle recorded an absorbed amount under the over-delivering distribution",
-         pool)
+    fail("%s: no reinforcement cycle recorded an absorbed amount under return to duty", pool)
     report(FALSE, "%s: no reinforcement cycle recorded an absorbed amount", pool)
     next
   }
 
-  # Check 5: the excess is held rather than dropped. Under the previous
-  # behaviour this quantity vanished at the moment of crediting.
-  carried <- sum(pmax(0, credited$fill - credited$absorbed))
-  ok <- carried > 0
-  if (!ok) fail("%s: no cycle over-delivered, so the carry path was never exercised", pool)
-  report(ok, "%s: %.0f personnel arrived beyond the room available and were carried rather than dropped (%d of %d cycles)",
-         pool, carried, sum(credited$fill > credited$absorbed + 1e-9), nrow(credited))
+  short     <- sum(pmax(0, credited$fill - credited$absorbed))
+  unabsorbed <- final_global(attrs_b, paste0("reinf_", pool, "_unabsorbed"))
 
-  # Check 6: carried reinforcement reaches the pool. Holding the excess would
-  # be no better than dropping it if it were never absorbed, so at least one
-  # cycle must credit more than its own fill.
-  absorbed_extra <- sum(pmax(0, credited$absorbed - credited$fill))
-  ok <- absorbed_extra > 0
-  if (!ok) fail("%s: no carried reinforcement was ever absorbed into the pool", pool)
-  report(ok, "%s: %.0f carried personnel were later absorbed into the pool (%d cycles credited more than their own fill)",
-         pool, absorbed_extra, sum(credited$absorbed > credited$fill + 1e-9))
-
-  # Check 7: the accounting still balances when the carry path is doing work.
-  final_carry <- final_global(attrs_b, paste0("reinf_", pool, "_carry"))
-  delivered   <- sum(credited$fill)
-  accounted   <- sum(credited$absorbed) + final_carry
-  ok <- abs(delivered - accounted) < 1e-6
+  # Check 5: the counter is exact. Every person delivered is either credited
+  # to the pool or counted here, so the accounting closes.
+  ok <- abs(short - unabsorbed) < 1e-9
   if (!ok) {
-    fail("%s: under over-delivery, %.0f personnel were drawn as fill but %.0f were absorbed or carried",
-         pool, delivered, accounted)
+    fail("%s: %.0f personnel could not be absorbed but the counter reads %.0f",
+         pool, short, unabsorbed)
   }
-  report(ok, "%s: all %.0f personnel drawn as fill are accounted for under over-delivery (%.0f absorbed, %.0f still carried)",
-         pool, delivered, sum(credited$absorbed), final_carry)
+  report(ok, "%s: %.0f of %.0f personnel delivered could not be absorbed and all of them are counted (%d of %d cycles)",
+         pool, unabsorbed, sum(credited$fill),
+         sum(credited$fill > credited$absorbed + 1e-9), nrow(credited))
+
+  # The harness has to reach the case for Check 5 to mean anything: a run in
+  # which the pool never refilled during a lag would report a counter of zero
+  # and prove nothing about it.
+  ok <- short > 0
+  if (!ok) fail("%s: no delivery met a refilled pool, so the unabsorbed counter was never exercised",
+                pool)
+  report(ok, "%s: the refilled-pool case was reached, so the counter above is a measurement rather than a default",
+         pool)
 
   peak <- max(attrs_b %>% filter(key == paste0("effective_force_", pool)) %>% pull(value))
   ok <- peak <= initial + 1e-9
-  if (!ok) fail("%s: effective force reached %.0f against an establishment of %d under over-delivery",
+  if (!ok) fail("%s: effective force reached %.0f against an establishment of %d under return to duty",
                 pool, peak, initial)
-  report(ok, "%s: effective force never exceeded establishment strength under over-delivery (peak %.0f of %d)",
+  report(ok, "%s: effective force never exceeded establishment strength under return to duty (peak %.0f of %d)",
          pool, peak, initial)
 }
 
-# ── Harness C: a fill distribution bounded at 1 ─────────────────────────────
-# Check 8: a fill that cannot exceed the shortfall it was drawn against carries
-# nothing. This separates the carry mechanism from the clamp: it fires because
-# the configuration names an over-delivery, not because the code holds
-# something back regardless.
+# ── Harness C: a fill distribution the model could not apply ────────────────
+# Check 6: a fill fraction above 1 is rejected rather than silently clipped.
+# This is the acceptance criterion itself: the parameter cannot be configured
+# above what the model can deliver.
 
-cat("\n-- Reinforcement fill bounded at 1.0 --\n")
+cat("\n-- A fill fraction above 1 is rejected --\n")
 
-bounded_fill <- list(fill_min_frac = 0.2, fill_mode_frac = 0.85, fill_max_frac = 1.0)
-attrs_c <- get_mon_attributes(run_reinforcement_harness(REINF_DAYS, CHECK_SEED, bounded_fill))
-carry_c <- attrs_c %>% filter(key %in% c("reinf_combat_carry", "reinf_support_carry"))
+rejected <- tryCatch({
+  run_reinforcement_harness(REINF_DAYS, CHECK_SEED,
+                            list(fill_min_frac = 0.2, fill_mode_frac = 0.85,
+                                 fill_max_frac = 1.1))
+  NULL
+}, error = function(e) conditionMessage(e))
 
-ok <- nrow(carry_c) == 0 || all(carry_c$value < 1e-9)
+ok <- !is.null(rejected) && grepl("establishment strength", rejected, fixed = TRUE)
 if (!ok) {
-  fail("fill_max_frac = 1.0 still carried %.0f personnel, so carry is not driven by over-delivery",
-       max(carry_c$value))
+  fail("fill_max_frac = 1.1 was accepted, so the parameter can still name an over-delivery the model cannot apply")
 }
-report(ok, "fill_max_frac = 1.0 carries nothing forward, every fill fitting the shortfall it was drawn against")
+report(ok, "fill_max_frac = 1.1 is rejected: %s",
+       if (is.null(rejected)) "no error raised" else rejected)
+
+# Check 7: an inverted distribution is rejected too. rtriangle() returns NA
+# rather than erroring on a <= c <= b being violated, which is how the Issue
+# #112 screening run lost every elementary effect to an NA cascade.
+inverted <- tryCatch({
+  run_reinforcement_harness(REINF_DAYS, CHECK_SEED,
+                            list(fill_min_frac = 0.9, fill_mode_frac = 0.4,
+                                 fill_max_frac = 1.0))
+  NULL
+}, error = function(e) conditionMessage(e))
+
+ok <- !is.null(inverted) && grepl("fill_min_frac <= fill_mode_frac", inverted, fixed = TRUE)
+if (!ok) fail("an inverted fill distribution was accepted, so rtriangle() would return NA unreported")
+report(ok, "an inverted fill distribution is rejected before it can produce NA draws")
 
 env_data <<- env_data_base
 

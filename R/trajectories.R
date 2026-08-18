@@ -2695,24 +2695,66 @@ build_casualty_trajectory <- function() {
 #'       the interim). Only as much of the fill as there is room for is
 #'       absorbed on arrival.
 #'
-#'   Issue #207: what a cycle delivers beyond the room available is carried
-#'   rather than discarded. A fill fraction above 1 names a reinforcement
-#'   package larger than the shortfall it was requested against, and a
-#'   package that arrives has arrived whether or not its pool can absorb it
-#'   all at once, so the excess is held in a per-pool "carry" global
-#'   (reinf_*_carry, R/replication.R) and absorbed as room appears. carry
-#'   is netted out of demand_fn() alongside pending, so a pool holding
-#'   uncommitted reinforcement does not request it a second time; it can
-#'   therefore only shrink once demand stops, and cannot accumulate without
-#'   bound. Discarding the excess instead would have made fill_max_frac
-#'   name an over-delivery the model could never apply, and would have made
-#'   the realised mean fill fraction lower than the configured
-#'   distribution's own mean by an amount nothing reported.
+#'   Issue #207: reinforcement joins the population the moment it arrives,
+#'   there being no formation-level reserve in this model to hold personnel
+#'   a pool has no room for. That makes establishment strength a hard
+#'   ceiling on what a cycle can deliver, so fill_max_frac above 1 would
+#'   name an over-delivery the model could never apply. It is rejected
+#'   rather than silently clipped (validate_fill_distribution(), below),
+#'   and the shipped maximum is 1.0. What that leaves is a residual the
+#'   ceiling makes unavoidable: a pool refilled by return-to-duty credits
+#'   during the fulfillment lag can have less room at delivery than it had
+#'   shortfall at submission. Those personnel are counted into a per-pool
+#'   reinf_*_unabsorbed global (R/replication.R) rather than vanishing, so
+#'   the quantity is visible in a run's output. See README Further
+#'   Development (L29).
+#' Rejects a reinforcement fill distribution the model could not apply in full
+#'
+#' @return Invisibly TRUE when the configured distribution is applicable
+#'
+#' @details Establishment strength is a hard ceiling on a pool, so a fill
+#'   fraction above 1 asks for personnel the model has nowhere to put. Clipping
+#'   such a configuration would leave the parameter naming an over-delivery
+#'   that never happens, which is the defect this rejects instead: a planner
+#'   who sets it is told, rather than getting a run in which the value silently
+#'   stopped acting. rtriangle()'s own requirement that a <= c <= b is checked
+#'   here too, for the same reason: it returns NA rather than erroring, so an
+#'   inverted configuration would otherwise surface as a missing fill much
+#'   later.
+validate_fill_distribution <- function() {
+  p <- env_data$vars$force_regeneration$reinforcement
+  bounds <- c(fill_min_frac = p$fill_min_frac, fill_mode_frac = p$fill_mode_frac,
+              fill_max_frac = p$fill_max_frac)
+
+  over <- names(bounds)[bounds > 1 + 1e-9]
+  if (length(over)) {
+    stop(sprintf(paste0("force_regeneration.reinforcement: %s above 1 (%s). A pool ",
+                        "cannot exceed its establishment strength, so a fill fraction ",
+                        "above 1 cannot be delivered; set it to 1 or below."),
+                 paste(over, collapse = " and "),
+                 paste(sprintf("%.3f", bounds[over]), collapse = ", ")),
+         call. = FALSE)
+  }
+
+  if (!(bounds[["fill_min_frac"]] <= bounds[["fill_mode_frac"]] &&
+        bounds[["fill_mode_frac"]] <= bounds[["fill_max_frac"]])) {
+    stop(sprintf(paste0("force_regeneration.reinforcement: the fill distribution needs ",
+                        "fill_min_frac <= fill_mode_frac <= fill_max_frac, but reads ",
+                        "%.3f, %.3f, %.3f."),
+                 bounds[["fill_min_frac"]], bounds[["fill_mode_frac"]],
+                 bounds[["fill_max_frac"]]),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
 build_reinforcement_trajectory <- function() {
-  demand_fn <- function(pool_global, pending_global, carry_global, initial) {
+  validate_fill_distribution()
+
+  demand_fn <- function(pool_global, pending_global, initial) {
     function() {
-      max(0, initial - get_global(env, pool_global) -
-             get_global(env, pending_global) - get_global(env, carry_global))
+      max(0, initial - get_global(env, pool_global) - get_global(env, pending_global))
     }
   }
 
@@ -2738,14 +2780,15 @@ build_reinforcement_trajectory <- function() {
     function() get_global(env, pending_global) - get_attribute(env, fill_attr)
   }
 
-  # How much of what has arrived — this cycle's fill plus anything carried
-  # from an earlier one — the pool has room for. Resolved into an attribute
-  # before either global moves, so the credit and the carry that follow are
-  # computed against the same pre-credit state rather than against each other.
-  absorbed_fn <- function(pool_global, carry_global, fill_attr, initial) {
+  # How much of what has arrived the pool has room for. Resolved into an
+  # attribute before either global moves, so the credit and the unabsorbed
+  # count that follow are computed against the same pre-credit state rather
+  # than against each other. With fill_max_frac bounded at 1 this equals the
+  # fill on every cycle in which the pool has not refilled during the lag.
+  absorbed_fn <- function(pool_global, fill_attr, initial) {
     function() {
       room <- max(0, initial - get_global(env, pool_global))
-      min(room, get_global(env, carry_global) + get_attribute(env, fill_attr))
+      min(room, get_attribute(env, fill_attr))
     }
   }
 
@@ -2753,20 +2796,25 @@ build_reinforcement_trajectory <- function() {
     function() get_global(env, pool_global) + get_attribute(env, absorbed_attr)
   }
 
-  carry_fn <- function(carry_global, fill_attr, absorbed_attr) {
+  # Personnel delivered into a pool with no room left for them. Counted rather
+  # than dropped silently: the model has no way to represent a formation above
+  # its own establishment, so this is the one place reinforcement leaves the
+  # accounting, and a run that produces a large figure here is a run whose
+  # fulfillment lag is long relative to its return-to-duty rate.
+  unabsorbed_fn <- function(unabsorbed_global, fill_attr, absorbed_attr) {
     function() {
-      max(0, get_global(env, carry_global) + get_attribute(env, fill_attr) -
-             get_attribute(env, absorbed_attr))
+      get_global(env, unabsorbed_global) +
+        max(0, get_attribute(env, fill_attr) - get_attribute(env, absorbed_attr))
     }
   }
 
   trajectory("Force Reinforcement") %>%
     set_attribute("reinf_combat_demand",
       demand_fn("effective_force_combat", "reinf_combat_pending",
-                "reinf_combat_carry", env_data$pops$combat)) %>%
+                env_data$pops$combat)) %>%
     set_attribute("reinf_support_demand",
       demand_fn("effective_force_support", "reinf_support_pending",
-                "reinf_support_carry", env_data$pops$support)) %>%
+                env_data$pops$support)) %>%
     set_attribute("reinf_combat_fill", fill_fn("reinf_combat_demand")) %>%
     set_attribute("reinf_support_fill", fill_fn("reinf_support_demand")) %>%
     set_global("reinf_combat_pending", claim_fn("reinf_combat_pending", "reinf_combat_fill")) %>%
@@ -2775,15 +2823,17 @@ build_reinforcement_trajectory <- function() {
       env_data$vars$force_regeneration$reinforcement$fulfillment_lag_days * day_min
     }) %>%
     set_attribute("reinf_combat_absorbed",
-      absorbed_fn("effective_force_combat", "reinf_combat_carry",
-                  "reinf_combat_fill", env_data$pops$combat)) %>%
+      absorbed_fn("effective_force_combat", "reinf_combat_fill",
+                  env_data$pops$combat)) %>%
     set_attribute("reinf_support_absorbed",
-      absorbed_fn("effective_force_support", "reinf_support_carry",
-                  "reinf_support_fill", env_data$pops$support)) %>%
-    set_global("reinf_combat_carry",
-      carry_fn("reinf_combat_carry", "reinf_combat_fill", "reinf_combat_absorbed")) %>%
-    set_global("reinf_support_carry",
-      carry_fn("reinf_support_carry", "reinf_support_fill", "reinf_support_absorbed")) %>%
+      absorbed_fn("effective_force_support", "reinf_support_fill",
+                  env_data$pops$support)) %>%
+    set_global("reinf_combat_unabsorbed",
+      unabsorbed_fn("reinf_combat_unabsorbed", "reinf_combat_fill",
+                    "reinf_combat_absorbed")) %>%
+    set_global("reinf_support_unabsorbed",
+      unabsorbed_fn("reinf_support_unabsorbed", "reinf_support_fill",
+                    "reinf_support_absorbed")) %>%
     set_global("effective_force_combat",
       credit_fn("effective_force_combat", "reinf_combat_absorbed")) %>%
     set_global("effective_force_support",

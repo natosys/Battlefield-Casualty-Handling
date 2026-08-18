@@ -120,6 +120,12 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
       # independently re-claiming the same shortfall.
       add_global("reinf_combat_pending", 0) %>%
       add_global("reinf_support_pending", 0) %>%
+      # reinf_*_carry (Issue #207): reinforcement already delivered to a pool
+      # that had no room for it, held until room appears rather than
+      # discarded, and netted out of demand in the meantime so it is not
+      # requested twice.
+      add_global("reinf_combat_carry", 0) %>%
+      add_global("reinf_support_carry", 0) %>%
       add_generator("force_reinforcement", build_reinforcement_trajectory(),
                     at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
                     mon = 0)

@@ -435,6 +435,57 @@ r2e_stabilisation_minutes <- function() {
   total
 }
 
+# ── R2B holding evacuation threshold ──────────────────────────────────────────
+#
+# A casualty who needs no surgery convalesces in an R2B holding bed for a
+# duration drawn once, from r2b$holding. The optional evac_threshold caps how
+# long a forward bed may be tied up by one casualty: a casualty whose drawn
+# convalescence exceeds it is moved to R2E part-way through it rather than
+# recovering forward.
+#
+# The three functions below divide that single draw between the echelons, in
+# the manner r2b_stabilisation_minutes()/r2e_stabilisation_minutes() divide the
+# stabilisation requirement above. The convalescence a casualty needs follows
+# from their injury rather than from where they happen to be lying, so the
+# threshold decides where the time is served and not how much of it there is.
+# That is what makes the threshold a routing lever: the R2B holding load it
+# removes reappears as R2E holding load of the same size, and any change in
+# total system load is attributable to the routing rather than to a second,
+# unaccounted draw. scripts/check_lever_realisation.R asserts the conservation.
+
+#' The configured R2B holding evacuation threshold, in minutes
+#'
+#' @return The threshold, or NA when it is not configured (the shipped
+#'   default, `evac_threshold` being absent from `env_data.json`)
+r2b_hold_threshold <- function() {
+  thresh <- env_data$vars$r2b$holding$evac_threshold
+  if (is.null(thresh) || is.na(thresh)) return(NA_real_)
+  thresh
+}
+
+#' Minutes of a casualty's drawn convalescence served forward at R2B
+#'
+#' @return The lesser of the casualty's `r2b_hold_drawn` attribute and the
+#'   threshold. With no threshold configured the whole draw is served forward,
+#'   which is the shipped behaviour.
+r2b_hold_minutes <- function() {
+  drawn  <- get_attribute(env, "r2b_hold_drawn")
+  thresh <- r2b_hold_threshold()
+  if (is.na(thresh)) return(drawn)
+  min(drawn, thresh)
+}
+
+#' Minutes of the drawn convalescence remaining when the threshold evacuates
+#'
+#' @return What the draw leaves after the forward stay, which is zero for a
+#'   casualty who recovers forward and returns to duty from R2B. A positive
+#'   value both selects the evacuation branch and becomes the casualty's
+#'   `recovery_to_duty_days` at R2E (`draw_recovery_to_duty()`, below), so the
+#'   remainder is served rather than redrawn.
+r2b_hold_residual_minutes <- function() {
+  max(0, get_attribute(env, "r2b_hold_drawn") - r2b_hold_minutes())
+}
+
 # ── Role 1 trajectories ───────────────────────────────────────────────────────
 
 #' Simulates mortuary treatment pathway for KIA casualties at Role 1
@@ -1143,9 +1194,11 @@ r2b_treat_wia <- function(team_id) {
       #            Cap = floor(R2B_beds / (R2B_beds + R2E_beds) * R2B_beds)
       #            With 10 R2B and 30 R2E beds: cap = floor(10/40 * 10) = 2 patients
       #
-      # When env_data$vars$r2b$holding$evac_threshold is set (minutes), patients
-      # in branches 2a and 2c whose drawn hold duration exceeds the threshold are
-      # evacuated to R2E rather than returned to duty.
+      # When env_data$vars$r2b$holding$evac_threshold is set (minutes),
+      # casualties in branches 2a and 2c whose drawn hold duration exceeds the
+      # threshold are evacuated to R2E rather than returned to duty, carrying
+      # the unserved remainder of that draw with them as their R2E
+      # convalescence (r2b_hold_residual_minutes(), above).
       trajectory("R2B No Surgery") %>%
         branch(
           option = function() {
@@ -1185,24 +1238,26 @@ r2b_treat_wia <- function(team_id) {
                 c = env_data$vars$r2b$holding$mode
               )
             }) %>%
-            timeout(function() {
-              drawn  <- get_attribute(env, "r2b_hold_drawn")
-              thresh <- env_data$vars$r2b$holding$evac_threshold
-              if (!is.null(thresh) && !is.na(thresh)) min(drawn, thresh) else drawn
-            }) %>%
+            timeout(r2b_hold_minutes) %>%
             # Evac-threshold branch
-            # - drawn > threshold → release hold bed, transport to R2E (r2b_hold_evac = 1)
-            # - drawn <= threshold → return to duty (return_day set, leave)
+            # - residual > 0 → release hold bed, transport to R2E (r2b_hold_evac = 1),
+            #   carrying the unserved remainder of the draw forward
+            # - residual = 0 → return to duty (return_day set, leave)
             branch(
               option = function() {
-                drawn  <- get_attribute(env, "r2b_hold_drawn")
-                thresh <- env_data$vars$r2b$holding$evac_threshold
-                if (!is.null(thresh) && !is.na(thresh) && drawn > thresh) return(1)
+                if (r2b_hold_residual_minutes() > 0) return(1)
                 return(2)
               },
               continue = TRUE,
               trajectory("R2B Hold Threshold — Early Evac") %>%
                 set_attribute("r2b_hold_evac", 1) %>%
+                # Measured from the clock rather than restated from the
+                # threshold, so the conservation the residual asserts is
+                # checked against the bed time actually served.
+                set_attribute("r2b_hold_served", function() {
+                  now(env) - get_attribute(env, "r2b_hold_start")
+                }) %>%
+                set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
                 release_selected(id = 5) %>%
                 set_attribute("r2b_to_r2e", 1) %>%
                 set_attribute("r2e", function() select_r2e_team()) %>%
@@ -1246,21 +1301,22 @@ r2b_treat_wia <- function(team_id) {
                 c = env_data$vars$r2b$holding$mode
               )
             }) %>%
-            timeout(function() {
-              drawn  <- get_attribute(env, "r2b_hold_drawn")
-              thresh <- env_data$vars$r2b$holding$evac_threshold
-              if (!is.null(thresh) && !is.na(thresh)) min(drawn, thresh) else drawn
-            }) %>%
+            timeout(r2b_hold_minutes) %>%
             branch(
               option = function() {
-                drawn  <- get_attribute(env, "r2b_hold_drawn")
-                thresh <- env_data$vars$r2b$holding$evac_threshold
-                if (!is.null(thresh) && !is.na(thresh) && drawn > thresh) return(1)
+                if (r2b_hold_residual_minutes() > 0) return(1)
                 return(2)
               },
               continue = TRUE,
               trajectory("R2B Hold Queue Threshold — Early Evac") %>%
                 set_attribute("r2b_hold_evac", 1) %>%
+                # Measured from the clock rather than restated from the
+                # threshold, so the conservation the residual asserts is
+                # checked against the bed time actually served.
+                set_attribute("r2b_hold_served", function() {
+                  now(env) - get_attribute(env, "r2b_hold_start")
+                }) %>%
+                set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
                 release_selected(id = 5) %>%
                 set_attribute("r2b_to_r2e", 1) %>%
                 set_attribute("r2e", function() select_r2e_team()) %>%
@@ -1816,6 +1872,14 @@ r2e_treat_wia <- function(team_id) {
   # prognosis, its Role 4 ward and its AME route all follow from one
   # severity classification rather than from independent draws.
   draw_recovery_to_duty <- function() {
+    # A casualty moved here by the R2B holding evacuation threshold already
+    # drew their whole convalescence forward and served part of it there, so
+    # what remains is served rather than redrawn (r2b_hold_residual_minutes(),
+    # above). Redrawing would give the threshold an effect on total modelled
+    # convalescence, which is not what a routing lever is asked to change.
+    residual <- get_attribute(env, "r2b_hold_residual")
+    if (!is.na(residual) && residual > 0) return(residual / 1440)
+
     prio  <- get_attribute(env, "priority")
     itype <- get_attribute(env, "injury_type")
     surg  <- get_attribute(env, "r2b_surgery")
@@ -2625,16 +2689,30 @@ build_casualty_trajectory <- function() {
 #'       the full demand, an under-filled cycle's uncovered remainder is
 #'       never removed from view — it stays visible to the next demand
 #'       computation instead of being silently written off.
-#'     - credit_fn() clamps the credited value to `initial`
-#'       (min(initial, current + fill)) rather than adding the
-#'       submission-time fill unconditionally, so a pool can never be
-#'       credited above establishment strength regardless of how much the
-#'       live shortfall has moved during the fulfillment lag (e.g. RTD
-#'       credits landing on the same pool in the interim).
+#'     - A pool is never credited above establishment strength, whatever
+#'       the fill was and however far the live shortfall has moved during
+#'       the fulfillment lag (e.g. RTD credits landing on the same pool in
+#'       the interim). Only as much of the fill as there is room for is
+#'       absorbed on arrival.
+#'
+#'   Issue #207: what a cycle delivers beyond the room available is carried
+#'   rather than discarded. A fill fraction above 1 names a reinforcement
+#'   package larger than the shortfall it was requested against, and a
+#'   package that arrives has arrived whether or not its pool can absorb it
+#'   all at once, so the excess is held in a per-pool "carry" global
+#'   (reinf_*_carry, R/replication.R) and absorbed as room appears. carry
+#'   is netted out of demand_fn() alongside pending, so a pool holding
+#'   uncommitted reinforcement does not request it a second time; it can
+#'   therefore only shrink once demand stops, and cannot accumulate without
+#'   bound. Discarding the excess instead would have made fill_max_frac
+#'   name an over-delivery the model could never apply, and would have made
+#'   the realised mean fill fraction lower than the configured
+#'   distribution's own mean by an amount nothing reported.
 build_reinforcement_trajectory <- function() {
-  demand_fn <- function(pool_global, pending_global, initial) {
+  demand_fn <- function(pool_global, pending_global, carry_global, initial) {
     function() {
-      max(0, initial - get_global(env, pool_global) - get_global(env, pending_global))
+      max(0, initial - get_global(env, pool_global) -
+             get_global(env, pending_global) - get_global(env, carry_global))
     }
   }
 
@@ -2660,15 +2738,35 @@ build_reinforcement_trajectory <- function() {
     function() get_global(env, pending_global) - get_attribute(env, fill_attr)
   }
 
-  credit_fn <- function(pool_global, fill_attr, initial) {
-    function() min(initial, get_global(env, pool_global) + get_attribute(env, fill_attr))
+  # How much of what has arrived — this cycle's fill plus anything carried
+  # from an earlier one — the pool has room for. Resolved into an attribute
+  # before either global moves, so the credit and the carry that follow are
+  # computed against the same pre-credit state rather than against each other.
+  absorbed_fn <- function(pool_global, carry_global, fill_attr, initial) {
+    function() {
+      room <- max(0, initial - get_global(env, pool_global))
+      min(room, get_global(env, carry_global) + get_attribute(env, fill_attr))
+    }
+  }
+
+  credit_fn <- function(pool_global, absorbed_attr) {
+    function() get_global(env, pool_global) + get_attribute(env, absorbed_attr)
+  }
+
+  carry_fn <- function(carry_global, fill_attr, absorbed_attr) {
+    function() {
+      max(0, get_global(env, carry_global) + get_attribute(env, fill_attr) -
+             get_attribute(env, absorbed_attr))
+    }
   }
 
   trajectory("Force Reinforcement") %>%
     set_attribute("reinf_combat_demand",
-      demand_fn("effective_force_combat", "reinf_combat_pending", env_data$pops$combat)) %>%
+      demand_fn("effective_force_combat", "reinf_combat_pending",
+                "reinf_combat_carry", env_data$pops$combat)) %>%
     set_attribute("reinf_support_demand",
-      demand_fn("effective_force_support", "reinf_support_pending", env_data$pops$support)) %>%
+      demand_fn("effective_force_support", "reinf_support_pending",
+                "reinf_support_carry", env_data$pops$support)) %>%
     set_attribute("reinf_combat_fill", fill_fn("reinf_combat_demand")) %>%
     set_attribute("reinf_support_fill", fill_fn("reinf_support_demand")) %>%
     set_global("reinf_combat_pending", claim_fn("reinf_combat_pending", "reinf_combat_fill")) %>%
@@ -2676,10 +2774,20 @@ build_reinforcement_trajectory <- function() {
     timeout(function() {
       env_data$vars$force_regeneration$reinforcement$fulfillment_lag_days * day_min
     }) %>%
+    set_attribute("reinf_combat_absorbed",
+      absorbed_fn("effective_force_combat", "reinf_combat_carry",
+                  "reinf_combat_fill", env_data$pops$combat)) %>%
+    set_attribute("reinf_support_absorbed",
+      absorbed_fn("effective_force_support", "reinf_support_carry",
+                  "reinf_support_fill", env_data$pops$support)) %>%
+    set_global("reinf_combat_carry",
+      carry_fn("reinf_combat_carry", "reinf_combat_fill", "reinf_combat_absorbed")) %>%
+    set_global("reinf_support_carry",
+      carry_fn("reinf_support_carry", "reinf_support_fill", "reinf_support_absorbed")) %>%
     set_global("effective_force_combat",
-      credit_fn("effective_force_combat", "reinf_combat_fill", env_data$pops$combat)) %>%
+      credit_fn("effective_force_combat", "reinf_combat_absorbed")) %>%
     set_global("effective_force_support",
-      credit_fn("effective_force_support", "reinf_support_fill", env_data$pops$support)) %>%
+      credit_fn("effective_force_support", "reinf_support_absorbed")) %>%
     set_global("reinf_combat_pending", release_fn("reinf_combat_pending", "reinf_combat_fill")) %>%
     set_global("reinf_support_pending", release_fn("reinf_support_pending", "reinf_support_fill"))
 }

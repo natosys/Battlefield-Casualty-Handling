@@ -257,9 +257,9 @@ resolve_ame_airframe <- function(role4_params) {
 # than averaged away. scripts/check_arrival_rate_fidelity.R asserts both.
 #
 # P_max is the pool's establishment strength, which bounds F for the whole run:
-# every casualty debits the pool, and the reinforcement credit is clamped at
-# establishment strength (`credit_fn()`, R/trajectories.R), so nothing can
-# carry it above the value it starts at.
+# every casualty debits the pool, and a reinforcement cycle credits only as
+# much as the pool has room for (`absorbed_fn()`, R/trajectories.R), so
+# nothing can carry it above the value it starts at.
 
 #' Builds the thinning arrival closure shared by both generator families
 #'

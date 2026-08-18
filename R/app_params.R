@@ -425,7 +425,7 @@ build_param_registry <- function() {
               "Fill Distribution — Mode (fraction of demand)", "Most likely fraction of a submitted demand delivered. Typically set near but below 1, since under-fill is more likely than over-fill.",
               type = "numeric", min = 0, max = 1.5, step = 0.05, morris_name = "fr_fill_mode_frac", source = SRC_FORCE_REGEN, slider = TRUE),
     var_field("force_regen_fill_max", GRP_FORCE, "Reinforcement Demand & Fulfillment", "force_regeneration", "reinforcement", "fill_max_frac",
-              "Fill Distribution — Maximum (fraction of demand)", "Upper bound on the fraction delivered — kept close to 1, so over-supply is possible but limited.",
+              "Fill Distribution — Maximum (fraction of demand)", "Upper bound on the fraction delivered — kept close to 1, so over-supply is possible but limited. A package larger than the shortfall it was requested against is absorbed over more than one cycle rather than discarded.",
               type = "numeric", min = 1, max = 2, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE)
   ))
 

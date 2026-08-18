@@ -15,14 +15,14 @@
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
 #
-# morris_params (R/sensitivity.R) covers 64 parameters; r=20 at this
-# parameter count is r*(p+1) = 1,300 design points x 5 reps = 6,500
+# morris_params (R/sensitivity.R) covers 65 parameters; r=20 at this
+# parameter count is r*(p+1) = 1,320 design points x 5 reps = 6,600
 # simulation runs, impractical outside a long-lived compute session. --r 5
 # was used for the Issue #112 re-run documented in the README (280 design
 # points x 5 reps = 1,400 runs, ~20s/run on 4 cores); scale --r up when a
 # longer session is available.
 #
-# The last six of the 64 are the balance coordinates of the three
+# The last six of the 65 are the balance coordinates of the three
 # simplex-constrained composition groups (Issue #158). --sobol samples any
 # selected group's composition from a Dirichlet centred on its baseline
 # rather than drawing its coordinates independently; --no-dirichlet reverts

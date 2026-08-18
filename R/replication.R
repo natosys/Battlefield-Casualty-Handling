@@ -66,15 +66,24 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
   kia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
 
+  # Reinforcement can carry a pool above establishment strength (Issue #207),
+  # and the thinning sampler's dominating rate has to bound the force size for
+  # the whole run. Both pools' bounds are resolved once, here, so every stream
+  # drawing on the same pool samples against the same bound. With reinforcement
+  # disabled, the shipped default, each returns its own establishment strength
+  # and the streams sample exactly as they did before.
+  bound_combat  <- reinforcement_force_bound(env_data$pops$combat)
+  bound_support <- reinforcement_force_bound(env_data$pops$support)
+
   wia_cbt_gen <- wrap_with_mass_casualty(
     generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
-                               "effective_force_combat", env_data$pops$combat, n_days),
+                               "effective_force_combat", bound_combat, n_days),
     mass_casualty$arrival_times, mass_casualty$casualty_event_id,
     id_sink = "wia_cbt_mass_casualty_event_id")
 
   kia_cbt_gen <- wrap_with_mass_casualty(
     generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
-                               "effective_force_combat", env_data$pops$combat, n_days),
+                               "effective_force_combat", bound_combat, n_days),
     mass_casualty$kia_arrival_times, mass_casualty$kia_casualty_event_id,
     id_sink = "kia_cbt_mass_casualty_event_id")
 
@@ -85,16 +94,16 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
     add_generator("kia_cbt",  casualty, kia_cbt_gen, mon = 2) %>%
     add_generator("dnbi_cbt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_cbt,
-                    "effective_force_combat", env_data$pops$combat, n_days), mon = 2) %>%
+                    "effective_force_combat", bound_combat, n_days), mon = 2) %>%
     add_generator("wia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$wia_spt,
-                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
+                    "effective_force_support", bound_support, n_days), mon = 2) %>%
     add_generator("kia_spt",  casualty,
                   generate_casualty_arrivals(env_data$vars$generators$kia_spt,
-                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
+                    "effective_force_support", bound_support, n_days), mon = 2) %>%
     add_generator("dnbi_spt", casualty,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
-                    "effective_force_support", env_data$pops$support, n_days), mon = 2) %>%
+                    "effective_force_support", bound_support, n_days), mon = 2) %>%
     add_global("evac_wait_count", 0)
 
   # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when
@@ -120,14 +129,6 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
       # independently re-claiming the same shortfall.
       add_global("reinf_combat_pending", 0) %>%
       add_global("reinf_support_pending", 0) %>%
-      # reinf_*_unabsorbed (Issue #207): running count of reinforcement
-      # delivered into a pool with no room left for it, which arises when
-      # return-to-duty credits refill the pool during the fulfillment lag.
-      # Reinforcement joins the population on arrival and the model has no
-      # way to hold it anywhere else, so this is where it leaves the
-      # accounting — counted rather than discarded silently.
-      add_global("reinf_combat_unabsorbed", 0) %>%
-      add_global("reinf_support_unabsorbed", 0) %>%
       add_generator("force_reinforcement", build_reinforcement_trajectory(),
                     at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
                     mon = 0)

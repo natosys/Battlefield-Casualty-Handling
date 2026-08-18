@@ -256,10 +256,49 @@ resolve_ame_airframe <- function(role4_params) {
 # between-day standard deviation is honoured on top of the Poisson term rather
 # than averaged away. scripts/check_arrival_rate_fidelity.R asserts both.
 #
-# P_max is the pool's establishment strength, which bounds F for the whole run:
-# every casualty debits the pool, and a reinforcement cycle credits only as
-# much as the pool has room for (`absorbed_fn()`, R/trajectories.R), so
-# nothing can carry it above the value it starts at.
+# P_max has to bound F for the whole run, or the acceptance probability
+# saturates at 1 and the stream generates at the dominating rate instead of the
+# true one. With reinforcement disabled, the shipped default, establishment
+# strength is that bound: every casualty debits the pool and every return to
+# duty credits back a casualty already debited, so nothing can carry F above
+# the value it starts at. Reinforcement can, a package larger than the
+# shortfall it was requested against leaving the pool over strength, so an
+# enabled configuration needs a wider bound: reinforcement_force_bound()
+# computes it below.
+
+#' The largest force size a reinforcement configuration can produce
+#'
+#' @param initial Establishment strength of the pool
+#' @return An upper bound on the pool's effective force size for the whole run
+#'
+#' @details A cycle's demand is the shortfall floored at zero, net of what
+#'   earlier still-pending cycles have claimed, so the demands in flight at any
+#'   moment sum to at most `initial` and the fill they deliver to at most
+#'   `fill_max_frac x initial`. An over-strength pool has zero shortfall and so
+#'   requests nothing, which is what stops surpluses accumulating across
+#'   cycles. The worst case is therefore one delivery landing on a pool that has
+#'   recovered to full strength in the meantime, giving
+#'   `initial x (1 + fill_max_frac)`.
+#'
+#'   This is a guaranteed bound rather than a realised one, which is what
+#'   thinning needs: the dominating rate has to dominate everywhere, not
+#'   usually. Widening it costs proposal draws in proportion, since a day
+#'   proposes `X * P_max / 1000` candidates and rejects the ones the live force
+#'   size does not support. That cost falls only on runs that enable
+#'   reinforcement; a disabled configuration returns `initial` unchanged and
+#'   samples exactly as it did before.
+reinforcement_force_bound <- function(initial) {
+  reinf <- env_data$vars$force_regeneration$reinforcement
+  if (is.null(reinf) || is.null(reinf$demand_interval_days) ||
+      is.na(reinf$demand_interval_days) || reinf$demand_interval_days <= 0) {
+    return(initial)
+  }
+
+  fill_max <- reinf$fill_max_frac
+  if (is.null(fill_max) || is.na(fill_max) || fill_max <= 1) return(initial)
+
+  ceiling(initial * (1 + fill_max))
+}
 
 #' Builds the thinning arrival closure shared by both generator families
 #'
@@ -267,8 +306,8 @@ resolve_ame_airframe <- function(role4_params) {
 #'   casualties per day per 1,000 personnel
 #' @param force_global Name of the simmer global holding the current effective
 #'   force size for this stream's population pool
-#' @param force_bound Establishment strength of that pool, the upper bound on
-#'   the force size and so the dominating rate's population term
+#' @param force_bound Upper bound on that pool's force size for the whole run,
+#'   and so the dominating rate's population term (reinforcement_force_bound())
 #' @param n_days Duration in days
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument: returns the next interarrival gap (simulation
@@ -345,7 +384,7 @@ make_thinned_arrival_generator <- function(draw_daily_rate, force_global,
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool (e.g.
 #'   "effective_force_combat")
-#' @param force_bound Establishment strength of that pool
+#' @param force_bound Upper bound on that pool's force size for the whole run
 #' @param n_days Duration in days
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument: returns the next interarrival gap (simulation
@@ -377,7 +416,7 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
 #'   parameter for a single-parameter exponential distribution.
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool
-#' @param force_bound Establishment strength of that pool
+#' @param force_bound Upper bound on that pool's force size for the whole run
 #' @param n_days Duration in days
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument (see make_ln_arrival_generator())
@@ -404,7 +443,7 @@ make_exp_arrival_generator <- function(mean_daily, force_global, force_bound,
 #'   field selects "lognormal" (default, if absent) or "exponential"
 #' @param force_global Name of the simmer global holding the current
 #'   effective force size for this stream's population pool
-#' @param force_bound Establishment strength of that pool
+#' @param force_bound Upper bound on that pool's force size for the whole run
 #' @param n_days Duration in days
 #' @return A zero-argument distribution function (see
 #'   make_ln_arrival_generator())

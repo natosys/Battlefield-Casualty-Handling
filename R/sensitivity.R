@@ -1505,26 +1505,39 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   # with (near-)zero variance across the design (e.g. transport_q when none
   # of top_params affect transport occupancy — see Issue #6 PR discussion).
   # Wrapped per-KPI so one degenerate response doesn't discard the rest.
+  # sensitivity::tell() does not return the told object. It ends in
+  # assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
+  # writes the populated object back over the variable it was handed *in the
+  # frame it was called from*. Called inside a wrapper that means the wrapper's
+  # own local, leaving the caller's object untouched with S/T still empty —
+  # which is why this must return `sb` after the call and the caller must
+  # assign the result back, rather than relying on tell()'s side effect.
   tell_safe <- function(sb, y, kpi_name) {
     tryCatch({
       tell(sb, y)
-      TRUE
+      sb
     }, error = function(e) {
       warning(sprintf(
         "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
         kpi_name, "top_params may not include a parameter that moves this KPI",
         conditionMessage(e)
       ))
-      FALSE
+      NULL
     })
   }
 
+  sb_r2b   <- tell_safe(sb_r2b,   Y_all[, "r2b_ot_q"],       "r2b_ot_q")
+  sb_r2e   <- tell_safe(sb_r2e,   Y_all[, "r2e_ot_q"],       "r2e_ot_q")
+  sb_sys   <- tell_safe(sb_sys,   Y_all[, "system_ot_q"],    "system_ot_q")
+  sb_tq    <- tell_safe(sb_tq,    Y_all[, "transport_q"],    "transport_q")
+  sb_tutil <- tell_safe(sb_tutil, Y_all[, "transport_util"], "transport_util")
+
   sobol_ok <- c(
-    r2b_ot_q       = tell_safe(sb_r2b,   Y_all[, "r2b_ot_q"],       "r2b_ot_q"),
-    r2e_ot_q       = tell_safe(sb_r2e,   Y_all[, "r2e_ot_q"],       "r2e_ot_q"),
-    system_ot_q    = tell_safe(sb_sys,   Y_all[, "system_ot_q"],    "system_ot_q"),
-    transport_q    = tell_safe(sb_tq,    Y_all[, "transport_q"],    "transport_q"),
-    transport_util = tell_safe(sb_tutil, Y_all[, "transport_util"], "transport_util")
+    r2b_ot_q       = !is.null(sb_r2b),
+    r2e_ot_q       = !is.null(sb_r2e),
+    system_ot_q    = !is.null(sb_sys),
+    transport_q    = !is.null(sb_tq),
+    transport_util = !is.null(sb_tutil)
   )
 
   # Even when tell() does not throw, boot.ci() can silently fail for an

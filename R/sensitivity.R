@@ -1386,6 +1386,45 @@ rdirichlet_coords <- function(n, g) {
   t(apply(draws, 1, ilr3))
 }
 
+# The Sobol cache is one append-only CSV rather than a file per design point,
+# so the whole cache is a single small artifact that can be checkpointed
+# somewhere durable while a multi-hour decomposition runs. Columns are the
+# design point index followed by the five responses, in the order run_sobol()
+# assembles them.
+CACHE_COLS <- c("i", "r2b_ot_q", "r2e_ot_q", "system_ot_q",
+                "transport_q", "transport_util")
+
+#' Read one design point's cached response vector
+#'
+#' @param path Cache CSV path.
+#' @param i Design point index.
+#' @return Named numeric of the five responses, or NULL when the point is not
+#'   cached or its row is incomplete.
+cache_lookup <- function(path, i) {
+  tab <- tryCatch(utils::read.csv(path, stringsAsFactors = FALSE),
+                  error = function(e) NULL)
+  if (is.null(tab) || !all(CACHE_COLS %in% names(tab))) return(NULL)
+  hit <- tab[tab$i == i, , drop = FALSE]
+  if (nrow(hit) == 0L) return(NULL)
+  out <- as.numeric(hit[1L, CACHE_COLS[-1L]])
+  if (anyNA(out)) return(NULL)
+  stats::setNames(out, CACHE_COLS[-1L])
+}
+
+#' Append one design point's response vector to the cache
+#'
+#' @param path Cache CSV path.
+#' @param i Design point index.
+#' @param res Named numeric of the five responses.
+#' @return Invisibly NULL; called for the write.
+cache_append <- function(path, i, res) {
+  row <- as.data.frame(c(list(i = i), as.list(res)))
+  utils::write.table(row, path, sep = ",", row.names = FALSE,
+                     col.names = !file.exists(path), append = file.exists(path))
+  invisible(NULL)
+}
+
+
 #' Run Sobol variance decomposition on a selected parameter subset
 #'
 #' @param top_params  Character vector of parameter names from morris_params$name
@@ -1405,12 +1444,11 @@ rdirichlet_coords <- function(n, g) {
 #'   finishes evaluating (see run_morris()'s equivalent parameter). NULL
 #'   (default) disables this and preserves prior behaviour.
 #' @param cache_dir Optional directory path; when supplied, each design
-#'   point's response vector is written there as it completes and read back
-#'   on a later call, so an interrupted production run resumes instead of
-#'   restarting. The design is a deterministic function of the seed, so the
-#'   directory must be cleared whenever the seed, the selected parameters or
-#'   their bounds change, or the cache would be read against a design it does
-#'   not belong to.
+#'   point's responses are appended to points.csv there as it completes and
+#'   read back on a later call, so an interrupted production run resumes
+#'   instead of restarting. Clear it whenever the seed, the selected
+#'   parameters or their bounds change, or the cache would be read against
+#'   a design it does not belong to.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point (see run_morris()'s equivalent parameter). NULL preserves
 #'   prior behaviour.
@@ -1476,22 +1514,20 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   full_params <- setNames(morris_params$mode, morris_params$name)
 
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
 
   Y_all <- t(vapply(seq_len(nrow(sb_r2b$X)), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one
     # long-lived process, hours of compute that a lost process discards
-    # entirely. When cache_dir is supplied each point's response vector is
-    # written as it completes and read back on a later call, so an interrupted
-    # run resumes where it stopped rather than starting over. The design is a
-    # deterministic function of the seed, so a cached point belongs to the same
-    # design as the one being resumed provided the seed and bounds are
-    # unchanged; cache_dir must therefore be cleared when either changes.
-    cache_file <- if (!is.null(cache_dir)) {
-      file.path(cache_dir, sprintf("point_%04d.rds", i))
-    } else NULL
+    # entirely. With cache_dir each point's responses are written as it
+    # completes and read back on a later call, so an interrupted run resumes.
+    # The design is a deterministic function of the seed, so a cached point
+    # belongs to the run being resumed only while the seed, the selected
+    # parameters and their bounds are unchanged; clear the cache when any of
+    # those move.
     if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- tryCatch(readRDS(cache_file), error = function(e) NULL)
-      if (is.numeric(cached) && length(cached) == 5L) {
+      cached <- cache_lookup(cache_file, i)
+      if (!is.null(cached)) {
         message(sprintf("  Sobol point %d / %d (cached)", i, nrow(sb_r2b$X)))
         return(cached)
       }
@@ -1514,7 +1550,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
           transport_q = NA_real_, transport_util = NA_real_)
       }
     )
-    if (!is.null(cache_file) && !anyNA(res)) saveRDS(res, cache_file)
+    if (!is.null(cache_file) && !anyNA(res)) cache_append(cache_file, i, res)
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }

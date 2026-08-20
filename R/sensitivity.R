@@ -1144,6 +1144,12 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   Shiny app's main session) observe real "point M of N" progress. NULL
 #'   (default) disables this and preserves prior behaviour for existing
 #'   callers (scripts/run_sensitivity.R).
+#' @param cache_dir Optional directory path; when supplied, each design
+#'   point's responses are appended to points.csv there as it completes and
+#'   read back on a later call, so an interrupted screen resumes instead of
+#'   restarting. Clear it whenever the seed, r, the level count or the
+#'   parameter bounds change, or the cache would be read against a design it
+#'   does not belong to.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
@@ -1172,7 +1178,7 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
                        output_dir = "outputs", progress_dir = NULL, max_cores = NULL,
-                       images_dir = file.path(output_dir, "images")) {
+                       images_dir = file.path(output_dir, "images"), cache_dir = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(images_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -1196,7 +1202,25 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   message(sprintf("Evaluating %d design points...", nrow(sa$X)))
 
+  if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
+
   Y <- t(vapply(seq_len(nrow(sa$X)), function(i) {
+    # A production screen is r * (p + 1) design points in one long-lived
+    # process: at r = 20 over the current parameter set that is 1,320 points
+    # and some eleven hours, all of which a lost process previously discarded.
+    # With cache_dir each point's responses are written as it completes and
+    # read back on a later call, so an interrupted screen resumes. The design
+    # follows from the seed, so a cached point belongs to the screen being
+    # resumed only while the seed, r, the level count and the parameter bounds
+    # are unchanged; clear the cache when any of those move.
+    if (!is.null(cache_file) && file.exists(cache_file)) {
+      cached <- cache_lookup(cache_file, i, morris_kpis$name)
+      if (!is.null(cached)) {
+        message(sprintf("  Point %d / %d (cached)", i, nrow(sa$X)))
+        return(cached)
+      }
+    }
     message(sprintf("  Point %d / %d", i, nrow(sa$X)))
     kpis <- tryCatch(
       eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores),
@@ -1205,6 +1229,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
         setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
       }
     )
+    if (!is.null(cache_file) && !anyNA(kpis)) cache_append(cache_file, i, kpis)
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
@@ -1386,36 +1411,40 @@ rdirichlet_coords <- function(n, g) {
   t(apply(draws, 1, ilr3))
 }
 
-# The Sobol cache is one append-only CSV rather than a file per design point,
-# so the whole cache is a single small artifact that can be checkpointed
-# somewhere durable while a multi-hour decomposition runs. Columns are the
-# design point index followed by the five responses, in the order run_sobol()
-# assembles them.
-CACHE_COLS <- c("i", "r2b_ot_q", "r2e_ot_q", "system_ot_q",
-                "transport_q", "transport_util")
+# Both screens cache to one append-only CSV rather than a file per design
+# point, so the whole cache is a single small artifact that can be checkpointed
+# somewhere durable while a multi-hour sweep runs. The first column is the
+# design point index; the rest are that screen's responses, named as the screen
+# names them. Morris carries one column per entry in morris_kpis, Sobol the
+# five it decomposes, so the width is read from the file rather than assumed.
 
 #' Read one design point's cached response vector
 #'
 #' @param path Cache CSV path.
 #' @param i Design point index.
-#' @return Named numeric of the five responses, or NULL when the point is not
-#'   cached or its row is incomplete.
-cache_lookup <- function(path, i) {
+#' @param cols Optional response names to return, in order. Defaults to every
+#'   column of the file except the index, which is the order the screen wrote.
+#' @return Named numeric of the responses, or NULL when the point is absent,
+#'   the file is unreadable, or the row is incomplete. A miss is always safe:
+#'   the caller simply evaluates the point.
+cache_lookup <- function(path, i, cols = NULL) {
   tab <- tryCatch(utils::read.csv(path, stringsAsFactors = FALSE),
                   error = function(e) NULL)
-  if (is.null(tab) || !all(CACHE_COLS %in% names(tab))) return(NULL)
+  if (is.null(tab) || !("i" %in% names(tab))) return(NULL)
+  if (is.null(cols)) cols <- setdiff(names(tab), "i")
+  if (!all(cols %in% names(tab))) return(NULL)
   hit <- tab[tab$i == i, , drop = FALSE]
   if (nrow(hit) == 0L) return(NULL)
-  out <- as.numeric(hit[1L, CACHE_COLS[-1L]])
+  out <- as.numeric(hit[1L, cols])
   if (anyNA(out)) return(NULL)
-  stats::setNames(out, CACHE_COLS[-1L])
+  stats::setNames(out, cols)
 }
 
 #' Append one design point's response vector to the cache
 #'
 #' @param path Cache CSV path.
 #' @param i Design point index.
-#' @param res Named numeric of the five responses.
+#' @param res Named numeric of the responses.
 #' @return Invisibly NULL; called for the write.
 cache_append <- function(path, i, res) {
   row <- as.data.frame(c(list(i = i), as.list(res)))
@@ -1423,7 +1452,6 @@ cache_append <- function(path, i, res) {
                      col.names = !file.exists(path), append = file.exists(path))
   invisible(NULL)
 }
-
 
 #' Run Sobol variance decomposition on a selected parameter subset
 #'

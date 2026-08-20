@@ -77,6 +77,15 @@ option_list <- list(
                 "ordinary run from scattering untracked files through the",
                 "tracked images/ directory (Issue #154's contract)."
               )),
+  make_option("--cache-dir",  type = "character", default = NULL,
+              help = paste(
+                "Directory for the design point cache. When supplied, each",
+                "point's responses are written as it completes and read back on",
+                "a later run, so an interrupted screen resumes rather than",
+                "restarting - the difference between losing and keeping hours of",
+                "compute on a long production sweep. Clear it whenever the seed,",
+                "r, the level count or the parameter bounds change [default: none]."
+              )),
   make_option("--max-cores",  type = "integer", default = NULL,
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
@@ -121,7 +130,12 @@ morris_result <- run_morris(
   output_dir = opt[["output-dir"]],
   images_dir = if (is.null(opt[["images-dir"]])) file.path(opt[["output-dir"]], "images")
                else opt[["images-dir"]],
-  max_cores  = opt[["max-cores"]]
+  max_cores  = opt[["max-cores"]],
+  # The two screens carry different response sets, so they never share a cache
+  # directory: a Morris row and a Sobol row are both "point i" but mean
+  # different things. Each gets its own subdirectory under --cache-dir.
+  cache_dir  = if (is.null(opt[["cache-dir"]])) NULL
+               else file.path(opt[["cache-dir"]], "morris")
 )
 
 # A design point at which *every* response is NA is a failed evaluation. A
@@ -182,7 +196,9 @@ if (opt$sobol) {
     n_rep       = opt$reps,
     n_sobol     = opt[["n-sobol"]],
     output_dir  = opt[["output-dir"]],
-    dirichlet   = !opt[["no-dirichlet"]]
+    dirichlet   = !opt[["no-dirichlet"]],
+    cache_dir   = if (is.null(opt[["cache-dir"]])) NULL
+                  else file.path(opt[["cache-dir"]], "sobol")
   )
 }
 

@@ -1045,7 +1045,8 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/scenario.R`                     | Scenario overlay mechanism: `resolve_scenario()` applies a named profile's overrides, and `merge_scenario_vars()` merges them variable by variable onto the base configuration. The profiles themselves are defined in `env_data.json`, not here |
 | `R/scenario_runner.R`              | Comparative scenario runner; `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
 | `app.R`                            | Shiny console with Getting Started, Configure, Run, and Analyse tabs (see [Shiny Application](#shiny-application) below) |
-| `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis, with `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol`, and `--no-dirichlet` flags |
+| `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis, with `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol`, `--no-dirichlet` and `--cache-dir` flags |
+| `scripts/screen_cache.sh`          | Checkpoints a screen's point cache onto its own git ref and restores it, so a multi-hour Morris or Sobol screen survives a host that reclaims its filesystem |
 | `scripts/run_warmup.R`             | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R`          | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
 | `scripts/run_transport_sweep.R`    | CLI entry point for the transport fleet-size sweep (see [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) |

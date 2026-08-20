@@ -1229,7 +1229,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
         setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
       }
     )
-    if (!is.null(cache_file) && !anyNA(kpis)) cache_append(cache_file, i, kpis)
+    if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
@@ -1436,7 +1436,11 @@ cache_lookup <- function(path, i, cols = NULL) {
   hit <- tab[tab$i == i, , drop = FALSE]
   if (nrow(hit) == 0L) return(NULL)
   out <- as.numeric(hit[1L, cols])
-  if (anyNA(out)) return(NULL)
+  # An individual response can be legitimately NA -- a KPI undefined for a
+  # design point that produced no casualties at that echelon, or a response
+  # degenerate across the whole design. Only a row that is NA throughout is
+  # treated as absent, which is also what an interrupted write leaves behind.
+  if (all(is.na(out))) return(NULL)
   stats::setNames(out, cols)
 }
 
@@ -1578,7 +1582,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
           transport_q = NA_real_, transport_util = NA_real_)
       }
     )
-    if (!is.null(cache_file) && !anyNA(res)) cache_append(cache_file, i, res)
+    if (!is.null(cache_file) && !all(is.na(res))) cache_append(cache_file, i, res)
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }

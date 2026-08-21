@@ -1047,6 +1047,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `app.R`                            | Shiny console with Getting Started, Configure, Run, and Analyse tabs (see [Shiny Application](#shiny-application) below) |
 | `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis, with `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol`, `--no-dirichlet` and `--cache-dir` flags |
 | `scripts/screen_cache.sh`          | Checkpoints a screen's point cache onto its own git ref and restores it, so a multi-hour Morris or Sobol screen survives a host that reclaims its filesystem |
+| `scripts/supervise_screen.sh`      | Drives a long screen to completion across host failures: restores the cache before each attempt, restarts the screen until it prints its completion marker, and checkpoints while it runs |
 | `scripts/run_warmup.R`             | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R`          | CLI entry point for the comparative scenario runner (see [Comparative Scenario Runner](#comparative-scenario-runner)) |
 | `scripts/run_transport_sweep.R`    | CLI entry point for the transport fleet-size sweep (see [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)) |

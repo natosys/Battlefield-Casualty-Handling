@@ -121,10 +121,61 @@ realisations once the arrival process carried real variance. `run_sobol()`
 could never return indices, `sensitivity::tell()` assigning its result into the
 frame it is called from and so populating only a wrapper local.
 
-The Morris screen is rebuilt at the full sixty-five parameters, and answers the
-question Issue #158 was raised to ask: `triage_p1_balance` ranks **first of
-sixty-five**, above both Priority 1 conditional rates defined on the share it
-governs (`pri1_surg_prob` 3, `pri1_evac_prob` 6).
+The Morris screen is rebuilt at the full sixty-five parameters and at r = 20
+trajectories, and answers the question Issue #158 was raised to ask against the
+hypothesis that prompted it. `triage_p1_balance` ranks **nineteenth of
+sixty-five** at µ* = 3.16, below both Priority 1 conditional rates defined on
+the share it governs (`pri1_surg_prob` at 2, `pri1_evac_prob` at 13), so how
+many casualties are classified Priority 1 matters less to surgical bottleneck
+severity than what happens to one once classified. An interim screen at r = 5
+put it first at µ* = 8.63, and that did not survive the quadrupled trajectory
+count: it carried the largest σ in that table at 10.69, a standard error of
+±4.78 on its own µ*, so the rank was never separable from noise. Four
+paragraphs of ranking commentary that still described the r = 5,
+fifty-three-parameter screen were corrected against the r = 20 table at the
+same time.
+
+The variance decomposition was then interrogated rather than published as it
+stood, and three scripts were added to do it, each recomputing from responses
+already cached and costing no further simulation.
+`scripts/compare_sobol_estimators.R` recomputes the same design under the
+Jansen and Martinez pick-freeze estimators alongside the reported Saltelli one,
+which share an identical design; only the leading parameter holds its position
+across all three, and the two alternatives' apparent tidiness is construction
+rather than resolution, neither returning a total-order index at or below zero
+anywhere in the design. `scripts/test_sobol_separation.R` tests which orderings
+the sample supports by bootstrapping the design rather than the indices, so two
+indices computed from the same evaluations keep their correlation; the
+interval-overlap reading that preceded it demanded roughly three times the
+sample the correct test does. `scripts/measure_noise_floor.R` measures how much
+of the variance is replication noise, and finds 32.9% on the system OT queue at
+four replications per point, 62.9% on transport utilisation and 89.1% on the
+transport queue.
+
+That measurement changed the conclusion. Noise enters the variance the indices
+are shares of, so a larger design alone converges on indices roughly a third
+too low; the bias is set by the replication count per point, not by the number
+of points. The decomposition is therefore reported as establishing a leading
+pair and a negligible tail rather than a ranking, which is independently what
+the Morris screen concluded, with the second parameter separating from the
+third at P = 0.992 and the leading pair not separating from each other. The
+gap and its measured closure cost, roughly N = 800 at 8 to 12 replications,
+are recorded as a new Further Development entry L29, L18 having covered both
+screens' resolution in one entry despite their different causes.
+
+Two pieces of durability tooling ship with the work, having been built to
+survive the environment losses this refresh met repeatedly.
+`scripts/screen_cache.sh` checkpoints a screen's point cache onto its own git
+ref via plumbing, never touching the working tree, index or branch, and
+`scripts/supervise_screen.sh` drives a long screen to completion across
+failures, stopping on a caller-supplied completion marker rather than on exit
+status. `scripts/check_screen_cache.R` asserts the cache round-trip invariants,
+the write guard having once discarded any design point at which even one of
+thirty-six responses was legitimately undefined, so an interrupted screen made
+no progress across restarts and nothing in its output said so. Each screen now
+also writes a `*_run_metadata.csv` sidecar recording the design, the commit and
+the R version behind its results, and a Sobol result file carries a `flag`
+column marking an index outside the theoretical range.
 
 ---
 

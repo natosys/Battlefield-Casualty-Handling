@@ -1402,6 +1402,18 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   message("\nTop parameters by mu* (system OT queue):")
   print(ranking, digits = 4)
 
+  write_screen_metadata(output_dir, "morris", list(
+    r                    = r,
+    levels               = levels,
+    grid_jump            = 2,
+    n_params             = nrow(morris_params),
+    n_design_points      = nrow(sa$X),
+    n_rep                = n_rep,
+    n_days               = n_days,
+    cache_dir            = if (is.null(cache_dir)) "none" else cache_dir,
+    degenerate_responses = if (length(degenerates) == 0) "none" else degenerates
+  ))
+
   list(morris_objs = morris_objs, Y = Y, X = sa$X,
        ranking = ranking, rankings = rankings, kpis = morris_kpis)
 }
@@ -1449,6 +1461,40 @@ rdirichlet_coords <- function(n, g) {
   draws <- draws / rowSums(draws)
   t(apply(draws, 1, ilr3))
 }
+#' Write a sidecar describing the run that produced a screen's outputs
+#'
+#' A results file carries no record of the design behind it, which has already
+#' misled this project once: a Sobol decomposition was published whose selected
+#' parameters came from a screen later shown to be noise-dominated, and nothing
+#' in the output said so. This writes the design alongside the results, so a
+#' file found later can be attributed without reconstructing how it was made.
+#'
+#' @param output_dir Directory the screen writes its results to.
+#' @param screen Screen name, used in the filename ("morris" or "sobol").
+#' @param fields Named list of design fields to record.
+#' @return Invisibly the path written.
+write_screen_metadata <- function(output_dir, screen, fields) {
+  sha <- tryCatch(
+    sub("\\s+$", "", system2("git", c("rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE)),
+    error = function(e) NA_character_
+  )
+  meta <- c(
+    list(screen = screen,
+         run_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+         commit = if (length(sha) == 1L) sha else NA_character_,
+         r_version = paste0(R.version$major, ".", R.version$minor)),
+    lapply(fields, function(v) paste(v, collapse = "|"))
+  )
+  path <- file.path(output_dir, sprintf("%s_run_metadata.csv", screen))
+  utils::write.csv(
+    data.frame(field = names(meta), value = unlist(meta, use.names = FALSE),
+               stringsAsFactors = FALSE),
+    path, row.names = FALSE
+  )
+  message(sprintf("Run metadata written to %s", path))
+  invisible(path)
+}
+
 
 # Both screens cache to one append-only CSV rather than a file per design
 # point, so the whole cache is a single small artifact that can be checkpointed
@@ -1500,6 +1546,63 @@ cache_append <- function(path, i, res) {
   utils::write.table(row, path, sep = ",", row.names = FALSE,
                      col.names = !file.exists(path), append = file.exists(path))
   invisible(NULL)
+}
+
+#' Report how much of each response is replication noise rather than design signal
+#'
+#' A Sobol index is a share of the variance the design produces. Where a
+#' response's variation between replications at a fixed design point is
+#' comparable to its variation across the design, the estimator is resolving
+#' noise and its indices will be small, wide and frequently outside [0, 1].
+#' Nothing in the indices themselves says which case a reader is looking at,
+#' so the comparison is reported here from the per-point standard deviations
+#' the cache records.
+#'
+#' This is a diagnostic and nothing else: it is printed after the indices are
+#' computed and never used to select, weight or exclude a response. Screening
+#' on it would amount to choosing which results to publish after seeing them.
+#'
+#' @param cache_file Cache CSV path, or NULL when no cache was used.
+#' @param responses Character vector of response names.
+#' @param n_rep Replications per design point, used to scale the standard
+#'   deviation to a standard error.
+#' @return Invisibly a data frame of the per-response diagnostic, or NULL when
+#'   the cache carries no standard deviations.
+report_point_noise <- function(cache_file, responses, n_rep) {
+  if (is.null(cache_file) || !file.exists(cache_file)) return(invisible(NULL))
+  tab <- tryCatch(utils::read.csv(cache_file, stringsAsFactors = FALSE),
+                  error = function(e) NULL)
+  sd_cols <- paste0("sd_", responses)
+  if (is.null(tab) || !all(responses %in% names(tab)) ||
+      !any(sd_cols %in% names(tab))) {
+    return(invisible(NULL))
+  }
+
+  rows <- lapply(seq_along(responses), function(k) {
+    nm <- responses[k]
+    if (!(sd_cols[k] %in% names(tab))) return(NULL)
+    y  <- tab[[nm]]
+    sdv <- tab[[sd_cols[k]]]
+    keep <- is.finite(y) & is.finite(sdv)
+    if (sum(keep) < 2) return(NULL)
+    within  <- stats::median(sdv[keep]) / sqrt(n_rep)
+    between <- stats::sd(y[keep])
+    data.frame(
+      response       = nm,
+      n_points       = sum(keep),
+      within_point_se = within,
+      across_design_sd = between,
+      noise_ratio    = if (between > 0) within / between else NA_real_,
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, Filter(Negate(is.null), rows))
+  if (is.null(out)) return(invisible(NULL))
+
+  message("\nPer-response noise diagnostic (median within-point SE vs. across-design SD):")
+  print(out, digits = 3, row.names = FALSE)
+  message("A noise_ratio approaching 1 means the design moves the response no further than replication scatter does, and that response's indices should be read as unresolved rather than small.")
+  invisible(out)
 }
 
 #' Run Sobol variance decomposition on a selected parameter subset
@@ -1713,6 +1816,20 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
       ST_lower  = sb$T$`min. c.i.`,
       ST_upper  = sb$T$`max. c.i.`
     )
+    # A Sobol index is a variance share and so lies in [0, 1] with ST >= S1.
+    # The Monte Carlo estimators are unbiased but not range-constrained, so a
+    # parameter whose true index sits near zero routinely returns a value
+    # outside it. That is a statement about resolution, not about the model,
+    # and it is flagged here so a reader of the CSV sees it without having to
+    # check: an unflagged reader would take a negative S1 for a negative
+    # variance share.
+    results$flag <- vapply(seq_len(nrow(results)), function(k) {
+      f <- character(0)
+      if (isTRUE(results$ST[k] > 1))                 f <- c(f, "ST>1")
+      if (isTRUE(results$S1[k] < 0))                 f <- c(f, "S1<0")
+      if (isTRUE(results$S1[k] > results$ST[k]))     f <- c(f, "S1>ST")
+      if (length(f) == 0L) "ok" else paste(f, collapse = ";")
+    }, character(1))
     write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
               row.names = FALSE)
     message(sprintf("\nSobol indices for %s:", kpi_name))
@@ -1729,6 +1846,23 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
       if (!is.null(res)) saved[[kpi_name]] <- sb_objs[[kpi_name]]
     }
   }
+
+  report_point_noise(cache_file, SOBOL_RESPONSES, n_rep)
+
+  write_screen_metadata(output_dir, "sobol", list(
+    n_sobol          = n_sobol,
+    n_params         = nrow(p_def),
+    n_design_points  = nrow(sb_r2b$X),
+    n_rep            = n_rep,
+    n_days           = n_days,
+    estimator        = "sobol2007",
+    nboot            = nboot,
+    crn_seed         = if (is.null(crn_seed)) "none" else crn_seed,
+    dirichlet_groups = if (length(dirichlet_groups) == 0) "none" else dirichlet_groups,
+    parameters       = p_def$name,
+    cache_dir        = if (is.null(cache_dir)) "none" else cache_dir,
+    responses_told   = names(sobol_ok)[sobol_ok]
+  ))
 
   message("\nSobol complete.")
   saved

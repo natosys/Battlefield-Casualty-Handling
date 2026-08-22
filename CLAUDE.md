@@ -58,6 +58,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
 | `docs/STYLE_GUIDE.md` | R code style conventions — follow at all times |
 | `data/` | Read-only input data (arrival schedules) plus the tracked seed-42 diagnostic/event files (`arrivals_*.txt`, `mass_casualty_events.csv`) written by `R/environment.R`, rewritten only under `run.R --refresh-baseline` |
+| `data/sensitivity/` | Tracked sensitivity evidence set — the Morris r=20 and Sobol N=200 design point caches, the per-response rankings, the decompositions, the noise floor measurement, and the estimator and separation re-analyses; roughly nineteen hours of computation, kept because every published index and rank derives from it and it cannot be regenerated cheaply |
 | `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of baseline-affecting PRs via `run.R --refresh-baseline` |
 | `logs/` | Tracked seed-42 baseline console log (`logs.txt`), regenerated as part of baseline-affecting PRs via `run.R --refresh-baseline` |
 | `outputs/` | Gitignored destination for every ordinary run's artifacts: CSV/markdown outputs, plots (`outputs/images/`), console log, and arrival diagnostics (`outputs/data/`); tracked via `.gitkeep` only |

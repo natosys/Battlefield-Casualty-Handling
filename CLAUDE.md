@@ -31,6 +31,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner |
 | `scripts/screen_cache.sh` | Checkpoints a sensitivity screen's point cache onto its own git ref and restores it, so a multi-hour screen survives an environment that reclaims its filesystem mid-run |
 | `scripts/supervise_screen.sh` | Drives a long screen to completion across environment failures, restoring the cache before each attempt and checkpointing while the screen runs |
+| `scripts/compare_sobol_estimators.R` | Recomputes a completed Sobol decomposition's cached responses under the Jansen and Martinez pick-freeze estimators alongside the reported Saltelli one, which share the same design and so cost no further simulation, and reports whether the ordering and the separations survive the change of estimator |
 | `scripts/run_transport_sweep.R` | CLI entry point for the transport fleet-size sweep |
 | `scripts/run_icu_share_sweep.R` | CLI entry point for the forward ICU share (R2B post-operative stabilisation) sweep |
 | `scripts/shiny_worker.R` | Background worker sourced by `app.R` for async Quick Run / Full Analysis execution |

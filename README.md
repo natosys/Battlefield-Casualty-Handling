@@ -1438,7 +1438,7 @@ One further constraint applies whatever the width. A screened triangular mode mu
 
 These bounds are estimates, so confidence in them is moderate overall and lower for Rule B parameters. Bounds set too narrow understate a parameter's influence; bounds set too wide mix realistic values with unrealistic ones. Because the model responds non-linearly, the ranking can shift with the bounds chosen, though widening every bound would raise µ\* without reordering parameters if responses were monotonic.
 
-The screen runs at r = 5 Morris trajectories rather than the `--r` default of 20, giving 5 × (65 + 1) = 330 design points at five replications each, or 1,650 simulation runs. At r = 20 it would need 1,320 design points, four times the compute. A lower r makes each µ\*/σ estimate noisier without biasing it, since the Morris method [[46]](#references) is unbiased at any number of trajectories and only gains precision as more are added. The ranking below should therefore be read as indicating relative influence rather than an exact order.
+The screen runs at the `--r` default of 20 Morris trajectories, giving 20 × (65 + 1) = 1,320 design points at four replications each, or 5,280 simulation runs. The method [[46]](#references) is unbiased at any trajectory count and gains precision as trajectories are added, so a lower r is cheaper but noisier rather than wrong: the standard error of a parameter's µ\* is its σ divided by the square root of r. At r = 20 that is ±2.4 for the noisiest parameter in the table and under ±1 for most, which separates the influential group from the negligible tail but does not order parameters whose µ\* values sit within a standard error of each other. The ranking should be read as a grouping by influence rather than as an exact sequence.
 
 
 
@@ -1458,46 +1458,52 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Outputs are written to `outputs/morris_ranking_<response>.csv`, one ranking per response in the [Screening Response Set](#screening-response-set), each carrying the response's criteria mapping and its degeneracy diagnostics alongside the per-parameter µ\* and σ. `outputs/morris_ranking.csv` repeats the primary system OT queue ranking under its historical filename. Scatter plots are written per response to `outputs/images/morris_<response>.png`, which is gitignored; `--images-dir images` redirects them to the tracked baseline location, which is a deliberate act rather than a default, since a screen writes one plot per response and would otherwise scatter untracked files through a tracked directory. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`.
 
-**Current ranking.** The table below is `outputs/morris_ranking.csv` for the current sixty-five-parameter set, run at r = 5 with 5 replications over 30 days at seed 42 in the project's pinned Dev Container, ranked by µ\* on the system OT queue. Wall-clock time was 172 minutes on 4 cores. Every parameter in the screened set has a measured rank, the six composition balance coordinates included, and they are interleaved by µ\* rather than reported separately.
+**Current ranking.** The table below is `outputs/morris_ranking.csv` for the current sixty-five-parameter set, run at r = 20 trajectories with 4 replications over 30 days at seed 42 in the project's pinned Dev Container: 1,320 design points, some eleven hours on 4 cores. Every screened parameter carries a measured rank, the six composition balance coordinates included, interleaved by µ\* rather than reported separately. Four replications rather than the default five is a deliberate choice: five replications span two waves on four physical cores, leaving three idle in the second, so four costs 1.9 times less wall clock for about 12% more per-point noise, which is small against the between-trajectory variation that dominates a Morris estimate.
 
-The headline result is the comparison the balance coordinates were added to make. `triage_p1_balance`, which governs the Priority 1 share of the casualty mix, ranks **first of sixty-five**, above both of the Priority 1 conditional rates that are defined on that share: `pri1_surg_prob` at rank 3 and `pri1_evac_prob` at rank 6. How many casualties are classified Priority 1 therefore matters more to surgical bottleneck severity than either of the rates deciding what happens to a Priority 1 casualty once classified. It also carries the largest σ in the table, 10.69 against a µ\* of 8.63, so its effect is strongly nonlinear or interaction-dominated rather than a simple proportional response, which is what a parameter that rescales the population every downstream rate acts on should look like. The other two composition groups rank lower and split within themselves: `mc_p1_balance` at 15 and `mc_p2_p3_balance` at 27, `dnbi_disease_balance` at 20 and `dnbi_bf_nbi_balance` at 39, while `triage_p2_p3_balance` sits at 43. In each group the coordinate contrasting the leading part against the other two outranks the coordinate contrasting those two with each other, which is the expected ordering: the leading share moves the whole downstream load, the split beneath it redistributes within a fixed remainder.
+`mass_casualty_rate` leads by a wide margin at µ\* = 16.27, more than double the next parameter and the only one clearly separated from the field. `pri1_surg_prob` follows at 7.15 and `pri1_dcs_rate` at 6.50.
+
+The comparison the balance coordinates were added to make resolves against the hypothesis that prompted it. `triage_p1_balance`, which governs the Priority 1 share of the casualty mix, ranks **nineteenth of sixty-five** at µ\* = 3.16, below both Priority 1 conditional rates defined on that share: `pri1_surg_prob` at rank 2 and `pri1_evac_prob` at rank 13. How many casualties are classified Priority 1 therefore matters less to surgical bottleneck severity than what happens to one once classified. The other coordinates sit nearby, `mc_p2_p3_balance` at 17, `triage_p2_p3_balance` at 18, `dnbi_bf_nbi_balance` at 24, `mc_p1_balance` at 31 and `dnbi_disease_balance` at 34, so the three composition groups are mid-table influences rather than dominant ones.
+
+An earlier screen at r = 5 put `triage_p1_balance` first at µ\* = 8.63, and that result did not survive the quadrupled trajectory count. It carried the largest σ in that table, 10.69, giving a standard error of ±4.78 on a µ\* of 8.63: its rank was never separable from noise. This is the clearest illustration in the project of why the trajectory count matters, and why a rank should not be read as an ordering when the gaps between neighbours are smaller than their standard errors. Separating `triage_p1_balance` from `pri1_surg_prob` at r = 20 would need roughly 227 trajectories, and separating the top two from each other some 63,000, so the leading cluster is a group rather than a sequence.
+
+Two cautions on reading the table. It ranks one response, the system OT queue; a screening run writes a ranking for each of the thirty-six responses in the set, and no time-to-care, return-to-duty or strategic evacuation response is ranked here. And `r2b_ot_q` carries no usable variation across the design and is flagged degenerate in its own ranking file, which is the R2B theatre queue reading zero at every design point rather than a failure of the screen.
 
 Two cautions on reading the table. It is a ranking on one response, the system OT queue; a screening run writes a ranking for each of the thirty-six responses in the set, and no time-to-care, return-to-duty or strategic evacuation response is ranked here. And `r2b_ot_q` carried no usable variation across the design and is flagged degenerate in its own ranking file, µ\* and σ written as NA rather than zero, which is the R2B theatre queue reading zero at every design point rather than a failure of the screen. The five parameters at µ\* exactly zero, among them `r2e_dcs1_factor`, `r2e_dcs2_factor` and `r2b_icu_penalty`, are treatment efficacy multipliers that act on mortality rather than on queueing, so a queue-ranked screen is the wrong instrument for them and their own responses in the wider set are where they should be read.
 | Rank | Parameter | µ\* | σ | Rank | Parameter | µ\* | σ |
 | ---- | --------- | ---- | -- | ---- | --------- | ---- | -- |
-| 1 | `triage_p1_balance` | 8.6328 | 10.6920 | 34 | `r2b_icu_share` | 1.6321 | 2.5458 |
-| 2 | `mass_casualty_rate` | 8.5368 | 5.5550 | 35 | `short_resus_mode` | 1.4433 | 2.2714 |
-| 3 | `pri1_surg_prob` | 6.9288 | 7.0805 | 36 | `p1_k` | 1.3117 | 2.5452 |
-| 4 | `pri1_dcs_rate` | 5.8078 | 4.8230 | 37 | `pri3_dcs_rate` | 1.2591 | 2.8154 |
-| 5 | `long_resus_mode` | 4.9111 | 5.7310 | 38 | `dnbi_spt_mean` | 1.1710 | 1.1110 |
-| 6 | `pri1_evac_prob` | 4.8449 | 4.1403 | 39 | `dnbi_bf_nbi_balance` | 1.0584 | 1.6795 |
-| 7 | `mass_casualty_max_cas` | 4.5222 | 3.4361 | 40 | `pri2_surg_prob` | 1.0123 | 0.8602 |
-| 8 | `r2b_transport` | 3.8900 | 4.3842 | 41 | `r2b_hold_mode` | 1.0025 | 1.1870 |
-| 9 | `pri2_dcs_rate` | 3.7505 | 4.7897 | 42 | `stabilisation_icu_mode` | 0.9751 | 0.6383 |
-| 10 | `surg_mode` | 3.7188 | 3.7947 | 43 | `triage_p2_p3_balance` | 0.9576 | 1.3479 |
-| 11 | `post_op_hold_mode` | 3.5619 | 5.0024 | 44 | `p1_t_mid` | 0.9411 | 1.4789 |
-| 12 | `kia_spt_mean` | 3.4729 | 4.9129 | 45 | `p1_p_max` | 0.9123 | 1.3188 |
-| 13 | `mass_casualty_min_cas` | 3.4597 | 3.5947 | 46 | `r1_recovery_mode` | 0.8895 | 1.2300 |
-| 14 | `r2b_pre_open_window` | 3.4521 | 4.3627 | 47 | `r1_tccc_factor` | 0.8567 | 0.9286 |
-| 15 | `mc_p1_balance` | 3.4418 | 4.2858 | 48 | `pri3_other_surg_prob` | 0.8441 | 1.1607 |
-| 16 | `r2e_hold_mode` | 3.4057 | 4.3857 | 49 | `pri3_dnbi_surg_prob` | 0.3887 | 0.4065 |
-| 17 | `wia_cbt_mean` | 3.3885 | 5.5510 | 50 | `p2_p_max` | 0.3820 | 0.5278 |
-| 18 | `evacuation_policy_days` | 2.9462 | 2.3065 | 51 | `r2e_resus_factor` | 0.3663 | 0.5446 |
-| 19 | `dnbi_cbt_mean` | 2.4887 | 3.8355 | 52 | `r2b_dcs_factor` | 0.2817 | 0.6299 |
-| 20 | `dnbi_disease_balance` | 2.4826 | 3.3195 | 53 | `r2b_resus_factor` | 0.2178 | 0.4869 |
-| 21 | `ot_hours` | 2.4092 | 2.6867 | 54 | `ame_failure_probability` | 0.2044 | 0.4451 |
-| 22 | `r1_wia_treat_mode` | 2.1817 | 2.9809 | 55 | `r2b_forward_hold_max` | 0.1882 | 0.3117 |
-| 23 | `disease_surgery_pct` | 2.1251 | 2.6412 | 56 | `p2_t_mid` | 0.1806 | 0.3952 |
-| 24 | `pri2_evac_prob` | 2.0655 | 2.5064 | 57 | `p2_k` | 0.1636 | 0.2300 |
-| 25 | `kia_cbt_mean` | 2.0653 | 3.6476 | 58 | `r2e_postop_hold_penalty` | 0.0798 | 0.1785 |
-| 26 | `fr_demand_interval_days` | 1.9068 | 2.1176 | 59 | `fr_fill_mode_frac` | 0.0691 | 0.1323 |
-| 27 | `mc_p2_p3_balance` | 1.8862 | 3.4311 | 60 | `p1_p_base` | 0.0580 | 0.0966 |
-| 28 | `wia_spt_mean` | 1.8700 | 3.0655 | 61 | `p2_p_base` | 0.0000 | 0.0000 |
-| 29 | `fr_fulfillment_lag_days` | 1.7892 | 2.9395 | 62 | `p3_flat` | 0.0000 | 0.0000 |
-| 30 | `r2b_hold_threshold` | 1.7862 | 2.0227 | 63 | `r2e_dcs1_factor` | 0.0000 | 0.0000 |
-| 31 | `post_definitive_icu_mode` | 1.7789 | 2.7273 | 64 | `r2e_dcs2_factor` | 0.0000 | 0.0000 |
-| 32 | `r1_transport` | 1.7289 | 2.4225 | 65 | `r2b_icu_penalty` | 0.0000 | 0.0000 |
-| 33 | `ame_schedule_interval_days` | 1.7051 | 2.2287 |  |  |  |  |
+| 1 | `mass_casualty_rate` | 16.2694 | 12.1945 | 34 | `dnbi_disease_balance` | 2.3086 | 2.6189 |
+| 2 | `pri1_surg_prob` | 7.1477 | 7.9886 | 35 | `r2e_hold_mode` | 2.2776 | 4.7910 |
+| 3 | `pri1_dcs_rate` | 6.5001 | 7.9440 | 36 | `p1_t_mid` | 2.1800 | 3.7760 |
+| 4 | `mass_casualty_max_cas` | 5.8760 | 9.0664 | 37 | `r2b_transport` | 2.1312 | 3.4487 |
+| 5 | `mass_casualty_min_cas` | 5.4216 | 7.1927 | 38 | `r1_transport` | 2.0921 | 3.6499 |
+| 6 | `pri2_evac_prob` | 4.7262 | 6.5703 | 39 | `ame_schedule_interval_days` | 2.0510 | 2.9578 |
+| 7 | `evacuation_policy_days` | 4.5911 | 5.9793 | 40 | `disease_surgery_pct` | 1.8838 | 2.7751 |
+| 8 | `wia_spt_mean` | 3.9012 | 6.8481 | 41 | `r1_tccc_factor` | 1.8790 | 3.8088 |
+| 9 | `ot_hours` | 3.8967 | 4.7752 | 42 | `pri3_other_surg_prob` | 1.7064 | 3.2094 |
+| 10 | `r1_recovery_mode` | 3.8116 | 6.6329 | 43 | `pri2_surg_prob` | 1.6242 | 2.5855 |
+| 11 | `r1_wia_treat_mode` | 3.7694 | 6.6041 | 44 | `r2b_icu_share` | 1.3467 | 2.5586 |
+| 12 | `kia_spt_mean` | 3.7230 | 5.9560 | 45 | `p1_p_max` | 1.2593 | 1.5699 |
+| 13 | `pri1_evac_prob` | 3.6884 | 5.1178 | 46 | `r2b_forward_hold_max` | 1.2500 | 2.9520 |
+| 14 | `long_resus_mode` | 3.5883 | 6.7930 | 47 | `p2_p_max` | 1.0415 | 2.2690 |
+| 15 | `r2b_pre_open_window` | 3.4453 | 5.3721 | 48 | `pri3_dnbi_surg_prob` | 1.0214 | 1.6659 |
+| 16 | `pri2_dcs_rate` | 3.4256 | 4.5370 | 49 | `fr_fulfillment_lag_days` | 0.9227 | 1.5517 |
+| 17 | `mc_p2_p3_balance` | 3.1769 | 5.9561 | 50 | `p1_p_base` | 0.5808 | 1.2100 |
+| 18 | `triage_p2_p3_balance` | 3.1611 | 4.6336 | 51 | `p1_k` | 0.5537 | 1.6464 |
+| 19 | `triage_p1_balance` | 3.1599 | 3.9206 | 52 | `pri3_dcs_rate` | 0.3743 | 0.8931 |
+| 20 | `post_op_hold_mode` | 3.1426 | 3.6418 | 53 | `p2_t_mid` | 0.3433 | 0.6968 |
+| 21 | `stabilisation_icu_mode` | 3.0439 | 4.2009 | 54 | `ame_failure_probability` | 0.2900 | 0.5499 |
+| 22 | `surg_mode` | 3.0111 | 3.5779 | 55 | `fr_fill_mode_frac` | 0.2059 | 0.4598 |
+| 23 | `r2b_hold_mode` | 3.0070 | 5.0461 | 56 | `r2e_postop_hold_penalty` | 0.1952 | 0.8720 |
+| 24 | `dnbi_bf_nbi_balance` | 2.9806 | 4.4382 | 57 | `r2b_resus_factor` | 0.1425 | 0.6190 |
+| 25 | `kia_cbt_mean` | 2.7681 | 4.6984 | 58 | `r2e_resus_factor` | 0.0578 | 0.2388 |
+| 26 | `wia_cbt_mean` | 2.7513 | 3.3622 | 59 | `p2_p_base` | 0.0495 | 0.2172 |
+| 27 | `short_resus_mode` | 2.5999 | 4.5553 | 60 | `r2e_dcs2_factor` | 0.0188 | 0.0628 |
+| 28 | `dnbi_cbt_mean` | 2.5554 | 4.0044 | 61 | `p2_k` | 0.0163 | 0.0488 |
+| 29 | `post_definitive_icu_mode` | 2.5549 | 3.3564 | 62 | `r2b_dcs_factor` | 0.0103 | 0.0409 |
+| 30 | `dnbi_spt_mean` | 2.5439 | 4.2021 | 63 | `p3_flat` | 0.0000 | 0.0000 |
+| 31 | `mc_p1_balance` | 2.5408 | 6.0917 | 64 | `r2e_dcs1_factor` | 0.0000 | 0.0000 |
+| 32 | `r2b_hold_threshold` | 2.4145 | 3.4925 | 65 | `r2b_icu_penalty` | 0.0000 | 0.0000 |
+| 33 | `fr_demand_interval_days` | 2.3712 | 3.8898 |  |  |  |  |
 
 **What the ranking tells you.** Casualty disposition dominates. Priority 1 Strategic Evacuation Rate (`pri1_evac_prob`) and Priority 1 Surgical Candidacy (`pri1_surg_prob`) rank first and second, at µ\* 9.63 and 7.45 against a median of 0.87 across the set. Before relying on a run, check that both match the scenario being modelled: an error in either shifts surgical queue depth more than an error anywhere else.
 
@@ -1639,7 +1645,7 @@ A *Run Sobol Decomposition* button becomes available once Morris finishes, pre-s
 
 A **Transport Fleet Capacity Margin Sweep** panel sits below Sobol Decomposition and runs independently of either, so neither needs to have run first. It re-runs the model across a range of fleet sizes for a chosen vehicle type and plots the resulting queue and utilisation against a dashed line marking the current establishment, showing how much margin the fleet holds before queues form (see [Transport Fleet Capacity Margin](docs/Single_Run_Analysis.md#transport-fleet-capacity-margin)).
 
-Run time scales with r × (p + 1) × reps, where p is the number of screened parameters. At 53 parameters, the shipped default of r = 20 with 5 replications is a long job; the r = 5 configuration behind the current published ranking took 94 minutes on 4 cores, roughly 20 seconds per design point. Actual times are hardware-dependent. A deliberately small design runs quickly but produces high-uncertainty estimates, with some parameters showing near-zero effect purely through sampling noise, and is useful for checking the pipeline runs rather than for interpreting results.
+Run time scales with r × (p + 1) × reps, where p is the number of screened parameters. At 65 parameters, the shipped default of r = 20 is a long job: the published ranking took some eleven hours on 4 cores at four replications, roughly 15 seconds per design point, and `--cache-dir` with `scripts/screen_cache.sh` exists so a run that long survives an interrupted host. Actual times are hardware-dependent. A deliberately small design runs quickly but produces high-uncertainty estimates, with some parameters showing near-zero effect purely through sampling noise, and is useful for checking the pipeline runs rather than for interpreting results.
 
 ### Simulation Environment Setup
 
@@ -2184,7 +2190,7 @@ This section records what the model does not represent, how much each gap matter
 
 **L16 — Role 4 modelled as unconstrained demand.** The national support base is a post-simulation calculation over the evacuation log rather than a resource with finite capacity, so its occupancy can exceed any real bed count without producing a queue or a deferral. The output is a demand signal for national planners, not a claim that the base can absorb that demand. Strategic evacuation itself is constrained and scheduled, but four narrower gaps remain: boarding within a pool is strictly first come, first served once the critical and standard split has applied; the interval at which waiting casualties are re-assessed for mortality risk is an informed estimate and has been observed to fire only once, so its magnitude is unvalidated; unclaimed sortie capacity carries forward rather than departing with the aircraft, which has no real-world analogue; and one airframe flies the whole campaign, with no mixed fleet and no surge tasking of a second aircraft type.
 
-**L18 — Screening precision and coverage.** The Morris screen covers sixty-five parameters, derived by auditing every numeric parameter in the configuration rather than by expert selection. It runs at five trajectories rather than the default twenty, because the full design at twenty would need 6,600 simulation runs. The method is unbiased at any trajectory count, so the estimates are not skewed, but they are noisier, and parameters close together in influence should be read with more caution than the same gap would warrant at twenty. Separately, the ranking published above is on one response, the system OT queue. A screening run writes a ranking file for each of the thirty-six responses in the set at no extra simulation cost, so those files exist, but only the queue ranking is published and interpreted; whether any parameter ranks materially differently on a time-to-care, return-to-duty or strategic evacuation response is unresolved, and reading those files is what would close it. Raising the trajectory count remains the separate precision gap.
+**L18 — Screening resolution and response coverage.** The Morris screen covers sixty-five parameters at twenty trajectories, which resolves the influential group from the negligible tail but does not order parameters within the leading cluster: the standard error of a µ\* is σ/√r, so neighbours separated by less than that are not distinguishable. Separating the top two would need roughly 63,000 trajectories, which is not a practical target; the leading parameters should be reported as a group. The published ranking is also on one response, the system OT queue. A screening run writes a ranking file for each of the thirty-six responses at no extra simulation cost, so those files exist, but only the queue ranking is interpreted, and whether a parameter ranks differently on a time-to-care, return-to-duty or strategic evacuation response is unresolved. The variance decomposition that follows the screen carries its own limit: at N = 200 over the five leading parameters, only the top two have total-order indices separated from zero, and several estimates fall outside the theoretical [0, 1] range, which is the known behaviour of a Monte Carlo Sobol estimator on a stochastic model whose replication noise is not separated from parameter variance. Closing that needs variance reduction and a recorded per-point noise estimate rather than a larger sample alone.
 
 **L19 — Transport capacity margin tested at one casualty rate.** The fleet-size sweep runs at the Falklands-derived rate only, so the margin it reports is untested under the conditions most likely to consume it. Re-running it at high intensity and under mass casualty injection would establish whether the finding holds. The sweep function accepts a path to a pre-configured environment file but not a scenario name, so a small interface change is needed first.
 

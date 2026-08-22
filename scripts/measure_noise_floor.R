@@ -224,8 +224,9 @@ rows <- lapply(responses, function(resp) {
     # variance, the design-driven component is not distinguishable from zero
     # and no deflation factor describes it. That is a finding and not an
     # error, so it is named rather than printed as a negative share.
-    deflation_factor  = if (share >= 1) NA_real_ else var_signal / var_total,
-    reps_for_5pc_share = ceiling(var_within / (0.05 * var_total)),
+    deflation_factor  = if (!is.finite(share) || share >= 1) NA_real_ else var_signal / var_total,
+    reps_for_5pc_share = if (!is.finite(var_total) || var_total <= 0) NA_real_
+                         else ceiling(var_within / (0.05 * var_total)),
     note              = if (!is.finite(share)) "response constant across the design"
                         else if (share >= 1) "noise exceeds across-design variance — design-driven component not distinguishable from zero"
                         else "",

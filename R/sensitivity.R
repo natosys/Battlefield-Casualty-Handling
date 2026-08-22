@@ -1121,12 +1121,43 @@ extract_kpis <- function(mon) {
 #'   Every screened parameter, ot_hours included, reaches the model through
 #'   the vars tree; build_env() reads the shift length from there, so no
 #'   parameter needs extracting and threading separately.
-eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
+eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
+                        crn_seed = NULL, return_sd = FALSE) {
   p <- setNames(as.numeric(params_row), morris_params$name)
 
   env_data <<- apply_params(env_data_base, p)
-  mon      <- run_replications(n_rep, n_days, max_cores = max_cores)
-  extract_kpis(mon)
+  # Common random numbers, stated explicitly rather than relied on. Design
+  # points already share their replication seeds without this, because
+  # run_replications() snapshots the caller's RNG stream position and restores
+  # it on exit (see its @details), so consecutive calls draw the same seed
+  # vector. That is a property of a function written for measurement
+  # reproducibility, not a guarantee this one asked for, and a screen that
+  # depends on it should say so instead of inheriting it by side effect.
+  # Setting crn_seed pins the behaviour here; it changes no result while that
+  # restoration holds, and keeps the screen correct if it ever stops.
+  if (!is.null(crn_seed)) set.seed(crn_seed)
+  mon <- run_replications(n_rep, n_days, max_cores = max_cores)
+  out <- extract_kpis(mon)
+
+  # Per-point spread across replications. The Sobol estimators treat each
+  # point's response as if it were deterministic, so the replication noise
+  # left in it inflates the total variance and pushes indices outside [0, 1].
+  # Recording the spread costs no simulation and is what makes that nugget
+  # measurable rather than inferred from index pathology after the fact.
+  if (return_sd) {
+    per_rep <- lapply(seq_len(n_rep), function(k) {
+      sub <- mon
+      for (nm in c("arrivals", "attributes", "resources")) {
+        if (!is.null(sub[[nm]]) && "replication" %in% names(sub[[nm]])) {
+          sub[[nm]] <- sub[[nm]][sub[[nm]]$replication == k, , drop = FALSE]
+        }
+      }
+      tryCatch(extract_kpis(sub), error = function(e) setNames(rep(NA_real_, length(out)), names(out)))
+    })
+    m <- do.call(rbind, per_rep)
+    attr(out, "sd") <- apply(m, 2, stats::sd, na.rm = TRUE)
+  }
+  out
 }
 
 # ── Morris screening ──────────────────────────────────────────────────────────
@@ -1144,6 +1175,14 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL) {
 #'   Shiny app's main session) observe real "point M of N" progress. NULL
 #'   (default) disables this and preserves prior behaviour for existing
 #'   callers (scripts/run_sensitivity.R).
+#' @param nboot Bootstrap resamples for the confidence intervals on each
+#'   index (default 1000). Affects only interval width, never a point
+#'   estimate, and costs no simulation.
+#' @param crn_seed Seed pinned before each design point's replications, so
+#'   every point runs the same noise realisation. Design points already
+#'   share seeds via run_replications()' stream restoration, so this
+#'   changes no result; it makes the dependence explicit rather than
+#'   incidental. NULL leaves the stream untouched.
 #' @param cache_dir Optional directory path; when supplied, each design
 #'   point's responses are appended to points.csv there as it completes and
 #'   read back on a later call, so an interrupted screen resumes instead of
@@ -1417,6 +1456,12 @@ rdirichlet_coords <- function(n, g) {
 # design point index; the rest are that screen's responses, named as the screen
 # names them. Morris carries one column per entry in morris_kpis, Sobol the
 # five it decomposes, so the width is read from the file rather than assumed.
+# The five responses run_sobol() decomposes, in the order it assembles them.
+# Named here because the cache now also carries a per-response sd_* column, so
+# a reader cannot infer the response set from the file header alone.
+SOBOL_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "system_ot_q",
+                     "transport_q", "transport_util")
+
 
 #' Read one design point's cached response vector
 #'
@@ -1492,7 +1537,8 @@ cache_append <- function(path, i, res) {
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
-                      max_cores = NULL, dirichlet = TRUE, cache_dir = NULL) {
+                      max_cores = NULL, dirichlet = TRUE, cache_dir = NULL,
+                      nboot = 1000, crn_seed = 20250819L) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   # A composition group enters the decomposition whole or not at all.
@@ -1537,11 +1583,11 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
   }
 
-  sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_sys   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_tq    <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
-  sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = 100)
+  sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_sys   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_tq    <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
 
   full_params <- setNames(morris_params$mode, morris_params$name)
 
@@ -1558,7 +1604,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     # parameters and their bounds are unchanged; clear the cache when any of
     # those move.
     if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- cache_lookup(cache_file, i)
+      cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
       if (!is.null(cached)) {
         message(sprintf("  Sobol point %d / %d (cached)", i, nrow(sb_r2b$X)))
         return(cached)
@@ -1569,7 +1615,8 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
     res <- tryCatch(
       {
-        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores)
+        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
+                            crn_seed = crn_seed, return_sd = TRUE)
         c(r2b_ot_q       = kpis[["r2b_ot_q"]],
           r2e_ot_q       = kpis[["r2e_ot_q"]],
           system_ot_q    = kpis[["system_ot_q"]],
@@ -1582,7 +1629,12 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
           transport_q = NA_real_, transport_util = NA_real_)
       }
     )
-    if (!is.null(cache_file) && !all(is.na(res))) cache_append(cache_file, i, res)
+    if (!is.null(cache_file) && !all(is.na(res))) {
+      sdv <- attr(res, "sd")
+      row_out <- if (is.null(sdv)) res else
+        c(res, stats::setNames(as.numeric(sdv), paste0("sd_", names(res))))
+      cache_append(cache_file, i, row_out)
+    }
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }

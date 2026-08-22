@@ -15,14 +15,14 @@
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
 #
-# morris_params (R/sensitivity.R) covers 64 parameters; r=20 at this
-# parameter count is r*(p+1) = 1,300 design points x 5 reps = 6,500
+# morris_params (R/sensitivity.R) covers 65 parameters; r=20 at this
+# parameter count is r*(p+1) = 1,320 design points x 5 reps = 6,600
 # simulation runs, impractical outside a long-lived compute session. --r 5
 # was used for the Issue #112 re-run documented in the README (280 design
 # points x 5 reps = 1,400 runs, ~20s/run on 4 cores); scale --r up when a
 # longer session is available.
 #
-# The last six of the 64 are the balance coordinates of the three
+# The last six of the 65 are the balance coordinates of the three
 # simplex-constrained composition groups (Issue #158). --sobol samples any
 # selected group's composition from a Dirichlet centred on its baseline
 # rather than drawing its coordinates independently; --no-dirichlet reverts
@@ -77,6 +77,15 @@ option_list <- list(
                 "ordinary run from scattering untracked files through the",
                 "tracked images/ directory (Issue #154's contract)."
               )),
+  make_option("--cache-dir",  type = "character", default = NULL,
+              help = paste(
+                "Directory for the design point cache. When supplied, each",
+                "point's responses are written as it completes and read back on",
+                "a later run, so an interrupted screen resumes rather than",
+                "restarting - the difference between losing and keeping hours of",
+                "compute on a long production sweep. Clear it whenever the seed,",
+                "r, the level count or the parameter bounds change [default: none]."
+              )),
   make_option("--max-cores",  type = "integer", default = NULL,
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
@@ -121,7 +130,12 @@ morris_result <- run_morris(
   output_dir = opt[["output-dir"]],
   images_dir = if (is.null(opt[["images-dir"]])) file.path(opt[["output-dir"]], "images")
                else opt[["images-dir"]],
-  max_cores  = opt[["max-cores"]]
+  max_cores  = opt[["max-cores"]],
+  # The two screens carry different response sets, so they never share a cache
+  # directory: a Morris row and a Sobol row are both "point i" but mean
+  # different things. Each gets its own subdirectory under --cache-dir.
+  cache_dir  = if (is.null(opt[["cache-dir"]])) NULL
+               else file.path(opt[["cache-dir"]], "morris")
 )
 
 # A design point at which *every* response is NA is a failed evaluation. A
@@ -182,7 +196,9 @@ if (opt$sobol) {
     n_rep       = opt$reps,
     n_sobol     = opt[["n-sobol"]],
     output_dir  = opt[["output-dir"]],
-    dirichlet   = !opt[["no-dirichlet"]]
+    dirichlet   = !opt[["no-dirichlet"]],
+    cache_dir   = if (is.null(opt[["cache-dir"]])) NULL
+                  else file.path(opt[["cache-dir"]], "sobol")
   )
 }
 

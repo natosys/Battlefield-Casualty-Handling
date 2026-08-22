@@ -81,13 +81,101 @@
 | 150 | DNBI sub-type surgical-candidacy statistics predate multiple RNG-stream-shifting merges | Medium | Low | **Merged (PR #217)** |
 | 151 | Okinawa-specific DOW ceiling and treatment efficacy calibration for `high_intensity` | Medium | High | **Merged (PR #221)** |
 | 207 | Two configured parameters have a realised effect that is clipped | Low | Low | **Merged (PR #224)** |
-| 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | Open (blocked) |
+| 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | Open (PR raised) |
 
 ---
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-*No PRs currently open against main.*
+### Issue 155 — Final Canonical Re-run and Documentation Refresh
+
+**Branch:** `claude/issue-155-qit0ip`
+
+The terminal refresh. Every figure, table and plot across `README.md`,
+`docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` is
+rebuilt from one code state, commit `ed3c426`, in the pinned Dev Container
+built from `.devcontainer/Dockerfile` on base image
+`rocker/rstudio@sha256:6bfc87fb…`. This is the first refresh in the project's
+history able to build that container, so the twenty-one accumulated per-issue
+provenance caveats are retired rather than added to.
+
+The headline result is that they retire as correct. The pinned run reproduces
+the tracked seed-42 baseline **byte for byte**, in `logs/logs.txt` and in every
+arrival diagnostic, and the 50-replication scenario comparison and the
+450-replication died-of-wounds calibration both reproduce their published
+figures exactly. Three independent generators agree, so the unpinned R 4.3.3
+sandboxes the project relied on were faithful and no published seed-42 value
+moves.
+
+What does move are the measurements whose generators had not been re-run since
+the arrival process was rebuilt around per-day rate draws: the transport fleet
+sweep, the forward ICU share frontier, the mass casualty stress test, the force
+regeneration trend table and nine Key Parameters rows. Each is identified in
+place as a consequence of that model change rather than of the environment.
+
+Two published claims did not survive re-measurement, and one code path was
+found never to have worked. The R2B pre-open hold window's "the accounting
+closes" finding is withdrawn: forward surgeries move +0.38 [−2.75, +3.51]
+against 5.90 casualties held forward, the arms having diverged into different
+realisations once the arrival process carried real variance. `run_sobol()`
+could never return indices, `sensitivity::tell()` assigning its result into the
+frame it is called from and so populating only a wrapper local.
+
+The Morris screen is rebuilt at the full sixty-five parameters and at r = 20
+trajectories, and answers the question Issue #158 was raised to ask against the
+hypothesis that prompted it. `triage_p1_balance` ranks **nineteenth of
+sixty-five** at µ* = 3.16, below both Priority 1 conditional rates defined on
+the share it governs (`pri1_surg_prob` at 2, `pri1_evac_prob` at 13), so how
+many casualties are classified Priority 1 matters less to surgical bottleneck
+severity than what happens to one once classified. An interim screen at r = 5
+put it first at µ* = 8.63, and that did not survive the quadrupled trajectory
+count: it carried the largest σ in that table at 10.69, a standard error of
+±4.78 on its own µ*, so the rank was never separable from noise. Four
+paragraphs of ranking commentary that still described the r = 5,
+fifty-three-parameter screen were corrected against the r = 20 table at the
+same time.
+
+The variance decomposition was then interrogated rather than published as it
+stood, and three scripts were added to do it, each recomputing from responses
+already cached and costing no further simulation.
+`scripts/compare_sobol_estimators.R` recomputes the same design under the
+Jansen and Martinez pick-freeze estimators alongside the reported Saltelli one,
+which share an identical design; only the leading parameter holds its position
+across all three, and the two alternatives' apparent tidiness is construction
+rather than resolution, neither returning a total-order index at or below zero
+anywhere in the design. `scripts/test_sobol_separation.R` tests which orderings
+the sample supports by bootstrapping the design rather than the indices, so two
+indices computed from the same evaluations keep their correlation; the
+interval-overlap reading that preceded it demanded roughly three times the
+sample the correct test does. `scripts/measure_noise_floor.R` measures how much
+of the variance is replication noise, and finds 32.9% on the system OT queue at
+four replications per point, 62.9% on transport utilisation and 89.1% on the
+transport queue.
+
+That measurement changed the conclusion. Noise enters the variance the indices
+are shares of, so a larger design alone converges on indices roughly a third
+too low; the bias is set by the replication count per point, not by the number
+of points. The decomposition is therefore reported as establishing a leading
+pair and a negligible tail rather than a ranking, which is independently what
+the Morris screen concluded, with the second parameter separating from the
+third at P = 0.992 and the leading pair not separating from each other. The
+gap and its measured closure cost, roughly N = 800 at 8 to 12 replications,
+are recorded as a new Further Development entry L29, L18 having covered both
+screens' resolution in one entry despite their different causes.
+
+Two pieces of durability tooling ship with the work, having been built to
+survive the environment losses this refresh met repeatedly.
+`scripts/screen_cache.sh` checkpoints a screen's point cache onto its own git
+ref via plumbing, never touching the working tree, index or branch, and
+`scripts/supervise_screen.sh` drives a long screen to completion across
+failures, stopping on a caller-supplied completion marker rather than on exit
+status. `scripts/check_screen_cache.R` asserts the cache round-trip invariants,
+the write guard having once discarded any design point at which even one of
+thirty-six responses was legitimately undefined, so an interrupted screen made
+no progress across restarts and nothing in its output said so. Each screen now
+also writes a `*_run_metadata.csv` sidecar recording the design, the commit and
+the R version behind its results, and a Sobol result file carries a `flag`
+column marking an index outside the theoretical range.
 
 ---
 
@@ -2660,4 +2748,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 18 August 2026 to reflect: completion of Issue #207 (two configured parameters have a realised effect that is clipped, PR #224) — the reinforcement fill fraction and the R2B holding evacuation threshold each answered a slightly different question than the one a planner asked of them, with nothing in a run's output saying so. The reinforcement credit was clamped at establishment strength, dropping the excess on roughly 4.4% of draws from a distribution whose maximum of 1.1 exists to name exactly that over-delivery. The clamp is removed: reinforcement joins the population on arrival, there being no formation-level reserve in the model to hold it in, so a pool receiving more than its remaining shortfall goes over strength and stays there until casualties bring it back down, which is a transient rather than a new equilibrium since an over-strength pool has zero demand and no later cycle builds on the surplus. That required work in the arrival generators, which sample by thinning against a dominating rate fixing the population term at a bound and accept each candidate at `F(t)/P_max`: a force size above the bound saturates that at 1 and the stream would generate at the dominating rate rather than the intended one, under-generating exactly where the force is largest. `reinforcement_force_bound()` widens the bound to `(1 + fill_max_frac)` times establishment strength, which the in-flight demands provably cannot exceed, costs proposal draws in proportion, and returns establishment strength unchanged wherever reinforcement is disabled. The R2B threshold sent a casualty to R2E part-way through their drawn convalescence and let R2E draw a fresh duration, so a routing lever changed total modelled convalescence by an unaccounted amount; the remainder is now carried forward and served, in the manner Issue #159 established for post-operative intensive care. `scripts/check_lever_realisation.R` and `validate_fill_distribution()` are new. Both features ship disabled, so no baseline value moves: the seed-42 console log reproduces byte for byte and the attribute, resource and summary outputs are byte-identical. Also reflects: completion of Issue #151 (`high_intensity` inherits a Falklands-calibrated mortality ceiling, PR #221) — the profile overrode only its casualty generation rates, inheriting both the died-of-wounds ceilings and the treatment efficacy factors from the base configuration, which are entangled by construction: the base ceiling was fitted to a Falklands 1982 target jointly with OIF/OEF-era multipliers, so neither transfers on its own and an Okinawa casualty stream was being run through a mortality target and a standard of care drawn from two unrelated contexts. The profile now overrides `dow.params` and `dow.treatment_efficacy` on the basis `moderate_intensity` established, calibrated against Okinawa's own reported rate of 3.4% among casualties who reached a hospital alive (Marble, 2025, *Joint Force Quarterly* 117), measured on the same treated cohort the model reports and bracketed by the war-wide 3.5% (Holcomb et al., 2006) and 4.5% (Marble); being a reported rate against a stated denominator rather than a bound resting on an inexact one, it is a target to reach rather than only to stay beneath. The efficacy factors are informed estimates for 1945 Pacific-theatre care disclosed as such, and against them the ceilings re-calibrate to 0.052 and 0.042, rising where `moderate_intensity`'s fell because this profile weakens the same factors against a target roughly seven times higher. Pooling three 50-replication measurements gives 3.471% (95% CI [3.360%, 3.583%]), an interval spanning the target. `scripts/check_dow_calibration.R` now holds a target per configuration and tests this one two-sided at two percentage points. The comparative scenario tables were re-measured, the profile's queue rows moving in two directions as the theatre and intensive care queues shorten with the added mortality while those further from the point of death lengthen; the `moderate_intensity` arm reproduced every published figure exactly. No base-configuration parameter is touched, no baseline value moves and the seed-42 log is byte-identical. Also reflects: completion of Issue #149 (mass casualty events do not generate immediate KIA or DNBI casualties, PR #219) — a fired event injected its whole drawn casualty count onto the combat WIA stream, so a modelled incident produced survivors only, leaving mortuary handling and KIA transport outside the surge this feature exists to stress-test and making a configured event size mean wounded rather than casualties. The count is now the incident's total, split by one Binomial(n, `kia_fraction`) draw per event, with the killed overlaid on `kia_cbt` and taking the mortuary pathway the background killed stream already takes, untriaged; `wrap_with_mass_casualty()` takes the name of its event-id sink so both combat streams can be wrapped. `mass_casualty.event.kia_fraction` ships at 0.28 with a Configure-panel field, documented as an informed estimate anchored on the model's own FORECAS-derived combat stream means, no open-access source tabulating event-level killed-to-wounded ratios. Disease and non-battle injury stay out of the mechanism on causal-link grounds, stated alongside the fix so the two omissions are not conflated. `scripts/check_mass_casualty_kia_split.R` is new and README Further Development L20 is deleted. Injection ships disabled, so no baseline value moves: the seed-42 console log reproduces byte for byte and a full baseline refresh returned every tracked artifact identical except the header of `data/mass_casualty_events.csv`. Also reflects: completion of Issue #150 (DNBI sub-type surgical-requirement statistics predate multiple RNG-stream-shifting merges, PR #217) — the 100-replication figures in README's DNBI Sub-Type Split section had stood unchanged since Issue #7 measured them, while every RNG-stream-shifting merge recorded in `CLAUDE.md` landed in between, along with the three that moved casualty generation itself and the two that changed which replications a control seed selects, so the section presented a pre-Issue-18 model as a current finding. Re-measured at the same 100 replications of 30 days from control seed 42: casualties requiring surgery per replication move from 158.6 (SD 6.8; range 143 to 177) to 183.5 (SD 36.0; range 112 to 274), and the per-sub-type rates from 79.6% to 81.1% (NBI) and 5.7% to 6.0% (disease), battle fatigue staying at 0.0% by construction. The qualitative conclusion is unchanged and the prose now states it: WIA and NBI casualties drive theatre demand, disease adds a small load, battle fatigue none. The dispersion is the larger movement, the per-replication standard deviation going from a twenty-third of the mean to a fifth of it, which is Issue #206's restored between-day arrival variance reaching surgical demand. A provenance note in `CLAUDE.md` records the refresh and names the merges it supersedes. No model code, parameter or artifact is touched and no baseline value moves; the seed-42 console log reproduces byte for byte. Also reflects: completion of Issue #206 (casualty arrivals are far less variable day to day than a real arrival process, PR #215) — each stream drew a fresh rate for every simulated minute and emitted a casualty at each whole-casualty crossing, so a day's count was an average of 1,440 draws and the central limit theorem flattened the stream to a daily standard deviation of 0.50 on the combat WIA stream against the 2.10 of a Poisson process at the same rate, with a busiest day in 5,000 of six casualties. Peak-day volume drives contention for theatres, intensive care beds and airlift, so every queue the model exists to measure was understated in the direction that is not conservative. The minute grid is replaced by direct arrival-time sampling on two recorded decisions: the rate is redrawn once per simulated day, the timescale FORECAS fitted `mean_daily` and `sd_daily` at, and arrivals within the day are Poisson, placed by thinning (Lewis & Shedler, 1979) against a dominating rate at establishment strength with each candidate accepted at the live force size, which preserves the Issue #18 feedback loop. The stream therefore realises the configured mean plus the configured between-day variance on top of the Poisson term; measured over 30,000 days the combat WIA daily count has a standard deviation of 9.5 against the 9.1 the construction predicts and a busiest day of 564. The sub-minute jitter step is removed with the grid and generation cost is now linear in the drawn rate. `scripts/check_arrival_rate_fidelity.R` gains the realised-variance assertion. This moves casualty generation itself: seed-42 total casualties 437 to 530, WIA 187 to 287, KIA 71 to 72 and DNBI 179 to 171, with the R2E theatre queue moving from 3.0% and 0.6% of the run to 46.3% and 34.6%. Both died-of-wounds ceilings were re-verified at 150 replications per configuration and left unchanged, and the mass casualty parameters were reconsidered against the corrected background and left unchanged with the reason recorded. Every ratio in the comparative scenario tables compresses, the R2E theatre ratio from roughly 180 to roughly 37, because the Falklands-load arm rises while the surge arm is close to unmoved; that is recorded as a finding rather than as a robustness result. README Further Development L27 is deleted. Also reflects the backfill of three open issues this document had never recorded: #149 (mass casualty events generate no immediate KIA), #150 (DNBI surgical-candidacy statistics predate several RNG-stream-shifting merges, now including this one) and #151 (`high_intensity` inherits a Falklands-calibrated mortality ceiling), each added to the summary table and to the dependency graph's unblocked list. All three carry `status: ready` and none was tracked here, which is the open-side counterpart of the merged-side gap Issue #201 closed. Also reflects: completion of Issue #201 (action plan phase sequence lists have gaps, and the document's anchor links are unverified, PR #213) — thirteen merged issues had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit the issue asked for, so a reader auditing what a phase delivered could not tell a complete list from an incomplete one. Each is backfilled at its position in merge order under the existing letter-suffix convention, and every issue the summary table records as merged now has both an item and a roster entry. `scripts/check_markdown.R`'s anchor link check is widened from the three documents carrying a table of contents block to every tracked markdown document, this one included, with links inside backticks excluded and the table of contents and return-link maintenance left scoped to the three. The Issue 44 citation, which resolved to another entry's References block, now points at README's. `CLAUDE.md`'s post-merge checklist is corrected where it stated the strikethrough obligation alone, which is the maintenance gap that let the thirteen go unrecorded. No model code, parameter or artifact is touched and no baseline value moves. Also reflects: completion of Issue #208 (`run_replications()` draws different replication seeds on its first call in a session, PR #211) — the per-replication seeds were drawn before `RNGkind("L'Ecuyer-CMRG")` was set, and the kind persists for the rest of the session, so a measurement was a function of its position in the invocation as well as of its control seed. The caller's kind and stream position are now snapshotted and restored, and both dispatch paths run under one generator; the kind is deliberately still set after the seeds are drawn, `RNGkind()` re-initialising `.Random.seed` from the clock whenever it is called. `scripts/check_measurement_reproducibility.R` is new. No model code changes and the seed-42 baseline is byte-identical; the died-of-wounds calibration re-measures to 0.417% (`default`) and 0.353% (`moderate_intensity`), both still passing the Ajax Bay bound though no longer separated from each other, and the comparative scenario tables were re-measured. Every scenario in a comparison and every point in a sweep now runs on common random numbers. Also reflects: completion of Issue #203 (per-minute rate cap holds realised casualty generation below every stream's configured mean, PR #209) — both arrival generators clamped each rate draw at three times the stream's own mean, which lowered the mean the stream realised to between 78.7% and 99.2% of the configured value and made that shortfall depend on the stream's coefficient of variation, so editing `sd_daily` alone moved a mean nobody had touched. The cap is removed rather than corrected for: its justification was a run-time blow-up in the vectorised generator that preceded the current closure, and the closure performs exactly `n_minutes` iterations whatever the draws. A bias-corrected parameterisation was built first and removed with the cap. The emission logic is corrected alongside it, a minute accruing several whole casualties now emitting all of them rather than one, which reproduces every shipped parameterisation bit-for-bit while recovering the majority of a stream configured far above shipped rates. `scripts/check_arrival_rate_fidelity.R` is new. The died-of-wounds ceilings are re-fitted from 0.023/0.019 to 0.020/0.016 after the corrected rates carried the base configuration above the Ajax Bay bound at 250 replications, with the Morris bounds and mode vector rescaled to match; both shipped configurations pass at 0.443% and 0.290%. Three issues were raised from the work: #206 (arrival variability, unblocked by this merge), #207 (clipped configured parameters) and #208 (replication seeds differ on the first call in a session).*
+*Prepared June 2026. Updated 18 August 2026 to reflect: the canonical re-run and documentation refresh of Issue #155, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats, rebuilds the Morris ranking at sixty-five parameters, and withdraws two published claims that did not survive re-measurement.*

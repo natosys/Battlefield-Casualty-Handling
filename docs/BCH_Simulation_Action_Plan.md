@@ -86,7 +86,7 @@
 | 228 | Higher-resolution Sobol decomposition to separate the leading parameter pair | Medium | High | Open |
 | 230 | Establish the verification baseline — execute the regression check suite in the pinned Dev Container | High | Medium | **Merged (PR #243)** |
 | 231 | Repair the README reference list — duplicated entries, misattributed authors, two paywalled sources | Critical | Low | Open |
-| 232 | All ten README images are broken links — fix the paths and validate link targets | Critical | Low | Open |
+| 232 | All ten README images are broken links — fix the paths and validate link targets | Critical | Low | **Merged (PR #245)** |
 | 233 | The analysis pipeline consumes RNG, so `analyse_run()` is not idempotent | Medium | Medium | Open |
 | 234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard | High | Medium | Open |
 | 236 | Global configuration save/restore is not exception-safe; `R/analysis.R` lacks input validation | Medium | Low | Open |
@@ -106,6 +106,30 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 232 — All Ten README Images Are Broken Links ✓
+
+**Merged:** PR #245, branch `claude/issue-232-0wa3r8`
+
+Every image reference in `README.md` carried a `../images/` prefix. The document sits at the repository root, so the prefix resolved outside the repository and none of the ten images rendered on GitHub, which silently removed the entire visual evidence base of the Morris screening section. The prefix is correct from `docs/`, where the twenty references in the two analysis documents use it, and appears to have been carried over when the document moved to the root. All ten are re-based. Nine figures carrying the placeholder alt text `[Alt text]` are described, and fourteen figures that lacked the prose caption `CLAUDE.md` requires are given one.
+
+`scripts/check_markdown.R` validated heading anchors only, which is why a defect this visible survived. It now also resolves every markdown link and image target relative to the directory the containing document sits in, and exits non-zero on any that does not exist, which is exactly the distinction that was missed: `../images/` is correct from `docs/` and wrong from the root. A second check rejects empty or placeholder alt text. Both run over every tracked markdown document and reuse the existing `strip_code()`, so a link inside backticks is still exempt. `data/sensitivity/README.md` was tracked but absent from `link_check_docs` and is added. External URLs stay out of scope, their failure modes being network rather than repository defects.
+
+The caption pass turned the issue into a figure audit, because writing a caption means reading the figure against the prose that cites it. That surfaced a second class of defect the issue did not anticipate: a figure that renders correctly while describing a model that no longer exists. All thirty-one tracked images were checked and three had drifted. The seven Morris scatter plots were still the r = 5 screen of Issue #155 while the tracked rankings and the published table had moved to the r = 20 screen that superseded it, so every plot disagreed with the table printed above it; the table gives `mass_casualty_rate` a µ\* of 16.27 where the plot placed it near 8.4 and showed `triage_p1_balance` as the leading point, which the table's leading ranks do not contain. `dow_survival_function.png` drew the pre-Issue-203 ceilings of 2.3% and 1.9% against a calibration table three lines below stating 2.0% and 1.6%. `mass_casualty_events.png` showed six events of sizes 27 to 75 from a model three revisions old.
+
+All three share a cause worth recording, because it is the same cause the broken paths had: a figure whose numbers live somewhere else, with nothing holding the two together. `run_morris()` writes a screen's rankings and its plots in one pass, so they agree when written and never again; the survival curve was the one figure in the project that no code produced, drawn once by hand with the ceilings of the day written in as literals. Two new scripts close both. `scripts/render_morris_plots.R` re-renders a completed screen's plots from the design and response matrices `run_morris()` already persists, and refuses to write a plot whose recomputed µ\* and σ do not match the ranking CSV it accompanies; every response reproduces its tracked ranking to within 5e-15 relative. `scripts/render_dow_survival.R` draws the curve from the `dow.params` block of `env_data.json`, for the base configuration or a named scenario profile, so a re-fit changes the source the figure comes from. Both follow the contract `run_morris()` and `analyse_run()` carry, `--refresh-baseline` being the only route to the tracked `images/`.
+
+The remaining twenty-eight figures were verified current. The seed-42 set is demonstrably so: a seed-42 30-day run reproduces the tracked baseline byte for byte across `logs/logs.txt` and all eight diagnostics under `data/`, which also re-confirms the Issue #230 reproduction result in a different R version, 4.3.3 against the pinned 4.4.2. The fourteen plots that run produces are deliberately not replaced, having been rendered in the pinned Dev Container; overwriting them with sandbox renderings of identical data would cost provenance for no gain. The Welch plot, the transport fleet-size sweep, the forward ICU share frontier and the comparative scenario plot were each checked against their own tables and agree.
+
+The mass casualty stress test section is corrected alongside its figure, this being the one section whose figures come from a non-default configuration. Re-measured at the documented 0.2 events per day, both arms of the ten-replication comparison reproduce their published totals exactly, 444.6 and 682.1 casualties per run with 8 and 13 background-origin deaths of wounds, so only the event-count row moves, from 6.50 (range 4 to 9) to 5.40 (range 3 to 8), which a mean drawn event size of 41.6 against a configured 20-to-60 range corroborates. The single-run illustration is rewritten. The theatre and intensive care gate still inverts under injection, `hold=85` against `icu=37` where the shipped run gives `hold=58` and `icu=79`, but the measures that once moved most now barely move: deferrals read 25 against 29 and upstream bypass 177 against 179. Under the flattened arrival process those were the section's headline movements, because the background load left the forward echelons with spare capacity a surge could visibly consume; an arrival process that delivers its own heavy days has already consumed it.
+
+Two limitations are recorded rather than closed. The refreshed figures were rendered in an R 4.3.3 sandbox rather than the pinned container, no Docker being available in the session, though with every package at its `renv.lock` version; the byte-identical seed-42 reproduction is evidence the model is unaffected by the R version, and what a maintainer re-render would add is byte-identity of the image files themselves. And `images/ame_sortie_timeline.png` remains tracked, current and embedded by no document: the strategic evacuation section already carries `ame_backlog.png`, which shows the queue over time and so shows what a cancelled sortie does, which the sortie timeline cannot, a cancelled sortie having `capacity_added = 0` and drawing no bar. Its legend separately titles the unfilled-capacity grey "Cancelled", which is worth its own issue.
+
+**Seed-42 baseline:** unchanged. No model code, `env_data.json`, tracked diagnostic or log is modified, and the seed-42 run reproduces byte for byte. The published Morris ranking, the Sobol evidence set and every value in the `CLAUDE.md` Key Parameters table stand; the figures moved to meet the tables rather than the other way round.
+
+**Unblocked by this merge:** No new issues unblocked. Nothing in Phase 6 or Phase 7 was gated on #232.
+
+---
 
 ### Issue 230 — Establish the Verification Baseline ✓
 
@@ -2255,12 +2279,12 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
 30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
-### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231, 232, 233, 234, 236, 237, 235, 241)
+### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231, 232 ✓, 233, 234, 236, 237, 235, 241)
 *Estimated effort: 3–4 weeks. Establishes automated verification and applies a written code standard. The phase opens with the verification baseline, because a gate cannot be wired around checks of unknown status and a refactor cannot be shown behaviour-preserving against an unknown baseline.*
 
 1. ~~**Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. All fifteen pass and the seed-42 evidence set reproduces byte for byte; the 45-minute calibration check against 11 minutes 47 seconds for the other fourteen is the runtime finding Issue 235 turns on. Blocks Issues 235, 241, 239 and 240.~~ — **Merged PR #243.**
 2. **Issue 231** — Repair the README reference list: remove duplicated entries, correct misattributed authors, and replace the two sources that violate the open-access rule. Text only, so it depends on nothing in this phase.
-3. **Issue 232** — Repair the ten broken README image links and extend `scripts/check_markdown.R` to validate link targets, so the same breakage cannot recur silently. Text and tooling only, and independent of the verification baseline.
+3. ~~**Issue 232** — Repair the ten broken README image links and extend `scripts/check_markdown.R` to validate link targets, so the same breakage cannot recur silently. Text and tooling only, and independent of the verification baseline. The caption pass the issue also asked for turned it into a figure audit: three figures rendered correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates.~~ — **Merged PR #245.**
 4. **Issue 233** — Make `analyse_run()` stream-neutral, the analysis pipeline currently consuming random draws and so not being idempotent. Not a prerequisite for Issue 241, though landing it first removes a source of confusing byte-comparison failures there.
 5. **Issue 234** — Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard, including a commenting standard. Supplies the machine-checkable rules `.lintr` encodes in Issue 235 and the function length limit Issue 241 applies, so it gates both.
 6. **Issue 236** — Make global configuration save and restore exception-safe, and add input validation to `R/analysis.R`.
@@ -2785,6 +2809,17 @@ COMPLETE (merged to main):
        document. Measurement only — no model or check script changed and no
        baseline value moves (PR #243)
 
+  #232 Ten README image paths repaired, and check_markdown.R widened from
+       heading anchors to every link and image target, resolved relative to
+       the document containing it, plus a placeholder alt text check. The
+       caption pass turned it into an audit of all thirty-one tracked
+       figures: the seven Morris plots were still the r=5 screen while the
+       tracked rankings had moved to r=20, the DOW survival curve drew the
+       pre-#203 ceilings, and the mass casualty timeline was three model
+       revisions old. render_morris_plots.R and render_dow_survival.R now
+       derive each from the data it illustrates. Seed-42 baseline
+       reproduces byte for byte and no published value moves (PR #245)
+
 IN REVIEW (PRs open against main):
   (none)
 
@@ -2799,8 +2834,6 @@ UNBLOCKED (start now):
        merge of #226.
   #231 Repair the README reference list — duplicated entries, misattributed
        authors, and two sources violating the open-access rule. Text only.
-  #232 All ten README image links are broken — repair the paths and extend
-       check_markdown.R to validate link targets. Text and tooling only.
   #233 The analysis pipeline consumes RNG, so analyse_run() is not
        idempotent — make it stream-neutral. Not a prerequisite for #241.
   #234 Rewrite docs/STYLE_GUIDE.md as an enforceable R code standard,
@@ -2850,4 +2883,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one.*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one. Updated again on the same date to record the merge of Issue #232 (PR #245), which repairs the ten broken README image paths, widens `scripts/check_markdown.R` from heading anchors to every link and image target and to placeholder alt text, and, through the caption pass the issue asked for, audits all thirty-one tracked figures: three were rendering correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates. No published value moves and the seed-42 baseline reproduces byte for byte, in R 4.3.3 as well as in the pinned 4.4.2. No issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #232.*

@@ -84,7 +84,7 @@
 | 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | **Merged (PR #226)** |
 | 227 | Delete the twelve `wip/*` checkpoint refs once the evidence set is on main | Low | Low | Open |
 | 228 | Higher-resolution Sobol decomposition to separate the leading parameter pair | Medium | High | Open |
-| 230 | Establish the verification baseline — execute the regression check suite in the pinned Dev Container | High | Medium | Open (PR raised) |
+| 230 | Establish the verification baseline — execute the regression check suite in the pinned Dev Container | High | Medium | **Merged (PR #243)** |
 | 231 | Repair the README reference list — duplicated entries, misattributed authors, two paywalled sources | Critical | Low | Open |
 | 232 | All ten README images are broken links — fix the paths and validate link targets | Critical | Low | Open |
 | 233 | The analysis pipeline consumes RNG, so `analyse_run()` is not idempotent | Medium | Medium | Open |
@@ -101,17 +101,29 @@
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-### Issue 230 — Establish the Verification Baseline
-
-**Branch:** `claude/issue-230-lq5ji3`
-
-The repository's fifteen `scripts/check_*.R` regression checks had never been executed as a suite, so nothing recorded which of them passed. All fifteen were run at commit `edd6285` in the pinned Dev Container, built from `.devcontainer/Dockerfile` on base image `rocker/rstudio@sha256:6bfc87fb…`, the same digest the Issue #155 canonical refresh names, with `renv` resolving the lockfile from a binary mirror rather than compiling from source. All fifteen pass, and the tracked seed-42 evidence set reproduces byte for byte across `logs/logs.txt`, all seven `data/arrivals_*.txt` diagnostics and `data/mass_casualty_events.csv`, which confirms by execution the reproduction claim `CLAUDE.md`'s provenance note rests on. The results are recorded as a tracked table in a new `scripts/README.md`, registered in `scripts/check_markdown.R`'s `link_check_docs`.
-
-The measurement was taken without repairing anything, so that the record describes the state it was taken from; no check failed, so no follow-up bug issue was raised. The runtime spread is the finding that governs Issue 235: the suite takes 56 minutes 49 seconds, of which `check_dow_calibration.R` alone accounts for 45 minutes, leaving the other fourteen at 11 minutes 47 seconds combined and eight of them under half a minute each. Two further observations were recorded for whoever wires the gate up: runs emit roughly one hundred `simmer` warnings per short run for casualties still holding an aeromedical evacuation seat when the window closes, which is ordinary end-of-run truncation but would bury a genuine message in a log; and `check_env_data_summary.R` and `check_markdown.R` rewrite tracked documents in place rather than only inspecting them, so a gate must read a resulting working-tree change as the failure signal. Both left the tree clean at this commit.
+*No PRs currently open against main.*
 
 ---
 
 ## Recently Merged Issues
+
+### Issue 230 — Establish the Verification Baseline ✓
+
+**Merged:** PR #243, branch `claude/issue-230-lq5ji3`
+
+The repository's fifteen `scripts/check_*.R` regression checks had never been executed as a suite, so nothing recorded which of them passed and the project's central provenance claim rested on assertion rather than on evidence. All fifteen were run at commit `edd6285` in the pinned Dev Container, built from `.devcontainer/Dockerfile` on base image `rocker/rstudio@sha256:6bfc87fb…`, the digest the Issue #155 canonical refresh names, with R 4.4.2 and `renv` resolving all 100 lockfile packages from the Posit Package Manager binary mirror rather than compiling from source. All fifteen pass. The tracked seed-42 evidence set reproduces byte for byte across `logs/logs.txt`, all seven `data/arrivals_*.txt` diagnostics and `data/mass_casualty_events.csv`, which confirms by execution the reproduction claim `CLAUDE.md`'s provenance note rests on. The results are recorded as a tracked table in a new `scripts/README.md`, registered in `scripts/check_markdown.R`'s `link_check_docs`.
+
+The measurement was taken without repairing anything, so the record describes the state it was taken from rather than a state cleaned up while being measured; no check failed, so no follow-up bug issue was raised. Three checks corroborate published figures independently of the byte comparison: `check_dow_calibration.R` returns pooled treated-cohort died-of-wounds rates of 0.474% (95% CI [0.412%, 0.536%]) for `default` and 0.368% (95% CI [0.310%, 0.426%]) for `moderate_intensity`, matching the Key Parameters table digit for digit, and adds 3.471% (95% CI [3.360%, 3.583%]) for `high_intensity`; `check_pre_open_window.R` reproduces the seven casualties held forward and the 58.9-minute longest hold; and `check_mass_casualty_kia_split.R` reports 530 arrivals, the seed-42 total casualty count.
+
+The runtime spread is the finding that governs Issue #235. The suite takes 56 minutes 49 seconds, of which `check_dow_calibration.R` alone accounts for 45 minutes at its default 450 replications across three profiles, leaving the other fourteen at 11 minutes 47 seconds combined and eight of them under half a minute each. A per-PR gate can afford fourteen and cannot afford the fifteenth, whose `--quick` mode describes itself in its own output as a wiring test rather than a calibration test and so is not a substitute. Two further observations were recorded for that work: runs emit roughly one hundred `simmer` warnings per short run for casualties still holding an aeromedical evacuation seat when the window closes, which is ordinary end-of-run truncation but would bury a genuine message in a gate's log; and `check_env_data_summary.R` and `check_markdown.R` rewrite tracked documents in place rather than only inspecting them, so a gate must read a resulting working-tree change as the failure signal. Both left the tree clean at this commit, `check_markdown.R` regenerating all three tables of contents byte-identically.
+
+The same PR scaffolded Phase 6 and Phase 7 below, the document having stopped at Phase 5 and so having had no home for the twelve issues raised for this work, and moved Issues #227 and #228 from BLOCKED to UNBLOCKED, the dependency graph having listed them as blocked while its own prose recorded that the merge gating them had landed.
+
+**Seed-42 baseline:** unchanged. The measurement runs the model but writes only to the gitignored `outputs/`, and the tracked evidence set was compared against rather than regenerated.
+
+**Unblocked by this merge:** No issues become ready. #235 and #241 remain gated on #234, #239 and #240 on #238, and #241 additionally on #235. #230 was one of two or three gates on each rather than the only one.
+
+---
 
 ### Issue 155 — Final Canonical Re-run and Documentation Refresh ✓
 
@@ -2243,10 +2255,10 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
 30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
-### Phase 6 — Code Quality and Verification (Issues 230, 231, 232, 233, 234, 236, 237, 235, 241)
+### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231, 232, 233, 234, 236, 237, 235, 241)
 *Estimated effort: 3–4 weeks. Establishes automated verification and applies a written code standard. The phase opens with the verification baseline, because a gate cannot be wired around checks of unknown status and a refactor cannot be shown behaviour-preserving against an unknown baseline.*
 
-1. **Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. Blocks Issues 235, 241, 239 and 240. **In review, PR #243.**
+1. ~~**Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. All fifteen pass and the seed-42 evidence set reproduces byte for byte; the 45-minute calibration check against 11 minutes 47 seconds for the other fourteen is the runtime finding Issue 235 turns on. Blocks Issues 235, 241, 239 and 240.~~ — **Merged PR #243.**
 2. **Issue 231** — Repair the README reference list: remove duplicated entries, correct misattributed authors, and replace the two sources that violate the open-access rule. Text only, so it depends on nothing in this phase.
 3. **Issue 232** — Repair the ten broken README image links and extend `scripts/check_markdown.R` to validate link targets, so the same breakage cannot recur silently. Text and tooling only, and independent of the verification baseline.
 4. **Issue 233** — Make `analyse_run()` stream-neutral, the analysis pipeline currently consuming random draws and so not being idempotent. Not a prerequisite for Issue 241, though landing it first removes a source of confusing byte-comparison failures there.
@@ -2761,12 +2773,20 @@ COMPLETE (merged to main):
        Comparative scenario tables re-measured; base configuration
        untouched and the seed-42 log byte-identical (PR #221)
 
+  #230 Verification baseline — all fifteen scripts/check_*.R regression
+       checks executed as a suite for the first time, at commit edd6285 in
+       the pinned Dev Container (R 4.4.2, renv restored from a binary
+       mirror). All fifteen pass, and the tracked seed-42 evidence set
+       reproduces byte for byte across logs/logs.txt, the seven
+       arrivals_*.txt diagnostics and mass_casualty_events.csv. Recorded as
+       a tracked table in scripts/README.md. The suite takes 56m49s, of
+       which check_dow_calibration.R alone is 45m, which is what decides
+       the per-PR gate in #235. Also scaffolded Phase 6 and Phase 7 in this
+       document. Measurement only — no model or check script changed and no
+       baseline value moves (PR #243)
+
 IN REVIEW (PRs open against main):
-  #230 Verification baseline — all fifteen scripts/check_*.R checks and the
-       seed-42 reproduction executed at commit edd6285 in the pinned Dev
-       Container. All fifteen pass; the tracked seed-42 evidence set
-       reproduces byte for byte. Recorded as a tracked table in a new
-       scripts/README.md (PR #243)
+  (none)
 
 UNBLOCKED (start now):
   #227 Delete the twelve wip/* checkpoint refs — the evidence set is on main
@@ -2830,4 +2850,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to record Issue #230 in review under PR #243; #227 and #228 move from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed.*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one.*

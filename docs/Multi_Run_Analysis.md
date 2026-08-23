@@ -77,7 +77,9 @@ The two rows are also resolved very differently. The `moderate_intensity` figure
 | R2E Hold | 0.622 | 2.694 | 4.33× |
 | Transport (PMV Ambulance / HX240M) | 0.00386 | 0.0278 | 7.22× (small in both) |
 
-![Comparative Scenario Analysis](../images/scenario_comparison.png)
+![Four-panel bar chart of mean queue length by resource group, R2B OT, R2E OT, R2E ICU and transport, each panel comparing the high intensity and moderate intensity profiles with error bars, on four different vertical scales](../images/scenario_comparison.png)
+
+Each panel carries its own vertical scale, so the panels compare profiles rather than resources: the R2E theatre panel runs to 60 casualties while the transport panel runs to 0.07. Both bars in the R2B theatre panel sit exactly at zero, and every high intensity error bar is wide enough to show that the surge queues vary substantially from replication to replication.
 
 ### Interpretation
 

@@ -313,6 +313,105 @@ check_anchor_links <- function(file_path, anchors_by_doc) {
   broken
 }
 
+#' Every markdown link and image in a document, with its position
+#'
+#' @param lines Character vector of the document's lines, already stripped of
+#'   the parts GitHub renders as code
+#' @return Data frame with one row per link: line number, whether it is an
+#'   image, the text between the square brackets, and the target
+#'
+#' @details Only the inline form is matched, which is the only form these
+#'   documents use. A target containing whitespace or a parenthesis is not
+#'   matched and so is not checked; no link in the repository takes that form,
+#'   and the alternative is a parser rather than a regular expression.
+document_links <- function(lines) {
+  pattern <- "(!?)\\[([^]]*)\\]\\(([^()[:space:]]+)\\)"
+  rows <- lapply(seq_along(lines), function(i) {
+    m <- gregexpr(pattern, lines[i], perl = TRUE)[[1]]
+    if (m[1] == -1) return(NULL)
+    text <- regmatches(lines[i], gregexpr(pattern, lines[i], perl = TRUE))[[1]]
+    parts <- regmatches(text, regexec(pattern, text, perl = TRUE))
+    data.frame(
+      line     = i,
+      is_image = vapply(parts, function(x) nzchar(x[2]), logical(1)),
+      alt      = vapply(parts, function(x) x[3], character(1)),
+      target   = vapply(parts, function(x) x[4], character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (length(rows) == 0) {
+    data.frame(line = integer(0), is_image = logical(0), alt = character(0),
+               target = character(0), stringsAsFactors = FALSE)
+  } else {
+    do.call(rbind, rows)
+  }
+}
+
+#' Report link and image targets that do not exist on disk
+#'
+#' @param file_path Path to the markdown file to check
+#' @return Number of targets that resolve to no file
+#'
+#' @details A target is resolved relative to the directory the document itself
+#'   sits in, which is what distinguishes a correct reference from an incorrect
+#'   one: "../images/" reaches the image directory from `docs/` and reaches
+#'   outside the repository from the root. GitHub renders a reference that
+#'   resolves outside the repository as a broken image rather than reporting an
+#'   error, which is how ten such references survived in the most-read document
+#'   in the project.
+#'
+#'   External targets are out of scope. Whether a URL still resolves is a
+#'   question about the internet rather than about this repository, and it
+#'   fails for reasons (rate limiting, transient outage) that a repository
+#'   check must not fail for.
+check_local_targets <- function(file_path) {
+  links <- document_links(strip_code(readLines(file_path, encoding = "UTF-8")))
+  broken <- 0
+
+  for (i in seq_len(nrow(links))) {
+    target <- links$target[i]
+    if (grepl("^(https?|mailto|ftp):", target)) next   # external, out of scope
+    file_part <- sub("#.*$", "", target)
+    if (!nzchar(file_part)) next                       # same-document anchor
+    resolved <- file.path(dirname(file_path), utils::URLdecode(file_part))
+    if (file.exists(resolved)) next
+
+    broken <- broken + 1
+    cat(sprintf("  %s:%d %s target %s does not exist (resolves to %s)\n",
+                file_path, links$line[i],
+                if (links$is_image[i]) "image" else "link",
+                target, resolved))
+  }
+
+  broken
+}
+
+# Alt text that names no content. A screen reader announces these as the whole
+# of the figure, so each is equivalent to publishing the figure with no
+# description at all.
+placeholder_alt <- c("", "alt text", "alt", "image", "img", "picture",
+                     "figure", "screenshot", "todo", "tbd")
+
+#' Report images whose alt text describes nothing
+#'
+#' @param file_path Path to the markdown file to check
+#' @return Number of images carrying placeholder or empty alt text
+check_alt_text <- function(file_path) {
+  links <- document_links(strip_code(readLines(file_path, encoding = "UTF-8")))
+  images <- links[links$is_image, , drop = FALSE]
+  flagged <- 0
+
+  for (i in seq_len(nrow(images))) {
+    if (!(tolower(trimws(images$alt[i])) %in% placeholder_alt)) next
+    flagged <- flagged + 1
+    cat(sprintf("  %s:%d image %s carries placeholder alt text \"%s\"\n",
+                file_path, images$line[i], images$target[i], images$alt[i]))
+  }
+
+  flagged
+}
+
 # The three documents that carry a table of contents block and the return
 # links beneath their H2 headings. Only these are rewritten.
 markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
@@ -330,6 +429,7 @@ link_check_docs <- c(markdown_docs, "CLAUDE.md",
                      "docs/Getting_Started.md",
                      "docs/Project_Status_Review.md",
                      "docs/STYLE_GUIDE.md",
+                     "data/sensitivity/README.md",
                      "scripts/README.md")
 
 for (doc in markdown_docs) {
@@ -345,6 +445,22 @@ if (broken_links > 0) {
   quit(status = 1)
 } else {
   cat("✓ Every anchor link resolves to a heading.\n")
+}
+
+broken_targets <- sum(vapply(link_check_docs, check_local_targets, numeric(1)))
+if (broken_targets > 0) {
+  cat(sprintf("⚠️ %d link or image target(s) do not exist — repair them and re-run.\n", broken_targets))
+  quit(status = 1)
+} else {
+  cat("✓ Every local link and image target exists.\n")
+}
+
+placeholder_images <- sum(vapply(link_check_docs, check_alt_text, numeric(1)))
+if (placeholder_images > 0) {
+  cat(sprintf("⚠️ %d image(s) carry placeholder alt text — describe what the figure shows and re-run.\n", placeholder_images))
+  quit(status = 1)
+} else {
+  cat("✓ Every image carries descriptive alt text.\n")
 }
 
 emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)

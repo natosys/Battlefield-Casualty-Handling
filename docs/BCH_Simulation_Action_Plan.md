@@ -82,12 +82,32 @@
 | 151 | Okinawa-specific DOW ceiling and treatment efficacy calibration for `high_intensity` | Medium | High | **Merged (PR #221)** |
 | 207 | Two configured parameters have a realised effect that is clipped | Low | Low | **Merged (PR #224)** |
 | 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | **Merged (PR #226)** |
+| 227 | Delete the twelve `wip/*` checkpoint refs once the evidence set is on main | Low | Low | Open |
+| 228 | Higher-resolution Sobol decomposition to separate the leading parameter pair | Medium | High | Open |
+| 230 | Establish the verification baseline — execute the regression check suite in the pinned Dev Container | High | Medium | Open (PR raised) |
+| 231 | Repair the README reference list — duplicated entries, misattributed authors, two paywalled sources | Critical | Low | Open |
+| 232 | All ten README images are broken links — fix the paths and validate link targets | Critical | Low | Open |
+| 233 | The analysis pipeline consumes RNG, so `analyse_run()` is not idempotent | Medium | Medium | Open |
+| 234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard | High | Medium | Open |
+| 236 | Global configuration save/restore is not exception-safe; `R/analysis.R` lacks input validation | Medium | Low | Open |
+| 237 | Housekeeping — delete the ten `wip/*` branches, reconcile the Further Development scan table, close `CLAUDE.md` drift | Low | Low | Open |
+| 235 | Add `lintr`, a single check-suite runner, and GitHub Actions CI so the regression checks become a gate | High | Medium | Open (blocked) |
+| 241 | Apply the code standard — decompose the oversized functions behind `testServer` and Playwright verification | High | High | Open (blocked) |
+| 238 | Re-cut the analysis papers by method — move the replicated experiments out of the single-run paper | High | Medium | Open |
+| 239 | Bring the single-run analysis paper to publication standard | High | High | Open (blocked) |
+| 240 | Bring the multi-run analysis paper to publication standard | High | High | Open (blocked) |
 
 ---
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-*No PRs currently open against main.*
+### Issue 230 — Establish the Verification Baseline
+
+**Branch:** `claude/issue-230-lq5ji3`
+
+The repository's fifteen `scripts/check_*.R` regression checks had never been executed as a suite, so nothing recorded which of them passed. All fifteen were run at commit `edd6285` in the pinned Dev Container, built from `.devcontainer/Dockerfile` on base image `rocker/rstudio@sha256:6bfc87fb…`, the same digest the Issue #155 canonical refresh names, with `renv` resolving the lockfile from a binary mirror rather than compiling from source. All fifteen pass, and the tracked seed-42 evidence set reproduces byte for byte across `logs/logs.txt`, all seven `data/arrivals_*.txt` diagnostics and `data/mass_casualty_events.csv`, which confirms by execution the reproduction claim `CLAUDE.md`'s provenance note rests on. The results are recorded as a tracked table in a new `scripts/README.md`, registered in `scripts/check_markdown.R`'s `link_check_docs`.
+
+The measurement was taken without repairing anything, so that the record describes the state it was taken from; no check failed, so no follow-up bug issue was raised. The runtime spread is the finding that governs Issue 235: the suite takes 56 minutes 49 seconds, of which `check_dow_calibration.R` alone accounts for 45 minutes, leaving the other fourteen at 11 minutes 47 seconds combined and eight of them under half a minute each. Two further observations were recorded for whoever wires the gate up: runs emit roughly one hundred `simmer` warnings per short run for casualties still holding an aeromedical evacuation seat when the window closes, which is ordinary end-of-run truncation but would bury a genuine message in a log; and `check_env_data_summary.R` and `check_markdown.R` rewrite tracked documents in place rather than only inspecting them, so a gate must read a resulting working-tree change as the failure signal. Both left the tree clean at this commit.
 
 ---
 
@@ -2223,6 +2243,27 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
 30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
+### Phase 6 — Code Quality and Verification (Issues 230, 231, 232, 233, 234, 236, 237, 235, 241)
+*Estimated effort: 3–4 weeks. Establishes automated verification and applies a written code standard. The phase opens with the verification baseline, because a gate cannot be wired around checks of unknown status and a refactor cannot be shown behaviour-preserving against an unknown baseline.*
+
+1. **Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. Blocks Issues 235, 241, 239 and 240. **In review, PR #243.**
+2. **Issue 231** — Repair the README reference list: remove duplicated entries, correct misattributed authors, and replace the two sources that violate the open-access rule. Text only, so it depends on nothing in this phase.
+3. **Issue 232** — Repair the ten broken README image links and extend `scripts/check_markdown.R` to validate link targets, so the same breakage cannot recur silently. Text and tooling only, and independent of the verification baseline.
+4. **Issue 233** — Make `analyse_run()` stream-neutral, the analysis pipeline currently consuming random draws and so not being idempotent. Not a prerequisite for Issue 241, though landing it first removes a source of confusing byte-comparison failures there.
+5. **Issue 234** — Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard, including a commenting standard. Supplies the machine-checkable rules `.lintr` encodes in Issue 235 and the function length limit Issue 241 applies, so it gates both.
+6. **Issue 236** — Make global configuration save and restore exception-safe, and add input validation to `R/analysis.R`.
+7. **Issue 237** — Housekeeping: delete the ten `wip/*` branches, reconcile the Further Development scan table against its entries, and close the drift between `CLAUDE.md` and the repository it describes.
+8. **Issue 235** — Add `lintr`, a glob-discovered `scripts/run_all_checks.R`, and a GitHub Actions workflow so the regression checks become a gate on every PR against `main`, with the slow checks scheduled or dispatched rather than run per PR. Add a PR template carrying the mandated test plan structure. Requires Issues 230 and 234.
+9. **Issue 241** — Apply the code standard: decompose `server`, `analyse_run` and `analyse_replications` behind `testServer` and Playwright verification, verify the analysis pipeline byte for byte against the tracked seed-42 baseline, replace the ninety-three literal `1440`s with the named constant, and assess `r2e_treat_wia` for a provably stream-neutral decomposition. Requires Issues 234, 235 and 230.
+
+### Phase 7 — Publication (Issues 238, 239, 240)
+*Estimated effort: 2–3 weeks. Brings the two analysis documents to the standard of a published paper. Sequenced after Phase 6 because the figure-verification passes need a working environment and a known-good check suite.*
+
+1. **Issue 238** — Re-cut the two analysis papers by method, moving the replicated experiments out of the single-run paper so each document reports one class of evidence. Settles what each of the other two issues is polishing, so it gates both.
+2. **Issue 239** — Bring `docs/Single_Run_Analysis.md` to publication standard: remove the twenty-two issue-number references and three blockquoted maintainer notes, add a methods section and a limitations section cross-referencing the README's `L` entries, verify every numeric claim against the current baseline, and clear the presentation defects. Requires Issues 238 and 230.
+3. **Issue 240** — Bring `docs/Multi_Run_Analysis.md` to publication standard: complete the statistical specification and remove the supersession narrative. Requires Issues 238 and 230.
+
+
 ### Dependency graph
 
 ```
@@ -2721,20 +2762,52 @@ COMPLETE (merged to main):
        untouched and the seed-42 log byte-identical (PR #221)
 
 IN REVIEW (PRs open against main):
-  (none)
+  #230 Verification baseline — all fifteen scripts/check_*.R checks and the
+       seed-42 reproduction executed at commit edd6285 in the pinned Dev
+       Container. All fifteen pass; the tracked seed-42 evidence set
+       reproduces byte for byte. Recorded as a tracked table in a new
+       scripts/README.md (PR #243)
 
 UNBLOCKED (start now):
-  (none)
-
-BLOCKED (gated on other issues):
   #227 Delete the twelve wip/* checkpoint refs — the evidence set is on main
        under data/sensitivity/, so the refs are redundant; deletion needs the
        GitHub UI or a local clone, the session git proxy silently refusing it.
-       Blocked until #226 merged, which it now has.
+       Unblocked by the merge of #226.
   #228 Higher-resolution Sobol decomposition — N ~ 800 at 8 to 12 replications
        to separate the leading pair and bring the measured 32.9% replication
-       noise share under 20%. Closes Further Development L29. Blocked until
-       #226 merged, which it now has.
+       noise share under 20%. Closes Further Development L29. Unblocked by the
+       merge of #226.
+  #231 Repair the README reference list — duplicated entries, misattributed
+       authors, and two sources violating the open-access rule. Text only.
+  #232 All ten README image links are broken — repair the paths and extend
+       check_markdown.R to validate link targets. Text and tooling only.
+  #233 The analysis pipeline consumes RNG, so analyse_run() is not
+       idempotent — make it stream-neutral. Not a prerequisite for #241.
+  #234 Rewrite docs/STYLE_GUIDE.md as an enforceable R code standard,
+       including a commenting standard. Gates #235 and #241.
+  #236 Global configuration save/restore is not exception-safe, and
+       R/analysis.R has no input validation.
+  #237 Housekeeping — delete the ten wip/* branches, reconcile the Further
+       Development scan table, close CLAUDE.md drift.
+  #238 Re-cut the analysis papers by method — move the replicated
+       experiments out of the single-run paper. Gates #239 and #240.
+
+BLOCKED (gated on other issues):
+  #235 lintr, a glob-discovered scripts/run_all_checks.R, and GitHub Actions
+       CI so the regression checks become a per-PR gate, with the slow checks
+       scheduled rather than run per PR. Blocked on #230, which establishes
+       which checks pass and how long each takes, and on #234, which supplies
+       the rules .lintr encodes.
+  #241 Apply the code standard — decompose server, analyse_run and
+       analyse_replications behind testServer and Playwright verification,
+       verified byte for byte against the tracked seed-42 baseline. Blocked
+       on #234 (the length limit), #235 (the runner both suites plug into)
+       and #230 (the checks passing before anything moves).
+  #239 Single-run analysis paper to publication standard. Blocked on #238,
+       which settles what the document contains, and #230, for the
+       figure-verification pass.
+  #240 Multi-run analysis paper to publication standard. Blocked on #238 and
+       #230, for the same two reasons.
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -2757,4 +2830,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition).*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to record Issue #230 in review under PR #243; #227 and #228 move from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed.*

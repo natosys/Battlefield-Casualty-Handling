@@ -55,6 +55,12 @@ Rscript scripts/measure_noise_floor.R --params "$P" \
 
 ## What the caches are and are not
 
+Both caches here were written with the replication seed unpinned, which is the
+shipped default (`--crn-seed` absent). A pinned screen draws a different seed
+vector, so it produces different responses and must not resume either of these
+caches. That is why the default is unpinned: a shipped default that did not
+reproduce the shipped data would make every figure in this set unverifiable.
+
 A cache belongs to the design that produced it. The design follows from the
 seed, the parameter set and their bounds, so a cache read against a screen
 whose seed, trajectory count, level count or bounds have moved would silently

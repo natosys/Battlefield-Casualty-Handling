@@ -1133,8 +1133,16 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
   # vector. That is a property of a function written for measurement
   # reproducibility, not a guarantee this one asked for, and a screen that
   # depends on it should say so instead of inheriting it by side effect.
-  # Setting crn_seed pins the behaviour here; it changes no result while that
-  # restoration holds, and keeps the screen correct if it ever stops.
+  # Setting crn_seed pins the behaviour here and keeps the screen correct if
+  # that restoration ever stops. It is not a free switch, and an earlier
+  # comment here wrongly said it was. The restoration makes every design point
+  # share a seed vector; it does not fix which vector, that being whatever the
+  # ambient stream had reached. Pinning fixes it, so a pinned screen and an
+  # unpinned one share seeds within themselves but not with each other and
+  # return different responses, which was measured rather than reasoned. NULL
+  # is therefore the default: the shipped default has to reproduce the shipped
+  # results, and the tracked caches under data/sensitivity/ were produced
+  # unpinned.
   if (!is.null(crn_seed)) set.seed(crn_seed)
   mon <- run_replications(n_rep, n_days, max_cores = max_cores)
   out <- extract_kpis(mon)
@@ -1175,20 +1183,21 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
 #'   Shiny app's main session) observe real "point M of N" progress. NULL
 #'   (default) disables this and preserves prior behaviour for existing
 #'   callers (scripts/run_sensitivity.R).
-#' @param nboot Bootstrap resamples for the confidence intervals on each
-#'   index (default 1000). Affects only interval width, never a point
-#'   estimate, and costs no simulation.
 #' @param crn_seed Seed pinned before each design point's replications, so
-#'   every point runs the same noise realisation. Design points already
-#'   share seeds via run_replications()' stream restoration, so this
-#'   changes no result; it makes the dependence explicit rather than
-#'   incidental. NULL leaves the stream untouched.
+#'   every point runs the same noise realisation regardless of what the
+#'   ambient stream had reached. Design points already share seeds via
+#'   run_replications()' stream restoration, so this adds no property the
+#'   screen lacked; what it adds is independence from everything that ran
+#'   before, which the restoration does not give. It is therefore not a
+#'   free switch: a pinned screen and an unpinned one draw different seed
+#'   vectors and so produce different responses. NULL (default) leaves the
+#'   stream untouched and reproduces the published ranking.
 #' @param cache_dir Optional directory path; when supplied, each design
 #'   point's responses are appended to points.csv there as it completes and
 #'   read back on a later call, so an interrupted screen resumes instead of
-#'   restarting. Clear it whenever the seed, r, the level count or the
-#'   parameter bounds change, or the cache would be read against a design it
-#'   does not belong to.
+#'   restarting. Clear it whenever the seed, r, the level count, the
+#'   parameter bounds or crn_seed change, or the cache would be read against
+#'   a design it does not belong to.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
@@ -1217,7 +1226,8 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
 #'   errors.
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
                        output_dir = "outputs", progress_dir = NULL, max_cores = NULL,
-                       images_dir = file.path(output_dir, "images"), cache_dir = NULL) {
+                       images_dir = file.path(output_dir, "images"), cache_dir = NULL,
+                       crn_seed = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(images_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -1262,7 +1272,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     }
     message(sprintf("  Point %d / %d", i, nrow(sa$X)))
     kpis <- tryCatch(
-      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores),
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores,
+                  crn_seed = crn_seed),
       error = function(e) {
         warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
         setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
@@ -1411,6 +1422,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     n_rep                = n_rep,
     n_days               = n_days,
     cache_dir            = if (is.null(cache_dir)) "none" else cache_dir,
+    crn_seed             = if (is.null(crn_seed)) "none" else crn_seed,
     degenerate_responses = if (length(degenerates) == 0) "none" else degenerates
   ))
 
@@ -1641,7 +1653,7 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
                       max_cores = NULL, dirichlet = TRUE, cache_dir = NULL,
-                      nboot = 1000, crn_seed = 20250819L) {
+                      nboot = 1000, crn_seed = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   # A composition group enters the decomposition whole or not at all.

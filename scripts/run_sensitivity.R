@@ -57,6 +57,27 @@ option_list <- list(
               help = "Run Sobol decomposition on top 5 parameters after Morris"),
   make_option("--n-sobol",    type = "integer", default = 200L,
               help = "Sobol sample size N [default: %default]"),
+  make_option("--nboot",      type = "integer", default = 1000L,
+              help = paste(
+                "Bootstrap resamples behind each Sobol index's confidence",
+                "interval [default: %default]. Affects interval width only,",
+                "never a point estimate, and costs no simulation. Only affects",
+                "--sobol runs; Morris reports no bootstrap interval."
+              )),
+  make_option("--crn-seed",   type = "integer", default = NULL,
+              help = paste(
+                "Pin the seed before every design point's replications, so the",
+                "screen runs one noise realisation independent of whatever the",
+                "ambient stream had reached [default: unpinned]. Design points",
+                "already share a seed vector without this, run_replications()",
+                "restoring the caller's stream position, but which vector they",
+                "share is not fixed. Pinning is therefore not free: a pinned",
+                "screen and an unpinned one return different responses, so a",
+                "cache from one must not be resumed by the other, and the",
+                "default is unpinned because that is what produced the",
+                "published rankings and the tracked caches under",
+                "data/sensitivity/."
+              )),
   make_option("--no-dirichlet", action = "store_true", default = FALSE,
               help = paste(
                 "Draw a selected composition group's balance coordinates",
@@ -135,7 +156,8 @@ morris_result <- run_morris(
   # directory: a Morris row and a Sobol row are both "point i" but mean
   # different things. Each gets its own subdirectory under --cache-dir.
   cache_dir  = if (is.null(opt[["cache-dir"]])) NULL
-               else file.path(opt[["cache-dir"]], "morris")
+               else file.path(opt[["cache-dir"]], "morris"),
+  crn_seed   = opt[["crn-seed"]]
 )
 
 # A design point at which *every* response is NA is a failed evaluation. A
@@ -198,7 +220,9 @@ if (opt$sobol) {
     output_dir  = opt[["output-dir"]],
     dirichlet   = !opt[["no-dirichlet"]],
     cache_dir   = if (is.null(opt[["cache-dir"]])) NULL
-                  else file.path(opt[["cache-dir"]], "sobol")
+                  else file.path(opt[["cache-dir"]], "sobol"),
+    nboot       = opt$nboot,
+    crn_seed    = opt[["crn-seed"]]
   )
 }
 

@@ -1045,7 +1045,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/scenario.R`                     | Scenario overlay mechanism: `resolve_scenario()` applies a named profile's overrides, and `merge_scenario_vars()` merges them variable by variable onto the base configuration. The profiles themselves are defined in `env_data.json`, not here |
 | `R/scenario_runner.R`              | Comparative scenario runner; `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
 | `app.R`                            | Shiny console with Getting Started, Configure, Run, and Analyse tabs (see [Shiny Application](#shiny-application) below) |
-| `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis, with `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol`, `--no-dirichlet` and `--cache-dir` flags |
+| `scripts/run_sensitivity.R`        | CLI entry point for sensitivity analysis, with `--quick`, `--sobol`, `--r`, `--reps`, `--days`, `--n-sobol`, `--nboot`, `--crn-seed`, `--no-dirichlet` and `--cache-dir` flags |
 | `scripts/screen_cache.sh`          | Checkpoints a screen's point cache onto its own git ref and restores it, so a multi-hour Morris or Sobol screen survives a host that reclaims its filesystem |
 | `scripts/compare_sobol_estimators.R` | Recomputes a completed decomposition's cached responses under the Jansen and Martinez pick-freeze estimators alongside the reported Saltelli one, which share the same design and so cost no further simulation, and reports whether the ordering and the separations survive the change of estimator |
 | `scripts/measure_noise_floor.R`    | Measures how much of a completed decomposition's variance is replication noise rather than parameter effect, by evaluating a sample of design points at many more replications than the decomposition used, and reports the factor the reported indices are deflated by and the replication count that would make it negligible |
@@ -1459,7 +1459,28 @@ Rscript scripts/run_sensitivity.R --quick
 
 # Morris then Sobol variance decomposition on top 5 parameters
 Rscript scripts/run_sensitivity.R --sobol
+
+# Wider bootstrap intervals on the Sobol indices, at no simulation cost
+Rscript scripts/run_sensitivity.R --sobol --nboot 4000
+
+# Pin the replication seed at every design point (see below before using)
+Rscript scripts/run_sensitivity.R --crn-seed 20250819
 ```
+
+`--nboot` sets the resample count behind each Sobol index's confidence
+interval. It changes interval width alone, never a point estimate, and costs no
+simulation, so a decomposition whose intervals look unstable can be re-bootstrapped
+without re-running the model.
+
+`--crn-seed` pins the seed before each design point's replications. Design points
+already share a seed vector without it, `run_replications()` restoring the caller's
+stream position on exit, but *which* vector they share is whatever the ambient
+stream had reached; pinning fixes that, so a screen becomes independent of
+everything that ran before it in the session. This is not a free switch. A pinned
+screen and an unpinned one share seeds within themselves but not with each other,
+and return different responses, so a cache written by one must not be resumed by
+the other. The default is unpinned, because that is what produced the published
+rankings and the tracked caches in [`data/sensitivity/`](data/sensitivity/README.md).
 
 Outputs are written to `outputs/morris_ranking_<response>.csv`, one ranking per response in the [Screening Response Set](#screening-response-set), each carrying the response's criteria mapping and its degeneracy diagnostics alongside the per-parameter µ\* and σ. `outputs/morris_ranking.csv` repeats the primary system OT queue ranking under its historical filename. Scatter plots are written per response to `outputs/images/morris_<response>.png`, which is gitignored; `--images-dir images` redirects them to the tracked baseline location, which is a deliberate act rather than a default, since a screen writes one plot per response and would otherwise scatter untracked files through a tracked directory. When `--sobol` is specified, first-order (S1) and total-order (ST) indices for the top-ranked parameters are written to `outputs/sobol_<kpi>.csv`. Each row carries a `flag` column marking an index outside the theoretical range, and a sidecar `sobol_run_metadata.csv` records the design that produced it: the sample size, the estimator, the bootstrap resample count, the selected parameters and the commit. Three further scripts interrogate a completed decomposition without running the model again. `scripts/compare_sobol_estimators.R` recomputes the cached responses under two alternative pick-freeze estimators, `scripts/test_sobol_separation.R` tests which orderings the sample actually establishes, and `scripts/measure_noise_floor.R` measures how much of the variance is replication noise. What the current decomposition supports, and what it does not, is set out in Further Development L29.
 

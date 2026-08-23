@@ -381,6 +381,55 @@ Everything in 6.1, 6.2 and 6.6 is independent and can be shipped immediately.
 
 ---
 
+## Issues Raised
+
+Every finding and plan task above is tracked. Issues were raised 23 August 2026 under two new
+labels, `phase/6 · code-quality` and `phase/7 · publication`.
+
+| Issue | Title | Findings | Status |
+|---|---|---|---|
+| #230 | Establish the verification baseline | H5 (6.0) | ready — blocks #235, #239, #240, #241 |
+| #231 | Repair the README reference list | C2, H1, H2 | ready |
+| #232 | Fix the ten broken README images, extend the markdown checker | C1, L-a | ready |
+| #233 | Role 4 length-of-stay drawn from an unseeded stream | new finding | ready — blocks #241 |
+| #234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable standard | M4 | ready |
+| #235 | Add lintr, a check-suite runner, and CI | H5 | blocked by #230, #234 |
+| #236 | Exception-safe global save/restore, and input validation | M1, M3 | ready |
+| #237 | Housekeeping: wip branches, scan table, CLAUDE.md drift | M5, M6, L-e | ready |
+| #238 | Re-cut the analysis papers by method | H3 | ready — blocks #239, #240 |
+| #239 | Single-run paper to publication standard | H4, L-a, L-b, L-c | blocked by #238, #230 |
+| #240 | Multi-run paper to publication standard | H4 | blocked by #238, #230 |
+| #241 | Apply the code standard: decompose the oversized functions | M2, L-d, L-f | blocked by #233, #234, #235, #230 |
+
+Three decisions were taken while raising these and are recorded here because they changed the
+plan above.
+
+**The refactor covers both `analyse_run` and `server` (#241).** The review implied `server`
+could not be verified after a refactor. That was wrong. Its reactive state machine (forty
+`reactiveVal`, ten `reactive`, ten `observeEvent`) is testable with `shiny::testServer()`,
+which ships with shiny and needs no new dependency, and its rendered output is testable with
+Playwright against the Chromium already present in the development environment. `server` is
+untested, not untestable, and the risky part of it is cheap to cover. Playwright was preferred
+over `shinytest2` because it keeps browser automation out of `renv.lock` and is less brittle
+than snapshot testing; the cost is a Node toolchain alongside `renv.lock`.
+
+**The refactor does not gate the papers.** The review's sequencing argument was that the papers
+cite function names the refactor would move. They cite eight function names between them, of
+which two are in `R/analysis.R`: `analyse_run()`, whose name survives decomposition, and
+`plot_transport_capacity_margin_by_fleet_size()`. Phase 7 can therefore proceed in parallel
+with #241 rather than behind it. The dependency that does bind is #233 before #241, because
+`R/analysis.R` draws random numbers at analysis time and reordering the pipeline would move a
+published figure.
+
+**The replicated experiments move to the multi-run paper (#238).** The single-run document is
+retitled to reflect what remains.
+
+One discrepancy worth noting: Issue #227 refers to twelve `wip/*` checkpoint refs; `git
+ls-remote` currently returns ten. #237 covers the deletion and either supersedes #227 or is
+dropped in its favour.
+
+---
+
 ## Open Questions for the Owner
 
 1. **Scope boundary (7.1).** Move the parameter sweeps into the multi-run paper, or keep

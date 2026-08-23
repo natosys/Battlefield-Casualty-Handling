@@ -70,6 +70,12 @@ carries roughly a second of scheduling overhead.
 No check produced non-zero exit output, so the column the measurement reserved
 for failure output is empty throughout.
 
+A sixteenth check, `check_references.R`, was added after this measurement and so
+carries no row above. It reads the three academic documents and exits without
+running the model, so it belongs with the eight sub-half-minute checks rather
+than with the calibration check, but its runtime in this container has not been
+measured.
+
 Three checks corroborate published figures independently of the baseline
 reproduction below. `check_dow_calibration.R` returns a pooled treated-cohort
 died-of-wounds rate of 0.474% (95% CI [0.412%, 0.536%]) for `default` and

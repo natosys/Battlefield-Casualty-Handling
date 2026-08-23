@@ -73,7 +73,7 @@ if (is.null(params)) stop("env_data.json carries no dow/params block")
 
 # A scenario profile overrides the base ceilings, so the figure can be drawn
 # for a profile as well as for the shipped configuration. The overrides sit in
-# the profile's own `elms` block and replace the base values variable by
+# the profile's own `vars` block and replace the base values variable by
 # variable, which is what merge_scenario_vars() does at run time.
 profile_label <- "Falklands 1982 calibration"
 if (!identical(SCENARIO, "default")) {

@@ -81,15 +81,21 @@
 | 150 | DNBI sub-type surgical-candidacy statistics predate multiple RNG-stream-shifting merges | Medium | Low | **Merged (PR #217)** |
 | 151 | Okinawa-specific DOW ceiling and treatment efficacy calibration for `high_intensity` | Medium | High | **Merged (PR #221)** |
 | 207 | Two configured parameters have a realised effect that is clipped | Low | Low | **Merged (PR #224)** |
-| 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | Open (PR raised) |
+| 155 | Final canonical re-run and documentation refresh once all issues are closed | High | High | **Merged (PR #226)** |
 
 ---
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-### Issue 155 — Final Canonical Re-run and Documentation Refresh
+*No PRs currently open against main.*
 
-**Branch:** `claude/issue-155-qit0ip`
+---
+
+## Recently Merged Issues
+
+### Issue 155 — Final Canonical Re-run and Documentation Refresh ✓
+
+**Merged:** PR #226, branch `claude/issue-155-qit0ip`
 
 The terminal refresh. Every figure, table and plot across `README.md`,
 `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` is
@@ -177,9 +183,9 @@ also writes a `*_run_metadata.csv` sidecar recording the design, the commit and
 the R version behind its results, and a Sobol result file carries a `flag`
 column marking an index outside the theoretical range.
 
----
+**Seed-42 baseline (30 days, single run):** Unchanged, and that is the finding rather than an absence of one. The pinned run reproduces `logs/logs.txt`, all seven `data/arrivals_*.txt` diagnostics and `data/mass_casualty_events.csv` byte for byte, and the 50-replication scenario comparison and the 450-replication died-of-wounds calibration reproduce their published figures exactly. No row of `CLAUDE.md`'s Key Parameters table moves. The fourteen refreshes made in unpinned R 4.3.3 sandboxes were therefore faithful, and their caveats retire as correct rather than corrected.
 
-## Recently Merged Issues
+**Unblocked by this merge:** Issues #227 (delete the twelve `wip/*` checkpoint refs, now redundant since the evidence set is tracked at `data/sensitivity/`) and #228 (higher-resolution Sobol decomposition at N ~ 800 and 8 to 12 replications, closing Further Development L29). Both were raised from this work and were blocked on its merge; both move to `status: ready`. Issue #4 remains in backlog, and merging it later would invalidate this refresh and require a second canonical run, which was recorded as an explicit pre-merge decision on PR #226 and accepted.
 
 ### Issue 207 — Two Configured Parameters Have a Realised Effect That Is Clipped ✓
 
@@ -2194,7 +2200,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 15h. ~~**Issue 151** — Give `high_intensity` its own died-of-wounds ceilings and treatment efficacy factors in place of the Falklands-calibrated pair it inherited, so the profile's mortality model belongs to the campaign its casualty rates come from. Calibrated against Okinawa's own reported rate of 3.4% among casualties reaching a hospital alive (Marble, 2025), reaching 3.471% (95% CI [3.360%, 3.583%]) at `p1_p_max` = 0.052 and `p2_p_max` = 0.042. The efficacy factors are informed estimates for 1945 Pacific-theatre care; the two within-era penalties stay inherited. `scripts/check_dow_calibration.R` now holds a target per configuration and tests this one two-sided. Requires Issues 54 and 10.~~ — **Merged PR #221.**
 15i. ~~**Issue 207** — Apply two configured planner levers in full. The reinforcement credit no longer clamps at establishment strength: reinforcement joins the population on arrival, so a fill fraction above 1 delivers more than the shortfall it was requested against and carries the pool over strength until casualties bring it back down, which required `reinforcement_force_bound()` to widen the arrival generators' thinning bound so a force size above establishment cannot saturate the acceptance probability. A casualty evacuated from R2B holding under `evac_threshold` now serves the remainder of the convalescence already drawn rather than a fresh draw. Added `scripts/check_lever_realisation.R` and `validate_fill_distribution()`. Both features ship disabled, so no baseline value moves. Requires Issues 18 and 124.~~ — **Merged PR #224.**
 
-### Phase 5 — Interface (Issues 72 ✓, 93 ✓, 15 ✓, 77 ✓, 110 ✓, 111 ✓, 121 ✓, 109 ✓, 128 ✓, 117 ✓, 112 ✓, 114 ✓, 116 ✓, 115 ✓, 154 ✓, 152 ✓, 147 ✓, 201 ✓)
+### Phase 5 — Interface (Issues 72 ✓, 93 ✓, 15 ✓, 77 ✓, 110 ✓, 111 ✓, 121 ✓, 109 ✓, 128 ✓, 117 ✓, 112 ✓, 114 ✓, 116 ✓, 115 ✓, 154 ✓, 152 ✓, 147 ✓, 201 ✓, 155 ✓)
 *Estimated effort: 1–2 weeks.*
 
 15a. ~~**Issue 72** — Adopt `renv` for reproducible R package dependency pinning: `renv.lock` captures the 116 packages `run.R`, `app.R`, `R/*.R` and `scripts/*.R` require, and the Dev Container restores from it rather than from the Dockerfile's ad hoc `install.packages()` list, with the image build pre-warming the cache so a container start resolves from it.~~ — **Merged PR #91.**
@@ -2215,6 +2221,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 29. ~~**Issue 152** — DOW calibration target unsupported by its cited sources: replace the untraceable "3 DOW / 580 WIA ≈ 0.52%" target with the Ajax Bay treated-cohort rate (≈0.46%, Westphalen 2018) measured against the model's matching cohort, correct the reference [13] author attribution and the 255:777 sourcing, and re-validate both shipped configurations against the corrected target.~~ — **Merged PR #167.**
 30. ~~**Issue 147** — `ot_hours` absent from `env_data.json`, carried as a bare `= 12` default duplicated across six files and therefore missing from the Configure panel's parameter registry: add `vars.surgical_roster.shift.ot_hours` as the single source of truth, default every call site to `NULL` so it resolves from the configuration, register the field, and remove the Run tab's duplicate slider so the shift length is captured by the configuration a run is saved from.~~ — **Merged PR #179.**
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
+30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
 ### Dependency graph
 
@@ -2720,12 +2727,14 @@ UNBLOCKED (start now):
   (none)
 
 BLOCKED (gated on other issues):
-  #155 Final canonical re-run and documentation refresh — one sweep in the
-       pinned container producing the authoritative seed-42 baseline, the
-       production Morris/Sobol screen deferred to it by #157 and #158, and
-       a documentation pass over every figure carrying an unpinned-sandbox
-       caveat. Blocked by its own terms until every other issue is closed,
-       so it clears only once #4 does.
+  #227 Delete the twelve wip/* checkpoint refs — the evidence set is on main
+       under data/sensitivity/, so the refs are redundant; deletion needs the
+       GitHub UI or a local clone, the session git proxy silently refusing it.
+       Blocked until #226 merged, which it now has.
+  #228 Higher-resolution Sobol decomposition — N ~ 800 at 8 to 12 replications
+       to separate the leading pair and bring the measured 32.9% replication
+       noise share under 20%. Closes Further Development L29. Blocked until
+       #226 merged, which it now has.
 
 BACKLOG (unblocked but deprioritised — not currently planned):
   #4   Individual resource seizure   (gating satisfied: #1 + #2 + #3 all merged;
@@ -2748,4 +2757,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 18 August 2026 to reflect: the canonical re-run and documentation refresh of Issue #155, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats, rebuilds the Morris ranking at sixty-five parameters, and withdraws two published claims that did not survive re-measurement.*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition).*

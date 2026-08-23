@@ -391,7 +391,7 @@ labels, `phase/6 · code-quality` and `phase/7 · publication`.
 | #230 | Establish the verification baseline | H5 (6.0) | ready — blocks #235, #239, #240, #241 |
 | #231 | Repair the README reference list | C2, H1, H2 | ready |
 | #232 | Fix the ten broken README images, extend the markdown checker | C1, L-a | ready |
-| #233 | Role 4 length-of-stay drawn from an unseeded stream | new finding | ready — blocks #241 |
+| #233 | Analysis pipeline consumes RNG, so `analyse_run()` is not idempotent | new finding | ready |
 | #234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable standard | M4 | ready |
 | #235 | Add lintr, a check-suite runner, and CI | H5 | blocked by #230, #234 |
 | #236 | Exception-safe global save/restore, and input validation | M1, M3 | ready |
@@ -399,7 +399,7 @@ labels, `phase/6 · code-quality` and `phase/7 · publication`.
 | #238 | Re-cut the analysis papers by method | H3 | ready — blocks #239, #240 |
 | #239 | Single-run paper to publication standard | H4, L-a, L-b, L-c | blocked by #238, #230 |
 | #240 | Multi-run paper to publication standard | H4 | blocked by #238, #230 |
-| #241 | Apply the code standard: decompose the oversized functions | M2, L-d, L-f | blocked by #233, #234, #235, #230 |
+| #241 | Apply the code standard: decompose the oversized functions | M2, L-d, L-f | blocked by #234, #235, #230 |
 
 Three decisions were taken while raising these and are recorded here because they changed the
 plan above.
@@ -417,9 +417,22 @@ than snapshot testing; the cost is a Node toolchain alongside `renv.lock`.
 cite function names the refactor would move. They cite eight function names between them, of
 which two are in `R/analysis.R`: `analyse_run()`, whose name survives decomposition, and
 `plot_transport_capacity_margin_by_fleet_size()`. Phase 7 can therefore proceed in parallel
-with #241 rather than behind it. The dependency that does bind is #233 before #241, because
-`R/analysis.R` draws random numbers at analysis time and reordering the pipeline would move a
-published figure.
+with #241 rather than behind it.
+
+**#233 does not gate the refactor either, and its scope is reduced.** It was first raised as a
+high-priority blocker on #241, on the reasoning that reordering the analysis pipeline would
+move a published Role 4 figure. Enumerating the pipeline's RNG consumers withdrew both parts of
+that. There is exactly one draw in `analyse_run()`'s path, so a decomposition preserving call
+count and row order reproduces it exactly and byte-comparison remains a valid check; and if the
+refactor disturbs either, the comparison fails, which is the verification working. Role 4 is
+also ancillary to the land trauma system the project is about, being modelled as unconstrained
+demand (L16) with no queue, no mortality and no feedback into the modelled echelons.
+
+What survives is that `analyse_run()` is not idempotent, which is a real defect whatever output
+it touches, and that a second unseeded consumer already exists at `R/analysis.R:2572`
+(`geom_jitter()`, currently writing an untracked image). The fix was accordingly changed from
+reseeding the draw to saving and restoring `.Random.seed` around it, which gives idempotence
+while leaving every published figure exactly where it is, so no baseline refresh is needed.
 
 **The replicated experiments move to the multi-run paper (#238).** The single-run document is
 retitled to reflect what remains.

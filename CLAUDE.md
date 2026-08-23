@@ -53,13 +53,17 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/check_screen_cache.R` | Regression check asserting that a sensitivity screen's design-point cache resumes what it recorded: a complete row round-trips, a partially-missing row reads as present with its gaps preserved, an all-missing row reads as absent, and an uncached point or a foreign cache reads as absent; exits non-zero on failure |
 | `scripts/check_measurement_reproducibility.R` | Regression check asserting that a multi-replication measurement is a function of its control seed alone: that it repeats at that seed, that it is unaffected by what preceded it in the session, that `run_replications()` restores the caller's generator kind and stream position, and that a replication reproduces from its seed on either dispatch path; exits non-zero on failure |
 | `scripts/check_scenario_labels.R` | Regression check asserting that the comparative scenario plot renders in a C locale and is byte-identical to the same plot rendered under UTF-8; exits non-zero on failure |
+| `scripts/check_arrival_rate_fidelity.R` | Regression check asserting that the generated arrival streams reproduce their configured rates and between-day variance, so a change to the arrival process cannot silently move the casualty count; exits non-zero on failure |
+| `scripts/README.md` | Verification baseline for the regression check suite — the result, runtime and observed behaviour of every `check_*.R` script, measured together in the pinned Dev Container |
 | `scripts/check_pre_open_window.R` | Regression check asserting that a zero R2B pre-open hold window reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster, and that every casualty held forward is operated on there; exits non-zero on failure |
 | `README.md` | System reference — introduction, literature review, methodology, codebase structure, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, limitations, references. Does not contain simulation results. |
 | `docs/Single_Run_Analysis.md` | Illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline — the project's original per-echelon results walk-through |
 | `docs/Multi_Run_Analysis.md` | Multi-run (n≥30 replications, 95% CI) comparative results narrative — Falklands-modified vs. Okinawa-intensity scenario comparison |
 | `docs/BCH_Simulation_Action_Plan.md` | Issue tracker cross-reference — phase sequencing, dependency graph, merged-issue log |
 | `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
-| `docs/STYLE_GUIDE.md` | R code style conventions — follow at all times |
+| `docs/Getting_Started.md` | User guide for the Shiny console — the Configure/Run/Analyse workflow and how to read each output |
+| `docs/Project_Status_Review.md` | Repository-wide status review — the findings and remediation plan the Phase 6 code-quality issues derive from |
+| `docs/STYLE_GUIDE.md` | The R code standard — every rule a reviewer checks a PR against, each tagged machine-checkable, reviewer-applied or preference; follow at all times |
 | `data/` | Read-only input data (arrival schedules) plus the tracked seed-42 diagnostic/event files (`arrivals_*.txt`, `mass_casualty_events.csv`) written by `R/environment.R`, rewritten only under `run.R --refresh-baseline` |
 | `data/sensitivity/` | Tracked sensitivity evidence set — the Morris r=20 and Sobol N=200 design point caches, the per-response rankings, the decompositions, the noise floor measurement, and the estimator and separation re-analyses; roughly nineteen hours of computation, kept because every published index and rank derives from it and it cannot be regenerated cheaply |
 | `images/` | Tracked seed-42 baseline plots and reference diagrams, regenerated as part of baseline-affecting PRs via `run.R --refresh-baseline` |
@@ -453,19 +457,29 @@ AFTER #1 + #2 + #5 + #8:
 
 ## Code Standards
 
-Follow `docs/STYLE_GUIDE.md` at all times. Key points:
+`docs/STYLE_GUIDE.md` is the code standard for every R source file in the repository, and it is authoritative: where this section and the standard could be read differently, the standard governs. Each of its rules is tagged `[lint]` (machine-checkable, and destined for the repository's lint configuration), `[review]` (applied by a reviewer without a judgement call) or `[preference]` (raised, but not blocking). Read it before writing R, and check a PR against it before opening one.
 
-- Use roxygen-style header comments for all functions (`#'` tags with `@param`, `@return`).
-- Branch logic must include a comment block describing the branch structure and decision criteria before the `branch()` call.
-- Resource variables follow the pattern: `<type>_<echelon>` (e.g., `ot_beds`, `hold_beds`, `surg_team`).
-- Use `snake_case` for all variable and function names.
-- Trajectories use descriptive quoted names (e.g., `trajectory("R2B Surgery — DCS Phase 1")`).
+The rules below are the ones that come up in almost every PR. They are a pointer into the standard, not a substitute for it, and each names the rule that governs it.
+
+- Every function carries a roxygen header, without exception, including one-line helpers and the `fail()`/`report()` helpers in a check script. Mandatory tags are a one-line title, `@param` for every argument, and `@return`; `@details` is required where the behaviour is not obvious from the title and the arguments (R1, R2).
+- Branch logic carries a comment block describing the branch structure and the decision criterion for each arm before the `branch()` call (R4).
+- Assign with `<-`, never `=`. Use the magrittr pipe `%>%`, never the native pipe. Keep lines inside 100 characters and function bodies inside 100 lines (F4, F5, F1, D1).
+- Use `snake_case` for every variable and function name; `UPPER_SNAKE_CASE` for a file-scope constant. Resource variables follow `<type>_<echelon>` (e.g. `ot_beds`, `hold_beds`, `surg_team`), and trajectories take descriptive quoted names (e.g. `trajectory("R2B Surgery, DCS Phase 1")`) (N1, N2).
+- Minutes per day is `day_min`, never the literal `1440`, and a parameter a planner might change belongs in `env_data.json` rather than in R source (C1, C3).
+- `<<-` is permitted for closure state and, from an entry point only, for the four globals the execution model requires (`env`, `env_data`, `day_min`, `counts`). A function that mutates one of those and is expected to leave it as it found it restores it with `on.exit(..., add = TRUE)`, not by manual assignment at the foot of the function (G1 to G3).
+- Anything read from outside the program (`env_data.json`, CLI arguments, a Shiny input) is validated before use and fails with a `stop()` message naming the field and the value found (E1, E2).
+- A comment explains why; the academic documents explain the model. This is the reciprocal of the prose rule above: reasons only a maintainer needs go in the comment, and neither restates the other (R5, R6).
 
 ### Simmer-specific
 
-- Use `select()` + `seize_selected()` for dynamic, policy-driven resource selection (not hardcoded resource names in `seize()`).
-- Resource monitoring: always use `get_mon_arrivals()` and `get_mon_resources()` on the wrapped environment list after replication (once Issue 1 is merged).
-- Never access `env` globals directly inside trajectory functions after replication is activated — use `get_attribute()` and `set_attribute()` for per-entity state.
+- Use `select()` + `seize_selected()` for dynamic, policy-driven resource selection (not hardcoded resource names in `seize()`), and annotate the policy at the `select()` call (S1, S2).
+- Resource monitoring: always use `get_mon_arrivals()` and `get_mon_resources()` on the wrapped environment list returned by the replication framework (S3).
+- Never access `env` globals directly inside trajectory functions — use `get_attribute()` and `set_attribute()` for per-entity state (G5, S4).
+- Where a trajectory's quoted name is constructed, hold the format string in a documented file-scope constant, so a rename cannot leave a regression check searching for a label the model no longer uses (S5).
+
+### Regression check scripts
+
+A new `scripts/check_*.R` follows the convention the standard sets out (K1 to K10): a shebang, a banner with a `# Usage:` block and a paragraph saying why the check exists, run parameters as file-scope constants, failures accumulated through `fail()` rather than stopping at the first, one `[PASS]`/`[FAIL]` line per assertion through `report()`, and an explicit `quit(status = 0)` or `quit(status = 1)`. A check signals failure by its exit status, never by `stop()`.
 
 ---
 

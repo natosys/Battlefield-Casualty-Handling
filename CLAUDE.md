@@ -29,6 +29,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis |
 | `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
 | `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner |
+| `scripts/render_dow_survival.R` | Renders `images/dow_survival_function.png` from the `dow.params` block of `env_data.json`, for the base configuration or a `--scenario` profile, so a re-fitted `p_max` cannot leave the figure disagreeing with the calibration table beneath it; `--refresh-baseline` is the only way to write the tracked image |
 | `scripts/render_morris_plots.R` | Re-renders a completed sensitivity screen's Morris scatter plots from its saved design and responses, without running the model again, checking each response's recomputed µ\* and σ against the tracked ranking CSV before writing so a plot cannot drift away from the table it illustrates; `--refresh-baseline` is the only way to write the tracked `images/morris_*.png` |
 | `scripts/screen_cache.sh` | Checkpoints a sensitivity screen's point cache onto its own git ref and restores it, so a multi-hour screen survives an environment that reclaims its filesystem mid-run |
 | `scripts/supervise_screen.sh` | Drives a long screen to completion across environment failures, restoring the cache before each attempt and checkpointing while the screen runs |

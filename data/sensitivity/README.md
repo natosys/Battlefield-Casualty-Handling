@@ -29,8 +29,34 @@ Environment](../../README.md#development-environment) section. Each screen's
 
 ## Re-analysis without re-running the model
 
-Three scripts read these files and cost no simulation, so a reader can check
-the reported conclusions rather than take them:
+Four scripts read these files and cost no simulation, so a reader can check
+the reported conclusions rather than take them.
+
+The Morris scatter plots `README.md` embeds are rendered from
+`morris_r20/morris_design_and_responses.rds` rather than written by the screen
+that produced it, so the plots and the published ranking table cannot describe
+different screens. They did once: the tracked plots were left at the r = 5
+screen of Issue #155 while the tracked rankings moved to the r = 20 screen that
+superseded it, and every published plot disagreed with the table printed above
+it until Issue #232. The renderer recomputes each response's µ\* and σ from the
+saved design and refuses to write a plot that does not match the ranking CSV it
+accompanies.
+
+The tracked plots were last rendered outside the pinned container, in an R
+4.3.3 sandbox carrying `ggplot2`, `ggrepel` and `sensitivity` at the exact
+versions `renv.lock` names. Nothing measured moves with the renderer: every
+value a plot shows comes from the tracked design and responses, and the check
+above confirmed each response reproduces its tracked ranking to within 5e-15
+relative. What a different R version could move is the rendering, so a
+maintainer re-render in `rocker/rstudio:4.4.2` would establish that the images
+are byte-identical as well as numerically identical.
+
+```sh
+Rscript scripts/render_morris_plots.R                       # to outputs/images
+Rscript scripts/render_morris_plots.R --refresh-baseline    # to images/
+```
+
+The three Sobol re-analyses read the decomposition rather than the screen:
 
 ```sh
 P=pri1_surg_prob,mass_casualty_rate,mass_casualty_max_cas,mass_casualty_min_cas,pri1_dcs_rate

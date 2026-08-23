@@ -1709,7 +1709,13 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
 
-  Y_all <- t(vapply(seq_len(nrow(sb_r2b$X)), function(i) {
+  # Held in a local rather than read back off sb_r2b later: tell_safe()
+  # returns NULL for a response whose bootstrap fails, and r2b_ot_q is
+  # routinely that response, so a later read off sb_r2b would land on
+  # NULL and the run metadata recorded an empty design size.
+  n_points <- nrow(sb_r2b$X)
+
+  Y_all <- t(vapply(seq_len(n_points), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one
     # long-lived process, hours of compute that a lost process discards
     # entirely. With cache_dir each point's responses are written as it
@@ -1721,11 +1727,11 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     if (!is.null(cache_file) && file.exists(cache_file)) {
       cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
       if (!is.null(cached)) {
-        message(sprintf("  Sobol point %d / %d (cached)", i, nrow(sb_r2b$X)))
+        message(sprintf("  Sobol point %d / %d (cached)", i, n_points))
         return(cached)
       }
     }
-    message(sprintf("  Sobol point %d / %d", i, nrow(sb_r2b$X)))
+    message(sprintf("  Sobol point %d / %d", i, n_points))
     row <- full_params
     row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
     res <- tryCatch(
@@ -1864,7 +1870,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   write_screen_metadata(output_dir, "sobol", list(
     n_sobol          = n_sobol,
     n_params         = nrow(p_def),
-    n_design_points  = nrow(sb_r2b$X),
+    n_design_points  = n_points,
     n_rep            = n_rep,
     n_days           = n_days,
     estimator        = "sobol2007",

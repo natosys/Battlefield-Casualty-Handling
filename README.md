@@ -218,7 +218,9 @@ The health system establishment — the number of Role 1 (R1) treatment teams, R
 
 The shipped default configuration models the land combat health system anticipated for a representative combat brigade: three battlegroups, each allocated one R1 treatment team tasked with providing immediate clinical intervention and stabilisation in proximity to combat operations (three R1 teams in total); two R2B facilities conducting damage control resuscitation and surgery before onward evacuation to higher-level care; and one R2E Heavy hospital sited to the rear for complex surgical procedures, extended post-operative care, and advanced diagnostic support. This default configuration underpins the diagram below and the illustrative single-run and multi-run analyses documented in [docs/Single_Run_Analysis.md](docs/Single_Run_Analysis.md) and [docs/Multi_Run_Analysis.md](docs/Multi_Run_Analysis.md).
 
-![Alt text](../images/tactical_diagram.png)
+![Satellite map of the modelled area of operations, annotated with military symbols for three R1 treatment teams forward, two R2B facilities behind them, and one R2E Heavy hospital to the rear, joined by blue evacuation routes](images/tactical_diagram.png)
+
+The three R1 teams sit forward with their battlegroups, each connected by a road evacuation route to one of the two R2B facilities, and both R2B facilities route rearward to the single R2E Heavy hospital sited near the main supply route.
 
 An [Interactive Diagram](https://www.map.army/?ShareID=1041883&UserType=RO-xOMjf7j6) allows further exploration of the default model configuration being simulated.
 
@@ -734,7 +736,7 @@ $$
 
 where $t$ is elapsed minutes since injury, $p_{base}$ is the irreducible DOW probability at $t = 0$ (representing immediately non-survivable injury independent of care speed), $p_{max}$ is the asymptotic ceiling (representing the fraction of casualties that will die without timely definitive care), $k$ controls the steepness of the rise, and $t_{mid}$ is the inflection point in minutes.
 
-![DOW Survival Function](../images/dow_survival_function.png)
+![DOW Survival Function](images/dow_survival_function.png)
 
 The plotted curves show DOW probability $F(t)$ for the P1 (urgent, red) and P2 (priority, blue) cohorts. Both curves are near-flat before 60 minutes — the window in which most simulated casualties reach R1 treatment — before rising through the critical window (shaded, 60–180 min), the period of greatest time-sensitivity. The dashed horizontal lines show the $p_{max}$ asymptotes; the curves approach but never exceed these ceilings.
 
@@ -1155,7 +1157,7 @@ Rscript scripts/run_warmup.R --reps 5 --days 60
 
 The resulting Welch plot shows the cross-replication CMA of the R2E ICU queue across 90 days.
 
-![Welch plot of the R2E ICU queue CMA across 90 days](../images/welch_plot_icu_queue.png)
+![Welch plot of the R2E ICU queue CMA across 90 days](images/welch_plot_icu_queue.png)
 
 The CMA rises from 0 at Day 0 to 0.57 at Day 89 and is still climbing gently when the run ends, with 14.7% of the 2,159 hourly increments a decrease. The instantaneous cross-replication mean queue peaks at 2.0 casualties waiting on a pool of four R2E ICU beds. This is a far milder picture than the model produced while every critical-route evacuee held an intensive care bed for the whole of its wait for an aircraft, when the same measurement reached 30.6 with no decreasing increment at all: the queue no longer accumulates without bound. It is nonetheless a busier picture than the measurement this replaces, which gave a final CMA of 0.29 and a 1.1-casualty peak; the queue roughly doubles on both, and the share of decreasing increments falls from 22.5%, because the arrival process now delivers the day-to-day variation its configuration names and an intensive care queue forms on heavy days that a flattened process never produced. What the curve does not do is settle. It is still rising at the end of a 90-day horizon, which is what a campaign-long build-up of clinical demand looks like rather than a start-up transient overlaid on a steady state.
 
@@ -1551,19 +1553,33 @@ Four assignments are judgement calls, and each affects how a result should be re
 
 A scatter plot is written for every response in the set. The seven reproduced below are the ones the tracked baseline carries, all of them from the current sixty-five-parameter screen; a screening run writes all thirty-six to its own output directory, and refreshes these seven in place only when explicitly pointed at the tracked location.
 
-![Morris EE: System OT queue](../images/morris_system_ot_q.png)
+![Morris screening scatter plot of the mean system operating theatre queue across R2B and R2E, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_system_ot_q.png)
 
-![Morris EE: R2B OT queue](../images/morris_r2b_ot_q.png)
+The points fan upward and to the right, so a parameter that matters more also interacts more. Orange scenario-context points dominate the high-importance region; the capacity and policy points that reach into it are the treatment durations (resuscitation, surgery and the post-operative holds) and, further left, theatre shift length, the pre-open hold window and the theatre evacuation policy.
 
-![Morris EE: R2E OT queue](../images/morris_r2e_ot_q.png)
+![Placeholder panel for the Morris screening of the mean R2B operating theatre queue, carrying only the title and the words "insufficient variation to plot" in place of a scatter](images/morris_r2b_ot_q.png)
 
-![Morris EE: R2E ICU queue](../images/morris_r2e_icu_q.png)
+No scatter is drawn because the response is degenerate: the forward theatre queue stayed at zero at every design point, so no parameter produced an elementary effect and none can be ranked. That is a result about the forward theatre rather than a gap in the screen, and it is why the system queue panel above and the R2E panel below are the same picture.
 
-![Morris EE: DOW count](../images/morris_dow_count.png)
+![Morris screening scatter plot of the mean R2E operating theatre queue, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_r2e_ot_q.png)
 
-![Morris EE: Transport queue](../images/morris_transport_q.png)
+The panel is identical to the system queue above, the forward theatre contributing nothing to the system total, so every conclusion drawn about system theatre queueing is a conclusion about R2E alone.
 
-![Morris EE: Transport utilisation](../images/morris_transport_util.png)
+![Morris screening scatter plot of the mean R2E intensive care queue, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_r2e_icu_q.png)
+
+Casualty-generation rates again lead on importance, but the intensive care queue is the one response in this set where a policy parameter reaches the leading group: theatre shift length sits among the highest points on both axes, because the rate at which casualties leave theatre sets the rate at which they arrive at the four intensive care beds.
+
+![Morris screening scatter plot of the total died-of-wounds count, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_dow_count.png)
+
+The mass casualty event rate stands well clear of every other parameter on importance, and the Priority 1 mortality ceiling is the next point to the right, so how often the model is asked to absorb a surge matters more for mortality than any single clinical or capacity parameter. Most of the remaining points cluster below an importance of 2.5 with interaction terms two to three times their size.
+
+![Morris screening scatter plot of the mean transport queue across the PMV Ambulance and HX240M fleets, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_transport_q.png)
+
+The scale is the smallest in the set, the whole spread of importance sitting below 0.25 vehicles, which is consistent with the fleet queueing rarely at the shipped establishment. What separation there is comes from casualty-mix parameters rather than from the fleet: nothing in the plot is a vehicle count, because fleet size is swept directly rather than screened.
+
+![Morris screening scatter plot of the mean transport utilisation across the PMV Ambulance and HX240M fleets, plotting each of the 65 screened parameters at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, with points coloured orange for scenario context, green for capacity and blue for policy](images/morris_transport_util.png)
+
+Utilisation is the flattest response in the set, the whole spread of importance falling below 0.07 with no point standing clear of the rest, and it is the one panel where a policy parameter, the strategic evacuation sortie interval, sits among the leading points. Vehicles spend most of the run idle whatever the parameters do, so this response separates parameters weakly and is best read alongside the queue panel above rather than on its own.
 
 #### Comparative Scenario Runner
 

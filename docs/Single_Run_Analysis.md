@@ -41,7 +41,9 @@ This section presents a detailed breakdown of casualty source data captured from
 
 > **Note on warm-up exclusion:** No warm-up exclusion is applied. The simulation is classified as a terminating simulation — it runs for a fixed, finite campaign horizon rather than approximating an indefinite steady state — so the full observation window, including campaign start-up, is retained in all outputs (`WARM_UP_DAYS = 0L`).
 
-![Alt text](../images/casualty_summary.png)
+![Three stacked bar charts of daily casualty arrivals over the 30-day run, the same daily totals decomposed first by casualty type (WIA, KIA, DNBI), then by population source (combat, support), then by triage priority (Priority 1 to 3 and KIA)](../images/casualty_summary.png)
+
+The three panels decompose one arrival series three ways, so each panel's daily totals match. Arrivals are strongly uneven: the heaviest day delivers 46 casualties and the lightest four, and combat-source casualties supply the great majority of every peak.
 
 |casualty_type |population_source |  1|  2|  3|  4|  5|  6|  7|  8|  9| 10| 11| 12| 13| 14| 15| 16| 17| 18| 19| 20| 21| 22| 23| 24| 25| 26| 27| 28| 29| 30| total|
 |:-------------|:-----------------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|-----:|
@@ -91,13 +93,17 @@ From a systems design perspective, the acuity profile derived from this simulati
 
 Role 1 facilities consistently demonstrated the ability to process casualties without delay, with all patients receiving immediate triage and treatment on arrival. The absence of queuing reflects both adequate staffing and appropriately scaled treatment capacity relative to the casualty inflow modelled. Rapid handling times ensured that Priority 1 cases could be stabilised and evacuated without degradation in clinical status, while lower‑priority cases were managed and prepared for movement in line with requirements. However, the model does not currently fully represent the limitations in availability of evacuation assets, as a result, throughput at the Role 1 was not constrained by evacuation availability, allowing continuous casualty flow to higher‑echelon care and preventing downstream bottlenecks in the system which may bear out with the introduction of more detailed modelling of evacuation. Despite this, the performance underscores the critical function of Role 1 as an agile, forward medical capability able to maintain momentum under sustained operational tempo.
 
-![Alt text](../images/r1_queues.png)
+![Step plots of queue length over the 30-day run for each clinical role at each of the three R1 teams, flat at zero in every panel except two brief single-casualty spikes at R1 2 on day 3](../images/r1_queues.png)
+
+Every R1 role holds a queue of zero for the whole run apart from two moments on day 3, when one casualty waited briefly for the nursing role at R1 2. The vertical scales differ between panels, so the two R1 1 and R1 3 panels are flat at zero across their full range.
 
 ## R2B Handling
 
 The plot below outlines a summary of casualty handling at R2B. Following DNBI sub-categorisation (Issue #7), OT-bypass routing (Issue #35), and correction of OT bed scheduling (Issue #37), the R2B picture is substantially revised from earlier model iterations.
 
-![Alt text](../images/r2b_handling.png)
+![Three stacked bar charts per simulation day at R2B: casualties treated at each of the two R2B stations, surgeries started at each station, and casualties bypassing R2B altogether](../images/r2b_handling.png)
+
+Treated casualties and surgeries are shared between the two stations on most days, with neither station carrying the load alone for long. The bypass panel sits at zero or one on most days and rises sharply on a handful, day 14 and day 22 in particular, so bypassing is an episodic response to congestion rather than a steady share of the flow.
 
 OT rooms are modelled as physical spaces available 24 hours per day. The surgical section operates on a 12-hour shift schedule and is the operative constraint on surgical access. Under seed 42 (30 days), **210 casualties reached the R2B surgical decision point**; **69 surgeries** were performed at R2B, and **141 were bypassed to R2E**. R2B OT utilisation was **9.7% (T1) and 9.6% (T2) against 24-hour room time**, and **19.3% and 19.1% against the section's own rostered time**. The OT queue remained flat at zero throughout the run, confirming the bypass logic is functioning as designed. Forward surgeries fall while the caseload arriving at the decision point rises by a third, which is what a single theatre and a single rostered section do when demand arrives in bursts: the peak cannot be spread.
 
@@ -115,9 +121,13 @@ Two candidate interventions to close the remaining gap — extending the existin
 
 The run now does show a queue, where it previously did not: the queue on the busiest hold beds peaks at five casualties. That is the capacity-aware routing policy reaching its limits on the peak days rather than evidence of spare capacity on the others. The upstream threshold check diverts a casualty to R2E before transport whenever no R2B unit is below 80% hold occupancy, and it did so 179 times over the run, with a further three diverted on arrival and one queued with both echelons full. The structural shortfall analysed in the next section is therefore real but largely exported to R2E, where it arrives as additional medical hold and ICU load, rather than accumulating as a visible queue at R2B.
 
-![Alt text](../images/r2b_bed_queues.png)
+![Step plots of queue length over the run for every bed at each of the two R2B units, showing queues of up to four casualties at R2B 1 and five at R2B 2 on the holding beds, and brief single-casualty queues on the resuscitation beds](../images/r2b_bed_queues.png)
 
-![Alt text](../images/r2b_gantt.png)
+Only the holding and resuscitation beds ever queue. The holding-bed queues are long-lived, persisting for days at a time around days 4 to 8 and again from day 14, while the resuscitation queues are brief spikes of one or two casualties.
+
+![Gantt chart of bed occupancy at each of the two R2B units over the run, with one horizontal band per bed coloured by bed type, the five holding beds almost continuously occupied and the operating theatre, intensive care and resuscitation beds showing short scattered episodes](../images/r2b_gantt.png)
+
+The contrast between bed types is the point: holding beds carry multi-day occupancies that run together into near-continuous bands, whereas theatre, intensive care and resuscitation occupancies are short enough to appear as isolated marks.
 
 ### R2B Hold Bed Saturation — Stream Decomposition and Intervention Analysis
 
@@ -136,6 +146,8 @@ Issue #39 adds per-stream decomposition of R2B hold bed occupancy. A `r2b_hold_s
 This is a **structural 55% overload**. That is a long-run expectation over the configured means; a single 30-day run's realised occupancy sits below it, at 7.6 beds on average, because the routing policy exports the excess to R2E rather than letting it accumulate. The saturation cannot be resolved by changes to surgical throughput; it requires an intervention at the holding pathway itself.
 
 ![R2B Hold Bed Daily Occupancy by Patient Stream](../images/r2b_hold_occupancy.png)
+
+Disease DNBI, in green, is the largest stream on all but a handful of days and is what carries occupancy above the ten-bed establishment. Wounded in action, in purple, holds a steady two to four beds throughout, so relieving the hold-bed constraint is a question about disease management rather than about surgical throughput.
 
 **Intervention Scenario A — Hold duration reduction** (`vars.r2b.holding.mode` in `env_data.json`). Reducing the hold mode from 5 days (7,200 min) to 3 days (4,320 min) reduces expected mean duration from 5.17 to (0.5 + 3 + 10) / 3 = 4.5 days. Expected concurrent occupancy falls from 15.5 to 3.0 × 4.5 = **13.5 beds**, still 35% above the 10-bed capacity. A clinically implausible mode of ≤ 1.6 days would be required to bring expected occupancy within capacity. Hold duration reduction alone is insufficient to resolve saturation. To test: change `{"var": "mode", "val": 7200}` to `{"var": "mode", "val": 4320}` in the `vars.r2b.holding` activity and re-run 10+ replications.
 
@@ -164,7 +176,9 @@ The analysis pipeline reports all three routing outcomes: `r2b_pre_bypass_count`
 
 The R2E Heavy is the primary surgical node for the deployed health system, receiving both casualties bypassed directly from R1 and those bypassed onward from an R2B whose theatre was off-shift, occupied, or ICU-saturated. Under seed 42 over 30 days, the R2E performed **171 first surgeries** and **41 second surgeries**. The second-procedure count is now a minority of the first, where it was once most of it: only a damage control casualty whose abbreviated operation was performed here returns to theatre for a definitive repair, and a single-stage casualty operated on forward at R2B needs no procedure here at all (see README [Surgical Pathway](../README.md#surgical-pathway)).
 
-![Alt text](../images/r2eheavy_bed_queue_3_teams.png)
+![Step plots of R2E Heavy queue length over the run, one panel for the four intensive care beds and one for the two operating theatre beds, the intensive care queue never exceeding one and the theatre queue peaking at eight around day 9](../images/r2eheavy_bed_queue_3_teams.png)
+
+The two panels share a vertical scale, which makes the difference between them plain: the theatre queue rises and falls in waves that reach eight casualties on day 9 and six on day 24, while the intensive care queue never exceeds one.
 
 **R2E surgical throughput is bounded by rostered surgical sections as well as by theatre space.** A procedure seizes both an operating theatre and one of the three surgical sections that staff them, and a section carries a 12-hour roster while a theatre is available continuously, so the number of concurrent operations is capped at two during the first shift, when two sections are rostered on, and one during the second, when one is. Utilisation across the three sections was **30.8%, 53.6% and 30.8%** of the time their own rosters had them open; the middle figure is higher because that section is the one rostered to the second shift, and so absorbs the whole of the night-time surgical load on its own. Against 24-hour room time the two theatres ran at **66.6%** and **52.8%**.
 
@@ -182,9 +196,13 @@ Sub-optimal care (red — surgery proceeded despite ICU saturation, Priority 1 o
 
 **50-replication validation (seed = NULL, 30 days) confirms the effect generalises beyond seed 42.** Comparing 50 independent replications pre- and post-Issue-43: mean R2E ICU utilisation fell from **74.1% to 60.2%** — a substantial, consistently-observed reduction in ICU load, not a seed-42 artefact. Mean DOW/run rose from **0.84 (95% CI [0.58, 1.10]) to 1.00 (95% CI [0.74, 1.26])** — the two confidence intervals overlap substantially, so this specific comparison does not reach conventional statistical significance at n = 50 (DOW remains a rare event; a properly powered before/after comparison would need a considerably larger replication count). The increase is, however, fully attributable to the new post-operative checkpoint: it contributed a mean of 0.10 DOW/run on its own (5 of 50 replications), accounting for essentially the entire point-estimate shift. Within that checkpoint, the qualitative design intent held using the real (non-stress-tested) parameters: the post-op hold pathway's realised DOW rate (2 deaths / 1,223 patients = 0.16%) was roughly **2.8× the ICU pathway's rate** (3 deaths / 5,085 patients = 0.06%) — the elevated-risk pathway is measurably, not just theoretically, riskier at baseline casualty rates, though the small absolute counts mean this ratio itself carries wide uncertainty. The intervals in this paragraph alone are as originally computed, over replications that were antithetically paired while the interval divided by the replication count, which makes them narrower than the runs entitle them to be. They are not recomputed because the comparison is against a configuration that no longer exists in the codebase, so the "before" arm cannot be re-run; the paragraph's own conclusion, that the two intervals overlap and the comparison does not reach significance at n = 50, is only reinforced by intervals that should be wider. Every other interval in this document has been regenerated over independent replications.
 
-![Alt text](../images/r2eheavy_gantt.png)
+![Gantt chart of R2E Heavy bed occupancy over the run, one horizontal band per bed coloured by bed type, the thirty holding beds filling one after another over the first five days and staying occupied to the end, above them four intensive care beds heavily but intermittently occupied and two theatres and three resuscitation beds in short episodes](../images/r2eheavy_gantt.png)
 
-![Alt text](../images/r2eheavy_surgeries.png)
+The holding beds fill in sequence and none is released again before the run ends, which is what makes the strategic evacuation backlog visible as a resource state rather than only as a count.
+
+![Bar chart of R2E Heavy surgeries completed on each simulation day, varying between four and twenty-five with two days carrying none](../images/r2eheavy_surgeries.png)
+
+Daily surgical output varies by a factor of six across the run and reaches 25 on day 25, so theatre demand at R2E arrives in bursts rather than at a steady rate.
 
 > **Provenance (canonical refresh, Issue #155).** Every seed-42 figure in this document, and every figure it embeds, was produced from one code state in the project's pinned Dev Container (`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`). It therefore carries no sandbox caveat and supersedes the per-issue currency notes that stood here previously, which recorded the successive model changes that had moved these figures and the unpinned R 4.3.3 sandboxes they were measured in.
 >
@@ -196,7 +214,9 @@ When examined in system context, the combined OT capacity of two R2B elements an
 
 ## Casualty Waiting Time
 
-![Casualty Waiting Time Over Simulation](../images/waiting_time.png)
+![Scatter plot of each casualty's total waiting time in minutes against the simulation day of arrival, with a fitted trend line, most points lying on the zero line and a scattered upper band reaching 33,000 minutes that thins out after day 20](../images/waiting_time.png)
+
+The distribution is sharply bimodal. Most casualties wait essentially no time at all, and a minority wait days to weeks, those being the casualties queued for a strategic evacuation sortie rather than for clinical care. The upper band falls away after day 20 because a casualty arriving late in the run has less time in which to accumulate a wait before the run ends, so the apparent improvement is an artefact of the finite horizon rather than a recovery.
 
 ## Transport Fleet Capacity Margin
 
@@ -208,7 +228,9 @@ Under seed 42 (30 days), the HX240M queue remains at 0 throughout the run and th
 
 **Fleet-size sweep (Issue #57).** `plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) sweeps PMV Ambulance across 1–5 vehicles and HX240M across 1–4 vehicles, holding the other fleet at its current establishment size, rebuilding the environment at each sweep point via `build_environment()` and running the replication engine (`run_replications()`, R/replication.R — the same engine the comparative scenario runner, Issue #10, uses) for `n_rep` replications per point. 10 replications × 30 days (seed 42) were run via `Rscript scripts/run_transport_sweep.R`:
 
-![Transport Fleet Capacity Margin by Fleet Size](../images/transport_capacity_margin_by_fleet_size.png)
+![Four-panel line plot of mean queue and mean utilisation against fleet size for the PMV Ambulance and HX240M fleets, each line with a 95% confidence ribbon and a dashed vertical line marking the current establishment size](../images/transport_capacity_margin_by_fleet_size.png)
+
+The PMV Ambulance queue collapses between one and two vehicles and is flat thereafter, so the shipped establishment of three sits on the flat part of the curve rather than at its knee. Utilisation rises again beyond three vehicles because the measure is a per-vehicle average over a pool that is seldom fully engaged.
 
 | Fleet size | PMV Ambulance mean queue (95% CI) | PMV Ambulance mean utilisation | HX240M mean queue (95% CI) | HX240M mean utilisation |
 |---|---|---|---|---|
@@ -228,7 +250,9 @@ Mean utilisation across the swept range remains too weakly determined to read. I
 
 A casualty's stabilisation requirement is a single quantity divided between R2B and R2E by the forward-holding policy, and the post-definitive care that follows their definitive repair is a separate episode served only at R2E (see README [Post-Operative Stabilisation](../README.md#post-operative-stabilisation)). Because the stabilisation total is conserved at every setting, sweeping the policy moves load between the echelons without changing how much care is delivered, which makes it a genuine planning lever rather than a way of quietly reducing treatment. `scripts/run_icu_share_sweep.R` swept it at 20 replications per point over 30 days. Only the damage control cohort has a stabilisation phase, so the population the lever acts on is roughly half of operated casualties rather than all of them (see README [Surgical Pathway](../README.md#surgical-pathway)).
 
-![Forward ICU Share Decision Frontier](../images/r2b_icu_share_frontier.png)
+![Five stacked line plots against the share of post-operative intensive care delivered forward at R2B, from 0% to 100%, showing R2E ICU mean queue, R2B ICU utilisation, R2E ICU utilisation, the share of post-definitive care delivered in ICU, and DOW count, each with a 95% confidence ribbon and a dashed line at the shipped default of 0%](../images/r2b_icu_share_frontier.png)
+
+Every panel moves little across the full sweep and every confidence ribbon spans the whole movement, so at this replication count the lever is not resolved: the frontier shows where the trade-off would appear rather than establishing its size.
 
 | Forward ICU share | R2E ICU mean queue (95% CI) | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU (95% CI) | Mean DOW per run (95% CI) |
 |---|---|---|---|---|---|
@@ -297,7 +321,9 @@ This section presents the seed-42 30-day single-run Role 4 (national support bas
 
 Daily Role 4 bed occupancy rises through the engagement window, reaching a peak of 90.0 concurrent patients (all wards combined) on day 30, still rising at the run's end and not decaying to zero within the window shown, since the length-of-stay distributions extend well past the campaign horizon. The peak tracks the number of evacuation decisions rather than any change in how Role 4 itself is modelled, and it rises with them as each stream now realises the daily rate its configuration names (see README [Casualty Generation](../README.md#casualty-generation)).
 
-![Strategic AME Backlog Over Time by Route](../images/ame_backlog.png)
+![Two step plots of the number of casualties awaiting a strategic evacuation sortie over the run, one for the critical route and one for the standard route, both rising steadily to a peak around day 21 and falling sharply when a sortie flies before climbing again](../images/ame_backlog.png)
+
+Both routes accumulate for three weeks before the first sortie flies, and neither is cleared by the two sorties that do fly: the critical backlog is higher at the end of the run than it was before the first departure. Every casualty counted here is holding an R2E bed while waiting.
 
 > **Provenance note (Issue #109):** this image was regenerated as part of Issue #109 fixing a bug in the backlog computation itself — see the Domain 7 MODEL OUTPUT — Strategic AME Backlog Over Time (by Pool) block above for what was wrong and how it was fixed. The figures in the prose below were already correct (derived from `ame_wait_time_summary`, not the broken plot), which is how the bug went unnoticed until this issue's verification. The image is now regenerated in the pinned Dev Container with the rest of this document.
 
@@ -344,7 +370,9 @@ The mean 6.50 events per 30-day run is consistent with the configured 0.2/day ev
 
 A single seed-42 run (`mass_casualty.event.rate_per_day = 0.2`, no replication averaging) illustrates the mechanism directly: 654 total casualties (400 background + 254 mass-casualty-derived) across 6 reconstructed mass casualty events (sizes 27, 24, 43, 49, 75, 36 — the 75-casualty cluster on day 26 likely merges two closely-spaced real events, a known limitation of the gap-based event reconstruction heuristic when two events' independent Poisson-distributed inter-arrival gap happens to fall under the clustering threshold). Relative to the background-only baseline (post_op_pathway: hold=31, icu=110; surgery deferred=13), the mass casualty run shows the R2E OT–ICU gate (Issue #43) engaging far more heavily: post-operative hold-bed overrides (165) now *exceed* ICU recovery (141) — inverted from the background-only ratio — and OT-entry deferrals for ICU-saturated Priority 2+ casualties rise from 13 to 37. R2E OT utilisation over the run rises to 31.3% (vs. R2B's 3.8%), and R1 upstream pre-bypass to R2B rises from 115 to 292 casualties as the surge saturates forward capacity. This directly demonstrates the acceptance criterion that ICU and OT contention spike under mass casualty conditions, and that a single acute event can measurably shift the OT–ICU gating mix toward the sub-optimal hold-bed pathway across an entire 30-day run, not just during the event window itself.
 
-![Mass Casualty Event Timeline](../images/mass_casualty_events.png)
+![Stem plot of the six mass casualty events reconstructed from the run, each drawn as a vertical line at its simulation day with a point at its casualty count, ranging from 24 casualties on day 5 to 75 on day 26](../images/mass_casualty_events.png)
+
+The events are neither evenly spaced nor evenly sized, which is the compound Poisson process behaving as configured: four events fall in the first twelve days, none between days 12 and 25, and the two largest arrive within a day of each other at the end of the run.
 
 ## Conclusion
 

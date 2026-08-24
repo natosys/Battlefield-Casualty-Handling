@@ -2254,6 +2254,7 @@ This section records what the model does not represent, how much each gap matter
 | L28 | The R2B pre-open hold window has no source | Medium |
 | L29 | The variance decomposition resolves group membership, not order | Medium |
 | L30 | Role 4 length of stay is drawn after the simulation | Low |
+| L31 | Configuration is held in globals rather than passed as an argument | Low |
 
 ### High Impact
 
@@ -2301,6 +2302,8 @@ Two further consequences follow for how the bound is used. A test asking whether
 
 **L30 — Role 4 length of stay is drawn after the simulation.** Each evacuated casualty's national support base length of stay is drawn by the analysis pipeline once the run is over, not by the simulation at the point of evacuation (see [Role 4 (National Support Base) Demand Modelling](#role-4-national-support-base-demand-modelling)). Nothing in theatre depends on the value, so the placement changes no in-theatre result, and the draw is stream-neutral, so the census reproduces from one analysis of a run to the next. What it does mean is that the Role 4 figures are a function of where the analysis begins in the random number stream as well as of the run seed: they reproduce for a given calling sequence rather than being a property of the seed alone. The impact is low because Role 4 produces no queue, no mortality and no feedback into the land trauma system, and because a change to the simulation moves the whole baseline in any case. Closing it means setting the length of stay as a casualty attribute at the evacuation disposition, which is where the quantity belongs structurally and where it would have to sit if the national support base were ever modelled as a capacity-constrained echelon.
 
+
+**L31 — Configuration is held in globals rather than passed as an argument.** The parameter set the model runs against is held in three global variables, and the trajectory closures and environment builder resolve them from the global environment rather than receiving them as arguments. Any entry point that varies the configuration, which is every capacity sweep, sensitivity screen and scenario comparison the project reports from, therefore has to overwrite those globals and put them back afterwards. Each now does so on the way out whether it succeeds or fails, and a regression check asserts it (`scripts/check_config_restore.R`), so the failure this arrangement invites, a run reported as the baseline but computed against a swept configuration, is closed. What remains is that correctness rests on every future entry point remembering the same discipline, and that a reader cannot tell from a function's signature which parameter set it runs against. Closing it means threading the configuration through as an argument, which touches every trajectory closure that reads it; the individual resource modelling work revisits that same area, so the change is better made alongside it than before it.
 Beyond these, model fidelity would benefit from structured expert consultation. Treatment durations, triage logic and evacuation thresholds would all be improved by review from clinicians, medical planners and operational commanders, and several parameters recorded above as informed estimates have no other realistic route to a sourced value.
 
 ## Conclusion

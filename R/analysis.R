@@ -21,6 +21,179 @@ library(triangle)
 # so the pipeline stays stream-neutral (Issue #233).
 MASS_CASUALTY_JITTER_SEED <- 233L
 
+# ── Entry-point input validation ─────────────────────────────────────────────
+# This module's public entry points (analyse_run(), analyse_replications(),
+# and the two capacity sweeps) are the boundary between data produced
+# elsewhere and several thousand lines of pipeline that index it by name.
+# Validating the shape once, here, turns a malformed input into a message
+# naming what is missing rather than a subscript or dplyr error raised deep
+# inside a summarise() the caller never wrote. Interior helpers are then
+# entitled to assume well-formed input (Issue #236).
+
+# Columns each monitoring data frame must carry for the pipeline to run.
+# `replication` is required of all three even for a single run, which
+# run_once()'s wrap() supplies as 1: the pipeline joins arrivals to
+# attributes on it throughout.
+MON_REQUIRED_COLUMNS <- list(
+  arrivals   = c("name", "start_time", "end_time", "activity_time", "replication"),
+  attributes = c("name", "key", "value", "replication"),
+  resources  = c("resource", "time", "server", "queue", "replication")
+)
+
+#' Assert that a monitoring list carries what the analysis pipeline reads
+#'
+#' @param mon Named list with elements arrivals, attributes and resources,
+#'   as returned by run_once() or run_replications()
+#' @param caller Name of the calling entry point, used in the error message
+#' @return TRUE, invisibly, if the monitoring list is well formed; otherwise
+#'   stops with a message naming the element and column at fault
+#'
+#' @details Checks presence and class of the three elements, presence of the
+#'   columns listed in MON_REQUIRED_COLUMNS, and that `arrivals` is non-empty
+#'   (a run with no arrivals has nothing to report on, and every summary in
+#'   the pipeline is keyed off it). `attributes` and `resources` are allowed
+#'   to be empty, which a short run with no recorded attribute or no seized
+#'   resource legitimately produces.
+validate_monitoring <- function(mon, caller) {
+  problems <- character(0)
+
+  if (!is.list(mon) || is.data.frame(mon)) {
+    stop(sprintf("%s: mon must be a named list of monitoring data frames, found %s",
+                 caller, paste(class(mon), collapse = "/")), call. = FALSE)
+  }
+
+  for (element in names(MON_REQUIRED_COLUMNS)) {
+    df <- mon[[element]]
+    if (is.null(df)) {
+      problems <- c(problems, sprintf("mon$%s is missing", element))
+      next
+    }
+    if (!is.data.frame(df)) {
+      problems <- c(problems, sprintf("mon$%s must be a data frame, found %s",
+                                      element, paste(class(df), collapse = "/")))
+      next
+    }
+    missing_cols <- setdiff(MON_REQUIRED_COLUMNS[[element]], names(df))
+    if (length(missing_cols) > 0) {
+      problems <- c(problems, sprintf("mon$%s is missing column(s): %s",
+                                      element, paste(missing_cols, collapse = ", ")))
+    }
+  }
+
+  if (is.data.frame(mon$arrivals) && nrow(mon$arrivals) == 0) {
+    problems <- c(problems, "mon$arrivals is empty: the run produced no casualties")
+  }
+
+  if (length(problems) > 0) {
+    stop(sprintf("%s: malformed monitoring data:\n  - %s",
+                 caller, paste(problems, collapse = "\n  - ")), call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
+#' Assert that a value is a single positive whole number
+#'
+#' @param value Value to check
+#' @param field Field name to name in the error message
+#' @param caller Name of the calling entry point, used in the error message
+#' @return TRUE, invisibly, if the value is a single positive whole number;
+#'   otherwise stops
+#'
+#' @details Used for the replication and duration arguments of the sweep
+#'   entry points, where a zero, a fraction or a vector produces either an
+#'   empty sweep or a confusing error several minutes into a long run.
+validate_positive_count <- function(value, field, caller) {
+  usable <- is.numeric(value) && length(value) == 1L && !is.na(value) &&
+    is.finite(value) && value >= 1 && value == as.integer(value)
+  if (!usable) {
+    stop(sprintf("%s: %s must be a single positive whole number, found %s",
+                 caller, field, paste(format(value), collapse = ", ")), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' Assert that a sweep entry point's common arguments are usable
+#'
+#' @param n_days Simulation duration in days
+#' @param n_rep Replications per sweep point
+#' @param path File path to env_data.json
+#' @param progress_dir Directory for progress marker files, or NULL
+#' @param caller Name of the calling entry point, used in the error message
+#' @return TRUE, invisibly, if the arguments are usable; otherwise stops
+#'
+#' @details A sweep is a multi-hour call, so its arguments are checked before
+#'   the first replication rather than discovered at the point of use. The
+#'   configuration path is checked for existence here because the sweeps read
+#'   it themselves rather than taking the already-loaded globals.
+validate_sweep_args <- function(n_days, n_rep, path, progress_dir, caller) {
+  validate_positive_count(n_days, "n_days", caller)
+  validate_positive_count(n_rep,  "n_rep",  caller)
+
+  if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
+    stop(sprintf("%s: path must be a single non-empty string, found %s",
+                 caller, paste(format(path), collapse = ", ")), call. = FALSE)
+  }
+  if (!file.exists(path)) {
+    stop(sprintf("%s: path does not exist: %s", caller, path), call. = FALSE)
+  }
+  if (!is.null(progress_dir) && !dir.exists(progress_dir)) {
+    stop(sprintf("%s: progress_dir does not exist: %s", caller, progress_dir),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
+#' Assert that a transport sweep's fleet sizes are usable
+#'
+#' @param fleet_sizes Named list, one element per vehicle, each a vector of
+#'   fleet quantities to sweep
+#' @param caller Name of the calling entry point, used in the error message
+#' @return TRUE, invisibly, if the fleet sizes are usable; otherwise stops
+#'
+#' @details The names are the vehicle identifiers matched against the
+#'   `transports` block of the configuration, so an unnamed list sweeps
+#'   nothing and is rejected rather than silently returning an empty result.
+validate_fleet_sizes <- function(fleet_sizes, caller) {
+  usable <- is.list(fleet_sizes) && length(fleet_sizes) > 0 &&
+    !is.null(names(fleet_sizes)) && all(nzchar(names(fleet_sizes)))
+  if (!usable) {
+    stop(sprintf("%s: fleet_sizes must be a non-empty named list, one element per vehicle",
+                 caller), call. = FALSE)
+  }
+  for (vehicle in names(fleet_sizes)) {
+    qtys <- fleet_sizes[[vehicle]]
+    usable <- is.numeric(qtys) && length(qtys) > 0 && !any(is.na(qtys)) &&
+      all(qtys >= 0) && all(qtys == as.integer(qtys))
+    if (!usable) {
+      stop(sprintf(paste0("%s: fleet_sizes$%s must be a non-empty vector of ",
+                          "non-negative whole numbers, found %s"),
+                   caller, vehicle, paste(format(qtys), collapse = ", ")), call. = FALSE)
+    }
+  }
+  invisible(TRUE)
+}
+
+#' Assert that a forward ICU share sweep's shares are usable
+#'
+#' @param shares Numeric vector of forward ICU shares to sweep
+#' @param caller Name of the calling entry point, used in the error message
+#' @return TRUE, invisibly, if the shares are usable; otherwise stops
+#'
+#' @details A share is a proportion of the post-operative stabilisation
+#'   requirement served forward, so a value outside [0, 1] has no meaning and
+#'   would be swept for hours before producing one.
+validate_shares <- function(shares, caller) {
+  usable <- is.numeric(shares) && length(shares) > 0 && !any(is.na(shares)) &&
+    all(shares >= 0) && all(shares <= 1)
+  if (!usable) {
+    stop(sprintf("%s: shares must be a non-empty numeric vector within [0, 1], found %s",
+                 caller, paste(format(shares), collapse = ", ")), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 # ── Role 4 (national support base) demand model (Issue #23) ────────────────
 # Strategically evacuated casualties (r2e_evac == 1) depart the theatre
 # system and are not simulated further. These functions estimate the
@@ -607,6 +780,14 @@ ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
 #'   original on-screen order for interactive/RStudio use).
 analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
                         images_dir = file.path(output_dir, "images")) {
+  validate_monitoring(mon, "analyse_run")
+  usable_warm_up <- is.numeric(warm_up_days) && length(warm_up_days) == 1L &&
+    !is.na(warm_up_days) && warm_up_days >= 0
+  if (!usable_warm_up) {
+    stop(sprintf("analyse_run: warm_up_days must be a single non-negative number, found %s",
+                 paste(format(warm_up_days), collapse = ", ")), call. = FALSE)
+  }
+
   dir.create(output_dir,  showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
@@ -2129,6 +2310,15 @@ ci_mean <- function(x) {
 analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
                                  output_dir = "outputs",
                                  images_dir = file.path(output_dir, "images")) {
+  validate_monitoring(mon, "analyse_replications")
+  usable_warm_up <- is.numeric(warm_up_period) && length(warm_up_period) == 1L &&
+    !is.na(warm_up_period) && warm_up_period >= 0
+  if (!usable_warm_up) {
+    stop(sprintf(paste0("analyse_replications: warm_up_period must be a single ",
+                        "non-negative number, found %s"),
+                 paste(format(warm_up_period), collapse = ", ")), call. = FALSE)
+  }
+
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
@@ -3091,18 +3281,30 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
 #'   (shared with app.R's Shiny integration, Issue #57). The global
 #'   env_data/day_min/counts are restored to their pre-call values on
 #'   completion, consistent with run_morris()'s env_data_base restore
-#'   pattern (R/sensitivity.R).
+#'   pattern (R/sensitivity.R). The restore is registered with on.exit() at
+#'   the point of save as well as run below the sweep loop, so a sweep point
+#'   that fails cannot leave the session on the swept configuration; the
+#'   explicit restore is what makes the CSV and plot written after the loop
+#'   the caller's configuration's rather than the last sweep point's.
 plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVAmb = 1:5, HX240M = 1:4),
                                                           n_days = 30, n_rep = 5,
                                                           path = "env_data.json",
                                                           output_dir = "outputs", images_dir = "images",
                                                           progress_dir = NULL, max_cores = NULL) {
+  caller <- "plot_transport_capacity_margin_by_fleet_size"
+  validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
+  validate_fleet_sizes(fleet_sizes, caller)
+
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
+  config_snapshot <- capture_config_globals()
   env_data_base <- env_data
   day_min_base  <- day_min
   counts_base   <- counts
+  # Registered at the point of save, so the error path restores too; see the
+  # roxygen @details above (Issue #236).
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
   json_data_base <- jsonlite::fromJSON(path, simplifyVector = FALSE)
   current_qty <- setNames(
@@ -3298,12 +3500,20 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
                                         path = "env_data.json",
                                         output_dir = "outputs", images_dir = "images",
                                         progress_dir = NULL, max_cores = NULL) {
+  caller <- "plot_r2b_icu_share_frontier"
+  validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
+  validate_shares(shares, caller)
+
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
+  config_snapshot <- capture_config_globals()
   env_data_base <- env_data
   day_min_base  <- day_min
   counts_base   <- counts
+  # See plot_transport_capacity_margin_by_fleet_size() for why the restore is
+  # registered here as well as run explicitly below the sweep loop.
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
   baseline_share <- env_data_base$vars$r2b$post_op_icu$share
 

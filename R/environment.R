@@ -10,7 +10,171 @@ library(triangle)
 
 source("R/scenario.R")
 
+# ── Global configuration save/restore ────────────────────────────────────────
+
+# The three globals that carry the model's configuration. run.R, app.R, the
+# scripts under scripts/ and the sweep/screen entry points all set these with
+# `<<-`, because run_once()/build_env() and the trajectory closures resolve
+# them from the global environment rather than receiving them as arguments.
+CONFIG_GLOBALS <- c("env_data", "day_min", "counts")
+
+#' Snapshot the global configuration variables so they can be restored
+#'
+#' @param var_names Character vector of global variable names to snapshot
+#'   (default CONFIG_GLOBALS)
+#' @return Named list, one element per requested name, each a list of
+#'   `bound` (was the name bound in the global environment?) and `value`
+#'   (its value if it was, NULL otherwise)
+#'
+#' @details Paired with restore_config_globals() in an
+#'   `on.exit(..., add = TRUE)` at the point of save, so a function that
+#'   mutates the configuration globals leaves them as it found them on the
+#'   error path as well as the success path. The unbound case is recorded
+#'   rather than treated as an error because a caller such as
+#'   scripts/run_scenarios.R reaches run_scenario() without ever having set
+#'   the globals itself, and restoring must then remove them rather than
+#'   leave the last scenario's configuration behind.
+capture_config_globals <- function(var_names = CONFIG_GLOBALS) {
+  setNames(lapply(var_names, function(nm) {
+    if (exists(nm, envir = globalenv(), inherits = FALSE)) {
+      list(bound = TRUE, value = get(nm, envir = globalenv(), inherits = FALSE))
+    } else {
+      list(bound = FALSE, value = NULL)
+    }
+  }), var_names)
+}
+
+#' Restore global configuration variables from a capture_config_globals() snapshot
+#'
+#' @param snapshot Named list as returned by capture_config_globals()
+#' @return The snapshot, invisibly
+#'
+#' @details A name that was bound when the snapshot was taken is reassigned
+#'   its saved value; a name that was not is removed if the intervening code
+#'   created it. Assignment is to globalenv() explicitly, which is the same
+#'   environment the `<<-` in these entry points reaches (they are defined in
+#'   the global environment, and in a forked mclapply worker both reach that
+#'   fork's own copy).
+restore_config_globals <- function(snapshot) {
+  for (nm in names(snapshot)) {
+    entry <- snapshot[[nm]]
+    if (isTRUE(entry$bound)) {
+      assign(nm, entry$value, envir = globalenv())
+    } else if (exists(nm, envir = globalenv(), inherits = FALSE)) {
+      rm(list = nm, envir = globalenv())
+    }
+  }
+  invisible(snapshot)
+}
+
 # ── Data import ──────────────────────────────────────────────────────────────
+
+#' Assert that a parsed env_data.json has the structure the model requires
+#'
+#' @param data Parsed JSON list, as returned by
+#'   jsonlite::fromJSON(path, simplifyVector = FALSE)
+#' @param source_label Label naming where the configuration came from, used in the
+#'   error message (default "env_data.json")
+#' @return TRUE, invisibly, if the structure is sound; otherwise stops
+#'
+#' @details Checked at the boundary where a configuration enters the program
+#'   (app.R's startup load and its upload handler), so a malformed file fails
+#'   with a message naming the field at fault rather than as a subscript
+#'   error raised deep inside build_environment() or, worse, as a silently
+#'   emptied population or resource pool. Every fault found is reported, not
+#'   just the first, since a hand-edited file often carries more than one.
+#'   The check is structural: it asserts that the blocks the model reads are
+#'   present and carry the fields it indexes by, not that any particular
+#'   parameter is present or that its value is operationally plausible.
+validate_env_data_json <- function(data, source_label = "env_data.json") {
+  problems <- character(0)
+  note <- function(...) problems <<- c(problems, sprintf(...))
+
+  if (!is.list(data) || is.null(names(data))) {
+    stop(sprintf("validate_env_data_json: %s did not parse to a named list", source_label),
+         call. = FALSE)
+  }
+
+  for (block in c("pops", "elms", "transports", "vars")) {
+    if (is.null(data[[block]])) {
+      note("top-level block '%s' is missing", block)
+    } else if (!is.list(data[[block]]) || length(data[[block]]) == 0) {
+      note("top-level block '%s' is empty or is not a list", block)
+    }
+  }
+
+  # A count/qty must be a single finite non-negative number: these are
+  # multiplied out into population sizes and resource identifiers, where a
+  # vector, a string or an NA becomes a length error thousands of lines away.
+  check_qty <- function(value, field) {
+    usable <- is.numeric(value) && length(value) == 1L &&
+      !is.na(value) && is.finite(value) && value >= 0
+    if (is.null(value)) {
+      note("%s is missing", field)
+    } else if (!usable) {
+      note("%s must be a single finite non-negative number, found %s",
+           field, paste(format(value), collapse = ", "))
+    }
+  }
+
+  check_name <- function(value, field) {
+    if (is.null(value)) {
+      note("%s is missing", field)
+    } else if (!is.character(value) || length(value) != 1L || !nzchar(value)) {
+      note("%s must be a single non-empty string, found %s",
+           field, paste(format(value), collapse = ", "))
+    }
+  }
+
+  for (i in seq_along(data$pops)) {
+    check_name(data$pops[[i]]$name,  sprintf("pops[[%d]]$name", i))
+    check_qty(data$pops[[i]]$count, sprintf("pops[[%d]]$count", i))
+  }
+
+  for (i in seq_along(data$elms)) {
+    check_name(data$elms[[i]]$elm, sprintf("elms[[%d]]$elm", i))
+    check_qty(data$elms[[i]]$qty,  sprintf("elms[[%d]]$qty", i))
+  }
+
+  for (i in seq_along(data$transports)) {
+    check_name(data$transports[[i]]$name, sprintf("transports[[%d]]$name", i))
+    check_qty(data$transports[[i]]$qty,   sprintf("transports[[%d]]$qty", i))
+  }
+
+  # vars is read as vars[[elm]][[acty]][[var]], so every level needs the key
+  # it is indexed by; a missing one silently drops the whole sub-tree.
+  for (i in seq_along(data$vars)) {
+    elm_field <- sprintf("vars[[%d]]$elm", i)
+    check_name(data$vars[[i]]$elm, elm_field)
+    actys <- data$vars[[i]]$actys
+    if (is.null(actys) || !is.list(actys)) {
+      note("vars[[%d]]$actys is missing or is not a list", i)
+      next
+    }
+    for (j in seq_along(actys)) {
+      check_name(actys[[j]]$acty, sprintf("vars[[%d]]$actys[[%d]]$acty", i, j))
+      vals <- actys[[j]]$vals
+      if (is.null(vals) || !is.list(vals)) {
+        note("vars[[%d]]$actys[[%d]]$vals is missing or is not a list", i, j)
+        next
+      }
+      for (k in seq_along(vals)) {
+        check_name(vals[[k]]$var, sprintf("vars[[%d]]$actys[[%d]]$vals[[%d]]$var", i, j, k))
+        if (is.null(vals[[k]]$val)) {
+          note("vars[[%d]]$actys[[%d]]$vals[[%d]]$val is missing", i, j, k)
+        }
+      }
+    }
+  }
+
+  if (length(problems) > 0) {
+    stop(sprintf("validate_env_data_json: %s is malformed:\n  - %s",
+                 source_label, paste(problems, collapse = "\n  - ")),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
 
 #' Builds structured environment data from parsed JSON
 #'

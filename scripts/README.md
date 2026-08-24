@@ -1,6 +1,6 @@
 # Regression Check Suite
 
-The repository carries sixteen regression checks under `scripts/`, each named
+The repository carries twenty-one regression checks under `scripts/`, each named
 `check_*.R`. Every one of them exits 0 when its assertions hold and non-zero
 otherwise. `scripts/run_all_checks.R` runs them as a suite, and
 `.github/workflows/checks.yml` runs the fast selection on every pull request
@@ -83,6 +83,18 @@ row above. It asserts that analysing one run's monitoring data twice gives one
 answer, running a 10-day single run and a pair of 10-day replications and then
 analysing each of them twice; it belongs with the sub-two-minute checks, and
 its runtime in this container has not been measured.
+
+`check_config_restore.R` and `check_input_validation.R` were added later again
+and carry no row above either. The first asserts that an error raised inside a
+capacity sweep, a sensitivity screen or the scenario runner leaves the
+configuration globals at their pre-call values; it stubs out each entry point's
+expensive interior and runs one live two-day replication, so it belongs with the
+sub-half-minute checks. The second asserts that the analysis module's entry
+points and the Shiny console's configuration-loading boundary reject malformed
+input with a message naming the element at fault; it runs one two-day single
+run and nothing else. Neither has been measured in this container; in an
+unpinned R 4.3.3 sandbox they took 18 and 16 seconds, which places both with
+the sub-half-minute checks.
 
 Three checks corroborate published figures independently of the baseline
 reproduction below. `check_dow_calibration.R` returns a pooled treated-cohort

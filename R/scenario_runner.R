@@ -106,13 +106,24 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'
 #' @details Sets env_data, day_min, and counts globally (<<-), consistent
 #'   with run.R and scripts/run_sensitivity.R, since run_once()/build_env()
-#'   resolve these from the global environment. Parses env_data.json once and
-#'   resolves the scenario via resolve_scenario() + build_environment()
+#'   resolve these from the global environment; they are restored to their
+#'   pre-call state on exit, on the error path as well as the success path.
+#'   Parses env_data.json once and resolves the scenario via
+#'   resolve_scenario() + build_environment()
 #'   directly (rather than calling load_scenario() a second time) purely to
 #'   recover the scenario's `label` field for reporting.
 run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
                          path = "env_data.json", ot_hours = NULL,
                          warm_up_days = 0) {
+  # The scenario's configuration is the caller's for the duration of this
+  # call and no longer: everything derived from it (mon, queue_kpi, totals)
+  # is computed before the function returns, so leaving the session on the
+  # last scenario run would only mislabel whatever the caller runs next
+  # (Issue #236). A caller that never set the globals gets them removed
+  # again rather than left behind.
+  config_snapshot <- capture_config_globals()
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
+
   json_data <- jsonlite::fromJSON(path, simplifyVector = FALSE)
   resolved  <- resolve_scenario(json_data, scenario)
 

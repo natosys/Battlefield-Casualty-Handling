@@ -199,6 +199,13 @@ summarise_results <- function(results) {
   1L
 }
 
+# Every check reads env_data.json and the R/ modules by relative path, so the
+# suite is only meaningful from the repository root.
+if (!file.exists("env_data.json") || !dir.exists(CHECK_DIR)) {
+  stop("run_all_checks.R must be run from the repository root, and was run in ",
+       getwd(), call. = FALSE)
+}
+
 args <- parse_args(commandArgs(trailingOnly = TRUE))
 checks <- discover_checks(args$selection, args$only)
 
@@ -208,8 +215,9 @@ if (length(checks) == 0L) {
 }
 
 if (args$list_only) {
-  for (c in checks) {
-    say(sprintf("  %-42s %s", c, if (c %in% SLOW_CHECKS) "slow" else "fast"))
+  for (check in checks) {
+    say(sprintf("  %-42s %s", check,
+                if (check %in% SLOW_CHECKS) "slow" else "fast"))
   }
   quit(status = 0L)
 }

@@ -88,10 +88,10 @@
 | 231 | Repair the README reference list — duplicated entries, misattributed authors, two paywalled sources | Critical | Low | **Merged (PR #247)** |
 | 232 | All ten README images are broken links — fix the paths and validate link targets | Critical | Low | **Merged (PR #245)** |
 | 233 | The analysis pipeline consumes RNG, so `analyse_run()` is not idempotent | Medium | Medium | Open |
-| 234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard | High | Medium | Open |
+| 234 | Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard | High | Medium | **Merged (PR #249)** |
 | 236 | Global configuration save/restore is not exception-safe; `R/analysis.R` lacks input validation | Medium | Low | Open |
 | 237 | Housekeeping — delete the ten `wip/*` branches, reconcile the Further Development scan table, close `CLAUDE.md` drift | Low | Low | Open |
-| 235 | Add `lintr`, a single check-suite runner, and GitHub Actions CI so the regression checks become a gate | High | Medium | Open (blocked) |
+| 235 | Add `lintr`, a single check-suite runner, and GitHub Actions CI so the regression checks become a gate | High | Medium | Open |
 | 241 | Apply the code standard — decompose the oversized functions behind `testServer` and Playwright verification | High | High | Open (blocked) |
 | 238 | Re-cut the analysis papers by method — move the replicated experiments out of the single-run paper | High | Medium | Open |
 | 239 | Bring the single-run analysis paper to publication standard | High | High | Open (blocked) |
@@ -106,6 +106,32 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 234 — Rewrite the Style Guide as an Enforceable R Code Standard ✓
+
+**Merged:** PR #249, branch `claude/config-output-style-dyftx2`
+
+`docs/STYLE_GUIDE.md` is replaced rather than extended, growing from 109 lines to 543. The old document was emoji-headed, repeated its "Function & Trajectory Documentation" heading with the second occurrence empty, and illustrated global state with `env <- env %>% add_global(...)` examples that predate the replication framework and no longer describe how the code manages state. All three are gone. What worked, the naming conventions table and the branch-logic comment guidance, is kept and extended.
+
+The rewritten document carries roughly sixty numbered rules across twelve sections, each with a stable identifier (`F1`, `N2`, `D1`, `C1`, `G3`, `E1`, `O1`, `R1`, `S1`, `K1` and so on) so a review comment can cite one rule rather than a section. Every rule is tagged `[lint]` (machine-checkable, and destined for the configuration Issue #235 writes), `[review]` (applied by a reviewer without a judgement call) or `[preference]` (raised, not blocking), and the document states that a rule which is none of the three is not a standard and does not belong in it. An enforcement summary table maps every rule to whether a linter can express it and which linter, which is the input Issue #235 derives `.lintr` from. Because no lint configuration exists yet, the preamble records that the `[lint]` tag names what a configuration is to encode rather than what is enforced today.
+
+The rules were derived from an audit of all 21,129 lines of R in `R/`, `scripts/`, `app.R` and `run.R`, so where the codebase already has a convention the standard records it rather than inventing one. Assignment is `<-` throughout, with no `=` statement assignment anywhere; the pipe is uniformly magrittr and the native pipe appears nowhere; `T` and `F` appear four times against thousands of `TRUE` and `FALSE`; every module in `R/` opens with a banner and uses the section rule; roxygen coverage in `R/` is 119 of 128 functions, eight of the nine gaps being one block of paired accessors at the head of `R/app_params.R`.
+
+Two areas got the particular care the issue asked for. The commenting standard requires roxygen on every function without exception, explicitly including one-line helpers, functions defined inside other functions, and the `fail()` and `report()` helpers in a check script; it names the mandatory tags, and defines "where `@details` is warranted" by enumeration rather than leaving it to taste. It also states the reciprocal of `CLAUDE.md`'s prose rule, so a comment and an academic document each have one job and neither restates the other. Global state is split in two: `<<-` for closure state is permitted without restriction, which is what the arrival generators and the `fail()` accumulators do, while global superassignment is confined to the four names the execution model requires (`env`, `env_data`, `day_min`, `counts`) and to entry points alone, and must be restored through `on.exit(..., add = TRUE)` rather than by manual assignment at the foot of the function. That last rule is the one Issue #236 implements.
+
+The regression check convention (K1 to K10) codifies the shape ten of the sixteen `check_*.R` scripts already share, including the check-integrity separation `scripts/check_r2e_surgery_seizure.R` pioneered, where a check that has lost sight of the model reports differently from a model defect. All sixteen are assessed against it in a table; conforming the six that sit outside it is left as separate work, as the issue directed.
+
+A closing "Current conformance" section records where the code sits outside the standard, so the retrofit work starts from a measured position rather than a re-audit: 919 lines over 100 characters, seventeen functions over 100 lines each named with its file, line and length, 123 literal `1440`s across 27 files (70 of them in `R/analysis.R`), the manual global save and restore sites, zero `stop()` and zero `tryCatch` across `R/analysis.R`'s 3,364 lines, and twelve undocumented functions in `R/` and `app.R` against 50 of 83 undocumented helpers in the check scripts. Two of those figures correct the issue's own text, which cited ninety-three literal `1440`s and a count of fifteen check scripts.
+
+`CLAUDE.md`'s Code Standards section is rewritten to point into the standard by rule identifier rather than restate a subset of it, and gains a regression check subsection. Four files missing from its Repository Structure table are added: `scripts/check_arrival_rate_fidelity.R` and `docs/Getting_Started.md`, which the issue named, plus `docs/Project_Status_Review.md` and `scripts/README.md`, which a scan for the general case found to be the same gap. `scripts/README.md`'s opening sentence, which described the repository as carrying fifteen `check_*.R` scripts where it carries sixteen, is corrected; every other count there scopes to the fifteen checks actually measured in the pinned container and is left standing as an accurate measurement record.
+
+One limitation is recorded rather than closed. `Rscript` was unavailable in the authoring container, so `scripts/check_markdown.R` and `scripts/check_references.R` were not executed. In place of the first, its GitHub anchor algorithm and fenced-code stripping were reimplemented in Python and run across all eleven tracked markdown documents in both directions, returning zero broken anchors and zero missing local targets. That is evidence, not the script.
+
+**Seed-42 baseline:** unchanged. No R source, `env_data.json`, tracked diagnostic, log or image is modified.
+
+**Unblocked by this merge:** Issue #235 (`lintr`, `scripts/run_all_checks.R` and GitHub Actions CI), whose two gates were #230 and #234 and both have now merged. Issue #241 remains blocked, #235 being its third gate.
+
+---
 
 ### Issue 231 — Repair the README Reference List ✓
 
@@ -2299,14 +2325,14 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
 30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
-### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231 ✓, 232 ✓, 233, 234, 236, 237, 235, 241)
+### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231 ✓, 232 ✓, 233, 234 ✓, 236, 237, 235, 241)
 *Estimated effort: 3–4 weeks. Establishes automated verification and applies a written code standard. The phase opens with the verification baseline, because a gate cannot be wired around checks of unknown status and a refactor cannot be shown behaviour-preserving against an unknown baseline.*
 
 1. ~~**Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. All fifteen pass and the seed-42 evidence set reproduces byte for byte; the 45-minute calibration check against 11 minutes 47 seconds for the other fourteen is the runtime finding Issue 235 turns on. Blocks Issues 235, 241, 239 and 240.~~ — **Merged PR #243.**
 2. ~~**Issue 231** — Repair the README reference list: remove duplicated entries, correct misattributed authors, and replace the two sources that violate the open-access rule. Text only, so it depends on nothing in this phase. Both open-access violations were re-sourced rather than softened, the substitutes already being in the list. The URL verification the issue also asked for found three further paywalled entries: two were swapped for PubMed Central copies of the same articles and one, having no open-access copy, is left for its own issue.~~ — **Merged PR #247.**
 3. ~~**Issue 232** — Repair the ten broken README image links and extend `scripts/check_markdown.R` to validate link targets, so the same breakage cannot recur silently. Text and tooling only, and independent of the verification baseline. The caption pass the issue also asked for turned it into a figure audit: three figures rendered correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates.~~ — **Merged PR #245.**
 4. **Issue 233** — Make `analyse_run()` stream-neutral, the analysis pipeline currently consuming random draws and so not being idempotent. Not a prerequisite for Issue 241, though landing it first removes a source of confusing byte-comparison failures there.
-5. **Issue 234** — Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard, including a commenting standard. Supplies the machine-checkable rules `.lintr` encodes in Issue 235 and the function length limit Issue 241 applies, so it gates both.
+5. ~~**Issue 234** — Rewrite `docs/STYLE_GUIDE.md` as an enforceable R code standard, including a commenting standard. Supplies the machine-checkable rules `.lintr` encodes in Issue 235 and the function length limit Issue 241 applies, so it gates both. Replaced rather than extended, 109 lines to 543, with roughly sixty identified rules each tagged machine-checkable, reviewer-applied or preference, and an enforcement summary table Issue 235 derives `.lintr` from. The rules were audited against all 21,129 lines of R, and a closing conformance section measures the gap the retrofit starts from.~~ — **Merged PR #249.**
 6. **Issue 236** — Make global configuration save and restore exception-safe, and add input validation to `R/analysis.R`.
 7. **Issue 237** — Housekeeping: delete the ten `wip/*` branches, reconcile the Further Development scan table against its entries, and close the drift between `CLAUDE.md` and the repository it describes.
 8. **Issue 235** — Add `lintr`, a glob-discovered `scripts/run_all_checks.R`, and a GitHub Actions workflow so the regression checks become a gate on every PR against `main`, with the slow checks scheduled or dispatched rather than run per PR. Add a PR template carrying the mandated test plan structure. Requires Issues 230 and 234.
@@ -2844,6 +2870,17 @@ COMPLETE (merged to main):
        rather than softened, the uncited entry cited, and the list renumbered
        from 67 entries to 63 in order of first appearance.
        check_references.R now holds all three academic documents to it (PR #247)
+  #234 docs/STYLE_GUIDE.md replaced by an enforceable R code standard, 109
+       lines to 543: roughly sixty identified rules across twelve sections,
+       each tagged [lint], [review] or [preference], with an enforcement
+       summary table #235 derives .lintr from. Rules audited against all
+       21,129 lines of R, so they record conventions already in use; a
+       closing conformance section measures the gap (919 lines over 100
+       characters, seventeen functions over 100 lines, 123 literal 1440s,
+       50 of 83 undocumented check-script helpers). CLAUDE.md's Code
+       Standards rewritten to cite it by rule id, and four files added to
+       its Repository Structure table. Documentation only — no baseline
+       value moves (PR #249)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -2859,26 +2896,24 @@ UNBLOCKED (start now):
        merge of #226.
   #233 The analysis pipeline consumes RNG, so analyse_run() is not
        idempotent — make it stream-neutral. Not a prerequisite for #241.
-  #234 Rewrite docs/STYLE_GUIDE.md as an enforceable R code standard,
-       including a commenting standard. Gates #235 and #241.
   #236 Global configuration save/restore is not exception-safe, and
        R/analysis.R has no input validation.
   #237 Housekeeping — delete the ten wip/* branches, reconcile the Further
        Development scan table, close CLAUDE.md drift.
   #238 Re-cut the analysis papers by method — move the replicated
        experiments out of the single-run paper. Gates #239 and #240.
-
-BLOCKED (gated on other issues):
   #235 lintr, a glob-discovered scripts/run_all_checks.R, and GitHub Actions
        CI so the regression checks become a per-PR gate, with the slow checks
-       scheduled rather than run per PR. Blocked on #230, which establishes
-       which checks pass and how long each takes, and on #234, which supplies
-       the rules .lintr encodes.
+       scheduled rather than run per PR. Both gates have now merged: #230
+       established which checks pass and how long each takes, and #234
+       supplies the rules .lintr encodes, tagged for the purpose. Gates #241.
+
+BLOCKED (gated on other issues):
   #241 Apply the code standard — decompose server, analyse_run and
        analyse_replications behind testServer and Playwright verification,
        verified byte for byte against the tracked seed-42 baseline. Blocked
-       on #234 (the length limit), #235 (the runner both suites plug into)
-       and #230 (the checks passing before anything moves).
+       on #235 (the runner both suites plug into), its one remaining gate,
+       #234 (the length limit) and #230 (the checks passing) having merged.
   #239 Single-run analysis paper to publication standard. Blocked on #238,
        which settles what the document contains, and #230, for the
        figure-verification pass.
@@ -2906,4 +2941,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one. Updated again on the same date to record the merge of Issue #232 (PR #245), which repairs the ten broken README image paths, widens `scripts/check_markdown.R` from heading anchors to every link and image target and to placeholder alt text, and, through the caption pass the issue asked for, audits all thirty-one tracked figures: three were rendering correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates. No published value moves and the seed-42 baseline reproduces byte for byte, in R 4.3.3 as well as in the pinned 4.4.2. No issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #232. Updated again on the same date to record the merge of Issue #231 (PR #247), which repairs the README reference list: the misattributed duplicate deleted, the second duplicate merged, both open-access violations re-sourced to substitutes already in the list, the uncited entry cited, and the list renumbered from sixty-seven entries to sixty-three in order of first appearance, with `scripts/check_references.R` added to hold all three academic documents to those properties. The URL verification found three further paywalled entries the issue had not named; two are swapped for PubMed Central copies of the same articles and the third, Hall et al. (2023), has no open-access copy and is left for its own issue. No published value moves and no issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #231.*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one. Updated again on the same date to record the merge of Issue #232 (PR #245), which repairs the ten broken README image paths, widens `scripts/check_markdown.R` from heading anchors to every link and image target and to placeholder alt text, and, through the caption pass the issue asked for, audits all thirty-one tracked figures: three were rendering correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates. No published value moves and the seed-42 baseline reproduces byte for byte, in R 4.3.3 as well as in the pinned 4.4.2. No issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #232. Updated again on the same date to record the merge of Issue #231 (PR #247), which repairs the README reference list: the misattributed duplicate deleted, the second duplicate merged, both open-access violations re-sourced to substitutes already in the list, the uncited entry cited, and the list renumbered from sixty-seven entries to sixty-three in order of first appearance, with `scripts/check_references.R` added to hold all three academic documents to those properties. The URL verification found three further paywalled entries the issue had not named; two are swapped for PubMed Central copies of the same articles and the third, Hall et al. (2023), has no open-access copy and is left for its own issue. No published value moves and no issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #231. Updated again on the same date to record the merge of Issue #234 (PR #249), which replaces `docs/STYLE_GUIDE.md` with an enforceable R code standard of roughly sixty identified rules, each tagged machine-checkable, reviewer-applied or preference, audited against all 21,129 lines of R so that it records the conventions already in use and measures the gap where it does not. `CLAUDE.md`'s Code Standards section is rewritten to cite it by rule identifier and four files are added to its Repository Structure table. No published value moves and no R source is touched. Issue #235 becomes ready on this merge, #230 and #234 having been its two gates; #241 stays blocked on #235.*

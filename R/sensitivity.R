@@ -1237,6 +1237,13 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
     r, nrow(morris_params), levels, n_eval, n_rep
   ))
 
+  # Restored on the way out as well as at the foot of the evaluation loop
+  # below, so a screen that errors partway through leaves the session's
+  # configuration as it found it rather than on the last design point
+  # evaluated (Issue #236).
+  config_snapshot <- capture_config_globals(c(CONFIG_GLOBALS, "env_data_base"))
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
+
   env_data_base <<- env_data
 
   sa <- morris(
@@ -1675,6 +1682,11 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
     "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2b_ot_q, r2e_ot_q, system_ot_q, transport_q, transport_util)",
     n_sobol, nrow(p_def), n_total, n_rep
   ))
+
+  # See run_morris() for why the restore is registered here as well as run
+  # explicitly at the foot of the evaluation loop.
+  config_snapshot <- capture_config_globals(c(CONFIG_GLOBALS, "env_data_base"))
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
   env_data_base <<- env_data
 

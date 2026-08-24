@@ -1638,7 +1638,16 @@ server <- function(input, output, session) {
     updateNavbarPage(session, "main_nav", selected = "Getting Started")
   })
 
-  raw_env_data     <- reactiveVal(fromJSON(DEFAULT_JSON, simplifyVector = FALSE))
+  # Both boundaries where a configuration enters the app validate it before
+  # anything reads it: a malformed file names its offending field here rather
+  # than surfacing as a subscript error inside build_environment() once a run
+  # has already started (Issue #236). A malformed file on disk at startup is
+  # unrecoverable within the session, so it stops; a malformed upload leaves
+  # the loaded configuration in place and reports through the UI.
+  startup_json <- fromJSON(DEFAULT_JSON, simplifyVector = FALSE)
+  validate_env_data_json(startup_json, DEFAULT_JSON)
+
+  raw_env_data     <- reactiveVal(startup_json)
   run_state        <- reactiveVal("idle")   # idle | running | done | error
   run_mode         <- reactiveVal("quick")  # quick | full — which button started the current/last run
   run_error        <- reactiveVal(NULL)
@@ -2027,6 +2036,7 @@ server <- function(input, output, session) {
     req(input$upload_json)
     tryCatch({
       new_json <- fromJSON(input$upload_json$datapath, simplifyVector = FALSE)
+      validate_env_data_json(new_json, input$upload_json$name)
       raw_env_data(new_json)
       showNotification("Configuration loaded.", type = "message")
     }, error = function(e) {

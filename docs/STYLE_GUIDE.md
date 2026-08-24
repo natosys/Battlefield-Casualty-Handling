@@ -185,7 +185,13 @@ assigned is bound in an enclosing function and the assignment advances the
 state of a generator or accumulator. The arrival generators in
 `R/environment.R` are the model case, and the `fail()` accumulators in the
 regression check scripts are the same pattern at a smaller scale. No
-restriction beyond the ordinary ones applies here.
+restriction beyond the ordinary ones applies here, and in particular G3's
+restoration requirement does not: a generator's state belongs to the closure
+that holds it, is invisible outside it, and is meant to persist across calls.
+These sites are not to be converted to anything else. The distinction that
+decides which rule applies is where the assigned name is bound, not the
+operator: a name bound in an enclosing function is closure state, a name bound
+in the global environment is configuration.
 
 **G2 `[review]` `<<-` to the global environment is permitted only for the four
 names the simulation's execution model requires there,** which are `env`,
@@ -199,9 +205,12 @@ to leave it as it found it restores it with `on.exit(..., add = TRUE)`,
 registered immediately after the mutation.** Manual save-and-restore at the
 foot of a function is not sufficient: an error between the two leaves the
 global corrupted for every subsequent call in the session, which for a sweep or
-a screen means silently wrong results rather than a visible failure. The RNG
-save-and-restore in `R/replication.R` and `R/sensitivity.R` is the pattern to
-copy.
+a screen means silently wrong results rather than a visible failure. The
+configuration globals have a pair of helpers for this in `R/environment.R`,
+`capture_config_globals()` and `restore_config_globals()`, which also handle
+the case of a name that was not bound when the snapshot was taken; the RNG
+save-and-restore in `R/replication.R` and `R/sensitivity.R` is the same pattern
+applied to the random number stream.
 
 **G4 `[lint]` No other assignment to the global environment,** by `<<-`,
 `assign(envir = globalenv())` or otherwise.
@@ -538,8 +547,7 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 | F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
 | D1 | Seventeen functions exceed 100 lines: `server` (`app.R:1635`, 2,284), `analyse_run` (`R/analysis.R:564`, 1,388), `analyse_replications` (`R/analysis.R:2085`, 799), `r2e_treat_wia` (`R/trajectories.R:1495`, 766), `r2b_treat_wia` (`R/trajectories.R:809`, 560), `build_param_registry` (`R/app_params.R:400`, 461), `build_casualty_trajectory` (`R/trajectories.R:2303`, 334), `render_group_body` (`app.R:1272`, 260), `run_sobol` (`R/sensitivity.R:1653`, 235), `run_morris` (`R/sensitivity.R:1227`, 205), `extract_kpis` (`R/sensitivity.R:900`, 205), `run_once` (`R/replication.R:28`, 147), `generate_env_summary_section` (`scripts/check_env_data_summary.R:36`, 127), `run_replications` (`R/replication.R:263`, 116), `plot_r2b_icu_share_frontier` (`R/analysis.R:3250`, 115), `build_environment` (`R/environment.R:19`, 114) and `apply_params` (`R/sensitivity.R:572`, 102) |
 | C1 | The literal `1440` appears 123 times across 27 files, 70 of them in `R/analysis.R`, despite `day_min` existing |
-| G3 | The configuration `<<-` sites in `R/analysis.R`, `R/sensitivity.R` and `R/scenario_runner.R` restore the globals by manual assignment at the foot of the function rather than through `on.exit()`, so an error mid-sweep leaves them corrupted |
-| E1, E4 | `R/analysis.R` contains no `stop()` and no `tryCatch` across 3,364 lines, and consumes monitoring data frames assuming column presence. `app.R`, which takes arbitrary parameter edits from a user, has one `stop()` |
+| E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |
 

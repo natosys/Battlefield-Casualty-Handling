@@ -9,6 +9,7 @@
 #   Rscript run.R --seed 42 --days 30 --iterations 10
 #   Rscript run.R --quick
 #   Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
+#   Rscript run.R --seed 42 --days 30 --iterations 1 --output-dir /tmp/run42
 #
 # RStudio Console:
 #   source("run.R")          # loads run_bch() function
@@ -189,6 +190,11 @@ if (!interactive()) {
                 help = "Smoke-test mode: 5 iterations, 5 days, seed 42"),
     make_option("--warm-up", type = "integer", default = NULL,
                 help = "Warm-up days to exclude from analysis (default: WARM_UP_DAYS constant)"),
+    make_option("--output-dir", type = "character", default = "outputs",
+                help = paste("Directory this run's artifacts are written to.",
+                             "Ignored for the tracked baseline set, which",
+                             "--refresh-baseline alone writes",
+                             "[default: %default]")),
     make_option("--refresh-baseline", action = "store_true", default = FALSE,
                 help = paste("Regenerate the tracked seed-42 baseline evidence set",
                              "(images/, logs/logs.txt, data/) from this run.",
@@ -199,8 +205,12 @@ if (!interactive()) {
   opt <- parse_args(OptionParser(option_list = option_list))
 
   warm_up <- if (is.null(opt$`warm-up`)) WARM_UP_DAYS else opt$`warm-up`
+  if (!nzchar(opt$`output-dir`)) {
+    stop("--output-dir must name a directory, and was empty", call. = FALSE)
+  }
   run_bch(seed = opt$seed, days = opt$days,
           iterations = opt$iterations, quick = opt$quick,
+          output_dir = opt$`output-dir`,
           warm_up_days = warm_up,
           refresh_baseline = opt$`refresh-baseline`)
 }

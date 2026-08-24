@@ -1,0 +1,168 @@
+# Regression check suite, lint ratchet and seed-42 baseline reproduction.
+#
+# Every job runs in the container the project's baseline figures are produced
+# in: rocker/rstudio:4.4.2 at the digest CLAUDE.md's provenance note names, with
+# the system libraries .devcontainer/Dockerfile installs and the package
+# versions renv.lock pins. A gate that ran in a different environment could not
+# tell a genuine regression from an environment difference, which for the
+# seed-42 reproduction is the whole question.
+#
+# The suite is split by cost, on the runtimes measured in scripts/README.md.
+# The fast suite runs on every pull request; check_dow_calibration.R runs 450
+# replications and takes three quarters of an hour, so it runs weekly and on
+# demand instead.
+
+name: Checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Sundays at 02:00 UTC, for the slow suite.
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      run_slow_suite:
+        description: "Run the slow suite (check_dow_calibration.R, ~45 minutes)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The pinned container of CLAUDE.md's provenance note and scripts/README.md.
+  CONTAINER_IMAGE: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
+  # Binary packages for the container's Ubuntu release, so restoring the
+  # lockfile takes minutes rather than the hour a source build would.
+  RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
+  RENV_PATHS_CACHE: /github/home/.cache/R/renv
+  # lintr is developer tooling rather than a simulation dependency, so it is
+  # not in renv.lock; see docs/STYLE_GUIDE.md. The version is pinned because
+  # the lint ratchet compares against counts measured at one version.
+  LINTR_VERSION: 3.4.0
+
+jobs:
+  fast-checks:
+    name: Fast suite and lint ratchet
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            curl libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev \
+            libjpeg-dev libharfbuzz-dev libfribidi-dev libglpk-dev libuv1t64 \
+            git
+
+      - name: Cache the renv package cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_CACHE }}
+          key: renv-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: renv-${{ runner.os }}-
+
+      - name: Restore the project library
+        run: Rscript -e 'renv::restore(prompt = FALSE)'
+
+      - name: Install lintr
+        run: Rscript -e 'renv::install(paste0("lintr@", Sys.getenv("LINTR_VERSION")))'
+
+      - name: Run the fast suite
+        run: Rscript scripts/run_all_checks.R --fast
+
+      - name: Upload check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-check-logs
+          path: outputs/checks/
+          if-no-files-found: ignore
+
+  # The fast suite already includes this check. It is also run as a job of its
+  # own so that it reports as a separate status check on the pull request:
+  # every published seed-42 figure rests on it, and a reviewer should be able
+  # to see its result without opening the suite's log.
+  baseline-reproduction:
+    name: Seed-42 baseline reproduction
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            curl libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev \
+            libjpeg-dev libharfbuzz-dev libfribidi-dev libglpk-dev libuv1t64 \
+            git
+
+      - name: Cache the renv package cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_CACHE }}
+          key: renv-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: renv-${{ runner.os }}-
+
+      - name: Restore the project library
+        run: Rscript -e 'renv::restore(prompt = FALSE)'
+
+      - name: Reproduce the tracked seed-42 evidence set
+        run: Rscript scripts/check_baseline_reproduction.R
+
+  slow-checks:
+    name: Slow suite
+    # Weekly, on demand, and never on a pull request: the calibration check
+    # takes three quarters of an hour on four cores.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_slow_suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    container:
+      image: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            curl libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev \
+            libjpeg-dev libharfbuzz-dev libfribidi-dev libglpk-dev libuv1t64 \
+            git
+
+      - name: Cache the renv package cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_CACHE }}
+          key: renv-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: renv-${{ runner.os }}-
+
+      - name: Restore the project library
+        run: Rscript -e 'renv::restore(prompt = FALSE)'
+
+      - name: Run the slow suite
+        run: Rscript scripts/run_all_checks.R --slow
+
+      - name: Upload check logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slow-check-logs
+          path: outputs/checks/
+          if-no-files-found: ignore

@@ -22,6 +22,13 @@ RUN apt-get update && apt-get install -y \
 # so it is installed directly rather than tracked in renv.lock (Issue #72).
 RUN Rscript -e "install.packages('languageserver', repos = 'https://cloud.r-project.org')"
 
+# lintr is likewise a development tool rather than a simulation dependency, so
+# it is installed here rather than tracked in renv.lock. The version is pinned
+# because scripts/check_lint.R ratchets against counts measured at one version,
+# and a version bump that adds or refines a linter would read as a regression.
+RUN Rscript -e "install.packages('remotes', repos = 'https://cloud.r-project.org')" \
+ && Rscript -e "remotes::install_version('lintr', version = '3.4.0', repos = 'https://cloud.r-project.org', upgrade = 'never')"
+
 # Install renv and pre-warm its global package cache from the committed lockfile.
 # The cache lives under the rstudio user's home directory, outside the
 # /home/rstudio/workspace bind mount (devcontainer.json), so it survives the

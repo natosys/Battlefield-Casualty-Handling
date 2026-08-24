@@ -54,6 +54,11 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/check_measurement_reproducibility.R` | Regression check asserting that a multi-replication measurement is a function of its control seed alone: that it repeats at that seed, that it is unaffected by what preceded it in the session, that `run_replications()` restores the caller's generator kind and stream position, and that a replication reproduces from its seed on either dispatch path; exits non-zero on failure |
 | `scripts/check_scenario_labels.R` | Regression check asserting that the comparative scenario plot renders in a C locale and is byte-identical to the same plot rendered under UTF-8; exits non-zero on failure |
 | `scripts/check_arrival_rate_fidelity.R` | Regression check asserting that the generated arrival streams reproduce their configured rates and between-day variance, so a change to the arrival process cannot silently move the casualty count; exits non-zero on failure |
+| `scripts/run_all_checks.R` | Regression check suite runner — discovers every `scripts/check_*.R` by glob, reports a pass/fail line and a runtime for each, and exits non-zero if any fails; `--fast` omits the checks too slow for a per-PR gate, `--slow` runs those alone, `--list` prints the classification |
+| `scripts/check_lint.R` | Regression check asserting that no `lintr` rule in `.lintr`, and neither of the two machine-checkable rules `lintr` has no linter for (function length, pictographic characters in source), reports more findings than the count tracked in `scripts/lint_baseline.csv`; exits non-zero on a rise. `--refresh-baseline` is the only way to write the tracked counts |
+| `scripts/check_baseline_reproduction.R` | Regression check asserting that the tracked seed-42 evidence set reproduces byte for byte, running the model at seed 42 for 30 days into a temporary directory and comparing `logs/logs.txt` and every `data/arrivals_*.txt` and `data/mass_casualty_events.csv` against it; exits non-zero on any difference |
+| `.lintr`, `scripts/lint_baseline.csv` | The lint configuration encoding the `[lint]`-tagged rules of `docs/STYLE_GUIDE.md`, and the per-rule finding counts the ratchet defends |
+| `.github/` | Pull request template mirroring the test plan structure below, and the GitHub Actions workflow running the fast suite, the lint ratchet and the seed-42 reproduction on every PR against `main`, in the pinned container |
 | `scripts/README.md` | Verification baseline for the regression check suite — the result, runtime and observed behaviour of every `check_*.R` script, measured together in the pinned Dev Container |
 | `scripts/check_pre_open_window.R` | Regression check asserting that a zero R2B pre-open hold window reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster, and that every casualty held forward is operated on there; exits non-zero on failure |
 | `README.md` | System reference — introduction, literature review, methodology, codebase structure, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, limitations, references. Does not contain simulation results. |
@@ -247,7 +252,9 @@ When a new issue is raised:
 
 ## Test Plans
 
-Every PR must include a **Documented Manual Test Plan** in the PR description. There is no automated test framework; verification is by documented manual execution.
+Every PR must include a **Documented Manual Test Plan** in the PR description, following the structure `.github/pull_request_template.md` prompts for.
+
+Verification has two halves. The `scripts/check_*.R` regression checks are automated and gated: `Rscript scripts/run_all_checks.R --fast` runs every check a PR is gated on, and GitHub Actions runs the same suite, the lint ratchet and the seed-42 byte-for-byte reproduction on every PR against `main` in the pinned container (`.github/workflows/checks.yml`). A PR is not ready for review while that workflow is red. Everything the checks do not assert, which is most of what a change to the model does, is verified by documented manual execution, which is what the test plan records. A behaviour worth protecting past the PR that introduces it belongs in a new `scripts/check_*.R`, which the runner discovers by glob and therefore gates from the moment it is committed.
 
 Test plans must include:
 

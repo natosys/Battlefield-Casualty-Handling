@@ -98,6 +98,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
     - [Running the simulation](#running-the-simulation)
+    - [Verification and Continuous Integration](#verification-and-continuous-integration)
     - [Multi-run Replication Framework](#multi-run-replication-framework)
     - [Warm-up Period Analysis](#warm-up-period-analysis)
     - [Sensitivity Analysis](#sensitivity-analysis)
@@ -1074,6 +1075,11 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/check_mass_casualty_kia_split.R` | Checks that a mass casualty event's casualty count is conserved across the wounded/killed split at every share, that the realised share tracks the configured one, that an event's killed reach mortuary handling without being triaged, and that the share reaches nothing while injection is disabled; exits non-zero on failure |
 | `scripts/check_pre_open_window.R`  | Checks the R2B pre-open hold window at its bounds: that a window of zero reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster at every minute of the day, and that every casualty held forward is operated on there rather than diverted anyway; exits non-zero on failure |
 | `scripts/check_screen_cache.R`     | Checks that a screen's design-point cache resumes what it recorded: that a complete row round-trips, that a partially-missing row reads as present with its gaps preserved while an all-missing row reads as absent and is retried, that an uncached point and a cache from a different screen both read as absent, and that a Sobol cache's per-response standard-deviation columns neither disturb a response lookup nor become unreadable; exits non-zero on failure |
+| `scripts/run_all_checks.R`         | Runs the regression check suite: discovers every `scripts/check_*.R` by glob, reports a pass or fail line and a runtime for each, and exits non-zero if any fails. `--fast` omits the one check too slow for a per-pull-request gate, `--slow` runs that check alone, and `--list` prints the classification without running anything |
+| `scripts/check_lint.R`             | Runs `lintr` under the rules `.lintr` encodes, adds the two machine-checkable rules `lintr` ships no linter for (the function length limit and the ban on pictographic characters in source), and compares the finding count per rule against `scripts/lint_baseline.csv`; exits non-zero if any count has risen |
+| `scripts/check_baseline_reproduction.R` | Runs the model at seed 42 for 30 days and compares the console log and the arrival diagnostics byte for byte against the tracked set under `logs/` and `data/`, the property every published figure rests on; exits non-zero on any difference |
+| `.lintr`, `scripts/lint_baseline.csv` | The lint configuration and the tracked per-rule finding counts it is ratcheted against (see [Verification and Continuous Integration](#verification-and-continuous-integration)) |
+| `.github/`                         | Pull request template and the GitHub Actions workflow that runs the fast suite, the lint ratchet and the seed-42 reproduction on every pull request against `main` (see [docs/Continuous_Integration.md](docs/Continuous_Integration.md)) |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
 | `.devcontainer/`                   | Dev Container definition pinning the reproducible R 4.4.2 Linux environment (see [Development Environment](#development-environment)) |
 | `data/sensitivity/`                | Tracked sensitivity evidence set behind the published rankings and decompositions — design point caches, per-response rankings, Sobol indices, the noise floor measurement and the estimator and separation re-analyses. See its own [README](data/sensitivity/README.md) for the commands that re-derive each result without re-running the model |
@@ -1081,7 +1087,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `data/`                            | Read-only input data plus a small set of diagnostic/event files (`arrivals_*.txt` per-casualty-type diagnostics, `mass_casualty_events.csv`) forming part of the tracked seed-42 baseline, rewritten only under `--refresh-baseline` |
 | `images/`                          | Tracked seed-42 baseline plots and reference diagrams, rewritten only under `--refresh-baseline` as part of PRs that shift the RNG stream or simulation outputs |
 | `logs/`                            | Tracked seed-42 baseline console log (`logs.txt`), rewritten only under `--refresh-baseline` |
-| `docs/`                            | Project documentation: the two companion analysis documents, the action plan, the task-role allocation supplement, the R code style guide, and the in-app Getting Started guide (`Getting_Started.md`, also rendered inside `app.R`'s Getting Started tab) |
+| `docs/`                            | Project documentation: the two companion analysis documents, the action plan, the task-role allocation supplement, the R code style guide, the continuous integration operating guide, and the in-app Getting Started guide (`Getting_Started.md`, also rendered inside `app.R`'s Getting Started tab) |
 
 #### Running the simulation
 
@@ -1100,9 +1106,12 @@ Rscript run.R --days 30 --iterations 10 --warm-up 5
 
 # Regenerate the tracked seed-42 baseline evidence set
 Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
+
+# Write this run's artifacts somewhere other than outputs/
+Rscript run.R --seed 42 --days 30 --iterations 1 --output-dir /tmp/run42
 ```
 
-`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warm-up-period-analysis) below for why).
+`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warm-up-period-analysis) below for why). `--output-dir` moves the run's own artifacts away from `outputs/`, which lets a check run the model without disturbing the working directory; it does not reach the tracked baseline set, which `--refresh-baseline` alone writes.
 
 Artifacts fall into two categories, distinguished by whether they are a disposable record of one particular run or the repository's tracked regression evidence. Every run writes only the first category, all of it beneath `outputs/`, which is gitignored apart from its `.gitkeep`. The tracked baseline set is written only when `--refresh-baseline` is passed, and then every part of it is written together from that one run, so no invocation can leave `images/`, `logs/logs.txt` and `data/` describing a mixture of different runs:
 
@@ -1119,6 +1128,27 @@ The console log and the arrival diagnostics record one specific run's event stre
 Not every file in `images/` belongs to the baseline set. The directory also holds reference diagrams that no run produces, figures written by the other entry points in `scripts/` (Morris screening, the Welch warm-up plot, the scenario comparison, the transport fleet sweep), and figures deliberately generated under a non-default configuration, such as the mass casualty event timeline, which requires `mass_casualty.event.rate_per_day` to be set above its shipped value of zero. `--refresh-baseline` rewrites only the figures a seed-42 run produces under the shipped configuration and leaves the rest untouched, so those categories must be regenerated by whichever command produced them.
 
 Package versions are pinned via a committed `renv.lock`; see [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
+
+#### Verification and Continuous Integration
+
+The repository's regression checks live in `scripts/` as `check_*.R`, one per property asserted, and each exits non-zero when its assertions fail. `scripts/run_all_checks.R` runs them as a suite, discovering them by glob so that a newly added check is executed without the runner being edited, and returns a single exit status:
+
+```bash
+# Every check a pull request is gated on
+Rscript scripts/run_all_checks.R --fast
+
+# The calibration check alone, which runs 450 replications
+Rscript scripts/run_all_checks.R --slow
+
+# What each check is classified as, without running any
+Rscript scripts/run_all_checks.R --list
+```
+
+The split is drawn from measured runtimes rather than from judgement: `scripts/README.md` records the result and runtime of every check in the pinned container, and `check_dow_calibration.R` alone accounts for roughly four fifths of the suite's wall-clock time. A check not named as slow is fast, so the default classification of a new check is the one that gets it run on every pull request. Two checks rewrite tracked documents in place rather than only inspecting them, so the runner compares the working tree before and after and treats a modification as the failure signal, exit status alone being silent for those two.
+
+Code style is enforced by `lintr` under `.lintr`, which encodes the rules `docs/STYLE_GUIDE.md` tags as machine-checkable and no others. Because the existing code carries several hundred findings, most of them over-long lines, the gate is a ratchet rather than a gate on zero: `scripts/check_lint.R` compares the finding count per rule against the tracked counts in `scripts/lint_baseline.csv` and fails only where a count has risen, so a pull request may not add a finding while the recorded totals are worked down. Two of the standard's machine-checkable rules have no `lintr` linter, the function length limit and the ban on pictographic characters in source, and the check computes both itself, the second from codepoints rather than from a pattern so that the session locale cannot change the answer.
+
+A GitHub Actions workflow runs the fast suite, the lint ratchet and the seed-42 reproduction on every pull request against `main`, in the same pinned container the baseline figures are produced in, so that a difference the gate reports is a difference in the code rather than in the environment. The slow suite runs weekly and on demand, and [docs/Continuous_Integration.md](docs/Continuous_Integration.md) is the operating guide: what runs when, how to dispatch the slow suite, and what each way the gate can fail calls for. The reproduction check is the one that protects the published figures: a change that shifts the random number stream invalidates the seed-42 tables in this document, `docs/Single_Run_Analysis.md` and `docs/Multi_Run_Analysis.md` at once, and no other check in the suite would notice.
 
 #### Multi-run Replication Framework
 

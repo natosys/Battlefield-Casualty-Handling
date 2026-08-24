@@ -2,9 +2,11 @@
 
 The repository carries sixteen regression checks under `scripts/`, each named
 `check_*.R`. Every one of them exits 0 when its assertions hold and non-zero
-otherwise, so any of them can be wired into a pre-merge hook or a continuous
-integration step. Nothing in the repository executes them automatically: there
-is no workflow and no hook, and each is run on demand by a maintainer.
+otherwise. `scripts/run_all_checks.R` runs them as a suite, and
+`.github/workflows/checks.yml` runs the fast selection on every pull request
+against `main`, so a check's result now gates a merge rather than waiting for
+a maintainer to think of it. `docs/Continuous_Integration.md` is the operating
+guide for that workflow.
 
 This document records the verification baseline: the result, the runtime and
 the observed behaviour of every check, measured together in one sitting in the
@@ -136,3 +138,54 @@ resulting change in the working tree as the failure signal. Both left the tree
 clean at this commit, `check_markdown.R` regenerating all three tables of
 contents byte-identically, which is itself evidence that neither the environment
 summary nor the anchor set has drifted.
+
+
+## What was wired up from this baseline
+
+The measurements above decided the shape of the gate rather than merely
+describing the suite, and the wiring added under Issue #235 follows them
+directly.
+
+`scripts/run_all_checks.R` runs the suite. It discovers checks by glob, so a
+check added after this document was written is run without the runner being
+edited, and it reports one pass or fail line and a runtime per check before
+exiting non-zero if any failed. Its `--fast` selection is every check except
+`check_dow_calibration.R`, which is the division the runtimes above establish:
+the fast selection costs roughly twelve minutes and the calibration check
+alone costs forty-five. `--slow` runs the calibration check by itself, weekly
+and on demand rather than on a pull request. The runner also acts on the two
+observations at the foot of the results section. Each check's output goes to a
+log file and only a failing check's tail is printed, so the hundred `simmer`
+end-of-run warnings a model-running check emits cannot bury the line a reader
+needs; and for `check_env_data_summary.R` and `check_markdown.R`, which
+regenerate a tracked document rather than only inspecting it, the runner
+compares the working tree before and after and treats a modification as the
+failure signal.
+
+Three checks were added at the same time, and none carries a row in the
+results table above because none existed when it was measured.
+`check_baseline_reproduction.R` performs the seed-42 byte-for-byte comparison
+this document reports under its own heading, as a check rather than as a
+manual procedure. It takes 44 seconds, of which the run recorded under that
+heading is almost all, measured in an unpinned R 4.3.3 sandbox where it also
+reports the tracked set reproducing byte for byte. `check_lint.R` runs `lintr` under `.lintr` and ratchets the
+finding count per rule against `scripts/lint_baseline.csv`; it takes 24
+seconds, measured in an unpinned R 4.3.3 sandbox with `lintr` 3.4.0 rather
+than in the container above, since `lintr` is not part of the pinned library.
+`check_references.R`, added between the measurement and this wiring, had never
+passed, which running it as part of a suite is what exposed. It matched a URL
+with the bracket expression `[^ )\]]` under R's default regular expression
+engine, which reads the backslash inside a bracket expression as a literal
+character: the class closed at the first bracket and the second became a
+literal the URL would have to be followed by, so the pattern matched nothing
+and all 68 entries across the three documents read as carrying no URL. The
+expression is now evaluated in Perl mode, and the check passes, reporting 63,
+3 and 2 correctly sourced entries. The reference lists themselves were never
+at fault.
+
+The lint baseline itself was taken in the same R 4.3.3 sandbox: 1,229 findings
+across 11 rules, of which 725 are over-long lines and 160 are indentation.
+Because the counts are compared rather than required to be zero, a difference
+between that environment and the pinned one would surface as a rise on the
+first continuous integration run rather than as a silent weakening, and would
+be resolved by refreshing the baseline in the container.

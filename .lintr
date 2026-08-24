@@ -1,0 +1,19 @@
+linters: linters_with_defaults(
+    defaults = list(),
+    line_length_linter = line_length_linter(100L),
+    indentation_linter = indentation_linter(indent = 2L),
+    assignment_linter = assignment_linter(operator = "<-"),
+    object_name_linter = object_name_linter(styles = c("snake_case", "SNAKE_CASE")),
+    pipe_consistency_linter = pipe_consistency_linter(pipe = "%>%"),
+    T_and_F_symbol_linter = T_and_F_symbol_linter(),
+    quotes_linter = quotes_linter(),
+    semicolon_linter = semicolon_linter(),
+    whitespace_linter = whitespace_linter(),
+    trailing_whitespace_linter = trailing_whitespace_linter(),
+    trailing_blank_lines_linter = trailing_blank_lines_linter(),
+    infix_spaces_linter = infix_spaces_linter(),
+    commas_linter = commas_linter(),
+    spaces_inside_linter = spaces_inside_linter()
+  )
+exclusions: list("renv")
+encoding: "UTF-8"

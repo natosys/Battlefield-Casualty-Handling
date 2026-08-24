@@ -56,7 +56,12 @@ body_citations <- function(lines) {
 #'   and a closing bracket removed, so a URL wrapped in markdown link syntax
 #'   compares equal to the same URL written bare.
 entry_url <- function(text) {
-  pos <- regexpr("https?://[^ )\\]]+", text)
+  # perl = TRUE is load bearing. R's default TRE engine reads the backslash
+  # inside a bracket expression as a literal, so "[^ )\\]]" closes the class at
+  # the first "]" and the trailing "]" becomes a literal the URL would have to
+  # be followed by, which no entry is: the pattern then matches nothing and
+  # every entry reads as carrying no URL.
+  pos <- regexpr("https?://[^ )\\]]+", text, perl = TRUE)
   urls <- rep(NA_character_, length(text))
   urls[pos > 0] <- regmatches(text, pos)
   sub("[.,;]+$", "", urls)

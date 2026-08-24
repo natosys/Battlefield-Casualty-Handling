@@ -16,11 +16,16 @@ with how it is enforced:
 
 A rule that is none of the three is not a standard and does not belong here.
 
-No lint configuration exists in the repository at the time of writing. The
-`[lint]` tag therefore records which rules a configuration is to encode, not
-which are currently enforced; that work is tracked separately in
-`docs/BCH_Simulation_Action_Plan.md`. Until it lands, every rule is applied by
-a reviewer.
+The `[lint]` rules are enforced by `.lintr` and `scripts/check_lint.R`, which
+run in the fast check suite and in continuous integration on every pull
+request. Because the existing code carries the findings recorded under
+[Current conformance](#current-conformance), the gate is a ratchet: the
+finding count per rule is compared against `scripts/lint_baseline.csv` and a
+pull request fails only where a count has risen. A rule tagged `[review]` or
+`[preference]` is deliberately absent from `.lintr`, a linter enforcing
+something this document does not require being a second and undocumented
+standard. Two `[lint]` rules have no `lintr` linter, D1 and R9, and
+`scripts/check_lint.R` computes both itself.
 
 The standard documents conventions the codebase already follows wherever it has
 one. Where the codebase is inconsistent, the rule states the convention chosen
@@ -488,26 +493,26 @@ the sixteen scripts carry a roxygen header, against 119 of 128 in `R/`.
 |---|---|---|
 | F1 | Line length 100 | Yes, `line_length_linter(100)` |
 | F2 | 80 preferred | No, preference |
-| F3 | Two-space indent, no tabs | Yes, `indentation_linter`, `no_tab_linter` |
-| F4 | `<-` not `=` | Yes, `assignment_linter` |
-| F5 | magrittr pipe only | Yes, `pipe_call_linter` and a native-pipe check |
+| F3 | Two-space indent, no tabs | Yes, `indentation_linter`, `whitespace_linter` |
+| F4 | `<-` not `=` | Yes, `assignment_linter(operator = "<-")` |
+| F5 | magrittr pipe only | Yes, `pipe_consistency_linter(pipe = "%>%")` |
 | F6 | `TRUE`/`FALSE` in full | Yes, `T_and_F_symbol_linter` |
 | F7 | Double quotes | Yes, `quotes_linter` |
 | F8 | Trailing whitespace, final newline | Yes, `trailing_whitespace_linter`, `trailing_blank_lines_linter` |
-| F9 to F11 | Statement and spacing style | Partly, `infix_spaces_linter`, `commas_linter`, `semicolon_linter` |
+| F9 to F11 | Statement and spacing style | Partly, `infix_spaces_linter`, `commas_linter`, `semicolon_linter`, `spaces_inside_linter` |
 | N1 | snake_case | Yes, `object_name_linter` |
 | N2 to N4 | Naming table, output names, abbreviations | No, reviewer |
-| D1 | Function length 100 | Yes, `function_length_linter(100)` |
+| D1 | Function length 100 | Yes, counted from the parse data by `scripts/check_lint.R`; `lintr` ships no linter for it |
 | D2 to D6 | Function design | No, reviewer |
 | C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, the rest is reviewer |
 | G1 to G3, G5 | Permitted `<<-` and restoration | No, reviewer |
-| G4 | No other global assignment | Yes, `assignment_linter(allow_cascading_assign = FALSE)` with per-site exemptions |
+| G4 | No other global assignment | Yes, `assignment_linter(operator = "<-")`, which reports every `<<-`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises a count and is reviewed on its merits |
 | E1 to E7 | Error handling | No, reviewer |
 | O1 to O5 | File organisation | No, reviewer |
 | R1 | Roxygen on every function | Yes, a script over the source is straightforward, as the audit for this document showed |
 | R2 | Mandatory tags | Partly: presence of `@param` per argument and of `@return` is checkable; whether `@details` is warranted is not |
 | R3 to R8, R10 | Comment content and structure | No, reviewer |
-| R9 | No emoji in source | Yes, the character class `scripts/check_markdown.R` already uses |
+| R9 | No emoji in source | Yes, a codepoint scan in `scripts/check_lint.R`, covering arrows, enclosed alphanumerics, geometric shapes through dingbats, the symbols supplement and the emoji planes, and permitting the box drawing of O3 and R8 |
 | S1 to S6 | Simmer conventions | No, reviewer |
 | K1, K2, K7 | Check script name, shebang, exit contract | Yes |
 | K3 to K6, K8 to K10 | Check script structure | Partly: presence of the `fail()` and `report()` helpers is greppable, their correct use is not |
@@ -541,3 +546,17 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 Each of these is tracked as its own item in
 `docs/BCH_Simulation_Action_Plan.md`. This document does not require any of them
 to be repaired; it establishes what "repaired" means.
+
+The counts the ratchet holds are the machine's own, taken by
+`scripts/check_lint.R` and tracked in `scripts/lint_baseline.csv`. They do not
+all agree with the figures above, which were measured for this document by
+scanning the source directly, and the difference is a matter of definition
+rather than of disagreement. F1 reads 725 rather than 919 because `lintr`
+measures a line in characters where the scan measured it in bytes, and a
+comment carrying an em dash is three bytes but one character. D1 reads 18
+rather than 17 because the parse data counts a function defined inside another
+in its own right. R9 reads 130 findings, dominated by the arrow used in
+comments rather than by the emoji the rule was written for. A count moves only
+when a maintainer refreshes the baseline with
+`Rscript scripts/check_lint.R --refresh-baseline`, which is how the ratchet
+tightens after a pull request removes findings.

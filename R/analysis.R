@@ -13,6 +13,14 @@ library(data.table)
 library(RColorBrewer)
 library(triangle)
 
+# Jitter applied to the pooled mass casualty timeline is cosmetic — it
+# separates events that fall on the same day — but it is drawn at render
+# time, so an unseeded jitter gives a different image every time the same
+# monitoring data is plotted. A fixed seed makes the tracked image a function
+# of the data alone; position_jitter() restores the caller's stream itself,
+# so the pipeline stays stream-neutral (Issue #233).
+MASS_CASUALTY_JITTER_SEED <- 233L
+
 # ── Role 4 (national support base) demand model (Issue #23) ────────────────
 # Strategically evacuated casualties (r2e_evac == 1) depart the theatre
 # system and are not simulated further. These functions estimate the
@@ -20,6 +28,36 @@ library(triangle)
 # calculation over the evacuation event log — Role 4 is modelled as
 # unconstrained demand, not a simmer resource (see README Role 4 sub-section
 # and Limitations).
+
+#' Evaluates an expression without leaving the caller's RNG stream advanced
+#'
+#' @param expr Expression to evaluate
+#' @return The value of `expr`
+#'
+#' @details The analysis pipeline is a report over monitoring data already
+#'   produced, so analysing the same data twice has to give the same answer.
+#'   Any random draw made inside it breaks that: the second call resumes the
+#'   stream where the first left it and draws different numbers. Saving
+#'   `.Random.seed` and restoring it on exit makes the enclosed draw consume
+#'   no net randomness, so the next call starts from the position this one
+#'   did. The seed is deliberately not set here — the draw is left at exactly
+#'   the stream position it already occupies, which is what keeps the tracked
+#'   seed-42 baseline unmoved. The stream may not exist yet when nothing has
+#'   drawn in the session, in which case the exit handler removes the one this
+#'   evaluation created rather than restoring a value. `with_fixed_rng()`
+#'   (R/sensitivity.R) performs the same save and restore around a fixed seed,
+#'   and repeats it rather than calling this function because three of the
+#'   sensitivity entry points source that file without this one.
+with_preserved_rng <- function(expr) {
+  seed_symbol <- ".Random.seed"
+  if (exists(seed_symbol, envir = globalenv())) {
+    old <- get(seed_symbol, envir = globalenv())
+    on.exit(assign(seed_symbol, old, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(suppressWarnings(rm(list = seed_symbol, envir = globalenv())), add = TRUE)
+  }
+  force(expr)
+}
 
 #' Assigns each strategically evacuated casualty a Role 4 length-of-stay
 #' category and ward, and draws a length of stay from the matching
@@ -62,32 +100,38 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
                  r4_los_params$los_p2$max,  r4_los_params$los_p3_dnbi$max)
   )
 
-  role4_evac %>%
-    mutate(
-      los_category = case_when(
-        !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
-        !is.na(priority) & priority == 3                             ~ "p3_dnbi",
-        !is.na(priority) & priority == 1 &
-          !is.na(treatment_received) & treatment_received == 1       ~ "p1_surgical",
-        !is.na(priority) & priority == 1                             ~ "p1_nonsurgical",
-        !is.na(priority) & priority == 2                             ~ "p2",
-        TRUE                                                          ~ "p3_dnbi"
-      ),
-      ward = case_when(
-        los_category == "p1_surgical"               ~ "ICU",
-        los_category %in% c("p1_nonsurgical", "p2")  ~ "Surgical Ward",
-        TRUE                                          ~ "General Ward"
-      )
-    ) %>%
-    left_join(los_lookup, by = "los_category") %>%
-    rowwise() %>%
-    mutate(
-      los_days          = rtriangle(1, a = los_min, b = los_max, c = los_mode),
-      r4_admit_day      = evacuation_day,
-      r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
-    ) %>%
-    ungroup() %>%
-    dplyr::select(-los_min, -los_mode, -los_max)
+  # The length-of-stay draw is the analysis pipeline's only RNG consumer, and
+  # the pipeline is a report over monitoring data already produced: analysing
+  # one run twice has to give one answer. Preserving the stream around the
+  # draw is what makes it do so (Issue #233); the draw itself is unmoved.
+  with_preserved_rng(
+    role4_evac %>%
+      mutate(
+        los_category = case_when(
+          !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
+          !is.na(priority) & priority == 3                             ~ "p3_dnbi",
+          !is.na(priority) & priority == 1 &
+            !is.na(treatment_received) & treatment_received == 1       ~ "p1_surgical",
+          !is.na(priority) & priority == 1                             ~ "p1_nonsurgical",
+          !is.na(priority) & priority == 2                             ~ "p2",
+          TRUE                                                          ~ "p3_dnbi"
+        ),
+        ward = case_when(
+          los_category == "p1_surgical"               ~ "ICU",
+          los_category %in% c("p1_nonsurgical", "p2")  ~ "Surgical Ward",
+          TRUE                                          ~ "General Ward"
+        )
+      ) %>%
+      left_join(los_lookup, by = "los_category") %>%
+      rowwise() %>%
+      mutate(
+        los_days          = rtriangle(1, a = los_min, b = los_max, c = los_mode),
+        r4_admit_day      = evacuation_day,
+        r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
+      ) %>%
+      ungroup() %>%
+      dplyr::select(-los_min, -los_mode, -los_max)
+  )
 }
 
 #' Computes daily Role 4 (national support base) bed occupancy by ward
@@ -2569,7 +2613,9 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   if (nrow(mass_casualty_events_summary_mr) > 0) {
     n_sim_days_mc <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
     mass_casualty_timeline_plot_mr <- ggplot(mass_casualty_events_summary_mr, aes(x = event_start / 1440, y = n_cas)) +
-      geom_jitter(width = 0.15, height = 0, alpha = 0.35, color = "#D62828", size = 2) +
+      geom_point(position = position_jitter(width = 0.15, height = 0,
+                                            seed = MASS_CASUALTY_JITTER_SEED),
+                 alpha = 0.35, color = "#D62828", size = 2) +
       scale_x_continuous(limits = c(0, n_sim_days_mc), breaks = seq(0, n_sim_days_mc, by = 2)) +
       labs(
         title    = "Mass Casualty Event Timeline — All Replications Pooled",

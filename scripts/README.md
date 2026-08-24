@@ -78,6 +78,12 @@ running the model, so it belongs with the eight sub-half-minute checks rather
 than with the calibration check, but its runtime in this container has not been
 measured.
 
+`check_analysis_idempotence.R` was added later still, and likewise carries no
+row above. It asserts that analysing one run's monitoring data twice gives one
+answer, running a 10-day single run and a pair of 10-day replications and then
+analysing each of them twice; it belongs with the sub-two-minute checks, and
+its runtime in this container has not been measured.
+
 Three checks corroborate published figures independently of the baseline
 reproduction below. `check_dow_calibration.R` returns a pooled treated-cohort
 died-of-wounds rate of 0.474% (95% CI [0.412%, 0.536%]) for `default` and

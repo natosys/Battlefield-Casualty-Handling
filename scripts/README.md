@@ -5,7 +5,8 @@ The repository carries sixteen regression checks under `scripts/`, each named
 otherwise. `scripts/run_all_checks.R` runs them as a suite, and
 `.github/workflows/checks.yml` runs the fast selection on every pull request
 against `main`, so a check's result now gates a merge rather than waiting for
-a maintainer to think of it.
+a maintainer to think of it. `docs/Continuous_Integration.md` is the operating
+guide for that workflow.
 
 This document records the verification baseline: the result, the runtime and
 the observed behaviour of every check, measured together in one sitting in the
@@ -165,8 +166,9 @@ Three checks were added at the same time, and none carries a row in the
 results table above because none existed when it was measured.
 `check_baseline_reproduction.R` performs the seed-42 byte-for-byte comparison
 this document reports under its own heading, as a check rather than as a
-manual procedure; its cost is the 51.7 second run recorded there plus the
-comparison. `check_lint.R` runs `lintr` under `.lintr` and ratchets the
+manual procedure. It takes 44 seconds, of which the run recorded under that
+heading is almost all, measured in an unpinned R 4.3.3 sandbox where it also
+reports the tracked set reproducing byte for byte. `check_lint.R` runs `lintr` under `.lintr` and ratchets the
 finding count per rule against `scripts/lint_baseline.csv`; it takes 24
 seconds, measured in an unpinned R 4.3.3 sandbox with `lintr` 3.4.0 rather
 than in the container above, since `lintr` is not part of the pinned library.

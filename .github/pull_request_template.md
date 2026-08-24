@@ -32,7 +32,9 @@ none of the headings.
 
        Rscript scripts/run_all_checks.R --fast
 
-     and, where the change could affect the calibration, of the slow suite. -->
+     and, where the change could affect the calibration, of the slow suite,
+     which is dispatched from the Actions tab rather than run on a PR. See
+     docs/Continuous_Integration.md. -->
 
 ### Known limitations
 

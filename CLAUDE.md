@@ -66,6 +66,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `docs/Multi_Run_Analysis.md` | Multi-run (n≥30 replications, 95% CI) comparative results narrative — Falklands-modified vs. Okinawa-intensity scenario comparison |
 | `docs/BCH_Simulation_Action_Plan.md` | Issue tracker cross-reference — phase sequencing, dependency graph, merged-issue log |
 | `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
+| `docs/Continuous_Integration.md` | Operating guide for the automated verification: what each GitHub Actions job runs and when, how to read a result, how to dispatch the slow suite, what each way the gate can fail calls for, and how a new check joins the suite |
 | `docs/Getting_Started.md` | User guide for the Shiny console — the Configure/Run/Analyse workflow and how to read each output |
 | `docs/Project_Status_Review.md` | Repository-wide status review — the findings and remediation plan the Phase 6 code-quality issues derive from |
 | `docs/STYLE_GUIDE.md` | The R code standard — every rule a reviewer checks a PR against, each tagged machine-checkable, reviewer-applied or preference; follow at all times |
@@ -254,7 +255,7 @@ When a new issue is raised:
 
 Every PR must include a **Documented Manual Test Plan** in the PR description, following the structure `.github/pull_request_template.md` prompts for.
 
-Verification has two halves. The `scripts/check_*.R` regression checks are automated and gated: `Rscript scripts/run_all_checks.R --fast` runs every check a PR is gated on, and GitHub Actions runs the same suite, the lint ratchet and the seed-42 byte-for-byte reproduction on every PR against `main` in the pinned container (`.github/workflows/checks.yml`). A PR is not ready for review while that workflow is red. Everything the checks do not assert, which is most of what a change to the model does, is verified by documented manual execution, which is what the test plan records. A behaviour worth protecting past the PR that introduces it belongs in a new `scripts/check_*.R`, which the runner discovers by glob and therefore gates from the moment it is committed.
+Verification has two halves. The `scripts/check_*.R` regression checks are automated and gated: `Rscript scripts/run_all_checks.R --fast` runs every check a PR is gated on, and GitHub Actions runs the same suite, the lint ratchet and the seed-42 byte-for-byte reproduction on every PR against `main` in the pinned container (`.github/workflows/checks.yml`). A PR is not ready for review while that workflow is red; `docs/Continuous_Integration.md` is the operating guide for reading and acting on a result. Everything the checks do not assert, which is most of what a change to the model does, is verified by documented manual execution, which is what the test plan records. A behaviour worth protecting past the PR that introduces it belongs in a new `scripts/check_*.R`, which the runner discovers by glob and therefore gates from the moment it is committed.
 
 Test plans must include:
 

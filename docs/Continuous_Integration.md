@@ -19,6 +19,7 @@ rather than in the environment.
 
 | Job | Runs on | What it does | Typical cost |
 |---|---|---|---|
+| Classify the change | Every pull request | Compares the branch against its base and decides whether the change can move a model output, a lint count or the tracked baseline | Seconds |
 | Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction | Nine minutes, measured on the first run |
 | Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
 | Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `scripts/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
@@ -27,6 +28,37 @@ The figures above are the check time alone. Restoring the project library
 costs a further minute or so on top, and less again once the cache keyed on the
 hash of `renv.lock` is warm. A pull request therefore reports in about ten
 minutes.
+
+## What a documentation-only change runs
+
+A pull request that touches no code is not worth eleven minutes of the same
+checks. The first job classifies the change by comparing the branch against its
+base, and the other two narrow what they run accordingly.
+
+A change counts as reaching code when it touches `R/`, `scripts/`, `run.R`,
+`app.R`, `env_data.json`, `renv.lock`, `.Rprofile`, `.lintr`, `.devcontainer/`
+or `.github/workflows/`, or the tracked baseline evidence under `data/`,
+`images/` or `logs/`. Anything else, which in practice means the markdown
+documents, is a documentation-only change. A push to `main`, the weekly
+schedule and a manual dispatch are never narrowed: each wants the whole gate
+rather than a subset inferred from one diff.
+
+| | Reaches code | Documentation only |
+|---|---|---|
+| Fast suite | Every fast check, and the lint ratchet | `check_markdown.R`, `check_references.R` and `check_env_data_summary.R` alone, in about twelve seconds |
+| Seed-42 reproduction | Runs | Reports as not applicable |
+
+Two things follow from how this is arranged, and both are deliberate. The jobs
+narrow what they run rather than being skipped by a path filter, because a
+required status check that never reports leaves a pull request waiting on it
+indefinitely; every job reports on every pull request. And the checks a
+documentation-only change does run are the three that read the tracked
+documents, which is where a prose edit can actually break something: a moved
+heading, a stale anchor, a citation with no entry, an environment summary that
+no longer matches `env_data.json`.
+
+A post-merge chore pull request, which updates the action plan and little else,
+therefore reports in about a minute rather than in eleven.
 
 ## Reading a result on a pull request
 

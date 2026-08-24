@@ -11,6 +11,13 @@
 # The fast suite runs on every pull request; check_dow_calibration.R runs 450
 # replications and takes three quarters of an hour, so it runs weekly and on
 # demand instead.
+#
+# A pull request that changes no code is classified as such by the first job
+# and narrows what the others run: the three checks that read the tracked
+# documents, and not the lint ratchet or the seed-42 reproduction, neither of
+# which a prose edit can move. The jobs still run and still report, rather than
+# being skipped by a path filter, because a required status check that never
+# reports leaves a pull request waiting for it forever.
 
 name: Checks
 
@@ -46,8 +53,52 @@ env:
   LINTR_VERSION: 3.4.0
 
 jobs:
+  classify:
+    name: Classify the change
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code_changed: ${{ steps.classify.outputs.code_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether this change can move the model
+        id: classify
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          IS_PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
+        run: |
+          set -euo pipefail
+          # Anything other than a pull request runs the full suite: a push to
+          # main, the weekly schedule and a manual dispatch all want the whole
+          # gate rather than a subset inferred from one diff.
+          if [ "$IS_PULL_REQUEST" != "true" ]; then
+            echo "code_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Not a pull request; running the full suite."
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_REF"
+          changed=$(git diff --name-only "origin/$BASE_REF...HEAD")
+          echo "Files changed against origin/$BASE_REF:"
+          echo "$changed" | sed 's/^/  /'
+          # Every path whose change could move a model output, a lint count or
+          # the tracked baseline. data/, images/ and logs/ are here because they
+          # are the baseline evidence set the reproduction check compares
+          # against, and .github/workflows/ because a change to the gate itself
+          # is verified by running it in full.
+          if echo "$changed" | grep -Eq '^(R/|scripts/|data/|images/|logs/|run\.R|app\.R|env_data\.json|renv\.lock|\.Rprofile|\.lintr|\.devcontainer/|\.github/workflows/)'; then
+            echo "code_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Change reaches code, configuration or the tracked baseline; running the full fast suite."
+          else
+            echo "code_changed=false" >> "$GITHUB_OUTPUT"
+            echo "Documentation-only change; running the document checks alone."
+          fi
+
   fast-checks:
     name: Fast suite and lint ratchet
+    needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 60
     container:
@@ -75,10 +126,20 @@ jobs:
         run: Rscript -e 'renv::restore(prompt = FALSE)'
 
       - name: Install lintr
+        if: needs.classify.outputs.code_changed == 'true'
         run: Rscript -e 'renv::install(paste0("lintr@", Sys.getenv("LINTR_VERSION")))'
 
       - name: Run the fast suite
+        if: needs.classify.outputs.code_changed == 'true'
         run: Rscript scripts/run_all_checks.R --fast
+
+      # A documentation-only change cannot move a model output or a lint count,
+      # so only the checks that read the tracked documents are worth its time.
+      - name: Run the document checks
+        if: needs.classify.outputs.code_changed != 'true'
+        run: >-
+          Rscript scripts/run_all_checks.R
+          --only 'check_(markdown|references|env_data_summary)'
 
       - name: Upload check logs
         if: always()
@@ -94,6 +155,7 @@ jobs:
   # to see its result without opening the suite's log.
   baseline-reproduction:
     name: Seed-42 baseline reproduction
+    needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 60
     container:
@@ -118,10 +180,20 @@ jobs:
           restore-keys: renv-${{ runner.os }}-
 
       - name: Restore the project library
+        if: needs.classify.outputs.code_changed == 'true'
         run: Rscript -e 'renv::restore(prompt = FALSE)'
 
       - name: Reproduce the tracked seed-42 evidence set
+        if: needs.classify.outputs.code_changed == 'true'
         run: Rscript scripts/check_baseline_reproduction.R
+
+      # The job still runs and still reports, so a required status check on it
+      # is satisfied on a documentation-only change rather than left pending.
+      - name: Report the reproduction as not applicable
+        if: needs.classify.outputs.code_changed != 'true'
+        run: >-
+          echo "Documentation-only change; no run consumes a random draw, so
+          the seed-42 evidence set cannot have moved."
 
   slow-checks:
     name: Slow suite

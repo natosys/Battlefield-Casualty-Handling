@@ -1,6 +1,6 @@
 # Regression Check Suite
 
-The repository carries fifteen regression checks under `scripts/`, each named
+The repository carries sixteen regression checks under `scripts/`, each named
 `check_*.R`. Every one of them exits 0 when its assertions hold and non-zero
 otherwise, so any of them can be wired into a pre-merge hook or a continuous
 integration step. Nothing in the repository executes them automatically: there

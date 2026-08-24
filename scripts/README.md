@@ -172,13 +172,16 @@ reports the tracked set reproducing byte for byte. `check_lint.R` runs `lintr` u
 finding count per rule against `scripts/lint_baseline.csv`; it takes 24
 seconds, measured in an unpinned R 4.3.3 sandbox with `lintr` 3.4.0 rather
 than in the container above, since `lintr` is not part of the pinned library.
-`check_references.R`, added between the measurement and this wiring, fails
-under R 4.3.3 for a reason that has nothing to do with the reference lists: it
-matches a URL with the bracket expression `[^ )\]]`, whose reading of the
-escaped bracket changed between R 4.3.3 and R 4.4.2, so under the older
-version it matches nothing and reports every entry as carrying no URL. It is
-run in the pinned container, where that does not arise, and the portability of
-the expression is left to its own issue rather than repaired in passing.
+`check_references.R`, added between the measurement and this wiring, had never
+passed, which running it as part of a suite is what exposed. It matched a URL
+with the bracket expression `[^ )\]]` under R's default regular expression
+engine, which reads the backslash inside a bracket expression as a literal
+character: the class closed at the first bracket and the second became a
+literal the URL would have to be followed by, so the pattern matched nothing
+and all 68 entries across the three documents read as carrying no URL. The
+expression is now evaluated in Perl mode, and the check passes, reporting 63,
+3 and 2 correctly sourced entries. The reference lists themselves were never
+at fault.
 
 The lint baseline itself was taken in the same R 4.3.3 sandbox: 1,229 findings
 across 11 rules, of which 725 are over-long lines and 160 are indentation.

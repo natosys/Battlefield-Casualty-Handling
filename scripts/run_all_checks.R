@@ -143,8 +143,12 @@ print_log_tail <- function(log_path) {
   if (!file.exists(log_path)) return(invisible(NULL))
   lines <- readLines(log_path, warn = FALSE)
   lines <- lines[!grepl("leaving without releasing", lines, fixed = TRUE)]
-  tail_lines <- utils::tail(lines, FAIL_TAIL_LINES)
-  for (l in tail_lines) say("      | ", l)
+  omitted <- max(0L, length(lines) - FAIL_TAIL_LINES)
+  if (omitted > 0L) {
+    say(sprintf("      | ... %d earlier line(s) omitted; the full log is %s",
+                omitted, log_path))
+  }
+  for (l in utils::tail(lines, FAIL_TAIL_LINES)) say("      | ", l)
   invisible(NULL)
 }
 

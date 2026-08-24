@@ -19,14 +19,14 @@ rather than in the environment.
 
 | Job | Runs on | What it does | Typical cost |
 |---|---|---|---|
-| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction | Twelve to fifteen minutes once the package cache is warm |
-| Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Two to three minutes plus the restore |
+| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction | Nine minutes, measured on the first run |
+| Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
 | Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `scripts/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
 
-The first run of any of these on a branch whose `renv.lock` differs from what
-the cache holds pays for restoring the project library, which takes several
-minutes on top of the figures above. Subsequent runs restore from the cache
-keyed on the hash of `renv.lock`.
+The figures above are the check time alone. Restoring the project library
+costs a further minute or so on top, and less again once the cache keyed on the
+hash of `renv.lock` is warm. A pull request therefore reports in about ten
+minutes.
 
 ## Reading a result on a pull request
 
@@ -42,7 +42,8 @@ the suite's log holds one line per check:
 ```
 
 Only a failing check's output is printed, and only its last forty lines, with
-the `simmer` end-of-run warnings filtered out. The full output of every check,
+the `simmer` end-of-run warnings filtered out and a line stating how many
+earlier lines were omitted. The full output of every check,
 passing or failing, is attached to the run as the `fast-check-logs` artifact,
 downloadable from the run's summary page.
 

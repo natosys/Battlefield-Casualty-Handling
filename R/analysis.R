@@ -2181,8 +2181,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
   list(
     post_op_pathway_summary = post_op_pathway_summary,
     surgery_deferred_count = surgery_deferred_count,
-    surgical_pathway_summary = surgical_pathway_summary,
-    operated = operated
+    surgical_pathway_summary = surgical_pathway_summary
   )
 }
 
@@ -2274,6 +2273,10 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
 #' @param n_sim_days_role4 See analyse_run().
 #' @param role4_summary See analyse_run().
 #' @param ame_demand_daily See analyse_run().
+#' @param role4_replication_summary Across-replication Role 4 summary. It is computed
+#'   only where more than one replication contributes, so it is taken in at the
+#'   caller's NULL and returned unchanged at a single replication.
+#' @param ame_replication_summary Across-replication sortie summary, on the same terms.
 #' @param output_dir See analyse_run().
 #' @return A list of `ame_demand_daily`, `ame_summary`, `role4_replication_summary`,
 #'   `ame_replication_summary`.
@@ -2282,6 +2285,7 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
 #'   figure rather than a schedule.
 summarise_ame_sortie_demand <- function(ame_capacity, role4_daily_by_rep, ame_by_rep, n_reps_role4,
                                         n_sim_days_role4, role4_summary, ame_demand_daily,
+                                        role4_replication_summary, ame_replication_summary,
                                         output_dir) {
   ame_demand_daily <- ame_by_rep %>%
     group_by(day) %>%
@@ -2570,7 +2574,6 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   post_op_pathway_summary <- post_operative_pathways_out$post_op_pathway_summary
   surgery_deferred_count <- post_operative_pathways_out$surgery_deferred_count
   surgical_pathway_summary <- post_operative_pathways_out$surgical_pathway_summary
-  operated <- post_operative_pathways_out$operated
 
   # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
   # Visualises, by simulation day, where casualties experienced degraded care
@@ -2662,7 +2665,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ame_sortie_demand_out <- summarise_ame_sortie_demand(ame_capacity, role4_daily_by_rep,
                                                          ame_by_rep, n_reps_role4, n_sim_days_role4,
                                                          role4_summary, ame_demand_daily,
-                                                         output_dir)
+                                                         role4_replication_summary,
+                                                         ame_replication_summary, output_dir)
     ame_demand_daily <- ame_sortie_demand_out$ame_demand_daily
     ame_summary <- ame_sortie_demand_out$ame_summary
     role4_replication_summary <- ame_sortie_demand_out$role4_replication_summary

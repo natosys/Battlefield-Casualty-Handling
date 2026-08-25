@@ -2020,7 +2020,7 @@ The 17% NBI figure already exists in the model. Extend it to split the remaining
 
 ## Issue 35 — R2B OT Bypass Check Uses `<=` Instead of `<` ✓
 
-**Merged PR #36** — see "Issues In Review" section above for full detail.
+**Merged PR #36** — see the Issue 35 entry under "Recently Merged Issues" above for full detail.
 
 ---
 

@@ -58,7 +58,7 @@ carries roughly a second of scheduling overhead.
 | `check_env_data_summary.R` | Pass | 7 s | The `<!-- ENV SUMMARY -->` block in `README.md` agrees with `env_data.json` |
 | `check_icu_time_conservation.R` | Pass | 1 min 39 s | A casualty's post-operative intensive care requirement is conserved across all three routes and at every forward ICU share |
 | `check_lever_realisation.R` | Pass | 42 s | The reinforcement fill and the R2B holding evacuation threshold are each applied in full |
-| `check_markdown.R` | Pass | 7 s | Every anchor link across the tracked markdown set resolves to a heading, every local link and image target exists when resolved relative to its own document, no image carries placeholder alt text, and no heading carries an emoji |
+| `check_markdown.R` | Pass | 7 s | Every anchor link across the tracked markdown set resolves to a heading, every local link and image target exists when resolved relative to its own document, no image carries placeholder alt text, no heading carries an emoji, and the README's Further Development scan table names each gap and its impact as the entry beneath it does |
 | `check_mass_casualty_kia_split.R` | Pass | 1 min 06 s | A mass casualty event's casualty count is conserved across the wounded and killed split, and the killed reach mortuary handling untriaged |
 | `check_measurement_reproducibility.R` | Pass | 4 min 04 s | A multi-replication measurement is a function of its control seed alone, and the caller's generator kind and stream position are restored |
 | `check_morris_baseline.R` | Pass | 10 s | Every screened parameter's baseline lies inside its own screening bounds and equals the value it holds in `env_data.json` |

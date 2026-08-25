@@ -412,6 +412,118 @@ check_alt_text <- function(file_path) {
   flagged
 }
 
+# The Further Development scan table and the entries beneath it. The table is a
+# derived artefact: every row restates the identifier, title and impact of an
+# entry, so the two drift apart silently whenever one is edited without the
+# other, which is how three rows came to name a gap differently from the entry
+# they point at.
+FURTHER_DEV_HEADING <- "^## Further Development$"
+SCAN_ROW <- "^\\|\\s*(L[0-9]+)\\s*\\|\\s*(.+?)\\s*\\|\\s*(High|Medium|Low)\\s*\\|\\s*$"
+ENTRY_HEADING <- "^\\*\\*(L[0-9]+) — (.+?)\\.\\*\\*"
+IMPACT_GROUP <- "^### (High|Medium|Low) Impact\\s*$"
+
+#' The Further Development scan table's rows, in document order
+#'
+#' @param lines Character vector of the document's lines
+#' @return Data frame of identifier, gap title and impact, one row per entry
+#'   listed in the scan table
+scan_table_rows <- function(lines) {
+  m <- regmatches(lines, regexec(SCAN_ROW, lines, perl = TRUE))
+  hit <- lengths(m) == 4
+  data.frame(
+    id     = vapply(m[hit], function(x) x[2], character(1)),
+    title  = vapply(m[hit], function(x) x[3], character(1)),
+    impact = vapply(m[hit], function(x) x[4], character(1)),
+    stringsAsFactors = FALSE
+  )
+}
+
+#' The Further Development entries, with the impact group each sits under
+#'
+#' @param lines Character vector of the document's lines
+#' @return Data frame of identifier, entry title and impact, one row per entry
+#'
+#' @details Only the lines below the Further Development heading are read, so a
+#'   bolded identifier appearing in the narrative above it is not mistaken for
+#'   an entry. The title is the bolded lead-in with its trailing full stop
+#'   removed, which is the form the scan table restates.
+entry_headings <- function(lines) {
+  start <- grep(FURTHER_DEV_HEADING, lines)
+  if (length(start) != 1) {
+    return(data.frame(id = character(0), title = character(0),
+                      impact = character(0), stringsAsFactors = FALSE))
+  }
+  body <- lines[start:length(lines)]
+
+  group <- NA_character_
+  rows <- list()
+  for (line in body) {
+    g <- regmatches(line, regexec(IMPACT_GROUP, line, perl = TRUE))[[1]]
+    if (length(g) == 2) {
+      group <- g[2]
+      next
+    }
+    e <- regmatches(line, regexec(ENTRY_HEADING, line, perl = TRUE))[[1]]
+    if (length(e) != 3) next
+    rows[[length(rows) + 1]] <- data.frame(
+      id = e[2], title = e[3], impact = group, stringsAsFactors = FALSE
+    )
+  }
+  if (length(rows) == 0) {
+    data.frame(id = character(0), title = character(0), impact = character(0),
+               stringsAsFactors = FALSE)
+  } else {
+    do.call(rbind, rows)
+  }
+}
+
+#' Report disagreements between the scan table and the entries it points at
+#'
+#' @param file_path Path to the document carrying the Further Development
+#'   section
+#' @return Number of disagreements found
+#'
+#' @details Four ways the two can disagree are reported: a row naming no entry,
+#'   an entry carried by no row, a row whose title differs from its entry's
+#'   heading, and a row whose impact differs from the group heading its entry
+#'   sits under. The entry is authoritative in each case, the table being the
+#'   derived artefact.
+check_scan_table <- function(file_path) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  rows <- scan_table_rows(lines)
+  entries <- entry_headings(lines)
+  if (nrow(entries) == 0) return(0)
+
+  problems <- 0
+
+  for (id in setdiff(rows$id, entries$id)) {
+    problems <- problems + 1
+    cat(sprintf("  %s scan table lists %s, which no entry heading defines\n",
+                file_path, id))
+  }
+  for (id in setdiff(entries$id, rows$id)) {
+    problems <- problems + 1
+    cat(sprintf("  %s entry %s appears in no scan table row\n", file_path, id))
+  }
+
+  for (id in intersect(rows$id, entries$id)) {
+    row <- rows[rows$id == id, ][1, ]
+    entry <- entries[entries$id == id, ][1, ]
+    if (!identical(row$title, entry$title)) {
+      problems <- problems + 1
+      cat(sprintf("  %s %s scan table says \"%s\"; entry heading says \"%s\"\n",
+                  file_path, id, row$title, entry$title))
+    }
+    if (!identical(row$impact, entry$impact)) {
+      problems <- problems + 1
+      cat(sprintf("  %s %s scan table says %s impact; entry sits under %s Impact\n",
+                  file_path, id, row$impact, entry$impact))
+    }
+  }
+
+  problems
+}
+
 # The three documents that carry a table of contents block and the return
 # links beneath their H2 headings. Only these are rewritten.
 markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
@@ -461,6 +573,15 @@ if (placeholder_images > 0) {
   quit(status = 1)
 } else {
   cat("✓ Every image carries descriptive alt text.\n")
+}
+
+scan_problems <- check_scan_table("README.md")
+if (scan_problems > 0) {
+  cat(sprintf("⚠️ %d scan table row(s) disagree with their entries — reconcile and re-run.\n",
+              scan_problems))
+  quit(status = 1)
+} else {
+  cat("✓ Every Further Development scan table row matches its entry.\n")
 }
 
 emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)

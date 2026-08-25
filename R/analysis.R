@@ -753,99 +753,17 @@ ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
   out
 }
 
-#' Runs the full analysis and visualisation pipeline on monitoring data
+#' Plot casualties per day by type, population source and priority
 #'
-#' @param mon Named list with elements arrivals, attributes, resources as
-#'   returned by run_single()
-#' @param output_dir Directory path for saving CSV and plot outputs
-#'   (default: "outputs")
-#' @param warm_up_days Days to exclude from the start of the analysis window
-#'   (applied to arrivals by start_time and resources by time; default 0)
-#' @param images_dir Directory path for saving PNG plots. Defaults to
-#'   `file.path(output_dir, "images")`, which is gitignored, so calling this
-#'   function cannot overwrite the tracked seed-42 baseline plots in `images/`
-#'   unless the caller names that directory explicitly (Issue #154). run.R
-#'   does so only under `--refresh-baseline`.
-#' @return Invisibly returns a named list. Nine elements are always-present
-#'   ggplot objects (Issue #14 — embeddable in a Shiny reactive context via
-#'   e.g. renderPlot()): casualty_flow, r1_queues, r2b_treatment,
-#'   r2b_bed_queues, r2b_gantt, r2e_surgery, r2e_bed_queues, waiting_times,
-#'   r2e_gantt. Remaining elements are summary data frames, scalar KPIs, and
-#'   conditional ggplot objects (NULL when their trigger condition — e.g. a
-#'   run with zero R2B hold occupants — is not met).
-#'
-#' @details Writes CSVs to output_dir and PNGs to images_dir; does not print
-#'   plots to the active graphics device (the caller is responsible for
-#'   display — see run.R for the CLI path, which prints each plot in the
-#'   original on-screen order for interactive/RStudio use).
-analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
-                        images_dir = file.path(output_dir, "images")) {
-  validate_monitoring(mon, "analyse_run")
-  usable_warm_up <- is.numeric(warm_up_days) && length(warm_up_days) == 1L &&
-    !is.na(warm_up_days) && warm_up_days >= 0
-  if (!usable_warm_up) {
-    stop(sprintf("analyse_run: warm_up_days must be a single non-negative number, found %s",
-                 paste(format(warm_up_days), collapse = ", ")), call. = FALSE)
-  }
-
-  dir.create(output_dir,  showWarnings = FALSE, recursive = TRUE)
-  dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
-
-  warm_up_min    <- as.integer(warm_up_days) * 1440L
-  arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
-  attributes_raw <- mon$attributes
-  resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
-
-  write.csv(arrivals_raw,   file.path(output_dir, "mon_arrivals.csv"),   row.names = FALSE)
-  write.csv(attributes_raw, file.path(output_dir, "mon_attributes.csv"), row.names = FALSE)
-  write.csv(resources_raw,  file.path(output_dir, "mon_resources.csv"),  row.names = FALSE)
-
-  arrivals <- arrivals_raw %>%
-    mutate(waiting_time = end_time - start_time - activity_time)
-
-  attributes <- attributes_raw
-
-  resources <- resources_raw
-
-  # Pivot attributes wide (last value per key per casualty); see roxygen on
-  # build_attributes_wide() for the zero-DOW/zero-surgery/etc. column guard.
-  attributes_wide <- build_attributes_wide(attributes, arrivals)
-
-  combined <- arrivals %>%
-    left_join(attributes_wide, by = c("name", "replication")) %>%
-    mutate(
-      casualty_type     = str_extract(name, "^[^_]+"),
-      population_source = str_extract(name, "(?<=_)[a-zA-Z]+"),
-      arrival_day       = floor(start_time / (24 * 60)) + 1
-    )
-
-  casualty_summary <- combined %>%
-    group_by(arrival_day, casualty_type, population_source) %>%
-    summarise(count = n(), .groups = "drop") %>%
-    arrange(arrival_day, casualty_type, population_source)
-
-  casualty_priority_summary <- combined %>%
-    mutate(
-      priority_group = case_when(
-        casualty_type == "kia"       ~ "KIA",
-        priority %in% c(1, 2, 3)    ~ paste0("Priority ", priority),
-        TRUE                         ~ NA_character_
-      )
-    ) %>%
-    filter(!is.na(priority_group)) %>%
-    group_by(arrival_day, priority_group) %>%
-    summarise(count = n(), .groups = "drop") %>%
-    arrange(arrival_day, priority_group) %>%
-    mutate(priority_group = factor(priority_group, levels = c("Priority 1", "Priority 2", "Priority 3", "KIA")))
-
-  max_daily_total <- casualty_summary %>%
-    group_by(arrival_day) %>%
-    summarise(total = sum(count)) %>%
-    pull(total) %>%
-    max()
-
-  # ── Casualty overview plots ───────────────────────────────────────────────
-
+#' @param casualty_priority_summary Casualty counts per arrival day and priority group.
+#' @param casualty_summary Casualty counts per arrival day, type and population source.
+#' @param max_daily_total Largest single-day casualty total, used as a shared y limit.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_casualty_summary object.
+#' @details The three panels share a y scale, so a reader compares them directly; the
+#'   shared maximum is computed by the caller and passed in.
+plot_casualty_overview <- function(casualty_priority_summary, casualty_summary, max_daily_total,
+                                   images_dir) {
   plot_type <- ggplot(casualty_summary, aes(x = arrival_day, y = count, fill = casualty_type)) +
     geom_bar(stat = "identity", position = "stack") +
     scale_fill_brewer(palette = "Set1") +
@@ -873,9 +791,18 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   p_casualty_summary <- plot_type / plot_source / plot_priority
   ggsave(file.path(images_dir, "casualty_summary.png"), p_casualty_summary,
          width = 12, height = 10, dpi = 150)
+  p_casualty_summary
+}
 
-  # ── Summary tables ────────────────────────────────────────────────────────
-
+#' Write the day-by-day casualty count tables
+#'
+#' @param casualty_priority_summary Casualty counts per arrival day and priority group.
+#' @param casualty_summary Casualty counts per arrival day, type and population source.
+#' @param output_dir Directory the tables are written to.
+#' @return Invisibly NULL; called for the files it writes.
+#' @details Each table is written wide, one column per arrival day, with a total row
+#'   and a total column, which is the form the report consumes.
+write_casualty_summary_tables <- function(casualty_priority_summary, casualty_summary, output_dir) {
   casualty_type_table_wide <- casualty_summary %>%
     pivot_wider(names_from = arrival_day, values_from = count, values_fill = 0) %>%
     mutate(total = rowSums(across(where(is.numeric)))) %>%
@@ -914,9 +841,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   writeLines(kable(priority_table_wide,            format = "markdown"), file.path(output_dir, "priority_table.md"))
   writeLines(kable(population_source_table_wide,   format = "markdown"), file.path(output_dir, "population_source_table.md"))
   writeLines(kable(casualty_type_table_wide,       format = "markdown"), file.path(output_dir, "casualty_table.md"))
+  invisible(NULL)
+}
 
-  # ── R1 resource queue graphs ──────────────────────────────────────────────
-
+#' Plot each R1 team's treatment queue over time
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_r1_queues object.
+plot_r1_queues <- function(resources, images_dir) {
   queue_plot_data_r1 <- resources %>%
     as.data.frame() %>%
     filter(grepl("^c_r1_.*_\\d+_t\\d+$", resource)) %>%
@@ -941,9 +874,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
   ggsave(file.path(images_dir, "r1_queues.png"), p_r1_queues,
          width = 12, height = 8, dpi = 150)
+  p_r1_queues
+}
 
-  # ── R2B bed queue graphs ──────────────────────────────────────────────────
-
+#' Plot each R2B team's bed queues over time
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_r2b_bed_queues object.
+plot_r2b_bed_queues <- function(resources, images_dir) {
   queue_plot_data <- resources %>%
     as.data.frame() %>%
     filter(grepl("^b_r2b_.*_\\d+_t\\d+$", resource)) %>%
@@ -966,13 +905,20 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
   ggsave(file.path(images_dir, "r2b_bed_queues.png"), p_r2b_bed_queues,
          width = 12, height = 8, dpi = 150)
+  p_r2b_bed_queues
+}
 
-  # ── R2B hold bed occupancy by patient stream ─────────────────────────────
-  # Requires r2b_hold_start attribute (added in Issue #39 trajectory change).
-  # Decomposes daily concurrent hold bed occupancy into disease DNBI, NBI, and
-  # WIA streams. Verifies that battle_fatigue (dnbi_type == 1) never reaches
-  # R2B hold beds.
-
+#' Summarise and plot R2B holding-bed occupancy by patient stream
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `r2b_hold_daily`, `r2b_hold_occupancy_plot`.
+#' @details Decomposes daily concurrent occupancy into the streams competing for the
+#'   same beds, against the configured per-unit capacity.
+summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, images_dir) {
   r2b_hold_occupancy_plot <- NULL
   r2b_hold_daily          <- NULL
 
@@ -1066,11 +1012,19 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       row.names = FALSE
     )
   }
+  list(
+    r2b_hold_daily = r2b_hold_daily,
+    r2b_hold_occupancy_plot = r2b_hold_occupancy_plot
+  )
+}
 
-  # ── R2B hold routing diagnostics ─────────────────────────────────────────
-  # r2b_bypassed     = 1: routed to R2E at R1 (hold_threshold exceeded before transport)
-  # r2b_hold_bypass  = 1: arrived at R2B but hold full at Step 4 → R2E
-  # r2b_hold_queued  = 1: both echelons full, queue within cap → queued at R2B hold
+#' Count the three R2B holding-bed routing outcomes
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @return A list of `r2b_hold_bypass_count`, `r2b_hold_queued_count`, `r2b_pre_bypass_count`.
+#' @details The three counts are independent and do not sum: a casualty bypassed
+#'   upstream never reaches the at-R2B decision the other two describe.
+count_r2b_hold_routing <- function(attributes_wide) {
   r2b_pre_bypass_count <- 0L
   if ("r2b_bypassed" %in% names(attributes_wide)) {
     r2b_pre_bypass_count <- sum(!is.na(attributes_wide$r2b_bypassed) &
@@ -1093,13 +1047,21 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     "R2B routing: pre-bypass at R1 (threshold): %d | at-R2B bypass (hold full): %d | R2B queue (both full): %d\n",
     r2b_pre_bypass_count, r2b_hold_bypass_count, r2b_hold_queued_count
   ))
+  list(
+    r2b_hold_bypass_count = r2b_hold_bypass_count,
+    r2b_hold_queued_count = r2b_hold_queued_count,
+    r2b_pre_bypass_count = r2b_pre_bypass_count
+  )
+}
 
-  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
-  # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
-  # non-NA) and were bypassed to R2E at the surgical decision point — it does
-  # not apply to the pre-transport r2b_bypassed rows above (those never carry
-  # r2b_treated, since they are routed from R1 before ever arriving at R2B).
-  # 1 = surgical team off-shift; 2 = OT bed busy or queued.
+#' Count why a casualty at R2B was not operated on there
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @return A list of `r2b_ot_bypass_busy_count`, `r2b_ot_bypass_count`,
+#'   `r2b_ot_bypass_offshift_count`.
+#' @details Decomposes the at-R2B operating theatre bypasses into the two reasons the
+#'   trajectory records, an off-shift surgical section and a busy theatre.
+count_r2b_ot_bypass_reasons <- function(attributes_wide) {
   r2b_ot_bypass_offshift_count <- 0L
   r2b_ot_bypass_busy_count     <- 0L
   if ("r2b_bypass_reason" %in% names(attributes_wide)) {
@@ -1115,14 +1077,28 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     "R2B OT bypass reason (at-R2B, surgical decision point): team off-shift: %d | OT busy/queued: %d | total: %d\n",
     r2b_ot_bypass_offshift_count, r2b_ot_bypass_busy_count, r2b_ot_bypass_count
   ))
+  list(
+    r2b_ot_bypass_busy_count = r2b_ot_bypass_busy_count,
+    r2b_ot_bypass_count = r2b_ot_bypass_count,
+    r2b_ot_bypass_offshift_count = r2b_ot_bypass_offshift_count
+  )
+}
 
-  # ── R2B pre-open hold ────────────────────────────────────────────────────
-  # The complement of the off-shift bypass count above: casualties who found
-  # the surgical section closed but close enough to reopening to be held
-  # forward for it rather than diverted. r2b_pre_open_wait_min is set only
-  # once theatre and section are both in hand, so a casualty still holding at
-  # the end of the run carries the marker without a duration and is counted
-  # but not averaged.
+#' Summarise casualties held forward for a section about to reopen
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param r2b_ot_bypass_busy_count Bypasses whose theatre was busy or queued.
+#' @param r2b_ot_bypass_count Total at-R2B operating theatre bypasses.
+#' @param r2b_ot_bypass_offshift_count Bypasses whose surgical section was off shift.
+#' @param images_dir Directory the plots are written to.
+#' @return The r2b_bypass_reason_plot object.
+#' @details Also plots the bypass reasons per day, the pre-open hold being the
+#'   mechanism that removes one of them.
+summarise_r2b_pre_open_hold <- function(attributes_wide, combined, r2b_ot_bypass_busy_count,
+                                        r2b_ot_bypass_count, r2b_ot_bypass_offshift_count,
+                                        images_dir) {
   r2b_pre_open_count <- 0L
   r2b_pre_open_waits <- numeric(0)
   if ("r2b_pre_open_wait" %in% names(attributes_wide)) {
@@ -1186,9 +1162,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   ggsave(file.path(images_dir, "r2b_ot_bypass_reason.png"), r2b_bypass_reason_plot,
          width = 12, height = 6, dpi = 150)
+  r2b_bypass_reason_plot
+}
 
-  # ── R2B casualty treatment summary ───────────────────────────────────────
-
+#' Plot casualties treated at each R2B station per day
+#'
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @return Panel of casualties treated per R2B station per day.
+plot_r2b_casualty_treatment <- function(combined) {
   r2b_casualties <- combined %>%
     filter(!is.na(r2b_treated) & r2b_treated > 0) %>%
     mutate(
@@ -1207,9 +1189,14 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     scale_fill_manual(values = r2b_colors) +
     scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
     theme_minimal(base_size = 14)
+  plot_r2b_treated
+}
 
-  # ── R2B surgery summary ───────────────────────────────────────────────────
-
+#' Summarise and plot R2B surgeries started per day
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @return A list of `plot_r2b_summary`, `r2b_summary`.
+summarise_r2b_surgery <- function(attributes_wide) {
   r2b_summary <- attributes_wide %>%
     filter(!is.na(r2b_surgery_start)) %>%
     mutate(
@@ -1224,9 +1211,25 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     scale_y_continuous(breaks = 0:10, limits = c(0, 10)) +
     scale_fill_brewer(palette = "Set2") +
     theme_minimal(base_size = 14)
+  list(
+    plot_r2b_summary = plot_r2b_summary,
+    r2b_summary = r2b_summary
+  )
+}
 
-  # ── Casualties skipping R2B ───────────────────────────────────────────────
-
+#' Assemble the three-panel R2B handling figure
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param plot_r2b_summary Panel of R2B surgeries started per day.
+#' @param plot_r2b_treated Panel of casualties treated per R2B station per day.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_r2b_handling object.
+#' @details Stacks the treatment, surgery and bypass panels the two callers above
+#'   produce, adding the count of casualties that skipped R2B entirely.
+plot_r2b_handling <- function(attributes_wide, combined, plot_r2b_summary, plot_r2b_treated,
+                              images_dir) {
   skipped_r2b_daily <- attributes_wide %>%
     mutate(day = floor(time / 1440) + 1) %>%
     filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
@@ -1245,9 +1248,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   p_r2b_handling <- plot_r2b_treated / plot_r2b_summary / plot_r2b_skipped
   ggsave(file.path(images_dir, "r2b_handling.png"), p_r2b_handling,
          width = 12, height = 10, dpi = 150)
+  p_r2b_handling
+}
 
-  # ── R2B resource usage (Gantt) ────────────────────────────────────────────
-
+#' Plot R2B bed occupancy as a Gantt chart
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `max_days`, `p_r2b_gantt`.
+plot_r2b_bed_gantt <- function(resources, images_dir) {
   r2b_bed_usage <- resources %>%
     as.data.frame() %>%
     filter(str_detect(resource, "^b_r2b_\\w+_\\d+_t\\d+$")) %>%
@@ -1291,9 +1300,19 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
   ggsave(file.path(images_dir, "r2b_gantt.png"), p_r2b_gantt,
          width = 14, height = 10, dpi = 150)
+  list(
+    max_days = max_days,
+    p_r2b_gantt = p_r2b_gantt
+  )
+}
 
-  # ── R2E surgeries ─────────────────────────────────────────────────────────
-
+#' Summarise and plot R2E surgeries started per day
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param max_days Run length in whole days, for a shared x scale.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `p_r2e_surgeries`, `r2e_summary`.
+summarise_r2e_surgeries <- function(attributes_wide, max_days, images_dir) {
   r2e_summary <- attributes_wide %>%
     dplyr::select(name, starts_with("r2e_surgery_")) %>%
     pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
@@ -1309,9 +1328,18 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme_minimal(base_size = 14)
   ggsave(file.path(images_dir, "r2eheavy_surgeries.png"), p_r2e_surgeries,
          width = 12, height = 6, dpi = 150)
+  list(
+    p_r2e_surgeries = p_r2e_surgeries,
+    r2e_summary = r2e_summary
+  )
+}
 
-  # ── R2E bed queue graphs ──────────────────────────────────────────────────
-
+#' Plot R2E operating theatre and intensive care queues over time
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_r2e_bed_queues object.
+plot_r2e_bed_queues <- function(resources, images_dir) {
   prepare_queue_data <- function(resource_type, data) {
     pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
     data %>%
@@ -1341,9 +1369,15 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
   ggsave(file.path(images_dir, "r2eheavy_bed_queue_3_teams.png"), p_r2e_bed_queues,
          width = 12, height = 8, dpi = 150)
+  p_r2e_bed_queues
+}
 
-  # ── Waiting time scatter ──────────────────────────────────────────────────
-
+#' Plot each casualty's waiting time against its arrival time
+#'
+#' @param arrivals Arrival monitor rows with a waiting_time column.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_waiting_time object.
+plot_waiting_times <- function(arrivals, images_dir) {
   p_waiting_time <- ggplot(arrivals, aes(x = start_time / (60 * 24), y = waiting_time)) +
     geom_point(alpha = 0.5, color = "steelblue") +
     labs(title = "Casualty Waiting Time Over Simulation", x = "Simulation Day", y = "Waiting Time (min)") +
@@ -1351,13 +1385,17 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme_minimal(base_size = 14)
   ggsave(file.path(images_dir, "waiting_time.png"), p_waiting_time,
          width = 12, height = 6, dpi = 150)
+  p_waiting_time
+}
 
-  # ── Transport fleet capacity margin (Issue #6) ────────────────────────────
-  # Queue-over-time per pooled transport asset (PMV Ambulance, HX240M) shows
-  # how much headroom the current fleet size has under the dead-heading
-  # round trip: a queue that stays at 0 throughout indicates spare capacity;
-  # sustained queue > 0 indicates the fleet is a binding constraint.
-
+#' Summarise transport utilisation and plot the capacity margin
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param resources_raw Resource monitor rows as read.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `p_transport_capacity_margin`, `transport_utilisation`.
+summarise_transport_capacity_margin <- function(resources, resources_raw, output_dir, images_dir) {
   transport_queue_data <- resources %>%
     as.data.frame() %>%
     filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
@@ -1405,9 +1443,18 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       .groups     = "drop"
     )
   write.csv(transport_utilisation, file.path(output_dir, "transport_utilisation.csv"), row.names = FALSE)
+  list(
+    p_transport_capacity_margin = p_transport_capacity_margin,
+    transport_utilisation = transport_utilisation
+  )
+}
 
-  # ── R2E resource usage (Gantt) ────────────────────────────────────────────
-
+#' Plot R2E bed occupancy as a Gantt chart
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param images_dir Directory the plots are written to.
+#' @return The p_r2e_gantt object.
+plot_r2e_bed_gantt <- function(resources, images_dir) {
   r2e_bed_usage <- resources %>%
     as.data.frame() %>%
     filter(str_detect(resource, "^b_r2eheavy_\\w+_\\d+_t\\d+$")) %>%
@@ -1445,235 +1492,18 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom")
   ggsave(file.path(images_dir, "r2eheavy_gantt.png"), p_r2e_gantt,
          width = 14, height = 10, dpi = 150)
+  p_r2e_gantt
+}
 
-  # ── Output Variable Register derived KPIs ────────────────────────────────
-
-  # KPI 1: Time from R1 arrival to first surgical incision (minutes)
-  # Excludes KIA cases and DOW cases where death preceded any surgery.
-  time_to_first_surgery <- combined %>%
-    mutate(
-      first_surgery_start = pmin(
-        as.numeric(r2b_surgery_start),
-        as.numeric(r2e_surgery_1_start),
-        na.rm = TRUE
-      ),
-      time_to_surgery_min = first_surgery_start - start_time
-    ) %>%
-    filter(casualty_type != "kia",
-           !(dow == 1 & is.na(first_surgery_start))) %>%
-    filter(!is.na(time_to_surgery_min)) %>%
-    summarise(
-      mean_min = mean(time_to_surgery_min),
-      p10_min  = quantile(time_to_surgery_min, 0.10),
-      p90_min  = quantile(time_to_surgery_min, 0.90),
-      n        = n()
-    )
-
-  # KPI 2: R2B dwell time (minutes) — arrival to departure
-  r2b_dwell_time <- combined %>%
-    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
-    mutate(dwell_min = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
-    filter(dwell_min >= 0) %>%
-    summarise(
-      mean_min = mean(dwell_min),
-      p90_min  = quantile(dwell_min, 0.90),
-      n        = n()
-    )
-
-  # KPI 3: R2B → R2E transit time (minutes)
-  r2b_r2e_transit_time <- combined %>%
-    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
-    mutate(transit_min = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
-    filter(transit_min >= 0) %>%
-    summarise(
-      mean_min = mean(transit_min),
-      p90_min  = quantile(transit_min, 0.90),
-      n        = n()
-    )
-
-  # KPI 4: R2E dwell time (minutes)
-  r2e_dwell_time <- combined %>%
-    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
-    mutate(dwell_min = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
-    filter(dwell_min >= 0) %>%
-    summarise(
-      mean_min = mean(dwell_min),
-      p90_min  = quantile(dwell_min, 0.90),
-      n        = n()
-    )
-
-  # KPI 5: DOW count and rate by echelon
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
-  # (post-operative, Issue #43), 5 = awaiting strategic AME (Issue #23
-  # third follow-up)
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
-  total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
-  dow_by_echelon <- attributes_wide %>%
-    filter(dow == 1 & !is.na(dow_echelon)) %>%
-    mutate(dow_echelon = echelon_labels[as.character(as.integer(dow_echelon))]) %>%
-    count(dow_echelon, name = "dow_count") %>%
-    mutate(dow_rate = dow_count / nrow(arrivals_raw))
-  stopifnot(sum(dow_by_echelon$dow_count) == total_dow)
-
-  # KPI 6: RTD count and rate by echelon
-  # return_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
-  # battle_fatigue RTDs (dnbi_type == 1) are returned at R1 without clinical treatment;
-  # all other RTDs (WIA/NBI/disease recovery at R1, R2B/R2E hold-bed discharge) are clinical RTDs.
-  bf_rtd <- sum(
-    !is.na(attributes_wide$return_day) &
-      !is.na(attributes_wide$dnbi_type) &
-      attributes_wide$dnbi_type == 1L,
-    na.rm = TRUE
-  )
-  clinical_rtd <- sum(
-    !is.na(attributes_wide$return_day) &
-      (is.na(attributes_wide$dnbi_type) | attributes_wide$dnbi_type != 1L),
-    na.rm = TRUE
-  )
-  total_rtd <- bf_rtd + clinical_rtd
-  stopifnot(total_rtd == sum(!is.na(attributes_wide$return_day)))
-  rtd_by_echelon <- attributes_wide %>%
-    filter(!is.na(return_day) & !is.na(return_echelon)) %>%
-    mutate(
-      return_echelon = echelon_labels[as.character(as.integer(return_echelon))],
-      rtd_type       = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")
-    ) %>%
-    count(return_echelon, rtd_type, name = "rtd_count") %>%
-    mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
-  stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
-
-  # KPI 6b: realised in-theatre share at the R2E evacuation-policy decision
-  # (Issue #156). The share is an output of the policy, not an input to it:
-  # every casualty reaching R2E disposition draws recovery_to_duty_days and
-  # is retained when that falls within recovery$evacuation_policy_days. It is
-  # measured at the decision, not on completed returns to duty, because a
-  # retained casualty's convalescence routinely outlasts the run. Compared
-  # against the 7.6%-42.1% historical range in README Return to Duty.
-  # The attribute is absent entirely when no casualty reached R2E disposition
-  # within the observation window, which a short or low-intensity run can
-  # produce, so the column is guarded rather than assumed.
-  policy_decisions <- if ("recovery_to_duty_days" %in% names(attributes_wide)) {
-    attributes_wide %>% filter(!is.na(recovery_to_duty_days))
-  } else {
-    attributes_wide[0, , drop = FALSE]
-  }
-  in_theatre_share <- if (nrow(policy_decisions) == 0) NA_real_ else {
-    mean(policy_decisions$recovery_to_duty_days <=
-           env_data$vars$r2eheavy$recovery$evacuation_policy_days)
-  }
-  evacuation_policy_summary <- list(
-    policy_days      = env_data$vars$r2eheavy$recovery$evacuation_policy_days,
-    decisions        = nrow(policy_decisions),
-    in_theatre_share = in_theatre_share
-  )
-
-  # KPI 7: OT utilisation rate per echelon
-  # Server time as proportion of (capacity × observation window)
-  obs_window <- max(resources_raw$time, na.rm = TRUE)
-  ot_utilisation <- resources_raw %>%
-    filter(grepl("^b_r2(b|eheavy)_ot_", resource)) %>%
-    mutate(
-      echelon = if_else(grepl("^b_r2b_", resource), "R2B", "R2E"),
-      duration = lead(time) - time
-    ) %>%
-    filter(!is.na(duration) & duration > 0) %>%
-    group_by(echelon, resource) %>%
-    summarise(
-      busy_time = sum(server * duration, na.rm = TRUE),
-      capacity  = max(capacity, na.rm = TRUE),
-      .groups   = "drop"
-    ) %>%
-    group_by(echelon) %>%
-    summarise(
-      utilisation = sum(busy_time) / (sum(capacity) * obs_window),
-      .groups     = "drop"
-    )
-
-  # KPI 8: R2E OT-ICU gating post-operative pathway summary (Issue #43)
-  # post_op_pathway: 1 = ICU (nominal), 2 = Post-Op Hold (ICU saturated, P1 override).
-  # postop_dow uses dow_echelon == 4, the post-operative checkpoint added by Issue #43,
-  # kept distinct from the Phase 1 R2E arrival DOW checkpoint (dow_echelon == 3) so the
-  # two pathways' realised post-operative mortality can be directly compared.
-  pathway_labels <- c("1" = "icu", "2" = "hold")
-  post_op_pathway_summary <- NULL
-  surgery_deferred_count  <- 0L
-  if ("post_op_pathway" %in% names(attributes_wide)) {
-    post_op_pathway_summary <- attributes_wide %>%
-      filter(!is.na(post_op_pathway)) %>%
-      mutate(
-        pathway    = pathway_labels[as.character(as.integer(post_op_pathway))],
-        postop_dow = as.integer(!is.na(dow_echelon) & dow_echelon == 4 & dow == 1)
-      ) %>%
-      group_by(pathway) %>%
-      summarise(
-        total           = n(),
-        died            = sum(postop_dow),
-        postop_dow_rate = died / total,
-        .groups         = "drop"
-      )
-    write.csv(post_op_pathway_summary, file.path(output_dir, "post_op_pathway_summary.csv"), row.names = FALSE)
-  }
-  if ("surgery_deferred" %in% names(attributes_wide)) {
-    surgery_deferred_count <- sum(!is.na(attributes_wide$surgery_deferred) &
-                                    attributes_wide$surgery_deferred == 1L,
-                                  na.rm = TRUE)
-  }
-  # KPI 8a: surgical pathway split (Issue #173)
-  # dcs_pathway: 1 = staged damage control (abbreviated operation, stabilisation,
-  # definitive repair), 0 = single-stage definitive procedure. Reported over
-  # casualties who actually reached theatre, by priority, so the realised share
-  # can be read against the configured `pri*_dcs_rate` it is drawn from.
-  surgical_pathway_summary <- NULL
-  if (all(c("dcs_pathway", "priority") %in% names(attributes_wide))) {
-    operated <- attributes_wide %>%
-      filter(!is.na(dcs_pathway)) %>%
-      mutate(
-        had_surgery = (!is.na(r2b_surgery) & r2b_surgery == 1) |
-                      (!is.na(r2e_surgery) & r2e_surgery == 1)
-      ) %>%
-      filter(had_surgery)
-
-    if (nrow(operated)) {
-      surgical_pathway_summary <- operated %>%
-        mutate(priority_group = ifelse(is.na(priority), "unclassified",
-                                       paste0("Priority ", as.integer(priority)))) %>%
-        group_by(priority_group) %>%
-        summarise(
-          operated       = n(),
-          damage_control = sum(dcs_pathway == 1),
-          single_stage   = sum(dcs_pathway == 0),
-          dcs_share      = damage_control / operated,
-          .groups        = "drop"
-        )
-      write.csv(surgical_pathway_summary,
-                file.path(output_dir, "surgical_pathway_summary.csv"), row.names = FALSE)
-      cat(sprintf(
-        "Surgical pathway split (Issue #173): %d operated, %d damage control (%.1f%%), %d single-stage\n",
-        nrow(operated), sum(operated$dcs_pathway == 1),
-        100 * mean(operated$dcs_pathway == 1), sum(operated$dcs_pathway == 0)))
-      print(surgical_pathway_summary)
-    }
-  }
-
-  cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
-  if (!is.na(evacuation_policy_summary$in_theatre_share)) {
-    cat(sprintf(
-      "R2E evacuation policy (Issue #156): %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
-      evacuation_policy_summary$policy_days, evacuation_policy_summary$decisions,
-      100 * evacuation_policy_summary$in_theatre_share))
-  }
-  if (!is.null(post_op_pathway_summary)) print(post_op_pathway_summary)
-
-  # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
-  # Visualises, by simulation day, where casualties experienced degraded care
-  # specifically attributable to ICU saturation at the point of OT entry:
-  # - Sub-Optimal Care: a Priority 1 candidate was operated on despite ICU
-  #   being full; post-operative recovery occurred in a holding bed instead
-  #   of ICU, carrying an elevated dow_ceiling (README — Died of Wounds,
-  #   Post-Operative Checkpoint).
-  # - Delayed Care: a Priority 2+ candidate had OT entry deferred while ICU
-  #   was saturated, polling on a timer until a bed freed.
-  # - Normal: ICU was available at the point of OT entry (gate had no effect).
+#' Summarise care degraded or delayed by intensive care saturation
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `r2e_icu_gating_daily`, `r2e_icu_gating_plot`.
+summarise_r2e_icu_gating <- function(attributes_wide, combined, output_dir, images_dir) {
   r2e_icu_gating_plot  <- NULL
   r2e_icu_gating_daily <- NULL
 
@@ -1736,16 +1566,19 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
     write.csv(r2e_icu_gating_daily, file.path(output_dir, "r2e_icu_gating_daily.csv"), row.names = FALSE)
   }
+  list(
+    r2e_icu_gating_daily = r2e_icu_gating_daily,
+    r2e_icu_gating_plot = r2e_icu_gating_plot
+  )
+}
 
-  # ── Force regeneration — effective force size over time (Issue #18) ──
-  # Visualises effective_force_combat/effective_force_support (simmer
-  # globals set in run_once(), R/replication.R; debited/credited in
-  # R/trajectories.R) across the run: debited at each casualty's
-  # injury_time, credited at each RTD event, and stepped up by any
-  # configured reinforcement schedule (env_data.json
-  # force_regeneration.reinforcement). A flat line at the dashed initial
-  # establishment strength means casualty production and RTD/reinforcement
-  # regeneration are in balance; a declining line shows net depletion.
+#' Summarise effective force size over the run
+#'
+#' @param attributes_raw Attribute monitor rows as read.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `force_regeneration_daily`, `force_regeneration_plot`.
+summarise_force_regeneration <- function(attributes_raw, output_dir, images_dir) {
   force_regeneration_plot  <- NULL
   force_regeneration_daily <- NULL
 
@@ -1790,19 +1623,21 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
     write.csv(force_regeneration_daily, file.path(output_dir, "force_regeneration.csv"), row.names = FALSE)
   }
+  list(
+    force_regeneration_daily = force_regeneration_daily,
+    force_regeneration_plot = force_regeneration_plot
+  )
+}
 
-  # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
-  # mass_casualty_event: 1 = casualty originated from a compound-Poisson
-  # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
-  # 0 = background lognormal generation. Both of the event's pathways carry
-  # the tag, the wounded and the immediately killed (Issue #149), so n_cas
-  # below is an event's total and n_wia/n_kia its two components.
-  # Individual events are reconstructed
-  # from tagged casualties' arrival times by clustering consecutive arrivals
-  # (within each replication) whose inter-arrival gap does not exceed the
-  # configured mass casualty injection window (env_data$vars$mass_casualty$event$
-  # window_max) — casualties from the same event arrive closer together than
-  # this gap by construction (see generate_mass_casualty_events()).
+#' Summarise the mass casualty events the run injected
+#'
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `mass_casualty_dow_summary`, `mass_casualty_event_count`,
+#'   `mass_casualty_events_summary`, `mass_casualty_timeline_plot`.
+summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
   mass_casualty_gap_min <- env_data$vars$mass_casualty$event$window_max
 
   mass_casualty_tagged <- combined %>%
@@ -1884,156 +1719,24 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
            row.names = FALSE)
   write.csv(mass_casualty_dow_summary,    file.path(output_dir, "mass_casualty_dow_summary.csv"),
            row.names = FALSE)
+  list(
+    mass_casualty_dow_summary = mass_casualty_dow_summary,
+    mass_casualty_event_count = mass_casualty_event_count,
+    mass_casualty_events_summary = mass_casualty_events_summary,
+    mass_casualty_timeline_plot = mass_casualty_timeline_plot
+  )
+}
 
-  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
-  # compute_role4_census()/compute_ame_demand() (above) return per-replication
-  # granular tables; this block aggregates them for display (mean across
-  # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
-  # CI (within replications), following the t-distribution CI convention used
-  # by summarise_replications() (R/replication.R).
-  role4_census_daily        <- NULL
-  role4_census_plot         <- NULL
-  role4_summary              <- NULL
-  role4_replication_summary <- NULL
-  ame_demand_daily          <- NULL
-  ame_summary                <- NULL
-  ame_replication_summary   <- NULL
-
-  if (!is.null(env_data$vars$role4)) {
-    role4_params <- env_data$vars$role4
-    # Best-case per-sortie throughput: the unconstrained baseline
-    # (compute_ame_demand()) does not distinguish acuity/route, so it
-    # compares against the configured airframe's combined critical +
-    # standard capacity — same-day, uncapped, best-case throughput.
-    ame_airframe <- resolve_ame_airframe(role4_params)
-    ame_capacity <- ame_airframe$critical_capacity + ame_airframe$standard_capacity
-    role4_daily_by_rep <- compute_role4_census(combined, role4_params)
-    ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
-  }
-
-  if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
-    n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
-    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
-    max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
-    ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
-    # evacuation_day is only set on completed AME boarding (Issue #23
-    # follow-up); r2e_evac == 1 alone would also count casualties still
-    # queued awaiting a sortie at end of run, which have not reached Role 4.
-    total_evacuated   <- sum(!is.na(combined$evacuation_day)) / n_reps_role4
-
-    role4_census_daily <- role4_daily_by_rep %>%
-      group_by(day, ward) %>%
-      # sum()/n_reps_role4 rather than mean(occupancy): a replication with
-      # zero occupants for this (day, ward) has no row at all in
-      # role4_daily_by_rep, so mean() would silently divide by only the
-      # replications that had a nonzero count, biasing the estimate upward.
-      summarise(mean_occupancy = sum(occupancy) / n_reps_role4, .groups = "drop") %>%
-      complete(
-        day  = seq_len(max_discharge_day),
-        ward = ward_levels,
-        fill = list(mean_occupancy = 0)
-      ) %>%
-      mutate(ward = factor(ward, levels = ward_levels)) %>%
-      arrange(day, ward)
-
-    peak_total_daily <- role4_census_daily %>%
-      group_by(day) %>%
-      summarise(total_occupancy = sum(mean_occupancy), .groups = "drop")
-
-    role4_summary <- data.frame(
-      total_evacuated = total_evacuated,
-      peak_occupancy  = max(peak_total_daily$total_occupancy),
-      peak_day        = peak_total_daily$day[which.max(peak_total_daily$total_occupancy)]
-    )
-
-    role4_census_plot <- ggplot(role4_census_daily, aes(x = day, y = mean_occupancy, fill = ward)) +
-      geom_bar(stat = "identity", position = "stack") +
-      geom_vline(xintercept = n_sim_days_role4 + 0.5, linetype = "dotted", color = "gray40") +
-      scale_fill_brewer(palette = "Set2") +
-      scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
-      labs(
-        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
-        subtitle = sprintf(
-          "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
-          role4_summary$total_evacuated, n_sim_days_role4
-        ),
-        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
-      ) +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank(), legend.position = "bottom")
-
-    ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
-           width = 12, height = 6, dpi = 150)
-    write.csv(role4_census_daily, file.path(output_dir, "role4_census_daily.csv"), row.names = FALSE)
-
-    ame_demand_daily <- ame_by_rep %>%
-      group_by(day) %>%
-      summarise(evacuation_count = sum(evacuation_count) / n_reps_role4, .groups = "drop") %>%
-      complete(day = seq_len(n_sim_days_role4), fill = list(evacuation_count = 0)) %>%
-      arrange(day) %>%
-      mutate(
-        sorties_required   = ceiling(evacuation_count / ame_capacity),
-        cumulative_sorties = cumsum(sorties_required)
-      )
-
-    ame_summary <- data.frame(
-      total_sorties      = sum(ame_demand_daily$sorties_required),
-      peak_daily_sorties = max(ame_demand_daily$sorties_required),
-      mean_daily_sorties = mean(ame_demand_daily$sorties_required)
-    )
-
-    write.csv(ame_demand_daily, file.path(output_dir, "ame_demand_daily.csv"), row.names = FALSE)
-
-    cat(sprintf(
-      "Role 4 demand (Issue #23): %.0f reached Role 4 via AME, peak occupancy %.1f (day %d); unconstrained-baseline demand would need %d total AME sorties (capacity %d/sortie)\n",
-      role4_summary$total_evacuated, role4_summary$peak_occupancy, role4_summary$peak_day,
-      ame_summary$total_sorties, ame_capacity
-    ))
-
-    if (n_reps_role4 > 1) {
-      role4_peak_by_rep <- role4_daily_by_rep %>%
-        group_by(replication, day) %>%
-        summarise(total_occupancy = sum(occupancy), .groups = "drop") %>%
-        group_by(replication) %>%
-        summarise(peak_occupancy = max(total_occupancy), .groups = "drop")
-
-      role4_replication_summary <- role4_peak_by_rep %>%
-        summarise(
-          n_reps   = n(),
-          mean_peak_occupancy = mean(peak_occupancy),
-          sd_peak_occupancy   = sd(peak_occupancy),
-          ci_lower = mean_peak_occupancy - qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n()),
-          ci_upper = mean_peak_occupancy + qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n())
-        )
-
-      ame_total_by_rep <- ame_by_rep %>%
-        group_by(replication) %>%
-        summarise(total_sorties = sum(sorties_required), .groups = "drop")
-
-      ame_replication_summary <- ame_total_by_rep %>%
-        summarise(
-          n_reps  = n(),
-          mean_total_sorties = mean(total_sorties),
-          sd_total_sorties   = sd(total_sorties),
-          ci_lower = mean_total_sorties - qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n()),
-          ci_upper = mean_total_sorties + qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n())
-        )
-
-      write.csv(role4_replication_summary, file.path(output_dir, "role4_replication_summary.csv"), row.names = FALSE)
-      write.csv(ame_replication_summary,   file.path(output_dir, "ame_replication_summary.csv"),   row.names = FALSE)
-    }
-  }
-
-  # ── Strategic AME actual performance (Issue #23 follow-up) ──────────────
-  # ame_demand_daily/ame_summary above are an unconstrained theoretical
-  # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
-  # schedule entirely). These outputs instead measure the REAL constrained
-  # "ame"/"ame_critical" simmer resources: wait time from evacuation
-  # decision (r2e_departure_time) to actual boarding (ame_departure_time),
-  # decomposed by route (ame_route: 1 = critical/ICU/CCATT-CCAST,
-  # 2 = standard/Hold/Casualty Staging Unit), and the backlog of casualties
-  # awaiting a sortie over time on each pool, from the resource monitor's
-  # queue column.
+#' Summarise realised strategic aeromedical evacuation performance
+#'
+#' @param attributes Attribute monitor rows, one per attribute write.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `ame_backlog_data`, `ame_backlog_plot`, `ame_wait_time_summary`,
+#'   `n_sim_days_role4`.
+summarise_ame_performance <- function(attributes, combined, output_dir, images_dir) {
   ame_wait_time_summary <- NULL
   ame_backlog_plot       <- NULL
 
@@ -2085,12 +1788,22 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     write.csv(ame_backlog_data, file.path(output_dir, "ame_backlog_data.csv"), row.names = FALSE)
     ggsave(file.path(images_dir, "ame_backlog.png"), ame_backlog_plot, width = 12, height = 8, dpi = 150)
   }
+  list(
+    ame_backlog_data = ame_backlog_data,
+    ame_backlog_plot = ame_backlog_plot,
+    ame_wait_time_summary = ame_wait_time_summary,
+    n_sim_days_role4 = n_sim_days_role4
+  )
+}
 
-  # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
-  # compute_ame_sorties() only needs `resources` and the schedule/airframe
-  # parameters, not `combined` — so it does not require any strategic
-  # evacuation decisions to have occurred yet, unlike the backlog output
-  # above.
+#' Plot the strategic aeromedical evacuation sortie timeline
+#'
+#' @param resources Resource monitor rows, warm-up excluded.
+#' @param n_sim_days_role4 See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `ame_sortie_data`, `ame_sortie_plot`.
+plot_ame_sortie_timeline <- function(resources, n_sim_days_role4, output_dir, images_dir) {
   ame_sortie_data <- NULL
   ame_sortie_plot <- NULL
   if (!is.null(env_data$vars$role4)) {
@@ -2102,6 +1815,889 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
       ggsave(file.path(images_dir, "ame_sortie_timeline.png"), ame_sortie_plot, width = 12, height = 8, dpi = 150)
     }
   }
+  list(
+    ame_sortie_data = ame_sortie_data,
+    ame_sortie_plot = ame_sortie_plot
+  )
+}
+
+#' Prepare the data frames every later stage of a single-run analysis reads
+#'
+#' @param mon See analyse_run().
+#' @param warm_up_days See analyse_run().
+#' @param output_dir See analyse_run().
+#' @return A list of `arrivals`, `arrivals_raw`, `attributes`, `attributes_raw`, `attributes_wide`,
+#'   `casualty_priority_summary`, `casualty_summary`, `combined`, `max_daily_total`, `resources`,
+#'   `resources_raw`.
+#' @details Writes the three monitor CSVs unchanged, then derives the per-casualty
+#'   wide view and the daily casualty counts the plotting and summary stages
+#'   share. Warm-up is applied to arrivals and resources by time; attributes
+#'   carry no time filter, being read per casualty.
+prepare_run_frames <- function(mon, warm_up_days, output_dir) {
+  warm_up_min    <- as.integer(warm_up_days) * 1440L
+  arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
+  attributes_raw <- mon$attributes
+  resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
+
+  write.csv(arrivals_raw,   file.path(output_dir, "mon_arrivals.csv"),   row.names = FALSE)
+  write.csv(attributes_raw, file.path(output_dir, "mon_attributes.csv"), row.names = FALSE)
+  write.csv(resources_raw,  file.path(output_dir, "mon_resources.csv"),  row.names = FALSE)
+
+  arrivals <- arrivals_raw %>%
+    mutate(waiting_time = end_time - start_time - activity_time)
+
+  attributes <- attributes_raw
+
+  resources <- resources_raw
+
+  # Pivot attributes wide (last value per key per casualty); see roxygen on
+  # build_attributes_wide() for the zero-DOW/zero-surgery/etc. column guard.
+  attributes_wide <- build_attributes_wide(attributes, arrivals)
+
+  combined <- arrivals %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
+    mutate(
+      casualty_type     = str_extract(name, "^[^_]+"),
+      population_source = str_extract(name, "(?<=_)[a-zA-Z]+"),
+      arrival_day       = floor(start_time / (24 * 60)) + 1
+    )
+
+  casualty_summary <- combined %>%
+    group_by(arrival_day, casualty_type, population_source) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    arrange(arrival_day, casualty_type, population_source)
+
+  casualty_priority_summary <- combined %>%
+    mutate(
+      priority_group = case_when(
+        casualty_type == "kia"       ~ "KIA",
+        priority %in% c(1, 2, 3)    ~ paste0("Priority ", priority),
+        TRUE                         ~ NA_character_
+      )
+    ) %>%
+    filter(!is.na(priority_group)) %>%
+    group_by(arrival_day, priority_group) %>%
+    summarise(count = n(), .groups = "drop") %>%
+    arrange(arrival_day, priority_group) %>%
+    mutate(priority_group = factor(priority_group, levels = c("Priority 1", "Priority 2", "Priority 3", "KIA")))
+
+  max_daily_total <- casualty_summary %>%
+    group_by(arrival_day) %>%
+    summarise(total = sum(count)) %>%
+    pull(total) %>%
+    max()
+  list(
+    arrivals = arrivals,
+    arrivals_raw = arrivals_raw,
+    attributes = attributes,
+    attributes_raw = attributes_raw,
+    attributes_wide = attributes_wide,
+    casualty_priority_summary = casualty_priority_summary,
+    casualty_summary = casualty_summary,
+    combined = combined,
+    max_daily_total = max_daily_total,
+    resources = resources,
+    resources_raw = resources_raw
+  )
+}
+
+#' Compute the four treatment-interval indicators, in minutes
+#'
+#' @param combined See analyse_run().
+#' @return A list of `time_to_first_surgery`, `r2b_dwell_time`, `r2b_r2e_transit_time`,
+#'   `r2e_dwell_time`.
+#' @details Covers time from R1 arrival to first surgical incision, dwell at R2B and at
+#'   R2E, and the transit between them. Killed-in-action cases, and
+#'   died-of-wounds cases whose death preceded any surgery, are excluded.
+compute_treatment_interval_kpis <- function(combined) {
+  # KPI 1: Time from R1 arrival to first surgical incision (minutes)
+  # Excludes KIA cases and DOW cases where death preceded any surgery.
+  time_to_first_surgery <- combined %>%
+    mutate(
+      first_surgery_start = pmin(
+        as.numeric(r2b_surgery_start),
+        as.numeric(r2e_surgery_1_start),
+        na.rm = TRUE
+      ),
+      time_to_surgery_min = first_surgery_start - start_time
+    ) %>%
+    filter(casualty_type != "kia",
+           !(dow == 1 & is.na(first_surgery_start))) %>%
+    filter(!is.na(time_to_surgery_min)) %>%
+    summarise(
+      mean_min = mean(time_to_surgery_min),
+      p10_min  = quantile(time_to_surgery_min, 0.10),
+      p90_min  = quantile(time_to_surgery_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 2: R2B dwell time (minutes) — arrival to departure
+  r2b_dwell_time <- combined %>%
+    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
+    mutate(dwell_min = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
+    filter(dwell_min >= 0) %>%
+    summarise(
+      mean_min = mean(dwell_min),
+      p90_min  = quantile(dwell_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 3: R2B → R2E transit time (minutes)
+  r2b_r2e_transit_time <- combined %>%
+    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
+    mutate(transit_min = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
+    filter(transit_min >= 0) %>%
+    summarise(
+      mean_min = mean(transit_min),
+      p90_min  = quantile(transit_min, 0.90),
+      n        = n()
+    )
+
+  # KPI 4: R2E dwell time (minutes)
+  r2e_dwell_time <- combined %>%
+    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
+    mutate(dwell_min = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
+    filter(dwell_min >= 0) %>%
+    summarise(
+      mean_min = mean(dwell_min),
+      p90_min  = quantile(dwell_min, 0.90),
+      n        = n()
+    )
+  list(
+    time_to_first_surgery = time_to_first_surgery,
+    r2b_dwell_time = r2b_dwell_time,
+    r2b_r2e_transit_time = r2b_r2e_transit_time,
+    r2e_dwell_time = r2e_dwell_time
+  )
+}
+
+#' Summarise died-of-wounds, return-to-duty and in-theatre retention by echelon
+#'
+#' @param arrivals_raw See analyse_run().
+#' @param attributes_wide See analyse_run().
+#' @return A list of `dow_by_echelon`, `total_dow`, `bf_rtd`, `clinical_rtd`, `total_rtd`,
+#'   `rtd_by_echelon`, `evacuation_policy_summary`, `in_theatre_share`.
+#' @details The realised in-theatre share is an output of the evacuation policy rather
+#'   than an input to it, so it is reported alongside the decisions it derives
+#'   from rather than on its own.
+summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
+  # KPI 5: DOW count and rate by echelon
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
+  # (post-operative, Issue #43), 5 = awaiting strategic AME (Issue #23
+  # third follow-up)
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
+  total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
+  dow_by_echelon <- attributes_wide %>%
+    filter(dow == 1 & !is.na(dow_echelon)) %>%
+    mutate(dow_echelon = echelon_labels[as.character(as.integer(dow_echelon))]) %>%
+    count(dow_echelon, name = "dow_count") %>%
+    mutate(dow_rate = dow_count / nrow(arrivals_raw))
+  stopifnot(sum(dow_by_echelon$dow_count) == total_dow)
+
+  # KPI 6: RTD count and rate by echelon
+  # return_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
+  # battle_fatigue RTDs (dnbi_type == 1) are returned at R1 without clinical treatment;
+  # all other RTDs (WIA/NBI/disease recovery at R1, R2B/R2E hold-bed discharge) are clinical RTDs.
+  bf_rtd <- sum(
+    !is.na(attributes_wide$return_day) &
+      !is.na(attributes_wide$dnbi_type) &
+      attributes_wide$dnbi_type == 1L,
+    na.rm = TRUE
+  )
+  clinical_rtd <- sum(
+    !is.na(attributes_wide$return_day) &
+      (is.na(attributes_wide$dnbi_type) | attributes_wide$dnbi_type != 1L),
+    na.rm = TRUE
+  )
+  total_rtd <- bf_rtd + clinical_rtd
+  stopifnot(total_rtd == sum(!is.na(attributes_wide$return_day)))
+  rtd_by_echelon <- attributes_wide %>%
+    filter(!is.na(return_day) & !is.na(return_echelon)) %>%
+    mutate(
+      return_echelon = echelon_labels[as.character(as.integer(return_echelon))],
+      rtd_type       = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")
+    ) %>%
+    count(return_echelon, rtd_type, name = "rtd_count") %>%
+    mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
+  stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
+
+  # KPI 6b: realised in-theatre share at the R2E evacuation-policy decision
+  # (Issue #156). The share is an output of the policy, not an input to it:
+  # every casualty reaching R2E disposition draws recovery_to_duty_days and
+  # is retained when that falls within recovery$evacuation_policy_days. It is
+  # measured at the decision, not on completed returns to duty, because a
+  # retained casualty's convalescence routinely outlasts the run. Compared
+  # against the 7.6%-42.1% historical range in README Return to Duty.
+  # The attribute is absent entirely when no casualty reached R2E disposition
+  # within the observation window, which a short or low-intensity run can
+  # produce, so the column is guarded rather than assumed.
+  policy_decisions <- if ("recovery_to_duty_days" %in% names(attributes_wide)) {
+    attributes_wide %>% filter(!is.na(recovery_to_duty_days))
+  } else {
+    attributes_wide[0, , drop = FALSE]
+  }
+  in_theatre_share <- if (nrow(policy_decisions) == 0) NA_real_ else {
+    mean(policy_decisions$recovery_to_duty_days <=
+           env_data$vars$r2eheavy$recovery$evacuation_policy_days)
+  }
+  evacuation_policy_summary <- list(
+    policy_days      = env_data$vars$r2eheavy$recovery$evacuation_policy_days,
+    decisions        = nrow(policy_decisions),
+    in_theatre_share = in_theatre_share
+  )
+  list(
+    dow_by_echelon = dow_by_echelon,
+    total_dow = total_dow,
+    bf_rtd = bf_rtd,
+    clinical_rtd = clinical_rtd,
+    total_rtd = total_rtd,
+    rtd_by_echelon = rtd_by_echelon,
+    evacuation_policy_summary = evacuation_policy_summary,
+    in_theatre_share = in_theatre_share
+  )
+}
+
+#' Compute operating theatre utilisation per echelon
+#'
+#' @param resources_raw See analyse_run().
+#' @return A list of `ot_utilisation`, `obs_window`.
+#' @details Server time as a proportion of capacity multiplied by the observation
+#'   window, the window taken from the arrivals rather than assumed.
+compute_ot_utilisation <- function(resources_raw) {
+  # KPI 7: OT utilisation rate per echelon
+  # Server time as proportion of (capacity × observation window)
+  obs_window <- max(resources_raw$time, na.rm = TRUE)
+  ot_utilisation <- resources_raw %>%
+    filter(grepl("^b_r2(b|eheavy)_ot_", resource)) %>%
+    mutate(
+      echelon = if_else(grepl("^b_r2b_", resource), "R2B", "R2E"),
+      duration = lead(time) - time
+    ) %>%
+    filter(!is.na(duration) & duration > 0) %>%
+    group_by(echelon, resource) %>%
+    summarise(
+      busy_time = sum(server * duration, na.rm = TRUE),
+      capacity  = max(capacity, na.rm = TRUE),
+      .groups   = "drop"
+    ) %>%
+    group_by(echelon) %>%
+    summarise(
+      utilisation = sum(busy_time) / (sum(capacity) * obs_window),
+      .groups     = "drop"
+    )
+  list(
+    ot_utilisation = ot_utilisation,
+    obs_window = obs_window
+  )
+}
+
+#' Summarise the post-operative pathway each operated casualty took
+#'
+#' @param attributes_wide See analyse_run().
+#' @param evacuation_policy_summary See analyse_run().
+#' @param in_theatre_share See analyse_run().
+#' @param output_dir See analyse_run().
+#' @return A list of `post_op_pathway_summary`, `surgery_deferred_count`,
+#'   `surgical_pathway_summary`, `operated`.
+#' @details Splits both the post-operative destination, an intensive care bed or the
+#'   degraded holding-bed fallback, and the damage control against single-stage
+#'   surgical pathway.
+summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy_summary,
+                                              in_theatre_share, output_dir) {
+  # KPI 8: R2E OT-ICU gating post-operative pathway summary (Issue #43)
+  # post_op_pathway: 1 = ICU (nominal), 2 = Post-Op Hold (ICU saturated, P1 override).
+  # postop_dow uses dow_echelon == 4, the post-operative checkpoint added by Issue #43,
+  # kept distinct from the Phase 1 R2E arrival DOW checkpoint (dow_echelon == 3) so the
+  # two pathways' realised post-operative mortality can be directly compared.
+  pathway_labels <- c("1" = "icu", "2" = "hold")
+  post_op_pathway_summary <- NULL
+  surgery_deferred_count  <- 0L
+  if ("post_op_pathway" %in% names(attributes_wide)) {
+    post_op_pathway_summary <- attributes_wide %>%
+      filter(!is.na(post_op_pathway)) %>%
+      mutate(
+        pathway    = pathway_labels[as.character(as.integer(post_op_pathway))],
+        postop_dow = as.integer(!is.na(dow_echelon) & dow_echelon == 4 & dow == 1)
+      ) %>%
+      group_by(pathway) %>%
+      summarise(
+        total           = n(),
+        died            = sum(postop_dow),
+        postop_dow_rate = died / total,
+        .groups         = "drop"
+      )
+    write.csv(post_op_pathway_summary, file.path(output_dir, "post_op_pathway_summary.csv"), row.names = FALSE)
+  }
+  if ("surgery_deferred" %in% names(attributes_wide)) {
+    surgery_deferred_count <- sum(!is.na(attributes_wide$surgery_deferred) &
+                                    attributes_wide$surgery_deferred == 1L,
+                                  na.rm = TRUE)
+  }
+  # KPI 8a: surgical pathway split (Issue #173)
+  # dcs_pathway: 1 = staged damage control (abbreviated operation, stabilisation,
+  # definitive repair), 0 = single-stage definitive procedure. Reported over
+  # casualties who actually reached theatre, by priority, so the realised share
+  # can be read against the configured `pri*_dcs_rate` it is drawn from.
+  surgical_pathway_summary <- NULL
+  if (all(c("dcs_pathway", "priority") %in% names(attributes_wide))) {
+    operated <- attributes_wide %>%
+      filter(!is.na(dcs_pathway)) %>%
+      mutate(
+        had_surgery = (!is.na(r2b_surgery) & r2b_surgery == 1) |
+                      (!is.na(r2e_surgery) & r2e_surgery == 1)
+      ) %>%
+      filter(had_surgery)
+
+    if (nrow(operated)) {
+      surgical_pathway_summary <- operated %>%
+        mutate(priority_group = ifelse(is.na(priority), "unclassified",
+                                       paste0("Priority ", as.integer(priority)))) %>%
+        group_by(priority_group) %>%
+        summarise(
+          operated       = n(),
+          damage_control = sum(dcs_pathway == 1),
+          single_stage   = sum(dcs_pathway == 0),
+          dcs_share      = damage_control / operated,
+          .groups        = "drop"
+        )
+      write.csv(surgical_pathway_summary,
+                file.path(output_dir, "surgical_pathway_summary.csv"), row.names = FALSE)
+      cat(sprintf(
+        "Surgical pathway split (Issue #173): %d operated, %d damage control (%.1f%%), %d single-stage\n",
+        nrow(operated), sum(operated$dcs_pathway == 1),
+        100 * mean(operated$dcs_pathway == 1), sum(operated$dcs_pathway == 0)))
+      print(surgical_pathway_summary)
+    }
+  }
+
+  cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
+  if (!is.na(evacuation_policy_summary$in_theatre_share)) {
+    cat(sprintf(
+      "R2E evacuation policy (Issue #156): %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
+      evacuation_policy_summary$policy_days, evacuation_policy_summary$decisions,
+      100 * evacuation_policy_summary$in_theatre_share))
+  }
+  if (!is.null(post_op_pathway_summary)) print(post_op_pathway_summary)
+  list(
+    post_op_pathway_summary = post_op_pathway_summary,
+    surgery_deferred_count = surgery_deferred_count,
+    surgical_pathway_summary = surgical_pathway_summary,
+    operated = operated
+  )
+}
+
+#' Summarise and plot daily Role 4 bed occupancy by ward
+#'
+#' @param combined See analyse_run().
+#' @param role4_daily_by_rep See analyse_run().
+#' @param n_reps_role4 See analyse_run().
+#' @param n_sim_days_role4 See analyse_run().
+#' @param role4_census_daily See analyse_run().
+#' @param role4_summary See analyse_run().
+#' @param output_dir See analyse_run().
+#' @param images_dir See analyse_run().
+#' @return A list of `role4_census_daily`, `role4_census_plot`, `role4_summary`, `n_reps_role4`,
+#'   `n_sim_days_role4`.
+#' @details The occupancy is an unconstrained demand signal rather than a modelled
+#'   Role 4: it counts the casualties strategic evacuation delivered, against no
+#'   capacity limit at the receiving end.
+plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_days_role4,
+                              role4_census_daily, role4_summary, output_dir, images_dir) {
+  n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
+  n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+  max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
+  ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+  # evacuation_day is only set on completed AME boarding (Issue #23
+  # follow-up); r2e_evac == 1 alone would also count casualties still
+  # queued awaiting a sortie at end of run, which have not reached Role 4.
+  total_evacuated   <- sum(!is.na(combined$evacuation_day)) / n_reps_role4
+
+  role4_census_daily <- role4_daily_by_rep %>%
+    group_by(day, ward) %>%
+    # sum()/n_reps_role4 rather than mean(occupancy): a replication with
+    # zero occupants for this (day, ward) has no row at all in
+    # role4_daily_by_rep, so mean() would silently divide by only the
+    # replications that had a nonzero count, biasing the estimate upward.
+    summarise(mean_occupancy = sum(occupancy) / n_reps_role4, .groups = "drop") %>%
+    complete(
+      day  = seq_len(max_discharge_day),
+      ward = ward_levels,
+      fill = list(mean_occupancy = 0)
+    ) %>%
+    mutate(ward = factor(ward, levels = ward_levels)) %>%
+    arrange(day, ward)
+
+  peak_total_daily <- role4_census_daily %>%
+    group_by(day) %>%
+    summarise(total_occupancy = sum(mean_occupancy), .groups = "drop")
+
+  role4_summary <- data.frame(
+    total_evacuated = total_evacuated,
+    peak_occupancy  = max(peak_total_daily$total_occupancy),
+    peak_day        = peak_total_daily$day[which.max(peak_total_daily$total_occupancy)]
+  )
+
+  role4_census_plot <- ggplot(role4_census_daily, aes(x = day, y = mean_occupancy, fill = ward)) +
+    geom_bar(stat = "identity", position = "stack") +
+    geom_vline(xintercept = n_sim_days_role4 + 0.5, linetype = "dotted", color = "gray40") +
+    scale_fill_brewer(palette = "Set2") +
+    scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
+    labs(
+      title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
+      subtitle = sprintf(
+        "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
+        role4_summary$total_evacuated, n_sim_days_role4
+      ),
+      x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+  ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
+         width = 12, height = 6, dpi = 150)
+  write.csv(role4_census_daily, file.path(output_dir, "role4_census_daily.csv"), row.names = FALSE)
+  list(
+    role4_census_daily = role4_census_daily,
+    role4_census_plot = role4_census_plot,
+    role4_summary = role4_summary,
+    n_reps_role4 = n_reps_role4,
+    n_sim_days_role4 = n_sim_days_role4
+  )
+}
+
+#' Summarise the strategic aeromedical sortie demand the census implies
+#'
+#' @param ame_capacity See analyse_run().
+#' @param role4_daily_by_rep See analyse_run().
+#' @param ame_by_rep See analyse_run().
+#' @param n_reps_role4 See analyse_run().
+#' @param n_sim_days_role4 See analyse_run().
+#' @param role4_summary See analyse_run().
+#' @param ame_demand_daily See analyse_run().
+#' @param output_dir See analyse_run().
+#' @return A list of `ame_demand_daily`, `ame_summary`, `role4_replication_summary`,
+#'   `ame_replication_summary`.
+#' @details Sorties required per day is the daily evacuation count over the configured
+#'   airframe's combined capacity, so it is a best-case, same-day, uncapped
+#'   figure rather than a schedule.
+summarise_ame_sortie_demand <- function(ame_capacity, role4_daily_by_rep, ame_by_rep, n_reps_role4,
+                                        n_sim_days_role4, role4_summary, ame_demand_daily,
+                                        output_dir) {
+  ame_demand_daily <- ame_by_rep %>%
+    group_by(day) %>%
+    summarise(evacuation_count = sum(evacuation_count) / n_reps_role4, .groups = "drop") %>%
+    complete(day = seq_len(n_sim_days_role4), fill = list(evacuation_count = 0)) %>%
+    arrange(day) %>%
+    mutate(
+      sorties_required   = ceiling(evacuation_count / ame_capacity),
+      cumulative_sorties = cumsum(sorties_required)
+    )
+
+  ame_summary <- data.frame(
+    total_sorties      = sum(ame_demand_daily$sorties_required),
+    peak_daily_sorties = max(ame_demand_daily$sorties_required),
+    mean_daily_sorties = mean(ame_demand_daily$sorties_required)
+  )
+
+  write.csv(ame_demand_daily, file.path(output_dir, "ame_demand_daily.csv"), row.names = FALSE)
+
+  cat(sprintf(
+    "Role 4 demand (Issue #23): %.0f reached Role 4 via AME, peak occupancy %.1f (day %d); unconstrained-baseline demand would need %d total AME sorties (capacity %d/sortie)\n",
+    role4_summary$total_evacuated, role4_summary$peak_occupancy, role4_summary$peak_day,
+    ame_summary$total_sorties, ame_capacity
+  ))
+
+  if (n_reps_role4 > 1) {
+    role4_peak_by_rep <- role4_daily_by_rep %>%
+      group_by(replication, day) %>%
+      summarise(total_occupancy = sum(occupancy), .groups = "drop") %>%
+      group_by(replication) %>%
+      summarise(peak_occupancy = max(total_occupancy), .groups = "drop")
+
+    role4_replication_summary <- role4_peak_by_rep %>%
+      summarise(
+        n_reps   = n(),
+        mean_peak_occupancy = mean(peak_occupancy),
+        sd_peak_occupancy   = sd(peak_occupancy),
+        ci_lower = mean_peak_occupancy - qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n()),
+        ci_upper = mean_peak_occupancy + qt(0.975, df = n() - 1) * sd_peak_occupancy / sqrt(n())
+      )
+
+    ame_total_by_rep <- ame_by_rep %>%
+      group_by(replication) %>%
+      summarise(total_sorties = sum(sorties_required), .groups = "drop")
+
+    ame_replication_summary <- ame_total_by_rep %>%
+      summarise(
+        n_reps  = n(),
+        mean_total_sorties = mean(total_sorties),
+        sd_total_sorties   = sd(total_sorties),
+        ci_lower = mean_total_sorties - qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n()),
+        ci_upper = mean_total_sorties + qt(0.975, df = n() - 1) * sd_total_sorties / sqrt(n())
+      )
+
+    write.csv(role4_replication_summary, file.path(output_dir, "role4_replication_summary.csv"), row.names = FALSE)
+    write.csv(ame_replication_summary,   file.path(output_dir, "ame_replication_summary.csv"),   row.names = FALSE)
+  }
+  list(
+    ame_demand_daily = ame_demand_daily,
+    ame_summary = ame_summary,
+    role4_replication_summary = role4_replication_summary,
+    ame_replication_summary = ame_replication_summary
+  )
+}
+
+#' Runs the full analysis and visualisation pipeline on monitoring data
+#'
+#' @param mon Named list with elements arrivals, attributes, resources as
+#'   returned by run_single()
+#' @param output_dir Directory path for saving CSV and plot outputs
+#'   (default: "outputs")
+#' @param warm_up_days Days to exclude from the start of the analysis window
+#'   (applied to arrivals by start_time and resources by time; default 0)
+#' @param images_dir Directory path for saving PNG plots. Defaults to
+#'   `file.path(output_dir, "images")`, which is gitignored, so calling this
+#'   function cannot overwrite the tracked seed-42 baseline plots in `images/`
+#'   unless the caller names that directory explicitly (Issue #154). run.R
+#'   does so only under `--refresh-baseline`.
+#' @return Invisibly returns a named list. Nine elements are always-present
+#'   ggplot objects (Issue #14 — embeddable in a Shiny reactive context via
+#'   e.g. renderPlot()): casualty_flow, r1_queues, r2b_treatment,
+#'   r2b_bed_queues, r2b_gantt, r2e_surgery, r2e_bed_queues, waiting_times,
+#'   r2e_gantt. Remaining elements are summary data frames, scalar KPIs, and
+#'   conditional ggplot objects (NULL when their trigger condition — e.g. a
+#'   run with zero R2B hold occupants — is not met).
+#'
+#' @details Writes CSVs to output_dir and PNGs to images_dir; does not print
+#'   plots to the active graphics device (the caller is responsible for
+#'   display — see run.R for the CLI path, which prints each plot in the
+#'   original on-screen order for interactive/RStudio use).
+analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
+                        images_dir = file.path(output_dir, "images")) {
+  validate_monitoring(mon, "analyse_run")
+  usable_warm_up <- is.numeric(warm_up_days) && length(warm_up_days) == 1L &&
+    !is.na(warm_up_days) && warm_up_days >= 0
+  if (!usable_warm_up) {
+    stop(sprintf("analyse_run: warm_up_days must be a single non-negative number, found %s",
+                 paste(format(warm_up_days), collapse = ", ")), call. = FALSE)
+  }
+
+  dir.create(output_dir,  showWarnings = FALSE, recursive = TRUE)
+  dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
+
+  run_frames_out <- prepare_run_frames(mon, warm_up_days, output_dir)
+  arrivals <- run_frames_out$arrivals
+  arrivals_raw <- run_frames_out$arrivals_raw
+  attributes <- run_frames_out$attributes
+  attributes_raw <- run_frames_out$attributes_raw
+  attributes_wide <- run_frames_out$attributes_wide
+  casualty_priority_summary <- run_frames_out$casualty_priority_summary
+  casualty_summary <- run_frames_out$casualty_summary
+  combined <- run_frames_out$combined
+  max_daily_total <- run_frames_out$max_daily_total
+  resources <- run_frames_out$resources
+  resources_raw <- run_frames_out$resources_raw
+
+  # ── Casualty overview plots ───────────────────────────────────────────────
+
+
+  # Casualty overview plots
+  p_casualty_summary <- plot_casualty_overview(casualty_priority_summary, casualty_summary,
+                                               max_daily_total, images_dir)
+
+  # ── Summary tables ────────────────────────────────────────────────────────
+
+
+  # Summary tables
+  write_casualty_summary_tables(casualty_priority_summary, casualty_summary, output_dir)
+
+  # ── R1 resource queue graphs ──────────────────────────────────────────────
+
+
+  # R1 resource queue graphs
+  p_r1_queues <- plot_r1_queues(resources, images_dir)
+
+  # ── R2B bed queue graphs ──────────────────────────────────────────────────
+
+
+  # R2B bed queue graphs
+  p_r2b_bed_queues <- plot_r2b_bed_queues(resources, images_dir)
+
+  # ── R2B hold bed occupancy by patient stream ─────────────────────────────
+  # Requires r2b_hold_start attribute (added in Issue #39 trajectory change).
+  # Decomposes daily concurrent hold bed occupancy into disease DNBI, NBI, and
+  # WIA streams. Verifies that battle_fatigue (dnbi_type == 1) never reaches
+  # R2B hold beds.
+
+
+  # R2B hold bed occupancy by patient stream
+  r2b_hold_occupancy_out <- summarise_r2b_hold_occupancy(attributes_wide, combined, output_dir,
+                                                         images_dir)
+  r2b_hold_daily <- r2b_hold_occupancy_out$r2b_hold_daily
+  r2b_hold_occupancy_plot <- r2b_hold_occupancy_out$r2b_hold_occupancy_plot
+
+  # ── R2B hold routing diagnostics ─────────────────────────────────────────
+  # r2b_bypassed     = 1: routed to R2E at R1 (hold_threshold exceeded before transport)
+  # r2b_hold_bypass  = 1: arrived at R2B but hold full at Step 4 → R2E
+  # r2b_hold_queued  = 1: both echelons full, queue within cap → queued at R2B hold
+
+  # R2B hold routing diagnostics
+  r2b_hold_routing_out <- count_r2b_hold_routing(attributes_wide)
+  r2b_hold_bypass_count <- r2b_hold_routing_out$r2b_hold_bypass_count
+  r2b_hold_queued_count <- r2b_hold_routing_out$r2b_hold_queued_count
+  r2b_pre_bypass_count <- r2b_hold_routing_out$r2b_pre_bypass_count
+
+  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
+  # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
+  # non-NA) and were bypassed to R2E at the surgical decision point — it does
+  # not apply to the pre-transport r2b_bypassed rows above (those never carry
+  # r2b_treated, since they are routed from R1 before ever arriving at R2B).
+  # 1 = surgical team off-shift; 2 = OT bed busy or queued.
+
+  # R2B OT bypass reason decomposition (Issue #40)
+  r2b_ot_bypass_reasons_out <- count_r2b_ot_bypass_reasons(attributes_wide)
+  r2b_ot_bypass_busy_count <- r2b_ot_bypass_reasons_out$r2b_ot_bypass_busy_count
+  r2b_ot_bypass_count <- r2b_ot_bypass_reasons_out$r2b_ot_bypass_count
+  r2b_ot_bypass_offshift_count <- r2b_ot_bypass_reasons_out$r2b_ot_bypass_offshift_count
+
+  # ── R2B pre-open hold ────────────────────────────────────────────────────
+  # The complement of the off-shift bypass count above: casualties who found
+  # the surgical section closed but close enough to reopening to be held
+  # forward for it rather than diverted. r2b_pre_open_wait_min is set only
+  # once theatre and section are both in hand, so a casualty still holding at
+  # the end of the run carries the marker without a duration and is counted
+  # but not averaged.
+
+  # R2B pre-open hold
+  r2b_bypass_reason_plot <- summarise_r2b_pre_open_hold(attributes_wide, combined,
+                                                        r2b_ot_bypass_busy_count,
+                                                        r2b_ot_bypass_count,
+                                                        r2b_ot_bypass_offshift_count, images_dir)
+
+  # ── R2B casualty treatment summary ───────────────────────────────────────
+
+
+  # R2B casualty treatment summary
+  plot_r2b_treated <- plot_r2b_casualty_treatment(combined)
+
+  # ── R2B surgery summary ───────────────────────────────────────────────────
+
+
+  # R2B surgery summary
+  r2b_surgery_out <- summarise_r2b_surgery(attributes_wide)
+  plot_r2b_summary <- r2b_surgery_out$plot_r2b_summary
+  r2b_summary <- r2b_surgery_out$r2b_summary
+
+  # ── Casualties skipping R2B ───────────────────────────────────────────────
+
+
+  # Casualties skipping R2B
+  p_r2b_handling <- plot_r2b_handling(attributes_wide, combined, plot_r2b_summary, plot_r2b_treated,
+                                      images_dir)
+
+  # ── R2B resource usage (Gantt) ────────────────────────────────────────────
+
+
+  # R2B resource usage (Gantt)
+  r2b_bed_gantt_out <- plot_r2b_bed_gantt(resources, images_dir)
+  max_days <- r2b_bed_gantt_out$max_days
+  p_r2b_gantt <- r2b_bed_gantt_out$p_r2b_gantt
+
+  # ── R2E surgeries ─────────────────────────────────────────────────────────
+
+
+  # R2E surgeries
+  r2e_surgeries_out <- summarise_r2e_surgeries(attributes_wide, max_days, images_dir)
+  p_r2e_surgeries <- r2e_surgeries_out$p_r2e_surgeries
+  r2e_summary <- r2e_surgeries_out$r2e_summary
+
+  # ── R2E bed queue graphs ──────────────────────────────────────────────────
+
+
+  # R2E bed queue graphs
+  p_r2e_bed_queues <- plot_r2e_bed_queues(resources, images_dir)
+
+  # ── Waiting time scatter ──────────────────────────────────────────────────
+
+
+  # Waiting time scatter
+  p_waiting_time <- plot_waiting_times(arrivals, images_dir)
+
+  # ── Transport fleet capacity margin (Issue #6) ────────────────────────────
+  # Queue-over-time per pooled transport asset (PMV Ambulance, HX240M) shows
+  # how much headroom the current fleet size has under the dead-heading
+  # round trip: a queue that stays at 0 throughout indicates spare capacity;
+  # sustained queue > 0 indicates the fleet is a binding constraint.
+
+
+  # Transport fleet capacity margin (Issue #6)
+  transport_capacity_margin_out <- summarise_transport_capacity_margin(resources, resources_raw,
+                                                                       output_dir, images_dir)
+  p_transport_capacity_margin <- transport_capacity_margin_out$p_transport_capacity_margin
+  transport_utilisation <- transport_capacity_margin_out$transport_utilisation
+
+  # ── R2E resource usage (Gantt) ────────────────────────────────────────────
+
+
+  # R2E resource usage (Gantt)
+  p_r2e_gantt <- plot_r2e_bed_gantt(resources, images_dir)
+
+  # ── Output Variable Register derived KPIs ────────────────────────────────
+
+  treatment_interval_kpis_out <- compute_treatment_interval_kpis(combined)
+  time_to_first_surgery <- treatment_interval_kpis_out$time_to_first_surgery
+  r2b_dwell_time <- treatment_interval_kpis_out$r2b_dwell_time
+  r2b_r2e_transit_time <- treatment_interval_kpis_out$r2b_r2e_transit_time
+  r2e_dwell_time <- treatment_interval_kpis_out$r2e_dwell_time
+
+  outcomes_by_echelon_out <- summarise_outcomes_by_echelon(arrivals_raw, attributes_wide)
+  dow_by_echelon <- outcomes_by_echelon_out$dow_by_echelon
+  total_dow <- outcomes_by_echelon_out$total_dow
+  bf_rtd <- outcomes_by_echelon_out$bf_rtd
+  clinical_rtd <- outcomes_by_echelon_out$clinical_rtd
+  total_rtd <- outcomes_by_echelon_out$total_rtd
+  rtd_by_echelon <- outcomes_by_echelon_out$rtd_by_echelon
+  evacuation_policy_summary <- outcomes_by_echelon_out$evacuation_policy_summary
+  in_theatre_share <- outcomes_by_echelon_out$in_theatre_share
+
+  ot_utilisation_out <- compute_ot_utilisation(resources_raw)
+  ot_utilisation <- ot_utilisation_out$ot_utilisation
+  obs_window <- ot_utilisation_out$obs_window
+
+  post_operative_pathways_out <- summarise_post_operative_pathways(attributes_wide,
+                                                                   evacuation_policy_summary,
+                                                                   in_theatre_share, output_dir)
+  post_op_pathway_summary <- post_operative_pathways_out$post_op_pathway_summary
+  surgery_deferred_count <- post_operative_pathways_out$surgery_deferred_count
+  surgical_pathway_summary <- post_operative_pathways_out$surgical_pathway_summary
+  operated <- post_operative_pathways_out$operated
+
+  # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
+  # Visualises, by simulation day, where casualties experienced degraded care
+  # specifically attributable to ICU saturation at the point of OT entry:
+  # - Sub-Optimal Care: a Priority 1 candidate was operated on despite ICU
+  #   being full; post-operative recovery occurred in a holding bed instead
+  #   of ICU, carrying an elevated dow_ceiling (README — Died of Wounds,
+  #   Post-Operative Checkpoint).
+  # - Delayed Care: a Priority 2+ candidate had OT entry deferred while ICU
+  #   was saturated, polling on a timer until a bed freed.
+  # - Normal: ICU was available at the point of OT entry (gate had no effect).
+
+  # R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43)
+  r2e_icu_gating_out <- summarise_r2e_icu_gating(attributes_wide, combined, output_dir, images_dir)
+  r2e_icu_gating_daily <- r2e_icu_gating_out$r2e_icu_gating_daily
+  r2e_icu_gating_plot <- r2e_icu_gating_out$r2e_icu_gating_plot
+
+  # ── Force regeneration — effective force size over time (Issue #18) ──
+  # Visualises effective_force_combat/effective_force_support (simmer
+  # globals set in run_once(), R/replication.R; debited/credited in
+  # R/trajectories.R) across the run: debited at each casualty's
+  # injury_time, credited at each RTD event, and stepped up by any
+  # configured reinforcement schedule (env_data.json
+  # force_regeneration.reinforcement). A flat line at the dashed initial
+  # establishment strength means casualty production and RTD/reinforcement
+  # regeneration are in balance; a declining line shows net depletion.
+
+  # Force regeneration — effective force size over time (Issue #18)
+  force_regeneration_out <- summarise_force_regeneration(attributes_raw, output_dir, images_dir)
+  force_regeneration_daily <- force_regeneration_out$force_regeneration_daily
+  force_regeneration_plot <- force_regeneration_out$force_regeneration_plot
+
+  # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
+  # mass_casualty_event: 1 = casualty originated from a compound-Poisson
+  # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
+  # 0 = background lognormal generation. Both of the event's pathways carry
+  # the tag, the wounded and the immediately killed (Issue #149), so n_cas
+  # below is an event's total and n_wia/n_kia its two components.
+  # Individual events are reconstructed
+  # from tagged casualties' arrival times by clustering consecutive arrivals
+  # (within each replication) whose inter-arrival gap does not exceed the
+  # configured mass casualty injection window (env_data$vars$mass_casualty$event$
+  # window_max) — casualties from the same event arrive closer together than
+  # this gap by construction (see generate_mass_casualty_events()).
+
+  # KPI 9: Mass casualty event stress test analysis (Issue #9)
+  mass_casualty_events_out <- summarise_mass_casualty_events(combined, output_dir, images_dir)
+  mass_casualty_dow_summary <- mass_casualty_events_out$mass_casualty_dow_summary
+  mass_casualty_event_count <- mass_casualty_events_out$mass_casualty_event_count
+  mass_casualty_events_summary <- mass_casualty_events_out$mass_casualty_events_summary
+  mass_casualty_timeline_plot <- mass_casualty_events_out$mass_casualty_timeline_plot
+
+  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
+  # compute_role4_census()/compute_ame_demand() (above) return per-replication
+  # granular tables; this block aggregates them for display (mean across
+  # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
+  # CI (within replications), following the t-distribution CI convention used
+  # by summarise_replications() (R/replication.R).
+  role4_census_daily        <- NULL
+  role4_census_plot         <- NULL
+  role4_summary              <- NULL
+  role4_replication_summary <- NULL
+  ame_demand_daily          <- NULL
+  ame_summary                <- NULL
+  ame_replication_summary   <- NULL
+
+  if (!is.null(env_data$vars$role4)) {
+    role4_params <- env_data$vars$role4
+    # Best-case per-sortie throughput: the unconstrained baseline
+    # (compute_ame_demand()) does not distinguish acuity/route, so it
+    # compares against the configured airframe's combined critical +
+    # standard capacity — same-day, uncapped, best-case throughput.
+    ame_airframe <- resolve_ame_airframe(role4_params)
+    ame_capacity <- ame_airframe$critical_capacity + ame_airframe$standard_capacity
+    role4_daily_by_rep <- compute_role4_census(combined, role4_params)
+    ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
+  }
+
+  if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
+    role4_census_out <- plot_role4_census(combined, role4_daily_by_rep, n_reps_role4,
+                                          n_sim_days_role4, role4_census_daily, role4_summary,
+                                          output_dir, images_dir)
+    role4_census_daily <- role4_census_out$role4_census_daily
+    role4_census_plot <- role4_census_out$role4_census_plot
+    role4_summary <- role4_census_out$role4_summary
+    n_reps_role4 <- role4_census_out$n_reps_role4
+    n_sim_days_role4 <- role4_census_out$n_sim_days_role4
+
+    ame_sortie_demand_out <- summarise_ame_sortie_demand(ame_capacity, role4_daily_by_rep,
+                                                         ame_by_rep, n_reps_role4, n_sim_days_role4,
+                                                         role4_summary, ame_demand_daily,
+                                                         output_dir)
+    ame_demand_daily <- ame_sortie_demand_out$ame_demand_daily
+    ame_summary <- ame_sortie_demand_out$ame_summary
+    role4_replication_summary <- ame_sortie_demand_out$role4_replication_summary
+    ame_replication_summary <- ame_sortie_demand_out$ame_replication_summary
+  }
+
+  # ── Strategic AME actual performance (Issue #23 follow-up) ──────────────
+  # ame_demand_daily/ame_summary above are an unconstrained theoretical
+  # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
+  # schedule entirely). These outputs instead measure the REAL constrained
+  # "ame"/"ame_critical" simmer resources: wait time from evacuation
+  # decision (r2e_departure_time) to actual boarding (ame_departure_time),
+  # decomposed by route (ame_route: 1 = critical/ICU/CCATT-CCAST,
+  # 2 = standard/Hold/Casualty Staging Unit), and the backlog of casualties
+  # awaiting a sortie over time on each pool, from the resource monitor's
+  # queue column.
+
+  # Strategic AME actual performance (Issue #23 follow-up)
+  ame_performance_out <- summarise_ame_performance(attributes, combined, output_dir, images_dir)
+  ame_backlog_data <- ame_performance_out$ame_backlog_data
+  ame_backlog_plot <- ame_performance_out$ame_backlog_plot
+  ame_wait_time_summary <- ame_performance_out$ame_wait_time_summary
+  n_sim_days_role4 <- ame_performance_out$n_sim_days_role4
+
+  # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
+  # compute_ame_sorties() only needs `resources` and the schedule/airframe
+  # parameters, not `combined` — so it does not require any strategic
+  # evacuation decisions to have occurred yet, unlike the backlog output
+  # above.
+
+  # Strategic AME sortie timeline (Issue #109)
+  ame_sortie_timeline_out <- plot_ame_sortie_timeline(resources, n_sim_days_role4, output_dir,
+                                                      images_dir)
+  ame_sortie_data <- ame_sortie_timeline_out$ame_sortie_data
+  ame_sortie_plot <- ame_sortie_timeline_out$ame_sortie_plot
 
   write.csv(dow_by_echelon,  file.path(output_dir, "dow_by_echelon.csv"),  row.names = FALSE)
   write.csv(rtd_by_echelon,  file.path(output_dir, "rtd_by_echelon.csv"),  row.names = FALSE)

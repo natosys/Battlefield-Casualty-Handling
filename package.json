@@ -1,0 +1,12 @@
+{
+  "name": "battlefield-casualty-handling-browser-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-level verification of the Shiny console. The simulation itself is pure R; this toolchain exists only so that browser automation stays out of renv.lock.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

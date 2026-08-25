@@ -87,8 +87,11 @@ jobs:
           # the tracked baseline. data/, images/ and logs/ are here because they
           # are the baseline evidence set the reproduction check compares
           # against, and .github/workflows/ because a change to the gate itself
-          # is verified by running it in full.
-          if echo "$changed" | grep -Eq '^(R/|scripts/|data/|images/|logs/|run\.R|app\.R|env_data\.json|renv\.lock|\.Rprofile|\.lintr|\.devcontainer/|\.github/workflows/)'; then
+          # is verified by running it in full. tests/, package.json,
+          # package-lock.json and playwright.config.js are here because a change
+          # to either test suite is verified by running it, exactly as a change
+          # to a check script is.
+          if echo "$changed" | grep -Eq '^(R/|scripts/|tests/|data/|images/|logs/|run\.R|app\.R|env_data\.json|renv\.lock|\.Rprofile|\.lintr|package\.json|package-lock\.json|playwright\.config\.js|\.devcontainer/|\.github/workflows/)'; then
             echo "code_changed=true" >> "$GITHUB_OUTPUT"
             echo "Change reaches code, configuration or the tracked baseline; running the full fast suite."
           else
@@ -194,6 +197,81 @@ jobs:
         run: >-
           echo "Documentation-only change; no run consumes a random draw, so
           the seed-42 evidence set cannot have moved."
+
+  # The console's browser suite. It is its own job rather than part of the
+  # fast suite because it needs a Node toolchain and a running app, neither of
+  # which the pinned container provides and neither of which any other check
+  # wants. The R half of the console's coverage (shiny::testServer over the
+  # reactive state machine) is pure R and runs inside the fast suite instead.
+  #
+  # Playwright's browser is downloaded here. The repository's own development
+  # environments provide one at PLAYWRIGHT_BROWSERS_PATH and the suite uses it
+  # unchanged; a fresh runner has none, so the step below fetches exactly the
+  # Chromium the pinned @playwright/test version expects.
+  browser-checks:
+    name: Shiny console browser suite
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system libraries
+        if: needs.classify.outputs.code_changed == 'true'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            curl libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev \
+            libjpeg-dev libharfbuzz-dev libfribidi-dev libglpk-dev libuv1t64 \
+            git
+
+      - uses: actions/setup-node@v4
+        if: needs.classify.outputs.code_changed == 'true'
+        with:
+          node-version: "22"
+
+      - name: Cache the renv package cache
+        if: needs.classify.outputs.code_changed == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_CACHE }}
+          key: renv-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: renv-${{ runner.os }}-
+
+      - name: Restore the project library
+        if: needs.classify.outputs.code_changed == 'true'
+        run: Rscript -e 'renv::restore(prompt = FALSE)'
+
+      - name: Install the browser toolchain
+        if: needs.classify.outputs.code_changed == 'true'
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the browser suite
+        if: needs.classify.outputs.code_changed == 'true'
+        run: npx playwright test
+
+      # The job still runs and still reports, so a required status check on it
+      # is satisfied on a documentation-only change rather than left pending.
+      - name: Report the browser suite as not applicable
+        if: needs.classify.outputs.code_changed != 'true'
+        run: >-
+          echo "Documentation-only change; the console's code is untouched, so
+          the browser suite has nothing new to exercise."
+
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
 
   slow-checks:
     name: Slow suite

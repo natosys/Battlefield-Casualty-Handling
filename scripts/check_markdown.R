@@ -577,11 +577,11 @@ if (placeholder_images > 0) {
 
 scan_problems <- check_scan_table("README.md")
 if (scan_problems > 0) {
-  cat(sprintf("⚠️ %d scan table row(s) disagree with their entries — reconcile and re-run.\n",
+  cat(sprintf("[FAIL] %d scan table row(s) disagree with their entries; reconcile and re-run.\n",
               scan_problems))
   quit(status = 1)
 } else {
-  cat("✓ Every Further Development scan table row matches its entry.\n")
+  cat("[PASS] Every Further Development scan table row matches its entry.\n")
 }
 
 emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)

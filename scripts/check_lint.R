@@ -42,7 +42,7 @@
 # expression, which is the span `docs/STYLE_GUIDE.md` lists its seventeen
 # over-long functions by.
 
-SOURCE_DIRS   <- c("R", "scripts")
+SOURCE_DIRS   <- c("R", "scripts", "tests")
 SOURCE_FILES  <- c("app.R", "run.R")
 BASELINE_PATH <- file.path("scripts", "lint_baseline.csv")
 R9_RULE       <- "pictographic_character"
@@ -89,9 +89,11 @@ report <- function(ok, msg) {
 #' Every R source file the standard applies to
 #'
 #' @return A character vector of file paths.
+#' @details Recurses, because the test suite nests its files a directory
+#'   deeper than `R/` and `scripts/` do and the standard applies to them too.
 source_files <- function() {
   found <- unlist(lapply(SOURCE_DIRS, function(d) {
-    list.files(d, pattern = "[.]R$", full.names = TRUE)
+    list.files(d, pattern = "[.]R$", full.names = TRUE, recursive = TRUE)
   }))
   sort(c(found, SOURCE_FILES[file.exists(SOURCE_FILES)]))
 }

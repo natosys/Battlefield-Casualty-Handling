@@ -12,7 +12,7 @@ section. This document does not repeat any of those.
 
 ## What runs, and when
 
-The workflow is `.github/workflows/checks.yml`. It defines three jobs, and
+The workflow is `.github/workflows/checks.yml`. It defines five jobs, and
 every one of them runs in the pinned container the project's baseline figures
 are produced in, so that a difference it reports is a difference in the code
 rather than in the environment.
@@ -22,6 +22,7 @@ rather than in the environment.
 | Classify the change | Every pull request | Compares the branch against its base and decides whether the change can move a model output, a lint count or the tracked baseline | Seconds |
 | Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction | Nine minutes, measured on the first run |
 | Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
+| Shiny console browser suite | The same events | `npx playwright test`, which starts the console and drives it in a headless Chromium | Two to three minutes plus the restore and the toolchain install |
 | Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `scripts/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
 
 The figures above are the check time alone. Restoring the project library
@@ -35,8 +36,9 @@ A pull request that touches no code is not worth eleven minutes of the same
 checks. The first job classifies the change by comparing the branch against its
 base, and the other two narrow what they run accordingly.
 
-A change counts as reaching code when it touches `R/`, `scripts/`, `run.R`,
-`app.R`, `env_data.json`, `renv.lock`, `.Rprofile`, `.lintr`, `.devcontainer/`
+A change counts as reaching code when it touches `R/`, `scripts/`, `tests/`,
+`run.R`, `app.R`, `env_data.json`, `renv.lock`, `.Rprofile`, `.lintr`,
+`package.json`, `package-lock.json`, `playwright.config.js`, `.devcontainer/`
 or `.github/workflows/`, or the tracked baseline evidence under `data/`,
 `images/` or `logs/`. Anything else, which in practice means the markdown
 documents, is a documentation-only change. A push to `main`, the weekly
@@ -47,6 +49,7 @@ rather than a subset inferred from one diff.
 |---|---|---|
 | Fast suite | Every fast check, and the lint ratchet | `check_markdown.R`, `check_references.R` and `check_env_data_summary.R` alone, in about twelve seconds |
 | Seed-42 reproduction | Runs | Reports as not applicable |
+| Browser suite | Runs | Reports as not applicable |
 
 Two things follow from how this is arranged, and both are deliberate. The jobs
 narrow what they run rather than being skipped by a path filter, because a
@@ -199,6 +202,34 @@ stream, by consuming a draw that was not consumed before or by consuming draws
 in a different order, and that is a real change to every result the project
 publishes even when the model's logic is untouched.
 
+### The console test suite fails
+
+The console carries two suites, split by what each can see. `testthat` covers
+the reactive state machine and the helpers around it, and runs inside the fast
+suite as `check_testthat.R`. Playwright covers the rendered app, and runs as
+its own job against a console it starts.
+
+A `testthat` failure names the file, the line and the expectation, and reads
+like any other check: the console's behaviour has changed, and the fix is in
+`app.R` unless the expectation itself was wrong.
+
+A Playwright failure is read from the report the job uploads as an artifact,
+which carries a screenshot of the page at the moment of the failure and a trace
+of everything that led to it. Open the trace with
+`npx playwright show-trace <path>`. Two failures are worth telling apart before
+reaching for the app. A test that times out waiting for a Quick Run to finish
+may be reporting a slow runner rather than a broken console; the run itself is
+a real simulation. And a test that fails to find an element by its accessible
+name is reporting that the markup moved, which is a real change to the app but
+not necessarily a defect in it, so the expectation moves with it.
+
+What neither suite covers is appearance. Playwright asserts that a plot
+rendered and has real dimensions, never what it looks like. A layout regression
+that breaks no assertion passes both suites. That is an accepted tradeoff
+against the maintenance cost of pixel snapshots over `ggplot` output, which
+fail on a font substitution and tell a reader nothing; it is worth revisiting
+only if a visual regression actually reaches `main`.
+
 ### A job fails before any check runs
 
 A failure in the container's system libraries, in restoring the project
@@ -221,3 +252,31 @@ evidence of a measured runtime, and record that measurement in
 The shape a check follows, its exit contract, and its use of the `fail()` and
 `report()` helpers are set out in `docs/STYLE_GUIDE.md` under Regression check
 scripts.
+
+## Adding a console test
+
+A test of the console's reactive behaviour is a file under `tests/testthat`,
+picked up by `check_testthat.R` and therefore by the fast suite, with no edit
+to anything else. It needs no browser: `shiny::testServer()` advances the
+reactive graph in process, and the helper in `tests/testthat/helper-load-app.R`
+has already loaded the console and made its paths absolute. Assert reactive
+state, not markup.
+
+A test of what the console renders is a file under `tests/playwright`, picked
+up by the browser job on the same terms. Target behaviour: that a control
+round-trips a value, that a run completes, that a tab renders something rather
+than nothing. Assert against a control's accessible name rather than a
+generated element id, since Shiny generates the ids for a `navset_tab` afresh.
+The shared waits and the plot assertion are in `tests/playwright/helpers.js`;
+prefer them to a bare `waitForTimeout`, which passes on a fast machine and
+fails on a slow one.
+
+Both suites are held to `docs/STYLE_GUIDE.md` where it applies: the R files are
+linted by the ratchet along with everything else under `R/` and `scripts/`.
+
+The browser suite uses whatever Chromium `PLAYWRIGHT_BROWSERS_PATH` already
+provides, which is how it runs in a development container that ships one. A
+runner with none, which is what continuous integration is, downloads exactly
+the Chromium the pinned `@playwright/test` version expects. Nothing about the
+browser enters `renv.lock`; that separation is why the Node toolchain is here
+at all.

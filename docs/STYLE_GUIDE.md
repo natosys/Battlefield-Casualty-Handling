@@ -1,8 +1,8 @@
 # R Code Standard
 
 This document is the code standard for every R source file in the repository:
-the modules under `R/`, the scripts under `scripts/`, and the two root entry
-points `app.R` and `run.R`. `CLAUDE.md`'s Code Standards section defers to it,
+the modules under `R/`, the scripts under `scripts/`, the test suite under
+`tests/`, and the two root entry points `app.R` and `run.R`. `CLAUDE.md`'s Code Standards section defers to it,
 and a reviewer checking a pull request checks it against this document.
 
 It is written to be applied rather than admired. Every rule below is tagged
@@ -550,6 +550,7 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |
+| G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |
 
 Each of these is tracked as its own item in
 `docs/BCH_Simulation_Action_Plan.md`. This document does not require any of them

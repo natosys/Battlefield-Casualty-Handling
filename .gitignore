@@ -6,3 +6,9 @@ log.log
 outputs/*
 !outputs/.gitkeep
 Rplots.pdf
+
+# Node toolchain for the browser test suite (tests/playwright). The lockfile
+# is tracked; what npm installs from it is not.
+node_modules/
+playwright-report/
+test-results/

@@ -152,7 +152,7 @@ clobber_and_fail <- function(...) {
 #'   points that all fail to restore would agree with each other and pass.
 set_reference_config <- function() {
   env_data <<- REFERENCE_ENV_DATA
-  day_min  <<- 1440L
+  day_min  <<- DAY_MIN
   counts   <<- REFERENCE_COUNTS
   invisible(NULL)
 }

@@ -121,7 +121,7 @@ cat("Entry-point input validation check\n\n")
 
 json     <- jsonlite::fromJSON(JSON_PATH, simplifyVector = FALSE)
 env_data <<- build_environment(json)
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 invisible(capture.output(suppressWarnings(

@@ -8,6 +8,7 @@ library(simmer)
 library(simmer.bricks)
 library(triangle)
 
+source("R/constants.R")
 source("R/scenario.R")
 
 # ── Global configuration save/restore ────────────────────────────────────────
@@ -17,6 +18,7 @@ source("R/scenario.R")
 # `<<-`, because run_once()/build_env() and the trajectory closures resolve
 # them from the global environment rather than receiving them as arguments.
 CONFIG_GLOBALS <- c("env_data", "day_min", "counts")
+
 
 #' Snapshot the global configuration variables so they can be restored
 #'
@@ -1070,9 +1072,9 @@ get_ot_hours <- function(env_data) {
 #'   returns Inf.
 minutes_to_shift_open <- function(t) {
   brk <- ot_shift_break_min
-  if (is.null(brk) || is.na(brk) || brk <= 0 || brk >= 1440) return(Inf)
-  m <- t %% 1440
-  if (m < brk) brk - m else 1440 - m
+  if (is.null(brk) || is.na(brk) || brk <= 0 || brk >= DAY_MIN) return(Inf)
+  m <- t %% DAY_MIN
+  if (m < brk) brk - m else DAY_MIN - m
 }
 
 #' Initializes the simmer environment by adding all resources from env_data
@@ -1093,8 +1095,8 @@ minutes_to_shift_open <- function(t) {
 build_env <- function(env, env_data, ot_hours = NULL) {
   if (is.null(ot_hours)) ot_hours <- get_ot_hours(env_data)
   ot_break   <- as.integer(ot_hours * 60L)
-  ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = 1440)
-  ot_shift_2 <- simmer::schedule(c(ot_break, 1440), c(1, 0), period = 1440)
+  ot_shift_1 <- simmer::schedule(c(0, ot_break),        c(1, 0), period = DAY_MIN)
+  ot_shift_2 <- simmer::schedule(c(ot_break, DAY_MIN), c(1, 0), period = DAY_MIN)
 
   # Published for minutes_to_shift_open() above, which trajectory closures call
   # to find how long a closed surgical section has left before it reopens. The

@@ -13,6 +13,8 @@ library(data.table)
 library(RColorBrewer)
 library(triangle)
 
+source("R/constants.R")
+
 # Jitter applied to the pooled mass casualty timeline is cosmetic — it
 # separates events that fall on the same day — but it is drawn at render
 # time, so an unseeded jitter gives a different image every time the same
@@ -420,7 +422,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 #'   whichever sortie's window it fell in, which is the closest available
 #'   reading to "how many seats this sortie's contribution ultimately
 #'   served" given capacity is fungible across sorties by design.
-compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440) {
+compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_MIN) {
   pool_levels <- c("Critical (ICU, CCATT/CCAST)", "Standard (Hold, CSU)")
   empty <- data.frame(replication = integer(0), sortie_day = numeric(0),
                       pool = character(0), capacity_added = numeric(0),
@@ -527,7 +529,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = 1440)
 #'   `ame_departure_time` (when a casualty actually boards, NA while still
 #'   waiting — a `-1` event), cumulatively summed in event-time order per
 #'   (replication, pool).
-compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = 1440) {
+compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN) {
   route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
   pool_levels  <- unname(route_labels)
   empty <- data.frame(replication = integer(0), time = numeric(0),
@@ -599,7 +601,7 @@ plot_ame_queue <- function(backlog_data) {
     ~ pool
   }
 
-  ggplot(backlog_data, aes(x = time / 1440, y = backlog)) +
+  ggplot(backlog_data, aes(x = time / DAY_MIN, y = backlog)) +
     geom_step(color = "#D62828") +
     facet_wrap(facet_formula, ncol = if (identical(facet_formula, ~ pool)) 1 else NULL,
               scales = "free_y") +
@@ -862,9 +864,10 @@ plot_r1_queues <- function(resources, images_dir) {
       role_label = paste0(role, " ", role_idx)
     )
 
-  max_days_r1 <- ceiling(max(queue_plot_data_r1$time, na.rm = TRUE) / 1440)
+  max_days_r1 <- ceiling(max(queue_plot_data_r1$time, na.rm = TRUE) / DAY_MIN)
 
-  p_r1_queues <- ggplot(queue_plot_data_r1, aes(x = time / 1440, y = queue, color = role_label)) +
+  p_r1_queues <- ggplot(queue_plot_data_r1,
+                        aes(x = time / DAY_MIN, y = queue, color = role_label)) +
     geom_step(linewidth = 1) +
     labs(title = "Queue Length Over Time by R1 Team", x = "Time (Days)", y = "Queue Size", color = "Role") +
     scale_x_continuous(breaks = seq(0, max_days_r1, by = 1), limits = c(0, max_days_r1), expand = c(0, 0)) +
@@ -895,10 +898,11 @@ plot_r2b_bed_queues <- function(resources, images_dir) {
       bed_label = paste0(bed_type, " ", bed_index)
     )
 
-  p_r2b_bed_queues <- ggplot(queue_plot_data, aes(x = time / 1440, y = queue, color = bed_label)) +
+  p_r2b_bed_queues <- ggplot(queue_plot_data,
+                             aes(x = time / DAY_MIN, y = queue, color = bed_label)) +
     geom_step(linewidth = 1) +
     labs(title = "Queue Length Over Time by R2B", x = "Time (Days)", y = "Queue Size", color = "Bed") +
-    scale_x_continuous(breaks = seq(0, max(queue_plot_data$time) / 1440, by = 1), expand = c(0, 0)) +
+    scale_x_continuous(breaks = seq(0, max(queue_plot_data$time) / DAY_MIN, by = 1), expand = c(0, 0)) +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
     theme_minimal(base_size = 13) +
@@ -932,7 +936,7 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
       "Battle fatigue (dnbi_type==1) must not occupy R2B hold beds" = nrow(bf_in_hold) == 0
     )
 
-    n_sim_days <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_sim_days <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
     n_reps_hold <- max(1L, n_distinct(attributes_wide$replication))
 
     hold_patients <- attributes_wide %>%
@@ -953,8 +957,8 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
       mutate(
         day = list(
           seq(
-            max(1L, floor(hold_start_min / 1440) + 1L),
-            min(n_sim_days, ceiling(hold_end_min / 1440))
+            max(1L, floor(hold_start_min / DAY_MIN) + 1L),
+            min(n_sim_days, ceiling(hold_end_min / DAY_MIN))
           )
         )
       ) %>%
@@ -1123,14 +1127,14 @@ summarise_r2b_pre_open_hold <- function(attributes_wide, combined, r2b_ot_bypass
   # simulation day rather than a raw sum across replications, which would
   # scale with n_iterations and misrepresent a single run's daily pattern.
   r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
-  day_range   <- seq(min(floor(combined$start_time / 1440) + 1),
-                      max(floor(combined$start_time / 1440) + 1))
+  day_range   <- seq(min(floor(combined$start_time / DAY_MIN) + 1),
+                      max(floor(combined$start_time / DAY_MIN) + 1))
   n_reps_bypass <- max(1L, n_distinct(attributes_wide$replication))
 
   r2b_bypass_reason_daily <- attributes_wide %>%
     filter(!is.na(r2b_bypass_reason)) %>%
     mutate(
-      day    = floor(r2b_bypass_time / 1440) + 1,
+      day    = floor(r2b_bypass_time / DAY_MIN) + 1,
       reason = factor(
         ifelse(r2b_bypass_reason == 1, "Team off-shift", "OT busy / queued"),
         levels = r2b_bypass_reason_levels
@@ -1175,7 +1179,7 @@ plot_r2b_casualty_treatment <- function(combined) {
     filter(!is.na(r2b_treated) & r2b_treated > 0) %>%
     mutate(
       r2b_station              = paste0("R2B ", r2b_treated),
-      r2b_treatment_start_time = floor(start_time / 1440) + 1
+      r2b_treatment_start_time = floor(start_time / DAY_MIN) + 1
     )
 
   daily_station_summary <- r2b_casualties %>% count(r2b_treatment_start_time, r2b_station)
@@ -1200,7 +1204,7 @@ summarise_r2b_surgery <- function(attributes_wide) {
   r2b_summary <- attributes_wide %>%
     filter(!is.na(r2b_surgery_start)) %>%
     mutate(
-      r2b_day     = floor(as.numeric(r2b_surgery_start) / 1440) + 1,
+      r2b_day     = floor(as.numeric(r2b_surgery_start) / DAY_MIN) + 1,
       r2b_station = paste0("R2B ", r2b_treated)
     ) %>%
     count(r2b_day, r2b_station, name = "surgeries")
@@ -1231,7 +1235,7 @@ summarise_r2b_surgery <- function(attributes_wide) {
 plot_r2b_handling <- function(attributes_wide, combined, plot_r2b_summary, plot_r2b_treated,
                               images_dir) {
   skipped_r2b_daily <- attributes_wide %>%
-    mutate(day = floor(time / 1440) + 1) %>%
+    mutate(day = floor(time / DAY_MIN) + 1) %>%
     filter(!is.na(r2e_treated) & is.na(r2b_treated)) %>%
     group_by(day) %>%
     summarise(skipped_r2b = n(), .groups = "drop") %>%
@@ -1287,12 +1291,12 @@ plot_r2b_bed_gantt <- function(resources, images_dir) {
 
   max_days <- {
     max_end <- suppressWarnings(max(r2b_bed_usage$end_time, na.rm = TRUE))
-    if (!is.finite(max_end)) NA_real_ else ceiling(max_end / 1440)
+    if (!is.finite(max_end)) NA_real_ else ceiling(max_end / DAY_MIN)
   }
   x_breaks <- if (is.finite(max_days) && max_days >= 1) seq(1, max_days, by = 1) else waiver()
 
   p_r2b_gantt <- ggplot(r2b_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
-    geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
+    geom_segment(aes(x = start_time / DAY_MIN, xend = end_time / DAY_MIN, yend = resource_label), linewidth = 6, lineend = "butt") +
     labs(title = "R2B Bed Resource Usage (Gantt) by Team", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
     scale_x_continuous(breaks = x_breaks, labels = function(x) paste0(x), expand = c(0, 0)) +
     facet_wrap(~ r2b_team, ncol = 1, scales = "free_y", labeller = labeller(r2b_team = function(x) paste0("R2B ", x))) +
@@ -1317,7 +1321,7 @@ summarise_r2e_surgeries <- function(attributes_wide, max_days, images_dir) {
     dplyr::select(name, starts_with("r2e_surgery_")) %>%
     pivot_longer(cols = starts_with("r2e_surgery_"), names_to = "surgery_type", values_to = "start_min") %>%
     filter(!is.na(start_min)) %>%
-    mutate(r2e_day = floor(start_min / 1440) + 1) %>%
+    mutate(r2e_day = floor(start_min / DAY_MIN) + 1) %>%
     count(r2e_day, name = "surgeries")
 
   p_r2e_surgeries <- ggplot(r2e_summary, aes(x = r2e_day, y = surgeries)) +
@@ -1359,11 +1363,11 @@ plot_r2e_bed_queues <- function(resources, images_dir) {
     prepare_queue_data("icu", resources)
   )
 
-  p_r2e_bed_queues <- ggplot(combined_queue_data, aes(x = time / 1440, y = queue, color = resource_label)) +
+  p_r2e_bed_queues <- ggplot(combined_queue_data, aes(x = time / DAY_MIN, y = queue, color = resource_label)) +
     geom_step(linewidth = 1) +
     labs(title = "R2E Heavy Bed Queue Length Over Time by Resource Type", x = "Time (Days)", y = "Queue Size", color = "Resource") +
     facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
-    scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / 1440), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
+    scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / DAY_MIN), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     theme_minimal(base_size = 14) +
     theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
@@ -1406,12 +1410,12 @@ summarise_transport_capacity_margin <- function(resources, resources_raw, output
       unit_label = paste(platform, unit_id)
     )
 
-  p_transport_capacity_margin <- ggplot(transport_queue_data, aes(x = time / 1440, y = queue, color = unit_label)) +
+  p_transport_capacity_margin <- ggplot(transport_queue_data, aes(x = time / DAY_MIN, y = queue, color = unit_label)) +
     geom_step(linewidth = 1) +
     labs(title = "Transport Fleet Capacity Margin — Queue Over Time",
          subtitle = "Queue length by vehicle; sustained queue > 0 indicates the fleet is at capacity",
          x = "Time (Days)", y = "Queue Size", color = "Vehicle") +
-    scale_x_continuous(breaks = seq(0, ceiling(max(transport_queue_data$time) / 1440), by = 1), expand = c(0, 0)) +
+    scale_x_continuous(breaks = seq(0, ceiling(max(transport_queue_data$time) / DAY_MIN), by = 1), expand = c(0, 0)) +
     facet_wrap(~ platform, ncol = 1, scales = "free_y") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"), legend.position = "bottom", strip.text = element_text(face = "bold"))
@@ -1482,10 +1486,10 @@ plot_r2e_bed_gantt <- function(resources, images_dir) {
     arrange(bed_type, bed_num_i, r2e_team_i) %>%
     mutate(resource_label = factor(resource_label, levels = unique(resource_label)))
 
-  max_days_r2e <- ceiling(max(r2e_bed_usage$end_time, na.rm = TRUE) / 1440)
+  max_days_r2e <- ceiling(max(r2e_bed_usage$end_time, na.rm = TRUE) / DAY_MIN)
 
   p_r2e_gantt <- ggplot(r2e_bed_usage, aes(y = resource_label, color = toupper(bed_type))) +
-    geom_segment(aes(x = start_time / 1440, xend = end_time / 1440, yend = resource_label), linewidth = 6, lineend = "butt") +
+    geom_segment(aes(x = start_time / DAY_MIN, xend = end_time / DAY_MIN, yend = resource_label), linewidth = 6, lineend = "butt") +
     labs(title = "R2E Bed Resource Usage (Gantt)", x = "Time (Days)", y = "Bed Resource", color = "Bed Type") +
     scale_x_continuous(breaks = seq(1, max_days_r2e, by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
     theme_minimal(base_size = 14) +
@@ -1519,10 +1523,10 @@ summarise_r2e_icu_gating <- function(attributes_wide, combined, output_dir, imag
           post_op_pathway == 2                              ~ "Sub-Optimal (Hold Bed Override)",
           TRUE                                               ~ "Normal (ICU Access)"
         ),
-        day = floor(as.numeric(r2e_surgery_1_start) / 1440) + 1
+        day = floor(as.numeric(r2e_surgery_1_start) / DAY_MIN) + 1
       )
 
-    n_sim_days_icu <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_sim_days_icu <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
     care_levels <- c("Normal (ICU Access)", "Sub-Optimal (Hold Bed Override)", "Delayed (ICU Wait)")
 
     r2e_icu_gating_daily <- icu_gating_patients %>%
@@ -1588,7 +1592,7 @@ summarise_force_regeneration <- function(attributes_raw, output_dir, images_dir)
       filter(key %in% force_keys) %>%
       transmute(
         replication,
-        day   = time / 1440,
+        day   = time / DAY_MIN,
         pool  = recode(key,
                         effective_force_combat  = "Combat",
                         effective_force_support = "Support"),
@@ -1660,7 +1664,7 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
         n_wia       = n_cas - n_kia,
         .groups     = "drop"
       ) %>%
-      mutate(event_day = floor(event_start / 1440) + 1)
+      mutate(event_day = floor(event_start / DAY_MIN) + 1)
   } else {
     mass_casualty_events_summary <- data.frame(
       replication = integer(0), event_id = integer(0), event_start = numeric(0),
@@ -1688,11 +1692,11 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
 
   mass_casualty_timeline_plot <- NULL
   if (mass_casualty_event_count > 0) {
-    n_sim_days_mass_casualty <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_sim_days_mass_casualty <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
     mass_casualty_timeline_plot <- ggplot(mass_casualty_events_summary,
-                                   aes(x = event_start / 1440, y = n_cas)) +
-      geom_segment(aes(xend = event_start / 1440, y = 0, yend = n_cas), color = "#D62828") +
+                                   aes(x = event_start / DAY_MIN, y = n_cas)) +
+      geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
       geom_point(size = 3, color = "#D62828") +
       scale_x_continuous(limits = c(0, n_sim_days_mass_casualty),
                          breaks = seq(0, n_sim_days_mass_casualty, by = 2)) +
@@ -1770,8 +1774,8 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
     overall <- ame_wait_time_summary %>% filter(route == "Overall")
     cat(sprintf(
       "AME actual performance (Issue #23 follow-up): %d evacuated (mean wait %.1f days, p10-p90 %.1f-%.1f days), %d still awaiting AME at end of run\n",
-      overall$n_evacuated, overall$mean_wait_minutes / 1440,
-      overall$p10_wait_minutes / 1440, overall$p90_wait_minutes / 1440,
+      overall$n_evacuated, overall$mean_wait_minutes / DAY_MIN,
+      overall$p10_wait_minutes / DAY_MIN, overall$p90_wait_minutes / DAY_MIN,
       overall$n_awaiting
     ))
   }
@@ -1780,7 +1784,7 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
   # role4-census block further above — which only runs when a casualty has
   # actually reached Role 4 — didn't fire) so a run with AME activity but no
   # completed Role 4 arrivals still gets a bounded backlog/sortie timeline.
-  n_sim_days_role4 <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+  n_sim_days_role4 <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
   ame_backlog_data <- compute_ame_backlog(attributes, n_sim_days_role4)
   ame_backlog_plot <- plot_ame_queue(ame_backlog_data)
@@ -1834,7 +1838,7 @@ plot_ame_sortie_timeline <- function(resources, n_sim_days_role4, output_dir, im
 #'   share. Warm-up is applied to arrivals and resources by time; attributes
 #'   carry no time filter, being read per casualty.
 prepare_run_frames <- function(mon, warm_up_days, output_dir) {
-  warm_up_min    <- as.integer(warm_up_days) * 1440L
+  warm_up_min    <- as.integer(warm_up_days) * DAY_MIN
   arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
   attributes_raw <- mon$attributes
   resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
@@ -1846,13 +1850,9 @@ prepare_run_frames <- function(mon, warm_up_days, output_dir) {
   arrivals <- arrivals_raw %>%
     mutate(waiting_time = end_time - start_time - activity_time)
 
-  attributes <- attributes_raw
-
-  resources <- resources_raw
-
   # Pivot attributes wide (last value per key per casualty); see roxygen on
   # build_attributes_wide() for the zero-DOW/zero-surgery/etc. column guard.
-  attributes_wide <- build_attributes_wide(attributes, arrivals)
+  attributes_wide <- build_attributes_wide(attributes_raw, arrivals)
 
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
@@ -1889,14 +1889,14 @@ prepare_run_frames <- function(mon, warm_up_days, output_dir) {
   list(
     arrivals = arrivals,
     arrivals_raw = arrivals_raw,
-    attributes = attributes,
+    attributes = attributes_raw,
     attributes_raw = attributes_raw,
     attributes_wide = attributes_wide,
     casualty_priority_summary = casualty_priority_summary,
     casualty_summary = casualty_summary,
     combined = combined,
     max_daily_total = max_daily_total,
-    resources = resources,
+    resources = resources_raw,
     resources_raw = resources_raw
   )
 }
@@ -2203,7 +2203,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
 plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_days_role4,
                               role4_census_daily, role4_summary, output_dir, images_dir) {
   n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
-  n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+  n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
   max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
   ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
   # evacuation_day is only set on completed AME boarding (Issue #23
@@ -2895,7 +2895,7 @@ prepare_replication_frames <- function(mon, warm_up_period, output_dir, images_d
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
-  warm_up_min    <- as.integer(warm_up_period) * 1440L
+  warm_up_min    <- as.integer(warm_up_period) * DAY_MIN
   arrivals_raw   <- mon$arrivals    %>% filter(start_time >= warm_up_min)
   attributes_raw <- mon$attributes
   resources_raw  <- mon$resources   %>% filter(time >= warm_up_min)
@@ -2907,7 +2907,7 @@ prepare_replication_frames <- function(mon, warm_up_period, output_dir, images_d
   n_reps <- n_distinct(arrivals_raw$replication)
 
   arrivals <- arrivals_raw %>%
-    mutate(arrival_day = floor(start_time / 1440) + 1)
+    mutate(arrival_day = floor(start_time / DAY_MIN) + 1)
   list(
     arrivals = arrivals,
     arrivals_raw = arrivals_raw,
@@ -3102,7 +3102,7 @@ plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_id
   r2b_hold_occupancy_plot <- NULL
   r2b_hold_daily_ci       <- NULL
   if ("r2b_hold_start" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_hold_start))) {
-    n_sim_days_hold <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_sim_days_hold <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
     hold_patients <- attributes_wide %>%
       filter(!is.na(r2b_hold_start) & !is.na(return_day)) %>%
@@ -3118,8 +3118,8 @@ plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_id
 
     r2b_hold_daily_rep <- hold_patients %>%
       rowwise() %>%
-      mutate(day = list(seq(max(1L, floor(hold_start_min / 1440) + 1L),
-                            min(n_sim_days_hold, ceiling(hold_end_min / 1440))))) %>%
+      mutate(day = list(seq(max(1L, floor(hold_start_min / DAY_MIN) + 1L),
+                            min(n_sim_days_hold, ceiling(hold_end_min / DAY_MIN))))) %>%
       unnest(day) %>%
       ungroup() %>%
       count(replication, day, stream, name = "occupancy") %>%
@@ -3169,13 +3169,13 @@ plot_r2b_bypass_reason_ci <- function(attributes_wide, combined, n_reps, rep_ids
                                       images_dir) {
   r2b_bypass_reason_plot_full <- NULL
   if ("r2b_bypass_reason" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_bypass_reason))) {
-    day_range_bypass         <- seq(min(floor(combined$start_time / 1440) + 1), max(floor(combined$start_time / 1440) + 1))
+    day_range_bypass         <- seq(min(floor(combined$start_time / DAY_MIN) + 1), max(floor(combined$start_time / DAY_MIN) + 1))
     r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
 
     r2b_bypass_daily_rep <- attributes_wide %>%
       filter(!is.na(r2b_bypass_reason)) %>%
       mutate(
-        day    = floor(r2b_bypass_time / 1440) + 1,
+        day    = floor(r2b_bypass_time / DAY_MIN) + 1,
         reason = factor(ifelse(r2b_bypass_reason == 1, "Team off-shift", "OT busy / queued"),
                         levels = r2b_bypass_reason_levels)
       ) %>%
@@ -3272,11 +3272,11 @@ plot_transport_capacity_margin_ci <- function(clamp_ci, n_reps, resources_raw, o
   transport_bins_mr <- bin_queue_ci(transport_queue_data_mr, c("platform", "unit_label"))
   p_transport_capacity_margin_ci <- ggplot() +
     geom_step(data = transport_bins_mr$traces,
-              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              aes(x = bin_min / DAY_MIN, y = queue, group = interaction(replication, resource)),
               color = "steelblue", alpha = 0.06) +
-    geom_ribbon(data = transport_bins_mr$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = unit_label),
+    geom_ribbon(data = transport_bins_mr$ci, aes(x = bin_min / DAY_MIN, ymin = ci_lower, ymax = ci_upper, fill = unit_label),
                 alpha = 0.3) +
-    geom_line(data = transport_bins_mr$ci, aes(x = bin_min / 1440, y = mean_q, color = unit_label), linewidth = 0.9) +
+    geom_line(data = transport_bins_mr$ci, aes(x = bin_min / DAY_MIN, y = mean_q, color = unit_label), linewidth = 0.9) +
     facet_wrap(~ platform, ncol = 1, scales = "free_y") +
     labs(title = "Transport Fleet Capacity Margin — Queue Over Time — Mean ± 95% CI Across Replications",
          subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
@@ -3370,7 +3370,7 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
   }
 
   if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
-    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
+    n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
     ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
     max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
 
@@ -3502,7 +3502,7 @@ summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, outp
       summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(),
                 n_kia = sum(!is.na(injury_type) & injury_type == 3),
                 n_wia = n_cas - n_kia, .groups = "drop") %>%
-      mutate(event_day = floor(event_start / 1440) + 1)
+      mutate(event_day = floor(event_start / DAY_MIN) + 1)
   } else {
     data.frame(replication = integer(0), event_id = integer(0), event_start = numeric(0),
                event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
@@ -3525,8 +3525,8 @@ summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, outp
 
   mass_casualty_timeline_plot_mr <- NULL
   if (nrow(mass_casualty_events_summary_mr) > 0) {
-    n_sim_days_mc <- ceiling(max(combined$start_time, na.rm = TRUE) / 1440)
-    mass_casualty_timeline_plot_mr <- ggplot(mass_casualty_events_summary_mr, aes(x = event_start / 1440, y = n_cas)) +
+    n_sim_days_mc <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
+    mass_casualty_timeline_plot_mr <- ggplot(mass_casualty_events_summary_mr, aes(x = event_start / DAY_MIN, y = n_cas)) +
       geom_point(position = position_jitter(width = 0.15, height = 0,
                                             seed = MASS_CASUALTY_JITTER_SEED),
                  alpha = 0.35, color = "#D62828", size = 2) +
@@ -3608,11 +3608,11 @@ plot_queue_depth_ci <- function(n_reps, resources_raw) {
   r1_bins <- bin_queue_ci(r1_data, c("r1_label", "role_label"))
   p_r1_queues_ci <- ggplot() +
     geom_step(data = r1_bins$traces,
-              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              aes(x = bin_min / DAY_MIN, y = queue, group = interaction(replication, resource)),
               color = "steelblue", alpha = 0.06) +
-    geom_ribbon(data = r1_bins$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = role_label),
+    geom_ribbon(data = r1_bins$ci, aes(x = bin_min / DAY_MIN, ymin = ci_lower, ymax = ci_upper, fill = role_label),
                 alpha = 0.3) +
-    geom_line(data = r1_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = role_label), linewidth = 0.9) +
+    geom_line(data = r1_bins$ci, aes(x = bin_min / DAY_MIN, y = mean_q, color = role_label), linewidth = 0.9) +
     facet_wrap(~ r1_label, ncol = 1, scales = "free_y") +
     labs(title = "R1 Queue Length Over Time — Mean ± 95% CI Across Replications",
          subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
@@ -3632,11 +3632,11 @@ plot_queue_depth_ci <- function(n_reps, resources_raw) {
   r2b_bins <- bin_queue_ci(r2b_data, c("r2b_label", "bed_label"))
   p_r2b_queues_ci <- ggplot() +
     geom_step(data = r2b_bins$traces,
-              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              aes(x = bin_min / DAY_MIN, y = queue, group = interaction(replication, resource)),
               color = "steelblue", alpha = 0.06) +
-    geom_ribbon(data = r2b_bins$ci, aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = bed_label),
+    geom_ribbon(data = r2b_bins$ci, aes(x = bin_min / DAY_MIN, ymin = ci_lower, ymax = ci_upper, fill = bed_label),
                 alpha = 0.3) +
-    geom_line(data = r2b_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = bed_label), linewidth = 0.9) +
+    geom_line(data = r2b_bins$ci, aes(x = bin_min / DAY_MIN, y = mean_q, color = bed_label), linewidth = 0.9) +
     facet_wrap(~ r2b_label, ncol = 1, scales = "free_x") +
     labs(title = "R2B Queue Length Over Time — Mean ± 95% CI Across Replications",
          subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
@@ -3658,11 +3658,11 @@ plot_queue_depth_ci <- function(n_reps, resources_raw) {
   r2e_bins <- bin_queue_ci(r2e_data, c("resource_type", "resource_label"))
   p_r2e_queues_ci <- ggplot() +
     geom_step(data = r2e_bins$traces,
-              aes(x = bin_min / 1440, y = queue, group = interaction(replication, resource)),
+              aes(x = bin_min / DAY_MIN, y = queue, group = interaction(replication, resource)),
               color = "steelblue", alpha = 0.06) +
     geom_ribbon(data = r2e_bins$ci,
-                aes(x = bin_min / 1440, ymin = ci_lower, ymax = ci_upper, fill = resource_label), alpha = 0.3) +
-    geom_line(data = r2e_bins$ci, aes(x = bin_min / 1440, y = mean_q, color = resource_label), linewidth = 0.9) +
+                aes(x = bin_min / DAY_MIN, ymin = ci_lower, ymax = ci_upper, fill = resource_label), alpha = 0.3) +
+    geom_line(data = r2e_bins$ci, aes(x = bin_min / DAY_MIN, y = mean_q, color = resource_label), linewidth = 0.9) +
     facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
     labs(title = "R2E Heavy Bed Queue Length Over Time — Mean ± 95% CI Across Replications",
          subtitle = sprintf("%d replications; faint traces are individual replications", n_reps),
@@ -3720,7 +3720,7 @@ plot_utilisation_ci <- function(n_reps, resources_raw) {
 plot_waiting_times_ci <- function(arrivals_raw, day_range, n_reps) {
   arrivals_wait <- arrivals_raw %>%
     mutate(waiting_time = end_time - start_time - activity_time,
-           arrival_day  = floor(start_time / 1440) + 1) %>%
+           arrival_day  = floor(start_time / DAY_MIN) + 1) %>%
     filter(!is.na(waiting_time))
 
   waiting_by_day <- arrivals_wait %>%
@@ -3763,12 +3763,12 @@ plot_force_regeneration_ci <- function(attributes_raw, n_reps, output_dir, image
         value = as.numeric(value)
       )
 
-    force_day_bins <- seq(0, max(force_raw$time, na.rm = TRUE), by = 1440)
+    force_day_bins <- seq(0, max(force_raw$time, na.rm = TRUE), by = DAY_MIN)
     force_binned <- force_raw %>%
       group_by(replication, pool) %>%
       group_modify(function(d, key) {
         v <- approx(d$time, d$value, xout = force_day_bins, method = "constant", rule = 2)$y
-        data.frame(bin_day = force_day_bins / 1440, value = v)
+        data.frame(bin_day = force_day_bins / DAY_MIN, value = v)
       }) %>%
       ungroup()
 
@@ -4344,7 +4344,7 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
     }
 
     env_data <<- build_environment(json_data)
-    day_min  <<- 1440L
+    day_min  <<- DAY_MIN
     counts   <<- sapply(env_data$elms, length)
 
     mon      <- run_replications(n_rep, n_days, max_cores = max_cores)

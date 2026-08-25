@@ -88,7 +88,7 @@ report <- function(ok, fmt, ...) {
 
 json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 env_data <<- build_environment(resolve_scenario(json, SCENARIO))
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 #' A measurement's observable output, reduced to something comparable

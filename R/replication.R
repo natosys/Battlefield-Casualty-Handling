@@ -6,6 +6,8 @@
 library(simmer)
 library(parallel)
 
+source("R/constants.R")
+
 # ── Single simulation build + run ─────────────────────────────────────────────
 
 #' Build and run one complete simulation replication
@@ -400,7 +402,7 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
 #'   would otherwise produce (Issue #154, which emits this table from the
 #'   single-run path as well as the multi-run one).
 summarise_replications <- function(mon, warm_up_days = 0) {
-  warm_up_min <- as.integer(warm_up_days) * 1440L
+  warm_up_min <- as.integer(warm_up_days) * DAY_MIN
 
   rep_means <- mon$resources %>%
     filter(time >= warm_up_min) %>%

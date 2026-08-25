@@ -153,10 +153,15 @@ condition instead, per
 
 ## Constants and magic numbers
 
-**C1 `[review]` Minutes per day is `day_min`, never the literal `1440`.** The
-one permitted exception is the definition site itself, where a global entry
-point sets `day_min <- 1440L`. The literal currently appears many times across
-the codebase; see [Current conformance](#current-conformance).
+**C1 `[review]` Minutes per day is never the literal `1440`.** `DAY_MIN`, at the
+head of `R/environment.R`, is its single definition, and the one permitted
+occurrence of the literal. The `day_min` global that the execution model carries
+is assigned from `DAY_MIN` by each entry point. Which of the two a given line
+should name follows from when it runs: use `day_min` inside the model and the
+analysis pipeline, where an entry point has already set it; use `DAY_MIN` where
+one has not, as in a regression check calling into a module directly, and in a
+parameter default, which cannot name a global of its own name without resolving
+to the parameter itself.
 
 **C2 `[review]` A numeric or string literal used more than once in a file is
 given a named `UPPER_SNAKE_CASE` constant at the top of that file.** A literal
@@ -513,7 +518,7 @@ the sixteen scripts carry a roxygen header, against 119 of 128 in `R/`.
 | N2 to N4 | Naming table, output names, abbreviations | No, reviewer |
 | D1 | Function length 100 | Yes, counted from the parse data by `scripts/check_lint.R`; `lintr` ships no linter for it |
 | D2 to D6 | Function design | No, reviewer |
-| C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, the rest is reviewer |
+| C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, and outside `DAY_MIN`'s definition there are none left, so the rule now reads as a gate on zero rather than as a direction of travel; the rest is reviewer |
 | G1 to G3, G5 | Permitted `<<-` and restoration | No, reviewer |
 | G4 | No other global assignment | Yes, `assignment_linter(operator = "<-")`, which reports every `<<-`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises a count and is reviewed on its merits |
 | E1 to E7 | Error handling | No, reviewer |
@@ -546,7 +551,6 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 |---|---|
 | F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
 | D1 | Seventeen functions exceed 100 lines: `server` (`app.R:1635`, 2,284), `analyse_run` (`R/analysis.R:564`, 1,388), `analyse_replications` (`R/analysis.R:2085`, 799), `r2e_treat_wia` (`R/trajectories.R:1495`, 766), `r2b_treat_wia` (`R/trajectories.R:809`, 560), `build_param_registry` (`R/app_params.R:400`, 461), `build_casualty_trajectory` (`R/trajectories.R:2303`, 334), `render_group_body` (`app.R:1272`, 260), `run_sobol` (`R/sensitivity.R:1653`, 235), `run_morris` (`R/sensitivity.R:1227`, 205), `extract_kpis` (`R/sensitivity.R:900`, 205), `run_once` (`R/replication.R:28`, 147), `generate_env_summary_section` (`scripts/check_env_data_summary.R:36`, 127), `run_replications` (`R/replication.R:263`, 116), `plot_r2b_icu_share_frontier` (`R/analysis.R:3250`, 115), `build_environment` (`R/environment.R:19`, 114) and `apply_params` (`R/sensitivity.R:572`, 102) |
-| C1 | The literal `1440` appears 123 times across 27 files, 70 of them in `R/analysis.R`, despite `day_min` existing |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |

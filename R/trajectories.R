@@ -7,6 +7,8 @@ library(simmer)
 library(simmer.bricks)
 library(triangle)
 
+source("R/constants.R")
+
 # ── Shared trajectory names ───────────────────────────────────────────────────
 
 #' Name format for the per-section R2E surgical blocks
@@ -1492,6 +1494,28 @@ r2e_mortuary_intake <- function(team_id) {
 #' #   evacuated, setting ame_departure_time, evacuation_day,
 #' #   ame_wait_minutes (Issue #23 follow-up — casualties consume R2E beds
 #' #   until strategic AME is actually available, not merely decided upon)
+#'
+#' # Why this function is not decomposed. It is the longest in the model, and
+#' # Issue #241 asks that it be split only where the seams can be shown to
+#' # leave the random number stream untouched, and that the reason be recorded
+#' # otherwise. They cannot, at present, for a reason particular to how simmer
+#' # builds a trajectory. The body chains a single trajectory object through
+#' # ten branch() calls, and twelve of the draws below sit inside arms those
+#' # branches select at run time, so the order in which draws are consumed is a
+#' # property of the assembled trajectory rather than of the source. Lifting a
+#' # mid-chain segment into a helper means rejoining it, and join() copies the
+#' # segment rather than continuing the same object, which is exactly where
+#' # equivalence stops being something a reader can check by inspection.
+#' #
+#' # That makes the split verifiable only by running it, against the seed-42
+#' # reproduction, rather than provable before it is made. The analysis
+#' # pipeline was decomposed on the strength of an artifact comparison because
+#' # it consumes one draw and is a pure report; this function is the model
+#' # itself, and a stream shift here moves every published figure at once. The
+#' # judgement recorded here is that the reading it would buy does not warrant
+#' # that risk in the same pull request as the incidental cleanups, not that
+#' # the split is impossible. Whoever attempts it should do so on its own,
+#' # against the reproduction check, one branch at a time.
 r2e_treat_wia <- function(team_id) {
   hold_beds       <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
   resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
@@ -1878,7 +1902,7 @@ r2e_treat_wia <- function(team_id) {
     # above). Redrawing would give the threshold an effect on total modelled
     # convalescence, which is not what a routing lever is asked to change.
     residual <- get_attribute(env, "r2b_hold_residual")
-    if (!is.na(residual) && residual > 0) return(residual / 1440)
+    if (!is.na(residual) && residual > 0) return(residual / DAY_MIN)
 
     prio  <- get_attribute(env, "priority")
     itype <- get_attribute(env, "injury_type")
@@ -1905,7 +1929,7 @@ r2e_treat_wia <- function(team_id) {
       b = env_data$vars$r2eheavy$holding$max,
       c = env_data$vars$r2eheavy$holding$mode
     )
-    (base * severity) / 1440
+    (base * severity) / DAY_MIN
   }
 
   # Pre-flight critical care (Issue #156). A ventilated casualty awaiting a
@@ -2181,7 +2205,7 @@ r2e_treat_wia <- function(team_id) {
         # The hold bed is held for the same duration the disposition was
         # decided on, so a retained casualty's bed-days and the prognosis
         # that retained them cannot disagree.
-        timeout(function() get_attribute(env, "recovery_to_duty_days") * 1440) %>%
+        timeout(function() get_attribute(env, "recovery_to_duty_days") * DAY_MIN) %>%
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("return_day", function() now(env)) %>%
@@ -2200,7 +2224,7 @@ r2e_treat_wia <- function(team_id) {
         # when the Strategic Evac disposition is decided. Feeds the Role 4
         # ward/LoS category assignment (R/analysis.R::assign_role4_los())
         # — see README Role 4 sub-section.
-        set_attribute("evacuation_decision_day", function() floor(now(env) / 1440) + 1) %>%
+        set_attribute("evacuation_decision_day", function() floor(now(env) / DAY_MIN) + 1) %>%
         set_attribute("treatment_received", function() {
           r2b_surg <- get_attribute(env, "r2b_surgery")
           r2e_surg <- get_attribute(env, "r2e_surgery")
@@ -2252,7 +2276,7 @@ r2e_treat_wia <- function(team_id) {
         ) %>%
         release_selected(id = 9) %>%
         set_attribute("ame_departure_time", function() now(env)) %>%
-        set_attribute("evacuation_day", function() floor(now(env) / 1440) + 1) %>%
+        set_attribute("evacuation_day", function() floor(now(env) / DAY_MIN) + 1) %>%
         set_attribute("ame_wait_minutes", function() {
           now(env) - get_attribute(env, "r2e_departure_time")
         })

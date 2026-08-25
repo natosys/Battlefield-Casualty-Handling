@@ -6,6 +6,8 @@
 library(dplyr)
 library(ggplot2)
 
+source("R/constants.R")
+
 # Terminating simulation (Law 2020): finite campaign horizon, no steady state.
 # Welch CMA across 10 × 90-day reps shows episodic non-stationary behaviour
 # (peaks Days 13, 38; no convergence) — warm-up exclusion is not appropriate.
@@ -61,10 +63,10 @@ plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
                        images_dir = "images") {
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
-  max_day <- ceiling(max(cma_df$bin_min, na.rm = TRUE) / 1440)
+  max_day <- ceiling(max(cma_df$bin_min, na.rm = TRUE) / DAY_MIN)
   y_max   <- max(cma_df$cma, na.rm = TRUE)
 
-  p <- ggplot(cma_df, aes(x = bin_min / 1440, y = cma)) +
+  p <- ggplot(cma_df, aes(x = bin_min / DAY_MIN, y = cma)) +
     geom_line(colour = "steelblue", linewidth = 1)
 
   if (warm_up_days > 0L) {
@@ -75,7 +77,7 @@ plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
                x     = warm_up_days + 0.3,
                y     = y_max * 0.97,
                label = sprintf("Warm-up: Day %d\n(%d min)", warm_up_days,
-                               warm_up_days * 1440L),
+                               warm_up_days * DAY_MIN),
                hjust = 0, vjust = 1,
                colour = "firebrick", size = 3.5)
   }
@@ -118,7 +120,7 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
 
   if (WARM_UP_DAYS > 0L) {
     message(sprintf("Warm-up period: %d days (%d minutes)",
-                    WARM_UP_DAYS, WARM_UP_DAYS * 1440L))
+                    WARM_UP_DAYS, WARM_UP_DAYS * DAY_MIN))
   } else {
     message("Warm-up exclusion: none (terminating simulation — full window retained)")
   }

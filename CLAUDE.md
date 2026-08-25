@@ -15,6 +15,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | File / Directory | Purpose |
 |---|---|
 | `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
+| `R/constants.R` | Values shared across modules, `DAY_MIN` (minutes per simulated day) among them. Sourced by each module that needs one rather than by one module on every other's behalf, the modules under `R/` being otherwise independent |
 | `R/environment.R` | Data import, arrival generation, and simmer environment construction |
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
 | `R/replication.R` | Multi-run replication framework (`run_once`, `run_replications`, `summarise_replications`) |
@@ -482,7 +483,7 @@ The rules below are the ones that come up in almost every PR. They are a pointer
 - Branch logic carries a comment block describing the branch structure and the decision criterion for each arm before the `branch()` call (R4).
 - Assign with `<-`, never `=`. Use the magrittr pipe `%>%`, never the native pipe. Keep lines inside 100 characters and function bodies inside 100 lines (F4, F5, F1, D1).
 - Use `snake_case` for every variable and function name; `UPPER_SNAKE_CASE` for a file-scope constant. Resource variables follow `<type>_<echelon>` (e.g. `ot_beds`, `hold_beds`, `surg_team`), and trajectories take descriptive quoted names (e.g. `trajectory("R2B Surgery, DCS Phase 1")`) (N1, N2).
-- Minutes per day is `day_min`, never the literal `1440`, and a parameter a planner might change belongs in `env_data.json` rather than in R source (C1, C3).
+- Minutes per day is never the literal `1440`. `DAY_MIN` (`R/environment.R`) is its single definition, and the `day_min` global the execution model carries is assigned from it by each entry point; use `day_min` inside the model and the analysis pipeline, and `DAY_MIN` where no entry point has run yet, such as a regression check calling into a module directly, or in a parameter default that cannot name the global without resolving to itself. A parameter a planner might change belongs in `env_data.json` rather than in R source (C1, C3).
 - `<<-` is permitted for closure state and, from an entry point only, for the four globals the execution model requires (`env`, `env_data`, `day_min`, `counts`). A function that mutates one of those and is expected to leave it as it found it restores it with `on.exit(..., add = TRUE)`, not by manual assignment at the foot of the function (G1 to G3).
 - Anything read from outside the program (`env_data.json`, CLI arguments, a Shiny input) is validated before use and fails with a `stop()` message naming the field and the value found (E1, E2).
 - A comment explains why; the academic documents explain the model. This is the reciprocal of the prose rule above: reasons only a maintainer needs go in the comment, and neither restates the other (R5, R6).

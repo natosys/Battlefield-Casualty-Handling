@@ -1041,6 +1041,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | ---------------------------------- | ------- |
 | `run.R`                            | CLI entry point; parses arguments, orchestrates modules, and writes outputs |
 | `env_data.json`                    | All simulation parameters: populations, health system establishment, transport fleet, distributions, schedules, and the named scenario profiles under its `scenarios` block (see [Model Parameters and Model Configuration](#model-parameters-and-model-configuration)) |
+| `R/constants.R`                    | Values shared across modules, `DAY_MIN` (minutes per simulated day) among them. Each module that needs one sources this file, the modules under `R/` being otherwise independent of each other |
 | `R/environment.R`                  | Data import (`load_elms`, `load_scenario`, `build_environment`), arrival generation (`generate_casualty_arrivals`, `make_ln_arrival_generator`, `make_exp_arrival_generator`), and simmer environment construction (`build_env`) |
 | `R/trajectories.R`                 | All simmer `trajectory()` definitions: R1, R2B, R2E, and core casualty flow |
 | `R/replication.R`                  | Multi-run replication framework: `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), and `summarise_replications` (time-weighted KPI summary with 95% CI) |

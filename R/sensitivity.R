@@ -9,6 +9,8 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 
+source("R/constants.R")
+
 # ── Plotting helpers ──────────────────────────────────────────────────────────
 
 #' Colour assignment for the Context/Capacity/Policy parameter category split
@@ -920,7 +922,7 @@ extract_kpis <- function(mon) {
   n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
   # The engagement window every "per day" and "over the run" reduction below
   # is measured against, derived the same way analyse_run() derives it.
-  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / 1440))
+  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / DAY_MIN))
 
   attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
   combined <- arrivals %>%

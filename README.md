@@ -98,6 +98,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
     - [Running the simulation](#running-the-simulation)
+    - [Analysis Pipeline Structure](#analysis-pipeline-structure)
     - [Verification and Continuous Integration](#verification-and-continuous-integration)
     - [Multi-run Replication Framework](#multi-run-replication-framework)
     - [Warm-up Period Analysis](#warm-up-period-analysis)
@@ -1042,7 +1043,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/environment.R`                  | Data import (`load_elms`, `load_scenario`, `build_environment`), arrival generation (`generate_casualty_arrivals`, `make_ln_arrival_generator`, `make_exp_arrival_generator`), and simmer environment construction (`build_env`) |
 | `R/trajectories.R`                 | All simmer `trajectory()` definitions: R1, R2B, R2E, and core casualty flow |
 | `R/replication.R`                  | Multi-run replication framework: `run_once` (single replication with `wrap()`), `run_replications` (parallel `mclapply` over *n* replications), and `summarise_replications` (time-weighted KPI summary with 95% CI) |
-| `R/analysis.R`                     | Analysis and visualisation pipeline (`analyse_run`); accepts monitoring data objects rather than reading from hardcoded CSV paths |
+| `R/analysis.R`                     | Analysis and visualisation pipeline; accepts monitoring data objects rather than reading from hardcoded CSV paths. `analyse_run()` and `analyse_replications()` are orchestrators over named single-purpose functions, one per stage: data preparation, per-domain summary, plotting and writing (see [Analysis Pipeline Structure](#analysis-pipeline-structure)) |
 | `R/sensitivity.R`                  | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`); holds the `morris_params` bounds table, `apply_params` for env_data override, and `eval_params` for single design-point evaluation |
 | `R/warmup.R`                       | Welch warm-up analysis: `compute_welch_cma`, `plot_welch`, `run_welch_analysis`, and the `WARM_UP_DAYS` constant |
 | `R/app_params.R`                   | Parameter registry for the Shiny Configure panel: plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
@@ -1076,6 +1077,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/check_scenario_labels.R`  | Checks that the comparative scenario plot renders in a C locale and byte-for-byte matches the same plot rendered under UTF-8, reaching the plotting stage from a synthetic queue table rather than from a full replication run; exits non-zero on failure |
 | `scripts/check_mass_casualty_kia_split.R` | Checks that a mass casualty event's casualty count is conserved across the wounded/killed split at every share, that the realised share tracks the configured one, that an event's killed reach mortuary handling without being triaged, and that the share reaches nothing while injection is disabled; exits non-zero on failure |
 | `scripts/check_pre_open_window.R`  | Checks the R2B pre-open hold window at its bounds: that a window of zero reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster at every minute of the day, and that every casualty held forward is operated on there rather than diverted anyway; exits non-zero on failure |
+| `scripts/check_analysis_decomposition.R` | Checks that every stage of the analysis pipeline binds what it returns: that no stage returns a name bound only inside a conditional, and that no stage returns a value nothing reads. Both are properties of the source rather than of any one run, so one check covers every path at once, which an artifact comparison cannot; exits non-zero on failure |
 | `scripts/check_screen_cache.R`     | Checks that a screen's design-point cache resumes what it recorded: that a complete row round-trips, that a partially-missing row reads as present with its gaps preserved while an all-missing row reads as absent and is retried, that an uncached point and a cache from a different screen both read as absent, and that a Sobol cache's per-response standard-deviation columns neither disturb a response lookup nor become unreadable; exits non-zero on failure |
 | `scripts/check_testthat.R`         | Runs the Shiny console's `testthat` suite under `tests/testthat`, which covers the console's reactive state machine through `shiny::testServer()` and its helpers directly; exits non-zero on any failing test |
 | `tests/testthat/`                  | The console's R test suite: helper unit tests, and `testServer` coverage of the run, screening and configuration reactives |
@@ -1134,6 +1136,14 @@ The console log and the arrival diagnostics record one specific run's event stre
 Not every file in `images/` belongs to the baseline set. The directory also holds reference diagrams that no run produces, figures written by the other entry points in `scripts/` (Morris screening, the Welch warm-up plot, the scenario comparison, the transport fleet sweep), and figures deliberately generated under a non-default configuration, such as the mass casualty event timeline, which requires `mass_casualty.event.rate_per_day` to be set above its shipped value of zero. `--refresh-baseline` rewrites only the figures a seed-42 run produces under the shipped configuration and leaves the rest untouched, so those categories must be regenerated by whichever command produced them.
 
 Package versions are pinned via a committed `renv.lock`; see [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
+
+#### Analysis Pipeline Structure
+
+`R/analysis.R` has two entry points, `analyse_run()` for a single replication and `analyse_replications()` for a multi-run analysis with confidence intervals, and each is an orchestrator rather than a worker. Every stage of the pipeline is a named function that does one thing: `prepare_run_frames()` and `prepare_replication_frames()` derive the frames each later stage reads, and the stages that follow either summarise one domain, plot one figure, or write one group of tables. A reader wanting to check how a published figure is computed goes to the function named for it rather than through the whole pipeline.
+
+The division is the same in both entry points. A preparation function applies the warm-up filter, writes the raw monitor tables unchanged, pivots the per-casualty attributes wide, and derives the daily casualty counts every later stage shares. Each summary function takes the frames it reads and returns the values anything later consumes, so what a stage depends on is visible in its signature rather than implied by its position. The plotting functions return their `ggplot` objects as well as writing them, which is what lets the Shiny console embed a figure without re-running the analysis (see [Shiny Application](#shiny-application)).
+
+One derivation in the pipeline consumes random draws, the Role 4 length of stay in `assign_role4_los()`, and the pooled mass casualty timeline jitters its points as it renders. Both run under a saved and restored random number stream, so the pipeline is idempotent and consumes no net randomness; `scripts/check_analysis_idempotence.R` asserts that property, and [Multi-run Replication Framework](#multi-run-replication-framework) describes what follows from it.
 
 #### Verification and Continuous Integration
 

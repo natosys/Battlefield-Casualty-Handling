@@ -1632,8 +1632,19 @@ ui <- page_navbar(
 
 # ── Server ────────────────────────────────────────────────────────────────
 
-server <- function(input, output, session) {
-
+#' Create every reactive value the console's panels share
+#'
+#' @param input See analyse_run().
+#' @param session See analyse_run().
+#' @return A list of `analysis_results`, `mon_data`, `morris_error`, `morris_png_bytes`,
+#'   `morris_progress_dir`, `morris_progress_done`, `morris_progress_total`, `morris_results`,
+#'   `morris_state`, `pending_future`, `pending_morris`, `pending_sobol`, `pending_transport_sweep`,
+#'   `progress_pct`, `raw_env_data`, `rep_progress_dir`, `rep_progress_done`, `rep_progress_total`,
+#'   `run_error`, `run_mode`, `run_state`, `sobol_error`, `sobol_progress_dir`,
+#'   `sobol_progress_done`, `sobol_progress_total`, `sobol_results`, `sobol_state`, `startup_json`,
+#'   `transport_sweep_error`, `transport_sweep_progress_dir`, `transport_sweep_progress_done`,
+#'   `transport_sweep_progress_total`, `transport_sweep_results`, `transport_sweep_state`.
+create_console_state <- function(input, session) {
   observeEvent(input$goto_getting_started, {
     updateNavbarPage(session, "main_nav", selected = "Getting Started")
   })
@@ -1693,9 +1704,51 @@ server <- function(input, output, session) {
   transport_sweep_progress_total <- reactiveVal(0)
   transport_sweep_progress_done  <- reactiveVal(0)
   pending_transport_sweep        <- reactiveVal(NULL)
+  list(
+    analysis_results = analysis_results,
+    mon_data = mon_data,
+    morris_error = morris_error,
+    morris_png_bytes = morris_png_bytes,
+    morris_progress_dir = morris_progress_dir,
+    morris_progress_done = morris_progress_done,
+    morris_progress_total = morris_progress_total,
+    morris_results = morris_results,
+    morris_state = morris_state,
+    pending_future = pending_future,
+    pending_morris = pending_morris,
+    pending_sobol = pending_sobol,
+    pending_transport_sweep = pending_transport_sweep,
+    progress_pct = progress_pct,
+    raw_env_data = raw_env_data,
+    rep_progress_dir = rep_progress_dir,
+    rep_progress_done = rep_progress_done,
+    rep_progress_total = rep_progress_total,
+    run_error = run_error,
+    run_mode = run_mode,
+    run_state = run_state,
+    sobol_error = sobol_error,
+    sobol_progress_dir = sobol_progress_dir,
+    sobol_progress_done = sobol_progress_done,
+    sobol_progress_total = sobol_progress_total,
+    sobol_results = sobol_results,
+    sobol_state = sobol_state,
+    startup_json = startup_json,
+    transport_sweep_error = transport_sweep_error,
+    transport_sweep_progress_dir = transport_sweep_progress_dir,
+    transport_sweep_progress_done = transport_sweep_progress_done,
+    transport_sweep_progress_total = transport_sweep_progress_total,
+    transport_sweep_results = transport_sweep_results,
+    transport_sweep_state = transport_sweep_state
+  )
+}
 
-  # ── Configure panel ───────────────────────────────────────────────────────
-
+#' Wire the Configure panel's field synchronisation and previews
+#'
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return A list of `fields_by_group`, `slider_field_ids`, `tri_mode_ids`.
+wire_configure_panel <- function(input, output, session) {
   fields_by_group <- split(PARAM_REGISTRY, vapply(PARAM_REGISTRY, `[[`, character(1), "group"))
 
   # Every slider gets a paired "type an exact value" numeric box (see
@@ -1737,21 +1790,17 @@ server <- function(input, output, session) {
       render_tri_curve(input[[tt$min_id]], input[[tt$mode_id]], input[[tt$max_id]])
     })
   })
+  list(
+    fields_by_group = fields_by_group,
+    slider_field_ids = slider_field_ids,
+    tri_mode_ids = tri_mode_ids
+  )
+}
 
-  # ── Casualty Intensity Profile selector ──────────────────────────────────
-  # Offers exactly the scenario profiles defined in the loaded env_data.json
-  # (today: "default" plus whatever is under its `scenarios` block) — no
-  # fabricated intermediate tiers. resolve_scenario() (R/scenario.R) only
-  # overlays the `vars` paths a given scenario actually defines; structural
-  # config (force size, team/bed counts, transport fleet) is never touched.
-
-  # env_data.json's scenario labels carry a full descriptive parenthetical
-  # (e.g. "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British
-  # Task Force, South Atlantic)") intended for the README/CSV outputs
-  # (R/scenario.R's active_scenario_label, R/scenario_runner.R) — kept
-  # unchanged there since that is the citation-quality name. The dropdown
-  # instead uses SCENARIO_DROPDOWN_LABELS below: a display-only override,
-  # not a rename of the underlying scenario identity.
+#' Build the dropdown's display labels for each intensity profile
+#'
+#' @return A list of `SCENARIO_DROPDOWN_LABELS`, `shorten_scenario_label`.
+build_scenario_labels <- function() {
   shorten_scenario_label <- function(lbl) {
     trimws(sub("\\s*\\(.*$", "", lbl))
   }
@@ -1781,7 +1830,23 @@ server <- function(input, output, session) {
     moderate_intensity  = "Falklands — Unmodified",
     high_intensity      = "Okinawa — Casualty Rates"
   )
+  list(
+    SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,
+    shorten_scenario_label = shorten_scenario_label
+  )
+}
 
+#' Wire the intensity profile dropdown and the configuration it resolves
+#'
+#' @param raw_env_data See wire_scenario_resolution().
+#' @param input See wire_scenario_resolution().
+#' @param output See wire_scenario_resolution().
+#' @param SCENARIO_DROPDOWN_LABELS See wire_scenario_resolution().
+#' @param shorten_scenario_label See wire_scenario_resolution().
+#' @return A list of `current_scenario`, `scenario_choices`, `scenario_json`,
+#'   `scenario_overridden_paths`.
+wire_scenario_dropdown <- function(raw_env_data, input, output, SCENARIO_DROPDOWN_LABELS,
+                                   shorten_scenario_label) {
   scenario_choices <- reactive({
     base <- raw_env_data()
     ids  <- c("default", names(base$scenarios))
@@ -1849,11 +1914,19 @@ server <- function(input, output, session) {
           paste(paths, collapse = ", ")
         ))
   })
+  list(
+    current_scenario = current_scenario,
+    scenario_choices = scenario_choices,
+    scenario_json = scenario_json,
+    scenario_overridden_paths = scenario_overridden_paths
+  )
+}
 
-  # Resolved distribution family per casualty-generation stream under the
-  # active Casualty Intensity Profile — same lookup render_gen_curve()'s
-  # own renderPlot() uses below, shared here so the Std. Dev. field itself
-  # (not just its curve) reflects which streams are currently exponential.
+#' Derive the distribution families and died-of-wounds shape a profile implies
+#'
+#' @param scenario_json See wire_scenario_resolution().
+#' @return A list of `dow_shape`, `gen_distributions`.
+build_scenario_derivations <- function(scenario_json) {
   gen_distributions <- reactive({
     setNames(vapply(GEN_STREAM_ACTYS, function(acty) {
       d <- get_raw_var(scenario_json(), "generators", acty, "distribution")
@@ -1876,20 +1949,54 @@ server <- function(input, output, session) {
       )
     }), c("p1", "p2"))
   })
+  list(
+    dow_shape = dow_shape,
+    gen_distributions = gen_distributions
+  )
+}
 
-  # Number of Scheduled Event Days rows currently visible in the Mass
-  # Casualty panel (see render_group_body()'s "Scheduled Event Days" case).
-  # Seeded from however many slots already have a non-zero Day in the
-  # loaded config (at least 1, so a fresh/default config shows one empty
-  # starter row rather than none) — raw_env_data() is a plain reactiveVal
-  # seeded synchronously at app startup, so isolate() here just avoids
-  # taking an unnecessary reactive dependency on it for this one-time read.
-  # Tracks how many Scheduled Event Days rows are currently visible. This is
-  # internal server state only — it is never read inside a renderUI, so
-  # changing it does not invalidate (and re-render from JSON defaults) the
-  # Mass Casualty group body. Visibility itself is toggled client-side via
-  # the "mc_toggle_row" custom message (handler registered once in
-  # render_group_body()'s "Scheduled Event Days" case).
+#' Wire the profile dropdown and the configuration it resolves
+#'
+#' @param raw_env_data See wire_scenario_selector().
+#' @param input See wire_scenario_selector().
+#' @param output See wire_scenario_selector().
+#' @param SCENARIO_DROPDOWN_LABELS See wire_scenario_selector().
+#' @param shorten_scenario_label See wire_scenario_selector().
+#' @return A list of `current_scenario`, `dow_shape`, `gen_distributions`, `scenario_choices`,
+#'   `scenario_json`, `scenario_overridden_paths`.
+wire_scenario_resolution <- function(raw_env_data, input, output, SCENARIO_DROPDOWN_LABELS,
+                                     shorten_scenario_label) {
+  scenario_dropdown_out <- wire_scenario_dropdown(raw_env_data, input, output,
+                                                  SCENARIO_DROPDOWN_LABELS, shorten_scenario_label)
+  current_scenario <- scenario_dropdown_out$current_scenario
+  scenario_choices <- scenario_dropdown_out$scenario_choices
+  scenario_json <- scenario_dropdown_out$scenario_json
+  scenario_overridden_paths <- scenario_dropdown_out$scenario_overridden_paths
+
+  # Resolved distribution family per casualty-generation stream under the
+  # active Casualty Intensity Profile — same lookup render_gen_curve()'s
+  # own renderPlot() uses below, shared here so the Std. Dev. field itself
+  # (not just its curve) reflects which streams are currently exponential.
+  scenario_derivations_out <- build_scenario_derivations(scenario_json)
+  dow_shape <- scenario_derivations_out$dow_shape
+  gen_distributions <- scenario_derivations_out$gen_distributions
+  list(
+    current_scenario = current_scenario,
+    dow_shape = dow_shape,
+    gen_distributions = gen_distributions,
+    scenario_choices = scenario_choices,
+    scenario_json = scenario_json,
+    scenario_overridden_paths = scenario_overridden_paths
+  )
+}
+
+#' Wire the scheduled mass casualty event rows
+#'
+#' @param raw_env_data See wire_scenario_selector().
+#' @param input See wire_scenario_selector().
+#' @param session See wire_scenario_selector().
+#' @return `mc_event_count`.
+wire_mass_casualty_rows <- function(raw_env_data, input, session) {
   mc_event_count <- reactiveVal(max(1L, count_active_mass_casualty_events(isolate(raw_env_data()))))
 
   observeEvent(input$mc_event_add, {
@@ -1918,7 +2025,22 @@ server <- function(input, output, session) {
       mc_event_count(n - 1L)
     }
   })
+  mc_event_count
+}
 
+#' Wire each Configure accordion panel and its diagrams
+#'
+#' @param fields_by_group See wire_scenario_selector().
+#' @param input See wire_scenario_selector().
+#' @param output See wire_scenario_selector().
+#' @param dow_shape See wire_scenario_selector().
+#' @param gen_distributions See wire_scenario_selector().
+#' @param scenario_json See wire_scenario_selector().
+#' @param scenario_overridden_paths See wire_scenario_selector().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shape,
+                                        gen_distributions, scenario_json,
+                                        scenario_overridden_paths) {
   lapply(names(fields_by_group), function(g) {
     output_id <- paste0("group_ui_", make.names(g))
     output[[output_id]] <- renderUI({
@@ -1994,14 +2116,17 @@ server <- function(input, output, session) {
       ame_failure_probability = input$ame_failure_probability %||% 0
     )
   })
-  # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
-  # reasoning as force_design_diagram above, for the Medevac panel.
+  invisible(NULL)
+}
 
-  # Live casualty-generation curve previews (Casualty Rates group). Read
-  # live from the mean/sd inputs so the curve redraws as the user edits
-  # them; the distribution family comes from scenario_json() (not itself
-  # user-editable — see README Scenario Profiles for why picking a family
-  # independently of a sourced rate would be uncited guesswork).
+#' Wire the casualty generation and died-of-wounds curve previews
+#'
+#' @param input See wire_scenario_selector().
+#' @param output See wire_scenario_selector().
+#' @param dow_shape See wire_scenario_selector().
+#' @param scenario_json See wire_scenario_selector().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_configure_previews <- function(input, output, dow_shape, scenario_json) {
   lapply(GEN_STREAM_ACTYS, function(acty) {
     output_id <- paste0("curve_", acty)
     output[[output_id]] <- renderPlot({
@@ -2031,7 +2156,17 @@ server <- function(input, output, session) {
     # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
     # reasoning as the triangular curve previews above.
   })
+  invisible(NULL)
+}
 
+#' Wire loading a configuration and saving the current one
+#'
+#' @param raw_env_data See wire_scenario_selector().
+#' @param input See wire_scenario_selector().
+#' @param output See wire_scenario_selector().
+#' @param scenario_json See wire_scenario_selector().
+#' @return `current_json`.
+wire_configuration_transfer <- function(raw_env_data, input, output, scenario_json) {
   observeEvent(input$upload_json, {
     req(input$upload_json)
     tryCatch({
@@ -2052,9 +2187,80 @@ server <- function(input, output, session) {
     filename = function() sprintf("env_data_%s.json", format(Sys.time(), "%Y%m%d_%H%M%S")),
     content  = function(file) write_json(current_json(), file, pretty = TRUE, auto_unbox = TRUE)
   )
+  current_json
+}
 
-  # ── Validation ────────────────────────────────────────────────────────────
+#' Wire the casualty intensity profile selector and the configuration it resolves
+#'
+#' @param fields_by_group See analyse_run().
+#' @param raw_env_data See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return A list of `current_json`, `current_scenario`, `dow_shape`, `gen_distributions`,
+#'   `mc_event_count`, `scenario_choices`, `SCENARIO_DROPDOWN_LABELS`, `scenario_json`,
+#'   `scenario_overridden_paths`, `shorten_scenario_label`.
+wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output, session) {
+  scenario_labels_out <- build_scenario_labels()
+  SCENARIO_DROPDOWN_LABELS <- scenario_labels_out$SCENARIO_DROPDOWN_LABELS
+  shorten_scenario_label <- scenario_labels_out$shorten_scenario_label
 
+  scenario_resolution_out <- wire_scenario_resolution(raw_env_data, input, output,
+                                                      SCENARIO_DROPDOWN_LABELS,
+                                                      shorten_scenario_label)
+  current_scenario <- scenario_resolution_out$current_scenario
+  dow_shape <- scenario_resolution_out$dow_shape
+  gen_distributions <- scenario_resolution_out$gen_distributions
+  scenario_choices <- scenario_resolution_out$scenario_choices
+  scenario_json <- scenario_resolution_out$scenario_json
+  scenario_overridden_paths <- scenario_resolution_out$scenario_overridden_paths
+
+  # Number of Scheduled Event Days rows currently visible in the Mass
+  # Casualty panel (see render_group_body()'s "Scheduled Event Days" case).
+  # Seeded from however many slots already have a non-zero Day in the
+  # loaded config (at least 1, so a fresh/default config shows one empty
+  # starter row rather than none) — raw_env_data() is a plain reactiveVal
+  # seeded synchronously at app startup, so isolate() here just avoids
+  # taking an unnecessary reactive dependency on it for this one-time read.
+  # Tracks how many Scheduled Event Days rows are currently visible. This is
+  # internal server state only — it is never read inside a renderUI, so
+  # changing it does not invalidate (and re-render from JSON defaults) the
+  # Mass Casualty group body. Visibility itself is toggled client-side via
+  # the "mc_toggle_row" custom message (handler registered once in
+  # render_group_body()'s "Scheduled Event Days" case).
+  mc_event_count <- wire_mass_casualty_rows(raw_env_data, input, session)
+
+  wire_configure_group_bodies(fields_by_group, input, output, dow_shape, gen_distributions,
+                              scenario_json, scenario_overridden_paths)
+  # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+  # reasoning as force_design_diagram above, for the Medevac panel.
+
+  # Live casualty-generation curve previews (Casualty Rates group). Read
+  # live from the mean/sd inputs so the curve redraws as the user edits
+  # them; the distribution family comes from scenario_json() (not itself
+  # user-editable — see README Scenario Profiles for why picking a family
+  # independently of a sourced rate would be uncited guesswork).
+  wire_configure_previews(input, output, dow_shape, scenario_json)
+
+  current_json <- wire_configuration_transfer(raw_env_data, input, output, scenario_json)
+  list(
+    current_json = current_json,
+    current_scenario = current_scenario,
+    dow_shape = dow_shape,
+    gen_distributions = gen_distributions,
+    mc_event_count = mc_event_count,
+    scenario_choices = scenario_choices,
+    SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,
+    scenario_json = scenario_json,
+    scenario_overridden_paths = scenario_overridden_paths,
+    shorten_scenario_label = shorten_scenario_label
+  )
+}
+
+#' Build the validator a run's configuration must pass
+#'
+#' @return The validate_config object.
+build_config_validator <- function() {
   validate_config <- function(values) {
     errors <- character(0)
     req_pos <- list(pop_combat = "Combat force size", pop_support = "Support force size",
@@ -2108,9 +2314,25 @@ server <- function(input, output, session) {
 
     errors
   }
+  validate_config
+}
 
-  # ── Quick Run execution (async via future + promises) ────────────────────
-
+#' Wire the Quick Run button to a single-replication run
+#'
+#' @param analysis_results See analyse_run().
+#' @param current_json See analyse_run().
+#' @param mon_data See analyse_run().
+#' @param pending_future See analyse_run().
+#' @param progress_pct See analyse_run().
+#' @param run_error See analyse_run().
+#' @param run_mode See analyse_run().
+#' @param run_state See analyse_run().
+#' @param scenario_json See analyse_run().
+#' @param validate_config See analyse_run().
+#' @param input See analyse_run().
+#' @return Invisibly NULL; called for the files it writes.
+wire_quick_run <- function(analysis_results, current_json, mon_data, pending_future, progress_pct,
+                           run_error, run_mode, run_state, scenario_json, validate_config, input) {
   observeEvent(input$run_quick, {
     values <- inject_all_splits(reactiveValuesToList(input))
     values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
@@ -2179,9 +2401,31 @@ server <- function(input, output, session) {
     pending_future(prom)
     invisible(NULL)
   })
+  invisible(NULL)
+}
 
-  # ── Full Analysis execution (async via future + promises) ────────────────
-
+#' Start a Full Analysis run from the Run panel
+#'
+#' @param analysis_results See wire_full_analysis().
+#' @param current_json See wire_full_analysis().
+#' @param mon_data See wire_full_analysis().
+#' @param pending_future See wire_full_analysis().
+#' @param progress_pct See wire_full_analysis().
+#' @param rep_progress_dir See wire_full_analysis().
+#' @param rep_progress_done See wire_full_analysis().
+#' @param rep_progress_total See wire_full_analysis().
+#' @param run_error See wire_full_analysis().
+#' @param run_mode See wire_full_analysis().
+#' @param run_state See wire_full_analysis().
+#' @param scenario_json See wire_full_analysis().
+#' @param validate_config See wire_full_analysis().
+#' @param input See wire_full_analysis().
+#' @param output See wire_full_analysis().
+#' @return Invisibly NULL; called for the outputs it registers.
+start_full_analysis <- function(analysis_results, current_json, mon_data, pending_future,
+                                progress_pct, rep_progress_dir, rep_progress_done,
+                                rep_progress_total, run_error, run_mode, run_state, scenario_json,
+                                validate_config, input, output) {
   observeEvent(input$run_full, {
     values <- inject_all_splits(reactiveValuesToList(input))
     values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
@@ -2242,15 +2486,25 @@ server <- function(input, output, session) {
     pending_future(prom)
     invisible(NULL)
   })
+  invisible(NULL)
+}
 
-  # Simulated progress ticker: future/multisession runs in a separate R
-  # process, so exact percentage progress isn't observable from the main
-  # session without the progressr package; this ticks toward 90% while the
-  # run is in flight and snaps to 100% on completion, keeping the UI
-  # responsive rather than frozen for the ~20s a typical Quick Run takes.
-  # Full Analysis instead has real per-replication progress (see the poller
-  # below, which drives rep_progress_done from prog_dir's marker files), so
-  # this ticker only fires in "quick" mode.
+#' Wire the Full Analysis progress poll and run status
+#'
+#' @param progress_pct See wire_full_analysis().
+#' @param rep_progress_dir See wire_full_analysis().
+#' @param rep_progress_done See wire_full_analysis().
+#' @param rep_progress_total See wire_full_analysis().
+#' @param run_error See wire_full_analysis().
+#' @param run_mode See wire_full_analysis().
+#' @param run_state See wire_full_analysis().
+#' @param input See wire_full_analysis().
+#' @param output See wire_full_analysis().
+#' @param session See wire_full_analysis().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_full_analysis_progress <- function(progress_pct, rep_progress_dir, rep_progress_done,
+                                        rep_progress_total, run_error, run_mode, run_state, input,
+                                        output, session) {
   observe({
     req(run_state() == "running", identical(run_mode(), "quick"))
     invalidateLater(400, session)
@@ -2308,18 +2562,56 @@ server <- function(input, output, session) {
       div(class = "alert alert-danger", paste("Run failed:", run_error()))
     }
   })
+  invisible(NULL)
+}
 
-  # ── Analyse panel ─────────────────────────────────────────────────────────
+#' Wire the Full Analysis button to a multi-replication run
+#'
+#' @param analysis_results See analyse_run().
+#' @param current_json See analyse_run().
+#' @param mon_data See analyse_run().
+#' @param pending_future See analyse_run().
+#' @param progress_pct See analyse_run().
+#' @param rep_progress_dir See analyse_run().
+#' @param rep_progress_done See analyse_run().
+#' @param rep_progress_total See analyse_run().
+#' @param run_error See analyse_run().
+#' @param run_mode See analyse_run().
+#' @param run_state See analyse_run().
+#' @param scenario_json See analyse_run().
+#' @param validate_config See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return Invisibly NULL; called for the files it writes.
+wire_full_analysis <- function(analysis_results, current_json, mon_data, pending_future,
+                               progress_pct, rep_progress_dir, rep_progress_done,
+                               rep_progress_total, run_error, run_mode, run_state, scenario_json,
+                               validate_config, input, output, session) {
+  start_full_analysis(analysis_results, current_json, mon_data, pending_future, progress_pct,
+                      rep_progress_dir, rep_progress_done, rep_progress_total, run_error, run_mode,
+                      run_state, scenario_json, validate_config, input, output)
 
-  # tab_plot() previously combined Queue Depths' 3 panels and Quick Run's
-  # Bed & Resource Utilisation's 4 panels into one patchwork image each; both
-  # are now split into individually shrink-to-fit plots (Issue #121 follow-
-  # up) so each panel can be shrunk against its own full viewport-height
-  # budget, rather than every constituent plot in a combined image sharing
-  # (and being squashed to fit) one. Only the three tabs that are still ever
-  # a single combined/standalone plot remain here; every split-out panel is
-  # read directly from analysis_results() at its own new_shrink_to_fit_plot()
-  # call instead.
+  # Simulated progress ticker: future/multisession runs in a separate R
+  # process, so exact percentage progress isn't observable from the main
+  # session without the progressr package; this ticks toward 90% while the
+  # run is in flight and snaps to 100% on completion, keeping the UI
+  # responsive rather than frozen for the ~20s a typical Quick Run takes.
+  # Full Analysis instead has real per-replication progress (see the poller
+  # below, which drives rep_progress_done from prog_dir's marker files), so
+  # this ticker only fires in "quick" mode.
+  wire_full_analysis_progress(progress_pct, rep_progress_dir, rep_progress_done, rep_progress_total,
+                              run_error, run_mode, run_state, input, output, session)
+  invisible(NULL)
+}
+
+#' Wire the Analyse panel's plot selection and sizing
+#'
+#' @param analysis_results See analyse_run().
+#' @param run_mode See analyse_run().
+#' @return A list of `gantt_min_section_height_px`, `gantt_row_height_px`, `tab_plot`,
+#'   `UTILISATION_FULL_MODE_HEIGHT_PX`, `utilisation_panel_heights`.
+wire_analyse_panel <- function(analysis_results, run_mode) {
   tab_plot <- reactive({
     res <- analysis_results()
     req(res)
@@ -2374,20 +2666,22 @@ server <- function(input, output, session) {
          r2e_surgery   = 400, r2e_gantt = r2e_gantt_height,
          r2e_icu_gating = 500, r2b_hold_occupancy = 450, r2b_bypass_reason = 450)
   })
+  list(
+    gantt_min_section_height_px = gantt_min_section_height_px,
+    gantt_row_height_px = gantt_row_height_px,
+    tab_plot = tab_plot,
+    UTILISATION_FULL_MODE_HEIGHT_PX = UTILISATION_FULL_MODE_HEIGHT_PX,
+    utilisation_panel_heights = utilisation_panel_heights
+  )
+}
 
-  # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
-  # Every plot in the Analyse tab (Quick Run and Full Analysis alike)
-  # defaults to a size that fits the user's browser viewport without page
-  # scrolling, while remaining fully readable on demand via an "Expand"
-  # link. Each plot still renders server-side at its own natural, data-
-  # driven height (e.g. utilisation_panel_heights() above, unchanged from
-  # Issue #111) so row/label geometry is computed exactly as before; only
-  # the *displayed* size is capped, client-side, by shrink_to_fit_script()
-  # (see its roxygen for why this is done in JS rather than by feeding a
-  # viewport height back into a reactive renderUI). chrome_px is a per-tab
-  # allowance for the surrounding navbar/tab-strip/heading/download-button
-  # chrome that a plot's own container does not occupy; tabs with an
-  # explanatory paragraph above the plot use the larger allowance.
+#' Build the shrink-to-fit plot container and registration helpers
+#'
+#' @param input See wire_analyse_outputs().
+#' @param output See wire_analyse_outputs().
+#' @return A list of `ANALYSE_PLOT_CHROME_PX`, `ANALYSE_PLOT_CHROME_WITH_HEADING_PX`,
+#'   `ANALYSE_PLOT_CHROME_WITH_INTRO_PX`, `new_shrink_to_fit_plot`, `shrink_to_fit_plot_ui`.
+build_shrink_to_fit_helpers <- function(input, output) {
   ANALYSE_PLOT_CHROME_PX             <- 260
   ANALYSE_PLOT_CHROME_WITH_INTRO_PX  <- 360
   # Split-out panels (Queue Depths' 3; Bed & Resource Utilisation's 4 Quick
@@ -2448,9 +2742,24 @@ server <- function(input, output, session) {
       ))
     }, ignoreInit = TRUE)
   }
+  list(
+    ANALYSE_PLOT_CHROME_PX = ANALYSE_PLOT_CHROME_PX,
+    ANALYSE_PLOT_CHROME_WITH_HEADING_PX = ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+    ANALYSE_PLOT_CHROME_WITH_INTRO_PX = ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+    new_shrink_to_fit_plot = new_shrink_to_fit_plot,
+    shrink_to_fit_plot_ui = shrink_to_fit_plot_ui
+  )
+}
 
-  # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
-  # shown above the output tabs, per Issue #15's acceptance criteria.
+#' Wire the headline cards and the whole-run download
+#'
+#' @param analysis_results See wire_analyse_outputs().
+#' @param mon_data See wire_analyse_outputs().
+#' @param run_mode See wire_analyse_outputs().
+#' @param run_state See wire_analyse_outputs().
+#' @param output See wire_analyse_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_analyse_summary_outputs <- function(analysis_results, mon_data, run_mode, run_state, output) {
   output$kpi_summary_cards <- renderUI({
     req(identical(run_mode(), "full"), run_state() == "done", analysis_results())
     kpi <- analysis_results()$kpi_summary
@@ -2494,407 +2803,610 @@ server <- function(input, output, session) {
     },
     contentType = "application/zip"
   )
+  invisible(NULL)
+}
 
+#' Build the Analyse panel's Casualty Flow tab
+#'
+#' The panel shows casualties per day by type, source and priority.
+#'
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_casualty_flow <- function(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Casualty Flow",
+      p(class = "text-muted mt-2",
+        "Total casualties per simulation day, stacked by type, population source, and triage ",
+        "priority (top to bottom) — check this first to confirm the casualty-generation rates you ",
+        "configured are producing the daily intensity and mix you expect, since this demand drives ",
+        "every queue and utilisation result elsewhere on this page."),
+      shrink_to_fit_plot_ui("plot_casualty_flow", 700, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_casualty_flow_png", "Download PNG"),
+      downloadButton("dl_casualty_flow_pdf", "Download PDF"),
+      downloadButton("dl_casualty_flow_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Queue Depths tab
+#'
+#' The panel shows queue length over time at each echelon.
+#'
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_queue_depths <- function(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Queue Depths",
+      h6(class = "text-muted mt-2", "R1 Queues"),
+      p(class = "text-muted small",
+        "Queue length over time for each R1 team's treatment slots, faceted by team. A queue above ",
+        "0 means casualties are waiting; a queue that persists or grows over the run suggests that ",
+        "team is under-resourced for its casualty inflow."),
+      shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_r1_queues_png", "Download PNG"),
+      downloadButton("dl_r1_queues_pdf", "Download PDF"),
+      downloadButton("dl_r1_queues_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "R2B Bed Queues"),
+      p(class = "text-muted small",
+        "Queue length over time for each R2B team's beds, faceted by team and coloured by bed type — ",
+        "a bed type with a sustained queue is a capacity bottleneck worth increasing."),
+      shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_r2b_bed_queues_png", "Download PNG"),
+      downloadButton("dl_r2b_bed_queues_pdf", "Download PDF"),
+      downloadButton("dl_r2b_bed_queues_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "R2E Bed Queues"),
+      p(class = "text-muted small",
+        "Queue length over time for R2E's OT and ICU beds, faceted by resource type — a sustained ",
+        "queue on either identifies which resource is constraining R2E throughput."),
+      shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_r2e_bed_queues_png", "Download PNG"),
+      downloadButton("dl_r2e_bed_queues_pdf", "Download PDF"),
+      downloadButton("dl_r2e_bed_queues_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the R2E half of the Quick Run utilisation tab
+#'
+#' Split from the R2B half only by length; the two are read together and
+#' the tab renders them one after the other.
+#'
+#' @param ph Per-panel render heights, as `utilisation_panel_heights()` returns
+#'   them; computed once by the R2B half and passed on rather than recomputed.
+#' @param analysis_results See analyse_tab_utilisation().
+#' @param shrink_to_fit_plot_ui See analyse_tab_utilisation().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See analyse_tab_utilisation().
+#' @param ANALYSE_PLOT_CHROME_WITH_HEADING_PX See analyse_tab_utilisation().
+#' @return A `tagList()` of the tab's R2E content.
+analyse_tab_utilisation_quick_r2e <- function(ph, analysis_results, shrink_to_fit_plot_ui,
+                                              ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                              ANALYSE_PLOT_CHROME_WITH_HEADING_PX) {
+  tagList(
+    h6(class = "text-muted mt-2", "R2E Surgery"),
+    p(class = "text-muted small",
+      "Number of R2E surgeries completed per simulation day — compare against the Gantt chart ",
+      "below to see whether surgical throughput is keeping pace with casualty arrivals."),
+    shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+    downloadButton("dl_r2e_surgery_png", "Download PNG"),
+    downloadButton("dl_r2e_surgery_pdf", "Download PDF"),
+    downloadButton("dl_r2e_surgery_csv", "Download Data (CSV)"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2E Bed Resource Usage (Gantt)"),
+    p(class = "text-muted small",
+      "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
+      "or no gaps is running near-continuously and is a candidate for added capacity; long ",
+      "gaps mean spare capacity."),
+    shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+    downloadButton("dl_r2e_gantt_png", "Download PNG"),
+    downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
+    downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2E OT-ICU Gating — Hold Bed Used in Lieu of ICU"),
+    p(class = "text-muted small",
+      "Daily breakdown of R2E post-operative casualties: Sub-Optimal (red) recovered in a Hold bed ",
+      "instead of ICU because ICU was full at OT entry; Delayed (orange) had OT entry deferred pending ",
+      "an ICU bed; Normal (green) means ICU was available. A meaningful Sub-Optimal or Delayed ",
+      "share signals R2E ICU capacity is undersized for the casualty load."),
+    shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+    downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
+    downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
+    downloadButton("dl_r2e_icu_gating_csv", "Download Data (CSV)"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
+    p(class = "text-muted small",
+      "Casualty counts and post-operative DOW rate by recovery pathway: icu = nominal ",
+      "ICU recovery; hold = ICU was saturated at OT entry, so a Priority 1 casualty recovered in a ",
+      "hold bed instead (see R2E OT-ICU Gating above). A materially higher DOW rate on hold than ",
+      "icu is the clinical cost of that ICU saturation."),
+    if (is.null(analysis_results()$post_op_pathway_summary)) {
+      div(class = "alert alert-secondary", "No R2E surgeries completed this run.")
+    } else DTOutput("post_op_pathway_table"),
+    downloadButton("dl_post_op_pathway_csv", "Download Data (CSV)"),
+    div(class = "mt-2", uiOutput("surgery_deferred_card")),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "Operating Theatre Utilisation"),
+    p(class = "text-muted small",
+      "Busy-time fraction of OT capacity by echelon (busy time / (capacity × observation window)) — ",
+      "a figure near 100% signals that echelon's OT capacity is a binding constraint."),
+    DTOutput("ot_utilisation_table"),
+    downloadButton("dl_ot_utilisation_csv", "Download Data (CSV)")
+  )
+}
+
+#' Build the Quick Run arm of the Analyse panel's utilisation tab
+#'
+#' A single replication has no confidence interval to plot, so it gets the
+#' per-bed Gantt charts and their own data-driven heights instead of the
+#' mean-and-interval bar chart Full Analysis shows.
+#'
+#' @param analysis_results See analyse_tab_utilisation().
+#' @param shrink_to_fit_plot_ui See analyse_tab_utilisation().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See analyse_tab_utilisation().
+#' @param ANALYSE_PLOT_CHROME_WITH_HEADING_PX See analyse_tab_utilisation().
+#' @param utilisation_panel_heights See analyse_tab_utilisation().
+#' @return A `tagList()` of the tab's Quick Run content.
+analyse_tab_utilisation_quick <- function(analysis_results, shrink_to_fit_plot_ui,
+                                          ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                          ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+                                          utilisation_panel_heights) {
+  ph <- utilisation_panel_heights()
+  tagList(
+    h6(class = "text-muted mt-2", "R2B Treatment"),
+    p(class = "text-muted small",
+      "Three daily counts, top to bottom: casualties treated at each R2B station, R2B ",
+      "surgeries started, and casualties who skipped R2B entirely. A rising skip count ",
+      "alongside flat treatment counts suggests R2B capacity, not casualty demand, is the ",
+      "limiting factor."),
+    shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+    downloadButton("dl_r2b_treatment_png", "Download PNG"),
+    downloadButton("dl_r2b_treatment_pdf", "Download PDF"),
+    downloadButton("dl_r2b_treatment_csv", "Download Data (CSV)"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2B Bed Resource Usage (Gantt)"),
+    p(class = "text-muted small",
+      "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
+      "or no gaps is running near-continuously and is a candidate for added capacity; long ",
+      "gaps mean spare capacity."),
+    shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+    downloadButton("dl_r2b_gantt_png", "Download PNG"),
+    downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
+    downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
+    p(class = "text-muted small",
+      "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
+      "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
+      "capacity line to see which days risk saturating hold beds, and which stream drives it. ",
+      "No plot means no casualty occupied an R2B hold bed this run."),
+    if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
+      div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded this run.")
+    } else tagList(
+      shrink_to_fit_plot_ui("plot_r2b_hold_occupancy", ph$r2b_hold_occupancy, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+      downloadButton("dl_r2b_hold_occupancy_png", "Download PNG"),
+      downloadButton("dl_r2b_hold_occupancy_pdf", "Download PDF"),
+      downloadButton("dl_r2b_hold_occupancy_csv", "Download Data (CSV)")
+    ),
+    uiOutput("r2b_routing_cards"),
+    tags$hr(),
+    h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
+    p(class = "text-muted small",
+      "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
+      "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
+      "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
+    if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
+      div(class = "alert alert-secondary", "No R2B OT bypasses recorded this run.")
+    } else tagList(
+      shrink_to_fit_plot_ui("plot_r2b_bypass_reason", ph$r2b_bypass_reason, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+      downloadButton("dl_r2b_bypass_reason_png", "Download PNG"),
+      downloadButton("dl_r2b_bypass_reason_pdf", "Download PDF"),
+      downloadButton("dl_r2b_bypass_reason_csv", "Download Data (CSV)")
+    ),
+    tags$hr(),
+    analyse_tab_utilisation_quick_r2e(ph, analysis_results, shrink_to_fit_plot_ui,
+                                      ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                      ANALYSE_PLOT_CHROME_WITH_HEADING_PX)
+  )
+}
+
+#' Build the Analyse panel's Bed & Resource Utilisation tab
+#'
+#' The panel shows bed and resource occupancy.
+#'
+#' @param analysis_results See wire_analyse_body().
+#' @param run_mode See wire_analyse_body().
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_HEADING_PX See wire_analyse_body().
+#' @param UTILISATION_FULL_MODE_HEIGHT_PX See wire_analyse_body().
+#' @param utilisation_panel_heights See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_utilisation <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                    ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                    ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+                                    UTILISATION_FULL_MODE_HEIGHT_PX, utilisation_panel_heights) {
+    nav_panel("Bed & Resource Utilisation",
+      if (identical(run_mode(), "full")) {
+        tagList(
+          p(class = "text-muted mt-2",
+            "Mean busy-time fraction (utilisation) for each key resource group, averaged across ",
+            "replications with 95% CI error bars — a bar near 100% signals a binding constraint."),
+          shrink_to_fit_plot_ui("plot_utilisation", UTILISATION_FULL_MODE_HEIGHT_PX, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+          downloadButton("dl_utilisation_png", "Download PNG"),
+          downloadButton("dl_utilisation_pdf", "Download PDF"),
+          downloadButton("dl_utilisation_csv", "Download Data (CSV)"),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
+          p(class = "text-muted small",
+            "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
+            "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
+            "capacity line to see which days risk saturating hold beds, and which stream drives it."),
+          if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
+            div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded across these replications.")
+          } else tagList(
+            shrink_to_fit_plot_ui("plot_r2b_hold_occupancy", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2b_hold_occupancy_png", "Download PNG"),
+            downloadButton("dl_r2b_hold_occupancy_pdf", "Download PDF"),
+            downloadButton("dl_r2b_hold_occupancy_csv", "Download Data (CSV)")
+          ),
+          uiOutput("r2b_routing_cards"),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
+          p(class = "text-muted small",
+            "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
+            "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
+            "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
+          if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
+            div(class = "alert alert-secondary", "No R2B OT bypasses recorded across these replications.")
+          } else tagList(
+            shrink_to_fit_plot_ui("plot_r2b_bypass_reason", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+            downloadButton("dl_r2b_bypass_reason_png", "Download PNG"),
+            downloadButton("dl_r2b_bypass_reason_pdf", "Download PDF"),
+            downloadButton("dl_r2b_bypass_reason_csv", "Download Data (CSV)")
+          ),
+          tags$hr(),
+          h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
+          if (is.null(analysis_results()$post_op_pathway_summary_ci)) {
+            div(class = "alert alert-secondary", "No R2E surgeries completed across these replications.")
+          } else DTOutput("post_op_pathway_table"),
+          downloadButton("dl_post_op_pathway_csv", "Download Data (CSV)"),
+          div(class = "mt-2", uiOutput("surgery_deferred_card"))
+        )
+      } else analyse_tab_utilisation_quick(analysis_results, shrink_to_fit_plot_ui,
+                                           ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                           ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+                                           utilisation_panel_heights)
+    )
+}
+
+#' Build the Analyse panel's Transport tab
+#'
+#' The panel shows transport fleet queue and capacity margin.
+#'
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_transport <- function(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Transport",
+      p(class = "text-muted mt-2",
+        "Transport fleet capacity margin — queue length over time by vehicle for the ",
+        "dead-heading PMV Ambulance and HX240M fleets. A queue that stays at 0 throughout indicates ",
+        "spare capacity; a sustained queue indicates the fleet is a binding constraint."),
+      shrink_to_fit_plot_ui("plot_transport_capacity_margin", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_transport_capacity_margin_png", "Download PNG"),
+      downloadButton("dl_transport_capacity_margin_pdf", "Download PDF"),
+      downloadButton("dl_transport_capacity_margin_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "Transport Utilisation by Platform"),
+      p(class = "text-muted small",
+        "Busy-time fraction of each vehicle fleet's capacity — a figure near 100% confirms that ",
+        "fleet is the binding constraint behind a sustained queue in the plot above."),
+      DTOutput("transport_utilisation_table"),
+      downloadButton("dl_transport_utilisation_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Waiting Times tab
+#'
+#' The panel shows waiting time against arrival time.
+#'
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_waiting_times <- function(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Waiting Times",
+      p(class = "text-muted mt-2",
+        "Each point is one casualty's total time spent waiting for treatment (not treatment time ",
+        "itself), plotted against when they arrived; the red line is the smoothed trend. A trend ",
+        "that rises over the run signals growing system-wide congestion, not a one-off delay."),
+      shrink_to_fit_plot_ui("plot_waiting_times", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_waiting_times_png", "Download PNG"),
+      downloadButton("dl_waiting_times_pdf", "Download PDF"),
+      downloadButton("dl_waiting_times_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "Time-to-Treatment KPIs"),
+      p(class = "text-muted small",
+        "Time to first surgical incision (from R1 arrival), and dwell/transit times through R2B and R2E ",
+        "(Output Variable Register KPIs) — benchmark these against your own planning timelines for ",
+        "time-critical intervention."),
+      DTOutput("dwell_time_table"),
+      downloadButton("dl_dwell_time_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Return to Duty & DOW tab
+#'
+#' The panel shows return-to-duty and died-of-wounds outcomes.
+#'
+#' @param run_mode See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_outcomes <- function(run_mode) {
+    nav_panel("Return to Duty & DOW",
+      p(class = "text-muted mt-2",
+        "Return-to-duty (RTD) casualties — battle fatigue RTDs return at R1 without clinical ",
+        "treatment; clinical RTDs are discharged from an R1/R2B/R2E hold bed — and died-of-wounds ",
+        "(DOW) casualties, broken down by the echelon at which the outcome occurred. Use this to see ",
+        "how much of the casualty stream is recovered versus lost, and where deaths concentrate.",
+        if (identical(run_mode(), "full")) " Counts below are mean ± 95% CI across replications." else ""),
+      uiOutput("rtd_dow_cards"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "DOW Count by Echelon"),
+      DTOutput("dow_by_echelon_table"),
+      downloadButton("dl_dow_by_echelon_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "RTD Count by Echelon"),
+      DTOutput("rtd_by_echelon_table"),
+      downloadButton("dl_rtd_by_echelon_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Force Regeneration tab
+#'
+#' The panel shows effective force size over the run.
+#'
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_force_regeneration <- function(shrink_to_fit_plot_ui,
+                                           ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Force Regeneration",
+      p(class = "text-muted mt-2",
+        "Effective force size over the run — debited at each injury, credited at each return-to-duty ",
+        "event, and stepped up by reinforcement demands after a lag and a partial fill, if enabled ",
+        "(Configure tab's Reinforcement Demand & Fulfillment group). A persistently declining line ",
+        "signals the force is attritting faster than it recovers or is reinforced."),
+      shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_force_regeneration_png", "Download PNG"),
+      downloadButton("dl_force_regeneration_pdf", "Download PDF"),
+      downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Strategic AME tab
+#'
+#' The panel shows strategic evacuation demand and performance.
+#'
+#' @param analysis_results See wire_analyse_body().
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_HEADING_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_strategic_ame <- function(analysis_results, shrink_to_fit_plot_ui,
+                                      ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                      ANALYSE_PLOT_CHROME_WITH_HEADING_PX) {
+    nav_panel("Strategic AME",
+      p(class = "text-muted mt-2",
+        "Strategic aeromedical evacuation — casualties simultaneously awaiting a scheduled ",
+        "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
+        "and the outcome of every scheduled sortie opportunity (flown or cancelled, seats boarded ",
+        "against capacity added). Use the panels below to judge whether the AME schedule ",
+        "you've configured can keep pace with strategic evacuation demand."),
+      h6(class = "text-muted mt-2", "Role 4 (National Support Base) Census"),
+      p(class = "text-muted small",
+        "Unconstrained demand signal: daily bed occupancy by ward if every strategically evacuated ",
+        "casualty were admitted with no Role 4 capacity limit — use this to size Role 4 (national ",
+        "support base) bed capacity, independent of how well the current AME schedule keeps pace."),
+      if (is.null(analysis_results()$role4_census_plot)) {
+        div(class = "alert alert-secondary", "No strategic evacuations recorded across these replications.")
+      } else tagList(
+        shrink_to_fit_plot_ui("plot_role4_census", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        downloadButton("dl_role4_census_png", "Download PNG"),
+        downloadButton("dl_role4_census_pdf", "Download PDF"),
+        downloadButton("dl_role4_census_csv", "Download Data (CSV)"),
+        uiOutput("role4_summary_cards")
+      ),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "Unconstrained AME Sortie Demand"),
+      p(class = "text-muted small",
+        "Same-day, uncapped, best-case sorties that would be required to keep pace with strategic ",
+        "evacuation decisions, ignoring the real sortie schedule entirely — an upper-bound demand ",
+        "signal, not the actual constrained performance below."),
+      uiOutput("ame_demand_cards"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "AME Backlog Over Time"),
+      p(class = "text-muted small",
+        "Casualties awaiting AME sortie capacity over time, by pool — a rising line means the ",
+        "sortie schedule isn't keeping pace with strategic evacuation demand."),
+      shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_ame_backlog_png", "Download PNG"),
+      downloadButton("dl_ame_backlog_pdf", "Download PDF"),
+      downloadButton("dl_ame_backlog_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "AME Sortie Timeline"),
+      p(class = "text-muted small",
+        "Grey bar = seats added at each scheduled sortie; coloured bar = seats actually boarded ",
+        "before the next sortie, coloured by whether the sortie flew or was cancelled. A coloured bar ",
+        "consistently at or above grey signals a backlog is being drawn down; consistently below ",
+        "means capacity exceeds demand at that point."),
+      shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+      downloadButton("dl_ame_sortie_png", "Download PNG"),
+      downloadButton("dl_ame_sortie_pdf", "Download PDF"),
+      downloadButton("dl_ame_sortie_csv", "Download Data (CSV)"),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "Actual AME Wait Time by Route"),
+      p(class = "text-muted small",
+        "Real wait time from evacuation decision to actual sortie boarding on the constrained AME ",
+        "resources, by route (critical vs standard). Compare against the unconstrained demand above ",
+        "to see how much the real schedule lags theoretical best-case throughput."),
+      if (is.null(analysis_results()$ame_wait_time_summary)) {
+        div(class = "alert alert-secondary", "No strategic evacuation decisions recorded across these replications.")
+      } else tagList(
+        DTOutput("ame_wait_time_table"),
+        downloadButton("dl_ame_wait_time_csv", "Download Data (CSV)")
+      )
+    )
+}
+
+#' Build the Analyse panel's Mass Casualty Events tab
+#'
+#' The panel shows the mass casualty events the run injected.
+#'
+#' @param analysis_results See wire_analyse_body().
+#' @param run_mode See wire_analyse_body().
+#' @param shrink_to_fit_plot_ui See wire_analyse_body().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_mass_casualty <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                      ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Mass Casualty Events",
+      p(class = "text-muted mt-2",
+        "Compound-Poisson mass casualty injection events, reconstructed from tagged ",
+        "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
+        "from a mass casualty event vs. background generation.",
+        if (identical(run_mode(), "full")) " Events are pooled across every replication." else ""),
+      uiOutput("mass_casualty_event_count_card"),
+      if (nrow(analysis_results()$mass_casualty_events_summary) == 0) {
+        div(class = "alert alert-secondary",
+            "No mass casualty events occurred across these replications (env_data.json mass_casualty ",
+            "configuration may be disabled, or none were drawn).")
+      } else tagList(
+        h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
+        p(class = "text-muted small",
+          "Each point is one mass casualty event: when it occurred and how many casualties it ",
+          "injected — use this to confirm your configured event schedule or rate produced the timing ",
+          "and scale of surge you intended."),
+        shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        downloadButton("dl_mass_casualty_timeline_png", "Download PNG"),
+        downloadButton("dl_mass_casualty_timeline_pdf", "Download PDF"),
+        downloadButton("dl_mass_casualty_timeline_csv", "Download Data (CSV)"),
+        tags$hr(),
+        h6(class = "text-muted mt-2", "Individual Events"),
+        DTOutput("mass_casualty_events_table")
+      ),
+      tags$hr(),
+      h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
+      p(class = "text-muted small",
+        "Compares died-of-wounds rate for casualties from a mass casualty event against ",
+        "background-generated casualties — a higher event-origin rate suggests surge conditions ",
+        "are degrading care, not just adding volume."),
+      DTOutput("mass_casualty_dow_table"),
+      downloadButton("dl_mass_casualty_dow_csv", "Download Data (CSV)")
+    )
+}
+
+#' Build the Analyse panel's Sensitivity Calibration tab
+#'
+#' The panel shows the sensitivity screening and sweep controls.
+#'
+#' @return A `nav_panel()` for the Analyse panel's tab set.
+analyse_tab_sensitivity <- function() {
+    nav_panel("Sensitivity Calibration",
+      p(class = "text-muted mt-2",
+        "Parameters screened in the project's Morris sensitivity analysis; their bounds set the ",
+        "Configure tab's slider ranges. The Variable column is the raw code used in ",
+        "outputs/morris_ranking.csv and the morris_*.png plots."),
+      DTOutput("calibration_table"),
+      downloadButton("dl_calibration_csv", "Download Table (CSV)"),
+      tags$hr(),
+      h5("Run Sensitivity Screening"),
+      p(class = "text-muted small",
+        "Perturbs each parameter across its plausible range to rank its influence on key outputs ",
+        "(Morris method). Time scales with trajectories × parameters × replications × run length — ",
+        "the default (r = 20) takes roughly 2-3 hours; try r = 3 for a quick test."),
+      layout_column_wrap(
+        width = "220px",
+        numericInput("morris_r", "Trajectories (r)", value = 20, min = 3, max = 50, step = 1),
+        numericInput("morris_nrep", "Replications per Point", value = 5, min = 3, max = 20, step = 1)
+      ),
+      actionButton("run_sensitivity", "Run Sensitivity Screening", class = "btn-primary"),
+      tags$div(style = "margin-top: 10px;", uiOutput("morris_status")),
+      uiOutput("morris_results_ui"),
+      tags$hr(),
+      h5("Transport Fleet Capacity Margin Sweep"),
+      p(class = "text-muted small",
+        "Answers \"do we have enough ambulances and trucks?\" by re-running the simulation at each ",
+        "fleet size below and checking for transport queueing. A wider range or higher replication ",
+        "count (set above) takes longer to complete."),
+      layout_column_wrap(
+        width = "280px",
+        sliderInput("sweep_pmvamb_range", "PMV Ambulance Fleet Size Range",
+                   min = 1, max = 10, value = c(1, 5), step = 1),
+        sliderInput("sweep_hx240m_range", "HX240M Fleet Size Range",
+                   min = 1, max = 10, value = c(1, 4), step = 1)
+      ),
+      actionButton("run_transport_sweep", "Run Transport Fleet Sweep", class = "btn-primary"),
+      tags$div(style = "margin-top: 10px;", uiOutput("transport_sweep_status")),
+      uiOutput("transport_sweep_results_ui")
+    )
+}
+
+#' Wire the Analyse panel's tab layout
+#'
+#' @param analysis_results See wire_analyse_outputs().
+#' @param run_mode See wire_analyse_outputs().
+#' @param run_state See wire_analyse_outputs().
+#' @param UTILISATION_FULL_MODE_HEIGHT_PX See wire_analyse_outputs().
+#' @param utilisation_panel_heights See wire_analyse_outputs().
+#' @param output See wire_analyse_outputs().
+#' @param ANALYSE_PLOT_CHROME_WITH_HEADING_PX See wire_analyse_outputs().
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_outputs().
+#' @param shrink_to_fit_plot_ui See wire_analyse_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_analyse_body <- function(analysis_results, run_mode, run_state,
+                              UTILISATION_FULL_MODE_HEIGHT_PX, utilisation_panel_heights, output,
+                              ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+                              ANALYSE_PLOT_CHROME_WITH_INTRO_PX, shrink_to_fit_plot_ui) {
   output$analyse_body <- renderUI({
     if (run_state() != "done" || is.null(analysis_results())) {
       return(div(class = "alert alert-info mt-3",
-                  "No results yet. Run a Quick Run or Full Analysis from the Run tab to populate this page."))
+                 "No results yet. Run a Quick Run or Full Analysis from the Run tab to populate this page."))
     }
     tagList(
-    uiOutput("kpi_summary_cards"),
-    navset_tab(
-      nav_panel("Casualty Flow",
-        p(class = "text-muted mt-2",
-          "Total casualties per simulation day, stacked by type, population source, and triage ",
-          "priority (top to bottom) — check this first to confirm the casualty-generation rates you ",
-          "configured are producing the daily intensity and mix you expect, since this demand drives ",
-          "every queue and utilisation result elsewhere on this page."),
-        shrink_to_fit_plot_ui("plot_casualty_flow", 700, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_casualty_flow_png", "Download PNG"),
-        downloadButton("dl_casualty_flow_pdf", "Download PDF"),
-        downloadButton("dl_casualty_flow_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Queue Depths",
-        h6(class = "text-muted mt-2", "R1 Queues"),
-        p(class = "text-muted small",
-          "Queue length over time for each R1 team's treatment slots, faceted by team. A queue above ",
-          "0 means casualties are waiting; a queue that persists or grows over the run suggests that ",
-          "team is under-resourced for its casualty inflow."),
-        shrink_to_fit_plot_ui("plot_r1_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_r1_queues_png", "Download PNG"),
-        downloadButton("dl_r1_queues_pdf", "Download PDF"),
-        downloadButton("dl_r1_queues_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "R2B Bed Queues"),
-        p(class = "text-muted small",
-          "Queue length over time for each R2B team's beds, faceted by team and coloured by bed type — ",
-          "a bed type with a sustained queue is a capacity bottleneck worth increasing."),
-        shrink_to_fit_plot_ui("plot_r2b_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_r2b_bed_queues_png", "Download PNG"),
-        downloadButton("dl_r2b_bed_queues_pdf", "Download PDF"),
-        downloadButton("dl_r2b_bed_queues_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "R2E Bed Queues"),
-        p(class = "text-muted small",
-          "Queue length over time for R2E's OT and ICU beds, faceted by resource type — a sustained ",
-          "queue on either identifies which resource is constraining R2E throughput."),
-        shrink_to_fit_plot_ui("plot_r2e_bed_queues", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_r2e_bed_queues_png", "Download PNG"),
-        downloadButton("dl_r2e_bed_queues_pdf", "Download PDF"),
-        downloadButton("dl_r2e_bed_queues_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Bed & Resource Utilisation",
-        if (identical(run_mode(), "full")) {
-          tagList(
-            p(class = "text-muted mt-2",
-              "Mean busy-time fraction (utilisation) for each key resource group, averaged across ",
-              "replications with 95% CI error bars — a bar near 100% signals a binding constraint."),
-            shrink_to_fit_plot_ui("plot_utilisation", UTILISATION_FULL_MODE_HEIGHT_PX, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-            downloadButton("dl_utilisation_png", "Download PNG"),
-            downloadButton("dl_utilisation_pdf", "Download PDF"),
-            downloadButton("dl_utilisation_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
-            p(class = "text-muted small",
-              "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
-              "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
-              "capacity line to see which days risk saturating hold beds, and which stream drives it."),
-            if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
-              div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded across these replications.")
-            } else tagList(
-              shrink_to_fit_plot_ui("plot_r2b_hold_occupancy", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-              downloadButton("dl_r2b_hold_occupancy_png", "Download PNG"),
-              downloadButton("dl_r2b_hold_occupancy_pdf", "Download PDF"),
-              downloadButton("dl_r2b_hold_occupancy_csv", "Download Data (CSV)")
-            ),
-            uiOutput("r2b_routing_cards"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
-            p(class = "text-muted small",
-              "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
-              "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
-              "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
-            if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
-              div(class = "alert alert-secondary", "No R2B OT bypasses recorded across these replications.")
-            } else tagList(
-              shrink_to_fit_plot_ui("plot_r2b_bypass_reason", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-              downloadButton("dl_r2b_bypass_reason_png", "Download PNG"),
-              downloadButton("dl_r2b_bypass_reason_pdf", "Download PDF"),
-              downloadButton("dl_r2b_bypass_reason_csv", "Download Data (CSV)")
-            ),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
-            if (is.null(analysis_results()$post_op_pathway_summary_ci)) {
-              div(class = "alert alert-secondary", "No R2E surgeries completed across these replications.")
-            } else DTOutput("post_op_pathway_table"),
-            downloadButton("dl_post_op_pathway_csv", "Download Data (CSV)"),
-            div(class = "mt-2", uiOutput("surgery_deferred_card"))
-          )
-        } else local({
-          ph <- utilisation_panel_heights()
-          tagList(
-            h6(class = "text-muted mt-2", "R2B Treatment"),
-            p(class = "text-muted small",
-              "Three daily counts, top to bottom: casualties treated at each R2B station, R2B ",
-              "surgeries started, and casualties who skipped R2B entirely. A rising skip count ",
-              "alongside flat treatment counts suggests R2B capacity, not casualty demand, is the ",
-              "limiting factor."),
-            shrink_to_fit_plot_ui("plot_r2b_treatment", ph$r2b_treatment, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-            downloadButton("dl_r2b_treatment_png", "Download PNG"),
-            downloadButton("dl_r2b_treatment_pdf", "Download PDF"),
-            downloadButton("dl_r2b_treatment_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2B Bed Resource Usage (Gantt)"),
-            p(class = "text-muted small",
-              "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
-              "or no gaps is running near-continuously and is a candidate for added capacity; long ",
-              "gaps mean spare capacity."),
-            shrink_to_fit_plot_ui("plot_r2b_gantt", ph$r2b_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-            downloadButton("dl_r2b_gantt_png", "Download PNG"),
-            downloadButton("dl_r2b_gantt_pdf", "Download PDF"),
-            downloadButton("dl_r2b_gantt_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2B Hold Bed Occupancy by Patient Stream"),
-            p(class = "text-muted small",
-              "Daily concurrent occupancy of R2B hold beds, decomposed by patient stream ",
-              "(disease DNBI, NBI, WIA). Compare the stacked total against the dashed per-unit ",
-              "capacity line to see which days risk saturating hold beds, and which stream drives it. ",
-              "No plot means no casualty occupied an R2B hold bed this run."),
-            if (is.null(analysis_results()$r2b_hold_occupancy_plot)) {
-              div(class = "alert alert-secondary", "No R2B hold bed occupancy recorded this run.")
-            } else tagList(
-              shrink_to_fit_plot_ui("plot_r2b_hold_occupancy", ph$r2b_hold_occupancy, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-              downloadButton("dl_r2b_hold_occupancy_png", "Download PNG"),
-              downloadButton("dl_r2b_hold_occupancy_pdf", "Download PDF"),
-              downloadButton("dl_r2b_hold_occupancy_csv", "Download Data (CSV)")
-            ),
-            uiOutput("r2b_routing_cards"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2B OT Bypass Reason"),
-            p(class = "text-muted small",
-              "Why an R2B-capable casualty was instead routed straight to R2E at the surgical decision ",
-              "point: the R2B surgical team was off-shift, or the OT bed was busy/queued. A high bypass ",
-              "count suggests R2B surgical shift coverage or OT capacity is undersized for demand."),
-            if (is.null(analysis_results()$r2b_bypass_reason_plot)) {
-              div(class = "alert alert-secondary", "No R2B OT bypasses recorded this run.")
-            } else tagList(
-              shrink_to_fit_plot_ui("plot_r2b_bypass_reason", ph$r2b_bypass_reason, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-              downloadButton("dl_r2b_bypass_reason_png", "Download PNG"),
-              downloadButton("dl_r2b_bypass_reason_pdf", "Download PDF"),
-              downloadButton("dl_r2b_bypass_reason_csv", "Download Data (CSV)")
-            ),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2E Surgery"),
-            p(class = "text-muted small",
-              "Number of R2E surgeries completed per simulation day — compare against the Gantt chart ",
-              "below to see whether surgical throughput is keeping pace with casualty arrivals."),
-            shrink_to_fit_plot_ui("plot_r2e_surgery", ph$r2e_surgery, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-            downloadButton("dl_r2e_surgery_png", "Download PNG"),
-            downloadButton("dl_r2e_surgery_pdf", "Download PDF"),
-            downloadButton("dl_r2e_surgery_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2E Bed Resource Usage (Gantt)"),
-            p(class = "text-muted small",
-              "Each horizontal bar is one bed's occupied time window, faceted by team. A bed with few ",
-              "or no gaps is running near-continuously and is a candidate for added capacity; long ",
-              "gaps mean spare capacity."),
-            shrink_to_fit_plot_ui("plot_r2e_gantt", ph$r2e_gantt, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-            downloadButton("dl_r2e_gantt_png", "Download PNG"),
-            downloadButton("dl_r2e_gantt_pdf", "Download PDF"),
-            downloadButton("dl_r2e_gantt_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2E OT-ICU Gating — Hold Bed Used in Lieu of ICU"),
-            p(class = "text-muted small",
-              "Daily breakdown of R2E post-operative casualties: Sub-Optimal (red) recovered in a Hold bed ",
-              "instead of ICU because ICU was full at OT entry; Delayed (orange) had OT entry deferred pending ",
-              "an ICU bed; Normal (green) means ICU was available. A meaningful Sub-Optimal or Delayed ",
-              "share signals R2E ICU capacity is undersized for the casualty load."),
-            shrink_to_fit_plot_ui("plot_r2e_icu_gating", ph$r2e_icu_gating, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-            downloadButton("dl_r2e_icu_gating_png", "Download PNG"),
-            downloadButton("dl_r2e_icu_gating_pdf", "Download PDF"),
-            downloadButton("dl_r2e_icu_gating_csv", "Download Data (CSV)"),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "R2E Post-Operative Pathway — ICU vs Hold Bed"),
-            p(class = "text-muted small",
-              "Casualty counts and post-operative DOW rate by recovery pathway: icu = nominal ",
-              "ICU recovery; hold = ICU was saturated at OT entry, so a Priority 1 casualty recovered in a ",
-              "hold bed instead (see R2E OT-ICU Gating above). A materially higher DOW rate on hold than ",
-              "icu is the clinical cost of that ICU saturation."),
-            if (is.null(analysis_results()$post_op_pathway_summary)) {
-              div(class = "alert alert-secondary", "No R2E surgeries completed this run.")
-            } else DTOutput("post_op_pathway_table"),
-            downloadButton("dl_post_op_pathway_csv", "Download Data (CSV)"),
-            div(class = "mt-2", uiOutput("surgery_deferred_card")),
-            tags$hr(),
-            h6(class = "text-muted mt-2", "Operating Theatre Utilisation"),
-            p(class = "text-muted small",
-              "Busy-time fraction of OT capacity by echelon (busy time / (capacity × observation window)) — ",
-              "a figure near 100% signals that echelon's OT capacity is a binding constraint."),
-            DTOutput("ot_utilisation_table"),
-            downloadButton("dl_ot_utilisation_csv", "Download Data (CSV)")
-          )
-        })
-      ),
-      nav_panel("Transport",
-        p(class = "text-muted mt-2",
-          "Transport fleet capacity margin — queue length over time by vehicle for the ",
-          "dead-heading PMV Ambulance and HX240M fleets. A queue that stays at 0 throughout indicates ",
-          "spare capacity; a sustained queue indicates the fleet is a binding constraint."),
-        shrink_to_fit_plot_ui("plot_transport_capacity_margin", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_transport_capacity_margin_png", "Download PNG"),
-        downloadButton("dl_transport_capacity_margin_pdf", "Download PDF"),
-        downloadButton("dl_transport_capacity_margin_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "Transport Utilisation by Platform"),
-        p(class = "text-muted small",
-          "Busy-time fraction of each vehicle fleet's capacity — a figure near 100% confirms that ",
-          "fleet is the binding constraint behind a sustained queue in the plot above."),
-        DTOutput("transport_utilisation_table"),
-        downloadButton("dl_transport_utilisation_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Waiting Times",
-        p(class = "text-muted mt-2",
-          "Each point is one casualty's total time spent waiting for treatment (not treatment time ",
-          "itself), plotted against when they arrived; the red line is the smoothed trend. A trend ",
-          "that rises over the run signals growing system-wide congestion, not a one-off delay."),
-        shrink_to_fit_plot_ui("plot_waiting_times", 600, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_waiting_times_png", "Download PNG"),
-        downloadButton("dl_waiting_times_pdf", "Download PDF"),
-        downloadButton("dl_waiting_times_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "Time-to-Treatment KPIs"),
-        p(class = "text-muted small",
-          "Time to first surgical incision (from R1 arrival), and dwell/transit times through R2B and R2E ",
-          "(Output Variable Register KPIs) — benchmark these against your own planning timelines for ",
-          "time-critical intervention."),
-        DTOutput("dwell_time_table"),
-        downloadButton("dl_dwell_time_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Return to Duty & DOW",
-        p(class = "text-muted mt-2",
-          "Return-to-duty (RTD) casualties — battle fatigue RTDs return at R1 without clinical ",
-          "treatment; clinical RTDs are discharged from an R1/R2B/R2E hold bed — and died-of-wounds ",
-          "(DOW) casualties, broken down by the echelon at which the outcome occurred. Use this to see ",
-          "how much of the casualty stream is recovered versus lost, and where deaths concentrate.",
-          if (identical(run_mode(), "full")) " Counts below are mean ± 95% CI across replications." else ""),
-        uiOutput("rtd_dow_cards"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "DOW Count by Echelon"),
-        DTOutput("dow_by_echelon_table"),
-        downloadButton("dl_dow_by_echelon_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "RTD Count by Echelon"),
-        DTOutput("rtd_by_echelon_table"),
-        downloadButton("dl_rtd_by_echelon_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Force Regeneration",
-        p(class = "text-muted mt-2",
-          "Effective force size over the run — debited at each injury, credited at each return-to-duty ",
-          "event, and stepped up by reinforcement demands after a lag and a partial fill, if enabled ",
-          "(Configure tab's Reinforcement Demand & Fulfillment group). A persistently declining line ",
-          "signals the force is attritting faster than it recovers or is reinforced."),
-        shrink_to_fit_plot_ui("plot_force_regeneration", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_force_regeneration_png", "Download PNG"),
-        downloadButton("dl_force_regeneration_pdf", "Download PDF"),
-        downloadButton("dl_force_regeneration_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Strategic AME",
-        p(class = "text-muted mt-2",
-          "Strategic aeromedical evacuation — casualties simultaneously awaiting a scheduled ",
-          "AME sortie, split by critical (ICU, CCATT/CCAST) vs standard (Hold, Casualty Staging Unit) pool, ",
-          "and the outcome of every scheduled sortie opportunity (flown or cancelled, seats boarded ",
-          "against capacity added). Use the panels below to judge whether the AME schedule ",
-          "you've configured can keep pace with strategic evacuation demand."),
-        h6(class = "text-muted mt-2", "Role 4 (National Support Base) Census"),
-        p(class = "text-muted small",
-          "Unconstrained demand signal: daily bed occupancy by ward if every strategically evacuated ",
-          "casualty were admitted with no Role 4 capacity limit — use this to size Role 4 (national ",
-          "support base) bed capacity, independent of how well the current AME schedule keeps pace."),
-        if (is.null(analysis_results()$role4_census_plot)) {
-          div(class = "alert alert-secondary", "No strategic evacuations recorded across these replications.")
-        } else tagList(
-          shrink_to_fit_plot_ui("plot_role4_census", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-          downloadButton("dl_role4_census_png", "Download PNG"),
-          downloadButton("dl_role4_census_pdf", "Download PDF"),
-          downloadButton("dl_role4_census_csv", "Download Data (CSV)"),
-          uiOutput("role4_summary_cards")
-        ),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "Unconstrained AME Sortie Demand"),
-        p(class = "text-muted small",
-          "Same-day, uncapped, best-case sorties that would be required to keep pace with strategic ",
-          "evacuation decisions, ignoring the real sortie schedule entirely — an upper-bound demand ",
-          "signal, not the actual constrained performance below."),
-        uiOutput("ame_demand_cards"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "AME Backlog Over Time"),
-        p(class = "text-muted small",
-          "Casualties awaiting AME sortie capacity over time, by pool — a rising line means the ",
-          "sortie schedule isn't keeping pace with strategic evacuation demand."),
-        shrink_to_fit_plot_ui("plot_ame_backlog", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_ame_backlog_png", "Download PNG"),
-        downloadButton("dl_ame_backlog_pdf", "Download PDF"),
-        downloadButton("dl_ame_backlog_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "AME Sortie Timeline"),
-        p(class = "text-muted small",
-          "Grey bar = seats added at each scheduled sortie; coloured bar = seats actually boarded ",
-          "before the next sortie, coloured by whether the sortie flew or was cancelled. A coloured bar ",
-          "consistently at or above grey signals a backlog is being drawn down; consistently below ",
-          "means capacity exceeds demand at that point."),
-        shrink_to_fit_plot_ui("plot_ame_sortie", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_ame_sortie_png", "Download PNG"),
-        downloadButton("dl_ame_sortie_pdf", "Download PDF"),
-        downloadButton("dl_ame_sortie_csv", "Download Data (CSV)"),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "Actual AME Wait Time by Route"),
-        p(class = "text-muted small",
-          "Real wait time from evacuation decision to actual sortie boarding on the constrained AME ",
-          "resources, by route (critical vs standard). Compare against the unconstrained demand above ",
-          "to see how much the real schedule lags theoretical best-case throughput."),
-        if (is.null(analysis_results()$ame_wait_time_summary)) {
-          div(class = "alert alert-secondary", "No strategic evacuation decisions recorded across these replications.")
-        } else tagList(
-          DTOutput("ame_wait_time_table"),
-          downloadButton("dl_ame_wait_time_csv", "Download Data (CSV)")
-        )
-      ),
-      nav_panel("Mass Casualty Events",
-        p(class = "text-muted mt-2",
-          "Compound-Poisson mass casualty injection events, reconstructed from tagged ",
-          "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
-          "from a mass casualty event vs. background generation.",
-          if (identical(run_mode(), "full")) " Events are pooled across every replication." else ""),
-        uiOutput("mass_casualty_event_count_card"),
-        if (nrow(analysis_results()$mass_casualty_events_summary) == 0) {
-          div(class = "alert alert-secondary",
-              "No mass casualty events occurred across these replications (env_data.json mass_casualty ",
-              "configuration may be disabled, or none were drawn).")
-        } else tagList(
-          h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
-          p(class = "text-muted small",
-            "Each point is one mass casualty event: when it occurred and how many casualties it ",
-            "injected — use this to confirm your configured event schedule or rate produced the timing ",
-            "and scale of surge you intended."),
-          shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-          downloadButton("dl_mass_casualty_timeline_png", "Download PNG"),
-          downloadButton("dl_mass_casualty_timeline_pdf", "Download PDF"),
-          downloadButton("dl_mass_casualty_timeline_csv", "Download Data (CSV)"),
-          tags$hr(),
-          h6(class = "text-muted mt-2", "Individual Events"),
-          DTOutput("mass_casualty_events_table")
-        ),
-        tags$hr(),
-        h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
-        p(class = "text-muted small",
-          "Compares died-of-wounds rate for casualties from a mass casualty event against ",
-          "background-generated casualties — a higher event-origin rate suggests surge conditions ",
-          "are degrading care, not just adding volume."),
-        DTOutput("mass_casualty_dow_table"),
-        downloadButton("dl_mass_casualty_dow_csv", "Download Data (CSV)")
-      ),
-      nav_panel("Sensitivity Calibration",
-        p(class = "text-muted mt-2",
-          "Parameters screened in the project's Morris sensitivity analysis; their bounds set the ",
-          "Configure tab's slider ranges. The Variable column is the raw code used in ",
-          "outputs/morris_ranking.csv and the morris_*.png plots."),
-        DTOutput("calibration_table"),
-        downloadButton("dl_calibration_csv", "Download Table (CSV)"),
-        tags$hr(),
-        h5("Run Sensitivity Screening"),
-        p(class = "text-muted small",
-          "Perturbs each parameter across its plausible range to rank its influence on key outputs ",
-          "(Morris method). Time scales with trajectories × parameters × replications × run length — ",
-          "the default (r = 20) takes roughly 2-3 hours; try r = 3 for a quick test."),
-        layout_column_wrap(
-          width = "220px",
-          numericInput("morris_r", "Trajectories (r)", value = 20, min = 3, max = 50, step = 1),
-          numericInput("morris_nrep", "Replications per Point", value = 5, min = 3, max = 20, step = 1)
-        ),
-        actionButton("run_sensitivity", "Run Sensitivity Screening", class = "btn-primary"),
-        tags$div(style = "margin-top: 10px;", uiOutput("morris_status")),
-        uiOutput("morris_results_ui"),
-        tags$hr(),
-        h5("Transport Fleet Capacity Margin Sweep"),
-        p(class = "text-muted small",
-          "Answers \"do we have enough ambulances and trucks?\" by re-running the simulation at each ",
-          "fleet size below and checking for transport queueing. A wider range or higher replication ",
-          "count (set above) takes longer to complete."),
-        layout_column_wrap(
-          width = "280px",
-          sliderInput("sweep_pmvamb_range", "PMV Ambulance Fleet Size Range",
-                     min = 1, max = 10, value = c(1, 5), step = 1),
-          sliderInput("sweep_hx240m_range", "HX240M Fleet Size Range",
-                     min = 1, max = 10, value = c(1, 4), step = 1)
-        ),
-        actionButton("run_transport_sweep", "Run Transport Fleet Sweep", class = "btn-primary"),
-        tags$div(style = "margin-top: 10px;", uiOutput("transport_sweep_status")),
-        uiOutput("transport_sweep_results_ui")
+      uiOutput("kpi_summary_cards"),
+      navset_tab(
+        analyse_tab_casualty_flow(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_queue_depths(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_utilisation(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                ANALYSE_PLOT_CHROME_WITH_HEADING_PX, UTILISATION_FULL_MODE_HEIGHT_PX,
+                                utilisation_panel_heights),
+        analyse_tab_transport(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_waiting_times(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_outcomes(run_mode),
+        analyse_tab_force_regeneration(shrink_to_fit_plot_ui, ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_strategic_ame(analysis_results, shrink_to_fit_plot_ui,
+                                  ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+                                  ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
+        analyse_tab_mass_casualty(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                  ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_sensitivity()
       )
     )
-    )
   })
+  invisible(NULL)
+}
 
+#' Register every plot the Analyse panel renders
+#'
+#' @param analysis_results See wire_analyse_outputs().
+#' @param run_mode See wire_analyse_outputs().
+#' @param tab_plot See wire_analyse_outputs().
+#' @param UTILISATION_FULL_MODE_HEIGHT_PX See wire_analyse_outputs().
+#' @param utilisation_panel_heights See wire_analyse_outputs().
+#' @param new_shrink_to_fit_plot See wire_analyse_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+register_analyse_plots <- function(analysis_results, run_mode, tab_plot,
+                                   UTILISATION_FULL_MODE_HEIGHT_PX, utilisation_panel_heights,
+                                   new_shrink_to_fit_plot) {
   new_shrink_to_fit_plot("plot_casualty_flow", "Casualty Flow — Full Size",
                          function() tab_plot()$casualty_flow, function() 700)
   new_shrink_to_fit_plot("plot_r1_queues", "R1 Queues — Full Size",
@@ -2946,9 +3458,16 @@ server <- function(input, output, session) {
                          function() analysis_results()$role4_census_plot, function() 500)
   new_shrink_to_fit_plot("plot_mass_casualty_timeline", "Mass Casualty Event Timeline — Full Size",
                          function() analysis_results()$mass_casualty_timeline_plot, function() 500)
+  invisible(NULL)
+}
 
-  #' Generic PNG/PDF download handler for one plot.
-  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
+#' Wire the image downloads for every Analyse plot
+#'
+#' @param analysis_results See wire_analyse_outputs().
+#' @param tab_plot See wire_analyse_outputs().
+#' @param output See wire_analyse_outputs().
+#' @return `plot_download_handler`.
+wire_plot_image_downloads <- function(analysis_results, tab_plot, output) {
   plot_download_handler <- function(plot_fn, width, height, device) {
     downloadHandler(
       filename = function() sprintf("plot.%s", device),
@@ -2996,7 +3515,17 @@ server <- function(input, output, session) {
   output$dl_role4_census_pdf <- plot_download_handler(function() analysis_results()$role4_census_plot, 12, 6, "pdf")
   output$dl_mass_casualty_timeline_png <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "png")
   output$dl_mass_casualty_timeline_pdf <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "pdf")
+  plot_download_handler
+}
 
+#' Wire the data downloads for every Analyse plot
+#'
+#' @param analysis_results See wire_analyse_outputs().
+#' @param mon_data See wire_analyse_outputs().
+#' @param run_mode See wire_analyse_outputs().
+#' @param output See wire_analyse_outputs().
+#' @return A list of `echelon_ot_utilisation_csv`, `filtered_resources_csv`.
+wire_plot_data_downloads <- function(analysis_results, mon_data, run_mode, output) {
   output$dl_casualty_flow_csv <- downloadHandler(
     filename = "casualty_flow.csv",
     content  = function(file) write.csv(analysis_results()$casualty_summary, file, row.names = FALSE)
@@ -3070,15 +3599,70 @@ server <- function(input, output, session) {
     filename = "ame_sortie_data.csv",
     content  = function(file) write.csv(analysis_results()$ame_sortie_data, file, row.names = FALSE)
   )
+  list(
+    echelon_ot_utilisation_csv = echelon_ot_utilisation_csv,
+    filtered_resources_csv = filtered_resources_csv
+  )
+}
 
-  # ── Issue #117 — previously-uncovered analyse_run() outputs, plus their
-  # Full Analysis mean +/- 95% CI equivalents from analyse_replications() ──
-  # analyse_run() returns bare scalars/simple data frames (one seed, one
-  # value); analyse_replications() returns the *_ci-suffixed equivalent —
-  # a mean +/- 95% CI across replications instead (see the new block in
-  # R/analysis.R, right after kpi_summary). Every renderer below branches
-  # on run_mode() to pick the correctly-shaped source field.
+#' Wire every rendered output on the Analyse panel
+#'
+#' @param analysis_results See analyse_run().
+#' @param mon_data See analyse_run().
+#' @param run_mode See analyse_run().
+#' @param run_state See analyse_run().
+#' @param tab_plot See analyse_run().
+#' @param UTILISATION_FULL_MODE_HEIGHT_PX See analyse_run().
+#' @param utilisation_panel_heights See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @return A list of `ANALYSE_PLOT_CHROME_PX`, `ANALYSE_PLOT_CHROME_WITH_HEADING_PX`,
+#'   `ANALYSE_PLOT_CHROME_WITH_INTRO_PX`, `echelon_ot_utilisation_csv`, `filtered_resources_csv`,
+#'   `new_shrink_to_fit_plot`, `plot_download_handler`, `shrink_to_fit_plot_ui`.
+wire_analyse_outputs <- function(analysis_results, mon_data, run_mode, run_state, tab_plot,
+                                 UTILISATION_FULL_MODE_HEIGHT_PX, utilisation_panel_heights, input,
+                                 output) {
+  shrink_to_fit_helpers_out <- build_shrink_to_fit_helpers(input, output)
+  ANALYSE_PLOT_CHROME_PX <- shrink_to_fit_helpers_out$ANALYSE_PLOT_CHROME_PX
+  ANALYSE_PLOT_CHROME_WITH_HEADING_PX <- shrink_to_fit_helpers_out$ANALYSE_PLOT_CHROME_WITH_HEADING_PX
+  ANALYSE_PLOT_CHROME_WITH_INTRO_PX <- shrink_to_fit_helpers_out$ANALYSE_PLOT_CHROME_WITH_INTRO_PX
+  new_shrink_to_fit_plot <- shrink_to_fit_helpers_out$new_shrink_to_fit_plot
+  shrink_to_fit_plot_ui <- shrink_to_fit_helpers_out$shrink_to_fit_plot_ui
 
+  # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
+  # shown above the output tabs, per Issue #15's acceptance criteria.
+  wire_analyse_summary_outputs(analysis_results, mon_data, run_mode, run_state, output)
+
+  wire_analyse_body(analysis_results, run_mode, run_state, UTILISATION_FULL_MODE_HEIGHT_PX,
+                    utilisation_panel_heights, output, ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+                    ANALYSE_PLOT_CHROME_WITH_INTRO_PX, shrink_to_fit_plot_ui)
+
+  register_analyse_plots(analysis_results, run_mode, tab_plot, UTILISATION_FULL_MODE_HEIGHT_PX,
+                         utilisation_panel_heights, new_shrink_to_fit_plot)
+
+  #' Generic PNG/PDF download handler for one plot.
+  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
+  plot_download_handler <- wire_plot_image_downloads(analysis_results, tab_plot, output)
+
+  plot_data_downloads_out <- wire_plot_data_downloads(analysis_results, mon_data, run_mode, output)
+  echelon_ot_utilisation_csv <- plot_data_downloads_out$echelon_ot_utilisation_csv
+  filtered_resources_csv <- plot_data_downloads_out$filtered_resources_csv
+  list(
+    ANALYSE_PLOT_CHROME_PX = ANALYSE_PLOT_CHROME_PX,
+    ANALYSE_PLOT_CHROME_WITH_HEADING_PX = ANALYSE_PLOT_CHROME_WITH_HEADING_PX,
+    ANALYSE_PLOT_CHROME_WITH_INTRO_PX = ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
+    echelon_ot_utilisation_csv = echelon_ot_utilisation_csv,
+    filtered_resources_csv = filtered_resources_csv,
+    new_shrink_to_fit_plot = new_shrink_to_fit_plot,
+    plot_download_handler = plot_download_handler,
+    shrink_to_fit_plot_ui = shrink_to_fit_plot_ui
+  )
+}
+
+#' Build the table and value-card helpers the panels share
+#'
+#' @return A list of `ci_value_card`, `count_value_card`, `small_dt`.
+build_supplementary_card_helpers <- function() {
   small_dt <- function(df) datatable(df, rownames = FALSE, options = list(dom = "t", pageLength = 20))
 
   #' One value card showing a mean +/- 95% CI (Full Analysis mode) — same
@@ -3094,7 +3678,20 @@ server <- function(input, output, session) {
   }
   #' One value card showing a bare scalar (Quick Run mode).
   count_value_card <- function(label, n) card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", n))
+  list(
+    ci_value_card = ci_value_card,
+    count_value_card = count_value_card,
+    small_dt = small_dt
+  )
+}
 
+#' Wire the data downloads for the supplementary plots
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_supplementary_plot_downloads <- function(analysis_results, run_mode, output) {
   output$dl_r2b_hold_occupancy_csv <- downloadHandler(
     filename = "r2b_hold_occupancy.csv",
     content  = function(file) {
@@ -3121,10 +3718,20 @@ server <- function(input, output, session) {
     filename = "mass_casualty_events_summary.csv",
     content  = function(file) write.csv(analysis_results()$mass_casualty_events_summary, file, row.names = FALSE)
   )
+  invisible(NULL)
+}
 
-  # R2B routing diagnostics (Issue #39) — pre-transport and at-R2B-hold
-  # bypass/queue counts; independent, non-summing counts (see CLAUDE.md
-  # Key Parameters table).
+#' Wire the R2B routing, pathway and theatre utilisation outputs
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @param ci_value_card See wire_supplementary_outputs().
+#' @param count_value_card See wire_supplementary_outputs().
+#' @param small_dt See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_r2b_and_theatre_outputs <- function(analysis_results, run_mode, output, ci_value_card,
+                                         count_value_card, small_dt) {
   output$r2b_routing_cards <- renderUI({
     req(analysis_results())
     res <- analysis_results()
@@ -3206,9 +3813,17 @@ server <- function(input, output, session) {
       write.csv(df, file, row.names = FALSE)
     }
   )
+  invisible(NULL)
+}
 
-  # Time-to-treatment KPIs (Output Variable Register) — combined into one
-  # table; not every KPI has a p10 (only time_to_first_surgery does).
+#' Wire the time-to-treatment table and its download
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @param small_dt See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_dwell_time_outputs <- function(analysis_results, run_mode, output, small_dt) {
   output$dwell_time_table <- renderDT({
     res <- analysis_results()
     if (identical(run_mode(), "full")) {
@@ -3263,7 +3878,20 @@ server <- function(input, output, session) {
       }
     }
   )
+  invisible(NULL)
+}
 
+#' Wire the return-to-duty and died-of-wounds outputs
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @param ci_value_card See wire_supplementary_outputs().
+#' @param count_value_card See wire_supplementary_outputs().
+#' @param small_dt See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_outcome_outputs <- function(analysis_results, run_mode, output, ci_value_card,
+                                 count_value_card, small_dt) {
   output$rtd_dow_cards <- renderUI({
     req(analysis_results())
     res <- analysis_results()
@@ -3323,7 +3951,18 @@ server <- function(input, output, session) {
       write.csv(df, file, row.names = FALSE)
     }
   )
+  invisible(NULL)
+}
 
+#' Wire the Role 4 and strategic evacuation outputs
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @param ci_value_card See wire_supplementary_outputs().
+#' @param small_dt See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card, small_dt) {
   output$role4_summary_cards <- renderUI({
     req(analysis_results())
     if (identical(run_mode(), "full")) {
@@ -3385,7 +4024,20 @@ server <- function(input, output, session) {
     filename = "ame_wait_time_summary.csv",
     content  = function(file) write.csv(analysis_results()$ame_wait_time_summary, file, row.names = FALSE)
   )
+  invisible(NULL)
+}
 
+#' Wire the mass casualty event outputs
+#'
+#' @param analysis_results See wire_supplementary_outputs().
+#' @param run_mode See wire_supplementary_outputs().
+#' @param output See wire_supplementary_outputs().
+#' @param ci_value_card See wire_supplementary_outputs().
+#' @param count_value_card See wire_supplementary_outputs().
+#' @param small_dt See wire_supplementary_outputs().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_mass_casualty_outputs <- function(analysis_results, run_mode, output, ci_value_card,
+                                       count_value_card, small_dt) {
   output$mass_casualty_event_count_card <- renderUI({
     req(analysis_results())
     if (identical(run_mode(), "full")) {
@@ -3409,7 +4061,14 @@ server <- function(input, output, session) {
     filename = "mass_casualty_dow_summary.csv",
     content  = function(file) write.csv(analysis_results()$mass_casualty_dow_summary, file, row.names = FALSE)
   )
+  invisible(NULL)
+}
 
+#' Wire the sensitivity calibration table and its download
+#'
+#' @param output See wire_supplementary_outputs().
+#' @return `calibration_df`.
+wire_calibration_outputs <- function(output) {
   calibration_df <- reactive({
     data.frame(
       Variable      = morris_params$name,
@@ -3435,9 +4094,72 @@ server <- function(input, output, session) {
     filename = "sensitivity_calibration.csv",
     content  = function(file) write.csv(calibration_df(), file, row.names = FALSE)
   )
+  calibration_df
+}
 
-  # ── Sensitivity Screening — Morris (async via future + promises) ─────────
+#' Wire the supplementary analysis outputs and their downloads
+#'
+#' @param analysis_results See analyse_run().
+#' @param run_mode See analyse_run().
+#' @param output See analyse_run().
+#' @return A list of `calibration_df`, `ci_value_card`, `count_value_card`, `small_dt`.
+wire_supplementary_outputs <- function(analysis_results, run_mode, output) {
+  supplementary_card_helpers_out <- build_supplementary_card_helpers()
+  ci_value_card <- supplementary_card_helpers_out$ci_value_card
+  count_value_card <- supplementary_card_helpers_out$count_value_card
+  small_dt <- supplementary_card_helpers_out$small_dt
 
+  wire_supplementary_plot_downloads(analysis_results, run_mode, output)
+
+  # R2B routing diagnostics (Issue #39) — pre-transport and at-R2B-hold
+  # bypass/queue counts; independent, non-summing counts (see CLAUDE.md
+  # Key Parameters table).
+  wire_r2b_and_theatre_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
+                               small_dt)
+
+  # Time-to-treatment KPIs (Output Variable Register) — combined into one
+  # table; not every KPI has a p10 (only time_to_first_surgery does).
+  wire_dwell_time_outputs(analysis_results, run_mode, output, small_dt)
+
+  wire_outcome_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
+                       small_dt)
+
+  wire_role4_outputs(analysis_results, run_mode, output, ci_value_card, small_dt)
+
+  wire_mass_casualty_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
+                             small_dt)
+
+  calibration_df <- wire_calibration_outputs(output)
+  list(
+    calibration_df = calibration_df,
+    ci_value_card = ci_value_card,
+    count_value_card = count_value_card,
+    small_dt = small_dt
+  )
+}
+
+#' Start a Morris elementary effects screen
+#'
+#' @param current_json See wire_morris_screening().
+#' @param morris_error See wire_morris_screening().
+#' @param morris_png_bytes See wire_morris_screening().
+#' @param morris_progress_dir See wire_morris_screening().
+#' @param morris_progress_done See wire_morris_screening().
+#' @param morris_progress_total See wire_morris_screening().
+#' @param morris_results See wire_morris_screening().
+#' @param morris_state See wire_morris_screening().
+#' @param pending_morris See wire_morris_screening().
+#' @param scenario_json See wire_morris_screening().
+#' @param sobol_results See wire_morris_screening().
+#' @param sobol_state See wire_morris_screening().
+#' @param validate_config See wire_morris_screening().
+#' @param input See wire_morris_screening().
+#' @param output See wire_morris_screening().
+#' @return Invisibly NULL; called for the outputs it registers.
+start_morris_screening <- function(current_json, morris_error, morris_png_bytes,
+                                   morris_progress_dir, morris_progress_done, morris_progress_total,
+                                   morris_results, morris_state, pending_morris, scenario_json,
+                                   sobol_results, sobol_state, validate_config, input, output) {
   observeEvent(input$run_sensitivity, {
     values <- inject_all_splits(reactiveValuesToList(input))
     values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
@@ -3505,7 +4227,21 @@ server <- function(input, output, session) {
     pending_morris(prom)
     invisible(NULL)
   })
+  invisible(NULL)
+}
 
+#' Wire the Morris progress poll and status
+#'
+#' @param morris_error See wire_morris_screening().
+#' @param morris_progress_dir See wire_morris_screening().
+#' @param morris_progress_done See wire_morris_screening().
+#' @param morris_progress_total See wire_morris_screening().
+#' @param morris_state See wire_morris_screening().
+#' @param output See wire_morris_screening().
+#' @param session See wire_morris_screening().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_morris_progress <- function(morris_error, morris_progress_dir, morris_progress_done,
+                                 morris_progress_total, morris_state, output, session) {
   observe({
     req(morris_state() == "running")
     invalidateLater(500, session)
@@ -3534,17 +4270,15 @@ server <- function(input, output, session) {
       div(class = "alert alert-danger", paste("Morris screening failed:", morris_error()))
     }
   })
+  invisible(NULL)
+}
 
-  #' μ*/σ scatter data for one KPI's Morris object: μ* is the mean absolute
-  #' elementary effect (importance); σ is the standard deviation of
-  #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
-  #' indicates the effect is not consistent across the parameter's range).
-  #' category distinguishes a scenario/casualty assumption from a
-  #' health-system-design lever, itself split into Capacity (a
-  #' throughput/process time, changeable only through investment) versus
-  #' Policy (a threshold/cadence a standing order can change directly) —
-  #' Issue #112 second follow-up. See the comment on morris_params$category
-  #' (R/sensitivity.R) for the assignment rule.
+#' Wire the Morris mean-against-deviation scatter plot
+#'
+#' @param morris_results See wire_morris_screening().
+#' @param new_shrink_to_fit_plot See wire_morris_screening().
+#' @return `morris_scatter_df`.
+wire_morris_plot <- function(morris_results, new_shrink_to_fit_plot) {
   morris_scatter_df <- function(obj) {
     ee <- obj$ee
     data.frame(
@@ -3579,7 +4313,20 @@ server <- function(input, output, session) {
       theme_minimal(base_size = 13) +
       theme(legend.position = "top")
   }, function() 450)
+  morris_scatter_df
+}
 
+#' Wire the Morris ranking table and downloads
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_morris_screening().
+#' @param morris_png_bytes See wire_morris_screening().
+#' @param morris_results See wire_morris_screening().
+#' @param morris_state See wire_morris_screening().
+#' @param shrink_to_fit_plot_ui See wire_morris_screening().
+#' @param output See wire_morris_screening().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_morris_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, morris_png_bytes, morris_results,
+                                morris_state, shrink_to_fit_plot_ui, output) {
   output$morris_ranking_table <- renderDT({
     req(morris_results())
     rk <- morris_results()$ranking
@@ -3649,9 +4396,79 @@ server <- function(input, output, session) {
       uiOutput("sobol_results_ui")
     )
   })
+  invisible(NULL)
+}
 
-  # ── Sobol Decomposition (async via future + promises) ────────────────────
+#' Wire the Morris sensitivity screening run and its outputs
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See analyse_run().
+#' @param current_json See analyse_run().
+#' @param morris_error See analyse_run().
+#' @param morris_png_bytes See analyse_run().
+#' @param morris_progress_dir See analyse_run().
+#' @param morris_progress_done See analyse_run().
+#' @param morris_progress_total See analyse_run().
+#' @param morris_results See analyse_run().
+#' @param morris_state See analyse_run().
+#' @param new_shrink_to_fit_plot See analyse_run().
+#' @param pending_morris See analyse_run().
+#' @param scenario_json See analyse_run().
+#' @param shrink_to_fit_plot_ui See analyse_run().
+#' @param sobol_results See analyse_run().
+#' @param sobol_state See analyse_run().
+#' @param validate_config See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return The morris_scatter_df object.
+wire_morris_screening <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json, morris_error,
+                                  morris_png_bytes, morris_progress_dir, morris_progress_done,
+                                  morris_progress_total, morris_results, morris_state,
+                                  new_shrink_to_fit_plot, pending_morris, scenario_json,
+                                  shrink_to_fit_plot_ui, sobol_results, sobol_state,
+                                  validate_config, input, output, session) {
+  start_morris_screening(current_json, morris_error, morris_png_bytes, morris_progress_dir,
+                         morris_progress_done, morris_progress_total, morris_results, morris_state,
+                         pending_morris, scenario_json, sobol_results, sobol_state, validate_config,
+                         input, output)
 
+  wire_morris_progress(morris_error, morris_progress_dir, morris_progress_done,
+                       morris_progress_total, morris_state, output, session)
+
+  #' μ*/σ scatter data for one KPI's Morris object: μ* is the mean absolute
+  #' elementary effect (importance); σ is the standard deviation of
+  #' elementary effects (nonlinearity/interaction — a large σ relative to μ*
+  #' indicates the effect is not consistent across the parameter's range).
+  #' category distinguishes a scenario/casualty assumption from a
+  #' health-system-design lever, itself split into Capacity (a
+  #' throughput/process time, changeable only through investment) versus
+  #' Policy (a threshold/cadence a standing order can change directly) —
+  #' Issue #112 second follow-up. See the comment on morris_params$category
+  #' (R/sensitivity.R) for the assignment rule.
+  morris_scatter_df <- wire_morris_plot(morris_results, new_shrink_to_fit_plot)
+
+  wire_morris_results(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, morris_png_bytes, morris_results,
+                      morris_state, shrink_to_fit_plot_ui, output)
+  morris_scatter_df
+}
+
+#' Start a Sobol variance decomposition
+#'
+#' @param current_json See wire_sobol_decomposition().
+#' @param morris_state See wire_sobol_decomposition().
+#' @param pending_sobol See wire_sobol_decomposition().
+#' @param sobol_error See wire_sobol_decomposition().
+#' @param sobol_progress_dir See wire_sobol_decomposition().
+#' @param sobol_progress_done See wire_sobol_decomposition().
+#' @param sobol_progress_total See wire_sobol_decomposition().
+#' @param sobol_results See wire_sobol_decomposition().
+#' @param sobol_state See wire_sobol_decomposition().
+#' @param input See wire_sobol_decomposition().
+#' @param output See wire_sobol_decomposition().
+#' @return Invisibly NULL; called for the outputs it registers.
+start_sobol_decomposition <- function(current_json, morris_state, pending_sobol, sobol_error,
+                                      sobol_progress_dir, sobol_progress_done, sobol_progress_total,
+                                      sobol_results, sobol_state, input, output) {
   observeEvent(input$run_sobol, {
     req(morris_state() == "done")
     top_params <- input$sobol_params
@@ -3707,7 +4524,21 @@ server <- function(input, output, session) {
     pending_sobol(prom)
     invisible(NULL)
   })
+  invisible(NULL)
+}
 
+#' Wire the Sobol progress poll and status
+#'
+#' @param sobol_error See wire_sobol_decomposition().
+#' @param sobol_progress_dir See wire_sobol_decomposition().
+#' @param sobol_progress_done See wire_sobol_decomposition().
+#' @param sobol_progress_total See wire_sobol_decomposition().
+#' @param sobol_state See wire_sobol_decomposition().
+#' @param output See wire_sobol_decomposition().
+#' @param session See wire_sobol_decomposition().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_sobol_progress <- function(sobol_error, sobol_progress_dir, sobol_progress_done,
+                                sobol_progress_total, sobol_state, output, session) {
   observe({
     req(sobol_state() == "running")
     invalidateLater(500, session)
@@ -3736,7 +4567,20 @@ server <- function(input, output, session) {
       div(class = "alert alert-danger", paste("Sobol decomposition failed:", sobol_error()))
     }
   })
+  invisible(NULL)
+}
 
+#' Wire the Sobol plot, tables and downloads
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_sobol_decomposition().
+#' @param new_shrink_to_fit_plot See wire_sobol_decomposition().
+#' @param shrink_to_fit_plot_ui See wire_sobol_decomposition().
+#' @param sobol_results See wire_sobol_decomposition().
+#' @param sobol_state See wire_sobol_decomposition().
+#' @param output See wire_sobol_decomposition().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_sobol_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_fit_plot,
+                               shrink_to_fit_plot_ui, sobol_results, sobol_state, output) {
   new_shrink_to_fit_plot("sobol_plot", "Sobol Indices — Full Size", function() {
     out <- sobol_results()
     req(out, length(out$res) > 0)
@@ -3791,10 +4635,64 @@ server <- function(input, output, session) {
       downloadButton("dl_sobol_csv_zip", "Download Sobol Indices — All KPIs (ZIP)")
     )
   })
+  invisible(NULL)
+}
 
-  # ── Transport Fleet Capacity Margin Sweep (async via future + promises,
-  # Issue #57) ───────────────────────────────────────────────────────────────
+#' Wire the Sobol decomposition run and its outputs
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See analyse_run().
+#' @param current_json See analyse_run().
+#' @param morris_state See analyse_run().
+#' @param new_shrink_to_fit_plot See analyse_run().
+#' @param pending_sobol See analyse_run().
+#' @param shrink_to_fit_plot_ui See analyse_run().
+#' @param sobol_error See analyse_run().
+#' @param sobol_progress_dir See analyse_run().
+#' @param sobol_progress_done See analyse_run().
+#' @param sobol_progress_total See analyse_run().
+#' @param sobol_results See analyse_run().
+#' @param sobol_state See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return Invisibly NULL; called for the files it writes.
+wire_sobol_decomposition <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json, morris_state,
+                                     new_shrink_to_fit_plot, pending_sobol, shrink_to_fit_plot_ui,
+                                     sobol_error, sobol_progress_dir, sobol_progress_done,
+                                     sobol_progress_total, sobol_results, sobol_state, input,
+                                     output, session) {
+  start_sobol_decomposition(current_json, morris_state, pending_sobol, sobol_error,
+                            sobol_progress_dir, sobol_progress_done, sobol_progress_total,
+                            sobol_results, sobol_state, input, output)
 
+  wire_sobol_progress(sobol_error, sobol_progress_dir, sobol_progress_done, sobol_progress_total,
+                      sobol_state, output, session)
+
+  wire_sobol_results(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_fit_plot,
+                     shrink_to_fit_plot_ui, sobol_results, sobol_state, output)
+  invisible(NULL)
+}
+
+#' Start a transport fleet capacity margin sweep
+#'
+#' @param current_json See wire_transport_sweep().
+#' @param pending_transport_sweep See wire_transport_sweep().
+#' @param scenario_json See wire_transport_sweep().
+#' @param transport_sweep_error See wire_transport_sweep().
+#' @param transport_sweep_progress_dir See wire_transport_sweep().
+#' @param transport_sweep_progress_done See wire_transport_sweep().
+#' @param transport_sweep_progress_total See wire_transport_sweep().
+#' @param transport_sweep_results See wire_transport_sweep().
+#' @param transport_sweep_state See wire_transport_sweep().
+#' @param validate_config See wire_transport_sweep().
+#' @param input See wire_transport_sweep().
+#' @param output See wire_transport_sweep().
+#' @return Invisibly NULL; called for the outputs it registers.
+start_transport_sweep <- function(current_json, pending_transport_sweep, scenario_json,
+                                  transport_sweep_error, transport_sweep_progress_dir,
+                                  transport_sweep_progress_done, transport_sweep_progress_total,
+                                  transport_sweep_results, transport_sweep_state, validate_config,
+                                  input, output) {
   observeEvent(input$run_transport_sweep, {
     values <- inject_all_splits(reactiveValuesToList(input))
     values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
@@ -3864,7 +4762,23 @@ server <- function(input, output, session) {
     pending_transport_sweep(prom)
     invisible(NULL)
   })
+  invisible(NULL)
+}
 
+#' Wire the transport sweep progress poll and status
+#'
+#' @param transport_sweep_error See wire_transport_sweep().
+#' @param transport_sweep_progress_dir See wire_transport_sweep().
+#' @param transport_sweep_progress_done See wire_transport_sweep().
+#' @param transport_sweep_progress_total See wire_transport_sweep().
+#' @param transport_sweep_state See wire_transport_sweep().
+#' @param output See wire_transport_sweep().
+#' @param session See wire_transport_sweep().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_transport_sweep_progress <- function(transport_sweep_error, transport_sweep_progress_dir,
+                                          transport_sweep_progress_done,
+                                          transport_sweep_progress_total, transport_sweep_state,
+                                          output, session) {
   observe({
     req(transport_sweep_state() == "running")
     invalidateLater(500, session)
@@ -3893,7 +4807,24 @@ server <- function(input, output, session) {
       div(class = "alert alert-danger", paste("Transport fleet sweep failed:", transport_sweep_error()))
     }
   })
+  invisible(NULL)
+}
 
+#' Wire the transport sweep plot, table and downloads
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_transport_sweep().
+#' @param current_json See wire_transport_sweep().
+#' @param new_shrink_to_fit_plot See wire_transport_sweep().
+#' @param shrink_to_fit_plot_ui See wire_transport_sweep().
+#' @param transport_sweep_results See wire_transport_sweep().
+#' @param transport_sweep_state See wire_transport_sweep().
+#' @param input See wire_transport_sweep().
+#' @param output See wire_transport_sweep().
+#' @return Invisibly NULL; called for the outputs it registers.
+wire_transport_sweep_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json,
+                                         new_shrink_to_fit_plot, shrink_to_fit_plot_ui,
+                                         transport_sweep_results, transport_sweep_state, input,
+                                         output) {
   new_shrink_to_fit_plot("transport_sweep_plot", "Transport Fleet Capacity Margin Sweep — Full Size", function() {
     df <- transport_sweep_results()
     req(df)
@@ -3925,6 +4856,243 @@ server <- function(input, output, session) {
       downloadButton("dl_transport_sweep_csv", "Download Sweep Results (CSV)")
     )
   })
+  invisible(NULL)
+}
+
+#' Wire the transport fleet capacity margin sweep and its outputs
+#'
+#' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See analyse_run().
+#' @param current_json See analyse_run().
+#' @param new_shrink_to_fit_plot See analyse_run().
+#' @param pending_transport_sweep See analyse_run().
+#' @param scenario_json See analyse_run().
+#' @param shrink_to_fit_plot_ui See analyse_run().
+#' @param transport_sweep_error See analyse_run().
+#' @param transport_sweep_progress_dir See analyse_run().
+#' @param transport_sweep_progress_done See analyse_run().
+#' @param transport_sweep_progress_total See analyse_run().
+#' @param transport_sweep_results See analyse_run().
+#' @param transport_sweep_state See analyse_run().
+#' @param validate_config See analyse_run().
+#' @param input See analyse_run().
+#' @param output See analyse_run().
+#' @param session See analyse_run().
+#' @return Invisibly NULL; called for the files it writes.
+wire_transport_sweep <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json,
+                                 new_shrink_to_fit_plot, pending_transport_sweep, scenario_json,
+                                 shrink_to_fit_plot_ui, transport_sweep_error,
+                                 transport_sweep_progress_dir, transport_sweep_progress_done,
+                                 transport_sweep_progress_total, transport_sweep_results,
+                                 transport_sweep_state, validate_config, input, output, session) {
+  start_transport_sweep(current_json, pending_transport_sweep, scenario_json, transport_sweep_error,
+                        transport_sweep_progress_dir, transport_sweep_progress_done,
+                        transport_sweep_progress_total, transport_sweep_results,
+                        transport_sweep_state, validate_config, input, output)
+
+  wire_transport_sweep_progress(transport_sweep_error, transport_sweep_progress_dir,
+                                transport_sweep_progress_done, transport_sweep_progress_total,
+                                transport_sweep_state, output, session)
+
+  wire_transport_sweep_results(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json,
+                               new_shrink_to_fit_plot, shrink_to_fit_plot_ui,
+                               transport_sweep_results, transport_sweep_state, input, output)
+  invisible(NULL)
+}
+
+server <- function(input, output, session) {
+
+
+  # preamble
+  console_state_out <- create_console_state(input, session)
+  analysis_results <- console_state_out$analysis_results
+  mon_data <- console_state_out$mon_data
+  morris_error <- console_state_out$morris_error
+  morris_png_bytes <- console_state_out$morris_png_bytes
+  morris_progress_dir <- console_state_out$morris_progress_dir
+  morris_progress_done <- console_state_out$morris_progress_done
+  morris_progress_total <- console_state_out$morris_progress_total
+  morris_results <- console_state_out$morris_results
+  morris_state <- console_state_out$morris_state
+  pending_future <- console_state_out$pending_future
+  pending_morris <- console_state_out$pending_morris
+  pending_sobol <- console_state_out$pending_sobol
+  pending_transport_sweep <- console_state_out$pending_transport_sweep
+  progress_pct <- console_state_out$progress_pct
+  raw_env_data <- console_state_out$raw_env_data
+  rep_progress_dir <- console_state_out$rep_progress_dir
+  rep_progress_done <- console_state_out$rep_progress_done
+  rep_progress_total <- console_state_out$rep_progress_total
+  run_error <- console_state_out$run_error
+  run_mode <- console_state_out$run_mode
+  run_state <- console_state_out$run_state
+  sobol_error <- console_state_out$sobol_error
+  sobol_progress_dir <- console_state_out$sobol_progress_dir
+  sobol_progress_done <- console_state_out$sobol_progress_done
+  sobol_progress_total <- console_state_out$sobol_progress_total
+  sobol_results <- console_state_out$sobol_results
+  sobol_state <- console_state_out$sobol_state
+  startup_json <- console_state_out$startup_json
+  transport_sweep_error <- console_state_out$transport_sweep_error
+  transport_sweep_progress_dir <- console_state_out$transport_sweep_progress_dir
+  transport_sweep_progress_done <- console_state_out$transport_sweep_progress_done
+  transport_sweep_progress_total <- console_state_out$transport_sweep_progress_total
+  transport_sweep_results <- console_state_out$transport_sweep_results
+  transport_sweep_state <- console_state_out$transport_sweep_state
+
+  # ── Configure panel ───────────────────────────────────────────────────────
+
+
+  # Configure panel
+  configure_panel_out <- wire_configure_panel(input, output, session)
+  fields_by_group <- configure_panel_out$fields_by_group
+  slider_field_ids <- configure_panel_out$slider_field_ids
+  tri_mode_ids <- configure_panel_out$tri_mode_ids
+
+  # ── Casualty Intensity Profile selector ──────────────────────────────────
+  # Offers exactly the scenario profiles defined in the loaded env_data.json
+  # (today: "default" plus whatever is under its `scenarios` block) — no
+  # fabricated intermediate tiers. resolve_scenario() (R/scenario.R) only
+  # overlays the `vars` paths a given scenario actually defines; structural
+  # config (force size, team/bed counts, transport fleet) is never touched.
+
+  # env_data.json's scenario labels carry a full descriptive parenthetical
+  # (e.g. "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British
+  # Task Force, South Atlantic)") intended for the README/CSV outputs
+  # (R/scenario.R's active_scenario_label, R/scenario_runner.R) — kept
+  # unchanged there since that is the citation-quality name. The dropdown
+  # instead uses SCENARIO_DROPDOWN_LABELS below: a display-only override,
+  # not a rename of the underlying scenario identity.
+
+  # Casualty Intensity Profile selector
+  scenario_selector_out <- wire_scenario_selector(fields_by_group, raw_env_data, input, output,
+                                                  session)
+  current_json <- scenario_selector_out$current_json
+  current_scenario <- scenario_selector_out$current_scenario
+  dow_shape <- scenario_selector_out$dow_shape
+  gen_distributions <- scenario_selector_out$gen_distributions
+  mc_event_count <- scenario_selector_out$mc_event_count
+  scenario_choices <- scenario_selector_out$scenario_choices
+  SCENARIO_DROPDOWN_LABELS <- scenario_selector_out$SCENARIO_DROPDOWN_LABELS
+  scenario_json <- scenario_selector_out$scenario_json
+  scenario_overridden_paths <- scenario_selector_out$scenario_overridden_paths
+  shorten_scenario_label <- scenario_selector_out$shorten_scenario_label
+
+  # ── Validation ────────────────────────────────────────────────────────────
+
+
+  # Validation
+  validate_config <- build_config_validator()
+
+  # ── Quick Run execution (async via future + promises) ────────────────────
+
+
+  # Quick Run execution (async via future + promises)
+  wire_quick_run(analysis_results, current_json, mon_data, pending_future, progress_pct, run_error,
+                 run_mode, run_state, scenario_json, validate_config, input)
+
+  # ── Full Analysis execution (async via future + promises) ────────────────
+
+
+  # Full Analysis execution (async via future + promises)
+  wire_full_analysis(analysis_results, current_json, mon_data, pending_future, progress_pct,
+                     rep_progress_dir, rep_progress_done, rep_progress_total, run_error, run_mode,
+                     run_state, scenario_json, validate_config, input, output, session)
+
+  # ── Analyse panel ─────────────────────────────────────────────────────────
+
+  # tab_plot() previously combined Queue Depths' 3 panels and Quick Run's
+  # Bed & Resource Utilisation's 4 panels into one patchwork image each; both
+  # are now split into individually shrink-to-fit plots (Issue #121 follow-
+  # up) so each panel can be shrunk against its own full viewport-height
+  # budget, rather than every constituent plot in a combined image sharing
+  # (and being squashed to fit) one. Only the three tabs that are still ever
+  # a single combined/standalone plot remain here; every split-out panel is
+  # read directly from analysis_results() at its own new_shrink_to_fit_plot()
+  # call instead.
+
+  # Analyse panel
+  analyse_panel_out <- wire_analyse_panel(analysis_results, run_mode)
+  gantt_min_section_height_px <- analyse_panel_out$gantt_min_section_height_px
+  gantt_row_height_px <- analyse_panel_out$gantt_row_height_px
+  tab_plot <- analyse_panel_out$tab_plot
+  UTILISATION_FULL_MODE_HEIGHT_PX <- analyse_panel_out$UTILISATION_FULL_MODE_HEIGHT_PX
+  utilisation_panel_heights <- analyse_panel_out$utilisation_panel_heights
+
+  # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
+  # Every plot in the Analyse tab (Quick Run and Full Analysis alike)
+  # defaults to a size that fits the user's browser viewport without page
+  # scrolling, while remaining fully readable on demand via an "Expand"
+  # link. Each plot still renders server-side at its own natural, data-
+  # driven height (e.g. utilisation_panel_heights() above, unchanged from
+  # Issue #111) so row/label geometry is computed exactly as before; only
+  # the *displayed* size is capped, client-side, by shrink_to_fit_script()
+  # (see its roxygen for why this is done in JS rather than by feeding a
+  # viewport height back into a reactive renderUI). chrome_px is a per-tab
+  # allowance for the surrounding navbar/tab-strip/heading/download-button
+  # chrome that a plot's own container does not occupy; tabs with an
+  # explanatory paragraph above the plot use the larger allowance.
+
+  # Shrink-to-fit plot sizing (Issue #121)
+  analyse_outputs_out <- wire_analyse_outputs(analysis_results, mon_data, run_mode, run_state,
+                                              tab_plot, UTILISATION_FULL_MODE_HEIGHT_PX,
+                                              utilisation_panel_heights, input, output)
+  ANALYSE_PLOT_CHROME_PX <- analyse_outputs_out$ANALYSE_PLOT_CHROME_PX
+  ANALYSE_PLOT_CHROME_WITH_HEADING_PX <- analyse_outputs_out$ANALYSE_PLOT_CHROME_WITH_HEADING_PX
+  ANALYSE_PLOT_CHROME_WITH_INTRO_PX <- analyse_outputs_out$ANALYSE_PLOT_CHROME_WITH_INTRO_PX
+  echelon_ot_utilisation_csv <- analyse_outputs_out$echelon_ot_utilisation_csv
+  filtered_resources_csv <- analyse_outputs_out$filtered_resources_csv
+  new_shrink_to_fit_plot <- analyse_outputs_out$new_shrink_to_fit_plot
+  plot_download_handler <- analyse_outputs_out$plot_download_handler
+  shrink_to_fit_plot_ui <- analyse_outputs_out$shrink_to_fit_plot_ui
+
+  # ── Issue #117 — previously-uncovered analyse_run() outputs, plus their
+  # Full Analysis mean +/- 95% CI equivalents from analyse_replications() ──
+  # analyse_run() returns bare scalars/simple data frames (one seed, one
+  # value); analyse_replications() returns the *_ci-suffixed equivalent —
+  # a mean +/- 95% CI across replications instead (see the new block in
+  # R/analysis.R, right after kpi_summary). Every renderer below branches
+  # on run_mode() to pick the correctly-shaped source field.
+
+
+  # Issue #117 — previously-uncovered analyse_run() outputs, plus their
+  supplementary_outputs_out <- wire_supplementary_outputs(analysis_results, run_mode, output)
+  calibration_df <- supplementary_outputs_out$calibration_df
+  ci_value_card <- supplementary_outputs_out$ci_value_card
+  count_value_card <- supplementary_outputs_out$count_value_card
+  small_dt <- supplementary_outputs_out$small_dt
+
+  # ── Sensitivity Screening — Morris (async via future + promises) ─────────
+
+
+  # Sensitivity Screening — Morris (async via future + promises)
+  morris_scatter_df <- wire_morris_screening(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json,
+                                             morris_error, morris_png_bytes, morris_progress_dir,
+                                             morris_progress_done, morris_progress_total,
+                                             morris_results, morris_state, new_shrink_to_fit_plot,
+                                             pending_morris, scenario_json, shrink_to_fit_plot_ui,
+                                             sobol_results, sobol_state, validate_config, input,
+                                             output, session)
+
+  # ── Sobol Decomposition (async via future + promises) ────────────────────
+
+
+  # Sobol Decomposition (async via future + promises)
+  wire_sobol_decomposition(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json, morris_state,
+                           new_shrink_to_fit_plot, pending_sobol, shrink_to_fit_plot_ui,
+                           sobol_error, sobol_progress_dir, sobol_progress_done,
+                           sobol_progress_total, sobol_results, sobol_state, input, output, session)
+
+  # ── Transport Fleet Capacity Margin Sweep (async via future + promises,
+  # Issue #57) ───────────────────────────────────────────────────────────────
+
+
+  # Transport Fleet Capacity Margin Sweep (async via future + promises,
+  wire_transport_sweep(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json, new_shrink_to_fit_plot,
+                       pending_transport_sweep, scenario_json, shrink_to_fit_plot_ui,
+                       transport_sweep_error, transport_sweep_progress_dir,
+                       transport_sweep_progress_done, transport_sweep_progress_total,
+                       transport_sweep_results, transport_sweep_state, validate_config, input,
+                       output, session)
 }
 
 shinyApp(ui, server)

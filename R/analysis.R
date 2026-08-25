@@ -2871,41 +2871,14 @@ ci_mean <- function(x) {
   c(mean = m, lower = m - e, upper = m + e, n = n)
 }
 
-#' Runs the Full Analysis (multi-replication) visualisation pipeline
+#' Prepare the pooled frames every later stage of a multi-run analysis reads
 #'
-#' @param mon Named list with elements arrivals, attributes, resources as
-#'   returned by run_replications() — each carrying a `replication` column
-#' @param warm_up_period Days to exclude from the start of the analysis
-#'   window (Welch warm-up period; default WARM_UP_DAYS, R/warmup.R — 0 for
-#'   this terminating-simulation model, i.e. no exclusion at baseline)
-#' @param output_dir Directory path for saving CSV outputs (default "outputs")
-#' @param images_dir Directory path for saving PNG plots. Defaults to
-#'   `file.path(output_dir, "images")` for the same reason as analyse_run()'s
-#'   (Issue #154): the tracked `images/` directory is written only when a
-#'   caller names it explicitly.
-#' @return Invisibly returns a named list: casualty_flow, r1_queues,
-#'   r2b_bed_queues, r2e_bed_queues, utilisation, waiting_times (ggplot
-#'   objects, CI-ribbon/error-bar variants of analyse_run()'s single-run
-#'   plots — embeddable directly via renderPlot()); kpi_summary (named list
-#'   of ci_mean() vectors: total_casualties, dow_count, r2e_icu_peak_queue,
-#'   r2b_ot_peak_queue); n_reps; arrivals/attributes/resources (the filtered
-#'   monitoring data frames, for CSV export).
-#'
-#' @details Issue #15's Full Analysis counterpart to analyse_run(): every
-#'   plot shows a mean ± 95% CI ribbon (or error bar, for the single-number
-#'   utilisation summary) across replications, with faint per-replication
-#'   traces overlaid on the queue-depth plots (alpha ≈ 0.1) so an individual
-#'   replication's trajectory remains visible under the aggregate. There is
-#'   no per-replication Gantt or per-bed Gantt-style plot — a Gantt of
-#'   individual bed occupancy has no meaningful multi-replication analogue —
-#'   so the Bed & Resource Utilisation tab is instead a single mean ± CI
-#'   utilisation bar chart per resource group. Replication count guidance,
-#'   CI interpretation, and warm-up exclusion are documented in the README
-#'   (Shiny Application — Full Analysis Mode), citing Romero-Brufau et al.
-#'   (2020) for minimum replication counts in DES healthcare studies.
-analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
-                                 output_dir = "outputs",
-                                 images_dir = file.path(output_dir, "images")) {
+#' @param mon See analyse_run().
+#' @param warm_up_period See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `arrivals`, `arrivals_raw`, `attributes_raw`, `n_reps`, `resources_raw`.
+prepare_replication_frames <- function(mon, warm_up_period, output_dir, images_dir) {
   validate_monitoring(mon, "analyse_replications")
   usable_warm_up <- is.numeric(warm_up_period) && length(warm_up_period) == 1L &&
     !is.na(warm_up_period) && warm_up_period >= 0
@@ -2931,9 +2904,22 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
 
   arrivals <- arrivals_raw %>%
     mutate(arrival_day = floor(start_time / 1440) + 1)
+  list(
+    arrivals = arrivals,
+    arrivals_raw = arrivals_raw,
+    attributes_raw = attributes_raw,
+    n_reps = n_reps,
+    resources_raw = resources_raw
+  )
+}
 
-  # ── KPI summary cards ─────────────────────────────────────────────────────
-
+#' Summarise the headline indicators as mean and 95% confidence interval
+#'
+#' @param arrivals_raw Arrival monitor rows as read, before waiting time is derived.
+#' @param attributes_raw Attribute monitor rows as read.
+#' @param resources_raw Resource monitor rows as read.
+#' @return A list of `clamp_ci`, `kpi_summary`.
+summarise_replication_kpi_cards <- function(arrivals_raw, attributes_raw, resources_raw) {
   total_cas_per_rep <- arrivals_raw %>% count(replication, name = "total")
 
   dow_per_rep <- attributes_raw %>%
@@ -2965,20 +2951,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     r2e_icu_peak_queue = clamp_ci(ci_mean(r2e_icu_peak_per_rep$peak_q)),
     r2b_ot_peak_queue  = clamp_ci(ci_mean(r2b_ot_peak_per_rep$peak_q))
   )
+  list(
+    clamp_ci = clamp_ci,
+    kpi_summary = kpi_summary
+  )
+}
 
-  # ── Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps ──────
-  # Everything below reuses build_attributes_wide()/the same combined join
-  # analyse_run() builds, pooling every replication's casualties into one
-  # wide pivot — group_by(name, replication) inside build_attributes_wide()
-  # already keeps casualties from different replications distinct, so the
-  # identical per-casualty logic analyse_run() uses applies unchanged; only
-  # the final aggregation step (mean ± 95% CI across replications, via
-  # ci_by_group()/ci_mean(), rather than a single-run value) is new. Every
-  # group-wise CI table below completes zero-count combinations before
-  # aggregating (not after) so a replication with no occurrences of a given
-  # group is counted as 0 in the mean rather than silently excluded — the
-  # same bias role4_census_daily's original single-run roxygen (above)
-  # warns against, generalised here to every new breakdown.
+#' Pool every replication's per-casualty attributes into one frame
+#'
+#' @param arrivals Arrival monitor rows with a waiting_time column.
+#' @param arrivals_raw Arrival monitor rows as read, before waiting time is derived.
+#' @param attributes_raw Attribute monitor rows as read.
+#' @return A list of `attributes_wide`, `combined`, `echelon_labels`, `rep_ids`.
+build_replication_attributes <- function(arrivals, arrivals_raw, attributes_raw) {
   attributes_wide <- build_attributes_wide(attributes_raw, arrivals_raw)
   combined <- arrivals %>%
     left_join(attributes_wide, by = c("name", "replication")) %>%
@@ -2989,8 +2974,22 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
 
   echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
   rep_ids        <- unique(arrivals_raw$replication)
+  list(
+    attributes_wide = attributes_wide,
+    combined = combined,
+    echelon_labels = echelon_labels,
+    rep_ids = rep_ids
+  )
+}
 
-  # KPI: DOW count by echelon
+#' Summarise died-of-wounds counts by echelon across replications
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param echelon_labels See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @return The dow_by_echelon_ci object.
+summarise_dow_by_echelon_ci <- function(attributes_wide, echelon_labels, rep_ids, output_dir) {
   dow_by_echelon_rep <- attributes_wide %>%
     filter(dow == 1 & !is.na(dow_echelon)) %>%
     mutate(dow_echelon = echelon_labels[as.character(as.integer(dow_echelon))]) %>%
@@ -3001,8 +3000,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     rename(dow_count_mean = mean, dow_count_ci_lower = ci_lower, dow_count_ci_upper = ci_upper) %>%
     dplyr::select(-sd)
   write.csv(dow_by_echelon_ci, file.path(output_dir, "dow_by_echelon_ci.csv"), row.names = FALSE)
+  dow_by_echelon_ci
+}
 
-  # KPI: RTD count by type (battle fatigue vs clinical) and by echelon x type
+#' Summarise return-to-duty counts by type and echelon across replications
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param clamp_ci See analyse_run().
+#' @param echelon_labels See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @return A list of `rtd_by_echelon_ci`, `rtd_summary_ci`.
+summarise_rtd_by_echelon_ci <- function(attributes_wide, clamp_ci, echelon_labels, rep_ids,
+                                        output_dir) {
   rtd_type_per_rep <- attributes_wide %>%
     filter(!is.na(return_day)) %>%
     mutate(rtd_type = if_else(!is.na(dnbi_type) & dnbi_type == 1L, "battle_fatigue", "clinical")) %>%
@@ -3029,8 +3039,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     rename(rtd_count_mean = mean, rtd_count_ci_lower = ci_lower, rtd_count_ci_upper = ci_upper) %>%
     dplyr::select(-sd)
   write.csv(rtd_by_echelon_ci, file.path(output_dir, "rtd_by_echelon_ci.csv"), row.names = FALSE)
+  list(
+    rtd_by_echelon_ci = rtd_by_echelon_ci,
+    rtd_summary_ci = rtd_summary_ci
+  )
+}
 
-  # KPI: R2B routing diagnostics (Issue #39/#40) — six counts, mean ± CI
+#' Summarise the six R2B routing counts across replications
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param clamp_ci See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @return The r2b_routing_summary_ci object.
+summarise_r2b_routing_ci <- function(attributes_wide, clamp_ci, rep_ids) {
   r2b_diag_col_ci <- function(col) {
     if (!col %in% names(attributes_wide)) return(clamp_ci(ci_mean(rep(0, length(rep_ids)))))
     per_rep <- attributes_wide %>%
@@ -3059,8 +3080,21 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   r2b_routing_summary_ci$r2b_ot_bypass_busy_count <-
     clamp_ci(ci_mean(r2b_bypass_reason_per_rep$n_evt[r2b_bypass_reason_per_rep$reason == "busy"]))
   r2b_routing_summary_ci$r2b_ot_bypass_count <- clamp_ci(ci_mean(r2b_bypass_total_per_rep$total))
+  r2b_routing_summary_ci
+}
 
-  # R2B Hold Bed Occupancy — mean ± 95% CI ribbon by stream (Issue #39)
+#' Plot R2B holding-bed occupancy by stream, mean and confidence interval
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param n_reps See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `r2b_hold_daily_ci`, `r2b_hold_occupancy_plot`.
+plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_ids, output_dir,
+                                       images_dir) {
   r2b_hold_occupancy_plot <- NULL
   r2b_hold_daily_ci       <- NULL
   if ("r2b_hold_start" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_hold_start))) {
@@ -3111,8 +3145,24 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     ggsave(file.path(images_dir, "r2b_hold_occupancy_multirun.png"), r2b_hold_occupancy_plot, width = 12, height = 6, dpi = 150)
     write.csv(r2b_hold_daily_ci, file.path(output_dir, "r2b_hold_occupancy_ci.csv"), row.names = FALSE)
   }
+  list(
+    r2b_hold_daily_ci = r2b_hold_daily_ci,
+    r2b_hold_occupancy_plot = r2b_hold_occupancy_plot
+  )
+}
 
-  # R2B OT Bypass Reason — mean ± 95% CI per day (Issue #40)
+#' Plot why casualties were not operated on at R2B, per day
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param n_reps See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return The r2b_bypass_reason_plot_full object.
+plot_r2b_bypass_reason_ci <- function(attributes_wide, combined, n_reps, rep_ids, output_dir,
+                                      images_dir) {
   r2b_bypass_reason_plot_full <- NULL
   if ("r2b_bypass_reason" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_bypass_reason))) {
     day_range_bypass         <- seq(min(floor(combined$start_time / 1440) + 1), max(floor(combined$start_time / 1440) + 1))
@@ -3146,8 +3196,17 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     ggsave(file.path(images_dir, "r2b_ot_bypass_reason_multirun.png"), r2b_bypass_reason_plot_full, width = 12, height = 6, dpi = 150)
     write.csv(r2b_bypass_daily_ci, file.path(output_dir, "r2b_bypass_reason_ci.csv"), row.names = FALSE)
   }
+  r2b_bypass_reason_plot_full
+}
 
-  # KPI: R2E post-op pathway (ICU vs Hold) — mean ± CI total/died (Issue #43)
+#' Summarise the post-operative pathway split across replications
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param clamp_ci See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @return A list of `post_op_pathway_ci`, `surgery_deferred_summary_ci`.
+summarise_post_op_pathway_ci <- function(attributes_wide, clamp_ci, rep_ids, output_dir) {
   post_op_pathway_ci  <- NULL
   if ("post_op_pathway" %in% names(attributes_wide) && any(!is.na(attributes_wide$post_op_pathway))) {
     pathway_labels <- c("1" = "icu", "2" = "hold")
@@ -3183,8 +3242,22 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
       complete(replication = rep_ids, fill = list(n_evt = 0L))
     surgery_deferred_summary_ci <- clamp_ci(ci_mean(surgery_deferred_per_rep$n_evt))
   }
+  list(
+    post_op_pathway_ci = post_op_pathway_ci,
+    surgery_deferred_summary_ci = surgery_deferred_summary_ci
+  )
+}
 
-  # Transport Fleet Capacity Margin — mean ± CI queue by vehicle (Issue #6)
+#' Plot transport queue depth per vehicle, mean and confidence interval
+#'
+#' @param clamp_ci See analyse_run().
+#' @param n_reps See analyse_run().
+#' @param resources_raw Resource monitor rows as read.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `p_transport_capacity_margin_ci`, `transport_utilisation_ci`.
+plot_transport_capacity_margin_ci <- function(clamp_ci, n_reps, resources_raw, output_dir,
+                                              images_dir) {
   transport_queue_data_mr <- resources_raw %>%
     filter(grepl("^t_(PMVAmb|HX240M)_\\d+$", resource)) %>%
     mutate(
@@ -3216,8 +3289,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     data.frame(platform = veh, mean_u = cm[["mean"]], ci_lower = cm[["lower"]], ci_upper = min(cm[["upper"]], 1))
   }))
   write.csv(transport_utilisation_ci, file.path(output_dir, "transport_utilisation_ci.csv"), row.names = FALSE)
+  list(
+    p_transport_capacity_margin_ci = p_transport_capacity_margin_ci,
+    transport_utilisation_ci = transport_utilisation_ci
+  )
+}
 
-  # KPI: time-to-treatment KPIs — mean ± CI across replications (per-rep mean pooled)
+#' Summarise the treatment-interval indicators across replications
+#'
+#' @param clamp_ci See analyse_run().
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @return The dwell_time_summary_ci object.
+summarise_treatment_intervals_ci <- function(clamp_ci, combined) {
   kpi_per_rep_ci <- function(df) {
     per_rep <- df %>% group_by(replication) %>% summarise(mean_val = mean(.val), .groups = "drop")
     clamp_ci(ci_mean(per_rep$mean_val))
@@ -3252,8 +3336,21 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     r2b_r2e_transit_time   = r2b_r2e_transit_time_ci,
     r2e_dwell_time          = r2e_dwell_time_ci
   )
+  dwell_time_summary_ci
+}
 
-  # Role 4 census and unconstrained AME demand — mean ± CI across reps (Issue #23)
+#' Summarise Role 4 occupancy and sortie demand across replications
+#'
+#' @param clamp_ci See analyse_run().
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param n_reps See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `ame_summary_ci`, `role4_census_ci_plot`, `role4_census_daily_ci`,
+#'   `role4_summary_ci`.
+summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir, images_dir) {
   role4_census_ci_plot     <- NULL
   role4_census_daily_ci    <- NULL
   role4_summary_ci         <- NULL
@@ -3330,8 +3427,21 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     write.csv(role4_peak_by_rep, file.path(output_dir, "role4_peak_by_rep.csv"), row.names = FALSE)
     write.csv(ame_demand_by_rep, file.path(output_dir, "ame_demand_by_rep.csv"), row.names = FALSE)
   }
+  list(
+    ame_summary_ci = ame_summary_ci,
+    role4_census_ci_plot = role4_census_ci_plot,
+    role4_census_daily_ci = role4_census_daily_ci,
+    role4_summary_ci = role4_summary_ci
+  )
+}
 
-  # Actual AME wait time by route — pooled across all replications (Issue #23 follow-up)
+#' Summarise realised evacuation wait time by route, pooled across replications
+#'
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param output_dir Directory the tables are written to.
+#' @return The ame_wait_time_summary_mr object.
+summarise_ame_wait_by_route <- function(combined, output_dir) {
   ame_wait_time_summary_mr <- NULL
   route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
   ame_evac_decisions_mr <- combined %>%
@@ -3358,8 +3468,22 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     )
     write.csv(ame_wait_time_summary_mr, file.path(output_dir, "ame_wait_time_summary_multirun.csv"), row.names = FALSE)
   }
+  ame_wait_time_summary_mr
+}
 
-  # Mass casualty event stress test — pooled across replications (Issue #9)
+#' Summarise the mass casualty stress test, pooled across replications
+#'
+#' @param clamp_ci See analyse_run().
+#' @param combined Arrivals joined to attributes_wide, with casualty type, population
+#'   source and arrival day derived.
+#' @param n_reps See analyse_run().
+#' @param rep_ids See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `mass_casualty_dow_summary_mr`, `mass_casualty_event_count_ci`,
+#'   `mass_casualty_events_summary_mr`, `mass_casualty_timeline_plot_mr`.
+summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir,
+                                       images_dir) {
   mass_casualty_gap_min   <- env_data$vars$mass_casualty$event$window_max
   mass_casualty_tagged_mr <- combined %>%
     filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
@@ -3415,9 +3539,20 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
       theme(panel.grid.minor = element_blank())
     ggsave(file.path(images_dir, "mass_casualty_events_multirun.png"), mass_casualty_timeline_plot_mr, width = 12, height = 6, dpi = 150)
   }
+  list(
+    mass_casualty_dow_summary_mr = mass_casualty_dow_summary_mr,
+    mass_casualty_event_count_ci = mass_casualty_event_count_ci,
+    mass_casualty_events_summary_mr = mass_casualty_events_summary_mr,
+    mass_casualty_timeline_plot_mr = mass_casualty_timeline_plot_mr
+  )
+}
 
-  # ── Casualty Flow — total casualties per day, mean ± CI across reps ──────
-
+#' Plot casualties per day, mean and confidence interval across replications
+#'
+#' @param arrivals Arrival monitor rows with a waiting_time column.
+#' @param n_reps See analyse_run().
+#' @return A list of `day_range`, `p_casualty_flow_ci`.
+plot_casualty_flow_ci <- function(arrivals, n_reps) {
   day_range <- seq(min(arrivals$arrival_day), max(arrivals$arrival_day))
   daily_totals <- expand.grid(replication = unique(arrivals$replication), arrival_day = day_range) %>%
     left_join(count(arrivals, replication, arrival_day, name = "count"),
@@ -3445,9 +3580,18 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
          x = "Arrival Day", y = "Casualties per Day") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank())
+  list(
+    day_range = day_range,
+    p_casualty_flow_ci = p_casualty_flow_ci
+  )
+}
 
-  # ── Queue depth CI ribbons by echelon ─────────────────────────────────────
-
+#' Plot queue depth per echelon, mean and confidence interval across replications
+#'
+#' @param n_reps See analyse_run().
+#' @param resources_raw Resource monitor rows as read.
+#' @return A list of `p_r1_queues_ci`, `p_r2b_queues_ci`, `p_r2e_queues_ci`.
+plot_queue_depth_ci <- function(n_reps, resources_raw) {
   r1_data <- resources_raw %>%
     filter(grepl("^c_r1_.*_\\d+_t\\d+$", resource)) %>%
     mutate(
@@ -3521,9 +3665,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
          x = "Time (Days)", y = "Queue Size", color = "Resource", fill = "Resource") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
+  list(
+    p_r1_queues_ci = p_r1_queues_ci,
+    p_r2b_queues_ci = p_r2b_queues_ci,
+    p_r2e_queues_ci = p_r2e_queues_ci
+  )
+}
 
-  # ── Bed & Resource Utilisation — mean ± CI bar chart (no multi-run Gantt) ─
-
+#' Plot resource utilisation, mean and confidence interval across replications
+#'
+#' @param n_reps See analyse_run().
+#' @param resources_raw Resource monitor rows as read.
+#' @return A list of `p_utilisation_ci`, `util_ci`.
+plot_utilisation_ci <- function(n_reps, resources_raw) {
   util_groups <- list(
     "R2B OT"                     = "^b_r2b_ot_",
     "R2E OT"                     = "^b_r2eheavy_ot_",
@@ -3547,9 +3701,19 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
          x = NULL, y = "Utilisation") +
     theme_minimal(base_size = 13) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 20, hjust = 1))
+  list(
+    p_utilisation_ci = p_utilisation_ci,
+    util_ci = util_ci
+  )
+}
 
-  # ── Waiting Times — p10-p90 quantile band across the pooled replications ─
-
+#' Plot the pooled waiting-time distribution as a p10 to p90 band
+#'
+#' @param arrivals_raw Arrival monitor rows as read, before waiting time is derived.
+#' @param day_range See analyse_run().
+#' @param n_reps See analyse_run().
+#' @return The p_waiting_times_ci object.
+plot_waiting_times_ci <- function(arrivals_raw, day_range, n_reps) {
   arrivals_wait <- arrivals_raw %>%
     mutate(waiting_time = end_time - start_time - activity_time,
            arrival_day  = floor(start_time / 1440) + 1) %>%
@@ -3571,12 +3735,17 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
          x = "Arrival Day", y = "Waiting Time (min)") +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank())
+  p_waiting_times_ci
+}
 
-  # ── Force regeneration — effective force size, mean ± CI across reps (Issue #18) ──
-  # Same step-interpolate-onto-a-day-grid approach as bin_queue_ci() above,
-  # applied to the two force-size globals instead of resource queues, since
-  # get_mon_attributes() records them at irregular event times (each
-  # debit/credit), not on a fixed grid.
+#' Plot effective force size, mean and confidence interval across replications
+#'
+#' @param attributes_raw Attribute monitor rows as read.
+#' @param n_reps See analyse_run().
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `force_regeneration_ci`, `p_force_regeneration_ci`.
+plot_force_regeneration_ci <- function(attributes_raw, n_reps, output_dir, images_dir) {
   p_force_regeneration_ci  <- NULL
   force_regeneration_ci    <- NULL
   force_keys <- c("effective_force_combat", "effective_force_support")
@@ -3636,17 +3805,22 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
            width = 12, height = 6, dpi = 150)
     write.csv(force_regeneration_ci, file.path(output_dir, "force_regeneration_ci.csv"), row.names = FALSE)
   }
+  list(
+    force_regeneration_ci = force_regeneration_ci,
+    p_force_regeneration_ci = p_force_regeneration_ci
+  )
+}
 
-  # ── Strategic AME queue depth and sortie timeline (Issue #109) ──────────
-  # compute_ame_sorties()/plot_ame_sortie() (defined above, ahead of
-  # analyse_run()) only depend on the resource monitor and the role4
-  # schedule/config parameters — not the per-casualty `combined` join
-  # analyse_run() builds — so they apply unchanged to the pooled
-  # multi-replication resource data, and already average across
-  # replications. compute_ame_backlog() reads `attributes_raw` directly
-  # (the long-format monitor, not a wide `combined` join) so it too applies
-  # unchanged here; plot_ame_queue() already facets by replication when
-  # more than one is present.
+#' Plot the strategic evacuation queue depth and sortie timeline
+#'
+#' @param day_range See analyse_run().
+#' @param attributes_raw Attribute monitor rows as read.
+#' @param resources_raw Resource monitor rows as read.
+#' @param output_dir Directory the tables are written to.
+#' @param images_dir Directory the plots are written to.
+#' @return A list of `ame_backlog_data`, `ame_backlog_plot`, `ame_sortie_data`, `ame_sortie_plot`.
+plot_ame_queue_and_sorties_ci <- function(day_range, attributes_raw, resources_raw, output_dir,
+                                          images_dir) {
   n_sim_days_ame <- max(day_range)
 
   ame_backlog_data <- compute_ame_backlog(attributes_raw, n_sim_days_ame)
@@ -3668,6 +3842,230 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     }
   }
 
+  list(
+    ame_backlog_data = ame_backlog_data,
+    ame_backlog_plot = ame_backlog_plot,
+    ame_sortie_data = ame_sortie_data,
+    ame_sortie_plot = ame_sortie_plot
+  )
+}
+
+#' Runs the Full Analysis (multi-replication) visualisation pipeline
+#'
+#' @param mon Named list with elements arrivals, attributes, resources as
+#'   returned by run_replications() — each carrying a `replication` column
+#' @param warm_up_period Days to exclude from the start of the analysis
+#'   window (Welch warm-up period; default WARM_UP_DAYS, R/warmup.R — 0 for
+#'   this terminating-simulation model, i.e. no exclusion at baseline)
+#' @param output_dir Directory path for saving CSV outputs (default "outputs")
+#' @param images_dir Directory path for saving PNG plots. Defaults to
+#'   `file.path(output_dir, "images")` for the same reason as analyse_run()'s
+#'   (Issue #154): the tracked `images/` directory is written only when a
+#'   caller names it explicitly.
+#' @return Invisibly returns a named list: casualty_flow, r1_queues,
+#'   r2b_bed_queues, r2e_bed_queues, utilisation, waiting_times (ggplot
+#'   objects, CI-ribbon/error-bar variants of analyse_run()'s single-run
+#'   plots — embeddable directly via renderPlot()); kpi_summary (named list
+#'   of ci_mean() vectors: total_casualties, dow_count, r2e_icu_peak_queue,
+#'   r2b_ot_peak_queue); n_reps; arrivals/attributes/resources (the filtered
+#'   monitoring data frames, for CSV export).
+#'
+#' @details Issue #15's Full Analysis counterpart to analyse_run(): every
+#'   plot shows a mean ± 95% CI ribbon (or error bar, for the single-number
+#'   utilisation summary) across replications, with faint per-replication
+#'   traces overlaid on the queue-depth plots (alpha ≈ 0.1) so an individual
+#'   replication's trajectory remains visible under the aggregate. There is
+#'   no per-replication Gantt or per-bed Gantt-style plot — a Gantt of
+#'   individual bed occupancy has no meaningful multi-replication analogue —
+#'   so the Bed & Resource Utilisation tab is instead a single mean ± CI
+#'   utilisation bar chart per resource group. Replication count guidance,
+#'   CI interpretation, and warm-up exclusion are documented in the README
+#'   (Shiny Application — Full Analysis Mode), citing Romero-Brufau et al.
+#'   (2020) for minimum replication counts in DES healthcare studies.
+analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
+                                 output_dir = "outputs",
+                                 images_dir = file.path(output_dir, "images")) {
+
+  # preamble
+  replication_frames_out <- prepare_replication_frames(mon, warm_up_period, output_dir, images_dir)
+  arrivals <- replication_frames_out$arrivals
+  arrivals_raw <- replication_frames_out$arrivals_raw
+  attributes_raw <- replication_frames_out$attributes_raw
+  n_reps <- replication_frames_out$n_reps
+  resources_raw <- replication_frames_out$resources_raw
+
+  # ── KPI summary cards ─────────────────────────────────────────────────────
+
+
+  # KPI summary cards
+  replication_kpi_cards_out <- summarise_replication_kpi_cards(arrivals_raw, attributes_raw,
+                                                               resources_raw)
+  clamp_ci <- replication_kpi_cards_out$clamp_ci
+  kpi_summary <- replication_kpi_cards_out$kpi_summary
+
+  # ── Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps ──────
+  # Everything below reuses build_attributes_wide()/the same combined join
+  # analyse_run() builds, pooling every replication's casualties into one
+  # wide pivot — group_by(name, replication) inside build_attributes_wide()
+  # already keeps casualties from different replications distinct, so the
+  # identical per-casualty logic analyse_run() uses applies unchanged; only
+  # the final aggregation step (mean ± 95% CI across replications, via
+  # ci_by_group()/ci_mean(), rather than a single-run value) is new. Every
+  # group-wise CI table below completes zero-count combinations before
+  # aggregating (not after) so a replication with no occurrences of a given
+  # group is counted as 0 in the mean rather than silently excluded — the
+  # same bias role4_census_daily's original single-run roxygen (above)
+  # warns against, generalised here to every new breakdown.
+
+  # Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps
+  replication_attributes_out <- build_replication_attributes(arrivals, arrivals_raw, attributes_raw)
+  attributes_wide <- replication_attributes_out$attributes_wide
+  combined <- replication_attributes_out$combined
+  echelon_labels <- replication_attributes_out$echelon_labels
+  rep_ids <- replication_attributes_out$rep_ids
+
+  # KPI: DOW count by echelon
+
+  # KPI: DOW count by echelon
+  dow_by_echelon_ci <- summarise_dow_by_echelon_ci(attributes_wide, echelon_labels, rep_ids,
+                                                   output_dir)
+
+  # KPI: RTD count by type (battle fatigue vs clinical) and by echelon x type
+
+  # KPI: RTD count by type (battle fatigue vs clinical) and by echelon x type
+  rtd_by_echelon_ci_out <- summarise_rtd_by_echelon_ci(attributes_wide, clamp_ci, echelon_labels,
+                                                       rep_ids, output_dir)
+  rtd_by_echelon_ci <- rtd_by_echelon_ci_out$rtd_by_echelon_ci
+  rtd_summary_ci <- rtd_by_echelon_ci_out$rtd_summary_ci
+
+  # KPI: R2B routing diagnostics (Issue #39/#40) — six counts, mean ± CI
+
+  # KPI: R2B routing diagnostics (Issue #39/#40) — six counts, mean ± CI
+  r2b_routing_summary_ci <- summarise_r2b_routing_ci(attributes_wide, clamp_ci, rep_ids)
+
+  # R2B Hold Bed Occupancy — mean ± 95% CI ribbon by stream (Issue #39)
+
+  # R2B Hold Bed Occupancy — mean ± 95% CI ribbon by stream (Issue #39)
+  r2b_hold_occupancy_ci_out <- plot_r2b_hold_occupancy_ci(attributes_wide, combined, n_reps,
+                                                          rep_ids, output_dir, images_dir)
+  r2b_hold_daily_ci <- r2b_hold_occupancy_ci_out$r2b_hold_daily_ci
+  r2b_hold_occupancy_plot <- r2b_hold_occupancy_ci_out$r2b_hold_occupancy_plot
+
+  # R2B OT Bypass Reason — mean ± 95% CI per day (Issue #40)
+
+  # R2B OT Bypass Reason — mean ± 95% CI per day (Issue #40)
+  r2b_bypass_reason_plot_full <- plot_r2b_bypass_reason_ci(attributes_wide, combined, n_reps,
+                                                           rep_ids, output_dir, images_dir)
+
+  # KPI: R2E post-op pathway (ICU vs Hold) — mean ± CI total/died (Issue #43)
+
+  # KPI: R2E post-op pathway (ICU vs Hold) — mean ± CI total/died (Issue #43)
+  post_op_pathway_ci_out <- summarise_post_op_pathway_ci(attributes_wide, clamp_ci, rep_ids,
+                                                         output_dir)
+  post_op_pathway_ci <- post_op_pathway_ci_out$post_op_pathway_ci
+  surgery_deferred_summary_ci <- post_op_pathway_ci_out$surgery_deferred_summary_ci
+
+  # Transport Fleet Capacity Margin — mean ± CI queue by vehicle (Issue #6)
+
+  # Transport Fleet Capacity Margin — mean ± CI queue by vehicle (Issue #6)
+  transport_capacity_margin_ci_out <- plot_transport_capacity_margin_ci(clamp_ci, n_reps,
+                                                                        resources_raw, output_dir,
+                                                                        images_dir)
+  p_transport_capacity_margin_ci <- transport_capacity_margin_ci_out$p_transport_capacity_margin_ci
+  transport_utilisation_ci <- transport_capacity_margin_ci_out$transport_utilisation_ci
+
+  # KPI: time-to-treatment KPIs — mean ± CI across replications (per-rep mean pooled)
+
+  # KPI: time-to-treatment KPIs — mean ± CI across replications (per-rep mean pooled)
+  dwell_time_summary_ci <- summarise_treatment_intervals_ci(clamp_ci, combined)
+
+  # Role 4 census and unconstrained AME demand — mean ± CI across reps (Issue #23)
+
+  # Role 4 census and unconstrained AME demand — mean ± CI across reps (Issue #23)
+  role4_demand_ci_out <- summarise_role4_demand_ci(clamp_ci, combined, n_reps, rep_ids, output_dir,
+                                                   images_dir)
+  ame_summary_ci <- role4_demand_ci_out$ame_summary_ci
+  role4_census_ci_plot <- role4_demand_ci_out$role4_census_ci_plot
+  role4_census_daily_ci <- role4_demand_ci_out$role4_census_daily_ci
+  role4_summary_ci <- role4_demand_ci_out$role4_summary_ci
+
+  # Actual AME wait time by route — pooled across all replications (Issue #23 follow-up)
+
+  # Actual AME wait time by route — pooled across all replications (Issue #23 follow-up)
+  ame_wait_time_summary_mr <- summarise_ame_wait_by_route(combined, output_dir)
+
+  # Mass casualty event stress test — pooled across replications (Issue #9)
+
+  # Mass casualty event stress test — pooled across replications (Issue #9)
+  mass_casualty_ci_out <- summarise_mass_casualty_ci(clamp_ci, combined, n_reps, rep_ids,
+                                                     output_dir, images_dir)
+  mass_casualty_dow_summary_mr <- mass_casualty_ci_out$mass_casualty_dow_summary_mr
+  mass_casualty_event_count_ci <- mass_casualty_ci_out$mass_casualty_event_count_ci
+  mass_casualty_events_summary_mr <- mass_casualty_ci_out$mass_casualty_events_summary_mr
+  mass_casualty_timeline_plot_mr <- mass_casualty_ci_out$mass_casualty_timeline_plot_mr
+
+  # ── Casualty Flow — total casualties per day, mean ± CI across reps ──────
+
+
+  # Casualty Flow — total casualties per day, mean ± CI across reps
+  casualty_flow_ci_out <- plot_casualty_flow_ci(arrivals, n_reps)
+  day_range <- casualty_flow_ci_out$day_range
+  p_casualty_flow_ci <- casualty_flow_ci_out$p_casualty_flow_ci
+
+  # ── Queue depth CI ribbons by echelon ─────────────────────────────────────
+
+
+  # Queue depth CI ribbons by echelon
+  queue_depth_ci_out <- plot_queue_depth_ci(n_reps, resources_raw)
+  p_r1_queues_ci <- queue_depth_ci_out$p_r1_queues_ci
+  p_r2b_queues_ci <- queue_depth_ci_out$p_r2b_queues_ci
+  p_r2e_queues_ci <- queue_depth_ci_out$p_r2e_queues_ci
+
+  # ── Bed & Resource Utilisation — mean ± CI bar chart (no multi-run Gantt) ─
+
+
+  # Bed & Resource Utilisation — mean ± CI bar chart (no multi-run Gantt)
+  utilisation_ci_out <- plot_utilisation_ci(n_reps, resources_raw)
+  p_utilisation_ci <- utilisation_ci_out$p_utilisation_ci
+  util_ci <- utilisation_ci_out$util_ci
+
+  # ── Waiting Times — p10-p90 quantile band across the pooled replications ─
+
+
+  # Waiting Times — p10-p90 quantile band across the pooled replications
+  p_waiting_times_ci <- plot_waiting_times_ci(arrivals_raw, day_range, n_reps)
+
+  # ── Force regeneration — effective force size, mean ± CI across reps (Issue #18) ──
+  # Same step-interpolate-onto-a-day-grid approach as bin_queue_ci() above,
+  # applied to the two force-size globals instead of resource queues, since
+  # get_mon_attributes() records them at irregular event times (each
+  # debit/credit), not on a fixed grid.
+
+  # Force regeneration — effective force size, mean ± CI across reps (Issue #18)
+  force_regeneration_ci_out <- plot_force_regeneration_ci(attributes_raw, n_reps, output_dir,
+                                                          images_dir)
+  force_regeneration_ci <- force_regeneration_ci_out$force_regeneration_ci
+  p_force_regeneration_ci <- force_regeneration_ci_out$p_force_regeneration_ci
+
+  # ── Strategic AME queue depth and sortie timeline (Issue #109) ──────────
+  # compute_ame_sorties()/plot_ame_sortie() (defined above, ahead of
+  # analyse_run()) only depend on the resource monitor and the role4
+  # schedule/config parameters — not the per-casualty `combined` join
+  # analyse_run() builds — so they apply unchanged to the pooled
+  # multi-replication resource data, and already average across
+  # replications. compute_ame_backlog() reads `attributes_raw` directly
+  # (the long-format monitor, not a wide `combined` join) so it too applies
+  # unchanged here; plot_ame_queue() already facets by replication when
+  # more than one is present.
+
+  # Strategic AME queue depth and sortie timeline (Issue #109)
+  ame_queue_and_sorties_ci_out <- plot_ame_queue_and_sorties_ci(day_range, attributes_raw,
+                                                                resources_raw, output_dir,
+                                                                images_dir)
+  ame_backlog_data <- ame_queue_and_sorties_ci_out$ame_backlog_data
+  ame_backlog_plot <- ame_queue_and_sorties_ci_out$ame_backlog_plot
+  ame_sortie_data <- ame_queue_and_sorties_ci_out$ame_sortie_data
+  ame_sortie_plot <- ame_queue_and_sorties_ci_out$ame_sortie_plot
   invisible(list(
     casualty_flow       = p_casualty_flow_ci,
     r1_queues           = p_r1_queues_ci,

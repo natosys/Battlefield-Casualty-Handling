@@ -1235,6 +1235,184 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
 
 # ── Morris screening ──────────────────────────────────────────────────────────
 
+#' Whether a response carries no usable variation across the design
+#'
+#' @param y One response's values across every design point.
+#' @return TRUE when the response is constant to within a relative tolerance,
+#'   or has fewer than two finite values.
+#' @details A degenerate response gives a Morris index of zero for every
+#'   parameter, which reads identically to a confident finding that nothing
+#'   influences it. The threshold is relative to the response's own magnitude,
+#'   so it catches a constant response at any scale rather than only near zero.
+is_degenerate <- function(y) {
+  y <- y[is.finite(y)]
+  if (length(y) < 2) return(TRUE)
+  sd(y) <= 1e-9 * max(1, abs(mean(y)))
+}
+
+#' Per-parameter mu*/sigma for one response, with the diagnostics needed to
+#'
+#' @param obj A Morris object told this response's values.
+#' @param kpi Name of the response being ranked.
+#' @param Y The response matrix, one column per response.
+#' @return A data frame of per-parameter mu*/sigma, ordered by mu*, carrying
+#'   the diagnostics that tell an uninformative response from an uninfluenced
+#'   parameter.
+rank_response <- function(obj, kpi, Y) {
+  y          <- Y[, kpi]
+  n_na       <- sum(!is.finite(y))
+  degenerate <- is_degenerate(y)
+  ee         <- obj$ee
+
+  n_finite <- apply(ee, 2, function(v) sum(is.finite(v)))
+  mu_star  <- apply(ee, 2, function(v) if (any(is.finite(v))) mean(abs(v), na.rm = TRUE) else NA_real_)
+  sigma    <- apply(ee, 2, function(v) if (sum(is.finite(v)) > 1) sd(v, na.rm = TRUE) else NA_real_)
+
+  note <- rep("", length(n_finite))
+  note[n_finite < nrow(ee)] <- "some trajectories produced a non-finite elementary effect"
+  note[n_finite == 0]       <- "no finite elementary effect at any trajectory"
+  if (degenerate) {
+    note[]    <- "degenerate response — insufficient variation across the design"
+    mu_star[] <- NA_real_
+    sigma[]   <- NA_real_
+  }
+
+  data.frame(
+    parameter        = morris_params$name,
+    mu_star          = as.numeric(mu_star),
+    sigma_ee         = as.numeric(sigma),
+    n_finite_ee      = as.integer(n_finite),
+    kpi              = kpi,
+    criteria         = morris_kpis$criteria[match(kpi, morris_kpis$name)],
+    response_mean    = if (any(is.finite(y))) mean(y, na.rm = TRUE) else NA_real_,
+    response_sd      = if (sum(is.finite(y)) > 1) sd(y, na.rm = TRUE) else NA_real_,
+    response_na_pts  = as.integer(n_na),
+    degenerate       = degenerate,
+    note             = note,
+    row.names        = NULL,
+    stringsAsFactors = FALSE
+  ) %>% arrange(desc(mu_star))
+}
+
+#' Evaluate every Morris design point, resuming from the cache where present
+#'
+#' @param sa The Morris design object, whose `X` lists the points.
+#' @param cache_file Path to the point cache, or NULL for no caching.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param max_cores,crn_seed Passed through to the evaluator unchanged.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @return The response matrix, one row per design point, one column per
+#'   response, in the order the design lists its points.
+#' @details The order points are evaluated in is the order the design lists
+#'   them, and a cached point is read back by its index rather than
+#'   recomputed. Both are what let an interrupted screen resume onto the same
+#'   design, and scripts/check_screen_order.R asserts them.
+evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
+                                   crn_seed, progress_dir) {
+t(vapply(seq_len(nrow(sa$X)), function(i) {
+  # A production screen is r * (p + 1) design points in one long-lived
+  # process: at r = 20 over the current parameter set that is 1,320 points
+  # and some eleven hours, all of which a lost process previously discarded.
+  # With cache_dir each point's responses are written as it completes and
+  # read back on a later call, so an interrupted screen resumes. The design
+  # follows from the seed, so a cached point belongs to the screen being
+  # resumed only while the seed, r, the level count and the parameter bounds
+  # are unchanged; clear the cache when any of those move.
+  if (!is.null(cache_file) && file.exists(cache_file)) {
+    cached <- cache_lookup(cache_file, i, morris_kpis$name)
+    if (!is.null(cached)) {
+      message(sprintf("  Point %d / %d (cached)", i, nrow(sa$X)))
+      return(cached)
+    }
+  }
+  message(sprintf("  Point %d / %d", i, nrow(sa$X)))
+  kpis <- tryCatch(
+    eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores,
+                crn_seed = crn_seed),
+    error = function(e) {
+      warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
+      setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
+    }
+  )
+  if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
+  if (!is.null(progress_dir)) {
+    file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+  }
+  # A full production screen runs this loop hundreds of times in one long-
+  # lived process (r=20 x (p+1) = 240 design points, each building and
+  # discarding a full monitoring dataset via eval_params()/run_replications()).
+  # R's own garbage collector is lazy about returning memory to the OS
+  # between iterations of a tight loop like this one; left unforced, that
+  # slow per-iteration accumulation was observed (Issue #15 follow-up) to
+  # grow a local dev container's memory usage steadily over the course of
+  # a multi-hour run until it started swapping/thrashing rather than
+  # failing cleanly. Forcing a full collection after every point trades a
+  # small amount of wall-clock time for keeping steady-state memory flat
+  # across however many points the screen runs.
+  gc(full = TRUE)
+  kpis
+}, numeric(nrow(morris_kpis))))
+}
+
+#' Rank every response, writing its per-response ranking and plot
+#'
+#' @param sa The Morris design object the responses were produced from.
+#' @param Y The response matrix, one column per response.
+#' @param kpi_labels Named labels, one per response to rank.
+#' @param output_dir,images_dir Directories the rankings and plots go to.
+#' @return A list of `rankings`, one data frame per response, `degenerates`,
+#'   the responses that carried no usable variation, and `morris_objs`, the
+#'   per-response sensitivity objects run_morris() hands back to its caller.
+#' @details Wrapped per response so one degenerate response does not discard
+#'   the rest; a degenerate one is named in the returned vector and warned
+#'   about by the caller rather than silently ranked as all zeros.
+rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
+rankings    <- list()
+degenerates <- character(0)
+
+morris_objs <- lapply(names(kpi_labels), function(kpi) {
+  obj <- sa
+  tell(obj, Y[, kpi])
+
+  ranking_kpi <- rank_response(obj, kpi, Y)
+  rankings[[kpi]] <<- ranking_kpi
+  if (isTRUE(ranking_kpi$degenerate[1])) degenerates <<- c(degenerates, kpi)
+  write.csv(ranking_kpi, file.path(output_dir, sprintf("morris_ranking_%s.csv", kpi)),
+            row.names = FALSE)
+
+  plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
+  p <- tryCatch(
+    if (isTRUE(ranking_kpi$degenerate[1])) stop("degenerate response")
+    else plot_morris_scatter(obj, plot_title),
+    error = function(e) {
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = paste0(plot_title, "\n(insufficient variation to plot)")) +
+        theme_void()
+    }
+  )
+  # Sized well above the original 900x650/res=120 base-R default — a
+  # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
+  # per label than the nine/ten/eleven-parameter screens this project's
+  # image dimensions were originally tuned for.
+  ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
+         width = 12, height = 9, dpi = 130)
+
+  obj
+})
+names(morris_objs) <- names(kpi_labels)
+
+message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
+message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
+if (length(degenerates) > 0) {
+  warning(sprintf(
+    "%d response(s) carried no usable variation across the design and are flagged degenerate in their ranking CSV (mu*/sigma written as NA, not zero): %s",
+    length(degenerates), paste(degenerates, collapse = ", ")
+  ), call. = FALSE)
+}
+  list(rankings = rankings, degenerates = degenerates, morris_objs = morris_objs)
+}
+
 #' Run Morris Elementary Effects screening
 #'
 #' @param n_days     Simulation duration per replication (default 30)
@@ -1326,49 +1504,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
 
-  Y <- t(vapply(seq_len(nrow(sa$X)), function(i) {
-    # A production screen is r * (p + 1) design points in one long-lived
-    # process: at r = 20 over the current parameter set that is 1,320 points
-    # and some eleven hours, all of which a lost process previously discarded.
-    # With cache_dir each point's responses are written as it completes and
-    # read back on a later call, so an interrupted screen resumes. The design
-    # follows from the seed, so a cached point belongs to the screen being
-    # resumed only while the seed, r, the level count and the parameter bounds
-    # are unchanged; clear the cache when any of those move.
-    if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- cache_lookup(cache_file, i, morris_kpis$name)
-      if (!is.null(cached)) {
-        message(sprintf("  Point %d / %d (cached)", i, nrow(sa$X)))
-        return(cached)
-      }
-    }
-    message(sprintf("  Point %d / %d", i, nrow(sa$X)))
-    kpis <- tryCatch(
-      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores,
-                  crn_seed = crn_seed),
-      error = function(e) {
-        warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
-        setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
-      }
-    )
-    if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
-    if (!is.null(progress_dir)) {
-      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
-    }
-    # A full production screen runs this loop hundreds of times in one long-
-    # lived process (r=20 x (p+1) = 240 design points, each building and
-    # discarding a full monitoring dataset via eval_params()/run_replications()).
-    # R's own garbage collector is lazy about returning memory to the OS
-    # between iterations of a tight loop like this one; left unforced, that
-    # slow per-iteration accumulation was observed (Issue #15 follow-up) to
-    # grow a local dev container's memory usage steadily over the course of
-    # a multi-hour run until it started swapping/thrashing rather than
-    # failing cleanly. Forcing a full collection after every point trades a
-    # small amount of wall-clock time for keeping steady-state memory flat
-    # across however many points the screen runs.
-    gc(full = TRUE)
-    kpis
-  }, numeric(nrow(morris_kpis))))
+  Y <- evaluate_morris_design(sa, cache_file, n_rep, n_days, max_cores,
+                              crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
@@ -1388,93 +1525,11 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   # with the reason recorded in the ranking's own `note` column, never as
   # zero. The threshold is relative to the response's own magnitude, so it
   # catches a constant response at any scale rather than only near zero.
-  is_degenerate <- function(y) {
-    y <- y[is.finite(y)]
-    if (length(y) < 2) return(TRUE)
-    sd(y) <= 1e-9 * max(1, abs(mean(y)))
-  }
 
-  #' Per-parameter mu*/sigma for one response, with the diagnostics needed to
-  #' tell an uninformative response from an uninfluenced parameter.
-  rank_response <- function(obj, kpi) {
-    y          <- Y[, kpi]
-    n_na       <- sum(!is.finite(y))
-    degenerate <- is_degenerate(y)
-    ee         <- obj$ee
-
-    n_finite <- apply(ee, 2, function(v) sum(is.finite(v)))
-    mu_star  <- apply(ee, 2, function(v) if (any(is.finite(v))) mean(abs(v), na.rm = TRUE) else NA_real_)
-    sigma    <- apply(ee, 2, function(v) if (sum(is.finite(v)) > 1) sd(v, na.rm = TRUE) else NA_real_)
-
-    note <- rep("", length(n_finite))
-    note[n_finite < nrow(ee)] <- "some trajectories produced a non-finite elementary effect"
-    note[n_finite == 0]       <- "no finite elementary effect at any trajectory"
-    if (degenerate) {
-      note[]    <- "degenerate response — insufficient variation across the design"
-      mu_star[] <- NA_real_
-      sigma[]   <- NA_real_
-    }
-
-    data.frame(
-      parameter        = morris_params$name,
-      mu_star          = as.numeric(mu_star),
-      sigma_ee         = as.numeric(sigma),
-      n_finite_ee      = as.integer(n_finite),
-      kpi              = kpi,
-      criteria         = morris_kpis$criteria[match(kpi, morris_kpis$name)],
-      response_mean    = if (any(is.finite(y))) mean(y, na.rm = TRUE) else NA_real_,
-      response_sd      = if (sum(is.finite(y)) > 1) sd(y, na.rm = TRUE) else NA_real_,
-      response_na_pts  = as.integer(n_na),
-      degenerate       = degenerate,
-      note             = note,
-      row.names        = NULL,
-      stringsAsFactors = FALSE
-    ) %>% arrange(desc(mu_star))
-  }
-
-  rankings    <- list()
-  degenerates <- character(0)
-
-  morris_objs <- lapply(names(kpi_labels), function(kpi) {
-    obj <- sa
-    tell(obj, Y[, kpi])
-
-    ranking_kpi <- rank_response(obj, kpi)
-    rankings[[kpi]] <<- ranking_kpi
-    if (isTRUE(ranking_kpi$degenerate[1])) degenerates <<- c(degenerates, kpi)
-    write.csv(ranking_kpi, file.path(output_dir, sprintf("morris_ranking_%s.csv", kpi)),
-              row.names = FALSE)
-
-    plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
-    p <- tryCatch(
-      if (isTRUE(ranking_kpi$degenerate[1])) stop("degenerate response")
-      else plot_morris_scatter(obj, plot_title),
-      error = function(e) {
-        ggplot() +
-          annotate("text", x = 0.5, y = 0.5,
-                   label = paste0(plot_title, "\n(insufficient variation to plot)")) +
-          theme_void()
-      }
-    )
-    # Sized well above the original 900x650/res=120 base-R default — a
-    # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
-    # per label than the nine/ten/eleven-parameter screens this project's
-    # image dimensions were originally tuned for.
-    ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
-           width = 12, height = 9, dpi = 130)
-
-    obj
-  })
-  names(morris_objs) <- names(kpi_labels)
-
-  message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
-  message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
-  if (length(degenerates) > 0) {
-    warning(sprintf(
-      "%d response(s) carried no usable variation across the design and are flagged degenerate in their ranking CSV (mu*/sigma written as NA, not zero): %s",
-      length(degenerates), paste(degenerates, collapse = ", ")
-    ), call. = FALSE)
-  }
+  ranked      <- rank_morris_responses(sa, Y, kpi_labels, output_dir, images_dir)
+  rankings    <- ranked$rankings
+  degenerates <- ranked$degenerates
+  morris_objs <- ranked$morris_objs
 
   # The primary ranking remains system OT queue, the aggregate bottleneck
   # response the README's published table reports, written under its

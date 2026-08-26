@@ -67,7 +67,7 @@ message(sprintf(
 # env_data_base pattern, R/sensitivity.R), so they must already be set —
 # same convention as scripts/run_sensitivity.R.
 env_data <<- load_elms(opt$path)
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 set.seed(opt$seed)

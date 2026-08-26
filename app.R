@@ -2369,7 +2369,7 @@ wire_quick_run <- function(analysis_results, current_json, mon_data, pending_fut
       # than relying on attach-order timing.
       assign("run", simmer::run, envir = .GlobalEnv)
       env_data <<- built_env
-      day_min  <<- 1440L
+      day_min  <<- DAY_MIN
       counts   <<- sapply(env_data$elms, length)
 
       wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE)
@@ -4017,7 +4017,7 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
     req(analysis_results()$ame_wait_time_summary)
     df <- analysis_results()$ame_wait_time_summary %>%
       mutate(across(c(mean_wait_minutes, p10_wait_minutes, p90_wait_minutes),
-                     list(days = ~ round(. / 1440, 1))))
+                     list(days = ~ round(. / DAY_MIN, 1))))
     small_dt(df)
   })
   output$dl_ame_wait_time_csv <- downloadHandler(

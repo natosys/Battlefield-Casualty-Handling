@@ -78,7 +78,7 @@ report <- function(ok, fmt, ...) {
 json <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 base_env_data <- build_environment(resolve_scenario(json, SCENARIO))
 
-day_min <<- 1440L
+day_min <<- DAY_MIN
 
 SHIPPED_RATE     <- as.numeric(base_env_data$vars$mass_casualty$event$rate_per_day)
 SHIPPED_FRACTION <- as.numeric(base_env_data$vars$mass_casualty$event$kia_fraction)

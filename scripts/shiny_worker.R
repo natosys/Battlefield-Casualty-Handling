@@ -55,7 +55,7 @@ max_cores    <- if (nzchar(opt[["max-cores"]]))    as.integer(opt[["max-cores"]]
 progress_dir <- if (nzchar(opt[["progress-dir"]])) opt[["progress-dir"]]          else NULL
 
 env_data <<- load_elms(opt$json)
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 result <- switch(opt$mode,

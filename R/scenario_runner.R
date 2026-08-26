@@ -12,6 +12,8 @@
 library(dplyr)
 library(ggplot2)
 
+source("R/constants.R")
+
 # ── Single-scenario execution ─────────────────────────────────────────────────
 
 #' Compute replication-level totals (casualty counts, DOW count, DOW/WIA rate)
@@ -34,7 +36,7 @@ library(ggplot2)
 #'   report in the same mean (p10-p90), 95% CI format used throughout this
 #'   project's analysis.
 summarise_scenario_totals <- function(mon, warm_up_days = 0) {
-  warm_up_min <- as.integer(warm_up_days) * 1440L
+  warm_up_min <- as.integer(warm_up_days) * DAY_MIN
 
   arrivals <- mon$arrivals %>%
     filter(start_time >= warm_up_min) %>%
@@ -128,7 +130,7 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
   resolved  <- resolve_scenario(json_data, scenario)
 
   env_data <<- build_environment(resolved)
-  day_min  <<- 1440L
+  day_min  <<- DAY_MIN
   counts   <<- sapply(env_data$elms, length)
 
   label <- if (!is.null(resolved$active_scenario_label)) {

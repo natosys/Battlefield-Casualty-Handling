@@ -94,7 +94,7 @@ VAR_BAND <- 2
 # dominating rate is the true one and no candidate is rejected.
 CHECK_FORCE <- 1000
 
-day_min <<- 1440L
+day_min <<- DAY_MIN
 
 failures <- character(0)
 fail     <- function(...) failures <<- c(failures, sprintf(...))

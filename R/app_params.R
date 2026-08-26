@@ -3,6 +3,8 @@
 ## Parameter registry for the Shiny         ##
 ## configuration editor (Issue #14)         ##
 ##############################################
+
+source("R/constants.R")
 #
 # env_data.json is manipulated here as the *raw* parsed JSON tree (the
 # on-disk schema: elms/actys/vals arrays, as returned by
@@ -823,13 +825,13 @@ build_param_registry <- function() {
   registry <- c(registry, list(
     var_field("mc_window_min", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_min",
               "Injection Window — Minimum", "Minutes over which a fired event's casualties arrive (triangular min). Applies to every event.",
-              type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY),
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY),
     var_field("mc_window_mode", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_mode",
               "Injection Window — Most Likely (Mode)", "Minutes over which a fired event's casualties arrive (triangular mode). Applies to every event.",
-              type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY),
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY),
     var_field("mc_window_max", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_max",
               "Injection Window — Maximum", "Minutes over which a fired event's casualties arrive (triangular max). Applies to every event.",
-              type = "integer", min = 1, max = 1440, step = 1, source = SRC_MASS_CASUALTY)
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY)
   ))
   # Immediate-killed share (Issue #149) — applies in both modes, as the
   # injection window does, so it takes its own subgroup and renders

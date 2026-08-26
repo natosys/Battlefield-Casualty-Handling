@@ -25,7 +25,7 @@ source("R/replication.R")
 source("R/warmup.R")
 
 env_data <<- load_elms("env_data.json")
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 run_welch_analysis(n_reps = opt$reps, n_days = opt$days)

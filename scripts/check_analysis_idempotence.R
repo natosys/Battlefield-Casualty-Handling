@@ -102,7 +102,7 @@ json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 # the four globals the execution model requires reach the sourced modules
 # without `<<-`.
 env_data <- build_environment(resolve_scenario(json, SCENARIO))
-day_min  <- 1440L
+day_min  <- DAY_MIN
 counts   <- sapply(env_data$elms, length)
 
 #' Reduce a directory of analysis outputs to something comparable

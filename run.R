@@ -110,7 +110,7 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
                   iterations, days, seed))
 
   env_data <<- load_elms("env_data.json")
-  day_min  <<- 1440L
+  day_min  <<- DAY_MIN
   counts   <<- sapply(env_data$elms, length)
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)

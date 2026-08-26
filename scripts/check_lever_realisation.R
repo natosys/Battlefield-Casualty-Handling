@@ -71,7 +71,7 @@ report <- function(ok, fmt, ...) {
 
 # Globals the model reads directly, mirroring run_bch()'s setup in run.R.
 env_data <<- load_elms("env_data.json")
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 env_data_base <- env_data
@@ -436,11 +436,11 @@ if (nrow(evacuated) == 0) {
   # to the remainder carried in.
   reached <- evacuated %>% filter(!is.na(recovery_to_duty_days))
   if (nrow(reached)) {
-    worst <- max(abs(reached$recovery_to_duty_days * 1440 - reached$r2b_hold_residual))
+    worst <- max(abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_residual))
     ok <- worst < 1e-6
     if (!ok) {
       fail("%d evacuated casualties drew a fresh R2E recovery duration instead of serving the residual (worst gap %.3f minutes)",
-           sum(abs(reached$recovery_to_duty_days * 1440 - reached$r2b_hold_residual) >= 1e-6),
+           sum(abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_residual) >= 1e-6),
            worst)
     }
     report(ok, "all %d evacuated casualties reaching R2E disposition served the residual rather than a fresh draw (worst gap %.2e min)",

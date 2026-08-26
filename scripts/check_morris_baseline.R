@@ -33,7 +33,7 @@ suppressPackageStartupMessages({
 })
 
 env_data <<- load_elms("env_data.json")
-day_min  <<- 1440L
+day_min  <<- DAY_MIN
 
 failures <- character(0)
 check    <- function(ok, msg) {

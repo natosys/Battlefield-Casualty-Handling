@@ -142,7 +142,7 @@ treated_cohort_rates <- function(mon) {
 run_measurement <- function(scenario, seed) {
   json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
   env_data <<- build_environment(resolve_scenario(json, scenario))
-  day_min  <<- 1440L
+  day_min  <<- DAY_MIN
   counts   <<- sapply(env_data$elms, length)
 
   set.seed(seed)

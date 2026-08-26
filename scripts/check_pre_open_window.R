@@ -79,7 +79,7 @@ report <- function(ok, fmt, ...) {
 json <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 base_env_data <- build_environment(resolve_scenario(json, SCENARIO))
 
-day_min <<- 1440L
+day_min <<- DAY_MIN
 
 SHIPPED_WINDOW <- as.numeric(base_env_data$vars$r2b$surgery$pre_open_window_min)
 
@@ -134,7 +134,10 @@ brk <- ot_shift_break_min
 
 probe <- seq(0, 1439)
 got   <- vapply(probe, minutes_to_shift_open, numeric(1))
-want  <- ifelse(probe < brk, brk - probe, 1440 - probe)
+# as.numeric: minutes_to_shift_open() returns a double, and identical() is
+# type-sensitive, so the expectation is built as one rather than as the
+# integer DAY_MIN would otherwise make it.
+want  <- ifelse(probe < brk, brk - probe, as.numeric(DAY_MIN) - probe)
 
 open_ok <- identical(got, want)
 if (!open_ok) {
@@ -152,7 +155,7 @@ if (!positive_ok) fail("minutes_to_shift_open() returned a non-positive interval
 report(positive_ok, "never reports a non-positive interval (min %g, max %g)", min(got), max(got))
 
 # A roster with no closed shift has nothing to reopen.
-ot_shift_break_min <<- 1440L
+ot_shift_break_min <<- DAY_MIN
 degenerate_ok <- is.infinite(minutes_to_shift_open(0)) && is.infinite(minutes_to_shift_open(700))
 ot_shift_break_min <<- brk
 if (!degenerate_ok) {

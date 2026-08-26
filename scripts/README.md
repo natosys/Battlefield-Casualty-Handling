@@ -101,13 +101,15 @@ above. `check_analysis_decomposition.R` (5 s) and `check_console_bindings.R`
 (18 s) read binding structure rather than behaviour, so both sit with the
 sub-half-minute checks; `check_testthat.R` (2 min 00 s) runs the console's
 `testthat` suite, `shiny::testServer()` coverage included.
-`check_screen_order.R` (6 min 23 s) is the largest fast check in the suite: it
-stubs the model evaluation, so almost none of that time is simulation, but it
+`check_screen_order.R` (2 min 58 s) is the largest fast check in the suite: it
 drives `run_morris()` five times and `run_sobol()` twice over the real designs,
-and each `run_morris()` call renders and writes thirty-six ggrepel-labelled
-scatter plots. It stays in the fast set regardless, being the only check that
-asserts a screen walks its design in index order and resumes its cache without
-re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
+and each of those calls tells, ranks and writes thirty-six responses. Almost
+none of that time is simulation, the model evaluation being stubbed, and none
+of it is plotting: the check shadows `ggsave()` alongside the evaluation, on
+the grounds that it asserts nothing about what a screen plots and rendering
+thirty-six ggrepel-labelled scatters per driver call was over half its runtime.
+It stays in the fast set, being the only check that asserts a screen walks its
+design in index order and resumes its cache without re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
 sandbox rather than in this container.
 
 Three checks corroborate published figures independently of the baseline

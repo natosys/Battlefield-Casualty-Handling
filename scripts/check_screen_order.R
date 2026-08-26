@@ -126,8 +126,15 @@ with_stubbed_eval <- function(expr) {
   eval_log$rows <- list()
   real <- get("eval_params", envir = globalenv())
   assign("eval_params", stub_eval_params, envir = globalenv())
+  # ggsave() is shadowed for the same reason eval_params() is: this check
+  # asserts nothing about what a screen plots, and a driver renders one
+  # ggrepel-labelled scatter per response, which is almost the whole cost of
+  # running it. A binding in the global environment precedes the attached
+  # ggplot2 on the search path, so the drivers' unqualified calls find this.
+  assign("ggsave", function(...) invisible(NULL), envir = globalenv())
   on.exit({
     assign("eval_params", real, envir = globalenv())
+    suppressWarnings(rm("ggsave", envir = globalenv()))
   }, add = TRUE)
   res <- suppressMessages(suppressWarnings(force(expr)))
   list(result = res, rows = eval_log$rows)

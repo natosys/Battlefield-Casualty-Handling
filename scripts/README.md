@@ -96,6 +96,20 @@ run and nothing else. Neither has been measured in this container; in an
 unpinned R 4.3.3 sandbox they took 18 and 16 seconds, which places both with
 the sub-half-minute checks.
 
+Four further checks arrived with the code-standard work and carry no row
+above. `check_analysis_decomposition.R` (5 s) and `check_console_bindings.R`
+(18 s) read binding structure rather than behaviour, so both sit with the
+sub-half-minute checks; `check_testthat.R` (2 min 00 s) runs the console's
+`testthat` suite, `shiny::testServer()` coverage included.
+`check_screen_order.R` (6 min 23 s) is the largest fast check in the suite: it
+stubs the model evaluation, so almost none of that time is simulation, but it
+drives `run_morris()` five times and `run_sobol()` twice over the real designs,
+and each `run_morris()` call renders and writes thirty-six ggrepel-labelled
+scatter plots. It stays in the fast set regardless, being the only check that
+asserts a screen walks its design in index order and resumes its cache without
+re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
+sandbox rather than in this container.
+
 Three checks corroborate published figures independently of the baseline
 reproduction below. `check_dow_calibration.R` returns a pooled treated-cohort
 died-of-wounds rate of 0.474% (95% CI [0.412%, 0.536%]) for `default` and

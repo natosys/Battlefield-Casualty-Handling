@@ -1256,6 +1256,288 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
   )
 }
 
+#' Render the Triage Priority Split subgroup as one shared card
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param fields See render_group_body().
+#' @param subgroups See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+#' @details Priority 1, 2 and 3 share a single two-handle range slider, so the three
+#'   shares sum to one by construction rather than by validation. The DNBI split
+#'   is drawn into the same card, which is why this builder reads the whole field
+#'   set rather than its own subgroup's alone.
+render_triage_split_subgroup <- function(sg, sg_fields, fields, subgroups, defaults,
+                                         overridden_paths) {
+  one_f <- Find(function(f) identical(f$id, "pri_one"), sg_fields)
+  p1 <- defaults[["pri_one"]]; p2 <- defaults[["pri_two"]]
+  pri_lbl <- field_label(list(
+    label   = "Priority Split (P1 | P2 | P3)",
+    tooltip = paste0(
+      "Drag either handle to reallocate share between adjacent priorities — ",
+      "Priority 1, 2, and 3 always sum to 100% by construction."
+    ),
+    path = one_f$path
+  ), overridden_paths)
+  pri_card <- card(
+    card_header(sg),
+    range_slider_with_text_input("pri_split", pri_lbl, c(p1, p1 + p2))
+  )
+
+  dnbi_fields <- fields[subgroups == "DNBI Sub-Type Split"]
+  dnbi_card <- NULL
+  if (length(dnbi_fields) > 0) {
+    bf_f  <- Find(function(f) identical(f$id, "dnbi_bf_pct"), dnbi_fields)
+    p_bf  <- defaults[["dnbi_bf_pct"]]; p_dis <- defaults[["dnbi_disease_pct"]]
+    dnbi_lbl <- field_label(list(
+      label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
+      tooltip = paste0(
+        "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
+        "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction."
+      ),
+      path = bf_f$path
+    ), overridden_paths)
+    dnbi_card <- card(
+      card_header("DNBI Sub-Type Split"),
+      range_slider_with_text_input("dnbi_split", dnbi_lbl, c(p_bf, p_bf + p_dis))
+    )
+  }
+
+  return(layout_column_wrap(width = "480px", pri_card, dnbi_card))
+}
+
+#' Render the DNBI Sub-Type Split subgroup
+#'
+#' @return A shiny tag or tag list for this subgroup.
+#' @details Returns nothing of its own: the split is drawn inside the Triage Priority
+#'   Split card above, so the two sliders can share a row.
+render_dnbi_split_subgroup <- function() {
+  return(NULL)
+}
+
+#' Render the Casualty Generation Rates subgroup with its distribution previews
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @param gen_distributions See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+render_generation_rates_subgroup <- function(sg, sg_fields, defaults, overridden_paths,
+                                             gen_distributions) {
+  return(tagList(
+    h6(class = "text-muted mt-2", sg),
+    p(class = "text-muted small",
+      "These define a distribution shape, not a fixed value — the shaded curve shows daily ",
+      "casualty-rate variability (dashed line = mean) and updates live as you edit. Streams using ",
+      "an exponential distribution take only a mean, so Std. Dev. is hidden for those."),
+    layout_column_wrap(
+      width = "320px",
+      !!!lapply(GEN_STREAM_ACTYS, function(acty) {
+        mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
+        sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
+        # useBytes: see detect_tri_triples() above (Issue #153)
+        stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label, useBytes = TRUE)
+        dist <- if (is.null(gen_distributions)) "lognormal" else (gen_distributions[[acty]] %||% "lognormal")
+        sd_input <- if (identical(dist, "exponential")) {
+          p(class = "text-muted small mb-0",
+            "Std. Dev. not applicable — exponential distribution, fully described by the mean.")
+        } else {
+          field_input(sd_f, defaults[[sd_f$id]], overridden_paths)
+        }
+        card(
+          card_header(stream_label),
+          plotOutput(paste0("curve_", acty), height = "110px"),
+          field_input(mean_f, defaults[[mean_f$id]], overridden_paths),
+          sd_input
+        )
+      })
+    )
+  ))
+}
+
+#' Render the Died of Wounds Ceilings subgroup with its logistic curve previews
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @param dow_shape See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+render_dow_ceilings_subgroup <- function(sg, sg_fields, defaults, overridden_paths, dow_shape) {
+  return(tagList(
+    h6(class = "text-muted mt-2", sg),
+    p(class = "text-muted small",
+      "The ceiling below is the only editable value; the curve shows the full survival function evaluated at each DOW check, using the fixed shape parameters (p_base, k, t_mid) shown alongside it."),
+    layout_column_wrap(
+      width = "340px",
+      !!!lapply(list(
+        list(prio = "p1", id = "dow_p1_pmax", label = "Priority 1 (Urgent)"),
+        list(prio = "p2", id = "dow_p2_pmax", label = "Priority 2 (Priority)")
+      ), function(pr) {
+        pmax_f <- Find(function(f) identical(f$id, pr$id), sg_fields)
+        shp <- if (is.null(dow_shape)) NULL else dow_shape[[pr$prio]]
+        card(
+          card_header(pr$label),
+          plotOutput(paste0("dow_curve_", pr$prio), height = "110px"),
+          field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
+          div(style = "display:flex; gap:6px; margin-top:4px;",
+            div(style = "flex:1; min-width:0;",
+                readonly_numeric("p_base", "Baseline (time-zero) DOW probability in the logistic curve.", shp$p_base, digits = 4,
+                                 path = "dow.params", overridden_paths = overridden_paths)),
+            div(style = "flex:1; min-width:0;",
+                readonly_numeric("k", "Logistic curve steepness constant.", shp$k, digits = 3,
+                                 path = "dow.params", overridden_paths = overridden_paths)),
+            div(style = "flex:1; min-width:0;",
+                readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
+                                 path = "dow.params", overridden_paths = overridden_paths))
+          )
+        )
+      })
+    )
+  ))
+}
+
+#' Render the Random Event Rate subgroup, shown in Poisson mode alone
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+render_random_event_rate_subgroup <- function(sg, sg_fields, defaults, overridden_paths) {
+  return(conditionalPanel(
+    condition = "input.mc_mode == 'poisson'",
+    tagList(
+      h6(class = "text-muted mt-2", sg),
+      p(class = "text-muted small",
+        "Event timing is drawn from a Poisson process at this rate, varying between replications. All events share the casualty-count range below; use Scheduled mode for per-event control."),
+      render_field_grid(sg_fields, defaults, overridden_paths)
+    )
+  ))
+}
+
+#' Render the Scheduled Event Days subgroup, shown in scheduled mode alone
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden_paths) {
+  # Initial visible-row count only — a one-time value read from this
+  # render's defaults, not a reactive dependency. All 20 slots are
+  # always present in the DOM; the +/- buttons (server observeEvent
+  # handlers, see mc_event_count in the server) toggle a single row's
+  # display via a custom message + the client-side handler registered
+  # below, rather than triggering a re-render of this whole group —
+  # re-rendering the group here would also rebuild the Event Timing
+  # Mode dropdown and every other Mass Casualty field at its JSON
+  # default, discarding whatever the user currently has live in the UI.
+  mc_count <- max(1L, sum(vapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+    d <- defaults[[sprintf("mc_sched_day_%d", i)]]
+    !is.null(d) && !is.na(d) && d > 0
+  }, logical(1))))
+  return(conditionalPanel(
+    condition = "input.mc_mode == 'scheduled'",
+    tagList(
+      h6(class = "text-muted mt-2", sg),
+      p(class = "text-muted small",
+        sprintf(
+          "Each event fires independently at its own probability (1 = always) and has its own casualty count and priority mix. Use +/− to add or remove rows (up to %d); removing resets a row rather than deleting it. For more events, edit env_data.json directly.",
+          MASS_CASUALTY_SCHEDULE_SLOTS
+        )),
+      tags$script(HTML(
+        "if (!window.__mcToggleHandlerRegistered) {
+           window.__mcToggleHandlerRegistered = true;
+           Shiny.addCustomMessageHandler('mc_toggle_row', function(msg) {
+             var el = document.getElementById('mc_event_slot_' + msg.index);
+             if (el) el.style.display = msg.show ? '' : 'none';
+           });
+         }"
+      )),
+      div(style = "display:flex; gap:8px; margin-bottom:10px;",
+          actionButton("mc_event_add",    "+ Add Event",           class = "btn-outline-primary btn-sm"),
+          actionButton("mc_event_remove", "− Remove Last Event", class = "btn-outline-secondary btn-sm")
+      ),
+      # A plain flex-wrap container rather than layout_column_wrap():
+      # bslib's grid locks in a fixed number of explicit row tracks
+      # sized for all MASS_CASUALTY_SCHEDULE_SLOTS cards, so hidden
+      # (display:none) slots still reserved their row's height — every
+      # +/- click left a wall of dead space below the visible cards.
+      # Flexbox correctly drops display:none items from layout, so the
+      # container's height always matches only what's actually shown.
+      div(
+        style = "display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;",
+        !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+          day_f      <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),       sg_fields)
+          prob_f     <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)),      sg_fields)
+          min_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_min_cas_%d", i)),   sg_fields)
+          max_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_max_cas_%d", i)),   sg_fields)
+          pri_one_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_pri_one_%d", i)),   sg_fields)
+          p1 <- defaults[[pri_one_f$id]]; p2 <- defaults[[sprintf("mc_sched_pri_two_%d", i)]]
+          pri_lbl <- field_label(list(
+            label   = "Priority Split (P1 | P2 | P3)",
+            tooltip = "This event's own triage priority mix — independent of every other event.",
+            path = pri_one_f$path
+          ), overridden_paths)
+          div(
+            id = sprintf("mc_event_slot_%d", i),
+            style = paste0("flex: 1 1 420px; min-width: 340px; max-width: 460px;",
+                           if (i <= mc_count) "" else " display:none;"),
+            card(
+              card_header(sprintf("Event %d", i)),
+              div(style = "display:flex; gap:8px;",
+                  div(style = "flex:1; min-width:0;", field_input(day_f,     defaults[[day_f$id]],     overridden_paths)),
+                  div(style = "flex:1; min-width:0;", field_input(prob_f,    defaults[[prob_f$id]],    overridden_paths))
+              ),
+              div(style = "display:flex; gap:8px;",
+                  div(style = "flex:1; min-width:0;", field_input(min_cas_f, defaults[[min_cas_f$id]], overridden_paths)),
+                  div(style = "flex:1; min-width:0;", field_input(max_cas_f, defaults[[max_cas_f$id]], overridden_paths))
+              ),
+              range_slider_with_text_input(sprintf("mc_event_pri_split_%d", i), pri_lbl, c(p1, p1 + p2))
+            )
+          )
+        })
+      )
+    )
+  ))
+}
+
+#' Render the Mass Casualty Priority Split subgroup, shown in Poisson mode alone
+#'
+#' @param sg See render_group_body().
+#' @param sg_fields See render_group_body().
+#' @param defaults See render_group_body().
+#' @param overridden_paths See render_group_body().
+#' @return A shiny tag or tag list for this subgroup.
+render_mass_casualty_split_subgroup <- function(sg, sg_fields, defaults, overridden_paths) {
+  one_f <- Find(function(f) identical(f$id, "mc_pri_one"), sg_fields)
+  p1 <- defaults[["mc_pri_one"]]; p2 <- defaults[["mc_pri_two"]]
+  mc_pri_lbl <- field_label(list(
+    label   = "Priority Split (P1 | P2 | P3)",
+    tooltip = paste0(
+      "Drag either handle to reallocate this event's Priority 1/2/3 share — ",
+      "independent of the background Triage Priority Split."
+    ),
+    path = one_f$path
+  ), overridden_paths)
+  return(conditionalPanel(
+    condition = "input.mc_mode == 'poisson'",
+    tagList(
+      h6(class = "text-muted mt-2", sg),
+      p(class = "text-muted small",
+        "Applies to every Poisson-mode event equally — the background Triage Priority Split in the Casualty Rates panel is unaffected by this. In Scheduled mode, each event has its own priority split instead (see Scheduled Event Days above)."),
+      card(
+        card_header(sg),
+        range_slider_with_text_input("mc_pri_split", mc_pri_lbl, c(p1, p1 + p2))
+      )
+    )
+  ))
+}
+
 #' Render one top-level Configure accordion panel body for a field group
 #'
 #' @param overridden_paths Character vector of "elm.acty" paths the active
@@ -1287,112 +1569,22 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
     # replaces the previous subgroup-title h6, since there are now two
     # titles sharing one row rather than one title per row.
     if (identical(sg, "Triage Priority Split")) {
-      one_f <- Find(function(f) identical(f$id, "pri_one"), sg_fields)
-      p1 <- defaults[["pri_one"]]; p2 <- defaults[["pri_two"]]
-      pri_lbl <- field_label(list(
-        label   = "Priority Split (P1 | P2 | P3)",
-        tooltip = paste0(
-          "Drag either handle to reallocate share between adjacent priorities — ",
-          "Priority 1, 2, and 3 always sum to 100% by construction."
-        ),
-        path = one_f$path
-      ), overridden_paths)
-      pri_card <- card(
-        card_header(sg),
-        range_slider_with_text_input("pri_split", pri_lbl, c(p1, p1 + p2))
-      )
-
-      dnbi_fields <- fields[subgroups == "DNBI Sub-Type Split"]
-      dnbi_card <- NULL
-      if (length(dnbi_fields) > 0) {
-        bf_f  <- Find(function(f) identical(f$id, "dnbi_bf_pct"), dnbi_fields)
-        p_bf  <- defaults[["dnbi_bf_pct"]]; p_dis <- defaults[["dnbi_disease_pct"]]
-        dnbi_lbl <- field_label(list(
-          label   = "DNBI Split (Battle Fatigue | Disease | NBI)",
-          tooltip = paste0(
-            "Drag either handle to reallocate share between adjacent DNBI sub-types — ",
-            "Battle Fatigue, Disease, and Non-Battle Injury always sum to 100% by construction."
-          ),
-          path = bf_f$path
-        ), overridden_paths)
-        dnbi_card <- card(
-          card_header("DNBI Sub-Type Split"),
-          range_slider_with_text_input("dnbi_split", dnbi_lbl, c(p_bf, p_bf + p_dis))
-        )
-      }
-
-      return(layout_column_wrap(width = "480px", pri_card, dnbi_card))
+      return(render_triage_split_subgroup(sg, sg_fields, fields, subgroups, defaults,
+                                          overridden_paths))
     }
 
     # Already rendered above, alongside Triage Priority Split.
     if (identical(sg, "DNBI Sub-Type Split")) {
-      return(NULL)
+      return(render_dnbi_split_subgroup())
     }
 
     if (identical(sg, "Casualty Generation Rates")) {
-      return(tagList(
-        h6(class = "text-muted mt-2", sg),
-        p(class = "text-muted small",
-          "These define a distribution shape, not a fixed value — the shaded curve shows daily ",
-          "casualty-rate variability (dashed line = mean) and updates live as you edit. Streams using ",
-          "an exponential distribution take only a mean, so Std. Dev. is hidden for those."),
-        layout_column_wrap(
-          width = "320px",
-          !!!lapply(GEN_STREAM_ACTYS, function(acty) {
-            mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
-            sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
-            # useBytes: see detect_tri_triples() above (Issue #153)
-            stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label, useBytes = TRUE)
-            dist <- if (is.null(gen_distributions)) "lognormal" else (gen_distributions[[acty]] %||% "lognormal")
-            sd_input <- if (identical(dist, "exponential")) {
-              p(class = "text-muted small mb-0",
-                "Std. Dev. not applicable — exponential distribution, fully described by the mean.")
-            } else {
-              field_input(sd_f, defaults[[sd_f$id]], overridden_paths)
-            }
-            card(
-              card_header(stream_label),
-              plotOutput(paste0("curve_", acty), height = "110px"),
-              field_input(mean_f, defaults[[mean_f$id]], overridden_paths),
-              sd_input
-            )
-          })
-        )
-      ))
+      return(render_generation_rates_subgroup(sg, sg_fields, defaults, overridden_paths,
+                                              gen_distributions))
     }
 
     if (identical(sg, "Died of Wounds Ceilings")) {
-      return(tagList(
-        h6(class = "text-muted mt-2", sg),
-        p(class = "text-muted small",
-          "The ceiling below is the only editable value; the curve shows the full survival function evaluated at each DOW check, using the fixed shape parameters (p_base, k, t_mid) shown alongside it."),
-        layout_column_wrap(
-          width = "340px",
-          !!!lapply(list(
-            list(prio = "p1", id = "dow_p1_pmax", label = "Priority 1 (Urgent)"),
-            list(prio = "p2", id = "dow_p2_pmax", label = "Priority 2 (Priority)")
-          ), function(pr) {
-            pmax_f <- Find(function(f) identical(f$id, pr$id), sg_fields)
-            shp <- if (is.null(dow_shape)) NULL else dow_shape[[pr$prio]]
-            card(
-              card_header(pr$label),
-              plotOutput(paste0("dow_curve_", pr$prio), height = "110px"),
-              field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
-              div(style = "display:flex; gap:6px; margin-top:4px;",
-                div(style = "flex:1; min-width:0;",
-                    readonly_numeric("p_base", "Baseline (time-zero) DOW probability in the logistic curve.", shp$p_base, digits = 4,
-                                     path = "dow.params", overridden_paths = overridden_paths)),
-                div(style = "flex:1; min-width:0;",
-                    readonly_numeric("k", "Logistic curve steepness constant.", shp$k, digits = 3,
-                                     path = "dow.params", overridden_paths = overridden_paths)),
-                div(style = "flex:1; min-width:0;",
-                    readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
-                                     path = "dow.params", overridden_paths = overridden_paths))
-              )
-            )
-          })
-        )
-      ))
+      return(render_dow_ceilings_subgroup(sg, sg_fields, defaults, overridden_paths, dow_shape))
     }
 
     # Event Timing Mode (the mode dropdown itself) always renders via the
@@ -1407,120 +1599,15 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
     # subgroups that are never mode-gated — neither is customisable per
     # event in either mode.
     if (identical(sg, "Random Event Rate")) {
-      return(conditionalPanel(
-        condition = "input.mc_mode == 'poisson'",
-        tagList(
-          h6(class = "text-muted mt-2", sg),
-          p(class = "text-muted small",
-            "Event timing is drawn from a Poisson process at this rate, varying between replications. All events share the casualty-count range below; use Scheduled mode for per-event control."),
-          render_field_grid(sg_fields, defaults, overridden_paths)
-        )
-      ))
+      return(render_random_event_rate_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
     if (identical(sg, "Scheduled Event Days")) {
-      # Initial visible-row count only — a one-time value read from this
-      # render's defaults, not a reactive dependency. All 20 slots are
-      # always present in the DOM; the +/- buttons (server observeEvent
-      # handlers, see mc_event_count in the server) toggle a single row's
-      # display via a custom message + the client-side handler registered
-      # below, rather than triggering a re-render of this whole group —
-      # re-rendering the group here would also rebuild the Event Timing
-      # Mode dropdown and every other Mass Casualty field at its JSON
-      # default, discarding whatever the user currently has live in the UI.
-      mc_count <- max(1L, sum(vapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
-        d <- defaults[[sprintf("mc_sched_day_%d", i)]]
-        !is.null(d) && !is.na(d) && d > 0
-      }, logical(1))))
-      return(conditionalPanel(
-        condition = "input.mc_mode == 'scheduled'",
-        tagList(
-          h6(class = "text-muted mt-2", sg),
-          p(class = "text-muted small",
-            sprintf(
-              "Each event fires independently at its own probability (1 = always) and has its own casualty count and priority mix. Use +/− to add or remove rows (up to %d); removing resets a row rather than deleting it. For more events, edit env_data.json directly.",
-              MASS_CASUALTY_SCHEDULE_SLOTS
-            )),
-          tags$script(HTML(
-            "if (!window.__mcToggleHandlerRegistered) {
-               window.__mcToggleHandlerRegistered = true;
-               Shiny.addCustomMessageHandler('mc_toggle_row', function(msg) {
-                 var el = document.getElementById('mc_event_slot_' + msg.index);
-                 if (el) el.style.display = msg.show ? '' : 'none';
-               });
-             }"
-          )),
-          div(style = "display:flex; gap:8px; margin-bottom:10px;",
-              actionButton("mc_event_add",    "+ Add Event",           class = "btn-outline-primary btn-sm"),
-              actionButton("mc_event_remove", "− Remove Last Event", class = "btn-outline-secondary btn-sm")
-          ),
-          # A plain flex-wrap container rather than layout_column_wrap():
-          # bslib's grid locks in a fixed number of explicit row tracks
-          # sized for all MASS_CASUALTY_SCHEDULE_SLOTS cards, so hidden
-          # (display:none) slots still reserved their row's height — every
-          # +/- click left a wall of dead space below the visible cards.
-          # Flexbox correctly drops display:none items from layout, so the
-          # container's height always matches only what's actually shown.
-          div(
-            style = "display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;",
-            !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
-              day_f      <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),       sg_fields)
-              prob_f     <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)),      sg_fields)
-              min_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_min_cas_%d", i)),   sg_fields)
-              max_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_max_cas_%d", i)),   sg_fields)
-              pri_one_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_pri_one_%d", i)),   sg_fields)
-              p1 <- defaults[[pri_one_f$id]]; p2 <- defaults[[sprintf("mc_sched_pri_two_%d", i)]]
-              pri_lbl <- field_label(list(
-                label   = "Priority Split (P1 | P2 | P3)",
-                tooltip = "This event's own triage priority mix — independent of every other event.",
-                path = pri_one_f$path
-              ), overridden_paths)
-              div(
-                id = sprintf("mc_event_slot_%d", i),
-                style = paste0("flex: 1 1 420px; min-width: 340px; max-width: 460px;",
-                               if (i <= mc_count) "" else " display:none;"),
-                card(
-                  card_header(sprintf("Event %d", i)),
-                  div(style = "display:flex; gap:8px;",
-                      div(style = "flex:1; min-width:0;", field_input(day_f,     defaults[[day_f$id]],     overridden_paths)),
-                      div(style = "flex:1; min-width:0;", field_input(prob_f,    defaults[[prob_f$id]],    overridden_paths))
-                  ),
-                  div(style = "display:flex; gap:8px;",
-                      div(style = "flex:1; min-width:0;", field_input(min_cas_f, defaults[[min_cas_f$id]], overridden_paths)),
-                      div(style = "flex:1; min-width:0;", field_input(max_cas_f, defaults[[max_cas_f$id]], overridden_paths))
-                  ),
-                  range_slider_with_text_input(sprintf("mc_event_pri_split_%d", i), pri_lbl, c(p1, p1 + p2))
-                )
-              )
-            })
-          )
-        )
-      ))
+      return(render_scheduled_events_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
     if (identical(sg, "Mass Casualty Priority Split")) {
-      one_f <- Find(function(f) identical(f$id, "mc_pri_one"), sg_fields)
-      p1 <- defaults[["mc_pri_one"]]; p2 <- defaults[["mc_pri_two"]]
-      mc_pri_lbl <- field_label(list(
-        label   = "Priority Split (P1 | P2 | P3)",
-        tooltip = paste0(
-          "Drag either handle to reallocate this event's Priority 1/2/3 share — ",
-          "independent of the background Triage Priority Split."
-        ),
-        path = one_f$path
-      ), overridden_paths)
-      return(conditionalPanel(
-        condition = "input.mc_mode == 'poisson'",
-        tagList(
-          h6(class = "text-muted mt-2", sg),
-          p(class = "text-muted small",
-            "Applies to every Poisson-mode event equally — the background Triage Priority Split in the Casualty Rates panel is unaffected by this. In Scheduled mode, each event has its own priority split instead (see Scheduled Event Days above)."),
-          card(
-            card_header(sg),
-            range_slider_with_text_input("mc_pri_split", mc_pri_lbl, c(p1, p1 + p2))
-          )
-        )
-      ))
+      return(render_mass_casualty_split_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
     tagList(

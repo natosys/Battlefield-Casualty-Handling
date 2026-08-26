@@ -123,10 +123,24 @@ established and need no expansion in a name. Anything else is spelled out.
 
 ## Function design
 
-**D1 `[lint]` No function body exceeds 100 lines.** Seventeen existing
-functions do; they are listed under [Current conformance](#current-conformance)
-and are reduced under separate work. The limit applies in full to every new
-function and to any listed function that a pull request restructures.
+**D1 `[lint]` No function body exceeds 100 lines.** Fourteen existing functions
+do; they are listed under [Current conformance](#current-conformance) and are
+reduced under separate work. The limit applies in full to every new function and
+to any listed function that a pull request restructures.
+
+The number is a proxy and is worth reading as one. What the rule defends is that
+a function be testable on its own, that a published figure be traceable to a
+named function rather than to a position inside a long one, and that what a
+function depends on be visible in its signature where a check can reason about
+it. `scripts/check_analysis_decomposition.R` and `scripts/check_console_bindings.R`
+exist only because there are boundaries for them to inspect. Length correlates
+with all of that and measures none of it, so two consequences follow. A short
+function that does several things is still wrong under D3, and passing D1 does
+not excuse it. And a long function that already has those properties, the clear
+case being an orchestrator whose body is a sequence of named calls, is recorded
+under Current conformance with the argument rather than split to satisfy the
+count; splitting one into sub-orchestrators trades an explicit dependency list
+for a smaller number and makes the code harder to read, not easier.
 
 **D2 `[preference]` Aim for 50 lines.** The median function in the codebase is
 twelve lines, so this is descriptive of the code's own habit rather than an
@@ -550,7 +564,7 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 | Rule | Gap |
 |---|---|
 | F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
-| D1 | Seventeen functions exceed 100 lines: `server` (`app.R:1635`, 2,284), `analyse_run` (`R/analysis.R:564`, 1,388), `analyse_replications` (`R/analysis.R:2085`, 799), `r2e_treat_wia` (`R/trajectories.R:1495`, 766), `r2b_treat_wia` (`R/trajectories.R:809`, 560), `build_param_registry` (`R/app_params.R:400`, 461), `build_casualty_trajectory` (`R/trajectories.R:2303`, 334), `render_group_body` (`app.R:1272`, 260), `run_sobol` (`R/sensitivity.R:1653`, 235), `run_morris` (`R/sensitivity.R:1227`, 205), `extract_kpis` (`R/sensitivity.R:900`, 205), `run_once` (`R/replication.R:28`, 147), `generate_env_summary_section` (`scripts/check_env_data_summary.R:36`, 127), `run_replications` (`R/replication.R:263`, 116), `plot_r2b_icu_share_frontier` (`R/analysis.R:3250`, 115), `build_environment` (`R/environment.R:19`, 114) and `apply_params` (`R/sensitivity.R:572`, 102) |
+| D1 | Fourteen functions exceed 100 lines, in three groups. **Simulation logic, where a split shifts the random number stream and so moves every published figure, and must be verified against the seed-42 reproduction one split at a time:** `r2e_treat_wia` (766, its own header records the assessment), `r2b_treat_wia` (560), `build_casualty_trajectory` (334), `run_once` (147), `run_replications` (116). **Orchestrators, whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split:** `analyse_run` (398), `analyse_replications` (229), `server` (195). **Not yet reduced, and reducible without either difficulty:** `run_sobol` (240), `run_morris` (212), `extract_kpis` (205), `plot_r2b_icu_share_frontier` (123), `build_environment` (114), `apply_params` (102) |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |

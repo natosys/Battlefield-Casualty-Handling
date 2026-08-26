@@ -178,11 +178,15 @@ validate_env_data_json <- function(data, source_label = "env_data.json") {
   invisible(TRUE)
 }
 
-#' Builds structured environment data from parsed JSON
+#' Build the resource identifier tree for every deployed element
 #'
-#' @param data Parsed JSON list from env_data.json
-#' @return Named list with elements: pops, elms, transports, vars
-build_environment <- function(data) {
+#' @param data Parsed `env_data.json`.
+#' @return `env_list`, as build_environment() assembles it.
+#' @details One entry per element, each a list of that element's instances. An
+#'   instance holds its own resource identifiers, its sub-elements' identifiers
+#'   per team, and its beds by type. R1 alone flattens to a bare identifier
+#'   vector, having no sub-elements to key by.
+build_element_resources <- function(data) {
   env_list <- list()
 
   for (elm in data$elms) {
@@ -249,7 +253,14 @@ build_environment <- function(data) {
 
     env_list[[elm_name]] <- elm_instances
   }
+  env_list
+}
 
+#' Build the transport identifier list, one entry per vehicle type
+#'
+#' @param data Parsed `env_data.json`.
+#' @return `transports_list`, as build_environment() assembles it.
+build_transport_resources <- function(data) {
   transports_list <- list()
   if (!is.null(data$transports)) {
     for (vehicle in data$transports) {
@@ -260,7 +271,14 @@ build_environment <- function(data) {
       }
     }
   }
+  transports_list
+}
 
+#' Build the population count list, keyed by population name
+#'
+#' @param data Parsed `env_data.json`.
+#' @return `pops_list`, as build_environment() assembles it.
+build_population_counts <- function(data) {
   pops_list <- list()
   if (!is.null(data$pops)) {
     pops_list <- setNames(
@@ -268,7 +286,14 @@ build_environment <- function(data) {
       sapply(data$pops, function(p) p$name)
     )
   }
+  pops_list
+}
 
+#' Build the configuration variable tree, keyed by element and activity
+#'
+#' @param data Parsed `env_data.json`.
+#' @return `vars_list`, as build_environment() assembles it.
+build_variable_tree <- function(data) {
   vars_list <- list()
   if (!is.null(data$vars)) {
     for (elm_def in data$vars) {
@@ -288,6 +313,21 @@ build_environment <- function(data) {
       vars_list[[elm_name]] <- acty_list
     }
   }
+  vars_list
+}
+
+#' Builds structured environment data from parsed JSON
+#'
+#' @param data Parsed JSON list from env_data.json
+#' @return Named list with elements: pops, elms, transports, vars
+build_environment <- function(data) {
+  env_list <- build_element_resources(data)
+
+  transports_list <- build_transport_resources(data)
+
+  pops_list <- build_population_counts(data)
+
+  vars_list <- build_variable_tree(data)
 
   return(list(
     pops = pops_list,

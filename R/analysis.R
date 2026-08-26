@@ -4455,6 +4455,52 @@ render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep =
           strip.placement = "outside", legend.position = "bottom")
 }
 
+#' Mean and 95% confidence interval for one sweep response
+#'
+#' @param x Numeric vector, one observation per replication.
+#' @return A one-row data frame of mean, ci_lower and ci_upper.
+#' @details Shared by the two capacity sweeps. The degrees of freedom are
+#'   floored at one so a single-replication sweep returns a degenerate
+#'   interval rather than NaN.
+summarise_ci <- function(x) {
+  n <- length(x)
+  m <- mean(x, na.rm = TRUE)
+  s <- sd(x, na.rm = TRUE)
+  data.frame(
+    mean     = m,
+    ci_lower = m - qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n),
+    ci_upper = m + qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n)
+  )
+
+}
+
+# Share of post-definitive care served in an ICU bed rather than the
+# degraded holding-bed fallback, per replication. This is the quality
+# measure the lever is ultimately for: relieving stabilisation load off
+# R2E only matters if the beds it frees go to the casualties who need
+# intensive care after their definitive repair.
+pd_icu_share_rep <- function(mon) {
+  mon$attributes %>%
+    filter(key == "post_definitive_pathway") %>%
+    group_by(replication, name) %>%
+    summarise(pathway = dplyr::last(value), .groups = "drop") %>%
+    group_by(replication) %>%
+    summarise(pd_icu_share = mean(pathway == 1), .groups = "drop")
+}
+
+# Per-replication rather than pooled, since a CI across replications is the
+# point of the sweep. transport_rep_kpis() above already returns queue and
+# utilisation this way for an arbitrary resource pattern; only the DOW
+# count needs its own per-replication reduction.
+dow_rep_counts <- function(mon) {
+  mon$attributes %>%
+    filter(key == "dow", value == 1) %>%
+    count(replication, name = "dow") %>%
+    right_join(data.frame(replication = unique(mon$attributes$replication)),
+               by = "replication") %>%
+    mutate(dow = ifelse(is.na(dow), 0, dow))
+}
+
 #' Sweep the forward ICU share and report the resulting decision frontier
 #'
 #' @param shares Numeric vector of `r2b.post_op_icu.share` values to sweep,
@@ -4515,43 +4561,6 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
 
   baseline_share <- env_data_base$vars$r2b$post_op_icu$share
 
-  summarise_ci <- function(x) {
-    n <- length(x)
-    m <- mean(x, na.rm = TRUE)
-    s <- sd(x, na.rm = TRUE)
-    data.frame(
-      mean     = m,
-      ci_lower = m - qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n),
-      ci_upper = m + qt(0.975, df = pmax(n - 1, 1)) * s / sqrt(n)
-    )
-  }
-
-  # Share of post-definitive care served in an ICU bed rather than the
-  # degraded holding-bed fallback, per replication. This is the quality
-  # measure the lever is ultimately for: relieving stabilisation load off
-  # R2E only matters if the beds it frees go to the casualties who need
-  # intensive care after their definitive repair.
-  pd_icu_share_rep <- function(mon) {
-    mon$attributes %>%
-      filter(key == "post_definitive_pathway") %>%
-      group_by(replication, name) %>%
-      summarise(pathway = dplyr::last(value), .groups = "drop") %>%
-      group_by(replication) %>%
-      summarise(pd_icu_share = mean(pathway == 1), .groups = "drop")
-  }
-
-  # Per-replication rather than pooled, since a CI across replications is the
-  # point of the sweep. transport_rep_kpis() above already returns queue and
-  # utilisation this way for an arbitrary resource pattern; only the DOW
-  # count needs its own per-replication reduction.
-  dow_rep_counts <- function(mon) {
-    mon$attributes %>%
-      filter(key == "dow", value == 1) %>%
-      count(replication, name = "dow") %>%
-      right_join(data.frame(replication = unique(mon$attributes$replication)),
-                 by = "replication") %>%
-      mutate(dow = ifelse(is.na(dow), 0, dow))
-  }
 
   sweep_df <- bind_rows(lapply(seq_along(shares), function(i) {
     share <- shares[i]

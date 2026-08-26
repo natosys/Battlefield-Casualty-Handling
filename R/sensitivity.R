@@ -558,20 +558,12 @@ MORRIS_MODE_CHECK_EXCLUSIONS <- local({
 
 # ── Parameter application ─────────────────────────────────────────────────────
 
-#' Apply a named parameter vector to a copy of env_data
+#' Apply the surgery, resuscitation and died-of-wounds ceiling parameters
 #'
-#' @param ed  A copy of the env_data list (not modified in place)
-#' @param p   Named numeric vector — names must match morris_params$name.
-#' @return Modified env_data copy
-#'
-#' @details Issue #112 expanded this from eleven to fifty-five parameters,
-#'   then a same-issue follow-up review reduced it to fifty-three by
-#'   removing two polling-interval parameters from screening (see
-#'   morris_params's own comment). Later issues have grown it to sixty-four,
-#'   the last six being balance coordinates rather than direct writes: each
-#'   pair is back-transformed to a whole composition at the end of this
-#'   function.
-apply_params <- function(ed, p) {
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_duration_and_dow_ceiling_params <- function(ed, p) {
   # ── Original eleven (Issue #3, #75, #9) ────────────────────────────────
   ed$vars$r2b$surgery$mode                  <- p[["surg_mode"]]
   ed$vars$r2eheavy$surgery$mode             <- p[["surg_mode"]]
@@ -586,7 +578,15 @@ apply_params <- function(ed, p) {
   ed$vars$r2eheavy$recovery$evacuation_policy_days <- p[["evacuation_policy_days"]]
   ed$vars$mass_casualty$event$rate_per_day  <- p[["mass_casualty_rate"]]
   ed$vars$mass_casualty$event$max_cas       <- p[["mass_casualty_max_cas"]]
+  ed
+}
 
+#' Apply the R1, R2B and R2E treatment duration parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_echelon_duration_params <- function(ed, p) {
   # ── R1/R2B/R2E durations (Issue #112) ───────────────────────────────────
   ed$vars$r2eheavy$short_resus$mode           <- p[["short_resus_mode"]]
   ed$vars$r2b$holding$mode                    <- p[["r2b_hold_mode"]]
@@ -595,7 +595,15 @@ apply_params <- function(ed, p) {
   ed$vars$r1$recovery$mode                    <- p[["r1_recovery_mode"]]
   ed$vars$r1$wia_treat$mode                   <- p[["r1_wia_treat_mode"]]
   ed$vars$r2eheavy$post_definitive_icu$mode   <- p[["post_definitive_icu_mode"]]
+  ed
+}
 
+#' Apply the surgical candidacy, evacuation and damage-control split parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_surgical_pathway_params <- function(ed, p) {
   # ── R1 surgical candidacy / evacuation probabilities (Issue #112) ──────
   ed$vars$r1$other$pri2_surgery       <- p[["pri2_surg_prob"]]
   ed$vars$r1$other$pri3_dnbi_surgery  <- p[["pri3_dnbi_surg_prob"]]
@@ -608,7 +616,15 @@ apply_params <- function(ed, p) {
   ed$vars$r1$other$pri1_dcs_rate <- p[["pri1_dcs_rate"]]
   ed$vars$r1$other$pri2_dcs_rate <- p[["pri2_dcs_rate"]]
   ed$vars$r1$other$pri3_dcs_rate <- p[["pri3_dcs_rate"]]
+  ed
+}
 
+#' Apply the died-of-wounds logistic curve and treatment-efficacy parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_dow_curve_params <- function(ed, p) {
   # ── DOW logistic curve (Issue #112) ─────────────────────────────────────
   ed$vars$dow$params$p1_p_base <- p[["p1_p_base"]]
   ed$vars$dow$params$p1_k      <- p[["p1_k"]]
@@ -628,7 +644,15 @@ apply_params <- function(ed, p) {
   ed$vars$dow$treatment_efficacy$r2e_dcs2_factor  <- p[["r2e_dcs2_factor"]]
   ed$vars$dow$treatment_efficacy$r2e_postop_hold_penalty <- p[["r2e_postop_hold_penalty"]]
   ed$vars$dow$treatment_efficacy$r2b_icu_penalty  <- p[["r2b_icu_penalty"]]
+  ed
+}
 
+#' Apply the casualty generation, mass casualty, regeneration and evacuation parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_generation_and_event_params <- function(ed, p) {
   # ── Casualty generation rates (Issue #112) ──────────────────────────────
   ed$vars$generators$wia_cbt$mean_daily  <- p[["wia_cbt_mean"]]
   ed$vars$generators$kia_cbt$mean_daily  <- p[["kia_cbt_mean"]]
@@ -646,13 +670,29 @@ apply_params <- function(ed, p) {
 
   ed$vars$role4$ame$schedule_interval_days <- p[["ame_schedule_interval_days"]]
   ed$vars$role4$ame$failure_probability    <- p[["ame_failure_probability"]]
+  ed
+}
 
+#' Apply the R2B and R2E routing threshold parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_routing_threshold_params <- function(ed, p) {
   # ── R2B/R2E routing thresholds (Issue #112) ─────────────────────────────
   ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
   ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
   ed$vars$r2b$surgery$pre_open_window_min <- p[["r2b_pre_open_window"]]
+  ed
+}
 
+#' Apply the simplex-constrained composition parameters
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_composition_params <- function(ed, p) {
   # ── Simplex-constrained compositions (Issue #158) ───────────────────────
   # Each group's two balance coordinates are back-transformed to a whole
   # composition before the run. The assertion is the guarantee the screen
@@ -670,7 +710,30 @@ apply_params <- function(ed, p) {
     )
     ed <- g$apply(ed, x)
   }
+  ed
+}
 
+#' Apply a named parameter vector to a copy of env_data
+#'
+#' @param ed  A copy of the env_data list (not modified in place)
+#' @param p   Named numeric vector — names must match morris_params$name.
+#' @return Modified env_data copy
+#'
+#' @details Issue #112 expanded this from eleven to fifty-five parameters,
+#'   then a same-issue follow-up review reduced it to fifty-three by
+#'   removing two polling-interval parameters from screening (see
+#'   morris_params's own comment). Later issues have grown it to sixty-four,
+#'   the last six being balance coordinates rather than direct writes: each
+#'   pair is back-transformed to a whole composition at the end of this
+#'   function.
+apply_params <- function(ed, p) {
+  ed <- apply_duration_and_dow_ceiling_params(ed, p)
+  ed <- apply_echelon_duration_params(ed, p)
+  ed <- apply_surgical_pathway_params(ed, p)
+  ed <- apply_dow_curve_params(ed, p)
+  ed <- apply_generation_and_event_params(ed, p)
+  ed <- apply_routing_threshold_params(ed, p)
+  ed <- apply_composition_params(ed, p)
   ed
 }
 

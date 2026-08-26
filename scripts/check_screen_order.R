@@ -146,7 +146,9 @@ saved_design <- function(output_dir, file) {
 
 cat("-- Morris --\n")
 
-tmp_a <- tempfile("morris_a_"); tmp_b <- tempfile("morris_b_"); tmp_c <- tempfile("morris_c_")
+tmp_a <- tempfile("morris_a_")
+tmp_b <- tempfile("morris_b_")
+tmp_c <- tempfile("morris_c_")
 
 set.seed(SEED_A)
 run_a <- with_stubbed_eval(run_morris(n_days = 1, n_rep = 1, r = SMALL_R,
@@ -184,7 +186,8 @@ report(identical(lapply(run_a$rows, identity), lapply(run_b$rows, identity)),
 # ── 2. Morris cache ─────────────────────────────────────────────────────────
 
 cache <- tempfile("morris_cache_")
-tmp_d <- tempfile("morris_d_"); tmp_e <- tempfile("morris_e_")
+tmp_d <- tempfile("morris_d_")
+tmp_e <- tempfile("morris_e_")
 
 set.seed(SEED_A)
 first <- with_stubbed_eval(run_morris(n_days = 1, n_rep = 1, r = SMALL_R,
@@ -207,7 +210,8 @@ report(isTRUE(all.equal(y_first, y_resumed)),
 cat("\n-- Sobol --\n")
 
 top <- head(morris_params$name, 3L)
-sob_a <- tempfile("sobol_a_"); sob_b <- tempfile("sobol_b_")
+sob_a <- tempfile("sobol_a_")
+sob_b <- tempfile("sobol_b_")
 
 set.seed(SEED_A)
 srun_a <- with_stubbed_eval(run_sobol(top, n_days = 1, n_rep = 1,

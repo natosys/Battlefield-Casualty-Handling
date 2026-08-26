@@ -1744,6 +1744,225 @@ report_point_noise <- function(cache_file, responses, n_rep) {
   invisible(out)
 }
 
+#' Evaluate every Sobol design point, resuming from the cache where present
+#'
+#' @param sb_r2b The Sobol object whose `X` carries the design.
+#' @param n_points Number of design points, n_sobol * (p + 2).
+#' @param p_def The screened parameter definitions for this decomposition.
+#' @param full_params The baseline every unscreened parameter is held at.
+#' @param cache_file Path to the point cache, or NULL for no caching.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param max_cores,crn_seed Passed through to the evaluator unchanged.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @return The response matrix, one row per design point, in design order.
+#' @details Points are evaluated in the order the design lists them and a
+#'   cached point is read back by its index, which is what lets an interrupted
+#'   decomposition resume onto the same design;
+#'   scripts/check_screen_order.R asserts both.
+evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_file,
+                                  n_rep, n_days, max_cores, crn_seed, progress_dir) {
+  t(vapply(seq_len(n_points), function(i) {
+    # A production decomposition is n_sobol * (p + 2) design points in one
+    # long-lived process, hours of compute that a lost process discards
+    # entirely. With cache_dir each point's responses are written as it
+    # completes and read back on a later call, so an interrupted run resumes.
+    # The design is a deterministic function of the seed, so a cached point
+    # belongs to the run being resumed only while the seed, the selected
+    # parameters and their bounds are unchanged; clear the cache when any of
+    # those move.
+    if (!is.null(cache_file) && file.exists(cache_file)) {
+      cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
+      if (!is.null(cached)) {
+        message(sprintf("  Sobol point %d / %d (cached)", i, n_points))
+        return(cached)
+      }
+    }
+    message(sprintf("  Sobol point %d / %d", i, n_points))
+    row <- full_params
+    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
+    res <- tryCatch(
+      {
+        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
+                            crn_seed = crn_seed, return_sd = TRUE)
+        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
+          r2e_ot_q       = kpis[["r2e_ot_q"]],
+          system_ot_q    = kpis[["system_ot_q"]],
+          transport_q    = kpis[["transport_q"]],
+          transport_util = kpis[["transport_util"]])
+      },
+      error = function(e) {
+        warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
+        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
+          transport_q = NA_real_, transport_util = NA_real_)
+      }
+    )
+    if (!is.null(cache_file) && !all(is.na(res))) {
+      sdv <- attr(res, "sd")
+      row_out <- if (is.null(sdv)) res else
+        c(res, stats::setNames(as.numeric(sdv), paste0("sd_", names(res))))
+      cache_append(cache_file, i, row_out)
+    }
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    # See run_morris()'s identical gc() call for why: this loop runs
+    # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
+    # long-lived process — forcing a collection after every point keeps
+    # steady-state memory flat rather than creeping up across the run
+    # (Issue #15 follow-up).
+    gc(full = TRUE)
+    res
+  }, numeric(5)))
+}
+
+#' Tell a Sobol object its responses, surviving a degenerate one
+#'
+#' @param sb The Sobol object to populate.
+#' @param y The response values across the design.
+#' @param kpi_name Name of the response, used in the warning.
+#' @return `sb`, populated, or NULL where tell() could not compute indices.
+# tell() invokes boot::boot.ci() internally, which errors on a response
+# with (near-)zero variance across the design (e.g. transport_q when none
+# of top_params affect transport occupancy — see Issue #6 PR discussion).
+# Wrapped per-KPI so one degenerate response doesn't discard the rest.
+# sensitivity::tell() does not return the told object. It ends in
+# assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
+# writes the populated object back over the variable it was handed *in the
+# frame it was called from*. Called inside a wrapper that means the wrapper's
+# own local, leaving the caller's object untouched with S/T still empty —
+# which is why this must return `sb` after the call and the caller must
+# assign the result back, rather than relying on tell()'s side effect.
+tell_safe <- function(sb, y, kpi_name) {
+  tryCatch({
+    tell(sb, y)
+    sb
+  }, error = function(e) {
+    warning(sprintf(
+      "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
+      kpi_name, "top_params may not include a parameter that moves this KPI",
+      conditionMessage(e)
+    ))
+    NULL
+  })
+}
+
+#' Write one response's Sobol indices, with the flags a reader needs
+#'
+#' @param sb A Sobol object told this response's values.
+#' @param kpi_name Name of the response, used in the file name.
+#' @param p_def The screened parameter definitions, for the parameter column.
+#' @param output_dir Directory the CSV is written to.
+#' @return The data frame written, invisibly to the caller's use.
+# Even when tell() does not throw, boot.ci() can silently fail for an
+# individual parameter within an otherwise-successful call (e.g. one
+# parameter's bootstrap distribution is degenerate while others are not),
+# leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
+# here rather than relying on tell_safe() alone.
+save_sobol <- function(sb, kpi_name, p_def, output_dir) {
+  p <- nrow(p_def)
+  lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
+            length(sb$T$original), length(sb$T$`min. c.i.`), length(sb$T$`max. c.i.`))
+  if (any(lens != p)) {
+    warning(sprintf(
+      "Skipping Sobol output for %s: incomplete indices (expected %d parameters, got lengths %s) — likely a degenerate bootstrap for at least one parameter.",
+      kpi_name, p, paste(lens, collapse = ",")
+    ))
+    return(invisible(NULL))
+  }
+  results <- data.frame(
+    parameter = p_def$name,
+    S1        = sb$S$original,
+    S1_lower  = sb$S$`min. c.i.`,
+    S1_upper  = sb$S$`max. c.i.`,
+    ST        = sb$T$original,
+    ST_lower  = sb$T$`min. c.i.`,
+    ST_upper  = sb$T$`max. c.i.`
+  )
+  # A Sobol index is a variance share and so lies in [0, 1] with ST >= S1.
+  # The Monte Carlo estimators are unbiased but not range-constrained, so a
+  # parameter whose true index sits near zero routinely returns a value
+  # outside it. That is a statement about resolution, not about the model,
+  # and it is flagged here so a reader of the CSV sees it without having to
+  # check: an unflagged reader would take a negative S1 for a negative
+  # variance share.
+  results$flag <- vapply(seq_len(nrow(results)), function(k) {
+    f <- character(0)
+    if (isTRUE(results$ST[k] > 1))                 f <- c(f, "ST>1")
+    if (isTRUE(results$S1[k] < 0))                 f <- c(f, "S1<0")
+    if (isTRUE(results$S1[k] > results$ST[k]))     f <- c(f, "S1>ST")
+    if (length(f) == 0L) "ok" else paste(f, collapse = ";")
+  }, character(1))
+  write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
+            row.names = FALSE)
+  message(sprintf("\nSobol indices for %s:", kpi_name))
+  print(results, digits = 4)
+  results
+}
+
+#' Draw the two base matrices a pick-freeze decomposition is built from
+#'
+#' @param p_def The screened parameter definitions, giving names and bounds.
+#' @param n_sobol Rows per base matrix.
+#' @param dirichlet_groups Names of the composition groups to sample whole.
+#' @return A list of `X1` and `X2`, the two base matrices.
+#' @details A composition group's columns are overwritten with coordinates
+#'   back-transformed from a whole Dirichlet-sampled composition, so the group
+#'   is varied on the simplex rather than coordinate by coordinate. The draws
+#'   are made in one block and in this order, which is what keeps the design a
+#'   function of the caller's seed.
+build_sobol_matrices <- function(p_def, n_sobol, dirichlet_groups) {
+  X1 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
+  X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
+  names(X1) <- names(X2) <- p_def$name
+
+  # A composition group's columns are overwritten with the coordinates of
+  # Dirichlet-sampled whole compositions, so the group is varied as one
+  # object over a plausible planning spread rather than as two coordinates
+  # drawn independently over a box.
+  for (nm in dirichlet_groups) {
+    g <- MORRIS_COMPOSITIONS[[nm]]
+    message(sprintf(
+      "  %s composition sampled from a Dirichlet at concentration %.1f",
+      nm, composition_concentration(g)
+    ))
+    X1[, g$coords] <- rdirichlet_coords(n_sobol, g)
+    X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
+  }
+  list(X1 = X1, X2 = X2)
+}
+
+#' Tell each response's Sobol object its values, and record which succeeded
+#'
+#' @param sb_r2b,sb_r2e,sb_sys,sb_tq,sb_tutil The five untold Sobol objects.
+#' @param y_all The response matrix, one column per response.
+#' @return A list of `sb_objs`, the five objects keyed by response, and
+#'   `sobol_ok`, a flag per response saying whether indices were computed.
+#' @details A response whose values are degenerate leaves tell() unable to
+#'   compute indices; that object comes back NULL and is flagged rather than
+#'   discarding the other four.
+tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all) {
+  sb_r2b   <- tell_safe(sb_r2b,   y_all[, "r2b_ot_q"],       "r2b_ot_q")
+  sb_r2e   <- tell_safe(sb_r2e,   y_all[, "r2e_ot_q"],       "r2e_ot_q")
+  sb_sys   <- tell_safe(sb_sys,   y_all[, "system_ot_q"],    "system_ot_q")
+  sb_tq    <- tell_safe(sb_tq,    y_all[, "transport_q"],    "transport_q")
+  sb_tutil <- tell_safe(sb_tutil, y_all[, "transport_util"], "transport_util")
+
+  sobol_ok <- c(
+    r2b_ot_q       = !is.null(sb_r2b),
+    r2e_ot_q       = !is.null(sb_r2e),
+    system_ot_q    = !is.null(sb_sys),
+    transport_q    = !is.null(sb_tq),
+    transport_util = !is.null(sb_tutil)
+  )
+
+
+  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
+                   transport_q = sb_tq, transport_util = sb_tutil)
+  list(sb_objs = sb_objs, sobol_ok = sobol_ok)
+}
+
 #' Run Sobol variance decomposition on a selected parameter subset
 #'
 #' @param top_params  Character vector of parameter names from morris_params$name
@@ -1810,25 +2029,9 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
 
   env_data_base <<- env_data
 
-  X1 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
-  X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
-  names(X1) <- names(X2) <- p_def$name
-
-  # A composition group's columns are overwritten with the coordinates of
-  # Dirichlet-sampled whole compositions, so the group is varied as one
-  # object over a plausible planning spread rather than as two coordinates
-  # drawn independently over a box.
-  for (nm in dirichlet_groups) {
-    g <- MORRIS_COMPOSITIONS[[nm]]
-    message(sprintf(
-      "  %s composition sampled from a Dirichlet at concentration %.1f",
-      nm, composition_concentration(g)
-    ))
-    X1[, g$coords] <- rdirichlet_coords(n_sobol, g)
-    X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
-  }
+  base_matrices <- build_sobol_matrices(p_def, n_sobol, dirichlet_groups)
+  X1 <- base_matrices$X1
+  X2 <- base_matrices$X2
 
   sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
@@ -1847,152 +2050,19 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   # NULL and the run metadata recorded an empty design size.
   n_points <- nrow(sb_r2b$X)
 
-  Y_all <- t(vapply(seq_len(n_points), function(i) {
-    # A production decomposition is n_sobol * (p + 2) design points in one
-    # long-lived process, hours of compute that a lost process discards
-    # entirely. With cache_dir each point's responses are written as it
-    # completes and read back on a later call, so an interrupted run resumes.
-    # The design is a deterministic function of the seed, so a cached point
-    # belongs to the run being resumed only while the seed, the selected
-    # parameters and their bounds are unchanged; clear the cache when any of
-    # those move.
-    if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
-      if (!is.null(cached)) {
-        message(sprintf("  Sobol point %d / %d (cached)", i, n_points))
-        return(cached)
-      }
-    }
-    message(sprintf("  Sobol point %d / %d", i, n_points))
-    row <- full_params
-    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
-    res <- tryCatch(
-      {
-        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
-                            crn_seed = crn_seed, return_sd = TRUE)
-        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
-          r2e_ot_q       = kpis[["r2e_ot_q"]],
-          system_ot_q    = kpis[["system_ot_q"]],
-          transport_q    = kpis[["transport_q"]],
-          transport_util = kpis[["transport_util"]])
-      },
-      error = function(e) {
-        warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
-          transport_q = NA_real_, transport_util = NA_real_)
-      }
-    )
-    if (!is.null(cache_file) && !all(is.na(res))) {
-      sdv <- attr(res, "sd")
-      row_out <- if (is.null(sdv)) res else
-        c(res, stats::setNames(as.numeric(sdv), paste0("sd_", names(res))))
-      cache_append(cache_file, i, row_out)
-    }
-    if (!is.null(progress_dir)) {
-      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
-    }
-    # See run_morris()'s identical gc() call for why: this loop runs
-    # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
-    # long-lived process — forcing a collection after every point keeps
-    # steady-state memory flat rather than creeping up across the run
-    # (Issue #15 follow-up).
-    gc(full = TRUE)
-    res
-  }, numeric(5)))
+  Y_all <- evaluate_sobol_design(sb_r2b, n_points, p_def, full_params, cache_file,
+                                 n_rep, n_days, max_cores, crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
-  # tell() invokes boot::boot.ci() internally, which errors on a response
-  # with (near-)zero variance across the design (e.g. transport_q when none
-  # of top_params affect transport occupancy — see Issue #6 PR discussion).
-  # Wrapped per-KPI so one degenerate response doesn't discard the rest.
-  # sensitivity::tell() does not return the told object. It ends in
-  # assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
-  # writes the populated object back over the variable it was handed *in the
-  # frame it was called from*. Called inside a wrapper that means the wrapper's
-  # own local, leaving the caller's object untouched with S/T still empty —
-  # which is why this must return `sb` after the call and the caller must
-  # assign the result back, rather than relying on tell()'s side effect.
-  tell_safe <- function(sb, y, kpi_name) {
-    tryCatch({
-      tell(sb, y)
-      sb
-    }, error = function(e) {
-      warning(sprintf(
-        "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
-        kpi_name, "top_params may not include a parameter that moves this KPI",
-        conditionMessage(e)
-      ))
-      NULL
-    })
-  }
 
-  sb_r2b   <- tell_safe(sb_r2b,   Y_all[, "r2b_ot_q"],       "r2b_ot_q")
-  sb_r2e   <- tell_safe(sb_r2e,   Y_all[, "r2e_ot_q"],       "r2e_ot_q")
-  sb_sys   <- tell_safe(sb_sys,   Y_all[, "system_ot_q"],    "system_ot_q")
-  sb_tq    <- tell_safe(sb_tq,    Y_all[, "transport_q"],    "transport_q")
-  sb_tutil <- tell_safe(sb_tutil, Y_all[, "transport_util"], "transport_util")
-
-  sobol_ok <- c(
-    r2b_ot_q       = !is.null(sb_r2b),
-    r2e_ot_q       = !is.null(sb_r2e),
-    system_ot_q    = !is.null(sb_sys),
-    transport_q    = !is.null(sb_tq),
-    transport_util = !is.null(sb_tutil)
-  )
-
-  # Even when tell() does not throw, boot.ci() can silently fail for an
-  # individual parameter within an otherwise-successful call (e.g. one
-  # parameter's bootstrap distribution is degenerate while others are not),
-  # leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
-  # here rather than relying on tell_safe() alone.
-  save_sobol <- function(sb, kpi_name) {
-    p <- nrow(p_def)
-    lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
-              length(sb$T$original), length(sb$T$`min. c.i.`), length(sb$T$`max. c.i.`))
-    if (any(lens != p)) {
-      warning(sprintf(
-        "Skipping Sobol output for %s: incomplete indices (expected %d parameters, got lengths %s) — likely a degenerate bootstrap for at least one parameter.",
-        kpi_name, p, paste(lens, collapse = ",")
-      ))
-      return(invisible(NULL))
-    }
-    results <- data.frame(
-      parameter = p_def$name,
-      S1        = sb$S$original,
-      S1_lower  = sb$S$`min. c.i.`,
-      S1_upper  = sb$S$`max. c.i.`,
-      ST        = sb$T$original,
-      ST_lower  = sb$T$`min. c.i.`,
-      ST_upper  = sb$T$`max. c.i.`
-    )
-    # A Sobol index is a variance share and so lies in [0, 1] with ST >= S1.
-    # The Monte Carlo estimators are unbiased but not range-constrained, so a
-    # parameter whose true index sits near zero routinely returns a value
-    # outside it. That is a statement about resolution, not about the model,
-    # and it is flagged here so a reader of the CSV sees it without having to
-    # check: an unflagged reader would take a negative S1 for a negative
-    # variance share.
-    results$flag <- vapply(seq_len(nrow(results)), function(k) {
-      f <- character(0)
-      if (isTRUE(results$ST[k] > 1))                 f <- c(f, "ST>1")
-      if (isTRUE(results$S1[k] < 0))                 f <- c(f, "S1<0")
-      if (isTRUE(results$S1[k] > results$ST[k]))     f <- c(f, "S1>ST")
-      if (length(f) == 0L) "ok" else paste(f, collapse = ";")
-    }, character(1))
-    write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
-              row.names = FALSE)
-    message(sprintf("\nSobol indices for %s:", kpi_name))
-    print(results, digits = 4)
-    results
-  }
-
-  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
-                   transport_q = sb_tq, transport_util = sb_tutil)
+  told     <- tell_sobol_responses(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, Y_all)
+  sb_objs  <- told$sb_objs
+  sobol_ok <- told$sobol_ok
   saved <- list()
   for (kpi_name in names(sb_objs)) {
     if (sobol_ok[[kpi_name]]) {
-      res <- save_sobol(sb_objs[[kpi_name]], kpi_name)
+      res <- save_sobol(sb_objs[[kpi_name]], kpi_name, p_def, output_dir)
       if (!is.null(res)) saved[[kpi_name]] <- sb_objs[[kpi_name]]
     }
   }

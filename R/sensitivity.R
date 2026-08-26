@@ -943,121 +943,22 @@ with_fixed_rng <- function(expr, seed = 20260729L) {
   force(expr)
 }
 
-#' Extract the Morris response vector from a run_replications() monitoring list
+#' Summarise strategic evacuation and Role 4 demand for one design point
 #'
-#' @param mon Named list with arrivals, attributes, resources
-#' @return Named numeric vector, one element per row of `morris_kpis`, in
-#'   that order. An element is NA when the design point produced no casualty
-#'   in the cohort the response is measured over (for example a mean AME wait
-#'   on a route nobody took); NA is returned rather than zero because zero
-#'   would assert a measured value of zero minutes rather than the absence of
-#'   a measurement, and run_morris() reports the count of such points
-#'   alongside each ranking.
-#'
-#' @details Queue and utilisation responses come from
-#'   `summarise_replications()` and `compute_utilisation()` over the resource
-#'   monitor. Every other response is a per-casualty measure read from the
-#'   arrivals and attributes monitors, reusing the derivations already
-#'   present in `R/analysis.R` — `build_attributes_wide()` for the pivot to
-#'   one row per casualty, and `compute_role4_census()`, `compute_ame_demand()`,
-#'   `compute_ame_backlog()` and `compute_ame_sorties()` for the Role 4 and
-#'   strategic evacuation measures — rather than restating them here.
-extract_kpis <- function(mon) {
-  kpi <- summarise_replications(mon)
-
-  safe_q <- function(pattern) {
-    v <- kpi %>%
-      filter(grepl(pattern, resource)) %>%
-      summarise(v = mean(mean_q, na.rm = TRUE)) %>%
-      pull(v)
-    if (length(v) == 0 || is.na(v)) 0 else v
-  }
-
-  # Empty cohorts are routine at an extreme design point, so every summary
-  # below goes through these rather than through mean()/quantile()/max()
-  # directly, all three of which return NaN, an error, or -Inf on no input.
-  safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
-  safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
-  safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
-
-  arrivals <- mon$arrivals
-  n_arrivals <- nrow(arrivals)
-  n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
-  # The engagement window every "per day" and "over the run" reduction below
-  # is measured against, derived the same way analyse_run() derives it.
-  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / DAY_MIN))
-
-  attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
-  combined <- arrivals %>%
-    left_join(attributes_wide, by = c("name", "replication")) %>%
-    mutate(casualty_type = str_extract(name, "^[^_]+"))
-
-  # build_attributes_wide() guarantees the columns analyse_run() reads
-  # directly; these are the remainder this function reads, absent from a run
-  # in which no casualty ever reached the stage that sets them.
-  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
-               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
-               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
-               "dnbi_type", "r2b_treated", "r2e_treated")) {
-    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
-  }
+#' @param mon Monitoring data for the replications at this design point.
+#' @param combined Arrivals joined to their attributes.
+#' @param n_reps Replications contributing.
+#' @param n_days Engagement window in days.
+#' @param safe_mean A mean that returns NA rather than NaN on an empty set.
+#' @return A named list of the ten Domain 7 responses.
+#' @details The two closures this domain needs, the per-route wait and the
+#'   per-pool backlog, stay with it: the values they produce are returned
+#'   rather than the closures themselves, so the response assembly reads a
+#'   list rather than calling back into this domain's internals.
+extract_role4_kpis <- function(mon, combined, n_reps, n_days, safe_mean) {
+  # The same column accessor extract_kpis() uses, rebuilt here from the
+  # frame this function is given rather than threaded in as a closure.
   a <- function(nm) as.numeric(combined[[nm]])
-
-  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
-  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
-  r2b_ot_q    <- safe_q("^b_r2b_ot_")
-  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
-  system_ot_q <- r2b_ot_q + r2e_ot_q
-
-  transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
-  transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
-
-  # ── Domain 1 — mortality ───────────────────────────────────────────────
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E arrival, 4 = R2E
-  # post-operative, 5 = awaiting strategic AME. The Model Outputs entry
-  # names three echelons and predates the post-operative and AME-wait
-  # checkpoints; all five the model can set are screened.
-  dow     <- a("dow")
-  dow_ech <- a("dow_echelon")
-  died    <- !is.na(dow) & dow == 1
-  dow_count <- sum(died) / n_reps
-  dow_rate  <- function(k) {
-    if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
-  }
-
-  # ── Domain 2 — time-to-care ────────────────────────────────────────────
-  first_surgery_start <- pmin(a("r2b_surgery_start"), a("r2e_surgery_1_start"), na.rm = TRUE)
-  time_to_surgery <- first_surgery_start - combined$start_time
-  time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
-  time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
-
-  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
-  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
-  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
-  non_negative <- function(x) x[is.finite(x) & x >= 0]
-
-  # ── Domain 3 — surgical throughput ─────────────────────────────────────
-  ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
-  ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
-  r2b_surgery_count <- sum(!is.na(a("r2b_surgery_start"))) / n_reps
-  # Theatre episodes, not casualties: a damage control casualty operated on
-  # at R2E occupies theatre twice and is counted twice.
-  r2e_surgery_count <- (sum(!is.na(a("r2e_surgery_1_start"))) +
-                        sum(!is.na(a("r2e_surgery_2_start")))) / n_reps
-
-  # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
-  returned  <- !is.na(a("return_day"))
-  ret_ech   <- a("return_echelon")
-  rtd_rate  <- function(k) {
-    if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
-  }
-  total_rtd <- sum(returned) / n_reps
-
-  n_wia <- sum(combined$casualty_type == "wia", na.rm = TRUE)
-  r2b_bypass_rate <- if (n_wia == 0) NA_real_ else {
-    sum(!is.na(a("r2e_treated")) & is.na(a("r2b_treated"))) / n_wia
-  }
-
   # ── Domain 7 — strategic evacuation and Role 4 demand ──────────────────
   role4_params <- env_data$vars$role4
   role4_peak <- NA_real_
@@ -1123,6 +1024,160 @@ extract_kpis <- function(mon) {
     }
   }
 
+  list(
+    role4_peak = role4_peak,
+    role4_mean = role4_mean,
+    ame_sortie_demand = ame_sortie_demand,
+    ame_sorties_flown = ame_sorties_flown,
+    ame_wait_critical_mean    = ame_wait_route(1),
+    ame_wait_standard_mean    = ame_wait_route(2),
+    ame_backlog_critical_mean = backlog_stat("Critical (ICU, CCATT/CCAST)", "mean"),
+    ame_backlog_critical_peak = backlog_stat("Critical (ICU, CCATT/CCAST)", "peak"),
+    ame_backlog_standard_mean = backlog_stat("Standard (Hold, CSU)", "mean"),
+    ame_backlog_standard_peak = backlog_stat("Standard (Hold, CSU)", "peak")
+  )
+}
+
+#' Prepare the frames every response domain reads
+#'
+#' @param mon Monitoring data for the replications at one design point.
+#' @return A list of `arrivals`, `n_arrivals`, `n_reps`, `n_days` and
+#'   `combined`, the arrivals joined to their attributes.
+#' @details Every attribute a domain indexes by is filled with NA where the
+#'   run produced none, so an extreme design point that reached no surgery,
+#'   say, gives an empty response rather than a missing-column error.
+prepare_kpi_frames <- function(mon) {
+  arrivals <- mon$arrivals
+  n_arrivals <- nrow(arrivals)
+  n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
+  # The engagement window every "per day" and "over the run" reduction below
+  # is measured against, derived the same way analyse_run() derives it.
+  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / DAY_MIN))
+
+  attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
+  combined <- arrivals %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
+    mutate(casualty_type = str_extract(name, "^[^_]+"))
+
+  # build_attributes_wide() guarantees the columns analyse_run() reads
+  # directly; these are the remainder this function reads, absent from a run
+  # in which no casualty ever reached the stage that sets them.
+  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
+               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
+               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
+               "dnbi_type", "r2b_treated", "r2e_treated")) {
+    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
+  }
+  list(
+    arrivals = arrivals,
+    n_arrivals = n_arrivals,
+    n_reps = n_reps,
+    n_days = n_days,
+    combined = combined
+  )
+}
+
+#' Extract the Morris response vector from a run_replications() monitoring list
+#'
+#' @param mon Named list with arrivals, attributes, resources
+#' @return Named numeric vector, one element per row of `morris_kpis`, in
+#'   that order. An element is NA when the design point produced no casualty
+#'   in the cohort the response is measured over (for example a mean AME wait
+#'   on a route nobody took); NA is returned rather than zero because zero
+#'   would assert a measured value of zero minutes rather than the absence of
+#'   a measurement, and run_morris() reports the count of such points
+#'   alongside each ranking.
+#'
+#' @details Queue and utilisation responses come from
+#'   `summarise_replications()` and `compute_utilisation()` over the resource
+#'   monitor. Every other response is a per-casualty measure read from the
+#'   arrivals and attributes monitors, reusing the derivations already
+#'   present in `R/analysis.R` — `build_attributes_wide()` for the pivot to
+#'   one row per casualty, and `compute_role4_census()`, `compute_ame_demand()`,
+#'   `compute_ame_backlog()` and `compute_ame_sorties()` for the Role 4 and
+#'   strategic evacuation measures — rather than restating them here.
+extract_kpis <- function(mon) {
+  kpi <- summarise_replications(mon)
+
+  safe_q <- function(pattern) {
+    v <- kpi %>%
+      filter(grepl(pattern, resource)) %>%
+      summarise(v = mean(mean_q, na.rm = TRUE)) %>%
+      pull(v)
+    if (length(v) == 0 || is.na(v)) 0 else v
+  }
+
+  # Empty cohorts are routine at an extreme design point, so every summary
+  # below goes through these rather than through mean()/quantile()/max()
+  # directly, all three of which return NaN, an error, or -Inf on no input.
+  safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
+  safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
+  safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
+
+  frames     <- prepare_kpi_frames(mon)
+  arrivals   <- frames$arrivals
+  n_arrivals <- frames$n_arrivals
+  n_reps     <- frames$n_reps
+  n_days     <- frames$n_days
+  combined   <- frames$combined
+  a <- function(nm) as.numeric(combined[[nm]])
+
+  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
+  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
+  r2b_ot_q    <- safe_q("^b_r2b_ot_")
+  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
+  system_ot_q <- r2b_ot_q + r2e_ot_q
+
+  transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
+  transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
+
+  # ── Domain 1 — mortality ───────────────────────────────────────────────
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E arrival, 4 = R2E
+  # post-operative, 5 = awaiting strategic AME. The Model Outputs entry
+  # names three echelons and predates the post-operative and AME-wait
+  # checkpoints; all five the model can set are screened.
+  dow     <- a("dow")
+  dow_ech <- a("dow_echelon")
+  died    <- !is.na(dow) & dow == 1
+  dow_count <- sum(died) / n_reps
+  dow_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
+  }
+
+  # ── Domain 2 — time-to-care ────────────────────────────────────────────
+  first_surgery_start <- pmin(a("r2b_surgery_start"), a("r2e_surgery_1_start"), na.rm = TRUE)
+  time_to_surgery <- first_surgery_start - combined$start_time
+  time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
+  time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
+
+  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
+  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
+  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
+  non_negative <- function(x) x[is.finite(x) & x >= 0]
+
+  # ── Domain 3 — surgical throughput ─────────────────────────────────────
+  ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
+  ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
+  r2b_surgery_count <- sum(!is.na(a("r2b_surgery_start"))) / n_reps
+  # Theatre episodes, not casualties: a damage control casualty operated on
+  # at R2E occupies theatre twice and is counted twice.
+  r2e_surgery_count <- (sum(!is.na(a("r2e_surgery_1_start"))) +
+                        sum(!is.na(a("r2e_surgery_2_start")))) / n_reps
+
+  # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
+  returned  <- !is.na(a("return_day"))
+  ret_ech   <- a("return_echelon")
+  rtd_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
+  }
+  total_rtd <- sum(returned) / n_reps
+
+  n_wia <- sum(combined$casualty_type == "wia", na.rm = TRUE)
+  r2b_bypass_rate <- if (n_wia == 0) NA_real_ else {
+    sum(!is.na(a("r2e_treated")) & is.na(a("r2b_treated"))) / n_wia
+  }
+
+  role4 <- extract_role4_kpis(mon, combined, n_reps, n_days, safe_mean)
   out <- c(
     dow_count                 = dow_count,
     dow_rate_r1               = dow_rate(1),
@@ -1148,16 +1203,16 @@ extract_kpis <- function(mon) {
     rtd_rate_r2e              = rtd_rate(3),
     r2b_bypass_rate           = r2b_bypass_rate,
     total_rtd                 = total_rtd,
-    role4_peak_occupancy      = role4_peak,
-    role4_mean_occupancy      = role4_mean,
-    ame_sortie_demand         = ame_sortie_demand,
-    ame_wait_critical_mean    = ame_wait_route(1),
-    ame_wait_standard_mean    = ame_wait_route(2),
-    ame_backlog_critical_mean = backlog_stat("Critical (ICU, CCATT/CCAST)", "mean"),
-    ame_backlog_critical_peak = backlog_stat("Critical (ICU, CCATT/CCAST)", "peak"),
-    ame_backlog_standard_mean = backlog_stat("Standard (Hold, CSU)", "mean"),
-    ame_backlog_standard_peak = backlog_stat("Standard (Hold, CSU)", "peak"),
-    ame_sorties_flown         = ame_sorties_flown,
+    role4_peak_occupancy      = role4$role4_peak,
+    role4_mean_occupancy      = role4$role4_mean,
+    ame_sortie_demand         = role4$ame_sortie_demand,
+    ame_wait_critical_mean    = role4$ame_wait_critical_mean,
+    ame_wait_standard_mean    = role4$ame_wait_standard_mean,
+    ame_backlog_critical_mean = role4$ame_backlog_critical_mean,
+    ame_backlog_critical_peak = role4$ame_backlog_critical_peak,
+    ame_backlog_standard_mean = role4$ame_backlog_standard_mean,
+    ame_backlog_standard_peak = role4$ame_backlog_standard_peak,
+    ame_sorties_flown         = role4$ame_sorties_flown,
     system_ot_q               = system_ot_q,
     transport_util            = transport_util
   )

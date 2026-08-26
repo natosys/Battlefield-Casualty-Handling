@@ -123,7 +123,7 @@ established and need no expansion in a name. Anything else is spelled out.
 
 ## Function design
 
-**D1 `[lint]` No function body exceeds 100 lines.** Fourteen existing functions
+**D1 `[lint]` No function body exceeds 100 lines.** Eleven existing functions
 do; they are listed under [Current conformance](#current-conformance) and are
 reduced under separate work. The limit applies in full to every new function and
 to any listed function that a pull request restructures.
@@ -564,7 +564,7 @@ functions, and eight of the nine gaps are the paired accessors at the head of
 | Rule | Gap |
 |---|---|
 | F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
-| D1 | Fourteen functions exceed 100 lines, in three groups. **Simulation logic, where a split shifts the random number stream and so moves every published figure, and must be verified against the seed-42 reproduction one split at a time:** `r2e_treat_wia` (766, its own header records the assessment), `r2b_treat_wia` (560), `build_casualty_trajectory` (334), `run_once` (147), `run_replications` (116). **Orchestrators, whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split:** `analyse_run` (398), `analyse_replications` (229), `server` (195). **Not yet reduced, and reducible without either difficulty:** `run_sobol` (240), `run_morris` (212), `extract_kpis` (205), `plot_r2b_icu_share_frontier` (123), `build_environment` (114), `apply_params` (102) |
+| D1 | Eleven functions exceed 100 lines, in three groups. **Simulation logic, where a split shifts the random number stream and so moves every published figure, and must be verified against the seed-42 reproduction one split at a time:** `r2e_treat_wia` (766, its own header records the assessment), `r2b_treat_wia` (560), `build_casualty_trajectory` (334), `run_once` (147), `run_replications` (116). **Orchestrators, whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split:** `analyse_run` (398), `analyse_replications` (229), `server` (195). **Not yet reduced:** `run_sobol` (240), `run_morris` (212), `extract_kpis` (205). These three are the screen drivers and their response extraction; each holds closures that read the enclosing frame, and the two drivers order their evaluation against a resumable cache, so a split needs its interface worked out deliberately rather than moved |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |

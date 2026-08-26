@@ -32,14 +32,11 @@ get_var_value <- function(env_data, elm_name, acty_name, var_name) {
   val_entry[[1]]$val
 }
 
-# === Section Generator ===
-generate_env_summary_section <- function(env_data) {
-  # Field labels match R/app_params.R's GRP_FORCE / "Reinforcement Demand &
-  # Fulfillment" subgroup exactly, so this table and the Configure panel
-  # read as the same parameter set under the same names.
-  # Symbol column matches the triangular distribution formula below: a/b/c
-  # are the PDF's own lower-limit/upper-limit/mode variables (not tied to
-  # this project's other symbol conventions elsewhere in the README).
+#' The population and reinforcement rows of the environment summary
+#'
+#' @param env_data Parsed `env_data.json`.
+#' @return A character vector of markdown lines for this section.
+env_summary_population_section <- function(env_data) {
   reinforcement_params <- list(
     list("Demand Submission Cycle (days)", "—", get_var_value(env_data, "force_regeneration", "reinforcement", "demand_interval_days")),
     list("Fulfillment Lag (days)", "—", get_var_value(env_data, "force_regeneration", "reinforcement", "fulfillment_lag_days")),
@@ -84,6 +81,14 @@ generate_env_summary_section <- function(env_data) {
     ""
   )
 
+  pop_section
+}
+
+#' The transport fleet rows of the environment summary
+#'
+#' @param env_data Parsed `env_data.json`.
+#' @return A character vector of markdown lines for this section.
+env_summary_transport_section <- function(env_data) {
   transport_section <- c(
     "### Medevac — Transport Fleet",
     "",
@@ -97,6 +102,14 @@ generate_env_summary_section <- function(env_data) {
     ""
   )
   
+  transport_section
+}
+
+#' The deployed element rows of the environment summary, and the shift roster
+#'
+#' @param env_data Parsed `env_data.json`.
+#' @return A character vector of markdown lines for this section.
+env_summary_element_section <- function(env_data) {
   summarise_resources <- function(resources) {
     paste(map_chr(resources, ~ sprintf("%s (%s)", capitalize(.x$name %||% .x$resource), as.character(.x$qty))), collapse = ", ")
   }
@@ -149,6 +162,20 @@ generate_env_summary_section <- function(env_data) {
            as.character(get_var_value(env_data, "surgical_roster", "shift", "ot_hours")), " |"),
     ""
   )
+  elm_section
+}
+
+# === Section Generator ===
+generate_env_summary_section <- function(env_data) {
+  # Field labels match R/app_params.R's GRP_FORCE / "Reinforcement Demand &
+  # Fulfillment" subgroup exactly, so this table and the Configure panel
+  # read as the same parameter set under the same names.
+  # Symbol column matches the triangular distribution formula below: a/b/c
+  # are the PDF's own lower-limit/upper-limit/mode variables (not tied to
+  # this project's other symbol conventions elsewhere in the README).
+  pop_section <- env_summary_population_section(env_data)
+  transport_section <- env_summary_transport_section(env_data)
+  elm_section <- env_summary_element_section(env_data)
   
   c(
     "<!-- ENV SUMMARY START -->",

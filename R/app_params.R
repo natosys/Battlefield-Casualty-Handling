@@ -393,15 +393,12 @@ count_active_mass_casualty_events <- function(json) {
 
 # ── Registry assembly ────────────────────────────────────────────────────
 
-#' Build the full parameter registry for the Configure panel
+#' Registry fields for force size
 #'
-#' @return List of field specs (see field()); each has $id, $group,
-#'   $subgroup, $label, $tooltip, $get(json), $set(json, value), $type,
-#'   $min, $max, $step, $morris, $source (provenance citation, not rendered
-#'   in the interactive tooltip — see field())
-build_param_registry <- function() {
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+force_size_fields <- function() {
   registry <- list()
-
   # ── Force Size ──────────────────────────────────────────────────────────
   registry <- c(registry, list(
     field("pop_combat", GRP_FORCE, NULL, "Combat Force Size",
@@ -431,6 +428,15 @@ build_param_registry <- function() {
               type = "numeric", min = 0, max = 2, step = 0.05, source = SRC_FORCE_REGEN, slider = TRUE)
   ))
 
+  registry
+}
+
+#' Registry fields for casualty generation, triage and died-of-wounds
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+casualty_rate_fields <- function() {
+  registry <- list()
   # ── Casualty Rates ──────────────────────────────────────────────────────
   gen_streams <- list(
     list("wia_cbt",  "WIA — Combat",   SRC_FORECAS_WIA_CBT),
@@ -516,6 +522,15 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.001, morris_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE)
   ))
 
+  registry
+}
+
+#' Registry fields for the surgical shift roster and Role 1
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+r1_fields <- function() {
+  registry <- list()
   # ── Health System Architecture: Surgical Shift Roster ─────────────────────
   # Placed first in the group because it is the one architecture field that
   # is not per-echelon: the same shift length rosters R2B's single surgical
@@ -577,6 +592,15 @@ build_param_registry <- function() {
                                      "KIA Transport Time", "Transport time to move a KIA casualty from point of injury.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
 
+  registry
+}
+
+#' Registry fields for Role 2 Basic
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+r2b_fields <- function() {
+  registry <- list()
   # ── Health System Architecture: R2B — Battalion Aid Post ──────────────────
   registry <- c(registry, list(
     field("r2b_team_count", GRP_HEALTH_ARCH, "R2B — Establishment", "Number of R2B Teams",
@@ -656,6 +680,15 @@ build_param_registry <- function() {
                                      "KIA/Mortuary Transport Time", "Road-move transport time for a KIA casualty from R2B to the mortuary (collocated with R2E, not R2B).",
                                      bound = c(0, 200), source = SRC_TRANSPORT_GENERIC))
 
+  registry
+}
+
+#' Registry fields for Role 2 Enhanced
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+r2e_fields <- function() {
+  registry <- list()
   # ── Health System Architecture: R2E — Field Hospital ──────────────────────
   registry <- c(registry, list(
     field("r2e_team_count", GRP_HEALTH_ARCH, "R2E — Establishment", "Number of R2E Teams",
@@ -739,6 +772,15 @@ build_param_registry <- function() {
                                      "KIA Transport Time", "Transport time to move a KIA casualty from R2E.", bound = c(0, 200),
                                      source = SRC_TRANSPORT_GENERIC))
 
+  registry
+}
+
+#' Registry fields for strategic aeromedical evacuation and Role 4
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+strategic_ame_fields <- function() {
+  registry <- list()
   # ── Medevac: Strategic AME ──────────────────────────────────────────────
   # A sortie that flies carries the fitted patient capacity of the selected
   # airframe, filling the critical (CCATT/CCAST-supported, ICU-bed Priority
@@ -786,6 +828,15 @@ build_param_registry <- function() {
               type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
   ))
 
+  registry
+}
+
+#' Registry fields for mass casualty event injection
+#'
+#' @return A list of field specs, in the order the Configure panel renders
+#'   them. See build_param_registry() for the shape of one spec.
+mass_casualty_fields <- function() {
+  registry <- list()
   # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
   registry <- c(registry, list(
     var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
@@ -858,6 +909,25 @@ build_param_registry <- function() {
               min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI)
   ))
 
+  registry
+}
+
+#' Build the full parameter registry for the Configure panel
+#'
+#' @return List of field specs (see field()); each has $id, $group,
+#'   $subgroup, $label, $tooltip, $get(json), $set(json, value), $type,
+#'   $min, $max, $step, $morris, $source (provenance citation, not rendered
+#'   in the interactive tooltip — see field())
+build_param_registry <- function() {
+  registry <- list()
+
+  registry <- c(registry, force_size_fields())
+  registry <- c(registry, casualty_rate_fields())
+  registry <- c(registry, r1_fields())
+  registry <- c(registry, r2b_fields())
+  registry <- c(registry, r2e_fields())
+  registry <- c(registry, strategic_ame_fields())
+  registry <- c(registry, mass_casualty_fields())
   registry
 }
 

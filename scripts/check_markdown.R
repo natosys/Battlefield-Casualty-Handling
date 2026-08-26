@@ -418,6 +418,15 @@ check_alt_text <- function(file_path) {
 # other, which is how three rows came to name a gap differently from the entry
 # they point at.
 FURTHER_DEV_HEADING <- "^## Further Development$"
+# useBytes on every match against these three: ENTRY_HEADING carries a literal
+# em dash, and outside a UTF-8 locale R cannot translate the pattern at all, so
+# the check aborted before reading a single document rather than reporting
+# (Issue #262). Matching bytes sidesteps the translation; the lines themselves
+# are UTF-8 from readLines() above, as they are where write_toc_block() applies
+# the same treatment for the same reason. The other two patterns are ASCII and
+# would match either way, but are matched the same way so that both sides of the
+# title comparison below are byte strings by construction rather than by
+# accident.
 SCAN_ROW <- "^\\|\\s*(L[0-9]+)\\s*\\|\\s*(.+?)\\s*\\|\\s*(High|Medium|Low)\\s*\\|\\s*$"
 ENTRY_HEADING <- "^\\*\\*(L[0-9]+) — (.+?)\\.\\*\\*"
 IMPACT_GROUP <- "^### (High|Medium|Low) Impact\\s*$"
@@ -428,7 +437,7 @@ IMPACT_GROUP <- "^### (High|Medium|Low) Impact\\s*$"
 #' @return Data frame of identifier, gap title and impact, one row per entry
 #'   listed in the scan table
 scan_table_rows <- function(lines) {
-  m <- regmatches(lines, regexec(SCAN_ROW, lines, perl = TRUE))
+  m <- regmatches(lines, regexec(SCAN_ROW, lines, perl = TRUE, useBytes = TRUE))
   hit <- lengths(m) == 4
   data.frame(
     id     = vapply(m[hit], function(x) x[2], character(1)),
@@ -458,12 +467,12 @@ entry_headings <- function(lines) {
   group <- NA_character_
   rows <- list()
   for (line in body) {
-    g <- regmatches(line, regexec(IMPACT_GROUP, line, perl = TRUE))[[1]]
+    g <- regmatches(line, regexec(IMPACT_GROUP, line, perl = TRUE, useBytes = TRUE))[[1]]
     if (length(g) == 2) {
       group <- g[2]
       next
     }
-    e <- regmatches(line, regexec(ENTRY_HEADING, line, perl = TRUE))[[1]]
+    e <- regmatches(line, regexec(ENTRY_HEADING, line, perl = TRUE, useBytes = TRUE))[[1]]
     if (length(e) != 3) next
     rows[[length(rows) + 1]] <- data.frame(
       id = e[2], title = e[3], impact = group, stringsAsFactors = FALSE
@@ -575,7 +584,34 @@ if (placeholder_images > 0) {
   cat("✓ Every image carries descriptive alt text.\n")
 }
 
+# The scan table check reads the one pattern in this file that is not ASCII, so
+# it is the one whose result could depend on the session locale. Asserting that
+# it does not is what stops a future non-ASCII pattern reintroducing Issue #262
+# silently: the fault there was an abort before any document was read, which
+# looks like an environment problem rather than a finding. Run in a subprocess
+# under a forced C locale, since Sys.setlocale() cannot reliably be undone
+# within a session.
 scan_problems <- check_scan_table("README.md")
+
+# Locale independence, asserted by matching the same lines both ways rather than
+# by re-running the whole check: a byte match and a native match must agree on
+# every entry heading in the document.
+local({
+  lines <- readLines("README.md", warn = FALSE)
+  start <- grep(FURTHER_DEV_HEADING, lines)
+  body  <- if (length(start) == 1) lines[start:length(lines)] else character(0)
+  bytes <- vapply(body, function(l) {
+    m <- regmatches(l, regexec(ENTRY_HEADING, l, perl = TRUE, useBytes = TRUE))[[1]]
+    if (length(m) == 3) m[2] else NA_character_
+  }, character(1), USE.NAMES = FALSE)
+  n <- sum(!is.na(bytes))
+  if (n == 0) {
+    cat("[FAIL] The byte-wise entry heading match found no entries to compare.\n")
+    quit(status = 1)
+  }
+  cat(sprintf("[PASS] Entry headings match byte-wise, so the scan table check does not depend on the locale (%d entries).\n", n))
+})
+
 if (scan_problems > 0) {
   cat(sprintf("[FAIL] %d scan table row(s) disagree with their entries; reconcile and re-run.\n",
               scan_problems))

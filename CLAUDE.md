@@ -4,7 +4,7 @@
 
 This is an **academic research project** producing a Discrete Event Simulation (DES) of deployed battlefield casualty handling. The simulation is written in R using the `simmer` package and is intended to provide evidence-based options to military planners for improving health outcomes in Large Scale Combat Operations (LSCO).
 
-All work must meet academic research standards: reasoning must be explicit, sources must be cited, and limitations must be acknowledged. The project's academic output is split across three documents, each kept current with the code and written to the standard of a published academic paper: `README.md` (system reference — code structure, algorithms, trajectory logic, resource model, inline model assumptions, and Limitations), `docs/Single_Run_Analysis.md` (the illustrative single-run, seed-42 results narrative), and `docs/Multi_Run_Analysis.md` (the multi-run, n≥30/95% CI comparative results narrative). See [README Maintenance](#readme-maintenance) below for which PR types update which document.
+All work must meet academic research standards: reasoning must be explicit, sources must be cited, and limitations must be acknowledged. The project's academic output is split across three documents, each kept current with the code and written to the standard of a published academic paper: `README.md` (system reference — code structure, algorithms, trajectory logic, resource model, inline model assumptions, and Limitations), `docs/Single_Run_Analysis.md` (the seed-42 verification and behavioural walk-through of one campaign), and `docs/Multi_Run_Analysis.md` (every replicated experiment, the n≥30/95% CI scenario comparison among them). See [README Maintenance](#readme-maintenance) below for which PR types update which document.
 
 ---
 
@@ -73,8 +73,8 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `scripts/README.md` | Verification baseline for the regression check suite — the result, runtime and observed behaviour of every `check_*.R` script, measured together in the pinned Dev Container |
 | `scripts/check_pre_open_window.R` | Regression check asserting that a zero R2B pre-open hold window reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster, and that every casualty held forward is operated on there; exits non-zero on failure |
 | `README.md` | System reference — introduction, literature review, methodology, codebase structure, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, limitations, references. Does not contain simulation results. |
-| `docs/Single_Run_Analysis.md` | Illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline — the project's original per-echelon results walk-through |
-| `docs/Multi_Run_Analysis.md` | Multi-run (n≥30 replications, 95% CI) comparative results narrative — Falklands-modified vs. Okinawa-intensity scenario comparison |
+| `docs/Single_Run_Analysis.md` | Verification and behavioural walk-through of one seed-42, 30-day campaign under the Falklands-modified baseline, per echelon. Reports one run only: no confidence interval, replication count or non-default configuration belongs here |
+| `docs/Multi_Run_Analysis.md` | Every replicated experiment, and the replication and interval methodology they rest on: the n≥30/95% CI Falklands-modified vs. Okinawa-intensity scenario comparison, plus the R2B pre-open hold window, the post-operative intensive care gate, the forward ICU share frontier, the transport fleet-size sweep, the reinforcement comparison and the mass casualty stress test. Each section states its own design |
 | `docs/BCH_Simulation_Action_Plan.md` | Issue tracker cross-reference — phase sequencing, dependency graph, merged-issue log |
 | `docs/BCH_Task_Role_Allocation.md` | Task-role allocation design supplement for the not-yet-implemented individual resource modelling work (Issue #4) |
 | `docs/Continuous_Integration.md` | Operating guide for the automated verification: what each GitHub Actions job runs and when, how to read a result, how to dispatch the slow suite, what each way the gate can fail calls for, and how a new check joins the suite |
@@ -296,10 +296,10 @@ Example entry:
 The project's academic output is split across three documents (see [Academic Standards](#academic-standards) intro and the Repository Structure table above):
 
 - **`README.md`** (system reference) — code structure, algorithms, trajectory logic, resource model, Mermaid diagrams, inline model assumptions, and Further Development. Contains no simulation results.
-- **`docs/Single_Run_Analysis.md`** — the illustrative single-run (seed 42, 30-day) results narrative under the Falklands-modified baseline.
-- **`docs/Multi_Run_Analysis.md`** — the multi-run (n≥30 replications, 95% CI) comparative results narrative (Falklands-modified vs. Okinawa-intensity).
+- **`docs/Single_Run_Analysis.md`** — the seed-42, 30-day verification and behavioural walk-through of one campaign under the Falklands-modified baseline. One run only: no confidence interval, replication count or non-default configuration belongs in it.
+- **`docs/Multi_Run_Analysis.md`** — every replicated experiment, and the replication and interval methodology they rest on. The n≥30/95% CI scenario comparison (Falklands-modified vs. Okinawa-intensity) is its centrepiece; the policy-lever sweeps, the mass casualty stress test and the reinforcement comparison sit alongside it, each stating its own design.
 
-All three must be updated **as part of every PR that touches the section(s) they own** — not retrospectively. A PR that only changes code structure or trajectory logic updates `README.md` alone; a PR that changes seed-42 single-run findings updates `docs/Single_Run_Analysis.md`; a PR that changes multi-run/scenario-comparison findings updates `docs/Multi_Run_Analysis.md`. Cross-references between the three documents (`[text](../README.md#anchor)`, `[text](docs/Single_Run_Analysis.md#anchor)`, `[text](docs/Multi_Run_Analysis.md#anchor)` as appropriate to the source document's location) must stay valid — re-run `scripts/check_markdown.R` after moving or renaming any heading referenced from another document.
+All three must be updated **as part of every PR that touches the section(s) they own** — not retrospectively. A PR that only changes code structure or trajectory logic updates `README.md` alone; a PR that changes seed-42 single-run findings updates `docs/Single_Run_Analysis.md`; a PR that changes any replicated finding, whether the scenario comparison or one of the sweeps and stress tests, updates `docs/Multi_Run_Analysis.md`. The boundary between the two analysis documents is the unit of analysis, not the subject: a result from one run goes in the first, a result from many goes in the second, and a section that reports both belongs in the second with a cross-reference from the first. Cross-references between the three documents (`[text](../README.md#anchor)`, `[text](docs/Single_Run_Analysis.md#anchor)`, `[text](docs/Multi_Run_Analysis.md#anchor)` as appropriate to the source document's location) must stay valid — re-run `scripts/check_markdown.R` after moving or renaming any heading referenced from another document.
 
 ### What to update per PR
 
@@ -310,8 +310,9 @@ All three must be updated **as part of every PR that touches the section(s) they
 | `README.md` | Further Development | When a gap is closed (delete the entry) or a new one is identified (add one, with a new identifier) |
 | `README.md` | References | Add any new sources used in the implementation that `README.md` itself cites |
 | `docs/Single_Run_Analysis.md` | Relevant echelon/domain section | When new seed-42 single-run results are generated (replace or supplement existing analysis) |
+| `docs/Multi_Run_Analysis.md` | Relevant experiment section | When a sweep, stress test or before/after comparison is re-run at any replication count |
 | `docs/Single_Run_Analysis.md` | References | Add any new sources this document itself cites |
-| `docs/Multi_Run_Analysis.md` | Comparative Scenario Analysis | When new multi-run/scenario-comparison results are generated (replace or supplement existing analysis) |
+| `docs/Multi_Run_Analysis.md` | Comparative Scenario Analysis | When new scenario-comparison results are generated (replace or supplement existing analysis) |
 | `docs/Multi_Run_Analysis.md` | References | Add any new sources this document itself cites |
 
 Each document's References section lists only the sources that document itself cites, numbered in order of first appearance within that document — not a shared numbering scheme across all three. A source cited in more than one document is renumbered independently in each.

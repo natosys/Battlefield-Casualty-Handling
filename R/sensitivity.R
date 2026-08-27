@@ -943,121 +943,22 @@ with_fixed_rng <- function(expr, seed = 20260729L) {
   force(expr)
 }
 
-#' Extract the Morris response vector from a run_replications() monitoring list
+#' Summarise strategic evacuation and Role 4 demand for one design point
 #'
-#' @param mon Named list with arrivals, attributes, resources
-#' @return Named numeric vector, one element per row of `morris_kpis`, in
-#'   that order. An element is NA when the design point produced no casualty
-#'   in the cohort the response is measured over (for example a mean AME wait
-#'   on a route nobody took); NA is returned rather than zero because zero
-#'   would assert a measured value of zero minutes rather than the absence of
-#'   a measurement, and run_morris() reports the count of such points
-#'   alongside each ranking.
-#'
-#' @details Queue and utilisation responses come from
-#'   `summarise_replications()` and `compute_utilisation()` over the resource
-#'   monitor. Every other response is a per-casualty measure read from the
-#'   arrivals and attributes monitors, reusing the derivations already
-#'   present in `R/analysis.R` — `build_attributes_wide()` for the pivot to
-#'   one row per casualty, and `compute_role4_census()`, `compute_ame_demand()`,
-#'   `compute_ame_backlog()` and `compute_ame_sorties()` for the Role 4 and
-#'   strategic evacuation measures — rather than restating them here.
-extract_kpis <- function(mon) {
-  kpi <- summarise_replications(mon)
-
-  safe_q <- function(pattern) {
-    v <- kpi %>%
-      filter(grepl(pattern, resource)) %>%
-      summarise(v = mean(mean_q, na.rm = TRUE)) %>%
-      pull(v)
-    if (length(v) == 0 || is.na(v)) 0 else v
-  }
-
-  # Empty cohorts are routine at an extreme design point, so every summary
-  # below goes through these rather than through mean()/quantile()/max()
-  # directly, all three of which return NaN, an error, or -Inf on no input.
-  safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
-  safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
-  safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
-
-  arrivals <- mon$arrivals
-  n_arrivals <- nrow(arrivals)
-  n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
-  # The engagement window every "per day" and "over the run" reduction below
-  # is measured against, derived the same way analyse_run() derives it.
-  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / DAY_MIN))
-
-  attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
-  combined <- arrivals %>%
-    left_join(attributes_wide, by = c("name", "replication")) %>%
-    mutate(casualty_type = str_extract(name, "^[^_]+"))
-
-  # build_attributes_wide() guarantees the columns analyse_run() reads
-  # directly; these are the remainder this function reads, absent from a run
-  # in which no casualty ever reached the stage that sets them.
-  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
-               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
-               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
-               "dnbi_type", "r2b_treated", "r2e_treated")) {
-    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
-  }
+#' @param mon Monitoring data for the replications at this design point.
+#' @param combined Arrivals joined to their attributes.
+#' @param n_reps Replications contributing.
+#' @param n_days Engagement window in days.
+#' @param safe_mean A mean that returns NA rather than NaN on an empty set.
+#' @return A named list of the ten Domain 7 responses.
+#' @details The two closures this domain needs, the per-route wait and the
+#'   per-pool backlog, stay with it: the values they produce are returned
+#'   rather than the closures themselves, so the response assembly reads a
+#'   list rather than calling back into this domain's internals.
+extract_role4_kpis <- function(mon, combined, n_reps, n_days, safe_mean) {
+  # The same column accessor extract_kpis() uses, rebuilt here from the
+  # frame this function is given rather than threaded in as a closure.
   a <- function(nm) as.numeric(combined[[nm]])
-
-  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
-  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
-  r2b_ot_q    <- safe_q("^b_r2b_ot_")
-  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
-  system_ot_q <- r2b_ot_q + r2e_ot_q
-
-  transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
-  transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
-
-  # ── Domain 1 — mortality ───────────────────────────────────────────────
-  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E arrival, 4 = R2E
-  # post-operative, 5 = awaiting strategic AME. The Model Outputs entry
-  # names three echelons and predates the post-operative and AME-wait
-  # checkpoints; all five the model can set are screened.
-  dow     <- a("dow")
-  dow_ech <- a("dow_echelon")
-  died    <- !is.na(dow) & dow == 1
-  dow_count <- sum(died) / n_reps
-  dow_rate  <- function(k) {
-    if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
-  }
-
-  # ── Domain 2 — time-to-care ────────────────────────────────────────────
-  first_surgery_start <- pmin(a("r2b_surgery_start"), a("r2e_surgery_1_start"), na.rm = TRUE)
-  time_to_surgery <- first_surgery_start - combined$start_time
-  time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
-  time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
-
-  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
-  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
-  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
-  non_negative <- function(x) x[is.finite(x) & x >= 0]
-
-  # ── Domain 3 — surgical throughput ─────────────────────────────────────
-  ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
-  ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
-  r2b_surgery_count <- sum(!is.na(a("r2b_surgery_start"))) / n_reps
-  # Theatre episodes, not casualties: a damage control casualty operated on
-  # at R2E occupies theatre twice and is counted twice.
-  r2e_surgery_count <- (sum(!is.na(a("r2e_surgery_1_start"))) +
-                        sum(!is.na(a("r2e_surgery_2_start")))) / n_reps
-
-  # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
-  returned  <- !is.na(a("return_day"))
-  ret_ech   <- a("return_echelon")
-  rtd_rate  <- function(k) {
-    if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
-  }
-  total_rtd <- sum(returned) / n_reps
-
-  n_wia <- sum(combined$casualty_type == "wia", na.rm = TRUE)
-  r2b_bypass_rate <- if (n_wia == 0) NA_real_ else {
-    sum(!is.na(a("r2e_treated")) & is.na(a("r2b_treated"))) / n_wia
-  }
-
   # ── Domain 7 — strategic evacuation and Role 4 demand ──────────────────
   role4_params <- env_data$vars$role4
   role4_peak <- NA_real_
@@ -1123,6 +1024,160 @@ extract_kpis <- function(mon) {
     }
   }
 
+  list(
+    role4_peak = role4_peak,
+    role4_mean = role4_mean,
+    ame_sortie_demand = ame_sortie_demand,
+    ame_sorties_flown = ame_sorties_flown,
+    ame_wait_critical_mean    = ame_wait_route(1),
+    ame_wait_standard_mean    = ame_wait_route(2),
+    ame_backlog_critical_mean = backlog_stat("Critical (ICU, CCATT/CCAST)", "mean"),
+    ame_backlog_critical_peak = backlog_stat("Critical (ICU, CCATT/CCAST)", "peak"),
+    ame_backlog_standard_mean = backlog_stat("Standard (Hold, CSU)", "mean"),
+    ame_backlog_standard_peak = backlog_stat("Standard (Hold, CSU)", "peak")
+  )
+}
+
+#' Prepare the frames every response domain reads
+#'
+#' @param mon Monitoring data for the replications at one design point.
+#' @return A list of `arrivals`, `n_arrivals`, `n_reps`, `n_days` and
+#'   `combined`, the arrivals joined to their attributes.
+#' @details Every attribute a domain indexes by is filled with NA where the
+#'   run produced none, so an extreme design point that reached no surgery,
+#'   say, gives an empty response rather than a missing-column error.
+prepare_kpi_frames <- function(mon) {
+  arrivals <- mon$arrivals
+  n_arrivals <- nrow(arrivals)
+  n_reps     <- max(1L, dplyr::n_distinct(arrivals$replication))
+  # The engagement window every "per day" and "over the run" reduction below
+  # is measured against, derived the same way analyse_run() derives it.
+  n_days <- if (n_arrivals == 0) 1 else max(1, ceiling(max(arrivals$start_time, na.rm = TRUE) / DAY_MIN))
+
+  attributes_wide <- build_attributes_wide(mon$attributes, arrivals)
+  combined <- arrivals %>%
+    left_join(attributes_wide, by = c("name", "replication")) %>%
+    mutate(casualty_type = str_extract(name, "^[^_]+"))
+
+  # build_attributes_wide() guarantees the columns analyse_run() reads
+  # directly; these are the remainder this function reads, absent from a run
+  # in which no casualty ever reached the stage that sets them.
+  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
+               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
+               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
+               "dnbi_type", "r2b_treated", "r2e_treated")) {
+    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
+  }
+  list(
+    arrivals = arrivals,
+    n_arrivals = n_arrivals,
+    n_reps = n_reps,
+    n_days = n_days,
+    combined = combined
+  )
+}
+
+#' Extract the Morris response vector from a run_replications() monitoring list
+#'
+#' @param mon Named list with arrivals, attributes, resources
+#' @return Named numeric vector, one element per row of `morris_kpis`, in
+#'   that order. An element is NA when the design point produced no casualty
+#'   in the cohort the response is measured over (for example a mean AME wait
+#'   on a route nobody took); NA is returned rather than zero because zero
+#'   would assert a measured value of zero minutes rather than the absence of
+#'   a measurement, and run_morris() reports the count of such points
+#'   alongside each ranking.
+#'
+#' @details Queue and utilisation responses come from
+#'   `summarise_replications()` and `compute_utilisation()` over the resource
+#'   monitor. Every other response is a per-casualty measure read from the
+#'   arrivals and attributes monitors, reusing the derivations already
+#'   present in `R/analysis.R` — `build_attributes_wide()` for the pivot to
+#'   one row per casualty, and `compute_role4_census()`, `compute_ame_demand()`,
+#'   `compute_ame_backlog()` and `compute_ame_sorties()` for the Role 4 and
+#'   strategic evacuation measures — rather than restating them here.
+extract_kpis <- function(mon) {
+  kpi <- summarise_replications(mon)
+
+  safe_q <- function(pattern) {
+    v <- kpi %>%
+      filter(grepl(pattern, resource)) %>%
+      summarise(v = mean(mean_q, na.rm = TRUE)) %>%
+      pull(v)
+    if (length(v) == 0 || is.na(v)) 0 else v
+  }
+
+  # Empty cohorts are routine at an extreme design point, so every summary
+  # below goes through these rather than through mean()/quantile()/max()
+  # directly, all three of which return NaN, an error, or -Inf on no input.
+  safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
+  safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
+  safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
+
+  frames     <- prepare_kpi_frames(mon)
+  arrivals   <- frames$arrivals
+  n_arrivals <- frames$n_arrivals
+  n_reps     <- frames$n_reps
+  n_days     <- frames$n_days
+  combined   <- frames$combined
+  a <- function(nm) as.numeric(combined[[nm]])
+
+  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
+  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
+  r2b_ot_q    <- safe_q("^b_r2b_ot_")
+  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
+  system_ot_q <- r2b_ot_q + r2e_ot_q
+
+  transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
+  transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
+
+  # ── Domain 1 — mortality ───────────────────────────────────────────────
+  # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E arrival, 4 = R2E
+  # post-operative, 5 = awaiting strategic AME. The Model Outputs entry
+  # names three echelons and predates the post-operative and AME-wait
+  # checkpoints; all five the model can set are screened.
+  dow     <- a("dow")
+  dow_ech <- a("dow_echelon")
+  died    <- !is.na(dow) & dow == 1
+  dow_count <- sum(died) / n_reps
+  dow_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
+  }
+
+  # ── Domain 2 — time-to-care ────────────────────────────────────────────
+  first_surgery_start <- pmin(a("r2b_surgery_start"), a("r2e_surgery_1_start"), na.rm = TRUE)
+  time_to_surgery <- first_surgery_start - combined$start_time
+  time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
+  time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
+
+  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
+  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
+  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
+  non_negative <- function(x) x[is.finite(x) & x >= 0]
+
+  # ── Domain 3 — surgical throughput ─────────────────────────────────────
+  ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
+  ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
+  r2b_surgery_count <- sum(!is.na(a("r2b_surgery_start"))) / n_reps
+  # Theatre episodes, not casualties: a damage control casualty operated on
+  # at R2E occupies theatre twice and is counted twice.
+  r2e_surgery_count <- (sum(!is.na(a("r2e_surgery_1_start"))) +
+                        sum(!is.na(a("r2e_surgery_2_start")))) / n_reps
+
+  # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
+  returned  <- !is.na(a("return_day"))
+  ret_ech   <- a("return_echelon")
+  rtd_rate  <- function(k) {
+    if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
+  }
+  total_rtd <- sum(returned) / n_reps
+
+  n_wia <- sum(combined$casualty_type == "wia", na.rm = TRUE)
+  r2b_bypass_rate <- if (n_wia == 0) NA_real_ else {
+    sum(!is.na(a("r2e_treated")) & is.na(a("r2b_treated"))) / n_wia
+  }
+
+  role4 <- extract_role4_kpis(mon, combined, n_reps, n_days, safe_mean)
   out <- c(
     dow_count                 = dow_count,
     dow_rate_r1               = dow_rate(1),
@@ -1148,16 +1203,16 @@ extract_kpis <- function(mon) {
     rtd_rate_r2e              = rtd_rate(3),
     r2b_bypass_rate           = r2b_bypass_rate,
     total_rtd                 = total_rtd,
-    role4_peak_occupancy      = role4_peak,
-    role4_mean_occupancy      = role4_mean,
-    ame_sortie_demand         = ame_sortie_demand,
-    ame_wait_critical_mean    = ame_wait_route(1),
-    ame_wait_standard_mean    = ame_wait_route(2),
-    ame_backlog_critical_mean = backlog_stat("Critical (ICU, CCATT/CCAST)", "mean"),
-    ame_backlog_critical_peak = backlog_stat("Critical (ICU, CCATT/CCAST)", "peak"),
-    ame_backlog_standard_mean = backlog_stat("Standard (Hold, CSU)", "mean"),
-    ame_backlog_standard_peak = backlog_stat("Standard (Hold, CSU)", "peak"),
-    ame_sorties_flown         = ame_sorties_flown,
+    role4_peak_occupancy      = role4$role4_peak,
+    role4_mean_occupancy      = role4$role4_mean,
+    ame_sortie_demand         = role4$ame_sortie_demand,
+    ame_wait_critical_mean    = role4$ame_wait_critical_mean,
+    ame_wait_standard_mean    = role4$ame_wait_standard_mean,
+    ame_backlog_critical_mean = role4$ame_backlog_critical_mean,
+    ame_backlog_critical_peak = role4$ame_backlog_critical_peak,
+    ame_backlog_standard_mean = role4$ame_backlog_standard_mean,
+    ame_backlog_standard_peak = role4$ame_backlog_standard_peak,
+    ame_sorties_flown         = role4$ame_sorties_flown,
     system_ot_q               = system_ot_q,
     transport_util            = transport_util
   )
@@ -1234,6 +1289,184 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
 }
 
 # ── Morris screening ──────────────────────────────────────────────────────────
+
+#' Whether a response carries no usable variation across the design
+#'
+#' @param y One response's values across every design point.
+#' @return TRUE when the response is constant to within a relative tolerance,
+#'   or has fewer than two finite values.
+#' @details A degenerate response gives a Morris index of zero for every
+#'   parameter, which reads identically to a confident finding that nothing
+#'   influences it. The threshold is relative to the response's own magnitude,
+#'   so it catches a constant response at any scale rather than only near zero.
+is_degenerate <- function(y) {
+  y <- y[is.finite(y)]
+  if (length(y) < 2) return(TRUE)
+  sd(y) <= 1e-9 * max(1, abs(mean(y)))
+}
+
+#' Per-parameter mu*/sigma for one response, with the diagnostics needed to
+#'
+#' @param obj A Morris object told this response's values.
+#' @param kpi Name of the response being ranked.
+#' @param Y The response matrix, one column per response.
+#' @return A data frame of per-parameter mu*/sigma, ordered by mu*, carrying
+#'   the diagnostics that tell an uninformative response from an uninfluenced
+#'   parameter.
+rank_response <- function(obj, kpi, Y) {
+  y          <- Y[, kpi]
+  n_na       <- sum(!is.finite(y))
+  degenerate <- is_degenerate(y)
+  ee         <- obj$ee
+
+  n_finite <- apply(ee, 2, function(v) sum(is.finite(v)))
+  mu_star  <- apply(ee, 2, function(v) if (any(is.finite(v))) mean(abs(v), na.rm = TRUE) else NA_real_)
+  sigma    <- apply(ee, 2, function(v) if (sum(is.finite(v)) > 1) sd(v, na.rm = TRUE) else NA_real_)
+
+  note <- rep("", length(n_finite))
+  note[n_finite < nrow(ee)] <- "some trajectories produced a non-finite elementary effect"
+  note[n_finite == 0]       <- "no finite elementary effect at any trajectory"
+  if (degenerate) {
+    note[]    <- "degenerate response — insufficient variation across the design"
+    mu_star[] <- NA_real_
+    sigma[]   <- NA_real_
+  }
+
+  data.frame(
+    parameter        = morris_params$name,
+    mu_star          = as.numeric(mu_star),
+    sigma_ee         = as.numeric(sigma),
+    n_finite_ee      = as.integer(n_finite),
+    kpi              = kpi,
+    criteria         = morris_kpis$criteria[match(kpi, morris_kpis$name)],
+    response_mean    = if (any(is.finite(y))) mean(y, na.rm = TRUE) else NA_real_,
+    response_sd      = if (sum(is.finite(y)) > 1) sd(y, na.rm = TRUE) else NA_real_,
+    response_na_pts  = as.integer(n_na),
+    degenerate       = degenerate,
+    note             = note,
+    row.names        = NULL,
+    stringsAsFactors = FALSE
+  ) %>% arrange(desc(mu_star))
+}
+
+#' Evaluate every Morris design point, resuming from the cache where present
+#'
+#' @param sa The Morris design object, whose `X` lists the points.
+#' @param cache_file Path to the point cache, or NULL for no caching.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param max_cores,crn_seed Passed through to the evaluator unchanged.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @return The response matrix, one row per design point, one column per
+#'   response, in the order the design lists its points.
+#' @details The order points are evaluated in is the order the design lists
+#'   them, and a cached point is read back by its index rather than
+#'   recomputed. Both are what let an interrupted screen resume onto the same
+#'   design, and scripts/check_screen_order.R asserts them.
+evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
+                                   crn_seed, progress_dir) {
+  t(vapply(seq_len(nrow(sa$X)), function(i) {
+    # A production screen is r * (p + 1) design points in one long-lived
+    # process: at r = 20 over the current parameter set that is 1,320 points
+    # and some eleven hours, all of which a lost process previously discarded.
+    # With cache_dir each point's responses are written as it completes and
+    # read back on a later call, so an interrupted screen resumes. The design
+    # follows from the seed, so a cached point belongs to the screen being
+    # resumed only while the seed, r, the level count and the parameter bounds
+    # are unchanged; clear the cache when any of those move.
+    if (!is.null(cache_file) && file.exists(cache_file)) {
+      cached <- cache_lookup(cache_file, i, morris_kpis$name)
+      if (!is.null(cached)) {
+        message(sprintf("  Point %d / %d (cached)", i, nrow(sa$X)))
+        return(cached)
+      }
+    }
+    message(sprintf("  Point %d / %d", i, nrow(sa$X)))
+    kpis <- tryCatch(
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores,
+                  crn_seed = crn_seed),
+      error = function(e) {
+        warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
+        setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
+      }
+    )
+    if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    # A full production screen runs this loop hundreds of times in one long-
+    # lived process (r=20 x (p+1) = 240 design points, each building and
+    # discarding a full monitoring dataset via eval_params()/run_replications()).
+    # R's own garbage collector is lazy about returning memory to the OS
+    # between iterations of a tight loop like this one; left unforced, that
+    # slow per-iteration accumulation was observed (Issue #15 follow-up) to
+    # grow a local dev container's memory usage steadily over the course of
+    # a multi-hour run until it started swapping/thrashing rather than
+    # failing cleanly. Forcing a full collection after every point trades a
+    # small amount of wall-clock time for keeping steady-state memory flat
+    # across however many points the screen runs.
+    gc(full = TRUE)
+    kpis
+  }, numeric(nrow(morris_kpis))))
+}
+
+#' Rank every response, writing its per-response ranking and plot
+#'
+#' @param sa The Morris design object the responses were produced from.
+#' @param Y The response matrix, one column per response.
+#' @param kpi_labels Named labels, one per response to rank.
+#' @param output_dir,images_dir Directories the rankings and plots go to.
+#' @return A list of `rankings`, one data frame per response, `degenerates`,
+#'   the responses that carried no usable variation, and `morris_objs`, the
+#'   per-response sensitivity objects run_morris() hands back to its caller.
+#' @details Wrapped per response so one degenerate response does not discard
+#'   the rest; a degenerate one is named in the returned vector and warned
+#'   about by the caller rather than silently ranked as all zeros.
+rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
+  rankings    <- list()
+  degenerates <- character(0)
+
+  morris_objs <- lapply(names(kpi_labels), function(kpi) {
+    obj <- sa
+    tell(obj, Y[, kpi])
+
+    ranking_kpi <- rank_response(obj, kpi, Y)
+    rankings[[kpi]] <<- ranking_kpi
+    if (isTRUE(ranking_kpi$degenerate[1])) degenerates <<- c(degenerates, kpi)
+    write.csv(ranking_kpi, file.path(output_dir, sprintf("morris_ranking_%s.csv", kpi)),
+              row.names = FALSE)
+
+    plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
+    p <- tryCatch(
+      if (isTRUE(ranking_kpi$degenerate[1])) stop("degenerate response")
+      else plot_morris_scatter(obj, plot_title),
+      error = function(e) {
+        ggplot() +
+          annotate("text", x = 0.5, y = 0.5,
+                   label = paste0(plot_title, "\n(insufficient variation to plot)")) +
+          theme_void()
+      }
+    )
+    # Sized well above the original 900x650/res=120 base-R default — a
+    # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
+    # per label than the nine/ten/eleven-parameter screens this project's
+    # image dimensions were originally tuned for.
+    ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
+           width = 12, height = 9, dpi = 130)
+
+    obj
+  })
+  names(morris_objs) <- names(kpi_labels)
+
+  message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
+  message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
+  if (length(degenerates) > 0) {
+    warning(sprintf(
+      "%d response(s) carried no usable variation across the design and are flagged degenerate in their ranking CSV (mu*/sigma written as NA, not zero): %s",
+      length(degenerates), paste(degenerates, collapse = ", ")
+    ), call. = FALSE)
+  }
+  list(rankings = rankings, degenerates = degenerates, morris_objs = morris_objs)
+}
 
 #' Run Morris Elementary Effects screening
 #'
@@ -1326,49 +1559,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
 
-  Y <- t(vapply(seq_len(nrow(sa$X)), function(i) {
-    # A production screen is r * (p + 1) design points in one long-lived
-    # process: at r = 20 over the current parameter set that is 1,320 points
-    # and some eleven hours, all of which a lost process previously discarded.
-    # With cache_dir each point's responses are written as it completes and
-    # read back on a later call, so an interrupted screen resumes. The design
-    # follows from the seed, so a cached point belongs to the screen being
-    # resumed only while the seed, r, the level count and the parameter bounds
-    # are unchanged; clear the cache when any of those move.
-    if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- cache_lookup(cache_file, i, morris_kpis$name)
-      if (!is.null(cached)) {
-        message(sprintf("  Point %d / %d (cached)", i, nrow(sa$X)))
-        return(cached)
-      }
-    }
-    message(sprintf("  Point %d / %d", i, nrow(sa$X)))
-    kpis <- tryCatch(
-      eval_params(sa$X[i, ], n_rep, n_days, max_cores = max_cores,
-                  crn_seed = crn_seed),
-      error = function(e) {
-        warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
-        setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
-      }
-    )
-    if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
-    if (!is.null(progress_dir)) {
-      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
-    }
-    # A full production screen runs this loop hundreds of times in one long-
-    # lived process (r=20 x (p+1) = 240 design points, each building and
-    # discarding a full monitoring dataset via eval_params()/run_replications()).
-    # R's own garbage collector is lazy about returning memory to the OS
-    # between iterations of a tight loop like this one; left unforced, that
-    # slow per-iteration accumulation was observed (Issue #15 follow-up) to
-    # grow a local dev container's memory usage steadily over the course of
-    # a multi-hour run until it started swapping/thrashing rather than
-    # failing cleanly. Forcing a full collection after every point trades a
-    # small amount of wall-clock time for keeping steady-state memory flat
-    # across however many points the screen runs.
-    gc(full = TRUE)
-    kpis
-  }, numeric(nrow(morris_kpis))))
+  Y <- evaluate_morris_design(sa, cache_file, n_rep, n_days, max_cores,
+                              crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
@@ -1388,93 +1580,11 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   # with the reason recorded in the ranking's own `note` column, never as
   # zero. The threshold is relative to the response's own magnitude, so it
   # catches a constant response at any scale rather than only near zero.
-  is_degenerate <- function(y) {
-    y <- y[is.finite(y)]
-    if (length(y) < 2) return(TRUE)
-    sd(y) <= 1e-9 * max(1, abs(mean(y)))
-  }
 
-  #' Per-parameter mu*/sigma for one response, with the diagnostics needed to
-  #' tell an uninformative response from an uninfluenced parameter.
-  rank_response <- function(obj, kpi) {
-    y          <- Y[, kpi]
-    n_na       <- sum(!is.finite(y))
-    degenerate <- is_degenerate(y)
-    ee         <- obj$ee
-
-    n_finite <- apply(ee, 2, function(v) sum(is.finite(v)))
-    mu_star  <- apply(ee, 2, function(v) if (any(is.finite(v))) mean(abs(v), na.rm = TRUE) else NA_real_)
-    sigma    <- apply(ee, 2, function(v) if (sum(is.finite(v)) > 1) sd(v, na.rm = TRUE) else NA_real_)
-
-    note <- rep("", length(n_finite))
-    note[n_finite < nrow(ee)] <- "some trajectories produced a non-finite elementary effect"
-    note[n_finite == 0]       <- "no finite elementary effect at any trajectory"
-    if (degenerate) {
-      note[]    <- "degenerate response — insufficient variation across the design"
-      mu_star[] <- NA_real_
-      sigma[]   <- NA_real_
-    }
-
-    data.frame(
-      parameter        = morris_params$name,
-      mu_star          = as.numeric(mu_star),
-      sigma_ee         = as.numeric(sigma),
-      n_finite_ee      = as.integer(n_finite),
-      kpi              = kpi,
-      criteria         = morris_kpis$criteria[match(kpi, morris_kpis$name)],
-      response_mean    = if (any(is.finite(y))) mean(y, na.rm = TRUE) else NA_real_,
-      response_sd      = if (sum(is.finite(y)) > 1) sd(y, na.rm = TRUE) else NA_real_,
-      response_na_pts  = as.integer(n_na),
-      degenerate       = degenerate,
-      note             = note,
-      row.names        = NULL,
-      stringsAsFactors = FALSE
-    ) %>% arrange(desc(mu_star))
-  }
-
-  rankings    <- list()
-  degenerates <- character(0)
-
-  morris_objs <- lapply(names(kpi_labels), function(kpi) {
-    obj <- sa
-    tell(obj, Y[, kpi])
-
-    ranking_kpi <- rank_response(obj, kpi)
-    rankings[[kpi]] <<- ranking_kpi
-    if (isTRUE(ranking_kpi$degenerate[1])) degenerates <<- c(degenerates, kpi)
-    write.csv(ranking_kpi, file.path(output_dir, sprintf("morris_ranking_%s.csv", kpi)),
-              row.names = FALSE)
-
-    plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
-    p <- tryCatch(
-      if (isTRUE(ranking_kpi$degenerate[1])) stop("degenerate response")
-      else plot_morris_scatter(obj, plot_title),
-      error = function(e) {
-        ggplot() +
-          annotate("text", x = 0.5, y = 0.5,
-                   label = paste0(plot_title, "\n(insufficient variation to plot)")) +
-          theme_void()
-      }
-    )
-    # Sized well above the original 900x650/res=120 base-R default — a
-    # dense, ggrepel-labelled 55-parameter scatter needs more canvas area
-    # per label than the nine/ten/eleven-parameter screens this project's
-    # image dimensions were originally tuned for.
-    ggsave(file.path(images_dir, sprintf("morris_%s.png", kpi)), plot = p,
-           width = 12, height = 9, dpi = 130)
-
-    obj
-  })
-  names(morris_objs) <- names(kpi_labels)
-
-  message(sprintf("Morris plots saved to %s (%d responses)", images_dir, length(kpi_labels)))
-  message(sprintf("Per-response rankings written to %s/morris_ranking_<response>.csv", output_dir))
-  if (length(degenerates) > 0) {
-    warning(sprintf(
-      "%d response(s) carried no usable variation across the design and are flagged degenerate in their ranking CSV (mu*/sigma written as NA, not zero): %s",
-      length(degenerates), paste(degenerates, collapse = ", ")
-    ), call. = FALSE)
-  }
+  ranked      <- rank_morris_responses(sa, Y, kpi_labels, output_dir, images_dir)
+  rankings    <- ranked$rankings
+  degenerates <- ranked$degenerates
+  morris_objs <- ranked$morris_objs
 
   # The primary ranking remains system OT queue, the aggregate bottleneck
   # response the README's published table reports, written under its
@@ -1689,6 +1799,225 @@ report_point_noise <- function(cache_file, responses, n_rep) {
   invisible(out)
 }
 
+#' Evaluate every Sobol design point, resuming from the cache where present
+#'
+#' @param sb_r2b The Sobol object whose `X` carries the design.
+#' @param n_points Number of design points, n_sobol * (p + 2).
+#' @param p_def The screened parameter definitions for this decomposition.
+#' @param full_params The baseline every unscreened parameter is held at.
+#' @param cache_file Path to the point cache, or NULL for no caching.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param max_cores,crn_seed Passed through to the evaluator unchanged.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @return The response matrix, one row per design point, in design order.
+#' @details Points are evaluated in the order the design lists them and a
+#'   cached point is read back by its index, which is what lets an interrupted
+#'   decomposition resume onto the same design;
+#'   scripts/check_screen_order.R asserts both.
+evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_file,
+                                  n_rep, n_days, max_cores, crn_seed, progress_dir) {
+  t(vapply(seq_len(n_points), function(i) {
+    # A production decomposition is n_sobol * (p + 2) design points in one
+    # long-lived process, hours of compute that a lost process discards
+    # entirely. With cache_dir each point's responses are written as it
+    # completes and read back on a later call, so an interrupted run resumes.
+    # The design is a deterministic function of the seed, so a cached point
+    # belongs to the run being resumed only while the seed, the selected
+    # parameters and their bounds are unchanged; clear the cache when any of
+    # those move.
+    if (!is.null(cache_file) && file.exists(cache_file)) {
+      cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
+      if (!is.null(cached)) {
+        message(sprintf("  Sobol point %d / %d (cached)", i, n_points))
+        return(cached)
+      }
+    }
+    message(sprintf("  Sobol point %d / %d", i, n_points))
+    row <- full_params
+    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
+    res <- tryCatch(
+      {
+        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
+                            crn_seed = crn_seed, return_sd = TRUE)
+        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
+          r2e_ot_q       = kpis[["r2e_ot_q"]],
+          system_ot_q    = kpis[["system_ot_q"]],
+          transport_q    = kpis[["transport_q"]],
+          transport_util = kpis[["transport_util"]])
+      },
+      error = function(e) {
+        warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
+        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
+          transport_q = NA_real_, transport_util = NA_real_)
+      }
+    )
+    if (!is.null(cache_file) && !all(is.na(res))) {
+      sdv <- attr(res, "sd")
+      row_out <- if (is.null(sdv)) res else
+        c(res, stats::setNames(as.numeric(sdv), paste0("sd_", names(res))))
+      cache_append(cache_file, i, row_out)
+    }
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    # See run_morris()'s identical gc() call for why: this loop runs
+    # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
+    # long-lived process — forcing a collection after every point keeps
+    # steady-state memory flat rather than creeping up across the run
+    # (Issue #15 follow-up).
+    gc(full = TRUE)
+    res
+  }, numeric(5)))
+}
+
+#' Tell a Sobol object its responses, surviving a degenerate one
+#'
+#' @param sb The Sobol object to populate.
+#' @param y The response values across the design.
+#' @param kpi_name Name of the response, used in the warning.
+#' @return `sb`, populated, or NULL where tell() could not compute indices.
+# tell() invokes boot::boot.ci() internally, which errors on a response
+# with (near-)zero variance across the design (e.g. transport_q when none
+# of top_params affect transport occupancy — see Issue #6 PR discussion).
+# Wrapped per-KPI so one degenerate response doesn't discard the rest.
+# sensitivity::tell() does not return the told object. It ends in
+# assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
+# writes the populated object back over the variable it was handed *in the
+# frame it was called from*. Called inside a wrapper that means the wrapper's
+# own local, leaving the caller's object untouched with S/T still empty —
+# which is why this must return `sb` after the call and the caller must
+# assign the result back, rather than relying on tell()'s side effect.
+tell_safe <- function(sb, y, kpi_name) {
+  tryCatch({
+    tell(sb, y)
+    sb
+  }, error = function(e) {
+    warning(sprintf(
+      "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
+      kpi_name, "top_params may not include a parameter that moves this KPI",
+      conditionMessage(e)
+    ))
+    NULL
+  })
+}
+
+#' Write one response's Sobol indices, with the flags a reader needs
+#'
+#' @param sb A Sobol object told this response's values.
+#' @param kpi_name Name of the response, used in the file name.
+#' @param p_def The screened parameter definitions, for the parameter column.
+#' @param output_dir Directory the CSV is written to.
+#' @return The data frame written, invisibly to the caller's use.
+# Even when tell() does not throw, boot.ci() can silently fail for an
+# individual parameter within an otherwise-successful call (e.g. one
+# parameter's bootstrap distribution is degenerate while others are not),
+# leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
+# here rather than relying on tell_safe() alone.
+save_sobol <- function(sb, kpi_name, p_def, output_dir) {
+  p <- nrow(p_def)
+  lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
+            length(sb$T$original), length(sb$T$`min. c.i.`), length(sb$T$`max. c.i.`))
+  if (any(lens != p)) {
+    warning(sprintf(
+      "Skipping Sobol output for %s: incomplete indices (expected %d parameters, got lengths %s) — likely a degenerate bootstrap for at least one parameter.",
+      kpi_name, p, paste(lens, collapse = ",")
+    ))
+    return(invisible(NULL))
+  }
+  results <- data.frame(
+    parameter = p_def$name,
+    S1        = sb$S$original,
+    S1_lower  = sb$S$`min. c.i.`,
+    S1_upper  = sb$S$`max. c.i.`,
+    ST        = sb$T$original,
+    ST_lower  = sb$T$`min. c.i.`,
+    ST_upper  = sb$T$`max. c.i.`
+  )
+  # A Sobol index is a variance share and so lies in [0, 1] with ST >= S1.
+  # The Monte Carlo estimators are unbiased but not range-constrained, so a
+  # parameter whose true index sits near zero routinely returns a value
+  # outside it. That is a statement about resolution, not about the model,
+  # and it is flagged here so a reader of the CSV sees it without having to
+  # check: an unflagged reader would take a negative S1 for a negative
+  # variance share.
+  results$flag <- vapply(seq_len(nrow(results)), function(k) {
+    f <- character(0)
+    if (isTRUE(results$ST[k] > 1))                 f <- c(f, "ST>1")
+    if (isTRUE(results$S1[k] < 0))                 f <- c(f, "S1<0")
+    if (isTRUE(results$S1[k] > results$ST[k]))     f <- c(f, "S1>ST")
+    if (length(f) == 0L) "ok" else paste(f, collapse = ";")
+  }, character(1))
+  write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
+            row.names = FALSE)
+  message(sprintf("\nSobol indices for %s:", kpi_name))
+  print(results, digits = 4)
+  results
+}
+
+#' Draw the two base matrices a pick-freeze decomposition is built from
+#'
+#' @param p_def The screened parameter definitions, giving names and bounds.
+#' @param n_sobol Rows per base matrix.
+#' @param dirichlet_groups Names of the composition groups to sample whole.
+#' @return A list of `X1` and `X2`, the two base matrices.
+#' @details A composition group's columns are overwritten with coordinates
+#'   back-transformed from a whole Dirichlet-sampled composition, so the group
+#'   is varied on the simplex rather than coordinate by coordinate. The draws
+#'   are made in one block and in this order, which is what keeps the design a
+#'   function of the caller's seed.
+build_sobol_matrices <- function(p_def, n_sobol, dirichlet_groups) {
+  X1 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
+  X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
+                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
+  names(X1) <- names(X2) <- p_def$name
+
+  # A composition group's columns are overwritten with the coordinates of
+  # Dirichlet-sampled whole compositions, so the group is varied as one
+  # object over a plausible planning spread rather than as two coordinates
+  # drawn independently over a box.
+  for (nm in dirichlet_groups) {
+    g <- MORRIS_COMPOSITIONS[[nm]]
+    message(sprintf(
+      "  %s composition sampled from a Dirichlet at concentration %.1f",
+      nm, composition_concentration(g)
+    ))
+    X1[, g$coords] <- rdirichlet_coords(n_sobol, g)
+    X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
+  }
+  list(X1 = X1, X2 = X2)
+}
+
+#' Tell each response's Sobol object its values, and record which succeeded
+#'
+#' @param sb_r2b,sb_r2e,sb_sys,sb_tq,sb_tutil The five untold Sobol objects.
+#' @param y_all The response matrix, one column per response.
+#' @return A list of `sb_objs`, the five objects keyed by response, and
+#'   `sobol_ok`, a flag per response saying whether indices were computed.
+#' @details A response whose values are degenerate leaves tell() unable to
+#'   compute indices; that object comes back NULL and is flagged rather than
+#'   discarding the other four.
+tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all) {
+  sb_r2b   <- tell_safe(sb_r2b,   y_all[, "r2b_ot_q"],       "r2b_ot_q")
+  sb_r2e   <- tell_safe(sb_r2e,   y_all[, "r2e_ot_q"],       "r2e_ot_q")
+  sb_sys   <- tell_safe(sb_sys,   y_all[, "system_ot_q"],    "system_ot_q")
+  sb_tq    <- tell_safe(sb_tq,    y_all[, "transport_q"],    "transport_q")
+  sb_tutil <- tell_safe(sb_tutil, y_all[, "transport_util"], "transport_util")
+
+  sobol_ok <- c(
+    r2b_ot_q       = !is.null(sb_r2b),
+    r2e_ot_q       = !is.null(sb_r2e),
+    system_ot_q    = !is.null(sb_sys),
+    transport_q    = !is.null(sb_tq),
+    transport_util = !is.null(sb_tutil)
+  )
+
+
+  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
+                   transport_q = sb_tq, transport_util = sb_tutil)
+  list(sb_objs = sb_objs, sobol_ok = sobol_ok)
+}
+
 #' Run Sobol variance decomposition on a selected parameter subset
 #'
 #' @param top_params  Character vector of parameter names from morris_params$name
@@ -1755,25 +2084,9 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
 
   env_data_base <<- env_data
 
-  X1 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
-  X2 <- as.data.frame(mapply(function(lo, hi) runif(n_sobol, lo, hi),
-                              p_def$lower, p_def$upper, SIMPLIFY = FALSE))
-  names(X1) <- names(X2) <- p_def$name
-
-  # A composition group's columns are overwritten with the coordinates of
-  # Dirichlet-sampled whole compositions, so the group is varied as one
-  # object over a plausible planning spread rather than as two coordinates
-  # drawn independently over a box.
-  for (nm in dirichlet_groups) {
-    g <- MORRIS_COMPOSITIONS[[nm]]
-    message(sprintf(
-      "  %s composition sampled from a Dirichlet at concentration %.1f",
-      nm, composition_concentration(g)
-    ))
-    X1[, g$coords] <- rdirichlet_coords(n_sobol, g)
-    X2[, g$coords] <- rdirichlet_coords(n_sobol, g)
-  }
+  base_matrices <- build_sobol_matrices(p_def, n_sobol, dirichlet_groups)
+  X1 <- base_matrices$X1
+  X2 <- base_matrices$X2
 
   sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
@@ -1792,152 +2105,19 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   # NULL and the run metadata recorded an empty design size.
   n_points <- nrow(sb_r2b$X)
 
-  Y_all <- t(vapply(seq_len(n_points), function(i) {
-    # A production decomposition is n_sobol * (p + 2) design points in one
-    # long-lived process, hours of compute that a lost process discards
-    # entirely. With cache_dir each point's responses are written as it
-    # completes and read back on a later call, so an interrupted run resumes.
-    # The design is a deterministic function of the seed, so a cached point
-    # belongs to the run being resumed only while the seed, the selected
-    # parameters and their bounds are unchanged; clear the cache when any of
-    # those move.
-    if (!is.null(cache_file) && file.exists(cache_file)) {
-      cached <- cache_lookup(cache_file, i, SOBOL_RESPONSES)
-      if (!is.null(cached)) {
-        message(sprintf("  Sobol point %d / %d (cached)", i, n_points))
-        return(cached)
-      }
-    }
-    message(sprintf("  Sobol point %d / %d", i, n_points))
-    row <- full_params
-    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
-    res <- tryCatch(
-      {
-        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
-                            crn_seed = crn_seed, return_sd = TRUE)
-        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
-          r2e_ot_q       = kpis[["r2e_ot_q"]],
-          system_ot_q    = kpis[["system_ot_q"]],
-          transport_q    = kpis[["transport_q"]],
-          transport_util = kpis[["transport_util"]])
-      },
-      error = function(e) {
-        warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
-          transport_q = NA_real_, transport_util = NA_real_)
-      }
-    )
-    if (!is.null(cache_file) && !all(is.na(res))) {
-      sdv <- attr(res, "sd")
-      row_out <- if (is.null(sdv)) res else
-        c(res, stats::setNames(as.numeric(sdv), paste0("sd_", names(res))))
-      cache_append(cache_file, i, row_out)
-    }
-    if (!is.null(progress_dir)) {
-      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
-    }
-    # See run_morris()'s identical gc() call for why: this loop runs
-    # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
-    # long-lived process — forcing a collection after every point keeps
-    # steady-state memory flat rather than creeping up across the run
-    # (Issue #15 follow-up).
-    gc(full = TRUE)
-    res
-  }, numeric(5)))
+  Y_all <- evaluate_sobol_design(sb_r2b, n_points, p_def, full_params, cache_file,
+                                 n_rep, n_days, max_cores, crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
-  # tell() invokes boot::boot.ci() internally, which errors on a response
-  # with (near-)zero variance across the design (e.g. transport_q when none
-  # of top_params affect transport occupancy — see Issue #6 PR discussion).
-  # Wrapped per-KPI so one degenerate response doesn't discard the rest.
-  # sensitivity::tell() does not return the told object. It ends in
-  # assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
-  # writes the populated object back over the variable it was handed *in the
-  # frame it was called from*. Called inside a wrapper that means the wrapper's
-  # own local, leaving the caller's object untouched with S/T still empty —
-  # which is why this must return `sb` after the call and the caller must
-  # assign the result back, rather than relying on tell()'s side effect.
-  tell_safe <- function(sb, y, kpi_name) {
-    tryCatch({
-      tell(sb, y)
-      sb
-    }, error = function(e) {
-      warning(sprintf(
-        "Sobol tell() failed for %s (likely a near-zero-variance response — %s): %s",
-        kpi_name, "top_params may not include a parameter that moves this KPI",
-        conditionMessage(e)
-      ))
-      NULL
-    })
-  }
 
-  sb_r2b   <- tell_safe(sb_r2b,   Y_all[, "r2b_ot_q"],       "r2b_ot_q")
-  sb_r2e   <- tell_safe(sb_r2e,   Y_all[, "r2e_ot_q"],       "r2e_ot_q")
-  sb_sys   <- tell_safe(sb_sys,   Y_all[, "system_ot_q"],    "system_ot_q")
-  sb_tq    <- tell_safe(sb_tq,    Y_all[, "transport_q"],    "transport_q")
-  sb_tutil <- tell_safe(sb_tutil, Y_all[, "transport_util"], "transport_util")
-
-  sobol_ok <- c(
-    r2b_ot_q       = !is.null(sb_r2b),
-    r2e_ot_q       = !is.null(sb_r2e),
-    system_ot_q    = !is.null(sb_sys),
-    transport_q    = !is.null(sb_tq),
-    transport_util = !is.null(sb_tutil)
-  )
-
-  # Even when tell() does not throw, boot.ci() can silently fail for an
-  # individual parameter within an otherwise-successful call (e.g. one
-  # parameter's bootstrap distribution is degenerate while others are not),
-  # leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
-  # here rather than relying on tell_safe() alone.
-  save_sobol <- function(sb, kpi_name) {
-    p <- nrow(p_def)
-    lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
-              length(sb$T$original), length(sb$T$`min. c.i.`), length(sb$T$`max. c.i.`))
-    if (any(lens != p)) {
-      warning(sprintf(
-        "Skipping Sobol output for %s: incomplete indices (expected %d parameters, got lengths %s) — likely a degenerate bootstrap for at least one parameter.",
-        kpi_name, p, paste(lens, collapse = ",")
-      ))
-      return(invisible(NULL))
-    }
-    results <- data.frame(
-      parameter = p_def$name,
-      S1        = sb$S$original,
-      S1_lower  = sb$S$`min. c.i.`,
-      S1_upper  = sb$S$`max. c.i.`,
-      ST        = sb$T$original,
-      ST_lower  = sb$T$`min. c.i.`,
-      ST_upper  = sb$T$`max. c.i.`
-    )
-    # A Sobol index is a variance share and so lies in [0, 1] with ST >= S1.
-    # The Monte Carlo estimators are unbiased but not range-constrained, so a
-    # parameter whose true index sits near zero routinely returns a value
-    # outside it. That is a statement about resolution, not about the model,
-    # and it is flagged here so a reader of the CSV sees it without having to
-    # check: an unflagged reader would take a negative S1 for a negative
-    # variance share.
-    results$flag <- vapply(seq_len(nrow(results)), function(k) {
-      f <- character(0)
-      if (isTRUE(results$ST[k] > 1))                 f <- c(f, "ST>1")
-      if (isTRUE(results$S1[k] < 0))                 f <- c(f, "S1<0")
-      if (isTRUE(results$S1[k] > results$ST[k]))     f <- c(f, "S1>ST")
-      if (length(f) == 0L) "ok" else paste(f, collapse = ";")
-    }, character(1))
-    write.csv(results, file.path(output_dir, sprintf("sobol_%s.csv", kpi_name)),
-              row.names = FALSE)
-    message(sprintf("\nSobol indices for %s:", kpi_name))
-    print(results, digits = 4)
-    results
-  }
-
-  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
-                   transport_q = sb_tq, transport_util = sb_tutil)
+  told     <- tell_sobol_responses(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, Y_all)
+  sb_objs  <- told$sb_objs
+  sobol_ok <- told$sobol_ok
   saved <- list()
   for (kpi_name in names(sb_objs)) {
     if (sobol_ok[[kpi_name]]) {
-      res <- save_sobol(sb_objs[[kpi_name]], kpi_name)
+      res <- save_sobol(sb_objs[[kpi_name]], kpi_name, p_def, output_dir)
       if (!is.null(res)) saved[[kpi_name]] <- sb_objs[[kpi_name]]
     }
   }

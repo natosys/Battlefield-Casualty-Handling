@@ -51,7 +51,8 @@
 # A check that runs replications forks its own workers, so the runner divides
 # the machine between the checks it has in flight: each child is given an
 # MC_CORES the `parallel` package turns into its default `mc.cores`, at the
-# detected core count divided by the number of jobs. Every published figure is
+# detected core count divided by the number of jobs or at half the machine,
+# whichever is larger. Every published figure is
 # a function of its seed rather than of the core count it was measured on,
 # which is what `check_measurement_reproducibility.R` asserts, so dividing the
 # cores changes what a check costs and not what it concludes.
@@ -179,11 +180,22 @@ resolve_jobs <- function(spec) {
 #'   `mc.cores` option the replication framework dispatches on. At one job the
 #'   child is left alone, so a serial run behaves exactly as it did before this
 #'   division existed.
+#'
+#'   The share is the machine divided by the job count, or half the machine,
+#'   whichever is larger, so the division deliberately oversubscribes. A check
+#'   forks only while it is running replications and is otherwise a single
+#'   process reading files, so an exact division leaves the machine idle
+#'   whenever the pool holds no replication-running check; and the suite cannot
+#'   finish before its longest check does, which at the fast selection is a
+#'   replication-running one. Dividing exactly measured 8 min 44 s for
+#'   check_measurement_reproducibility.R on one core against 2 min 55 s on
+#'   four, which made that one check the whole suite's critical path.
 child_cores <- function(jobs) {
   if (jobs <= 1L) return(NA_integer_)
   detected <- suppressWarnings(parallel::detectCores(logical = TRUE))
   if (is.na(detected)) return(NA_integer_)
-  max(1L, as.integer(detected) %/% jobs)
+  detected <- as.integer(detected)
+  max(1L, detected %/% jobs, detected %/% 2L)
 }
 
 #' Read the recorded per-check runtimes

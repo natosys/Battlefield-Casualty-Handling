@@ -250,6 +250,125 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 
 # ── Multi-replication framework ───────────────────────────────────────────────
 
+#' Snapshot the caller's random number generator kind and stream position
+#'
+#' @return A list with elements `kind` (the RNGkind() vector) and `seed` (the
+#'   .Random.seed vector, or NULL where the stream has not been initialised).
+#'
+#' @details Paired with restore_rng_state(), which a caller registers through
+#'   on.exit() so that a measurement depends on the caller's control seed and
+#'   not on how many measurements preceded it in the session (Issue #208).
+#'   Restoring the kind alone would leave the seeds reproducible but the stream
+#'   advancing, so a scenario measured third in a comparison would still
+#'   disagree with the same scenario measured on its own.
+capture_rng_state <- function() {
+  list(
+    kind = RNGkind(),
+    seed = if (exists(".Random.seed", envir = globalenv())) {
+      get(".Random.seed", envir = globalenv())
+    } else {
+      NULL
+    }
+  )
+}
+
+#' Restore a random number generator state captured by capture_rng_state()
+#'
+#' @param state List as returned by capture_rng_state()
+#' @return Invisible NULL; called for its effect on the global stream.
+#'
+#' @details RNGkind() re-initialises .Random.seed, so the saved vector is
+#'   restored after it rather than before; it is a valid state for the captured
+#'   kind, having been read under it. A state captured before the stream was
+#'   initialised is restored by removing .Random.seed again, so a caller that
+#'   never drew is left as it began.
+restore_rng_state <- function(state) {
+  do.call(RNGkind, as.list(state$kind))
+  if (is.null(state$seed)) {
+    if (exists(".Random.seed", envir = globalenv())) {
+      rm(".Random.seed", envir = globalenv())
+    }
+  } else {
+    assign(".Random.seed", state$seed, envir = globalenv())
+  }
+  invisible(NULL)
+}
+
+#' Dispatch the replications, in parallel where the platform allows it
+#'
+#' @param worker       Single-argument function running one replication, given
+#'   its index
+#' @param n_iterations Number of replications to dispatch
+#' @param max_cores    Optional integer cap on mclapply's mc.cores; NULL leaves
+#'   the option/detected core count in force
+#' @return A list of the workers' results, in replication order; entries for
+#'   replications whose worker process was killed may be NULL or malformed.
+#'
+#' @details Falls back to lapply on Windows and at a single replication, where
+#'   forking is unavailable or buys nothing. mc.set.seed = TRUE gives each
+#'   worker a distinct substream, which the per-replication seed then overrides.
+dispatch_replications <- function(worker, n_iterations, max_cores) {
+  use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
+  if (!use_parallel) return(lapply(seq_len(n_iterations), worker))
+
+  cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
+  if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
+  mclapply(seq_len(n_iterations), worker,
+           mc.cores       = cores,
+           mc.set.seed    = TRUE,
+           # Only forced off for max_cores-capped (interactive Shiny) callers,
+           # preserving CLI/script behaviour exactly otherwise.
+           # mc.preschedule = TRUE (mclapply's default) pre-divides the
+           # n_iterations jobs into `cores` batches, one fork per batch; if a
+           # fork is OOM-killed mid-run (observed on a memory-constrained local
+           # dev container even at cores = 4 — Issue #15 follow-up), mclapply's
+           # own warning is explicit that *every* job pre-assigned to that fork
+           # is lost, not just one. mc.preschedule = FALSE forks one process per
+           # job instead (still capped at `cores` concurrent), so a single
+           # killed fork costs exactly one replication's result, not an
+           # unpredictable batch of them — smaller, more diagnosable blast
+           # radius at the cost of more fork() calls.
+           mc.preschedule = is.null(max_cores))
+}
+
+#' Drop the replications whose worker process did not complete
+#'
+#' @param envs         List of worker results as returned by
+#'   dispatch_replications()
+#' @param n_iterations Number of replications dispatched, for the message
+#' @return A list with elements `envs` (the wrapped environments that survived)
+#'   and `valid` (the logical vector selecting them), so the caller can select
+#'   the matching seeds by the same vector.
+#'
+#' @details A forked mclapply worker that is killed outright (e.g. OOM-killed by
+#'   the host or container), as opposed to one whose R code merely throws a
+#'   normal error, which mclapply already converts into a "try-error" per job,
+#'   can leave entries that are NULL or malformed for every job it had been
+#'   assigned. Passing those straight to get_mon_arrivals(),
+#'   get_mon_attributes() or get_mon_resources() produces a confusing, unrelated
+#'   error deep in simmer's or dplyr's internals (observed: "argument \"x\" is
+#'   missing, with no default") rather than a clear diagnosis. They are filtered
+#'   out here, and the caller fails (or is warned) with an explicit, actionable
+#'   message instead.
+drop_failed_replications <- function(envs, n_iterations) {
+  is_valid_env <- function(e) !is.null(e) && !inherits(e, "try-error") && is.environment(e)
+  valid <- vapply(envs, is_valid_env, logical(1))
+  n_failed <- sum(!valid)
+  if (n_failed > 0) {
+    msg <- sprintf(
+      paste0("%d of %d replications did not complete (their worker process was likely ",
+             "killed by the host/container running out of memory). Reduce the replication ",
+             "count, reduce simulation duration, or reduce available parallelism (max_cores) ",
+             "and try again."),
+      n_failed, n_iterations
+    )
+    if (all(!valid)) stop(msg, call. = FALSE)
+    warning(msg, call. = FALSE)
+    envs <- envs[valid]
+  }
+  list(envs = envs, valid = valid)
+}
+
 #' Run n_iterations independent replications using mclapply
 #'
 #' @param n_iterations Number of replications
@@ -293,7 +412,8 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'   scripts/check_measurement_reproducibility.R.
 #'
 #'   The caller's generator kind and stream position are snapshotted on entry
-#'   and restored on exit, so this function mutates no global RNG state. It
+#'   and restored on exit (capture_rng_state(), restore_rng_state()), so this
+#'   function mutates no global RNG state. It
 #'   previously set RNGkind("L'Ecuyer-CMRG") on the parallel path only, after
 #'   drawing rep_seeds and without restoring it. RNGkind() persists for the
 #'   rest of the session, so the first call in a session drew its seeds under
@@ -339,31 +459,8 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
 
-  # Snapshot the caller's RNG kind and stream position, and restore both on
-  # exit, so a measurement depends on the caller's control seed and not on how
-  # many measurements preceded it in the session (Issue #208). Restoring the
-  # kind alone would leave the seeds reproducible but the stream advancing, so
-  # a scenario measured third in a comparison would still disagree with the
-  # same scenario measured on its own.
-  prev_kind <- RNGkind()
-  prev_seed <- if (exists(".Random.seed", envir = globalenv())) {
-    get(".Random.seed", envir = globalenv())
-  } else {
-    NULL
-  }
-  on.exit({
-    # RNGkind() re-initialises .Random.seed, so the saved vector is restored
-    # after it rather than before; it is a valid state for prev_kind, having
-    # been read under it.
-    do.call(RNGkind, as.list(prev_kind))
-    if (is.null(prev_seed)) {
-      if (exists(".Random.seed", envir = globalenv())) {
-        rm(".Random.seed", envir = globalenv())
-      }
-    } else {
-      assign(".Random.seed", prev_seed, envir = globalenv())
-    }
-  }, add = TRUE)
+  rng_state <- capture_rng_state()
+  on.exit(restore_rng_state(rng_state), add = TRUE)
 
   # Drawn under the caller's kind, which this function no longer changes, and
   # therefore reproducible from the caller's set.seed() value on every call.
@@ -386,57 +483,9 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     res
   }
 
-  use_parallel <- .Platform$OS.type != "windows" && n_iterations > 1
-  if (use_parallel) {
-    cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
-    if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
-    envs <- mclapply(seq_len(n_iterations), worker,
-                     mc.cores       = cores,
-                     mc.set.seed    = TRUE,
-                     # Only forced off for max_cores-capped (interactive
-                     # Shiny) callers, preserving CLI/script behaviour
-                     # exactly otherwise. mc.preschedule = TRUE (mclapply's
-                     # default) pre-divides the n_iterations jobs into
-                     # `cores` batches, one fork per batch; if a fork is
-                     # OOM-killed mid-run (observed on a memory-constrained
-                     # local dev container even at cores = 4 — Issue #15
-                     # follow-up), mclapply's own warning is explicit that
-                     # *every* job pre-assigned to that fork is lost, not
-                     # just one. mc.preschedule = FALSE forks one process
-                     # per job instead (still capped at `cores` concurrent),
-                     # so a single killed fork costs exactly one
-                     # replication's result, not an unpredictable batch of
-                     # them — smaller, more diagnosable blast radius at the
-                     # cost of more fork() calls.
-                     mc.preschedule = is.null(max_cores))
-  } else {
-    envs <- lapply(seq_len(n_iterations), worker)
-  }
-
-  # A forked mclapply worker that is killed outright (e.g. OOM-killed by the
-  # host/container) — as opposed to one whose R code merely throws a normal
-  # error, which mclapply already converts into a "try-error" per job — can
-  # leave `envs` containing NULL or malformed entries for every job it had
-  # been assigned. Passing those straight to get_mon_arrivals()/
-  # get_mon_attributes()/get_mon_resources() produces a confusing, unrelated
-  # error deep in simmer's/dplyr's internals (observed: "argument \"x\" is
-  # missing, with no default") rather than a clear diagnosis. Filter them
-  # out here and fail (or warn) with an explicit, actionable message instead.
-  is_valid_env <- function(e) !is.null(e) && !inherits(e, "try-error") && is.environment(e)
-  valid <- vapply(envs, is_valid_env, logical(1))
-  n_failed <- sum(!valid)
-  if (n_failed > 0) {
-    msg <- sprintf(
-      paste0("%d of %d replications did not complete (their worker process was likely ",
-             "killed by the host/container running out of memory). Reduce the replication ",
-             "count, reduce simulation duration, or reduce available parallelism (max_cores) ",
-             "and try again."),
-      n_failed, n_iterations
-    )
-    if (all(!valid)) stop(msg, call. = FALSE)
-    warning(msg, call. = FALSE)
-    envs <- envs[valid]
-  }
+  dispatched <- dispatch_replications(worker, n_iterations, max_cores)
+  completed  <- drop_failed_replications(dispatched, n_iterations)
+  envs       <- completed$envs
 
   list(
     arrivals   = get_mon_arrivals(envs, ongoing = TRUE),
@@ -448,7 +497,7 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     # makes the replications independent, and one seed appearing twice is what
     # a reintroduced pairing would look like.
     # scripts/check_replication_independence.R asserts both properties.
-    seeds      = rep_seeds[valid]
+    seeds      = rep_seeds[completed$valid]
   )
 }
 

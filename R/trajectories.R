@@ -1550,164 +1550,78 @@ r2e_mortuary_intake <- function(team_id) {
     r2e_transport_kia(team_id, evac_team)
 }
 
-#' Models the full R2E Heavy treatment flow for WIA casualties
-#'
-#' @param team_id Integer ID of the R2E team assigned to receive the casualty
-#' @return Simmer trajectory representing clinical care and disposition at R2E
-#'
-#' @details Implements the following phases:
-#'
-#' # Phase 1: DOW check (~1%)
-#' # - If DOW: route to r2e_treat_kia() and r2e_transport_kia(), then leave
-#' # - Else:   continue to resuscitation
-#'
-#' # Phase 2: Initial resuscitation
-#' # Branches based on attribute "r2b_resus":
-#' # - r2b_resus == 1 → short resus (prior R2B resus occurred)
-#' # - else           → full resus, sets r2e_resus = 1
-#'
-#' # Phase 3: Surgical branch (OT–ICU gating, Issue #43)
-#' # Branches based on attribute "surgery":
-#' # - surgery == 1 → pre-OT ICU availability check, then:
-#' #     - ICU available            → seize OT, DAMCON surgery, then ICU recovery
-#' #                                   for whatever remains of the post-operative
-#' #                                   ICU requirement after any share served
-#' #                                   forward at R2B (r2e_post_op_icu_minutes())
-#' #     - ICU full, priority <= icu_gating$p1_bypass_priority_max (P1)
-#' #                                → seize OT, DAMCON surgery, then post-operative
-#' #                                   HOLDING bed recovery (post_op_pathway = 2) with
-#' #                                   an elevated dow_ceiling (r2e_postop_hold_penalty)
-#' #                                   reflecting reduced post-op monitoring
-#' #     - ICU full, priority > threshold (P2+)
-#' #                                → defer OT entry (surgery_deferred = 1); poll ICU
-#' #                                   availability every icu_gating$defer_check_interval
-#' #                                   minutes until free, then proceed as "ICU available"
-#' #   Both ICU and post-op-hold recovery paths converge on a shared post-operative
-#' #   DOW check (time-dependent conditional increment, Issue #5) before Phase 4.
-#' #   The stabilisation episode itself is served only on the damage control
-#' #   pathway; a single-stage casualty passes straight to the DOW check.
-#' # - surgery == 1, single-stage, already operated on at R2B → no theatre here,
-#' #   their definitive repair having been performed forward; the post-operative
-#' #   DOW check alone
-#' # - surgery != 1 → no surgery needed
-#'
-#' # Phase 4: Second surgery (damage control pathway only, and only if R2E
-#' # Phase 3 surgery occurred without prior R2B DAMCON)
-#' # Branches based on attributes "dcs_pathway", "r2e_surgery" and "r2b_surgery":
-#' # - dcs_pathway == 1 AND r2e_surgery == 1 AND r2b_surgery != 1 → second surgery
-#' # - else (single-stage, not a surgical candidate, or had R2B DAMCON) → skip
-#'
-#' # Phase 5: Final disposition — theatre evacuation policy
-#' # Draws recovery_to_duty_days (draw_recovery_to_duty(), severity-keyed)
-#' # and branches on it against recovery$evacuation_policy_days:
-#' # - recovery within policy → recover in theatre: seize hold bed for the
-#' #   drawn duration, set return_day
-#' # - recovery beyond policy → strategic evac: set r2e_evac = 1,
-#' #   evacuation_decision_day, treatment_received; route by acuity to one of
-#' #   two AME pools sharing a single sortie schedule
-#' #   (build_ame_sortie_trajectory() below): Priority 1 surgical evacuees
-#' #   queue on the smaller "ame_critical" (CCATT/CCAST-supported) pool,
-#' #   everyone else on the standard "ame" pool. Both stage in a Hold bed
-#' #   (Casualty Staging Unit-equivalent); the ventilated share of the
-#' #   critical pool first holds an ICU bed for a bounded pre-flight period
-#' #   (critical_pre_flight_care()). Release the bed only once actually
-#' #   evacuated, setting ame_departure_time, evacuation_day,
-#' #   ame_wait_minutes (Issue #23 follow-up — casualties consume R2E beds
-#' #   until strategic AME is actually available, not merely decided upon)
-#'
-#' # Why this function is not decomposed. It is the longest in the model, and
-#' # Issue #241 asks that it be split only where the seams can be shown to
-#' # leave the random number stream untouched, and that the reason be recorded
-#' # otherwise. They cannot, at present, for a reason particular to how simmer
-#' # builds a trajectory. The body chains a single trajectory object through
-#' # ten branch() calls, and twelve of the draws below sit inside arms those
-#' # branches select at run time, so the order in which draws are consumed is a
-#' # property of the assembled trajectory rather than of the source. Lifting a
-#' # mid-chain segment into a helper means rejoining it, and join() copies the
-#' # segment rather than continuing the same object, which is exactly where
-#' # equivalence stops being something a reader can check by inspection.
-#' #
-#' # That makes the split verifiable only by running it, against the seed-42
-#' # reproduction, rather than provable before it is made. The analysis
-#' # pipeline was decomposed on the strength of an artifact comparison because
-#' # it consumes one draw and is a pure report; this function is the model
-#' # itself, and a stream shift here moves every published figure at once. The
-#' # judgement recorded here is that the reading it would buy does not warrant
-#' # that risk in the same pull request as the incidental cleanups, not that
-#' # the split is impossible. Whoever attempts it should do so on its own,
-#' # against the reproduction check, one branch at a time.
-r2e_treat_wia <- function(team_id) {
-  hold_beds       <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
-  resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
-  ot_beds         <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
-  icu_beds        <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
-  surg_teams      <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+# ── R2E Heavy WIA pathway builders ────────────────────────────────────────────
 
-  emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
-  evac_team      <- select_subteam("r2eheavy", team_id, "evac")
-  icu_team       <- select_subteam("r2eheavy", team_id, "icu")
+#' Builds one operation at an R2E surgical section
+#'
+#' @param section_id Index of the surgical section within surg_teams
+#' @param select_id  simmer selection id used for the OT bed in this block
+#' @param start_attr Attribute name recording incision time
+#' @param end_attr   Attribute name recording closure time
+#' @param efficacy   Zero-argument function returning the dow_ceiling
+#'   multiplier to apply on completion, so the multiplier can depend on the
+#'   casualty's surgical pathway
+#' @param set_flag   Whether to set the r2e_surgery marker attribute
+#' @param ot_beds    This R2E team's operating theatre beds
+#' @param surg_teams This R2E team's surgical sections
+#' @return A simmer trajectory performing one operation
+#'
+#' @details Surgical sections are seized per casualty, not fixed at build time
+#'   as the emergency, evacuation and intensive care sections are, because R2E
+#'   fields three of them against two operating theatres and each carries its
+#'   own shift. One block is built per section; the caller branches over them on
+#'   select_r2e_surg_section().
+#'
+#'   Seizure order is bed then team, released team then bed, matching
+#'   r2b_ot_check_path() so the two echelons cannot deadlock against each
+#'   other's ordering. A section already mid-procedure when its shift closes
+#'   retains the resources it holds until release, so a shift change cannot
+#'   interrupt an operation in progress.
+r2e_surgery_block <- function(section_id, select_id, start_attr, end_attr,
+                              efficacy, set_flag, ot_beds, surg_teams) {
+  force(section_id); force(select_id); force(start_attr)
+  force(end_attr);   force(efficacy);  force(set_flag)
 
-  # Surgical sections are seized per casualty, not fixed at build time as the
-  # emergency, evacuation and ICU sections above are, because R2E fields three
-  # of them against two operating theatres and each carries its own shift.
-  # build_r2e_surgery_block() below constructs one seize-operate-release block
-  # per section; the caller branches over them on select_r2e_surg_section().
-  #
-  # @param section_id Index of the surgical section within surg_teams
-  # @param select_id  simmer selection id used for the OT bed in this block
-  # @param start_attr Attribute name recording incision time
-  # @param end_attr   Attribute name recording closure time
-  # @param efficacy   Zero-argument function returning the dow_ceiling
-  #                   multiplier to apply on completion, so the multiplier can
-  #                   depend on the casualty's surgical pathway
-  # @param set_flag   Whether to set the r2e_surgery marker attribute
-  # @return A simmer trajectory performing one operation
-  #
-  # Seizure order is bed then team, released team then bed, matching
-  # r2b_ot_check_path() so the two echelons cannot deadlock against each
-  # other's ordering. A section already mid-procedure when its shift closes
-  # retains the resources it holds until release, so a shift change cannot
-  # interrupt an operation in progress.
-  build_r2e_surgery_block <- function(section_id, select_id, start_attr,
-                                      end_attr, efficacy, set_flag) {
-    force(section_id); force(select_id); force(start_attr)
-    force(end_attr);   force(efficacy);  force(set_flag)
+  trj <- trajectory(sprintf(R2E_SURGERY_SECTION_FMT, section_id)) %>%
+    simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
+    seize_selected(id = select_id) %>%
+    seize_resources(surg_teams[[section_id]])
 
-    trj <- trajectory(sprintf(R2E_SURGERY_SECTION_FMT, section_id)) %>%
-      simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
-      seize_selected(id = select_id) %>%
-      seize_resources(surg_teams[[section_id]])
+  if (set_flag) trj <- trj %>% set_attribute("r2e_surgery", 1)
 
-    if (set_flag) trj <- trj %>% set_attribute("r2e_surgery", 1)
+  trj %>%
+    set_attribute(start_attr, function() now(env)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2eheavy$surgery$min,
+        b = env_data$vars$r2eheavy$surgery$max,
+        c = env_data$vars$r2eheavy$surgery$mode
+      )
+    }) %>%
+    set_attribute(end_attr, function() now(env)) %>%
+    release_resources(surg_teams[[section_id]]) %>%
+    release_selected(id = select_id) %>%
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * efficacy()
+    })
+}
 
-    trj %>%
-      set_attribute(start_attr, function() now(env)) %>%
-      timeout(function() {
-        rtriangle(
-          n = 1,
-          a = env_data$vars$r2eheavy$surgery$min,
-          b = env_data$vars$r2eheavy$surgery$max,
-          c = env_data$vars$r2eheavy$surgery$mode
-        )
-      }) %>%
-      set_attribute(end_attr, function() now(env)) %>%
-      release_resources(surg_teams[[section_id]]) %>%
-      release_selected(id = select_id) %>%
-      set_attribute("dow_ceiling", function() {
-        ceiling <- get_attribute(env, "dow_ceiling")
-        if (is.na(ceiling)) return(ceiling)
-        ceiling * efficacy()
-      })
-  }
-
-  # ── OT–ICU gating sub-trajectories (Issue #43) ──────────────────────────────
-  # Built once per team and joined at the points below. Shared post-operative
-  # DOW check: both the ICU and post-op-hold recovery paths converge here so
-  # that the two pathways' realised mortality can be directly compared (see
-  # README "Died of Wounds" — Post-Operative Checkpoint). dow_echelon = 4
-  # distinguishes this checkpoint from the Phase 1 R2E arrival DOW check
-  # (dow_echelon = 3).
-  r2e_post_op_dow_check <- trajectory("R2E Post-Operative DOW Check") %>%
+#' Builds the shared post-operative died-of-wounds check at R2E
+#'
+#' @param team_id   Integer index of the Role 2E Heavy team
+#' @param evac_team This R2E team's evacuation section
+#' @return Simmer trajectory applying the check and stamping the time of it.
+#'
+#' @details Both the intensive care and the post-operative hold recovery paths
+#'   converge here, so that the two pathways' realised mortality can be directly
+#'   compared (see README "Died of Wounds" — Post-Operative Checkpoint).
+#'   dow_echelon = 4 distinguishes this checkpoint from the Phase 1 R2E arrival
+#'   check (dow_echelon = 3).
+r2e_post_op_dow_check <- function(team_id, evac_team) {
+  trajectory("R2E Post-Operative DOW Check") %>%
     branch(
       option = function() {
         injury  <- get_attribute(env, "injury_time")
@@ -1736,23 +1650,29 @@ r2e_treat_wia <- function(team_id) {
       trajectory("Survived Post-Operative Recovery")
     ) %>%
     set_attribute("last_dow_t", function() now(env))
+}
 
-  # Stabilisation at R2E, for whatever the forward echelon did not serve.
-  # Where it sits in the sequence depends on which operation this casualty's
-  # definitive repair is:
-  #
-  #  - Operated at R2B already: the R2E procedure IS their definitive repair,
-  #    so any remaining stabilisation must come BEFORE it. Joined at
-  #    r2e_pre_surgery_stabilisation below.
-  #  - Not operated at R2B: the R2E procedure is their abbreviated operation
-  #    and the Phase 4 procedure is the definitive one, so stabilisation sits
-  #    BETWEEN them, which is where this trajectory is joined.
-  #
-  # Splitting it this way is what puts the resuscitation phase between the
-  # two operations on both routes, rather than after both of them on one.
-  # A single-stage casualty has no interval between two operations and so no
-  # stabilisation phase; they pass straight to the post-operative DOW check.
-  r2e_stabilisation_recovery <- trajectory("R2E Stabilisation") %>%
+#' Builds the stabilisation phase served between two operations at R2E
+#'
+#' @param icu_beds    This R2E team's intensive care beds
+#' @param post_op_dow The post-operative died-of-wounds check this phase ends in
+#' @return Simmer trajectory serving whatever stabilisation the forward echelon
+#'   did not, then applying the post-operative check.
+#'
+#' @details Where the stabilisation phase sits in the sequence depends on which
+#'   operation this casualty's definitive repair is. A casualty operated on at
+#'   R2B has their definitive repair here, so any remaining stabilisation must
+#'   come before it (r2e_pre_surgery_stabilisation()). A casualty not operated
+#'   on forward has their abbreviated operation here and their definitive one in
+#'   Phase 4, so stabilisation sits between them, which is where this trajectory
+#'   is joined. Splitting it this way is what puts the resuscitation phase
+#'   between the two operations on both routes, rather than after both of them
+#'   on one.
+#'
+#'   A single-stage casualty has no interval between two operations and so no
+#'   stabilisation phase; they pass straight to the post-operative check.
+r2e_stabilisation_recovery <- function(icu_beds, post_op_dow) {
+  trajectory("R2E Stabilisation") %>%
     set_attribute("post_op_pathway", 1) %>%
     branch(
       # A casualty operated on at R2B took their stabilisation before this
@@ -1773,12 +1693,19 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 6),
       trajectory("No Stabilisation Due at This Step")
     ) %>%
-    join(r2e_post_op_dow_check)
+    join(post_op_dow)
+}
 
-  # Remaining stabilisation for a casualty operated on at R2B, served before
-  # their definitive repair. Nothing to do when the forward echelon served
-  # the whole requirement, which is what a forward share of one produces.
-  r2e_pre_surgery_stabilisation <- trajectory("R2E Pre-Definitive Stabilisation") %>%
+#' Builds the stabilisation outstanding before a definitive repair at R2E
+#'
+#' @param icu_beds This R2E team's intensive care beds
+#' @return Simmer trajectory serving the remaining stabilisation of a casualty
+#'   operated on at R2B, before their definitive repair here.
+#'
+#' @details Nothing is due when the forward echelon served the whole
+#'   requirement, which is what a forward share of one produces.
+r2e_pre_surgery_stabilisation <- function(icu_beds) {
+  trajectory("R2E Pre-Definitive Stabilisation") %>%
     branch(
       option = function() {
         if (single_stage()) return(2)
@@ -1797,25 +1724,37 @@ r2e_treat_wia <- function(team_id) {
         release_selected(id = 6),
       trajectory("No Stabilisation Outstanding")
     )
+}
 
-  # Bypass pathway: ICU full and priority within the P1 override threshold
-  # (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
-  # proceeds; recovery is in a holding bed instead of ICU. dow_ceiling is
-  # multiplied by r2e_postop_hold_penalty (> 1) to reflect the elevated
-  # mortality risk of reduced post-operative monitoring — see README "Died
-  # of Wounds — Treatment Efficacy Modifiers".
-  #
-  # MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
-  # Priority 1 candidate even when no post-operative ICU bed is available,
-  # accepting elevated post-operative mortality risk rather than withholding
-  # surgery (which would expose an unsurgicated P1 casualty to near-certain
-  # DOW). See README Limitations for basis, uncertainty, and consequence.
-  #
-  # This is the degraded form of the stabilisation phase, so it applies only to
-  # the damage control pathway. A single-stage casualty has no stabilisation
-  # phase to degrade; their post-operative intensive care is the
-  # post-definitive episode, which carries its own holding-bed fallback.
-  r2e_hold_recovery <- trajectory("R2E Post-Op Hold Recovery") %>%
+#' Builds the degraded post-operative holding pathway at R2E
+#'
+#' @param hold_beds   This R2E team's holding beds
+#' @param post_op_dow The post-operative died-of-wounds check this pathway ends
+#'   in
+#' @return Simmer trajectory recovering the casualty in a holding bed at an
+#'   elevated died-of-wounds ceiling, then applying the post-operative check.
+#'
+#' @details Reached when intensive care is full and the casualty's priority is
+#'   within the P1 override threshold
+#'   (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
+#'   proceeds; recovery is in a holding bed instead of intensive care.
+#'   dow_ceiling is multiplied by r2e_postop_hold_penalty (> 1) to reflect the
+#'   elevated mortality risk of reduced post-operative monitoring; see README
+#'   "Died of Wounds — Treatment Efficacy Modifiers".
+#'
+#'   MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
+#'   Priority 1 casualty even when no post-operative intensive care bed is
+#'   available, accepting elevated post-operative mortality risk rather than
+#'   withholding surgery (which would expose a Priority 1 casualty who has not
+#'   undergone surgery to near-certain death of wounds). See README Further
+#'   Development for basis, uncertainty, and consequence.
+#'
+#'   This is the degraded form of the stabilisation phase, so it applies only to
+#'   the damage control pathway. A single-stage casualty has no stabilisation
+#'   phase to degrade; their post-operative intensive care is the
+#'   post-definitive episode, which carries its own holding-bed fallback.
+r2e_hold_recovery <- function(hold_beds, post_op_dow) {
+  trajectory("R2E Post-Op Hold Recovery") %>%
     branch(
       option = function() if (single_stage()) 2 else 1,
       continue = TRUE,
@@ -1841,57 +1780,67 @@ r2e_treat_wia <- function(team_id) {
 
       trajectory("Single-Stage — No Stabilisation Phase to Degrade")
     ) %>%
-    join(r2e_post_op_dow_check)
+    join(post_op_dow)
+}
 
-  # Shared surgery portion (OT seizure through the operation itself). Recovery
-  # (ICU vs post-op hold) is decided upstream at the pre-OT gating branch
-  # and joined on afterwards, so this portion is identical for both paths.
+#' Builds the operation itself at R2E, from theatre seizure to closure
+#'
+#' @param team_id    Integer index of the Role 2E Heavy team
+#' @param ot_beds    This R2E team's operating theatre beds
+#' @param surg_teams This R2E team's surgical sections
+#' @return Simmer trajectory performing one operation at whichever section is
+#'   selected on entry.
+#'
+#' @details Recovery (intensive care against post-operative hold) is decided
+#'   upstream at the pre-theatre gate and joined on afterwards, so this portion
+#'   is identical for both paths.
+r2e_ot_surgery <- function(team_id, ot_beds, surg_teams) {
   # Branch structure: one sub-trajectory per R2E surgical section, selected on
   # entry by select_r2e_surg_section(). Every branch performs the same
   # procedure and differs only in which section's resources it seizes, so the
   # choice affects contention and shift availability, not clinical outcome.
-  r2e_ot_surgery <- trajectory("R2E OT — Surgery") %>%
+  trajectory("R2E OT — Surgery") %>%
     branch(
       option = function() select_r2e_surg_section(team_id),
       continue = TRUE,
       lapply(seq_along(surg_teams), function(section_id) {
-        build_r2e_surgery_block(
+        r2e_surgery_block(
           section_id, 4, "r2e_surgery_1_start", "r2e_surgery_1_end",
           definitive_efficacy(
             env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor,
             env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
-          ), TRUE
+          ), TRUE, ot_beds, surg_teams
         )
       })
     )
+}
 
-  r2e_surgery_icu_path <- trajectory("R2E Surgery — ICU Available") %>%
-    join(r2e_pre_surgery_stabilisation) %>%
-    join(r2e_ot_surgery) %>%
-    join(r2e_stabilisation_recovery)
-
-  r2e_surgery_hold_path <- trajectory("R2E Surgery — ICU Full, P1 to Post-Op Hold") %>%
-    join(r2e_ot_surgery) %>%
-    join(r2e_hold_recovery)
-
-  # Post-definitive intensive care, joined after Phase 4 for every casualty
-  # who had an operation, on either route. This is the episode that follows
-  # the definitive repair — ventilation weaning, organ support, watching for
-  # complications — as distinct from the stabilisation phase that precedes
-  # it. Guideline-recommended standard after major trauma surgery; see README
-  # "Died of Wounds — Post-Operative Checkpoint" for the citation.
-  #
-  # Unlike stabilisation, this episode is never served forward: R2B performs
-  # no definitive repair, so there is nothing for it to follow there. That is
-  # what stops the forward-holding lever from emptying out post-definitive
-  # care as the share rises.
-  #
-  # Takes the same degraded-care fallback as the post-operative hold pathway
-  # above, for the same reason: a casualty who has already been operated on
-  # cannot be made to wait indefinitely for a bed, so when intensive care is
-  # saturated they recover in a holding bed at an elevated dow_ceiling. The
-  # pathway taken is recorded in post_definitive_pathway (1 = ICU, 2 = hold).
-  r2e_post_definitive_care <- trajectory("R2E Post-Definitive Care") %>%
+#' Builds the post-definitive intensive care episode at R2E
+#'
+#' @param icu_beds  This R2E team's intensive care beds
+#' @param hold_beds This R2E team's holding beds
+#' @return Simmer trajectory serving the episode that follows the definitive
+#'   repair, in an intensive care bed or, where none is free, a holding bed.
+#'
+#' @details Joined after Phase 4 for every casualty who had an operation, on
+#'   either route. This is the episode that follows the definitive repair,
+#'   ventilation weaning, organ support, watching for complications, as distinct
+#'   from the stabilisation phase that precedes it. Guideline-recommended
+#'   standard after major trauma surgery; see README "Died of Wounds —
+#'   Post-Operative Checkpoint" for the citation.
+#'
+#'   Unlike stabilisation, this episode is never served forward: R2B performs no
+#'   definitive repair, so there is nothing for it to follow there. That is what
+#'   stops the forward-holding lever from emptying out post-definitive care as
+#'   the share rises.
+#'
+#'   It takes the same degraded-care fallback as the post-operative hold
+#'   pathway, for the same reason: a casualty who has already been operated on
+#'   cannot be made to wait indefinitely for a bed, so when intensive care is
+#'   saturated they recover in a holding bed at an elevated dow_ceiling. The
+#'   pathway taken is recorded in post_definitive_pathway (1 = ICU, 2 = hold).
+r2e_post_definitive_care <- function(icu_beds, hold_beds) {
+  trajectory("R2E Post-Definitive Care") %>%
     branch(
       option = function() {
         had_surgery <- get_attribute(env, "surgery")
@@ -1926,13 +1875,23 @@ r2e_treat_wia <- function(team_id) {
 
       trajectory("No Operation, No Post-Definitive Care")
     )
+}
 
-  # Deferral pathway: ICU full and priority above the P1 override threshold
-  # (P2+). OT entry is deferred rather than proceeding without ICU backup;
-  # the candidate polls ICU availability every icu_gating$defer_check_interval
-  # minutes (timeout + rollback, no resources held while waiting) until a bed
-  # frees, then proceeds exactly as the nominal ICU-available path.
-  r2e_surgery_defer_path <- trajectory("R2E Surgery — Deferred (ICU Full, P2+)") %>%
+#' Builds the deferred surgical pathway at R2E
+#'
+#' @param icu_beds This R2E team's intensive care beds
+#' @param icu_path The nominal intensive-care-available surgical pathway, taken
+#'   once a bed frees
+#' @return Simmer trajectory polling for intensive care headroom, then
+#'   proceeding exactly as the nominal path.
+#'
+#' @details Reached when intensive care is full and the casualty's priority is
+#'   above the P1 override threshold. Theatre entry is deferred rather than
+#'   proceeding without intensive care backup; the casualty polls availability
+#'   every icu_gating$defer_check_interval minutes (timeout plus rollback, no
+#'   resources held while waiting) until a bed frees.
+r2e_surgery_defer_path <- function(icu_beds, icu_path) {
+  trajectory("R2E Surgery — Deferred (ICU Full, P2+)") %>%
     set_attribute("surgery_deferred", 1) %>%
     timeout(function() env_data$vars$r2eheavy$icu_gating$defer_check_interval) %>%
     rollback(target = 1, check = function() {
@@ -1940,134 +1899,179 @@ r2e_treat_wia <- function(team_id) {
       cap   <- sum(get_capacity(env, resources = icu_beds))
       !(!is.na(usage) && !is.na(cap) && usage < cap)
     }) %>%
-    join(r2e_surgery_icu_path)
+    join(icu_path)
+}
 
-  # Strategic-Evac AME-wait DOW poll (Issue #23 third follow-up): mirrors
-  # r2e_post_op_dow_check's conditional-increment DOW roll (same
-  # dow_prob_conditional() formula, same priority-based parameters and
-  # dow_ceiling), but polled on an interval (role4.ame.dow_check_interval)
-  # while queued for "ame"/"ame_critical" rather than checked once at a
-  # fixed transition point — the AME wait itself is unbounded, and unlike
-  # every earlier checkpoint (which precedes a further step that would
-  # otherwise price in delay-accrued risk), this is the last checkpoint in
-  # the casualty's journey: without this poll, a casualty who reached
-  # Strategic Evac faced zero further mortality risk regardless of how
-  # long the subsequent AME wait was. See README Died of Wounds — AME Wait
-  # Checkpoint.
-  #
-  # Availability is checked immediately on entry — if capacity is already
-  # free, boarding proceeds with no artificial minimum wait, matching a
-  # plain seize()'s fast path exactly. Only if unavailable does the
-  # casualty enter the poll loop: wait dow_check_interval minutes, roll
-  # DOW, then (if surviving) re-check availability via rollback()'s
-  # `check` and loop again if still unavailable — the same
-  # timeout-then-rollback polling pattern used for R2E OT-ICU gating
-  # deferral (icu_gating$defer_check_interval, above). dow_echelon = 5
-  # distinguishes this checkpoint from the R2E post-operative check
-  # (dow_echelon = 4).
-  ame_dow_poll <- function(resource_name, bed_id) {
-    trajectory("Awaiting AME — DOW Poll") %>%
-      timeout(function() env_data$vars$role4$ame$dow_check_interval, tag = "ame_dow_poll_start") %>%
-      branch(
-        option = function() {
-          injury  <- get_attribute(env, "injury_time")
-          t_prev  <- get_attribute(env, "last_dow_t") - injury
-          t_now   <- now(env) - injury
-          prio    <- get_attribute(env, "priority")
-          dp      <- env_data$vars$dow$params
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (!is.na(prio) && prio == 1) {
-            p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
-          } else if (!is.na(prio) && prio == 2) {
-            p <- dow_prob_conditional(t_now, t_prev, dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
-          } else {
-            p <- dp$p3_flat
-          }
-          if (runif(1) < p) return(1)
-          return(2)
-        },
-        continue = TRUE,
-        trajectory("Died of Wounds — Awaiting AME") %>%
-          set_attribute("dow", 1) %>%
-          set_attribute("dow_echelon", 5) %>%
-          release_selected(id = bed_id) %>%
-          r2e_treat_kia(team_id, evac_team) %>%
-          r2e_transport_kia(team_id, evac_team) %>%
-          simmer::leave(1),
-        trajectory("Survived Poll Interval")
-      ) %>%
-      set_attribute("last_dow_t", function() now(env)) %>%
-      rollback(target = "ame_dow_poll_start", check = function() {
+#' Builds the died-of-wounds poll a casualty faces while awaiting evacuation
+#'
+#' @param resource_name Name of the aeromedical evacuation pool being queued
+#'   for, "ame" or "ame_critical"
+#' @param bed_id        simmer selection id of the bed the casualty is staged in,
+#'   released if they die during the wait
+#' @param team_id       Integer index of the Role 2E Heavy team
+#' @param evac_team     This R2E team's evacuation section
+#' @return Simmer trajectory polling the casualty's risk on an interval until
+#'   evacuation capacity is available.
+#'
+#' @details Mirrors r2e_post_op_dow_check()'s conditional-increment roll (the
+#'   same dow_prob_conditional() formula, the same priority-based parameters and
+#'   dow_ceiling), but polled on an interval (role4.ame.dow_check_interval)
+#'   while queued rather than checked once at a fixed transition point. The
+#'   evacuation wait itself is unbounded, and unlike every earlier checkpoint
+#'   (each of which precedes a further step that would otherwise price in
+#'   delay-accrued risk), this is the last checkpoint in the casualty's journey:
+#'   without this poll, a casualty who reached strategic evacuation faced zero
+#'   further mortality risk regardless of how long the wait was. See README
+#'   Died of Wounds — AME Wait Checkpoint.
+#'
+#'   Availability is checked by the caller immediately on entry, so boarding
+#'   proceeds with no artificial minimum wait when capacity is already free,
+#'   matching a plain seize()'s fast path exactly. Only if unavailable does the
+#'   casualty enter this loop: wait dow_check_interval minutes, roll, then (if
+#'   surviving) re-check availability through rollback()'s `check` and loop
+#'   again if still unavailable, the same timeout-then-rollback polling pattern
+#'   the R2E theatre gate uses for deferral. dow_echelon = 5 distinguishes this
+#'   checkpoint from the post-operative check (dow_echelon = 4).
+r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
+  trajectory("Awaiting AME — DOW Poll") %>%
+    timeout(function() env_data$vars$role4$ame$dow_check_interval, tag = "ame_dow_poll_start") %>%
+    branch(
+      option = function() {
+        injury  <- get_attribute(env, "injury_time")
+        t_prev  <- get_attribute(env, "last_dow_t") - injury
+        t_now   <- now(env) - injury
+        prio    <- get_attribute(env, "priority")
+        dp      <- env_data$vars$dow$params
+        ceiling <- get_attribute(env, "dow_ceiling")
+        if (!is.na(prio) && prio == 1) {
+          p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
+        } else if (!is.na(prio) && prio == 2) {
+          p <- dow_prob_conditional(t_now, t_prev, dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
+        } else {
+          p <- dp$p3_flat
+        }
+        if (runif(1) < p) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("Died of Wounds — Awaiting AME") %>%
+        set_attribute("dow", 1) %>%
+        set_attribute("dow_echelon", 5) %>%
+        release_selected(id = bed_id) %>%
+        r2e_treat_kia(team_id, evac_team) %>%
+        r2e_transport_kia(team_id, evac_team) %>%
+        simmer::leave(1),
+      trajectory("Survived Poll Interval")
+    ) %>%
+    set_attribute("last_dow_t", function() now(env)) %>%
+    rollback(target = "ame_dow_poll_start", check = function() {
+      usage <- get_server_count(env, resource_name)
+      cap   <- get_capacity(env, resource_name)
+      !(!is.na(usage) && !is.na(cap) && usage < cap)
+    })
+}
+
+#' Builds the wait for aeromedical evacuation capacity and the boarding itself
+#'
+#' @param resource_name Name of the aeromedical evacuation pool to board,
+#'   "ame" or "ame_critical"
+#' @param bed_id        simmer selection id of the bed the casualty is staged in
+#' @param team_id       Integer index of the Role 2E Heavy team
+#' @param evac_team     This R2E team's evacuation section
+#' @return Simmer trajectory boarding the casualty, at once where the pool has
+#'   capacity and after the polled wait where it does not.
+r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
+  trajectory("Awaiting AME") %>%
+    branch(
+      option = function() {
         usage <- get_server_count(env, resource_name)
         cap   <- get_capacity(env, resource_name)
-        !(!is.na(usage) && !is.na(cap) && usage < cap)
-      })
+        if (!is.na(usage) && !is.na(cap) && usage < cap) return(2)
+        return(1)
+      },
+      continue = TRUE,
+      r2e_ame_dow_poll(resource_name, bed_id, team_id, evac_team),
+      trajectory("Available Immediately")
+    ) %>%
+    seize(resource_name, 1)
+}
+
+#' Draws a casualty's expected recovery-to-duty duration in days
+#'
+#' @return A single duration in days, drawn from the shared convalescence
+#'   distribution scaled by the casualty's severity category.
+#'
+#' @details A theatre evacuation policy is a duration threshold, "a theater that
+#'   evacuates out of the theater all patients requiring 30 or more days of
+#'   hospitalization is said to have a '30-day evacuation policy'" [[55]], so
+#'   disposition needs a per-casualty clinical duration to compare against the
+#'   policy rather than a fixed share of admissions. The draw is the shared base
+#'   convalescence distribution (r2eheavy$holding) scaled by a severity factor
+#'   keyed to the same four categories R/analysis.R::assign_role4_los() uses, so
+#'   a casualty's prognosis, its Role 4 ward and its evacuation route all follow
+#'   from one severity classification rather than from independent draws.
+draw_recovery_to_duty <- function() {
+  # A casualty moved here by the R2B holding evacuation threshold already
+  # drew their whole convalescence forward and served part of it there, so
+  # what remains is served rather than redrawn (r2b_hold_residual_minutes(),
+  # above). Redrawing would give the threshold an effect on total modelled
+  # convalescence, which is not what a routing lever is asked to change.
+  residual <- get_attribute(env, "r2b_hold_residual")
+  if (!is.na(residual) && residual > 0) return(residual / DAY_MIN)
+
+  prio  <- get_attribute(env, "priority")
+  itype <- get_attribute(env, "injury_type")
+  surg  <- get_attribute(env, "r2b_surgery")
+  surg2 <- get_attribute(env, "r2e_surgery")
+  had_surgery <- (!is.na(surg) && surg == 1) || (!is.na(surg2) && surg2 == 1)
+  f <- env_data$vars$r2eheavy$recovery_to_duty
+  severity <- if (!is.na(itype) && itype == 2) {
+    f$p3_dnbi
+  } else if (!is.na(prio) && prio == 3) {
+    f$p3_dnbi
+  } else if (!is.na(prio) && prio == 1 && had_surgery) {
+    f$p1_surgical
+  } else if (!is.na(prio) && prio == 1) {
+    f$p1_nonsurgical
+  } else if (!is.na(prio) && prio == 2) {
+    f$p2
+  } else {
+    f$p3_dnbi
   }
+  base <- rtriangle(
+    n = 1,
+    a = env_data$vars$r2eheavy$holding$min,
+    b = env_data$vars$r2eheavy$holding$max,
+    c = env_data$vars$r2eheavy$holding$mode
+  )
+  (base * severity) / DAY_MIN
+}
 
-  # Expected recovery-to-duty duration, in days, drawn at the end of R2E
-  # clinical care. A theatre evacuation policy is a duration threshold — "a
-  # theater that evacuates out of the theater all patients requiring 30 or
-  # more days of hospitalization is said to have a '30-day evacuation
-  # policy'" [[55]] — so disposition needs a per-casualty clinical duration
-  # to compare against the policy rather than a fixed share of admissions.
-  # The draw is the shared base convalescence distribution
-  # (r2eheavy$holding) scaled by a severity factor keyed to the same four
-  # categories R/analysis.R::assign_role4_los() uses, so a casualty's
-  # prognosis, its Role 4 ward and its AME route all follow from one
-  # severity classification rather than from independent draws.
-  draw_recovery_to_duty <- function() {
-    # A casualty moved here by the R2B holding evacuation threshold already
-    # drew their whole convalescence forward and served part of it there, so
-    # what remains is served rather than redrawn (r2b_hold_residual_minutes(),
-    # above). Redrawing would give the threshold an effect on total modelled
-    # convalescence, which is not what a routing lever is asked to change.
-    residual <- get_attribute(env, "r2b_hold_residual")
-    if (!is.na(residual) && residual > 0) return(residual / DAY_MIN)
-
-    prio  <- get_attribute(env, "priority")
-    itype <- get_attribute(env, "injury_type")
-    surg  <- get_attribute(env, "r2b_surgery")
-    surg2 <- get_attribute(env, "r2e_surgery")
-    had_surgery <- (!is.na(surg) && surg == 1) || (!is.na(surg2) && surg2 == 1)
-    f <- env_data$vars$r2eheavy$recovery_to_duty
-    severity <- if (!is.na(itype) && itype == 2) {
-      f$p3_dnbi
-    } else if (!is.na(prio) && prio == 3) {
-      f$p3_dnbi
-    } else if (!is.na(prio) && prio == 1 && had_surgery) {
-      f$p1_surgical
-    } else if (!is.na(prio) && prio == 1) {
-      f$p1_nonsurgical
-    } else if (!is.na(prio) && prio == 2) {
-      f$p2
-    } else {
-      f$p3_dnbi
-    }
-    base <- rtriangle(
-      n = 1,
-      a = env_data$vars$r2eheavy$holding$min,
-      b = env_data$vars$r2eheavy$holding$max,
-      c = env_data$vars$r2eheavy$holding$mode
-    )
-    (base * severity) / DAY_MIN
-  }
-
-  # Pre-flight critical care (Issue #156). A ventilated casualty awaiting a
-  # critical-care sortie genuinely needs ICU-level care, but a deployed ICU
-  # study at Camp Bastion records that coalition soldiers "are usually
-  # evacuated within 24 h of admission" [[56]], so that need is bounded
-  # rather than lasting the whole evacuation wait. A configurable share of
-  # the critical pool (critical_hold$ventilated_share) holds an ICU bed for
-  # a critical_hold-distributed period and then steps down to a Casualty
-  # Staging Unit hold bed; the rest stage in a hold bed immediately.
-  #
-  # The step-down seizes the hold bed before releasing the ICU bed, so a
-  # casualty is never discharged from intensive care to nowhere. The cost is
-  # that a full hold pool blocks the ICU bed for as long as the casualty
-  # queues, which ame_icu_hold_minutes measures. This is bed-blocking, not
-  # deadlock: no trajectory in the model holds a hold bed while waiting on
-  # ICU, so the two acquisition orders cannot form a cycle.
-  critical_pre_flight_care <- trajectory("Pre-Flight Critical Care") %>%
+#' Builds the pre-flight care of a casualty awaiting a critical-care sortie
+#'
+#' @param icu_beds  This R2E team's intensive care beds
+#' @param hold_beds This R2E team's holding beds
+#' @return Simmer trajectory staging the casualty for flight, through a bounded
+#'   period of intensive care for the ventilated share and directly in a holding
+#'   bed for the rest.
+#'
+#' @details A ventilated casualty awaiting a critical-care sortie genuinely
+#'   needs intensive-care-level care, but a deployed intensive care study at
+#'   Camp Bastion records that coalition soldiers "are usually evacuated within
+#'   24 h of admission" [[56]], so that need is bounded rather than lasting the
+#'   whole evacuation wait. A configurable share of the critical pool
+#'   (critical_hold$ventilated_share) holds an intensive care bed for a
+#'   critical_hold-distributed period and then steps down to a Casualty Staging
+#'   Unit hold bed; the rest stage in a hold bed immediately.
+#'
+#'   The step-down seizes the hold bed before releasing the intensive care bed,
+#'   so a casualty is never discharged from intensive care to nowhere. The cost
+#'   is that a full hold pool blocks the intensive care bed for as long as the
+#'   casualty queues, which ame_icu_hold_minutes measures. This is bed-blocking,
+#'   not deadlock: no trajectory in the model holds a hold bed while waiting on
+#'   intensive care, so the two acquisition orders cannot form a cycle.
+r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
+  trajectory("Pre-Flight Critical Care") %>%
     branch(
       option = function() {
         if (runif(1) < env_data$vars$r2eheavy$critical_hold$ventilated_share) return(1)
@@ -2103,32 +2107,24 @@ r2e_treat_wia <- function(team_id) {
         simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
         seize_selected(id = 9)
     )
+}
 
-  ame_wait_and_board <- function(resource_name, bed_id) {
-    trajectory("Awaiting AME") %>%
-      branch(
-        option = function() {
-          usage <- get_server_count(env, resource_name)
-          cap   <- get_capacity(env, resource_name)
-          if (!is.na(usage) && !is.na(cap) && usage < cap) return(2)
-          return(1)
-        },
-        continue = TRUE,
-        ame_dow_poll(resource_name, bed_id),
-        trajectory("Available Immediately")
-      ) %>%
-      seize(resource_name, 1)
-  }
-
-  trajectory("R2E Treatment") %>%
-    set_attribute("r2e_treated", team_id) %>%
-    set_attribute("r2e_handling", 1) %>%
-    set_attribute("r2e_arrival_time", function() now(env)) %>%
-
-    # Phase 1: DOW check (time-dependent logistic, Issue #5)
-    # Conditional increment from last DOW check to current elapsed time since injury.
-    # Disease DNBI (dnbi_type == 2) exempt — medical pathway, not trauma.
-    # P3 casualties use a flat probability (minor wounds, not time-critical).
+#' Applies the R2E arrival died-of-wounds check
+#'
+#' @param trj       Trajectory to append the check to
+#' @param team_id   Integer index of the Role 2E Heavy team
+#' @param evac_team This R2E team's evacuation section
+#' @return The trajectory, with the check, its mortuary arm and the stamp of the
+#'   check time appended.
+#'
+#' @details The conditional increment runs from the last check to the elapsed
+#'   time on arrival here, so the journey to this echelon is priced at this
+#'   checkpoint. dow_echelon = 3 distinguishes it from the post-operative check.
+r2e_arrival_dow_check <- function(trj, team_id, evac_team) {
+  # Time-dependent logistic (Issue #5).
+  # Disease DNBI (dnbi_type == 2) exempt — medical pathway, not trauma.
+  # P3 casualties use a flat probability (minor wounds, not time-critical).
+  trj %>%
     branch(
       option = function() {
         dtype  <- get_attribute(env, "dnbi_type")
@@ -2161,9 +2157,22 @@ r2e_treat_wia <- function(team_id) {
         simmer::leave(1),
       trajectory("Continue R2E Treatment")
     ) %>%
-    set_attribute("last_dow_t", function() now(env)) %>%
+    set_attribute("last_dow_t", function() now(env))
+}
 
-    # Phase 2: Resuscitation bed seizure
+#' Applies resuscitation at R2E
+#'
+#' @param trj            Trajectory to append the resuscitation to
+#' @param resus_beds     This R2E team's resuscitation beds
+#' @param emergency_team This R2E team's emergency section
+#' @return The trajectory, with the resuscitation bed seizure and the
+#'   resuscitation itself appended.
+#'
+#' @details A casualty resuscitated at R2B takes the short form here; one
+#'   arriving without a forward resuscitation takes the full form, which sets
+#'   r2e_resus and earns the resuscitation treatment effect.
+r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
+  trj %>%
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
 
@@ -2207,9 +2216,24 @@ r2e_treat_wia <- function(team_id) {
         }) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
-    ) %>%
+    )
+}
 
-    # Phase 3: Surgical branch — pre-OT ICU availability gate (Issue #43)
+#' Applies the R2E surgical branch and its pre-theatre intensive care gate
+#'
+#' @param trj         Trajectory to append the branch to
+#' @param icu_beds    This R2E team's intensive care beds
+#' @param icu_path    The nominal pathway, taken when a bed is free
+#' @param hold_path   The degraded pathway, taken by a Priority 1 casualty when
+#'   none is
+#' @param defer_path  The deferred pathway, taken by a Priority 2+ casualty when
+#'   none is
+#' @param post_op_dow The post-operative check, applied on its own to a casualty
+#'   whose definitive repair was performed forward
+#' @return The trajectory, with the surgical branch appended.
+r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
+                                post_op_dow) {
+  trj %>%
     # Branches based on attribute "surgery":
     # - surgery == 1 → check this team's ICU bed availability before OT entry:
     #     - ICU available                                     → r2e_surgery_icu_path
@@ -2245,15 +2269,24 @@ r2e_treat_wia <- function(team_id) {
         return(3)
       },
       continue = TRUE,
-      r2e_surgery_icu_path,
-      r2e_surgery_hold_path,
-      r2e_surgery_defer_path,
+      icu_path,
+      hold_path,
+      defer_path,
       trajectory("No Surgery Needed"),
       trajectory("Definitive Repair Already Performed at R2B") %>%
-        join(r2e_post_op_dow_check)
-    ) %>%
+        join(post_op_dow)
+    )
+}
 
-    # Phase 4: Second surgery, for a damage control casualty whose abbreviated
+#' Applies the second operation of the damage control pathway at R2E
+#'
+#' @param trj        Trajectory to append the branch to
+#' @param team_id    Integer index of the Role 2E Heavy team
+#' @param ot_beds    This R2E team's operating theatre beds
+#' @param surg_teams This R2E team's surgical sections
+#' @return The trajectory, with the second-operation branch appended.
+r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
+  trj %>%
     # operation was the R2E Phase 3 one. A second procedure is only meaningful
     # for patients who underwent Phase 3 surgery at R2E (r2e_surgery == 1)
     # without a prior R2B DAMCON (r2b_surgery != 1), and only on the damage
@@ -2279,37 +2312,140 @@ r2e_treat_wia <- function(team_id) {
           option = function() select_r2e_surg_section(team_id),
           continue = TRUE,
           lapply(seq_along(surg_teams), function(section_id) {
-            build_r2e_surgery_block(
+            r2e_surgery_block(
               section_id, 7, "r2e_surgery_2_start", "r2e_surgery_2_end",
               local({
                 factor <- env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
                 function() factor
-              }), FALSE
+              }), FALSE, ot_beds, surg_teams
             )
           })
         ),
       trajectory("No Second Surgery Needed")
+    )
+}
+
+#' Builds the strategic evacuation disposition at R2E
+#'
+#' @param hold_beds     This R2E team's holding beds
+#' @param critical_care The pre-flight critical care trajectory built by
+#'   r2e_critical_pre_flight_care()
+#' @param team_id       Integer index of the Role 2E Heavy team
+#' @param evac_team     This R2E team's evacuation section
+#' @return Simmer trajectory staging the casualty for flight, boarding them and
+#'   recording the wait.
+#'
+#' @details r2e_departure_time keeps its original meaning, clinical care
+#'   concluded and disposition decided, so the R2E dwell time measure is
+#'   unaffected by this branch; the evacuation wait is tracked separately
+#'   (ame_departure_time, ame_wait_minutes) so clinical dwell and evacuation
+#'   logistics wait remain distinguishable.
+#'
+#'   Routing follows AJP-4.10(B) [[21]]: a Casualty Staging Unit "collocate[s]
+#'   already stabilized patients" pending transport, and every casualty reaching
+#'   this branch has by construction already completed R2E's post-operative
+#'   recovery, so staging is in a hold bed on both routes. Priority 1 surgical
+#'   evacuees (the same population assigned the Role 4 intensive care ward)
+#'   queue on the smaller "ame_critical" pool instead, a critical care air
+#'   transport team "augment[ing] the standard aeromedical evacuation crew" on
+#'   the same sortie, "limited by capacity". The critical/standard split is
+#'   therefore a distinction in airlift seat type, not in bed type. ame_route
+#'   records it (1 = critical, 2 = standard) for the route-decomposed outputs.
+#'
+#'   The pool seat is never released: a boarded casualty permanently consumes
+#'   that sortie's capacity, and casualties board strictly in decision order, no
+#'   further acuity-based boarding priority beyond the critical/standard split
+#'   being modelled. See README Further Development.
+r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
+  trajectory("Strategic Evac — Awaiting AME") %>%
+    # r2e_departure_time keeps its original meaning — clinical care
+    # concluded, disposition decided — so the existing R2E Dwell Time
+    # KPI (Domain 2) is unaffected by this branch. AME wait is tracked
+    # separately below (ame_departure_time, ame_wait_minutes) rather
+    # than folded into r2e_departure_time, so "clinical dwell" and
+    # "evacuation logistics wait" remain distinguishable.
+    set_attribute("r2e_departure_time", function() now(env)) %>%
+    set_attribute("r2e_evac", 1) %>%
+    # evacuation_decision_day / treatment_received (Issue #23): captured
+    # when the Strategic Evac disposition is decided. Feeds the Role 4
+    # ward/LoS category assignment (R/analysis.R::assign_role4_los())
+    # — see README Role 4 sub-section.
+    set_attribute("evacuation_decision_day", function() floor(now(env) / DAY_MIN) + 1) %>%
+    set_attribute("treatment_received", function() {
+      r2b_surg <- get_attribute(env, "r2b_surgery")
+      r2e_surg <- get_attribute(env, "r2e_surgery")
+      had_surgery <- (!is.na(r2b_surg) && r2b_surg == 1) ||
+        (!is.na(r2e_surg) && r2e_surg == 1)
+      if (had_surgery) 1 else 0
+    }) %>%
+
+    # Awaiting-AME routing (Issue #23 follow-up, revised per AJP-4.10(B)
+    # [[21]]): a Casualty Staging Unit "collocate[s] already stabilized
+    # patients" pending transport — every casualty reaching this branch
+    # has, by construction, already completed R2E's post-operative
+    # ICU/Hold recovery timeout, so staging is in a Hold bed on both
+    # routes. Priority 1 surgical evacuees (the same population assigned
+    # the Role 4 ICU ward — R/analysis.R::assign_role4_los()) queue on
+    # the smaller "ame_critical" pool instead — a critical care air
+    # transport team (CCATT) or critical care aeromedical evacuation
+    # support team (CCAST) "augment[ing] the standard aeromedical
+    # evacuation crew" on the same sortie (see build_ame_sortie_
+    # trajectory(), below), "limited by capacity" per AJP-4.10(B). The
+    # critical/standard split is therefore a distinction in airlift seat
+    # type, not in bed type.
+    # ame_route: 1 = critical (ame_critical pool), 2 = standard (ame
+    # pool) — read by R/analysis.R for the route-decomposed wait-time/
+    # backlog outputs.
+    branch(
+      option = function() {
+        prio <- get_attribute(env, "priority")
+        tx   <- get_attribute(env, "treatment_received")
+        if (!is.na(prio) && prio == 1 && !is.na(tx) && tx == 1) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("Await Critical AME") %>%
+        set_attribute("ame_route", 1) %>%
+        join(critical_care) %>%
+        # The AME pool seat is never released — a boarded casualty
+        # permanently consumes that sortie's capacity; no seats are
+        # handed back. Casualties board strictly in queue (decision)
+        # order — no further acuity-based boarding priority beyond the
+        # critical/standard split itself is modelled; see README
+        # Further Development.
+        join(r2e_ame_wait_and_board("ame_critical", 9, team_id, evac_team)),
+      trajectory("Await Standard AME — Hold Bed") %>%
+        set_attribute("ame_route", 2) %>%
+        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
+        seize_selected(id = 9) %>%
+        join(r2e_ame_wait_and_board("ame", 9, team_id, evac_team))
     ) %>%
+    release_selected(id = 9) %>%
+    set_attribute("ame_departure_time", function() now(env)) %>%
+    set_attribute("evacuation_day", function() floor(now(env) / DAY_MIN) + 1) %>%
+    set_attribute("ame_wait_minutes", function() {
+      now(env) - get_attribute(env, "r2e_departure_time")
+    })
+}
 
-    # Post-definitive intensive care, after whichever operation was this
-    # casualty's definitive repair — the Phase 4 procedure for a casualty
-    # operated on only at R2E, the Phase 3 one for a casualty who had their
-    # abbreviated operation at R2B.
-    join(r2e_post_definitive_care) %>%
-
-    # Phase 5: Final disposition — theatre evacuation policy
-    # recovery_to_duty_days is drawn first (draw_recovery_to_duty(), above)
-    # and the branch compares it against recovery$evacuation_policy_days:
-    # - expected recovery within the policy → retain in theatre: seize hold
-    #   bed for that drawn duration, log return_day
-    # - expected recovery beyond the policy → strategic evac: set r2e_evac = 1,
-    #   evacuation_decision_day, treatment_received; route by acuity to one of
-    #   two AME pools sharing a single sortie schedule — Priority 1 surgical
-    #   evacuees queue on "ame_critical", everyone else on the standard "ame"
-    #   pool; both stage in a Hold bed, released only once actually evacuated,
-    #   setting ame_departure_time, evacuation_day, ame_wait_minutes
-    #   (Issue #23 follow-up). Casualties face a periodic DOW poll while
-    #   queued (Issue #23 third follow-up, ame_dow_poll() above).
+#' Applies the final disposition at R2E under the theatre evacuation policy
+#'
+#' @param trj           Trajectory to append the disposition to
+#' @param hold_beds     This R2E team's holding beds
+#' @param critical_care The pre-flight critical care trajectory reached by a
+#'   Priority 1 surgical evacuee
+#' @param team_id       Integer index of the Role 2E Heavy team
+#' @param evac_team     This R2E team's evacuation section
+#' @return The trajectory, with the recovery-to-duty draw and the disposition
+#'   branch appended.
+r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
+  # recovery_to_duty_days is drawn first (draw_recovery_to_duty()) and the
+  # branch compares it against recovery$evacuation_policy_days:
+  # - expected recovery within the policy → retain in theatre: seize hold bed
+  #   for that drawn duration, log return_day
+  # - expected recovery beyond the policy → strategic evac
+  #   (r2e_strategic_evac())
+  trj %>%
     set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
     branch(
       option = function() {
@@ -2331,76 +2467,94 @@ r2e_treat_wia <- function(team_id) {
         set_attribute("return_day", function() now(env)) %>%
         set_attribute("return_echelon", 3) %>%
         credit_rtd(),
-      trajectory("Strategic Evac — Awaiting AME") %>%
-        # r2e_departure_time keeps its original meaning — clinical care
-        # concluded, disposition decided — so the existing R2E Dwell Time
-        # KPI (Domain 2) is unaffected by this branch. AME wait is tracked
-        # separately below (ame_departure_time, ame_wait_minutes) rather
-        # than folded into r2e_departure_time, so "clinical dwell" and
-        # "evacuation logistics wait" remain distinguishable.
-        set_attribute("r2e_departure_time", function() now(env)) %>%
-        set_attribute("r2e_evac", 1) %>%
-        # evacuation_decision_day / treatment_received (Issue #23): captured
-        # when the Strategic Evac disposition is decided. Feeds the Role 4
-        # ward/LoS category assignment (R/analysis.R::assign_role4_los())
-        # — see README Role 4 sub-section.
-        set_attribute("evacuation_decision_day", function() floor(now(env) / DAY_MIN) + 1) %>%
-        set_attribute("treatment_received", function() {
-          r2b_surg <- get_attribute(env, "r2b_surgery")
-          r2e_surg <- get_attribute(env, "r2e_surgery")
-          had_surgery <- (!is.na(r2b_surg) && r2b_surg == 1) ||
-            (!is.na(r2e_surg) && r2e_surg == 1)
-          if (had_surgery) 1 else 0
-        }) %>%
-
-        # Awaiting-AME routing (Issue #23 follow-up, revised per AJP-4.10(B)
-        # [[21]]): a Casualty Staging Unit "collocate[s] already stabilized
-        # patients" pending transport — every casualty reaching this branch
-        # has, by construction, already completed R2E's post-operative
-        # ICU/Hold recovery timeout, so staging is in a Hold bed on both
-        # routes. Priority 1 surgical evacuees (the same population assigned
-        # the Role 4 ICU ward — R/analysis.R::assign_role4_los()) queue on
-        # the smaller "ame_critical" pool instead — a critical care air
-        # transport team (CCATT) or critical care aeromedical evacuation
-        # support team (CCAST) "augment[ing] the standard aeromedical
-        # evacuation crew" on the same sortie (see build_ame_sortie_
-        # trajectory(), below), "limited by capacity" per AJP-4.10(B). The
-        # critical/standard split is therefore a distinction in airlift seat
-        # type, not in bed type.
-        # ame_route: 1 = critical (ame_critical pool), 2 = standard (ame
-        # pool) — read by R/analysis.R for the route-decomposed wait-time/
-        # backlog outputs.
-        branch(
-          option = function() {
-            prio <- get_attribute(env, "priority")
-            tx   <- get_attribute(env, "treatment_received")
-            if (!is.na(prio) && prio == 1 && !is.na(tx) && tx == 1) return(1)
-            return(2)
-          },
-          continue = TRUE,
-          trajectory("Await Critical AME") %>%
-            set_attribute("ame_route", 1) %>%
-            join(critical_pre_flight_care) %>%
-            # The AME pool seat is never released — a boarded casualty
-            # permanently consumes that sortie's capacity; no seats are
-            # handed back. Casualties board strictly in queue (decision)
-            # order — no further acuity-based boarding priority beyond the
-            # critical/standard split itself is modelled; see README
-            # Further Development.
-            join(ame_wait_and_board("ame_critical", 9)),
-          trajectory("Await Standard AME — Hold Bed") %>%
-            set_attribute("ame_route", 2) %>%
-            simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
-            seize_selected(id = 9) %>%
-            join(ame_wait_and_board("ame", 9))
-        ) %>%
-        release_selected(id = 9) %>%
-        set_attribute("ame_departure_time", function() now(env)) %>%
-        set_attribute("evacuation_day", function() floor(now(env) / DAY_MIN) + 1) %>%
-        set_attribute("ame_wait_minutes", function() {
-          now(env) - get_attribute(env, "r2e_departure_time")
-        })
+      r2e_strategic_evac(hold_beds, critical_care, team_id, evac_team)
     )
+}
+
+#' Models the full R2E Heavy treatment flow for WIA casualties
+#'
+#' @param team_id Integer ID of the R2E team assigned to receive the casualty
+#' @return Simmer trajectory representing clinical care and disposition at R2E
+#'
+#' @details The body is the sequence of phases a casualty passes through, each a
+#'   named builder above: the arrival died-of-wounds check
+#'   (r2e_arrival_dow_check()), resuscitation (r2e_resuscitation()), the
+#'   surgical branch and its pre-theatre intensive care gate
+#'   (r2e_surgical_branch()), the second operation of the damage control
+#'   pathway (r2e_second_surgery()), the post-definitive intensive care episode
+#'   (r2e_post_definitive_care()) and the final disposition (r2e_disposition()).
+#'
+#'   Each phase is appended to the same trajectory object rather than joined
+#'   into it, so the assembled trajectory is the one the undivided body built.
+#'   The sub-trajectories that were joined before are joined still, and are
+#'   built here and passed down rather than rebuilt at each use, so the model
+#'   holds one object where it held one before.
+#'
+#'   The three surgical pathways are compositions of those sub-trajectories: the
+#'   nominal one takes any outstanding stabilisation, the operation and the
+#'   stabilisation phase between the two operations; the degraded one takes the
+#'   operation and the post-operative hold; and the deferred one waits for
+#'   intensive care headroom and then takes the nominal one.
+#'
+#'   The builders take the resources they use rather than reading this team's
+#'   establishment themselves, so what each one touches is visible in its
+#'   signature.
+r2e_treat_wia <- function(team_id) {
+  hold_beds       <- env_data$elms$r2eheavy[[team_id]][["hold_bed"]]
+  resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
+  ot_beds         <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
+  icu_beds        <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
+  surg_teams      <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+
+  emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
+  evac_team      <- select_subteam("r2eheavy", team_id, "evac")
+  icu_team       <- select_subteam("r2eheavy", team_id, "icu")
+
+  post_op_dow     <- r2e_post_op_dow_check(team_id, evac_team)
+  stab_recovery   <- r2e_stabilisation_recovery(icu_beds, post_op_dow)
+  pre_stab        <- r2e_pre_surgery_stabilisation(icu_beds)
+  hold_recovery   <- r2e_hold_recovery(hold_beds, post_op_dow)
+  ot_surgery      <- r2e_ot_surgery(team_id, ot_beds, surg_teams)
+  post_definitive <- r2e_post_definitive_care(icu_beds, hold_beds)
+  critical_care   <- r2e_critical_pre_flight_care(icu_beds, hold_beds)
+
+  icu_path <- trajectory("R2E Surgery — ICU Available") %>%
+    join(pre_stab) %>%
+    join(ot_surgery) %>%
+    join(stab_recovery)
+
+  hold_path <- trajectory("R2E Surgery — ICU Full, P1 to Post-Op Hold") %>%
+    join(ot_surgery) %>%
+    join(hold_recovery)
+
+  defer_path <- r2e_surgery_defer_path(icu_beds, icu_path)
+
+  trajectory("R2E Treatment") %>%
+    set_attribute("r2e_treated", team_id) %>%
+    set_attribute("r2e_handling", 1) %>%
+    set_attribute("r2e_arrival_time", function() now(env)) %>%
+
+    # Phase 1: DOW check on arrival
+    r2e_arrival_dow_check(team_id, evac_team) %>%
+
+    # Phase 2: Resuscitation
+    r2e_resuscitation(resus_beds, emergency_team) %>%
+
+    # Phase 3: Surgical branch, gated on intensive care availability
+    r2e_surgical_branch(icu_beds, icu_path, hold_path, defer_path, post_op_dow) %>%
+
+    # Phase 4: Second surgery, for a damage control casualty whose abbreviated
+    # operation was the Phase 3 one here
+    r2e_second_surgery(team_id, ot_beds, surg_teams) %>%
+
+    # Post-definitive intensive care, after whichever operation was this
+    # casualty's definitive repair — the Phase 4 procedure for a casualty
+    # operated on only at R2E, the Phase 3 one for a casualty who had their
+    # abbreviated operation at R2B.
+    join(post_definitive) %>%
+
+    # Phase 5: Final disposition — theatre evacuation policy
+    r2e_disposition(hold_beds, critical_care, team_id, evac_team)
 }
 
 # ── Core casualty trajectory ──────────────────────────────────────────────────

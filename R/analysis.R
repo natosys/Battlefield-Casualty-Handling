@@ -406,7 +406,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 #' @details `seats_used` is derived, not directly observed, and is *not* the
 #'   backlog waiting at the exact instant this sortie fires — a first-pass
 #'   implementation used that instantaneous reading and, verified against a
-#'   real seed-42 run, was consistently zero: `ame_wait_and_board()`
+#'   real seed-42 run, was consistently zero: `r2e_ame_wait_and_board()`
 #'   (R/trajectories.R) lets a casualty seize freed capacity the moment it
 #'   arrives, with no queueing step, so a sortie's newly added (or
 #'   previously banked — see MODEL ASSUMPTION — AME Capacity Banking) seats
@@ -512,9 +512,9 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #'   no casualty ever reached the Strategic Evac AME-wait stage.
 #'
 #' @details A waiting casualty never registers in simmer's own queue
-#'   tracking for `"ame"`/`"ame_critical"`: `ame_wait_and_board()`
+#'   tracking for `"ame"`/`"ame_critical"`: `r2e_ame_wait_and_board()`
 #'   (R/trajectories.R) uses a manual `timeout()` + `rollback()` polling
-#'   loop (`ame_dow_poll()`) rather than `select()`/`seize_selected()` or a
+#'   loop (`r2e_ame_dow_poll()`) rather than `select()`/`seize_selected()` or a
 #'   blocking `seize()`, calling `seize(resource_name, 1)` only once
 #'   capacity is already confirmed available — so the resource monitor's
 #'   `queue` column for these two resources is structurally always 0,

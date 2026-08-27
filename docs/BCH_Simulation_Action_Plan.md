@@ -93,8 +93,9 @@
 | 237 | Housekeeping — delete the ten `wip/*` branches, reconcile the Further Development scan table, close `CLAUDE.md` drift | Low | Low | **Merged (PR #259)** |
 | 235 | Add `lintr`, a single check-suite runner, and GitHub Actions CI so the regression checks become a gate | High | Medium | **Merged (PR #251)** |
 | 252 | Narrow the check suite on a documentation-only pull request | Low | Low | **Merged (PR #253)** |
-| 241 | Apply the code standard — decompose the oversized functions behind `testServer` and Playwright verification | High | High | **Open — six PRs merged (#261, #263, #264, #265, #266, #267); one acceptance criterion outstanding** |
-| 262 | `check_markdown.R`'s scan table check aborts outside a UTF-8 locale | Low | Low | Open |
+| 241 | Apply the code standard — decompose the oversized functions behind `testServer` and Playwright verification | High | High | **Merged (PR #269)** — seven PRs (#261, #263, #264, #265, #266, #267, #269); closed with one acceptance criterion unmet, taken up as Issue 270 |
+| 262 | `check_markdown.R`'s scan table check aborts outside a UTF-8 locale | Low | Low | **Merged (PR #268)** |
+| 270 | Split the five simulation-logic functions still over the length limit, verified byte for byte | Medium | High | Open |
 | 238 | Re-cut the analysis papers by method — move the replicated experiments out of the single-run paper | High | Medium | Open |
 | 239 | Bring the single-run analysis paper to publication standard | High | High | Open (blocked) |
 | 240 | Bring the multi-run analysis paper to publication standard | High | High | Open (blocked) |
@@ -109,17 +110,19 @@
 
 ## Recently Merged Issues
 
-### Issue 241 — Apply the Code Standard: Decompose the Oversized Functions (six PRs; issue remains open)
+### Issue 241 — Apply the Code Standard: Decompose the Oversized Functions ✓
 
-**Merged:** PRs #261, #263, #264, #265, #266 and #267, branch `claude/config-output-style-82tzf4`
+**Merged:** PRs #261, #263, #264, #265, #266, #267 and #269, branch `claude/config-output-style-82tzf4`
 
-Recorded as one entry because it is one issue, and marked open because it is not
-finished: six of its seven acceptance criteria are met and the seventh, that no
-function exceed the length limit, stands at eleven functions against the
-eighteen it started from. The six pull requests were sequenced deliberately
-rather than delivered as one, the whole being a three-thousand-line refactor
-whose diff would otherwise have been too large to review as a unit, which is the
-fault the issue exists to correct.
+Recorded as one entry because it is one issue. Six of its seven acceptance
+criteria are met; the seventh, that no function exceed the length limit, is not,
+the count standing at nine functions against the eighteen it started from. The
+issue was closed on that basis rather than held open, the residual being a
+distinct piece of work with its own approach and its own verification, raised as
+Issue 270. The seven pull requests were sequenced deliberately rather than
+delivered as one, the whole being a three-thousand-line refactor whose diff would
+otherwise have been too large to review as a unit, which is the fault the issue
+exists to correct.
 
 **PR #261 — the verification scaffolding.** Committed first, on the reasoning
 that a test which only exists on the branch that does a refactor proves nothing
@@ -158,6 +161,24 @@ recorded in its own header.
 `build_environment`, `apply_params` and `plot_r2b_icu_share_frontier` split at
 seams they already carried, taking the count from eighteen to eleven.
 
+**PR #269 — the screen drivers, behind an invariant designed for them.**
+`run_morris()` (212 lines) and `run_sobol()` (240) were the two extractions the
+earlier pull requests could not derive from the parse tree, and
+`scripts/check_screen_order.R` was written before either was touched. It stubs
+the model evaluation and drives both over their real designs, asserting that a
+design repeats at one control seed and differs at another, that every point is
+evaluated exactly once in index order with the parameters the design row claims,
+that a resumed screen re-evaluates nothing, and that a response vector carries
+the names the drivers index it by. It was validated by fault injection rather
+than by passing: reversing the evaluation order and moving the cache by one both
+fail it. `extract_kpis()` fell from 205 lines to 126 behind
+`prepare_kpi_frames()` and `extract_role4_kpis()`, verified by comparing all 36
+responses over one captured monitoring set, the function being a pure reduction
+and so decidable by identity. The check costs 2 minutes 58 seconds and joins the
+fast suite; it was 6 minutes 23 seconds until `ggsave()` was shadowed alongside
+the evaluation stub, the drivers having rendered thirty-six labelled scatter
+plots per call that the check asserts nothing about.
+
 **What the artifact comparison could not see, and what was added because of it.**
 Three classes of fault surfaced that no byte comparison would have caught, and
 each produced a check rather than only a repair. Decomposing the analysis
@@ -172,35 +193,69 @@ property across all sixty-odd panels, including those no browser test opens, and
 caught the same fault class again in PR #266. Removing an alias in PR #265
 exposed `attributes` having shadowed `base::attributes`.
 
-**Where the remaining eleven stand.** Three are orchestrators whose bodies are a
+**Where the remaining nine stand.** Three are orchestrators whose bodies are a
 sequence of named calls, recorded in the style guide's conformance table with the
 argument rather than split, splitting one into sub-orchestrators trading an
-explicit dependency list for a smaller number. Five are simulation logic where a
-split shifts the random number stream and so moves every published figure at
-once, needing verification against the seed-42 reproduction one split at a time.
-Three are the screen drivers and the response extraction they share: every
-extraction across the six pull requests derived its interface from the parse
-tree, which works because the bodies were self-contained, and these are not.
-`rank_response()` reads the response matrix from the frame enclosing it, and both
-drivers order their evaluation against a resumable on-disk cache keyed by design
-index. That distinction was established by attempting the split and reverting it,
-not by predicting it; a screen is an eleven-hour run, and a fault in evaluation
-order would leave a cache resuming into wrong responses with nothing reporting
-it.
+explicit dependency list for a smaller number. `extract_kpis()` is the fourth,
+at 126 lines after the two pieces that lift out whole were lifted; what remains
+is one reduction per response domain over a shared set of frames, and threading
+the rest into the response assembly would move the coupling into a parameter list
+rather than remove it. The other five are simulation logic, and Issue 270 takes
+them up. The deferral recorded here through PR #267, that a split shifts the
+random number stream and so moves every published figure, reads differently now
+that the phase's verification exists: `scripts/check_baseline_reproduction.R`
+settles the question byte for byte in 44 seconds and gates every pull request, so
+a stream shift fails loudly rather than passing silently. What actually stops
+those five is interface design, the same obstacle the screen drivers posed, and
+PR #269 established the method for it.
+
+The distinction between an interface that can be derived and one that must be
+designed was established by attempting the screen-driver split during PR #266 and
+reverting it, not by predicting it. A screen is an eleven-hour run, and a fault
+in evaluation order would leave a cache resuming into wrong responses with
+nothing reporting it, which is why that split waited for a check built for it.
 
 **Seed-42 baseline:** unchanged throughout, and verified rather than assumed at
 every step. No published value moves; `scripts/check_baseline_reproduction.R`
-reports the tracked evidence set reproducing byte for byte on each of the six
-merges. The lint ratchet ends below where it started, 1,217 findings to 1,208,
-with `function_length` at eleven against a baseline of eighteen.
+reports the tracked evidence set reproducing byte for byte on each of the seven
+merges. The lint ratchet ends below where it started, 1,217 findings to 1,209,
+with `function_length` at nine against a baseline of eighteen.
 
 **Raised by this work:** Issue #262, `scripts/check_markdown.R` aborting outside
-a UTF-8 locale, found when the suite was run in a bare shell. Continuous
-integration is unaffected, the pinned container setting a UTF-8 locale, so it
-reaches a contributor running the suite locally.
+a UTF-8 locale, found when the suite was run in a bare shell and fixed under
+PR #268. Continuous integration was unaffected, the pinned container setting a
+UTF-8 locale, so it reached a contributor running the suite locally. Issue #270
+carries the unmet length criterion forward, covering the five simulation-logic
+functions with the sequencing and the verification the residual needs.
 
 **Unblocked by this merge:** No new issues unblocked. Nothing in Phase 6 or
-Phase 7 was gated on #241, and #241 itself remains open.
+Phase 7 was gated on #241.
+
+---
+
+### Issue 262 — `check_markdown.R` Aborts Outside a UTF-8 Locale ✓
+
+**Merged:** PR #268, branch `claude/config-output-style-82tzf4`
+
+`scripts/check_markdown.R` exited non-zero rather than reporting whenever the
+session's `LC_CTYPE` was not UTF-8. The pattern matching the Further Development
+entry headings carries a literal em dash, because that is the character the
+headings use, and outside a UTF-8 locale R could not translate it, so
+`regexec()` raised before reaching any document content. The cost was not the
+false failure but what accompanied it: the check exited having asserted nothing
+about the scan table, and a contributor reading the failure as environmental,
+which it was, learned nothing about whether the table and its entries still
+agreed. Both `regexec()` calls now match byte-wise, the treatment the same file
+already applied to its table-of-contents writer, and the check asserts that its
+own entry-heading match is byte-wise, so a future non-ASCII pattern cannot
+reintroduce the fault silently. Continuous integration was never affected, the
+pinned container setting a UTF-8 locale.
+
+This entry was omitted when PR #268 recorded the six Issue 241 merges, the pull
+request having carried both changes and recorded only one; it is added here
+rather than left missing.
+
+**Unblocked by this merge:** No new issues unblocked.
 
 ---
 
@@ -2504,7 +2559,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 30a. ~~**Issue 201** — Backfill the thirteen merged issues that had no item in any phase sequence list and no entry in their phase heading roster, five of them reported and eight found by the audit, each placed at its position in merge order under the letter-suffix convention. Widen `scripts/check_markdown.R`'s anchor link check from the three documents carrying a table of contents block to every tracked markdown document, excluding links inside backticks, which GitHub renders as literal text; the table of contents and return-link maintenance stays scoped to the three. Repair the Issue 44 citation, which resolved to another entry's References block. Requires Issue 153 (the anchor check itself).~~ — **Merged PR #213.**
 30b. ~~**Issue 155** — The terminal canonical re-run. Rebuild every figure, table and plot across `README.md`, `docs/Single_Run_Analysis.md`, `docs/Multi_Run_Analysis.md` and `CLAUDE.md` from one code state, commit `ed3c426`, in the pinned Dev Container, and retire the twenty-one accumulated per-issue provenance caveats. The pinned run reproduces the tracked seed-42 baseline byte for byte, so the caveats retire as correct and no published seed-42 value moves. Rebuild the Morris ranking at sixty-five parameters and r = 20, which withdraws the r = 5 finding that `triage_p1_balance` ranks first. Fix `run_sobol()`, which could never return indices. Add three scripts that interrogate a completed decomposition from its cache at no simulation cost, and the durability tooling a multi-hour screen needs to survive a reclaimed filesystem. Track the sensitivity evidence set at `data/sensitivity/`. Requires every other issue by its own terms.~~ — **Merged PR #226.**
 
-### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231 ✓, 232 ✓, 233 ✓, 234 ✓, 236 ✓, 237 ✓, 235 ✓, 252 ✓, 241)
+### Phase 6 — Code Quality and Verification (Issues 230 ✓, 231 ✓, 232 ✓, 233 ✓, 234 ✓, 236 ✓, 237 ✓, 235 ✓, 252 ✓, 241 ✓, 262 ✓, 270)
 *Estimated effort: 3–4 weeks. Establishes automated verification and applies a written code standard. The phase opens with the verification baseline, because a gate cannot be wired around checks of unknown status and a refactor cannot be shown behaviour-preserving against an unknown baseline.*
 
 1. ~~**Issue 230** — Execute the fifteen `scripts/check_*.R` regression checks and the seed-42 baseline reproduction in the pinned Dev Container, and record pass/fail, runtime and any failure output as a tracked table. A measurement rather than a repair: a check found failing becomes its own issue instead of being fixed in place, so the record stays an honest description of the state it was taken from. All fifteen pass and the seed-42 evidence set reproduces byte for byte; the 45-minute calibration check against 11 minutes 47 seconds for the other fourteen is the runtime finding Issue 235 turns on. Blocks Issues 235, 241, 239 and 240.~~ — **Merged PR #243.**
@@ -2516,7 +2571,9 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 7. ~~**Issue 237** — Housekeeping: delete the ten `wip/*` branches, reconcile the Further Development scan table against its entries, and close the drift between `CLAUDE.md` and the repository it describes. The scan table disagreed with three of its own entries and is reconciled to them, `scripts/check_markdown.R` now asserting the correspondence so the drift cannot recur; entry L22 is trimmed from four paragraphs to the one-paragraph length of its neighbours. The remote held twelve `wip/*` refs rather than ten, all verified redundant against `data/sensitivity/` and all deleted, which closes Issue #227 with it. The `CLAUDE.md` omissions were already closed.~~ — **Merged PR #259.**
 8. ~~**Issue 235** — Add `lintr`, a glob-discovered `scripts/run_all_checks.R`, and a GitHub Actions workflow so the regression checks become a gate on every PR against `main`, with the slow checks scheduled or dispatched rather than run per PR. Add a PR template carrying the mandated test plan structure. Requires Issues 230 and 234. The lint gate is a ratchet against tracked per-rule counts rather than a gate on zero, the code carrying 1,229 findings; two machine-checkable rules have no `lintr` linter and the check computes both itself. The first run found `check_references.R` had never passed since it was written.~~ — **Merged PR #251.**
 8a. ~~**Issue 252** — Narrow the check suite on a documentation-only pull request, a classification job diffing the branch against its base and the checking jobs narrowing what they run rather than being skipped, a required status check that never reports being one that blocks a merge forever. Raised from the first run's eleven-minute cost against the post-merge chore pull request this document's own convention mandates.~~ — **Merged PR #253.**
-9. **Issue 241** — Apply the code standard: decompose `server`, `analyse_run` and `analyse_replications` behind `testServer` and Playwright verification, verify the analysis pipeline byte for byte against the tracked seed-42 baseline, replace the ninety-three literal `1440`s with the named constant, and assess `r2e_treat_wia` for a provably stream-neutral decomposition. Requires Issues 234, 235 and 230. **Six PRs merged (#261, #263, #264, #265, #266, #267)** and six of seven acceptance criteria met: the two console suites exist and gate every PR, the two analysis entry points and `server` are decomposed and verified byte for byte, the literal `1440` is gone, and `r2e_treat_wia` is assessed and recorded. The seventh is outstanding, eleven functions still exceeding the limit against eighteen at the start; three of those are recorded as orchestrators not to be split, five carry stream risk and three need their interfaces designed rather than derived. Raised Issue 262 along the way.
+9. ~~**Issue 241** — Apply the code standard: decompose `server`, `analyse_run` and `analyse_replications` behind `testServer` and Playwright verification, verify the analysis pipeline byte for byte against the tracked seed-42 baseline, replace the ninety-three literal `1440`s with the named constant, and assess `r2e_treat_wia` for a provably stream-neutral decomposition. Requires Issues 234, 235 and 230. Seven pull requests, six of seven acceptance criteria met: the two console suites exist and gate every PR, the two analysis entry points, `server` and both screen drivers are decomposed and verified, the literal `1440` is gone, and `r2e_treat_wia` is assessed and recorded. The seventh is unmet, nine functions exceeding the limit against eighteen at the start, and the issue was closed on that basis rather than held open; Issue 270 takes the residual up. Raised Issues 262 and 270 along the way.~~ — **Merged PRs #261, #263, #264, #265, #266, #267 and #269.**
+9a. ~~**Issue 262** — `scripts/check_markdown.R` aborting outside a UTF-8 locale, its Further Development scan table pattern carrying a literal em dash that R cannot translate in a C locale, so the check exited non-zero having asserted nothing rather than reporting. Both `regexec()` calls now match byte-wise, the treatment the same file already applied to its table-of-contents writer, and the check asserts its own entry-heading match is byte-wise so the property cannot regress silently. Continuous integration was never affected, the pinned container setting a UTF-8 locale; it reached a contributor running the suite in a bare shell, which is how it was found.~~ — **Merged PR #268.**
+9b. **Issue 270** — Split the five simulation-logic functions still over the length limit: `r2e_treat_wia` (766 lines), `r2b_treat_wia` (560), `build_casualty_trajectory` (334), `run_once` (147) and `run_replications` (116). The deferral Issue 241 recorded, that a split shifts the random number stream and so moves every published figure, no longer holds as a reason to wait: `scripts/check_baseline_reproduction.R` settles it byte for byte in 44 seconds and gates every pull request. What actually stops them is interface design, a lifted sub-trajectory no longer closing over its parent's locals, which is the obstacle the screen drivers posed and which PR #269 established a method for. Four of the five already carry their decomposition as named locals or as a chain of composable segments. One pull request per function, cheapest interface first.
 
 ### Phase 7 — Publication (Issues 238, 239, 240)
 *Estimated effort: 2–3 weeks. Brings the two analysis documents to the standard of a published paper. Sequenced after Phase 6 because the figure-verification passes need a working environment and a known-good check suite.*
@@ -3109,6 +3166,24 @@ COMPLETE (merged to main):
        both entry points to it and fails on six of eight assertions against
        the unfixed pipeline. Post-hoc placement of the draw recorded as
        Further Development L30. Seed-42 reproduces byte for byte (PR #255)
+  #241 The code standard applied. The Shiny console's two test suites added
+       and wired into the gate; analyse_run() 1,418 lines to 398,
+       analyse_replications() 810 to 229, server 2,293 to 195, run_sobol()
+       240 to under 100, run_morris() 212 to under 100 and extract_kpis()
+       205 to 126, behind roughly a hundred named functions; the literal
+       1440 from 122 occurrences to one; functions over the length limit
+       from eighteen to nine. Each decomposition verified by artifact or
+       response comparison, and the screen drivers behind
+       check_screen_order.R, written before either was touched and
+       validated by fault injection. Three checks added that read binding
+       structure rather than behaviour, covering fault classes no artifact
+       comparison can see. Closed with its length criterion unmet; Issue
+       270 carries it forward. Seed-42 reproduces byte for byte on every
+       merge (PRs #261, #263, #264, #265, #266, #267, #269)
+  #262 check_markdown.R's scan table check no longer aborts outside a UTF-8
+       locale. Both regexec() calls match byte-wise and the check asserts
+       its own entry-heading match is byte-wise, so a future non-ASCII
+       pattern cannot reintroduce the fault silently (PR #268)
 
 IN REVIEW (PRs open against main):
   (none)
@@ -3120,16 +3195,14 @@ UNBLOCKED (start now):
        merge of #226.
   #238 Re-cut the analysis papers by method — move the replicated
        experiments out of the single-run paper. Gates #239 and #240.
-  #241 Apply the code standard — six PRs merged (#261, #263, #264, #265,
-       #266, #267) and six of seven acceptance criteria met. Open on the
-       seventh: eleven functions still exceed the length limit, against
-       eighteen at the start. Three are orchestrators recorded as not to be
-       split, five carry stream risk and need per-split verification against
-       the seed-42 reproduction, and three need their interfaces designed
-       rather than derived from the parse tree.
-  #262 check_markdown.R's scan table check aborts outside a UTF-8 locale.
-       One argument on two regexec() calls, plus an assertion so a future
-       non-ASCII pattern cannot reintroduce it. Raised by the work on #241.
+  #270 Split the five simulation-logic functions still over the length
+       limit — r2e_treat_wia (766), r2b_treat_wia (560),
+       build_casualty_trajectory (334), run_once (147), run_replications
+       (116). Carries forward the one acceptance criterion #241 closed
+       without meeting. Not gated: check_baseline_reproduction.R already
+       settles stream-neutrality byte for byte per PR, and PR #269
+       established the interface-design method the splits need. Raised by
+       the work on #241.
 
 BLOCKED (gated on other issues):
   #239 Single-run analysis paper to publication standard. Blocked on #238,
@@ -3159,4 +3232,4 @@ All reported metrics should adopt the following format:
 
 ---
 
-*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one. Updated again on the same date to record the merge of Issue #232 (PR #245), which repairs the ten broken README image paths, widens `scripts/check_markdown.R` from heading anchors to every link and image target and to placeholder alt text, and, through the caption pass the issue asked for, audits all thirty-one tracked figures: three were rendering correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates. No published value moves and the seed-42 baseline reproduces byte for byte, in R 4.3.3 as well as in the pinned 4.4.2. No issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #232. Updated again on the same date to record the merge of Issue #231 (PR #247), which repairs the README reference list: the misattributed duplicate deleted, the second duplicate merged, both open-access violations re-sourced to substitutes already in the list, the uncited entry cited, and the list renumbered from sixty-seven entries to sixty-three in order of first appearance, with `scripts/check_references.R` added to hold all three academic documents to those properties. The URL verification found three further paywalled entries the issue had not named; two are swapped for PubMed Central copies of the same articles and the third, Hall et al. (2023), has no open-access copy and is left for its own issue. No published value moves and no issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #231. Updated again on the same date to record the merge of Issue #234 (PR #249), which replaces `docs/STYLE_GUIDE.md` with an enforceable R code standard of roughly sixty identified rules, each tagged machine-checkable, reviewer-applied or preference, audited against all 21,129 lines of R so that it records the conventions already in use and measures the gap where it does not. `CLAUDE.md`'s Code Standards section is rewritten to cite it by rule identifier and four files are added to its Repository Structure table. No published value moves and no R source is touched. Issue #235 becomes ready on this merge, #230 and #234 having been its two gates; #241 stays blocked on #235. Updated 24 August 2026 to record the merge of Issue #235 (PR #251), which turns the regression checks into a gate: a glob-discovered suite runner returning one exit status, a lint configuration encoding the `[lint]` rules of #234 and ratcheted against tracked per-rule counts rather than gated on zero, a seed-42 byte-for-byte reproduction check, and a GitHub Actions workflow running all three per pull request in the pinned container, with the calibration check weekly. The first run confirmed the seed-42 reproduction in the container and found that `check_references.R` had never passed since it was written, its URL pattern matching nothing under R's default regular expression engine; it is repaired in the same PR and the reference lists were sound throughout. Issue #241 becomes ready on this merge, #230, #234 and #235 having been its three gates. Updated again on the same date to record the merge of Issue #252 (PR #253), which narrows the suite on a documentation-only pull request through a classification job, the checking jobs narrowing what they run rather than being skipped so that a required status check always reports. No published value moves in either merge and no issue becomes ready on the second. Updated again on the same date to record the merge of Issue #233 (PR #255), which makes the analysis pipeline stream-neutral: `.Random.seed` is saved and restored around the Role 4 length-of-stay draw and the pooled mass casualty timeline's jitter takes an explicit seed, so analysing one run's output twice gives one answer. The stream is preserved rather than reseeded, which leaves the draw at the position it already held, so no published figure moves and the seed-42 evidence set reproduces byte for byte; `scripts/check_analysis_idempotence.R` is added and fails on six of its eight assertions against the unfixed pipeline. Moving the draw into the simulation is recorded as Further Development L30 rather than implemented. No issue becomes ready on this merge, #241 having never been gated on #233. Updated again on the same date to record the merge of Issue #236 (PR #257), which makes the configuration save and restore exception-safe: `capture_config_globals()` and `restore_config_globals()` are registered with `on.exit(..., add = TRUE)` at the point of save in both capacity sweeps, both sensitivity screens and `run_scenario()`, which had no restore at all, so a run that fails partway can no longer leave the session on the swept configuration and report the next run as the baseline. The same PR adds entry-point validation to the four analysis entry points and to `app.R`'s two configuration-loading boundaries, so a missing monitoring column or a malformed `env_data.json` field is named rather than surfacing as a subscript error inside a pipeline. `scripts/check_config_restore.R` and `scripts/check_input_validation.R` are added, the first failing on all seven of its assertions against the unfixed code; the argument-threading alternative is recorded as Further Development L31. No published value moves, the seed-42 evidence set reproducing byte for byte, and no issue becomes ready on this merge, nothing in Phase 6 or Phase 7 having been gated on #236. Updated 25 August 2026 to record the merge of Issue #237 (PR #259), the Phase 6 housekeeping pass: the README's Further Development scan table is reconciled to the three entries it had drifted from and `scripts/check_markdown.R` now asserts that correspondence, so a row can no longer name a gap or an impact differently from the entry it points at; entry L22 is trimmed from four paragraphs to the one-paragraph length of its neighbours, the replication-count derivation it duplicated having its single home in `CLAUDE.md`'s Key Parameters table. The remote held twelve `wip/*` checkpoint refs rather than the ten the issue enumerated, every one verified byte-identical to the tracked evidence set under `data/sensitivity/` or a superseded intermediate, and all twelve are deleted, which closes Issue #227 as completed alongside it. The `CLAUDE.md` Repository Structure omissions the issue named were already closed. No published value moves and the seed-42 evidence set reproduces byte for byte; no issue becomes ready on this merge, nothing in Phase 6 or Phase 7 having been gated on #237. Updated 26 August 2026 to record the six merges against Issue #241 (PRs #261, #263, #264, #265, #266 and #267), which add the Shiny console's two test suites and wire both into the gate, decompose `analyse_run()` from 1,418 lines to 398, `analyse_replications()` from 810 to 229 and `server` from 2,293 to 195 behind roughly a hundred named functions, reduce the literal `1440` from 122 occurrences to one, and take the count of functions over the length limit from eighteen to eleven. Each decomposition was verified by artifact comparison, 89 outputs byte-identical, and the seed-42 evidence set reproduces byte for byte on every merge; the lint ratchet ends below where it started. Three classes of fault surfaced that no artifact comparison could see, a stage returning a conditionally-bound name, a panel reading another's local, and an alias whose removal exposed a shadowed base function, and two new checks, `check_analysis_decomposition.R` and `check_console_bindings.R`, now assert the binding structure so all three are covered on every path at once. Issue #241 remains open on its seventh acceptance criterion, and Issue #262 was raised from the work. The post-merge chore convention asks for a `chore/` branch; this update was made on the development branch instead, the session having no authority to create one, and the deviation is recorded here rather than left implicit.*
+*Prepared June 2026. Updated 23 August 2026 to reflect: the merge of Issue #155 (PR #226), the terminal canonical re-run, which rebuilds every published figure from commit `ed3c426` in the pinned Dev Container, retires the twenty-one accumulated provenance caveats as correct, rebuilds the Morris ranking at sixty-five parameters, withdraws three published claims that did not survive re-measurement, and tracks the sensitivity evidence set at `data/sensitivity/`; and the two issues it raised, #227 (checkpoint ref cleanup) and #228 (higher-resolution decomposition). Further updated 23 August 2026 to scaffold two new phases, Phase 6 (code quality and verification, Issues #230 to #237 and #241) and Phase 7 (publication, Issues #238 to #240), and to move #227 and #228 from BLOCKED to UNBLOCKED, the merge of #226 that gated them having landed; and again on the same date to record the merge of Issue #230 (PR #243), the verification baseline, which executes the fifteen regression checks as a suite for the first time and confirms the seed-42 reproduction by execution. No issue becomes ready on that merge, #230 having been one of two or three gates on each of #235, #241, #239 and #240 rather than the only one. Updated again on the same date to record the merge of Issue #232 (PR #245), which repairs the ten broken README image paths, widens `scripts/check_markdown.R` from heading anchors to every link and image target and to placeholder alt text, and, through the caption pass the issue asked for, audits all thirty-one tracked figures: three were rendering correctly while describing a model that no longer existed, and two new renderers now derive each from the data it illustrates. No published value moves and the seed-42 baseline reproduces byte for byte, in R 4.3.3 as well as in the pinned 4.4.2. No issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #232. Updated again on the same date to record the merge of Issue #231 (PR #247), which repairs the README reference list: the misattributed duplicate deleted, the second duplicate merged, both open-access violations re-sourced to substitutes already in the list, the uncited entry cited, and the list renumbered from sixty-seven entries to sixty-three in order of first appearance, with `scripts/check_references.R` added to hold all three academic documents to those properties. The URL verification found three further paywalled entries the issue had not named; two are swapped for PubMed Central copies of the same articles and the third, Hall et al. (2023), has no open-access copy and is left for its own issue. No published value moves and no issue becomes ready on that merge, nothing in Phase 6 or Phase 7 having been gated on #231. Updated again on the same date to record the merge of Issue #234 (PR #249), which replaces `docs/STYLE_GUIDE.md` with an enforceable R code standard of roughly sixty identified rules, each tagged machine-checkable, reviewer-applied or preference, audited against all 21,129 lines of R so that it records the conventions already in use and measures the gap where it does not. `CLAUDE.md`'s Code Standards section is rewritten to cite it by rule identifier and four files are added to its Repository Structure table. No published value moves and no R source is touched. Issue #235 becomes ready on this merge, #230 and #234 having been its two gates; #241 stays blocked on #235. Updated 24 August 2026 to record the merge of Issue #235 (PR #251), which turns the regression checks into a gate: a glob-discovered suite runner returning one exit status, a lint configuration encoding the `[lint]` rules of #234 and ratcheted against tracked per-rule counts rather than gated on zero, a seed-42 byte-for-byte reproduction check, and a GitHub Actions workflow running all three per pull request in the pinned container, with the calibration check weekly. The first run confirmed the seed-42 reproduction in the container and found that `check_references.R` had never passed since it was written, its URL pattern matching nothing under R's default regular expression engine; it is repaired in the same PR and the reference lists were sound throughout. Issue #241 becomes ready on this merge, #230, #234 and #235 having been its three gates. Updated again on the same date to record the merge of Issue #252 (PR #253), which narrows the suite on a documentation-only pull request through a classification job, the checking jobs narrowing what they run rather than being skipped so that a required status check always reports. No published value moves in either merge and no issue becomes ready on the second. Updated again on the same date to record the merge of Issue #233 (PR #255), which makes the analysis pipeline stream-neutral: `.Random.seed` is saved and restored around the Role 4 length-of-stay draw and the pooled mass casualty timeline's jitter takes an explicit seed, so analysing one run's output twice gives one answer. The stream is preserved rather than reseeded, which leaves the draw at the position it already held, so no published figure moves and the seed-42 evidence set reproduces byte for byte; `scripts/check_analysis_idempotence.R` is added and fails on six of its eight assertions against the unfixed pipeline. Moving the draw into the simulation is recorded as Further Development L30 rather than implemented. No issue becomes ready on this merge, #241 having never been gated on #233. Updated again on the same date to record the merge of Issue #236 (PR #257), which makes the configuration save and restore exception-safe: `capture_config_globals()` and `restore_config_globals()` are registered with `on.exit(..., add = TRUE)` at the point of save in both capacity sweeps, both sensitivity screens and `run_scenario()`, which had no restore at all, so a run that fails partway can no longer leave the session on the swept configuration and report the next run as the baseline. The same PR adds entry-point validation to the four analysis entry points and to `app.R`'s two configuration-loading boundaries, so a missing monitoring column or a malformed `env_data.json` field is named rather than surfacing as a subscript error inside a pipeline. `scripts/check_config_restore.R` and `scripts/check_input_validation.R` are added, the first failing on all seven of its assertions against the unfixed code; the argument-threading alternative is recorded as Further Development L31. No published value moves, the seed-42 evidence set reproducing byte for byte, and no issue becomes ready on this merge, nothing in Phase 6 or Phase 7 having been gated on #236. Updated 25 August 2026 to record the merge of Issue #237 (PR #259), the Phase 6 housekeeping pass: the README's Further Development scan table is reconciled to the three entries it had drifted from and `scripts/check_markdown.R` now asserts that correspondence, so a row can no longer name a gap or an impact differently from the entry it points at; entry L22 is trimmed from four paragraphs to the one-paragraph length of its neighbours, the replication-count derivation it duplicated having its single home in `CLAUDE.md`'s Key Parameters table. The remote held twelve `wip/*` checkpoint refs rather than the ten the issue enumerated, every one verified byte-identical to the tracked evidence set under `data/sensitivity/` or a superseded intermediate, and all twelve are deleted, which closes Issue #227 as completed alongside it. The `CLAUDE.md` Repository Structure omissions the issue named were already closed. No published value moves and the seed-42 evidence set reproduces byte for byte; no issue becomes ready on this merge, nothing in Phase 6 or Phase 7 having been gated on #237. Updated 26 August 2026 to record the six merges against Issue #241 (PRs #261, #263, #264, #265, #266 and #267), which add the Shiny console's two test suites and wire both into the gate, decompose `analyse_run()` from 1,418 lines to 398, `analyse_replications()` from 810 to 229 and `server` from 2,293 to 195 behind roughly a hundred named functions, reduce the literal `1440` from 122 occurrences to one, and take the count of functions over the length limit from eighteen to eleven. Each decomposition was verified by artifact comparison, 89 outputs byte-identical, and the seed-42 evidence set reproduces byte for byte on every merge; the lint ratchet ends below where it started. Three classes of fault surfaced that no artifact comparison could see, a stage returning a conditionally-bound name, a panel reading another's local, and an alias whose removal exposed a shadowed base function, and two new checks, `check_analysis_decomposition.R` and `check_console_bindings.R`, now assert the binding structure so all three are covered on every path at once. Issue #241 remains open on its seventh acceptance criterion, and Issue #262 was raised from the work. The post-merge chore convention asks for a `chore/` branch; this update was made on the development branch instead, the session having no authority to create one, and the deviation is recorded here rather than left implicit. Updated 27 August 2026 to record the merge of PR #269, the seventh and last against Issue #241, which splits `run_morris()` and `run_sobol()` behind `scripts/check_screen_order.R` and reduces `extract_kpis()` from 205 lines to 126, taking the count of functions over the length limit from eleven to nine. The check was written before either driver was touched and validated by fault injection rather than by passing, a screen being an eleven-hour run whose cache a fault in evaluation order would leave resuming into wrong responses with nothing reporting it. Issue #241 is closed with its seventh acceptance criterion unmet, the residual raised as Issue #270, which takes up the five simulation-logic functions on the reasoning that the deferral recorded through PR #267 no longer holds: `scripts/check_baseline_reproduction.R` settles stream-neutrality byte for byte in 44 seconds and gates every pull request, so what stops those splits is interface design rather than risk. The same update records the merge of Issue #262 (PR #268), which PR #268 itself did not record, and marks it complete in the summary table, the phase sequence and the dependency graph. No published value moves. The `chore/` branch deviation noted above applies to this update as well.*

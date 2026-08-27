@@ -47,5 +47,5 @@ none of the headings.
 
 - [ ] `README.md` (system reference: structure, trajectories, resources, assumptions, Further Development)
 - [ ] `docs/Single_Run_Analysis.md` (seed-42 single-run findings)
-- [ ] `docs/Multi_Run_Analysis.md` (multi-run and scenario-comparison findings)
+- [ ] `docs/Multi_Run_Analysis.md` (every replicated finding: the scenario comparison, the policy-lever sweeps and the stress tests)
 - [ ] None: this PR changes no section any of the three documents owns

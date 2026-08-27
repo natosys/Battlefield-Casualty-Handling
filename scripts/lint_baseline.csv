@@ -1,7 +1,7 @@
 rule,count
 assignment_linter,122
 commas_linter,6
-function_length,5
+function_length,4
 indentation_linter,160
 infix_spaces_linter,2
 line_length_linter,695

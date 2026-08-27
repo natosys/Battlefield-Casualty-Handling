@@ -20,15 +20,15 @@ rather than in the environment.
 | Job | Runs on | What it does | Typical cost |
 |---|---|---|---|
 | Classify the change | Every pull request | Compares the branch against its base and decides whether the change can move a model output, a lint count or the tracked baseline | Seconds |
-| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction | Nine minutes, measured on the first run |
+| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast --jobs auto`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction, run several at a time | 7 min 27 s on the four-core runner, measured 27 August |
 | Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
 | Shiny console browser suite | The same events | `npx playwright test`, which starts the console and drives it in a headless Chromium | Two to three minutes plus the restore and the toolchain install |
 | Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `scripts/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
 
 The figures above are the check time alone. Restoring the project library
 costs a further minute or so on top, and less again once the cache keyed on the
-hash of `renv.lock` is warm. A pull request therefore reports in about ten
-minutes.
+hash of `renv.lock` is warm. The fast suite is what a pull request waits on:
+every other job reports inside three minutes.
 
 ## What a documentation-only change runs
 
@@ -93,7 +93,10 @@ Every job runs a command that can be run by hand from the repository root, and
 running it before pushing is faster than waiting for the gate:
 
 ```bash
-# What the pull request is gated on
+# What the pull request is gated on, one check per core
+Rscript scripts/run_all_checks.R --fast --jobs auto
+
+# The same thing one check at a time
 Rscript scripts/run_all_checks.R --fast
 
 # One check, by name or by pattern
@@ -111,6 +114,55 @@ gitignored, and prints a summary line and a non-zero exit status if any check
 failed. Add `--no-tree-check` when the working tree is already dirty for
 unrelated reasons, which otherwise makes the two document-regenerating checks
 report a failure that is not theirs.
+
+## Running several checks at once
+
+`--jobs <n>`, or `--jobs auto` for one check per logical core, runs several
+checks concurrently. Each check is a separate `Rscript` process reading the
+repository and writing its own log and its own temporary directory, so nothing
+about a check depends on being alone in the repository, with one exception:
+the two checks that regenerate a tracked document are recognised by a
+repository-wide `git status` comparison, which cannot say which of two
+concurrent writers touched a file, so the runner takes those first and on
+their own before the pool starts.
+
+Two consequences are worth knowing. The pool divides the machine between the
+checks it has in flight, giving each child an `MC_CORES` of the detected core
+count divided by the job count, so a check that runs replications forks fewer
+workers than it would on its own; what it costs changes and what it concludes
+does not, a measurement being a function of its control seed rather than of the
+core count it was taken on. And results are printed as each check finishes
+rather than in alphabetical order, so the summary line reports the elapsed time
+with the summed check time beside it:
+
+```
+24 of 24 checks passed in 7 min 27 s (29 min 06 s of check time)
+```
+
+That line is the 27 August measurement of the fast suite on the four-core
+runner, against 16 min 51 s for the same twenty-four checks one after another.
+The summed figure exceeds the serial one because concurrent checks contend:
+what each check costs rises while what the suite costs falls. The suite is now
+bounded by the machine rather than by the ordering, 29 minutes of check time
+across four cores being a little over seven minutes whatever the schedule, so
+the remaining levers are a larger runner or less work rather than a better
+arrangement of the same work. The longest single check,
+`check_measurement_reproducibility.R`, accounts for 6 min 11 s of the seven.
+
+Checks are dispatched longest first, from the runtimes recorded in
+`scripts/check_runtimes.csv`, because the suite cannot finish before its
+longest check does and a long check started last strands the pool waiting on
+it. That file is a scheduling hint and nothing else: a missing or stale entry
+costs a little wall clock and cannot change a result. Refresh it from a full
+run's own measurements with
+
+```bash
+Rscript scripts/run_all_checks.R --fast --refresh-runtimes
+```
+
+which is the only way the tracked file is written. Refresh it from a serial
+run rather than a concurrent one, the concurrent runtimes being a function of
+how many cores each check was left with.
 
 Running the suite locally needs the project library restored
 (`renv::restore()`) and `lintr` installed. The Dev Container installs both, so

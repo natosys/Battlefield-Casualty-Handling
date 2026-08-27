@@ -1,6 +1,6 @@
 # Regression Check Suite
 
-The repository carries twenty-one regression checks under `scripts/`, each named
+The repository carries twenty-five regression checks under `scripts/`, each named
 `check_*.R`. Every one of them exits 0 when its assertions hold and non-zero
 otherwise. `scripts/run_all_checks.R` runs them as a suite, and
 `.github/workflows/checks.yml` runs the fast selection on every pull request
@@ -223,3 +223,41 @@ Because the counts are compared rather than required to be zero, a difference
 between that environment and the pinned one would surface as a rise on the
 first continuous integration run rather than as a silent weakening, and would
 be resolved by refreshing the baseline in the container.
+
+## Running the suite several checks at a time
+
+The measurement above is a serial one: each check ran alone, and the runner ran
+them one after another. `scripts/run_all_checks.R --jobs` runs several at once,
+and the fast selection was measured under it on 27 August 2026, in the pinned
+container on a four-core GitHub Actions runner, at commit `d0a5d8c` and its
+successor.
+
+| Arrangement | Elapsed | Summed check time |
+|---|---|---|
+| One check at a time | 16 min 51 s | 16 min 51 s |
+| `--jobs auto`, cores divided exactly between the jobs | 8 min 53 s | 23 min 07 s |
+| `--jobs auto`, each check allowed up to half the machine | 7 min 27 s | 29 min 06 s |
+
+All twenty-four checks passed in each arrangement, and the working tree was
+left clean in each, so concurrency destabilises nothing the suite asserts. The
+summed check time rises as the elapsed time falls because concurrent checks
+contend for the same cores: what a check costs is not what the suite costs.
+
+The middle row is why the core share is not an exact division. Four cores split
+between four jobs leaves each check one, and
+`check_measurement_reproducibility.R`, which is almost perfectly parallel, took
+8 min 44 s on one core against 2 min 55 s on four. Every other check had
+finished four minutes before it did, so the suite spent its last four minutes
+running one check on a quarter of the machine. Allowing each check up to half
+the machine oversubscribes deliberately, on the grounds that a check forks only
+while it is running replications and is otherwise a single process reading
+files.
+
+The last row is at the machine's limit rather than at the scheduler's: 29
+minutes of check time across four cores cannot finish in less than about seven,
+whatever the order. The remaining levers are therefore a larger runner, or less
+work in the checks themselves, rather than a better arrangement of the same
+work. `check_measurement_reproducibility.R` is where that work sits, at 6 min
+11 s of the seven; it runs five six-replication measurements over ten simulated
+days each, and any reduction in that is a reduction in what it asserts, so it
+is left alone here and recorded rather than trimmed.

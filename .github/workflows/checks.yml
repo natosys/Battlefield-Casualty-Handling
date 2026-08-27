@@ -8,9 +8,9 @@
 # seed-42 reproduction is the whole question.
 #
 # The suite is split by cost, on the runtimes measured in scripts/README.md.
-# The fast suite runs on every pull request; check_dow_calibration.R runs 450
-# replications and takes three quarters of an hour, so it runs weekly and on
-# demand instead.
+# The fast suite runs on every pull request, several checks at a time;
+# check_dow_calibration.R runs 450 replications and takes three quarters of an
+# hour, so it runs weekly and on demand instead.
 #
 # A pull request that changes no code is classified as such by the first job
 # and narrows what the others run: the three checks that read the tracked
@@ -132,9 +132,14 @@ jobs:
         if: needs.classify.outputs.code_changed == 'true'
         run: Rscript -e 'renv::install(paste0("lintr@", Sys.getenv("LINTR_VERSION")))'
 
+      # --jobs auto runs one check per logical core of the runner, dividing
+      # the cores between them so the replication framework's own forks do not
+      # oversubscribe the machine. A check's result is a function of its seed
+      # rather than of the cores it was measured on, so this changes what the
+      # suite costs and not what it concludes.
       - name: Run the fast suite
         if: needs.classify.outputs.code_changed == 'true'
-        run: Rscript scripts/run_all_checks.R --fast
+        run: Rscript scripts/run_all_checks.R --fast --jobs auto
 
       # A documentation-only change cannot move a model output or a lint count,
       # so only the checks that read the tracked documents are worth its time.

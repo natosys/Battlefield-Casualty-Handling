@@ -764,62 +764,47 @@ r2b_evac_return_leg <- function(traj, evacuation_team) {
     ) %>%
     synchronize(wait = FALSE)
 }
+# ── R2B WIA pathway builders ──────────────────────────────────────────────────
 
-#' Executes the full treatment pathway for WIA casualties at Role 2B
+#' Evacuate a casualty from R2B to a selected R2E Heavy element
 #'
-#' @param team_id Integer index of the Role 2B team handling treatment
-#' @return Simmer trajectory representing the entire WIA care pathway at R2B
+#' @param trj             Trajectory to append the evacuation to
+#' @param evacuation_team The R2B team's own organic evacuation resource
+#' @return The trajectory, with the R2E selection, the road move and the R2E
+#'   pathway appended; the casualty leaves this trajectory at the end of it.
 #'
-#' @details Models the following sequential steps:
-#'
-#' # Step 1: Hold bed — initial stabilization
-#' # Step 2: DOW branch (~1%) — KIA treatment and mortuary transport
-#' # Step 3: Resuscitation — seizes emergency team and resus bed
-#'
-#' # Step 4: Surgical decision branch
-#' # Branches based on attribute "surgery":
-#' # - surgery == 1 → pre-OT ICU availability gate (Issue #43; P1 always
-#' #     proceeds, P2+ defers OT entry while this unit's ICU is saturated),
-#' #     then check OT bed AND surgical team availability
-#' #     - OT bed free, no queue, team on shift → seize OT + team, perform
-#' #         surgery, then, on the damage control pathway only, post-operative
-#' #         stabilisation for the share of the ICU requirement served forward
-#' #         (r2b.post_op_icu.share; ICU bed, or holding bed at elevated risk
-#' #         when ICU is saturated). A single-stage casualty's operation is
-#' #         their definitive repair, so no stabilisation phase follows it here
-#' #     - OT bed free, no queue, team off shift but reopening within
-#' #         r2b.surgery.pre_open_window_min → hold forward for the section and
-#' #         then operate as above (r2b_pre_open_wait = 1;
-#' #         r2b_pre_open_wait_min = realised hold in minutes)
-#' #     - OT full, OR queued, OR team off-shift for longer than the window →
-#' #         bypass immediately to R2E
-#' #         (r2b_bypassed = 1; r2b_bypass_reason = 1 team off-shift, 2 OT busy/queued;
-#' #          r2b_bypass_time = simulation time of the bypass decision)
-#' # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
-#'
-#' # Step 5: Evacuation decision branch
-#' # Branches based on evacuation team availability:
-#' # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
-#' # - evac not available → wait in ICU bed until evac is free
-#' # R2B → R2E WIA movement seizes each R2B team's own `evac` resource, not
-#' # the shared PMVAmb fleet — a deliberate design (Issue #73): this leg
-#' # represents an organic R2B unit asset, distinct from the brigade-pooled
-#' # transport fleet used for R1 → R2B. It does model a dead-heading return
-#' # leg on that same organic resource (Issue #73 follow-up): once the R2B
-#' # team's evac asset drops a casualty at R2E, it is unavailable to its own
-#' # team until it completes the return trip.
-r2b_treat_wia <- function(team_id) {
-  hold_beds       <- env_data$elms$r2b[[team_id]][["hold_bed"]]
-  resus_beds      <- env_data$elms$r2b[[team_id]][["resus_bed"]]
-  ot_beds         <- env_data$elms$r2b[[team_id]][["ot_bed"]]
-  icu_beds        <- env_data$elms$r2b[[team_id]][["icu_bed"]]
-  emergency_team  <- env_data$elms$r2b[[team_id]][["emerg"]][[1]]
-  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
-  surg_team       <- env_data$elms$r2b[[team_id]][["surg"]][[1]]
-  icu_team        <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
+#' @details Reached from four places in the R2B pathway (the two holding-bed
+#'   threshold evacuations, the holding-bed bypass and the immediate
+#'   evacuation), which is why it is a segment rather than part of any one of
+#'   them: they differ in what brings the casualty here, not in the movement
+#'   that follows.
+r2b_evacuate_to_r2e <- function(trj, evacuation_team) {
+  trj %>%
+    set_attribute("r2b_to_r2e", 1) %>%
+    set_attribute("r2e", function() select_r2e_team()) %>%
+    r2b_evac_leg(evacuation_team) %>%
+    branch(
+      option = function() get_attribute(env, "r2e"),
+      continue = TRUE,
+      lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
+    ) %>%
+    simmer::leave(1)
+}
 
-  # Fallback path: wait in ICU bed until evacuation resources become available
-  wait_for_evac <- trajectory("Wait in Hold Bed for Evac") %>%
+#' Builds the fallback wait for evacuation capacity at R2B
+#'
+#' @param icu_beds        This R2B team's intensive care beds
+#' @param icu_team        This R2B team's intensive care section
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory holding the casualty in an intensive care bed
+#'   until the evacuation asset is free, then moving them to R2E.
+#'
+#' @details Reached when the evacuation asset is already committed. The
+#'   casualty is held in an intensive care bed rather than queued unattended,
+#'   and the bed and section are released the moment the asset is in hand.
+#'   evac_wait_count counts the casualties this path serves.
+r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
+  trajectory("Wait in Hold Bed for Evac") %>%
     set_global("evac_wait_count", function() {
       current <- get_global(env, "evac_wait_count")
       return(current + 1)
@@ -840,22 +825,42 @@ r2b_treat_wia <- function(team_id) {
       lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
     ) %>%
     leave(1)
+}
 
-  # Forward stabilisation, joined at the end of the Surgery Path below. This
-  # is the damage control resuscitation phase, which belongs between the
-  # abbreviated operation just performed here and the definitive one waiting
-  # at R2E — see the post-operative intensive care requirement block at the
-  # top of this file for why the two episodes are modelled separately.
-  # `r2b.post_op_icu.share` and `r2b.post_op_icu.forward_hold_max` set how
-  # much of it is served here, the remainder falling to R2E, where it is
-  # served before the definitive operation rather than after it.
-  #
-  # A single-stage casualty has no stabilisation phase at all: their operation
-  # was their definitive repair, so there is no interval between two
-  # procedures for one to occupy. They take neither the draw nor a bed here,
-  # and their post-operative intensive care is the post-definitive episode
-  # served at R2E.
-  #
+#' Builds the forward post-operative stabilisation phase at R2B
+#'
+#' @param icu_beds  This R2B team's intensive care beds
+#' @param hold_beds This R2B team's holding beds
+#' @return Simmer trajectory serving the forward share of a damage control
+#'   casualty's post-operative intensive care requirement.
+#'
+#' @details This is the damage control resuscitation phase, which belongs
+#'   between the abbreviated operation performed at R2B and the definitive one
+#'   waiting at R2E; see the post-operative intensive care requirement block at
+#'   the top of this file for why the two episodes are modelled separately.
+#'   `r2b.post_op_icu.share` and `r2b.post_op_icu.forward_hold_max` set how much
+#'   of it is served here, the remainder falling to R2E, where it is served
+#'   before the definitive operation rather than after it.
+#'
+#'   A single-stage casualty has no stabilisation phase at all: their operation
+#'   was their definitive repair, so there is no interval between two
+#'   procedures for one to occupy. They take neither the draw nor a bed here,
+#'   and their post-operative intensive care is the post-definitive episode
+#'   served at R2E.
+#'
+#'   Either forward path multiplies dow_ceiling by r2b_icu_penalty: an R2B ICU
+#'   section fields two nurses and two medics and no intensivist, against R2E's
+#'   intensivist-led section, and the penalty is the mortality cost of that
+#'   difference. Without it, forward holding would be free in the model and any
+#'   sweep of the share would recommend its maximum as an artefact of relieving
+#'   the R2E queue at no cost. See README "Died of Wounds — Treatment Efficacy
+#'   Modifiers".
+#'
+#'   The stay lengthens the casualty's journey but opens no DOW checkpoint of
+#'   its own: dow_prob_conditional() prices elapsed time at the next checkpoint
+#'   the casualty reaches (the R2E arrival check), so the delay is charged
+#'   there, against the ceiling this trajectory has already raised.
+r2b_post_op_stabilisation <- function(icu_beds, hold_beds) {
   # Branches on the surgical pathway, then on the forward minutes, then on R2B
   # ICU availability:
   # - single-stage               → no stabilisation phase exists
@@ -867,20 +872,7 @@ r2b_treat_wia <- function(team_id) {
   #                                further elevated dow_ceiling
   #                                (r2b_post_op_pathway = 2), mirroring the
   #                                R2E post-op hold pathway
-  #
-  # Either forward path multiplies dow_ceiling by r2b_icu_penalty: an R2B ICU
-  # section fields two nurses and two medics and no intensivist, against R2E's
-  # intensivist-led section, and the penalty is the mortality cost of that
-  # difference. Without it, forward holding would be free in the model and any
-  # sweep of the share would recommend its maximum as an artefact of relieving
-  # the R2E queue at no cost. See README "Died of Wounds — Treatment Efficacy
-  # Modifiers".
-  #
-  # The stay lengthens the casualty's journey but opens no DOW checkpoint of
-  # its own: dow_prob_conditional() prices elapsed time at the next checkpoint
-  # the casualty reaches (the R2E arrival check), so the delay is charged
-  # there, against the ceiling this trajectory has already raised.
-  r2b_post_op_stabilisation <- trajectory("R2B Post-Operative Stabilisation") %>%
+  trajectory("R2B Post-Operative Stabilisation") %>%
     branch(
       # The draw itself sits inside the branch, not before it, so a
       # single-stage casualty consumes no requirement they will never serve.
@@ -944,71 +936,87 @@ r2b_treat_wia <- function(team_id) {
 
       trajectory("Single-Stage — No Stabilisation Phase")
     )
+}
 
-  # Forward surgery itself, from theatre seizure through to the stabilisation
-  # phase. Built rather than written once because it is reached by two routes,
-  # a casualty whose theatre and section are both free on arrival and one held
-  # briefly for a section about to reopen, and only the second records how
-  # long it waited.
-  #
-  # @param pre_open Whether this copy is the held route
-  # @return A simmer trajectory performing one forward operation
-  build_r2b_surgery_path <- function(pre_open) {
-    force(pre_open)
+#' Builds one forward operation at R2B, from theatre seizure to stabilisation
+#'
+#' @param pre_open  Whether this copy is the held route, reached by a casualty
+#'   waiting for a section about to reopen rather than one finding it open
+#' @param ot_beds   This R2B team's operating theatre beds
+#' @param surg_team This R2B team's surgical section
+#' @param post_op   The forward stabilisation trajectory built by
+#'   r2b_post_op_stabilisation(), joined at the end of the operation
+#' @return Simmer trajectory performing one forward operation
+#'
+#' @details Built rather than written once because it is reached by two routes,
+#'   a casualty whose theatre and section are both free on arrival and one held
+#'   briefly for a section about to reopen, and only the second records how long
+#'   it waited.
+r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
+  force(pre_open)
 
-    trj <- trajectory("Surgery Path")
+  trj <- trajectory("Surgery Path")
 
-    if (pre_open) {
-      trj <- trj %>%
-        set_attribute("r2b_pre_open_wait", 1) %>%
-        set_attribute("r2b_pre_open_start", function() now(env))
-    }
-
+  if (pre_open) {
     trj <- trj %>%
-      simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-      seize_selected(id = 4) %>%
-      seize_resources(surg_team)
-
-    # Realised hold, recorded once both theatre and section are in hand. It
-    # can exceed the window the casualty was admitted on, the section
-    # reopening to a theatre that another case has since taken.
-    if (pre_open) {
-      trj <- trj %>%
-        set_attribute("r2b_pre_open_wait_min", function() {
-          now(env) - get_attribute(env, "r2b_pre_open_start")
-        })
-    }
-
-    trj %>%
-      set_attribute("r2b_surgery_start", function() now(env)) %>%
-      timeout(function() {
-        rtriangle(
-          n = 1,
-          a = env_data$vars$r2b$surgery$min,
-          b = env_data$vars$r2b$surgery$max,
-          c = env_data$vars$r2b$surgery$mode
-        )
-      }) %>%
-      set_attribute("r2b_surgery", 1) %>%
-      set_attribute("r2b_surgery_end", function() now(env)) %>%
-      release_resources(surg_team) %>%
-      release_selected(id = 4) %>%
-      # A damage control casualty's forward operation is abbreviated and
-      # earns r2b_dcs_factor; a single-stage casualty's is their definitive
-      # repair and earns what the staged route earns on completing one at
-      # R2E as well (definitive_efficacy(), top of this file).
-      set_attribute("dow_ceiling", function() {
-        ceiling <- get_attribute(env, "dow_ceiling")
-        if (is.na(ceiling)) return(ceiling)
-        te <- env_data$vars$dow$treatment_efficacy
-        ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
-      }) %>%
-      join(r2b_post_op_stabilisation)
+      set_attribute("r2b_pre_open_wait", 1) %>%
+      set_attribute("r2b_pre_open_start", function() now(env))
   }
 
-  # OT availability check. Joined directly when the pre-OT ICU gate above
-  # clears immediately, and again after the P2+ ICU-defer wait loop resolves.
-  r2b_ot_check_path <- trajectory("R2B OT Check") %>%
+  trj <- trj %>%
+    simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
+    seize_selected(id = 4) %>%
+    seize_resources(surg_team)
+
+  # Realised hold, recorded once both theatre and section are in hand. It
+  # can exceed the window the casualty was admitted on, the section
+  # reopening to a theatre that another case has since taken.
+  if (pre_open) {
+    trj <- trj %>%
+      set_attribute("r2b_pre_open_wait_min", function() {
+        now(env) - get_attribute(env, "r2b_pre_open_start")
+      })
+  }
+
+  trj %>%
+    set_attribute("r2b_surgery_start", function() now(env)) %>%
+    timeout(function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$surgery$min,
+        b = env_data$vars$r2b$surgery$max,
+        c = env_data$vars$r2b$surgery$mode
+      )
+    }) %>%
+    set_attribute("r2b_surgery", 1) %>%
+    set_attribute("r2b_surgery_end", function() now(env)) %>%
+    release_resources(surg_team) %>%
+    release_selected(id = 4) %>%
+    # A damage control casualty's forward operation is abbreviated and
+    # earns r2b_dcs_factor; a single-stage casualty's is their definitive
+    # repair and earns what the staged route earns on completing one at
+    # R2E as well (definitive_efficacy(), top of this file).
+    set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      te <- env_data$vars$dow$treatment_efficacy
+      ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
+    }) %>%
+    join(post_op)
+}
+
+#' Builds the operating theatre availability check at R2B
+#'
+#' @param ot_beds   This R2B team's operating theatre beds
+#' @param surg_team This R2B team's surgical section
+#' @param post_op   The forward stabilisation trajectory the operation ends in
+#' @return Simmer trajectory operating on the casualty forward, holding them
+#'   for a section about to reopen, or bypassing them to R2E.
+#'
+#' @details Joined directly when the pre-OT ICU gate clears immediately, and
+#'   again after the P2+ ICU-defer wait loop resolves.
+r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
+  trajectory("R2B OT Check") %>%
     branch(
       option = function() {
         usage    <- sum(get_server_count(env, resources = ot_beds))
@@ -1035,7 +1043,7 @@ r2b_treat_wia <- function(team_id) {
       continue = TRUE,
 
       # Sub-branch 1: theatre free and section on shift — operate now
-      build_r2b_surgery_path(pre_open = FALSE),
+      r2b_surgery_path(FALSE, ot_beds, surg_team, post_op),
 
       # Sub-branch 2: OT busy, queued, or the section closed for longer than
       # the pre-open window — bypass to R2E. r2b_bypass_reason decomposes the
@@ -1064,21 +1072,237 @@ r2b_treat_wia <- function(team_id) {
       # forward stabilisation above, dow_prob_conditional() prices elapsed
       # time at the next checkpoint the casualty reaches, so the delay is
       # charged there rather than going unpriced.
-      build_r2b_surgery_path(pre_open = TRUE)
+      r2b_surgery_path(TRUE, ot_beds, surg_team, post_op)
     )
+}
 
-  trajectory("R2B Basic Flow") %>%
-    set_attribute("r2b_treated", team_id) %>%
-    set_attribute("r2b_treatment_start_time", function() now(env)) %>%
+#' Builds the pre-theatre intensive care gate at R2B
+#'
+#' @param icu_beds This R2B team's intensive care beds
+#' @param ot_check The theatre availability trajectory built by
+#'   r2b_ot_check_path(), reached whether the gate clears at once or after a
+#'   wait
+#' @return Simmer trajectory admitting the casualty to the theatre check, at
+#'   once or once intensive care headroom exists.
+#'
+#' @details Mirrors the R2E pattern. Priority 1 casualties proceed
+#'   unconditionally; Priority 2+ casualties defer theatre entry while this
+#'   unit's intensive care is fully saturated, preserving headroom for those
+#'   already in it. How much work the gate does depends on
+#'   `r2b.post_op_icu.share`: at zero the two intensive care beds per team serve
+#'   only the wait-for-evacuation fallback and the gate is close to inert, while
+#'   at a non-zero share every casualty operated on here also recovers here, and
+#'   the gate becomes a real constraint on forward surgical throughput.
+r2b_surgery_gate <- function(icu_beds, ot_check) {
+  trajectory("Needs Surgery") %>%
+    branch(
+      option = function() {
+        prio <- get_attribute(env, "priority")
+        if (!is.na(prio) && prio == 1) return(1)  # P1 always proceeds
+        usage  <- sum(get_server_count(env, resources = icu_beds))
+        cap    <- sum(get_capacity(env, resources = icu_beds))
+        icu_ok <- !is.na(usage) && !is.na(cap) && usage < cap
+        if (icu_ok) return(1)
+        return(2)  # P2+, ICU saturated: defer OT entry
+      },
+      continue = TRUE,
+      ot_check,
+      trajectory("ICU Full — Defer Surgery (P2+)") %>%
+        set_attribute("surgery_deferred", 1) %>%
+        timeout(function() env_data$vars$r2b$icu_gating$defer_check_interval) %>%
+        rollback(target = 1, check = function() {
+          usage <- sum(get_server_count(env, resources = icu_beds))
+          cap   <- sum(get_capacity(env, resources = icu_beds))
+          !(!is.na(usage) && !is.na(cap) && usage < cap)
+        }) %>%
+        join(ot_check)
+    )
+}
 
-    # Step 1: Initial hold bed
-    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
-    seize_selected(id = 1) %>%
+#' Builds the R2B holding-bed recovery pathway
+#'
+#' @param hold_beds       This R2B team's holding beds
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory holding the casualty at R2B for their drawn
+#'   convalescence, then returning them to duty or evacuating them to R2E.
+#'
+#' @details Reached when this team's holding beds have capacity. Where
+#'   `r2b.holding.evac_threshold` is set and the drawn duration exceeds it, the
+#'   casualty is evacuated part-way through and carries the unserved remainder
+#'   of that draw to R2E as their convalescence there
+#'   (r2b_hold_residual_minutes()).
+r2b_hold_recovery <- function(hold_beds, evacuation_team) {
+  trajectory("R2B Hold") %>%
+    simmer::select(hold_beds, policy = "first-available", id = 5) %>%
+    seize_selected(id = 5) %>%
+    set_attribute("r2b_hold_start", function() now(env)) %>%
+    set_attribute("r2b_hold_drawn", function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$holding$min,
+        b = env_data$vars$r2b$holding$max,
+        c = env_data$vars$r2b$holding$mode
+      )
+    }) %>%
+    timeout(r2b_hold_minutes) %>%
+    # Evac-threshold branch
+    # - residual > 0 → release hold bed, transport to R2E (r2b_hold_evac = 1),
+    #   carrying the unserved remainder of the draw forward
+    # - residual = 0 → return to duty (return_day set, leave)
+    branch(
+      option = function() {
+        if (r2b_hold_residual_minutes() > 0) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("R2B Hold Threshold — Early Evac") %>%
+        set_attribute("r2b_hold_evac", 1) %>%
+        # Measured from the clock rather than restated from the
+        # threshold, so the conservation the residual asserts is
+        # checked against the bed time actually served.
+        set_attribute("r2b_hold_served", function() {
+          now(env) - get_attribute(env, "r2b_hold_start")
+        }) %>%
+        set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
+        release_selected(id = 5) %>%
+        r2b_evacuate_to_r2e(evacuation_team),
+      trajectory("R2B Hold RTD") %>%
+        set_attribute("return_day", function() now(env)) %>%
+        set_attribute("return_echelon", 2) %>%
+        credit_rtd() %>%
+        release_selected(id = 5) %>%
+        simmer::leave(1)
+    )
+}
 
-    # Step 1.5: DOW branch (time-dependent logistic, Issue #5)
-    # Conditional increment from last DOW check (R1) to current elapsed time.
-    # Disease DNBI (dnbi_type == 2) remain exempt — medical pathway, not trauma.
-    # P3 casualties use a flat probability (minor wounds, not time-critical).
+#' Builds the R2B holding-bed bypass to R2E
+#'
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory moving the casualty straight to R2E.
+#'
+#' @details Reached when this team's holding beds are full and R2E's have
+#'   capacity, and again when the proportional holding queue cap is exceeded.
+r2b_hold_bypass <- function(evacuation_team) {
+  trajectory("R2B Hold Full — Bypass to R2E") %>%
+    set_attribute("r2b_hold_bypass", 1) %>%
+    r2b_evacuate_to_r2e(evacuation_team)
+}
+
+#' Builds the queued R2B holding-bed recovery pathway
+#'
+#' @param hold_beds       This R2B team's holding beds
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory queueing the casualty for a holding bed at R2B,
+#'   then serving the same convalescence and disposition as an unqueued one.
+#'
+#' @details Reached when both this team's holding beds and R2E's are full and
+#'   the R2B holding queue is within its proportional cap; the casualty waits
+#'   here rather than being moved to an echelon with nothing free either.
+r2b_hold_queue_recovery <- function(hold_beds, evacuation_team) {
+  trajectory("R2B Hold Queue — R2E Full") %>%
+    set_attribute("r2b_hold_queued", 1) %>%
+    simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
+    seize_selected(id = 5) %>%
+    set_attribute("r2b_hold_start", function() now(env)) %>%
+    set_attribute("r2b_hold_drawn", function() {
+      rtriangle(
+        n = 1,
+        a = env_data$vars$r2b$holding$min,
+        b = env_data$vars$r2b$holding$max,
+        c = env_data$vars$r2b$holding$mode
+      )
+    }) %>%
+    timeout(r2b_hold_minutes) %>%
+    branch(
+      option = function() {
+        if (r2b_hold_residual_minutes() > 0) return(1)
+        return(2)
+      },
+      continue = TRUE,
+      trajectory("R2B Hold Queue Threshold — Early Evac") %>%
+        set_attribute("r2b_hold_evac", 1) %>%
+        # Measured from the clock rather than restated from the
+        # threshold, so the conservation the residual asserts is
+        # checked against the bed time actually served.
+        set_attribute("r2b_hold_served", function() {
+          now(env) - get_attribute(env, "r2b_hold_start")
+        }) %>%
+        set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
+        release_selected(id = 5) %>%
+        r2b_evacuate_to_r2e(evacuation_team),
+      trajectory("R2B Hold Queue RTD") %>%
+        set_attribute("return_day", function() now(env)) %>%
+        set_attribute("return_echelon", 2) %>%
+        credit_rtd() %>%
+        release_selected(id = 5) %>%
+        simmer::leave(1)
+    )
+}
+
+#' Builds the R2B disposition of a casualty needing no surgery
+#'
+#' @param hold_beds       This R2B team's holding beds
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory routing the casualty to a holding bed here, to
+#'   R2E, or to this team's holding queue.
+r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
+  # Three-stage routing policy:
+  #
+  # Branch 2a: this R2B unit's hold beds have capacity → seize immediately
+  # Branch 2b: R2B hold full; R2E hold has capacity → bypass to R2E
+  #            Also used when R2B hold queue cap is exceeded (fallback)
+  # Branch 2c: R2B hold full; R2E hold full; queue within cap → join R2B queue
+  #            Cap = floor(R2B_beds / (R2B_beds + R2E_beds) * R2B_beds)
+  #            With 10 R2B and 30 R2E beds: cap = floor(10/40 * 10) = 2 patients
+  trajectory("R2B No Surgery") %>%
+    branch(
+      option = function() {
+        # Branch 2a: this R2B unit has hold capacity
+        r2b_usage <- sum(get_server_count(env, resources = hold_beds))
+        r2b_cap   <- sum(get_capacity(env, resources = hold_beds))
+        if (!is.na(r2b_usage) && !is.na(r2b_cap) && r2b_usage < r2b_cap) return(1)
+
+        # R2B hold full — check R2E hold capacity
+        all_r2e_hold <- unlist(lapply(env_data$elms$r2eheavy, `[[`, "hold_bed"))
+        r2e_usage <- sum(get_server_count(env, resources = all_r2e_hold))
+        r2e_cap   <- sum(get_capacity(env, resources = all_r2e_hold))
+        if (!is.na(r2e_usage) && !is.na(r2e_cap) && r2e_usage < r2e_cap) return(2)
+
+        # Both full — check global R2B hold queue against proportional cap
+        all_r2b_hold  <- unlist(lapply(env_data$elms$r2b, `[[`, "hold_bed"))
+        r2b_total_cap <- length(all_r2b_hold)
+        r2e_total_cap <- length(all_r2e_hold)
+        queue_cap     <- floor(r2b_total_cap / (r2b_total_cap + r2e_total_cap) *
+                               r2b_total_cap)
+        r2b_queue <- sum(get_queue_count(env, resources = all_r2b_hold))
+        if (!is.na(r2b_queue) && r2b_queue < queue_cap) return(3)
+
+        return(2)  # Queue cap exceeded — bypass to R2E regardless
+      },
+      continue = TRUE,
+      # Branch 2a: Hold capacity available — seize and recover or evac
+      r2b_hold_recovery(hold_beds, evacuation_team),
+      # Branch 2b: R2B full, R2E has capacity (or queue cap exceeded) — bypass
+      r2b_hold_bypass(evacuation_team),
+      # Branch 2c: Both full, queue within proportional cap — queue at R2B
+      r2b_hold_queue_recovery(hold_beds, evacuation_team)
+    )
+}
+
+#' Applies the R2B arrival died-of-wounds check
+#'
+#' @param trj     Trajectory to append the check to
+#' @param team_id Integer index of the Role 2B team handling treatment
+#' @return The trajectory, with the check and its mortuary arm appended.
+#'
+#' @details The conditional increment runs from the last check (at R1) to the
+#'   elapsed time on arrival here, so the journey between the two echelons is
+#'   priced at this checkpoint.
+r2b_dow_check <- function(trj, team_id) {
+  # Time-dependent logistic (Issue #5).
+  # Disease DNBI (dnbi_type == 2) remain exempt — medical pathway, not trauma.
+  # P3 casualties use a flat probability (minor wounds, not time-critical).
+  trj %>%
     branch(
       option = function() {
         dtype  <- get_attribute(env, "dnbi_type")
@@ -1111,10 +1335,23 @@ r2b_treat_wia <- function(team_id) {
         r2b_transport_kia(team_id) %>%
         simmer::leave(1),
       trajectory("Continue R2B Treatment")
-    ) %>%
-    set_attribute("last_dow_t", function() now(env)) %>%
+    )
+}
 
-    # Step 2: Transfer to resus bed
+#' Applies emergency resuscitation at R2B
+#'
+#' @param trj            Trajectory to append the resuscitation to
+#' @param resus_beds     This R2B team's resuscitation beds
+#' @param emergency_team This R2B team's emergency section
+#' @return The trajectory, with the transfer to a resuscitation bed, the
+#'   resuscitation itself and its effect on the died-of-wounds ceiling
+#'   appended.
+#'
+#' @details The holding bed seized on arrival is released once the
+#'   resuscitation bed is in hand, so a casualty never holds two beds except
+#'   across the transfer itself.
+r2b_resuscitation <- function(trj, resus_beds, emergency_team) {
+  trj %>%
     simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
     seize_selected(id = 2) %>%
     release_selected(id = 1) %>%
@@ -1136,213 +1373,21 @@ r2b_treat_wia <- function(team_id) {
       ceiling <- get_attribute(env, "dow_ceiling")
       if (is.na(ceiling)) return(ceiling)
       ceiling * env_data$vars$dow$treatment_efficacy$r2b_resus_factor
-    }) %>%
+    })
+}
 
-    # Step 4: Surgery decision
-    # Branches based on attribute "surgery":
-    # - surgery == 1 → check OT availability
-    #     - capacity available → seize OT, perform DAMCON surgery
-    #     - no capacity        → skip surgery, proceed to evac
-    # - surgery != 1 → hold bed recovery, set return_day, leave trajectory
-    branch(
-      option = function() {
-        needs_surg <- get_attribute(env, "surgery")
-        if (!is.na(needs_surg) && needs_surg == 1) return(1)
-        return(2)
-      },
-      continue = TRUE,
-
-      # Branch 1: Surgery required
-      # Pre-OT ICU availability gate (Issue #43), mirroring the R2E pattern.
-      # Priority 1 casualties proceed unconditionally; Priority 2+ casualties
-      # defer OT entry while this unit's ICU is fully saturated, preserving
-      # ICU headroom for those already in it. How much work the gate does
-      # depends on `r2b.post_op_icu.share`: at zero the two ICU beds per team
-      # serve only the wait_for_evac fallback and the gate is close to inert,
-      # while at a non-zero share every casualty operated on here also
-      # recovers here (r2b_post_op_stabilisation above), and the gate becomes
-      # a real constraint on forward surgical throughput.
-      trajectory("Needs Surgery") %>%
-        branch(
-          option = function() {
-            prio <- get_attribute(env, "priority")
-            if (!is.na(prio) && prio == 1) return(1)  # P1 always proceeds
-            usage  <- sum(get_server_count(env, resources = icu_beds))
-            cap    <- sum(get_capacity(env, resources = icu_beds))
-            icu_ok <- !is.na(usage) && !is.na(cap) && usage < cap
-            if (icu_ok) return(1)
-            return(2)  # P2+, ICU saturated: defer OT entry
-          },
-          continue = TRUE,
-          r2b_ot_check_path,
-          trajectory("ICU Full — Defer Surgery (P2+)") %>%
-            set_attribute("surgery_deferred", 1) %>%
-            timeout(function() env_data$vars$r2b$icu_gating$defer_check_interval) %>%
-            rollback(target = 1, check = function() {
-              usage <- sum(get_server_count(env, resources = icu_beds))
-              cap   <- sum(get_capacity(env, resources = icu_beds))
-              !(!is.na(usage) && !is.na(cap) && usage < cap)
-            }) %>%
-            join(r2b_ot_check_path)
-        ),
-
-      # Branch 2: Surgery not required — recover in holding bed, queue, or bypass
-      # Three-stage routing policy:
-      #
-      # Branch 2a: this R2B unit's hold beds have capacity → seize immediately
-      # Branch 2b: R2B hold full; R2E hold has capacity → bypass to R2E
-      #            Also used when R2B hold queue cap is exceeded (fallback)
-      # Branch 2c: R2B hold full; R2E hold full; queue within cap → join R2B queue
-      #            Cap = floor(R2B_beds / (R2B_beds + R2E_beds) * R2B_beds)
-      #            With 10 R2B and 30 R2E beds: cap = floor(10/40 * 10) = 2 patients
-      #
-      # When env_data$vars$r2b$holding$evac_threshold is set (minutes),
-      # casualties in branches 2a and 2c whose drawn hold duration exceeds the
-      # threshold are evacuated to R2E rather than returned to duty, carrying
-      # the unserved remainder of that draw with them as their R2E
-      # convalescence (r2b_hold_residual_minutes(), above).
-      trajectory("R2B No Surgery") %>%
-        branch(
-          option = function() {
-            # Branch 2a: this R2B unit has hold capacity
-            r2b_usage <- sum(get_server_count(env, resources = hold_beds))
-            r2b_cap   <- sum(get_capacity(env, resources = hold_beds))
-            if (!is.na(r2b_usage) && !is.na(r2b_cap) && r2b_usage < r2b_cap) return(1)
-
-            # R2B hold full — check R2E hold capacity
-            all_r2e_hold <- unlist(lapply(env_data$elms$r2eheavy, `[[`, "hold_bed"))
-            r2e_usage <- sum(get_server_count(env, resources = all_r2e_hold))
-            r2e_cap   <- sum(get_capacity(env, resources = all_r2e_hold))
-            if (!is.na(r2e_usage) && !is.na(r2e_cap) && r2e_usage < r2e_cap) return(2)
-
-            # Both full — check global R2B hold queue against proportional cap
-            all_r2b_hold  <- unlist(lapply(env_data$elms$r2b, `[[`, "hold_bed"))
-            r2b_total_cap <- length(all_r2b_hold)
-            r2e_total_cap <- length(all_r2e_hold)
-            queue_cap     <- floor(r2b_total_cap / (r2b_total_cap + r2e_total_cap) *
-                                   r2b_total_cap)
-            r2b_queue <- sum(get_queue_count(env, resources = all_r2b_hold))
-            if (!is.na(r2b_queue) && r2b_queue < queue_cap) return(3)
-
-            return(2)  # Queue cap exceeded — bypass to R2E regardless
-          },
-          continue = TRUE,
-          # Branch 2a: Hold capacity available — seize and recover or evac
-          trajectory("R2B Hold") %>%
-            simmer::select(hold_beds, policy = "first-available", id = 5) %>%
-            seize_selected(id = 5) %>%
-            set_attribute("r2b_hold_start", function() now(env)) %>%
-            set_attribute("r2b_hold_drawn", function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2b$holding$min,
-                b = env_data$vars$r2b$holding$max,
-                c = env_data$vars$r2b$holding$mode
-              )
-            }) %>%
-            timeout(r2b_hold_minutes) %>%
-            # Evac-threshold branch
-            # - residual > 0 → release hold bed, transport to R2E (r2b_hold_evac = 1),
-            #   carrying the unserved remainder of the draw forward
-            # - residual = 0 → return to duty (return_day set, leave)
-            branch(
-              option = function() {
-                if (r2b_hold_residual_minutes() > 0) return(1)
-                return(2)
-              },
-              continue = TRUE,
-              trajectory("R2B Hold Threshold — Early Evac") %>%
-                set_attribute("r2b_hold_evac", 1) %>%
-                # Measured from the clock rather than restated from the
-                # threshold, so the conservation the residual asserts is
-                # checked against the bed time actually served.
-                set_attribute("r2b_hold_served", function() {
-                  now(env) - get_attribute(env, "r2b_hold_start")
-                }) %>%
-                set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
-                release_selected(id = 5) %>%
-                set_attribute("r2b_to_r2e", 1) %>%
-                set_attribute("r2e", function() select_r2e_team()) %>%
-                r2b_evac_leg(evacuation_team) %>%
-                branch(
-                  option = function() get_attribute(env, "r2e"),
-                  continue = TRUE,
-                  lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
-                ) %>%
-                simmer::leave(1),
-              trajectory("R2B Hold RTD") %>%
-                set_attribute("return_day", function() now(env)) %>%
-                set_attribute("return_echelon", 2) %>%
-                credit_rtd() %>%
-                release_selected(id = 5) %>%
-                simmer::leave(1)
-            ),
-          # Branch 2b: R2B full, R2E has capacity (or queue cap exceeded) — bypass
-          trajectory("R2B Hold Full — Bypass to R2E") %>%
-            set_attribute("r2b_hold_bypass", 1) %>%
-            set_attribute("r2b_to_r2e", 1) %>%
-            set_attribute("r2e", function() select_r2e_team()) %>%
-            r2b_evac_leg(evacuation_team) %>%
-            branch(
-              option = function() get_attribute(env, "r2e"),
-              continue = TRUE,
-              lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
-            ) %>%
-            simmer::leave(1),
-          # Branch 2c: Both full, queue within proportional cap — queue at R2B
-          trajectory("R2B Hold Queue — R2E Full") %>%
-            set_attribute("r2b_hold_queued", 1) %>%
-            simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
-            seize_selected(id = 5) %>%
-            set_attribute("r2b_hold_start", function() now(env)) %>%
-            set_attribute("r2b_hold_drawn", function() {
-              rtriangle(
-                n = 1,
-                a = env_data$vars$r2b$holding$min,
-                b = env_data$vars$r2b$holding$max,
-                c = env_data$vars$r2b$holding$mode
-              )
-            }) %>%
-            timeout(r2b_hold_minutes) %>%
-            branch(
-              option = function() {
-                if (r2b_hold_residual_minutes() > 0) return(1)
-                return(2)
-              },
-              continue = TRUE,
-              trajectory("R2B Hold Queue Threshold — Early Evac") %>%
-                set_attribute("r2b_hold_evac", 1) %>%
-                # Measured from the clock rather than restated from the
-                # threshold, so the conservation the residual asserts is
-                # checked against the bed time actually served.
-                set_attribute("r2b_hold_served", function() {
-                  now(env) - get_attribute(env, "r2b_hold_start")
-                }) %>%
-                set_attribute("r2b_hold_residual", r2b_hold_residual_minutes) %>%
-                release_selected(id = 5) %>%
-                set_attribute("r2b_to_r2e", 1) %>%
-                set_attribute("r2e", function() select_r2e_team()) %>%
-                r2b_evac_leg(evacuation_team) %>%
-                branch(
-                  option = function() get_attribute(env, "r2e"),
-                  continue = TRUE,
-                  lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
-                ) %>%
-                simmer::leave(1),
-              trajectory("R2B Hold Queue RTD") %>%
-                set_attribute("return_day", function() now(env)) %>%
-                set_attribute("return_echelon", 2) %>%
-                credit_rtd() %>%
-                release_selected(id = 5) %>%
-                simmer::leave(1)
-            )
-        )
-    ) %>%
-
-    # Step 5: Evacuation decision
-    # Branches based on evacuation team availability:
-    # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
-    # - evac not available → wait in ICU bed until evac is free
+#' Builds the R2B evacuation decision
+#'
+#' @param trj             Trajectory to append the decision to
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @param wait_for_evac   The fallback trajectory built by r2b_wait_for_evac(),
+#'   reached when the evacuation asset is already committed
+#' @return The trajectory, with the evacuation decision appended.
+r2b_evac_decision <- function(trj, evacuation_team, wait_for_evac) {
+  # Branches based on evacuation team availability:
+  # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
+  # - evac not available → wait in ICU bed until evac is free
+  trj %>%
     branch(
       option = function() {
         usage <- sum(get_server_count(env, resources = evacuation_team))
@@ -1354,19 +1399,94 @@ r2b_treat_wia <- function(team_id) {
 
       # Path 1: Immediate evacuation to R2E
       trajectory("Immediate Evac") %>%
-        set_attribute("r2b_to_r2e", 1) %>%
-        set_attribute("r2e", function() select_r2e_team()) %>%
-        r2b_evac_leg(evacuation_team) %>%
-        branch(
-          option = function() get_attribute(env, "r2e"),
-          continue = TRUE,
-          lapply(1:length(env_data$elms$r2eheavy), r2e_treat_wia)
-        ) %>%
-        simmer::leave(1),
+        r2b_evacuate_to_r2e(evacuation_team),
 
       # Path 2: Immediate evacuation not possible — wait in ICU
       join(wait_for_evac)
     )
+}
+
+#' Executes the full treatment pathway for WIA casualties at Role 2B
+#'
+#' @param team_id Integer index of the Role 2B team handling treatment
+#' @return Simmer trajectory representing the entire WIA care pathway at R2B
+#'
+#' @details The body is the sequence of steps a casualty passes through, each a
+#'   named builder above: a holding bed on arrival and the died-of-wounds check
+#'   against the journey from R1 (r2b_dow_check()), resuscitation
+#'   (r2b_resuscitation()), the surgical decision, and the evacuation decision
+#'   (r2b_evac_decision()).
+#'
+#'   A casualty requiring surgery passes the pre-theatre intensive care gate
+#'   (r2b_surgery_gate()) and then the theatre availability check
+#'   (r2b_ot_check_path()), which operates on them forward, holds them for a
+#'   section about to reopen, or bypasses them to R2E; a forward operation ends
+#'   in the stabilisation phase (r2b_post_op_stabilisation()). A casualty
+#'   requiring none takes r2b_no_surgery_path().
+#'
+#'   The builders take the resources they use rather than reading this team's
+#'   establishment themselves, so what each one touches is visible in its
+#'   signature. Two trajectories are built here and passed down rather than
+#'   rebuilt at each use, the stabilisation phase and the theatre check, each
+#'   being reached by two routes.
+#'
+#'   R2B → R2E WIA movement seizes each R2B team's own `evac` resource, not the
+#'   shared PMVAmb fleet, a deliberate design (Issue #73): this leg represents
+#'   an organic R2B unit asset, distinct from the brigade-pooled transport fleet
+#'   used for R1 → R2B. It does model a dead-heading return leg on that same
+#'   organic resource (Issue #73 follow-up): once the R2B team's evac asset
+#'   drops a casualty at R2E, it is unavailable to its own team until it
+#'   completes the return trip.
+r2b_treat_wia <- function(team_id) {
+  hold_beds       <- env_data$elms$r2b[[team_id]][["hold_bed"]]
+  resus_beds      <- env_data$elms$r2b[[team_id]][["resus_bed"]]
+  ot_beds         <- env_data$elms$r2b[[team_id]][["ot_bed"]]
+  icu_beds        <- env_data$elms$r2b[[team_id]][["icu_bed"]]
+  emergency_team  <- env_data$elms$r2b[[team_id]][["emerg"]][[1]]
+  evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
+  surg_team       <- env_data$elms$r2b[[team_id]][["surg"]][[1]]
+  icu_team        <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
+
+  post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
+  ot_check       <- r2b_ot_check_path(ot_beds, surg_team, post_op)
+  wait_for_evac  <- r2b_wait_for_evac(icu_beds, icu_team, evacuation_team)
+
+  trajectory("R2B Basic Flow") %>%
+    set_attribute("r2b_treated", team_id) %>%
+    set_attribute("r2b_treatment_start_time", function() now(env)) %>%
+
+    # Step 1: Initial hold bed
+    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
+    seize_selected(id = 1) %>%
+
+    # Step 1.5: DOW check on arrival
+    r2b_dow_check(team_id) %>%
+    set_attribute("last_dow_t", function() now(env)) %>%
+
+    # Steps 2 and 3: Resuscitation bed and emergency resuscitation
+    r2b_resuscitation(resus_beds, emergency_team) %>%
+
+    # Step 4: Surgery decision
+    # Branches based on attribute "surgery":
+    # - surgery == 1 → intensive care gate, then the OT availability check
+    # - surgery != 1 → hold bed recovery, R2E bypass, or hold queue
+    branch(
+      option = function() {
+        needs_surg <- get_attribute(env, "surgery")
+        if (!is.na(needs_surg) && needs_surg == 1) return(1)
+        return(2)
+      },
+      continue = TRUE,
+
+      # Branch 1: Surgery required
+      r2b_surgery_gate(icu_beds, ot_check),
+
+      # Branch 2: Surgery not required
+      r2b_no_surgery_path(hold_beds, evacuation_team)
+    ) %>%
+
+    # Step 5: Evacuation decision
+    r2b_evac_decision(evacuation_team, wait_for_evac)
 }
 
 # ── Role 2E Heavy trajectories ────────────────────────────────────────────────

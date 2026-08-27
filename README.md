@@ -1161,8 +1161,8 @@ One derivation in the pipeline consumes random draws, the Role 4 length of stay 
 The repository's regression checks live in `scripts/` as `check_*.R`, one per property asserted, and each exits non-zero when its assertions fail. `scripts/run_all_checks.R` runs them as a suite, discovering them by glob so that a newly added check is executed without the runner being edited, and returns a single exit status:
 
 ```bash
-# Every check a pull request is gated on
-Rscript scripts/run_all_checks.R --fast
+# Every check a pull request is gated on, one check per core
+Rscript scripts/run_all_checks.R --fast --jobs auto
 
 # The calibration check alone, which runs 450 replications
 Rscript scripts/run_all_checks.R --slow
@@ -1171,7 +1171,7 @@ Rscript scripts/run_all_checks.R --slow
 Rscript scripts/run_all_checks.R --list
 ```
 
-The split is drawn from measured runtimes rather than from judgement: `scripts/README.md` records the result and runtime of every check in the pinned container, and `check_dow_calibration.R` alone accounts for roughly four fifths of the suite's wall-clock time. A check not named as slow is fast, so the default classification of a new check is the one that gets it run on every pull request. Two checks rewrite tracked documents in place rather than only inspecting them, so the runner compares the working tree before and after and treats a modification as the failure signal, exit status alone being silent for those two.
+The split is drawn from measured runtimes rather than from judgement: `scripts/README.md` records the result and runtime of every check in the pinned container, and `check_dow_calibration.R` alone accounts for roughly four fifths of the suite's wall-clock time. A check not named as slow is fast, so the default classification of a new check is the one that gets it run on every pull request. Two checks rewrite tracked documents in place rather than only inspecting them, so the runner compares the working tree before and after and treats a modification as the failure signal, exit status alone being silent for those two. `--jobs` runs several checks at once, dispatched longest first from the runtimes recorded in `scripts/check_runtimes.csv` and given a share each of the machine's cores; those same two checks are taken first and on their own, a repository-wide comparison being unable to say which of two concurrent writers touched a file. What a check concludes is unaffected, a measurement being a function of its control seed rather than of the core count it was taken on (see [Multi-run Replication Framework](#multi-run-replication-framework)).
 
 Code style is enforced by `lintr` under `.lintr`, which encodes the rules `docs/STYLE_GUIDE.md` tags as machine-checkable and no others. Because the existing code carries several hundred findings, most of them over-long lines, the gate is a ratchet rather than a gate on zero: `scripts/check_lint.R` compares the finding count per rule against the tracked counts in `scripts/lint_baseline.csv` and fails only where a count has risen, so a pull request may not add a finding while the recorded totals are worked down. Two of the standard's machine-checkable rules have no `lintr` linter, the function length limit and the ban on pictographic characters in source, and the check computes both itself, the second from codepoints rather than from a pattern so that the session locale cannot change the answer.
 

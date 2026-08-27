@@ -9,71 +9,79 @@ library(parallel)
 source("R/constants.R")
 
 # ── Single simulation build + run ─────────────────────────────────────────────
-
-#' Build and run one complete simulation replication
+#' Generate the run's mass casualty event stream and initialise its sinks
 #'
 #' @param n_days      Simulation duration in days
-#' @param seed        Random seed (NULL = random, for independent replications)
-#' @param write_files Write arrival diagnostics to `data_dir` (TRUE for
+#' @param write_files Write the event schedule to `data_dir` (TRUE for
 #'   single-run diagnostics; FALSE for parallel replication workers)
-#' @param data_dir    Directory the arrival diagnostics are written to when
-#'   `write_files` is TRUE (default "data", the tracked baseline location).
-#'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
-#'   refresh was explicitly requested (Issue #154).
-#' @param ot_hours    Hours per day the first OT shift is active. NULL (the
-#'   default) uses the value configured in env_data.json; an explicit value
-#'   overrides it for this replication only. Passed to build_env().
-#' @return A wrapped simmer environment (use get_mon_*() on a list of these)
+#' @param data_dir    Directory the event schedule is written to when
+#'   `write_files` is TRUE
+#' @return The list returned by generate_mass_casualty_events(): the event
+#'   table and the wounded and killed arrival times and event ids.
 #'
-#' @details Sets env globally (<<-) so trajectory closures can resolve it.
-#'   In forked mclapply workers, <<- modifies only the fork's global state.
-run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
-                     data_dir = "data") {
-  if (!is.null(seed)) set.seed(seed)
-
-  env <<- simmer("Battlefield Casualty Handling")
-  env <<- build_env(env, env_data, ot_hours = ot_hours)
-  casualty <- build_casualty_trajectory()
-
-  # Force regeneration feedback loop (Issue #18): the six background
-  # casualty streams are live, force-size-reactive generator closures
-  # (R/environment.R) rather than pre-computed at() vectors, reading the
-  # effective_force_combat/effective_force_support globals initialised
-  # below — those globals are debited at each casualty's injury_time and
-  # credited at each RTD event (R/trajectories.R), plus a periodic
-  # reinforcement trajectory, closing the loop the old fixed-population
-  # generator could not represent.
-  #
-  # Mass casualty injection (Issue #9) stays exogenous/pre-computed (a
-  # compound Poisson process, or in "scheduled" mode a planner-specified
-  # day/probability list) — it is not population-scaled. wrap_with_mass_casualty()
-  # interleaves it into the wia_cbt closure in true chronological order and
-  # builds wia_cbt_mass_casualty_event_id incrementally (0 = background) as
-  # entities are actually emitted, which build_casualty_trajectory() reads
-  # via the entity's generator-assigned index to set the
-  # mass_casualty_event/mass_casualty_event_id attributes and to look up
-  # that event's own priority split (scheduled mode only; NA pri_one for
-  # poisson-mode events falls back to the shared
-  # env_data$vars$mass_casualty$priority split — see mass_casualty_event_priority_table).
-  # An event's immediate killed (Issue #149) are overlaid the same way on
-  # kia_cbt, with their own sink, so they take the mortuary pathway the
-  # background killed stream already takes rather than the wounded
-  # trajectory.
-  # Global assignment (<<-) mirrors env_data/day_min/counts (run.R); in
-  # forked mclapply workers this modifies only the fork's local state.
+#' @details Mass casualty injection (Issue #9) is exogenous and pre-computed (a
+#'   compound Poisson process, or in "scheduled" mode a planner-specified
+#'   day/probability list) rather than population-scaled the way the six
+#'   background streams are. The event stream is therefore drawn once, here,
+#'   before any generator is built, and interleaved into the background streams
+#'   by add_casualty_generators().
+#'
+#'   The three globals initialised here are the sinks
+#'   wrap_with_mass_casualty() writes each emitted entity's event id into, and
+#'   the priority table build_casualty_trajectory() reads that id against; they
+#'   are assigned with <<- for the same reason env, env_data, day_min and
+#'   counts are, being state the trajectory closures resolve at run time rather
+#'   than arguments simmer can pass. wia_cbt_mass_casualty_event_id and
+#'   kia_cbt_mass_casualty_event_id are built incrementally (0 = background) as
+#'   entities are actually emitted, so they must start empty on every
+#'   replication. In forked mclapply workers <<- modifies only the fork's
+#'   global state.
+init_mass_casualty_stream <- function(n_days, write_files, data_dir) {
   mass_casualty <- generate_mass_casualty_events(n_days,
                       env_data$vars$mass_casualty, write_file = write_files,
                       data_dir = data_dir)
   wia_cbt_mass_casualty_event_id <<- integer(0)
   kia_cbt_mass_casualty_event_id <<- integer(0)
   mass_casualty_event_priority_table <<- mass_casualty$events
+  mass_casualty
+}
 
-  # Reinforcement can carry a pool above establishment strength (Issue #207),
-  # and the thinning sampler's dominating rate has to bound the force size for
-  # the whole run. Both pools' bounds are resolved once, here, so every stream
-  # drawing on the same pool samples against the same bound. With reinforcement
-  # disabled, the shipped default, each returns its own establishment strength
-  # and the streams sample exactly as they did before.
+#' Add the force-size globals and the six casualty generators to the environment
+#'
+#' @param env           The simmer environment under construction
+#' @param casualty      The casualty trajectory every generator feeds
+#' @param mass_casualty The event stream returned by init_mass_casualty_stream()
+#' @param n_days        Simulation duration in days
+#' @return The environment, with the force-size and evacuation-wait globals and
+#'   the six casualty generators added.
+#'
+#' @details Force regeneration feedback loop (Issue #18): the six background
+#'   casualty streams are live, force-size-reactive generator closures
+#'   (R/environment.R) rather than pre-computed at() vectors, reading the
+#'   effective_force_combat/effective_force_support globals added here. Those
+#'   globals are debited at each casualty's injury_time and credited at each RTD
+#'   event (R/trajectories.R), plus a periodic reinforcement trajectory, closing
+#'   the loop the old fixed-population generator could not represent.
+#'
+#'   wrap_with_mass_casualty() interleaves the pre-computed event stream into
+#'   the wia_cbt closure in true chronological order, writing each emitted
+#'   entity's event id into the sink named by id_sink.
+#'   build_casualty_trajectory() reads that sink via the entity's
+#'   generator-assigned index to set the mass_casualty_event and
+#'   mass_casualty_event_id attributes and to look up that event's own priority
+#'   split (scheduled mode only; NA pri_one for poisson-mode events falls back
+#'   to the shared env_data$vars$mass_casualty$priority split). An event's
+#'   immediate killed (Issue #149) are overlaid the same way on kia_cbt, with
+#'   their own sink, so they take the mortuary pathway the background killed
+#'   stream already takes rather than the wounded trajectory.
+#'
+#'   Reinforcement can carry a pool above establishment strength (Issue #207),
+#'   and the thinning sampler's dominating rate has to bound the force size for
+#'   the whole run. Both pools' bounds are resolved once, here, so every stream
+#'   drawing on the same pool samples against the same bound. With reinforcement
+#'   disabled, the shipped default, each returns its own establishment strength
+#'   and the streams sample exactly as they did before.
+add_casualty_generators <- function(env, casualty, mass_casualty, n_days) {
   bound_combat  <- reinforcement_force_bound(env_data$pops$combat)
   bound_support <- reinforcement_force_bound(env_data$pops$support)
 
@@ -89,7 +97,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
     mass_casualty$kia_arrival_times, mass_casualty$kia_casualty_event_id,
     id_sink = "kia_cbt_mass_casualty_event_id")
 
-  env <<- env %>%
+  env %>%
     add_global("effective_force_combat", env_data$pops$combat) %>%
     add_global("effective_force_support", env_data$pops$support) %>%
     add_generator("wia_cbt",  casualty, wia_cbt_gen, mon = 2) %>%
@@ -107,66 +115,131 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
                   generate_casualty_arrivals(env_data$vars$generators$dnbi_spt,
                     "effective_force_support", bound_support, n_days), mon = 2) %>%
     add_global("evac_wait_count", 0)
+}
 
-  # Reinforcement demand cycle (Issue #18 follow-up): only scheduled when
-  # demand_interval_days > 0, so the shipped disabled default consumes no
-  # RNG draws and adds no generator at all, matching the mass-casualty
-  # rate_per_day = 0 disable-path convention elsewhere in this file. First
-  # demand fires at day `demand_interval_days`, not day 0 — a pool starts
-  # at full strength, so an immediate submission would have zero demand.
+#' Add the reinforcement demand cycle where the configuration schedules one
+#'
+#' @param env    The simmer environment under construction
+#' @param n_days Simulation duration in days
+#' @return The environment, with the reinforcement globals and generator added
+#'   where a demand cycle falls within the run, and unchanged otherwise.
+#'
+#' @details Reinforcement demand cycle (Issue #18 follow-up): only scheduled
+#'   when demand_interval_days > 0, so the shipped disabled default consumes no
+#'   RNG draws and adds no generator at all, matching the mass-casualty
+#'   rate_per_day = 0 disable-path convention elsewhere in this file. First
+#'   demand fires at day `demand_interval_days`, not day 0 — a pool starts at
+#'   full strength, so an immediate submission would have zero demand.
+#'
+#'   A demand interval exceeding n_days (e.g. a long demand cycle screened
+#'   against a short smoke-test/Morris-screening run length, Issue #112) would
+#'   make the first scheduled demand day fall after the run ends — seq()'s
+#'   `from` would exceed its `to` with a positive `by`, throwing "wrong sign in
+#'   'by' argument". No demand cycle fitting within the run means no
+#'   reinforcement fires at all, which is the semantically correct behaviour
+#'   here, not an error.
+#'
+#'   reinf_*_pending (Issue #124) is the fill amount already committed to an
+#'   in-flight (submitted-but-not-yet-credited) reinforcement cycle for each
+#'   pool — see build_reinforcement_trajectory() (R/trajectories.R) for why this
+#'   is needed to keep overlapping cycles from independently re-claiming the
+#'   same shortfall.
+add_reinforcement_cycle <- function(env, n_days) {
   demand_interval <- env_data$vars$force_regeneration$reinforcement$demand_interval_days
-  # demand_interval > n_days (e.g. a long demand cycle screened against a
-  # short smoke-test/Morris-screening run length, Issue #112) would make
-  # the first scheduled demand day fall after the run ends — seq()'s
-  # `from` (demand_interval * day_min) would exceed its `to` (n_days *
-  # day_min) with a positive `by`, throwing "wrong sign in 'by' argument".
-  # No demand cycle fitting within the run means no reinforcement fires at
-  # all, which is the semantically correct behaviour here, not an error.
-  if (!is.null(demand_interval) && demand_interval > 0 && demand_interval <= n_days) {
-    env <<- env %>%
-      # reinf_*_pending (Issue #124): fill amount already committed to an
-      # in-flight (submitted-but-not-yet-credited) reinforcement cycle for
-      # each pool — see build_reinforcement_trajectory() (R/trajectories.R)
-      # for why this is needed to keep overlapping cycles from
-      # independently re-claiming the same shortfall.
-      add_global("reinf_combat_pending", 0) %>%
-      add_global("reinf_support_pending", 0) %>%
-      add_generator("force_reinforcement", build_reinforcement_trajectory(),
-                    at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
-                    mon = 0)
+  if (is.null(demand_interval) || demand_interval <= 0 || demand_interval > n_days) {
+    return(env)
   }
 
-  # Strategic AME resources (Issue #23 follow-up): two theatre-wide
-  # resources seized only from the R2E Heavy Strategic Evac disposition
-  # (R/trajectories.R) — "ame" (standard, Casualty Staging Unit-equivalent
-  # Hold-bed evacuees) and "ame_critical" (CCATT/CCAST-supported, ICU-bed
-  # evacuees), both fed by the same sortie schedule (a CCATT/CCAST team
-  # augments the standard crew rather than flying separately — see
-  # build_ame_sortie_trajectory(), R/trajectories.R). Both start at zero
-  # capacity — they always exist (any casualty reaching Strategic Evac
-  # unconditionally tries to seize one of them, so neither can be
-  # conditionally absent the way mass casualty injection or reinforcement
-  # are), but capacity is only ever added to by the periodic AME sortie
-  # generator below. No generator is added at all — so AME never opens and
-  # every strategic evacuee queues indefinitely — when
-  # schedule_interval_days is non-positive (matching reinforcement's
-  # disable convention) or exceeds n_days (no scheduled sortie opportunity
-  # falls within the run at all; seq()'s from > to would otherwise error
-  # rather than silently produce zero opportunities).
-  env <<- env %>%
+  env %>%
+    add_global("reinf_combat_pending", 0) %>%
+    add_global("reinf_support_pending", 0) %>%
+    add_generator("force_reinforcement", build_reinforcement_trajectory(),
+                  at(seq(demand_interval * day_min, n_days * day_min, by = demand_interval * day_min)),
+                  mon = 0)
+}
+
+#' Add the strategic aeromedical evacuation resources and sortie schedule
+#'
+#' @param env    The simmer environment under construction
+#' @param n_days Simulation duration in days
+#' @return The environment, with both AME resources added, and the sortie
+#'   generator added where the configuration schedules a sortie within the run.
+#'
+#' @details Strategic AME resources (Issue #23 follow-up): two theatre-wide
+#'   resources seized only from the R2E Heavy Strategic Evac disposition
+#'   (R/trajectories.R) — "ame" (standard, Casualty Staging Unit-equivalent
+#'   Hold-bed evacuees) and "ame_critical" (CCATT/CCAST-supported, ICU-bed
+#'   evacuees), both fed by the same sortie schedule (a CCATT/CCAST team
+#'   augments the standard crew rather than flying separately — see
+#'   build_ame_sortie_trajectory(), R/trajectories.R).
+#'
+#'   Both start at zero capacity — they always exist (any casualty reaching
+#'   Strategic Evac unconditionally tries to seize one of them, so neither can
+#'   be conditionally absent the way mass casualty injection or reinforcement
+#'   are), but capacity is only ever added to by the periodic AME sortie
+#'   generator. No generator is added at all — so AME never opens and every
+#'   strategic evacuee queues indefinitely — when schedule_interval_days is
+#'   non-positive (matching reinforcement's disable convention) or exceeds
+#'   n_days (no scheduled sortie opportunity falls within the run at all;
+#'   seq()'s from > to would otherwise error rather than silently produce zero
+#'   opportunities).
+add_strategic_evac <- function(env, n_days) {
+  env <- env %>%
     add_resource("ame", capacity = 0) %>%
     add_resource("ame_critical", capacity = 0)
 
   ame_params <- env_data$vars$role4$ame
-  if (!is.null(ame_params$schedule_interval_days) &&
-      ame_params$schedule_interval_days > 0 &&
-      ame_params$schedule_interval_days <= n_days) {
-    env <<- env %>%
-      add_generator("ame_sortie", build_ame_sortie_trajectory(),
-                    at(seq(ame_params$schedule_interval_days * day_min, n_days * day_min,
-                           by = ame_params$schedule_interval_days * day_min)),
-                    mon = 0)
+  if (is.null(ame_params$schedule_interval_days) ||
+      ame_params$schedule_interval_days <= 0 ||
+      ame_params$schedule_interval_days > n_days) {
+    return(env)
   }
+
+  env %>%
+    add_generator("ame_sortie", build_ame_sortie_trajectory(),
+                  at(seq(ame_params$schedule_interval_days * day_min, n_days * day_min,
+                         by = ame_params$schedule_interval_days * day_min)),
+                  mon = 0)
+}
+
+#' Build and run one complete simulation replication
+#'
+#' @param n_days      Simulation duration in days
+#' @param seed        Random seed (NULL = random, for independent replications)
+#' @param write_files Write arrival diagnostics to `data_dir` (TRUE for
+#'   single-run diagnostics; FALSE for parallel replication workers)
+#' @param data_dir    Directory the arrival diagnostics are written to when
+#'   `write_files` is TRUE (default "data", the tracked baseline location).
+#'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
+#'   refresh was explicitly requested (Issue #154).
+#' @param ot_hours    Hours per day the first OT shift is active. NULL (the
+#'   default) uses the value configured in env_data.json; an explicit value
+#'   overrides it for this replication only. Passed to build_env().
+#' @return A wrapped simmer environment (use get_mon_*() on a list of these)
+#'
+#' @details The body is the assembly sequence: build the environment, draw the
+#'   mass casualty event stream, add the casualty generators, add the
+#'   reinforcement cycle and the strategic evacuation resources where the
+#'   configuration schedules them, run, and wrap. Each step is a named function
+#'   above, carrying the reasoning for what it adds.
+#'
+#'   Sets env globally (<<-) so trajectory closures can resolve it. The
+#'   assembly steps take and return the environment rather than reading the
+#'   global, so what each one adds is visible in its signature. In forked
+#'   mclapply workers, <<- modifies only the fork's global state.
+run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
+                     data_dir = "data") {
+  if (!is.null(seed)) set.seed(seed)
+
+  env <<- simmer("Battlefield Casualty Handling")
+  env <<- build_env(env, env_data, ot_hours = ot_hours)
+  casualty <- build_casualty_trajectory()
+
+  mass_casualty <- init_mass_casualty_stream(n_days, write_files, data_dir)
+
+  env <<- add_casualty_generators(env, casualty, mass_casualty, n_days) %>%
+    add_reinforcement_cycle(n_days) %>%
+    add_strategic_evac(n_days)
 
   env %>% run(until = n_days * day_min)
 

@@ -208,7 +208,7 @@ validate_shares <- function(shares, caller) {
   invisible(TRUE)
 }
 
-# ── Role 4 (national support base) demand model (Issue #23) ────────────────
+# ── Role 4 (national support base) demand model ────────────────────────────
 # Strategically evacuated casualties (r2e_evac == 1) depart the theatre
 # system and are not simulated further. These functions estimate the
 # resulting demand signal at the national support base as a post-simulation
@@ -388,7 +388,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
     mutate(sorties_required = ceiling(evacuation_count / ame_capacity))
 }
 
-# ── Strategic AME queue depth and sortie timeline visualisation (Issue #109) ──
+# ── Strategic AME queue depth and sortie timeline visualisation ───────────────
 # build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
 # own — every outcome (flown or cancelled) has to be reconstructed from
 # the "ame"/"ame_critical" resource monitor. The schedule
@@ -2483,7 +2483,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   r2b_hold_queued_count <- r2b_hold_routing_out$r2b_hold_queued_count
   r2b_pre_bypass_count <- r2b_hold_routing_out$r2b_pre_bypass_count
 
-  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
+  # ── R2B OT bypass reason decomposition ───────────────────────────────────
   # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
   # non-NA) and were bypassed to R2E at the surgical decision point — it does
   # not apply to the pre-transport r2b_bypassed rows above (those never carry
@@ -2559,7 +2559,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # Waiting time scatter
   p_waiting_time <- plot_waiting_times(arrivals, images_dir)
 
-  # ── Transport fleet capacity margin (Issue #6) ────────────────────────────
+  # ── Transport fleet capacity margin ───────────────────────────────────────
   # Queue-over-time per pooled transport asset (PMV Ambulance, HX240M) shows
   # how much headroom the current fleet size has under the dead-heading
   # round trip: a queue that stays at 0 throughout indicates spare capacity;
@@ -2607,7 +2607,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   surgery_deferred_count <- post_operative_pathways_out$surgery_deferred_count
   surgical_pathway_summary <- post_operative_pathways_out$surgical_pathway_summary
 
-  # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
+  # ── R2E OT-ICU gating impact — sub-optimal and delayed care ──────────────
   # Visualises, by simulation day, where casualties experienced degraded care
   # specifically attributable to ICU saturation at the point of OT entry:
   # - Sub-Optimal Care: a Priority 1 candidate was operated on despite ICU
@@ -2623,7 +2623,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   r2e_icu_gating_daily <- r2e_icu_gating_out$r2e_icu_gating_daily
   r2e_icu_gating_plot <- r2e_icu_gating_out$r2e_icu_gating_plot
 
-  # ── Force regeneration — effective force size over time (Issue #18) ──
+  # ── Force regeneration — effective force size over time ──────────────
   # Visualises effective_force_combat/effective_force_support (simmer
   # globals set in run_once(), R/replication.R; debited/credited in
   # R/trajectories.R) across the run: debited at each casualty's
@@ -2638,7 +2638,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   force_regeneration_daily <- force_regeneration_out$force_regeneration_daily
   force_regeneration_plot <- force_regeneration_out$force_regeneration_plot
 
-  # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
+  # ── KPI 9: Mass casualty event stress test analysis ─────────────
   # mass_casualty_event: 1 = casualty originated from a compound-Poisson
   # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
   # 0 = background lognormal generation. Both of the event's pathways carry
@@ -2658,7 +2658,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   mass_casualty_events_summary <- mass_casualty_events_out$mass_casualty_events_summary
   mass_casualty_timeline_plot <- mass_casualty_events_out$mass_casualty_timeline_plot
 
-  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
+  # ── Role 4 (national support base) census and AME sortie demand ──────────────
   # compute_role4_census()/compute_ame_demand() (above) return per-replication
   # granular tables; this block aggregates them for display (mean across
   # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
@@ -2705,7 +2705,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ame_replication_summary <- ame_sortie_demand_out$ame_replication_summary
   }
 
-  # ── Strategic AME actual performance (Issue #23 follow-up) ──────────────
+  # ── Strategic AME actual performance ────────────────────────────────────
   # ame_demand_daily/ame_summary above are an unconstrained theoretical
   # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
   # schedule entirely). These outputs instead measure the REAL constrained
@@ -2723,7 +2723,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ame_wait_time_summary <- ame_performance_out$ame_wait_time_summary
   n_sim_days_role4 <- ame_performance_out$n_sim_days_role4
 
-  # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
+  # ── Strategic AME sortie timeline ────────────────────────────────────────
   # compute_ame_sorties() only needs `resources` and the schedule/airframe
   # parameters, not `combined` — so it does not require any strategic
   # evacuation decisions to have occurred yet, unlike the backlog output
@@ -3979,7 +3979,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   clamp_ci <- replication_kpi_cards_out$clamp_ci
   kpi_summary <- replication_kpi_cards_out$kpi_summary
 
-  # ── Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps ──────
+  # ── Per-casualty breakdowns, mean ± 95% CI across replications ───────────
   # Everything below reuses build_attributes_wide()/the same combined join
   # analyse_run() builds, pooling every replication's casualties into one
   # wide pivot — group_by(name, replication) inside build_attributes_wide()
@@ -3993,7 +3993,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   # same bias role4_census_daily's original single-run roxygen (above)
   # warns against, generalised here to every new breakdown.
 
-  # Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps
+  # Per-casualty breakdowns, mean ± 95% CI across replications
   replication_attributes_out <- build_replication_attributes(arrivals, arrivals_raw, attributes_raw)
   attributes_wide <- replication_attributes_out$attributes_wide
   combined <- replication_attributes_out$combined
@@ -4111,7 +4111,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   # Waiting Times — p10-p90 quantile band across the pooled replications
   p_waiting_times_ci <- plot_waiting_times_ci(arrivals_raw, day_range, n_reps)
 
-  # ── Force regeneration — effective force size, mean ± CI across reps (Issue #18) ──
+  # ── Force regeneration — effective force size, mean ± CI across reps ──────────────
   # Same step-interpolate-onto-a-day-grid approach as bin_queue_ci() above,
   # applied to the two force-size globals instead of resource queues, since
   # get_mon_attributes() records them at irregular event times (each
@@ -4123,7 +4123,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   force_regeneration_ci <- force_regeneration_ci_out$force_regeneration_ci
   p_force_regeneration_ci <- force_regeneration_ci_out$p_force_regeneration_ci
 
-  # ── Strategic AME queue depth and sortie timeline (Issue #109) ──────────
+  # ── Strategic AME queue depth and sortie timeline ───────────────────────
   # compute_ame_sorties()/plot_ame_sortie() (defined above, ahead of
   # analyse_run()) only depend on the resource monitor and the role4
   # schedule/config parameters — not the per-casualty `combined` join
@@ -4162,8 +4162,8 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     attributes     = attributes_raw,
     resources      = resources_raw,
 
-    # ── Issue #117 — mean ± 95% CI equivalents of analyse_run()'s per-
-    # casualty breakdowns (see the block above, right after kpi_summary).
+    # ── Mean ± 95% CI equivalents of analyse_run()'s per-casualty
+    # breakdowns (see the block above, right after kpi_summary). ─────────
     dow_by_echelon_ci              = dow_by_echelon_ci,
     rtd_summary_ci                 = rtd_summary_ci,
     rtd_by_echelon_ci              = rtd_by_echelon_ci,

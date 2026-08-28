@@ -960,7 +960,7 @@ strategic_ame_fields <- function() {
 #'   them. See build_param_registry() for the shape of one spec.
 mass_casualty_fields <- function() {
   registry <- list()
-  # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
+  # ── Mass Casualty ──────────────────────────────────────────────────────────
   registry <- c(registry, list(
     var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
               "Event Timing Mode",

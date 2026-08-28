@@ -369,7 +369,7 @@ composition_coord_bounds <- function(g) {
 #'   discrete/categorical switches, and fixed establishment/capacity counts).
 morris_params <- data.frame(
   name  = c(
-    # ── Original eleven (Issue #3, #75, #9) ──────────────────────────────
+    # ── Original eleven ──────────────────────────────────────────────────
     "surg_mode",      "long_resus_mode", "p1_p_max",
     "r1_transport",   "r2b_transport",   "stabilisation_icu_mode",
     "pri1_surg_prob", "evacuation_policy_days", "ot_hours",
@@ -388,7 +388,7 @@ morris_params <- data.frame(
     "r1_tccc_factor", "r2b_resus_factor", "r2b_dcs_factor",
     "r2e_resus_factor", "r2e_dcs1_factor", "r2e_dcs2_factor",
     "r2e_postop_hold_penalty", "r2b_icu_penalty",
-    # ── Casualty generation rates (Issue #18 background generators) ──────
+    # ── Casualty generation rates ────────────────────────────────────────
     "wia_cbt_mean", "kia_cbt_mean", "dnbi_cbt_mean",
     "wia_spt_mean", "kia_spt_mean", "dnbi_spt_mean",
     # ── Mass casualty, force regeneration, strategic AME ──────────────────
@@ -398,7 +398,7 @@ morris_params <- data.frame(
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
     "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold",
     "r2b_pre_open_window",
-    # ── Surgical pathway split (Issue #173) ───────────────────────────────
+    # ── Surgical pathway split ────────────────────────────────────────────
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate"
   ),
   lower = c(
@@ -443,51 +443,18 @@ morris_params <- data.frame(
     60,
     0.55, 0.20, 0.05
   ),
-  # "Context" = an assumption about the operational environment or the
-  # casualty population itself (generation rates, DOW calibration,
-  # clinical-need composition, treatment efficacy) — a planner does not
-  # choose these, they describe what happens *to* the force. Inter-echelon
-  # transport time (r1_transport, r2b_transport) lives here too, not under
-  # Capacity: geography and terrain, not vehicle procurement, dominate how
-  # long a given leg takes in a given scenario, unlike a treatment duration
-  # a staffing/equipment investment can genuinely shorten.
+  # Each parameter's category, in the same order as the vectors above. The
+  # three are Context, Capacity and Policy; README Sensitivity Analysis
+  # defines them, states which way the borderline parameters were called and
+  # why, and is where a reader interprets a ranked parameter's category.
   #
-  # "Health System Design" splits further into two sub-categories with a
-  # materially different practical implication for a planner deciding
-  # whether to act on a highly-ranked parameter (Issue #112 second
-  # follow-up — the original two-way split conflated them):
-  #   "Capacity" = a treatment/holding throughput or process time (how
-  #     long a procedure or stay inherently takes at current resourcing).
-  #     Only changeable through investment — more staff, better equipment,
-  #     training — not by a standing-order decision; r1_wia_treat_mode is
-  #     a clinical process duration a planner cannot simply command to be
-  #     shorter, unlike a genuine policy lever.
-  #   "Policy" = a threshold, cadence, or scheduling rule the health
-  #     system's own standing orders set directly (a shift roster length,
-  #     a reroute threshold, a sortie interval) — a planner can change one
-  #     of these by writing a new order, with no resourcing investment
-  #     required to take effect.
-  # Requested by the issue #112 follow-up so a planner reading the
-  # screening plot can immediately tell which kind of lever a
-  # highly-ranked parameter is — and how directly they can pull it —
-  # before deciding whether to act on it. A few parameters sit close to
-  # the line (see README note below the plot for the specific calls this
-  # project made and why, including the transport-time call above); this
-  # is an interpretive aid, not a claim of a clean, uncontested partition.
-  #
-  # r2b_icu_share is Policy, and is the clearest case of the category in the
-  # screen: holding a post-operative casualty forward at R2B against
-  # evacuating them for rearward intensive care is a disposition a commander
-  # decides by order, needing no resourcing change to take effect. The
-  # penalty that prices it, r2b_icu_penalty, is Context — the mortality cost
-  # of an ICU section without an intensivist is a fact about the
-  # establishment, not something the same order can choose. The two
-  # replaced post_surgery_prob and short_icu_mode, which are no longer
-  # screened because the parameters themselves no longer exist: the R2E ICU
-  # stay now follows from the requirement and the share (see
-  # draw_post_op_icu_total(), R/trajectories.R) rather than from a
-  # short-versus-full draw. Both were in the published ranking below, which
-  # therefore predates this change.
+  # What a maintainer needs here is the rule for a new row. Ask who can change
+  # the parameter: nobody inside the health system, and it is Context; a
+  # resourcing decision, and it is Capacity; a standing order written without
+  # new resources, and it is Policy. The categories carry no weight in the
+  # screen itself, so a wrong one costs nothing but a mislabelled plot point,
+  # and a row added here without a matching entry in README's legend is the
+  # failure that actually misleads a reader.
   category = c(
     "Capacity", "Capacity", "Context", "Context", "Context", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
     "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity",
@@ -564,7 +531,7 @@ MORRIS_MODE_CHECK_EXCLUSIONS <- local({
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_duration_and_dow_ceiling_params <- function(ed, p) {
-  # ── Original eleven (Issue #3, #75, #9) ────────────────────────────────
+  # ── Original eleven ────────────────────────────────────────────────────
   ed$vars$r2b$surgery$mode                  <- p[["surg_mode"]]
   ed$vars$r2eheavy$surgery$mode             <- p[["surg_mode"]]
   ed$vars$r2eheavy$long_resus$mode          <- p[["long_resus_mode"]]
@@ -587,7 +554,7 @@ apply_duration_and_dow_ceiling_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_echelon_duration_params <- function(ed, p) {
-  # ── R1/R2B/R2E durations (Issue #112) ───────────────────────────────────
+  # ── R1/R2B/R2E durations ────────────────────────────────────────────────
   ed$vars$r2eheavy$short_resus$mode           <- p[["short_resus_mode"]]
   ed$vars$r2b$holding$mode                    <- p[["r2b_hold_mode"]]
   ed$vars$r2eheavy$holding$mode               <- p[["r2e_hold_mode"]]
@@ -604,7 +571,7 @@ apply_echelon_duration_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_surgical_pathway_params <- function(ed, p) {
-  # ── R1 surgical candidacy / evacuation probabilities (Issue #112) ──────
+  # ── R1 surgical candidacy / evacuation probabilities ───────────────────
   ed$vars$r1$other$pri2_surgery       <- p[["pri2_surg_prob"]]
   ed$vars$r1$other$pri3_dnbi_surgery  <- p[["pri3_dnbi_surg_prob"]]
   ed$vars$r1$other$pri3_other_surgery <- p[["pri3_other_surg_prob"]]
@@ -612,7 +579,7 @@ apply_surgical_pathway_params <- function(ed, p) {
   ed$vars$r1$other$pri1_evac          <- p[["pri1_evac_prob"]]
   ed$vars$r1$other$pri2_evac          <- p[["pri2_evac_prob"]]
 
-  # ── Surgical pathway split (Issue #173) ─────────────────────────────────
+  # ── Surgical pathway split ──────────────────────────────────────────────
   ed$vars$r1$other$pri1_dcs_rate <- p[["pri1_dcs_rate"]]
   ed$vars$r1$other$pri2_dcs_rate <- p[["pri2_dcs_rate"]]
   ed$vars$r1$other$pri3_dcs_rate <- p[["pri3_dcs_rate"]]
@@ -625,7 +592,7 @@ apply_surgical_pathway_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_dow_curve_params <- function(ed, p) {
-  # ── DOW logistic curve (Issue #112) ─────────────────────────────────────
+  # ── DOW logistic curve ──────────────────────────────────────────────────
   ed$vars$dow$params$p1_p_base <- p[["p1_p_base"]]
   ed$vars$dow$params$p1_k      <- p[["p1_k"]]
   ed$vars$dow$params$p1_t_mid  <- p[["p1_t_mid"]]
@@ -635,7 +602,7 @@ apply_dow_curve_params <- function(ed, p) {
   ed$vars$dow$params$p2_t_mid  <- p[["p2_t_mid"]]
   ed$vars$dow$params$p3_flat   <- p[["p3_flat"]]
 
-  # ── DOW treatment-efficacy multipliers (Issue #112) ─────────────────────
+  # ── DOW treatment-efficacy multipliers ──────────────────────────────────
   ed$vars$dow$treatment_efficacy$r1_tccc_factor   <- p[["r1_tccc_factor"]]
   ed$vars$dow$treatment_efficacy$r2b_resus_factor <- p[["r2b_resus_factor"]]
   ed$vars$dow$treatment_efficacy$r2b_dcs_factor   <- p[["r2b_dcs_factor"]]
@@ -653,7 +620,7 @@ apply_dow_curve_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_generation_and_event_params <- function(ed, p) {
-  # ── Casualty generation rates (Issue #112) ──────────────────────────────
+  # ── Casualty generation rates ───────────────────────────────────────────
   ed$vars$generators$wia_cbt$mean_daily  <- p[["wia_cbt_mean"]]
   ed$vars$generators$kia_cbt$mean_daily  <- p[["kia_cbt_mean"]]
   ed$vars$generators$dnbi_cbt$mean_daily <- p[["dnbi_cbt_mean"]]
@@ -661,7 +628,7 @@ apply_generation_and_event_params <- function(ed, p) {
   ed$vars$generators$kia_spt$mean_daily  <- p[["kia_spt_mean"]]
   ed$vars$generators$dnbi_spt$mean_daily <- p[["dnbi_spt_mean"]]
 
-  # ── Mass casualty, force regeneration, strategic AME (Issue #112) ──────
+  # ── Mass casualty, force regeneration, strategic AME ───────────────────
   ed$vars$mass_casualty$event$min_cas <- p[["mass_casualty_min_cas"]]
 
   ed$vars$force_regeneration$reinforcement$demand_interval_days  <- p[["fr_demand_interval_days"]]
@@ -679,7 +646,7 @@ apply_generation_and_event_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_routing_threshold_params <- function(ed, p) {
-  # ── R2B/R2E routing thresholds (Issue #112) ─────────────────────────────
+  # ── R2B/R2E routing thresholds ──────────────────────────────────────────
   ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
   ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
@@ -693,7 +660,7 @@ apply_routing_threshold_params <- function(ed, p) {
 #' @param p Named design point, one value per screened parameter.
 #' @return `ed`, with this family's fields set from `p`.
 apply_composition_params <- function(ed, p) {
-  # ── Simplex-constrained compositions (Issue #158) ───────────────────────
+  # ── Simplex-constrained compositions ────────────────────────────────────
   # Each group's two balance coordinates are back-transformed to a whole
   # composition before the run. The assertion is the guarantee the screen
   # rests on: every design point, including the corners of the coordinate

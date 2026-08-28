@@ -676,7 +676,7 @@ MORRIS_LABELS <- c(
   mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
   mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
 
-  # ── Added by Issue #112 full-coverage audit ──────────────────────────────
+  # ── Labels for the parameters the full-coverage audit added ─────────────
   short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
   r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
   r2e_hold_mode                 = "R2E Base Recovery-to-Duty Duration (Mode)",
@@ -735,7 +735,7 @@ MORRIS_LABELS <- c(
   pri2_dcs_rate = "Priority 2 Damage Control Rate",
   pri3_dcs_rate = "Priority 3 Damage Control Rate",
 
-  # ── Composition balance coordinates (Issue #158) ─────────────────────────
+  # ── Composition balance coordinates ──────────────────────────────────────
   # A balance carries a mu* for a contrast between parts, not for a single
   # named share, so each label names the two sides of its contrast — without
   # that, a reader has no way to tell what a high mu* on one of these means.
@@ -5378,7 +5378,7 @@ server <- function(input, output, session) {
   UTILISATION_FULL_MODE_HEIGHT_PX <- analyse_panel_out$UTILISATION_FULL_MODE_HEIGHT_PX
   utilisation_panel_heights <- analyse_panel_out$utilisation_panel_heights
 
-  # ── Shrink-to-fit plot sizing (Issue #121) ──────────────────────────────
+  # ── Shrink-to-fit plot sizing ───────────────────────────────────────────
   # Every plot in the Analyse tab (Quick Run and Full Analysis alike)
   # defaults to a size that fits the user's browser viewport without page
   # scrolling, while remaining fully readable on demand via an "Expand"
@@ -5405,8 +5405,8 @@ server <- function(input, output, session) {
   plot_download_handler <- analyse_outputs_out$plot_download_handler
   shrink_to_fit_plot_ui <- analyse_outputs_out$shrink_to_fit_plot_ui
 
-  # ── Issue #117 — previously-uncovered analyse_run() outputs, plus their
-  # Full Analysis mean +/- 95% CI equivalents from analyse_replications() ──
+  # ── analyse_run() outputs and their Full Analysis mean +/- 95% CI
+  # equivalents from analyse_replications() ───────────────────────────────
   # analyse_run() returns bare scalars/simple data frames (one seed, one
   # value); analyse_replications() returns the *_ci-suffixed equivalent —
   # a mean +/- 95% CI across replications instead (see the new block in

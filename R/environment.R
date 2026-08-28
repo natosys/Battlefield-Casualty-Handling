@@ -443,40 +443,19 @@ resolve_ame_airframe <- function(role4_params) {
 # called once per arrival, returning the interarrival gap.
 #
 # Arrival times are sampled directly rather than accumulated over a grid of
-# simulated minutes. A rate redrawn every minute is averaged over 1,440 draws
-# before it can reach a daily total, and the central limit theorem flattens the
-# stream: measured that way the combat WIA stream realises a daily standard
-# deviation of 0.50 against the 2.10 of a Poisson process at the same rate, and
-# in 5,000 simulated days never produces a day worse than six casualties.
-# Peak-day volume is what drives contention for theatres, intensive care beds
-# and airlift, so a generator reproducing the mean while suppressing the peaks
-# understates every queue the model exists to measure. Direct sampling fixes
-# both the timescale the configured distribution acts on and the way arrivals
-# are placed within it:
+# simulated minutes: the rate is redrawn once per simulated day, and arrivals
+# are placed within the day by thinning against a dominating rate. README
+# Casualty Generation derives both, and states the mean and variance the
+# construction delivers; scripts/check_arrival_rate_fidelity.R asserts them.
 #
-#   Intensity. The stream is a Cox process whose rate is redrawn once per
-#   simulated day rather than once per minute. FORECAS (Blood, Zouris &
-#   Rotblatt, 1998) fits a *daily* casualty rate, so `mean_daily`/`sd_daily`
-#   are between-day quantities; drawing at that timescale is what makes the
-#   configured distribution the between-day distribution it was fitted as.
-#   Within a day the rate is constant apart from the live force-size factor.
-#
-#   Placement. Arrivals within the day are Poisson, sampled by thinning (Lewis
-#   & Shedler, 1979): candidate gaps are drawn under a dominating rate that
-#   holds the pool at establishment strength, and each candidate is accepted
-#   with probability F/P_max for the force size F read at that point. A
-#   candidate falling past the day's end is discarded and sampling restarts at
-#   the boundary under the next day's rate, which is exact for a
-#   piecewise-constant intensity by the memorylessness of the exponential.
-#
-# Together these give a daily count that is Poisson conditional on the day's
-# rate, so by the law of total variance the stream realises
-#
-#   E[N] = mu * P / 1000            Var[N] = mu * P / 1000 + (sigma * P / 1000)^2
-#
-# per day at force size P: the configured mean is preserved, and the configured
-# between-day standard deviation is honoured on top of the Poisson term rather
-# than averaged away. scripts/check_arrival_rate_fidelity.R asserts both.
+# The reason to keep it that way, since a per-minute redraw is the easier code
+# to write: averaging a rate over 1,440 draws before it reaches a daily total
+# flattens the stream, and measured that way the combat WIA stream realises a
+# daily standard deviation of 0.50 against the 2.10 of a Poisson process at the
+# same rate, never producing a day worse than six casualties in 5,000 simulated
+# days. Peak-day volume is what drives contention for theatres, intensive care
+# beds and airlift, so that generator understates every queue the model exists
+# to measure while reproducing its mean.
 #
 # P_max has to bound F for the whole run, or the acceptance probability
 # saturates at 1 and the stream generates at the dominating rate instead of the

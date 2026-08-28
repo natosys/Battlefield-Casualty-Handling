@@ -4,9 +4,25 @@
 
 <small>[Return to Top](#contents)</small>
 
-This document checks that the Battlefield Casualty Handling discrete event simulation behaves as designed. It follows one simulated campaign through the health system, echelon by echelon, under the `moderate_intensity` (Falklands 1982-modified) casualty rate baseline. Every figure comes from a single run of the shipped default configuration at seed 42 over 30 simulated days, so one campaign is the unit of analysis throughout. The document has two aims: to show that the model works as specified, and to point to the constraints a reader should then test at statistical scale. The companion document `docs/Multi_Run_Analysis.md` holds every replicated experiment and the methodology behind them, so any figure carrying a confidence interval or a replication count belongs there rather than here.
+**Background**
 
-The system handles the moderate casualty volumes of the Falklands baseline, but two constraints stand out. The first is holding bed capacity at R2B, which fills up over the 30 days as disease DNBI casualties occupy beds for days at a time. Breaking the load down by patient stream shows the shortfall is structural rather than a feature of this run: the configured rates imply about 15.5 beds in use at once against the 10 the establishment holds, an overload of 55%. A two-tier routing policy keeps that load moving, combining an occupancy check made before transport with a three-stage policy applied on arrival, but the structural remedies are more hold beds or an evacuation threshold. The second constraint is the second-shift surgical section at R2E Heavy. Its two operating theatres read as busy for much of the run, but mostly because casualties hold a room while waiting for a surgical team rather than because rooms are scarce. Intensive care at R2E runs hard without saturating, and R2B theatre capacity is not a constraint at all. Whether these findings hold across independent replications, and how the system copes with a much higher casualty rate, is answered in `docs/Multi_Run_Analysis.md`.
+A deployed health system is sized before the campaign it has to serve, and the casualty volumes anticipated in large scale combat operations exceed those the health systems of the past two decades were built around. The Battlefield Casualty Handling discrete event simulation models that system, moving each casualty rearward through Role 1, Role 2 Basic (R2B) and Role 2 Enhanced Heavy (R2E Heavy) as it claims and releases clinical staff, beds, operating theatres and transport.
+
+**Objective**
+
+To verify that the model behaves as its specification describes, and to identify where load gathers, so that a reader knows which constraints are worth testing at statistical scale. Verification asks whether the code does what the specification says, not whether that specification represents the real system well.
+
+**Methods**
+
+One run of the shipped default configuration at seed 42 over 30 simulated days, under the `moderate_intensity` (Falklands 1982-modified) casualty rate baseline, traced echelon by echelon. One campaign is the unit of analysis throughout, so no figure carries a confidence interval; every replicated experiment sits in the companion document `docs/Multi_Run_Analysis.md`.
+
+**Results**
+
+The run generated 530 casualties and Role 1 handled every one without a queue. Two constraints emerged further rearward. Holding beds at R2B averaged 7.6 of the 10 available and reached capacity on 10 days, filled by disease casualties staying for days at a time; the shortfall is structural rather than particular to this run, the configured rates implying about 15.5 beds in use at once against 10 available. At R2E Heavy the second-shift surgical section set the pace, its theatres reading as busy largely because casualties held a room while waiting for staff rather than for space. Intensive care ran hard without saturating, R2B theatre capacity did not bind, and transport retained wide headroom.
+
+**Conclusion**
+
+The modelled system sustains a single brigade at Falklands-equivalent casualty rates, and what binds is forward holding capacity and the R2E surgical roster rather than operating theatre space. Because one run illustrates a mechanism rather than estimating an average, no figure here sizes an effect. Whether these findings hold across independent replications, and how the system copes at a much higher casualty rate, is answered in `docs/Multi_Run_Analysis.md`.
 
 ## Contents
 

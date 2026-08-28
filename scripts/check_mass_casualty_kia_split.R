@@ -53,6 +53,11 @@ source("R/scenario.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -69,8 +74,19 @@ GEN_DAYS  <- 2000L
 GEN_RATE  <- 0.5
 
 failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail     <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -87,6 +103,7 @@ SHIPPED_FRACTION <- as.numeric(base_env_data$vars$mass_casualty$event$kia_fracti
 #'
 #' @param fraction Value for mass_casualty.event.kia_fraction
 #' @param rate Value for mass_casualty.event.rate_per_day
+#' @param n_days Duration to draw over, in days
 #' @return generate_mass_casualty_events() output
 draw_events <- function(fraction, rate = GEN_RATE, n_days = GEN_DAYS) {
   params <- base_env_data$vars$mass_casualty
@@ -196,6 +213,11 @@ run_at <- function(fraction, rate) {
   arr <- arr[order(arr$name), ]
   att <- get_mon_attributes(wrapped)
 
+  #' Names of the casualties carrying one attribute value
+  #'
+  #' @param key Attribute key to match.
+  #' @param val Attribute value to match.
+  #' @return A character vector of casualty names, without repeats.
   who <- function(key, val) unique(att$name[att$key == key & att$value == val])
 
   list(

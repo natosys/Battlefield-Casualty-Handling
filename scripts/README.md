@@ -1,6 +1,6 @@
 # Regression Check Suite
 
-The repository carries twenty-five regression checks under `scripts/`, each named
+The repository carries twenty-six regression checks under `scripts/`, each named
 `check_*.R`. Every one of them exits 0 when its assertions hold and non-zero
 otherwise. `scripts/run_all_checks.R` runs them as a suite, and
 `.github/workflows/checks.yml` runs the fast selection on every pull request
@@ -111,6 +111,14 @@ thirty-six ggrepel-labelled scatters per driver call was over half its runtime.
 It stays in the fast set, being the only check that asserts a screen walks its
 design in index order and resumes its cache without re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
 sandbox rather than in this container.
+
+`check_roxygen.R` arrived with the commenting-standard work and carries no row
+above. It reads the parse data of every R source file and counts the
+documentation rules of `docs/STYLE_GUIDE.md` a parser can decide, ratcheting
+each against `scripts/roxygen_baseline.csv`; it runs the model not at all and
+took 4 seconds in an unpinned R 4.3.3 sandbox, which places it with the
+sub-half-minute checks. Its baseline stands at zero for every function-level
+rule and at 171 for the constant-header rule (R3).
 
 Three checks corroborate published figures independently of the baseline
 reproduction below. `check_dow_calibration.R` returns a pooled treated-cohort

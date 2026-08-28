@@ -67,6 +67,11 @@ source("R/replication.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -80,8 +85,19 @@ N_REPS     <- as.integer(arg_value("--reps", 6L))
 CONTROL_SEEDS <- c(42L, 777L)
 
 failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail     <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -215,6 +231,12 @@ report(state_kept, "stream position is unchanged, so the next draw is still %d",
 
 cat("\n-- a replication reproduces from its seed alone --\n")
 
+#' Digest of one replication's arrival stream
+#'
+#' @param mon Wrapped monitoring list from the replication framework.
+#' @param r Replication index to digest.
+#' @return A single string of every arrival's name and end time, ordered by
+#'   name so two runs compare independent of dispatch order.
 replication_digest <- function(mon, r) {
   arr <- mon$arrivals[mon$arrivals$replication == r, ]
   arr <- arr[order(arr$name), ]

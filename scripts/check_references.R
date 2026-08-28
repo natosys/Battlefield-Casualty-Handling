@@ -1,4 +1,8 @@
 #!/usr/bin/env Rscript
+##############################################
+## scripts/check_references.R               ##
+## Reference list structural checks         ##
+##############################################
 #
 # Regression check for the reference lists of the three academic documents.
 #

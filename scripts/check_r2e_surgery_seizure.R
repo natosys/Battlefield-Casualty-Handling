@@ -44,15 +44,29 @@ CHECK_SEED <- 42L
 failures  <- character(0)
 integrity <- character(0)
 
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail <- function(...) failures <<- c(failures, sprintf(...))
 
-# A check-integrity failure means the check can no longer see the model — the
-# blocks it reads were renamed, or the model was restructured out from under
-# it. That is a different problem from the model being wrong, and reporting it
-# as a model defect sends the next reader looking in the wrong place, so the
-# two are accumulated and printed separately.
+#' Record a check-integrity failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated integrity failures, invisibly.
+#' @details A check-integrity failure means the check can no longer see the
+#'   model: the blocks it reads were renamed, or the model was restructured
+#'   out from under it. That is a different problem from the model being
+#'   wrong, and reporting it as a model defect sends the next reader looking
+#'   in the wrong place, so the two are accumulated and printed separately.
 broken <- function(...) integrity <<- c(integrity, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }

@@ -41,6 +41,11 @@ suppressPackageStartupMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default = NULL) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -58,9 +63,11 @@ IMAGES <- if ("--refresh-baseline" %in% args) {
   arg_value("--images", "outputs/images")
 }
 
-# The seven responses the tracked baseline carries. A screen writes a plot
-# for every response in `morris_kpis`; these are the ones README.md embeds,
-# and the ones --refresh-baseline is allowed to overwrite.
+#' The seven responses the tracked baseline carries
+#'
+#' @details A screen writes a plot for every response in `morris_kpis`; these are the
+#'   ones README.md embeds, and the ones --refresh-baseline is allowed to
+#'   overwrite.
 TRACKED_RESPONSES <- c("system_ot_q", "r2b_ot_q", "r2e_ot_q", "r2e_icu_q",
                        "dow_count", "transport_q", "transport_util")
 

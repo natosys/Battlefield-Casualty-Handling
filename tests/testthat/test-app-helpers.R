@@ -1,3 +1,8 @@
+##############################################
+## tests/testthat/test-app-helpers.R        ##
+## Unit coverage of the console's helpers   ##
+##############################################
+
 # Unit coverage of the console's helpers, which sit outside server() and so
 # need no reactive context to exercise.
 #

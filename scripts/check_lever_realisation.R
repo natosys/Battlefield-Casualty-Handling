@@ -53,16 +53,28 @@ CHECK_SEED <- 42L
 REINF_DAYS <- if (quick) 60L else 180L
 HOLD_DAYS  <- if (quick) 10L else 30L
 
-# The threshold this check exercises. Three days sits well inside the R2B
-# holding distribution (0.5 to 10 days, mode 5), so a substantial share of
-# casualties cross it and a substantial share do not, which is what makes both
-# sides of the branch observable in one run.
+#' The threshold this check exercises
+#'
+#' @details Three days sits well inside the R2B holding distribution (0.5 to 10 days,
+#'   mode 5), so a substantial share of casualties cross it and a substantial
+#'   share do not, which is what makes both sides of the branch observable in
+#'   one run.
 HOLD_THRESHOLD <- 4320
 
 failures <- character(0)
 
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -107,10 +119,16 @@ per_arrival <- function(attrs, keys) {
 
 ATTRITION_PER_DAY <- 12
 
-# Debits the pool on attrition weeks and leaves it alone on quiet ones, so the
-# pool both depletes and steadies within one run. The quiet weeks are what put
-# a delivery against a shortfall that has not grown since submission, which is
-# the case in which a fill fraction above 1 carries the pool over strength.
+#' Build the closure debiting a population pool on alternate weeks
+#'
+#' @param pool_global Name of the global holding the population's strength.
+#' @param n People to debit on an attrition week.
+#' @return A closure of no arguments returning the pool's new strength.
+#' @details The pool is debited on attrition weeks and left alone on quiet
+#'   ones, so it both depletes and steadies within one run. The quiet weeks
+#'   are what put a delivery against a shortfall that has not grown since
+#'   submission, which is the case in which a fill fraction above one carries
+#'   the pool over strength.
 debit_pool <- function(pool_global, n) {
   function() {
     if (floor(now(env) / (7 * day_min)) %% 2 != 0) return(get_global(env, pool_global))
@@ -210,6 +228,11 @@ attrition_applied <- function(n_days, seed) {
   }, numeric(1))
 }
 
+#' One population pool's recorded strength over a run
+#'
+#' @param attrs Attribute monitor rows from the run.
+#' @param pool Population name, "combat" or "support".
+#' @return A numeric vector of the pool's strength at each recorded change.
 pool_trace <- function(attrs, pool) {
   attrs %>% filter(key == paste0("effective_force_", pool)) %>% pull(value)
 }

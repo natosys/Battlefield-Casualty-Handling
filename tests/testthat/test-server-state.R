@@ -1,3 +1,8 @@
+##############################################
+## tests/testthat/test-server-state.R       ##
+## testServer coverage of reactive state    ##
+##############################################
+
 # testServer coverage of the console's reactive state machine.
 #
 # These tests exist to be run before and after the decomposition of `server`

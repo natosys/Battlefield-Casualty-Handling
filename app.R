@@ -153,6 +153,13 @@ detect_safe_cores <- function(n_days = 30, mem_per_worker_base_mb = 900) {
   mem_per_worker_mb <- max(400, mem_per_worker_base_mb * (n_days / 30))
   cpu_cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
 
+  #' Read the first line of a file as a single number
+  #'
+  #' @param path Path of the file to read.
+  #' @return The number the first line holds, NA_real_ where the file is
+  #'   absent or its first line does not parse as a number.
+  #' @details Used against the cgroup pseudo-files, which are absent outside a
+  #'   container and carry "max" rather than a number when no limit is set.
   read_num1 <- function(path) {
     if (!file.exists(path)) return(NA_real_)
     tryCatch(suppressWarnings(as.numeric(trimws(readLines(path, warn = FALSE, n = 1)))),
@@ -248,6 +255,7 @@ PARAM_REGISTRY  <- build_param_registry()
 #' @return Named list (name = prefix); each value has min_id/mode_id/
 #'   max_id and label (the mode field's label with its " — Most Likely
 #'   (Mode)" suffix stripped, used as the curve card's header).
+#' @param registry List of field specs from build_param_registry().
 detect_tri_triples <- function(registry) {
   ids <- vapply(registry, function(f) f$id, character(1))
   mode_ids <- grep("_mode$", ids, value = TRUE)
@@ -275,6 +283,11 @@ GEN_STREAM_ACTYS <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "d
 #'   scenario JSON (not user-editable), so switching intensity profiles
 #'   changes the curve shape for the streams that scenario actually
 #'   overrides (see README Scenario Profiles) and leaves the others alone.
+#' @param mean_daily Configured mean arrivals per day for the stream.
+#' @param sd_daily Configured between-day standard deviation.
+#' @param distribution Distribution family, "lognormal" or "exponential".
+#' @return A ggplot of the implied daily arrival density, blank where the
+#'   configured values do not describe a distribution.
 render_gen_curve <- function(mean_daily, sd_daily, distribution) {
   if (is.null(mean_daily) || is.na(mean_daily) || mean_daily <= 0) {
     return(ggplot() + theme_void())
@@ -311,6 +324,11 @@ render_gen_curve <- function(mean_daily, sd_daily, distribution) {
 #'   simulation itself draws durations from via `rtriangle()`
 #'   (R/trajectories.R), so the curve shown is the exact shape those
 #'   three numbers imply, not an approximation.
+#' @param mn Minimum of the distribution, in minutes.
+#' @param mode Mode of the distribution, in minutes.
+#' @param mx Maximum of the distribution, in minutes.
+#' @return A ggplot of the triangular density, blank where the three values
+#'   are not ordered or do not span a range.
 render_tri_curve <- function(mn, mode, mx) {
   invalid <- is.null(mn) || is.null(mode) || is.null(mx) ||
     is.na(mn) || is.na(mode) || is.na(mx) ||
@@ -344,6 +362,8 @@ render_tri_curve <- function(mn, mode, mx) {
 #' @param p_base,p_max,k,t_mid Parameters as for dow_prob() (R/trajectories.R).
 #' @param window_max Upper bound of the plotted time window in minutes; when
 #'   NULL (default), sized to comfortably show the curve reach its plateau.
+#' @return A ggplot of the survival function, blank where the parameters do
+#'   not describe a rising logistic.
 render_dow_curve <- function(p_base, p_max, k, t_mid, window_max = NULL) {
   invalid <- is.null(p_base) || is.null(p_max) || is.null(k) || is.null(t_mid) ||
     any(is.na(c(p_base, p_max, k, t_mid))) || p_max <= p_base || k <= 0
@@ -403,6 +423,7 @@ SPLIT_SLIDER_META <- c(SPLIT_SLIDER_META, setNames(
 #' @param meta_map Named list; each name is a slider input id (e.g.
 #'   "pri_split") and each value a list(colors = <length-3 hex vector>,
 #'   labels = <length-3 short label vector>), both in slider segment order.
+#' @return A script tag installing the client-side recolouring.
 split_slider_recolor_script <- function(meta_map) {
   json <- jsonlite::toJSON(meta_map, auto_unbox = TRUE)
   js <- paste0("
@@ -527,6 +548,8 @@ split_slider_recolor_script <- function(meta_map) {
 #' stacked in the same tab. The page as a whole is free to scroll *between*
 #' plots in that case; what this script guarantees is that a user is never
 #' forced to scroll *within* a single plot to see the rest of it.
+#'
+#' @return A script tag installing the client-side shrinking.
 shrink_to_fit_script <- function() {
   tags$script(HTML("
 (function() {
@@ -558,6 +581,8 @@ shrink_to_fit_script <- function() {
 #' stretched or left clinging to one edge. `!important` is needed since
 #' Shiny's `plotOutput()` sets the `<img>`'s own inline width/height styles
 #' directly, which would otherwise take precedence over a stylesheet rule.
+#'
+#' @return A style tag holding the paired stylesheet.
 bch_shrink_to_fit_css <- function() {
   tags$style(HTML("
 .bch-shrink-fit { overflow: hidden; }
@@ -583,6 +608,8 @@ bch_shrink_to_fit_css <- function() {
 #' @param split_id Input id of the range slider, e.g. "pri_split"
 #' @param part_ids Character vector of length 3: the three field ids the
 #'   slider's breakpoints expand into, in slider order
+#' @return The values list with the three part ids set from the slider's two
+#'   breakpoints, unchanged where the slider is absent
 inject_split <- function(values, split_id, part_ids) {
   v <- values[[split_id]]
   if (!is.null(v) && length(v) == 2) {
@@ -595,6 +622,9 @@ inject_split <- function(values, split_id, part_ids) {
 
 #' Apply inject_split() for every compositional split the Configure panel
 #' represents as a slider
+#'
+#' @param values Named list from reactiveValuesToList(input)
+#' @return The values list with every slider expanded into its three parts
 inject_all_splits <- function(values) {
   values <- inject_split(values, "pri_split",  c("pri_one", "pri_two", "pri_three"))
   values <- inject_split(values, "dnbi_split", c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct"))
@@ -624,6 +654,7 @@ inject_all_splits <- function(values) {
 #' @param values Named list from inject_all_splits(reactiveValuesToList(input))
 #' @param registry List of field specs from build_param_registry()
 #' @param json Parsed, scenario-resolved env_data.json (scenario_json())
+#' @return The values list with every absent field filled from its default
 fill_missing_defaults <- function(values, registry, json) {
   defaults <- registry_defaults(registry, json)
   for (id in names(defaults)) {
@@ -718,9 +749,14 @@ MORRIS_LABELS <- c(
 
 # ── UI helpers ────────────────────────────────────────────────────────────
 
+#' Build a field's label, flagging one the active profile overrides
+#'
+#' @param f A field spec, or a list carrying its label, tooltip and path.
 #' @param overridden_paths Character vector of "elm.acty" paths the active
 #'   Casualty Intensity Profile is currently overriding (from
 #'   scenario_overridden_paths()); NULL/empty under the default profile.
+#' @return A tooltip-wrapped label carrying the information icon, or the
+#'   warning icon and an added note where the field is overridden.
 field_label <- function(f, overridden_paths = NULL) {
   is_overridden <- !is.null(f$path) && f$path %in% overridden_paths
   tt <- if (is_overridden) {
@@ -746,12 +782,17 @@ field_label <- function(f, overridden_paths = NULL) {
 #' for constants shown for context (e.g. the DOW logistic shape parameters)
 #' that are not exposed as editable Configure fields.
 #'
-#' @param label,tooltip Short label and hover tooltip (provenance/citation).
+#' @param label,tooltip_text Short label and hover tooltip
+#'   (provenance/citation).
 #' @param value Numeric value to display; formatted with `digits` decimals.
-#' @param path "elm.acty" path for the ⚠ scenario-override flag, matching
+#' @param digits Decimal places the value is rounded to.
+#' @param path "elm.acty" path for the scenario-override flag, matching
 #'   field_label()'s convention — pass the same path an editable sibling
 #'   field in the same acty block would use, so this constant is flagged
 #'   consistently when a scenario overrides the block it lives in.
+#' @param overridden_paths Character vector of paths the active profile
+#'   overrides, as field_label() reads it.
+#' @return A division holding the disabled input and its label.
 readonly_numeric <- function(label, tooltip_text, value, digits = 3,
                              path = NULL, overridden_paths = NULL) {
   lbl <- field_label(list(label = label, tooltip = tooltip_text, path = path), overridden_paths)
@@ -770,6 +811,14 @@ readonly_numeric <- function(label, tooltip_text, value, digits = 3,
 #' (registered once at server startup — see server()). The field's own
 #' label sits beside the numeric box rather than above the slider, since
 #' sliderInput(label = NULL) omits its built-in label row entirely.
+#'
+#' @param id Input id of the slider, which the numeric box extends.
+#' @param lbl Label element shown beside the numeric box.
+#' @param min Lower bound of both controls.
+#' @param max Upper bound of both controls.
+#' @param value Initial value of both controls.
+#' @param step Step size of both controls.
+#' @return A tag list of the label, the numeric box and the slider.
 slider_with_text_input <- function(id, lbl, min, max, value, step) {
   tagList(
     div(style = "display:flex; justify-content:space-between; align-items:flex-end; gap:8px;",
@@ -784,6 +833,14 @@ slider_with_text_input <- function(id, lbl, min, max, value, step) {
 #' As slider_with_text_input(), for a two-handle range slider: one small
 #' numeric box per handle (`<id>_txt1`, `<id>_txt2`), matching the two
 #' breakpoint values already shown in the slider's own handle bubbles.
+#'
+#' @param id Input id of the range slider, which the two boxes extend.
+#' @param lbl Label element shown beside the numeric boxes.
+#' @param value Two-element vector of the initial breakpoints.
+#' @param min Lower bound of every control.
+#' @param max Upper bound of every control.
+#' @param step Step size of every control.
+#' @return A tag list of the label, the two numeric boxes and the slider.
 range_slider_with_text_input <- function(id, lbl, value, min = 0, max = 1, step = 0.01) {
   tagList(
     div(style = "display:flex; justify-content:space-between; align-items:flex-end; gap:8px;",
@@ -807,6 +864,11 @@ range_slider_with_text_input <- function(id, lbl, value, min = 0, max = 1, step 
 #' when a group's UI regenerates (e.g. on a Casualty Intensity Profile
 #' change). The equality check on each side breaks the update loop: an
 #' update that didn't actually change the value doesn't trigger another.
+#'
+#' @param input Shiny input object.
+#' @param session Shiny session object.
+#' @param id Input id of the slider.
+#' @return Invisibly NULL; called for the two observers it registers.
 wire_slider_text_sync <- function(input, session, id) {
   txt_id <- paste0(id, "_txt")
   observeEvent(input[[txt_id]], {
@@ -826,6 +888,11 @@ wire_slider_text_sync <- function(input, session, id) {
 #' As wire_slider_text_sync(), for a two-handle range slider paired with
 #' two numeric inputs (`<id>_txt1`, `<id>_txt2`, see
 #' range_slider_with_text_input()) — one per breakpoint.
+#'
+#' @param input Shiny input object.
+#' @param session Shiny session object.
+#' @param id Input id of the range slider.
+#' @return Invisibly NULL; called for the observers it registers.
 wire_range_slider_text_sync <- function(input, session, id) {
   txt1 <- paste0(id, "_txt1"); txt2 <- paste0(id, "_txt2")
   observeEvent(input[[txt1]], {
@@ -850,6 +917,14 @@ wire_range_slider_text_sync <- function(input, session, id) {
   }, ignoreInit = TRUE)
 }
 
+#' Render one registry field as its Shiny input control
+#'
+#' @param f A field spec from the parameter registry.
+#' @param value The field's current value, used as the control's default.
+#' @param overridden_paths Character vector of vars-tree paths the active
+#'   scenario overrides, used to flag the label.
+#' @return A Shiny input control: a dropdown, a slider or a numeric box,
+#'   according to the field's own type and bounds.
 field_input <- function(f, value, overridden_paths = NULL) {
   lbl <- field_label(f, overridden_paths)
   if (!is.null(f$choices)) {
@@ -879,18 +954,16 @@ field_input <- function(f, value, overridden_paths = NULL) {
 #' render_group_body()) so every Configure field — not just the curve
 #' previews — reads as a distinct tile in a responsive grid rather than a
 #' bare label/widget pair floating in a flex-wrap row.
+#'
+#' @param f A field spec from the parameter registry.
+#' @param value The field's current value.
+#' @param overridden_paths Character vector of paths the active profile
+#'   overrides, used to flag the label.
+#' @return A card holding the field's input control.
 field_card <- function(f, value, overridden_paths = NULL) {
   card(field_input(f, value, overridden_paths))
 }
 
-#' Render a set of fields as a responsive grid, automatically detecting
-#' triangular (min/mode/max) field triples via TRI_TRIPLES and rendering
-#' each as a single curve card (plot + 3 inputs, matching the Casualty
-#' Generation Rates pattern) instead of three separate plain field cards.
-#' Any field not part of a detected triple still renders as a plain
-#' field_card(), so this is a superset of the previous plain-grid
-#' behaviour — a subgroup with no triangular fields renders identically
-#' to before.
 #' Render a triangular field triple's min/mode/max as three small plain
 #' numeric inputs side by side, rather than three full-width rows — the
 #' mode field's own tooltip (still stating its Morris-screened range and
@@ -900,7 +973,20 @@ field_card <- function(f, value, overridden_paths = NULL) {
 #' Always plain numericInput()s (never a slider, even for a
 #' Morris-screened mode field) so all three fit uniformly in one narrow
 #' row under the curve.
+#'
+#' @param min_f Field spec of the distribution's minimum.
+#' @param mode_f Field spec of the distribution's mode.
+#' @param max_f Field spec of the distribution's maximum.
+#' @param defaults Named list of current values, keyed by field id.
+#' @param overridden_paths Character vector of vars-tree paths the active
+#'   scenario overrides, used to flag each label.
+#' @return A Shiny row of three numeric inputs.
 tri_input_row <- function(min_f, mode_f, max_f, defaults, overridden_paths = NULL) {
+  #' Render one vertex of the triple as a narrow numeric input
+  #'
+  #' @param f Field spec of the vertex.
+  #' @param short_label Visible label, "Min", "Mode" or "Max".
+  #' @return A Shiny numeric input.
   compact_input <- function(f, short_label) {
     lbl <- field_label(list(label = short_label, tooltip = f$tooltip, path = f$path), overridden_paths)
     numericInput(f$id, lbl, value = defaults[[f$id]], min = f$min, max = f$max,
@@ -913,6 +999,19 @@ tri_input_row <- function(min_f, mode_f, max_f, defaults, overridden_paths = NUL
   )
 }
 
+#' Render a set of fields as a responsive grid of cards
+#'
+#' @param fields List of field specs to render.
+#' @param defaults Named list of current values, keyed by field id.
+#' @param overridden_paths Character vector of vars-tree paths the active
+#'   scenario overrides, used to flag each label.
+#' @param width CSS minimum column width for the grid.
+#' @return A Shiny division holding one card per field or field triple.
+#' @details A triangular (min/mode/max) triple is detected through
+#'   TRI_TRIPLES and rendered as one curve card, the plot above the three
+#'   inputs, matching the Casualty Generation Rates pattern; any field not
+#'   part of a detected triple renders as a plain field card, so a subgroup
+#'   carrying no triangular fields renders as a plain grid.
 render_field_grid <- function(fields, defaults, overridden_paths = NULL, width = "300px") {
   ids  <- vapply(fields, function(f) f$id, character(1))
   used <- character(0)
@@ -939,6 +1038,10 @@ render_field_grid <- function(fields, defaults, overridden_paths = NULL, width =
 }
 
 #' NULL-coalesce (base R only gained `%||%` in 4.4; this app targets 4.3).
+#'
+#' @param x Value to return when it is neither NULL nor NA.
+#' @param y Fallback value.
+#' @return `x` where it is usable, `y` otherwise.
 `%||%` <- function(x, y) if (is.null(x) || is.na(x)) y else x
 
 #' Render an SVG node graph: one node per deployed team at each echelon,
@@ -959,6 +1062,7 @@ render_field_grid <- function(fields, defaults, overridden_paths = NULL, width =
 #' same top-to-bottom order immediately to its right.
 #'
 #' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
+#' @return An SVG tag of the three bands of nodes and the mesh between them.
 force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
   r1_teams  <- max(0, round(r1_teams %||% 0))
   r2b_teams <- max(0, round(r2b_teams %||% 0))
@@ -973,6 +1077,11 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
   node_y  <- label_y + 24
   height  <- node_y[3] + 26
 
+  #' Horizontal positions of one echelon's team nodes
+  #'
+  #' @param n Number of teams at the echelon.
+  #' @return A numeric vector of x positions, centred in the diagram, empty
+  #'   where the echelon has no teams.
   node_x <- function(n) {
     if (n == 0) return(numeric(0))
     total_w <- (n - 1) * col_gap
@@ -981,6 +1090,16 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
   }
   x1 <- node_x(r1_teams); x2 <- node_x(r2b_teams); x3 <- node_x(r2e_teams)
 
+  #' Draw the full mesh of lines between two echelons' nodes
+  #'
+  #' @param y_from Vertical position of the upper row.
+  #' @param x_from Horizontal positions of the upper row's nodes.
+  #' @param y_to Vertical position of the lower row.
+  #' @param x_to Horizontal positions of the lower row's nodes.
+  #' @param color Stroke colour of the lines.
+  #' @return A list of SVG line tags, NULL where either row is empty.
+  #' @details Every node is joined to every node below it, the evacuation
+  #'   chain placing no restriction on which team receives from which.
   mesh <- function(y_from, x_from, y_to, x_to, color) {
     if (length(x_from) == 0 || length(x_to) == 0) return(NULL)
     pts <- expand.grid(xf = x_from, xt = x_to)
@@ -989,6 +1108,12 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
                 stroke = color, `stroke-width` = 1, `stroke-opacity` = 0.3)
     })
   }
+  #' Draw one echelon's numbered team nodes
+  #'
+  #' @param y Vertical position of the row.
+  #' @param xs Horizontal positions of the nodes.
+  #' @param fill Fill colour of the circles.
+  #' @return A list of SVG tag lists, one circle and label per node.
   nodes <- function(y, xs, fill) {
     lapply(seq_along(xs), function(i) {
       tagList(
@@ -998,6 +1123,11 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
       )
     })
   }
+  #' Draw one echelon's row label
+  #'
+  #' @param y Vertical position of the label.
+  #' @param label Text of the label.
+  #' @return An SVG text tag.
   header <- function(y, label) {
     tags$text(x = 4, y = y, `text-anchor` = "start", `font-size` = 12, `font-weight` = "bold", fill = "#333", label)
   }
@@ -1021,14 +1151,29 @@ force_node_graph <- function(r1_teams, r2b_teams, r2e_teams) {
 #' narrow enough for the sidebar column it now shares with the node
 #' graph — 3 columns fits comfortably where the original 5-column
 #' (echelon x bed type) layout would have been cramped or overflowed.
+#'
+#' @param r2b_teams Number of R2B teams deployed.
+#' @param r2b_beds Named numeric vector of R2B bed counts per team.
+#' @param r2e_teams Number of R2E teams deployed.
+#' @param r2e_beds Named numeric vector of R2E bed counts per team.
+#' @return A table tag of one row per bed type across the two echelons.
 force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   bed_types <- names(r2b_beds)
+  #' Render one bed total with the factors that produced it
+  #'
+  #' @param per_team Bed count per team.
+  #' @param teams Number of teams at the echelon.
+  #' @return A table cell holding the total above its two factors.
   cell <- function(per_team, teams) {
     tags$td(
       tags$div(style = "font-weight:600;", sprintf("%g", per_team * teams)),
       tags$div(style = "font-size:9px; color:#888;", sprintf("(%g × %g)", per_team, teams))
     )
   }
+  #' Render one bed type's row across the two echelons
+  #'
+  #' @param nm Bed type name.
+  #' @return A table row of the bed type and its two echelon totals.
   row <- function(nm) {
     tags$tr(tags$td(tags$b(nm)), cell(r2b_beds[[nm]], r2b_teams), cell(r2e_beds[[nm]], r2e_teams))
   }
@@ -1053,6 +1198,8 @@ force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
 #' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
 #' @param r2b_beds,r2e_beds Named numeric vectors, one entry per bed
 #'   type, each the *per-team* bed count for that echelon.
+#' @return A tag list of the heading, the node graph, the bed table and the
+#'   caption saying what the diagram does not show.
 force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
   tagList(
     h6(class = "text-muted mt-2", "Force Structure"),
@@ -1079,9 +1226,8 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'
 #' Every line drawn corresponds to an actual seize()/timeout() sequence in
 #' R/trajectories.R, not an aspirational or simplified one. All four legs
-#' now carry a working dead-heading return leg (Issue #73 follow-up made
-#' the R2B ↔ R2E legs consistent with the R1 ↔ R2B ones, which have had
-#' this since Issue #6):
+#' carry a working dead-heading return leg, the R2B to R2E legs on the same
+#' basis as the R1 to R2B ones:
 #'   - R1 → R2B, WIA (PMVAmb): r1_transport_wia().
 #'   - R1 → R2B, KIA (HX240M): r1_transport_kia() ("KIA transport from
 #'     Role 1 to mortuary at Role 2").
@@ -1128,13 +1274,23 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'   opportunities.
 #' @param ame_failure_probability Probability a scheduled sortie is
 #'   cancelled, carrying zero capacity.
+#' @return An SVG tag of the four echelon nodes and the legs between them.
 evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
                                 mort2e_mode, ame_critical = NA,
                                 ame_standard = NA,
                                 ame_airframe_label = NULL,
                                 ame_schedule_interval = NA,
                                 ame_failure_probability = NA) {
+  #' Format a count for the diagram, tolerating an absent value
+  #'
+  #' @param x The value to format.
+  #' @return The rounded value with thousands separators, "?" where absent.
   fmt  <- function(x) if (is.null(x) || is.na(x)) "?" else format(round(x), big.mark = ",")
+
+  #' Format a probability as a percentage, tolerating an absent value
+  #'
+  #' @param x The probability to format.
+  #' @return The value as a whole percentage, "?" where absent.
   fmt_pct <- function(x) if (is.null(x) || is.na(x)) "?" else paste0(round(x * 100), "%")
 
   width <- 300
@@ -1142,6 +1298,12 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
   cx    <- width / 2
   height <- y[4] + 44
 
+  #' Draw one echelon node of the evacuation chain
+  #'
+  #' @param y Vertical position of the node.
+  #' @param label Node label.
+  #' @param sub Sub-label shown beneath it.
+  #' @return An SVG tag list of the box and its two labels.
   node <- function(y, label, sub) {
     tagList(
       tags$rect(x = cx - 44, y = y - 16, width = 88, height = 32, rx = 6,
@@ -1153,11 +1315,18 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
     )
   }
 
-  # side: -1 puts the line left-of-centre with its label growing further
-  # left (text-anchor "end"); +1 puts it right-of-centre with its label
-  # growing further right (text-anchor "start") — so the WIA and KIA
-  # labels for the same leg diverge away from each other instead of
-  # colliding at the shared midline.
+  #' Draw one transport leg between two nodes
+  #'
+  #' @param y1 Vertical position of the upper node.
+  #' @param y2 Vertical position of the lower node.
+  #' @param side -1 to draw left of centre, +1 to draw right of it.
+  #' @param color Stroke and label colour.
+  #' @param label_line1 First line of the leg's label.
+  #' @param label_line2 Optional second line of the label.
+  #' @return An SVG tag list of the line and its labels.
+  #' @details The side argument grows a leg's label away from the midline,
+  #'   left-anchored on one side and right-anchored on the other, so the WIA
+  #'   and KIA labels of the same leg diverge rather than colliding.
   leg <- function(y1, y2, side, color, label_line1, label_line2 = NULL) {
     x <- cx + side * 38
     anchor <- if (side < 0) "end" else "start"
@@ -1174,6 +1343,11 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
     )
   }
 
+  #' Draw the mortuary branch marker beside a node
+  #'
+  #' @param y Vertical position of the node it sits beside.
+  #' @param mode Modal mortuary handling duration in minutes.
+  #' @return An SVG tag list of the marker and its label.
   mortuary_marker <- function(y, mode) {
     tagList(
       tags$text(x = cx + 50, y = y + 4, `font-size` = 13, "⚱"),
@@ -1182,6 +1356,10 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
     )
   }
 
+  #' Draw the strategic evacuation schedule note beneath the last node
+  #'
+  #' @param y Vertical position of the node it sits beneath.
+  #' @return An SVG tag list of the cadence, cancellation rate and airframe.
   ame_schedule_note <- function(y) {
     tagList(
       tags$text(x = cx, y = y + 26, `text-anchor` = "middle", `font-size` = 9, fill = "#888",
@@ -1227,6 +1405,19 @@ evac_chain_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
 #' Wrap evac_chain_diagram() with the heading/caption pattern matching
 #' force_structure_diagram() (Health System Architecture), for the same
 #' sticky-sidebar treatment on the Medevac panel.
+#'
+#' @param wia1_mode Modal R1 to R2B wounded transport duration, in minutes.
+#' @param kia1_mode Modal R1 to mortuary transport duration, in minutes.
+#' @param wia2_mode Modal R2B to R2E wounded transport duration, in minutes.
+#' @param kia2_mode Modal R2B to mortuary transport duration, in minutes.
+#' @param mort2e_mode Modal mortuary handling duration, in minutes.
+#' @param ame_critical Critical-route places per strategic sortie.
+#' @param ame_standard Standard-route places per strategic sortie.
+#' @param ame_airframe_label Display label of the configured airframe.
+#' @param ame_schedule_interval Days between scheduled sorties.
+#' @param ame_failure_probability Probability a scheduled sortie is
+#'   cancelled, carrying zero capacity.
+#' @return A tag list of the heading, the chain diagram and its caption.
 medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
                              mort2e_mode, ame_critical = NA,
                              ame_standard = NA,
@@ -1551,6 +1742,11 @@ render_mass_casualty_split_subgroup <- function(sg, sg_fields, defaults, overrid
 #'   Generation Rates subgroup, to suppress the Std. Dev. field for streams
 #'   an exponential distribution — fully described by its mean alone —
 #'   currently governs.
+#' @param fields List of the group's field specs.
+#' @param defaults Named list of current values, keyed by field id.
+#' @param dow_shape Named list of the resolved died-of-wounds logistic shape
+#'   parameters, used by the Died of Wounds subgroup's curve preview.
+#' @return A shiny tag list holding the group's subgroup accordions.
 render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_distributions = NULL,
                               dow_shape = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
@@ -1888,6 +2084,10 @@ wire_configure_panel <- function(input, output, session) {
 #'
 #' @return A list of `SCENARIO_DROPDOWN_LABELS`, `shorten_scenario_label`.
 build_scenario_labels <- function() {
+  #' Trim a profile's parenthetical qualifier from its label
+  #'
+  #' @param lbl Full display label of an intensity profile.
+  #' @return The label up to its first parenthesis, whitespace trimmed.
   shorten_scenario_label <- function(lbl) {
     trimws(sub("\\s*\\(.*$", "", lbl))
   }
@@ -2135,9 +2335,8 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shap
       render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(),
                         gen_distributions(), dow_shape())
     })
-    # Left at Shiny's default suspendWhenHidden = TRUE (Issue #77, reversing
-    # the eager-render override Issue #14 introduced): a panel other than
-    # the initially-open one now renders only once actually opened, rather
+    # Left at Shiny's default suspendWhenHidden = TRUE: a panel other than
+    # the initially-open one renders only once actually opened, rather
     # than every panel's ~20 fields and curve previews all rendering and
     # registering their initial values at once on every page load. Values
     # for a never-opened panel's fields (never bound, so absent from
@@ -2348,6 +2547,13 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
 #'
 #' @return The validate_config object.
 build_config_validator <- function() {
+  #' Validate a Configure panel state before a run is dispatched
+  #'
+  #' @param values Named list of the panel's current input values.
+  #' @return A character vector of error messages, empty when the
+  #'   configuration is usable.
+  #' @details Every fault is collected rather than the first being returned,
+  #'   so a user correcting one does not then meet the next.
   validate_config <- function(values) {
     errors <- character(0)
     req_pos <- list(pop_combat = "Combat force size", pop_support = "Support force size",
@@ -2713,10 +2919,10 @@ wire_analyse_panel <- function(analysis_results, run_mode) {
 
   UTILISATION_FULL_MODE_HEIGHT_PX <- 500  # Full Analysis's single mean +/- CI bar chart (no per-bed Gantt to split)
 
-  # Issue #111: the Bed & Resource Utilisation plot's fixed 1400px height
-  # caused Gantt rows to overlap once an echelon's individual bed count grew
-  # (R2E routinely plots 20+ beds). Scale each Gantt's rendered height to its
-  # own distinct resource row count instead, at a fixed per-row convention
+  # A fixed height for the Bed & Resource Utilisation plot overlaps its Gantt
+  # rows once an echelon's individual bed count grows (R2E routinely plots 20+
+  # beds). Each Gantt's rendered height therefore scales with its own distinct
+  # resource row count, at a fixed per-row convention
   # (25px, ~150px floor per section so an empty/small section isn't squashed
   # to nothing). Full Analysis mode has no per-bed Gantt (see tab_plot()
   # above) so its single mean ± CI bar chart keeps the static height above.
@@ -2791,6 +2997,7 @@ build_shrink_to_fit_helpers <- function(input, output) {
   #'   before shrink_to_fit_script() adjusts it.
   #' @param chrome_px Vertical space assumed to be consumed by chrome
   #'   surrounding this plot; see roxygen above.
+  #' @return A tag list of the sized container and its "Expand" link.
   shrink_to_fit_plot_ui <- function(plot_id, natural_height_px, chrome_px = ANALYSE_PLOT_CHROME_PX) {
     natural_height_px <- round(natural_height_px)
     tagList(
@@ -2819,6 +3026,8 @@ build_shrink_to_fit_helpers <- function(input, output) {
   #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
   #' @param height_fn Zero-arg function returning the natural pixel height
   #'   (may itself read a reactive, e.g. utilisation_plot_height()).
+  #' @return Invisibly NULL; called for the two outputs and the click
+  #'   handler it registers.
   new_shrink_to_fit_plot <- function(plot_id, title, plot_fn, height_fn) {
     output[[plot_id]] <- renderPlot({ plot_fn() }, height = function() height_fn())
     output[[paste0(plot_id, "_modal")]] <- renderPlot({ plot_fn() }, height = function() height_fn())
@@ -2850,7 +3059,18 @@ wire_analyse_summary_outputs <- function(analysis_results, mon_data, run_mode, r
   output$kpi_summary_cards <- renderUI({
     req(identical(run_mode(), "full"), run_state() == "done", analysis_results())
     kpi <- analysis_results()$kpi_summary
+    #' Render one headline KPI card with its confidence interval
+    #'
+    #' @param label Card heading.
+    #' @param cm A `ci_mean()` result, carrying mean, lower, upper and n.
+    #' @param digits Decimal places shown on all three figures.
+    #' @return A card holding the mean above its interval and replication
+    #'   count.
     card_ui <- function(label, cm, digits = 1) {
+      #' Format one figure to the card's precision
+      #'
+      #' @param x The figure to format.
+      #' @return The figure as a fixed-point string.
       fmt <- function(x) formatC(x, format = "f", digits = digits)
       card(
         card_header(label),
@@ -3555,6 +3775,13 @@ register_analyse_plots <- function(analysis_results, run_mode, tab_plot,
 #' @param output See wire_analyse_outputs().
 #' @return `plot_download_handler`.
 wire_plot_image_downloads <- function(analysis_results, tab_plot, output) {
+  #' Build a download handler saving one plot as an image
+  #'
+  #' @param plot_fn Zero-argument function returning the plot object.
+  #' @param width Image width in inches.
+  #' @param height Image height in inches.
+  #' @param device Output device, "png" or "pdf".
+  #' @return A Shiny download handler.
   plot_download_handler <- function(plot_fn, width, height, device) {
     downloadHandler(
       filename = function() sprintf("plot.%s", device),
@@ -3617,10 +3844,13 @@ wire_plot_data_downloads <- function(analysis_results, mon_data, run_mode, outpu
     filename = "casualty_flow.csv",
     content  = function(file) write.csv(analysis_results()$casualty_summary, file, row.names = FALSE)
   )
-  # Filter mon_data()$resources by the same per-echelon resource-name
-  # patterns analyse_run()/analyse_replications() (R/analysis.R) use to
-  # build each split plot, so each panel's CSV matches its own image rather
-  # than dumping every echelon's raw resource data for all three.
+  #' Build a download handler for one echelon's resource monitor rows
+  #'
+  #' @param pattern Regular expression selecting the resources to write.
+  #' @return A Shiny download handler.
+  #' @details The pattern is the same one `analyse_run()` and
+  #'   `analyse_replications()` build each split plot from, so a panel's CSV
+  #'   matches its own image rather than carrying every echelon's rows.
   filtered_resources_csv <- function(pattern) {
     downloadHandler(
       filename = function() "resource_data.csv",
@@ -3647,10 +3877,13 @@ wire_plot_data_downloads <- function(analysis_results, mon_data, run_mode, outpu
       write.csv(df, file, row.names = FALSE)
     }
   )
-  # r2b_treatment/r2e_surgery have no dedicated per-panel data frame of their
-  # own in analysis_results() (they're derived on the fly for plotting); the
-  # closest matching per-echelon data available is ot_utilisation's own
-  # echelon column, so each panel's CSV is that panel's echelon subset.
+  #' Build a download handler for one echelon's theatre utilisation rows
+  #'
+  #' @param echelon Echelon label to filter on, "R2B" or "R2E".
+  #' @return A Shiny download handler.
+  #' @details The R2B treatment and R2E surgery panels have no per-panel
+  #'   frame of their own, being derived while plotting, so each panel's CSV
+  #'   is its own echelon's subset of the theatre utilisation frame.
   echelon_ot_utilisation_csv <- function(echelon) {
     downloadHandler(
       filename = function() "ot_utilisation.csv",
@@ -3727,8 +3960,6 @@ wire_analyse_outputs <- function(analysis_results, mon_data, run_mode, run_state
   register_analyse_plots(analysis_results, run_mode, tab_plot, UTILISATION_FULL_MODE_HEIGHT_PX,
                          utilisation_panel_heights, new_shrink_to_fit_plot)
 
-  #' Generic PNG/PDF download handler for one plot.
-  #' @param plot_fn Zero-arg function returning the ggplot/patchwork object.
   plot_download_handler <- wire_plot_image_downloads(analysis_results, tab_plot, output)
 
   plot_data_downloads_out <- wire_plot_data_downloads(analysis_results, mon_data, run_mode, output)
@@ -3750,11 +3981,24 @@ wire_analyse_outputs <- function(analysis_results, mon_data, run_mode, run_state
 #'
 #' @return A list of `ci_value_card`, `count_value_card`, `small_dt`.
 build_supplementary_card_helpers <- function() {
+  #' Render a data frame as a compact, unpaged table
+  #'
+  #' @param df The data frame to render.
+  #' @return A DT datatable with no search box, pager or row names.
   small_dt <- function(df) datatable(df, rownames = FALSE, options = list(dom = "t", pageLength = 20))
 
   #' One value card showing a mean +/- 95% CI (Full Analysis mode) — same
   #' visual convention as kpi_summary_cards' inline card_ui().
+  #'
+  #' @param label Card heading.
+  #' @param cm A `ci_mean()` result, carrying mean, lower, upper and n.
+  #' @param digits Decimal places shown on all three figures.
+  #' @return A card holding the mean above its interval and replication count.
   ci_value_card <- function(label, cm, digits = 1) {
+    #' Format one figure to the card's precision
+    #'
+    #' @param x The figure to format.
+    #' @return The figure as a fixed-point string.
     fmt <- function(x) formatC(x, format = "f", digits = digits)
     card(
       card_header(label),
@@ -3764,6 +4008,10 @@ build_supplementary_card_helpers <- function() {
     )
   }
   #' One value card showing a bare scalar (Quick Run mode).
+  #'
+  #' @param label Card heading.
+  #' @param n The figure to show.
+  #' @return A card holding the figure under its heading.
   count_value_card <- function(label, n) card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", n))
   list(
     ci_value_card = ci_value_card,
@@ -4063,6 +4311,12 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
     } else {
       req(analysis_results()$role4_summary)
       s <- analysis_results()$role4_summary
+      #' Render one single-run value card
+      #'
+      #' @param label Card heading.
+      #' @param v The figure to show.
+      #' @param digits Decimal places shown.
+      #' @return A card holding the figure under its heading.
       val_card <- function(label, v, digits = 1) {
         card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", formatC(v, format = "f", digits = digits)))
       }
@@ -4088,6 +4342,12 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
     } else {
       req(analysis_results()$ame_summary)
       s <- analysis_results()$ame_summary
+      #' Render one single-run value card
+      #'
+      #' @param label Card heading.
+      #' @param v The figure to show.
+      #' @param digits Decimal places shown.
+      #' @return A card holding the figure under its heading.
       val_card <- function(label, v, digits = 1) {
         card(card_header(label), div(style = "font-size: 1.4rem; font-weight: 700;", formatC(v, format = "f", digits = digits)))
       }
@@ -4366,6 +4626,10 @@ wire_morris_progress <- function(morris_error, morris_progress_dir, morris_progr
 #' @param new_shrink_to_fit_plot See wire_morris_screening().
 #' @return `morris_scatter_df`.
 wire_morris_plot <- function(morris_results, new_shrink_to_fit_plot) {
+  #' Reduce a Morris object to the scatter plot's frame
+  #'
+  #' @param obj A Morris object carrying the elementary effects matrix.
+  #' @return A data frame of parameter, mu_star, sigma and category.
   morris_scatter_df <- function(obj) {
     ee <- obj$ee
     data.frame(
@@ -4986,6 +5250,15 @@ wire_transport_sweep <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, current_json
   invisible(NULL)
 }
 
+#' Shiny server for the simulation console
+#'
+#' @param input Shiny input object.
+#' @param output Shiny output object.
+#' @param session Shiny session object.
+#' @return Invisibly NULL; called for the reactives and outputs it wires.
+#' @details An orchestrator over the per-panel wiring functions above, one
+#'   per tab and one per asynchronous run. A change to one panel belongs in
+#'   that panel's function rather than here.
 server <- function(input, output, session) {
 
 

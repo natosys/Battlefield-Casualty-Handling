@@ -3062,9 +3062,9 @@ build_casualty_trajectory <- function() {
 #'   own submission-time shortfall estimate. demand_interval_days <= 0 (the
 #'   shipped default) disables reinforcement entirely — no generator is
 #'   added in run_once() in that case, so no RNG draws are consumed,
-#'   reproducing the pre-Issue-18 constant-force baseline exactly.
+#'   reproducing a constant-force baseline exactly.
 #'
-#'   Issue #124: a pool's global value only moves at credit time, so a
+#'   A pool's global value only moves at credit time, so a
 #'   naive re-read of the live shortfall on every cycle would let
 #'   overlapping cycles (demand_interval_days < fulfillment_lag_days)
 #'   independently re-claim the same shortfall an earlier, still-pending
@@ -3086,7 +3086,7 @@ build_casualty_trajectory <- function() {
 #'     - The whole of a cycle's fill is credited on delivery, whatever the
 #'       live shortfall has done during the fulfillment lag.
 #'
-#'   Issue #207: reinforcement joins the population the moment it arrives.
+#'   Reinforcement joins the population the moment it arrives.
 #'   There is no formation-level reserve in this model to hold it in and
 #'   nothing about a delivery is held back, so a pool that receives more
 #'   than its remaining shortfall goes over establishment strength and
@@ -3133,15 +3133,38 @@ validate_fill_distribution <- function() {
   invisible(TRUE)
 }
 
+#' Build the force reinforcement trajectory
+#'
+#' @return A simmer trajectory that claims, delivers and credits one
+#'   reinforcement package for each of the two populations.
+#' @details A package is claimed against a pending global at request, held for
+#'   the configured fulfilment lag, then credited to the population and
+#'   released from pending, so a demand raised while an earlier package is in
+#'   transit does not request the same shortfall twice.
 build_reinforcement_trajectory <- function() {
   validate_fill_distribution()
 
+  #' Build the closure computing one population's outstanding shortfall
+  #'
+  #' @param pool_global Name of the global holding the population's strength.
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param initial The population's establishment strength.
+  #' @return A closure of no arguments returning the shortfall, floored at 0.
+  #' @details Evaluated at run time by simmer, so the shortfall is the one
+  #'   standing when the demand is raised rather than at trajectory build.
   demand_fn <- function(pool_global, pending_global, initial) {
     function() {
       max(0, initial - get_global(env, pool_global) - get_global(env, pending_global))
     }
   }
 
+  #' Build the closure drawing one reinforcement package's size
+  #'
+  #' @param demand_attr Name of the attribute holding the shortfall demanded.
+  #' @return A closure of no arguments returning the package size, in people.
+  #' @details The fraction of the demand that is filled is drawn from the
+  #'   configured triangular distribution, whose bounds
+  #'   `validate_fill_distribution()` has already checked.
   fill_fn <- function(demand_attr) {
     function() {
       params <- env_data$vars$force_regeneration$reinforcement
@@ -3156,18 +3179,33 @@ build_reinforcement_trajectory <- function() {
     }
   }
 
+  #' Build the closure claiming a package against the pending pool
+  #'
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the raised pending total.
   claim_fn <- function(pending_global, fill_attr) {
     function() get_global(env, pending_global) + get_attribute(env, fill_attr)
   }
 
+  #' Build the closure releasing a delivered package from the pending pool
+  #'
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the lowered pending total.
   release_fn <- function(pending_global, fill_attr) {
     function() get_global(env, pending_global) - get_attribute(env, fill_attr)
   }
 
-  # The whole delivery joins the population. No ceiling is applied here: a
-  # pool that receives more than its remaining shortfall is over strength
-  # until casualties bring it back down, which is the state a fill fraction
-  # above 1 exists to produce.
+  #' Build the closure crediting a delivered package to the population
+  #'
+  #' @param pool_global Name of the global holding the population's strength.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the raised strength.
+  #' @details The whole delivery joins the population with no ceiling applied:
+  #'   a pool receiving more than its remaining shortfall is over strength
+  #'   until casualties bring it back down, which is the state a fill fraction
+  #'   above one exists to produce.
   credit_fn <- function(pool_global, fill_attr) {
     function() get_global(env, pool_global) + get_attribute(env, fill_attr)
   }

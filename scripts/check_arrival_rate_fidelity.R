@@ -63,6 +63,11 @@ source("R/environment.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -72,33 +77,50 @@ arg_value <- function(flag, default) {
 DRAW_DAYS <- as.integer(arg_value("--days", 20000L))
 SEED      <- as.integer(arg_value("--seed", 42L))
 
-# Two-sided band on the realised mean, in standard errors. At five the check
-# fails by chance far less often than the roughly 20% shortfall it is there to
-# catch would pass, with headroom for the skew a lognormal-mixed count carries
-# into the sampling distribution of its own mean.
+#' Two-sided band on the realised mean, in standard errors
+#'
+#' @details At five the check fails by chance far less often than the roughly 20%
+#'   shortfall it is there to catch would pass, with headroom for the skew a
+#'   lognormal-mixed count carries into the sampling distribution of its own
+#'   mean.
 SIGMA_BAND <- 5
 
-# Multiplicative band on the realised variance. A sample variance of a
-# lognormal-mixed count is a heavy-tailed estimator — the shipped WIA
-# parameterisation has a daily-count kurtosis near a thousand, so even a
-# 20,000-day measurement carries a relative error around a fifth — and no
-# additive band would be both stable and meaningful. A factor of two is several
-# of those standard errors wide while still separating the target decisively
-# from what the minute walk delivered, which was low by a factor of 58.
+#' Multiplicative band on the realised variance
+#'
+#' @details A sample variance of a lognormal-mixed count is a heavy-tailed estimator —
+#'   the shipped WIA parameterisation has a daily-count kurtosis near a
+#'   thousand, so even a 20,000-day measurement carries a relative error
+#'   around a fifth — and no additive band would be both stable and
+#'   meaningful. A factor of two is several of those standard errors wide
+#'   while still separating the target decisively from what the minute walk
+#'   delivered, which was low by a factor of 58.
 VAR_BAND <- 2
 
-# The force size the streams are measured at. Holding it at 1,000 makes the
-# population term exactly 1, so a stream's realised daily mean is its drawn
-# rate and its target variance is mu + sigma^2 with no scaling in the way. It
-# is also the establishment strength passed as the thinning bound, so the
-# dominating rate is the true one and no candidate is rejected.
+#' The force size the streams are measured at
+#'
+#' @details Holding it at 1,000 makes the population term exactly 1, so a stream's
+#'   realised daily mean is its drawn rate and its target variance is mu +
+#'   sigma^2 with no scaling in the way. It is also the establishment
+#'   strength passed as the thinning bound, so the dominating rate is the
+#'   true one and no candidate is rejected.
 CHECK_FORCE <- 1000
 
 day_min <<- DAY_MIN
 
 failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail     <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -109,6 +131,12 @@ report <- function(ok, fmt, ...) {
 # scenario profiles, so a profile that overrides a stream's parameters or its
 # distribution family is covered rather than assumed to behave like the base.
 
+#' Every arrival stream of one shipped configuration
+#'
+#' @param scenario Name of the scenario profile, or NULL for the base
+#'   configuration.
+#' @return A list of one entry per stream, carrying its label, configured
+#'   daily mean and standard deviation, and distribution family.
 read_streams <- function(scenario) {
   json <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
   ed   <- build_environment(resolve_scenario(json, scenario))

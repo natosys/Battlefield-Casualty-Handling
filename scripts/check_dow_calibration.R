@@ -75,6 +75,11 @@ source("R/replication.R")
 args  <- commandArgs(trailingOnly = TRUE)
 quick <- "--quick" %in% args
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -111,8 +116,18 @@ if (N_MEASURE > length(CONTROL_SEEDS)) {
 }
 failures <- character(0)
 
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -139,6 +154,13 @@ treated_cohort_rates <- function(mon) {
 }
 
 #' One independent measurement of a scenario at a given control seed
+#'
+#' @param scenario Name of the scenario profile, or NULL for the base
+#'   configuration.
+#' @param seed Control seed the replication set is drawn from.
+#' @return A numeric vector of one treated-cohort DOW rate per replication.
+#' @details Rebinds the configuration globals for the profile measured, which
+#'   the caller is expected to sequence rather than interleave.
 run_measurement <- function(scenario, seed) {
   json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
   env_data <<- build_environment(resolve_scenario(json, scenario))

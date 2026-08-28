@@ -351,6 +351,11 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
 #'   out here, and the caller fails (or is warned) with an explicit, actionable
 #'   message instead.
 drop_failed_replications <- function(envs, n_iterations) {
+  #' Whether one dispatched replication returned a usable environment
+  #'
+  #' @param e One element of the dispatched result list.
+  #' @return TRUE when the element is a simmer environment rather than NULL
+  #'   or a caught error.
   is_valid_env <- function(e) !is.null(e) && !inherits(e, "try-error") && is.environment(e)
   valid <- vapply(envs, is_valid_env, logical(1))
   n_failed <- sum(!valid)
@@ -472,6 +477,13 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
   # same replication run through mclapply.
   RNGkind("L'Ecuyer-CMRG")
 
+  #' Run one replication and record its completion
+  #'
+  #' @param i Index of the replication, into `rep_seeds`.
+  #' @return The simmer environment the replication finished in.
+  #' @details Writes a marker file into `progress_dir` where one was given, so
+  #'   a caller watching a long run sees progress from a forked worker that
+  #'   cannot report it any other way.
   worker <- function(i) {
     res <- run_once(n_days,
              seed        = rep_seeds[i],

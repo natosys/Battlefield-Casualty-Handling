@@ -160,12 +160,12 @@ ilr3_inv <- function(z) {
 #'   share, from which the first coordinate's bounds are derived), and
 #'   `apply` (writes a composition back into an env_data copy).
 #'
-#' @details Nine parameters across three groups were previously excluded from
-#'   screening for the reason `ilr3()` describes, leaving the two
+#' @details Nine parameters across three groups cannot be screened directly,
+#'   for the reason `ilr3()` describes. Left out, they would leave the two
 #'   highest-ranked parameters in the screen — both conditional on a casualty
 #'   being Priority 1 — with no companion evidence on the share of casualties
-#'   that are Priority 1 at all. The nine become six coordinates here, added
-#'   to the same Morris design at the same cost per trajectory.
+#'   that are Priority 1 at all. The nine enter as six balance coordinates
+#'   instead, added to the same Morris design at the same cost per trajectory.
 #'
 #'   Part order is chosen per group so the first balance is the contrast a
 #'   planner cares about: the Priority 1 share for the two triage splits, and
@@ -342,9 +342,9 @@ composition_coord_bounds <- function(g) {
 #'   simulation state (and therefore every downstream KPI) for the
 #'   remainder of any OAT trajectory that perturbed this parameter above
 #'   1.1. See README Limitation L18 follow-up note for the incident.
-#'   Issue #207 added validate_fill_distribution() (R/trajectories.R),
-#'   which now raises this ordering violation as an error rather than
-#'   leaving it to surface as an NA cascade; the bound stays where it is,
+#'   `validate_fill_distribution()` (R/trajectories.R) raises this ordering
+#'   violation as an error rather than leaving it to surface as an NA
+#'   cascade; the bound stays where it is,
 #'   an error being a worse outcome for a screening run than a bound that
 #'   never trips.
 #'
@@ -956,8 +956,12 @@ with_fixed_rng <- function(expr, seed = 20260729L) {
 #'   rather than the closures themselves, so the response assembly reads a
 #'   list rather than calling back into this domain's internals.
 extract_role4_kpis <- function(mon, combined, n_reps, n_days, safe_mean) {
-  # The same column accessor extract_kpis() uses, rebuilt here from the
-  # frame this function is given rather than threaded in as a closure.
+  #' Read one attribute column of the combined frame as a numeric vector
+  #'
+  #' @param nm Name of the attribute column.
+  #' @return The column as numeric, NA where the attribute was never set.
+  #' @details The same accessor `extract_kpis()` uses, rebuilt here from the
+  #'   frame this function is given rather than threaded in as a closure.
   a <- function(nm) as.numeric(combined[[nm]])
   # ── Domain 7 — strategic evacuation and Role 4 demand ──────────────────
   role4_params <- env_data$vars$role4
@@ -993,9 +997,22 @@ extract_role4_kpis <- function(mon, combined, n_reps, n_days, safe_mean) {
 
   ame_wait  <- a("ame_wait_minutes")
   ame_route <- a("ame_route")
+  #' Mean strategic evacuation wait on one route
+  #'
+  #' @param k Route code: 1 for the critical route, 2 for the standard route.
+  #' @return The mean wait in minutes, NA where the route carried nobody.
   ame_wait_route <- function(k) safe_mean(ame_wait[!is.na(ame_route) & ame_route == k])
 
   backlog <- compute_ame_backlog(mon$attributes, n_days)
+  #' One summary statistic of a strategic evacuation pool's backlog
+  #'
+  #' @param pool_label Name of the pool, as the backlog frame labels it.
+  #' @param stat Statistic to return: "mean" or "peak".
+  #' @return The statistic averaged across replications, 0 where the pool
+  #'   never carried a backlog.
+  #' @details The mean is weighted by the time each backlog level was held,
+  #'   so a level that stood for an hour does not weigh the same as one that
+  #'   stood for a minute.
   backlog_stat <- function(pool_label, stat) {
     sub <- backlog %>% filter(as.character(pool) == pool_label)
     if (nrow(sub) == 0) return(0)
@@ -1099,6 +1116,10 @@ prepare_kpi_frames <- function(mon) {
 extract_kpis <- function(mon) {
   kpi <- summarise_replications(mon)
 
+  #' Mean queue length across a group of resources
+  #'
+  #' @param pattern Regular expression selecting the resources to pool.
+  #' @return The mean queue length, 0 where the pattern matched nothing.
   safe_q <- function(pattern) {
     v <- kpi %>%
       filter(grepl(pattern, resource)) %>%
@@ -1110,8 +1131,23 @@ extract_kpis <- function(mon) {
   # Empty cohorts are routine at an extreme design point, so every summary
   # below goes through these rather than through mean()/quantile()/max()
   # directly, all three of which return NaN, an error, or -Inf on no input.
+
+  #' Mean of the finite values, NA on an empty set
+  #'
+  #' @param x Numeric vector, possibly carrying NA and infinite values.
+  #' @return The mean of the finite elements, NA_real_ where there are none.
   safe_mean <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else mean(x) }
+
+  #' 90th percentile of the finite values, NA on an empty set
+  #'
+  #' @param x Numeric vector, possibly carrying NA and infinite values.
+  #' @return The p90 of the finite elements, NA_real_ where there are none.
   safe_p90  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else unname(quantile(x, 0.90)) }
+
+  #' Maximum of the finite values, NA on an empty set
+  #'
+  #' @param x Numeric vector, possibly carrying NA and infinite values.
+  #' @return The maximum of the finite elements, NA_real_ where there are none.
   safe_max  <- function(x) { x <- x[is.finite(x)]; if (length(x) == 0) NA_real_ else max(x) }
 
   frames     <- prepare_kpi_frames(mon)
@@ -1120,6 +1156,11 @@ extract_kpis <- function(mon) {
   n_reps     <- frames$n_reps
   n_days     <- frames$n_days
   combined   <- frames$combined
+
+  #' Read one attribute column of the combined frame as a numeric vector
+  #'
+  #' @param nm Name of the attribute column.
+  #' @return The column as numeric, NA where the attribute was never set.
   a <- function(nm) as.numeric(combined[[nm]])
 
   # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
@@ -1140,6 +1181,10 @@ extract_kpis <- function(mon) {
   dow_ech <- a("dow_echelon")
   died    <- !is.na(dow) & dow == 1
   dow_count <- sum(died) / n_reps
+  #' Share of all arrivals that died of wounds at one echelon
+  #'
+  #' @param k Echelon code the `dow_echelon` attribute records.
+  #' @return The share of arrivals, NA where the design point produced none.
   dow_rate  <- function(k) {
     if (n_arrivals == 0) NA_real_ else sum(died & !is.na(dow_ech) & dow_ech == k) / n_arrivals
   }
@@ -1153,6 +1198,13 @@ extract_kpis <- function(mon) {
   r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
   transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
   r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
+  #' Keep the finite, non-negative elements of an interval
+  #'
+  #' @param x Numeric vector of durations in minutes.
+  #' @return The elements that are finite and at least zero.
+  #' @details A casualty who never reached the second of the two timestamps
+  #'   an interval is taken between contributes an NA, and one whose route
+  #'   skipped the first contributes a negative; neither is a duration.
   non_negative <- function(x) x[is.finite(x) & x >= 0]
 
   # ── Domain 3 — surgical throughput ─────────────────────────────────────
@@ -1167,6 +1219,10 @@ extract_kpis <- function(mon) {
   # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
   returned  <- !is.na(a("return_day"))
   ret_ech   <- a("return_echelon")
+  #' Share of all arrivals returned to duty from one echelon
+  #'
+  #' @param k Echelon code the `return_echelon` attribute records.
+  #' @return The share of arrivals, NA where the design point produced none.
   rtd_rate  <- function(k) {
     if (n_arrivals == 0) NA_real_ else sum(returned & !is.na(ret_ech) & ret_ech == k) / n_arrivals
   }
@@ -1234,6 +1290,11 @@ extract_kpis <- function(mon) {
 #'   through to run_replications() (see its own @param for why this
 #'   matters for Shiny-triggered, locally-run screens). NULL preserves
 #'   prior behaviour.
+#' @param crn_seed   Optional integer pinning the replication seed vector, so
+#'   every design point is evaluated against common random numbers. NULL
+#'   leaves the seeds to the ambient stream.
+#' @param return_sd  Whether to return the per-replication standard deviation
+#'   of each response alongside its mean.
 #' @return Named numeric vector, one element per row of `morris_kpis` — see
 #'   extract_kpis()
 #'
@@ -1504,10 +1565,10 @@ rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
 #'   Defaults to `file.path(output_dir, "images")`, which is gitignored, so
 #'   an ordinary screening run cannot overwrite the tracked baseline plots in
 #'   `images/` or scatter untracked ones alongside them unless the caller
-#'   names that directory explicitly — the same contract analyse_run() has
-#'   carried since Issue #154. A screen writes one plot per response rather
-#'   than the seven this function once produced, so a default of `images/`
-#'   would now leave twenty-nine untracked files in a tracked directory.
+#'   names that directory explicitly, which is the contract analyse_run()
+#'   holds as well. A screen writes one plot per response, so a default of
+#'   `images/` would leave twenty-nine untracked files in a tracked
+#'   directory.
 #' @return Named list: morris_objs (per-response sensitivity objects), Y
 #'   (response matrix), X (design matrix), ranking (the primary system OT
 #'   queue ranking, sorted descending by mu_star), rankings (the same data
@@ -1696,9 +1757,12 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 # design point index; the rest are that screen's responses, named as the screen
 # names them. Morris carries one column per entry in morris_kpis, Sobol the
 # five it decomposes, so the width is read from the file rather than assumed.
-# The five responses run_sobol() decomposes, in the order it assembles them.
-# Named here because the cache now also carries a per-response sd_* column, so
-# a reader cannot infer the response set from the file header alone.
+#' The five responses run_sobol() decomposes, in the order it assembles them
+#'
+#' @details Named here because the point cache also carries a per-response
+#'   sd_ column, so the response set cannot be inferred from the file header
+#'   alone. The order is the order the decomposition indexes its columns by,
+#'   so reordering this vector misreads every cached response.
 SOBOL_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "system_ot_q",
                      "transport_q", "transport_util")
 
@@ -1877,16 +1941,23 @@ evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_fi
 #' @param kpi_name Name of the response, used in the warning.
 #' @return `sb`, populated, or NULL where tell() could not compute indices.
 # tell() invokes boot::boot.ci() internally, which errors on a response
-# with (near-)zero variance across the design (e.g. transport_q when none
-# of top_params affect transport occupancy — see Issue #6 PR discussion).
-# Wrapped per-KPI so one degenerate response doesn't discard the rest.
-# sensitivity::tell() does not return the told object. It ends in
-# assign(id, x, parent.frame()), where id is deparse(substitute(x)), so it
-# writes the populated object back over the variable it was handed *in the
-# frame it was called from*. Called inside a wrapper that means the wrapper's
-# own local, leaving the caller's object untouched with S/T still empty —
-# which is why this must return `sb` after the call and the caller must
-# assign the result back, rather than relying on tell()'s side effect.
+#' Tell a Sobol object one response's values, tolerating a degenerate one
+#'
+#' @param sb The Sobol design object to populate.
+#' @param y Numeric vector of the response at each design point.
+#' @param kpi_name Name of the response, used in the warning message.
+#' @return The populated Sobol object, or NULL when `tell()` failed.
+#' @details A response with near-zero variance across the design (transport
+#'   occupancy, where no screened parameter moves it) makes `tell()` fail, so
+#'   each response is told inside its own call and one degenerate response
+#'   does not discard the rest.
+#'
+#'   The returned object is the contract, not a side effect:
+#'   `sensitivity::tell()` ends in `assign(id, x, parent.frame())`, writing
+#'   the populated object back over the variable it was handed in the frame it
+#'   was called from. Called inside a wrapper, that frame is the wrapper's own,
+#'   so the caller's object would be left with S and T still empty unless the
+#'   caller assigns this function's return value back.
 tell_safe <- function(sb, y, kpi_name) {
   tryCatch({
     tell(sb, y)
@@ -1908,11 +1979,11 @@ tell_safe <- function(sb, y, kpi_name) {
 #' @param p_def The screened parameter definitions, for the parameter column.
 #' @param output_dir Directory the CSV is written to.
 #' @return The data frame written, invisibly to the caller's use.
-# Even when tell() does not throw, boot.ci() can silently fail for an
-# individual parameter within an otherwise-successful call (e.g. one
-# parameter's bootstrap distribution is degenerate while others are not),
-# leaving sb$S / sb$T columns shorter than p_def$name. Guard against that
-# here rather than relying on tell_safe() alone.
+#' @details Even where `tell()` does not throw, `boot.ci()` can fail for one
+#'   parameter within an otherwise successful call, one parameter's bootstrap
+#'   distribution being degenerate while the others are not, which leaves the
+#'   S and T columns shorter than the parameter set. The lengths are checked
+#'   here rather than left to `tell_safe()`, which cannot see them.
 save_sobol <- function(sb, kpi_name, p_def, output_dir) {
   p <- nrow(p_def)
   lens <- c(length(sb$S$original), length(sb$S$`min. c.i.`), length(sb$S$`max. c.i.`),
@@ -2045,6 +2116,11 @@ tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all)
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point (see run_morris()'s equivalent parameter). NULL preserves
 #'   prior behaviour.
+#' @param nboot Bootstrap replicates behind each index's confidence interval
+#'   (default 1000).
+#' @param crn_seed Optional integer pinning the replication seed vector, so
+#'   every design point is evaluated against common random numbers. NULL
+#'   leaves the seeds to the ambient stream.
 #' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q,
 #'   transport_q, transport_util
 #'

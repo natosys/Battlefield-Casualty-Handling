@@ -123,9 +123,12 @@ established and need no expansion in a name. Anything else is spelled out.
 
 ## Function design
 
-**D1 `[lint]` No function body exceeds 100 lines.** Four existing functions
-do; they are listed under [Current conformance](#current-conformance), with the
-reason each is left as it stands. The limit applies in full to every new function
+**D1 `[lint]` No function body exceeds 100 lines of code.** Two existing
+functions do; they are listed under [Current conformance](#current-conformance),
+with the reason each is left as it stands. Comment, roxygen and blank lines are
+not counted, because what the rule caps is complexity and none of the three
+adds any; counting them would set this rule against R1, a function's nested
+helpers being documented at its own expense. The limit applies in full to every new function
 and to any listed function that a pull request restructures.
 
 The number is a proxy and is worth reading as one. What the rule defends is that
@@ -530,16 +533,17 @@ the sixteen scripts carry a roxygen header, against 119 of 128 in `R/`.
 | F9 to F11 | Statement and spacing style | Partly, `infix_spaces_linter`, `commas_linter`, `semicolon_linter`, `spaces_inside_linter` |
 | N1 | snake_case | Yes, `object_name_linter` |
 | N2 to N4 | Naming table, output names, abbreviations | No, reviewer |
-| D1 | Function length 100 | Yes, counted from the parse data by `scripts/check_lint.R`; `lintr` ships no linter for it |
+| D1 | Function length 100 code lines | Yes, counted from the parse data by `scripts/check_lint.R`, over the lines carrying a non-comment token; `lintr` ships no linter for it |
 | D2 to D6 | Function design | No, reviewer |
 | C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, and outside `DAY_MIN`'s definition there are none left, so the rule now reads as a gate on zero rather than as a direction of travel; the rest is reviewer |
 | G1 to G3, G5 | Permitted `<<-` and restoration | No, reviewer |
 | G4 | No other global assignment | Yes, `assignment_linter(operator = "<-")`, which reports every `<<-`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises a count and is reviewed on its merits |
 | E1 to E7 | Error handling | No, reviewer |
 | O1 to O5 | File organisation | No, reviewer |
-| R1 | Roxygen on every function | Yes, a script over the source is straightforward, as the audit for this document showed |
-| R2 | Mandatory tags | Partly: presence of `@param` per argument and of `@return` is checkable; whether `@details` is warranted is not |
-| R3 to R8, R10 | Comment content and structure | No, reviewer |
+| R1 | Roxygen on every function | Yes, `scripts/check_roxygen.R`, from the parse data. A function bound to a name is checked wherever it sits, including inside another function; an anonymous function has no name to document and is not counted |
+| R2 | Mandatory tags | Partly, `scripts/check_roxygen.R`: the header opening with a title, an `@param` per argument, no `@param` naming an argument the function does not take, and a `@return` are all checked; whether `@details` is warranted is not |
+| R3 | Roxygen on every file-scope constant | Partly, `scripts/check_roxygen.R`: the header's presence is checked, whether it states where the value comes from and what would break if it changed is not |
+| R4 to R8, R10 | Comment content and structure | No, reviewer |
 | R9 | No emoji in source | Yes, a codepoint scan in `scripts/check_lint.R`, covering arrows, enclosed alphanumerics, geometric shapes through dingbats, the symbols supplement and the emoji planes, and permitting the box drawing of O3 and R8 |
 | S1 to S6 | Simmer conventions | No, reviewer |
 | K1, K2, K7 | Check script name, shebang, exit contract | Yes |
@@ -554,19 +558,21 @@ requirement of it.
 **Already uniform.** Assignment is `<-` everywhere, with no `=` statement
 assignment anywhere in the codebase (F4). The magrittr pipe is used throughout
 and the native pipe nowhere (F5). `T` and `F` appear four times against
-thousands of `TRUE` and `FALSE` (F6). Every module in `R/` opens with a banner
-(R8) and uses the section rule (O3). Roxygen coverage in `R/` is 119 of 128
-functions, and eight of the nine gaps are the paired accessors at the head of
-`R/app_params.R` (R1).
+thousands of `TRUE` and `FALSE` (F6). Every file under `R/`, `scripts/` and
+`tests/`, and both entry points, opens with a banner (R8) and the modules use
+the section rule (O3). Roxygen coverage is complete: every named function in
+the repository, at every nesting depth, carries a header opening with a title,
+an `@param` for each of its arguments and a `@return` (R1, R2), and
+`scripts/check_roxygen.R` holds that position at zero.
 
 **Where the code sits outside the standard.**
 
 | Rule | Gap |
 |---|---|
 | F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
-| D1 | Four functions exceed 100 lines, in two groups. **Orchestrators, whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split:** `analyse_run` (398), `analyse_replications` (229), `server` (195). **Not yet reduced:** `extract_kpis` (126). Its body is one reduction per response domain over a shared set of frames, and the two pieces that could be lifted out whole have been, `prepare_kpi_frames()` and `extract_role4_kpis()`; what remains would have to thread roughly twenty-five intermediate values back into the response assembly, which moves the coupling into a parameter list rather than removing it. The five simulation-logic functions that stood here have been split, one per pull request, each verified against the seed-42 byte-for-byte reproduction: `run_once` (147), `build_casualty_trajectory` (334), `r2b_treat_wia` (560), `r2e_treat_wia` (766) and `run_replications` (116). Trajectory construction consumes no random draws, the draws sitting inside the arguments simmer evaluates at run time, so lifting a builder out moves none of them; a phase appended to the chain (`trj %>% ...`) adds to the same trajectory object, and only `join()` copies, which the splits introduced nowhere the undivided bodies did not already do |
+| D1 | Two functions exceed 100 lines of code, both orchestrators whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split: `analyse_run` and `analyse_replications`. `server` and `extract_kpis` stood here until the count was taken over code lines alone; both sit inside the limit on that measure, `extract_kpis` having had the two pieces that could be lifted out whole lifted out, `prepare_kpi_frames()` and `extract_role4_kpis()`, and what remains being one reduction per response domain over a shared set of frames, which would have to thread roughly twenty-five intermediate values back into the response assembly to divide further. The five simulation-logic functions that stood here have been split, one per pull request, each verified against the seed-42 byte-for-byte reproduction: `run_once` (147), `build_casualty_trajectory` (334), `r2b_treat_wia` (560), `r2e_treat_wia` (766) and `run_replications` (116). Trajectory construction consumes no random draws, the draws sitting inside the arguments simmer evaluates at run time, so lifting a builder out moves none of them; a phase appended to the chain (`trj %>% ...`) adds to the same trajectory object, and only `join()` copies, which the splits introduced nowhere the undivided bodies did not already do |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
-| R1 | Twelve functions in `R/` and `app.R` lack a roxygen header, and 50 of the 83 helpers across the `check_*.R` scripts do |
+| R3 | 171 file-scope constants carry no roxygen header. None is in the simulation modules, whose constants are documented; 47 are the `SRC_*` citation strings at the head of `R/app_params.R`, whose value is the provenance sentence itself, and the remainder are run parameters in the check and analysis scripts. `scripts/check_roxygen.R` counts them and ratchets, so the figure can fall but not rise |
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |
 | G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |
 
@@ -574,15 +580,17 @@ Each of these is tracked as its own item in
 `docs/BCH_Simulation_Action_Plan.md`. This document does not require any of them
 to be repaired; it establishes what "repaired" means.
 
-The counts the ratchet holds are the machine's own, taken by
-`scripts/check_lint.R` and tracked in `scripts/lint_baseline.csv`. They do not
+Two ratchets hold these counts, and both are gated per pull request.
+`scripts/check_roxygen.R` holds the documentation rules above, tracked in
+`scripts/roxygen_baseline.csv`; the rest are the machine's own, taken by
+`scripts/check_lint.R` and tracked in `scripts/lint_baseline.csv`. The latter do not
 all agree with the figures above, which were measured for this document by
 scanning the source directly, and the difference is a matter of definition
 rather than of disagreement. F1 reads 725 rather than 919 because `lintr`
 measures a line in characters where the scan measured it in bytes, and a
-comment carrying an em dash is three bytes but one character. D1 reads 18
-rather than 17 because the parse data counts a function defined inside another
-in its own right. R9 reads 130 findings, dominated by the arrow used in
+comment carrying an em dash is three bytes but one character. D1's count
+includes a function defined inside another in its own right, which a reading
+by eye would fold into its parent. R9 reads 130 findings, dominated by the arrow used in
 comments rather than by the emoji the rule was written for. A count moves only
 when a maintainer refreshes the baseline with
 `Rscript scripts/check_lint.R --refresh-baseline`, which is how the ratchet

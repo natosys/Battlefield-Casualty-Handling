@@ -27,6 +27,11 @@ suppressPackageStartupMessages(source("R/scenario_runner.R"))
 
 failures <- character(0)
 
+#' Print one PASS or FAIL line, recording a failure
+#'
+#' @param condition Logical: whether the assertion held.
+#' @param description One-line description of the assertion.
+#' @return Invisible NULL; called for its side effects.
 check <- function(condition, description) {
   if (isTRUE(condition)) {
     message("  PASS  ", description)

@@ -44,6 +44,11 @@ suppressPackageStartupMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default = NULL) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -84,7 +89,11 @@ responses <- setdiff(names(tab), c("i", grep("^sd_", names(tab), value = TRUE)))
 message(sprintf("Cache: %d points = N %d x (p %d + 2); responses: %s",
                 nrow(tab), n_sobol, p, paste(responses, collapse = ", ")))
 
-# Shape-only design; see the header note on why the values do not enter.
+#' Build one half of the shape-only design matrix
+#'
+#' @return A data frame of the design's shape, every cell at 0.5.
+#' @details The values do not enter the recomputation, only the layout does;
+#'   see the header note for why.
 mk <- function() {
   d <- as.data.frame(matrix(0.5, nrow = n_sobol, ncol = p))
   names(d) <- PARAMS
@@ -195,6 +204,11 @@ for (resp in unique(out$response)) {
   # neither can place a bound at or below zero however uninfluential the
   # parameter, so their bounds are reported alongside the observed minimum
   # rather than read as separations.
+  #' Parameters one estimator separates from zero
+  #'
+  #' @param d One estimator's index table for this response.
+  #' @return A character vector of the parameters whose total-order lower
+  #'   bound sits above zero.
   sep <- function(d) d$parameter[is.finite(d$ST_lower) & d$ST_lower > 0]
   for (est_name in unique(sub$estimator)) {
     e <- sub[sub$estimator == est_name, , drop = FALSE]

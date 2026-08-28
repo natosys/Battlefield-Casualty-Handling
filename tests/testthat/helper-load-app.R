@@ -1,3 +1,8 @@
+##############################################
+## tests/testthat/helper-load-app.R         ##
+## Loads the console into the test session  ##
+##############################################
+
 # Loads the Shiny console into the test session.
 #
 # app.R sources every R/ module and then evaluates shinyApp(ui, server) as its

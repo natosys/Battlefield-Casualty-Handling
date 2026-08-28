@@ -1,0 +1,7 @@
+rule,count
+missing_constant_header,171
+missing_header,0
+missing_param,0
+missing_return,0
+missing_title,0
+undocumented_param,0

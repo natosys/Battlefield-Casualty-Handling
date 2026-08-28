@@ -29,6 +29,11 @@ day_min  <<- DAY_MIN
 
 tol      <- 1e-9
 failures <- character(0)
+#' Print one PASS or FAIL line, recording a failure
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param msg One-line description of the assertion.
+#' @return Invisible NULL; called for its side effects.
 check    <- function(ok, msg) {
   if (isTRUE(ok)) {
     message(sprintf("  PASS  %s", msg))
@@ -38,6 +43,11 @@ check    <- function(ok, msg) {
   }
 }
 
+#' Whether a vector is a point on the three-part simplex
+#'
+#' @param x Numeric vector of the composition's parts.
+#' @return TRUE when the vector holds three finite parts, each strictly
+#'   inside (0, 1), summing to one within tolerance.
 valid_composition <- function(x) {
   length(x) == 3L && all(is.finite(x)) && all(x > 0) && all(x < 1) &&
     abs(sum(x) - 1) < tol

@@ -13,10 +13,15 @@ source("R/scenario.R")
 
 # ── Global configuration save/restore ────────────────────────────────────────
 
-# The three globals that carry the model's configuration. run.R, app.R, the
-# scripts under scripts/ and the sweep/screen entry points all set these with
-# `<<-`, because run_once()/build_env() and the trajectory closures resolve
-# them from the global environment rather than receiving them as arguments.
+#' The three globals that carry the model's configuration
+#'
+#' @details run.R, app.R, the scripts under scripts/ and the sweep and screen
+#'   entry points all set these with `<<-`, because run_once(), build_env()
+#'   and the trajectory closures resolve them from the global environment
+#'   rather than receiving them as arguments. A name added here without the
+#'   model reading it from the global environment would be saved and restored
+#'   for nothing; a name the model does read and this vector omits would
+#'   survive a failed sweep and corrupt the next one.
 CONFIG_GLOBALS <- c("env_data", "day_min", "counts")
 
 
@@ -90,6 +95,10 @@ restore_config_globals <- function(snapshot) {
 #'   parameter is present or that its value is operationally plausible.
 validate_env_data_json <- function(data, source_label = "env_data.json") {
   problems <- character(0)
+  #' Record one validation fault
+  #'
+  #' @param ... Arguments passed to `sprintf()` to build the message.
+  #' @return Invisible: called for its side effect on the fault list.
   note <- function(...) problems <<- c(problems, sprintf(...))
 
   if (!is.list(data) || is.null(names(data))) {
@@ -105,9 +114,14 @@ validate_env_data_json <- function(data, source_label = "env_data.json") {
     }
   }
 
-  # A count/qty must be a single finite non-negative number: these are
-  # multiplied out into population sizes and resource identifiers, where a
-  # vector, a string or an NA becomes a length error thousands of lines away.
+  #' Assert that a quantity is a single finite non-negative number
+  #'
+  #' @param value Value read from the parsed file.
+  #' @param field Dotted path of the field, for the fault message.
+  #' @return Invisible: called for its side effect on the fault list.
+  #' @details A quantity is multiplied out into population sizes and resource
+  #'   identifiers, where a vector, a string or an NA becomes a length error
+  #'   thousands of lines away from the file that carried it.
   check_qty <- function(value, field) {
     usable <- is.numeric(value) && length(value) == 1L &&
       !is.na(value) && is.finite(value) && value >= 0
@@ -119,6 +133,11 @@ validate_env_data_json <- function(data, source_label = "env_data.json") {
     }
   }
 
+  #' Assert that a name is a single non-empty string
+  #'
+  #' @param value Value read from the parsed file.
+  #' @param field Dotted path of the field, for the fault message.
+  #' @return Invisible: called for its side effect on the fault list.
   check_name <- function(value, field) {
     if (is.null(value)) {
       note("%s is missing", field)
@@ -414,7 +433,7 @@ resolve_ame_airframe <- function(role4_params) {
 
 # ── Casualty rate generation (live, force-size-reactive) ───────────────────────
 #
-# Issue #18: casualty arrival rate is scaled by a time-varying effective force
+# Casualty arrival rate is scaled by a time-varying effective force
 # size (env's `effective_force_combat`/`effective_force_support` simmer
 # globals — initialised in run_once(), decremented/incremented by
 # R/trajectories.R at injury/return-to-duty events) rather than a fixed
@@ -423,44 +442,20 @@ resolve_ame_airframe <- function(role4_params) {
 # generator mode: add_generator() is given a closure with no arguments that is
 # called once per arrival, returning the interarrival gap.
 #
-# Issue #206: the closure previously drew a fresh rate for every simulated
-# minute and emitted a casualty at each whole-casualty crossing of the running
-# total. A day's count was therefore an average of 1,440 draws, and the central
-# limit theorem flattened the stream long before the draws could reach a daily
-# total: the combat WIA stream realised a daily standard deviation of 0.50
-# against the 2.10 of a Poisson process at the same rate, and in 5,000
-# simulated days never produced a day worse than six casualties. Peak-day
-# volume is what drives contention for theatres, intensive care beds and
-# airlift, so a generator that reproduces the mean while suppressing the peaks
-# understates every queue the model exists to measure.
+# Arrival times are sampled directly rather than accumulated over a grid of
+# simulated minutes: the rate is redrawn once per simulated day, and arrivals
+# are placed within the day by thinning against a dominating rate. README
+# Casualty Generation derives both, and states the mean and variance the
+# construction delivers; scripts/check_arrival_rate_fidelity.R asserts them.
 #
-# The minute grid is replaced by direct arrival-time sampling, which fixes both
-# the timescale the configured distribution acts on and the way arrivals are
-# placed within it:
-#
-#   Intensity. The stream is a Cox process whose rate is redrawn once per
-#   simulated day rather than once per minute. FORECAS (Blood, Zouris &
-#   Rotblatt, 1998) fits a *daily* casualty rate, so `mean_daily`/`sd_daily`
-#   are between-day quantities; drawing at that timescale is what makes the
-#   configured distribution the between-day distribution it was fitted as.
-#   Within a day the rate is constant apart from the live force-size factor.
-#
-#   Placement. Arrivals within the day are Poisson, sampled by thinning (Lewis
-#   & Shedler, 1979): candidate gaps are drawn under a dominating rate that
-#   holds the pool at establishment strength, and each candidate is accepted
-#   with probability F/P_max for the force size F read at that point. A
-#   candidate falling past the day's end is discarded and sampling restarts at
-#   the boundary under the next day's rate, which is exact for a
-#   piecewise-constant intensity by the memorylessness of the exponential.
-#
-# Together these give a daily count that is Poisson conditional on the day's
-# rate, so by the law of total variance the stream realises
-#
-#   E[N] = mu * P / 1000            Var[N] = mu * P / 1000 + (sigma * P / 1000)^2
-#
-# per day at force size P: the configured mean is preserved, and the configured
-# between-day standard deviation is honoured on top of the Poisson term rather
-# than averaged away. scripts/check_arrival_rate_fidelity.R asserts both.
+# The reason to keep it that way, since a per-minute redraw is the easier code
+# to write: averaging a rate over 1,440 draws before it reaches a daily total
+# flattens the stream, and measured that way the combat WIA stream realises a
+# daily standard deviation of 0.50 against the 2.10 of a Poisson process at the
+# same rate, never producing a day worse than six casualties in 5,000 simulated
+# days. Peak-day volume is what drives contention for theatres, intensive care
+# beds and airlift, so that generator understates every queue the model exists
+# to measure while reproducing its mean.
 #
 # P_max has to bound F for the whole run, or the acceptance probability
 # saturates at 1 and the stream generates at the dominating rate instead of the
@@ -701,11 +696,15 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
   bg_exhausted <- FALSE
   last_time <- 0
 
-  # The sink is global rather than an enclosed vector because the trajectory
-  # reads it by name at run time (R/trajectories.R); assign() rather than
-  # <<- because the name is a parameter. In a forked mclapply worker this
-  # reaches only that fork's own global environment, as every other <<- in
-  # the run path does.
+  #' Append one event identifier to the global sink
+  #'
+  #' @param id Identifier of the event to record.
+  #' @return Invisible: called for its side effect on the global sink.
+  #' @details The sink is global rather than an enclosed vector because the
+  #'   trajectory reads it by name at run time (R/trajectories.R), and the
+  #'   write uses `assign()` rather than `<<-` because the name is a
+  #'   parameter. In a forked mclapply worker this reaches only that fork's
+  #'   own global environment, as every other `<<-` in the run path does.
   append_event_id <- function(id) {
     assign(id_sink, c(get(id_sink, envir = globalenv()), id), envir = globalenv())
   }
@@ -752,14 +751,12 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
 #'   overwrite tracked evidence (Issue #154).
 #' @return Invisibly NULL; called for its file-writing side effect
 #'
-#' @details The six background casualty streams' arrival times are no
-#'   longer known before run() — they depend on the live, force-size-
-#'   reactive generators above — so the arrival-time diagnostics previously
-#'   written inside generate_ln_arrivals()/generate_exp_arrivals() are
-#'   instead reconstructed here from get_mon_arrivals() after the run
-#'   completes, filtered by each stream's generator-name prefix. Mass
-#'   casualty's diagnostic file is unaffected (still written by
-#'   generate_mass_casualty_events(), since that stream remains pre-computed).
+#' @details The six background casualty streams' arrival times are not known
+#'   before run(), depending on the live, force-size-reactive generators
+#'   above, so the arrival-time diagnostics are reconstructed here from
+#'   get_mon_arrivals() after the run completes, filtered by each stream's
+#'   generator-name prefix. Mass casualty's diagnostic file is written by
+#'   generate_mass_casualty_events() instead, that stream being pre-computed.
 write_arrival_diagnostics <- function(env, data_dir = "data") {
   dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
   arr <- get_mon_arrivals(env)
@@ -842,6 +839,11 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
   if (length(days) == 0) return(empty)
   n <- length(days)
 
+  #' Read one scheduled-event field, defaulting an absent one per event
+  #'
+  #' @param var Name of the schedule field to read.
+  #' @param default Value used for every event when the field is absent.
+  #' @return A numeric vector one element per scheduled event.
   fill <- function(var, default) {
     v <- unlist(schedule_params[[var]])
     if (length(v) == 0) rep(default, n) else v
@@ -906,6 +908,13 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
   kia_offsets <- sort(offsets[seq_len(n_kia)])
   wia_offsets <- sort(offsets[seq_len(n_cas_draw - n_kia) + n_kia])
 
+  #' Keep the offsets that fall inside the run window
+  #'
+  #' @param offs Numeric vector of offsets from the event start, in minutes.
+  #' @return The absolute times inside [0, n_minutes), in minutes.
+  #' @details An event drawn near the end of the run spills its window past
+  #'   the horizon; the casualties beyond it are dropped rather than clamped,
+  #'   so the event does not pile arrivals onto the final instant.
   in_run <- function(offs) {
     t <- event_start + offs
     t[t >= 0 & t < n_minutes]
@@ -1080,8 +1089,8 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
 #'
 #' @details The single source of truth for OT shift length is
 #'   `vars.surgical_roster.shift.ot_hours` in env_data.json. Every caller
-#'   that used to carry its own literal default reaches the value through
-#'   here, so changing the configuration file changes the shift length
+#'   reaches the value through here rather than carrying its own literal
+#'   default, so changing the configuration file changes the shift length
 #'   everywhere at once. A configuration missing the field is an error
 #'   rather than a silently substituted default, on the same basis as every
 #'   other required parameter in the vars tree.

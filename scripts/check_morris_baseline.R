@@ -36,6 +36,11 @@ env_data <<- load_elms("env_data.json")
 day_min  <<- DAY_MIN
 
 failures <- character(0)
+#' Print one PASS or FAIL line, recording a failure
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param msg One-line description of the assertion.
+#' @return Invisible NULL; called for its side effects.
 check    <- function(ok, msg) {
   if (isTRUE(ok)) {
     message(sprintf("  PASS  %s", msg))
@@ -46,6 +51,9 @@ check    <- function(ok, msg) {
 }
 
 #' Every leaf of the vars tree as a flat named list, keyed "elm.acty.var"
+#'
+#' @param ed A built environment data list.
+#' @return A named list of every leaf value, keyed by its dotted path.
 flatten_vars <- function(ed) {
   out <- list()
   for (elm in names(ed$vars)) {
@@ -59,9 +67,15 @@ flatten_vars <- function(ed) {
   out
 }
 
-# Leaves are not all numeric (the AME airframe selector and the mass casualty
-# timing mode are strings, the scheduled event days a list), so the comparator
-# falls back to identical() for anything it cannot difference.
+#' Whether two leaf values agree
+#'
+#' @param a First value.
+#' @param b Second value.
+#' @param tol Relative tolerance applied to a numeric comparison.
+#' @return TRUE where the two agree.
+#' @details Leaves are not all numeric, the airframe selector and the timing
+#'   mode being strings and the scheduled event days a list, so the
+#'   comparison falls back to identity for anything it cannot difference.
 same <- function(a, b, tol = 1e-9) {
   if (is.numeric(a) && is.numeric(b) && length(a) == length(b)) {
     all(abs(a - b) <= tol * pmax(1, abs(b)))
@@ -70,14 +84,29 @@ same <- function(a, b, tol = 1e-9) {
   }
 }
 
-# `[[` on a name a list does not carry is an error rather than a NULL, and the
-# two trees compared below need not carry identical key sets: apply_params()
-# creates a leaf that env_data.json does not already hold, which is itself
-# worth reporting as a difference rather than dying on.
+#' Read one key of a flattened tree, tolerating its absence
+#'
+#' @param x A flattened vars tree.
+#' @param k Dotted path to read.
+#' @return The value at that path, NULL where the tree does not carry it.
+#' @details `[[` on an absent name is an error rather than a NULL, and the two
+#'   trees compared below need not carry identical key sets: `apply_params()`
+#'   creates a leaf `env_data.json` does not hold, which is worth reporting as
+#'   a difference rather than dying on.
 at <- function(x, k) if (k %in% names(x)) x[[k]] else NULL
 
+#' Format a leaf value for a difference report
+#'
+#' @param x The value to format.
+#' @return The value as a comma-separated string, "absent" where it is NULL.
 fmt <- function(x) if (is.null(x)) "absent" else paste(format(x), collapse = ", ")
 
+#' Paths at which two flattened trees disagree
+#'
+#' @param x First flattened tree.
+#' @param y Second flattened tree.
+#' @return A character vector of the dotted paths that differ, including one
+#'   present in only one of the two.
 changed_paths <- function(x, y) {
   keys <- union(names(x), names(y))
   keys[!vapply(keys, function(k) same(at(x, k), at(y, k)), logical(1))]

@@ -74,6 +74,10 @@ report <- function(ok, fmt, ...) {
 #'   at all, not at what depth it sits.
 local_names <- function(f) {
   out <- character(0)
+  #' Collect the names one expression binds, recursing into it
+  #'
+  #' @param x The expression to walk.
+  #' @return Invisible NULL; called for its side effect on the name list.
   rec <- function(x) {
     if (!is.call(x)) return(invisible(NULL))
     op <- tryCatch(as.character(x[[1]]), error = function(e) "")

@@ -46,6 +46,11 @@ suppressPackageStartupMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default = NULL) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -57,9 +62,11 @@ PARAMS  <- strsplit(arg_value("--params", ""), ",")[[1]]
 OUTPUT  <- arg_value("--output", "outputs")
 NBOOT   <- as.integer(arg_value("--nboot", 2000L))
 SEED    <- as.integer(arg_value("--seed", 20250819L))
-# The group the caller is content to leave unordered. Separations inside it
-# are reported but not counted as targets, so the sample size the script
-# recommends is the one the caller's actual reading requires.
+#' The group the caller is content to leave unordered
+#'
+#' @details Separations inside it are reported but not counted as targets, so the
+#'   sample size the script recommends is the one the caller's actual reading
+#'   requires.
 GROUP_FROM <- as.integer(arg_value("--group-from", 3L))
 
 if (is.null(CACHE) || !file.exists(CACHE)) stop("--cache must name an existing cache CSV")
@@ -77,9 +84,16 @@ N <- nrow(tab) %/% (p + 2L)
 
 responses <- setdiff(names(tab), c("i", grep("^sd_", names(tab), value = TRUE)))
 
+#' Build one half of the shape-only design matrix
+#'
+#' @return A data frame of the design's shape, every cell at 0.5.
 mk <- function() { d <- as.data.frame(matrix(0.5, nrow = N, ncol = p)); names(d) <- PARAMS; d }
 
 #' Total-order indices for one response vector, at the fixed design layout
+#'
+#' @param y The response vector, in design-point order.
+#' @return A numeric vector of one total-order index per parameter, all NA
+#'   where the estimator could not be told this response.
 st_of <- function(y) {
   sb <- sobol2007(model = NULL, X1 = mk(), X2 = mk(), nboot = 0)
   ok <- tryCatch({ tell(sb, y); TRUE }, error = function(e) FALSE)
@@ -92,6 +106,10 @@ st_of <- function(y) {
 #' The same resampled base rows are taken from every block of the layout, so
 #' a replicate is a resample of the design rather than of the responses, and
 #' the pick-freeze pairing survives it.
+#'
+#' @param y The response vector, in design-point order.
+#' @param idx Indices of the base rows this replicate resamples.
+#' @return The resampled response vector, in the same design-point order.
 resample_y <- function(y, idx) {
   as.numeric(vapply(seq_len(p + 2L), function(b) y[(b - 1L) * N + idx],
                     numeric(N)))

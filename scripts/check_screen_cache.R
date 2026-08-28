@@ -50,8 +50,19 @@
 source("R/sensitivity.R")
 
 failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail     <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line, recording a failure
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return Invisible NULL; called for its side effects.
 report <- function(ok, fmt, ...) {
   msg <- sprintf(fmt, ...)
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", msg))

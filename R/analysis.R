@@ -21,6 +21,13 @@ source("R/constants.R")
 # monitoring data is plotted. A fixed seed makes the tracked image a function
 # of the data alone; position_jitter() restores the caller's stream itself,
 # so the pipeline stays stream-neutral (Issue #233).
+#' Seed the mass casualty timeline's jitter is drawn under
+#'
+#' @details position_jitter() draws from the session stream at plot time, so
+#'   an unseeded jitter gives a different image every time the same
+#'   monitoring data is plotted. Fixing the seed makes the tracked image a
+#'   function of the data alone. Any value serves; changing it changes the
+#'   tracked image without changing what it says.
 MASS_CASUALTY_JITTER_SEED <- 233L
 
 # ── Entry-point input validation ─────────────────────────────────────────────
@@ -36,6 +43,11 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 # `replication` is required of all three even for a single run, which
 # run_once()'s wrap() supplies as 1: the pipeline joins arrivals to
 # attributes on it throughout.
+#' Columns each monitoring frame must carry for the pipeline to read it
+#'
+#' @details Taken from what the pipeline itself indexes, so a frame passing
+#'   this check reaches every stage without a missing-column error. Removing
+#'   an entry would let a malformed frame through to the stage that reads it.
 MON_REQUIRED_COLUMNS <- list(
   arrivals   = c("name", "start_time", "end_time", "activity_time", "replication"),
   attributes = c("name", "key", "value", "replication"),
@@ -196,7 +208,7 @@ validate_shares <- function(shares, caller) {
   invisible(TRUE)
 }
 
-# ── Role 4 (national support base) demand model (Issue #23) ────────────────
+# ── Role 4 (national support base) demand model ────────────────────────────
 # Strategically evacuated casualties (r2e_evac == 1) depart the theatre
 # system and are not simulated further. These functions estimate the
 # resulting demand signal at the national support base as a post-simulation
@@ -376,7 +388,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
     mutate(sorties_required = ceiling(evacuation_count / ame_capacity))
 }
 
-# ── Strategic AME queue depth and sortie timeline visualisation (Issue #109) ──
+# ── Strategic AME queue depth and sortie timeline visualisation ───────────────
 # build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
 # own — every outcome (flown or cancelled) has to be reconstructed from
 # the "ame"/"ame_critical" resource monitor. The schedule
@@ -443,12 +455,18 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 
   airframe <- resolve_ame_airframe(role4_params)
 
-  # Step-function lookup: the last recorded value of `value_col` for a
-  # (time-sorted) resource-monitor subset at or before `t` — or strictly
-  # before `t` when `before = TRUE`, to read the state an instant ahead of a
-  # simultaneous change at exactly `t` (e.g. the capacity level the sortie's
-  # own bump is about to change, or the server count immediately before its
-  # own instantaneous drain).
+  #' Read a step function's value at a time from resource monitor rows
+  #'
+  #' @param df Time-sorted resource monitor subset for one resource.
+  #' @param value_col Name of the column to read.
+  #' @param t Time to read the value at, in minutes.
+  #' @param before Logical: read strictly before `t` rather than at it.
+  #' @return The last recorded value at or before `t`, 0 when `df` is empty.
+  #' @details `before = TRUE` reads the state an instant ahead of a change
+  #'   recorded at exactly `t`, which is how the capacity level a sortie's own
+  #'   bump is about to change, or a server count immediately before its own
+  #'   instantaneous drain, is recovered from a monitor that records both at
+  #'   the same timestamp.
   step_at <- function(df, value_col, t, before = FALSE) {
     if (nrow(df) == 0) return(0)
     query <- if (before) t - 1e-6 else t
@@ -1344,6 +1362,12 @@ summarise_r2e_surgeries <- function(attributes_wide, max_days, images_dir) {
 #' @param images_dir Directory the plots are written to.
 #' @return The p_r2e_bed_queues object.
 plot_r2e_bed_queues <- function(resources, images_dir) {
+  #' Reshape one R2E bed type's monitor rows for the queue plot
+  #'
+  #' @param resource_type Bed type to select, "ot" or "icu".
+  #' @param data Resource monitor rows to filter.
+  #' @return A data frame of time, resource, queue and the derived bed,
+  #'   R2E and label columns the plot facets and colours by.
   prepare_queue_data <- function(resource_type, data) {
     pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
     data %>%
@@ -1751,6 +1775,14 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
     mutate(route = route_labels[as.character(ame_route)])
 
   if (nrow(ame_evac_decisions) > 0) {
+    #' Summarise strategic evacuation wait times for one route
+    #'
+    #' @param df Evacuation decision rows, one per casualty.
+    #' @return A one-row data frame of the evacuated and awaiting counts and
+    #'   the mean, p10 and p90 wait in minutes.
+    #' @details A casualty still queued at the end of the run carries no wait
+    #'   time, so the quantiles are taken over the evacuated alone and the
+    #'   remainder are reported as awaiting rather than as a zero wait.
     wait_stats <- function(df) {
       completed <- df %>% filter(!is.na(ame_wait_minutes))
       data.frame(
@@ -2451,7 +2483,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   r2b_hold_queued_count <- r2b_hold_routing_out$r2b_hold_queued_count
   r2b_pre_bypass_count <- r2b_hold_routing_out$r2b_pre_bypass_count
 
-  # ── R2B OT bypass reason decomposition (Issue #40) ───────────────────────
+  # ── R2B OT bypass reason decomposition ───────────────────────────────────
   # r2b_bypass_reason is only set for casualties who reached R2B (r2b_treated
   # non-NA) and were bypassed to R2E at the surgical decision point — it does
   # not apply to the pre-transport r2b_bypassed rows above (those never carry
@@ -2527,7 +2559,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # Waiting time scatter
   p_waiting_time <- plot_waiting_times(arrivals, images_dir)
 
-  # ── Transport fleet capacity margin (Issue #6) ────────────────────────────
+  # ── Transport fleet capacity margin ───────────────────────────────────────
   # Queue-over-time per pooled transport asset (PMV Ambulance, HX240M) shows
   # how much headroom the current fleet size has under the dead-heading
   # round trip: a queue that stays at 0 throughout indicates spare capacity;
@@ -2575,7 +2607,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   surgery_deferred_count <- post_operative_pathways_out$surgery_deferred_count
   surgical_pathway_summary <- post_operative_pathways_out$surgical_pathway_summary
 
-  # ── R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43) ──
+  # ── R2E OT-ICU gating impact — sub-optimal and delayed care ──────────────
   # Visualises, by simulation day, where casualties experienced degraded care
   # specifically attributable to ICU saturation at the point of OT entry:
   # - Sub-Optimal Care: a Priority 1 candidate was operated on despite ICU
@@ -2591,7 +2623,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   r2e_icu_gating_daily <- r2e_icu_gating_out$r2e_icu_gating_daily
   r2e_icu_gating_plot <- r2e_icu_gating_out$r2e_icu_gating_plot
 
-  # ── Force regeneration — effective force size over time (Issue #18) ──
+  # ── Force regeneration — effective force size over time ──────────────
   # Visualises effective_force_combat/effective_force_support (simmer
   # globals set in run_once(), R/replication.R; debited/credited in
   # R/trajectories.R) across the run: debited at each casualty's
@@ -2606,7 +2638,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   force_regeneration_daily <- force_regeneration_out$force_regeneration_daily
   force_regeneration_plot <- force_regeneration_out$force_regeneration_plot
 
-  # ── KPI 9: Mass casualty event stress test analysis (Issue #9) ──
+  # ── KPI 9: Mass casualty event stress test analysis ─────────────
   # mass_casualty_event: 1 = casualty originated from a compound-Poisson
   # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
   # 0 = background lognormal generation. Both of the event's pathways carry
@@ -2626,7 +2658,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   mass_casualty_events_summary <- mass_casualty_events_out$mass_casualty_events_summary
   mass_casualty_timeline_plot <- mass_casualty_events_out$mass_casualty_timeline_plot
 
-  # ── Role 4 (national support base) census and AME sortie demand (Issue #23) ──
+  # ── Role 4 (national support base) census and AME sortie demand ──────────────
   # compute_role4_census()/compute_ame_demand() (above) return per-replication
   # granular tables; this block aggregates them for display (mean across
   # replications) and, for multi-run mode, for the peak-occupancy/total-sorties
@@ -2673,7 +2705,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ame_replication_summary <- ame_sortie_demand_out$ame_replication_summary
   }
 
-  # ── Strategic AME actual performance (Issue #23 follow-up) ──────────────
+  # ── Strategic AME actual performance ────────────────────────────────────
   # ame_demand_daily/ame_summary above are an unconstrained theoretical
   # baseline (ceiling(daily_evacuation_count / capacity), ignoring the
   # schedule entirely). These outputs instead measure the REAL constrained
@@ -2691,7 +2723,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ame_wait_time_summary <- ame_performance_out$ame_wait_time_summary
   n_sim_days_role4 <- ame_performance_out$n_sim_days_role4
 
-  # ── Strategic AME sortie timeline (Issue #109) ───────────────────────────
+  # ── Strategic AME sortie timeline ────────────────────────────────────────
   # compute_ame_sorties() only needs `resources` and the schedule/airframe
   # parameters, not `combined` — so it does not require any strategic
   # evacuation decisions to have occurred yet, unlike the backlog output
@@ -2932,6 +2964,14 @@ summarise_replication_kpi_cards <- function(arrivals_raw, attributes_raw, resour
     right_join(data.frame(replication = unique(arrivals_raw$replication)), by = "replication") %>%
     mutate(dow_count = coalesce(dow_count, 0L))
 
+  #' Peak total queue length per replication for a resource group
+  #'
+  #' @param resources Resource monitor rows across every replication.
+  #' @param pattern Regular expression selecting the resources to pool.
+  #' @return A data frame of replication and its peak pooled queue length.
+  #' @details The queue is summed across the matching resources at each
+  #'   timestamp before the maximum is taken, so the figure is the peak demand
+  #'   on the group rather than the largest queue any one member saw.
   peak_queue_per_rep <- function(resources, pattern) {
     resources %>%
       filter(grepl(pattern, resource)) %>%
@@ -2943,10 +2983,14 @@ summarise_replication_kpi_cards <- function(arrivals_raw, attributes_raw, resour
   r2e_icu_peak_per_rep <- peak_queue_per_rep(resources_raw, "^b_r2eheavy_icu_")
   r2b_ot_peak_per_rep  <- peak_queue_per_rep(resources_raw, "^b_r2b_ot_")
 
-  # All four KPIs here are non-negative counts by construction; clamp the
-  # lower CI bound at 0 rather than let a small-n/high-variance t-interval
-  # (e.g. DOW count at low replication counts) report a nonsensical negative
-  # lower bound.
+  #' Clamp a confidence interval's lower bound at zero
+  #'
+  #' @param cm A `ci_mean()` result, carrying `lower`, `mean` and `upper`.
+  #' @return The same list with `lower` raised to 0 where it fell below it.
+  #' @details Every KPI this is applied to is a non-negative count by
+  #'   construction, so a t-interval at low replication count and high variance
+  #'   (the DOW count is the usual case) can otherwise report a negative lower
+  #'   bound that the quantity cannot take.
   clamp_ci <- function(cm) { cm[["lower"]] <- max(cm[["lower"]], 0); cm }
 
   kpi_summary <- list(
@@ -3056,6 +3100,14 @@ summarise_rtd_by_echelon_ci <- function(attributes_wide, clamp_ci, echelon_label
 #' @param rep_ids See analyse_run().
 #' @return The r2b_routing_summary_ci object.
 summarise_r2b_routing_ci <- function(attributes_wide, clamp_ci, rep_ids) {
+  #' Confidence interval for one R2B routing indicator's per-run count
+  #'
+  #' @param col Name of the indicator column in `attributes_wide`.
+  #' @return A clamped `ci_mean()` result over the per-replication counts.
+  #' @details A replication in which the indicator never fired contributes a
+  #'   zero rather than dropping out, and an indicator absent from the whole
+  #'   monitoring set is treated as zero in every replication, so the interval
+  #'   is taken over the same denominator either way.
   r2b_diag_col_ci <- function(col) {
     if (!col %in% names(attributes_wide)) return(clamp_ci(ci_mean(rep(0, length(rep_ids)))))
     per_rep <- attributes_wide %>%
@@ -3306,6 +3358,13 @@ plot_transport_capacity_margin_ci <- function(clamp_ci, n_reps, resources_raw, o
 #'   source and arrival day derived.
 #' @return The dwell_time_summary_ci object.
 summarise_treatment_intervals_ci <- function(clamp_ci, combined) {
+  #' Confidence interval over the per-replication means of one interval
+  #'
+  #' @param df Rows carrying a `.val` column of the interval in minutes.
+  #' @return A clamped `ci_mean()` result over the per-replication means.
+  #' @details The mean is taken within a replication before the interval is
+  #'   taken across them, so a replication carrying more casualties does not
+  #'   weigh more heavily than one carrying fewer.
   kpi_per_rep_ci <- function(df) {
     per_rep <- df %>% group_by(replication) %>% summarise(mean_val = mean(.val), .groups = "drop")
     clamp_ci(ci_mean(per_rep$mean_val))
@@ -3453,6 +3512,14 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
     mutate(route = route_labels[as.character(ame_route)])
 
   if (nrow(ame_evac_decisions_mr) > 0) {
+    #' Summarise strategic evacuation wait times for one route
+    #'
+    #' @param df Evacuation decision rows pooled across replications.
+    #' @return A one-row data frame of the evacuated and awaiting counts and
+    #'   the mean, p10 and p90 wait in minutes.
+    #' @details Pooled across replications rather than summarised per
+    #'   replication, because the quantity reported is the distribution of one
+    #'   casualty's wait and not the distribution of a run's mean wait.
     wait_stats <- function(df) {
       completed <- df %>% filter(!is.na(ame_wait_minutes))
       data.frame(
@@ -3644,6 +3711,11 @@ plot_queue_depth_ci <- function(n_reps, resources_raw) {
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom", strip.text = element_text(face = "bold"))
 
+  #' Select and label one R2E bed type's monitor rows for the CI plot
+  #'
+  #' @param resource_type Bed type to select, "ot" or "icu".
+  #' @return Resource monitor rows for that bed type, carrying the bed number
+  #'   and label columns the plot groups by.
   r2e_prepare <- function(resource_type) {
     pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
     resources_raw %>%
@@ -3907,7 +3979,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   clamp_ci <- replication_kpi_cards_out$clamp_ci
   kpi_summary <- replication_kpi_cards_out$kpi_summary
 
-  # ── Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps ──────
+  # ── Per-casualty breakdowns, mean ± 95% CI across replications ───────────
   # Everything below reuses build_attributes_wide()/the same combined join
   # analyse_run() builds, pooling every replication's casualties into one
   # wide pivot — group_by(name, replication) inside build_attributes_wide()
@@ -3921,7 +3993,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   # same bias role4_census_daily's original single-run roxygen (above)
   # warns against, generalised here to every new breakdown.
 
-  # Issue #117 — per-casualty breakdowns, mean ± 95% CI across reps
+  # Per-casualty breakdowns, mean ± 95% CI across replications
   replication_attributes_out <- build_replication_attributes(arrivals, arrivals_raw, attributes_raw)
   attributes_wide <- replication_attributes_out$attributes_wide
   combined <- replication_attributes_out$combined
@@ -4039,7 +4111,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   # Waiting Times — p10-p90 quantile band across the pooled replications
   p_waiting_times_ci <- plot_waiting_times_ci(arrivals_raw, day_range, n_reps)
 
-  # ── Force regeneration — effective force size, mean ± CI across reps (Issue #18) ──
+  # ── Force regeneration — effective force size, mean ± CI across reps ──────────────
   # Same step-interpolate-onto-a-day-grid approach as bin_queue_ci() above,
   # applied to the two force-size globals instead of resource queues, since
   # get_mon_attributes() records them at irregular event times (each
@@ -4051,7 +4123,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   force_regeneration_ci <- force_regeneration_ci_out$force_regeneration_ci
   p_force_regeneration_ci <- force_regeneration_ci_out$p_force_regeneration_ci
 
-  # ── Strategic AME queue depth and sortie timeline (Issue #109) ──────────
+  # ── Strategic AME queue depth and sortie timeline ───────────────────────
   # compute_ame_sorties()/plot_ame_sortie() (defined above, ahead of
   # analyse_run()) only depend on the resource monitor and the role4
   # schedule/config parameters — not the per-casualty `combined` join
@@ -4090,8 +4162,8 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     attributes     = attributes_raw,
     resources      = resources_raw,
 
-    # ── Issue #117 — mean ± 95% CI equivalents of analyse_run()'s per-
-    # casualty breakdowns (see the block above, right after kpi_summary).
+    # ── Mean ± 95% CI equivalents of analyse_run()'s per-casualty
+    # breakdowns (see the block above, right after kpi_summary). ─────────
     dow_by_echelon_ci              = dow_by_echelon_ci,
     rtd_summary_ci                 = rtd_summary_ci,
     rtd_by_echelon_ci              = rtd_by_echelon_ci,
@@ -4310,6 +4382,13 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
     vapply(json_data_base$transports, function(t) t$name, character(1))
   )
 
+  #' Mean and 95% confidence interval of a sweep point's replications
+  #'
+  #' @param x Numeric vector of one metric's per-replication values.
+  #' @return A one-row data frame of mean, ci_lower and ci_upper.
+  #' @details The t quantile takes `n - 1` degrees of freedom floored at one,
+  #'   so a single-replication sweep point returns a wide interval rather than
+  #'   failing.
   summarise_ci <- function(x) {
     n <- length(x)
     m <- mean(x, na.rm = TRUE)
@@ -4474,11 +4553,14 @@ summarise_ci <- function(x) {
 
 }
 
-# Share of post-definitive care served in an ICU bed rather than the
-# degraded holding-bed fallback, per replication. This is the quality
-# measure the lever is ultimately for: relieving stabilisation load off
-# R2E only matters if the beds it frees go to the casualties who need
-# intensive care after their definitive repair.
+#' Per-replication share of post-definitive care served in an ICU bed
+#'
+#' @param mon Wrapped monitoring list from the replication framework.
+#' @return A data frame of replication and its ICU share of post-definitive
+#'   care, the remainder having taken the degraded holding-bed fallback.
+#' @details This is the quality measure the forward ICU share lever is for:
+#'   relieving stabilisation load off R2E only matters if the beds it frees go
+#'   to the casualties needing intensive care after their definitive repair.
 pd_icu_share_rep <- function(mon) {
   mon$attributes %>%
     filter(key == "post_definitive_pathway") %>%
@@ -4488,10 +4570,16 @@ pd_icu_share_rep <- function(mon) {
     summarise(pd_icu_share = mean(pathway == 1), .groups = "drop")
 }
 
-# Per-replication rather than pooled, since a CI across replications is the
-# point of the sweep. transport_rep_kpis() above already returns queue and
-# utilisation this way for an arbitrary resource pattern; only the DOW
-# count needs its own per-replication reduction.
+#' Died-of-wounds count per replication
+#'
+#' @param mon Wrapped monitoring list from the replication framework.
+#' @return A data frame of replication and its DOW count, zero where a
+#'   replication recorded none.
+#' @details Reduced per replication rather than pooled, because a confidence
+#'   interval across replications is what the sweeps report.
+#'   `transport_rep_kpis()` already returns queue and utilisation this way for
+#'   an arbitrary resource pattern; the DOW count is the one metric needing
+#'   its own reduction.
 dow_rep_counts <- function(mon) {
   mon$attributes %>%
     filter(key == "dow", value == 1) %>%

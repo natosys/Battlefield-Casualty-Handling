@@ -21,6 +21,12 @@ source("R/constants.R")
 # ── Raw JSON accessors ───────────────────────────────────────────────────
 
 #' Read a single scalar value from the vars$elm$acty$vals tree
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name to search under.
+#' @param acty Activity name to search under.
+#' @param var Variable name to read.
+#' @return The value held at that path, NULL when the path does not exist.
 get_raw_var <- function(json, elm, acty, var) {
   for (e in json$vars) {
     if (identical(e$elm, elm)) {
@@ -35,6 +41,16 @@ get_raw_var <- function(json, elm, acty, var) {
 }
 
 #' Write a single scalar value into the vars$elm$acty$vals tree
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name to search under.
+#' @param acty Activity name to search under.
+#' @param var Variable name to write.
+#' @param value Value to write at that path.
+#' @return The tree with the value replaced.
+#' @details Stops naming the path when it does not exist, rather than
+#'   creating it, because a path the registry names and the file does not
+#'   carry is a registry error and not an edit the user asked for.
 set_raw_var <- function(json, elm, acty, var, value) {
   for (ei in seq_along(json$vars)) {
     if (identical(json$vars[[ei]]$elm, elm)) {
@@ -53,10 +69,21 @@ set_raw_var <- function(json, elm, acty, var, value) {
   stop(sprintf("set_raw_var: path not found elm=%s acty=%s var=%s", elm, acty, var))
 }
 
+#' Read a population's strength
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param name Population name.
+#' @return The population's count, NULL when it does not exist.
 get_pop_count <- function(json, name) {
   for (p in json$pops) if (identical(p$name, name)) return(p$count)
   NULL
 }
+#' Write a population's strength
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param name Population name.
+#' @param value Strength to write.
+#' @return The tree with the strength replaced.
 set_pop_count <- function(json, name, value) {
   for (i in seq_along(json$pops)) {
     if (identical(json$pops[[i]]$name, name)) { json$pops[[i]]$count <- value; return(json) }
@@ -64,10 +91,21 @@ set_pop_count <- function(json, name, value) {
   stop(sprintf("set_pop_count: population not found: %s", name))
 }
 
+#' Read an element's quantity
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name.
+#' @return The element's quantity, NULL when it does not exist.
 get_elm_qty <- function(json, elm) {
   for (e in json$elms) if (identical(e$elm, elm)) return(e$qty)
   NULL
 }
+#' Write an element's quantity
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name.
+#' @param value Quantity to write.
+#' @return The tree with the quantity replaced.
 set_elm_qty <- function(json, elm, value) {
   for (i in seq_along(json$elms)) {
     if (identical(json$elms[[i]]$elm, elm)) { json$elms[[i]]$qty <- value; return(json) }
@@ -75,6 +113,12 @@ set_elm_qty <- function(json, elm, value) {
   stop(sprintf("set_elm_qty: element not found: %s", elm))
 }
 
+#' Read a bed type's quantity within an element
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name the bed sits under.
+#' @param bed_name Bed type name.
+#' @return The bed type's quantity, NULL when it does not exist.
 get_bed_qty <- function(json, elm, bed_name) {
   for (e in json$elms) {
     if (identical(e$elm, elm)) {
@@ -83,6 +127,13 @@ get_bed_qty <- function(json, elm, bed_name) {
   }
   NULL
 }
+#' Write a bed type's quantity within an element
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param elm Element name the bed sits under.
+#' @param bed_name Bed type name.
+#' @param value Quantity to write.
+#' @return The tree with the quantity replaced.
 set_bed_qty <- function(json, elm, bed_name, value) {
   for (ei in seq_along(json$elms)) {
     if (identical(json$elms[[ei]]$elm, elm)) {
@@ -97,10 +148,23 @@ set_bed_qty <- function(json, elm, bed_name, value) {
   stop(sprintf("set_bed_qty: bed not found: %s/%s", elm, bed_name))
 }
 
+#' Read one field of a transport platform
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param name Transport platform name.
+#' @param field Field name to read.
+#' @return The field's value, NULL when the platform does not exist.
 get_transport_field <- function(json, name, field) {
   for (t in json$transports) if (identical(t$name, name)) return(t[[field]])
   NULL
 }
+#' Write one field of a transport platform
+#'
+#' @param json Parsed env_data.json, as the raw tree.
+#' @param name Transport platform name.
+#' @param field Field name to write.
+#' @param value Value to write.
+#' @return The tree with the field replaced.
 set_transport_field <- function(json, name, field, value) {
   for (i in seq_along(json$transports)) {
     if (identical(json$transports[[i]]$name, name)) { json$transports[[i]][[field]] <- value; return(json) }
@@ -117,6 +181,8 @@ set_transport_field <- function(json, name, field, value) {
 #' @param default_fill Value to return when the underlying array is shorter
 #'   than `index` — 0 for "days" (an unused slot), 1 for "probabilities"
 #'   (always fires if the day is set)
+#' @return The slot's value, or `default_fill` where the array is shorter
+#'   than `index`
 get_mass_casualty_schedule_slot <- function(json, var, index, default_fill) {
   arr <- unlist(get_raw_var(json, "mass_casualty", "schedule", var))
   if (length(arr) >= index) arr[index] else default_fill
@@ -127,6 +193,13 @@ get_mass_casualty_schedule_slot <- function(json, var, index, default_fill) {
 #' `default_fill` first so every slot's set() independently produces a
 #' full-length array regardless of application order (see
 #' apply_registry_values(), which calls every registered field's set() once)
+#'
+#' @param json Parsed env_data.json (raw tree)
+#' @param var "days" or "probabilities" (mass_casualty.schedule.<var>)
+#' @param index 1-indexed slot position (1..MASS_CASUALTY_SCHEDULE_SLOTS)
+#' @param value Value to write into the slot
+#' @param default_fill Value the array is padded with before the write
+#' @return The tree with the slot replaced and the array padded to full length
 set_mass_casualty_schedule_slot <- function(json, var, index, value, default_fill) {
   arr <- unlist(get_raw_var(json, "mass_casualty", "schedule", var))
   if (length(arr) < MASS_CASUALTY_SCHEDULE_SLOTS) {
@@ -138,6 +211,13 @@ set_mass_casualty_schedule_slot <- function(json, var, index, value, default_fil
 
 # ── Registry group names ─────────────────────────────────────────────────
 
+#' Configure panel group headings, one per top-level accordion
+#'
+#' @details Each field spec names its group by one of these, and app.R
+#'   renders one accordion panel per distinct value, so a heading changed
+#'   here changes the panel and every field it holds together. A field
+#'   naming a group no constant here holds would render in a panel of its
+#'   own.
 GRP_FORCE        <- "Force Size"
 GRP_HEALTH_ARCH  <- "Health System Architecture"
 GRP_LOGISTICS    <- "Medevac"
@@ -145,20 +225,17 @@ GRP_PROVISION    <- "Health Provision"
 GRP_CASUALTY     <- "Casualty Rates"
 GRP_MASS_CASUALTY <- "Mass Casualty"
 
-# Maximum candidate event slots the registry supports for the Configure
-# panel's Scheduled Event Days grid (mass_casualty.schedule.*). The
-# registry itself is still a fixed-size list (this project's field-registry
-# architecture — Save/Load/Quick-Run/validation all read a static list, see
-# R/app_params.R header comment), but app.R's "+ Add Event"/"− Remove Last
-# Event" controls only reveal/hide rows up to this cap, giving the
-# Configure panel's own UX a dynamic-list feel without a deeper
-# architectural change. A slot's Day field left at 0 is treated as unused
-# (see get_mass_casualty_schedule_slot()/generate_mass_casualty_events() in
-# R/environment.R, which drops any event start time outside the simulation
-# window) — app.R also explicitly resets a slot's fields to their defaults
-# when its row is hidden via "− Remove Last Event", so a removed event
-# cannot silently keep firing in the background. Edit env_data.json
-# directly for more than this many explicit events.
+#' Maximum candidate event slots the Scheduled Event Days grid supports
+#'
+#' @details The registry is a fixed-size list, Save, Load, Quick Run and
+#'   validation all reading a static field set, so app.R's "+ Add Event" and
+#'   "Remove Last Event" controls reveal and hide rows up to this cap rather
+#'   than growing the registry. A slot whose Day field is 0 is unused, as
+#'   get_mass_casualty_schedule_slot() and generate_mass_casualty_events()
+#'   treat it, and hiding a row resets its fields, so a removed event cannot
+#'   keep firing unseen. Raising this raises the field count the Configure
+#'   panel renders; a configuration needing more explicit events than this is
+#'   edited in env_data.json directly.
 MASS_CASUALTY_SCHEDULE_SLOTS <- 20
 
 # ── Field constructors ───────────────────────────────────────────────────
@@ -212,6 +289,18 @@ SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an
 
 #' Build a single field spec, optionally borrowing Morris screening bounds
 #'
+#' @param id Unique field identifier, used as the Shiny input id.
+#' @param group Registry group the field is rendered under.
+#' @param subgroup Subgroup heading within that group.
+#' @param label Control label shown in the Configure panel.
+#' @param tooltip Short description shown on hover.
+#' @param get Function of the parsed tree returning the field's value.
+#' @param set Function of the parsed tree and a value returning the tree.
+#' @param type Input type: "numeric" or "integer".
+#' @param min Lower bound of the input, NA for none.
+#' @param max Upper bound of the input, NA for none.
+#' @param step Input step size, NA for the Shiny default.
+#' @param morris_name Name of the matching row in morris_params, or NULL.
 #' @param source One-sentence statement of where this field's baseline value
 #'   comes from — a citation (matching the README's numbered references) or
 #'   an explicit "informed estimate" disclosure. Defaults to SRC_UNCITED so
@@ -219,18 +308,13 @@ SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an
 #'   metadata on the returned spec ($source) but *not* rendered into the
 #'   interactive tooltip — the README's numbered references are the citation
 #'   of record; the in-app hover tooltip is kept to a short, glanceable
-#'   description of what the control does (Issue #114).
+#'   description of what the control does.
 #' @param path "elm.acty" string identifying this field's location in
 #'   env_data.json's vars tree (e.g. "generators.wia_cbt"), or NULL for
 #'   fields outside that tree (force size, team/bed counts, transport —
 #'   never scenario-overridden, see R/scenario.R). Lets app.R's Configure
 #'   panel flag which fields the active Casualty Intensity Profile is
 #'   currently overriding, without introspecting get()/set() closures.
-#'
-#' @details When morris_name matches a row in morris_params, the field's
-#'   min/max are overridden with the screened lower/upper bounds and the
-#'   tooltip gains a short note naming the screened range ("parameters
-#'   appearing in morris_params use lower/upper as slider bounds").
 #' @param slider Force single-value slider rendering in the Configure panel
 #'   even when this field is not Morris-screened (`morris_name = NULL`).
 #'   Used for probability/rate fields where a slider communicates the 0–1
@@ -239,6 +323,12 @@ SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an
 #'   `selectInput()` instead of a numeric input or slider. Used for small,
 #'   discrete-valued fields (e.g. a priority level) where the field isn't a
 #'   quantity or rate a bare number or slider communicates well.
+#' @return A list carrying the field's identity, bounds, accessors and
+#'   provenance, as the registry and the Configure panel read it.
+#' @details When morris_name matches a row in morris_params, the field's
+#'   min/max are overridden with the screened lower/upper bounds and the
+#'   tooltip gains a short note naming the screened range ("parameters
+#'   appearing in morris_params use lower/upper as slider bounds").
 field <- function(id, group, subgroup, label, tooltip, get, set,
                    type = "numeric", min = NA, max = NA, step = NA,
                    morris_name = NULL, source = SRC_UNCITED, path = NULL,
@@ -261,6 +351,21 @@ field <- function(id, group, subgroup, label, tooltip, get, set,
 }
 
 #' Triangular-distribution (min/mode/max) triple of field specs
+#'
+#' @param id_prefix Identifier prefix the three field ids are built from.
+#' @param group Registry group the fields are rendered under.
+#' @param subgroup Subgroup heading within that group.
+#' @param elm Element name the distribution sits under in the vars tree.
+#' @param acty Activity name the distribution sits under.
+#' @param label Label stem the three controls extend.
+#' @param tooltip Description stem the three tooltips extend.
+#' @param morris_mode_name Morris parameter name for the mode field, or NULL.
+#' @param bound Two-element numeric vector bounding all three inputs.
+#' @param source Provenance statement applied to all three fields.
+#' @return A list of three field specs: minimum, mode and maximum.
+#' @details Only the mode borrows Morris bounds; the minimum and maximum take
+#'   the shared `bound`, a screened range on one vertex of a triangle saying
+#'   nothing about where the other two may sit.
 tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
                         morris_mode_name = NULL, bound = c(0, 40000),
                         source = SRC_UNCITED) {
@@ -298,6 +403,24 @@ tri_fields <- function(id_prefix, group, subgroup, elm, acty, label, tooltip,
 #'   silently making every field from the same loop resolve to the last
 #'   iteration's path. (Found via a scenario-selector regression: all six
 #'   casualty-generation streams were reading/writing generators.dnbi_spt.)
+#'
+#' @param id Unique field identifier, used as the Shiny input id.
+#' @param group Registry group the field is rendered under.
+#' @param subgroup Subgroup heading within that group.
+#' @param elm Element name the variable sits under in the vars tree.
+#' @param acty Activity name the variable sits under.
+#' @param var Variable name within that activity.
+#' @param label Control label shown in the Configure panel.
+#' @param tooltip Short description shown on hover.
+#' @param type Input type: "numeric" or "integer".
+#' @param min Lower bound of the input.
+#' @param max Upper bound of the input.
+#' @param step Input step size.
+#' @param morris_name Name of the matching row in morris_params, or NULL.
+#' @param source Provenance statement for the field's baseline value.
+#' @param slider Force single-value slider rendering.
+#' @param choices Fixed set of values rendered as a dropdown, or NULL.
+#' @return A single field spec, as `field()` returns it.
 var_field <- function(id, group, subgroup, elm, acty, var, label, tooltip,
                        type = "numeric", min = 0, max = 1, step = 0.01,
                        morris_name = NULL, source = SRC_UNCITED, slider = FALSE,
@@ -837,7 +960,7 @@ strategic_ame_fields <- function() {
 #'   them. See build_param_registry() for the shape of one spec.
 mass_casualty_fields <- function() {
   registry <- list()
-  # ── Mass Casualty (Issue #9) ───────────────────────────────────────────────
+  # ── Mass Casualty ──────────────────────────────────────────────────────────
   registry <- c(registry, list(
     var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
               "Event Timing Mode",

@@ -262,30 +262,18 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
 
 # ── Post-operative intensive care requirement ─────────────────────────────────
 #
-# Damage control is a staged sequence, and a casualty who goes through it needs
-# intensive care at two separate points for two different reasons:
+# Two distinct episodes are drawn here, stabilisation and post-definitive care,
+# from separate configuration blocks and by separate functions. README R2E
+# Heavy Trajectory explains what each is for clinically and why they are not
+# one quantity; what matters below is the contract that follows from it.
 #
-#   1. STABILISATION, between the abbreviated operation and the definitive one.
-#      This is the classic damage control resuscitation phase: rewarming, and
-#      correcting the coagulopathy and acidosis that would make definitive
-#      repair unsurvivable. It is what the 24 to 36 hour window in the cited
-#      literature refers to.
-#   2. POST-DEFINITIVE care, after the final operation. Ventilation weaning,
-#      organ support and monitoring for complications.
-#
-# The model draws each separately, because they answer to different things: a
-# stabilisation episode can be delivered at either echelon and is what the
-# forward-holding policy moves, whereas post-definitive care necessarily
-# follows the definitive operation and so is always served at R2E, which is
-# the only echelon that performs one. Keeping them apart is what lets the
-# forward-holding lever move stabilisation forward without hollowing out the
-# care that has to come afterwards.
-#
-# Both are theatre-level episodes. A casualty evacuated out of theatre
-# continues critical care at Role 4, which this model treats as unconstrained
-# demand rather than as a resource (README Further Development L16), so the
-# post-definitive episode here is bounded by the deployed evacuation norm and
-# not by a civilian intensive care length of stay.
+# Stabilisation is drawn once, whole, and the two accessors divide that single
+# draw between the echelons; post-definitive care is drawn only at R2E, which
+# is the only echelon performing a definitive repair. So no setting of the
+# forward share can move post-definitive care, and no route can change the
+# total stabilisation a casualty receives. A change here that draws a second
+# time, rather than dividing, breaks both properties silently;
+# scripts/check_icu_time_conservation.R is what catches it.
 
 #' Draws a casualty's whole stabilisation intensive care requirement, in minutes
 #'
@@ -439,21 +427,15 @@ r2e_stabilisation_minutes <- function() {
 
 # ── R2B holding evacuation threshold ──────────────────────────────────────────
 #
-# A casualty who needs no surgery convalesces in an R2B holding bed for a
-# duration drawn once, from r2b$holding. The optional evac_threshold caps how
-# long a forward bed may be tied up by one casualty: a casualty whose drawn
-# convalescence exceeds it is moved to R2E part-way through it rather than
-# recovering forward.
+# The three functions below divide one convalescence draw between the echelons,
+# exactly as r2b_stabilisation_minutes() and r2e_stabilisation_minutes() divide
+# the stabilisation requirement above. README R2B Trajectory states what the
+# threshold is for and why the time is divided rather than redrawn.
 #
-# The three functions below divide that single draw between the echelons, in
-# the manner r2b_stabilisation_minutes()/r2e_stabilisation_minutes() divide the
-# stabilisation requirement above. The convalescence a casualty needs follows
-# from their injury rather than from where they happen to be lying, so the
-# threshold decides where the time is served and not how much of it there is.
-# That is what makes the threshold a routing lever: the R2B holding load it
-# removes reappears as R2E holding load of the same size, and any change in
-# total system load is attributable to the routing rather than to a second,
-# unaccounted draw. scripts/check_lever_realisation.R asserts the conservation.
+# The property to preserve is that the R2B holding load the threshold removes
+# reappears at R2E as the same quantity, so any movement in total system load
+# is attributable to the routing and not to a second, unaccounted draw.
+# scripts/check_lever_realisation.R asserts it.
 
 #' The configured R2B holding evacuation threshold, in minutes
 #'
@@ -703,6 +685,8 @@ r2b_transport_kia <- function(traj, team_id) {
     ) %>%
     synchronize(wait = FALSE) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
+    # Dispatch on attribute "r2e", the team selected above:
+    # - Routes to that team's mortuary intake, one arm per R2E team
     branch(
       option = function() get_attribute(env, "r2e"),
       continue = TRUE,
@@ -819,6 +803,8 @@ r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
     set_attribute("r2e", function() select_r2e_team()) %>%
     set_attribute("r2b_departure_time", function() now(env)) %>%
     r2b_evac_return_leg(evacuation_team) %>%
+    # Dispatch on attribute "r2e", the team selected before the road move:
+    # - Routes to that team's treatment trajectory, one arm per R2E team
     branch(
       option = function() get_attribute(env, "r2e"),
       continue = TRUE,
@@ -894,6 +880,10 @@ r2b_post_op_stabilisation <- function(icu_beds, hold_beds) {
               if (is.na(ceiling)) return(ceiling)
               ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
             }) %>%
+            # Branches on forward intensive care bed availability, read at
+            # this instant rather than queued for:
+            # - If a bed is free, stabilise forward in it
+            # - If every bed is occupied, evacuate for the whole requirement
             branch(
               option = function() {
                 usage <- sum(get_server_count(env, resources = icu_beds))
@@ -1213,6 +1203,9 @@ r2b_hold_queue_recovery <- function(hold_beds, evacuation_team) {
       )
     }) %>%
     timeout(r2b_hold_minutes) %>%
+    # Branches on the convalescence left after the evacuation threshold:
+    # - If time remains, evacuate early and serve the remainder at R2E
+    # - If none remains, the casualty has convalesced here and returns to duty
     branch(
       option = function() {
         if (r2b_hold_residual_minutes() > 0) return(1)
@@ -2341,16 +2334,11 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 #'   (ame_departure_time, ame_wait_minutes) so clinical dwell and evacuation
 #'   logistics wait remain distinguishable.
 #'
-#'   Routing follows AJP-4.10(B) [[21]]: a Casualty Staging Unit "collocate[s]
-#'   already stabilized patients" pending transport, and every casualty reaching
-#'   this branch has by construction already completed R2E's post-operative
-#'   recovery, so staging is in a hold bed on both routes. Priority 1 surgical
-#'   evacuees (the same population assigned the Role 4 intensive care ward)
-#'   queue on the smaller "ame_critical" pool instead, a critical care air
-#'   transport team "augment[ing] the standard aeromedical evacuation crew" on
-#'   the same sortie, "limited by capacity". The critical/standard split is
-#'   therefore a distinction in airlift seat type, not in bed type. ame_route
-#'   records it (1 = critical, 2 = standard) for the route-decomposed outputs.
+#'   Both routes stage in a hold bed, the critical/standard split being a
+#'   distinction in airlift seat rather than in bed type; ame_route records it
+#'   (1 = critical, 2 = standard) for the route-decomposed outputs. See README
+#'   Role 4 (National Support Base) Demand Modelling for which casualty each
+#'   pool is for and the doctrine that decides it.
 #'
 #'   The pool seat is never released: a boarded casualty permanently consumes
 #'   that sortie's capacity, and casualties board strictly in decision order, no
@@ -2379,23 +2367,16 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
       if (had_surgery) 1 else 0
     }) %>%
 
-    # Awaiting-AME routing (Issue #23 follow-up, revised per AJP-4.10(B)
-    # [[21]]): a Casualty Staging Unit "collocate[s] already stabilized
-    # patients" pending transport — every casualty reaching this branch
-    # has, by construction, already completed R2E's post-operative
-    # ICU/Hold recovery timeout, so staging is in a Hold bed on both
-    # routes. Priority 1 surgical evacuees (the same population assigned
-    # the Role 4 ICU ward — R/analysis.R::assign_role4_los()) queue on
-    # the smaller "ame_critical" pool instead — a critical care air
-    # transport team (CCATT) or critical care aeromedical evacuation
-    # support team (CCAST) "augment[ing] the standard aeromedical
-    # evacuation crew" on the same sortie (see build_ame_sortie_
-    # trajectory(), below), "limited by capacity" per AJP-4.10(B). The
-    # critical/standard split is therefore a distinction in airlift seat
-    # type, not in bed type.
-    # ame_route: 1 = critical (ame_critical pool), 2 = standard (ame
-    # pool) — read by R/analysis.R for the route-decomposed wait-time/
-    # backlog outputs.
+    # Branches on which airlift seat the casualty waits for, deciding on
+    # priority and whether an operation was performed:
+    # - If Priority 1 and operated on, wait on the smaller "ame_critical"
+    #   pool, holding an intensive care bed already seized upstream
+    # - Otherwise seize a hold bed and wait on the standard "ame" pool
+    # Both arms set ame_route (1 = critical, 2 = standard), which
+    # R/analysis.R reads for the route-decomposed wait-time and backlog
+    # outputs. The same population routed here is the one assigned the Role 4
+    # intensive care ward by assign_role4_los() (R/analysis.R), so the two
+    # must be changed together.
     branch(
       option = function() {
         prio <- get_attribute(env, "priority")
@@ -2795,6 +2776,9 @@ r1_disease_evac_decision <- function() {
       trajectory("Disease Transport to R2B") %>%
         set_attribute("r2b", function() select_r2b_for_hold(env)) %>%
         join(r1_transport_wia()) %>%
+        # Branches on whether select_r2b_for_hold() found a holding bed:
+        # - If a team was selected, treat at that R2B team
+        # - If none had a bed, bypass R2B and continue to R2E
         branch(
           option = function() {
             r2b <- get_attribute(env, "r2b")
@@ -2802,6 +2786,8 @@ r1_disease_evac_decision <- function() {
           },
           continue = TRUE,
           trajectory("Disease To R2B") %>%
+            # Dispatch on attribute "r2b", the team selected above:
+            # - Routes to that team's treatment trajectory, one arm per team
             branch(
               option = function() get_attribute(env, "r2b"),
               continue = TRUE,
@@ -2809,6 +2795,9 @@ r1_disease_evac_decision <- function() {
             ),
           trajectory("Disease Bypass R2B → R2E") %>%
             set_attribute("r2b_bypassed", 1) %>%
+            # Dispatch on a uniformly drawn R2E team, no team having been
+            # selected forward:
+            # - Routes to that team's treatment trajectory, one arm per team
             branch(
               option = function() sample(1:counts[["r2eheavy"]], 1),
               continue = TRUE,
@@ -3029,7 +3018,7 @@ build_casualty_trajectory <- function() {
     )
 }
 
-# ── Force reinforcement (Issue #18) ─────────────────────────────────────────────
+# ── Force reinforcement ─────────────────────────────────────────────────────────
 
 #' Builds the reinforcement demand/fulfillment trajectory
 #'
@@ -3062,9 +3051,9 @@ build_casualty_trajectory <- function() {
 #'   own submission-time shortfall estimate. demand_interval_days <= 0 (the
 #'   shipped default) disables reinforcement entirely — no generator is
 #'   added in run_once() in that case, so no RNG draws are consumed,
-#'   reproducing the pre-Issue-18 constant-force baseline exactly.
+#'   reproducing a constant-force baseline exactly.
 #'
-#'   Issue #124: a pool's global value only moves at credit time, so a
+#'   A pool's global value only moves at credit time, so a
 #'   naive re-read of the live shortfall on every cycle would let
 #'   overlapping cycles (demand_interval_days < fulfillment_lag_days)
 #'   independently re-claim the same shortfall an earlier, still-pending
@@ -3086,7 +3075,7 @@ build_casualty_trajectory <- function() {
 #'     - The whole of a cycle's fill is credited on delivery, whatever the
 #'       live shortfall has done during the fulfillment lag.
 #'
-#'   Issue #207: reinforcement joins the population the moment it arrives.
+#'   Reinforcement joins the population the moment it arrives.
 #'   There is no formation-level reserve in this model to hold it in and
 #'   nothing about a delivery is held back, so a pool that receives more
 #'   than its remaining shortfall goes over establishment strength and
@@ -3133,15 +3122,38 @@ validate_fill_distribution <- function() {
   invisible(TRUE)
 }
 
+#' Build the force reinforcement trajectory
+#'
+#' @return A simmer trajectory that claims, delivers and credits one
+#'   reinforcement package for each of the two populations.
+#' @details A package is claimed against a pending global at request, held for
+#'   the configured fulfilment lag, then credited to the population and
+#'   released from pending, so a demand raised while an earlier package is in
+#'   transit does not request the same shortfall twice.
 build_reinforcement_trajectory <- function() {
   validate_fill_distribution()
 
+  #' Build the closure computing one population's outstanding shortfall
+  #'
+  #' @param pool_global Name of the global holding the population's strength.
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param initial The population's establishment strength.
+  #' @return A closure of no arguments returning the shortfall, floored at 0.
+  #' @details Evaluated at run time by simmer, so the shortfall is the one
+  #'   standing when the demand is raised rather than at trajectory build.
   demand_fn <- function(pool_global, pending_global, initial) {
     function() {
       max(0, initial - get_global(env, pool_global) - get_global(env, pending_global))
     }
   }
 
+  #' Build the closure drawing one reinforcement package's size
+  #'
+  #' @param demand_attr Name of the attribute holding the shortfall demanded.
+  #' @return A closure of no arguments returning the package size, in people.
+  #' @details The fraction of the demand that is filled is drawn from the
+  #'   configured triangular distribution, whose bounds
+  #'   `validate_fill_distribution()` has already checked.
   fill_fn <- function(demand_attr) {
     function() {
       params <- env_data$vars$force_regeneration$reinforcement
@@ -3156,18 +3168,33 @@ build_reinforcement_trajectory <- function() {
     }
   }
 
+  #' Build the closure claiming a package against the pending pool
+  #'
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the raised pending total.
   claim_fn <- function(pending_global, fill_attr) {
     function() get_global(env, pending_global) + get_attribute(env, fill_attr)
   }
 
+  #' Build the closure releasing a delivered package from the pending pool
+  #'
+  #' @param pending_global Name of the global holding packages in transit.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the lowered pending total.
   release_fn <- function(pending_global, fill_attr) {
     function() get_global(env, pending_global) - get_attribute(env, fill_attr)
   }
 
-  # The whole delivery joins the population. No ceiling is applied here: a
-  # pool that receives more than its remaining shortfall is over strength
-  # until casualties bring it back down, which is the state a fill fraction
-  # above 1 exists to produce.
+  #' Build the closure crediting a delivered package to the population
+  #'
+  #' @param pool_global Name of the global holding the population's strength.
+  #' @param fill_attr Name of the attribute holding the package size.
+  #' @return A closure of no arguments returning the raised strength.
+  #' @details The whole delivery joins the population with no ceiling applied:
+  #'   a pool receiving more than its remaining shortfall is over strength
+  #'   until casualties bring it back down, which is the state a fill fraction
+  #'   above one exists to produce.
   credit_fn <- function(pool_global, fill_attr) {
     function() get_global(env, pool_global) + get_attribute(env, fill_attr)
   }
@@ -3194,26 +3221,19 @@ build_reinforcement_trajectory <- function() {
     set_global("reinf_support_pending", release_fn("reinf_support_pending", "reinf_support_fill"))
 }
 
-# ── Strategic AME (aeromedical evacuation) sortie schedule (Issue #23 follow-up) ──
+# ── Strategic AME (aeromedical evacuation) sortie schedule ────────────────────────
 #
-# Two capacity pools share a single sortie schedule, per AJP-4.10(B)
-# [[21]]: a Casualty Staging Unit "collocate[s] already stabilized
-# patients" pending transport, so the "ame" pool (standard capacity) is the
-# default for the great majority of evacuees; a critical care air
-# transport team (CCATT) or critical care aeromedical evacuation support
-# team (CCAST) "augment[s] the standard aeromedical evacuation crew" on the
-# same sortie to provide in-transit critical care for patients who still
-# need it, "limited by capacity" — modelled as the smaller "ame_critical"
-# pool.
+# Two capacity pools, "ame" for the standard seat and the smaller
+# "ame_critical" for the critical care one, share a single sortie schedule.
+# README Role 4 (National Support Base) Demand Modelling states the doctrinal
+# basis for the split and which casualty each pool is for.
 #
-# Aircraft capacity: a sortie that flies carries the fitted patient
-# capacity of the airframe the run is configured to fly, resolved by
-# resolve_ame_airframe() (R/environment.R) from env_data$vars$role4. The
-# two pools are filled together rather than traded against each other,
-# because the RAAF describes an AME-configured C-17A carrying both
-# categories on the same sortie ("54 ambulatory and 36 high dependency
-# stretcher patients"), not one loadout or the other. See README
-# Role 4 (National Support Base) Demand Modelling for the source.
+# What matters here is that a sortie fills both pools at once rather than
+# trading one against the other, the configured airframe carrying both
+# categories on the same flight. Capacity is the fitted patient capacity of
+# the airframe the run is configured to fly, resolved by
+# resolve_ame_airframe() (R/environment.R) from env_data$vars$role4, so
+# changing the airframe changes both pools together.
 
 #' Builds the AME sortie trajectory: one firing = one scheduled sortie
 #' opportunity, which either flies — adding the configured airframe's

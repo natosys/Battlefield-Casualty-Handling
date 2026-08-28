@@ -1,27 +1,65 @@
+##############################################
+## scripts/check_env_data_summary.R         ##
+## README environment summary regeneration  ##
+##############################################
+
 library(jsonlite)
 library(purrr)
 library(stringr)
 
+#' NULL-coalesce
+#'
+#' @param x Value to return when it is not NULL.
+#' @param y Fallback value.
+#' @return `x` where it is not NULL, `y` otherwise.
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-# A non-character sub_elm (e.g. R1's placeholder integer, which has no named
-# sub-team split in the trajectory logic) denotes the same "no sub-team"
-# case as a missing sub_elm, so both resolve to the same "base" label.
+#' Resolve a sub-element name, defaulting the absent case
+#'
+#' @param x The `sub_elm` field as the file carries it.
+#' @return The name, or "base" where the element has no sub-team split.
+#' @details A non-character sub_elm (R1's placeholder integer, which has no
+#'   named sub-team split in the trajectory logic) denotes the same case as a
+#'   missing one, so both resolve to the same label.
 resolve_sub_elm <- function(x) if (is.null(x) || !is.character(x)) "base" else x
 
 # === Capitalization Helpers ===
+#' Title-case a value for a summary table cell
+#'
+#' @param x The value to format.
+#' @return The value as a title-cased string.
 capitalize <- function(x) str_to_title(as.character(x))
+
+#' Upper-case a value for a summary table cell
+#'
+#' @param x The value to format.
+#' @return The value as an upper-cased string.
 toupper_safe <- function(x) toupper(as.character(x))
+
+#' Format a bed type's name for a summary table cell
+#'
+#' @param name The bed type's name.
+#' @return The name title-cased, or upper-cased where it is an initialism.
 capitalize_bed <- function(name) {
   name <- tolower(name)
   if (name %in% c("icu", "ot")) return(toupper(name))
   capitalize(name)
 }
+#' Format a transport platform's name for a summary table cell
+#'
+#' @param name The platform's name.
+#' @return The name upper-cased.
 capitalize_platform <- function(name) toupper(as.character(name))
 
-# Looks up a single `vars.<elm>.<acty>.<var>` leaf value (the same JSON path
-# convention var_field() uses in R/app_params.R) from a parsed env_data.json
-# tree, returning NA if the elm/acty/var isn't present.
+#' Read one `vars.<elm>.<acty>.<var>` leaf value
+#'
+#' @param env_data Parsed `env_data.json`.
+#' @param elm_name Element name to search under.
+#' @param acty_name Activity name to search under.
+#' @param var_name Variable name to read.
+#' @return The leaf's value, NA where the path is not present.
+#' @details The path convention is the one `var_field()` uses in
+#'   `R/app_params.R`, so a field named there addresses the same leaf here.
 get_var_value <- function(env_data, elm_name, acty_name, var_name) {
   elm_entry <- keep(env_data$vars, ~ .x$elm == elm_name)
   if (length(elm_entry) == 0) return(NA)
@@ -110,10 +148,19 @@ env_summary_transport_section <- function(env_data) {
 #' @param env_data Parsed `env_data.json`.
 #' @return A character vector of markdown lines for this section.
 env_summary_element_section <- function(env_data) {
+  #' Format one element's resource counts for a table cell
+  #'
+  #' @param resources List of the element's resource entries.
+  #' @return A comma-separated string of name and quantity pairs.
   summarise_resources <- function(resources) {
     paste(map_chr(resources, ~ sprintf("%s (%s)", capitalize(.x$name %||% .x$resource), as.character(.x$qty))), collapse = ", ")
   }
   
+  #' Format one element's bed counts for a table cell
+  #'
+  #' @param beds List of the element's bed entries, or NULL.
+  #' @return A semicolon-separated string of name and quantity pairs, NA
+  #'   where the element carries no beds.
   summarise_beds <- function(beds) {
     if (is.null(beds)) return(NA)
     paste(map_chr(beds, ~ sprintf("%s (%s)", capitalize_bed(.x$name), as.character(.x$qty))), collapse = "; ")
@@ -166,6 +213,12 @@ env_summary_element_section <- function(env_data) {
 }
 
 # === Section Generator ===
+
+#' Build the whole environment summary block
+#'
+#' @param env_data Parsed `env_data.json`.
+#' @return A character vector of the markdown lines the README's
+#'   `<!-- ENV SUMMARY -->` block holds.
 generate_env_summary_section <- function(env_data) {
   # Field labels match R/app_params.R's GRP_FORCE / "Reinforcement Demand &
   # Fulfillment" subgroup exactly, so this table and the Configure panel

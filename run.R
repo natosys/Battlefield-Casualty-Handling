@@ -42,6 +42,7 @@ source("R/warmup.R")
 #' their trigger condition (e.g. zero R2B hold occupants) was not met.
 #'
 #' @param results Named list returned by analyse_run()
+#' @return Invisibly NULL; called for the plots it prints
 print_analysis_plots <- function(results) {
   plot_order <- c(
     "casualty_flow", "r1_queues", "r2b_bed_queues",

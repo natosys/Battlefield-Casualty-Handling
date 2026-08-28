@@ -65,6 +65,11 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
       dow_rate  = dow_count / wia_count
     )
 
+  #' Mean, deciles and 95% confidence interval of one metric
+  #'
+  #' @param x Numeric vector of the metric's per-replication values.
+  #' @return A one-row data frame of n_reps, mean, p10, p90, ci_lower and
+  #'   ci_upper.
   summarise_metric <- function(x) {
     n <- length(x)
     m <- mean(x)

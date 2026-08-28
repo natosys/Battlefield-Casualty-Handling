@@ -8,10 +8,14 @@ library(ggplot2)
 
 source("R/constants.R")
 
-# Terminating simulation (Law 2020): finite campaign horizon, no steady state.
-# Welch CMA across 10 × 90-day reps shows episodic non-stationary behaviour
-# (peaks Days 13, 38; no convergence) — warm-up exclusion is not appropriate.
-# WARM_UP_DAYS = 0L (no exclusion). Pass --warm-up N for parametric comparisons.
+#' Days excluded from the head of a run as warm-up
+#'
+#' @details Zero, because the model is a terminating simulation (Law, 2020):
+#'   a finite campaign horizon with no steady state to warm up into. The
+#'   Welch cumulative moving average across ten 90-day replications is
+#'   episodically non-stationary, peaking on days 13 and 38 without
+#'   converging, so excluding a head would discard campaign behaviour rather
+#'   than initialisation bias. Pass --warm-up N for a parametric comparison.
 WARM_UP_DAYS <- 0L
 
 #' Bin total ICU queue into regular time intervals using step interpolation

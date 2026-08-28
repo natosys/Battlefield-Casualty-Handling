@@ -33,6 +33,11 @@ suppressPackageStartupMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default = NULL) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)

@@ -1,3 +1,8 @@
+##############################################
+## scripts/check_markdown.R                 ##
+## Markdown TOC, link and table checks      ##
+##############################################
+
 #' Anchor GitHub generates for a heading, reproduced exactly
 #'
 #' @param title Character vector of heading text, with the leading hashes and
@@ -57,6 +62,17 @@ heading_lines <- function(lines, levels = "^#{2,6} ") {
   grepl(levels, lines) & !(fence | inside_fence)
 }
 
+#' Verify or rewrite one document's table of contents
+#'
+#' @param file_path Path of the markdown document.
+#' @param mode "verify" to check the block, "replace" to rewrite it.
+#' @param toc_start Marker opening the generated block.
+#' @param toc_end Marker closing it.
+#' @return Invisible NULL in "replace" mode; exits non-zero in "verify" mode
+#'   where the block disagrees with the document's headings.
+#' @details Anchors are generated as GitHub generates them, so a link this
+#'   writes resolves on the rendered page rather than only in this script's
+#'   own reckoning.
 update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_start = "<!-- TOC START -->", toc_end = "<!-- TOC END -->") {
   mode <- match.arg(mode)
   lines <- readLines(file_path, encoding = "UTF-8")
@@ -108,49 +124,15 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
   }
 }
 
-# enforce_return_links <- function(file_path, mode = c("verify", "replace"), 
-#                                  top_anchor = "#contents", 
-#                                  return_text = "<sub>[Return to Top](#table-of-contents)</sub>") {
-#   mode <- match.arg(mode)
-#   lines <- readLines(file_path)
-#   new_lines <- c()
-#   i <- 1
-#   missing_count <- 0
-#   
-#   while (i <= length(lines)) {
-#     line <- lines[i]
-#     new_lines <- c(new_lines, line)
-#     
-#     if (grepl("^## ", line)) {
-#       next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
-#       
-#       if (!grepl(return_text, next_line, fixed = TRUE)) {
-#         if (mode == "verify") {
-#           missing_count <- missing_count + 1
-#         } else if (mode == "replace") {
-#           new_lines <- c(new_lines, return_text)
-#         }
-#       }
-#     }
-#     i <- i + 1
-#   }
-#   
-#   if (mode == "verify") {
-#     if (missing_count == 0) {
-#       cat("✓ All H2 headings have return links.\n")
-#     } else {
-#       cat(sprintf("⚠️ %d H2 headings are missing return links.\n", missing_count))
-#       quit(status = 1)
-#     }
-#   } else if (mode == "replace") {
-#     writeLines(new_lines, file_path)
-#     cat(sprintf("✅ Inserted return links under H2 headings in %s\n", file_path))
-#     
-#     # Optional: audit log entry
-#     log_entry <- sprintf("[%s] Return links inserted under H2 in %s", Sys.time(), file_path)
-#     write(log_entry, file = "log.log", append = TRUE)
-#   }
-# }
+#' Verify or insert the "Return to Top" link under each H2 heading
+#'
+#' @param file_path Path of the markdown document.
+#' @param mode "verify" to check the links, "replace" to insert them.
+#' @param top_anchor Anchor the return link points at.
+#' @param return_text The link line itself, as it is written into the file.
+#' @param log_path Path of the audit log written in "replace" mode.
+#' @return Invisible NULL in "replace" mode; exits non-zero in "verify" mode
+#'   where a heading is missing its link.
 enforce_return_links <- function(file_path, mode = c("verify", "replace"),
                                  top_anchor = "#contents",
                                  return_text = "<sub>[Return to Top](#contents)</sub>",
@@ -230,6 +212,13 @@ enforce_return_links <- function(file_path, mode = c("verify", "replace"),
   }
 }
 
+#' Assert that no heading carries an emoji or symbol character
+#'
+#' @param file_path Path of the markdown document.
+#' @return TRUE where every heading is clear; FALSE where one is not, having
+#'   printed the offending headings.
+#' @details A symbol's anchor depends on the session locale, so a heading
+#'   carrying one cannot be linked to reliably from another document.
 check_no_emoji_headings <- function(file_path) {
   lines <- readLines(file_path, encoding = "UTF-8")
   headings <- grep("^#{1,6} ", lines, value = TRUE)
@@ -412,11 +401,12 @@ check_alt_text <- function(file_path) {
   flagged
 }
 
-# The Further Development scan table and the entries beneath it. The table is a
-# derived artefact: every row restates the identifier, title and impact of an
-# entry, so the two drift apart silently whenever one is edited without the
-# other, which is how three rows came to name a gap differently from the entry
-# they point at.
+#' The Further Development scan table and the entries beneath it
+#'
+#' @details The table is a derived artefact: every row restates the identifier, title
+#'   and impact of an entry, so the two drift apart silently whenever one is
+#'   edited without the other, which is how three rows came to name a gap
+#'   differently from the entry they point at.
 FURTHER_DEV_HEADING <- "^## Further Development$"
 # useBytes on every match against these three: ENTRY_HEADING carries a literal
 # em dash, and outside a UTF-8 locale R cannot translate the pattern at all, so

@@ -71,8 +71,18 @@ ROUTE_T_MAX <- 4
 
 failures <- character(0)
 
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -129,6 +139,10 @@ per_casualty <- function(attrs) {
     )
 }
 
+#' Label each casualty by the route they took through R2B
+#'
+#' @param df One row per casualty, carrying the R2B routing indicators.
+#' @return A character vector naming each casualty's route.
 route_of <- function(df) {
   ifelse(df$r2b_surgery == 1, "operated at R2B",
          ifelse(df$r2b_bypassed == 1, "bypassed R2B for want of a theatre",
@@ -234,6 +248,14 @@ for (share in SHARES) {
 
   print(as.data.frame(by_route), row.names = FALSE)
 
+  #' Welch t statistics between every pair of routes
+  #'
+  #' @param df One row per casualty, carrying a route column.
+  #' @param value_col Name of the column to compare across routes.
+  #' @return A named numeric vector of t statistics, NULL where fewer than
+  #'   two routes carry enough casualties to compare.
+  #' @details A route carrying fewer than five casualties is dropped rather
+  #'   than compared, its variance being an estimate of nothing.
   route_t <- function(df, value_col) {
     grps <- split(df[[value_col]], df$route)
     grps <- grps[vapply(grps, length, integer(1)) >= 5]

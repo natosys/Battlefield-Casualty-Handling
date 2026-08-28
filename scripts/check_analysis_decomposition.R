@@ -87,6 +87,10 @@ bound_on_every_path <- function(body_list) {
     if (op %in% c("<-", "=", "<<-") && is.name(e[[2]])) {
       out <- c(out, as.character(e[[2]]))
     } else if (op == "if" && length(e) == 4L) {
+      #' Names bound on every path through one arm of an if
+      #'
+      #' @param x The arm's expression, a block or a single call.
+      #' @return A character vector of the names it binds unconditionally.
       arm <- function(x) {
         if (is.call(x) && identical(as.character(x[[1]]), "{")) {
           bound_on_every_path(as.list(x)[-1])

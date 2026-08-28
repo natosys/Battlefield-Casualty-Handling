@@ -229,6 +229,29 @@ that follows a deliberate `lintr` version change, since a new version can add
 or refine a linter; the version is pinned in `.devcontainer/Dockerfile` and in
 the workflow's `LINTR_VERSION`, and both move together.
 
+### The roxygen ratchet fails
+
+The failure names the rule and both counts, in the same shape the lint
+ratchet uses:
+
+```
+  [FAIL] missing_header               1 (baseline     0)  RISEN
+```
+
+The pull request added a function without a roxygen header, an argument
+without an `@param`, or a function without a `@return`. List the findings with
+their file, line and function name:
+
+```bash
+Rscript scripts/check_roxygen.R --list
+```
+
+Repair the new one rather than raising the baseline. As with lint, a pull
+request that removes findings passes and reports the improvement, and a
+maintainer tightens the ratchet with
+`Rscript scripts/check_roxygen.R --refresh-baseline`, committing
+`scripts/roxygen_baseline.csv` with the change that earned it.
+
 ### The seed-42 reproduction fails
 
 The check names the first artifact that differs and the first line at which it

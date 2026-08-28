@@ -76,6 +76,11 @@ source("R/replication.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 
+#' Read one flagged command line argument
+#'
+#' @param flag Flag to look for, including its leading dashes.
+#' @param default Value returned when the flag is absent or carries no value.
+#' @return The argument following the flag, or `default`.
 arg_value <- function(flag, default) {
   i <- match(flag, args)
   if (is.na(i) || i == length(args)) return(default)
@@ -93,8 +98,19 @@ N_CHECK_REPS <- 6L
 CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)
 
 failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
 fail     <- function(...) failures <<- c(failures, sprintf(...))
 
+#' Print one PASS or FAIL line
+#'
+#' @param ok Logical: whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
 report <- function(ok, fmt, ...) {
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", sprintf(fmt, ...)))
 }
@@ -199,6 +215,11 @@ if (DIAGNOSTIC) {
               N_MEASURE, N_REPS, DIAG_DAYS))
   cat("   Reported, not asserted: independence follows from the two checks above.\n")
 
+  #' Per-replication responses the correlation diagnostic reads
+  #'
+  #' @param mon Wrapped monitoring list from the replication framework.
+  #' @return A data frame of one row per replication, carrying its casualty
+  #'   count, died-of-wounds count and intensive care queue.
   responses <- function(mon) {
     total <- mon$arrivals %>% count(replication, name = "total_casualties")
     dow   <- mon$attributes %>%

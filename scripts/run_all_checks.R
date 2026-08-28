@@ -62,8 +62,9 @@ CHECK_PATTERN   <- "^check_.*[.]R$"
 DEFAULT_LOG_DIR <- file.path("outputs", "checks")
 FAIL_TAIL_LINES <- 40L
 
-# Measured runtimes, used to dispatch the longest check first. A check absent
-# from the file is scheduled as if it cost DEFAULT_COST_SECS.
+#' Measured runtimes, used to dispatch the longest check first
+#'
+#' @details A check absent from the file is scheduled as if it cost DEFAULT_COST_SECS.
 RUNTIME_PATH      <- file.path("scripts", "check_runtimes.csv")
 DEFAULT_COST_SECS <- 30
 # --jobs auto is capped: past a handful of concurrent checks the gain is the
@@ -74,7 +75,8 @@ AUTO_JOBS_CAP     <- 8L
 # scripts/README.md. Add a check here only on the evidence of a measurement.
 SLOW_CHECKS <- c("check_dow_calibration.R")
 
-# Checks that rewrite tracked files in place; see the banner above.
+#' Checks that rewrite tracked files in place; see the banner above
+#'
 MUTATING_CHECKS <- c("check_env_data_summary.R", "check_markdown.R")
 
 #' Print a message to standard error without a call prefix

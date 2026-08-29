@@ -1,4 +1,4 @@
-# Applying Discrete Event Simulation to the Land-Based Trauma System: Model Verification and Baseline Behaviour
+# Applying Discrete Event Simulation to the Land-Based Trauma System: Baseline Performance and System Constraints in a Single Campaign
 
 ## Abstract
 
@@ -29,6 +29,7 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [Methods](#methods)
@@ -48,7 +49,8 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 - [Limitations](#limitations)
 - [Conclusion](#conclusion)
 - [References](#references)
-<!-- TOC END -->
+  
+  <!-- TOC END -->
 
 ---
 

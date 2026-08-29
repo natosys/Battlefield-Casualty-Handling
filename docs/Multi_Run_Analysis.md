@@ -1,4 +1,4 @@
-# Battlefield Casualty Handling: Replicated Experiments and Comparative Scenario Analysis
+# Applying Discrete Event Simulation to the Land-Based Trauma System: Replicated Experiments and Comparative Scenario Analysis
 
 ## Abstract
 

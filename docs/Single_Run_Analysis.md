@@ -1,4 +1,4 @@
-# Battlefield Casualty Handling: Model Verification and Baseline Behaviour
+# Applying Discrete Event Simulation to the Land-Based Trauma System: Model Verification and Baseline Behaviour
 
 ## Abstract
 

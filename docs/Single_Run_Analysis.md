@@ -29,45 +29,26 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
-
 - [Abstract](#abstract)
-
 - [Contents](#contents)
-
 - [Methods](#methods)
-  
   - [Model and Run Configuration](#model-and-run-configuration)
-  - [Warm-Up Treatment](#warm-up-treatment)
   - [Scope of a Single Run](#scope-of-a-single-run)
-  - [Evidence Set and Provenance](#evidence-set-and-provenance)
-
+  - [Environment](#environment)
 - [Simulation Casualty Generation](#simulation-casualty-generation)
-
 - [R1 Handling](#r1-handling)
-
 - [R2B Handling](#r2b-handling)
-  
   - [R2B Hold Bed Saturation: Stream Decomposition and Intervention Analysis](#r2b-hold-bed-saturation-stream-decomposition-and-intervention-analysis)
-
 - [R2E Heavy Handling](#r2e-heavy-handling)
-
 - [Casualty Waiting Time](#casualty-waiting-time)
-
 - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
-
 - [Return to Duty](#return-to-duty)
-
 - [Force Regeneration Feedback Loop](#force-regeneration-feedback-loop)
-
 - [Strategic Evacuation and Role 4 Demand](#strategic-evacuation-and-role-4-demand)
-
 - [Limitations](#limitations)
-
 - [Conclusion](#conclusion)
-
 - [References](#references)
-  
-  <!-- TOC END -->
+<!-- TOC END -->
 
 ---
 
@@ -80,6 +61,8 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 The simulation is a discrete event model built on the `simmer` package for R [[1]](#references). Each casualty is an entity that arrives, then claims and releases clinical staff, beds, operating theatres and transport as it moves rearward through the echelons of care. Those echelons follow allied medical support doctrine [[2]](#references): Role 1 for primary care and resuscitation forward, Role 2 Basic (R2B) for damage control surgery and short-term holding, and Role 2 Enhanced Heavy (R2E Heavy) for definitive surgery, intensive care and in-theatre recovery. Beyond them sits strategic aeromedical evacuation to a Role 4 national support base.
 
 The analysis uses the simulation's shipped default health system: a representative combat brigade served by three Role 1 treatment teams, two R2B facilities and one R2E Heavy hospital. That establishment is an input a planner sets, not a fixed property of the model. The number of elements, and the teams and beds inside each one, are defined in the `elms` structure of `env_data.json` and can be edited there directly or through the Shiny Configure panel.
+
+No warm-up period is discarded. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only where steady state is the quantity of interest [[3]](#references); this is a terminating simulation of a fixed campaign length from an empty system, and that opening period is what a planner needs to see, because a deploying health system really does start empty.
 
 Unless the text says otherwise, every figure below comes from one run of that configuration under the settings in the table.
 
@@ -97,11 +80,13 @@ Unless the text says otherwise, every figure below comes from one run of that co
 
 ### Scope of a Single Run
 
-A single run 30 day simulation to support the identification of potential system improvement within a representative land-based trauma system. It traces one campaign end to end, with casualties generated at rates modelled on those observed in the Falklands 1982 conflict and routed through the system based on documented casualty handling rules representing operational health policies, it demonstrates where load gathers within the system and highlights areas for further investigation for system enhancement.
+This document reports a single 30-day run, undertaken to identify where a representative land-based trauma system might be improved. It traces one campaign end to end, with casualties generated at rates modelled on those observed in the Falklands 1982 conflict and routed through the system by documented handling rules representing operational health policy. In doing so it verifies that the model behaves as its specification describes, which is a separate question from whether that specification fairly represents the real system [[4]](#references), and it shows where load gathers and which parts of the system warrant closer investigation.
+
+One run can do that but no more. Each arrival stream draws its daily rate from a distribution before placing arrivals within the day, so a 30-day run is a single draw from a wide distribution and carries no interval [[5]](#references). Every figure below should be read as an illustration of how a mechanism works rather than as an estimate of an average, and no comparison between two figures here is a test of a hypothesis. Anything this project reports with a confidence interval is in `docs/Multi_Run_Analysis.md`, and the sections below point to it wherever a replicated measurement of the same quantity exists.
 
 ### Environment
 
-The simulation was run with the seed set to 42. The simulation used the development container defined in the Battlefield-Casualty-Handling repository`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`.
+The run was made in the development container defined in the Battlefield-Casualty-Handling repository, `rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`, so no figure below carries a caveat about the environment that produced it. That run reproduces the repository's tracked baseline evidence set byte for byte, both the console log and every arrival diagnostic, and the reproduction is re-checked whenever the model changes.
 
 ---
 
@@ -345,7 +330,7 @@ A casualty waiting for a sortie holds an R2E holding bed for the whole wait, so 
 
 The wait-time died-of-wounds poll, a periodic mortality check applied to casualties queued for strategic evacuation, ran correctly against this backlog but recorded no deaths (`outputs/dow_by_echelon.csv`). The chance of death at each poll is deliberately small, so a zero is consistent with the mechanism working rather than evidence about how large its effect is. One run cannot settle a rare event in either direction.
 
-Because an evacuation policy rather than a fixed rate decides who stays, that policy is a lever a planner can move. Re-running the same 30-day configuration at seed 42 under the 15-day and 60-day policies the source gives as realistic alternatives [[16]](#references) produces the comparison below. The 15-day and 60-day rows come from configurations other than the shipped default and appear here for contrast only; they are not part of the baseline evidence set described in [Methods](#evidence-set-and-provenance).
+Because an evacuation policy rather than a fixed rate decides who stays, that policy is a lever a planner can move. Re-running the same 30-day configuration at seed 42 under the 15-day and 60-day policies the source gives as realistic alternatives [[16]](#references) produces the comparison below. The 15-day and 60-day rows come from configurations other than the shipped default and appear here for contrast only; they are not part of the baseline evidence set described in [Methods](#model-and-run-configuration).
 
 | Policy            | In-theatre share | Evacuation decisions | Reached Role 4 | Peak Role 4 occupancy |
 | ----------------- | ---------------- | -------------------- | -------------- | --------------------- |

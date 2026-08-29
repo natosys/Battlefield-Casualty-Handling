@@ -6,15 +6,15 @@
 
 **Background**
 
-High-intensity Large Scale Combat Operations (LSCO) overload forward medical infrastructure, threatening survival from severe combat trauma. Discrete event simulation provides a quantitative method to evaluate system performance and structural interventions across battlefield trauma networks.
+High-intensity Large Scale Combat Operations (LSCO) overload forward medical infrastructure, threatening survival from severe combat trauma. Discrete event simulation provides a quantitative method to evaluate system performance and structural interventions across battlefield trauma treatment systems.
 
 **Objective**
 
-To model the land-based trauma system and evaluate its performance in handling historical moderate-intensity warfare casualty rates (Falklands, modified), enabling planners to identify opportunities for system optimisation.
+To model a land-based trauma system and evaluate its performance in handling historical moderate-intensity warfare casualty rates (based on the 1982 Falklands conflict, modified), enabling planners to identify opportunities for system optimisation.
 
 **Methods**
 
-A discrete event simulation was constructed of a brigade-sized force supported by three Role 1 treatment teams, two Role 2 Basic (R2B) facilities and one Role 2 Enhanced Heavy (R2E Heavy) hospital, simulating the generation of casualties over a 30-day period based on distribution rates recorded from the Falklands 1982 conflict, with modified outcomes for modern casualty treatment efficacy, and their handling within the land-based trauma system.
+A discrete event simulation was constructed reflecting an Australian brigade-sized force supported by three Role 1 treatment teams, two Role 2 Basic (R2B) facilities and one Role 2 Enhanced Heavy (R2E Heavy) hospital. The simulation generated casualties over a 30-day period based on distribution rates recorded from the Falklands 1982 conflict, with modified outcomes for modern casualty treatment efficacy, and their handling within the land-based trauma system.
 
 **Results**
 
@@ -29,6 +29,7 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
+
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [Methods](#methods)
@@ -49,7 +50,8 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 - [Limitations](#limitations)
 - [Conclusion](#conclusion)
 - [References](#references)
-<!-- TOC END -->
+  
+  <!-- TOC END -->
 
 ---
 
@@ -65,21 +67,21 @@ The analysis uses the simulation's shipped default health system: a representati
 
 Unless the text says otherwise, every figure below comes from one run of that configuration under the settings in the table.
 
-| Setting | Value |
-|---|---|
-| Scenario profile | `moderate_intensity` (Falklands 1982-modified) |
-| Random seed | 42 |
-| Campaign horizon | 30 simulated days |
-| Replications | 1 |
-| Warm-up exclusion | None (`WARM_UP_DAYS = 0L`) |
-| Reinforcement | Disabled (`force_regeneration.reinforcement.demand_interval_days = 0`) |
-| Mass casualty injection | Disabled (`mass_casualty.event.rate_per_day = 0`) |
-| Theatre evacuation policy | 30 days |
-| Invocation | `Rscript run.R --seed 42 --days 30 --iterations 1` |
+| Setting                   | Value                                                                  |
+| ------------------------- | ---------------------------------------------------------------------- |
+| Scenario profile          | `moderate_intensity` (Falklands 1982-modified)                         |
+| Random seed               | 42                                                                     |
+| Campaign horizon          | 30 simulated days                                                      |
+| Replications              | 1                                                                      |
+| Warm-up exclusion         | None (`WARM_UP_DAYS = 0L`)                                             |
+| Reinforcement             | Disabled (`force_regeneration.reinforcement.demand_interval_days = 0`) |
+| Mass casualty injection   | Disabled (`mass_casualty.event.rate_per_day = 0`)                      |
+| Theatre evacuation policy | 30 days                                                                |
+| Invocation                | `Rscript run.R --seed 42 --days 30 --iterations 1`                     |
 
 ### Warm-Up Treatment
 
-No warm-up period is discarded. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only when steady state is the quantity of interest [[3]](#references). This model is a terminating simulation: it runs a fixed campaign length from an empty, idle system, and that opening period is exactly what a planner needs to see, because a deploying health system really does start empty. Every output therefore covers the full 30 days (`WARM_UP_DAYS = 0L`, `R/warmup.R`). A Welch graphical procedure is still run over ten 90-day replications as a diagnostic, and is reported in the README's [Warm-up Period Analysis](../README.md#warm-up-period-analysis).
+No warm-up period is discarded. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only when steady state is the quantity of interest [[3]](#references). This model is a terminating simulation: it runs a fixed campaign length from an empty, idle system. Every output therefore covers the full 30 days (`WARM_UP_DAYS = 0L`, `R/warmup.R`).
 
 ### Scope of a Single Run
 
@@ -103,15 +105,15 @@ This section breaks down the casualties the run generated and draws out what the
 
 The three panels split one arrival series three ways, so their daily totals match. Arrivals are very uneven: the heaviest day delivers 46 casualties and the lightest four, and combat casualties make up most of every peak.
 
-|casualty_type |population_source |  1|  2|  3|  4|  5|  6|  7|  8|  9| 10| 11| 12| 13| 14| 15| 16| 17| 18| 19| 20| 21| 22| 23| 24| 25| 26| 27| 28| 29| 30| total|
-|:-------------|:-----------------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|-----:|
-|dnbi          |cbt               |  2|  1|  8|  4|  3|  5| 11|  7|  6|  3| 12|  1| 15| 20|  6|  3|  3|  0|  1|  0|  7|  0|  1|  4|  0|  3|  3|  1|  2|  6|   138|
-|dnbi          |spt               |  0|  1|  0|  0|  2|  0|  1|  2|  2|  0|  0|  3|  2|  4|  0|  1|  3|  1|  1|  0|  0|  0|  0|  1|  3|  2|  1|  0|  3|  0|    33|
-|kia           |cbt               |  0|  3|  0|  0|  2|  0|  3|  2|  5|  0|  5|  6|  4|  2|  1|  1|  0|  2|  0|  9|  0|  0|  0|  0|  1|  1|  0|  1|  0|  2|    50|
-|kia           |spt               |  1|  0|  3|  0|  2|  0|  1|  0|  1|  1|  0|  0|  0|  0|  0|  0|  2|  0|  1|  1|  0|  3|  0|  0|  2|  2|  1|  0|  0|  1|    22|
-|wia           |cbt               | 12|  0|  6| 34| 21|  1|  1|  6| 15|  2|  3|  0|  1|  1|  3| 23|  6| 10|  1|  3|  0|  1|  1| 16|  0|  7|  3|  3| 35|  3|   218|
-|wia           |spt               |  2|  2|  0|  8|  1|  4|  2|  2|  1|  0|  5| 15|  0|  2|  3|  0|  4|  9|  0|  0|  0|  1|  2|  1|  2|  1|  0|  1|  1|  0|    69|
-|Total         |                  | 17|  7| 17| 46| 31| 10| 19| 19| 30|  6| 25| 25| 22| 29| 13| 28| 18| 22|  4| 13|  7|  5|  4| 22|  8| 16|  8|  6| 41| 12|   530|
+| casualty_type | population_source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
+|:------------- |:----------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
+| dnbi          | cbt               | 2   | 1   | 8   | 4   | 3   | 5   | 11  | 7   | 6   | 3   | 12  | 1   | 15  | 20  | 6   | 3   | 3   | 0   | 1   | 0   | 7   | 0   | 1   | 4   | 0   | 3   | 3   | 1   | 2   | 6   | 138   |
+| dnbi          | spt               | 0   | 1   | 0   | 0   | 2   | 0   | 1   | 2   | 2   | 0   | 0   | 3   | 2   | 4   | 0   | 1   | 3   | 1   | 1   | 0   | 0   | 0   | 0   | 1   | 3   | 2   | 1   | 0   | 3   | 0   | 33    |
+| kia           | cbt               | 0   | 3   | 0   | 0   | 2   | 0   | 3   | 2   | 5   | 0   | 5   | 6   | 4   | 2   | 1   | 1   | 0   | 2   | 0   | 9   | 0   | 0   | 0   | 0   | 1   | 1   | 0   | 1   | 0   | 2   | 50    |
+| kia           | spt               | 1   | 0   | 3   | 0   | 2   | 0   | 1   | 0   | 1   | 1   | 0   | 0   | 0   | 0   | 0   | 0   | 2   | 0   | 1   | 1   | 0   | 3   | 0   | 0   | 2   | 2   | 1   | 0   | 0   | 1   | 22    |
+| wia           | cbt               | 12  | 0   | 6   | 34  | 21  | 1   | 1   | 6   | 15  | 2   | 3   | 0   | 1   | 1   | 3   | 23  | 6   | 10  | 1   | 3   | 0   | 1   | 1   | 16  | 0   | 7   | 3   | 3   | 35  | 3   | 218   |
+| wia           | spt               | 2   | 2   | 0   | 8   | 1   | 4   | 2   | 2   | 1   | 0   | 5   | 15  | 0   | 2   | 3   | 0   | 4   | 9   | 0   | 0   | 0   | 1   | 2   | 1   | 2   | 1   | 0   | 1   | 1   | 0   | 69    |
+| Total         |                   | 17  | 7   | 17  | 46  | 31  | 10  | 19  | 19  | 30  | 6   | 25  | 25  | 22  | 29  | 13  | 28  | 18  | 22  | 4   | 13  | 7   | 5   | 4   | 22  | 8   | 16  | 8   | 6   | 41  | 12  | 530   |
 
 The table sorts the run's casualties into three categories, Wounded in Action (WIA), Killed in Action (KIA), and Disease and Non-Battle Injury (DNBI), and by whether they came from combat or support forces. The run produced 530 casualties in all. Combat elements accounted for most of them (406), as their greater exposure to risk would suggest. WIA cases totalled 287 and fell mostly on combat personnel (218 against 69), following the force ratios the simulation uses. These casualties usually need care at more than one echelon, including resuscitation, surgery and post-operative holding, and so place steady demand on Role 1 and Role 2. DNBI accounted for 171 cases, a reminder that sickness and non-combat injury persist even in high-intensity operations; historically they rival or exceed battle injury in lost duty days and medical resources consumed [[7]](#references). KIA were fewer, at 72.
 
@@ -119,23 +121,23 @@ The clearest lesson of this run is that the tempo is not steady. Daily totals ra
 
 For planning, this points to treatment capacity that can scale, serious attention to preventing disease and non-battle injury, and surgical capability spread across more than one location, all sized against demand that arrives in bursts rather than at a constant rate.
 
-|population_source |  1|  2|  3|  4|  5|  6|  7|  8|  9| 10| 11| 12| 13| 14| 15| 16| 17| 18| 19| 20| 21| 22| 23| 24| 25| 26| 27| 28| 29| 30| total|
-|:-----------------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|-----:|
-|cbt               | 14|  4| 14| 38| 26|  6| 15| 15| 26|  5| 20|  7| 20| 23| 10| 27|  9| 12|  2| 12|  7|  1|  2| 20|  1| 11|  6|  5| 37| 11|   406|
-|spt               |  3|  3|  3|  8|  5|  4|  4|  4|  4|  1|  5| 18|  2|  6|  3|  1|  9| 10|  2|  1|  0|  4|  2|  2|  7|  5|  2|  1|  4|  1|   124|
-|Total             | 17|  7| 17| 46| 31| 10| 19| 19| 30|  6| 25| 25| 22| 29| 13| 28| 18| 22|  4| 13|  7|  5|  4| 22|  8| 16|  8|  6| 41| 12|   530|
+| population_source | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
+|:----------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
+| cbt               | 14  | 4   | 14  | 38  | 26  | 6   | 15  | 15  | 26  | 5   | 20  | 7   | 20  | 23  | 10  | 27  | 9   | 12  | 2   | 12  | 7   | 1   | 2   | 20  | 1   | 11  | 6   | 5   | 37  | 11  | 406   |
+| spt               | 3   | 3   | 3   | 8   | 5   | 4   | 4   | 4   | 4   | 1   | 5   | 18  | 2   | 6   | 3   | 1   | 9   | 10  | 2   | 1   | 0   | 4   | 2   | 2   | 7   | 5   | 2   | 1   | 4   | 1   | 124   |
+| Total             | 17  | 7   | 17  | 46  | 31  | 10  | 19  | 19  | 30  | 6   | 25  | 25  | 22  | 29  | 13  | 28  | 18  | 22  | 4   | 13  | 7   | 5   | 4   | 22  | 8   | 16  | 8   | 6   | 41  | 12  | 530   |
 
 The second table splits the casualties by source: combat forces (cbt) and support forces (spt). Of the 530 generated, 406 (about 77%) came from combat elements and 124 (23%) from support units, which follows from the size of each population and the higher rates the combat streams are configured at. Support casualties appear in every period of the run, a reminder that rear-area personnel are exposed too in large scale combat operations, especially under indirect fire, poor situational awareness and disrupted evacuation [[8]](#references). The two populations peak at different times: the support stream's worst day is day 12, at 18 casualties against a combat count of 7, while the combat stream's worst days are 4 and 29. A surge in one is therefore no guide to the other, and rear-area medical coverage cannot be planned as a fixed fraction of forward demand.
 
 Medical coverage therefore has to reach both forward and rear areas. Role 1 teams need to be positioned to reach combat casualties quickly, while Role 2 facilities have to absorb and triage support casualties, who often present differently, with disease, non-battle injury and trauma that has taken time to reach care. Carrying both populations calls for capacity that can scale, evacuation pathways that can be re-routed, and command and control firm enough to keep casualties moving.
 
-|priority_group |  1|  2|  3|  4|  5|  6|  7|  8|  9| 10| 11| 12| 13| 14| 15| 16| 17| 18| 19| 20| 21| 22| 23| 24| 25| 26| 27| 28| 29| 30| total|
-|:--------------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|-----:|
-|Priority 1     |  9|  4|  9| 23| 17|  5|  7|  7| 18|  4|  9| 12| 13| 17|  9| 19|  9| 16|  1|  1|  4|  2|  3| 13|  5| 10|  3|  3| 23|  5|   280|
-|Priority 2     |  4|  0|  3| 18|  5|  2|  6|  4|  4|  0|  7|  6|  3|  8|  2|  4|  3|  1|  2|  2|  3|  0|  1|  5|  0|  2|  3|  0| 11|  1|   110|
-|Priority 3     |  3|  0|  2|  5|  5|  3|  2|  6|  2|  1|  4|  1|  2|  2|  1|  4|  4|  3|  0|  0|  0|  0|  0|  4|  0|  1|  1|  2|  7|  3|    68|
-|KIA            |  1|  3|  3|  0|  4|  0|  4|  2|  6|  1|  5|  6|  4|  2|  1|  1|  2|  2|  1| 10|  0|  3|  0|  0|  3|  3|  1|  1|  0|  3|    72|
-|Total          | 17|  7| 17| 46| 31| 10| 19| 19| 30|  6| 25| 25| 22| 29| 13| 28| 18| 22|  4| 13|  7|  5|  4| 22|  8| 16|  8|  6| 41| 12|   530|
+| priority_group | 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17  | 18  | 19  | 20  | 21  | 22  | 23  | 24  | 25  | 26  | 27  | 28  | 29  | 30  | total |
+|:-------------- | ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| ---:| -----:|
+| Priority 1     | 9   | 4   | 9   | 23  | 17  | 5   | 7   | 7   | 18  | 4   | 9   | 12  | 13  | 17  | 9   | 19  | 9   | 16  | 1   | 1   | 4   | 2   | 3   | 13  | 5   | 10  | 3   | 3   | 23  | 5   | 280   |
+| Priority 2     | 4   | 0   | 3   | 18  | 5   | 2   | 6   | 4   | 4   | 0   | 7   | 6   | 3   | 8   | 2   | 4   | 3   | 1   | 2   | 2   | 3   | 0   | 1   | 5   | 0   | 2   | 3   | 0   | 11  | 1   | 110   |
+| Priority 3     | 3   | 0   | 2   | 5   | 5   | 3   | 2   | 6   | 2   | 1   | 4   | 1   | 2   | 2   | 1   | 4   | 4   | 3   | 0   | 0   | 0   | 0   | 0   | 4   | 0   | 1   | 1   | 2   | 7   | 3   | 68    |
+| KIA            | 1   | 3   | 3   | 0   | 4   | 0   | 4   | 2   | 6   | 1   | 5   | 6   | 4   | 2   | 1   | 1   | 2   | 2   | 1   | 10  | 0   | 3   | 0   | 0   | 3   | 3   | 1   | 1   | 0   | 3   | 72    |
+| Total          | 17  | 7   | 17  | 46  | 31  | 10  | 19  | 19  | 30  | 6   | 25  | 25  | 22  | 29  | 13  | 28  | 18  | 22  | 4   | 13  | 7   | 5   | 4   | 22  | 8   | 16  | 8   | 6   | 41  | 12  | 530   |
 
 Priority 1 casualties, those needing immediate life-saving treatment, account for 280 of the total (52.8%). That such casualties are the largest group is the reason doctrine places Role 1 assets well forward, able to triage and stabilise quickly. Priority 1 arrivals reach 23 on each of two days against a 30-day average of 9.3, so the high-acuity load is heavy overall and very uneven day to day, which is the pattern that sizes resuscitation and surgical throughput.
 
@@ -287,13 +289,13 @@ The HX240M queue stays at zero all run. The PMV Ambulance pool does queue, reach
 
 Under seed 42 over 30 days, **167 casualties** were assigned a `return_day` attribute, decomposed as follows:
 
-| Echelon | RTD type | Count | Rate (of 530 arrivals) |
-|---|---|---|---|
-| R1 | battle_fatigue | 44 | 8.3% |
-| R1 | clinical | 78 | 14.7% |
-| R2B | clinical | 42 | 7.9% |
-| R2E | clinical | 3 | 0.6% |
-| **Total** | | **167** | **31.5%** |
+| Echelon   | RTD type       | Count   | Rate (of 530 arrivals) |
+| --------- | -------------- | ------- | ---------------------- |
+| R1        | battle_fatigue | 44      | 8.3%                   |
+| R1        | clinical       | 78      | 14.7%                  |
+| R2B       | clinical       | 42      | 7.9%                   |
+| R2E       | clinical       | 3       | 0.6%                   |
+| **Total** |                | **167** | **31.5%**              |
 
 `bf_rtd` is 44 rather than the 46 battle fatigue casualties generated because 2 were still inside their R1 hold when the run ended and never received a `return_day`. Battle fatigue casualties return to duty only at R1, as the design intends, since they are never routed to Role 2. Most clinical returns happen at R1, where Priority 3 wounded and non-battle injuries finish their recovery, and at R2B, where disease cases are discharged from hold beds. R2E returns just 3, because a casualty leaves an R2E hold bed only after completing the recovery period drawn for them, and for most retained casualties that period runs past the 30-day window. The overall return-to-duty rate of 31.5% sits inside the historical range for in-theatre medical facility admissions, 7.6% to 42.1% [[14]](#references), though any direct comparison has to allow for the run's 30-day boundary.
 
@@ -335,11 +337,11 @@ The wait-time died-of-wounds poll, a periodic mortality check applied to casualt
 
 Because an evacuation policy rather than a fixed rate decides who stays, that policy is a lever a planner can move. Re-running the same 30-day configuration at seed 42 under the 15-day and 60-day policies the source gives as realistic alternatives [[16]](#references) produces the comparison below. The 15-day and 60-day rows come from configurations other than the shipped default and appear here for contrast only; they are not part of the baseline evidence set described in [Methods](#evidence-set-and-provenance).
 
-| Policy | In-theatre share | Evacuation decisions | Reached Role 4 | Peak Role 4 occupancy |
-|---|---|---|---|---|
-| 15 days | 3.0% | 191 | 182 | 122.0 |
-| 30 days (shipped) | 23.3% | 135 | 99 | 90.0 |
-| 60 days | 73.8% | 34 | 13 | 13.0 |
+| Policy            | In-theatre share | Evacuation decisions | Reached Role 4 | Peak Role 4 occupancy |
+| ----------------- | ---------------- | -------------------- | -------------- | --------------------- |
+| 15 days           | 3.0%             | 191                  | 182            | 122.0                 |
+| 30 days (shipped) | 23.3%            | 135                  | 99             | 90.0                  |
+| 60 days           | 73.8%            | 34                   | 13             | 13.0                  |
 
 A longer policy moves casualties off the strategic airlift and onto R2E holding beds, shortening the national support base's queue at the cost of theatre bed-days. A shorter one does the reverse. The response is steep, and a planner should note that the in-theatre share at the 15-day policy falls to 3.0%, below the 7.6% lower bound of the historical range, which puts the model outside its validated envelope at that end. Under the 15-day policy 182 of the 191 casualties it releases reach Role 4 within the run, against 99 of 135 under the shipped policy. That gap comes not from the policy but from which sorties flew, two of four having been cancelled in the shipped-policy run, and it is a reminder that one run's cancellation draws affect this comparison more than the policy does.
 
@@ -353,16 +355,16 @@ The first is the unit of analysis, set out in [Scope of a Single Run](#scope-of-
 
 The second is what the model does not represent. Those gaps are catalogued once, in the README's [Further Development](../README.md#further-development) section, and are not repeated here. The entries bearing most directly on this document are listed below by identifier.
 
-| Entry | Bearing on this document |
-|---|---|
-| L1 | Casualties enter the model at Role 1, so every waiting time here leaves out the interval between wounding and first contact with the health system, and none can be compared against a doctrinal time-to-surgery standard. |
-| L3 | Clinical teams are taken whole, so the surgical section utilisation figures overstate scarcity where a procedure needs only part of a section, and understate it where staff would in practice be shared. |
-| L4 | The R2B holding shortfall belongs to the shipped establishment rather than to this run, and it depends on a disease DNBI share that is itself uncertain. |
-| L11 | The theatre and intensive care gating parameters are informed estimates, so the post-operative pathway counts show how the mechanism behaves rather than predicting mortality. |
-| L16 | Role 4 is modelled as demand without capacity, so its census signals what would arrive, not that the base could absorb it. |
-| L17 | One pool of R2E holding beds carries both in-theatre recovery and the strategic evacuation wait, so no intensive care or theatre finding here should be read apart from holding-pool occupancy. |
-| L23 | The severity factors that set recovery duration are uncalibrated, so how steeply the system responds to a change of evacuation policy is uncertain. |
-| L26 | A single surgery duration distribution serves every casualty whatever their severity, so theatre contention is understated on exactly the heavy, high-acuity days the queue figures come from. |
+| Entry | Bearing on this document                                                                                                                                                                                                   |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1    | Casualties enter the model at Role 1, so every waiting time here leaves out the interval between wounding and first contact with the health system, and none can be compared against a doctrinal time-to-surgery standard. |
+| L3    | Clinical teams are taken whole, so the surgical section utilisation figures overstate scarcity where a procedure needs only part of a section, and understate it where staff would in practice be shared.                  |
+| L4    | The R2B holding shortfall belongs to the shipped establishment rather than to this run, and it depends on a disease DNBI share that is itself uncertain.                                                                   |
+| L11   | The theatre and intensive care gating parameters are informed estimates, so the post-operative pathway counts show how the mechanism behaves rather than predicting mortality.                                             |
+| L16   | Role 4 is modelled as demand without capacity, so its census signals what would arrive, not that the base could absorb it.                                                                                                 |
+| L17   | One pool of R2E holding beds carries both in-theatre recovery and the strategic evacuation wait, so no intensive care or theatre finding here should be read apart from holding-pool occupancy.                            |
+| L23   | The severity factors that set recovery duration are uncalibrated, so how steeply the system responds to a change of evacuation policy is uncertain.                                                                        |
+| L26   | A single surgery duration distribution serves every casualty whatever their severity, so theatre contention is understated on exactly the heavy, high-acuity days the queue figures come from.                             |
 
 The third belongs to verification itself. Showing that the figures published here are what the current code produces says nothing about whether the model is calibrated to the campaign it represents. That question is tracked separately under Further Development entries L12 and L22, and is addressed, as far as the available historical anchors allow, in the README's [Parameter Calibration](../README.md#parameter-calibration) section.
 

@@ -31,24 +31,40 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 <!-- TOC START -->
 
 - [Abstract](#abstract)
+
 - [Contents](#contents)
+
 - [Methods](#methods)
+  
   - [Model and Run Configuration](#model-and-run-configuration)
   - [Warm-Up Treatment](#warm-up-treatment)
   - [Scope of a Single Run](#scope-of-a-single-run)
   - [Evidence Set and Provenance](#evidence-set-and-provenance)
+
 - [Simulation Casualty Generation](#simulation-casualty-generation)
+
 - [R1 Handling](#r1-handling)
+
 - [R2B Handling](#r2b-handling)
+  
   - [R2B Hold Bed Saturation: Stream Decomposition and Intervention Analysis](#r2b-hold-bed-saturation-stream-decomposition-and-intervention-analysis)
+
 - [R2E Heavy Handling](#r2e-heavy-handling)
+
 - [Casualty Waiting Time](#casualty-waiting-time)
+
 - [Transport Fleet Capacity Margin](#transport-fleet-capacity-margin)
+
 - [Return to Duty](#return-to-duty)
+
 - [Force Regeneration Feedback Loop](#force-regeneration-feedback-loop)
+
 - [Strategic Evacuation and Role 4 Demand](#strategic-evacuation-and-role-4-demand)
+
 - [Limitations](#limitations)
+
 - [Conclusion](#conclusion)
+
 - [References](#references)
   
   <!-- TOC END -->
@@ -79,19 +95,13 @@ Unless the text says otherwise, every figure below comes from one run of that co
 | Theatre evacuation policy | 30 days                                                                |
 | Invocation                | `Rscript run.R --seed 42 --days 30 --iterations 1`                     |
 
-### Warm-Up Treatment
-
-No warm-up period is discarded. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only when steady state is the quantity of interest [[3]](#references). This model is a terminating simulation: it runs a fixed campaign length from an empty, idle system. Every output therefore covers the full 30 days (`WARM_UP_DAYS = 0L`, `R/warmup.R`).
-
 ### Scope of a Single Run
 
-This document is a verification exercise, not an experiment. Verification asks whether the code does what the specification says; validation asks whether that specification is a fair representation of the real system. The two rest on different evidence and are done separately [[4]](#references). What follows is the first. It traces one campaign end to end, checking that casualties are generated at the configured rates, routed by the documented rules, held by the documented resources and dispositioned by the documented policies, and it shows where the resulting load gathers.
+A single run 30 day simulation to support the identification of potential system improvement within a representative land-based trauma system. It traces one campaign end to end, with casualties generated at rates modelled on those observed in the Falklands 1982 conflict and routed through the system based on documented casualty handling rules representing operational health policies, it demonstrates where load gathers within the system and highlights areas for further investigation for system enhancement.
 
-A single run cannot do more than that. Each arrival stream draws its daily rate from a distribution before placing arrivals within the day, so a 30-day run is one draw from a wide distribution and its numbers carry no interval [[5]](#references). Read every figure below as an example of how a mechanism works, not as an estimate of an average, and treat no comparison between two figures here as a test of a hypothesis. Anything this project reports with a confidence interval is in `docs/Multi_Run_Analysis.md`, and the sections below point to it wherever a replicated measurement of the same quantity exists.
+### Environment
 
-### Evidence Set and Provenance
-
-Every seed-42 number and plot in this document came from one state of the code, run in the project's pinned development container (`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`), so no figure carries a caveat about the environment it was produced in. That run reproduces the repository's tracked baseline evidence set byte for byte, both the console log `logs/logs.txt` and every arrival diagnostic under `data/`, and `scripts/check_baseline_reproduction.R` re-checks the reproduction whenever the model changes. Only the theatre evacuation policy comparison in [Strategic Evacuation and Role 4 Demand](#strategic-evacuation-and-role-4-demand) uses a configuration other than the shipped default, and it says so where it appears.
+The simulation was run with the seed set to 42. The simulation used the development container defined in the Battlefield-Casualty-Handling repository`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`.
 
 ---
 

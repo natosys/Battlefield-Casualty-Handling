@@ -26,12 +26,36 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
+#' The paper whose tables these figures are rendered from
+#'
+#' @details Every value plotted is parsed out of this document, so it is both
+#'   the source of the numbers and the thing the figures must agree with.
 PAPER_PATH <- "docs/Multi_Run_Analysis.md"
+
+#' Directory holding the tracked figures
+#'
+#' @details Reachable only under --refresh-baseline, matching the contract the
+#'   other render scripts carry: an ordinary run cannot disturb tracked
+#'   evidence.
 TRACKED_DIR <- "images"
+
+#' Directory an ordinary run writes to
 UNTRACKED_DIR <- file.path("outputs", "images")
+
+#' Rendered width of every figure, in inches
 FIG_WIDTH_IN <- 9.0
+
+#' Rendered resolution of every figure, in dots per inch
 FIG_DPI <- 150
+
+#' Growth in casualty volume between the two casualty intensities
+#'
+#' @details Drawn as the reference line on the queue figure, so that a
+#'   resource to the right of it queues disproportionately to the load placed
+#'   on it. Taken from the comparative scenario table's own ratio column.
 CASUALTY_RATIO <- 2.33
+
+#' Colour per casualty intensity, held constant across every figure
 INTENSITY_COLOURS <- c("Moderate intensity" = "#1f5566", "High intensity" = "#9c4a35")
 
 #' Report a fatal condition and stop the script

@@ -167,6 +167,10 @@ Casualty counts vary widely from campaign to campaign, because each arrival stre
 
 Deaths of wounds rise 30-fold while casualty volume rises 2.33-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
 
+![Four panels, one per metric, each plotting moderate and high casualty intensity as a point with a narrow 95% confidence interval bar and a wide band showing the 10th-to-90th-percentile spread across campaigns, for total casualties, wounded in action, deaths of wounds and deaths as a share of wounded](../images/paper_casualty_totals.png)
+
+The width of the pale band against the narrow bar inside it is the point to take from this figure. The confidence interval says the average is known precisely; the band says one campaign in five falls outside a range spanning roughly a third of that average. Planning against the point rather than the band under-provides for the campaign that arrives.
+
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
@@ -177,6 +181,10 @@ Deaths of wounds rise 30-fold while casualty volume rises 2.33-fold, but that co
 | Ambulance and truck fleets | 0.0038 [0.0000, 0.0078] | 0.0278 [0.0196, 0.0361] | 7.25× |
 
 Each figure is the average queue at that group of resources across a campaign, averaged over the 50 runs. A resource that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts.
+
+![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.33-fold rise in casualty volume, each point sized by its absolute queue at high intensity, R2E operating theatre furthest right and largest](../images/paper_queue_growth.png)
+
+Every resource group sits to the right of the dashed line, so every queue grows faster than the casualty volume driving it. R2E operating theatre is furthest right and carries by far the largest absolute queue. The ambulance and truck fleets sit second from the top on growth alone, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
 
 ![Four-panel bar chart of mean queue length by resource group, R2B operating theatre, R2E operating theatre, R2E intensive care and transport, comparing the high and moderate casualty intensities with error bars, on four different vertical scales](../images/scenario_comparison.png)
 
@@ -254,6 +262,10 @@ The rule tested is a pre-open window of an arbitrarily selected 60 minutes: a ca
 | Total casualties | 442.82 | 433.18 | −9.64 [−32.00, +12.72] |
 
 The policy does what it was designed to do. It keeps 5.90 casualties per campaign at R2B, where a zero window keeps none, and off-shift diversions fall by 9.70. Neither of those intervals includes zero, so both effects are established.
+
+![Forest plot of the eight measures, each showing the mean difference per campaign with a 95% confidence interval against a vertical zero line, three intervals clear of zero shown in green and five crossing it shown in grey](../images/paper_hold_window_effects.png)
+
+Three of the eight measures are established and five are not. Casualties held at R2B, diversions avoided when the team is off shift, and deferred theatre entry at R2E all sit clear of the zero line. The remainder, including whether R2B performs more surgery as a result, have intervals wide enough to contain no change at all.
 
 Whether those casualties then receive surgery at R2B sooner than they would have at R2E is not established. R2B surgeries rise by 0.38, an interval wide enough to contain both no change at all and the full six operations the holds would suggest, so the simulation cannot distinguish between them. **Evidence for the surgical benefit: unresolved.** The cause is that introducing the hold changes the sequence of random draws, so the two arms generate different casualty streams and cannot be compared casualty for casualty. Settling it would take about 120 runs per arm rather than 50, which the available compute did not allow.
 

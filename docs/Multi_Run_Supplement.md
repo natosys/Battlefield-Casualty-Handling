@@ -132,6 +132,17 @@ Mean utilisation across the swept range runs the wrong way on both platforms, ri
 
 15 replications per row at `moderate_intensity` and 12 at `high_intensity`, each of 30 simulated days, with daily casualty volume averaged across replications and fitted with an ordinary least-squares trend against simulation day. The unreinforced rows use the shipped default (`force_regeneration.reinforcement.demand_interval_days = 0`, which disables the mechanism). The reinforced rows override it with a 7-day demand submission cycle, a 7-day fulfillment lag and the shipped default triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
 
+| Scenario | Reinforcement | Daily volume slope | p-value | First-week mean | Last-week mean |
+|---|---|---|---|---|---|
+| `moderate_intensity` (15 reps) | None | −0.018/day | 0.75 | 14.9 | 14.4 |
+| `moderate_intensity` (15 reps) | 7-day demand cycle, 7-day lag | −0.103/day | 0.17 | 16.6 | 14.1 |
+| `high_intensity` (12 reps) | None | −0.349/day | 0.0027 | 39.8 | 29.5 |
+| `high_intensity` (12 reps) | 7-day demand cycle, 7-day lag | +0.030/day | 0.80 | 35.8 | 36.1 |
+
+At `high_intensity` casualty rates daily volume falls significantly without reinforcement, declining 26% from the first week to the last, and the demand-cycle configuration removes that decline entirely, leaving a slope indistinguishable from flat. At `moderate_intensity` neither configuration shows a slope distinguishable from flat, that profile's casualty volume being too low for 30 days of attrition to deplete the force measurably.
+
+This experiment is recorded here rather than in the paper. It measures the force generation mechanism that drives casualty arrivals rather than the performance of the health system, so it informs the simulation's construction rather than a planning decision about the trauma system.
+
 `force_regeneration.reinforcement` is entirely for the planner to set, and this project makes no attempt to balance it automatically against a scenario's attrition rate. The 7-day/7-day configuration illustrates the mechanism; it is not a recommended operational setting.
 
 ### Mass Casualty Event Stress Test

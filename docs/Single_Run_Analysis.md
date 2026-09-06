@@ -29,7 +29,6 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 <small>[Return to Top](#contents)</small>
 
 <!-- TOC START -->
-
 - [Abstract](#abstract)
 - [Contents](#contents)
 - [Methods](#methods)
@@ -49,7 +48,6 @@ The modelled system sustains a single brigade at Falklands-equivalent casualty r
 - [Limitations](#limitations)
 - [Conclusion](#conclusion)
 - [References](#references)
-  
   <!-- TOC END -->
 
 ---
@@ -292,7 +290,7 @@ The share of R2E casualties kept in theatre is a different quantity from that ov
 
 <small>[Return to Top](#contents)</small>
 
-**Both force pools depleted across the run, modestly, and at Falklands-calibrated rates neither reached a level that would change how the health system is sized.** Casualties are generated against the force actually present at the time rather than against a fixed roll strength, so sustained losses pull the effective force down as the campaign proceeds. Reinforcement ships switched off in the shipped configuration, making the run below a case of pure depletion. Whether that depletion shows up as falling daily casualty numbers, and whether reinforcement halts it, are questions about a trend in a noisy series and are answered across replications in [Force Regeneration Under Reinforcement](Multi_Run_Analysis.md#force-regeneration-under-reinforcement).
+**Both force pools depleted across the run, modestly, and at Falklands-calibrated rates neither reached a level that would change how the health system is sized.** Casualties are generated against the force actually present at the time rather than against a fixed roll strength, so sustained losses pull the effective force down as the campaign proceeds. Reinforcement ships switched off in the shipped configuration, making the run below a case of pure depletion. Whether that depletion shows up as falling daily casualty numbers, and whether reinforcement halts it, are questions about a trend in a noisy series and are answered across replications in [Force Regeneration Under Reinforcement](Multi_Run_Supplement.md#force-regeneration-under-reinforcement).
 
 ![Line chart of effective combat and support force size against simulation day, each pool's solid curve declining across the 30 days below a dashed line marking its initial establishment strength, the combat curve visibly stepped at heavy arrival days and ending near 2,225 of 2,500, the support curve shallower and ending near 1,162 of 1,250](../images/force_regeneration.png)
 
@@ -365,7 +363,7 @@ The third belongs to verification itself. Showing that the figures published her
 
 Three levers follow for a planner: more R2B hold beds or an evacuation threshold from R2B holding; a second surgical section rostered to the night shift at R2E; and more R2E holding beds, since one pool currently carries both in-theatre recovery and the evacuation wait.
 
-This walk-through describes one campaign under the Falklands-modified baseline, and none of its figures carries an interval. Whether these findings hold more widely, and how the system copes with a much higher casualty rate, is answered in [Comparative Scenario Analysis](Multi_Run_Analysis.md#comparative-scenario-analysis) (`docs/Multi_Run_Analysis.md`), which sets this baseline against an Okinawa-intensity profile across 50 replications with 95% confidence intervals. That document also reports the model's replicated policy experiments: the post-operative intensive care gate, the forward intensive care share frontier, the transport fleet-size sweep, the reinforcement comparison and the mass casualty stress test.
+This walk-through describes one campaign under the Falklands-modified baseline, and none of its figures carries an interval. Whether these findings hold more widely, and how the system copes with a much higher casualty rate, is answered in [Comparative Scenario Analysis](Multi_Run_Analysis.md#comparative-scenario-analysis) (`docs/Multi_Run_Analysis.md`), which sets this baseline against an Okinawa-intensity profile across 50 replications with 95% confidence intervals. That document also reports the model's replicated policy experiments: the post-operative intensive care gate, the forward intensive care share frontier, the transport fleet-size sweep and the mass casualty stress test. The reinforcement comparison, which measures force generation rather than health system performance, is reported in `docs/Multi_Run_Supplement.md`.
 
 ---
 

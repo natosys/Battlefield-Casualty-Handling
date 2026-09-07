@@ -4,25 +4,7 @@
 
 <small>[Return to Top](#contents)</small>
 
-**Background**
-
-A simulation result is only as good as the design that produced it. The replicated experiments reported for this trauma system model [[1]](#references) each rest on a run count, a control seed, a set of parameter overrides and a choice of interval, and a reader who wants to reproduce or audit a result needs all four in front of them. Reporting that detail alongside each finding would obscure the findings themselves.
-
-**Objective**
-
-To record the full experimental design of every replicated experiment this project has run, together with the statistical basis of the intervals reported from them, so that each result in the companion paper can be reproduced, audited or extended.
-
-**Methods**
-
-Each experiment is described by its replication count, campaign horizon, control seed, the parameters overridden against the shipped default configuration and the command that invokes it. The replication framework beneath them is described in the same terms: how independence between replications is established, how confidence intervals are constructed, how many replications a given resolution requires, and why no warm-up period is discarded. Each property is tied to the automated check that defends it.
-
-**Results**
-
-Replication independence follows from construction rather than from measurement: a replication is a pure function of its seed, and each replication is given a distinct seed. Antithetic pairing was trialled as a variance reduction scheme and withdrawn, its within-pair correlation on total casualties measuring $-0.04$ (95% confidence interval $[-0.27, +0.19]$) over 75 pairs. The best determined spread available for the model, on the treated-cohort died-of-wounds rate, has a per-replication standard deviation of 0.0039, from which the replication counts required for a given half-width follow directly. The force regeneration experiment, which measures the mechanism driving casualty arrivals rather than the performance of the health system, is reported here in full.
-
-**Conclusion**
-
-The designs recorded here support the companion paper's findings at the precision it states and no further. Where a design cannot support a stronger claim, the reason is a run count, an uncontrolled comparison or a single control seed, and each is identified against the experiment it limits.
+This document is the design record for the replicated experiments reported in the companion paper on the land-based trauma system [[1]](#references). For each of seven experiments it states the replication count, the campaign horizon, the control seed, the parameters overridden against the shipped default configuration, and the command that invokes it. For the replication framework beneath them it states how independence between replications is established, how confidence intervals are constructed, how many replications a given resolution requires, and why no warm-up period is discarded. Replications are independent by construction rather than by measurement, each being a pure function of a distinct seed, and every property the framework rests on is asserted by a regression check that runs whenever the model changes. Antithetic pairing was trialled as a variance reduction scheme and withdrawn. No finding about the performance of the trauma system appears here, with one exception: the force regeneration comparison measures the mechanism generating casualty arrivals rather than the system treating them, and is reported in full. A reader can reproduce any result the companion paper states, or cost the further runs an unresolved one would need.
 
 ## Contents
 
@@ -63,7 +45,7 @@ This project reports its work across four documents. The first traces a single c
 
 The division is one of audience rather than of subject. A planner reading the companion paper needs to know that three ambulances are sufficient and that the evidence for it is a queue that collapses between one and two vehicles. A reader auditing that recommendation needs to know that it rests on ten replications per fleet size at one control seed and one casualty intensity, that the utilisation column of the same sweep is too poorly determined to read, and which script produces both. The first reader is served by omitting that detail and the second by recording it, so it is recorded here.
 
-Nothing in this document is a finding about the performance of the trauma system. Every measured result of that kind belongs to the companion paper. The one experiment reported here in full, force regeneration under reinforcement, measures the mechanism that generates casualty arrivals rather than the system that treats them, and so informs how the simulation is constructed rather than any planning decision about the health system.
+Every measured result about the performance of the trauma system belongs to the companion paper, and the one experiment reported here in full is the exception the abstract names: force regeneration under reinforcement informs how the simulation is constructed rather than any planning decision about the health system.
 
 The document is presented in four parts. The first describes the replication framework every experiment runs through and the statistical basis of every interval reported from it. The second gives the design of each experiment in turn. The third reports the force regeneration experiment. The fourth records the provenance of the figures and the limitations the designs carry.
 

@@ -4,7 +4,7 @@
 ## Reference list structural checks         ##
 ##############################################
 #
-# Regression check for the reference lists of the three academic documents.
+# Regression check for the reference lists of the four academic documents.
 #
 # The checks below are structural, not bibliographic: they assert the
 # properties a reader relies on when following a citation, and they are the
@@ -159,7 +159,8 @@ check_references <- function(file_path) {
 
 reference_docs <- c("README.md",
                     "docs/Single_Run_Analysis.md",
-                    "docs/Multi_Run_Analysis.md")
+                    "docs/Multi_Run_Analysis.md",
+                    "docs/Multi_Run_Supplement.md")
 
 violations <- sum(vapply(reference_docs, check_references, numeric(1)))
 

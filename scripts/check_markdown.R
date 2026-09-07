@@ -22,7 +22,7 @@
 #'   other, producing a different anchor from the same document.
 #'
 #'   Verified character for character against the ids GitHub itself generates
-#'   for all 140 headings across the three documents this script maintains.
+#'   for all 140 headings across the documents this script maintains.
 github_anchor <- function(title) {
   kept <- gsub("[^\\p{L}\\p{N}\\p{M}\\p{Pc}\\- ]", "", title, perl = TRUE)
   gsub(" ", "-", tolower(kept), fixed = TRUE)
@@ -523,14 +523,15 @@ check_scan_table <- function(file_path) {
   problems
 }
 
-# The three documents that carry a table of contents block and the return
+# The four documents that carry a table of contents block and the return
 # links beneath their H2 headings. Only these are rewritten.
-markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md")
+markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md",
+                   "docs/Multi_Run_Supplement.md")
 
 # Every tracked markdown document, which is the scope of the link check alone.
 # A document listed here is checked in both directions: its own anchor links
 # must resolve, and a link from elsewhere in the set to one of its headings is
-# resolved against the headings it actually offers. The seven beyond the three
+# resolved against the headings it actually offers. The seven beyond the four
 # above carry no table of contents block and must not be given one, the
 # maintenance above being scoped deliberately to the documents that do. A new
 # markdown document added to the repository belongs here.

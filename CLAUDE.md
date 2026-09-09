@@ -14,8 +14,9 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 
 | File / Directory | Purpose |
 |---|---|
-| `run.R` | CLI entry point — parses arguments, orchestrates modules, and writes outputs |
+| `run.R` | CLI entry point — validates arguments (via `R/cli.R`, before any simulation runs), orchestrates modules, and writes outputs. Takes `--scenario`, `--mode`, `--images-dir` and `--max-cores` alongside the run parameters |
 | `R/constants.R` | Values shared across modules, `DAY_MIN` (minutes per simulated day) among them. Sourced by each module that needs one rather than by one module on every other's behalf, the modules under `R/` being otherwise independent |
+| `R/cli.R` | Command-line argument validation shared by `run.R` and `scripts/run_warmup.R` — range and directory rules, the warm-up-against-run-length rule, execution mode resolution, and the two conditions guarding a baseline refresh. Base R only, so a regression check can source it alone and exercise every rule without loading simmer or running the model |
 | `R/environment.R` | Data import, arrival generation, and simmer environment construction |
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
 | `R/replication.R` | Multi-run replication framework (`run_once`, `run_replications`, `summarise_replications`) |
@@ -28,7 +29,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `app.R` | Shiny console. `server()` is an orchestrator over per-panel functions, one per tab and one per asynchronous run; a change to one panel belongs in that panel's function — Configure/Run/Analyse workflow for interactive `env_data.json` parameter editing, Quick Run, Full Analysis (multi-run with 95% CI), and Sensitivity Screening (Morris/Sobol) execution (Issues #14, #15) |
 | `env_data.json` | All simulation parameters — populations, resources, distributions, schedules |
 | `scripts/run_sensitivity.R` | CLI entry point for sensitivity analysis |
-| `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis |
+| `scripts/run_warmup.R` | CLI entry point for Welch warm-up analysis. Takes `--seed`, so a published warm-up figure is reproducible from the command line, and writes under `--output-dir`/`--images-dir`; the tracked `images/welch_plot_icu_queue.png` is written by `--refresh-baseline` alone |
 | `scripts/run_scenarios.R` | CLI entry point for the comparative scenario runner |
 | `scripts/render_dow_survival.R` | Renders `images/dow_survival_function.png` from the `dow.params` block of `env_data.json`, for the base configuration or a `--scenario` profile, so a re-fitted `p_max` cannot leave the figure disagreeing with the calibration table beneath it; `--refresh-baseline` is the only way to write the tracked image |
 | `scripts/render_paper_figures.R` | Renders the three result tables of `docs/Multi_Run_Analysis.md` as figures, parsing the values out of the paper's own markdown tables rather than holding a second copy of them, so a figure cannot disagree with the table it illustrates; fails rather than writing where a table has moved or no longer parses, and `--refresh-baseline` is the only way to write the tracked `images/paper_*.png` |

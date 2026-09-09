@@ -399,11 +399,11 @@ The following population groups are defined in the simulation environment:
 
 #### Reinforcement Demand & Fulfillment
 
-A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.
+A demand submission cycle of 0 days disables reinforcement, and the fulfillment lag and fill distribution parameters are then unused. The shipped default is 7 days, matching the strategic aeromedical evacuation sortie interval.
 
 | Parameter | Variable | Value |
 |-----------|----------|-------|
-| Demand Submission Cycle (days) | — | 0 |
+| Demand Submission Cycle (days) | — | 7 |
 | Fulfillment Lag (days) | — | 7 |
 | Fill Distribution — Minimum (fraction of demand) | a | 0.2 |
 | Fill Distribution — Mode (fraction of demand) | c | 0.85 |

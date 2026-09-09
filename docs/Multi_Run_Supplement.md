@@ -198,7 +198,7 @@ The comparison sorts casualties by origin rather than by a strict time window ar
 
 This experiment is reported here rather than in the companion paper. It measures the force generation mechanism that drives casualty arrivals rather than the performance of the health system, so it informs the simulation's construction rather than a planning decision about the trauma system.
 
-**Design.** 15 replications per row at `moderate_intensity` and 12 at `high_intensity`, each of 30 simulated days, with daily casualty volume averaged across replications and fitted with an ordinary least-squares trend against simulation day. The unreinforced rows use the shipped default (`force_regeneration.reinforcement.demand_interval_days = 0`, which disables the mechanism). The reinforced rows override it with a 7-day demand submission cycle, a 7-day fulfillment lag and the shipped default triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
+**Design.** 15 replications per row at `moderate_intensity` and 12 at `high_intensity`, each of 30 simulated days, with daily casualty volume averaged across replications and fitted with an ordinary least-squares trend against simulation day. The unreinforced rows set `force_regeneration.reinforcement.demand_interval_days` to 0, which disables the mechanism. The reinforced rows use a 7-day demand submission cycle, a 7-day fulfillment lag and the triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
 
 | Scenario | Reinforcement | Daily volume slope | p-value | First-week mean | Last-week mean |
 |---|---|---|---|---|---|

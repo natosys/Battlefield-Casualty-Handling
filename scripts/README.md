@@ -90,11 +90,20 @@ capacity sweep, a sensitivity screen or the scenario runner leaves the
 configuration globals at their pre-call values; it stubs out each entry point's
 expensive interior and runs one live two-day replication, so it belongs with the
 sub-half-minute checks. The second asserts that the analysis module's entry
-points and the Shiny console's configuration-loading boundary reject malformed
-input with a message naming the element at fault; it runs one two-day single
-run and nothing else. Neither has been measured in this container; in an
-unpinned R 4.3.3 sandbox they took 18 and 16 seconds, which places both with
-the sub-half-minute checks.
+points, the Shiny console's configuration-loading boundary and the two CLI
+entry points reject malformed input with a message naming the element at
+fault; it runs one two-day single run, exercises the command-line rules by
+sourcing `R/cli.R` directly, and spawns `run.R` once to show those rules are
+wired into the entry point rather than merely present in the module. Neither
+has been measured in this container; in an unpinned R 4.3.3 sandbox they took
+18 and 26 seconds, which places both with the sub-half-minute checks.
+
+The command-line rules are asserted by calling them rather than by spawning a
+process per case. A process per case would be the more direct test, but each
+spawn re-sources every module, which took the check from 16 seconds to over
+two minutes and would have cost that on every pull request. Sourcing `R/cli.R`
+alone is what keeps the check inside its own runtime budget, and the single
+spawned invocation covers the wiring that unit-level calls cannot.
 
 Four further checks arrived with the code-standard work and carry no row
 above. `check_analysis_decomposition.R` (5 s) and `check_console_bindings.R`

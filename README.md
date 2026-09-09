@@ -1121,9 +1121,24 @@ Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
 
 # Write this run's artifacts somewhere other than outputs/
 Rscript run.R --seed 42 --days 30 --iterations 1 --output-dir /tmp/run42
+
+# Run under a scenario profile from env_data.json's scenarios block
+Rscript run.R --scenario moderate_intensity --days 360 --iterations 1
+
+# State the execution mode explicitly, and cap the cores it forks across
+Rscript run.R --mode multi --iterations 30 --days 360 --max-cores 4
+
+# Send the plots somewhere other than the run's own output directory
+Rscript run.R --days 30 --iterations 1 --images-dir /tmp/plots
 ```
 
-`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warm-up-period-analysis) below for why). `--output-dir` moves the run's own artifacts away from `outputs/`, which lets a check run the model without disturbing the working directory; it does not reach the tracked baseline set, which `--refresh-baseline` alone writes.
+`--seed` takes an integer and defaults to 42, `--days` defaults to 30, and `--iterations` defaults to 1. `--warm-up` sets the number of days excluded from the start of the analysis window, defaulting to the `WARM_UP_DAYS` constant in `R/warmup.R`, which currently ships at 0 (see [Warm-up Period Analysis](#warm-up-period-analysis) below for why). `--output-dir` moves the run's own artifacts away from `outputs/`, which lets a check run the model without disturbing the working directory; it does not reach the tracked baseline set, which `--refresh-baseline` alone writes. `--images-dir` moves the plots alone, and is likewise ignored under `--refresh-baseline`.
+
+`--scenario` names a profile from the `scenarios` block of `env_data.json`, or `default` for the base parameters, and is resolved by `load_scenario()`; see [Scenario Profiles](#scenario-profiles). It overlays only the scenario-specific subset of `vars`, structural configuration never being scenario-specific. A profile and a baseline refresh are mutually exclusive: the tracked evidence set describes the shipped configuration, so writing it under a profile would leave it describing a configuration the repository does not ship.
+
+`--mode` takes `single` or `multi` and states which of the two execution paths the run takes. It is optional and inferred from `--iterations` when omitted, so every invocation above behaves as it did before the switch existed; passing both when they disagree is rejected. The distinction matters because the two paths produce different artifact sets, only the single-run path writing `logs.txt` and the arrival diagnostics, which is also why `--refresh-baseline` requires single-run mode. `--max-cores` caps the cores `mclapply()` forks across in multi-run mode, which matters on a memory-constrained host: each fork carries a full duplicate R session, and forking one per core has been observed to exhaust a container and lose replications.
+
+Every switch is validated before any simulation runs, and a malformed value is rejected with a message naming the switch and the value found rather than surfacing later inside the analysis pipeline. The rules live in `R/cli.R` and are asserted by `scripts/check_input_validation.R`.
 
 Artifacts fall into two categories, distinguished by whether they are a disposable record of one particular run or the repository's tracked regression evidence. Every run writes only the first category, all of it beneath `outputs/`, which is gitignored apart from its `.gitkeep`. The tracked baseline set is written only when `--refresh-baseline` is passed, and then every part of it is written together from that one run, so no invocation can leave `images/`, `logs/logs.txt` and `data/` describing a mixture of different runs:
 

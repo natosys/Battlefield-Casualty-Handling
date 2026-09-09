@@ -239,6 +239,131 @@ both_named <- is.character(faults_msg) &&
 if (!both_named) fail("validate_env_data_json: reported only one of two faults")
 report(both_named, "every fault in a configuration is reported, not only the first")
 
+# ── CLI entry points ────────────────────────────────────────────────────────
+#
+# run.R and scripts/run_warmup.R take their arguments from a command line,
+# which is input from outside the program exactly as env_data.json is, and
+# validating it late is worse than validating it late elsewhere: a malformed
+# --days or --iterations used to be accepted, a full simulation run, and the
+# failure raised inside the analysis pipeline naming a monitoring data frame
+# the user never referred to (Issue #310).
+#
+# Each case below asserts both halves of that: the run is rejected, and the
+# message names the switch at fault. Rejection is asserted to happen before any
+# simulation, by giving every case an output directory that must not exist
+# afterwards. A run that got as far as simulating would have created it.
+
+cat("\nCLI entry points\n")
+
+source("R/cli.R")
+
+#' Assert that a validator rejects a value, naming the switch at fault
+#'
+#' @param label Description of the assertion, for the PASS/FAIL line.
+#' @param expected Substring the raised message must contain.
+#' @param expr Expression expected to stop.
+#' @return Invisible NULL; called for its PASS/FAIL line and failure record.
+expect_switch_rejected <- function(label, expected, expr) {
+  msg <- tryCatch({
+    force(expr)
+    NA_character_
+  }, error = function(e) conditionMessage(e))
+
+  rejected <- !is.na(msg)
+  named    <- rejected && grepl(expected, msg, fixed = TRUE)
+  ok <- rejected && named
+  if (!ok) {
+    fail(sprintf("%s: rejected=%s names(%s)=%s", label, rejected, expected, named))
+  }
+  report(ok, "%s", label)
+  invisible(NULL)
+}
+
+#' Assert that a validator accepts a well-formed value
+#'
+#' @param label Description of the assertion, for the PASS/FAIL line.
+#' @param expr Expression expected not to stop.
+#' @return Invisible NULL; called for its PASS/FAIL line and failure record.
+expect_switch_accepted <- function(label, expr) {
+  msg <- tryCatch({
+    force(expr)
+    NA_character_
+  }, error = function(e) conditionMessage(e))
+
+  ok <- is.na(msg)
+  if (!ok) fail(sprintf("%s: rejected a well-formed value with %s", label, msg))
+  report(ok, "%s", label)
+  invisible(NULL)
+}
+
+expect_switch_rejected("--days 0 is rejected by name", "--days",
+                       require_number_in_range(0, "--days", 1))
+expect_switch_rejected("a negative --days is rejected by name", "--days",
+                       require_number_in_range(-5, "--days", 1))
+expect_switch_rejected("--iterations 0 is rejected by name", "--iterations",
+                       require_number_in_range(0, "--iterations", 1))
+expect_switch_rejected("--max-cores 0 is rejected by name", "--max-cores",
+                       require_number_in_range(0, "--max-cores", 1))
+expect_switch_rejected("a non-finite value is rejected by name", "--days",
+                       require_number_in_range(NA_real_, "--days", 1))
+expect_switch_rejected("an empty --output-dir is rejected by name", "--output-dir",
+                       require_directory("", "--output-dir"))
+expect_switch_rejected("a negative --warm-up is rejected by name", "--warm-up",
+                       validate_warm_up(-3, 30))
+expect_switch_rejected("a --warm-up at the run length is rejected by name", "--warm-up",
+                       validate_warm_up(30, 30))
+expect_switch_rejected("a --warm-up beyond the run length is rejected by name", "--warm-up",
+                       validate_warm_up(999, 5))
+expect_switch_rejected("an unknown --mode is rejected by name", "--mode",
+                       resolve_run_mode("sideways", 1L))
+expect_switch_rejected("--mode single against many iterations is rejected", "--mode",
+                       resolve_run_mode("single", 10L))
+expect_switch_rejected("--mode multi against one iteration is rejected", "--mode",
+                       resolve_run_mode("multi", 1L))
+expect_switch_rejected("a multi-run baseline refresh is rejected by name",
+                       "--refresh-baseline",
+                       validate_baseline_refresh(TRUE, 4L, "default"))
+expect_switch_rejected("a baseline refresh under a scenario is rejected by name",
+                       "--refresh-baseline",
+                       validate_baseline_refresh(TRUE, 1L, "moderate_intensity"))
+
+# The complement: a validator that rejected everything would satisfy every
+# assertion above, so each rule is also shown to accept what it should.
+expect_switch_accepted("a well-formed --days is accepted",
+                       require_number_in_range(30, "--days", 1))
+expect_switch_accepted("an absent optional directory is accepted",
+                       require_directory(NULL, "--images-dir"))
+expect_switch_accepted("a warm-up inside the run length is accepted",
+                       validate_warm_up(0, 30))
+expect_switch_accepted("a baseline refresh of one default-scenario run is accepted",
+                       validate_baseline_refresh(TRUE, 1L, "default"))
+
+mode_inferred <- identical(resolve_run_mode(NULL, 1L), "single") &&
+  identical(resolve_run_mode(NULL, 30L), "multi") &&
+  identical(resolve_run_mode("single", 1L), "single") &&
+  identical(resolve_run_mode("multi", 30L), "multi")
+if (!mode_inferred) fail("resolve_run_mode: mode inference or agreement is wrong")
+report(mode_inferred, "an omitted --mode is inferred from --iterations, and agreement passes")
+
+# One end-to-end case, so the rules above are known to be wired into the entry
+# point rather than merely present in the module. A rejection is used because
+# it returns before the model runs, and the output directory must not exist
+# afterwards: a run that reached the simulation would have created it.
+wired_dir <- file.path(tempdir(), "cli_wiring")
+unlink(wired_dir, recursive = TRUE)
+wired_out <- suppressWarnings(system2("Rscript",
+                                      c("run.R", "--days", "0", "--output-dir", wired_dir),
+                                      stdout = TRUE, stderr = TRUE))
+wired_status <- attr(wired_out, "status")
+wired_ok <- !is.null(wired_status) && wired_status != 0L &&
+  any(grepl("--days", wired_out, fixed = TRUE)) && !dir.exists(wired_dir)
+if (!wired_ok) {
+  fail(sprintf("run.R did not reject --days 0 before running: %s",
+               paste(tail(wired_out, 3), collapse = " | ")))
+}
+report(wired_ok, "run.R rejects --days 0 by name, before any simulation or output")
+unlink(wired_dir, recursive = TRUE)
+
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")

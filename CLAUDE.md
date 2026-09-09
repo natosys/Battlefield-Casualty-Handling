@@ -567,14 +567,15 @@ These are the validated baseline values from the current single-run analysis. Re
 | OT utilisation — echelon aggregate (seed 42) | R2B: 5.4%, R2E: 18.9% |
 | R2B OT utilisation — 24h room (seed 42) | The 50-replication figures are T1 8.0% (95% CI [7.5%, 8.4%]) and T2 8.2% ([7.6%, 8.7%]) |
 | R2B OT utilisation — shift time (seed 42) | Theatre occupancy divided by the time its surgical section is rostered. On an even two-shift day this is exactly twice the 24-hour room figure above, the pre-open hold's off-roster occupancy being counted in the numerator of both |
-| R2E OT utilisation — 24h room (seed 42) | OT1: 50.5%, OT2: 34.2%. A theatre is seized before its surgical section, so a room reads as occupied while its casualty is still queued for staff; much of this is that wait, not operating time |
-| R2E OT queue ≥1 (seed 42) | OT1: 26.0% of run, OT2: 21.6% |
-| R2E surgical section utilisation (seed 42) | Section 1: 11.3%, Section 2: 21.3%, Section 3: 13.0% of the time their own rosters had them open, none of them queued. Section 2 remains the busiest, being the section rostered to the second shift and so carrying the whole night-time surgical load alone |
-| R2E ICU utilisation — mean (seed 42) | ICU1: 93.7%, ICU2: 96.9%, ICU3: 96.2%, ICU4: 86.1%. The 50-replication four-bed mean is 86.3% (95% CI [84.9%, 87.6%]) |
-| R2E ICU queue ≥1 (seed 42) | ICU1: 33.8% of run, ICU2: 7.0%, ICU3: 44.1%, ICU4: 0% |
+| Seed-42 per-resource utilisation window | Every per-resource utilisation and queue-share figure below is a fraction of the 30-day campaign window (43,200 minutes), which is also the convention `docs/Single_Run_Analysis.md` uses, so the two agree row for row. The echelon aggregates written to `outputs/ot_utilisation.csv` divide by the full observation window instead, which runs past day 30 while the Role 4 census decays, and are correspondingly lower |
+| R2E OT utilisation — 24h room (seed 42) | OT1: 50.6%, OT2: 34.2%. A theatre is seized before its surgical section, so a room reads as occupied while its casualty is still queued for staff; much of this is that wait, not operating time |
+| R2E OT queue ≥1 (seed 42) | OT1: 25.8% of run, OT2: 21.4% |
+| R2E surgical section utilisation (seed 42) | Section 1: 22.6%, Section 2: 42.7%, Section 3: 26.0% of the time their own rosters had them open, and queued for 10.6%, 34.4% and 14.8% of that same open time. Section 2 remains the busiest on both measures, being the section rostered to the second shift and so carrying the whole night-time surgical load alone |
+| R2E ICU utilisation — mean (seed 42) | ICU1: 92.7%, ICU2: 95.6%, ICU3: 94.8%, ICU4: 84.3%, the four-bed pool holding a mean of 3.67 of its 4 beds. The 50-replication four-bed mean is 86.3% (95% CI [84.9%, 87.6%]) |
+| R2E ICU queue ≥1 (seed 42) | ICU1: 33.4% of run, ICU2: 6.9%, ICU3: 43.4%, ICU4: 0% |
 | Transport utilisation — platform aggregate (seed 42) | HX240M: 3.8%, PMVAmb: 14.0% |
-| PMV Ambulance utilisation (seed 42) | 14.0%; per-vehicle 28.2% / 10.8% / 3.4%, queued for 0.22% of the run on the first vehicle |
-| HX240M utilisation (seed 42) | 3.8%; per-vehicle 9.6% / 3.3% / 7.8% / 5.2% — carries R2B→R2E mortuary road-move traffic in addition to R1→mortuary KIA |
+| PMV Ambulance utilisation (seed 42) | 14.0%; per-vehicle 28.0% / 10.7% / 3.4%, queued for 0.22% of the run on the first vehicle |
+| HX240M utilisation (seed 42) | 3.8%; per-vehicle 9.0% / 3.0% / 1.8% / 1.2%, queued for 0.70% of the run on the first vehicle — carries R2B→R2E mortuary road-move traffic in addition to R1→mortuary KIA |
 | R2B evac team dead-heading (seed 42, Issue #73 follow-up) | R2B→R2E WIA transport models a dead-heading return leg on the R2B team's own organic evac resource (`r2b_evac_leg()`/`r2b_evac_return_leg()`), matching the R1↔R2B legs; RNG-stream-shifting, not RNG-neutral |
 | R2B→R2E mortuary transport (seed 42, Issue #73 follow-up) | R2B KIA/DOW transported by road to the R2E-collocated mortuary via the shared HX2 40M fleet (`r2b_transport_kia()`, dead-heading return leg), then handed to a selected R2E team's mortuary intake (`r2e_mortuary_intake()`) |
 | R2E post-op pathway — stabilisation (seed 42) | icu=64, hold=48, so 57% of the stabilisation cohort reaches an intensive care bed. The 50-replication stabilisation ICU share is 60.2% (95% CI [57.7%, 62.7%]). `surgery_deferred` = 18; the 50-replication figure is 15.5 per run (95% CI [12.9, 18.1]) |

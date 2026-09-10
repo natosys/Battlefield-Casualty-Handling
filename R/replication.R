@@ -331,11 +331,44 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
            mc.preschedule = is.null(max_cores))
 }
 
+#' Share of a run's replications that may be lost before it stops rather than
+#' continues on the survivors
+#'
+#' @details Zero by default: any loss stops the run. The tempting alternative,
+#'   that losing a few of fifty costs precision and nothing else, assumes the
+#'   replications that die are a random subset of those dispatched, and that is
+#'   not established here. A worker is killed because the host ran out of
+#'   memory, the killer takes the largest process, and a replication generating
+#'   more casualties carries more monitoring data, so the losses skew toward the
+#'   heavier campaigns. The survivors are then biased low on queue depth,
+#'   occupancy and mortality, which are the responses this model exists to
+#'   report, and no interval computed from them shows it, an interval
+#'   describing only the spread of what survived.
+#'
+#'   How large that bias is has not been measured. It is bounded by how much of
+#'   a replication's footprint depends on its response, which here is small: a
+#'   few megabytes of monitoring against roughly 175 MB fixed per call. But
+#'   "probably small" is not a basis for a published figure, and the direction
+#'   is the unfavourable one.
+#'
+#'   A caller who would rather lose a point than lose a four-day screen can
+#'   raise this at the call site, which makes the trade an explicit choice on a
+#'   run whose cost justifies it rather than a silent default on every run. The
+#'   realised count is reported either way, so such a run still says what it
+#'   measured.
+#'
+#'   It is deliberately not in `env_data.json`: it governs how the program
+#'   behaves when its host fails, not anything a planner models.
+MAX_REPLICATION_LOSS <- 0
+
 #' Drop the replications whose worker process did not complete
 #'
 #' @param envs         List of worker results as returned by
 #'   dispatch_replications()
 #' @param n_iterations Number of replications dispatched, for the message
+#' @param max_loss     Share of `n_iterations` that may be lost before this
+#'   stops rather than warns (default `MAX_REPLICATION_LOSS`, which is zero, so
+#'   any loss stops unless a caller has deliberately raised it)
 #' @return A list with elements `envs` (the wrapped environments that survived)
 #'   and `valid` (the logical vector selecting them), so the caller can select
 #'   the matching seeds by the same vector.
@@ -350,7 +383,7 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
 #'   missing, with no default") rather than a clear diagnosis. They are filtered
 #'   out here, and the caller fails (or is warned) with an explicit, actionable
 #'   message instead.
-drop_failed_replications <- function(envs, n_iterations) {
+drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICATION_LOSS) {
   #' Whether one dispatched replication returned a usable environment
   #'
   #' @param e One element of the dispatched result list.
@@ -367,7 +400,19 @@ drop_failed_replications <- function(envs, n_iterations) {
              "and try again."),
       n_failed, n_iterations
     )
-    if (all(!valid)) stop(msg, call. = FALSE)
+    # Stopping is the default because the survivors are not a random subset of
+    # what was dispatched: see MAX_REPLICATION_LOSS above for why a loss is a
+    # suspected bias rather than a smaller sample. A caller that has raised the
+    # threshold has accepted that on a run whose cost justifies it, and is
+    # warned so the count it publishes is the one that ran (Issue #320).
+    if (n_failed > n_iterations * max_loss) {
+      stop(sprintf(
+        paste0("%s Replications lost this way are not a random subset of those dispatched, ",
+               "so the survivors may be biased rather than merely fewer, and this run stops ",
+               "rather than reporting them. Raise max_loss deliberately to accept that."),
+        msg
+      ), call. = FALSE)
+    }
     warning(msg, call. = FALSE)
     envs <- envs[valid]
   }
@@ -401,7 +446,10 @@ drop_failed_replications <- function(envs, n_iterations) {
 #'   forking one such session per core on an unconstrained core count
 #'   has been observed to exhaust a local dev container's memory and
 #'   crash it even at a modest replication count (Issue #15 follow-up).
-#' @return Named list with elements: arrivals, attributes, resources, seeds.
+#' @return Named list with elements: arrivals, attributes, resources, seeds,
+#'   n_replications (the count that actually contributed) and n_requested
+#'   (the count asked for). The two differ only when a worker was lost, and
+#'   n_replications is the one an interval or a caption should name.
 #'   Each data frame includes a 'replication' column (1..n_iterations); `seeds`
 #'   is the per-replication seed vector, in the same order.
 #'
@@ -503,6 +551,12 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     arrivals   = get_mon_arrivals(envs, ongoing = TRUE),
     attributes = get_mon_attributes(envs),
     resources  = get_mon_resources(envs),
+    # The count that actually contributed, which is what a published interval
+    # is an interval over and what a figure's caption should name. It equals
+    # n_iterations unless a worker was lost; where it does not, the difference
+    # is the whole of what a caller would otherwise misreport (Issue #320).
+    n_replications = length(envs),
+    n_requested    = n_iterations,
     # The seed each surviving replication ran under, in replication order.
     # run_once() is a pure function of its seed, so this is the whole of what
     # distinguishes one replication from another: distinct seeds here are what

@@ -21,6 +21,7 @@ This document is the design record for the replicated experiments reported in th
   - [Replication Count and Resolution](#replication-count-and-resolution)
   - [Warm-up Classification](#warm-up-classification)
   - [The Checks That Defend These Properties](#the-checks-that-defend-these-properties)
+  - [A Replication Lost to Its Host](#a-replication-lost-to-its-host)
 - [Experimental Designs](#experimental-designs)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
@@ -122,6 +123,19 @@ Each property above is asserted by a regression check that runs on every pull re
 | A measurement depends on its control seed alone, repeats at that seed, and leaves the caller's generator as it found it | `scripts/check_measurement_reproducibility.R` |
 | A configuration error inside a sweep, a screen or the scenario runner leaves the global configuration at its pre-call values | `scripts/check_config_restore.R` |
 | The analysis pipeline is idempotent and does not advance the caller's random number stream | `scripts/check_analysis_idempotence.R` |
+| A run losing any replication stops rather than reporting the survivors, and a count that is reported is the count that contributed | `scripts/check_replication_loss_reporting.R` |
+
+### A Replication Lost to Its Host
+
+A replication whose worker process is killed outright, which on a memory-constrained host is the way one fails, cannot be recovered. **A run that loses any replication stops rather than reporting the survivors.**
+
+The alternative is tempting and was rejected on inspection. Losing two of fifty looks like a smaller sample rather than a spoiled one, the survivors remaining independent draws, and on that reading the cost is precision alone and the interval reports it honestly. That reasoning assumes the replications that die are a random subset of those dispatched, and nothing here establishes it. A worker is killed because the host exhausted its memory, the operating system takes the largest process, and a replication generating more casualties carries more monitoring data than one generating fewer. The losses therefore skew toward the heavier campaigns, and the survivors are biased low on queue depth, occupancy and mortality, which are the responses this model exists to report. No interval computed from the survivors reveals that, an interval describing only the spread of what survived.
+
+How large the bias would be has not been measured, and it is bounded: the response-dependent part of a replication's footprint is a few megabytes of monitoring data against a fixed cost per call of roughly 175 MB, so most of what the killer weighs is the same for every replication. Losses also arrive in batches rather than singly, the dispatcher pre-dividing replications among its workers, and a batch mixes heavy campaigns with light ones. Both considerations point to a small effect. Neither makes it zero, and a published interval should not rest on an unmeasured assumption pointing in the unfavourable direction.
+
+The threshold is a parameter rather than a prohibition. A caller who would rather lose one design point than lose a four-day sensitivity screen can raise it at the call site, which makes that an explicit choice on a run whose cost justifies it rather than a silent default on every run.
+
+Every count this document and its companion paper carry is the count that contributed, not the count requested. The two are the same on a run that loses nothing, which is now the only run that reports at all unless a caller has deliberately accepted otherwise. `run_replications()` returns both so that a caller cannot report one while computing from the other, which is the form the original defect took: the metrics came from the survivors and the label came from the request.
 
 ---
 

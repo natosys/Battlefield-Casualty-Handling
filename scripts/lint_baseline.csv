@@ -1,5 +1,5 @@
 rule,count
-assignment_linter,124
+assignment_linter,128
 commas_linter,6
 function_length,2
 indentation_linter,160

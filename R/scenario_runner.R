@@ -107,7 +107,8 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0 = no exclusion)
 #' @return Named list: scenario (name), label (scenario's `label` field, or
-#'   "Default (base configuration)"), n_iterations, n_days, mon (raw
+#'   "Default (base configuration)"), n_iterations (requested), n_replications
+#'   (realised, and the count any label should name), n_days, mon (raw
 #'   monitoring data), queue_kpi (summarise_replications() output),
 #'   totals (summarise_scenario_totals() output)
 #'
@@ -153,6 +154,11 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
     scenario     = scenario,
     label        = label,
     n_iterations = n_iterations,
+    # Both counts, because they answer different questions: n_iterations is
+    # what the design asked for and belongs in a description of the experiment,
+    # n_replications is what contributed and belongs anywhere a result is
+    # labelled with its sample size (Issue #320).
+    n_replications = mon$n_replications,
     n_days       = n_days,
     mon          = mon,
     queue_kpi    = summarise_replications(mon, warm_up_days = warm_up_days),

@@ -7,19 +7,33 @@ cheaply: the two design point caches together represent roughly nineteen hours
 of computation on four cores, and every published index, rank and separation in
 the project derives from them.
 
-All of it was produced from one code state, commit `ed3c426`, in the pinned Dev
+The Sobol decomposition, the noise floor measurement and the two re-analyses
+were produced from one code state, commit `ed3c426`, in the pinned Dev
 Container described in the [Development
-Environment](../../README.md#development-environment) section. Each screen's
-`*_run_metadata.csv` records the design behind its own results.
+Environment](../../README.md#development-environment) section. The Morris
+screen was re-run at commit `2ae4c31` after `ame_failure_probability` moved to
+a shipped value of zero and its screening range to 0 to 0.30, so the parameter
+would be screened around the configuration that ships; that re-run was made in
+an unpinned R 4.3.3 environment. Each screen's `*_run_metadata.csv` records the
+design behind its own results.
+
+**The Sobol decomposition therefore predates the Morris re-screen and is
+described by the previous bounds.** Its five selected parameters were chosen
+from the earlier Morris ranking, and all five are still the leading five on the
+re-screen, so the selection stands; but the decomposition itself has not been
+re-run at the current bounds, and no index in it should be quoted as describing
+the shipped configuration of `ame_failure_probability`. Re-running it is
+roughly fourteen hours of computation.
 
 ## Contents
 
 | Path | What it holds |
 |---|---|
-| `morris_r20/points.csv` | The Morris design point cache: 1,320 points, being 20 trajectories over 65 parameters plus one, at 4 replications and 30 days each. One row per design point, one column per screened response |
+| `morris_r20/points.csv` | The Morris design point cache: 1,320 points, being 20 trajectories over 65 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
 | `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics |
 | `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |
+| `morris_r20/morris_run_metadata.csv` | The design behind the Morris results: trajectory count, levels, grid jump, replications, run length, commit and the responses flagged degenerate |
 | `sobol_n200/points.csv` | The Sobol design point cache: 1,400 points, being N = 200 over the five leading parameters plus two, at 4 replications and 30 days each |
 | `sobol_n200/sobol_<response>.csv` | First-order and total-order indices with 95% bootstrap intervals, per response. A `flag` column marks an index outside the theoretical [0, 1] range with ST ≥ S1 |
 | `noise_floor/points.csv` | Within-point standard deviations at 20 design points evaluated at 20 replications each, the measurement of replication noise |

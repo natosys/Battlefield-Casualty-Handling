@@ -55,6 +55,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
   - [R2B Diversion Is a Policy Setting, Not a Capacity Signal](#r2b-diversion-is-a-policy-setting-not-a-capacity-signal)
   - [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
+  - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Demand on the National Support Base](#demand-on-the-national-support-base)
@@ -327,7 +328,7 @@ Whether the policy would pay at higher casualty rates, where R2E intensive care 
 
 <small>[Return to Top](#contents)</small>
 
-**Three features of how the simulated system is designed determine what its measurements mean.** All three are policy settings that could be changed, rather than fixed properties of the system.
+**Four features of how the simulated system is designed determine what its measurements mean.** Three are policy settings that could be changed, rather than fixed properties of the system; the fourth is an assumption the simulation makes about the airlift serving it.
 
 ### R2B Diversion Is a Policy Setting, Not a Capacity Signal
 
@@ -352,6 +353,29 @@ Average R2E intensive care utilisation falls from 74.1% to 60.2% when the rule i
 Within the rule, casualties recovering in a holding bed died at 0.16% against 0.06% for those recovering in intensive care, roughly 2.8 times the rate. That difference is built into the model rather than discovered by it: receiving reduced care changes the died-of-wounds curve applied to a casualty, so the figures measure how many casualties the rule sends down the higher-risk curve, not whether that curve is correct. The counts behind the ratio are small in any case, so it establishes a direction rather than a size.
 
 Both figures are limited by compute rather than by design. Deaths of wounds are rare enough at moderate intensity that separating two pathways of a few dozen casualties each would take far more runs than were available, and the comparison above was also run under an earlier statistical arrangement that makes its intervals narrower than they should be. Re-running it under the current arrangement, at a higher run count, is listed in [Further Development](#further-development).
+
+### Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing
+
+**The simulation assumes every scheduled strategic evacuation sortie flies, and that assumption is doing more work than its place in the configuration suggests.** The model exists to measure the land-based trauma system, so it sets the demand that system places on strategic evacuation rather than simulating the reliability of the aircraft meeting it, which is the same treatment the national support base receives in [Demand on the National Support Base](#demand-on-the-national-support-base). A sortie cancellation probability remains configurable, and sweeping it shows what the assumption buys.
+
+**Design.** 30 runs of a 360-day campaign at each of six cancellation probabilities, all other settings at their shipped values and every arm drawn from one seed vector so the six are paired. A campaign is counted as collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more; the per-run values are sharply divided, the highest clear run reaching 17.9 and the lowest collapsed run 84, so the threshold inside that gap does not change the count.
+
+| Sortie cancellation | Campaigns collapsed | Rate | 95% CI | Median holding queue | Worst holding queue |
+|---|---|---|---|---|---|
+| 0% (shipped) | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
+| 5% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.01 | 17.9 |
+| 10% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
+| 15% | 5 of 30 | 16.7% | [5.6%, 34.7%] | 1.05 | 161.0 |
+| 20% | 11 of 30 | 36.7% | [19.9%, 56.1%] | 1.52 | 298.9 |
+| 25% | 12 of 30 | 40.0% | [22.7%, 59.4%] | 7.85 | 247.3 |
+
+Three things follow, and the first is the one a planner needs. **Losses up to 10% cost nothing at all.** The worst campaign at 10% reaches a holding queue of 17.9, the same figure as under perfect lift, so the critical-route margin absorbs that much loss completely rather than degrading through it. **The transition is then a cliff rather than a slope.** Between 10% and 15% the collapse rate moves from zero to 16.7% and the worst queue from 17.9 to 161. **Above 20% the risk saturates**, 36.7% and 40.0% having intervals that overlap heavily, because by then the campaigns liable to collapse already have. **Evidence: measured.**
+
+The mechanism is that a cancellation removes lift permanently rather than deferring it. Sortie capacity accumulates on the evacuation resources and is never released (see the AME Capacity Banking assumption in the README), so a cancelled sortie contributes nothing at all instead of moving its ninety seats to the following week. An early run of cancellations therefore consumes a margin that later sorties cannot rebuild, the holding pool fills, and intensive care behind it can no longer step casualties down into it, which is the pool interaction recorded as Further Development entry L17. A campaign that crosses into that state does not recover within the year.
+
+Two cautions bound how far this table should be read. The collapse rate is a property of the whole campaign rather than of any month, and cannot be predicted from a campaign's opening: across 30 runs at the shipped 15% used previously, the runs that went on to collapse were not distinguishable from the rest by their first 30 days (p = 0.36). And the median holding queue stays below 2 in five of the six arms, so a reader watching typical performance would see nothing wrong anywhere across that range. The entire effect sits in the tail, which is also why the variance-based sensitivity screen in the README ranks this parameter far down its list: those methods measure a parameter's effect on the mean of a response, and this one acts on how often a campaign fails altogether.
+
+What the table does not establish is whether any particular reliability is achievable, which is a question about airframes, weather and tasking that sits outside the simulation. It says only what the trauma system can absorb.
 
 ### Mass Casualty Events Degrade Care Without Revealing New Constraints
 

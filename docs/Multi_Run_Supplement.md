@@ -21,6 +21,7 @@ This document is the design record for the replicated experiments reported in th
   - [Replication Count and Resolution](#replication-count-and-resolution)
   - [Warm-up Classification](#warm-up-classification)
   - [The Checks That Defend These Properties](#the-checks-that-defend-these-properties)
+  - [A Replication Lost to Its Host](#a-replication-lost-to-its-host)
 - [Experimental Designs](#experimental-designs)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
@@ -122,6 +123,15 @@ Each property above is asserted by a regression check that runs on every pull re
 | A measurement depends on its control seed alone, repeats at that seed, and leaves the caller's generator as it found it | `scripts/check_measurement_reproducibility.R` |
 | A configuration error inside a sweep, a screen or the scenario runner leaves the global configuration at its pre-call values | `scripts/check_config_restore.R` |
 | The analysis pipeline is idempotent and does not advance the caller's random number stream | `scripts/check_analysis_idempotence.R` |
+| A replication lost to its host is reported rather than dropped from the count, and a loss beyond the threshold stops the run | `scripts/check_replication_loss_reporting.R` |
+
+### A Replication Lost to Its Host
+
+A replication whose worker process is killed outright, which on a memory-constrained host is the way one fails, cannot be recovered and is dropped. The survivors remain independent draws, so a run that loses one of fifty is a sound measurement at forty-nine rather than a spoiled one, and stopping would discard the other forty-nine for nothing. What a lost replication costs is precision, and precision the interval already reports.
+
+Every count this document and its companion paper carry is therefore the count that contributed, not the count requested. The two are the same on a run that loses nothing, which is the ordinary case; where they differ, the realised count is the one an interval divides by and the one a figure's caption names. `run_replications()` returns both so that a caller cannot report one while computing from the other, which is the form this defect took: the metrics came from the survivors and the label came from the request.
+
+A run losing more than a tenth of its replications stops rather than reporting. That threshold divides a loss that costs precision from one that has quietly substituted a different experiment for the one asked for, and the value is a judgement rather than a derivation: a tenth is small enough that no published interval here would widen materially, and large enough that the single-worker losses the tolerance exists for do not halt a multi-hour run.
 
 ---
 

@@ -59,7 +59,8 @@ compute_welch_cma <- function(binned) {
 #'
 #' @param cma_df      Data frame as returned by compute_welch_cma()
 #' @param warm_up_days Identified warm-up period in days
-#' @param n_reps      Number of replications used (for subtitle)
+#' @param n_reps      Number of replications that contributed to the curve, for
+#'   the subtitle; the realised count rather than the requested one
 #' @param n_days      Total run length in days (for subtitle)
 #' @param images_dir  Output directory for the PNG (default "images")
 #' @return Invisibly returns the ggplot object
@@ -119,7 +120,10 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
   cma_df <- compute_welch_cma(binned)
 
   write.csv(cma_df, file.path(output_dir, "welch_cma.csv"), row.names = FALSE)
-  plot_welch(cma_df, WARM_UP_DAYS, n_reps = n_reps, n_days = n_days,
+  # The realised count rather than the requested one: the curve is an average
+  # over the replications that contributed, so that is the number its subtitle
+  # has to name (Issue #320).
+  plot_welch(cma_df, WARM_UP_DAYS, n_reps = mon$n_replications, n_days = n_days,
              images_dir = images_dir)
 
   if (WARM_UP_DAYS > 0L) {

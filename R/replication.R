@@ -331,11 +331,27 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
            mc.preschedule = is.null(max_cores))
 }
 
+#' Share of a run's replications that may be lost before it stops rather than
+#' continues on the survivors
+#'
+#' @details Losing a replication costs precision and nothing else, the
+#'   survivors remaining independent draws, so a run that loses one of fifty is
+#'   still a sound measurement at forty-nine and stopping it would waste the
+#'   other forty-nine. A run that loses a quarter of them is a different
+#'   experiment from the one that was asked for, and continuing silently is how
+#'   an interval comes to be published beside a replication count it never
+#'   achieved. The threshold divides those two cases. It is deliberately not in
+#'   `env_data.json`: it governs how the program behaves when its host fails,
+#'   not anything a planner models.
+MAX_REPLICATION_LOSS <- 0.10
+
 #' Drop the replications whose worker process did not complete
 #'
 #' @param envs         List of worker results as returned by
 #'   dispatch_replications()
 #' @param n_iterations Number of replications dispatched, for the message
+#' @param max_loss     Share of `n_iterations` that may be lost before this
+#'   stops rather than warns (default `MAX_REPLICATION_LOSS`)
 #' @return A list with elements `envs` (the wrapped environments that survived)
 #'   and `valid` (the logical vector selecting them), so the caller can select
 #'   the matching seeds by the same vector.
@@ -350,7 +366,7 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
 #'   missing, with no default") rather than a clear diagnosis. They are filtered
 #'   out here, and the caller fails (or is warned) with an explicit, actionable
 #'   message instead.
-drop_failed_replications <- function(envs, n_iterations) {
+drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICATION_LOSS) {
   #' Whether one dispatched replication returned a usable environment
   #'
   #' @param e One element of the dispatched result list.
@@ -367,7 +383,17 @@ drop_failed_replications <- function(envs, n_iterations) {
              "and try again."),
       n_failed, n_iterations
     )
-    if (all(!valid)) stop(msg, call. = FALSE)
+    # Above the threshold the run stops rather than reporting a measurement
+    # nobody asked for. Below it the loss is survivable, but the caller is told
+    # so that the count it publishes is the one that ran (Issue #320).
+    if (n_failed > n_iterations * max_loss) {
+      stop(sprintf(
+        paste0("%s That is more than the %.0f%% of a run this framework will lose and still ",
+               "report, so it stops here rather than returning a measurement of an ",
+               "experiment nobody asked for."),
+        msg, 100 * max_loss
+      ), call. = FALSE)
+    }
     warning(msg, call. = FALSE)
     envs <- envs[valid]
   }
@@ -401,7 +427,10 @@ drop_failed_replications <- function(envs, n_iterations) {
 #'   forking one such session per core on an unconstrained core count
 #'   has been observed to exhaust a local dev container's memory and
 #'   crash it even at a modest replication count (Issue #15 follow-up).
-#' @return Named list with elements: arrivals, attributes, resources, seeds.
+#' @return Named list with elements: arrivals, attributes, resources, seeds,
+#'   n_replications (the count that actually contributed) and n_requested
+#'   (the count asked for). The two differ only when a worker was lost, and
+#'   n_replications is the one an interval or a caption should name.
 #'   Each data frame includes a 'replication' column (1..n_iterations); `seeds`
 #'   is the per-replication seed vector, in the same order.
 #'
@@ -503,6 +532,12 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     arrivals   = get_mon_arrivals(envs, ongoing = TRUE),
     attributes = get_mon_attributes(envs),
     resources  = get_mon_resources(envs),
+    # The count that actually contributed, which is what a published interval
+    # is an interval over and what a figure's caption should name. It equals
+    # n_iterations unless a worker was lost; where it does not, the difference
+    # is the whole of what a caller would otherwise misreport (Issue #320).
+    n_replications = length(envs),
+    n_requested    = n_iterations,
     # The seed each surviving replication ran under, in replication order.
     # run_once() is a pure function of its seed, so this is the whole of what
     # distinguishes one replication from another: distinct seeds here are what

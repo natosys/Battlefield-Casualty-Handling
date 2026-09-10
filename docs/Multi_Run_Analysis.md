@@ -18,7 +18,7 @@ A discrete event simulation of a brigade force with aligned health assets was ru
 
 **Results**
 
-Casualty volume rises 2.33-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 36-fold, Role 2 Basic (R2B) holding beds about 5.5-fold, R2E holding beds about 4.5-fold and R2E intensive care about 4.3-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The ambulance and truck fleets hold margin at both intensities.
+Casualty volume rises 2.43-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 26-fold, Role 2 Basic (R2B) holding beds about 5.6-fold, R2E holding beds about 5.3-fold and R2E intensive care about 6.4-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The ambulance and truck fleets hold margin at both intensities.
 
 **Conclusion**
 
@@ -55,6 +55,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
   - [R2B Diversion Is a Policy Setting, Not a Capacity Signal](#r2b-diversion-is-a-policy-setting-not-a-capacity-signal)
   - [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
+  - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Demand on the National Support Base](#demand-on-the-national-support-base)
@@ -118,7 +119,7 @@ $$\bar{x} \pm t_{0.975,\;n-1}\,\frac{s}{\sqrt{n}}$$
 
 where $n$ is the number of runs, $\bar{x}$ the average across them and $s$ the variation between them. Dividing by the square root of the number of runs is what makes additional runs improve precision: quadrupling the runs halves the width of the interval.
 
-Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 437.8 casualties and that average is known to within about 17 either way, while the campaigns themselves range from 363 to 528. Sizing against 438 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
+Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 432.2 casualties and that average is known to within about 18 either way, while the campaigns themselves range from 360 to 489. Sizing against 431 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
 
 ### Replication Count and Resolution
 
@@ -150,7 +151,7 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 <small>[Return to Top](#contents)</small>
 
-**The establishment gives way at the R2E operating theatres before anywhere else, and it is already under strain at moderate intensity rather than only at high.** Casualty volume rises by a factor of 2.33 from moderate to high intensity while the R2E theatre queue rises by a factor of about 36. Sizing the system from the casualty ratio alone would under-provide surgery by more than an order of magnitude.
+**The establishment gives way at the R2E operating theatres before anywhere else, and it is already under strain at moderate intensity rather than only at high.** Casualty volume rises by a factor of 2.43 from moderate to high intensity while the R2E theatre queue rises by a factor of about 26. Sizing the system from the casualty ratio alone would under-provide surgery by an order of magnitude.
 
 ### Comparative Scenario Analysis
 
@@ -158,14 +159,14 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 437.8 [421.0, 454.7] (p10–p90: 362.7–528.0) | 1,021.0 [993.9, 1,048.1] (p10–p90: 906.5–1,138.5) | 2.33× |
-| Wounded in action/run | 188.7 [175.4, 202.0] (p10–p90: 137.6–251.5) | 684.3 [658.3, 710.3] (p10–p90: 586.2–792.5) | 3.63× |
-| Died of wounds/run | 0.78 [0.55, 1.01] (p10–p90: 0–2.0) | 23.58 [21.88, 25.28] (p10–p90: 18.0–32.1) | 30.2× |
-| Died of wounds, as share of wounded | 0.42% [0.29%, 0.54%] | 3.43% [3.24%, 3.61%] | 8.24× |
+| Total casualties/run | 432.2 [414.4, 449.9] (p10–p90: 363.6–484.5) | 1,050.4 [1,026.0, 1,074.8] (p10–p90: 968.6–1,171.4) | 2.43× |
+| Wounded in action/run | 184.5 [169.3, 199.6] (p10–p90: 137.5–222.7) | 707.2 [681.0, 733.5] (p10–p90: 568.0–807.5) | 3.83× |
+| Died of wounds/run | 1.06 [0.80, 1.32] (p10–p90: 0–2.0) | 23.80 [21.84, 25.76] (p10–p90: 15.9–32.0) | 22.5× |
+| Died of wounds, as share of wounded | 0.55% [0.42%, 0.67%] | 3.35% [3.12%, 3.58%] | 6.12× |
 
-Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 362.7 to 528.0 casualties between the 10th and 90th percentiles against an average of 437.8. Surge capacity therefore has to be judged against the heavy day rather than the average one.
+Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 363.6 to 484.5 casualties between the 10th and 90th percentiles against an average of 432.2. Surge capacity therefore has to be judged against the heavy day rather than the average one.
 
-Deaths of wounds rise 30-fold while casualty volume rises 2.33-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
+Deaths of wounds rise 22-fold while casualty volume rises 2.43-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
 
 ![Four panels, one per metric, each plotting moderate and high casualty intensity as a point with a narrow 95% confidence interval bar and a wide band showing the 10th-to-90th-percentile spread across campaigns, for total casualties, wounded in action, deaths of wounds and deaths as a share of wounded](../images/paper_casualty_totals.png)
 
@@ -174,17 +175,17 @@ The width of the pale band against the narrow bar inside it is the point to take
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 0.593 [0.501, 0.685] | 3.228 [3.005, 3.452] | 5.45× |
-| R2E operating theatre | 1.063 [0.691, 1.435] | 38.17 [34.01, 42.33] | 35.9× |
-| R2E intensive care | 0.131 [0.104, 0.159] | 0.564 [0.464, 0.664] | 4.29× |
-| R2E holding beds | 0.598 [0.437, 0.758] | 2.694 [2.449, 2.938] | 4.51× |
-| Ambulance and truck fleets | 0.0038 [0.0000, 0.0078] | 0.0278 [0.0196, 0.0361] | 7.25× |
+| R2B holding beds | 0.533 [0.421, 0.644] | 3.214 [2.890, 3.537] | 6.03× |
+| R2E operating theatre | 1.696 [0.165, 3.227] | 43.13 [38.87, 47.40] | 25.4× |
+| R2E intensive care | 0.078 [0.061, 0.095] | 0.516 [0.418, 0.614] | 6.59× |
+| R2E holding beds | 0.056 [0.014, 0.099] | 1.038 [0.910, 1.166] | 18.4× |
+| Ambulance and truck fleets | 0.019 [0.000, 0.047] | 0.051 [0.020, 0.081] | 2.67× |
 
 Each figure is the average queue at that group of resources across a campaign, averaged over the 50 runs. A resource that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts.
 
-![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.33-fold rise in casualty volume, each point sized by its absolute queue at high intensity, R2E operating theatre furthest right and largest](../images/paper_queue_growth.png)
+![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.43-fold rise in casualty volume, each point sized by its absolute queue at high intensity, R2E operating theatre furthest right and largest](../images/paper_queue_growth.png)
 
-Every queue grows faster than the casualty volume driving it. R2E operating theatre grows the most and carries by far the largest absolute queue. The ambulance and truck fleets grow second fastest, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
+Every queue grows faster than the casualty volume driving it. R2E operating theatre carries by far the largest absolute queue, and R2E holding grows the most in relative terms, 18.4-fold, from a base so low that the growth factor is the less useful of the two readings. The ambulance and truck fleets grow second fastest, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
 
 ![Four-panel bar chart of mean queue length by resource group, R2B operating theatre, R2E operating theatre, R2E intensive care and transport, comparing the high and moderate casualty intensities with error bars, on four different vertical scales](../images/scenario_comparison.png)
 
@@ -327,7 +328,7 @@ Whether the policy would pay at higher casualty rates, where R2E intensive care 
 
 <small>[Return to Top](#contents)</small>
 
-**Three features of how the simulated system is designed determine what its measurements mean.** All three are policy settings that could be changed, rather than fixed properties of the system.
+**Four features of how the simulated system is designed determine what its measurements mean.** Three are policy settings that could be changed, rather than fixed properties of the system; the fourth is an assumption the simulation makes about the airlift serving it.
 
 ### R2B Diversion Is a Policy Setting, Not a Capacity Signal
 
@@ -352,6 +353,29 @@ Average R2E intensive care utilisation falls from 74.1% to 60.2% when the rule i
 Within the rule, casualties recovering in a holding bed died at 0.16% against 0.06% for those recovering in intensive care, roughly 2.8 times the rate. That difference is built into the model rather than discovered by it: receiving reduced care changes the died-of-wounds curve applied to a casualty, so the figures measure how many casualties the rule sends down the higher-risk curve, not whether that curve is correct. The counts behind the ratio are small in any case, so it establishes a direction rather than a size.
 
 Both figures are limited by compute rather than by design. Deaths of wounds are rare enough at moderate intensity that separating two pathways of a few dozen casualties each would take far more runs than were available, and the comparison above was also run under an earlier statistical arrangement that makes its intervals narrower than they should be. Re-running it under the current arrangement, at a higher run count, is listed in [Further Development](#further-development).
+
+### Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing
+
+**The simulation assumes every scheduled strategic evacuation sortie flies, and that assumption is doing more work than its place in the configuration suggests.** The model exists to measure the land-based trauma system, so it sets the demand that system places on strategic evacuation rather than simulating the reliability of the aircraft meeting it, which is the same treatment the national support base receives in [Demand on the National Support Base](#demand-on-the-national-support-base). A sortie cancellation probability remains configurable, and sweeping it shows what the assumption buys.
+
+**Design.** 30 runs of a 360-day campaign at each of six cancellation probabilities, all other settings at their shipped values and every arm drawn from one seed vector so the six are paired. A campaign is counted as collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more; the per-run values are sharply divided, the highest clear run reaching 17.9 and the lowest collapsed run 84, so the threshold inside that gap does not change the count.
+
+| Sortie cancellation | Campaigns collapsed | Rate | 95% CI | Median holding queue | Worst holding queue |
+|---|---|---|---|---|---|
+| 0% (shipped) | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
+| 5% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.01 | 17.9 |
+| 10% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
+| 15% | 5 of 30 | 16.7% | [5.6%, 34.7%] | 1.05 | 161.0 |
+| 20% | 11 of 30 | 36.7% | [19.9%, 56.1%] | 1.52 | 298.9 |
+| 25% | 12 of 30 | 40.0% | [22.7%, 59.4%] | 7.85 | 247.3 |
+
+Three things follow, and the first is the one a planner needs. **Losses up to 10% cost nothing at all.** The worst campaign at 10% reaches a holding queue of 17.9, the same figure as under perfect lift, so the critical-route margin absorbs that much loss completely rather than degrading through it. **The transition is then a cliff rather than a slope.** Between 10% and 15% the collapse rate moves from zero to 16.7% and the worst queue from 17.9 to 161. **Above 20% the risk saturates**, 36.7% and 40.0% having intervals that overlap heavily, because by then the campaigns liable to collapse already have. **Evidence: measured.**
+
+The mechanism is that a cancellation removes lift permanently rather than deferring it. Sortie capacity accumulates on the evacuation resources and is never released (see the AME Capacity Banking assumption in the README), so a cancelled sortie contributes nothing at all instead of moving its ninety seats to the following week. An early run of cancellations therefore consumes a margin that later sorties cannot rebuild, the holding pool fills, and intensive care behind it can no longer step casualties down into it, which is the pool interaction recorded as Further Development entry L17. A campaign that crosses into that state does not recover within the year.
+
+Two cautions bound how far this table should be read. The collapse rate is a property of the whole campaign rather than of any month, and cannot be predicted from a campaign's opening: across 30 runs at the shipped 15% used previously, the runs that went on to collapse were not distinguishable from the rest by their first 30 days (p = 0.36). And the median holding queue stays below 2 in five of the six arms, so a reader watching typical performance would see nothing wrong anywhere across that range. The entire effect sits in the tail, which is why the variance-based sensitivity screen in the README ranks this parameter 50th of 65 on the system theatre queue: those methods measure a parameter's effect on the mean of a response, and this one acts on how often a campaign fails altogether. The same screen ranks it 6th of 65 on mean Role 4 occupancy and 12th on the standard-route evacuation backlog, so the parameter is not weak, it is weak on the response the published ranking happens to report.
+
+What the table does not establish is whether any particular reliability is achievable, which is a question about airframes, weather and tasking that sits outside the simulation. It says only what the trauma system can absorb.
 
 ### Mass Casualty Events Degrade Care Without Revealing New Constraints
 
@@ -386,13 +410,13 @@ Two events thirteen days apart is a thin draw from a process set to deliver an a
 
 **Strategic evacuation is limited by how many sorties actually depart rather than by how many places each carries, and every casualty left waiting occupies an R2E holding bed.** The findings in this section come from one verified campaign rather than from repeated runs, so they establish the mechanism rather than its size. **Evidence: direction only, from a single campaign.**
 
-Of 135 casualties reaching a strategic evacuation decision, 99 boarded and reached the national support base within 30 days while 36 were still waiting, each occupying an R2E holding bed, when the campaign ended [[10]](#references). Two of four scheduled sorties were cancelled, so the first to fly departed on day 21 and the average wait reached 10.1 days. Each aircraft offers 36 high-dependency and 54 ambulatory places, and the sortie that flew on day 21 filled its high-dependency cabin exactly and still left casualties behind.
+Under the shipped configuration this constraint does not bind. All four scheduled sorties fly, all 193 casualties reaching a strategic evacuation decision board and arrive within the campaign, none is left queued at R2E, and the mean wait is 1.0 days [[10]](#references). What makes the constraint visible is cancellation, which ships disabled: the same schedule losing two of its four sorties cleared 99 of 135 decisions and left 36 holding R2E beds at the end of the campaign, at a mean wait of 10.1 days. Each aircraft offers 36 high-dependency and 54 ambulatory places, and the critical cabin fills exactly on every sortie until demand is cleared in both cases, so what separates the two is how many aircraft depart rather than how large they are. [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing) measures that across the range of cancellation rates and at replication.
 
 Two planning recommendations follow. The first concerns the sortie pattern. The simulation provides a means of establishing the aeromedical evacuation sortie pattern required to clear casualties from R2E at a given casualty intensity, rather than sizing the aircraft: a schedule resilient to cancellation, whether through a reserve airframe or a shorter interval between sorties, clears the backlog where additional cabin capacity on an unreliable schedule does not. The same analysis would inform related policies, such as releasing recovering casualties to light duties in theatre, which reduces the number needing evacuation at all.
 
-The second concerns the demand signal sent rearward. Occupancy at the national support base reached 90 concurrent patients on the campaign's last day and decayed to near zero only around day 69, so the base carries its heaviest load after the campaign that generates it has ended. A demand signal for bed types at the national support base should therefore be derived from the theatre's evacuation pipeline, and phased to peak after the engagement rather than during it. The simulation can generate that signal by bed type, which is a more useful planning product than a total casualty estimate.
+The second concerns the demand signal sent rearward. Occupancy at the national support base reached 120 concurrent patients on the campaign's last day and decayed to near zero only around day 68, so the base carries its heaviest load after the campaign that generates it has ended. A demand signal for bed types at the national support base should therefore be derived from the theatre's evacuation pipeline, and phased to peak after the engagement rather than during it. The simulation can generate that signal by bed type, which is a more useful planning product than a total casualty estimate.
 
-Both recommendations rest on one campaign and one set of sortie cancellation draws. A replicated analysis of national support base demand is the first item in [Further Development](#further-development).
+Both recommendations rest on one campaign at each of two cancellation settings. A replicated analysis of national support base demand is the first item in [Further Development](#further-development).
 
 ---
 
@@ -456,7 +480,7 @@ Two narrower caveats apply. Clinical teams are taken whole rather than by indivi
 
 This paper set out to identify options for improving the land-based trauma system, and to establish where that system fails first as casualty intensity rises. It did so by running a discrete event simulation of a brigade force with aligned health assets at two casualty intensities, both derived from historical campaign data, and by testing individual design and policy settings a planner controls.
 
-**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.33-fold while the R2E theatre queue rises about 36-fold, R2B holding about 5.5-fold and R2E holding about 4.5-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict.
+**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.43-fold while the R2E theatre queue rises about 26-fold, R2B holding about 5.6-fold and R2E holding about 5.3-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict.
 
 **Four options follow, and the first is the strongest.** Extending surgical team coverage towards 24 hours at R2B and R2E addresses the principal constraint and needs no additional operating theatres, though it does need provision in the operational viability period, organisational design and workforce model. Increasing R2B holding capacity, or setting an evacuation threshold, addresses the second constraint. Holding casualties at R2B for a team about to return demonstrably reduces the surgical load transferred rearward. Three ambulances are sufficient for inter-echelon medical evacuation in support of a brigade. Delivering post-operative intensive care forward at R2B is not recommended, showing no measurable benefit at any setting tested.
 

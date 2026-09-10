@@ -96,7 +96,7 @@ env_summary_population_section <- function(env_data) {
     "",
     "#### Reinforcement Demand & Fulfillment",
     "",
-    "A demand submission cycle of 0 days disables reinforcement (the shipped default); the fulfillment lag and fill distribution parameters are then unused.",
+    "A demand submission cycle of 0 days disables reinforcement, and the fulfillment lag and fill distribution parameters are then unused. The shipped default is 7 days, matching the strategic aeromedical evacuation sortie interval.",
     "",
     "| Parameter | Variable | Value |",
     "|-----------|----------|-------|",

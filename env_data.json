@@ -330,7 +330,7 @@
           "vals": [
             {
               "var": "evacuation_policy_days",
-              "val": 30
+              "val": 21
             }
           ]
         },
@@ -872,7 +872,7 @@
         {
           "acty": "reinforcement",
           "vals": [
-            { "var": "demand_interval_days", "val": 0 },
+            { "var": "demand_interval_days", "val": 7 },
             { "var": "fulfillment_lag_days", "val": 7 },
             { "var": "fill_min_frac", "val": 0.2 },
             { "var": "fill_mode_frac", "val": 0.85 },
@@ -920,7 +920,7 @@
           "acty": "ame",
           "vals": [
             { "var": "schedule_interval_days", "val": 7 },
-            { "var": "failure_probability",    "val": 0.15 },
+            { "var": "failure_probability",    "val": 0 },
             { "var": "dow_check_interval",     "val": 1440 },
             { "var": "airframe",               "val": "c17a" }
           ]

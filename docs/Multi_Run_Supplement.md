@@ -27,6 +27,7 @@ This document is the design record for the replicated experiments reported in th
   - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
+  - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
 - [Provenance](#provenance)
@@ -180,6 +181,18 @@ Forward intensive care utilisation is poorly determined at this replication coun
 
 Mean utilisation across the swept range runs the wrong way on both platforms, rising with fleet size where a fixed demand spread over more vehicles should lower it, and the interval on HX2 40M utilisation at three vehicles spans 2.3% to 19.9%. So few transport events occur per replication that the busy-time estimate at each sweep point is barely pinned down, which is why the companion paper reads the queue column and not this one.
 
+### Strategic Airlift Reliability Sweep
+
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override per arm: `role4.ame.failure_probability` at 0, 0.05, 0.10, 0.15, 0.20 and 0.25. The six arms draw from one seed vector, so replication $k$ of every arm runs the same parent stream and the arms are paired.
+
+This is the longest experiment in the project, at 180 replication-years, and it is long by necessity rather than by preference. The response is a state a campaign reaches and does not leave, and the horizon has to exceed the time that state takes to develop: the effect is invisible at 30 days and only partly formed at 180. Sizing was governed by the replication count rather than the horizon, the quantity of interest being a probability rather than a mean, which needs roughly 217 replications for a half-width of five percentage points and returns only the wide intervals in the companion paper's table at 30.
+
+The response is not the mean of anything. A campaign is classified collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more, and the reported quantity is the share of replications that collapse. A threshold classifier is used because the per-replication values are bimodal rather than spread: the highest clear run reaches 17.9 and the lowest collapsed run 84, so any threshold inside that gap returns the same count and the classifier's exact value is not a tuning choice. Reporting a mean over a bimodal population would describe no campaign in it.
+
+Two properties of this experiment bear on how far its table can be read, and both are stated in the companion paper. Collapse is a property of a whole campaign rather than of any month within it, and a logistic fit of the outcome on the closing holding queue of the first 30 days does not distinguish the runs that go on to collapse ($p = 0.36$). And the median holding queue stays below 2 in five of the six arms, so the entire effect sits in a tail that a summary of typical performance does not show.
+
+The experiment has no CLI entry point. It was run from a driver script that calls `run_once()` per replication and retains only the daily series each arm needs, discarding each replication's monitoring data before the next begins, since holding thirty 360-day monitoring sets in memory is what would otherwise bound it. That makes this the one experiment recorded here that a reader cannot reproduce from a tracked command, which is a gap rather than a design choice and is recorded as such in [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here).
+
 ### Mass Casualty Event Stress Test
 
 10 replications of 30 simulated days at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0.
@@ -198,7 +211,7 @@ The comparison sorts casualties by origin rather than by a strict time window ar
 
 This experiment is reported here rather than in the companion paper. It measures the force generation mechanism that drives casualty arrivals rather than the performance of the health system, so it informs the simulation's construction rather than a planning decision about the trauma system.
 
-**Design.** 15 replications per row at `moderate_intensity` and 12 at `high_intensity`, each of 30 simulated days, with daily casualty volume averaged across replications and fitted with an ordinary least-squares trend against simulation day. The unreinforced rows use the shipped default (`force_regeneration.reinforcement.demand_interval_days = 0`, which disables the mechanism). The reinforced rows override it with a 7-day demand submission cycle, a 7-day fulfillment lag and the shipped default triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
+**Design.** 15 replications per row at `moderate_intensity` and 12 at `high_intensity`, each of 30 simulated days, with daily casualty volume averaged across replications and fitted with an ordinary least-squares trend against simulation day. The unreinforced rows set `force_regeneration.reinforcement.demand_interval_days` to 0, which disables the mechanism. The reinforced rows use a 7-day demand submission cycle, a 7-day fulfillment lag and the triangular fill distribution (`fill_min_frac = 0.2`, `fill_mode_frac = 0.85`, `fill_max_frac = 1.1`).
 
 | Scenario | Reinforcement | Daily volume slope | p-value | First-week mean | Last-week mean |
 |---|---|---|---|---|---|
@@ -231,13 +244,15 @@ The three result figures of the companion paper are rendered from the values in 
 
 <small>[Return to Top](#contents)</small>
 
-Four limitations are properties of the designs rather than of the model, and each bounds what the companion paper can claim from the experiment it applies to.
+Five limitations are properties of the designs rather than of the model, and each bounds what the companion paper can claim from the experiment it applies to.
 
 **A comparison of two configurations is not a controlled comparison.** Changing any setting alters the sequence of random draws, so the two arms generate different casualty streams and cannot be matched campaign for campaign. The consequence is a loss of precision rather than a bias: the means remain correct and the intervals are wider than a matched design would give. The scenario comparison is unaffected, its arms differing by design rather than by a small perturbation.
 
 **Every design runs at one control seed.** A control seed determines the whole set of per-replication seeds, so a measurement at 50 replications is one draw from the distribution of 50-replication measurements. The 0.132 percentage point spread across control seeds recorded above is the size of that effect on the best determined response the model reports, and it is the reason the calibration check pools three independent measurements.
 
 **Utilisation columns at 10 and 20 replications are not determined.** Both the transport sweep and the forward intensive care share sweep report utilisation figures that move without order across their swept range. Too few busy-time events accumulate per replication at those counts for the column to be read, and neither sweep's conclusion rests on it.
+
+**One experiment is not reproducible from a tracked command.** The strategic airlift reliability sweep was run from a driver script rather than through a CLI entry point, so a reader can follow its design from the description above but cannot re-execute it as written. Every other experiment recorded here names the command that produces it. Giving the sweep an entry point would close this, and is the smaller half of the reproducibility gap the companion paper's research agenda records.
 
 **The sweeps were run at moderate intensity only.** The transport fleet sweep, the forward intensive care share frontier and the pre-open hold window comparison all use the shipped default configuration, so none of them establishes that its result survives at the higher casualty intensity. Re-running them at high intensity is listed among the further development items of the companion paper [[1]](#references).
 

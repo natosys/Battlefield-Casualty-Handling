@@ -334,16 +334,32 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
 #' Share of a run's replications that may be lost before it stops rather than
 #' continues on the survivors
 #'
-#' @details Losing a replication costs precision and nothing else, the
-#'   survivors remaining independent draws, so a run that loses one of fifty is
-#'   still a sound measurement at forty-nine and stopping it would waste the
-#'   other forty-nine. A run that loses a quarter of them is a different
-#'   experiment from the one that was asked for, and continuing silently is how
-#'   an interval comes to be published beside a replication count it never
-#'   achieved. The threshold divides those two cases. It is deliberately not in
-#'   `env_data.json`: it governs how the program behaves when its host fails,
-#'   not anything a planner models.
-MAX_REPLICATION_LOSS <- 0.10
+#' @details Zero by default: any loss stops the run. The tempting alternative,
+#'   that losing a few of fifty costs precision and nothing else, assumes the
+#'   replications that die are a random subset of those dispatched, and that is
+#'   not established here. A worker is killed because the host ran out of
+#'   memory, the killer takes the largest process, and a replication generating
+#'   more casualties carries more monitoring data, so the losses skew toward the
+#'   heavier campaigns. The survivors are then biased low on queue depth,
+#'   occupancy and mortality, which are the responses this model exists to
+#'   report, and no interval computed from them shows it, an interval
+#'   describing only the spread of what survived.
+#'
+#'   How large that bias is has not been measured. It is bounded by how much of
+#'   a replication's footprint depends on its response, which here is small: a
+#'   few megabytes of monitoring against roughly 175 MB fixed per call. But
+#'   "probably small" is not a basis for a published figure, and the direction
+#'   is the unfavourable one.
+#'
+#'   A caller who would rather lose a point than lose a four-day screen can
+#'   raise this at the call site, which makes the trade an explicit choice on a
+#'   run whose cost justifies it rather than a silent default on every run. The
+#'   realised count is reported either way, so such a run still says what it
+#'   measured.
+#'
+#'   It is deliberately not in `env_data.json`: it governs how the program
+#'   behaves when its host fails, not anything a planner models.
+MAX_REPLICATION_LOSS <- 0
 
 #' Drop the replications whose worker process did not complete
 #'
@@ -351,7 +367,8 @@ MAX_REPLICATION_LOSS <- 0.10
 #'   dispatch_replications()
 #' @param n_iterations Number of replications dispatched, for the message
 #' @param max_loss     Share of `n_iterations` that may be lost before this
-#'   stops rather than warns (default `MAX_REPLICATION_LOSS`)
+#'   stops rather than warns (default `MAX_REPLICATION_LOSS`, which is zero, so
+#'   any loss stops unless a caller has deliberately raised it)
 #' @return A list with elements `envs` (the wrapped environments that survived)
 #'   and `valid` (the logical vector selecting them), so the caller can select
 #'   the matching seeds by the same vector.
@@ -383,15 +400,17 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
              "and try again."),
       n_failed, n_iterations
     )
-    # Above the threshold the run stops rather than reporting a measurement
-    # nobody asked for. Below it the loss is survivable, but the caller is told
-    # so that the count it publishes is the one that ran (Issue #320).
+    # Stopping is the default because the survivors are not a random subset of
+    # what was dispatched: see MAX_REPLICATION_LOSS above for why a loss is a
+    # suspected bias rather than a smaller sample. A caller that has raised the
+    # threshold has accepted that on a run whose cost justifies it, and is
+    # warned so the count it publishes is the one that ran (Issue #320).
     if (n_failed > n_iterations * max_loss) {
       stop(sprintf(
-        paste0("%s That is more than the %.0f%% of a run this framework will lose and still ",
-               "report, so it stops here rather than returning a measurement of an ",
-               "experiment nobody asked for."),
-        msg, 100 * max_loss
+        paste0("%s Replications lost this way are not a random subset of those dispatched, ",
+               "so the survivors may be biased rather than merely fewer, and this run stops ",
+               "rather than reporting them. Raise max_loss deliberately to accept that."),
+        msg
       ), call. = FALSE)
     }
     warning(msg, call. = FALSE)

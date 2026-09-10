@@ -12,14 +12,21 @@
 # dispatch result directly and run no simulation; two short runs cover the
 # framework's own return value.
 #
-# Why this check exists. run_replications() tolerates a replication whose
-# worker process is killed, continuing on the survivors, and that tolerance is
-# correct: losing one replication of fifty costs precision and nothing else,
-# and stopping would waste the other forty-nine. What was not correct is what
-# reached the outputs. The requested count was returned and published while the
-# metrics were computed from the survivors, so a run that lost workers reported
-# a replication count it never achieved, and every interval beside it was read
-# against that number (Issue #320).
+# Why this check exists. run_replications() used to continue on the survivors
+# when a worker process was killed, and to publish the count it had asked for
+# while computing the metrics from the survivors, so a run that lost workers
+# reported a replication count it never achieved and every interval beside it
+# was read against that number (Issue #320).
+#
+# Continuing at all is the part that needed the closer look. It is tempting to
+# say that losing a few of fifty costs precision and nothing else, but that
+# assumes the replications that die are a random subset of those dispatched. A
+# worker is killed because the host ran out of memory, the killer takes the
+# largest process, and a replication generating more casualties carries more
+# monitoring data, so the losses skew toward the heavier campaigns and the
+# survivors are biased low on queue depth, occupancy and mortality. Any loss
+# therefore stops the run by default, and a caller who would rather lose a
+# point than lose a four-day screen raises the threshold at the call site.
 #
 # The failure is silent by construction. A killed worker leaves a NULL where an
 # environment should be, the warning scrolls past in a run that takes hours,
@@ -32,14 +39,14 @@
 #
 #   1. A clean dispatch is unchanged: every replication survives, and the
 #      framework reports the count it was asked for.
-#   2. A loss inside the threshold warns, drops only the failed entries, and
-#      reports the realised count rather than the requested one.
-#   3. A loss beyond the threshold stops the run rather than returning a
-#      smaller measurement of a different experiment.
-#   4. A total loss stops, which the threshold subsumes.
-#   5. A figure's caption names the count it was given, so the realised count
+#   2. Any loss stops the run under the shipped threshold of zero.
+#   3. A caller that deliberately raises the threshold gets the old behaviour
+#      within it: a warning, and only the failed entries dropped.
+#   4. A loss beyond a raised threshold still stops.
+#   5. A total loss stops however the threshold is set.
+#   6. A figure's caption names the count it was given, so the realised count
 #      passed to it is the count a reader sees.
-#   6. The Welch analysis hands its plot the realised count rather than the
+#   7. The Welch analysis hands its plot the realised count rather than the
 #      requested one. This is asserted on the call itself rather than on the
 #      rendered figure: the two counts agree on any run that loses nothing, so
 #      a behavioural test would need a killed worker inside a 90-day analysis
@@ -136,48 +143,64 @@ clean <- drop_failed_replications(dispatch_with_losses(N_DISPATCH, 0), N_DISPATC
 report(length(clean$envs) == N_DISPATCH && all(clean$valid),
        "a dispatch losing nothing keeps all %d replications", N_DISPATCH)
 
-# ── 2. A loss inside the threshold warns and drops only the failures ────────
+# ── 2. Any loss stops under the shipped threshold ───────────────────────────
+
+default_loss <- try(
+  suppressWarnings(
+    drop_failed_replications(dispatch_with_losses(N_DISPATCH, 1L), N_DISPATCH)
+  ),
+  silent = TRUE
+)
+report(inherits(default_loss, "try-error"),
+       "losing even 1 of %d stops under the shipped threshold of %g",
+       N_DISPATCH, MAX_REPLICATION_LOSS)
+
+# ── 3. A raised threshold restores tolerance within it ──────────────────────
 
 n_small <- 1L
+raised  <- 0.10
 warned  <- FALSE
 inside  <- withCallingHandlers(
-  drop_failed_replications(dispatch_with_losses(N_DISPATCH, n_small), N_DISPATCH),
+  drop_failed_replications(dispatch_with_losses(N_DISPATCH, n_small), N_DISPATCH,
+                           max_loss = raised),
   warning = function(w) {
     warned <<- TRUE
     invokeRestart("muffleWarning")
   }
 )
-report(warned, "a survivable loss warns rather than passing silently")
+report(warned, "a loss a caller has deliberately allowed warns rather than passing silently")
 report(length(inside$envs) == N_DISPATCH - n_small,
-       "a survivable loss keeps the %d survivors, not the %d requested",
+       "an allowed loss keeps the %d survivors, not the %d requested",
        N_DISPATCH - n_small, N_DISPATCH)
 report(sum(!inside$valid) == n_small,
        "the valid vector marks exactly the %d lost replication(s)", n_small)
 
-# ── 3. A loss beyond the threshold stops the run ────────────────────────────
+# ── 4. A loss beyond a raised threshold still stops ─────────────────────────
 
-n_large <- as.integer(ceiling(N_DISPATCH * MAX_REPLICATION_LOSS)) + 1L
+n_large <- as.integer(ceiling(N_DISPATCH * raised)) + 1L
 beyond  <- try(
   suppressWarnings(
-    drop_failed_replications(dispatch_with_losses(N_DISPATCH, n_large), N_DISPATCH)
+    drop_failed_replications(dispatch_with_losses(N_DISPATCH, n_large), N_DISPATCH,
+                             max_loss = raised)
   ),
   silent = TRUE
 )
 report(inherits(beyond, "try-error"),
-       "losing %d of %d, beyond the %.0f%% threshold, stops rather than reporting",
-       n_large, N_DISPATCH, 100 * MAX_REPLICATION_LOSS)
+       "losing %d of %d, beyond a raised threshold of %.0f%%, still stops",
+       n_large, N_DISPATCH, 100 * raised)
 
-# ── 4. A total loss stops ───────────────────────────────────────────────────
+# ── 5. A total loss stops however the threshold is set ──────────────────────
 
 total <- try(
   suppressWarnings(
-    drop_failed_replications(dispatch_with_losses(N_DISPATCH, N_DISPATCH), N_DISPATCH)
+    drop_failed_replications(dispatch_with_losses(N_DISPATCH, N_DISPATCH), N_DISPATCH,
+                             max_loss = raised)
   ),
   silent = TRUE
 )
 report(inherits(total, "try-error"), "losing every replication stops")
 
-# ── 5. The framework reports the count that contributed ─────────────────────
+# ── 6. The framework reports the count that contributed ─────────────────────
 
 env_data <<- load_scenario("env_data.json", "default")
 day_min  <<- DAY_MIN
@@ -193,7 +216,7 @@ report(identical(mon$n_replications, CHECK_REPS) &&
 report(identical(mon$n_replications, length(mon$seeds)),
        "the realised count agrees with the seeds of the replications that ran")
 
-# ── 6. A caption names the count it is given ────────────────────────────────
+# ── 7. A caption names the count it is given ────────────────────────────────
 
 cma <- data.frame(bin_min = seq(0, DAY_MIN, by = 60), cma = seq(0, 1, length.out = 25))
 img <- file.path(tempdir(), "welch_caption_check")
@@ -203,7 +226,7 @@ p <- plot_welch(cma, 0L, n_reps = 7L, n_days = 90L, images_dir = img)
 report(grepl("^7 replications", p$labels$subtitle),
        "the Welch caption names the replication count it is given, not another")
 
-# ── 7. The Welch analysis hands its plot the realised count ─────────────────
+# ── 8. The Welch analysis hands its plot the realised count ─────────────────
 
 welch_src <- paste(deparse(body(run_welch_analysis)), collapse = " ")
 report(grepl("n_reps\\s*=\\s*mon\\$n_replications", welch_src),

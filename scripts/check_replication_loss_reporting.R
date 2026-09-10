@@ -96,9 +96,9 @@ CHECK_REPS <- 4L
 
 #' Replications in the constructed dispatch results
 #'
-#' @details Twenty, so that a single loss sits inside the threshold and two
-#'   more carry it beyond, letting both sides of the rule be exercised without
-#'   depending on the threshold's exact value.
+#' @details Twenty, so that the raised threshold the tolerance assertions pass
+#'   admits one loss and rejects three, letting both sides of that rule be
+#'   exercised on whole replications rather than on a fraction that rounds.
 N_DISPATCH <- 20L
 
 failures <- character(0)

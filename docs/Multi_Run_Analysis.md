@@ -119,7 +119,7 @@ $$\bar{x} \pm t_{0.975,\;n-1}\,\frac{s}{\sqrt{n}}$$
 
 where $n$ is the number of runs, $\bar{x}$ the average across them and $s$ the variation between them. Dividing by the square root of the number of runs is what makes additional runs improve precision: quadrupling the runs halves the width of the interval.
 
-Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 430.9 casualties and that average is known to within about 19 either way, while the campaigns themselves range from 360 to 489. Sizing against 431 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
+Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 432.2 casualties and that average is known to within about 18 either way, while the campaigns themselves range from 360 to 489. Sizing against 431 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
 
 ### Replication Count and Resolution
 
@@ -159,14 +159,14 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 430.9 [412.3, 449.5] (p10–p90: 359.7–488.5) | 1,048.6 [1,024.7, 1,072.5] (p10–p90: 953.9–1,150.1) | 2.43× |
-| Wounded in action/run | 184.8 [168.3, 201.2] (p10–p90: 136.6–221.1) | 710.8 [685.0, 736.6] (p10–p90: 572.5–825.2) | 3.85× |
-| Died of wounds/run | 0.96 [0.72, 1.20] (p10–p90: 0–2.0) | 24.50 [22.47, 26.53] (p10–p90: 15.9–34.0) | 25.5× |
-| Died of wounds, as share of wounded | 0.52% [0.39%, 0.65%] | 3.41% [3.20%, 3.63%] | 6.56× |
+| Total casualties/run | 432.2 [414.4, 449.9] (p10–p90: 363.6–484.5) | 1,050.4 [1,026.0, 1,074.8] (p10–p90: 968.6–1,171.4) | 2.43× |
+| Wounded in action/run | 184.5 [169.3, 199.6] (p10–p90: 137.5–222.7) | 707.2 [681.0, 733.5] (p10–p90: 568.0–807.5) | 3.83× |
+| Died of wounds/run | 1.06 [0.80, 1.32] (p10–p90: 0–2.0) | 23.80 [21.84, 25.76] (p10–p90: 15.9–32.0) | 22.5× |
+| Died of wounds, as share of wounded | 0.55% [0.42%, 0.67%] | 3.35% [3.12%, 3.58%] | 6.12× |
 
-Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 359.7 to 488.5 casualties between the 10th and 90th percentiles against an average of 430.9. Surge capacity therefore has to be judged against the heavy day rather than the average one.
+Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 363.6 to 484.5 casualties between the 10th and 90th percentiles against an average of 432.2. Surge capacity therefore has to be judged against the heavy day rather than the average one.
 
-Deaths of wounds rise 25-fold while casualty volume rises 2.43-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
+Deaths of wounds rise 22-fold while casualty volume rises 2.43-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
 
 ![Four panels, one per metric, each plotting moderate and high casualty intensity as a point with a narrow 95% confidence interval bar and a wide band showing the 10th-to-90th-percentile spread across campaigns, for total casualties, wounded in action, deaths of wounds and deaths as a share of wounded](../images/paper_casualty_totals.png)
 
@@ -175,17 +175,17 @@ The width of the pale band against the narrow bar inside it is the point to take
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 0.571 [0.447, 0.695] | 3.213 [2.885, 3.541] | 5.63× |
-| R2E operating theatre | 1.677 [0.154, 3.199] | 43.83 [39.35, 48.32] | 26.1× |
-| R2E intensive care | 0.092 [0.065, 0.118] | 0.584 [0.476, 0.692] | 6.37× |
-| R2E holding beds | 0.272 [0.112, 0.433] | 1.454 [1.208, 1.700] | 5.34× |
-| Ambulance and truck fleets | 0.019 [0.000, 0.047] | 0.041 [0.019, 0.064] | 2.16× |
+| R2B holding beds | 0.533 [0.421, 0.644] | 3.214 [2.890, 3.537] | 6.03× |
+| R2E operating theatre | 1.696 [0.165, 3.227] | 43.13 [38.87, 47.40] | 25.4× |
+| R2E intensive care | 0.078 [0.061, 0.095] | 0.516 [0.418, 0.614] | 6.59× |
+| R2E holding beds | 0.056 [0.014, 0.099] | 1.038 [0.910, 1.166] | 18.4× |
+| Ambulance and truck fleets | 0.019 [0.000, 0.047] | 0.051 [0.020, 0.081] | 2.67× |
 
 Each figure is the average queue at that group of resources across a campaign, averaged over the 50 runs. A resource that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts.
 
 ![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.43-fold rise in casualty volume, each point sized by its absolute queue at high intensity, R2E operating theatre furthest right and largest](../images/paper_queue_growth.png)
 
-Every queue grows faster than the casualty volume driving it. R2E operating theatre grows the most and carries by far the largest absolute queue. The ambulance and truck fleets grow second fastest, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
+Every queue grows faster than the casualty volume driving it. R2E operating theatre carries by far the largest absolute queue, and R2E holding grows the most in relative terms, 18.4-fold, from a base so low that the growth factor is the less useful of the two readings. The ambulance and truck fleets grow second fastest, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
 
 ![Four-panel bar chart of mean queue length by resource group, R2B operating theatre, R2E operating theatre, R2E intensive care and transport, comparing the high and moderate casualty intensities with error bars, on four different vertical scales](../images/scenario_comparison.png)
 

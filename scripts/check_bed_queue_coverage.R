@@ -32,8 +32,12 @@
 #   2. Every R2B bed type present in the resource monitor appears in the R2B
 #      queue figure.
 #   3. Each figure's panel labels count the beds in the pool they name.
-#   4. The R2E panels are on independent vertical scales, the pools queueing at
-#      depths that differ by an order of magnitude.
+#   4. The R2E panels share one vertical scale. A free scale lets every pool
+#      fill its own panel whatever it queued, so a pool never exceeding one
+#      casualty is drawn exactly as a pool reaching fourteen, which invites the
+#      reader to conclude they are under equal strain. At this model's depths
+#      the shallow pools stay legible against the deep one, so the comparison
+#      costs nothing to keep.
 #   5. A bed type the establishment does not currently field appears in each
 #      figure without a code change. This is the assertion that defends the
 #      rule rather than today's establishment: it injects a bed type into the
@@ -223,13 +227,13 @@ report(nrow(labelled) > 0 && all(labelled$stated == labelled$n_beds),
        "each R2E panel label states its own bed count (%s)",
        paste(labelled$facet_label, collapse = ", "))
 
-# ── 4. The panels carry independent vertical scales ─────────────────────────
+# ── 4. The panels share one vertical scale ──────────────────────────────────
 
-cat("\n-- the panels do not share a vertical scale --\n")
+cat("\n-- the panels share a vertical scale --\n")
 
 free_y <- isTRUE(plots$r2e$facet$params$free$y)
-report(free_y,
-       "the R2E panels are on independent vertical scales, so a pool queueing one deep is not flattened against one queueing fourteen")
+report(!free_y,
+       "the R2E panels share a vertical scale, so a pool queueing one deep is not drawn as though it queued fourteen")
 
 # ── 5. A bed type nothing ships appears without a code change ───────────────
 

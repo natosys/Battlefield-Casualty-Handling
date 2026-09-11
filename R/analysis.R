@@ -1381,11 +1381,10 @@ bed_type_colours <- function(n) {
 #' @param images_dir Directory the plots are written to.
 #' @return The p_r2e_bed_queues object.
 #' @details One panel per bed type the echelon fields, one step line per bed,
-#'   each panel on its own vertical scale. The pools queue at scales that differ
-#'   by an order of magnitude, so a shared scale flattens the shallower ones to
-#'   the axis. Bed types are derived from the resource names rather than named
-#'   here, so a type added to the establishment appears without a change to
-#'   this function.
+#'   every panel on one shared vertical scale, so that a queue of one and a
+#'   queue of fourteen are drawn at the sizes they are. Bed types are derived
+#'   from the resource names rather than named here, so a type added to the
+#'   establishment appears without a change to this function.
 plot_r2e_bed_queues <- function(resources, images_dir) {
   # Selected by pattern and typed from the resource name, matching
   # plot_r2b_bed_queues(), so that a bed type added to the establishment
@@ -1406,6 +1405,11 @@ plot_r2e_bed_queues <- function(resources, images_dir) {
   # beds drawn, which is every bed the monitor recorded an event for: a bed
   # never seized has no rows and so no line. Over the tracked 30-day baseline
   # every bed of every R2E pool sees use, so the two coincide there.
+  #
+  # The panels share one vertical scale. Freeing it would let each pool fill
+  # its own panel whatever it queued, so a pool never exceeding one casualty
+  # would be drawn exactly as a pool reaching fourteen, which is the reading
+  # this figure most needs to get right.
   bed_counts <- queue_plot_data %>%
     group_by(bed_type) %>%
     summarise(n_beds = n_distinct(resource), .groups = "drop") %>%
@@ -1420,11 +1424,11 @@ plot_r2e_bed_queues <- function(resources, images_dir) {
     geom_step(linewidth = 0.7, alpha = 0.8) +
     labs(
       title    = "R2E Heavy Bed Queue Length Over Time by Bed Type",
-      subtitle = paste("One line per bed that saw use. Vertical scales differ",
-                       "between panels, the pools queueing at different depths"),
+      subtitle = paste("One line per bed that saw use. Panels share a vertical",
+                       "scale, so queue depths are comparable between pools"),
       x = "Time (Days)", y = "Queue Size"
     ) +
-    facet_wrap(~ facet_label, ncol = 1, scales = "free_y") +
+    facet_wrap(~ facet_label, ncol = 1, scales = "fixed") +
     # The palette caps at eight, and a ninth bed type would be assigned no
     # colour and its lines dropped from the figure, which is the failure this
     # plot exists to stop rather than one to reintroduce further along. Taken

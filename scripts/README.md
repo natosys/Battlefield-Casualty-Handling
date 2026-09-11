@@ -124,7 +124,7 @@ sandbox rather than in this container.
 `check_bed_queue_coverage.R` arrived with the bed queue figure work and carries
 no row above. It asserts that each echelon's queue figure covers every bed type
 that echelon fields, that each panel label counts the beds in the pool it names,
-and that the panels carry independent vertical scales. The coverage assertion is
+and that the panels share one vertical scale, a free scale drawing a pool that never exceeds one casualty exactly as one reaching fourteen. The coverage assertion is
 made against a bed type no configuration ships, injected into the resource
 monitor, so it defends the selection rule rather than the establishment as it
 stands. It runs one three-day single run and renders both echelons' figures four

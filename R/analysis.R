@@ -929,6 +929,52 @@ plot_r2b_bed_queues <- function(resources, images_dir) {
   p_r2b_bed_queues
 }
 
+#' Reconstruct each R2B holding episode from the attributes that bound it
+#'
+#' @param attributes_wide One row per casualty, attributes pivoted to columns.
+#' @param window_min End of the observation window, in minutes.
+#' @return One row per holding episode, carrying `hold_start_min`,
+#'   `hold_end_min` and the `stream` competing for the bed, alongside every
+#'   column the caller already held. Empty where no casualty entered holding.
+#' @details A casualty leaves R2B holding by one of three routes, and the
+#'   attribute that ends the episode differs by route, so reading any single
+#'   one of them mis-measures the other two.
+#'
+#'   A casualty sent on under the evacuation threshold releases the bed at
+#'   once and carries `r2b_hold_served`, the bed time actually served. Their
+#'   `return_day` is set later and at another echelon, so charging the bed to
+#'   it would hold them at R2B for the whole of a stay they spent at R2E.
+#'
+#'   A casualty who recovers in place sets `return_day` as it releases the
+#'   bed, which is the episode's true end.
+#'
+#'   A casualty still holding a bed when the run ends sets neither, and
+#'   occupied the bed for every day of the window from its start. Dropping
+#'   them, which reading `return_day` alone does, undercounts the days nearest
+#'   the run's end, which is where the unfinished episodes are.
+r2b_hold_episodes <- function(attributes_wide, window_min) {
+  if (!any(!is.na(attributes_wide$r2b_hold_start))) {
+    return(attributes_wide[0, , drop = FALSE] %>%
+             mutate(stream = character(0), hold_start_min = numeric(0),
+                    hold_end_min = numeric(0)))
+  }
+  attributes_wide %>%
+    filter(!is.na(r2b_hold_start)) %>%
+    mutate(
+      stream = case_when(
+        !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
+        !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
+        TRUE                                 ~ "WIA"
+      ),
+      hold_start_min = as.numeric(r2b_hold_start),
+      hold_end_min = case_when(
+        !is.na(r2b_hold_served) ~ hold_start_min + as.numeric(r2b_hold_served),
+        !is.na(return_day)      ~ as.numeric(return_day),
+        TRUE                    ~ window_min
+      )
+    )
+}
+
 #' Summarise and plot R2B holding-bed occupancy by patient stream
 #'
 #' @param attributes_wide One row per casualty, attributes pivoted to columns.
@@ -943,13 +989,7 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
   r2b_hold_occupancy_plot <- NULL
   r2b_hold_daily          <- NULL
 
-  # A hold episode is reconstructed from its start and its end, so a casualty
-  # still holding a bed when the run ended carries no return_day and cannot be
-  # placed on the daily series. Where no episode has both, there is nothing to
-  # summarise, and the function returns its empty result rather than a series of
-  # zeroes, which would read as nobody having occupied a bed.
-  if (any(!is.na(attributes_wide$r2b_hold_start) &
-            !is.na(attributes_wide$return_day))) {
+  if (any(!is.na(attributes_wide$r2b_hold_start))) {
 
     # Verify: battle_fatigue must not appear in R2B hold
     bf_in_hold <- attributes_wide %>%
@@ -961,19 +1001,13 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
     n_sim_days <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
     n_reps_hold <- max(1L, n_distinct(attributes_wide$replication))
 
-    hold_patients <- attributes_wide %>%
-      filter(!is.na(r2b_hold_start) & !is.na(return_day)) %>%
-      mutate(
-        stream = case_when(
-          !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
-          !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
-          TRUE                                 ~ "WIA"
-        ),
-        hold_start_min = as.numeric(r2b_hold_start),
-        hold_end_min   = as.numeric(return_day)
-      )
+    hold_patients <- r2b_hold_episodes(attributes_wide, n_sim_days * DAY_MIN)
 
-    # Expand each patient into one row per simulation day they occupy a hold bed
+    # Expanded to one row per simulation day the episode touches, so a casualty
+    # counts once on a day whatever fraction of it they spent in the bed. The
+    # series is therefore a count of casualties occupying a bed during the day
+    # rather than a time-weighted mean concurrent occupancy, and reads above the
+    # latter; the axis label says which.
     r2b_hold_daily <- hold_patients %>%
       rowwise() %>%
       mutate(
@@ -1020,7 +1054,7 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
           "total capacity = ", n_hold_beds * 2, " beds across 2 R2B units"
         ),
         x    = "Simulation Day",
-        y    = "Mean Concurrent Patients in Hold",
+        y    = "Casualties Occupying a Hold Bed",
         fill = "Stream"
       ) +
       theme_minimal(base_size = 13) +
@@ -3204,17 +3238,7 @@ plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_id
   if ("r2b_hold_start" %in% names(attributes_wide) && any(!is.na(attributes_wide$r2b_hold_start))) {
     n_sim_days_hold <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
-    hold_patients <- attributes_wide %>%
-      filter(!is.na(r2b_hold_start) & !is.na(return_day)) %>%
-      mutate(
-        stream = case_when(
-          !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
-          !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
-          TRUE                                 ~ "WIA"
-        ),
-        hold_start_min = as.numeric(r2b_hold_start),
-        hold_end_min   = as.numeric(return_day)
-      )
+    hold_patients <- r2b_hold_episodes(attributes_wide, n_sim_days_hold * DAY_MIN)
 
     r2b_hold_daily_rep <- hold_patients %>%
       rowwise() %>%
@@ -3241,7 +3265,7 @@ plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_id
       labs(
         title    = "R2B Hold Bed Daily Occupancy by Patient Stream — Mean ± 95% CI Across Replications",
         subtitle = sprintf("%d replications; dashed line = capacity per R2B unit (%d beds)", n_reps, n_hold_beds),
-        x = "Simulation Day", y = "Mean Concurrent Patients in Hold", color = "Stream", fill = "Stream"
+        x = "Simulation Day", y = "Casualties Occupying a Hold Bed", color = "Stream", fill = "Stream"
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")

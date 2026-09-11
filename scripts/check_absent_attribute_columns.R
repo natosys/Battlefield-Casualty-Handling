@@ -44,8 +44,11 @@
 #   4. build_attributes_wide() returns every key in MODEL_ATTRIBUTE_KEYS from a
 #      monitor carrying one of them.
 #   5. analyse_run() completes on monitoring data with no return_day, and
-#      returns the empty result for the R2B holding summary rather than a
-#      series of zeroes, which would read as nobody having occupied a bed.
+#      still counts the casualties holding a bed, an episode with no recorded
+#      exit having run to the end of the window rather than not happened
+#      (Issue #327). Stripping r2b_hold_start instead, which is the attribute
+#      that opens the episode, is what leaves the summary with nothing to
+#      summarise, and that is the case returning the empty result.
 #   6. summarise_r2b_hold_occupancy() returns that same empty result when the
 #      columns are absent outright, so the guard holds even where the
 #      guarantee above does not reach it.
@@ -245,9 +248,17 @@ report(nrow(stripped$attributes) < nrow(mon$attributes) ||
 no_rtd <- try(analyse_into_tempdir(stripped), silent = TRUE)
 report(!inherits(no_rtd, "try-error"),
        "a run in which nobody returned to duty analyses without error")
-report(!inherits(no_rtd, "try-error") && is.null(no_rtd$r2b_hold_daily) &&
-         is.null(no_rtd$r2b_hold_occupancy_plot),
-       "the R2B holding summary is empty rather than a series of zeroes")
+report(!inherits(no_rtd, "try-error") && !is.null(no_rtd$r2b_hold_daily),
+       "a casualty holding a bed with no recorded exit is still counted, not dropped")
+
+# Stripping the attribute that opens the episode, rather than the one that
+# closes it, is what leaves the holding summary with nothing to summarise.
+no_hold <- mon
+no_hold$attributes <- no_hold$attributes[no_hold$attributes$key != "r2b_hold_start", ]
+none_held <- try(analyse_into_tempdir(no_hold), silent = TRUE)
+report(!inherits(none_held, "try-error") && is.null(none_held$r2b_hold_daily) &&
+         is.null(none_held$r2b_hold_occupancy_plot),
+       "a run in which nobody entered holding gives the empty result, not a series of zeroes")
 
 # ── 6. The guard holds where the guarantee does not reach ───────────────────
 #

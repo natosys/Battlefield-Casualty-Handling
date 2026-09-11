@@ -121,6 +121,17 @@ It stays in the fast set, being the only check that asserts a screen walks its
 design in index order and resumes its cache without re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
 sandbox rather than in this container.
 
+`check_hold_episode_reconstruction.R` arrived with the holding episode work and
+carries no row above. It asserts that an R2B holding episode is bounded by the
+attribute its own exit route sets, there being three routes out of a holding bed
+and only one of them setting `return_day`, and cross-checks the reconstructed
+bed-days against the resource monitor at the shipped configuration and under an
+evacuation threshold. The monitor comparison is the assertion that would catch a
+fourth exit route added later, comparing against the beds rather than against a
+list of routes the check knows about. It runs two 30-day single runs and took 43
+seconds in an unpinned R 4.3.3 sandbox rather than in this container, which
+places it just past the sub-half-minute checks.
+
 `check_bed_queue_coverage.R` arrived with the bed queue figure work and carries
 no row above. It asserts that each echelon's queue figure covers every bed type
 that echelon fields, that each panel label counts the beds in the pool it names,

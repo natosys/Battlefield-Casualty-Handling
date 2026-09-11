@@ -10,6 +10,7 @@ library(stringr)
 library(ggplot2)
 
 source("R/constants.R")
+source("R/censoring.R")
 
 # ── Plotting helpers ──────────────────────────────────────────────────────────
 
@@ -1157,18 +1158,20 @@ extract_kpis <- function(mon) {
   time_to_surgery <- time_to_surgery[combined$casualty_type != "kia"]
   time_to_surgery <- time_to_surgery[is.finite(time_to_surgery) & time_to_surgery >= 0]
 
-  r2b_dwell    <- a("r2b_departure_time") - a("r2b_treatment_start_time")
-  transit      <- a("r2e_arrival_time")   - a("r2b_departure_time")
-  r2e_dwell    <- a("r2e_departure_time") - a("r2e_arrival_time")
-  #' Keep the finite, non-negative elements of an interval
-  #'
-  #' @param x Numeric vector of durations in minutes.
-  #' @return The elements that are finite and at least zero.
-  #' @details A casualty who never reached the second of the two timestamps
-  #'   an interval is taken between contributes an NA, and one whose route
-  #'   skipped the first contributes a negative; neither is a duration.
-  non_negative <- function(x) x[is.finite(x) & x >= 0]
-
+  # The two dwells and the transit between them are right-censored by the end
+  # of the run, so each is summarised over everyone who entered it rather than
+  # over those who also left. A parameter that lengthens dwell pushes more
+  # casualties past the window, which under the completed-case mean removed
+  # them from the very response meant to measure that parameter's effect.
+  # The restriction horizon is fixed (INTERVAL_RESTRICTION_MIN) so that the
+  # parameter under test cannot move the horizon as well as the response.
+  window_min   <- n_days * DAY_MIN
+  r2b_dwell    <- censored_interval_stats(combined$r2b_treatment_start_time,
+                                          combined$r2b_departure_time, window_min)
+  transit      <- censored_interval_stats(combined$r2b_departure_time,
+                                          combined$r2e_arrival_time, window_min)
+  r2e_dwell    <- censored_interval_stats(combined$r2e_arrival_time,
+                                          combined$r2e_departure_time, window_min)
   # ── Domain 3 — surgical throughput ─────────────────────────────────────
   ot_util_r2b <- compute_utilisation(mon, "^b_r2b_ot_")
   ot_util_r2e <- compute_utilisation(mon, "^b_r2eheavy_ot_")
@@ -1205,9 +1208,9 @@ extract_kpis <- function(mon) {
     dow_rate_ame_wait         = dow_rate(5),
     time_to_surgery_mean      = safe_mean(time_to_surgery),
     time_to_surgery_p90       = safe_p90(time_to_surgery),
-    r2b_dwell_mean            = safe_mean(non_negative(r2b_dwell)),
-    r2b_r2e_transit_mean      = safe_mean(non_negative(transit)),
-    r2e_dwell_mean            = safe_mean(non_negative(r2e_dwell)),
+    r2b_dwell_mean            = r2b_dwell$mean_min,
+    r2b_r2e_transit_mean      = transit$mean_min,
+    r2e_dwell_mean            = r2e_dwell$mean_min,
     ot_util_r2b               = ot_util_r2b,
     ot_util_r2e               = ot_util_r2e,
     r2b_surgery_count         = r2b_surgery_count,

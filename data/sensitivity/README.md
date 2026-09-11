@@ -25,12 +25,46 @@ re-run at the current bounds, and no index in it should be quoted as describing
 the shipped configuration of `ame_failure_probability`. Re-running it is
 roughly fourteen hours of computation.
 
+## Two rankings rest on a superseded response definition
+
+`morris_ranking_r2b_dwell_mean.csv` and `morris_ranking_r2e_dwell_mean.csv`
+were screened against a definition of those two responses that has since been
+replaced, and **no rank in either should be quoted as describing the model as
+it now stands.** Every other ranking here is unaffected.
+
+Both responses were the arithmetic mean of the stays that closed inside the
+run. A stay still running when the window closed was dropped, and the dropped
+were not a random subset: they were the casualties still present, which is
+both the late arrivals and the long stayers (Issue #331). The responses are now
+the Kaplan-Meier restricted mean over everyone who entered the echelon, which
+carries a stay still running as the lower bound it is.
+
+This matters more for a screened response than for a reported figure. A
+parameter that lengthens dwell pushes more casualties past the end of the run,
+which under the old definition removed them from the mean, so the response
+discounted the effect of the very parameters it existed to rank, and discounted
+it by more as the effect grew. The measured censored share is heavily
+configuration-dependent, which is the same statement read across the design:
+21.6% of R2B stays and 18.0% of R2E stays at the shipped configuration and
+seed 42, but 55.5% of R2E stays under `high_intensity`, so design points differ
+in how much of the cohort the old response could see at all.
+
+**The rankings cannot be re-derived from the cache.** `morris_r20/points.csv`
+and `morris_design_and_responses.rds` hold the 36 scalar responses per design
+point, not the monitoring data they were computed from, so there is nothing to
+recompute a changed response from. Restoring these two rankings requires
+re-running the screen, roughly nineteen hours on four cores. That is tracked
+separately rather than done here, under Issue #339, which also carries the two
+decisions the re-screen has to settle first: whether to re-screen all
+thirty-six responses or only these two, and whether the restriction horizon
+should itself be screened.
+
 ## Contents
 
 | Path | What it holds |
 |---|---|
 | `morris_r20/points.csv` | The Morris design point cache: 1,320 points, being 20 trajectories over 65 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
-| `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics |
+| `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics. The two dwell responses rest on a superseded definition; see the section above |
 | `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |
 | `morris_r20/morris_run_metadata.csv` | The design behind the Morris results: trajectory count, levels, grid jump, replications, run length, commit and the responses flagged degenerate |

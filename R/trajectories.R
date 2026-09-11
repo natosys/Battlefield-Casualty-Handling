@@ -439,11 +439,22 @@ r2e_stabilisation_minutes <- function() {
 
 #' The configured R2B holding evacuation threshold, in minutes
 #'
-#' @return The threshold, or NA when it is not configured (the shipped
-#'   default, `evac_threshold` being absent from `env_data.json`)
-r2b_hold_threshold <- function() {
+#' @return The threshold, or NA when it is disabled, which is the shipped
+#'   default.
+#' @details Named for the field it reads. `hold_threshold` is a different
+#'   parameter entirely: an occupancy fraction deciding whether a casualty is
+#'   sent to an R2B unit at all, read by select_r2b_for_hold(). This one is a
+#'   duration deciding how long they may stay once there. The Morris parameter
+#'   named `r2b_hold_threshold` is the former, not this.
+#'
+#'   A non-positive value disables the threshold, the convention
+#'   `force_regeneration.reinforcement.demand_interval_days` also follows. Zero
+#'   cannot mean a zero-minute forward stay: a casualty held forward for no
+#'   time is one who was never held, which is what `hold_threshold` already
+#'   decides upstream.
+r2b_evac_threshold <- function() {
   thresh <- env_data$vars$r2b$holding$evac_threshold
-  if (is.null(thresh) || is.na(thresh)) return(NA_real_)
+  if (is.null(thresh) || is.na(thresh) || thresh <= 0) return(NA_real_)
   thresh
 }
 
@@ -454,7 +465,7 @@ r2b_hold_threshold <- function() {
 #'   which is the shipped behaviour.
 r2b_hold_minutes <- function() {
   drawn  <- get_attribute(env, "r2b_hold_drawn")
-  thresh <- r2b_hold_threshold()
+  thresh <- r2b_evac_threshold()
   if (is.na(thresh)) return(drawn)
   min(drawn, thresh)
 }

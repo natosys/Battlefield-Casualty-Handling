@@ -501,6 +501,10 @@
             {
               "var": "hold_threshold",
               "val": 0.8
+            },
+            {
+              "var": "evac_threshold",
+              "val": 0
             }
           ]
         },

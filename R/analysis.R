@@ -1360,45 +1360,88 @@ summarise_r2e_surgeries <- function(attributes_wide, max_days, images_dir) {
   )
 }
 
-#' Plot R2E operating theatre and intensive care queues over time
+#' Distinct colours for a bed type scale of any size
+#'
+#' @param n Number of bed types to colour.
+#' @return A character vector of `n` colours.
+#' @details `brewer.pal()` caps at the palette's own size and warns rather than
+#'   failing, which leaves a discrete scale short of values and drops the
+#'   surplus levels from the figure. Interpolating covers any count, and is
+#'   applied only past the palette's size so that the counts the model actually
+#'   fields keep the palette's own well-separated hues.
+bed_type_colours <- function(n) {
+  palette_size <- 8L
+  if (n <= palette_size) brewer.pal(palette_size, "Set2")[seq_len(n)]
+  else colorRampPalette(brewer.pal(palette_size, "Set2"))(n)
+}
+
+#' Plot every R2E Heavy bed type's queues over time
 #'
 #' @param resources Resource monitor rows, warm-up excluded.
 #' @param images_dir Directory the plots are written to.
 #' @return The p_r2e_bed_queues object.
+#' @details One panel per bed type the echelon fields, one step line per bed,
+#'   every panel on one shared vertical scale, so that a queue of one and a
+#'   queue of fourteen are drawn at the sizes they are. Bed types are derived
+#'   from the resource names rather than named here, so a type added to the
+#'   establishment appears without a change to this function.
 plot_r2e_bed_queues <- function(resources, images_dir) {
-  #' Reshape one R2E bed type's monitor rows for the queue plot
-  #'
-  #' @param resource_type Bed type to select, "ot" or "icu".
-  #' @param data Resource monitor rows to filter.
-  #' @return A data frame of time, resource, queue and the derived bed,
-  #'   R2E and label columns the plot facets and colours by.
-  prepare_queue_data <- function(resource_type, data) {
-    pattern <- paste0("^b_r2eheavy_", resource_type, "_\\d+_t\\d+$")
-    data %>%
-      as.data.frame() %>%
-      filter(grepl(pattern, resource)) %>%
-      dplyr::select(time, resource, queue) %>%
-      mutate(
-        resource_type  = toupper(resource_type),
-        bed_number     = gsub("^b_r2eheavy_.*?_(\\d+)_t\\d+$", "\\1", resource),
-        r2e_number     = gsub("^b_r2eheavy_.*?_\\d+_t(\\d+)$", "\\1", resource),
-        resource_label = paste(resource_type, "Bed", bed_number)
-      )
-  }
+  # Selected by pattern and typed from the resource name, matching
+  # plot_r2b_bed_queues(), so that a bed type added to the establishment
+  # appears without a change here. Naming the types instead is what left the
+  # holding pool out of this figure entirely.
+  queue_plot_data <- resources %>%
+    as.data.frame() %>%
+    filter(grepl("^b_r2eheavy_.*_\\d+_t\\d+$", resource)) %>%
+    dplyr::select(time, resource, queue) %>%
+    mutate(
+      bed_type  = str_extract(resource, "(?<=b_r2eheavy_)[^_]+") %>% toupper(),
+      bed_index = str_extract(resource, "(?<=_)[0-9]+(?=_t)") %>% as.integer()
+    )
 
-  combined_queue_data <- bind_rows(
-    prepare_queue_data("ot",  resources),
-    prepare_queue_data("icu", resources)
-  )
+  # Each facet is labelled with the size of its pool, because a queue of one
+  # means something different behind two theatres than behind thirty holding
+  # beds, and the panel alone does not say which it is. The count is of the
+  # beds drawn, which is every bed the monitor recorded an event for: a bed
+  # never seized has no rows and so no line. Over the tracked 30-day baseline
+  # every bed of every R2E pool sees use, so the two coincide there.
+  #
+  # The panels share one vertical scale. Freeing it would let each pool fill
+  # its own panel whatever it queued, so a pool never exceeding one casualty
+  # would be drawn exactly as a pool reaching fourteen, which is the reading
+  # this figure most needs to get right.
+  bed_counts <- queue_plot_data %>%
+    group_by(bed_type) %>%
+    summarise(n_beds = n_distinct(resource), .groups = "drop") %>%
+    mutate(facet_label = sprintf("%s (%d bed%s)", bed_type, n_beds,
+                                 ifelse(n_beds == 1, "", "s")))
+  queue_plot_data <- queue_plot_data %>% left_join(bed_counts, by = "bed_type")
 
-  p_r2e_bed_queues <- ggplot(combined_queue_data, aes(x = time / DAY_MIN, y = queue, color = resource_label)) +
-    geom_step(linewidth = 1) +
-    labs(title = "R2E Heavy Bed Queue Length Over Time by Resource Type", x = "Time (Days)", y = "Queue Size", color = "Resource") +
-    facet_wrap(~ resource_type, ncol = 1, scales = "fixed") +
-    scale_x_continuous(breaks = seq(1, ceiling(max(combined_queue_data$time) / DAY_MIN), by = 1), labels = function(x) paste0(x), expand = c(0, 0)) +
+  p_r2e_bed_queues <- ggplot(
+    queue_plot_data,
+    aes(x = time / DAY_MIN, y = queue, group = resource, color = bed_type)
+  ) +
+    geom_step(linewidth = 0.7, alpha = 0.8) +
+    labs(
+      title    = "R2E Heavy Bed Queue Length Over Time by Bed Type",
+      subtitle = paste("One line per bed that saw use. Panels share a vertical",
+                       "scale, so queue depths are comparable between pools"),
+      x = "Time (Days)", y = "Queue Size"
+    ) +
+    facet_wrap(~ facet_label, ncol = 1, scales = "fixed") +
+    # The palette caps at eight, and a ninth bed type would be assigned no
+    # colour and its lines dropped from the figure, which is the failure this
+    # plot exists to stop rather than one to reintroduce further along. Taken
+    # straight from the palette while it has enough colours, so the shipped
+    # four keep the distinct hues, and interpolated only past that point.
+    scale_color_manual(values = bed_type_colours(n_distinct(queue_plot_data$bed_type)),
+                       guide = "none") +
+    scale_x_continuous(breaks = seq(1, ceiling(max(queue_plot_data$time) / DAY_MIN), by = 1),
+                       labels = function(x) paste0(x), expand = c(0, 0)) +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     theme_minimal(base_size = 14) +
-    theme(strip.text = element_text(face = "bold"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
+    theme(strip.text = element_text(face = "bold"), panel.grid.minor = element_blank(),
+          panel.grid.major.y = element_line(linetype = "dotted", color = "gray"))
   ggsave(file.path(images_dir, "r2eheavy_bed_queue_3_teams.png"), p_r2e_bed_queues,
          width = 12, height = 8, dpi = 150)
   p_r2e_bed_queues

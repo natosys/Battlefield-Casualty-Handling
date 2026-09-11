@@ -501,9 +501,19 @@ if (nrow(recovered)) {
          nrow(recovered))
 }
 
-# Check 13: with no threshold configured, which is the shipped state, the
-# branch is unreachable and no casualty carries a residual at all.
-cat("\n-- No threshold configured (the shipped state) --\n")
+# Check 13: at the shipped setting the threshold is disabled, the branch is
+# unreachable and no casualty carries a residual at all. The field is present
+# in env_data.json and ships at zero, zero being the disabled value rather than
+# a zero-minute forward stay, so this also fixes that reading of it.
+cat("\n-- Threshold disabled (the shipped state) --\n")
+
+shipped_threshold <- env_data_base$vars$r2b$holding$evac_threshold
+ok <- !is.null(shipped_threshold) && !is.na(shipped_threshold) && shipped_threshold == 0
+if (!ok) {
+  fail("evac_threshold ships at %s, not the disabled value of 0",
+       if (is.null(shipped_threshold)) "absent" else as.character(shipped_threshold))
+}
+report(ok, "evac_threshold is present in env_data.json and ships disabled, at 0")
 
 env_data <<- env_data_base
 
@@ -521,8 +531,37 @@ if (nrow(off) == 0) {
   fail("%d casualties were evacuated under a threshold that is not configured",
        sum(!is.na(off$r2b_hold_evac)))
 }
-report(ok, "none of the %d casualties holding at R2B were evacuated early, the threshold being absent",
+report(ok, "none of the %d casualties holding at R2B were evacuated early, the threshold being disabled",
        nrow(off))
+
+# Check 14: the two R2B holding thresholds are distinct parameters, and neither
+# accessor reads the other's field. They were named one character apart, with a
+# function called r2b_hold_threshold() reading evac_threshold while the Morris
+# parameter of that same name set hold_threshold, so this asserts the wiring
+# rather than trusting the names (Issue #333).
+cat("\n-- The two holding thresholds are wired to their own fields --\n")
+
+#' The env_data field an accessor reads, from its source
+#'
+#' @param fn The function to read.
+#' @return The single `env_data$vars$r2b$holding$<field>` name it mentions, or
+#'   NA where it mentions none or more than one.
+holding_field_read <- function(fn) {
+  src <- paste(deparse(body(fn)), collapse = " ")
+  hits <- unique(regmatches(src, gregexpr("holding\\$[a-z_]+", src))[[1]])
+  if (length(hits) != 1) return(NA_character_)
+  sub("holding\\$", "", hits)
+}
+
+evac_reads  <- holding_field_read(r2b_evac_threshold)
+route_reads <- holding_field_read(select_r2b_for_hold)
+ok <- identical(evac_reads, "evac_threshold") && identical(route_reads, "hold_threshold")
+if (!ok) {
+  fail("the accessors read %s and %s, not evac_threshold and hold_threshold",
+       evac_reads, route_reads)
+}
+report(ok, "r2b_evac_threshold() reads %s and select_r2b_for_hold() reads %s",
+       evac_reads, route_reads)
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

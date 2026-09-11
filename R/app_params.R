@@ -269,6 +269,20 @@ SRC_DCS_SURGERY       <- "First-look DCS operative-time data (median 96 min, ran
 SRC_ICU_STABILISATION <- "Each bound separately sourced: 6h lower from the WSES position paper's stated 6-72h range for return to theatre, 24h mode from the Western Trauma Association majority practice it reports, 36h upper from the Cochrane review's 'usually within 24 to 36 hours'. See README R2E Trajectory."
 SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelons; not independently cited. See README Simulation Design for the triangular-distribution modelling rationale."
 SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routing policy; not literature-derived."
+#' Source note for the R2B holding evacuation threshold
+#'
+#' @details A command policy lever with no doctrinal figure behind it: how long
+#'   a forward unit will hold a convalescing casualty before moving them
+#'   rearward to serve the remainder of the same convalescence. Ships disabled.
+#'   `docs/Multi_Run_Analysis.md` proposes sweeping it jointly against R2B
+#'   holding capacity; no source sets a value, so any setting is an informed
+#'   estimate.
+SRC_EVAC_THRESHOLD    <- paste(
+  "Command policy lever with no doctrinal figure: how long a forward unit will",
+  "hold a convalescing casualty before moving them rearward to serve the",
+  "remainder of the same convalescence. Ships disabled. No source sets a value,",
+  "so any setting is an informed estimate. See README R2B Trajectory."
+)
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
 SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much of the stabilisation phase a commander elects to deliver forward rather than evacuating for it. Ships at zero (all stabilisation at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
@@ -763,10 +777,22 @@ r2b_fields <- function() {
   registry <- c(registry, tri_fields("r2b_holding", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding",
                                      "Holding Bed Duration", "Time occupying an R2B holding bed.",
                                      morris_mode_name = "r2b_hold_mode", bound = c(0, 20000)))
+  # Two different thresholds, registered together because a planner setting one
+  # needs to see the other. The reroute threshold decides whether a casualty is
+  # sent to R2B at all; the evacuation threshold decides how long they may stay
+  # once there.
   registry <- c(registry, list(
     var_field("r2b_hold_threshold", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding", "hold_threshold",
               "Hold-Bed Reroute Threshold", "Occupancy fraction above which new patients are rerouted to R2E rather than queuing at R2B.",
-              min = 0, max = 1, step = 0.05, morris_name = "r2b_hold_threshold", source = SRC_HOLD_THRESHOLD, slider = TRUE)
+              min = 0, max = 1, step = 0.05, morris_name = "r2b_hold_threshold", source = SRC_HOLD_THRESHOLD, slider = TRUE),
+    var_field("r2b_evac_threshold", GRP_PROVISION, "R2B — Holding & Routing",
+              "r2b", "holding", "evac_threshold",
+              "Holding Evacuation Threshold",
+              paste("Minutes a casualty may occupy an R2B holding bed before moving to",
+                    "R2E to serve the remainder of the same convalescence there. Zero",
+                    "disables it, which is the shipped setting; the whole drawn duration",
+                    "is then served forward."),
+              min = 0, max = 20000, step = 60, source = SRC_EVAC_THRESHOLD)
   ))
   # The forward ICU share and the capability penalty that prices it are
   # registered side by side, though the penalty is a DOW parameter and the

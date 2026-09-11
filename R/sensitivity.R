@@ -1043,15 +1043,10 @@ prepare_kpi_frames <- function(mon) {
     left_join(attributes_wide, by = c("name", "replication")) %>%
     mutate(casualty_type = str_extract(name, "^[^_]+"))
 
-  # build_attributes_wide() guarantees the columns analyse_run() reads
-  # directly; these are the remainder this function reads, absent from a run
-  # in which no casualty ever reached the stage that sets them.
-  for (nm in c("injury_type", "priority", "r2b_surgery_start", "r2e_surgery_1_start",
-               "r2e_surgery_2_start", "r2b_treatment_start_time", "r2b_departure_time",
-               "r2e_arrival_time", "r2e_departure_time", "return_day", "return_echelon",
-               "dnbi_type", "r2b_treated", "r2e_treated")) {
-    if (!nm %in% names(combined)) combined[[nm]] <- NA_real_
-  }
+  # No column guard is needed here. build_attributes_wide() guarantees one
+  # column per key in MODEL_ATTRIBUTE_KEYS, which is every key the model can
+  # set, so a design point at which no casualty reached the stage setting one
+  # carries it as all-NA rather than not at all.
   list(
     arrivals = arrivals,
     n_arrivals = n_arrivals,

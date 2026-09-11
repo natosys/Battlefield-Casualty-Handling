@@ -121,6 +121,19 @@ It stays in the fast set, being the only check that asserts a screen walks its
 design in index order and resumes its cache without re-evaluating a point. These runtimes were measured in an unpinned R 4.3.3
 sandbox rather than in this container.
 
+Two checks arrived with the measurement-integrity and attribute-column work and
+carry no row above. `check_replication_loss_reporting.R` asserts that a
+replication lost to its host is reported rather than dropped silently from the
+published count, constructing dispatch results with killed entries rather than
+exhausting memory to produce one, and running two short replications to cover
+the framework's own return value. `check_absent_attribute_columns.R` asserts
+that the wide pivot of the attributes monitor has the same shape whatever a run
+produced, reading `MODEL_ATTRIBUTE_KEYS` against the `set_attribute()` calls in
+`R/trajectories.R` and then analysing a one-day run both as it stands and with
+its return-to-duty attribute stripped out. Both were measured in an unpinned
+R 4.3.3 sandbox rather than in this container, at 21 and 39 seconds, which
+places the first with the sub-half-minute checks and the second just past them.
+
 `check_roxygen.R` arrived with the commenting-standard work and carries no row
 above. It reads the parse data of every R source file and counts the
 documentation rules of `docs/STYLE_GUIDE.md` a parser can decide, ratcheting

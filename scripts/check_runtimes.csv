@@ -1,4 +1,5 @@
 check,seconds
+check_absent_attribute_columns.R,37
 check_analysis_decomposition.R,6
 check_analysis_idempotence.R,74
 check_arrival_rate_fidelity.R,12
@@ -20,6 +21,7 @@ check_pre_open_window.R,39
 check_r2e_surgery_seizure.R,16
 check_references.R,5
 check_replication_independence.R,68
+check_replication_loss_reporting.R,19
 check_roxygen.R,5
 check_scenario_labels.R,7
 check_screen_cache.R,7

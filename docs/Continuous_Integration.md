@@ -314,6 +314,27 @@ reach a package mirror looks the same. A second identical failure is a real
 problem with the workflow or the lockfile, and the fix belongs in the same pull
 request only if the pull request caused it.
 
+### The system library install times out
+
+`Install system libraries` reports that it exceeded its 15 minute limit. The
+Ubuntu archive mirror the runner was routed to stalled, and the step was cut
+off rather than being allowed to hang until the job's own limit, which is 60
+minutes for three of these jobs and 180 for the slow suite. This is an
+environment failure and says nothing about the pull request.
+
+Re-run the job. A second timeout on the same pull request is worth raising as
+a workflow issue rather than re-running a third time, because the step already
+retries a failed fetch five times and bounds a silent connection at 30 seconds,
+so reaching the limit twice means the mirror is not merely slow.
+
+The step is duplicated in all four jobs that need system libraries, and the
+guards are applied inline in each rather than through a composite action,
+because `timeout-minutes` is not a step property a composite action supports.
+`scripts/check_ci_apt_guards.R` asserts that the four copies stay identical and
+that each sets the retries and both transport timeouts before it runs
+`apt-get update`, so three jobs hardened and one missed fails the gate rather
+than waiting to be discovered by a wedge.
+
 ## Adding a check
 
 A new `scripts/check_*.R` is picked up by the runner automatically, and is

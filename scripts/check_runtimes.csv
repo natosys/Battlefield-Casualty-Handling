@@ -6,6 +6,7 @@ check_arrival_rate_fidelity.R,12
 check_baseline_reproduction.R,37
 check_bed_queue_coverage.R,27
 check_censored_interval_estimation.R,22
+check_ci_apt_guards.R,2
 check_composition_ilr.R,8
 check_config_restore.R,18
 check_console_bindings.R,20

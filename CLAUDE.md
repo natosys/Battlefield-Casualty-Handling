@@ -15,7 +15,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | File / Directory | Purpose |
 |---|---|
 | `run.R` | CLI entry point — validates arguments (via `R/cli.R`, before any simulation runs), orchestrates modules, and writes outputs. Takes `--scenario`, `--mode`, `--images-dir` and `--max-cores` alongside the run parameters |
-| `R/constants.R` | Values shared across modules, `DAY_MIN` (minutes per simulated day) among them. Sourced by each module that needs one rather than by one module on every other's behalf, the modules under `R/` being otherwise independent |
+| `R/constants.R` | Values shared across modules: `DAY_MIN` (minutes per simulated day) and `MODEL_ATTRIBUTE_KEYS`, every per-casualty attribute key the model can set, which `build_attributes_wide()` uses to give the wide pivot of the attributes monitor one shape whatever a run produced. Sourced by each module that needs one rather than by one module on every other's behalf, the modules under `R/` being otherwise independent |
 | `R/cli.R` | Command-line argument validation shared by `run.R` and `scripts/run_warmup.R` — range and directory rules, the warm-up-against-run-length rule, execution mode resolution, and the two conditions guarding a baseline refresh. Base R only, so a regression check can source it alone and exercise every rule without loading simmer or running the model |
 | `R/environment.R` | Data import, arrival generation, and simmer environment construction |
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |

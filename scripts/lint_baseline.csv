@@ -4,7 +4,7 @@ commas_linter,6
 function_length,2
 indentation_linter,159
 infix_spaces_linter,2
-line_length_linter,692
+line_length_linter,690
 object_name_linter,5
 pictographic_character,97
 semicolon_linter,53

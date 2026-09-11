@@ -929,6 +929,21 @@ plot_r2b_bed_queues <- function(resources, images_dir) {
   p_r2b_bed_queues
 }
 
+#' Hold-bed capacity of each R2B unit, from the establishment
+#'
+#' @return A data frame of `r2b_label` and `n_hold_beds`, one row per R2B unit.
+#' @details Read from the resource identifiers `build_environment()` created
+#'   rather than restated here, so a change to the establishment reaches the
+#'   capacity line on the occupancy figure without a change to this file. Units
+#'   are not assumed to be identical: each contributes its own row, and the
+#'   figure draws each unit's line against its own panel.
+r2b_hold_capacity <- function() {
+  data.frame(
+    r2b_label   = paste("R2B", seq_along(env_data$elms$r2b)),
+    n_hold_beds = vapply(env_data$elms$r2b, function(u) length(u$hold_bed), integer(1))
+  )
+}
+
 #' Reconstruct each R2B holding episode from the attributes that bound it
 #'
 #' @param attributes_wide One row per casualty, attributes pivoted to columns.
@@ -1002,6 +1017,7 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
     n_reps_hold <- max(1L, n_distinct(attributes_wide$replication))
 
     hold_patients <- r2b_hold_episodes(attributes_wide, n_sim_days * DAY_MIN)
+    hold_capacity  <- r2b_hold_capacity()
 
     # Expanded to one row per simulation day the episode touches, so a casualty
     # counts once on a day whatever fraction of it they spent in the bed. The
@@ -1020,28 +1036,29 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
       ) %>%
       unnest(day) %>%
       ungroup() %>%
-      group_by(replication, day, stream) %>%
+      mutate(r2b_label = paste("R2B", r2b)) %>%
+      group_by(replication, day, stream, r2b_label) %>%
       summarise(occupancy = n(), .groups = "drop") %>%
-      group_by(day, stream) %>%
+      group_by(day, stream, r2b_label) %>%
       summarise(mean_occupancy = mean(occupancy), .groups = "drop") %>%
       complete(
-        day    = seq_len(n_sim_days),
-        stream = c("Disease DNBI", "NBI", "WIA"),
-        fill   = list(mean_occupancy = 0)
+        day       = seq_len(n_sim_days),
+        stream    = c("Disease DNBI", "NBI", "WIA"),
+        r2b_label = hold_capacity$r2b_label,
+        fill      = list(mean_occupancy = 0)
       )
 
-    n_hold_beds <- 5   # per R2B unit (from env_data.json)
-
+    # One panel per R2B unit. A single panel carried the load of both units
+    # against a capacity line drawn for one of them, so a bar could sit above
+    # the line while neither unit was over its own establishment.
     r2b_hold_occupancy_plot <- ggplot(
       r2b_hold_daily,
       aes(x = day, y = mean_occupancy, fill = stream)
     ) +
       geom_bar(stat = "identity", position = "stack") +
-      geom_hline(yintercept = n_hold_beds,
+      geom_hline(data = hold_capacity, aes(yintercept = n_hold_beds),
                  linetype = "dashed", color = "red", linewidth = 0.8) +
-      annotate("text", x = 1, y = n_hold_beds + 0.3,
-               label = sprintf("Capacity per R2B unit (%d beds)", n_hold_beds),
-               hjust = 0, size = 3.2, color = "red") +
+      facet_wrap(~ r2b_label, ncol = 1) +
       scale_fill_brewer(palette = "Set2") +
       scale_x_continuous(
         breaks = seq(1, n_sim_days, by = 2),
@@ -1049,9 +1066,10 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
       ) +
       labs(
         title    = "R2B Hold Bed Daily Occupancy by Patient Stream",
-        subtitle = paste0(
-          "Dashed line = capacity per R2B unit (", n_hold_beds, " beds); ",
-          "total capacity = ", n_hold_beds * 2, " beds across 2 R2B units"
+        subtitle = sprintf(
+          "One panel per R2B unit; dashed line = that unit's holding establishment (%s)",
+          paste(sprintf("%s: %d beds", hold_capacity$r2b_label, hold_capacity$n_hold_beds),
+                collapse = ", ")
         ),
         x    = "Simulation Day",
         y    = "Casualties Occupying a Hold Bed",
@@ -3240,31 +3258,42 @@ plot_r2b_hold_occupancy_ci <- function(attributes_wide, combined, n_reps, rep_id
 
     hold_patients <- r2b_hold_episodes(attributes_wide, n_sim_days_hold * DAY_MIN)
 
+    hold_capacity <- r2b_hold_capacity()
+
     r2b_hold_daily_rep <- hold_patients %>%
       rowwise() %>%
       mutate(day = list(seq(max(1L, floor(hold_start_min / DAY_MIN) + 1L),
                             min(n_sim_days_hold, ceiling(hold_end_min / DAY_MIN))))) %>%
       unnest(day) %>%
       ungroup() %>%
-      count(replication, day, stream, name = "occupancy") %>%
+      mutate(r2b_label = paste("R2B", r2b)) %>%
+      count(replication, day, stream, r2b_label, name = "occupancy") %>%
       complete(replication = rep_ids, day = seq_len(n_sim_days_hold),
-               stream = c("Disease DNBI", "NBI", "WIA"), fill = list(occupancy = 0))
+               stream = c("Disease DNBI", "NBI", "WIA"),
+               r2b_label = hold_capacity$r2b_label, fill = list(occupancy = 0))
 
-    r2b_hold_daily_ci <- ci_by_group(r2b_hold_daily_rep, c("day", "stream"), "occupancy")
+    r2b_hold_daily_ci <- ci_by_group(r2b_hold_daily_rep, c("day", "stream", "r2b_label"),
+                                     "occupancy")
 
-    n_hold_beds <- 5   # per R2B unit (from env_data.json)
-
-    r2b_hold_occupancy_plot <- ggplot(r2b_hold_daily_ci, aes(x = day, y = mean, color = stream, fill = stream)) +
+    # One panel per R2B unit, as in the single-run figure, so each unit's load
+    # is drawn against its own establishment rather than both against one line.
+    r2b_hold_occupancy_plot <- ggplot(r2b_hold_daily_ci,
+                                      aes(x = day, y = mean, color = stream, fill = stream)) +
       geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.25, color = NA) +
       geom_line(linewidth = 0.9) +
-      geom_hline(yintercept = n_hold_beds, linetype = "dashed", color = "red", linewidth = 0.8) +
-      annotate("text", x = 1, y = n_hold_beds + 0.3,
-               label = sprintf("Capacity per R2B unit (%d beds)", n_hold_beds),
-               hjust = 0, size = 3.2, color = "red") +
+      geom_hline(data = hold_capacity, aes(yintercept = n_hold_beds),
+                 linetype = "dashed", color = "red", linewidth = 0.8,
+                 inherit.aes = FALSE) +
+      facet_wrap(~ r2b_label, ncol = 1) +
       scale_x_continuous(breaks = seq(1, n_sim_days_hold, by = 2), expand = c(0, 0)) +
       labs(
         title    = "R2B Hold Bed Daily Occupancy by Patient Stream — Mean ± 95% CI Across Replications",
-        subtitle = sprintf("%d replications; dashed line = capacity per R2B unit (%d beds)", n_reps, n_hold_beds),
+        subtitle = sprintf(
+          "%d replications; one panel per R2B unit, dashed line = that unit's establishment (%s)",
+          n_reps,
+          paste(sprintf("%s: %d beds", hold_capacity$r2b_label, hold_capacity$n_hold_beds),
+                collapse = ", ")
+        ),
         x = "Simulation Day", y = "Casualties Occupying a Hold Bed", color = "Stream", fill = "Stream"
       ) +
       theme_minimal(base_size = 13) +

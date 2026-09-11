@@ -702,11 +702,14 @@ plot_ame_sortie <- function(sortie_data, airframe_label = NULL) {
 #'   replication) — used only to drop stray attribute rows for casualties
 #'   excluded from `arrivals` (e.g. by a warm_up filter applied upstream)
 #' @return One row per (name, replication), with one column per attribute
-#'   key. Guarantees the presence (as all-NA) of every key downstream code
-#'   in this file reads directly rather than via `%in% names(...)`, so a run
-#'   with zero DOW events, zero R2E surgeries, zero strategic evacuation
-#'   decisions, or zero completed AME evacuations still returns a
-#'   consistently-shaped data frame.
+#'   key. Guarantees the presence (as all-NA) of every key in
+#'   `MODEL_ATTRIBUTE_KEYS`, which is every key the model can set, so the
+#'   frame has the same shape whatever a run happened to produce: a campaign
+#'   with no death of wounds, no R2E surgery, no strategic evacuation decision
+#'   or nobody returned to duty still yields the same columns as one with all
+#'   of them. A column that depends on the run makes analysis code fail with an
+#'   object-not-found error instead of reading an empty result, which is the
+#'   hazard this removes.
 #'
 #' @details Shared by analyse_run() and analyse_replications() (Issue #117) —
 #'   grouping by (name, replication) rather than name alone already makes
@@ -728,13 +731,9 @@ build_attributes_wide <- function(attributes, arrivals) {
   attributes_wide <- attributes_wide %>%
     semi_join(dplyr::select(arrivals, name, replication), by = c("name", "replication"))
 
-  for (dow_col in c("dow", "dow_echelon", "post_op_pathway", "surgery_deferred",
-                    "dcs_pathway", "r2b_surgery", "r2e_surgery",
-                    "mass_casualty_event", "r2e_evac", "evacuation_decision_day",
-                    "treatment_received", "evacuation_day", "ame_departure_time",
-                    "ame_wait_minutes", "ame_route")) {
-    if (!dow_col %in% names(attributes_wide)) {
-      attributes_wide[[dow_col]] <- NA_real_
+  for (key in MODEL_ATTRIBUTE_KEYS) {
+    if (!key %in% names(attributes_wide)) {
+      attributes_wide[[key]] <- NA_real_
     }
   }
 
@@ -944,8 +943,13 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
   r2b_hold_occupancy_plot <- NULL
   r2b_hold_daily          <- NULL
 
-  if ("r2b_hold_start" %in% names(attributes_wide) &&
-      any(!is.na(attributes_wide$r2b_hold_start))) {
+  # A hold episode is reconstructed from its start and its end, so a casualty
+  # still holding a bed when the run ended carries no return_day and cannot be
+  # placed on the daily series. Where no episode has both, there is nothing to
+  # summarise, and the function returns its empty result rather than a series of
+  # zeroes, which would read as nobody having occupied a bed.
+  if (any(!is.na(attributes_wide$r2b_hold_start) &
+            !is.na(attributes_wide$return_day))) {
 
     # Verify: battle_fatigue must not appear in R2B hold
     bf_in_hold <- attributes_wide %>%
@@ -1883,7 +1887,8 @@ prepare_run_frames <- function(mon, warm_up_days, output_dir) {
     mutate(waiting_time = end_time - start_time - activity_time)
 
   # Pivot attributes wide (last value per key per casualty); see roxygen on
-  # build_attributes_wide() for the zero-DOW/zero-surgery/etc. column guard.
+  # build_attributes_wide() for the guarantee that every attribute key the
+  # model can set is present, all-NA where no casualty set it.
   attributes_wide <- build_attributes_wide(attributes_raw, arrivals)
 
   combined <- arrivals %>%

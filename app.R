@@ -4177,17 +4177,27 @@ wire_dwell_time_outputs <- function(analysis_results, run_mode, output, small_dt
       small_dt(df)
     } else {
       req(res$time_to_first_surgery, res$r2b_dwell_time, res$r2b_r2e_transit_time, res$r2e_dwell_time)
+      # Censored_pct is the share of the cohort still in the echelon when the
+      # run ended. It is shown rather than left to the CSV because the mean is
+      # a restricted mean over that whole cohort, and a reader who cannot see
+      # how much of it was censored cannot tell how far the figure reaches.
+      # Time to first surgery has no identifiable censored cohort, so it shows
+      # nothing here and reports its no-surgery-time count in the CSV instead.
       df <- bind_rows(
         data.frame(KPI = "Time to First Surgery", Mean_min = res$time_to_first_surgery$mean_min,
                    P10_min = res$time_to_first_surgery$p10_min, P90_min = res$time_to_first_surgery$p90_min,
-                   N = res$time_to_first_surgery$n),
+                   N = res$time_to_first_surgery$n, Censored_pct = NA_real_),
         data.frame(KPI = "R2B Dwell Time", Mean_min = res$r2b_dwell_time$mean_min,
-                   P10_min = NA_real_, P90_min = res$r2b_dwell_time$p90_min, N = res$r2b_dwell_time$n),
+                   P10_min = NA_real_, P90_min = res$r2b_dwell_time$p90_min, N = res$r2b_dwell_time$n,
+                   Censored_pct = 100 * res$r2b_dwell_time$censored_share),
         data.frame(KPI = "R2B to R2E Transit Time", Mean_min = res$r2b_r2e_transit_time$mean_min,
-                   P10_min = NA_real_, P90_min = res$r2b_r2e_transit_time$p90_min, N = res$r2b_r2e_transit_time$n),
+                   P10_min = NA_real_, P90_min = res$r2b_r2e_transit_time$p90_min,
+                   N = res$r2b_r2e_transit_time$n,
+                   Censored_pct = 100 * res$r2b_r2e_transit_time$censored_share),
         data.frame(KPI = "R2E Dwell Time", Mean_min = res$r2e_dwell_time$mean_min,
-                   P10_min = NA_real_, P90_min = res$r2e_dwell_time$p90_min, N = res$r2e_dwell_time$n)
-      ) %>% mutate(across(c(Mean_min, P10_min, P90_min), ~ round(., 1)))
+                   P10_min = NA_real_, P90_min = res$r2e_dwell_time$p90_min, N = res$r2e_dwell_time$n,
+                   Censored_pct = 100 * res$r2e_dwell_time$censored_share)
+      ) %>% mutate(across(c(Mean_min, P10_min, P90_min, Censored_pct), ~ round(., 1)))
       small_dt(df)
     }
   })

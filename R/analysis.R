@@ -14,6 +14,7 @@ library(RColorBrewer)
 library(triangle)
 
 source("R/constants.R")
+source("R/censoring.R")
 
 # Jitter applied to the pooled mass casualty timeline is cosmetic — it
 # separates events that fall on the same day — but it is drawn at render
@@ -2036,15 +2037,27 @@ prepare_run_frames <- function(mon, warm_up_days, output_dir) {
 #' Compute the four treatment-interval indicators, in minutes
 #'
 #' @param combined See analyse_run().
+#' @param window_min End of the observation window, in minutes.
 #' @return A list of `time_to_first_surgery`, `r2b_dwell_time`, `r2b_r2e_transit_time`,
-#'   `r2e_dwell_time`.
+#'   `r2e_dwell_time`, each carrying `n_censored` and `censored_share` alongside
+#'   its mean.
 #' @details Covers time from R1 arrival to first surgical incision, dwell at R2B and at
 #'   R2E, and the transit between them. Killed-in-action cases, and
 #'   died-of-wounds cases whose death preceded any surgery, are excluded.
-compute_treatment_interval_kpis <- function(combined) {
+#'
+#'   The three intervals whose cohort at risk is known, the two dwells and the
+#'   transit between them, are summarised by censored_interval_stats(), so a
+#'   casualty still in the echelon when the run ends contributes the lower
+#'   bound they represent instead of being dropped. Time to first surgery is
+#'   not, because its cohort is not identifiable: a casualty with no surgery
+#'   time may be waiting for an operation or may never have needed one, and
+#'   the attributes do not distinguish them. It reports the completed-case mean
+#'   with the count of casualties carrying no surgery time, which is an upper
+#'   bound on how many were censored rather than the censored count itself.
+compute_treatment_interval_kpis <- function(combined, window_min) {
   # KPI 1: Time from R1 arrival to first surgical incision (minutes)
   # Excludes KIA cases and DOW cases where death preceded any surgery.
-  time_to_first_surgery <- combined %>%
+  time_to_first_surgery_cohort <- combined %>%
     mutate(
       first_surgery_start = pmin(
         as.numeric(r2b_surgery_start),
@@ -2053,48 +2066,36 @@ compute_treatment_interval_kpis <- function(combined) {
       ),
       time_to_surgery_min = first_surgery_start - start_time
     ) %>%
-    filter(casualty_type != "kia",
-           !(dow == 1 & is.na(first_surgery_start))) %>%
+    filter(casualty_type != "kia")
+  # Counted before the surgery-time filter below, which drops exactly the rows
+  # this is counting: `dow` is NA for every survivor, so `dow == 1 & is.na(...)`
+  # is NA for a casualty with no surgery time and filter() removes them there.
+  no_surgery_time <- sum(is.na(time_to_first_surgery_cohort$time_to_surgery_min))
+  time_to_first_surgery <- time_to_first_surgery_cohort %>%
+    filter(!(dow == 1 & is.na(first_surgery_start))) %>%
     filter(!is.na(time_to_surgery_min)) %>%
     summarise(
       mean_min = mean(time_to_surgery_min),
       p10_min  = quantile(time_to_surgery_min, 0.10),
       p90_min  = quantile(time_to_surgery_min, 0.90),
       n        = n()
-    )
+    ) %>%
+    mutate(n_no_surgery_time = no_surgery_time)
 
-  # KPI 2: R2B dwell time (minutes) — arrival to departure
-  r2b_dwell_time <- combined %>%
-    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
-    mutate(dwell_min = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
-    filter(dwell_min >= 0) %>%
-    summarise(
-      mean_min = mean(dwell_min),
-      p90_min  = quantile(dwell_min, 0.90),
-      n        = n()
-    )
+  # KPI 2: R2B dwell time (minutes) — treatment start to departure
+  r2b_dwell_time <- censored_interval_stats(
+    combined$r2b_treatment_start_time, combined$r2b_departure_time, window_min
+  )
 
   # KPI 3: R2B → R2E transit time (minutes)
-  r2b_r2e_transit_time <- combined %>%
-    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
-    mutate(transit_min = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
-    filter(transit_min >= 0) %>%
-    summarise(
-      mean_min = mean(transit_min),
-      p90_min  = quantile(transit_min, 0.90),
-      n        = n()
-    )
+  r2b_r2e_transit_time <- censored_interval_stats(
+    combined$r2b_departure_time, combined$r2e_arrival_time, window_min
+  )
 
   # KPI 4: R2E dwell time (minutes)
-  r2e_dwell_time <- combined %>%
-    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
-    mutate(dwell_min = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
-    filter(dwell_min >= 0) %>%
-    summarise(
-      mean_min = mean(dwell_min),
-      p90_min  = quantile(dwell_min, 0.90),
-      n        = n()
-    )
+  r2e_dwell_time <- censored_interval_stats(
+    combined$r2e_arrival_time, combined$r2e_departure_time, window_min
+  )
   list(
     time_to_first_surgery = time_to_first_surgery,
     r2b_dwell_time = r2b_dwell_time,
@@ -2680,7 +2681,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
 
   # ── Output Variable Register derived KPIs ────────────────────────────────
 
-  treatment_interval_kpis_out <- compute_treatment_interval_kpis(combined)
+  treatment_interval_kpis_out <- compute_treatment_interval_kpis(
+    combined, observation_window_min(combined)
+  )
   time_to_first_surgery <- treatment_interval_kpis_out$time_to_first_surgery
   r2b_dwell_time <- treatment_interval_kpis_out$r2b_dwell_time
   r2b_r2e_transit_time <- treatment_interval_kpis_out$r2b_r2e_transit_time
@@ -3476,23 +3479,30 @@ summarise_treatment_intervals_ci <- function(clamp_ci, combined) {
     filter(casualty_type != "kia", !(dow == 1 & is.na(first_surgery_start)), !is.na(.val))
   time_to_first_surgery_ci <- kpi_per_rep_ci(time_to_first_surgery_rep)
 
-  r2b_dwell_time_rep <- combined %>%
-    filter(!is.na(r2b_treatment_start_time) & !is.na(r2b_departure_time)) %>%
-    mutate(.val = as.numeric(r2b_departure_time) - as.numeric(r2b_treatment_start_time)) %>%
-    filter(.val >= 0)
-  r2b_dwell_time_ci <- kpi_per_rep_ci(r2b_dwell_time_rep)
+  window_min <- observation_window_min(combined)
+  #' Confidence interval over the per-replication restricted means of one interval
+  #'
+  #' @param start_col Name of the column holding the interval's start, in minutes.
+  #' @param end_col Name of the column holding its end, in minutes.
+  #' @return A clamped `ci_mean()` result over the per-replication restricted means.
+  #' @details Each replication is summarised by censored_interval_stats() before
+  #'   the interval is taken across replications, so a stay still running when
+  #'   one replication ends is carried as the lower bound it is rather than
+  #'   dropped from that replication's mean.
+  censored_per_rep_ci <- function(start_col, end_col) {
+    per_rep <- combined %>%
+      group_by(replication) %>%
+      summarise(
+        mean_val = censored_interval_stats(.data[[start_col]], .data[[end_col]],
+                                           window_min)$mean_min,
+        .groups = "drop"
+      )
+    clamp_ci(ci_mean(per_rep$mean_val[is.finite(per_rep$mean_val)]))
+  }
 
-  r2b_r2e_transit_time_rep <- combined %>%
-    filter(!is.na(r2b_departure_time) & !is.na(r2e_arrival_time)) %>%
-    mutate(.val = as.numeric(r2e_arrival_time) - as.numeric(r2b_departure_time)) %>%
-    filter(.val >= 0)
-  r2b_r2e_transit_time_ci <- kpi_per_rep_ci(r2b_r2e_transit_time_rep)
-
-  r2e_dwell_time_rep <- combined %>%
-    filter(!is.na(r2e_arrival_time) & !is.na(r2e_departure_time)) %>%
-    mutate(.val = as.numeric(r2e_departure_time) - as.numeric(r2e_arrival_time)) %>%
-    filter(.val >= 0)
-  r2e_dwell_time_ci <- kpi_per_rep_ci(r2e_dwell_time_rep)
+  r2b_dwell_time_ci <- censored_per_rep_ci("r2b_treatment_start_time", "r2b_departure_time")
+  r2b_r2e_transit_time_ci <- censored_per_rep_ci("r2b_departure_time", "r2e_arrival_time")
+  r2e_dwell_time_ci <- censored_per_rep_ci("r2e_arrival_time", "r2e_departure_time")
 
   dwell_time_summary_ci <- list(
     time_to_first_surgery = time_to_first_surgery_ci,

@@ -110,7 +110,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install system libraries
+        timeout-minutes: 15
         run: |
+          # A stalled archive mirror otherwise hangs this step until the job
+          # timeout, 60 minutes for three of these jobs and 180 for the slow
+          # suite, and reports a failure that says nothing about the cause.
+          # Retries recover a single bad response; the transport timeout bounds
+          # a connection that goes silent; the step timeout above bounds the
+          # whole thing well clear of the 7m39s worst case actually observed.
+          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # asserts it.
+          printf '%s\n' \
+            'Acquire::Retries "5";' \
+            'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' \
+            > /etc/apt/apt.conf.d/99-ci-resilience
           apt-get update
           apt-get install -y --no-install-recommends \
             curl libcurl4-openssl-dev libssl-dev libxml2-dev \
@@ -172,7 +186,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install system libraries
+        timeout-minutes: 15
         run: |
+          # A stalled archive mirror otherwise hangs this step until the job
+          # timeout, 60 minutes for three of these jobs and 180 for the slow
+          # suite, and reports a failure that says nothing about the cause.
+          # Retries recover a single bad response; the transport timeout bounds
+          # a connection that goes silent; the step timeout above bounds the
+          # whole thing well clear of the 7m39s worst case actually observed.
+          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # asserts it.
+          printf '%s\n' \
+            'Acquire::Retries "5";' \
+            'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' \
+            > /etc/apt/apt.conf.d/99-ci-resilience
           apt-get update
           apt-get install -y --no-install-recommends \
             curl libcurl4-openssl-dev libssl-dev libxml2-dev \
@@ -225,7 +253,21 @@ jobs:
 
       - name: Install system libraries
         if: needs.classify.outputs.code_changed == 'true'
+        timeout-minutes: 15
         run: |
+          # A stalled archive mirror otherwise hangs this step until the job
+          # timeout, 60 minutes for three of these jobs and 180 for the slow
+          # suite, and reports a failure that says nothing about the cause.
+          # Retries recover a single bad response; the transport timeout bounds
+          # a connection that goes silent; the step timeout above bounds the
+          # whole thing well clear of the 7m39s worst case actually observed.
+          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # asserts it.
+          printf '%s\n' \
+            'Acquire::Retries "5";' \
+            'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' \
+            > /etc/apt/apt.conf.d/99-ci-resilience
           apt-get update
           apt-get install -y --no-install-recommends \
             curl libcurl4-openssl-dev libssl-dev libxml2-dev \
@@ -293,7 +335,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install system libraries
+        timeout-minutes: 15
         run: |
+          # A stalled archive mirror otherwise hangs this step until the job
+          # timeout, 60 minutes for three of these jobs and 180 for the slow
+          # suite, and reports a failure that says nothing about the cause.
+          # Retries recover a single bad response; the transport timeout bounds
+          # a connection that goes silent; the step timeout above bounds the
+          # whole thing well clear of the 7m39s worst case actually observed.
+          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # asserts it.
+          printf '%s\n' \
+            'Acquire::Retries "5";' \
+            'Acquire::http::Timeout "30";' \
+            'Acquire::https::Timeout "30";' \
+            > /etc/apt/apt.conf.d/99-ci-resilience
           apt-get update
           apt-get install -y --no-install-recommends \
             curl libcurl4-openssl-dev libssl-dev libxml2-dev \

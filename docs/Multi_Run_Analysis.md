@@ -61,6 +61,9 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Demand on the National Support Base](#demand-on-the-national-support-base)
+  - [Timing Matters More Than Airframe-Days](#timing-matters-more-than-airframe-days)
+  - [The Evacuation Wait Consumes Clinical Capacity, on One Route](#the-evacuation-wait-consumes-clinical-capacity-on-one-route)
+  - [Demand on the Base Peaks at the Campaign's End, Not After It](#demand-on-the-base-peaks-at-the-campaigns-end-not-after-it)
 - [Effects the Simulation Could Not Resolve](#effects-the-simulation-could-not-resolve)
 - [Further Development](#further-development)
 - [Limitations](#limitations)
@@ -446,15 +449,37 @@ Two events thirteen days apart is a thin draw from a process set to deliver an a
 
 <small>[Return to Top](#contents)</small>
 
-**Strategic evacuation is limited by how many sorties actually depart rather than by how many places each carries, and every casualty left waiting occupies an R2E holding bed.** The findings in this section come from one verified campaign rather than from repeated runs, so they establish the mechanism rather than its size. **Evidence: direction only, from a single campaign.**
+**Strategic evacuation is limited by when sorties arrive rather than by how many places each carries, and the interval between them is a stronger lever than their reliability.** Both are measured across replications rather than inferred from one campaign, and the earlier single-campaign reading is refined in three places. **Evidence: measured.**
 
-Under the shipped configuration this constraint does not bind. All four scheduled sorties fly, all 193 casualties reaching a strategic evacuation decision board and arrive within the campaign, none is left queued at R2E, and the mean wait is 1.0 days [[10]](#references). What makes the constraint visible is cancellation, which ships disabled: the same schedule losing two of its four sorties cleared 99 of 135 decisions and left 36 holding R2E beds at the end of the campaign, at a mean wait of 10.1 days. Each aircraft offers 36 high-dependency and 54 ambulatory places, and the critical cabin fills exactly on every sortie until demand is cleared in both cases, so what separates the two is how many aircraft depart rather than how large they are. [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing) measures that across the range of cancellation rates and at replication.
+**Design.** 50 replications of a 30-day campaign at each of two baselines, the shipped configuration under each casualty intensity, and at each of eleven swept values: six sortie cancellation probabilities from 0 to 0.40, and five intervals between scheduled sorties from 3 to 14 days. The full design is in `docs/Multi_Run_Supplement.md`.
 
-Two planning recommendations follow. The first concerns the sortie pattern. The simulation provides a means of establishing the aeromedical evacuation sortie pattern required to clear casualties from R2E at a given casualty intensity, rather than sizing the aircraft: a schedule resilient to cancellation, whether through a reserve airframe or a shorter interval between sorties, clears the backlog where additional cabin capacity on an unreliable schedule does not. The same analysis would inform related policies, such as releasing recovering casualties to light duties in theatre, which reduces the number needing evacuation at all.
+At the shipped configuration the constraint does not bind at moderate intensity. All four scheduled sorties fly, 162.7 casualties board [153.9, 171.6], 1.26 [0.63, 1.89] are left waiting when the campaign ends, and the mean wait is 0.81 days [0.68, 0.93]. At high intensity the same schedule leaves 26.96 [23.86, 30.06] waiting at a mean of 2.39 days [2.22, 2.57], so a backlog forms from volume alone, with every sortie flying.
 
-The second concerns the demand signal sent rearward. Occupancy at the national support base reached 120 concurrent patients on the campaign's last day and decayed to near zero only around day 68, so the base carries its heaviest load after the campaign that generates it has ended. A demand signal for bed types at the national support base should therefore be derived from the theatre's evacuation pipeline, and phased to peak after the engagement rather than during it. The simulation can generate that signal by bed type, which is a more useful planning product than a total casualty estimate.
+### Timing Matters More Than Airframe-Days
 
-Both recommendations rest on one campaign at each of two cancellation settings. A replicated analysis of national support base demand is the first item in [Further Development](#further-development).
+The clearest result is that two schedules flying the same number of sorties do not perform the same. At a 10-day interval two sorties fly and the mean wait is 2.30 days [2.05, 2.55]; at a 14-day interval two sorties also fly and the mean wait is 5.51 days [5.12, 5.90]. The count is identical and the wait more than doubles, so the quantity a planner is buying is not airframe-days but how early and how regularly the aircraft come.
+
+| Interval between sorties | Sorties flown | Mean wait (days) | Share of R2E holding beds held by the evacuation wait |
+|---|---|---|---|
+| 3 days | 9.00 | 0.18 [0.16, 0.20] | 1% [1%, 2%] |
+| 5 days | 5.00 | 0.34 [0.30, 0.37] | 4% [3%, 5%] |
+| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 10% [8%, 12%] |
+| 10 days | 2.00 | 2.30 [2.05, 2.55] | 19% [17%, 22%] |
+| 14 days | 2.00 | 5.51 [5.12, 5.90] | 39% [34%, 43%] |
+
+Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 10% to 30%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 1% to 39%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
+
+### The Evacuation Wait Consumes Clinical Capacity, on One Route
+
+A casualty waiting for the standard airlift pool holds an R2E holding bed for the whole of that wait. A casualty waiting for the critical pool does not; it holds an intensive care bed already seized upstream. The distinction is large rather than technical: over a campaign at a 40% cancellation rate the standard-route waits account for 91.1 holding bed-days while the critical-route waits, were they charged to the same pool, would account for 340.4. Attributing both to holding beds would overstate the coupling more than fourfold.
+
+On the standard route the coupling is nonetheless real and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 10% [8%, 12%] of R2E holding bed occupancy at moderate intensity and 29% [27%, 32%] at high. At a 14-day interval it reaches 39% [34%, 43%]. Since the holding pool also carries in-theatre recovery, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.3 hours at 14.
+
+### Demand on the Base Peaks at the Campaign's End, Not After It
+
+The single-campaign reading had national support base occupancy peaking on the campaign's last day and inferred that the base carries its heaviest load after the engagement that generates it. Replicated, the peak falls **1.36 days before** the campaign ends [0.83, 1.89 days before] at moderate intensity and 0.66 days before at high [0.23, 1.09], and the interval excludes zero in both cases. What the single campaign saw was the long tail decaying afterwards rather than the peak arriving late. Peak occupancy is 104.0 concurrent patients [97.6, 110.5] at moderate intensity and 159.6 [156.1, 163.2] at high.
+
+The planning consequence survives in a weaker form. A demand signal for the national support base should still be derived from the theatre's evacuation pipeline rather than from a casualty estimate, and it still extends well past the campaign; but it should be phased to peak with the engagement rather than after it.
 
 ---
 
@@ -482,15 +507,14 @@ The first two are a matter of compute time and would be settled by longer runs. 
 
 | Priority | Development | Decision it unblocks |
 |---|---|---|
-| 1 | Repeated runs of national support base demand and strategic evacuation | The sortie pattern needed to clear R2E, and the bed-type demand signal sent rearward |
-| 2 | Make the establishment variable, so team and bed counts can be swept as fleet sizes already are | Option 1: how best to source additional surgical team hours, and Option 2: how many holding beds |
-| 3 | Joint sweep of R2B holding capacity against an evacuation threshold | Option 2: which of the three remedies to adopt |
-| 4 | Re-run the unresolved experiments at the run counts stated above | Options 1 and 3, and the cost of rationing intensive care access |
-| 5 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
-| 6 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
-| 7 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
-| 8 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
-| 9 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
+| 1 | Make the establishment variable, so team and bed counts can be swept as fleet sizes already are | Option 1: how best to source additional surgical team hours, and Option 2: how many holding beds |
+| 2 | Joint sweep of R2B holding capacity against an evacuation threshold | Option 2: which of the three remedies to adopt |
+| 3 | Re-run the unresolved experiments at the run counts stated above | Options 1 and 3, and the cost of rationing intensive care access |
+| 4 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
+| 5 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
+| 6 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
+| 7 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
+| 8 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
 
 Alongside these, the simulated system's design and its calibration would benefit from structured review by clinical and health planning subject matter experts. The parameters governing intensive care rationing and post-operative risk are informed estimates rather than measured values, and expert calibration would do more to improve confidence in the mortality findings than additional computation.
 

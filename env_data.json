@@ -414,6 +414,10 @@
           "acty": "icu_gating",
           "vals": [
             {
+              "var": "enabled",
+              "val": 1
+            },
+            {
               "var": "p1_bypass_priority_max",
               "val": 1
             },
@@ -562,6 +566,10 @@
         {
           "acty": "icu_gating",
           "vals": [
+            {
+              "var": "enabled",
+              "val": 1
+            },
             {
               "var": "defer_check_interval",
               "val": 30

@@ -1077,6 +1077,31 @@ r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
     )
 }
 
+#' Whether one echelon's pre-theatre intensive care gate is in force
+#'
+#' @param echelon `env_data$vars` key of the echelon, "r2b" or "r2eheavy".
+#' @return TRUE where the gate applies, FALSE where it is disabled.
+#' @details Disabling it reproduces the model as it stood before the gate
+#'   existed: theatre entry does not depend on an intensive care bed being
+#'   free, and a casualty needing stabilisation is admitted to intensive care
+#'   whether or not one is, queueing if none is. That is the arm the published
+#'   before-and-after comparison needs, and reconstructing it as a supported
+#'   configuration is what makes the comparison repeatable after a later model
+#'   change rather than recoverable only from a dead code state.
+#'
+#'   Validated here rather than at load, the field being read once per
+#'   trajectory build and a malformed value being a configuration error the
+#'   caller should see named.
+icu_gate_enabled <- function(echelon) {
+  value <- env_data$vars[[echelon]]$icu_gating$enabled
+  if (is.null(value) || length(value) != 1L || is.na(value) ||
+        !value %in% c(0, 1)) {
+    stop(sprintf("%s.icu_gating.enabled must be 0 or 1, found %s",
+                 echelon, paste(format(value), collapse = ", ")), call. = FALSE)
+  }
+  value == 1
+}
+
 #' Builds the pre-theatre intensive care gate at R2B
 #'
 #' @param icu_beds This R2B team's intensive care beds
@@ -1098,6 +1123,7 @@ r2b_surgery_gate <- function(icu_beds, ot_check) {
   trajectory("Needs Surgery") %>%
     branch(
       option = function() {
+        if (!icu_gate_enabled("r2b")) return(1)   # gate disabled: pre-gate model
         prio <- get_attribute(env, "priority")
         if (!is.na(prio) && prio == 1) return(1)  # P1 always proceeds
         usage  <- sum(get_server_count(env, resources = icu_beds))
@@ -2261,6 +2287,11 @@ r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
 
         prior <- get_attribute(env, "r2b_surgery")
         if (single_stage() && !is.na(prior) && prior == 1) return(5)
+
+        # Gate disabled: the pre-gate model, in which every operated casualty
+        # takes the intensive care pathway and queues for a bed rather than
+        # being diverted or deferred by one being full.
+        if (!icu_gate_enabled("r2eheavy")) return(1)
 
         usage  <- sum(get_server_count(env, resources = icu_beds))
         cap    <- sum(get_capacity(env, resources = icu_beds))

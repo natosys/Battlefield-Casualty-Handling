@@ -104,10 +104,23 @@ blocks <- do.call(rbind, lapply(scenario_names, function(scenario) {
   b
 }))
 
-write.csv(series, file.path(OUTPUT_DIR, "long_horizon_series.csv"), row.names = FALSE)
-write.csv(blocks, file.path(OUTPUT_DIR, "long_horizon_blocks.csv"), row.names = FALSE)
+stability <- do.call(rbind, lapply(scenario_names, function(scenario) {
+  st <- classify_stability(blocks[blocks$scenario == scenario, ])
+  st$scenario <- scenario
+  st
+}))
 
-message(sprintf("Series and block means written to %s", OUTPUT_DIR))
+# The daily series is the evidence set behind every block mean and is an order
+# of magnitude larger than either derived table, so it is written compressed:
+# read.csv() and write.csv() both handle a gzip connection transparently, and
+# the tracked file is a quarter the size uncompressed it would be.
+write.csv(series, gzfile(file.path(OUTPUT_DIR, "long_horizon_series.csv.gz")),
+          row.names = FALSE)
+write.csv(blocks, file.path(OUTPUT_DIR, "long_horizon_blocks.csv"), row.names = FALSE)
+write.csv(stability, file.path(OUTPUT_DIR, "long_horizon_stability.csv"),
+          row.names = FALSE)
+
+message(sprintf("Series, block means and stability written to %s", OUTPUT_DIR))
 
 #' Print one response's block means as a single line per scenario
 #'
@@ -129,3 +142,13 @@ cat("\nBlock means (one column per 30-day block):\n")
 for (pool in names(LONG_HORIZON_POOLS)) print_blocks("mean_queue", pool)
 for (pool in names(LONG_HORIZON_POOLS)) print_blocks("occupancy", pool)
 for (s in c("arrivals", "dow", "evac_backlog")) print_blocks(s, "system")
+
+cat("\nStability over the horizon:\n")
+for (scenario in scenario_names) {
+  rows <- stability[stability$scenario == scenario, ]
+  for (i in seq_len(nrow(rows))) {
+    cat(sprintf("%-19s %-12s %-23s %8.2f -> %9.2f  %+7.1f%%/block  %s\n",
+                scenario, rows$series[i], rows$subject[i], rows$first[i],
+                rows$last[i], 100 * rows$drift_per_block[i], rows$stability[i]))
+  }
+}

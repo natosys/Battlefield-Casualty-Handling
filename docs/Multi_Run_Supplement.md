@@ -20,6 +20,10 @@ This document is the design record for the replicated experiments reported in th
   - [Interval Construction](#interval-construction)
   - [Replication Count and Resolution](#replication-count-and-resolution)
   - [Warm-up Classification](#warm-up-classification)
+- [The Sustained-Operations Horizon](#the-sustained-operations-horizon)
+  - [The Protocol](#the-protocol)
+  - [Stability, and What It Means for Warm-up](#stability-and-what-it-means-for-warm-up)
+  - [Which Findings Are Horizon-Limited](#which-findings-are-horizon-limited)
   - [The Checks That Defend These Properties](#the-checks-that-defend-these-properties)
   - [A Replication Lost to Its Host](#a-replication-lost-to-its-host)
 - [Experimental Designs](#experimental-designs)
@@ -112,7 +116,70 @@ Single 50-replication measurements of one unchanged configuration span 0.132 per
 
 No warm-up period is discarded from any observation window. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only where steady state is the quantity of interest [[9]](#references). This is a terminating simulation with a fixed campaign length and a genuinely empty start, so the opening period is part of the quantity of interest rather than a transient to be removed: a deploying health system really does start empty, and how it copes while filling is a planning question in its own right.
 
-That classification is supported rather than assumed. The Welch graphical diagnostic, run over ten 90-day replications and reported in the system reference [[3]](#references), shows the behaviour a terminating model is expected to show, and `scripts/run_warmup.R` re-runs it on demand.
+That classification is supported rather than assumed. The Welch graphical diagnostic, run over ten 90-day replications and reported in the system reference [[3]](#references), shows the behaviour a terminating model is expected to show, and `scripts/run_warmup.R` re-runs it on demand. It is also re-derived at a horizon twelve times the experiments' own, which establishes both that a steady state exists for every response at moderate intensity and that it does not for four of them at high; see [Stability, and What It Means for Warm-up](#stability-and-what-it-means-for-warm-up).
+
+## The Sustained-Operations Horizon
+
+<small>[Return to Top](#contents)</small>
+
+Every experiment reported in the companion paper runs for 30 days, a window inherited from the campaign the baseline models rather than chosen by measurement. A window that short cannot distinguish a system in equilibrium at a given load from one thirty days into a divergence, and the model has responses of both kinds. This section defines a second horizon alongside the first and states which question belongs to which.
+
+### The Protocol
+
+<!-- PROTOCOL days=360 -->
+<!-- PROTOCOL replications=30 -->
+<!-- PROTOCOL block_days=30 -->
+Thirty replications of a 360-day campaign at control seed 42, at each of the two casualty intensities, under the shipped default establishment and the shipped default configuration. Results are reported as means over twelve consecutive 30-day blocks. Invoked as:
+
+```
+Rscript scripts/run_long_horizon.R --refresh-baseline
+```
+
+**Force regeneration is part of the protocol, not a default it inherits.** With reinforcement disabled, arrival rate is proportional to effective force size, so a long run loses combat power and casualty arrivals decay with it; that measures a force being consumed rather than a system under sustained load, and the two are different questions that the same duration answers differently. The protocol runs at the shipped 7-day reinforcement cycle, which holds the force near establishment. The measurement confirms the intent rather than assuming it: arrivals per day are 14.20 in block one and 14.91 in block twelve at moderate intensity, and 34.89 against 35.17 at high, so the casualty stream is stationary and any movement in a downstream response is the system's and not the stream's.
+
+**One long run answers the question for every shorter horizon, in distribution rather than run for run.** Each block's mean is computed from that block's days alone, so twelve block means come out of one run at no extra cost and running separate durations would cost several times as much to say the same thing. What the reduction does not give, and what an earlier draft of this protocol wrongly claimed, is that block one of a long run reproduces a standalone 30-day run at the same seed. It does not. The arrival streams are force-size-reactive closures sampled by thinning, as set out under [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window), over the horizon the run requests, so changing the horizon changes the draws and two runs of different length at one control seed diverge from their first arrival: at a four-day and a two-day run of the same seed, 25 arrivals fall in the first two days against 34. Block one is therefore a valid sample of the 30-day window and not the same campaign as a 30-day experiment, which is why the protocol compares block means across thirty replications rather than one run against another.
+
+`scripts/check_long_horizon_protocol.R` asserts both halves of that: that reducing one run's monitors over a shorter horizon reproduces the shorter horizon's days exactly, which is the property the block means rest on, and that a long run and a short one at one seed are different campaigns, so the stronger claim cannot be reinstated from the shape of the block means.
+
+**Each replication is reduced before the next begins.** `run_long_horizon()` (`R/long_horizon.R`) reduces a finished replication to a daily series inside the forked worker that produced it and discards the monitoring data there, so the parent process holds the series rather than the monitors. Peak memory is then set by one replication rather than by their sum: measured across the process tree, a full protocol run holds at about 2.7 GB. The reduction is not an optimisation of a working arrangement but the thing that makes the run possible, the unreduced monitoring set at this horizon and replication count being some two orders of magnitude larger than any analysis of it needs.
+
+The responses the protocol covers are the queue and the occupancy of each of five bed pools, and three system quantities: casualty arrivals, deaths of wounds, and the strategic evacuation backlog, this last being the number of casualties whose evacuation had been decided and who had not yet departed. The tracked evidence set is `data/long_horizon/`.
+
+### Stability, and What It Means for Warm-up
+
+A response's stability is classified from its block means rather than read off a figure. The trend is fitted over the **second half** of the horizon, not over all of it, because a response decaying from an opening transient to a steady level and one growing without bound both have a non-zero slope across the whole horizon and are the two cases the classification exists to separate. A run starts from an empty system, so a decaying opening is expected and is not evidence against convergence; what distinguishes the two is whether the response is still moving once that opening has passed. A response is reported as converged where the late slope's interval spans zero, or where it does not but the drift is under one percent of the response's own late level per block; as drifting otherwise; and as degenerate where it never moved at all, which carries no information about convergence and would otherwise be reported as a perfectly determined zero trend.
+
+**At moderate intensity every response converges. At high intensity four do not.**
+
+| Response | Moderate intensity | High intensity |
+|---|---|---|
+| R2E operating theatre queue | converged, +1.2%/block | **drifting, +11.3%/block**, 85.2 to 1,725.9 |
+| R2E holding bed queue | converged, -10.2%/block | **drifting, +12.3%/block**, 33.3 to 816.5 |
+| R2E intensive care queue | converged, -3.5%/block | **drifting, +16.8%/block**, 2.5 to 228.2 |
+| Strategic evacuation backlog | converged, -4.6%/block | **drifting, +13.8%/block**, 24.1 to 548.7 |
+| R2B holding bed queue | converged, -0.1%/block | converged, +0.5%/block |
+| Casualty arrivals per day | converged, +0.5%/block | converged, -0.2%/block |
+| Deaths of wounds per day | converged, -3.0%/block | converged, -1.5%/block |
+
+The drift percentages are per 30-day block and are taken over the second half of the horizon, so the four drifting responses are still growing at those rates in the twelfth block rather than decelerating towards a level. Occupancy explains why: at high intensity the three R2E pools reach 1.00 by block two and stay there, so the queues grow because the pools have nothing left to give.
+
+This changes what a warm-up period can mean here, and it changes it differently for the two classes.
+
+For a converged response the classification also reports the first block from which the response never again leaves a band around its late level, the band being two standard deviations of its own variation across the late blocks. Scaling the band to the response's own variation rather than to its level is what makes the statement comparable across a queue averaging half a casualty and one averaging fifty, and it is the form the question takes: whether the opening blocks are distinguishable from the ordinary variation the response shows once settled. **Every converged response settles by block seven, and most by block one or two**, so no converged response carries an opening transient that reaches far into the horizon.
+
+For a drifting response no warm-up period exists to be measured. Welch's procedure presumes the response converges to a steady state whose initial transient is being removed, and a response with no steady state does not satisfy that premise: a period chosen for it would not be a transient being discarded but an arbitrary truncation of a trend. The four drifting responses are therefore reported as having no steady state rather than as having a warm-up period of zero, which is a different claim.
+
+`WARM_UP_DAYS` remains 0, and the basis for it is unchanged and is not the one this measurement bears on. Nothing is discarded because the companion paper's experiments are terminating simulations with a fixed campaign length and a genuinely empty start, so the opening period is part of the quantity of interest rather than a transient to be removed. What this measurement adds is that the classification is now correct for the right reason at both intensities: at moderate intensity a steady state exists and the opening reaches it quickly, so discarding nothing costs little; at high intensity no steady state exists for the R2E pools, so there is nothing a warm-up period could be measured against, and discarding an opening period would remove real campaign behaviour without removing a transient.
+
+### Which Findings Are Horizon-Limited
+
+Every experiment in the companion paper runs at 30 days, which is block one of this protocol, and the audit of what that costs follows from the classification above.
+
+**At moderate intensity, no published finding is horizon-limited.** Every response converges and most settle within the first two blocks, so block one is a representative window and the 30-day figures describe the system rather than a moment in its history.
+
+**At high intensity, every figure resting on an R2E queue or on the evacuation backlog is a point on a trend rather than a level.** The companion paper's mean R2E theatre queue of 43.13 at high intensity is block one's value; block twelve's is 1,725.9. That does not make the published figure wrong, and it does not change the paper's conclusions, which rest on the comparison between intensities and on the fact that the queue does not clear. It does mean no high-intensity queue figure should be read as a level the establishment could be sized against, because there is no such level within a simulated year. The companion paper states this in its Limitations.
+
+The sensitivity screens carry the same qualification and it is already recorded: the published Morris and Sobol rankings are 30-day rankings, labelled as such, and whether a parameter's influence differs at length is unresolved. Re-screening at the sustained horizon is a separate piece of work whose cost, roughly nineteen hours at 30 days, would rise with the horizon.
 
 ### The Checks That Defend These Properties
 

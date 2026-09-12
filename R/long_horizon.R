@@ -104,16 +104,23 @@ reduce_flow_series <- function(arrivals, attributes, n_days) {
   #' Campaign day a simulated time falls in
   #'
   #' @param minutes Simulated times, in minutes from the start of the campaign.
-  #' @return Integer day numbers from 1, clamped to the last day so that an
-  #'   event recorded exactly at the horizon counts in the final day.
-  day_of <- function(minutes) pmin(floor(minutes / DAY_MIN) + 1L, n_days)
+  #' @return Integer day numbers from 1, unclamped, so a time beyond the horizon
+  #'   yields a day beyond it rather than being folded into the last one.
+  day_of <- function(minutes) floor(minutes / DAY_MIN) + 1L
 
   #' Count of events falling in each campaign day
   #'
   #' @param minutes Simulated times of the events, in minutes.
   #' @return Integer vector of length `n_days`, zero on a day with no events.
+  #'
+  #' @details Events beyond the horizon are dropped rather than clamped into the
+  #'   final day. Clamping would make a day's count depend on what happened
+  #'   after it, so reducing one run's monitors over a shorter horizon would not
+  #'   reproduce the shorter horizon's days, which is the property that makes
+  #'   twelve block means from one run legitimate.
   per_day <- function(minutes) {
-    tabulate(day_of(minutes[!is.na(minutes)]), nbins = n_days)
+    days <- day_of(minutes[!is.na(minutes)])
+    tabulate(days[days >= 1L & days <= n_days], nbins = n_days)
   }
 
   #' Times at which one attribute was set
@@ -253,4 +260,124 @@ block_means <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
   names(out) <- c("series", "subject", "block", "n_reps", "mean", "ci_lower", "ci_upper")
   out$block_start_day <- (out$block - 1L) * block_days + 1L
   out[order(out$series, out$subject, out$block), ]
+}
+
+#' Smallest per-block drift, as a share of a response's own level, that is
+#' reported as a trend rather than as flat
+#'
+#' @details One percent of the response's mean per 30-day block, which is 12%
+#'   over the protocol's horizon. A slope whose interval excludes zero but whose
+#'   size is below this is reported as flat, because a response the model holds
+#'   within a few percent over a simulated year is in equilibrium for every
+#'   planning purpose, and at thirty replications an interval can exclude zero
+#'   at a drift far too small to matter. Statistical significance and practical
+#'   stability are different questions and this threshold is where the second is
+#'   answered.
+STABILITY_DRIFT_THRESHOLD <- 0.01
+
+#' Half-width of the band a converged response must stay inside to count as
+#' settled, in standard deviations of its own late block means
+#'
+#' @details Two. The band is scaled to the response's own between-block
+#'   variation rather than to its level, because the question it answers is
+#'   whether the opening blocks are distinguishable from the ordinary variation
+#'   the response shows once settled, and a band fixed as a share of the level
+#'   answers that question differently for a queue averaging half a casualty
+#'   than for one averaging fifty. A response settled by block one had no
+#'   opening transient worth removing, which is the finding a warm-up period
+#'   would otherwise be read from.
+STABILITY_SETTLE_SDS <- 2
+
+#' Classify each response as converged, drifting or degenerate over the horizon
+#'
+#' @param blocks Per-block means as returned by block_means().
+#' @return Data frame of series, subject, first, last, late_mean, slope,
+#'   ci_lower, ci_upper, drift_per_block, settles_by_block and stability, one
+#'   row per response.
+#'
+#' @details The classification is the protocol's finding, so it is computed here
+#'   rather than read off a figure.
+#'
+#'   The trend is fitted over the second half of the horizon rather than over
+#'   all of it, because a response that decays from an initial transient to a
+#'   steady level and one that grows without bound both have a non-zero slope
+#'   across the whole horizon and are the two cases this classification exists
+#'   to separate. A run starts from an empty system, so a decaying opening is
+#'   expected and is not evidence against convergence; what distinguishes the
+#'   two is whether the response is still moving once that opening has passed.
+#'
+#'   `stability` is "degenerate" where the response never moved, which carries
+#'   no information about convergence and would otherwise be reported as a
+#'   perfectly determined zero trend; "converged" where the late slope's
+#'   interval spans zero, or where it does not but the drift is under
+#'   STABILITY_DRIFT_THRESHOLD of the response's own late level; and "drifting"
+#'   otherwise. A drifting response has no steady state within the horizon, and
+#'   no warm-up period can be defined for it.
+#'
+#'   `settles_by_block` is the first block from which every later block mean
+#'   lies within STABILITY_SETTLE_SDS standard deviations of the late mean,
+#'   the deviation being the response's own across the late blocks, and is NA for a
+#'   drifting or degenerate response. For a converged response it is the
+#'   quantity a warm-up period would be read from.
+classify_stability <- function(blocks) {
+  parts <- split(blocks, list(blocks$series, blocks$subject), drop = TRUE)
+  out <- do.call(rbind, lapply(parts, function(d) {
+    d <- d[order(d$block), ]
+    n <- nrow(d)
+
+    #' One classified row for this response
+    #'
+    #' @param slope Fitted late slope.
+    #' @param ci Two-element interval on that slope.
+    #' @param drift Late slope as a share of the late level.
+    #' @param settles First block from which the response stays in band, or NA.
+    #' @param stability One of "degenerate", "converged" or "drifting".
+    #' @return A one-row data frame.
+    row_for <- function(slope, ci, drift, settles, stability) {
+      data.frame(series = d$series[1], subject = d$subject[1],
+                 first = d$mean[1], last = d$mean[n],
+                 late_mean = mean(d$mean[ceiling(n / 2):n]),
+                 slope = slope, ci_lower = ci[1], ci_upper = ci[2],
+                 drift_per_block = drift, settles_by_block = settles,
+                 stability = stability)
+    }
+
+    if (isTRUE(all.equal(max(d$mean), min(d$mean)))) {
+      return(row_for(0, c(0, 0), 0, NA_integer_, "degenerate"))
+    }
+
+    late  <- d[ceiling(n / 2):n, ]
+    level <- mean(late$mean)
+
+    # A response that varied early and is constant over the late blocks has a
+    # perfectly determined zero slope, which lm() fits with a zero residual and
+    # warns about. It has converged, to that constant, and settled by the first
+    # late block; reporting it here avoids both the warning and an interval of
+    # width zero that would read as a precise measurement rather than as a
+    # degenerate one.
+    if (isTRUE(all.equal(max(late$mean), min(late$mean)))) {
+      return(row_for(0, c(0, 0), 0, as.integer(ceiling(n / 2)), "converged"))
+    }
+
+    fit   <- lm(mean ~ block, data = late)
+    ci    <- unname(confint(fit)["block", ])
+    slope <- unname(coef(fit)["block"])
+    drift <- slope / max(abs(level), .Machine$double.eps)
+
+    converged <- (ci[1] < 0 && ci[2] > 0) || abs(drift) < STABILITY_DRIFT_THRESHOLD
+    if (!converged) return(row_for(slope, ci, drift, NA_integer_, "drifting"))
+
+    # The first block from which the response never again leaves the band
+    # around its late level. Searched from the last block backwards, so a
+    # response that re-enters the band and leaves it again reports the later
+    # crossing rather than the earlier one.
+    spread  <- sd(late$mean)
+    if (!is.finite(spread) || spread == 0) spread <- .Machine$double.eps
+    in_band <- abs(d$mean - level) <= STABILITY_SETTLE_SDS * spread
+    settles <- n
+    while (settles > 1 && in_band[settles - 1]) settles <- settles - 1
+
+    row_for(slope, ci, drift, as.integer(settles), "converged")
+  }))
+  out[order(out$stability, -abs(out$drift_per_block)), ]
 }

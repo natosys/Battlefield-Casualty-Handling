@@ -35,14 +35,22 @@
 #   3. The daily reduction agrees with the monitors it was reduced from: pool
 #      occupancy and queue reproduce what the resource monitor reports over the
 #      same window, and the daily arrival counts sum to the run's arrivals.
-#   4. Block one of a long run equals a standalone run of one block, the model
-#      being causal, which is what lets one long run answer the question for
-#      every shorter horizon.
+#   4. The reduction of any day uses that day's events alone, so reducing one
+#      run's monitors over a shorter horizon reproduces the shorter horizon's
+#      days exactly. That is what makes twelve block means from one run
+#      legitimate, and it is asserted alongside the fact that a long run and a
+#      short one at the same seed are NOT the same campaign: the arrival stream
+#      is drawn over the requested horizon, so two runs of different length at
+#      one seed diverge from their first arrival.
 #   5. block_means() averages over the block rather than sampling it, and
 #      carries the replication count into its interval.
 #
-# Assertion 4 is the one the protocol's economy rests on. If it failed, every
-# shorter horizon would have to be run separately.
+# Assertion 4 is the one the protocol's economy rests on. An earlier draft of
+# this check asserted the stronger and false property, that block one of a long
+# run equals a standalone run of one block, and failed on it. The reduction also
+# clamped events beyond the horizon into the final day, which made a day's count
+# depend on what happened after it; that is fixed, and this assertion is what
+# would catch its return.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -135,7 +143,7 @@ for (param in list(list("days", LONG_HORIZON_DAYS),
 
 cat("\n-- the tracked series matches the protocol --\n")
 
-series_path <- file.path(SERIES_DIR, "long_horizon_series.csv")
+series_path <- file.path(SERIES_DIR, "long_horizon_series.csv.gz")
 blocks_path <- file.path(SERIES_DIR, "long_horizon_blocks.csv")
 
 if (!file.exists(series_path) || !file.exists(blocks_path)) {
@@ -209,29 +217,57 @@ occupancy <- reduced$value[reduced$series == "occupancy"]
 report(all(occupancy >= -TOL & occupancy <= 1 + TOL),
        "every daily occupancy lies in [0, 1]")
 
-# ── 4. Block one of a long run equals a standalone short run ─────────────────
+# ── 4. The reduction of a day uses only that day's events ────────────────────
 
-cat("\n-- block one of a long run equals a run of one block --\n")
+cat("\n-- each day's reduced values depend only on that day and those before --\n")
 
-set.seed(CHECK_SEED)
-short_env <- run_once(CHECK_BLOCK_DAYS, seed = CHECK_SEED)
-short_reduced <- reduce_long_replication(short_env, CHECK_BLOCK_DAYS)
+# The economy of the protocol rests on this and not on realisation identity. A
+# long run's block one is NOT the same campaign as a standalone 30-day run at
+# the same seed: the arrival streams are force-size-reactive closures sampled by
+# thinning over the requested horizon, so changing the horizon changes the draws
+# and the two runs diverge from their first arrival. What does hold, and what
+# makes twelve block means from one run legitimate, is that the reduction of any
+# day uses that day's events alone. Reducing one run's monitors over a shorter
+# horizon must therefore reproduce the shorter run's days exactly.
+resources_early <- resources[resources$time <= CHECK_BLOCK_DAYS * DAY_MIN, ]
+pools_full  <- reduce_pool_series(resources, CHECK_DAYS)
+pools_early <- reduce_pool_series(resources_early, CHECK_BLOCK_DAYS)
 
-long_block_one <- reduced[reduced$day <= CHECK_BLOCK_DAYS, ]
-#' Identify each reduced row by the day and quantity it reports
+#' Identify each reduced pool row by the day and pool it reports
 #'
-#' @param df A reduced series.
-#' @return Character vector keying each row, for matching one run's rows
+#' @param df A reduced pool series.
+#' @return Character vector keying each row, for matching one reduction's rows
 #'   against another's.
-key <- function(df) paste(df$day, df$series, df$subject)
-common <- intersect(key(long_block_one), key(short_reduced))
-long_v  <- long_block_one$value[match(common, key(long_block_one))]
-short_v <- short_reduced$value[match(common, key(short_reduced))]
+pool_key <- function(df) paste(df$day, df$pool)
+shared   <- intersect(pool_key(pools_full), pool_key(pools_early))
+full_q   <- pools_full$mean_queue[match(shared, pool_key(pools_full))]
+early_q  <- pools_early$mean_queue[match(shared, pool_key(pools_early))]
 
-report(length(common) > 0 && all(abs(long_v - short_v) < TOL),
-       "every one of the %d block-one values equals the short run's (max diff %.2e)",
-       length(common),
-       if (length(common) > 0) max(abs(long_v - short_v)) else NA_real_)
+report(length(shared) > 0 && all(abs(full_q - early_q) < TOL),
+       "every one of the %d early-day pool queues is unchanged by the later days (max diff %.2e)",
+       length(shared),
+       if (length(shared) > 0) max(abs(full_q - early_q)) else NA_real_)
+
+flow_full  <- reduce_flow_series(arrivals, simmer::get_mon_attributes(long_env), CHECK_DAYS)
+flow_early <- reduce_flow_series(arrivals, simmer::get_mon_attributes(long_env),
+                                 CHECK_BLOCK_DAYS)
+early_days <- seq_len(CHECK_BLOCK_DAYS)
+report(all(flow_full$arrivals[early_days] == flow_early$arrivals[early_days]),
+       "the early-day arrival counts are unchanged by the later days")
+
+# And the property that would make the identity claim true, asserted as false so
+# that nobody reinstates it from the shape of the block means: a long run and a
+# short one at one seed are different campaigns, which is why the protocol
+# compares block means across replications rather than runs against one another.
+set.seed(CHECK_SEED)
+short_env      <- run_once(CHECK_BLOCK_DAYS, seed = CHECK_SEED)
+short_arrivals <- simmer::get_mon_arrivals(short_env, ongoing = TRUE)
+early_long  <- sort(arrivals$start_time[arrivals$start_time < CHECK_BLOCK_DAYS * DAY_MIN])
+early_short <- sort(short_arrivals$start_time[short_arrivals$start_time <
+                                                CHECK_BLOCK_DAYS * DAY_MIN])
+report(!isTRUE(all.equal(early_long, early_short)),
+       "a long run and a short one at one seed are different campaigns, as documented (%d against %d early arrivals)",
+       length(early_long), length(early_short))
 
 # ── 5. block_means() averages the block rather than sampling it ──────────────
 

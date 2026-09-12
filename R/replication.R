@@ -313,22 +313,32 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
 
   cores <- getOption("mc.cores", parallel::detectCores(logical = FALSE))
   if (!is.null(max_cores)) cores <- max(1L, min(cores, max_cores))
+  # One fork per job, never one fork per batch. mc.preschedule = TRUE, which
+  # is mclapply's default and was used here for uncapped callers, pre-divides
+  # the jobs into `cores` batches and runs each batch sequentially in one fork.
+  # Two things follow, and both are why this is now unconditional.
+  #
+  # Memory. Building the casualty trajectory retains roughly 175 MB that
+  # releasing it and calling gc() do not reclaim, so a fork running a whole
+  # batch accumulates that cost once per replication in the batch and peak
+  # memory grows with the replication count. Measured at 30 days on two cores,
+  # peak tree RSS ran 1,340 MB at 4 replications and 2,084 MB at 8 under
+  # TRUE, against 884 MB and 796 MB under FALSE: growing against flat. A fork
+  # that runs one job and exits returns its retention to the operating system,
+  # which is what holds the peak constant (Issue #312).
+  #
+  # Blast radius. When a fork is OOM-killed mid-run, mclapply's own warning is
+  # explicit that every job pre-assigned to that fork is lost, not just one.
+  # One fork per job costs exactly one replication's result instead of an
+  # unpredictable batch of them (Issue #15 follow-up).
+  #
+  # The cost is more fork() calls, which is negligible against a replication
+  # that takes seconds to minutes, and forks are still capped at `cores`
+  # concurrent either way.
   mclapply(seq_len(n_iterations), worker,
            mc.cores       = cores,
            mc.set.seed    = TRUE,
-           # Only forced off for max_cores-capped (interactive Shiny) callers,
-           # preserving CLI/script behaviour exactly otherwise.
-           # mc.preschedule = TRUE (mclapply's default) pre-divides the
-           # n_iterations jobs into `cores` batches, one fork per batch; if a
-           # fork is OOM-killed mid-run (observed on a memory-constrained local
-           # dev container even at cores = 4 — Issue #15 follow-up), mclapply's
-           # own warning is explicit that *every* job pre-assigned to that fork
-           # is lost, not just one. mc.preschedule = FALSE forks one process per
-           # job instead (still capped at `cores` concurrent), so a single
-           # killed fork costs exactly one replication's result, not an
-           # unpredictable batch of them — smaller, more diagnosable blast
-           # radius at the cost of more fork() calls.
-           mc.preschedule = is.null(max_cores))
+           mc.preschedule = FALSE)
 }
 
 #' Share of a run's replications that may be lost before it stops rather than

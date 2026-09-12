@@ -399,18 +399,18 @@ The pathway comparison remains limited by compute rather than by design: deaths 
 
 **The simulation assumes every scheduled strategic evacuation sortie flies, and that assumption is doing more work than its place in the configuration suggests.** The model exists to measure the land-based trauma system, so it sets the demand that system places on strategic evacuation rather than simulating the reliability of the aircraft meeting it, which is the same treatment the national support base receives in [Demand on the National Support Base](#demand-on-the-national-support-base). A sortie cancellation probability remains configurable, and sweeping it shows what the assumption buys.
 
-**Design.** 30 runs of a 360-day campaign at each of six cancellation probabilities, all other settings at their shipped values and every arm drawn from one seed vector so the six are paired. A campaign is counted as collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more; the per-run values are sharply divided, the highest clear run reaching 17.9 and the lowest collapsed run 84, so the threshold inside that gap does not change the count.
+**Design.** 30 runs of a 360-day campaign at each of six cancellation probabilities, all other settings at their shipped values and every arm drawn from one seed vector so the six are paired, executed as `Rscript scripts/run_airlift_collapse.R --refresh-baseline`. A campaign is counted as collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more. The per-run values are divided rather than spread: across all 180 runs the highest clear campaign averages 19.5 and the lowest collapsed one 21.8, and the counts below are unchanged by moving the threshold anywhere between 18 and 22. Beyond that range the classifier does begin to matter, a threshold of 40 returning one collapse at 15% rather than three, so the value is reported with the counts rather than treated as incidental. The full design is in `docs/Multi_Run_Supplement.md`.
 
 | Sortie cancellation | Campaigns collapsed | Rate | 95% CI | Median holding queue | Worst holding queue |
 |---|---|---|---|---|---|
-| 0% (shipped) | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
-| 5% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.01 | 17.9 |
-| 10% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.03 | 17.9 |
-| 15% | 5 of 30 | 16.7% | [5.6%, 34.7%] | 1.05 | 161.0 |
-| 20% | 11 of 30 | 36.7% | [19.9%, 56.1%] | 1.52 | 298.9 |
-| 25% | 12 of 30 | 40.0% | [22.7%, 59.4%] | 7.85 | 247.3 |
+| 0% (shipped) | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.27 | 16.0 |
+| 5% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.07 | 16.0 |
+| 10% | 0 of 30 | 0.0% | [0.0%, 11.6%] | 0.15 | 16.0 |
+| 15% | 3 of 30 | 10.0% | [2.1%, 26.5%] | 0.18 | 117.2 |
+| 20% | 11 of 30 | 36.7% | [19.9%, 56.1%] | 1.95 | 121.4 |
+| 25% | 21 of 30 | 70.0% | [50.6%, 85.3%] | 88.66 | 317.0 |
 
-Three things follow, and the first is the one a planner needs. **Losses up to 10% cost nothing at all.** The worst campaign at 10% reaches a holding queue of 17.9, the same figure as under perfect lift, so the critical-route margin absorbs that much loss completely rather than degrading through it. **The transition is then a cliff rather than a slope.** Between 10% and 15% the collapse rate moves from zero to 16.7% and the worst queue from 17.9 to 161. **Above 20% the risk saturates**, 36.7% and 40.0% having intervals that overlap heavily, because by then the campaigns liable to collapse already have. **Evidence: measured.**
+Three things follow, and the first is the one a planner needs. **Losses up to 10% cost nothing at all.** The worst campaign at 10% reaches a holding queue of 16.0, the same figure as under perfect lift, so the critical-route margin absorbs that much loss completely rather than degrading through it. **The transition is then a cliff rather than a slope.** Between 10% and 15% the collapse rate moves from zero to 10.0% and the worst queue from 16.0 to 117. **And the risk keeps climbing past that cliff rather than levelling off**, from 36.7% at 20% loss to 70.0% at 25%, intervals that barely overlap. The character of the arm changes with it: at 20% loss the median campaign still ends with a holding queue below 2, while at 25% the median is 88.7, so collapse has stopped being the unlucky campaign's outcome and become the ordinary one. **Evidence: measured.**
 
 The mechanism is that a cancellation removes lift permanently rather than deferring it. Sortie capacity accumulates on the evacuation resources and is never released (see the AME Capacity Banking assumption in the README), so a cancelled sortie contributes nothing at all instead of moving its ninety seats to the following week. An early run of cancellations therefore consumes a margin that later sorties cannot rebuild, the holding pool fills, and intensive care behind it can no longer step casualties down into it, which is the pool interaction recorded as Further Development entry L17. A campaign that crosses into that state does not recover within the year.
 

@@ -106,10 +106,20 @@ measure_arm <- function(probability) {
                              max_cores = opt$`max-cores`)
   response <- collapse_response(series, opt$days, window_days = opt$window)
   response$probability <- probability
-  response
+
+  # The classified pool's own daily series is retained so that a statement about
+  # how a campaign's opening relates to its outcome is recomputable from the
+  # tracked evidence set rather than only from a run nobody repeats.
+  subject <- series[series$series == "mean_queue" &
+                      series$subject == AIRLIFT_COLLAPSE_SUBJECT,
+                    c("replication", "day", "value")]
+  subject$probability <- probability
+  list(response = response, series = subject)
 }
 
-per_replication <- do.call(rbind, lapply(probabilities, measure_arm))
+arms <- lapply(probabilities, measure_arm)
+per_replication <- do.call(rbind, lapply(arms, `[[`, "response"))
+daily_series <- do.call(rbind, lapply(arms, `[[`, "series"))
 
 summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
   arm <- per_replication[per_replication$probability == probability, ]
@@ -119,7 +129,9 @@ summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
 write.csv(per_replication, file.path(OUTPUT_DIR, "airlift_collapse_replications.csv"),
           row.names = FALSE)
 write.csv(summary_rows, file.path(OUTPUT_DIR, "airlift_collapse.csv"), row.names = FALSE)
-message(sprintf("Collapse responses and summary written to %s", OUTPUT_DIR))
+series_path <- file.path(OUTPUT_DIR, "airlift_collapse_series.csv.gz")
+write.csv(daily_series, gzfile(series_path), row.names = FALSE)
+message(sprintf("Collapse responses, summary and daily series written to %s", OUTPUT_DIR))
 
 cat("\n| Sortie cancellation | Campaigns collapsed | Rate | 95% CI |",
     "Median holding queue | Worst holding queue |\n")

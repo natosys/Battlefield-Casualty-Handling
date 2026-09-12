@@ -169,7 +169,15 @@ reduce_airlift_replication <- function(env, n_days, seed) {
   # outcome is read once per departure rather than once per row; a sortie is
   # counted as flown only where every pool it carries reports "Flown", since a
   # partial reconstruction reads as "Unknown" rather than as a departure.
+  #
+  # A sortie scheduled at exactly the horizon is dropped from both counts. The
+  # run ends at that instant, so its capacity bump never resolves and the
+  # reconstruction reads it as cancelled whether or not it would have flown:
+  # its outcome is censored by the window rather than observed. Counting it
+  # would report a cancellation rate of 0.10 at a configured probability of
+  # zero, purely because 30 divides by the sortie interval.
   sorties <- compute_ame_sorties(resources, env_data$vars$role4, n_days)
+  sorties <- sorties[sorties$sortie_day < n_days, ]
   scheduled <- length(unique(sorties$sortie_day))
   flown <- if (scheduled == 0) {
     0L

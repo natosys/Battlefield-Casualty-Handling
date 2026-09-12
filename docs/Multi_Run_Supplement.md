@@ -24,6 +24,7 @@ This document is the design record for the replicated experiments reported in th
   - [A Replication Lost to Its Host](#a-replication-lost-to-its-host)
 - [Experimental Designs](#experimental-designs)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
+  - [Campaign Time Series of Queue Length and Degraded Care](#campaign-time-series-of-queue-length-and-degraded-care)
   - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
   - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
@@ -161,6 +162,22 @@ Both profiles draw their casualty rates from the FORECAS projection study [[10]]
 
 A third, Vietnam-calibrated profile is missing for want of sources: FORECAS's Appendix A has no standalone Vietnam combat-troop wounded-in-action or killed-in-action distribution table, Table A.5 covering Vietnam disease and non-battle injury only, so there are no genuinely FORECAS-sourced Vietnam parameters to build one from.
 
+### Campaign Time Series of Queue Length and Degraded Care
+
+50 replications of 30 simulated days per casualty intensity at control seed 42, under the shipped default establishment and the same two scenario profiles as the comparative analysis above. The seed is set once before each intensity rather than once for the pair, so replication $i$ of one intensity draws the same per-replication seed as replication $i$ of the other. Invoked as:
+
+```
+Rscript scripts/render_time_series_figures.R --run --refresh-baseline --iterations 50 --days 30
+```
+
+Measurement and rendering are separated. The `--run` half executes the model and writes three aggregated series to `data/time_series/`: queue length per resource pool, replication and four-hour bin; the two clearance statistics per pool and replication; and the degraded-care rate per stage, replication and day. An invocation without `--run` reads those files and renders the figures from them alone, so both images are a function of tracked data rather than of a run that cannot be repeated, and re-rendering reproduces them byte for byte. Only the aggregated series is kept; the monitoring data behind it runs to hundreds of megabytes and nothing published derives from a single replication of it.
+
+A pool's queue is not recorded by the simulation and cannot be read off any single monitor row, each bed's queue being monitored separately. It is recovered by differencing each bed's own series into changes and accumulating those changes in time order, which gives the exact pool total after every event rather than an interpolation of it. The binned value is then the time-weighted mean of that step function over the bin, computed from its cumulative integral, so a peak falling entirely inside a bin is carried by the bin's value; sampling the step function at the bin edges instead would report whatever the queue happened to be at one instant every four hours and would miss such a peak entirely.
+
+The two statistics the companion paper quotes in prose, the share of the campaign a pool's queue stood empty and the longest unbroken run it did not, are computed from the unbinned step function, so neither depends on the bin width the figure is drawn at. The figures report the median across replications with the interquartile range around it rather than a mean with a confidence interval. The question they are drawn to answer is what a campaign looks like, and an interval on the mean narrows as replications are added, which would imply an agreement between campaigns that the replications do not show; the quartile band does not move with the replication count and is the spread itself.
+
+`scripts/check_time_series_figures.R` defends the arrangement. It asserts that the tracked series covers every resource pool, pathway stage and casualty intensity the model defines at the stated replication count and horizon, that the clearance statistics are internally consistent, and that every clearance percentage the companion paper states in prose matches the tracked measurement. Those three compare two derived artifacts against one another and would pass on two copies of the same error, so the check also exercises the step-function estimators on inputs whose answers are computable by hand, which is the assertion that keeps the others from being circular.
+
 ### The R2B Pre-Open Hold Window
 
 50 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override, `r2b.surgery.pre_open_window_min` set to 0 in one arm against its shipped 60 in the other.
@@ -253,6 +270,8 @@ The comparative scenario figures, and `images/scenario_comparison.png` with them
 The `moderate_intensity` profile gives 437.8 total casualties per run against the 530 of the documented seed-42 single run. That single run sits inside the profile's own 10th-to-90th-percentile range of 362.7 to 528.0 rather than near its mean, which is what one draw from a wide distribution does; the replicated and single-campaign results agree. Every casualty, mortality and queue figure in the companion paper's comparison tables reproduces exactly when the comparison is re-run at this seed, inside the pinned container and outside it alike.
 
 The three result figures of the companion paper are rendered from the values in its own markdown tables by `scripts/render_paper_figures.R` rather than from a second copy of the data, so a figure cannot disagree with the table it illustrates.
+
+The two campaign time series figures are rendered from `data/time_series/`, the tracked aggregated series the measurement wrote, by `scripts/render_time_series_figures.R` with no further model execution, so the figures and the percentages the companion paper quotes from them derive from one measurement. The measurement itself was made in an unpinned R 4.3.3 sandbox rather than the pinned container; the figures it produced are reproducible from the tracked series in either environment, and it is the series rather than the images that a re-run in the pinned container would need to confirm.
 
 ---
 

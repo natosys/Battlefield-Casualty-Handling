@@ -34,3 +34,4 @@ check_screen_cache.R,7
 check_screen_order.R,159
 check_structure_tables.R,5
 check_testthat.R,96
+check_time_series_figures.R,6

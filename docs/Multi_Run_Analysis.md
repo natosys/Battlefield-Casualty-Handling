@@ -14,11 +14,11 @@ To identify options to improve the land-based trauma system, and to establish wh
 
 **Methods**
 
-A discrete event simulation of a brigade force with aligned health assets was run at two casualty intensities, 50 replications of a 30-day campaign each. Both intensities derive their casualty rates from the FORECAS projection study [[3]](#references): a moderate intensity calibrated to the Falklands 1982 campaign, and a high intensity calibrated to Okinawa 1945. The health system is identical under both, isolating casualty intensity. Six further experiments each vary one design or policy setting, among them the size of the ambulance fleet, the holding capacity at Role 2 Basic, and the rule governing when a casualty is held forward for surgery rather than moved rearward.
+A discrete event simulation of a brigade force with aligned health assets was run at two casualty intensities, 50 replications of a 30-day campaign each. Both intensities derive their casualty rates from the FORECAS projection study [[3]](#references): a moderate intensity calibrated to the Falklands 1982 campaign, and a high intensity calibrated to Okinawa 1945. The health system is identical under both, isolating casualty intensity. Six further experiments each vary one design or policy setting, among them the size of the ambulance fleet, the holding capacity at Role 2 Basic, and the rule governing when a casualty is held forward for surgery rather than moved rearward. Queue length and the rate of degraded post-operative care are also reported as time series across the campaign rather than as campaign averages, so that a queue recurring in peaks can be told from one that never clears.
 
 **Results**
 
-Casualty volume rises 2.43-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 26-fold, Role 2 Basic (R2B) holding beds about 5.6-fold, R2E holding beds about 5.3-fold and R2E intensive care about 6.4-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The ambulance and truck fleets hold margin at both intensities.
+Casualty volume rises 2.43-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 26-fold, Role 2 Basic (R2B) holding beds about 5.6-fold, R2E holding beds about 5.3-fold and R2E intensive care about 6.4-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The theatre queue behaves differently at the two intensities rather than only at a different scale: at high intensity it stands empty for 5% of the campaign, runs unbroken for 26.9 of the 30 days and is still growing when the campaign ends, while at moderate intensity it stands empty for 80% and its longest unbroken run is 3.0 days. The shortfall in intensive care is a standing condition rather than an episodic one, the median campaign at high intensity delivering no post-definitive care in an intensive care bed at all from day 19 onward. The ambulance and truck fleets hold margin at both intensities.
 
 **Conclusion**
 
@@ -42,6 +42,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
 - [Where the Trauma System Fails First](#where-the-trauma-system-fails-first)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [Surgical Team Scheduling Is the Principal Constraint](#surgical-team-scheduling-is-the-principal-constraint)
+  - [The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate](#the-theatre-queue-never-clears-at-high-intensity-and-clears-readily-at-moderate)
 - [Planning Options in Priority Order](#planning-options-in-priority-order)
   - [Option 1. Extend Surgical Team Coverage Towards 24 Hours](#option-1-extend-surgical-team-coverage-towards-24-hours)
   - [Option 2. Increase R2B Holding Capacity or Set an Evacuation Threshold](#option-2-increase-r2b-holding-capacity-or-set-an-evacuation-threshold)
@@ -54,6 +55,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
 - [System Design Features That Shape the Results](#system-design-features-that-shape-the-results)
   - [R2B Diversion Is a Policy Setting, Not a Capacity Signal](#r2b-diversion-is-a-policy-setting-not-a-capacity-signal)
   - [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)
+    - [The Degraded Care Rate Over the Campaign](#the-degraded-care-rate-over-the-campaign)
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
@@ -201,6 +203,24 @@ Theatre contention is not confined to high intensity. The R2E theatre queue at m
 
 The rest of R2E follows the theatres rather than leading them. Intensive care rises 4.3-fold, the flattest of the three R2E groups, because only casualties on the damage control pathway take a stabilisation episode. Its four beds run close to full at both intensities, so the queue is short not because the beds are ample but because casualties who cannot get one are diverted to a holding bed instead, which is examined in [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design). R2E holding beds rise 4.5-fold, absorbing what intensive care cannot, and they also hold every casualty waiting for strategic evacuation.
 
+### The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate
+
+**At high casualty intensity the R2E theatre queue is a standing backlog that grows for the whole campaign; at moderate intensity it is a series of peaks that clear within days.** That distinction decides between two different remedies, and no summary statistic in this paper could make it. **Evidence: measured.**
+
+**Design.** The same 50 runs of a 30-day campaign at each casualty intensity as the comparison above, with the time axis retained rather than collapsed. Each pool's total queue is reconstructed from the individual beds the simulation monitors and averaged, weighted by time, over four-hour bins; the figure reports the median across the 50 runs with the interquartile range around it. The quartiles rather than a confidence interval are shown because the question is what a campaign looks like, not how precisely its average is known. The two statistics quoted in the text, the share of the campaign a pool's queue stood empty and the longest unbroken run it did not, are computed from the unbinned series, so neither can be concealed by the bin width. The full design is in `docs/Multi_Run_Supplement.md`.
+
+![Four stacked panels, one per resource pool, plotting queue length against campaign day for the moderate and high casualty intensities, each as a median line with an interquartile band, and each panel annotated with the share of the campaign that pool's queue stood empty at each intensity](../images/queue_length_over_time.png)
+
+<!-- CLEARANCE High intensity|R2E operating theatres|5 -->
+At high intensity the R2E theatre queue stands empty for 5% of the campaign, and its longest unbroken run above zero is 26.9 of the 30 days (interquartile range 23.6 to 28.9). It rises through the whole campaign rather than settling: a median of 39.2 casualties waiting on day 9, 108.8 on day 19 and 160.5 on day 29, still climbing when the run ends. A queue that has not turned over by day 30 has no level to be sized against, and the 30-day horizon is measuring the rate at which the backlog accumulates rather than any equilibrium it reaches, a limitation examined in [Limitations](#limitations).
+
+<!-- CLEARANCE Moderate intensity|R2E operating theatres|80 -->
+At moderate intensity the same pool stands empty for 80% of the campaign, its median is zero throughout, and its longest unbroken busy run is 3.0 days. Casualties still wait, which is the finding recorded above, but the system recovers between the days on which they do.
+
+The two readings point to different instruments. A queue that clears is a surge problem, answered by capability that can be brought to bear on the heavy day and stood down afterwards. A queue that never clears is an establishment problem, and no amount of surge capability reaches it because there is no trough to surge into. Option 1 is therefore a standing establishment measure at high intensity and a surge measure at moderate, and a force sized for one is not sized for the other.
+
+The other three pools separate the same way but less sharply. R2B holding beds carry a standing queue at high intensity that reaches about 35 casualties by day 5 and holds there, which is a backlog at a stable level rather than a growing one and is the signature of a pool saturated by arrivals it clears at a steady rate. R2E holding beds oscillate at high intensity on a period of about seven days, peaking near days 7, 14, 21 and 28, which matches the strategic aeromedical evacuation sortie interval: the holding queue is set by when the aircraft come rather than by the establishment of the beds. R2E intensive care carries the smallest queue of the four at either intensity, for the reason set out in [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design).
+
 ---
 
 ## Planning Options in Priority Order
@@ -226,6 +246,8 @@ Further simulation would refine every row of this table. The two untested remedi
 At R2B, each of the two facilities fields one surgical team on a 12-hour shift against a theatre available around the clock, so for half of each day the theatre stands ready with nobody rostered to operate in it. Of the casualties diverted from R2B to R2E in a verified campaign, 71% were diverted because the surgical team was off shift and 29% because the theatre was busy [[10]](#references). Time to surgery is among the strongest determinants of survival after severe battlefield injury [[11]](#references), so a casualty who travels further to reach a surgeon because none is rostered is a clinical cost, not an administrative one.
 
 At R2E, the single second-shift team carries the whole night-time surgical load. It is busy for 53.6% of its rostered time against 30.8% for each first-shift team, and queued for 2.45% against 0.67% and 0.60% [[10]](#references).
+
+Whether those hours are a standing establishment or a surge measure depends on the intensity being planned for. The theatre queue never clears at high intensity and clears readily at moderate, measured in [The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate](#the-theatre-queue-never-clears-at-high-intensity-and-clears-readily-at-moderate), so at high intensity the hours have to be permanently established and at moderate they can be held as a capability brought to bear on the heavy day.
 
 Extending coverage requires no additional principal equipment, the operating theatres already existing and standing idle for half of each day at R2B. What it does require is provision in the operational viability period, the organisational design and the workforce model, which are the instruments through which the additional hours would have to be found.
 
@@ -344,6 +366,18 @@ The policy itself is a planning option. Allowing a casualty to wait at R2B where
 
 That design is why the R2E intensive care queue reads low while its beds run near capacity: the shortfall appears as casualties receiving a lesser standard of care, not as a queue. The intensive care figures should therefore be read as a count of who received which standard of care, which is more useful than a queue length because it names who bore the cost. The remedy it points to is intensive care capacity at R2E, competing for the same resources as Option 1.
 
+#### The Degraded Care Rate Over the Campaign
+
+**The shortfall in intensive care is a steady condition of the campaign rather than an event: the degraded rate rises over the first week, plateaus, and does not spike on particular days.** At high intensity the median campaign delivers no post-definitive care at all in an intensive care bed from day 19 onward, every casualty completing definitive surgery recovering in a holding bed instead. **Evidence: measured.**
+
+**Design.** The same 50 runs per intensity as [The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate](#the-theatre-queue-never-clears-at-high-intensity-and-clears-readily-at-moderate). Each casualty's pathway is read at the point the decision was taken, and the share taking the holding bed is reported both as a daily rate, which shows whether the shortfall concentrates on particular days, and as a running total from the start of the campaign, which shows whether it worsens as the campaign proceeds. Both stages at which a casualty can be diverted are reported separately: stabilisation, which sits between a damage control casualty's two operations, and post-definitive care, which follows the last one.
+
+![Two stacked panels, stabilisation above post-definitive care, each plotting the share of casualties recovering in a holding bed against campaign day for the moderate and high casualty intensities, with a dotted daily rate inside an interquartile band and a solid cumulative rate](../images/degraded_care_rate_over_time.png)
+
+Over a whole campaign, 88.3% of post-definitive care at high intensity is delivered in a holding bed against 58.5% at moderate, and 59.9% of stabilisation against 43.1%. Both rates rise as the campaign proceeds, but modestly and early: at high intensity post-definitive care runs at 78.0% over the first ten days and 94.5% over the last ten, and stabilisation at 53.0% against 61.9%. The daily rate varies between days without concentrating on any of them, and the interquartile band is wide because a day's rate rests on the few casualties who reached that decision on it rather than because the underlying rate moves.
+
+What this settles is the form the mitigation has to take. A rate that spiked on particular days would be answered by a reserve of beds brought forward when it did; a rate that is a standing condition from the second week onward is answered only by the establishment. It also bounds what the previous section's comparison could have found. The daily rate for post-definitive care at high intensity reaches 100% in the median campaign from day 19, and in between 60% and 78% of individual campaigns on each day after it, so for much of the second half of the campaign the choice the rule is making is between a holding bed and nothing rather than between a holding bed and intensive care. The mortality difference it was measured for has correspondingly little room to appear in the part of the campaign where most casualties arrive.
+
 #### The Post-Operative Intensive Care Gate
 
 **Design.** 50 replications of a 30-day campaign under the shipped configuration, comparing the system with and without the rationing rule described above. The rule is disabled through `r2b.icu_gating.enabled` and `r2eheavy.icu_gating.enabled`, which reconstruct the model as it stood before the gate existed rather than recovering a historical code state, so the comparison is repeatable after a later model change. Both arms run under one control seed, so replication $i$ of each shares a seed and the arms are paired; the paired difference is reported alongside each arm's own interval, being the more precise comparison of the two. The full design is in `docs/Multi_Run_Supplement.md`.
@@ -455,8 +489,8 @@ The first two are a matter of compute time and would be settled by longer runs. 
 | 5 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
 | 6 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
 | 7 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
-| 8 | Queue length and degraded care rate as time series across replications | Whether the R2E theatre queue clears between peaks or never clears, which decides between surge capability and permanent establishment |
-| 9 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
+| 8 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
+| 9 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
 
 Alongside these, the simulated system's design and its calibration would benefit from structured review by clinical and health planning subject matter experts. The parameters governing intensive care rationing and post-operative risk are informed estimates rather than measured values, and expert calibration would do more to improve confidence in the mortality findings than additional computation.
 
@@ -466,13 +500,15 @@ Alongside these, the simulated system's design and its calibration would benefit
 
 <small>[Return to Top](#contents)</small>
 
-Three limitations bear on how the options above should be read.
+Four limitations bear on how the options above should be read.
 
 **The simulation is verified but not validated.** It behaves as its specification describes, which is a separate question from whether that specification represents the real trauma system well [[12]](#references). Verification has been demonstrated [[10]](#references); validation would require the structured expert review described in [Further Development](#further-development). Every option above is an option inside the simulation, and holds only as far as the simulation does.
 
 **Compute time limited what could be measured.** Three effects are unresolved for that reason alone, and the run counts that would settle two of them are stated above. This constrains the precision of the findings rather than their direction, and it bears hardest on mortality, which is the rarest quantity the simulation reports.
 
 **Comparisons between two configurations are not perfectly controlled.** Changing a setting alters the sequence of random draws, so the two arms of a comparison generate different casualty streams and cannot be matched campaign for campaign. The effect is a loss of precision rather than a bias: the averages remain correct and the intervals around them are wider than a matched design would give, which is why several comparisons here are unresolved at 50 runs. The casualty intensity comparison is unaffected, its arms differing by design rather than by a small perturbation.
+
+**The 30-day horizon is shorter than the R2E theatre queue takes to turn over at high intensity.** That queue is still growing when the campaign ends, so the campaign measures the rate at which the backlog accumulates and not the level it would settle at. Nothing reported here depends on that level: the conclusion drawn from the queue is that it does not clear, which a growing queue establishes more firmly than a settled one would. But no figure in this paper is a steady-state figure at high intensity, and a longer horizon would be needed before one could be quoted as the quantity an establishment should be sized against.
 
 Two narrower caveats apply. Clinical teams are taken whole rather than by individual clinician, so team utilisation overstates scarcity where a procedure needs only part of a team; and one pool of R2E holding beds carries both in-theatre recovery and the strategic evacuation wait, so those queue figures combine two demands.
 
@@ -484,7 +520,7 @@ Two narrower caveats apply. Clinical teams are taken whole rather than by indivi
 
 This paper set out to identify options for improving the land-based trauma system, and to establish where that system fails first as casualty intensity rises. It did so by running a discrete event simulation of a brigade force with aligned health assets at two casualty intensities, both derived from historical campaign data, and by testing individual design and policy settings a planner controls.
 
-**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.43-fold while the R2E theatre queue rises about 26-fold, R2B holding about 5.6-fold and R2E holding about 5.3-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict.
+**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.43-fold while the R2E theatre queue rises about 26-fold, R2B holding about 5.6-fold and R2E holding about 5.3-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict. It takes a different form at each intensity: the theatre queue never clears at high intensity and grows for the whole campaign, while at moderate intensity it clears for four fifths of it, so the same shortfall calls for permanent establishment in one case and surge capability in the other.
 
 **Four options follow, and the first is the strongest.** Extending surgical team coverage towards 24 hours at R2B and R2E addresses the principal constraint and needs no additional operating theatres, though it does need provision in the operational viability period, organisational design and workforce model. Increasing R2B holding capacity, or setting an evacuation threshold, addresses the second constraint. Holding casualties at R2B for a team about to return demonstrably reduces the surgical load transferred rearward. Three ambulances are sufficient for inter-echelon medical evacuation in support of a brigade. Delivering post-operative intensive care forward at R2B is not recommended, showing no measurable benefit at any setting tested.
 

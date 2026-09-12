@@ -13,6 +13,7 @@ check_console_bindings.R,20
 check_dow_calibration.R,2702
 check_env_data_summary.R,6
 check_hold_episode_reconstruction.R,43
+check_icu_gate_switch.R,120
 check_icu_time_conservation.R,68
 check_input_validation.R,16
 check_lever_realisation.R,28

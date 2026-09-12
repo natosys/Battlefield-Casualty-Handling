@@ -38,6 +38,9 @@
 #   6. The tracked data/airlift/ collapse summary carries the documented
 #      probabilities and replication count, and matches the table
 #      docs/Multi_Run_Analysis.md prints, row for row.
+#   7. The tracked per-replication classification is reproduced by reclassifying
+#      the tracked daily series, so the published table is auditable without
+#      re-running 180 replication-years.
 #
 # Assertions 2 to 4 are made against series constructed here rather than
 # measured, so each has an answer arrived at without the function under test.
@@ -81,6 +84,12 @@ SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
 
 #' Tracked collapse summary the paper's table derives from
 SUMMARY_PATH <- file.path("data", "airlift", "airlift_collapse.csv")
+
+#' Tracked per-replication collapse responses
+RESPONSE_PATH <- file.path("data", "airlift", "airlift_collapse_replications.csv")
+
+#' Tracked daily series of the classified pool, one row per replication-day
+SERIES_PATH <- file.path("data", "airlift", "airlift_collapse_series.csv.gz")
 
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
@@ -299,6 +308,49 @@ if (!file.exists(SUMMARY_PATH)) {
            "its median %.2f and worst %.1f match the data's %.2f and %.1f",
            median_queue, worst_queue, arm$median_queue, arm$worst_queue)
   }
+}
+
+# ── 7. The tracked responses are recomputable from the tracked series ────────
+
+cat("\n-- the published classification is recomputable from the tracked series --\n")
+
+if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
+  report(FALSE, "the tracked series %s and responses %s exist", SERIES_PATH, RESPONSE_PATH)
+} else {
+  tracked_series <- read.csv(gzfile(SERIES_PATH), stringsAsFactors = FALSE)
+  tracked_response <- read.csv(RESPONSE_PATH, stringsAsFactors = FALSE)
+
+  expected_rows <- length(AIRLIFT_COLLAPSE_PROBABILITIES) *
+    AIRLIFT_COLLAPSE_REPLICATIONS * AIRLIFT_COLLAPSE_DAYS
+  report(nrow(tracked_series) == expected_rows,
+         "the series carries one row per arm, replication and day (%d of %d)",
+         nrow(tracked_series), expected_rows)
+  report(all(sort(unique(tracked_series$day)) == seq_len(AIRLIFT_COLLAPSE_DAYS)),
+         "every day from 1 to %d is present", AIRLIFT_COLLAPSE_DAYS)
+
+  # The series carries the classified pool alone, so it is given the labels
+  # collapse_response() selects on and reclassified. Reproducing the tracked
+  # responses from it is what makes the published table auditable without
+  # re-running 180 replication-years.
+  recomputed <- do.call(rbind, lapply(AIRLIFT_COLLAPSE_PROBABILITIES, function(probability) {
+    arm <- tracked_series[abs(tracked_series$probability - probability) < TOL, ]
+    arm$series <- "mean_queue"
+    arm$subject <- AIRLIFT_COLLAPSE_SUBJECT
+    out <- collapse_response(arm, AIRLIFT_COLLAPSE_DAYS)
+    out$probability <- probability
+    out
+  }))
+
+  keys <- c("probability", "replication")
+  merged <- merge(tracked_response, recomputed, by = keys, suffixes = c("_pub", "_new"))
+  report(nrow(merged) == nrow(tracked_response),
+         "every tracked response has a recomputed counterpart (%d of %d)",
+         nrow(merged), nrow(tracked_response))
+  report(nrow(merged) > 0 && max(abs(merged$closing_queue_pub - merged$closing_queue_new)) < TOL,
+         "every closing queue is reproduced from the series")
+  report(nrow(merged) > 0 &&
+           identical(as.logical(merged$collapsed_pub), as.logical(merged$collapsed_new)),
+         "every classification is reproduced from the series")
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

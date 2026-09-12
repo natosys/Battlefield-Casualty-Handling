@@ -74,6 +74,27 @@ restore_config_globals <- function(snapshot) {
   invisible(snapshot)
 }
 
+#' Bind the global configuration variables the execution model requires
+#'
+#' @param resolved A parsed env_data.json, with any scenario overlay already
+#'   applied by resolve_scenario()
+#' @return The environment description that was bound, invisibly
+#'
+#' @details The counterpart to restore_config_globals(): an entry point calls
+#'   this to enter a configuration and that to leave it. Assignment is to
+#'   globalenv() explicitly, which is the same environment the `<<-` in the
+#'   older entry points reaches, so the two forms are interchangeable and an
+#'   entry point may use either. This one exists so that a new entry point need
+#'   not restate which three globals the model resolves from the global
+#'   environment, nor the order build_environment() and counts depend on.
+apply_config_globals <- function(resolved) {
+  described <- build_environment(resolved)
+  assign("env_data", described, envir = globalenv())
+  assign("day_min", DAY_MIN, envir = globalenv())
+  assign("counts", sapply(described$elms, length), envir = globalenv())
+  invisible(described)
+}
+
 # ── Data import ──────────────────────────────────────────────────────────────
 
 #' Assert that a parsed env_data.json has the structure the model requires

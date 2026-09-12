@@ -222,7 +222,7 @@ two_beds <- bind_rows(
   monitor_rows("bed_1", c(0, 10, 30), c(0, 1, 0)),
   monitor_rows("bed_2", c(0, 20, 40), c(0, 1, 0))
 )
-steps <- pool_queue_steps(two_beds)
+steps <- pool_queue_steps(two_beds$resource, two_beds$time, two_beds$queue)
 report(identical(steps$time, c(0, 10, 20, 30, 40)) &&
          identical(steps$total, c(0, 1, 2, 1, 0)),
        "the pool total recovers a known two-bed overlap exactly")
@@ -245,9 +245,8 @@ report(abs(stats[["longest_busy_min"]] - 30) < TOL,
 
 # A pool busy in two separate spells reports the longer, not their sum: busy
 # from 10 to 20 and from 50 to 80, so the longest spell is 30 and not 40.
-split_steps <- pool_queue_steps(
-  monitor_rows("bed_1", c(0, 10, 20, 50, 80), c(0, 1, 0, 1, 0))
-)
+split_rows  <- monitor_rows("bed_1", c(0, 10, 20, 50, 80), c(0, 1, 0, 1, 0))
+split_steps <- pool_queue_steps(split_rows$resource, split_rows$time, split_rows$queue)
 split_stats <- step_clearance_stats(split_steps, 100)
 report(abs(split_stats[["longest_busy_min"]] - 30) < TOL,
        "two separate busy spells report the longer (30), not their total (40)")
@@ -255,9 +254,9 @@ report(abs(split_stats[["zero_share"]] - 0.60) < TOL,
        "two separate busy spells leave a zero share of 0.60")
 
 # A pool that never queues is empty throughout and has no busy spell.
-idle_stats <- step_clearance_stats(pool_queue_steps(
-  monitor_rows("bed_1", c(0, 10, 20), c(0, 0, 0))
-), 100)
+idle_rows  <- monitor_rows("bed_1", c(0, 10, 20), c(0, 0, 0))
+idle_steps <- pool_queue_steps(idle_rows$resource, idle_rows$time, idle_rows$queue)
+idle_stats <- step_clearance_stats(idle_steps, 100)
 report(abs(idle_stats[["zero_share"]] - 1) < TOL &&
          abs(idle_stats[["longest_busy_min"]]) < TOL,
        "a pool that never queues is empty throughout with no busy spell")
@@ -265,7 +264,8 @@ report(abs(idle_stats[["zero_share"]] - 1) < TOL &&
 # Sampling the series at the bin edges rather than integrating over the bin
 # would miss a peak entirely. A queue of 10 lasting from 20 to 30 inside a
 # single 0 to 100 bin contributes a mean of 1.0; an edge sample reads 0.
-peak_steps <- pool_queue_steps(monitor_rows("bed_1", c(0, 20, 30), c(0, 10, 0)))
+peak_rows  <- monitor_rows("bed_1", c(0, 20, 30), c(0, 10, 0))
+peak_steps <- pool_queue_steps(peak_rows$resource, peak_rows$time, peak_rows$queue)
 report(abs(step_bin_means(peak_steps, c(0, 100)) - 1.0) < TOL,
        "a peak entirely inside one bin is carried by the bin mean, not missed")
 

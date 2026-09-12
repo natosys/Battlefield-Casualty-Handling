@@ -15,6 +15,7 @@ library(triangle)
 
 source("R/constants.R")
 source("R/censoring.R")
+source("R/queue_series.R")
 
 # Jitter applied to the pooled mass casualty timeline is cosmetic — it
 # separates events that fall on the same day — but it is drawn at render
@@ -4872,91 +4873,6 @@ PATHWAY_STAGES <- c(
   "Post-definitive care" = "post_definitive_pathway"
 )
 
-#' Total queue across one resource pool as a step function of time
-#'
-#' @param pool_rows Resource-monitor rows for the members of one pool, for one
-#'   replication.
-#' @return Data frame of `time` and `total`, one row per instant at which the
-#'   pool's total queue changed, in increasing time order.
-#'
-#' @details The monitor records each bed's queue separately, so the pool total
-#'   is not in the data and cannot be read off any single row. It is recovered
-#'   by differencing each bed's own series into changes and accumulating those
-#'   changes in time order, which is exact rather than interpolated: the total
-#'   after any event is the sum of the values every bed most recently reported.
-#'   Events at coinciding times collapse to the last, so the returned series
-#'   is a function of time.
-pool_queue_steps <- function(pool_rows) {
-  steps <- pool_rows %>%
-    arrange(resource, time) %>%
-    group_by(resource) %>%
-    mutate(delta = queue - dplyr::lag(queue, default = 0)) %>%
-    ungroup() %>%
-    arrange(time) %>%
-    mutate(total = cumsum(delta)) %>%
-    group_by(time) %>%
-    summarise(total = dplyr::last(total), .groups = "drop")
-
-  if (nrow(steps) == 0 || steps$time[1] > 0) {
-    steps <- bind_rows(data.frame(time = 0, total = 0), steps)
-  }
-  steps
-}
-
-#' Time-weighted mean of a step function over each of a series of bins
-#'
-#' @param steps Step function as returned by pool_queue_steps().
-#' @param edges Increasing bin edges, in minutes; n edges give n - 1 bins.
-#' @return Numeric vector of length `length(edges) - 1`, the mean value of the
-#'   step function over each bin.
-#'
-#' @details Computed from the cumulative integral rather than by splitting each
-#'   segment at every bin edge it crosses. The integral of a step function is
-#'   piecewise linear with knots at the step times, so evaluating it at the bin
-#'   edges by linear interpolation is exact, and the bin mean is the difference
-#'   between consecutive edge values divided by the bin width. Sampling the
-#'   step function at the edges instead would report whatever the queue
-#'   happened to be at one instant every four hours and would miss a peak
-#'   entirely.
-step_bin_means <- function(steps, edges) {
-  horizon <- edges[length(edges)]
-  s <- steps %>% filter(time <= horizon)
-  t <- c(s$time, horizon)
-  v <- s$total
-  integral <- c(0, cumsum(v * diff(t)))
-  at_edges <- approx(t, integral, xout = edges, method = "linear", rule = 2)$y
-  diff(at_edges) / diff(edges)
-}
-
-#' Share of the campaign a step function spent at zero, and its longest
-#' unbroken run above zero
-#'
-#' @param steps Step function as returned by pool_queue_steps().
-#' @param horizon End of the observation window, in minutes.
-#' @return Named numeric vector of `zero_share` (0 to 1) and `longest_busy_min`.
-#'
-#' @details These are the two statistics that separate a queue recurring in
-#'   peaks from a standing backlog, and they are computed from the unbinned
-#'   step function so that neither can be hidden by the bin width the figure
-#'   is drawn at. A pool that is never busy returns a zero share of one and a
-#'   longest run of zero.
-step_clearance_stats <- function(steps, horizon) {
-  s <- steps %>% filter(time <= horizon)
-  t <- c(s$time, horizon)
-  dur <- diff(t)
-  busy <- s$total > 0
-  zero_share <- sum(dur[!busy]) / horizon
-  longest <- 0
-  if (any(busy)) {
-    runs <- rle(busy)
-    ends <- cumsum(runs$lengths)
-    starts <- ends - runs$lengths + 1L
-    spans <- mapply(function(a, b) sum(dur[a:b]), starts, ends)
-    longest <- max(spans[runs$values])
-  }
-  c(zero_share = zero_share, longest_busy_min = longest)
-}
-
 #' Queue length over time for every pool, one row per pool, replication and bin
 #'
 #' @param resources_raw Resource-monitor rows as read, carrying a replication
@@ -4979,7 +4895,8 @@ pool_queue_series <- function(resources_raw, horizon_min, pools = TIME_SERIES_PO
     members <- resources_raw %>% filter(grepl(pools[[pool]], resource))
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
-      steps <- pool_queue_steps(members %>% filter(replication == rep_id))
+      rows  <- members %>% filter(replication == rep_id)
+      steps <- pool_queue_steps(rows$resource, rows$time, rows$queue)
       data.frame(
         pool          = pool,
         replication   = rep_id,
@@ -5003,7 +4920,8 @@ pool_clearance_series <- function(resources_raw, horizon_min, pools = TIME_SERIE
     members <- resources_raw %>% filter(grepl(pools[[pool]], resource))
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
-      steps <- pool_queue_steps(members %>% filter(replication == rep_id))
+      rows  <- members %>% filter(replication == rep_id)
+      steps <- pool_queue_steps(rows$resource, rows$time, rows$queue)
       stats <- step_clearance_stats(steps, horizon_min)
       data.frame(
         pool               = pool,

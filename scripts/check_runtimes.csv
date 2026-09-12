@@ -18,6 +18,7 @@ check_icu_time_conservation.R,68
 check_input_validation.R,16
 check_lever_realisation.R,28
 check_lint.R,92
+check_long_horizon_protocol.R,40
 check_markdown.R,6
 check_mass_casualty_kia_split.R,41
 check_measurement_reproducibility.R,175

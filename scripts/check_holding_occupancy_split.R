@@ -66,10 +66,19 @@ fail <- function(...) state$failures <- c(state$failures, sprintf(...))
 #' @param fmt sprintf() format string describing the assertion.
 #' @param ... Arguments to `fmt`.
 #' @return Invisible NULL.
+#'
+#' @details Anything other than TRUE is a failure, NA included. A quantity this
+#'   check compares can become NA when the code under test is wrong rather than
+#'   when the assertion is inapplicable, and testing `if (ok)` on an NA raises
+#'   an error that stops the run at the first such assertion instead of
+#'   reporting it and continuing. That is how a fault injected into the
+#'   evacuation component presented before this was written: the check detected
+#'   it and died rather than failing.
 report <- function(ok, fmt, ...) {
   msg <- sprintf(fmt, ...)
-  cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", msg))
-  if (!ok) fail("%s", msg)
+  passed <- isTRUE(ok)
+  cat(sprintf("[%s] %s\n", if (passed) "PASS" else "FAIL", msg))
+  if (!passed) fail("%s", msg)
   invisible(NULL)
 }
 

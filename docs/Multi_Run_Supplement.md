@@ -33,6 +33,7 @@ This document is the design record for the replicated experiments reported in th
   - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
+  - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
   - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
@@ -281,6 +282,24 @@ Forward intensive care utilisation is poorly determined at this replication coun
 
 Mean utilisation across the swept range runs the wrong way on both platforms, rising with fleet size where a fixed demand spread over more vehicles should lower it, and the interval on HX2 40M utilisation at three vehicles spans 2.3% to 19.9%. So few transport events occur per replication that the busy-time estimate at each sweep point is barely pinned down, which is why the companion paper reads the queue column and not this one.
 
+### National Support Base Demand and the Airlift Schedule
+
+50 replications of a 30-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
+
+```
+Rscript scripts/run_airlift_sweep.R --refresh-baseline
+```
+
+This is a different experiment from [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep) below, which asks at a 360-day horizon whether a campaign collapses and reports a probability. This one asks what the schedule costs within the campaign the rest of the companion paper measures, and reports means with intervals. Each replication is reduced to one row of responses inside the forked worker that produced it, as the sustained-operations protocol reduces to a daily series, so thirteen configurations at fifty replications hold the responses rather than the monitoring data behind them. The tracked evidence set is `data/airlift/`.
+
+Two properties of the measurement needed establishing before any of it could be reported.
+
+**The Role 4 peak is drawn under the replication's own seed.** Each evacuated casualty's length of stay at the national support base is drawn by the analysis rather than by the simulation (`README.md`'s Further Development L30), so the census and the peak taken from it otherwise depend on how many draws preceded them in the session rather than on the campaign alone: the same finished campaign gives a peak of 117, 119 or 121 from three different stream positions. Drawing it under the replication's seed makes every response a function of that seed, which is what an interval across replications requires, and the caller's stream is restored so the measurement stays stream-neutral.
+
+**A sortie scheduled at exactly the horizon is censored, not cancelled.** A sortie's outcome is reconstructed from the capacity it adds and the seats taken afterwards, and one scheduled at the instant the run ends never resolves. Counting it as a cancellation reported rates of 10%, 17% and 33% at a configured probability of zero in the sortie interval sweep, purely because 30 divides by 3, 5 and 10; the intervals that do not divide it correctly reported zero. Such a sortie is now dropped from both the scheduled and the flown count, after which the whole interval sweep reports zero and the reliability sweep tracks its configured values, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%.
+
+**The split of R2E holding occupancy is exact rather than estimated.** A casualty awaiting the standard airlift pool seizes a holding bed on reaching the evacuation decision and releases it on boarding, so its whole wait is holding occupancy; a casualty awaiting the critical pool holds an intensive care bed already seized upstream and contributes nothing to that pool. In-theatre recovery is then the remainder of the pool's measured occupancy rather than a second reconstruction, which makes the two components sum to the total by construction. What needs defending is the evacuation component, since an error there moves the same quantity out of recovery and the sum still holds, and `scripts/check_holding_occupancy_split.R` defends it: that it counts the standard route and not the critical one, asserted against a run carrying both; that it agrees with a casualty-by-casualty recount taken independently of the function under test; and that a wait still running when the window closes is charged to the window's end rather than dropped.
+
 ### Strategic Airlift Reliability Sweep
 
 30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override per arm: `role4.ame.failure_probability` at 0, 0.05, 0.10, 0.15, 0.20 and 0.25. The six arms draw from one seed vector, so replication $k$ of every arm runs the same parent stream and the arms are paired.
@@ -291,7 +310,7 @@ The response is not the mean of anything. A campaign is classified collapsed whe
 
 Two properties of this experiment bear on how far its table can be read, and both are stated in the companion paper. Collapse is a property of a whole campaign rather than of any month within it, and a logistic fit of the outcome on the closing holding queue of the first 30 days does not distinguish the runs that go on to collapse ($p = 0.36$). And the median holding queue stays below 2 in five of the six arms, so the entire effect sits in a tail that a summary of typical performance does not show.
 
-The experiment has no CLI entry point. It was run from a driver script that calls `run_once()` per replication and retains only the daily series each arm needs, discarding each replication's monitoring data before the next begins, since holding thirty 360-day monitoring sets in memory is what would otherwise bound it. That makes this the one experiment recorded here that a reader cannot reproduce from a tracked command, which is a gap rather than a design choice and is recorded as such in [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here).
+The experiment has no CLI entry point of its own. It was run from a driver script that calls `run_once()` per replication and retains only the daily series each arm needs, discarding each replication's monitoring data before the next begins, since holding thirty 360-day monitoring sets in memory is what would otherwise bound it. Both halves of that arrangement are now tracked commands: `scripts/run_long_horizon.R` runs a reducing 360-day replicated campaign, and `scripts/run_airlift_sweep.R` sweeps `role4.ame.failure_probability`. What is not yet expressible in one command is the two together, this experiment's own response being a collapse classification over a campaign's closing 90 days rather than anything either script reports. The gap is therefore narrower than it was and is not closed; it remains recorded in [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here).
 
 ### Mass Casualty Event Stress Test
 
@@ -354,7 +373,7 @@ Five limitations are properties of the designs rather than of the model, and eac
 
 **Utilisation columns at 10 and 20 replications are not determined.** Both the transport sweep and the forward intensive care share sweep report utilisation figures that move without order across their swept range. Too few busy-time events accumulate per replication at those counts for the column to be read, and neither sweep's conclusion rests on it.
 
-**One experiment is not reproducible from a tracked command.** The strategic airlift reliability sweep was run from a driver script rather than through a CLI entry point, so a reader can follow its design from the description above but cannot re-execute it as written. Every other experiment recorded here names the command that produces it. Giving the sweep an entry point would close this, and is the smaller half of the reproducibility gap the companion paper's research agenda records.
+**One experiment is not reproducible from a single tracked command.** The strategic airlift reliability sweep at a 360-day horizon was run from a driver script, so a reader can follow its design from the description above but cannot re-execute it as written. The two capabilities it needs are now tracked commands, `scripts/run_long_horizon.R` for a reducing long replicated campaign and `scripts/run_airlift_sweep.R` for the cancellation sweep, and what remains missing is a command combining them and computing that experiment's own collapse classification. Every other experiment recorded here names the command that produces it.
 
 **The sweeps were run at moderate intensity only.** The transport fleet sweep, the forward intensive care share frontier and the pre-open hold window comparison all use the shipped default configuration, so none of them establishes that its result survives at the higher casualty intensity. Re-running them at high intensity is listed among the further development items of the companion paper [[1]](#references).
 

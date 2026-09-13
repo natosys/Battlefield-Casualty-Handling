@@ -290,6 +290,9 @@ reduce_airlift_replication <- function(env, n_days, seed) {
     hold_total_bed_days  = split$total_bed_days,
     hold_evac_bed_days   = split$evacuation_bed_days,
     hold_recovery_bed_days = split$recovery_bed_days,
+    hold_post_definitive_bed_days = split$post_definitive_bed_days,
+    hold_post_op_bed_days = split$post_op_hold_bed_days,
+    hold_unexplained_bed_days = split$unexplained_bed_days,
     hold_evac_share      = split$evacuation_share,
     ventilated_holds     = nrow(ventilated),
     ventilated_hold_hours = if (nrow(ventilated) > 0) {

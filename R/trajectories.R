@@ -1798,7 +1798,16 @@ r2e_hold_recovery <- function(hold_beds, post_op_dow) {
         }) %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
         seize_selected(id = 8) %>%
-        timeout(function() {
+        # The stay is drawn into an attribute and served from it, rather than
+        # drawn at the timeout, so the bed time this arm consumes is recorded
+        # rather than inferred; without it the holding pool's occupancy split
+        # can only reach this arm as a residual, which absorbs every error in
+        # the other components. The draw sits after the seize, where the
+        # timeout used to take it, rather than before: a casualty can wait for
+        # a bed, and drawing before that wait would move this draw ahead of
+        # every arrival drawn during it and so shift the arrival stream.
+        set_attribute("r2e_post_op_hold_start", function() now(env)) %>%
+        set_attribute("r2e_post_op_hold_min", function() {
           rtriangle(
             n = 1,
             a = env_data$vars$r2eheavy$post_op_hold$min,
@@ -1806,6 +1815,7 @@ r2e_hold_recovery <- function(hold_beds, post_op_dow) {
             c = env_data$vars$r2eheavy$post_op_hold$mode
           )
         }) %>%
+        timeout_from_attribute("r2e_post_op_hold_min") %>%
         release_selected(id = 8),
 
       trajectory("Single-Stage — No Stabilisation Phase to Degrade")
@@ -1900,6 +1910,7 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
         }) %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
         seize_selected(id = 8) %>%
+        set_attribute("post_definitive_hold_start", function() now(env)) %>%
         timeout(function() get_attribute(env, "post_definitive_min")) %>%
         release_selected(id = 8),
 
@@ -2123,6 +2134,7 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
         }) %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
         seize_selected(id = 9) %>%
+        set_attribute("ame_hold_start", function() now(env)) %>%
         release_selected(id = 10) %>%
         # Realised ICU occupancy pending evacuation. Exceeds the drawn
         # pre-flight period whenever the holding pool is full at step-down,
@@ -2135,7 +2147,8 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
       trajectory("Stable — Staged for Flight") %>%
         set_attribute("ame_icu_hold", 0) %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
-        seize_selected(id = 9)
+        seize_selected(id = 9) %>%
+        set_attribute("ame_hold_start", function() now(env))
     )
 }
 
@@ -2441,6 +2454,7 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
         set_attribute("ame_route", 2) %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
         seize_selected(id = 9) %>%
+        set_attribute("ame_hold_start", function() now(env)) %>%
         join(r2e_ame_wait_and_board("ame", 9, team_id, evac_team))
     ) %>%
     release_selected(id = 9) %>%
@@ -2481,6 +2495,7 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
       trajectory("Recover at R2E") %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
         seize_selected(id = 5) %>%
+        set_attribute("r2e_recovery_hold_start", function() now(env)) %>%
         # The hold bed is held for the same duration the disposition was
         # decided on, so a retained casualty's bed-days and the prognosis
         # that retained them cannot disagree.

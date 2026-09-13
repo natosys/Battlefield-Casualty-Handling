@@ -60,28 +60,38 @@ AIRLIFT_ROUTE_CRITICAL <- 1
 #' Route code of a casualty waiting on the standard airlift pool
 AIRLIFT_ROUTE_STANDARD <- 2
 
-#' Split R2E holding bed occupancy into recovery and evacuation wait
+#' Split R2E holding bed occupancy into the four stays that consume it
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param wide Per-casualty attributes for one replication, one row per
-#'   casualty, carrying ame_route, r2e_departure_time and ame_departure_time.
+#'   casualty, carrying the route and departure fields the evacuation wait needs
+#'   and the start and duration attributes each clinical stay records.
 #' @param horizon_min End of the campaign window, in minutes.
-#' @return A list of `total_bed_days`, `evacuation_bed_days`,
-#'   `recovery_bed_days` and `evacuation_share`.
+#' @return A list of `total_bed_days`, the four components
+#'   `evacuation_bed_days`, `recovery_bed_days`, `post_definitive_bed_days` and
+#'   `post_op_hold_bed_days`, their sum as `accounted_bed_days`, the difference
+#'   from the measured total as `unexplained_bed_days`, and
+#'   `evacuation_share`.
 #'
-#' @details The two components are computed rather than estimated, because the
-#'   model makes the attribution exact: a casualty awaiting the standard airlift
-#'   pool seizes a holding bed on reaching the evacuation decision and releases
-#'   it on boarding, so that casualty's evacuation wait is the whole of its
-#'   holding occupancy over that period. A casualty awaiting the critical pool
-#'   holds an intensive care bed instead and contributes nothing here. Recovery
-#'   is then the remainder of the pool's measured occupancy rather than a second
-#'   reconstruction, which is what makes the two sum to the total by
-#'   construction; `scripts/check_holding_occupancy_split.R` asserts that they
-#'   do against the resource monitor.
+#' @details One pool of holding beds serves four unrelated demands, and each is
+#'   reconstructed from what the model recorded rather than inferred as the
+#'   remainder of the others. A casualty awaiting the standard airlift pool
+#'   seizes a holding bed at the evacuation decision and releases it on
+#'   boarding; one awaiting the critical pool holds an intensive care bed
+#'   instead and contributes nothing here. The three clinical stays each record
+#'   the instant the bed was seized and the duration to be served, so each is
+#'   bounded without reference to the others.
 #'
-#'   A casualty still waiting when the window closes is charged to the window's
-#'   end rather than dropped, its wait being right-censored rather than absent.
+#'   `unexplained_bed_days` is what makes the split checkable. Reporting
+#'   recovery as the remainder of the measured total would make the components
+#'   sum to it by construction, so an error in any one of them would be
+#'   invisible, absorbed into whichever component was the residual. Here every
+#'   component is computed independently and the difference from the resource
+#'   monitor is reported, so it is a measurement of how completely the four
+#'   stays account for the pool rather than an artifact of the arithmetic.
+#'
+#'   A stay still running when the window closes is charged to the window's end
+#'   rather than dropped, its duration being right-censored rather than absent.
 holding_occupancy_split <- function(resources, wide, horizon_min) {
   hold <- resources[grepl(R2E_HOLD_PATTERN, resources$resource), ]
   total_bed_days <- 0
@@ -90,18 +100,69 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
     total_bed_days <- step_bin_means(steps, c(0, horizon_min)) * horizon_min / DAY_MIN
   }
 
-  waiting <- wide[!is.na(wide$ame_route) & wide$ame_route == AIRLIFT_ROUTE_STANDARD &
-                    !is.na(wide$r2e_departure_time), ]
-  departed <- ifelse(is.na(waiting$ame_departure_time), horizon_min,
-                     waiting$ame_departure_time)
-  wait_min <- pmax(pmin(departed, horizon_min) - waiting$r2e_departure_time, 0)
-  evacuation_bed_days <- sum(wait_min) / DAY_MIN
+  #' Bed-days of one clinical stay, censored at the window's close
+  #'
+  #' @param start_col Attribute naming the instant the bed was seized.
+  #' @param minutes Vector of the durations to be served, aligned to `wide`.
+  #' @return Bed-days over the window, zero where no casualty took the stay.
+  #'
+  #' @details A stay is counted from its start to whichever of its own end and
+  #'   the window's close comes first, so a stay that began inside the window
+  #'   and had not finished at its close contributes the part that fell inside
+  #'   it. A stay starting at or after the close contributes nothing.
+  stay_bed_days <- function(start_col, minutes) {
+    if (!start_col %in% names(wide)) return(0)
+    start <- wide[[start_col]]
+    took <- !is.na(start) & !is.na(minutes) & start < horizon_min
+    if (!any(took)) return(0)
+    served <- pmin(start[took] + minutes[took], horizon_min) - start[took]
+    sum(pmax(served, 0)) / DAY_MIN
+  }
+
+  # Both airlift routes stage in a holding bed, so the component is taken from
+  # the instant the staging bed was seized rather than from the route. A
+  # ventilated casualty on the critical route holds an intensive care bed for
+  # its pre-flight period and then steps down into a holding bed for the
+  # remainder of its wait, which is why the route alone does not decide whether
+  # a casualty appears here.
+  evacuation_bed_days <- stay_bed_days(
+    "ame_hold_start",
+    if ("ame_hold_start" %in% names(wide)) {
+      departed <- ifelse(is.na(wide$ame_departure_time), horizon_min,
+                         wide$ame_departure_time)
+      pmax(departed - wide$ame_hold_start, 0)
+    } else {
+      NULL
+    })
+
+  # A retained casualty holds the bed for the recovery its disposition was
+  # decided on, which is drawn in days rather than minutes.
+  recovery_bed_days <- stay_bed_days(
+    "r2e_recovery_hold_start",
+    if ("recovery_to_duty_days" %in% names(wide)) wide$recovery_to_duty_days * DAY_MIN else NULL)
+  post_definitive_bed_days <- stay_bed_days(
+    "post_definitive_hold_start",
+    if ("post_definitive_min" %in% names(wide)) wide$post_definitive_min else NULL)
+  post_op_hold_bed_days <- stay_bed_days(
+    "r2e_post_op_hold_start",
+    if ("r2e_post_op_hold_min" %in% names(wide)) wide$r2e_post_op_hold_min else NULL)
+
+  accounted <- evacuation_bed_days + recovery_bed_days +
+    post_definitive_bed_days + post_op_hold_bed_days
 
   list(
-    total_bed_days      = total_bed_days,
-    evacuation_bed_days = evacuation_bed_days,
-    recovery_bed_days   = total_bed_days - evacuation_bed_days,
-    evacuation_share    = if (total_bed_days > 0) evacuation_bed_days / total_bed_days else NA_real_
+    total_bed_days           = total_bed_days,
+    evacuation_bed_days      = evacuation_bed_days,
+    recovery_bed_days        = recovery_bed_days,
+    post_definitive_bed_days = post_definitive_bed_days,
+    post_op_hold_bed_days    = post_op_hold_bed_days,
+    accounted_bed_days       = accounted,
+    unexplained_bed_days     = total_bed_days - accounted,
+    evacuation_share         = if (total_bed_days > 0) {
+      evacuation_bed_days / total_bed_days
+    } else {
+      NA_real_
+    }
   )
 }
 

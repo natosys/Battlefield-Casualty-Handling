@@ -93,6 +93,13 @@ CHECK_DAYS <- 30L
 #' Control seed the behavioural assertions run under
 CHECK_SEED <- 42L
 
+#' Establishments the axis assertions are made at, in beds
+#'
+#' @details Larger than the shipped pool so that a setter which ignored its
+#'   argument would be caught, and not a multiple of it so that an off-by-a-
+#'   factor error is visible too.
+CHECK_SWEPT_BEDS <- c(45L, 90L)
+
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
@@ -265,6 +272,63 @@ report(!is.na(needed) && needed == expected_needed,
        format(needed), format(expected_needed))
 report(is.na(policy_replications_for(paired_rows, "total_dow", 21L, 30L, 0)),
        "a non-positive half-width returns no count rather than an infinite one")
+
+# ── 6b. The establishment axis reaches the resources it claims to ────────────
+
+cat("\n-- the holding establishment is applied, or the attempt fails loudly --\n")
+
+resolved <- resolve_scenario(json_data, "default")
+shipped_beds <- NA_integer_
+for (elm in resolved$elms) {
+  if (!identical(elm$elm, "r2eheavy")) next
+  for (bed in elm$beds) if (identical(bed$name, "hold")) shipped_beds <- bed$qty
+}
+report(!is.na(shipped_beds),
+       "the shipped R2E holding establishment is readable from elms (%s beds)",
+       format(shipped_beds))
+
+# Every swept establishment must reach the built resources. A setter that
+# returned the configuration unchanged would leave a sweep measuring the shipped
+# establishment at every point and publishing the flat result as a frontier,
+# which is the failure this asserts against rather than a hypothetical: the
+# element carries its name under `elm` rather than `name`, and a first
+# implementation matching on `name` found nothing.
+for (beds in c(shipped_beds, CHECK_SWEPT_BEDS)) {
+  config_snapshot <- capture_config_globals()
+  apply_policy_setting(json_data, "default", policy_days = NULL, hold_beds = beds)
+  built <- length(grep("^b_r2eheavy_hold_[0-9]+_t[0-9]+$", unlist(env_data$elms)))
+  restore_config_globals(config_snapshot)
+  report(built == beds,
+         "an establishment of %d beds builds %d R2E holding resources", beds, built)
+}
+
+report(inherits(try(set_hold_establishment(resolved, 0), silent = TRUE), "try-error"),
+       "an establishment of zero beds is rejected rather than applied")
+report(inherits(try(set_hold_establishment(resolved, NA), silent = TRUE), "try-error"),
+       "a missing establishment is rejected rather than applied")
+
+# The guard that catches a configuration the setter cannot find. Stripping the
+# pool must fail rather than silently leave the establishment as it was.
+stripped <- resolved
+for (i in seq_along(stripped$elms)) {
+  if (!identical(stripped$elms[[i]]$elm, "r2eheavy")) next
+  stripped$elms[[i]]$beds <- Filter(function(b) !identical(b$name, "hold"),
+                                    stripped$elms[[i]]$beds)
+}
+report(inherits(try(set_hold_establishment(stripped, 45), silent = TRUE), "try-error"),
+       "a configuration with no holding pool fails rather than passing silently")
+
+# Both axes apply together, the policy after build_environment() and the
+# establishment before it.
+config_snapshot <- capture_config_globals()
+apply_policy_setting(json_data, "default", policy_days = 45L,
+                     hold_beds = CHECK_SWEPT_BEDS[1])
+applied_policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+applied_beds <- length(grep("^b_r2eheavy_hold_[0-9]+_t[0-9]+$", unlist(env_data$elms)))
+restore_config_globals(config_snapshot)
+report(applied_policy == 45L && applied_beds == CHECK_SWEPT_BEDS[1],
+       "policy and establishment apply together (%s days, %d beds)",
+       format(applied_policy), applied_beds)
 
 # ── 7. The tracked summary is the table the paper prints ─────────────────────
 

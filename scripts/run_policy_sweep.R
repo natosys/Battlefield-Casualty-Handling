@@ -21,6 +21,9 @@
 # every arm runs the same parent stream and a difference between two policies is
 # measured within replication rather than between arm means.
 #
+# Each arm is checkpointed as it completes and resumed rather than re-run, so an
+# interruption costs the arm in flight rather than all 150 replication-years.
+#
 # --refresh-baseline is the only way to write the tracked data/policy/ copy.
 
 source("R/environment.R")
@@ -103,7 +106,44 @@ measure_arm <- function(policy_days) {
                          max_cores = opt$`max-cores`)
 }
 
-per_replication <- do.call(rbind, lapply(policies, measure_arm))
+#' Path one arm's checkpointed responses are written to and resumed from
+#'
+#' @param policy_days Evacuation policy the arm ran at, in days.
+#' @return The file path for that arm.
+arm_path <- function(policy_days) {
+  file.path(OUTPUT_DIR, sprintf("policy_sweep_arm_%dd.csv", policy_days))
+}
+
+#' Measure one arm, or read it back where it has already been measured
+#'
+#' @param policy_days Evacuation policy to run at, in days.
+#' @return The arm's response rows.
+#'
+#' @details Each arm is written as it completes and read back rather than re-run
+#'   on a later invocation, so an environment that reclaims its filesystem or a
+#'   host that stops the process costs the arm in flight rather than the whole
+#'   measurement. This experiment is 150 replication-years, long enough that
+#'   losing it to an interruption is a real cost; `scripts/screen_cache.sh`
+#'   exists for the same reason on the sensitivity screen. Delete the arm files
+#'   to force a fresh measurement.
+measure_or_resume <- function(policy_days) {
+  path <- arm_path(policy_days)
+  if (file.exists(path)) {
+    rows <- read.csv(path, stringsAsFactors = FALSE)
+    if (nrow(rows) == opt$iterations) {
+      message(sprintf("Evacuation policy %d days: resumed %d replications from %s",
+                      policy_days, nrow(rows), path))
+      return(rows)
+    }
+    message(sprintf("Evacuation policy %d days: discarding %d of %d checkpointed",
+                    policy_days, nrow(rows), opt$iterations))
+  }
+  rows <- measure_arm(policy_days)
+  write.csv(rows, path, row.names = FALSE)
+  rows
+}
+
+per_replication <- do.call(rbind, lapply(policies, measure_or_resume))
 
 summary_rows <- do.call(rbind, lapply(policies, function(policy_days) {
   arm <- per_replication[per_replication$policy_days == policy_days, ]

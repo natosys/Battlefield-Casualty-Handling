@@ -57,6 +57,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
   - [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)
     - [The Degraded Care Rate Over the Campaign](#the-degraded-care-rate-over-the-campaign)
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
+  - [The Evacuation Policy Has One Admissible Setting That Is Also Stable](#the-evacuation-policy-has-one-admissible-setting-that-is-also-stable)
   - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
@@ -395,6 +396,39 @@ Within the rule, casualties recovering in a holding bed died at 0.16% against 0.
 
 The pathway comparison remains limited by compute rather than by design: deaths of wounds are rare enough at moderate intensity that separating two pathways of a few dozen casualties each would take far more runs than the mortality comparison above already shows to be out of reach. The figures above no longer carry the earlier caveat that their intervals were narrower than the runs entitled them to be; that arrangement has been replaced, and the replications behind every figure in this section are independent of one another.
 
+### The Evacuation Policy Has One Admissible Setting That Is Also Stable
+
+**The theatre evacuation policy decides how much of the R2E holding pool is spent on convalescence rather than on the trauma pathway, and sweeping it across the range doctrine states is a command decision leaves exactly one value that is both historically admissible and stable over a sustained campaign.** A casualty retained in theatre holds a holding bed for the whole of the recovery that retained it, so the threshold sets what each retention costs in bed-days; the pool also carries the wait for a strategic evacuation sortie, which is why the policy reaches intensive care as well (see [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design) and README Further Development L17).
+
+**Design.** 30 runs of a 360-day campaign at each of five policies, all other settings at their shipped values and every arm drawn from one seed vector so the five are paired, executed as `Rscript scripts/run_policy_sweep.R --refresh-baseline`. The range is the one the doctrinal source states, naming 30 days as a worked example and at least 15 to 60 days as the span of a command decision [[12]](#references). Forward stability is measured over each campaign's closing 90 days rather than its whole length, because a system still filling and a settled one are indistinguishable in an average over both. The full design is in `docs/Multi_Run_Supplement.md`.
+
+<!-- POLICY TABLE -->
+| Response | 15 d | 21 d (shipped) | 30 d | 45 d | 60 d |
+|---|---|---|---|---|---|
+| R2E hold occupancy (%) | 31.9 [29.8, 34.0] | 57.4 [53.7, 61.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
+| R2E hold mean queue | 0.00 [0.00, 0.00] | 1.68 [0.41, 2.95] | 600.94 [555.03, 646.86] | 1503.43 [1439.61, 1567.25] | 1754.71 [1704.92, 1804.50] |
+| R2E ICU occupancy (%) | 88.5 [87.5, 89.4] | 88.0 [86.9, 89.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
+| R2E ICU mean queue | 0.43 [0.39, 0.47] | 0.47 [0.37, 0.57] | 76.42 [70.42, 82.42] | 27.59 [25.00, 30.18] | 13.22 [11.51, 14.93] |
+| Post-definitive ICU access (%) | 34.7 [33.7, 35.6] | 35.1 [33.8, 36.4] | 5.5 [4.5, 6.5] | 6.1 [5.4, 6.8] | 7.6 [6.5, 8.6] |
+| In-theatre share (%) | 4.7 [4.6, 4.9] | 11.4 [11.1, 11.6] | 26.3 [25.7, 26.9] | 60.9 [59.9, 62.0] | 82.3 [81.5, 83.2] |
+| Returns to duty | 2001.2 [1977.4, 2025.0] | 2159.7 [2120.8, 2198.5] | 2276.0 [2251.2, 2300.9] | 2205.1 [2178.7, 2231.5] | 2172.0 [2148.4, 2195.6] |
+| Died of wounds | 17.30 [15.49, 19.11] | 17.40 [15.61, 19.19] | 16.43 [14.84, 18.03] | 15.07 [13.28, 16.86] | 16.67 [14.82, 18.52] |
+| Never evacuated by horizon | 1.1 [0.7, 1.5] | 1.8 [0.5, 3.0] | 301.2 [281.7, 320.7] | 258.9 [247.7, 270.1] | 120.6 [113.1, 128.1] |
+| Mean evacuation wait (d) | 0.20 [0.15, 0.25] | 0.25 [0.19, 0.30] | 28.93 [26.48, 31.38] | 81.67 [77.67, 85.67] | 98.82 [93.35, 104.29] |
+| Role 4 peak beds | 178.1 [171.3, 184.9] | 169.1 [163.5, 174.8] | 99.6 [93.3, 106.0] | 33.0 [29.4, 36.5] | 13.1 [11.7, 14.4] |
+
+Four findings follow, and the first is the one that settles the setting.
+
+**The historical envelope excludes three of the five policies.** The realised in-theatre share is an output of the policy rather than an input to it, and the project validates it against the 7.6% to 42.1% range of historical campaigns (README Return to Duty). A 15-day policy retains 4.7% and falls below that range; 45 and 60 days retain 60.9% and 82.3% and sit far above it. Only 21 and 30 days produce a theatre that looks like the campaigns the model is calibrated against, which bounds the decision to a narrow band well before any capacity argument is made. **Evidence: measured.**
+
+**Of the two admissible policies, only the shorter is stable.** At 30 days both R2E pools sit at full occupancy for the whole closing quarter of the campaign, the holding queue averaging 601 casualties and intensive care 76, and 301 casualties per campaign are still waiting to be evacuated when the horizon closes against 1.8 at 21 days. The clinical consequence is the one that matters: post-definitive intensive care access falls from 35.1% to 5.5%, so a shorter policy is what allows operated casualties to recover in an intensive care bed rather than in the degraded holding-bed fallback. **Evidence: measured.**
+
+**Retaining casualties for longer stops producing returns to duty once the pool saturates.** Returns to duty do not rise with the policy across the range; they peak at 30 days (2,276 per campaign-year) and fall away at 45 and 60 (2,205 and 2,172). The mechanism is the saturation above: past the point where the pool fills, a casualty retained in theatre waits rather than convalesces, so lengthening the threshold buys retention without buying recovery. The force cost of the shipped policy against the RTD-maximising one is real and is worth stating plainly: 116.4 fewer returns to duty per campaign-year [69.2, 163.6] against a sustained force near 3,400. What the sweep adds is that this is the price of stability rather than a loss to be recovered by lengthening further. **Evidence: measured.**
+
+**The mortality effect that blocked this decision is not detectable anywhere in the range.** Deaths of wounds read 17.30, 17.40, 16.43, 15.07 and 16.67 per campaign-year across the five policies, with heavily overlapping intervals and no monotone pattern. As paired differences against the shipped policy, four of the five are indistinguishable from zero (p = 0.93, 0.38 and 0.60 at 15, 30 and 60 days); the fifth, -2.33 [-4.60, -0.07] at 45 days, is the kind of isolated result five comparisons produce by chance and is not supported by its neighbours. The design is under-powered for this response rather than conclusive: resolving a difference of one death per campaign-year would need 135 to 221 replications, against the 30 run here. So the honest statement is that no mortality cost of the shipped policy is visible, not that none exists. **Evidence: direction only.**
+
+Taken together the sweep supports the shipped 21-day policy as the only setting in the doctrinal range that is both admissible against the historical envelope and stable at sustained-campaign length, which is a stronger basis than the single comparison the default originally shipped on. It does not establish that 21 is optimal within the admissible band: the band contains values the sweep did not visit, and the adjacent lever, the holding establishment, is a substitute for the policy that has never been swept (README Further Development L32).
+
 ### Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing
 
 **The simulation assumes every scheduled strategic evacuation sortie flies, and that assumption is doing more work than its place in the configuration suggests.** The model exists to measure the land-based trauma system, so it sets the demand that system places on strategic evacuation rather than simulating the reliability of the aircraft meeting it, which is the same treatment the national support base receives in [Demand on the National Support Base](#demand-on-the-national-support-base). A sortie cancellation probability remains configurable, and sweeping it shows what the assumption buys.
@@ -526,7 +560,7 @@ Alongside these, the simulated system's design and its calibration would benefit
 
 Four limitations bear on how the options above should be read.
 
-**The simulation is verified but not validated.** It behaves as its specification describes, which is a separate question from whether that specification represents the real trauma system well [[12]](#references). Verification has been demonstrated [[10]](#references); validation would require the structured expert review described in [Further Development](#further-development). Every option above is an option inside the simulation, and holds only as far as the simulation does.
+**The simulation is verified but not validated.** It behaves as its specification describes, which is a separate question from whether that specification represents the real trauma system well [[13]](#references). Verification has been demonstrated [[10]](#references); validation would require the structured expert review described in [Further Development](#further-development). Every option above is an option inside the simulation, and holds only as far as the simulation does.
 
 **Compute time limited what could be measured.** Three effects are unresolved for that reason alone, and the run counts that would settle two of them are stated above. This constrains the precision of the findings rather than their direction, and it bears hardest on mortality, which is the rarest quantity the simulation reports.
 
@@ -580,6 +614,8 @@ This paper set out to identify options for improving the land-based trauma syste
 
 [11] Kotwal, R. S., Montgomery, H. R., Kotwal, B. M., Champion, H. R., Butler, F. K., Mabry, R. L., Cain, J. S., Blackbourne, L. H., Mechler, K. K., & Holcomb, J. B. (2011). Eliminating preventable death on the battlefield. *Archives of Surgery*, *146*(12), 1350–1358. Retrieved 27 Aug 26, from https://pmc.ncbi.nlm.nih.gov/articles/PMC5832013/
 
-[12] Sargent, R. G. (2010). Verification and validation of simulation models. In *Proceedings of the 2010 Winter Simulation Conference* (pp. 166–183). IEEE. Retrieved 27 Aug 26, from https://www.informs-sim.org/wsc10papers/016.pdf
+[12] U.S. Army Medical Department Center and School. *Health Service Support in a Theater of Operations*, Subcourse MD0002, Evacuation Policy. Retrieved 02 Aug 26, from http://armymedical.tpub.com/MD0002/Evacuation-Policy-Health-Service-Support-in-a-Theater-of-Operations-88.htm
+
+[13] Sargent, R. G. (2010). Verification and validation of simulation models. In *Proceedings of the 2010 Winter Simulation Conference* (pp. 166–183). IEEE. Retrieved 27 Aug 26, from https://www.informs-sim.org/wsc10papers/016.pdf
 
 <!-- REFERENCES END -->

@@ -125,27 +125,37 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
   # its pre-flight period and then steps down into a holding bed for the
   # remainder of its wait, which is why the route alone does not decide whether
   # a casualty appears here.
-  evacuation_bed_days <- stay_bed_days(
-    "ame_hold_start",
-    if ("ame_hold_start" %in% names(wide)) {
-      departed <- ifelse(is.na(wide$ame_departure_time), horizon_min,
-                         wide$ame_departure_time)
-      pmax(departed - wide$ame_hold_start, 0)
-    } else {
-      NULL
-    })
+  #' One duration column of the attribute monitor, in minutes
+  #'
+  #' @param col Attribute naming the duration to be served.
+  #' @param scale Multiplier carrying the attribute's own units to minutes.
+  #' @return The column in minutes, or NULL where no casualty set it.
+  #'
+  #' @details An attribute no casualty set is an absent column rather than an
+  #'   empty one on a monitor this narrow, so the column is guarded rather than
+  #'   assumed.
+  duration_of <- function(col, scale = 1) {
+    if (!col %in% names(wide)) return(NULL)
+    wide[[col]] * scale
+  }
+
+  staging_minutes <- if ("ame_hold_start" %in% names(wide)) {
+    departed <- ifelse(is.na(wide$ame_departure_time), horizon_min,
+                       wide$ame_departure_time)
+    pmax(departed - wide$ame_hold_start, 0)
+  } else {
+    NULL
+  }
+  evacuation_bed_days <- stay_bed_days("ame_hold_start", staging_minutes)
 
   # A retained casualty holds the bed for the recovery its disposition was
   # decided on, which is drawn in days rather than minutes.
-  recovery_bed_days <- stay_bed_days(
-    "r2e_recovery_hold_start",
-    if ("recovery_to_duty_days" %in% names(wide)) wide$recovery_to_duty_days * DAY_MIN else NULL)
-  post_definitive_bed_days <- stay_bed_days(
-    "post_definitive_hold_start",
-    if ("post_definitive_min" %in% names(wide)) wide$post_definitive_min else NULL)
-  post_op_hold_bed_days <- stay_bed_days(
-    "r2e_post_op_hold_start",
-    if ("r2e_post_op_hold_min" %in% names(wide)) wide$r2e_post_op_hold_min else NULL)
+  recovery_bed_days <- stay_bed_days("r2e_recovery_hold_start",
+                                     duration_of("recovery_to_duty_days", DAY_MIN))
+  post_definitive_bed_days <- stay_bed_days("post_definitive_hold_start",
+                                            duration_of("post_definitive_min"))
+  post_op_hold_bed_days <- stay_bed_days("r2e_post_op_hold_start",
+                                         duration_of("r2e_post_op_hold_min"))
 
   accounted <- evacuation_bed_days + recovery_bed_days +
     post_definitive_bed_days + post_op_hold_bed_days

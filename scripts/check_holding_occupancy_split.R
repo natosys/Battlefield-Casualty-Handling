@@ -99,8 +99,26 @@ CHECK_SEED <- 42L
 #'   not made against an arm where the quantity barely exists.
 CHECK_BACKLOG_FAILURE <- 0.40
 
+#' Cancellation probability the censoring arm is run at
+#'
+#' @details Higher than the backlog arm because at 0.40 every casualty that
+#'   reaches a staging bed still boards before the window closes, which would
+#'   leave the censoring assertion vacuous. At this rate the sorties are lost
+#'   often enough that casualties are still holding a staging bed at the close,
+#'   which is the case that assertion exists to cover.
+CHECK_CENSORING_FAILURE <- 0.75
+
 #' Tolerance on a comparison of two computed reals, in bed-days
 TOL <- 1e-8
+
+#' Tolerance the four components are required to close the pool within, in
+#' bed-days
+#'
+#' @details Looser than TOL because the pool total is integrated from the
+#'   resource monitor's step function while the components are summed from
+#'   recorded durations, so the two reach the same quantity by different
+#'   arithmetic. A thousandth of a bed-day is under two minutes of one bed.
+CLOSE_TOL <- 1e-3
 
 #' Run one campaign and return its monitors and its split
 #'
@@ -129,20 +147,30 @@ measure <- function(failure_probability) {
        split = holding_occupancy_split(resources, wide, horizon_min))
 }
 
-shipped <- measure(0)
-backlog <- measure(CHECK_BACKLOG_FAILURE)
+shipped   <- measure(0)
+backlog   <- measure(CHECK_BACKLOG_FAILURE)
+censoring <- measure(CHECK_CENSORING_FAILURE)
 
 # ── 1. The components account for the pool ───────────────────────────────────
 
-cat("\n-- the two components account for the pool --\n")
+cat("\n-- the four components account for the pool exactly --\n")
 
 for (arm in list(list("shipped reliability", shipped),
                  list("a cancellation rate of 0.40", backlog))) {
   label <- arm[[1]]
   s     <- arm[[2]]$split
-  report(abs((s$evacuation_bed_days + s$recovery_bed_days) - s$total_bed_days) < TOL,
-         "%s: evacuation (%.3f) plus recovery (%.3f) equals the pool total (%.3f)",
-         label, s$evacuation_bed_days, s$recovery_bed_days, s$total_bed_days)
+  report(abs(s$unexplained_bed_days) < CLOSE_TOL,
+         "%s: the four stays leave %.4f bed-days of %.3f unexplained",
+         label, s$unexplained_bed_days, s$total_bed_days)
+  report(abs(s$accounted_bed_days - (s$evacuation_bed_days + s$recovery_bed_days +
+                                       s$post_definitive_bed_days +
+                                       s$post_op_hold_bed_days)) < TOL,
+         "%s: the reported sum is the four components (%.3f)", label, s$accounted_bed_days)
+  for (part in c("recovery_bed_days", "post_definitive_bed_days", "post_op_hold_bed_days")) {
+    report(s[[part]] > 0,
+           "%s: %s is positive (%.3f), so no component is vacuous",
+           label, part, s[[part]])
+  }
 }
 
 # ── 2. The evacuation component is bounded by the pool ───────────────────────
@@ -168,9 +196,9 @@ report(backlog$split$evacuation_bed_days > shipped$split$evacuation_bed_days,
        "losing sorties raises the evacuation component (%.3f against %.3f bed-days)",
        backlog$split$evacuation_bed_days, shipped$split$evacuation_bed_days)
 
-# ── 3. It counts the standard route and not the critical one ─────────────────
+# ── 3-4. It counts both routes, and agrees with an independent recount ───────
 
-cat("\n-- the critical route holds intensive care, not a holding bed --\n")
+cat("\n-- both airlift routes stage in a holding bed --\n")
 
 routes <- backlog$wide$ame_route[!is.na(backlog$wide$ame_route)]
 report(any(routes == AIRLIFT_ROUTE_CRITICAL) && any(routes == AIRLIFT_ROUTE_STANDARD),
@@ -182,34 +210,52 @@ report(any(routes == AIRLIFT_ROUTE_CRITICAL) && any(routes == AIRLIFT_ROUTE_STAN
 #' @param wide Per-casualty attributes.
 #' @param route Route code to include, or NA for every route.
 #' @param horizon_min End of the campaign window, in minutes.
-#' @return Bed-days those casualties spent awaiting a sortie.
+#' @return Bed-days those casualties spent in a staging holding bed.
 #'
 #' @details Written from the attribute monitor casualty by casualty rather than
 #'   by calling the function under test, so that agreeing with it is evidence
-#'   rather than a restatement.
+#'   rather than a restatement. The stay runs from the instant the staging bed
+#'   was seized, which is what `ame_hold_start` records, rather than from the
+#'   evacuation decision: a ventilated casualty on the critical route holds an
+#'   intensive care bed for its pre-flight period first and reaches a holding
+#'   bed only on step-down.
 recompute <- function(wide, route, horizon_min) {
-  rows <- wide[!is.na(wide$r2e_evac) & wide$r2e_evac == 1 &
-                 !is.na(wide$r2e_departure_time), ]
+  rows <- wide[!is.na(wide$ame_hold_start), ]
   if (!is.na(route)) rows <- rows[!is.na(rows$ame_route) & rows$ame_route == route, ]
   total <- 0
   for (i in seq_len(nrow(rows))) {
-    start <- rows$r2e_departure_time[i]
+    start <- rows$ame_hold_start[i]
     end   <- if (is.na(rows$ame_departure_time[i])) horizon_min else rows$ame_departure_time[i]
+    if (start >= horizon_min) next
     total <- total + max(min(end, horizon_min) - start, 0)
   }
   total / DAY_MIN
 }
 
+# The critical route is counted, which is the property this section exists to
+# hold: the published claim it replaces said the critical route contributed
+# nothing, and counting the standard route alone left 14.7% of the pool
+# unexplained at the shipped configuration.
 critical_only <- recompute(backlog$wide, AIRLIFT_ROUTE_CRITICAL, backlog$horizon_min)
+standard_only <- recompute(backlog$wide, AIRLIFT_ROUTE_STANDARD, backlog$horizon_min)
 report(critical_only > 0,
-       "critical-route casualties do wait (%.3f bed-days if they were counted)",
-       critical_only)
-report(abs(backlog$split$evacuation_bed_days -
-             recompute(backlog$wide, AIRLIFT_ROUTE_STANDARD, backlog$horizon_min)) < TOL,
-       "the split counts the standard route alone, not both (%.3f)",
-       backlog$split$evacuation_bed_days)
+       "the critical route holds staging beds and is counted (%.3f bed-days)", critical_only)
+report(abs(backlog$split$evacuation_bed_days - (critical_only + standard_only)) < TOL,
+       "the component is both routes together (%.3f = %.3f critical + %.3f standard)",
+       backlog$split$evacuation_bed_days, critical_only, standard_only)
 
-# ── 4. The evacuation component agrees with an independent recomputation ─────
+# A ventilated critical casualty's holding stay is shorter than its whole wait,
+# the pre-flight period being served in an intensive care bed. This is what
+# makes the component smaller than the wait rather than equal to it.
+vent <- backlog$wide[!is.na(backlog$wide$ame_icu_hold) & backlog$wide$ame_icu_hold == 1 &
+                       !is.na(backlog$wide$ame_hold_start) &
+                       !is.na(backlog$wide$r2e_departure_time), ]
+report(nrow(vent) > 0,
+       "the run carries ventilated pre-flight holds, so this is not vacuous (%d)", nrow(vent))
+if (nrow(vent) > 0) {
+  report(all(vent$ame_hold_start > vent$r2e_departure_time),
+         "every ventilated casualty reaches its staging bed after the decision, not at it")
+}
 
 cat("\n-- the evacuation component agrees with a casualty-by-casualty recount --\n")
 
@@ -217,7 +263,7 @@ for (arm in list(list("shipped reliability", shipped),
                  list("a cancellation rate of 0.40", backlog))) {
   label <- arm[[1]]
   a     <- arm[[2]]
-  again <- recompute(a$wide, AIRLIFT_ROUTE_STANDARD, a$horizon_min)
+  again <- recompute(a$wide, NA, a$horizon_min)
   report(abs(a$split$evacuation_bed_days - again) < TOL,
          "%s: the recount agrees (%.6f against %.6f bed-days)",
          label, a$split$evacuation_bed_days, again)
@@ -227,22 +273,35 @@ for (arm in list(list("shipped reliability", shipped),
 
 cat("\n-- a wait still running when the window closes is carried, not dropped --\n")
 
-still_waiting <- backlog$wide[!is.na(backlog$wide$r2e_evac) & backlog$wide$r2e_evac == 1 &
-                                is.na(backlog$wide$ame_departure_time) &
-                                !is.na(backlog$wide$ame_route) &
-                                backlog$wide$ame_route == AIRLIFT_ROUTE_STANDARD, ]
+still_waiting <- censoring$wide[is.na(censoring$wide$ame_departure_time) &
+                                  !is.na(censoring$wide$ame_hold_start) &
+                                  censoring$wide$ame_hold_start < censoring$horizon_min, ]
 report(nrow(still_waiting) > 0,
        "the backlog arm leaves casualties waiting at the close, so this is not vacuous (%d)",
        nrow(still_waiting))
 
 if (nrow(still_waiting) > 0) {
-  censored <- sum(pmax(backlog$horizon_min - still_waiting$r2e_departure_time, 0)) / DAY_MIN
-  boarded_rows <- backlog$wide[!is.na(backlog$wide$ame_departure_time), ]
-  departed <- recompute(boarded_rows, AIRLIFT_ROUTE_STANDARD, backlog$horizon_min)
-  report(abs(backlog$split$evacuation_bed_days - (censored + departed)) < TOL,
-         "the component is the boarded waits plus the open ones charged to the close (%.3f + %.3f)",
+  censored <- sum(pmax(censoring$horizon_min - still_waiting$ame_hold_start, 0)) / DAY_MIN
+  boarded_rows <- censoring$wide[!is.na(censoring$wide$ame_departure_time), ]
+  departed <- recompute(boarded_rows, NA, censoring$horizon_min)
+  report(abs(censoring$split$evacuation_bed_days - (censored + departed)) < TOL,
+         "the component is the boarded stays plus the open ones charged to the close (%.3f + %.3f)",
          departed, censored)
-  report(censored > 0, "the open waits contribute a positive amount (%.3f bed-days)", censored)
+  report(censored > 0, "the open stays contribute a positive amount (%.3f bed-days)", censored)
+
+  # A casualty that reached the evacuation decision but never obtained a
+  # staging bed occupies none of the pool, so it contributes nothing however
+  # long it waits. The censoring arm saturates the pool, which is what makes
+  # this distinguishable from the case above.
+  never_held <- censoring$wide[!is.na(censoring$wide$r2e_evac) &
+                                 censoring$wide$r2e_evac == 1 &
+                                 is.na(censoring$wide$ame_hold_start), ]
+  report(nrow(never_held) > 0,
+         "the censoring arm leaves casualties queued for a staging bed (%d)",
+         nrow(never_held))
+  report(abs(censoring$split$unexplained_bed_days) < CLOSE_TOL,
+         "and the pool still closes exactly (%.4f bed-days unexplained)",
+         censoring$split$unexplained_bed_days)
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

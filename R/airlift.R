@@ -363,3 +363,105 @@ run_airlift_sweep <- function(field, values, scenario = "moderate_intensity",
     rows
   }))
 }
+
+# ── The airlift collapse experiment (Issue #312) ─────────────────────────────
+# The sweep above measures what the airlift schedule costs within a 30-day
+# campaign. This one asks a different question at a different horizon: whether a
+# campaign collapses altogether, which is a property of a whole year rather than
+# of any month inside it. It is the experiment docs/Multi_Run_Supplement.md
+# recorded as the one a reader could not re-execute from a tracked command,
+# because it needs the long-horizon runner and the cancellation sweep together
+# and neither alone computes its response.
+
+#' Sortie cancellation probabilities the collapse experiment covers
+#'
+#' @details The six the published table reports. They differ from
+#'   AIRLIFT_FAILURE_PROBABILITIES because the two experiments are asking
+#'   different questions: that sweep spans the range to establish a gradient,
+#'   this one concentrates on the band the cliff sits in.
+AIRLIFT_COLLAPSE_PROBABILITIES <- c(0, 0.05, 0.10, 0.15, 0.20, 0.25)
+
+#' Replications the collapse experiment runs at each probability
+AIRLIFT_COLLAPSE_REPLICATIONS <- 30L
+
+#' Campaign length the collapse experiment runs over, in days
+AIRLIFT_COLLAPSE_DAYS <- 360L
+
+#' Length of the closing window the collapse response is measured over, in days
+#'
+#' @details Ninety days. Collapse is a state a campaign reaches and does not
+#'   leave, so the response is where the campaign ended up rather than anything
+#'   about its path, and a window at the end measures that while a mean over the
+#'   whole year would mix it with the months before.
+AIRLIFT_COLLAPSE_WINDOW_DAYS <- 90L
+
+#' Mean R2E holding queue at or above which a campaign counts as collapsed
+#'
+#' @details Twenty casualties. A threshold classifier is used rather than a mean
+#'   because the per-replication values are bimodal rather than spread: the
+#'   published measurement puts the highest clear run at 17.9 and the lowest
+#'   collapsed run at 84, so any threshold inside that gap returns the same
+#'   count and this value is not a tuning choice. Reporting a mean over a
+#'   bimodal population would describe no campaign in it.
+AIRLIFT_COLLAPSE_THRESHOLD <- 20
+
+#' Subject name the long-horizon series carries the R2E holding queue under
+AIRLIFT_COLLAPSE_SUBJECT <- "R2E holding beds"
+
+#' Reduce a long-horizon series to one collapse response per replication
+#'
+#' @param series Long-horizon series as returned by run_long_horizon().
+#' @param n_days Campaign length in days.
+#' @param window_days Length of the closing window (default
+#'   AIRLIFT_COLLAPSE_WINDOW_DAYS).
+#' @param threshold Mean queue at or above which a campaign is collapsed
+#'   (default AIRLIFT_COLLAPSE_THRESHOLD).
+#' @return Data frame of replication, closing_queue and collapsed.
+#'
+#' @details The window is the last `window_days` days of the campaign
+#'   inclusive, so a 90-day window of a 360-day run covers days 271 to 360.
+collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
+                              threshold = AIRLIFT_COLLAPSE_THRESHOLD) {
+  rows <- series[series$series == "mean_queue" &
+                   series$subject == AIRLIFT_COLLAPSE_SUBJECT &
+                   series$day > n_days - window_days, ]
+  if (nrow(rows) == 0) {
+    return(data.frame(replication = integer(0), closing_queue = numeric(0),
+                      collapsed = logical(0)))
+  }
+  closing <- tapply(rows$value, rows$replication, mean)
+  data.frame(
+    replication    = as.integer(names(closing)),
+    closing_queue  = as.numeric(closing),
+    collapsed      = as.numeric(closing) >= threshold
+  )
+}
+
+#' Summarise one arm's collapse responses as the published table reports them
+#'
+#' @param response Collapse responses as returned by collapse_response().
+#' @return A one-row data frame of n_reps, n_collapsed, rate, ci_lower,
+#'   ci_upper, median_queue and worst_queue.
+#'
+#' @details The interval is the Clopper-Pearson exact binomial interval rather
+#'   than a normal approximation, the response being a proportion measured on
+#'   thirty campaigns of which several arms have zero successes; a normal
+#'   interval on a zero count has zero width, which would report a rate of zero
+#'   as exactly known.
+summarise_collapse <- function(response) {
+  n <- nrow(response)
+  k <- sum(response$collapsed)
+  ci <- if (n == 0) c(NA_real_, NA_real_) else {
+    c(if (k == 0) 0 else qbeta(0.025, k, n - k + 1),
+      if (k == n) 1 else qbeta(0.975, k + 1, n - k))
+  }
+  data.frame(
+    n_reps       = n,
+    n_collapsed  = k,
+    rate         = if (n > 0) k / n else NA_real_,
+    ci_lower     = ci[1],
+    ci_upper     = ci[2],
+    median_queue = if (n > 0) median(response$closing_queue) else NA_real_,
+    worst_queue  = if (n > 0) max(response$closing_queue) else NA_real_
+  )
+}

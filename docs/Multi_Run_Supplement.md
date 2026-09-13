@@ -302,15 +302,26 @@ Two properties of the measurement needed establishing before any of it could be 
 
 ### Strategic Airlift Reliability Sweep
 
+<!-- COLLAPSE days=360 -->
+<!-- COLLAPSE replications=30 -->
+<!-- COLLAPSE window_days=90 -->
+<!-- COLLAPSE threshold=20 -->
+<!-- COLLAPSE probabilities=0,0.05,0.1,0.15,0.2,0.25 -->
 30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override per arm: `role4.ame.failure_probability` at 0, 0.05, 0.10, 0.15, 0.20 and 0.25. The six arms draw from one seed vector, so replication $k$ of every arm runs the same parent stream and the arms are paired.
 
 This is the longest experiment in the project, at 180 replication-years, and it is long by necessity rather than by preference. The response is a state a campaign reaches and does not leave, and the horizon has to exceed the time that state takes to develop: the effect is invisible at 30 days and only partly formed at 180. Sizing was governed by the replication count rather than the horizon, the quantity of interest being a probability rather than a mean, which needs roughly 217 replications for a half-width of five percentage points and returns only the wide intervals in the companion paper's table at 30.
 
-The response is not the mean of anything. A campaign is classified collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more, and the reported quantity is the share of replications that collapse. A threshold classifier is used because the per-replication values are bimodal rather than spread: the highest clear run reaches 17.9 and the lowest collapsed run 84, so any threshold inside that gap returns the same count and the classifier's exact value is not a tuning choice. Reporting a mean over a bimodal population would describe no campaign in it.
+The response is not the mean of anything. A campaign is classified collapsed where the R2E holding queue over its closing 90 days averages 20 casualties or more, and the reported quantity is the share of replications that collapse. A threshold classifier is used because the per-replication values are divided rather than spread: each arm carries a mass of campaigns whose closing queue is effectively zero and a separate spread of collapsed ones reaching into the hundreds, and reporting a mean over that population would describe no campaign in it. Across all 180 runs the highest clear campaign averages 19.5 and the lowest collapsed one 21.8, so the counts are unchanged for any threshold between 18 and 22. Outside that band the value does matter, a threshold of 40 returning one collapse at 15% loss rather than three, which is why the threshold is reported alongside the counts rather than treated as incidental.
 
-Two properties of this experiment bear on how far its table can be read, and both are stated in the companion paper. Collapse is a property of a whole campaign rather than of any month within it, and a logistic fit of the outcome on the closing holding queue of the first 30 days does not distinguish the runs that go on to collapse ($p = 0.36$). And the median holding queue stays below 2 in five of the six arms, so the entire effect sits in a tail that a summary of typical performance does not show.
+Two properties of this experiment bear on how far its table can be read, and both are stated in the companion paper. Collapse is a property of a whole campaign rather than of any month within it, and a logistic fit of the outcome on the mean holding queue of a campaign's first 30 days does not distinguish the runs that go on to collapse, in any of the three arms in which any do ($p = 0.42$, $0.43$ and $0.54$ at 15%, 20% and 25% loss, and $0.36$ pooling them). The daily series the fit is made from is part of the tracked evidence set, so the statement is recomputable rather than resting on a run that is not repeated. And the median holding queue stays below 2 in five of the six arms, so the entire effect sits in a tail that a summary of typical performance does not show.
 
-The experiment has no CLI entry point of its own. It was run from a driver script that calls `run_once()` per replication and retains only the daily series each arm needs, discarding each replication's monitoring data before the next begins, since holding thirty 360-day monitoring sets in memory is what would otherwise bound it. Both halves of that arrangement are now tracked commands: `scripts/run_long_horizon.R` runs a reducing 360-day replicated campaign, and `scripts/run_airlift_sweep.R` sweeps `role4.ame.failure_probability`. What is not yet expressible in one command is the two together, this experiment's own response being a collapse classification over a campaign's closing 90 days rather than anything either script reports. The gap is therefore narrower than it was and is not closed; it remains recorded in [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here).
+Invoked as:
+
+```
+Rscript scripts/run_airlift_collapse.R --refresh-baseline
+```
+
+Each replication is reduced to a daily series inside the forked worker that produced it and the series alone is returned, since holding thirty 360-day monitoring sets in memory is what would otherwise bound the experiment. The two capabilities the design needs exist separately in the other entry points, `scripts/run_long_horizon.R` running a reducing 360-day replicated campaign and `scripts/run_airlift_sweep.R` sweeping `role4.ame.failure_probability` at a 30-day horizon; this command is the two together with the collapse classification, which neither of them reports. `scripts/check_airlift_collapse_protocol.R` asserts that the parameters above are the ones the code holds, that the classifier averages each replication over the closing window's days at an inclusive threshold rather than reading the window's worst day, and that the tracked summary is the table the companion paper prints.
 
 ### Mass Casualty Event Stress Test
 
@@ -365,15 +376,13 @@ The two campaign time series figures are rendered from `data/time_series/`, the 
 
 <small>[Return to Top](#contents)</small>
 
-Five limitations are properties of the designs rather than of the model, and each bounds what the companion paper can claim from the experiment it applies to.
+Four limitations are properties of the designs rather than of the model, and each bounds what the companion paper can claim from the experiment it applies to.
 
 **A comparison of two configurations is not a controlled comparison.** Changing any setting alters the sequence of random draws, so the two arms generate different casualty streams and cannot be matched campaign for campaign. The consequence is a loss of precision rather than a bias: the means remain correct and the intervals are wider than a matched design would give. The scenario comparison is unaffected, its arms differing by design rather than by a small perturbation.
 
 **Every design runs at one control seed.** A control seed determines the whole set of per-replication seeds, so a measurement at 50 replications is one draw from the distribution of 50-replication measurements. The 0.132 percentage point spread across control seeds recorded above is the size of that effect on the best determined response the model reports, and it is the reason the calibration check pools three independent measurements.
 
 **Utilisation columns at 10 and 20 replications are not determined.** Both the transport sweep and the forward intensive care share sweep report utilisation figures that move without order across their swept range. Too few busy-time events accumulate per replication at those counts for the column to be read, and neither sweep's conclusion rests on it.
-
-**One experiment is not reproducible from a single tracked command.** The strategic airlift reliability sweep at a 360-day horizon was run from a driver script, so a reader can follow its design from the description above but cannot re-execute it as written. The two capabilities it needs are now tracked commands, `scripts/run_long_horizon.R` for a reducing long replicated campaign and `scripts/run_airlift_sweep.R` for the cancellation sweep, and what remains missing is a command combining them and computing that experiment's own collapse classification. Every other experiment recorded here names the command that produces it.
 
 **The sweeps were run at moderate intensity only.** The transport fleet sweep, the forward intensive care share frontier and the pre-open hold window comparison all use the shipped default configuration, so none of them establishes that its result survives at the higher casualty intensity. Re-running them at high intensity is listed among the further development items of the companion paper [[1]](#references).
 

@@ -35,6 +35,7 @@ This document is the design record for the replicated experiments reported in th
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
   - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
   - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
+  - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
 - [Provenance](#provenance)
@@ -322,6 +323,26 @@ Rscript scripts/run_airlift_collapse.R --refresh-baseline
 ```
 
 Each replication is reduced to a daily series inside the forked worker that produced it and the series alone is returned, since holding thirty 360-day monitoring sets in memory is what would otherwise bound the experiment. The two capabilities the design needs exist separately in the other entry points, `scripts/run_long_horizon.R` running a reducing 360-day replicated campaign and `scripts/run_airlift_sweep.R` sweeping `role4.ame.failure_probability` at a 30-day horizon; this command is the two together with the collapse classification, which neither of them reports. `scripts/check_airlift_collapse_protocol.R` asserts that the parameters above are the ones the code holds, that the classifier averages each replication over the closing window's days at an inclusive threshold rather than reading the window's worst day, and that the tracked summary is the table the companion paper prints.
+
+### Evacuation Policy Sweep
+
+<!-- POLICY days=360 -->
+<!-- POLICY replications=30 -->
+<!-- POLICY window_days=90 -->
+<!-- POLICY policies=15,21,30,45,60 -->
+Thirty replications of 360 simulated days at each of five evacuation policies, at control seed 42 under the shipped default configuration with one override per arm: `r2eheavy.recovery.evacuation_policy_days` at 15, 21, 30, 45 and 60. The range is the one the doctrinal source states, which names 30 days as a worked example and is explicit that the threshold is a command decision spanning at least 15 to 60 days; the shipped 21 and the previously shipped 30 both appear in it, so the sweep contains both published configurations rather than a window around one of them. Invoked as:
+
+```
+Rscript scripts/run_policy_sweep.R --refresh-baseline
+```
+
+One control seed is set per arm, so replication $k$ of every arm runs the same parent stream and the arms are paired. Differences between policies are therefore taken within replication rather than between arm means, which matters here more than in any other experiment recorded in this document: each arm's own spread across campaigns is large enough to hide the effects the sweep is measuring, and an unpaired interval on the same runs would leave several of them unresolved. The pairing is the reason a 30-replication design suffices for the differences reported in the companion paper.
+
+The horizon is 360 days because the response the sweep exists to measure is a state the forward pools reach rather than a rate they run at, and it takes months to develop: the effect is invisible over a 30-day campaign, in which a retained casualty's convalescence has barely begun. Forward stability is accordingly measured over the campaign's closing 90 days rather than over the whole of it, an average over the whole horizon mixing a settled system with one still filling. Returns to duty, died of wounds, evacuation decisions and the national support base census are campaign totals or closing-window states rather than series, which is why the sweep reduces its own responses rather than extending the sustained-operations daily series.
+
+Two responses are computed by the analysis pipeline as well, and the sweep must agree with it rather than merely compute something of the same name. Returns to duty and the realised in-theatre share are both compared against external anchors, the second against the 7.6% to 42.1% historical envelope, so a sweep using its own definition would be comparing the wrong quantity to the envelope. `scripts/check_policy_sweep_protocol.R` asserts the agreement on one run's monitors, along with the closing-window estimator on a constructed monitor whose answer is computable by hand, that the in-theatre share responds to the policy each arm ran under rather than to the configuration global, and that the tracked summary is the table the companion paper prints.
+
+The died-of-wounds difference between policies is reported with the replication count a decision would require rather than as a finding. The quantity is a small count per campaign and the paired standard deviation across 30 replications is large relative to the difference, so the design resolves the forward-stability and force-cost responses without resolving mortality; the count is derived by the normal approximation this document uses throughout, from the measured paired standard deviation.
 
 ### Mass Casualty Event Stress Test
 

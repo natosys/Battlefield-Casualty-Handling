@@ -25,6 +25,7 @@ check_markdown.R,6
 check_mass_casualty_kia_split.R,41
 check_measurement_reproducibility.R,175
 check_morris_baseline.R,8
+check_policy_sweep_protocol.R,22
 check_pre_open_window.R,39
 check_r2e_surgery_seizure.R,16
 check_references.R,5

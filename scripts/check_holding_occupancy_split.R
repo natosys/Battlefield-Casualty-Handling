@@ -111,6 +111,29 @@ CHECK_CENSORING_FAILURE <- 0.75
 #' Tolerance on a comparison of two computed reals, in bed-days
 TOL <- 1e-8
 
+#' Tracked airlift responses the population closure is measured on
+POPULATION_PATH <- file.path("data", "airlift", "airlift_replications.csv")
+
+#' Tolerance a replication counts as closing exactly within, in bed-days
+POPULATION_TOL <- 1e-6
+
+#' Largest over-count any replication may leave, as a share of its own pool
+#'
+#' @details The components over-count a minority of campaigns, by up to 3.3% of
+#'   the pool in the tracked set, for a reason not yet isolated: a recorded
+#'   duration sometimes exceeds the bed time actually served. The bound is
+#'   stated rather than assumed to be zero so that the residual is held where it
+#'   is while the cause is investigated, and so that a change which makes it
+#'   worse fails here rather than passing unnoticed.
+POPULATION_OVERCOUNT_SHARE <- 0.05
+
+#' Share of replications required to close exactly
+#'
+#' @details 80% against the 90% measured across the tracked set, which leaves
+#'   room for the ordinary variation between evidence sets without admitting a
+#'   change that stops most campaigns closing.
+POPULATION_EXACT_SHARE <- 0.80
+
 #' Tolerance the four components are required to close the pool within, in
 #' bed-days
 #'
@@ -153,7 +176,7 @@ censoring <- measure(CHECK_CENSORING_FAILURE)
 
 # ── 1. The components account for the pool ───────────────────────────────────
 
-cat("\n-- the four components account for the pool exactly --\n")
+cat("\n-- the four components account for the pool in the campaigns run here --\n")
 
 for (arm in list(list("shipped reliability", shipped),
                  list("a cancellation rate of 0.40", backlog))) {
@@ -170,6 +193,55 @@ for (arm in list(list("shipped reliability", shipped),
     report(s[[part]] > 0,
            "%s: %s is positive (%.3f), so no component is vacuous",
            label, part, s[[part]])
+  }
+}
+
+# ── 1b. Closure across the tracked population, not one campaign ──────────────
+
+cat("\n-- closure across the tracked replications --\n")
+
+# The three campaigns above close exactly, and that is not evidence that every
+# campaign does: closure is a property of the population, and asserting it on one
+# seed is how a split that fails on a minority of campaigns passes a check. The
+# tracked evidence set carries the residual for 650 replications, so the property
+# is asserted where it can be measured rather than where it happens to hold.
+if (!file.exists(POPULATION_PATH)) {
+  report(FALSE, "the tracked airlift responses %s exist", POPULATION_PATH)
+} else {
+  population <- read.csv(POPULATION_PATH, stringsAsFactors = FALSE)
+  if (!"hold_unexplained_bed_days" %in% names(population)) {
+    report(FALSE, "the tracked responses carry the unexplained component")
+  } else {
+    residual <- population$hold_unexplained_bed_days
+    total <- population$hold_total_bed_days
+    report(length(residual) > 100,
+           "the population is large enough to measure closure on (%d replications)",
+           length(residual))
+
+    # The components may leave part of the pool unexplained; they must never
+    # claim more of it than the monitor measured. An under-count means a stay
+    # the split does not know about, which is the error that matters, and it is
+    # the direction the superseded standard-route-only estimator failed in.
+    report(max(residual) <= POPULATION_TOL,
+           "no replication under-counts the pool (largest residual %+.4f bed-days)",
+           max(residual))
+
+    worst <- min(residual / total)
+    report(abs(worst) <= POPULATION_OVERCOUNT_SHARE,
+           "the worst over-count is %.3f%% of its pool, within the stated %.1f%%",
+           100 * abs(worst), 100 * POPULATION_OVERCOUNT_SHARE)
+
+    exact <- sum(abs(residual) <= POPULATION_TOL)
+    report(exact / length(residual) >= POPULATION_EXACT_SHARE,
+           "%d of %d replications close exactly (%.1f%%), at or above the stated %.0f%%",
+           exact, length(residual), 100 * exact / length(residual),
+           100 * POPULATION_EXACT_SHARE)
+
+    # Stated so that a reader of the check knows the residual is measured rather
+    # than assumed away, and so that a change which worsens it is visible as a
+    # number rather than only as a threshold breach.
+    cat(sprintf("       mean residual %+.4f bed-days of %.1f (%.3f%% of the pool)\n",
+                mean(residual), mean(total), 100 * mean(residual) / mean(total)))
   }
 }
 

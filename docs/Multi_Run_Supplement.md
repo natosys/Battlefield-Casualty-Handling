@@ -36,6 +36,7 @@ This document is the design record for the replicated experiments reported in th
   - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
   - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
+  - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
 - [Provenance](#provenance)
@@ -343,6 +344,23 @@ The horizon is 360 days because the response the sweep exists to measure is a st
 Two responses are computed by the analysis pipeline as well, and the sweep must agree with it rather than merely compute something of the same name. Returns to duty and the realised in-theatre share are both compared against external anchors, the second against the 7.6% to 42.1% historical envelope, so a sweep using its own definition would be comparing the wrong quantity to the envelope. `scripts/check_policy_sweep_protocol.R` asserts the agreement on one run's monitors, along with the closing-window estimator on a constructed monitor whose answer is computable by hand, that the in-theatre share responds to the policy each arm ran under rather than to the configuration global, and that the tracked summary is the table the companion paper prints.
 
 The died-of-wounds difference between policies is reported with the replication count a decision would require rather than as a finding, and the measurement bears that out. Four of the five paired differences against the shipped policy are indistinguishable from zero ($p = 0.93$, $0.38$ and $0.60$ at 15, 30 and 60 days), and the fifth, $-2.33$ deaths per campaign-year $[-4.60, -0.07]$ at 45 days, is the isolated result five comparisons produce by chance rather than a pattern its neighbours support. Resolving a difference of one death per campaign-year would need 135 to 221 replications depending on the arm, derived by the normal approximation this document uses throughout from each comparison's measured paired standard deviation, against the 30 run. The design therefore resolves the forward-stability and force-cost responses and leaves mortality unresolved, which is why the companion paper labels that finding direction only rather than measured.
+
+### R2E Holding Establishment Sweep
+
+<!-- ESTABLISHMENT days=360 -->
+<!-- ESTABLISHMENT replications=30 -->
+<!-- ESTABLISHMENT beds=30,45,60,90 -->
+Thirty replications of 360 simulated days at each of four R2E holding establishments, at control seed 42 under the shipped default configuration and the shipped 21-day evacuation policy, with `elms.r2eheavy.beds.hold.qty` set to 30, 45, 60 and 90. 30 is the shipped establishment. Invoked as:
+
+```
+Rscript scripts/run_policy_sweep.R --refresh-baseline --policies 21 --hold-beds 30,45,60,90
+```
+
+The establishment is swept because it and the evacuation policy are substitutes: both free forward capacity, the first by holding more casualties and the second by retaining fewer, and a planner choosing between them needs their relative cost rather than either alone. The policy sweep above holds the establishment at its shipped value throughout, so it can say that a 21-day policy is stable at 30 beds and cannot say whether a longer policy would be stable at a larger pool, which is the question a force structure review asks.
+
+The two axes enter the configuration at different points, and the distinction is load-bearing rather than incidental. The policy is a variable and is set after `build_environment()`, which is what gives the parsed name-and-value pairs their names; the establishment is a bed count in `elms`, from which `build_environment()` constructs the resources themselves, so it is set before that call. Setting either on the wrong side of it writes a value nothing reads, which is a failure that produces a plausible flat result rather than an error. `set_hold_establishment()` accordingly fails where the element or its pool cannot be found rather than returning the configuration unchanged, and `scripts/check_policy_sweep_protocol.R` asserts that each swept establishment builds that many resources, at counts deliberately not multiples of the shipped 30 so that an off-by-a-factor error is visible as well as an ignored argument.
+
+The arms are paired on one control seed, as the policy sweep's are, so a difference between two establishments is measured within replication. The establishment sweep writes its own `establishment_sweep*` files rather than adding rows to the policy sweep's, that sweep being a published result with a regression check reading it; one file carrying both experiments would leave the check unable to tell which rows it was asserting. The tracked evidence set is `data/policy/`.
 
 ### Mass Casualty Event Stress Test
 

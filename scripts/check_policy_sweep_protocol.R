@@ -273,6 +273,40 @@ report(!is.na(needed) && needed == expected_needed,
 report(is.na(policy_replications_for(paired_rows, "total_dow", 21L, 30L, 0)),
        "a non-positive half-width returns no count rather than an infinite one")
 
+# ── 6a. The establishment sweep's parameters match the supplement ────────────
+
+cat("\n-- the establishment sweep's parameters match the supplement --\n")
+
+#' Read one establishment parameter the supplement states in a marker comment
+#'
+#' @param name Marker name, as it appears after "ESTABLISHMENT ".
+#' @return The marker's value as a character string, or NA where absent.
+establishment_marker <- function(name) {
+  m <- regmatches(supplement,
+                  regexpr(sprintf("<!-- ESTABLISHMENT %s=[^ ]+ -->", name), supplement))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- ESTABLISHMENT [^=]+=(.*) -->$", "\\1", m)
+}
+
+for (param in list(list("days", POLICY_DAYS_HORIZON),
+                   list("replications", POLICY_REPLICATIONS))) {
+  stated <- suppressWarnings(as.numeric(establishment_marker(param[[1]])))
+  report(!is.na(stated) && stated == param[[2]],
+         "the supplement states the establishment sweep's %s = %s and the code holds %s",
+         param[[1]], format(stated), format(param[[2]]))
+}
+
+stated_beds <- establishment_marker("beds")
+parsed_beds <- if (is.na(stated_beds)) {
+  integer(0)
+} else {
+  suppressWarnings(as.integer(strsplit(stated_beds, ",")[[1]]))
+}
+report(length(parsed_beds) == length(POLICY_HOLD_BEDS) && !any(is.na(parsed_beds)) &&
+         all(parsed_beds == POLICY_HOLD_BEDS),
+       "the supplement states establishments %s and the code holds %s",
+       paste(parsed_beds, collapse = ","), paste(POLICY_HOLD_BEDS, collapse = ","))
+
 # ── 6b. The establishment axis reaches the resources it claims to ────────────
 
 cat("\n-- the holding establishment is applied, or the attempt fails loudly --\n")

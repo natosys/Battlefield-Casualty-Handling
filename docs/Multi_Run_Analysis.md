@@ -63,7 +63,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Demand on the National Support Base](#demand-on-the-national-support-base)
   - [Timing Matters More Than Airframe-Days](#timing-matters-more-than-airframe-days)
-  - [The Evacuation Wait Consumes Clinical Capacity, on One Route](#the-evacuation-wait-consumes-clinical-capacity-on-one-route)
+  - [The Evacuation Wait Consumes Clinical Capacity on Both Routes](#the-evacuation-wait-consumes-clinical-capacity-on-both-routes)
   - [Demand on the Base Peaks at the Campaign's End, Not After It](#demand-on-the-base-peaks-at-the-campaigns-end-not-after-it)
 - [Effects the Simulation Could Not Resolve](#effects-the-simulation-could-not-resolve)
 - [Further Development](#further-development)
@@ -495,19 +495,19 @@ The clearest result is that two schedules flying the same number of sorties do n
 
 | Interval between sorties | Sorties flown | Mean wait (days) | Share of R2E holding beds held by the evacuation wait |
 |---|---|---|---|
-| 3 days | 9.00 | 0.18 [0.16, 0.20] | 1% [1%, 2%] |
-| 5 days | 5.00 | 0.34 [0.30, 0.37] | 4% [3%, 5%] |
-| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 10% [8%, 12%] |
-| 10 days | 2.00 | 2.30 [2.05, 2.55] | 19% [17%, 22%] |
-| 14 days | 2.00 | 5.51 [5.12, 5.90] | 39% [34%, 43%] |
+| 3 days | 9.00 | 0.18 [0.16, 0.20] | 2% [2%, 3%] |
+| 5 days | 5.00 | 0.34 [0.30, 0.37] | 9% [8%, 10%] |
+| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 22% [19%, 25%] |
+| 10 days | 2.00 | 2.30 [2.05, 2.55] | 45% [42%, 48%] |
+| 14 days | 2.00 | 5.51 [5.12, 5.90] | 62% [59%, 64%] |
 
-Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 10% to 30%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 1% to 39%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
+Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 22% to 47%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 2% to 62%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
 
-### The Evacuation Wait Consumes Clinical Capacity, on One Route
+### The Evacuation Wait Consumes Clinical Capacity on Both Routes
 
-A casualty waiting for the standard airlift pool holds an R2E holding bed for the whole of that wait. A casualty waiting for the critical pool does not; it holds an intensive care bed already seized upstream. The distinction is large rather than technical: over a campaign at a 40% cancellation rate the standard-route waits account for 91.1 holding bed-days while the critical-route waits, were they charged to the same pool, would account for 340.4. Attributing both to holding beds would overstate the coupling more than fourfold.
+A casualty waiting for either airlift pool holds an R2E holding bed for the part of that wait it spends staged. On the standard route that is the whole wait, the bed being seized at the evacuation decision. On the critical route a ventilated casualty first holds an intensive care bed for its bounded pre-flight period and then steps down into a holding bed for the remainder, and a stable one stages in a holding bed from the start. The route therefore does not decide whether a casualty consumes the pool, only how much of its wait it consumes.
 
-On the standard route the coupling is nonetheless real and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 10% [8%, 12%] of R2E holding bed occupancy at moderate intensity and 29% [27%, 32%] at high. At a 14-day interval it reaches 39% [34%, 43%]. Since the holding pool also carries in-theatre recovery, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.3 hours at 14.
+The coupling is substantial and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 22.2% [19.2%, 25.1%] of R2E holding bed occupancy at moderate intensity and 36.3% [34.2%, 38.4%] at high. It reaches 47.4% [41.4%, 53.4%] at a 40% cancellation rate and 61.6% [59.5%, 63.6%] at a 14-day sortie interval, where the wait becomes the pool's largest single consumer and the pool has stopped being a clinical resource in any meaningful sense. Since the holding pool also carries in-theatre recovery, the post-definitive holding fallback and the post-operative damage control hold, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.2 hours at 14. **Evidence: measured.**
 
 ### Demand on the Base Peaks at the Campaign's End, Not After It
 

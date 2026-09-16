@@ -45,6 +45,10 @@ option_list <- list(
               help = "Campaign length in days [default: %default]"),
   make_option("--window", type = "integer", default = POLICY_WINDOW_DAYS,
               help = "Closing window the stability responses use [default: %default]"),
+  make_option("--hold-beds", type = "character", default = NULL,
+              help = paste("Comma-separated R2E holding establishments to sweep.",
+                           "Omitted, the shipped establishment is used and the",
+                           "policy axis alone is swept [default: shipped]")),
   make_option("--scenario", type = "character", default = "default",
               help = "Scenario profile to run under [default: %default]"),
   make_option("--seed", type = "integer", default = 42L,
@@ -72,6 +76,28 @@ if (any(is.na(policies)) || any(policies < 1L)) {
        opt$policies, "'", call. = FALSE)
 }
 
+establishments <- if (is.null(opt$`hold-beds`)) {
+  NA_integer_
+} else {
+  as.integer(trimws(strsplit(opt$`hold-beds`, ",")[[1]]))
+}
+if (any(is.na(establishments)) && !is.null(opt$`hold-beds`)) {
+  stop("--hold-beds must be whole bed counts, found '", opt$`hold-beds`, "'",
+       call. = FALSE)
+}
+if (!all(is.na(establishments)) && any(establishments < 1L)) {
+  stop("--hold-beds must be at least 1, found '", opt$`hold-beds`, "'", call. = FALSE)
+}
+
+#' Whether the establishment axis is being swept alongside the policy
+#'
+#' @details The two experiments are written to separate files. The policy sweep
+#'   at the shipped establishment is a published result with a tracked evidence
+#'   set and a regression check reading it, and a run that adds an establishment
+#'   axis measures something else; writing both to one file would leave the
+#'   check unable to tell which rows it was asserting.
+SWEEPING_ESTABLISHMENT <- !all(is.na(establishments))
+
 #' Directory the measurement is written to
 OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
   file.path("data", "policy")
@@ -86,37 +112,60 @@ json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 #' Measure one evacuation policy and return its per-replication responses
 #'
 #' @param policy_days Evacuation policy to run at, in days.
-#' @return The arm's response rows, carrying the policy.
+#' @param hold_beds R2E holding establishment to run at, or NA for the shipped
+#'   one.
+#' @return The arm's response rows, carrying the policy and the establishment.
 #'
 #' @details The configuration globals are restored on exit, on the error path as
 #'   well as the success path, so an arm that fails part-way leaves the session
 #'   as it found it. The control seed is set once per arm, which is what pairs
 #'   the arms.
-measure_arm <- function(policy_days) {
+measure_arm <- function(policy_days, hold_beds = NA_integer_) {
   config_snapshot <- capture_config_globals()
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
-  apply_policy_setting(json_data, opt$scenario, policy_days)
+  apply_policy_setting(json_data, opt$scenario, policy_days,
+                       hold_beds = if (is.na(hold_beds)) NULL else hold_beds)
 
-  message(sprintf("Evacuation policy %d days: %d replications x %d days",
-                  policy_days, opt$iterations, opt$days))
+  message(sprintf("Evacuation policy %d days%s: %d replications x %d days",
+                  policy_days,
+                  if (is.na(hold_beds)) "" else sprintf(", %d holding beds", hold_beds),
+                  opt$iterations, opt$days))
   set.seed(opt$seed)
-  run_policy_measurement(policy_days, n_iterations = opt$iterations,
-                         n_days = opt$days, window_days = opt$window,
-                         max_cores = opt$`max-cores`)
+  rows <- run_policy_measurement(policy_days, n_iterations = opt$iterations,
+                                 n_days = opt$days, window_days = opt$window,
+                                 max_cores = opt$`max-cores`)
+  rows$hold_beds <- hold_beds
+  rows
 }
 
 #' Path one arm's checkpointed responses are written to and resumed from
 #'
 #' @param policy_days Evacuation policy the arm ran at, in days.
+#' @param hold_beds Establishment the arm ran at, or NA for the shipped one.
 #' @return The file path for that arm.
-arm_path <- function(policy_days) {
-  file.path(OUTPUT_DIR, sprintf("policy_sweep_arm_%dd.csv", policy_days))
+arm_path <- function(policy_days, hold_beds = NA_integer_) {
+  if (is.na(hold_beds)) {
+    return(file.path(OUTPUT_DIR, sprintf("policy_sweep_arm_%dd.csv", policy_days)))
+  }
+  file.path(OUTPUT_DIR,
+            sprintf("establishment_sweep_arm_%dd_%db.csv", policy_days, hold_beds))
 }
+
+#' Stem the run's outputs are written under
+#'
+#' @details The establishment sweep writes its own files rather than adding rows
+#'   to the policy sweep's. The policy sweep at the shipped establishment is a
+#'   published result with a tracked evidence set and a regression check reading
+#'   it; a run that varies the establishment measures something else, and one
+#'   file carrying both would leave that check unable to tell which rows it was
+#'   asserting.
+OUTPUT_STEM <- if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "policy_sweep"
 
 #' Measure one arm, or read it back where it has already been measured
 #'
 #' @param policy_days Evacuation policy to run at, in days.
+#' @param hold_beds Establishment to run at, or NA for the shipped one.
 #' @return The arm's response rows.
 #'
 #' @details Each arm is written as it completes and read back rather than re-run
@@ -126,28 +175,44 @@ arm_path <- function(policy_days) {
 #'   losing it to an interruption is a real cost; `scripts/screen_cache.sh`
 #'   exists for the same reason on the sensitivity screen. Delete the arm files
 #'   to force a fresh measurement.
-measure_or_resume <- function(policy_days) {
-  path <- arm_path(policy_days)
+measure_or_resume <- function(policy_days, hold_beds = NA_integer_) {
+  path <- arm_path(policy_days, hold_beds)
+  label <- sprintf("Evacuation policy %d days%s", policy_days,
+                   if (is.na(hold_beds)) "" else sprintf(" at %d beds", hold_beds))
   if (file.exists(path)) {
     rows <- read.csv(path, stringsAsFactors = FALSE)
     if (nrow(rows) == opt$iterations) {
-      message(sprintf("Evacuation policy %d days: resumed %d replications from %s",
-                      policy_days, nrow(rows), path))
+      message(sprintf("%s: resumed %d replications from %s", label, nrow(rows), path))
       return(rows)
     }
-    message(sprintf("Evacuation policy %d days: discarding %d of %d checkpointed",
-                    policy_days, nrow(rows), opt$iterations))
+    message(sprintf("%s: discarding %d of %d checkpointed", label, nrow(rows),
+                    opt$iterations))
   }
-  rows <- measure_arm(policy_days)
+  rows <- measure_arm(policy_days, hold_beds)
   write.csv(rows, path, row.names = FALSE)
   rows
 }
 
-per_replication <- do.call(rbind, lapply(policies, measure_or_resume))
+# The grid is the cross product of the two axes. With no establishment given it
+# is the policy axis alone at the shipped establishment, which is the published
+# experiment; with one policy and several establishments it is the substitution
+# L32 records as unmeasured; with several of each it is the interaction between
+# them, which is what a force structure review would ask for and is the
+# expensive shape.
+grid <- expand.grid(policy_days = policies, hold_beds = establishments,
+                    KEEP.OUT.ATTRS = FALSE)
 
-summary_rows <- do.call(rbind, lapply(policies, function(policy_days) {
-  arm <- per_replication[per_replication$policy_days == policy_days, ]
-  cbind(data.frame(policy_days = policy_days), summarise_policy(arm))
+per_replication <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
+  measure_or_resume(grid$policy_days[i], grid$hold_beds[i])
+}))
+
+summary_rows <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
+  policy_days <- grid$policy_days[i]
+  hold_beds   <- grid$hold_beds[i]
+  arm <- per_replication[per_replication$policy_days == policy_days &
+                           (is.na(hold_beds) | per_replication$hold_beds == hold_beds), ]
+  cbind(data.frame(policy_days = policy_days, hold_beds = hold_beds),
+        summarise_policy(arm))
 }))
 
 #' Responses the paired comparison against the shipped policy is reported for
@@ -183,11 +248,14 @@ if (BASELINE_POLICY %in% policies && length(policies) > 1) {
   }))
 }
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "policy_sweep_replications.csv"),
+write.csv(per_replication,
+          file.path(OUTPUT_DIR, sprintf("%s_replications.csv", OUTPUT_STEM)),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "policy_sweep.csv"), row.names = FALSE)
+write.csv(summary_rows, file.path(OUTPUT_DIR, sprintf("%s.csv", OUTPUT_STEM)),
+          row.names = FALSE)
 if (!is.null(paired)) {
-  write.csv(paired, file.path(OUTPUT_DIR, "policy_sweep_paired.csv"), row.names = FALSE)
+  write.csv(paired, file.path(OUTPUT_DIR, sprintf("%s_paired.csv", OUTPUT_STEM)),
+            row.names = FALSE)
 }
 message(sprintf("Policy sweep responses, summary and paired differences written to %s",
                 OUTPUT_DIR))
@@ -200,10 +268,12 @@ message(sprintf("Policy sweep responses, summary and paired differences written 
 #' @param digits Decimal places to print.
 #' @return Invisible NULL.
 print_row <- function(response, label, scale = 1, digits = 2) {
-  cells <- vapply(policies, function(policy_days) {
-    r <- summary_rows[summary_rows$policy_days == policy_days &
+  cells <- vapply(seq_len(nrow(grid)), function(i) {
+    r <- summary_rows[summary_rows$policy_days == grid$policy_days[i] &
+                        (is.na(grid$hold_beds[i]) |
+                           summary_rows$hold_beds == grid$hold_beds[i]) &
                         summary_rows$response == response, ]
-    if (nrow(r) == 0 || is.na(r$mean)) return("n/a")
+    if (nrow(r) != 1 || is.na(r$mean)) return("n/a")
     sprintf("%.*f [%.*f, %.*f]", digits, scale * r$mean, digits,
             scale * r$ci_lower, digits, scale * r$ci_upper)
   }, character(1))
@@ -211,8 +281,23 @@ print_row <- function(response, label, scale = 1, digits = 2) {
   invisible(NULL)
 }
 
-cat("\n| Response |", paste(sprintf("%d d", policies), collapse = " | "), "|\n")
-cat("|---", strrep("|---", length(policies)), "|\n", sep = "")
+#' Column heading for each point of the grid
+#'
+#' @details Names whichever axes vary, so a policy sweep reads as days, an
+#'   establishment sweep as bed counts, and a joint sweep as both.
+grid_labels <- vapply(seq_len(nrow(grid)), function(i) {
+  parts <- character(0)
+  if (length(policies) > 1 || !SWEEPING_ESTABLISHMENT) {
+    parts <- c(parts, sprintf("%d d", grid$policy_days[i]))
+  }
+  if (SWEEPING_ESTABLISHMENT) {
+    parts <- c(parts, sprintf("%d beds", grid$hold_beds[i]))
+  }
+  paste(parts, collapse = ", ")
+}, character(1))
+
+cat("\n| Response |", paste(grid_labels, collapse = " | "), "|\n")
+cat("|---", strrep("|---", nrow(grid)), "|\n", sep = "")
 print_row("hold_occupancy", "R2E hold occupancy (%)", 100, 1)
 print_row("hold_mean_queue", "R2E hold mean queue", 1, 2)
 print_row("icu_occupancy", "R2E ICU occupancy (%)", 100, 1)

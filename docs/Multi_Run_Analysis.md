@@ -58,12 +58,13 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
     - [The Degraded Care Rate Over the Campaign](#the-degraded-care-rate-over-the-campaign)
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [The Evacuation Policy Has One Admissible Setting That Is Also Stable](#the-evacuation-policy-has-one-admissible-setting-that-is-also-stable)
+  - [The Holding Establishment Is Not a Substitute for the Policy at the Shipped Setting](#the-holding-establishment-is-not-a-substitute-for-the-policy-at-the-shipped-setting)
   - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
 - [Demand on the National Support Base](#demand-on-the-national-support-base)
   - [Timing Matters More Than Airframe-Days](#timing-matters-more-than-airframe-days)
-  - [The Evacuation Wait Consumes Clinical Capacity, on One Route](#the-evacuation-wait-consumes-clinical-capacity-on-one-route)
+  - [The Evacuation Wait Consumes Clinical Capacity on Both Routes](#the-evacuation-wait-consumes-clinical-capacity-on-both-routes)
   - [Demand on the Base Peaks at the Campaign's End, Not After It](#demand-on-the-base-peaks-at-the-campaigns-end-not-after-it)
 - [Effects the Simulation Could Not Resolve](#effects-the-simulation-could-not-resolve)
 - [Further Development](#further-development)
@@ -427,7 +428,34 @@ Four findings follow, and the first is the one that settles the setting.
 
 **The mortality effect that blocked this decision is not detectable anywhere in the range.** Deaths of wounds read 17.30, 17.40, 16.43, 15.07 and 16.67 per campaign-year across the five policies, with heavily overlapping intervals and no monotone pattern. As paired differences against the shipped policy, four of the five are indistinguishable from zero (p = 0.93, 0.38 and 0.60 at 15, 30 and 60 days); the fifth, -2.33 [-4.60, -0.07] at 45 days, is the kind of isolated result five comparisons produce by chance and is not supported by its neighbours. The design is under-powered for this response rather than conclusive: resolving a difference of one death per campaign-year would need 135 to 221 replications, against the 30 run here. So the honest statement is that no mortality cost of the shipped policy is visible, not that none exists. **Evidence: direction only.**
 
-Taken together the sweep supports the shipped 21-day policy as the only setting in the doctrinal range that is both admissible against the historical envelope and stable at sustained-campaign length, which is a stronger basis than the single comparison the default originally shipped on. It does not establish that 21 is optimal within the admissible band: the band contains values the sweep did not visit, and the adjacent lever, the holding establishment, is a substitute for the policy that has never been swept (README Further Development L32).
+Taken together the sweep supports the shipped 21-day policy as the only setting in the doctrinal range that is both admissible against the historical envelope and stable at sustained-campaign length, which is a stronger basis than the single comparison the default originally shipped on. It does not establish that 21 is optimal within the admissible band, the band containing values the sweep did not visit. The adjacent lever, the holding establishment, is swept in the section that follows.
+
+### The Holding Establishment Is Not a Substitute for the Policy at the Shipped Setting
+
+**Enlarging the R2E holding pool past 45 beds changes nothing a planner would act on, because at the shipped 21-day policy the pool is not the binding constraint.** The establishment and the evacuation policy are substitutes in principle, both governing how much convalescence the theatre can absorb, so the price of one against the other is a force-structure input the policy sweep above could not supply. Sweeping the establishment at the shipped policy supplies it, and the answer is that the substitution is not available in this direction.
+
+**Design.** 30 runs of a 360-day campaign at each of four holding establishments, the shipped 30 beds and 45, 60 and 90, with the evacuation policy held at its shipped 21 days and every arm drawn from the same seed vector used for the policy sweep, executed as `Rscript scripts/run_policy_sweep.R --refresh-baseline --policies 21 --hold-beds 30,45,60,90`. The responses and the closing-window estimator are those of the policy sweep; the full design is in `docs/Multi_Run_Supplement.md`.
+
+<!-- ESTABLISHMENT TABLE -->
+| Response | 30 beds (shipped) | 45 beds | 60 beds | 90 beds |
+|---|---|---|---|---|
+| R2E hold occupancy (%) | 57.4 [53.7, 61.0] | 44.4 [41.5, 47.3] | 44.5 [41.7, 47.3] | 44.2 [41.1, 47.3] |
+| R2E hold mean queue | 1.68 [0.41, 2.95] | 0.01 [-0.01, 0.02] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
+| R2E ICU mean queue | 0.47 [0.37, 0.57] | 0.38 [0.34, 0.41] | 0.38 [0.34, 0.41] | 0.37 [0.34, 0.41] |
+| Post-definitive ICU access (%) | 35.1 [33.8, 36.4] | 35.1 [34.1, 36.1] | 35.2 [34.4, 36.0] | 35.1 [34.3, 36.0] |
+| In-theatre share (%) | 11.4 [11.1, 11.6] | 11.1 [10.8, 11.3] | 11.1 [10.9, 11.3] | 11.1 [10.9, 11.3] |
+| Returns to duty | 2159.7 [2120.8, 2198.5] | 2169.8 [2148.6, 2191.1] | 2175.0 [2152.5, 2197.5] | 2178.1 [2154.1, 2202.2] |
+| Died of wounds | 17.4 [15.6, 19.2] | 16.1 [14.5, 17.7] | 16.4 [14.9, 17.8] | 16.2 [14.8, 17.7] |
+| Never evacuated by horizon | 1.8 [0.5, 3.0] | 0.6 [0.3, 0.9] | 0.7 [0.3, 1.0] | 0.7 [0.4, 1.0] |
+| Role 4 peak beds | 169.1 [163.5, 174.8] | 173.5 [168.2, 178.9] | 173.1 [168.2, 178.0] | 173.3 [168.4, 178.3] |
+
+**The first fifteen beds buy the queue, and nothing after them buys anything.** The shipped 30-bed pool carries a residual holding queue averaging 1.68 casualties over the closing quarter, and a handful of campaigns drive that average: the interval runs from 0.41 to 2.95 because most runs queue nobody and a few queue many. Adding 15 beds removes it, the queue falling to 0.01 and occupancy from 57.4% to 44.4%. The next 45 beds then change nothing measurable at all: occupancy, both queues, intensive care access and the in-theatre share are identical at 45, 60 and 90 beds to within their intervals. The frontier is flat because the pool has stopped binding, not because the responses are insensitive. **Evidence: measured.**
+
+**Clearing the queue is not the same as buying a clinical outcome.** Post-definitive intensive care access reads 35.1% at every establishment including the shipped one, so the two-thirds of operated casualties taking the degraded holding-bed fallback (see [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)) are not there because holding beds are short. Returns to duty rise from 2,159.7 to 2,178.1 across the whole range, an 18-casualty movement per campaign-year against intervals roughly 40 wide, and deaths of wounds and the Role 4 peak move no further than their intervals allow. A tripling of the holding establishment is therefore not visible in any health outcome the model reports. **Evidence: measured.**
+
+**What this does and does not settle about the substitution.** It settles that the establishment cannot be traded against the policy at the shipped policy, because the establishment has no effect there to trade: a planner asking whether to buy holding beds instead of shortening the evacuation threshold is told that at 21 days the beds are already sufficient. It does not settle the case that motivates the question. The policy sweep's saturation appears at 30 days and beyond, where the pool fills completely and the holding queue reaches 601 casualties; whether a large enough establishment would make a 30-day policy admissible and stable is a property of the joint grid, which this one-dimensional sweep does not visit. The machinery runs a joint grid unchanged, so the gap is compute rather than method: at 30 replications over 360 days per cell, the five policies by four establishments the question needs is twenty cells against the nine measured here. **Evidence: untested.**
+
+Taken with the policy sweep, the pair supports the shipped configuration on both levers at once. The 21-day policy is the only admissible and stable setting in the doctrinal range, and at that setting the 30-bed establishment is within 15 beds of everything a larger pool could offer, at a cost of a small residual queue in a minority of campaigns. The binding constraint on post-operative care at the shipped configuration is intensive care capacity, which neither lever reaches.
 
 ### Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing
 
@@ -495,19 +523,19 @@ The clearest result is that two schedules flying the same number of sorties do n
 
 | Interval between sorties | Sorties flown | Mean wait (days) | Share of R2E holding beds held by the evacuation wait |
 |---|---|---|---|
-| 3 days | 9.00 | 0.18 [0.16, 0.20] | 1% [1%, 2%] |
-| 5 days | 5.00 | 0.34 [0.30, 0.37] | 4% [3%, 5%] |
-| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 10% [8%, 12%] |
-| 10 days | 2.00 | 2.30 [2.05, 2.55] | 19% [17%, 22%] |
-| 14 days | 2.00 | 5.51 [5.12, 5.90] | 39% [34%, 43%] |
+| 3 days | 9.00 | 0.18 [0.16, 0.20] | 2% [2%, 3%] |
+| 5 days | 5.00 | 0.34 [0.30, 0.37] | 9% [8%, 10%] |
+| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 22% [19%, 25%] |
+| 10 days | 2.00 | 2.30 [2.05, 2.55] | 45% [42%, 48%] |
+| 14 days | 2.00 | 5.51 [5.12, 5.90] | 62% [59%, 64%] |
 
-Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 10% to 30%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 1% to 39%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
+Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 22% to 47%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 2% to 62%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
 
-### The Evacuation Wait Consumes Clinical Capacity, on One Route
+### The Evacuation Wait Consumes Clinical Capacity on Both Routes
 
-A casualty waiting for the standard airlift pool holds an R2E holding bed for the whole of that wait. A casualty waiting for the critical pool does not; it holds an intensive care bed already seized upstream. The distinction is large rather than technical: over a campaign at a 40% cancellation rate the standard-route waits account for 91.1 holding bed-days while the critical-route waits, were they charged to the same pool, would account for 340.4. Attributing both to holding beds would overstate the coupling more than fourfold.
+A casualty waiting for either airlift pool holds an R2E holding bed for the part of that wait it spends staged. On the standard route that is the whole wait, the bed being seized at the evacuation decision. On the critical route a ventilated casualty first holds an intensive care bed for its bounded pre-flight period and then steps down into a holding bed for the remainder, and a stable one stages in a holding bed from the start. The route therefore does not decide whether a casualty consumes the pool, only how much of its wait it consumes.
 
-On the standard route the coupling is nonetheless real and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 10% [8%, 12%] of R2E holding bed occupancy at moderate intensity and 29% [27%, 32%] at high. At a 14-day interval it reaches 39% [34%, 43%]. Since the holding pool also carries in-theatre recovery, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.3 hours at 14.
+The coupling is substantial and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 22.2% [19.2%, 25.1%] of R2E holding bed occupancy at moderate intensity and 36.3% [34.2%, 38.4%] at high. It reaches 47.4% [41.4%, 53.4%] at a 40% cancellation rate and 61.6% [59.5%, 63.6%] at a 14-day sortie interval, where the wait becomes the pool's largest single consumer and the pool has stopped being a clinical resource in any meaningful sense. Since the holding pool also carries in-theatre recovery, the post-definitive holding fallback and the post-operative damage control hold, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.2 hours at 14. **Evidence: measured.**
 
 ### Demand on the Base Peaks at the Campaign's End, Not After It
 

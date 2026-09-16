@@ -37,6 +37,14 @@
 #'   both published configurations appear in the sweep.
 POLICY_DAYS <- c(15L, 21L, 30L, 45L, 60L)
 
+#' R2E holding bed establishments swept, as bed counts
+#'
+#' @details Absolute counts rather than multiples of today's pool, because an
+#'   establishment is a force-structure number a planner states directly and the
+#'   transport fleet sweep already varies its quantities the same way. 30 is the
+#'   shipped establishment.
+POLICY_HOLD_BEDS <- c(30L, 45L, 60L, 90L)
+
 #' Replications per swept value
 #'
 #' @details Matches the sustained-operations protocol's count, the responses
@@ -243,20 +251,30 @@ run_policy_measurement <- function(policy_days, n_iterations = POLICY_REPLICATIO
   do.call(rbind, dispatched)
 }
 
-#' Enter a scenario's configuration with the evacuation policy overridden
+#' Enter a scenario's configuration with the policy and establishment overridden
 #'
 #' @param json_data Parsed env_data.json.
 #' @param scenario Scenario profile to resolve.
 #' @param policy_days Evacuation policy to set, in days, or NULL to leave the
 #'   profile's own value in place.
+#' @param hold_beds R2E holding bed establishment to set, or NULL to leave the
+#'   profile's own value in place.
 #' @return Invisibly, the described configuration that was applied.
 #'
-#' @details The scenario has to be resolved and built before the field is set:
-#'   `resolve_scenario()` returns the raw parsed form, in which `vars` is a list
-#'   of name and value pairs, and only `build_environment()` names them. Setting
-#'   the field on the resolved form writes a value nothing reads.
-apply_policy_setting <- function(json_data, scenario, policy_days = NULL) {
-  described <- build_environment(resolve_scenario(json_data, scenario))
+#' @details The two overrides enter at different points, which is why this
+#'   function exists rather than a field setter. The policy is a variable, and a
+#'   variable has to be set after `build_environment()`: `resolve_scenario()`
+#'   returns the raw parsed form, in which `vars` is a list of name and value
+#'   pairs, and only `build_environment()` names them, so setting it on the
+#'   resolved form writes a value nothing reads. The establishment is a bed
+#'   count in `elms`, from which `build_environment()` constructs the resources
+#'   themselves, so it has to be set before that call rather than after.
+apply_policy_setting <- function(json_data, scenario, policy_days = NULL,
+                                 hold_beds = NULL) {
+  resolved <- resolve_scenario(json_data, scenario)
+  if (!is.null(hold_beds)) resolved <- set_hold_establishment(resolved, hold_beds)
+
+  described <- build_environment(resolved)
   if (!is.null(policy_days)) {
     described$vars$r2eheavy$recovery$evacuation_policy_days <- policy_days
   }
@@ -264,6 +282,39 @@ apply_policy_setting <- function(json_data, scenario, policy_days = NULL) {
   assign("day_min", DAY_MIN, envir = globalenv())
   assign("counts", sapply(described$elms, length), envir = globalenv())
   invisible(described)
+}
+
+#' Set the R2E holding bed establishment on a resolved configuration
+#'
+#' @param resolved Configuration as `resolve_scenario()` returns it.
+#' @param hold_beds Number of R2E holding beds to establish.
+#' @return The configuration with that establishment set.
+#'
+#' @details Fails rather than returning the configuration unchanged where the
+#'   R2E element or its holding pool cannot be found, so a sweep cannot silently
+#'   measure the shipped establishment at every point and report it as a
+#'   frontier. The element is located by its `elm` name rather than by position,
+#'   the order of `elms` being a property of the file rather than of the model.
+set_hold_establishment <- function(resolved, hold_beds) {
+  if (!is.numeric(hold_beds) || length(hold_beds) != 1 || is.na(hold_beds) ||
+        hold_beds < 1) {
+    stop("hold_beds must be a single bed count of at least 1, found '",
+         paste(format(hold_beds), collapse = ", "), "'", call. = FALSE)
+  }
+  found <- FALSE
+  for (i in seq_along(resolved$elms)) {
+    if (!identical(resolved$elms[[i]]$elm, "r2eheavy")) next
+    for (j in seq_along(resolved$elms[[i]]$beds)) {
+      if (!identical(resolved$elms[[i]]$beds[[j]]$name, "hold")) next
+      resolved$elms[[i]]$beds[[j]]$qty <- as.integer(hold_beds)
+      found <- TRUE
+    }
+  }
+  if (!found) {
+    stop("no R2E holding bed pool found in elms, so the establishment ",
+         "cannot be swept", call. = FALSE)
+  }
+  resolved
 }
 
 #' Mean and 95% confidence interval of every response across replications

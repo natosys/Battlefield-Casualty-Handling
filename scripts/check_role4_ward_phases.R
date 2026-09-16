@@ -343,6 +343,88 @@ report(icu_on < icu_off,
        "the split moves bed-days out of intensive care (%d against %d)",
        icu_on, icu_off)
 
+# ── 7. Demand is measured against a stated establishment ─────────────────────
+
+cat("\n-- demand is measured against a stated establishment --\n")
+
+report(all(is.na(role4_capacity(shipped))),
+       "every ward ships with no stated establishment, so nothing is bounded")
+
+# A census whose answers are computable by hand, so a shortfall that agreed
+# with the model but not with arithmetic would still fail.
+hand_census <- data.frame(replication = 1L, day = 1:10, ward = "ICU",
+                          occupancy = c(1, 2, 12, 14, 9, 10, 11, 3, 2, 1))
+unlimited <- c(ICU = NA_real_, `Surgical Ward` = NA_real_, `General Ward` = NA_real_)
+report(nrow(role4_capacity_shortfall(hand_census, unlimited)) == 0,
+       "an unlimited establishment reports no shortfall at all")
+
+bounded <- unlimited
+bounded[["ICU"]] <- 10
+measured <- role4_capacity_shortfall(hand_census, bounded)
+report(nrow(measured) == 1 && measured$days_above == 3,
+       "three days stand above an establishment of 10 (found %s)",
+       if (nrow(measured) == 1) format(measured$days_above) else "no row")
+report(nrow(measured) == 1 && abs(measured$peak_overshoot - 4) < TOL,
+       "the peak overshoot is 4 beds (found %s)",
+       if (nrow(measured) == 1) format(measured$peak_overshoot) else "no row")
+report(nrow(measured) == 1 && abs(measured$unmet_bed_days - 7) < TOL,
+       "unmet demand is 7 bed-days, the sum of the shortfalls (found %s)",
+       if (nrow(measured) == 1) format(measured$unmet_bed_days) else "no row")
+
+# Summing the shortfall rather than counting its days is what distinguishes a
+# brief deep shortfall from a long shallow one, which are different problems.
+deep <- data.frame(replication = 1L, day = 1L, ward = "ICU", occupancy = 30)
+shallow <- data.frame(replication = 1L, day = 1:20, ward = "ICU", occupancy = 11)
+deep_measured <- role4_capacity_shortfall(deep, bounded)
+shallow_measured <- role4_capacity_shortfall(shallow, bounded)
+report(deep_measured$days_above == 1 && shallow_measured$days_above == 20 &&
+         deep_measured$unmet_bed_days == 20 && shallow_measured$unmet_bed_days == 20,
+       "a deep one-day shortfall and a shallow twenty-day one are distinguishable")
+
+# A ward stating no establishment is omitted rather than reported as meeting
+# its demand, which would read as a pass it was never measured for.
+mixed_census <- rbind(hand_census,
+                      data.frame(replication = 1L, day = 1:10,
+                                 ward = "Surgical Ward", occupancy = 99))
+mixed <- role4_capacity_shortfall(mixed_census, bounded)
+report(setequal(unique(mixed$ward), "ICU"),
+       "a ward with no stated establishment is omitted rather than passed (%s)",
+       paste(unique(mixed$ward), collapse = ", "))
+
+bad_capacity <- role4_config()
+bad_capacity$capacity <- list(wards = list("ICU"), beds = list(-5))
+#' Assert that a capacity block is rejected with a message naming a field
+#'
+#' @param config The Role 4 configuration under test.
+#' @param needle Text the rejection message must contain.
+#' @param label Description of the malformation, for the assertion line.
+#' @return Invisible NULL.
+expect_rejected2 <- function(config, needle, label) {
+  result <- try(validate_role4_capacity(config), silent = TRUE)
+  rejected <- inherits(result, "try-error")
+  named <- rejected && grepl(needle, conditionMessage(attr(result, "condition")),
+                             fixed = TRUE)
+  report(named, "%s is rejected with a message naming '%s'", label, needle)
+  invisible(NULL)
+}
+expect_rejected2(bad_capacity, "role4.capacity.beds", "a negative establishment")
+
+bad_unknown <- role4_config()
+bad_unknown$capacity <- list(wards = list("Recovery Ward"), beds = list(10))
+expect_rejected2(bad_unknown, "role4.capacity.wards",
+                 "an establishment for a ward that does not exist")
+
+bad_length <- role4_config()
+bad_length$capacity <- list(wards = list("ICU", "General Ward"), beds = list(10))
+expect_rejected2(bad_length, "differ in length",
+                 "a ward list longer than its bed list")
+
+null_capacity <- role4_config()
+null_capacity$capacity <- list(wards = list("ICU"), beds = list(NULL))
+report(isTRUE(validate_role4_capacity(null_capacity)) &&
+         all(is.na(role4_capacity(null_capacity))),
+       "a null establishment validates and reads as unlimited")
+
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")

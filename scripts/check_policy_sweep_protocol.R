@@ -448,27 +448,30 @@ check_published_table <- function(summary_path, marker, key_col, key_values,
   invisible(NULL)
 }
 
-check_published_table(
-  SUMMARY_PATH, "<!-- POLICY TABLE -->", "policy_days", POLICY_DAYS, "days",
-  list(list("R2E hold occupancy", "hold_occupancy", 100),
-       list("Returns to duty", "total_rtd", 1),
-       list("In-theatre share", "in_theatre_share", 100),
-       list("Role 4 peak", "role4_peak", 1)))
+policy_rows <- list(list("R2E hold occupancy", "hold_occupancy", 100),
+                    list("Returns to duty", "total_rtd", 1),
+                    list("In-theatre share", "in_theatre_share", 100),
+                    list("Role 4 peak", "role4_peak", 1))
 
-check_published_table(
-  ESTABLISHMENT_SUMMARY_PATH, "<!-- ESTABLISHMENT TABLE -->", "hold_beds",
-  POLICY_HOLD_BEDS, "beds",
-  list(list("R2E hold occupancy", "hold_occupancy", 100),
-       list("R2E hold mean queue", "hold_mean_queue", 1),
-       list("Post-definitive ICU access", "post_definitive_icu_share", 100),
-       list("Returns to duty", "total_rtd", 1)))
+establishment_rows <- list(
+  list("R2E hold occupancy", "hold_occupancy", 100),
+  list("R2E hold mean queue", "hold_mean_queue", 1),
+  list("Post-definitive ICU access", "post_definitive_icu_share", 100),
+  list("Returns to duty", "total_rtd", 1)
+)
+
+check_published_table(SUMMARY_PATH, "<!-- POLICY TABLE -->", "policy_days",
+                      POLICY_DAYS, "days", policy_rows)
+
+check_published_table(ESTABLISHMENT_SUMMARY_PATH, "<!-- ESTABLISHMENT TABLE -->",
+                      "hold_beds", POLICY_HOLD_BEDS, "beds", establishment_rows)
 
 # The establishment sweep ran one policy, the shipped one, so a summary
 # carrying another would mean the published frontier mixes two levers.
 if (file.exists(ESTABLISHMENT_SUMMARY_PATH)) {
   estab <- read.csv(ESTABLISHMENT_SUMMARY_PATH, stringsAsFactors = FALSE)
-  shipped_policy <- build_environment(
-    resolve_scenario(json_data, "default"))$vars$r2eheavy$recovery$evacuation_policy_days
+  shipped <- build_environment(resolve_scenario(json_data, "default"))
+  shipped_policy <- shipped$vars$r2eheavy$recovery$evacuation_policy_days
   report(length(shipped_policy) == 1 && all(estab$policy_days == shipped_policy),
          "every establishment arm ran at the shipped %s-day policy",
          format(shipped_policy))

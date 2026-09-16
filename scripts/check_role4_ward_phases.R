@@ -407,81 +407,30 @@ report(icu_on < icu_off,
        "the split moves bed-days out of intensive care (%d against %d)",
        icu_on, icu_off)
 
-# ── 7. A stated establishment is a reference line, not a reported verdict ────
+# ── 7. The national support base is not given a capacity ─────────────────────
 
-cat("\n-- a stated establishment is read as a reference line --\n")
-
-report(all(is.na(role4_capacity(shipped))),
-       "every ward ships with no stated establishment, so no line is drawn")
-
-stated <- role4_config()
-stated$capacity <- list(wards = list("ICU", "Surgical Ward", "General Ward"),
-                        beds = list(20, 40, NULL))
-read_back <- role4_capacity(stated)
-report(isTRUE(validate_role4_capacity(stated)) &&
-         read_back[["ICU"]] == 20 && read_back[["Surgical Ward"]] == 40 &&
-         is.na(read_back[["General Ward"]]),
-       "a stated establishment reads back per ward, a null ward as unlimited")
+cat("\n-- the national support base is not given a capacity --\n")
 
 # The model sets the demand a deployed trauma system places on the national
-# support base and does not simulate that echelon. Reporting days above
-# establishment, a peak overshoot or unmet bed-days would read as a verdict on
-# an echelon carrying no queue, no refusal and no back-pressure, so the
-# comparison is the planner's and no such function exists to be called by
-# accident.
+# support base and does not simulate that echelon: nothing queues for a Role 4
+# bed, nothing is refused, nothing is pushed back into theatre. An
+# establishment drawn on the census, or a shortfall reported against one, would
+# read as a statement about an echelon carrying no case mix, no transfer
+# options and no back-pressure. The absence is asserted rather than left to
+# convention, so it cannot be reintroduced without this failing.
 analysis_source <- readLines("R/analysis.R", warn = FALSE)
-report(!any(grepl("role4_capacity_shortfall", analysis_source, fixed = TRUE)),
-       "the analysis module reports no shortfall against the stated establishment")
-
-# The line is the whole of what stating an establishment buys, so it has to
-# reach both censuses; the multi-run one carried none when the single-run one
-# gained it.
-census_sites <- grep("geom_hline\\(yintercept = sum\\(role4_established",
-                     analysis_source)
-report(length(census_sites) == 2,
-       "the reference line is drawn on both censuses (found %d)",
-       length(census_sites))
-caption_sites <- grep("sprintf(ROLE4_ESTABLISHMENT_CAPTION", analysis_source, fixed = TRUE)
-report(length(caption_sites) == 2,
-       "both censuses caption the line rather than leaving it unexplained (found %d)",
-       length(caption_sites))
-report(any(grepl("does not simulate this echelon", analysis_source, fixed = TRUE)),
-       "the caption says the model does not simulate the echelon it draws a line for")
-
-bad_capacity <- role4_config()
-bad_capacity$capacity <- list(wards = list("ICU"), beds = list(-5))
-
-#' Assert that a capacity block is rejected with a message naming a field
-#'
-#' @param config The Role 4 configuration under test.
-#' @param needle Text the rejection message must contain.
-#' @param label Description of the malformation, for the assertion line.
-#' @return Invisible NULL.
-expect_rejected2 <- function(config, needle, label) {
-  result <- try(validate_role4_capacity(config), silent = TRUE)
-  rejected <- inherits(result, "try-error")
-  named <- rejected && grepl(needle, conditionMessage(attr(result, "condition")),
-                             fixed = TRUE)
-  report(named, "%s is rejected with a message naming '%s'", label, needle)
-  invisible(NULL)
+for (absent in c("role4_capacity", "role4_capacity_shortfall",
+                 "role4_established", "ROLE4_ESTABLISHMENT_CAPTION")) {
+  report(!any(grepl(absent, analysis_source, fixed = TRUE)),
+         "the analysis module carries no '%s'", absent)
 }
-expect_rejected2(bad_capacity, "role4.capacity.beds", "a negative establishment")
 
-bad_unknown <- role4_config()
-bad_unknown$capacity <- list(wards = list("Recovery Ward"), beds = list(10))
-expect_rejected2(bad_unknown, "role4.capacity.wards",
-                 "an establishment for a ward that does not exist")
+report(is.null(shipped$capacity),
+       "the shipped configuration states no national support base capacity")
 
-bad_length <- role4_config()
-bad_length$capacity <- list(wards = list("ICU", "General Ward"), beds = list(10))
-expect_rejected2(bad_length, "differ in length",
-                 "a ward list longer than its bed list")
-
-null_capacity <- role4_config()
-null_capacity$capacity <- list(wards = list("ICU"), beds = list(NULL))
-report(isTRUE(validate_role4_capacity(null_capacity)) &&
-         all(is.na(role4_capacity(null_capacity))),
-       "a null establishment validates and reads as unlimited")
+config_source <- readLines("env_data.json", warn = FALSE)
+report(!any(grepl("\"acty\": \"capacity\"", config_source, fixed = TRUE)),
+       "env_data.json carries no role4 capacity block")
 
 
 # ── Result ──────────────────────────────────────────────────────────────────

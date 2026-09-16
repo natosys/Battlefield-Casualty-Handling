@@ -907,13 +907,6 @@
           ]
         },
         {
-          "acty": "capacity",
-          "vals": [
-            { "var": "wards", "val": ["ICU", "Surgical Ward", "General Ward"] },
-            { "var": "beds",  "val": [null, null, null] }
-          ]
-        },
-        {
           "acty": "icu_continuation",
           "vals": [
             { "var": "enabled",        "val": 1 },

@@ -271,80 +271,6 @@ role4_ward_map <- function(r4_params) {
          character(1))
 }
 
-#' Caption naming the establishment line and what it is not
-#'
-#' @details Held once rather than at each census, so the two cannot come to
-#'   describe the same line differently. The second sentence is the load-bearing
-#'   one: the line is a reference the reader compares against, and a chart
-#'   carrying an unexplained rule invites reading it as a limit the model
-#'   enforces.
-ROLE4_ESTABLISHMENT_CAPTION <- paste(
-  "Dashed line: stated national support base establishment of %.0f beds.",
-  "Demand is unconstrained; the model does not simulate this echelon."
-)
-
-#' The national support base establishment each ward is measured against
-#'
-#' @param r4_params `env_data$vars$role4` list
-#' @return Named numeric vector of beds per ward, NA where unlimited
-#'
-#' @details An absent block, an absent ward and a null bed count all read as
-#'   NA, which is unlimited. A stated establishment is drawn on the census as a
-#'   reference line and nothing more: the model sets the demand a deployed
-#'   trauma system places on the national support base and does not simulate
-#'   that echelon, so nothing queues for a Role 4 bed, nothing is refused and
-#'   nothing is pushed back into theatre. Reporting a shortfall against the
-#'   line would read as a verdict on an echelon this model does not represent,
-#'   which is why the comparison is left to the planner holding the
-#'   establishment; README Further Development L16 records the boundary.
-role4_capacity <- function(r4_params) {
-  levels <- role4_ward_levels(r4_params)
-  capacity <- setNames(rep(NA_real_, length(levels)), levels)
-  block <- r4_params$capacity
-  if (is.null(block)) return(capacity)
-  wards <- as.character(unlist(block$wards))
-  beds <- block$beds
-  if (length(wards) == 0 || is.null(beds)) return(capacity)
-  for (i in seq_along(wards)) {
-    if (!wards[i] %in% levels) next
-    value <- beds[[i]]
-    if (is.null(value) || (length(value) == 1 && is.na(value))) next
-    capacity[[wards[i]]] <- as.numeric(value)
-  }
-  capacity
-}
-
-#' Validate the Role 4 capacity block
-#'
-#' @param r4_params `env_data$vars$role4` list
-#' @return Invisible TRUE, or stops naming the field and the value found
-validate_role4_capacity <- function(r4_params) {
-  block <- r4_params$capacity
-  if (is.null(block)) return(invisible(TRUE))
-  levels <- role4_ward_levels(r4_params)
-  wards <- as.character(unlist(block$wards))
-  beds <- block$beds
-  if (length(wards) != length(beds)) {
-    stop("role4.capacity.wards and role4.capacity.beds differ in length (",
-         length(wards), " against ", length(beds), ")")
-  }
-  for (i in seq_along(wards)) {
-    if (!wards[i] %in% levels) {
-      stop("role4.capacity.wards names '", wards[i],
-           "', which is not one of role4.wards.levels (",
-           paste(levels, collapse = ", "), ")")
-    }
-    value <- beds[[i]]
-    if (is.null(value) || (length(value) == 1 && is.na(value))) next
-    numeric_value <- suppressWarnings(as.numeric(value))
-    if (is.na(numeric_value) || numeric_value < 0) {
-      stop("role4.capacity.beds for '", wards[i],
-           "' must be a non-negative number or null; found: ", format(value))
-    }
-  }
-  invisible(TRUE)
-}
-
 #' Validate the Role 4 ward mapping and intensive care continuation block
 #'
 #' @param r4_params `env_data$vars$role4` list
@@ -462,7 +388,6 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
   )
 
   validate_role4_wards(r4_los_params)
-  validate_role4_capacity(r4_los_params)
   ward_map <- role4_ward_map(r4_los_params)
 
   # The length-of-stay draw is the analysis pipeline's only RNG consumer, and
@@ -2669,20 +2594,6 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 
-  # The stacked bars are total occupancy across wards, so a per-ward
-  # establishment has no line to be drawn against on this scale; the total
-  # does. A configuration stating none leaves the plot as it was. The line is a
-  # reference the reader compares against, not a limit the model enforces, and
-  # the caption says so rather than leaving an unexplained rule on the chart.
-  role4_established <- role4_capacity(role4_params)
-  if (any(!is.na(role4_established))) {
-    role4_census_plot <- role4_census_plot +
-      geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
-                 linetype = "longdash", colour = "grey25", linewidth = 0.6) +
-      labs(caption = sprintf(ROLE4_ESTABLISHMENT_CAPTION,
-                             sum(role4_established, na.rm = TRUE)))
-  }
-
   ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
          width = 12, height = 6, dpi = 150)
   write.csv(role4_census_daily, file.path(output_dir, "role4_census_daily.csv"), row.names = FALSE)
@@ -3864,18 +3775,6 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")
-
-    # The same reference line the single-run census carries, for the same
-    # reason: the bars stack across wards, so a per-ward figure has no scale to
-    # sit against here either.
-    role4_established <- role4_capacity(role4_params)
-    if (any(!is.na(role4_established))) {
-      role4_census_ci_plot <- role4_census_ci_plot +
-        geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
-                   linetype = "longdash", colour = "grey25", linewidth = 0.6) +
-        labs(caption = sprintf(ROLE4_ESTABLISHMENT_CAPTION,
-                               sum(role4_established, na.rm = TRUE)))
-    }
 
     ggsave(file.path(images_dir, "role4_census_multirun.png"), role4_census_ci_plot, width = 12, height = 6, dpi = 150)
     write.csv(role4_census_daily_ci, file.path(output_dir, "role4_census_daily_ci.csv"), row.names = FALSE)

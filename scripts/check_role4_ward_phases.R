@@ -105,7 +105,7 @@ role4_config <- function(enabled = 0, icu_days = CHECK_ICU_DAYS,
                  levels = list("ICU", "Surgical Ward", "General Ward")),
     icu_continuation = list(enabled = enabled, min = icu_days$min,
                             mode = icu_days$mode, max = icu_days$max,
-                            step_down_ward = step_down),
+                            icu_ward = "ICU", step_down_ward = step_down),
     los_p1_surgical = list(min = 10, mode = 21, max = 45),
     los_p1_nonsurgical = list(min = 7, mode = 14, max = 30),
     los_p2 = list(min = 5, mode = 10, max = 21),
@@ -242,6 +242,30 @@ report(observed < mean_total && observed > expected - 1,
        "the mean requirement of %.2f days less theatre's %.2f reads %.2f",
        mean_total, served_days, observed)
 
+# The condition a first implementation missed. A casualty whose category is not
+# admitted to intensive care has no intensive care phase to divide, so
+# continuing one for them steps a general ward casualty down into a surgical
+# ward: bed-days move between two wards neither of which is the one under
+# study, and the General Ward total falls for a reason nothing in the model
+# justifies. Asserted on a cohort whose categories map away from intensive
+# care while still carrying a post-operative episode, which is what a
+# Priority 2 or DNBI casualty operated on in theatre looks like.
+ward_cohort <- build_cohort()
+ward_cohort$priority <- 3
+ward_cohort$injury_type <- 2
+ward_assigned <- assign_role4_los(ward_cohort, on_config)
+report(all(ward_assigned$ward == "General Ward"),
+       "the constructed cohort is admitted away from intensive care (%s)",
+       paste(unique(ward_assigned$ward), collapse = ", "))
+report(all(ward_assigned$r4_icu_days == 0),
+       "a casualty not admitted to intensive care is owed none, though operated on")
+ward_phases <- role4_ward_phases(ward_assigned, on_config)
+report(nrow(ward_phases) == nrow(ward_assigned) &&
+         all(ward_phases$phase_ward == "General Ward"),
+       "no such casualty is stepped down into another ward (%s)",
+       paste(unique(ward_phases$phase_ward), collapse = ", "))
+
+
 unoperated <- build_cohort(operated = FALSE)
 unoperated$treatment_received <- 0
 un_assigned <- assign_role4_los(unoperated, on_config)
@@ -306,6 +330,16 @@ bad_degenerate <- role4_config(enabled = 1,
                                icu_days = list(min = 5, mode = 5, max = 5))
 expect_rejected(bad_degenerate, "draws no distribution",
                 "a requirement whose bounds coincide")
+
+bad_icu_ward <- role4_config(enabled = 1)
+bad_icu_ward$icu_continuation$icu_ward <- "Recovery Ward"
+expect_rejected(bad_icu_ward, "role4.icu_continuation.icu_ward",
+                "an intensive care ward naming no configured level")
+
+same_ward <- role4_config(enabled = 1)
+same_ward$icu_continuation$step_down_ward <- "ICU"
+expect_rejected(same_ward, "the step-down moves nobody",
+                "an intensive care ward equal to its step-down ward")
 
 bad_step <- role4_config(enabled = 1, step_down = "Recovery Ward")
 expect_rejected(bad_step, "role4.icu_continuation.step_down_ward",

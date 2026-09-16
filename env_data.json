@@ -917,6 +917,7 @@
           "acty": "icu_continuation",
           "vals": [
             { "var": "enabled",        "val": 0 },
+            { "var": "icu_ward",       "val": "ICU" },
             { "var": "min",            "val": 0 },
             { "var": "mode",           "val": 0 },
             { "var": "max",            "val": 0 },

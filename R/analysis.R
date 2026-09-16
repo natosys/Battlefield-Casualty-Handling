@@ -419,10 +419,20 @@ validate_role4_wards <- function(r4_params) {
          ", which draws no distribution; disable it with enabled = 0 instead")
   }
   step_down <- as.character(cont$step_down_ward)
-  if (is.na(step_down) || !step_down %in% levels) {
+  if (length(step_down) != 1 || is.na(step_down) || !step_down %in% levels) {
     stop("role4.icu_continuation.step_down_ward is '", format(step_down),
          "', which is not one of role4.wards.levels (",
          paste(levels, collapse = ", "), ")")
+  }
+  icu_ward <- as.character(cont$icu_ward)
+  if (length(icu_ward) != 1 || is.na(icu_ward) || !icu_ward %in% levels) {
+    stop("role4.icu_continuation.icu_ward is '", format(icu_ward),
+         "', which is not one of role4.wards.levels (",
+         paste(levels, collapse = ", "), ")")
+  }
+  if (identical(icu_ward, step_down)) {
+    stop("role4.icu_continuation.icu_ward and step_down_ward are both '",
+         icu_ward, "', so the step-down moves nobody")
   }
   invisible(TRUE)
 }
@@ -537,11 +547,15 @@ add_role4_icu_days <- function(assigned, r4_params) {
   } else {
     rep(0, nrow(assigned))
   }
-  # Only a casualty theatre actually operated on carries a post-operative
-  # episode for Role 4 to continue; the rest are owed no intensive care and
-  # stay on their admission ward for the whole stay.
+  # Two conditions, and the second is the one a first implementation missed.
+  # A casualty theatre never operated on carries no post-operative episode for
+  # Role 4 to continue. And a casualty whose category is not admitted to
+  # intensive care has no intensive care phase to divide either: continuing one
+  # for them would step a general ward casualty down into a surgical ward,
+  # moving bed-days between two wards neither of which is the one under study.
+  icu_ward <- as.character(cont$icu_ward)
   operated <- if ("post_definitive_min" %in% names(assigned)) {
-    !is.na(assigned$post_definitive_min)
+    !is.na(assigned$post_definitive_min) & assigned$ward == icu_ward
   } else {
     rep(FALSE, nrow(assigned))
   }
@@ -591,9 +605,13 @@ role4_ward_phases <- function(assigned, r4_params) {
     mutate(phase_start = r4_admit_day,
            phase_end   = r4_admit_day + ceiling(phase_days) - 1) %>%
     dplyr::select(-phase_days)
+  # The step-down ward applies only where an intensive care phase preceded it.
+  # A casualty owed no intensive care never left their admission ward, so
+  # renaming them here would move bed-days between two wards on the strength of
+  # a phase that did not happen.
   ward_phase <- base %>%
     filter(los_days - phase_days > 0) %>%
-    mutate(phase_ward  = step_down_ward,
+    mutate(phase_ward  = dplyr::if_else(phase_days > 0, step_down_ward, phase_ward),
            phase_start = r4_admit_day + ceiling(phase_days),
            phase_end   = r4_discharge_day) %>%
     dplyr::select(-phase_days) %>%

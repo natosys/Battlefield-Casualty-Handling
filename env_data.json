@@ -916,11 +916,11 @@
         {
           "acty": "icu_continuation",
           "vals": [
-            { "var": "enabled",        "val": 0 },
+            { "var": "enabled",        "val": 1 },
             { "var": "icu_ward",       "val": "ICU" },
-            { "var": "min",            "val": 0 },
-            { "var": "mode",           "val": 0 },
-            { "var": "max",            "val": 0 },
+            { "var": "min",            "val": 1 },
+            { "var": "mode",           "val": 4 },
+            { "var": "max",            "val": 21 },
             { "var": "step_down_ward", "val": "Surgical Ward" }
           ]
         },

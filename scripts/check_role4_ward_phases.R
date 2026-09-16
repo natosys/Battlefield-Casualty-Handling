@@ -66,6 +66,20 @@ CHECK_ICU_DAYS <- list(min = 3, mode = 8, max = 20)
 #'   is negative here unless the phase is capped at the stay first.
 CHECK_ICU_DAYS_LONG <- list(min = 60, mode = 90, max = 120)
 
+#' Mean Role 4 intensive care stay the shipped requirement is calibrated to
+#'
+#' @details Mean Level 3 intensive care days for repatriated battle casualties
+#'   at a Role 4 facility, from Johnston, Henning and Harrison (2014), which
+#'   README Role 4 (National Support Base) Demand Modelling cites and derives
+#'   the shipped bounds from.
+SOURCE_ROLE4_ICU_DAYS <- 7.6
+
+#' Mean post-definitive intensive care theatre serves before evacuation, in days
+#'
+#' @details The mean of the shipped `r2eheavy.post_definitive_icu` triangular
+#'   distribution of 360, 1440 and 2880 minutes.
+SOURCE_THEATRE_DAYS <- 1.083
+
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-9
 
@@ -149,16 +163,32 @@ phase_totals <- function(assigned, phases) {
               by = "case_id")
 }
 
-# ── 1. The shipped configuration is the single-ward census ───────────────────
+# ── 1. The shipped configuration is calibrated and the disabled path inert ───
 
-cat("\n-- the shipped configuration reproduces the single-ward census --\n")
+cat("\n-- the shipped configuration is calibrated, and disabling it is inert --\n")
 
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 shipped <- build_environment(resolve_scenario(json_data, "default"))$vars$role4
 
-report(as.numeric(shipped$icu_continuation$enabled) == 0,
-       "the intensive care continuation ships disabled (found %s)",
+report(as.numeric(shipped$icu_continuation$enabled) == 1,
+       "the intensive care continuation ships enabled (found %s)",
        format(shipped$icu_continuation$enabled))
+
+# The calibration the shipped bounds carry. The source reports a mean Level 3
+# intensive care stay of 7.6 days for repatriated battle casualties at a Role 4
+# facility, and theatre serves a mean 1.08 of the requirement before they
+# travel, so the total is the sum of the two. Asserted because a change to
+# either block would otherwise leave the configuration disagreeing with the
+# README passage deriving it, silently.
+shipped_total <- (as.numeric(shipped$icu_continuation$min) +
+                    as.numeric(shipped$icu_continuation$mode) +
+                    as.numeric(shipped$icu_continuation$max)) / 3
+theatre_mean <- (as.numeric(shipped$post_definitive_icu$min) +
+                   as.numeric(shipped$post_definitive_icu$mode) +
+                   as.numeric(shipped$post_definitive_icu$max)) / 3
+report(abs((shipped_total - SOURCE_THEATRE_DAYS) - SOURCE_ROLE4_ICU_DAYS) < 0.2,
+       "the shipped requirement of %.2f days less theatre's %.2f matches the source's %.1f",
+       shipped_total, SOURCE_THEATRE_DAYS, SOURCE_ROLE4_ICU_DAYS)
 
 shipped_map <- role4_ward_map(shipped)
 historical <- c(p1_surgical = "ICU", p1_nonsurgical = "Surgical Ward",

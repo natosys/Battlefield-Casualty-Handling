@@ -1885,6 +1885,11 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
       option = function() {
         had_surgery <- get_attribute(env, "surgery")
         if (is.na(had_surgery) || had_surgery != 1) return(3)
+        # A casualty released with the definitive repair outstanding has no
+        # post-definitive episode to serve: the episode this trajectory models
+        # follows a repair that has not happened.
+        outstanding <- get_attribute(env, "definitive_repair_outstanding")
+        if (!is.na(outstanding) && outstanding == 1) return(3)
         usage <- sum(get_server_count(env, resources = icu_beds))
         cap   <- sum(get_capacity(env, resources = icu_beds))
         if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
@@ -2326,6 +2331,52 @@ r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
     )
 }
 
+#' The configured R2E surgical saturation threshold, in queued casualties
+#'
+#' @return The threshold, or NA when it is disabled, which is the shipped
+#'   default.
+#'
+#' @details The threshold counts casualties waiting on a surgical section rather
+#'   than minutes already waited, so the decision reads the quantity a surgical
+#'   team on the ground would: how many cases stand ahead of this one. A
+#'   non-positive value disables the release, the convention
+#'   `r2b$holding$evac_threshold` also follows. Zero cannot mean an empty queue,
+#'   an empty queue being the state in which forward surgical capacity is least
+#'   constrained and so the state in which no casualty should be released
+#'   unrepaired.
+r2e_second_surgery_threshold <- function() {
+  thresh <- env_data$vars$r2eheavy$second_surgery$saturation_queue_threshold
+  if (is.null(thresh)) return(NA_real_)
+  if (length(thresh) != 1L || !is.numeric(thresh) || is.na(thresh) || thresh < 0) {
+    stop(sprintf(paste("r2eheavy.second_surgery.saturation_queue_threshold must be",
+                       "a single non-negative number, found %s"),
+                 paste(format(thresh), collapse = ", ")), call. = FALSE)
+  }
+  if (thresh <= 0) return(NA_real_)
+  as.numeric(thresh)
+}
+
+#' Whether this R2E team's surgical sections are saturated
+#'
+#' @param team_id Integer index of the Role 2E Heavy team
+#' @param thresh  The configured threshold, or NA where it is disabled
+#' @return TRUE where a threshold is in force and the number of casualties
+#'   queued across the team's surgical sections has reached it.
+#'
+#' @details The queue is read at the instant of the decision and no random
+#'   number is drawn, so a disabled threshold leaves the arrival stream exactly
+#'   where the model without this branch left it. The threshold is passed in
+#'   rather than re-read, having been read and validated once when the
+#'   trajectory was built.
+r2e_surgery_saturated <- function(team_id, thresh) {
+  if (is.na(thresh)) return(FALSE)
+  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+  queued <- sum(sapply(sections, function(members) {
+    sum(sapply(members, function(res) get_queue_count(env, res)))
+  }))
+  queued >= thresh
+}
+
 #' Applies the second operation of the damage control pathway at R2E
 #'
 #' @param trj        Trajectory to append the branch to
@@ -2334,6 +2385,10 @@ r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
 #' @param surg_teams This R2E team's surgical sections
 #' @return The trajectory, with the second-operation branch appended.
 r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
+  # Read and validated here, at trajectory build, so a malformed threshold is a
+  # named configuration error rather than an error raised mid-campaign.
+  saturation_threshold <- r2e_second_surgery_threshold()
+
   trj %>%
     # operation was the R2E Phase 3 one. A second procedure is only meaningful
     # for patients who underwent Phase 3 surgery at R2E (r2e_surgery == 1)
@@ -2341,13 +2396,27 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
     # control pathway: a single-stage casualty's Phase 3 procedure was already
     # their definitive repair, so there is nothing to return to theatre for.
     # Patients with surgery == 0 never set r2e_surgery, so is.na(r2e_surg) guards them out.
+    #
+    # Arms:
+    #   1 - eligible, and forward surgical capacity is available: return to
+    #       theatre for the definitive repair
+    #   2 - not eligible: single-stage, no R2E operation, or the abbreviated
+    #       operation was performed at R2B and the definitive repair here was
+    #       the Phase 3 one
+    #   3 - eligible, but the surgical queue has reached
+    #       second_surgery$saturation_queue_threshold: released to strategic
+    #       evacuation with the definitive repair outstanding. Disabled at the
+    #       shipped threshold of zero, in which case this arm is unreachable.
     branch(
       option = function() {
         if (single_stage()) return(2)
         r2e_surg   <- get_attribute(env, "r2e_surgery")
         prior_surg <- get_attribute(env, "r2b_surgery")
         if (!is.na(r2e_surg) && r2e_surg == 1 &&
-            (is.na(prior_surg) || prior_surg != 1)) return(1)
+            (is.na(prior_surg) || prior_surg != 1)) {
+          if (r2e_surgery_saturated(team_id, saturation_threshold)) return(3)
+          return(1)
+        }
         return(2)
       },
       continue = TRUE,
@@ -2369,7 +2438,13 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
             )
           })
         ),
-      trajectory("No Second Surgery Needed")
+      trajectory("No Second Surgery Needed"),
+      # Released to strategic evacuation with the definitive repair outstanding.
+      # The abbreviated operation and its recovery have already been served
+      # here; what is given up is the return to theatre, which becomes demand on
+      # the national support base rather than care withheld.
+      trajectory("Released Before Definitive Repair — Theatre Saturated") %>%
+        set_attribute("definitive_repair_outstanding", 1)
     )
 }
 
@@ -2486,6 +2561,11 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
     set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
     branch(
       option = function() {
+        # A casualty whose definitive repair is still outstanding cannot be
+        # retained in theatre whatever their drawn recovery: the operation they
+        # are waiting for is the one this echelon has no capacity to perform.
+        outstanding <- get_attribute(env, "definitive_repair_outstanding")
+        if (!is.na(outstanding) && outstanding == 1) return(2)
         rtd    <- get_attribute(env, "recovery_to_duty_days")
         policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
         if (!is.na(rtd) && rtd <= policy) return(1)

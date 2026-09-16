@@ -899,29 +899,22 @@
         {
           "acty": "wards",
           "vals": [
-            { "var": "p1_surgical",    "val": "ICU" },
-            { "var": "p1_nonsurgical", "val": "Surgical Ward" },
-            { "var": "p2",             "val": "Surgical Ward" },
-            { "var": "p3_dnbi",        "val": "General Ward" },
-            { "var": "levels",         "val": ["ICU", "Surgical Ward", "General Ward"] }
-          ]
-        },
-        {
-          "acty": "capacity",
-          "vals": [
-            { "var": "wards", "val": ["ICU", "Surgical Ward", "General Ward"] },
-            { "var": "beds",  "val": [null, null, null] }
+            { "var": "p1_surgical",    "val": "icu" },
+            { "var": "p1_nonsurgical", "val": "hold" },
+            { "var": "p2",             "val": "hold" },
+            { "var": "p3_dnbi",        "val": "hold" },
+            { "var": "levels",         "val": ["icu", "hold"] }
           ]
         },
         {
           "acty": "icu_continuation",
           "vals": [
             { "var": "enabled",        "val": 1 },
-            { "var": "icu_ward",       "val": "ICU" },
+            { "var": "icu_ward",       "val": "icu" },
             { "var": "min",            "val": 1 },
             { "var": "mode",           "val": 4 },
             { "var": "max",            "val": 21 },
-            { "var": "step_down_ward", "val": "Surgical Ward" }
+            { "var": "step_down_ward", "val": "hold" }
           ]
         },
         {

@@ -271,97 +271,6 @@ role4_ward_map <- function(r4_params) {
          character(1))
 }
 
-#' The national support base establishment each ward is measured against
-#'
-#' @param r4_params `env_data$vars$role4` list
-#' @return Named numeric vector of beds per ward, NA where unlimited
-#'
-#' @details An absent block, an absent ward and a null bed count all read as
-#'   NA, which is unlimited: the model reports the demand a theatre generates
-#'   and does not plan the receiving echelon's capacity, so a stated
-#'   establishment is something to measure against rather than a constraint
-#'   anything respects. Nothing queues, is refused or is pushed back into
-#'   theatre; README Further Development L16 records what follows.
-role4_capacity <- function(r4_params) {
-  levels <- role4_ward_levels(r4_params)
-  capacity <- setNames(rep(NA_real_, length(levels)), levels)
-  block <- r4_params$capacity
-  if (is.null(block)) return(capacity)
-  wards <- as.character(unlist(block$wards))
-  beds <- block$beds
-  if (length(wards) == 0 || is.null(beds)) return(capacity)
-  for (i in seq_along(wards)) {
-    if (!wards[i] %in% levels) next
-    value <- beds[[i]]
-    if (is.null(value) || (length(value) == 1 && is.na(value))) next
-    capacity[[wards[i]]] <- as.numeric(value)
-  }
-  capacity
-}
-
-#' Validate the Role 4 capacity block
-#'
-#' @param r4_params `env_data$vars$role4` list
-#' @return Invisible TRUE, or stops naming the field and the value found
-validate_role4_capacity <- function(r4_params) {
-  block <- r4_params$capacity
-  if (is.null(block)) return(invisible(TRUE))
-  levels <- role4_ward_levels(r4_params)
-  wards <- as.character(unlist(block$wards))
-  beds <- block$beds
-  if (length(wards) != length(beds)) {
-    stop("role4.capacity.wards and role4.capacity.beds differ in length (",
-         length(wards), " against ", length(beds), ")")
-  }
-  for (i in seq_along(wards)) {
-    if (!wards[i] %in% levels) {
-      stop("role4.capacity.wards names '", wards[i],
-           "', which is not one of role4.wards.levels (",
-           paste(levels, collapse = ", "), ")")
-    }
-    value <- beds[[i]]
-    if (is.null(value) || (length(value) == 1 && is.na(value))) next
-    numeric_value <- suppressWarnings(as.numeric(value))
-    if (is.na(numeric_value) || numeric_value < 0) {
-      stop("role4.capacity.beds for '", wards[i],
-           "' must be a non-negative number or null; found: ", format(value))
-    }
-  }
-  invisible(TRUE)
-}
-
-#' Demand against a stated establishment, per replication and ward
-#'
-#' @param census Daily census as compute_role4_census() returns it
-#' @param capacity Named numeric vector of beds per ward, NA where unlimited
-#' @return Data frame with replication, ward, days_above, peak_overshoot and
-#'   unmet_bed_days; empty where no ward states an establishment
-#'
-#' @details Unmet bed-days sum each day's shortfall rather than counting the
-#'   days on which one occurred, so a single day 20 beds short and twenty days
-#'   one bed short are distinguishable; a planner sizing an establishment needs
-#'   both, which is why the day count and the peak are reported alongside it. A
-#'   ward with no stated establishment is omitted rather than reported as
-#'   meeting its demand.
-role4_capacity_shortfall <- function(census, capacity) {
-  empty <- data.frame(replication = integer(0), ward = character(0),
-                      days_above = integer(0), peak_overshoot = numeric(0),
-                      unmet_bed_days = numeric(0))
-  stated <- capacity[!is.na(capacity)]
-  if (length(stated) == 0 || nrow(census) == 0) return(empty)
-
-  census %>%
-    filter(ward %in% names(stated)) %>%
-    mutate(established = unname(stated[ward]),
-           overshoot = pmax(0, occupancy - established)) %>%
-    group_by(replication, ward) %>%
-    summarise(days_above = sum(overshoot > 0),
-              peak_overshoot = max(overshoot),
-              unmet_bed_days = sum(overshoot),
-              .groups = "drop") %>%
-    as.data.frame()
-}
-
 #' Validate the Role 4 ward mapping and intensive care continuation block
 #'
 #' @param r4_params `env_data$vars$role4` list
@@ -479,7 +388,6 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
   )
 
   validate_role4_wards(r4_los_params)
-  validate_role4_capacity(r4_los_params)
   ward_map <- role4_ward_map(r4_los_params)
 
   # The length-of-stay draw is the analysis pipeline's only RNG consumer, and
@@ -2676,25 +2584,15 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
     scale_fill_brewer(palette = "Set2") +
     scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
     labs(
-      title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
+      title    = "Role 4 (National Support Base) Daily Bed Occupancy by Bed Type",
       subtitle = sprintf(
         "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
         role4_summary$total_evacuated, n_sim_days_role4
       ),
-      x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+      x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Bed type"
     ) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")
-
-  # The stacked bars are total occupancy across wards, so a per-ward
-  # establishment has no line to be drawn against on this scale; the total
-  # does. A configuration stating none leaves the plot as it was.
-  role4_established <- role4_capacity(role4_params)
-  if (any(!is.na(role4_established))) {
-    role4_census_plot <- role4_census_plot +
-      geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
-                 linetype = "longdash", colour = "grey25", linewidth = 0.6)
-  }
 
   ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
          width = 12, height = 6, dpi = 150)
@@ -3868,12 +3766,12 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
       scale_fill_brewer(palette = "Set2") +
       scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
       labs(
-        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward — Mean Across Replications",
+        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Bed Type — Mean Across Replications",
         subtitle = sprintf(
-          "%d replications; dotted line = end of %d-day engagement window; stacked mean shown, per-ward 95%% CI in downloadable data",
+          "%d replications; dotted line = end of %d-day engagement window; stacked mean shown, per-bed-type 95%% CI in downloadable data",
           n_reps, n_sim_days_role4
         ),
-        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Bed type"
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")

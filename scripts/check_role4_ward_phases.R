@@ -112,14 +112,14 @@ report <- function(ok, fmt, ...) {
 #' @param step_down Ward the remainder of a split stay is served in.
 #' @return A `env_data$vars$role4`-shaped list.
 role4_config <- function(enabled = 0, icu_days = CHECK_ICU_DAYS,
-                         step_down = "Surgical Ward") {
+                         step_down = "hold") {
   list(
-    wards = list(p1_surgical = "ICU", p1_nonsurgical = "Surgical Ward",
-                 p2 = "Surgical Ward", p3_dnbi = "General Ward",
-                 levels = list("ICU", "Surgical Ward", "General Ward")),
+    wards = list(p1_surgical = "icu", p1_nonsurgical = "hold",
+                 p2 = "hold", p3_dnbi = "hold",
+                 levels = list("icu", "hold")),
     icu_continuation = list(enabled = enabled, min = icu_days$min,
                             mode = icu_days$mode, max = icu_days$max,
-                            icu_ward = "ICU", step_down_ward = step_down),
+                            icu_ward = "icu", step_down_ward = step_down),
     los_p1_surgical = list(min = 10, mode = 21, max = 45),
     los_p1_nonsurgical = list(min = 7, mode = 14, max = 30),
     los_p2 = list(min = 5, mode = 10, max = 21),
@@ -191,10 +191,10 @@ report(abs((shipped_total - SOURCE_THEATRE_DAYS) - SOURCE_ROLE4_ICU_DAYS) < 0.2,
        shipped_total, SOURCE_THEATRE_DAYS, SOURCE_ROLE4_ICU_DAYS)
 
 shipped_map <- role4_ward_map(shipped)
-historical <- c(p1_surgical = "ICU", p1_nonsurgical = "Surgical Ward",
-                p2 = "Surgical Ward", p3_dnbi = "General Ward")
-report(identical(shipped_map[names(historical)], historical),
-       "the shipped ward mapping is the one the hard-coded rule applied (%s)",
+expected_map <- c(p1_surgical = "icu", p1_nonsurgical = "hold",
+                  p2 = "hold", p3_dnbi = "hold")
+report(identical(shipped_map[names(expected_map)], expected_map),
+       "the shipped mapping names only bed types the theatre fields (%s)",
        paste(sprintf("%s=%s", names(shipped_map), shipped_map), collapse = ", "))
 
 cohort <- build_cohort()
@@ -284,14 +284,14 @@ ward_cohort <- build_cohort()
 ward_cohort$priority <- 3
 ward_cohort$injury_type <- 2
 ward_assigned <- assign_role4_los(ward_cohort, on_config)
-report(all(ward_assigned$ward == "General Ward"),
+report(all(ward_assigned$ward == "hold"),
        "the constructed cohort is admitted away from intensive care (%s)",
        paste(unique(ward_assigned$ward), collapse = ", "))
 report(all(ward_assigned$r4_icu_days == 0),
        "a casualty not admitted to intensive care is owed none, though operated on")
 ward_phases <- role4_ward_phases(ward_assigned, on_config)
 report(nrow(ward_phases) == nrow(ward_assigned) &&
-         all(ward_phases$phase_ward == "General Ward"),
+         all(ward_phases$phase_ward == "hold"),
        "no such casualty is stepped down into another ward (%s)",
        paste(unique(ward_phases$phase_ward), collapse = ", "))
 
@@ -316,7 +316,7 @@ long_phases <- role4_ward_phases(long_assigned, long_config)
 
 report(all(abs(long_assigned$r4_icu_days - long_assigned$los_days) < TOL),
        "a requirement beyond the stay fills it exactly rather than exceeding it")
-report(all(long_phases$phase_ward == "ICU"),
+report(all(long_phases$phase_ward == "icu"),
        "no step-down phase is emitted where the stay is wholly intensive care")
 long_totals <- phase_totals(long_assigned, long_phases)
 report(all(long_totals$phase_days == long_totals$stay_days),
@@ -345,7 +345,7 @@ report(isTRUE(validate_role4_wards(role4_config(enabled = 1))),
        "a well-formed configuration validates")
 
 bad_ward <- role4_config()
-bad_ward$wards$p2 <- "Recovery Ward"
+bad_ward$wards$p2 <- "recovery"
 expect_rejected(bad_ward, "role4.wards.p2", "a ward naming no configured level")
 
 bad_enabled <- role4_config()
@@ -362,21 +362,21 @@ expect_rejected(bad_degenerate, "draws no distribution",
                 "a requirement whose bounds coincide")
 
 bad_icu_ward <- role4_config(enabled = 1)
-bad_icu_ward$icu_continuation$icu_ward <- "Recovery Ward"
+bad_icu_ward$icu_continuation$icu_ward <- "recovery"
 expect_rejected(bad_icu_ward, "role4.icu_continuation.icu_ward",
                 "an intensive care ward naming no configured level")
 
 same_ward <- role4_config(enabled = 1)
-same_ward$icu_continuation$step_down_ward <- "ICU"
+same_ward$icu_continuation$step_down_ward <- "icu"
 expect_rejected(same_ward, "the step-down moves nobody",
                 "an intensive care ward equal to its step-down ward")
 
-bad_step <- role4_config(enabled = 1, step_down = "Recovery Ward")
+bad_step <- role4_config(enabled = 1, step_down = "recovery")
 expect_rejected(bad_step, "role4.icu_continuation.step_down_ward",
                 "a step-down ward naming no configured level")
 
 bad_levels <- role4_config()
-bad_levels$wards$levels <- list("ICU", "ICU", "General Ward")
+bad_levels$wards$levels <- list("icu", "icu", "hold")
 expect_rejected(bad_levels, "names a ward twice", "a duplicated ward level")
 
 # A negative requirement is rejected before it can produce negative bed-days.
@@ -391,103 +391,47 @@ cat("\n-- the census counts the phases rather than the admission ward --\n")
 census_off <- compute_role4_census(cohort, role4_config(enabled = 0))
 census_on <- compute_role4_census(cohort, on_config)
 
-report(setequal(unique(census_off$ward), "ICU"),
+report(setequal(unique(census_off$ward), "icu"),
        "the disabled census reports the admission ward alone (%s)",
        paste(unique(census_off$ward), collapse = ", "))
-report(setequal(unique(census_on$ward), c("ICU", "Surgical Ward")),
+report(setequal(unique(census_on$ward), c("icu", "hold")),
        "the enabled census reports both phases' wards (%s)",
        paste(sort(unique(census_on$ward)), collapse = ", "))
 report(sum(census_off$occupancy) == sum(census_on$occupancy),
        "both censuses count the same bed-days (%d against %d)",
        sum(census_off$occupancy), sum(census_on$occupancy))
 
-icu_off <- sum(census_off$occupancy[census_off$ward == "ICU"])
-icu_on <- sum(census_on$occupancy[census_on$ward == "ICU"])
+icu_off <- sum(census_off$occupancy[census_off$ward == "icu"])
+icu_on <- sum(census_on$occupancy[census_on$ward == "icu"])
 report(icu_on < icu_off,
        "the split moves bed-days out of intensive care (%d against %d)",
        icu_on, icu_off)
 
-# ── 7. Demand is measured against a stated establishment ─────────────────────
+# ── 7. The national support base is not given a capacity ─────────────────────
 
-cat("\n-- demand is measured against a stated establishment --\n")
+cat("\n-- the national support base is not given a capacity --\n")
 
-report(all(is.na(role4_capacity(shipped))),
-       "every ward ships with no stated establishment, so nothing is bounded")
-
-# A census whose answers are computable by hand, so a shortfall that agreed
-# with the model but not with arithmetic would still fail.
-hand_census <- data.frame(replication = 1L, day = 1:10, ward = "ICU",
-                          occupancy = c(1, 2, 12, 14, 9, 10, 11, 3, 2, 1))
-unlimited <- c(ICU = NA_real_, `Surgical Ward` = NA_real_, `General Ward` = NA_real_)
-report(nrow(role4_capacity_shortfall(hand_census, unlimited)) == 0,
-       "an unlimited establishment reports no shortfall at all")
-
-bounded <- unlimited
-bounded[["ICU"]] <- 10
-measured <- role4_capacity_shortfall(hand_census, bounded)
-report(nrow(measured) == 1 && measured$days_above == 3,
-       "three days stand above an establishment of 10 (found %s)",
-       if (nrow(measured) == 1) format(measured$days_above) else "no row")
-report(nrow(measured) == 1 && abs(measured$peak_overshoot - 4) < TOL,
-       "the peak overshoot is 4 beds (found %s)",
-       if (nrow(measured) == 1) format(measured$peak_overshoot) else "no row")
-report(nrow(measured) == 1 && abs(measured$unmet_bed_days - 7) < TOL,
-       "unmet demand is 7 bed-days, the sum of the shortfalls (found %s)",
-       if (nrow(measured) == 1) format(measured$unmet_bed_days) else "no row")
-
-# Summing the shortfall rather than counting its days is what distinguishes a
-# brief deep shortfall from a long shallow one, which are different problems.
-deep <- data.frame(replication = 1L, day = 1L, ward = "ICU", occupancy = 30)
-shallow <- data.frame(replication = 1L, day = 1:20, ward = "ICU", occupancy = 11)
-deep_measured <- role4_capacity_shortfall(deep, bounded)
-shallow_measured <- role4_capacity_shortfall(shallow, bounded)
-report(deep_measured$days_above == 1 && shallow_measured$days_above == 20 &&
-         deep_measured$unmet_bed_days == 20 && shallow_measured$unmet_bed_days == 20,
-       "a deep one-day shortfall and a shallow twenty-day one are distinguishable")
-
-# A ward stating no establishment is omitted rather than reported as meeting
-# its demand, which would read as a pass it was never measured for.
-mixed_census <- rbind(hand_census,
-                      data.frame(replication = 1L, day = 1:10,
-                                 ward = "Surgical Ward", occupancy = 99))
-mixed <- role4_capacity_shortfall(mixed_census, bounded)
-report(setequal(unique(mixed$ward), "ICU"),
-       "a ward with no stated establishment is omitted rather than passed (%s)",
-       paste(unique(mixed$ward), collapse = ", "))
-
-bad_capacity <- role4_config()
-bad_capacity$capacity <- list(wards = list("ICU"), beds = list(-5))
-#' Assert that a capacity block is rejected with a message naming a field
-#'
-#' @param config The Role 4 configuration under test.
-#' @param needle Text the rejection message must contain.
-#' @param label Description of the malformation, for the assertion line.
-#' @return Invisible NULL.
-expect_rejected2 <- function(config, needle, label) {
-  result <- try(validate_role4_capacity(config), silent = TRUE)
-  rejected <- inherits(result, "try-error")
-  named <- rejected && grepl(needle, conditionMessage(attr(result, "condition")),
-                             fixed = TRUE)
-  report(named, "%s is rejected with a message naming '%s'", label, needle)
-  invisible(NULL)
+# The model sets the demand a deployed trauma system places on the national
+# support base and does not simulate that echelon: nothing queues for a Role 4
+# bed, nothing is refused, nothing is pushed back into theatre. An
+# establishment drawn on the census, or a shortfall reported against one, would
+# read as a statement about an echelon carrying no case mix, no transfer
+# options and no back-pressure. The absence is asserted rather than left to
+# convention, so it cannot be reintroduced without this failing.
+analysis_source <- readLines("R/analysis.R", warn = FALSE)
+for (absent in c("role4_capacity", "role4_capacity_shortfall",
+                 "role4_established", "ROLE4_ESTABLISHMENT_CAPTION")) {
+  report(!any(grepl(absent, analysis_source, fixed = TRUE)),
+         "the analysis module carries no '%s'", absent)
 }
-expect_rejected2(bad_capacity, "role4.capacity.beds", "a negative establishment")
 
-bad_unknown <- role4_config()
-bad_unknown$capacity <- list(wards = list("Recovery Ward"), beds = list(10))
-expect_rejected2(bad_unknown, "role4.capacity.wards",
-                 "an establishment for a ward that does not exist")
+report(is.null(shipped$capacity),
+       "the shipped configuration states no national support base capacity")
 
-bad_length <- role4_config()
-bad_length$capacity <- list(wards = list("ICU", "General Ward"), beds = list(10))
-expect_rejected2(bad_length, "differ in length",
-                 "a ward list longer than its bed list")
+config_source <- readLines("env_data.json", warn = FALSE)
+report(!any(grepl("\"acty\": \"capacity\"", config_source, fixed = TRUE)),
+       "env_data.json carries no role4 capacity block")
 
-null_capacity <- role4_config()
-null_capacity$capacity <- list(wards = list("ICU"), beds = list(NULL))
-report(isTRUE(validate_role4_capacity(null_capacity)) &&
-         all(is.na(role4_capacity(null_capacity))),
-       "a null establishment validates and reads as unlimited")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

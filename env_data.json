@@ -897,6 +897,34 @@
       "elm": "role4",
       "actys": [
         {
+          "acty": "wards",
+          "vals": [
+            { "var": "p1_surgical",    "val": "ICU" },
+            { "var": "p1_nonsurgical", "val": "Surgical Ward" },
+            { "var": "p2",             "val": "Surgical Ward" },
+            { "var": "p3_dnbi",        "val": "General Ward" },
+            { "var": "levels",         "val": ["ICU", "Surgical Ward", "General Ward"] }
+          ]
+        },
+        {
+          "acty": "capacity",
+          "vals": [
+            { "var": "wards", "val": ["ICU", "Surgical Ward", "General Ward"] },
+            { "var": "beds",  "val": [null, null, null] }
+          ]
+        },
+        {
+          "acty": "icu_continuation",
+          "vals": [
+            { "var": "enabled",        "val": 1 },
+            { "var": "icu_ward",       "val": "ICU" },
+            { "var": "min",            "val": 1 },
+            { "var": "mode",           "val": 4 },
+            { "var": "max",            "val": 21 },
+            { "var": "step_down_ward", "val": "Surgical Ward" }
+          ]
+        },
+        {
           "acty": "los_p1_surgical",
           "vals": [
             { "var": "min",  "val": 10 },

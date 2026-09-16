@@ -248,6 +248,195 @@ with_preserved_rng <- function(expr) {
   force(expr)
 }
 
+#' Ward levels the Role 4 census reports, in display order
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return Character vector of ward names, outermost acuity first
+#'
+#' @details The levels are configured rather than fixed so that a ward added
+#'   to the mapping appears in the census and the plots without three separate
+#'   literal vectors having to be found and edited. Validated by
+#'   validate_role4_wards(), which every caller reaches first.
+role4_ward_levels <- function(r4_params) {
+  as.character(unlist(r4_params$wards$levels))
+}
+
+#' The ward each length-of-stay category is admitted to
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return Named character vector, one ward per length-of-stay category
+role4_ward_map <- function(r4_params) {
+  categories <- c("p1_surgical", "p1_nonsurgical", "p2", "p3_dnbi")
+  vapply(categories, function(cat) as.character(r4_params$wards[[cat]]),
+         character(1))
+}
+
+#' The national support base establishment each ward is measured against
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return Named numeric vector of beds per ward, NA where unlimited
+#'
+#' @details An absent block, an absent ward and a null bed count all read as
+#'   NA, which is unlimited: the model reports the demand a theatre generates
+#'   and does not plan the receiving echelon's capacity, so a stated
+#'   establishment is something to measure against rather than a constraint
+#'   anything respects. Nothing queues, is refused or is pushed back into
+#'   theatre; README Further Development L16 records what follows.
+role4_capacity <- function(r4_params) {
+  levels <- role4_ward_levels(r4_params)
+  capacity <- setNames(rep(NA_real_, length(levels)), levels)
+  block <- r4_params$capacity
+  if (is.null(block)) return(capacity)
+  wards <- as.character(unlist(block$wards))
+  beds <- block$beds
+  if (length(wards) == 0 || is.null(beds)) return(capacity)
+  for (i in seq_along(wards)) {
+    if (!wards[i] %in% levels) next
+    value <- beds[[i]]
+    if (is.null(value) || (length(value) == 1 && is.na(value))) next
+    capacity[[wards[i]]] <- as.numeric(value)
+  }
+  capacity
+}
+
+#' Validate the Role 4 capacity block
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return Invisible TRUE, or stops naming the field and the value found
+validate_role4_capacity <- function(r4_params) {
+  block <- r4_params$capacity
+  if (is.null(block)) return(invisible(TRUE))
+  levels <- role4_ward_levels(r4_params)
+  wards <- as.character(unlist(block$wards))
+  beds <- block$beds
+  if (length(wards) != length(beds)) {
+    stop("role4.capacity.wards and role4.capacity.beds differ in length (",
+         length(wards), " against ", length(beds), ")")
+  }
+  for (i in seq_along(wards)) {
+    if (!wards[i] %in% levels) {
+      stop("role4.capacity.wards names '", wards[i],
+           "', which is not one of role4.wards.levels (",
+           paste(levels, collapse = ", "), ")")
+    }
+    value <- beds[[i]]
+    if (is.null(value) || (length(value) == 1 && is.na(value))) next
+    numeric_value <- suppressWarnings(as.numeric(value))
+    if (is.na(numeric_value) || numeric_value < 0) {
+      stop("role4.capacity.beds for '", wards[i],
+           "' must be a non-negative number or null; found: ", format(value))
+    }
+  }
+  invisible(TRUE)
+}
+
+#' Demand against a stated establishment, per replication and ward
+#'
+#' @param census Daily census as compute_role4_census() returns it
+#' @param capacity Named numeric vector of beds per ward, NA where unlimited
+#' @return Data frame with replication, ward, days_above, peak_overshoot and
+#'   unmet_bed_days; empty where no ward states an establishment
+#'
+#' @details Unmet bed-days sum each day's shortfall rather than counting the
+#'   days on which one occurred, so a single day 20 beds short and twenty days
+#'   one bed short are distinguishable; a planner sizing an establishment needs
+#'   both, which is why the day count and the peak are reported alongside it. A
+#'   ward with no stated establishment is omitted rather than reported as
+#'   meeting its demand.
+role4_capacity_shortfall <- function(census, capacity) {
+  empty <- data.frame(replication = integer(0), ward = character(0),
+                      days_above = integer(0), peak_overshoot = numeric(0),
+                      unmet_bed_days = numeric(0))
+  stated <- capacity[!is.na(capacity)]
+  if (length(stated) == 0 || nrow(census) == 0) return(empty)
+
+  census %>%
+    filter(ward %in% names(stated)) %>%
+    mutate(established = unname(stated[ward]),
+           overshoot = pmax(0, occupancy - established)) %>%
+    group_by(replication, ward) %>%
+    summarise(days_above = sum(overshoot > 0),
+              peak_overshoot = max(overshoot),
+              unmet_bed_days = sum(overshoot),
+              .groups = "drop") %>%
+    as.data.frame()
+}
+
+#' Validate the Role 4 ward mapping and intensive care continuation block
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return Invisible TRUE, or stops naming the field and the value found
+#'
+#' @details Read from env_data.json, so validated at the boundary rather than
+#'   trusted (E1, E2). A ward naming no configured level is the failure worth
+#'   guarding: the census counts by ward and the plot fills by a factor over
+#'   these levels, so an unknown ward would silently drop that category's
+#'   casualties from both rather than erroring.
+validate_role4_wards <- function(r4_params) {
+  levels <- role4_ward_levels(r4_params)
+  if (length(levels) == 0 || any(is.na(levels)) || any(!nzchar(levels))) {
+    stop("role4.wards.levels must name at least one ward; found: ",
+         paste(levels, collapse = ", "))
+  }
+  if (anyDuplicated(levels)) {
+    stop("role4.wards.levels names a ward twice: ",
+         paste(levels[duplicated(levels)], collapse = ", "))
+  }
+
+  mapping <- role4_ward_map(r4_params)
+  for (cat in names(mapping)) {
+    if (is.na(mapping[[cat]]) || !nzchar(mapping[[cat]])) {
+      stop("role4.wards.", cat, " is missing a ward name")
+    }
+    if (!mapping[[cat]] %in% levels) {
+      stop("role4.wards.", cat, " is '", mapping[[cat]],
+           "', which is not one of role4.wards.levels (",
+           paste(levels, collapse = ", "), ")")
+    }
+  }
+
+  cont <- r4_params$icu_continuation
+  if (is.null(cont)) return(invisible(TRUE))
+  enabled <- as.numeric(cont$enabled)
+  if (is.na(enabled) || !enabled %in% c(0, 1)) {
+    stop("role4.icu_continuation.enabled must be 0 or 1; found: ",
+         format(cont$enabled))
+  }
+  if (enabled == 0) return(invisible(TRUE))
+
+  bounds <- vapply(c("min", "mode", "max"),
+                   function(nm) as.numeric(cont[[nm]]), numeric(1))
+  if (any(is.na(bounds)) || any(bounds < 0)) {
+    stop("role4.icu_continuation min/mode/max must be non-negative numbers; found: ",
+         paste(format(bounds), collapse = ", "))
+  }
+  if (!(bounds[["min"]] <= bounds[["mode"]] && bounds[["mode"]] <= bounds[["max"]])) {
+    stop("role4.icu_continuation requires min <= mode <= max; found: ",
+         paste(format(bounds), collapse = ", "))
+  }
+  if (bounds[["min"]] == bounds[["max"]]) {
+    stop("role4.icu_continuation min and max are both ", format(bounds[["min"]]),
+         ", which draws no distribution; disable it with enabled = 0 instead")
+  }
+  step_down <- as.character(cont$step_down_ward)
+  if (length(step_down) != 1 || is.na(step_down) || !step_down %in% levels) {
+    stop("role4.icu_continuation.step_down_ward is '", format(step_down),
+         "', which is not one of role4.wards.levels (",
+         paste(levels, collapse = ", "), ")")
+  }
+  icu_ward <- as.character(cont$icu_ward)
+  if (length(icu_ward) != 1 || is.na(icu_ward) || !icu_ward %in% levels) {
+    stop("role4.icu_continuation.icu_ward is '", format(icu_ward),
+         "', which is not one of role4.wards.levels (",
+         paste(levels, collapse = ", "), ")")
+  }
+  if (identical(icu_ward, step_down)) {
+    stop("role4.icu_continuation.icu_ward and step_down_ward are both '",
+         icu_ward, "', so the step-down moves nobody")
+  }
+  invisible(TRUE)
+}
+
 #' Assigns each strategically evacuated casualty a Role 4 length-of-stay
 #' category and ward, and draws a length of stay from the matching
 #' triangular distribution
@@ -289,6 +478,10 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
                  r4_los_params$los_p2$max,  r4_los_params$los_p3_dnbi$max)
   )
 
+  validate_role4_wards(r4_los_params)
+  validate_role4_capacity(r4_los_params)
+  ward_map <- role4_ward_map(r4_los_params)
+
   # The length-of-stay draw is the analysis pipeline's only RNG consumer, and
   # the pipeline is a report over monitoring data already produced: analysing
   # one run twice has to give one answer. Preserving the stream around the
@@ -305,11 +498,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
           !is.na(priority) & priority == 2                             ~ "p2",
           TRUE                                                          ~ "p3_dnbi"
         ),
-        ward = case_when(
-          los_category == "p1_surgical"               ~ "ICU",
-          los_category %in% c("p1_nonsurgical", "p2")  ~ "Surgical Ward",
-          TRUE                                          ~ "General Ward"
-        )
+        ward = unname(ward_map[los_category])
       ) %>%
       left_join(los_lookup, by = "los_category") %>%
       rowwise() %>%
@@ -319,8 +508,116 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
         r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
       ) %>%
       ungroup() %>%
-      dplyr::select(-los_min, -los_mode, -los_max)
+      dplyr::select(-los_min, -los_mode, -los_max) %>%
+      add_role4_icu_days(r4_los_params)
   )
+}
+
+#' Days of the Role 4 stay served in intensive care rather than on a ward
+#'
+#' @param assigned Frame returned by assign_role4_los()'s draw, carrying
+#'   ward, los_days and post_definitive_min
+#' @param r4_params `env_data$vars$role4` list
+#' @return `assigned` with an added r4_icu_days column
+#'
+#' @details Role 4 continues the post-operative intensive care episode that
+#'   R2E begins rather than starting a new one, so the days owed here are the
+#'   casualty's whole post-operative requirement less what theatre already
+#'   served. That is the contract draw_stabilisation_icu() already applies
+#'   across R2B and R2E (R/trajectories.R): one requirement, divided between
+#'   the echelons that serve it, so the total cannot depend on the route.
+#'   post_definitive_min records the minutes theatre served and is set for
+#'   operated casualties alone, so an unoperated evacuee is owed nothing here
+#'   and keeps the whole stay on its admission ward, which is what the static
+#'   mapping already did for every category but p1_surgical.
+#'
+#'   With the block disabled no draw is taken at all, which is what makes the
+#'   shipped configuration reproduce the census this function replaced rather
+#'   than merely approximate it: an extra draw inside the preserved stream
+#'   would move every subsequent length of stay.
+add_role4_icu_days <- function(assigned, r4_params) {
+  cont <- r4_params$icu_continuation
+  enabled <- !is.null(cont) && !is.na(as.numeric(cont$enabled)) &&
+    as.numeric(cont$enabled) == 1
+  if (!enabled) return(assigned %>% mutate(r4_icu_days = los_days))
+
+  served_days <- if ("post_definitive_min" %in% names(assigned)) {
+    ifelse(is.na(assigned$post_definitive_min), 0,
+           assigned$post_definitive_min / DAY_MIN)
+  } else {
+    rep(0, nrow(assigned))
+  }
+  # Two conditions, and the second is the one a first implementation missed.
+  # A casualty theatre never operated on carries no post-operative episode for
+  # Role 4 to continue. And a casualty whose category is not admitted to
+  # intensive care has no intensive care phase to divide either: continuing one
+  # for them would step a general ward casualty down into a surgical ward,
+  # moving bed-days between two wards neither of which is the one under study.
+  icu_ward <- as.character(cont$icu_ward)
+  operated <- if ("post_definitive_min" %in% names(assigned)) {
+    !is.na(assigned$post_definitive_min) & assigned$ward == icu_ward
+  } else {
+    rep(FALSE, nrow(assigned))
+  }
+
+  total <- rep(0, nrow(assigned))
+  if (any(operated)) {
+    total[operated] <- rtriangle(sum(operated), a = as.numeric(cont$min),
+                                 b = as.numeric(cont$max),
+                                 c = as.numeric(cont$mode))
+  }
+  owed <- pmax(0, total - served_days)
+  assigned %>%
+    mutate(r4_icu_days = pmin(pmax(0, owed), los_days))
+}
+
+#' Expand each Role 4 stay into the ward phases it is served in
+#'
+#' @param assigned Frame returned by assign_role4_los()
+#' @param r4_params `env_data$vars$role4` list
+#' @return One row per casualty-phase, with ward, phase_start and phase_end
+#'
+#' @details A stay is at most two phases, an intensive care phase followed by
+#'   the step-down ward that carries the remainder. The remainder is taken as
+#'   the difference rather than drawn, so the phases sum to the drawn length of
+#'   stay exactly whatever the intensive care requirement comes to;
+#'   scripts/check_role4_ward_phases.R asserts that conservation. A stay owed
+#'   no intensive care, or owed all of it, yields the single phase the static
+#'   mapping produced.
+role4_ward_phases <- function(assigned, r4_params) {
+  cont <- r4_params$icu_continuation
+  enabled <- !is.null(cont) && !is.na(as.numeric(cont$enabled)) &&
+    as.numeric(cont$enabled) == 1
+
+  base <- assigned %>%
+    mutate(phase_ward = ward,
+           phase_days = if (enabled) r4_icu_days else los_days)
+
+  if (!enabled) {
+    return(base %>%
+             mutate(phase_start = r4_admit_day, phase_end = r4_discharge_day) %>%
+             dplyr::select(-phase_days))
+  }
+
+  step_down_ward <- as.character(cont$step_down_ward)
+  icu_phase <- base %>%
+    filter(phase_days > 0) %>%
+    mutate(phase_start = r4_admit_day,
+           phase_end   = r4_admit_day + ceiling(phase_days) - 1) %>%
+    dplyr::select(-phase_days)
+  # The step-down ward applies only where an intensive care phase preceded it.
+  # A casualty owed no intensive care never left their admission ward, so
+  # renaming them here would move bed-days between two wards on the strength of
+  # a phase that did not happen.
+  ward_phase <- base %>%
+    filter(los_days - phase_days > 0) %>%
+    mutate(phase_ward  = dplyr::if_else(phase_days > 0, step_down_ward, phase_ward),
+           phase_start = r4_admit_day + ceiling(phase_days),
+           phase_end   = r4_discharge_day) %>%
+    dplyr::select(-phase_days) %>%
+    filter(phase_start <= phase_end)
+
+  bind_rows(icu_phase, ward_phase)
 }
 
 #' Computes daily Role 4 (national support base) bed occupancy by ward
@@ -341,11 +638,12 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
                       ward = character(0), occupancy = integer(0)))
   }
 
-  role4_evac %>%
+  role4_ward_phases(role4_evac, r4_los_params) %>%
     rowwise() %>%
-    mutate(day = list(seq(r4_admit_day, r4_discharge_day))) %>%
+    mutate(day = list(seq(phase_start, phase_end))) %>%
     unnest(day) %>%
     ungroup() %>%
+    mutate(ward = phase_ward) %>%
     count(replication, day, ward, name = "occupancy")
 }
 
@@ -2327,6 +2625,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
 #' @param n_sim_days_role4 See analyse_run().
 #' @param role4_census_daily See analyse_run().
 #' @param role4_summary See analyse_run().
+#' @param role4_params See analyse_run().
 #' @param output_dir See analyse_run().
 #' @param images_dir See analyse_run().
 #' @return A list of `role4_census_daily`, `role4_census_plot`, `role4_summary`, `n_reps_role4`,
@@ -2335,11 +2634,12 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
 #'   Role 4: it counts the casualties strategic evacuation delivered, against no
 #'   capacity limit at the receiving end.
 plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_days_role4,
-                              role4_census_daily, role4_summary, output_dir, images_dir) {
+                              role4_census_daily, role4_summary, role4_params,
+                              output_dir, images_dir) {
   n_reps_role4      <- n_distinct(role4_daily_by_rep$replication)
   n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
   max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
-  ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+  ward_levels       <- role4_ward_levels(role4_params)
   # evacuation_day is only set on completed AME boarding (Issue #23
   # follow-up); r2e_evac == 1 alone would also count casualties still
   # queued awaiting a sortie at end of run, which have not reached Role 4.
@@ -2385,6 +2685,16 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
     ) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+  # The stacked bars are total occupancy across wards, so a per-ward
+  # establishment has no line to be drawn against on this scale; the total
+  # does. A configuration stating none leaves the plot as it was.
+  role4_established <- role4_capacity(role4_params)
+  if (any(!is.na(role4_established))) {
+    role4_census_plot <- role4_census_plot +
+      geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
+                 linetype = "longdash", colour = "grey25", linewidth = 0.6)
+  }
 
   ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
          width = 12, height = 6, dpi = 150)
@@ -2791,7 +3101,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
     role4_census_out <- plot_role4_census(combined, role4_daily_by_rep, n_reps_role4,
                                           n_sim_days_role4, role4_census_daily, role4_summary,
-                                          output_dir, images_dir)
+                                          env_data$vars$role4, output_dir, images_dir)
     role4_census_daily <- role4_census_out$role4_census_daily
     role4_census_plot <- role4_census_out$role4_census_plot
     role4_summary <- role4_census_out$role4_summary
@@ -3542,7 +3852,7 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
 
   if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
     n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
-    ward_levels       <- c("ICU", "Surgical Ward", "General Ward")
+    ward_levels       <- role4_ward_levels(role4_params)
     max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
 
     role4_census_daily_rep <- role4_daily_by_rep %>%

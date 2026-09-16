@@ -2584,12 +2584,12 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
     scale_fill_brewer(palette = "Set2") +
     scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
     labs(
-      title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward",
+      title    = "Role 4 (National Support Base) Daily Bed Occupancy by Bed Type",
       subtitle = sprintf(
         "Unconstrained demand signal from %.0f strategically evacuated casualties; dotted line = end of %d-day engagement window",
         role4_summary$total_evacuated, n_sim_days_role4
       ),
-      x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+      x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Bed type"
     ) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = "bottom")
@@ -3766,12 +3766,12 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
       scale_fill_brewer(palette = "Set2") +
       scale_x_continuous(breaks = seq(1, max_discharge_day, by = 2), expand = c(0, 0)) +
       labs(
-        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Ward — Mean Across Replications",
+        title    = "Role 4 (National Support Base) Daily Bed Occupancy by Bed Type — Mean Across Replications",
         subtitle = sprintf(
-          "%d replications; dotted line = end of %d-day engagement window; stacked mean shown, per-ward 95%% CI in downloadable data",
+          "%d replications; dotted line = end of %d-day engagement window; stacked mean shown, per-bed-type 95%% CI in downloadable data",
           n_reps, n_sim_days_role4
         ),
-        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Ward"
+        x = "Simulation Day", y = "Mean Concurrent Patients", fill = "Bed type"
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")

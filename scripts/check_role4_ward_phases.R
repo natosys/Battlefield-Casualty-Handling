@@ -112,14 +112,14 @@ report <- function(ok, fmt, ...) {
 #' @param step_down Ward the remainder of a split stay is served in.
 #' @return A `env_data$vars$role4`-shaped list.
 role4_config <- function(enabled = 0, icu_days = CHECK_ICU_DAYS,
-                         step_down = "Surgical Ward") {
+                         step_down = "hold") {
   list(
-    wards = list(p1_surgical = "ICU", p1_nonsurgical = "Surgical Ward",
-                 p2 = "Surgical Ward", p3_dnbi = "General Ward",
-                 levels = list("ICU", "Surgical Ward", "General Ward")),
+    wards = list(p1_surgical = "icu", p1_nonsurgical = "hold",
+                 p2 = "hold", p3_dnbi = "hold",
+                 levels = list("icu", "hold")),
     icu_continuation = list(enabled = enabled, min = icu_days$min,
                             mode = icu_days$mode, max = icu_days$max,
-                            icu_ward = "ICU", step_down_ward = step_down),
+                            icu_ward = "icu", step_down_ward = step_down),
     los_p1_surgical = list(min = 10, mode = 21, max = 45),
     los_p1_nonsurgical = list(min = 7, mode = 14, max = 30),
     los_p2 = list(min = 5, mode = 10, max = 21),
@@ -191,10 +191,10 @@ report(abs((shipped_total - SOURCE_THEATRE_DAYS) - SOURCE_ROLE4_ICU_DAYS) < 0.2,
        shipped_total, SOURCE_THEATRE_DAYS, SOURCE_ROLE4_ICU_DAYS)
 
 shipped_map <- role4_ward_map(shipped)
-historical <- c(p1_surgical = "ICU", p1_nonsurgical = "Surgical Ward",
-                p2 = "Surgical Ward", p3_dnbi = "General Ward")
-report(identical(shipped_map[names(historical)], historical),
-       "the shipped ward mapping is the one the hard-coded rule applied (%s)",
+expected_map <- c(p1_surgical = "icu", p1_nonsurgical = "hold",
+                  p2 = "hold", p3_dnbi = "hold")
+report(identical(shipped_map[names(expected_map)], expected_map),
+       "the shipped mapping names only bed types the theatre fields (%s)",
        paste(sprintf("%s=%s", names(shipped_map), shipped_map), collapse = ", "))
 
 cohort <- build_cohort()
@@ -284,14 +284,14 @@ ward_cohort <- build_cohort()
 ward_cohort$priority <- 3
 ward_cohort$injury_type <- 2
 ward_assigned <- assign_role4_los(ward_cohort, on_config)
-report(all(ward_assigned$ward == "General Ward"),
+report(all(ward_assigned$ward == "hold"),
        "the constructed cohort is admitted away from intensive care (%s)",
        paste(unique(ward_assigned$ward), collapse = ", "))
 report(all(ward_assigned$r4_icu_days == 0),
        "a casualty not admitted to intensive care is owed none, though operated on")
 ward_phases <- role4_ward_phases(ward_assigned, on_config)
 report(nrow(ward_phases) == nrow(ward_assigned) &&
-         all(ward_phases$phase_ward == "General Ward"),
+         all(ward_phases$phase_ward == "hold"),
        "no such casualty is stepped down into another ward (%s)",
        paste(unique(ward_phases$phase_ward), collapse = ", "))
 
@@ -316,7 +316,7 @@ long_phases <- role4_ward_phases(long_assigned, long_config)
 
 report(all(abs(long_assigned$r4_icu_days - long_assigned$los_days) < TOL),
        "a requirement beyond the stay fills it exactly rather than exceeding it")
-report(all(long_phases$phase_ward == "ICU"),
+report(all(long_phases$phase_ward == "icu"),
        "no step-down phase is emitted where the stay is wholly intensive care")
 long_totals <- phase_totals(long_assigned, long_phases)
 report(all(long_totals$phase_days == long_totals$stay_days),
@@ -345,7 +345,7 @@ report(isTRUE(validate_role4_wards(role4_config(enabled = 1))),
        "a well-formed configuration validates")
 
 bad_ward <- role4_config()
-bad_ward$wards$p2 <- "Recovery Ward"
+bad_ward$wards$p2 <- "recovery"
 expect_rejected(bad_ward, "role4.wards.p2", "a ward naming no configured level")
 
 bad_enabled <- role4_config()
@@ -362,21 +362,21 @@ expect_rejected(bad_degenerate, "draws no distribution",
                 "a requirement whose bounds coincide")
 
 bad_icu_ward <- role4_config(enabled = 1)
-bad_icu_ward$icu_continuation$icu_ward <- "Recovery Ward"
+bad_icu_ward$icu_continuation$icu_ward <- "recovery"
 expect_rejected(bad_icu_ward, "role4.icu_continuation.icu_ward",
                 "an intensive care ward naming no configured level")
 
 same_ward <- role4_config(enabled = 1)
-same_ward$icu_continuation$step_down_ward <- "ICU"
+same_ward$icu_continuation$step_down_ward <- "icu"
 expect_rejected(same_ward, "the step-down moves nobody",
                 "an intensive care ward equal to its step-down ward")
 
-bad_step <- role4_config(enabled = 1, step_down = "Recovery Ward")
+bad_step <- role4_config(enabled = 1, step_down = "recovery")
 expect_rejected(bad_step, "role4.icu_continuation.step_down_ward",
                 "a step-down ward naming no configured level")
 
 bad_levels <- role4_config()
-bad_levels$wards$levels <- list("ICU", "ICU", "General Ward")
+bad_levels$wards$levels <- list("icu", "icu", "hold")
 expect_rejected(bad_levels, "names a ward twice", "a duplicated ward level")
 
 # A negative requirement is rejected before it can produce negative bed-days.
@@ -391,18 +391,18 @@ cat("\n-- the census counts the phases rather than the admission ward --\n")
 census_off <- compute_role4_census(cohort, role4_config(enabled = 0))
 census_on <- compute_role4_census(cohort, on_config)
 
-report(setequal(unique(census_off$ward), "ICU"),
+report(setequal(unique(census_off$ward), "icu"),
        "the disabled census reports the admission ward alone (%s)",
        paste(unique(census_off$ward), collapse = ", "))
-report(setequal(unique(census_on$ward), c("ICU", "Surgical Ward")),
+report(setequal(unique(census_on$ward), c("icu", "hold")),
        "the enabled census reports both phases' wards (%s)",
        paste(sort(unique(census_on$ward)), collapse = ", "))
 report(sum(census_off$occupancy) == sum(census_on$occupancy),
        "both censuses count the same bed-days (%d against %d)",
        sum(census_off$occupancy), sum(census_on$occupancy))
 
-icu_off <- sum(census_off$occupancy[census_off$ward == "ICU"])
-icu_on <- sum(census_on$occupancy[census_on$ward == "ICU"])
+icu_off <- sum(census_off$occupancy[census_off$ward == "icu"])
+icu_on <- sum(census_on$occupancy[census_on$ward == "icu"])
 report(icu_on < icu_off,
        "the split moves bed-days out of intensive care (%d against %d)",
        icu_on, icu_off)

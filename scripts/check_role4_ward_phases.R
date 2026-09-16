@@ -407,56 +407,50 @@ report(icu_on < icu_off,
        "the split moves bed-days out of intensive care (%d against %d)",
        icu_on, icu_off)
 
-# ── 7. Demand is measured against a stated establishment ─────────────────────
+# ── 7. A stated establishment is a reference line, not a reported verdict ────
 
-cat("\n-- demand is measured against a stated establishment --\n")
+cat("\n-- a stated establishment is read as a reference line --\n")
 
 report(all(is.na(role4_capacity(shipped))),
-       "every ward ships with no stated establishment, so nothing is bounded")
+       "every ward ships with no stated establishment, so no line is drawn")
 
-# A census whose answers are computable by hand, so a shortfall that agreed
-# with the model but not with arithmetic would still fail.
-hand_census <- data.frame(replication = 1L, day = 1:10, ward = "ICU",
-                          occupancy = c(1, 2, 12, 14, 9, 10, 11, 3, 2, 1))
-unlimited <- c(ICU = NA_real_, `Surgical Ward` = NA_real_, `General Ward` = NA_real_)
-report(nrow(role4_capacity_shortfall(hand_census, unlimited)) == 0,
-       "an unlimited establishment reports no shortfall at all")
+stated <- role4_config()
+stated$capacity <- list(wards = list("ICU", "Surgical Ward", "General Ward"),
+                        beds = list(20, 40, NULL))
+read_back <- role4_capacity(stated)
+report(isTRUE(validate_role4_capacity(stated)) &&
+         read_back[["ICU"]] == 20 && read_back[["Surgical Ward"]] == 40 &&
+         is.na(read_back[["General Ward"]]),
+       "a stated establishment reads back per ward, a null ward as unlimited")
 
-bounded <- unlimited
-bounded[["ICU"]] <- 10
-measured <- role4_capacity_shortfall(hand_census, bounded)
-report(nrow(measured) == 1 && measured$days_above == 3,
-       "three days stand above an establishment of 10 (found %s)",
-       if (nrow(measured) == 1) format(measured$days_above) else "no row")
-report(nrow(measured) == 1 && abs(measured$peak_overshoot - 4) < TOL,
-       "the peak overshoot is 4 beds (found %s)",
-       if (nrow(measured) == 1) format(measured$peak_overshoot) else "no row")
-report(nrow(measured) == 1 && abs(measured$unmet_bed_days - 7) < TOL,
-       "unmet demand is 7 bed-days, the sum of the shortfalls (found %s)",
-       if (nrow(measured) == 1) format(measured$unmet_bed_days) else "no row")
+# The model sets the demand a deployed trauma system places on the national
+# support base and does not simulate that echelon. Reporting days above
+# establishment, a peak overshoot or unmet bed-days would read as a verdict on
+# an echelon carrying no queue, no refusal and no back-pressure, so the
+# comparison is the planner's and no such function exists to be called by
+# accident.
+analysis_source <- readLines("R/analysis.R", warn = FALSE)
+report(!any(grepl("role4_capacity_shortfall", analysis_source, fixed = TRUE)),
+       "the analysis module reports no shortfall against the stated establishment")
 
-# Summing the shortfall rather than counting its days is what distinguishes a
-# brief deep shortfall from a long shallow one, which are different problems.
-deep <- data.frame(replication = 1L, day = 1L, ward = "ICU", occupancy = 30)
-shallow <- data.frame(replication = 1L, day = 1:20, ward = "ICU", occupancy = 11)
-deep_measured <- role4_capacity_shortfall(deep, bounded)
-shallow_measured <- role4_capacity_shortfall(shallow, bounded)
-report(deep_measured$days_above == 1 && shallow_measured$days_above == 20 &&
-         deep_measured$unmet_bed_days == 20 && shallow_measured$unmet_bed_days == 20,
-       "a deep one-day shortfall and a shallow twenty-day one are distinguishable")
-
-# A ward stating no establishment is omitted rather than reported as meeting
-# its demand, which would read as a pass it was never measured for.
-mixed_census <- rbind(hand_census,
-                      data.frame(replication = 1L, day = 1:10,
-                                 ward = "Surgical Ward", occupancy = 99))
-mixed <- role4_capacity_shortfall(mixed_census, bounded)
-report(setequal(unique(mixed$ward), "ICU"),
-       "a ward with no stated establishment is omitted rather than passed (%s)",
-       paste(unique(mixed$ward), collapse = ", "))
+# The line is the whole of what stating an establishment buys, so it has to
+# reach both censuses; the multi-run one carried none when the single-run one
+# gained it.
+census_sites <- grep("geom_hline\\(yintercept = sum\\(role4_established",
+                     analysis_source)
+report(length(census_sites) == 2,
+       "the reference line is drawn on both censuses (found %d)",
+       length(census_sites))
+caption_sites <- grep("sprintf(ROLE4_ESTABLISHMENT_CAPTION", analysis_source, fixed = TRUE)
+report(length(caption_sites) == 2,
+       "both censuses caption the line rather than leaving it unexplained (found %d)",
+       length(caption_sites))
+report(any(grepl("does not simulate this echelon", analysis_source, fixed = TRUE)),
+       "the caption says the model does not simulate the echelon it draws a line for")
 
 bad_capacity <- role4_config()
 bad_capacity$capacity <- list(wards = list("ICU"), beds = list(-5))
+
 #' Assert that a capacity block is rejected with a message naming a field
 #'
 #' @param config The Role 4 configuration under test.
@@ -488,6 +482,7 @@ null_capacity$capacity <- list(wards = list("ICU"), beds = list(NULL))
 report(isTRUE(validate_role4_capacity(null_capacity)) &&
          all(is.na(role4_capacity(null_capacity))),
        "a null establishment validates and reads as unlimited")
+
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

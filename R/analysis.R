@@ -271,17 +271,32 @@ role4_ward_map <- function(r4_params) {
          character(1))
 }
 
+#' Caption naming the establishment line and what it is not
+#'
+#' @details Held once rather than at each census, so the two cannot come to
+#'   describe the same line differently. The second sentence is the load-bearing
+#'   one: the line is a reference the reader compares against, and a chart
+#'   carrying an unexplained rule invites reading it as a limit the model
+#'   enforces.
+ROLE4_ESTABLISHMENT_CAPTION <- paste(
+  "Dashed line: stated national support base establishment of %.0f beds.",
+  "Demand is unconstrained; the model does not simulate this echelon."
+)
+
 #' The national support base establishment each ward is measured against
 #'
 #' @param r4_params `env_data$vars$role4` list
 #' @return Named numeric vector of beds per ward, NA where unlimited
 #'
 #' @details An absent block, an absent ward and a null bed count all read as
-#'   NA, which is unlimited: the model reports the demand a theatre generates
-#'   and does not plan the receiving echelon's capacity, so a stated
-#'   establishment is something to measure against rather than a constraint
-#'   anything respects. Nothing queues, is refused or is pushed back into
-#'   theatre; README Further Development L16 records what follows.
+#'   NA, which is unlimited. A stated establishment is drawn on the census as a
+#'   reference line and nothing more: the model sets the demand a deployed
+#'   trauma system places on the national support base and does not simulate
+#'   that echelon, so nothing queues for a Role 4 bed, nothing is refused and
+#'   nothing is pushed back into theatre. Reporting a shortfall against the
+#'   line would read as a verdict on an echelon this model does not represent,
+#'   which is why the comparison is left to the planner holding the
+#'   establishment; README Further Development L16 records the boundary.
 role4_capacity <- function(r4_params) {
   levels <- role4_ward_levels(r4_params)
   capacity <- setNames(rep(NA_real_, length(levels)), levels)
@@ -328,38 +343,6 @@ validate_role4_capacity <- function(r4_params) {
     }
   }
   invisible(TRUE)
-}
-
-#' Demand against a stated establishment, per replication and ward
-#'
-#' @param census Daily census as compute_role4_census() returns it
-#' @param capacity Named numeric vector of beds per ward, NA where unlimited
-#' @return Data frame with replication, ward, days_above, peak_overshoot and
-#'   unmet_bed_days; empty where no ward states an establishment
-#'
-#' @details Unmet bed-days sum each day's shortfall rather than counting the
-#'   days on which one occurred, so a single day 20 beds short and twenty days
-#'   one bed short are distinguishable; a planner sizing an establishment needs
-#'   both, which is why the day count and the peak are reported alongside it. A
-#'   ward with no stated establishment is omitted rather than reported as
-#'   meeting its demand.
-role4_capacity_shortfall <- function(census, capacity) {
-  empty <- data.frame(replication = integer(0), ward = character(0),
-                      days_above = integer(0), peak_overshoot = numeric(0),
-                      unmet_bed_days = numeric(0))
-  stated <- capacity[!is.na(capacity)]
-  if (length(stated) == 0 || nrow(census) == 0) return(empty)
-
-  census %>%
-    filter(ward %in% names(stated)) %>%
-    mutate(established = unname(stated[ward]),
-           overshoot = pmax(0, occupancy - established)) %>%
-    group_by(replication, ward) %>%
-    summarise(days_above = sum(overshoot > 0),
-              peak_overshoot = max(overshoot),
-              unmet_bed_days = sum(overshoot),
-              .groups = "drop") %>%
-    as.data.frame()
 }
 
 #' Validate the Role 4 ward mapping and intensive care continuation block
@@ -2688,12 +2671,16 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
 
   # The stacked bars are total occupancy across wards, so a per-ward
   # establishment has no line to be drawn against on this scale; the total
-  # does. A configuration stating none leaves the plot as it was.
+  # does. A configuration stating none leaves the plot as it was. The line is a
+  # reference the reader compares against, not a limit the model enforces, and
+  # the caption says so rather than leaving an unexplained rule on the chart.
   role4_established <- role4_capacity(role4_params)
   if (any(!is.na(role4_established))) {
     role4_census_plot <- role4_census_plot +
       geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
-                 linetype = "longdash", colour = "grey25", linewidth = 0.6)
+                 linetype = "longdash", colour = "grey25", linewidth = 0.6) +
+      labs(caption = sprintf(ROLE4_ESTABLISHMENT_CAPTION,
+                             sum(role4_established, na.rm = TRUE)))
   }
 
   ggsave(file.path(images_dir, "role4_census.png"), role4_census_plot,
@@ -3877,6 +3864,18 @@ summarise_role4_demand_ci <- function(clamp_ci, combined, n_reps, rep_ids, outpu
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank(), legend.position = "bottom")
+
+    # The same reference line the single-run census carries, for the same
+    # reason: the bars stack across wards, so a per-ward figure has no scale to
+    # sit against here either.
+    role4_established <- role4_capacity(role4_params)
+    if (any(!is.na(role4_established))) {
+      role4_census_ci_plot <- role4_census_ci_plot +
+        geom_hline(yintercept = sum(role4_established, na.rm = TRUE),
+                   linetype = "longdash", colour = "grey25", linewidth = 0.6) +
+        labs(caption = sprintf(ROLE4_ESTABLISHMENT_CAPTION,
+                               sum(role4_established, na.rm = TRUE)))
+    }
 
     ggsave(file.path(images_dir, "role4_census_multirun.png"), role4_census_ci_plot, width = 12, height = 6, dpi = 150)
     write.csv(role4_census_daily_ci, file.path(output_dir, "role4_census_daily_ci.csv"), row.names = FALSE)

@@ -925,6 +925,26 @@
             {
               "var": "theatre_label",
               "val": "ot"
+            },
+            {
+              "var": "reconstruction_share",
+              "val": 0
+            },
+            {
+              "var": "return_interval_min",
+              "val": 2
+            },
+            {
+              "var": "return_interval_mode",
+              "val": 2.5
+            },
+            {
+              "var": "return_interval_max",
+              "val": 3
+            },
+            {
+              "var": "post_reconstruction_return_rate",
+              "val": 0
             }
           ]
         },

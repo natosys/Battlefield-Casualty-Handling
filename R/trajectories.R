@@ -2120,6 +2120,12 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
   trajectory("Pre-Flight Critical Care") %>%
     branch(
       option = function() {
+        # The ventilated share is the rate among casualties whose repair is
+        # complete. One awaiting a definitive repair holds an intensive care bed
+        # for the whole pre-flight period rather than being sampled into it, and
+        # consumes no draw, so the shipped configuration is unaffected.
+        outstanding <- get_attribute(env, "definitive_repair_outstanding")
+        if (!is.na(outstanding) && outstanding == 1) return(1)
         if (runif(1) < env_data$vars$r2eheavy$critical_hold$ventilated_share) return(1)
         return(2)
       },
@@ -2359,9 +2365,33 @@ r2e_second_surgery_threshold <- function() {
 #' Whether this R2E team's surgical sections are saturated
 #'
 #' @param team_id Integer index of the Role 2E Heavy team
+#' @return The number of casualties waiting to be operated on at this team.
+#'
+#' @details Theatre entry is a two-stage seizure, the operating theatre bed and
+#'   then the surgical section, so a casualty waiting for theatre is queued on
+#'   one or the other and counting either alone counts half the backlog. A
+#'   casualty queued for a room has not reached a section, and one holding a
+#'   room while its section is off shift is no longer queued for a room; the sum
+#'   counts each casualty exactly once, simmer blocking an arrival on one
+#'   resource at a time. Counting sections alone would also cap the measurable
+#'   queue at the number of theatre beds, which is two, making any larger
+#'   threshold unreachable.
+r2e_theatre_queue <- function(team_id) {
+  ot_beds  <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
+  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+  waiting_for_room <- sum(sapply(ot_beds, function(bed) get_queue_count(env, bed)))
+  waiting_for_staff <- sum(sapply(sections, function(members) {
+    sum(sapply(members, function(res) get_queue_count(env, res)))
+  }))
+  waiting_for_room + waiting_for_staff
+}
+
+#' Whether this R2E team's theatre is saturated
+#'
+#' @param team_id Integer index of the Role 2E Heavy team
 #' @param thresh  The configured threshold, or NA where it is disabled
 #' @return TRUE where a threshold is in force and the number of casualties
-#'   queued across the team's surgical sections has reached it.
+#'   waiting to be operated on has reached it.
 #'
 #' @details The queue is read at the instant of the decision and no random
 #'   number is drawn, so a disabled threshold leaves the arrival stream exactly
@@ -2370,11 +2400,7 @@ r2e_second_surgery_threshold <- function() {
 #'   trajectory was built.
 r2e_surgery_saturated <- function(team_id, thresh) {
   if (is.na(thresh)) return(FALSE)
-  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
-  queued <- sum(sapply(sections, function(members) {
-    sum(sapply(members, function(res) get_queue_count(env, res)))
-  }))
-  queued >= thresh
+  r2e_theatre_queue(team_id) >= thresh
 }
 
 #' Applies the second operation of the damage control pathway at R2E
@@ -2403,8 +2429,8 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
     #   2 - not eligible: single-stage, no R2E operation, or the abbreviated
     #       operation was performed at R2B and the definitive repair here was
     #       the Phase 3 one
-    #   3 - eligible, but the surgical queue has reached
-    #       second_surgery$saturation_queue_threshold: released to strategic
+    #   3 - eligible, but the number of casualties waiting to be operated on
+    #       has reached second_surgery$saturation_queue_threshold: released to strategic
     #       evacuation with the definitive repair outstanding. Disabled at the
     #       shipped threshold of zero, in which case this arm is unreachable.
     branch(
@@ -2499,8 +2525,9 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
 
     # Branches on which airlift seat the casualty waits for, deciding on
     # priority and whether an operation was performed:
-    # - If Priority 1 and operated on, wait on the smaller "ame_critical"
-    #   pool, holding an intensive care bed already seized upstream
+    # - If Priority 1 and operated on, or the definitive repair is still
+    #   outstanding, wait on the smaller "ame_critical" pool, holding an
+    #   intensive care bed already seized upstream
     # - Otherwise seize a hold bed and wait on the standard "ame" pool
     # Both arms set ame_route (1 = critical, 2 = standard), which
     # R/analysis.R reads for the route-decomposed wait-time and backlog
@@ -2509,6 +2536,12 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     # must be changed together.
     branch(
       option = function() {
+        # A casualty flown out with the definitive repair outstanding is by
+        # construction not stable enough for a holding bed, whatever their
+        # triage priority: the operation they are waiting for is the one that
+        # would have made them so.
+        outstanding <- get_attribute(env, "definitive_repair_outstanding")
+        if (!is.na(outstanding) && outstanding == 1) return(1)
         prio <- get_attribute(env, "priority")
         tx   <- get_attribute(env, "treatment_received")
         if (!is.na(prio) && prio == 1 && !is.na(tx) && tx == 1) return(1)

@@ -37,7 +37,19 @@
 #      they were operated on at Role 2E, they never had the second procedure,
 #      they served no post-definitive episode, and they were evacuated rather
 #      than retained in theatre, a casualty whose definitive repair has not been
-#      performed being one this echelon cannot return to duty.
+#      performed being one this echelon cannot return to duty. They also wait
+#      for their flight in an intensive care bed on the critical airlift route,
+#      whatever their triage priority: a casualty whose repair is outstanding is
+#      not one a holding bed is for, and staging them in one would understate
+#      intensive care demand and overstate holding availability at the exact
+#      moment theatre is saturated.
+#
+#   4. The trigger measures the whole theatre queue. Theatre entry seizes a room
+#      and then a section, so a casualty waiting for theatre is queued on one or
+#      the other; counting sections alone would see only those already holding a
+#      room, which the establishment caps at two, making any larger threshold
+#      unreachable. The count is asserted against a monitor-independent recount
+#      taken directly from the resources it sums.
 #
 # What this check deliberately does not assert is that the release improves or
 # worsens any outcome. Enabling it changes which activities consume random
@@ -264,10 +276,42 @@ report(all(is.na(num(released$post_definitive_min))),
              "there being no repair for one to follow"))
 report(all(num(released$r2e_evac) == 1),
        "every released casualty was evacuated rather than retained in theatre")
+report(all(num(released$ame_route) == 1),
+       "every released casualty waits on the critical airlift route, whatever their priority")
+report(all(num(released$ame_icu_hold) == 1),
+       "every released casualty holds an intensive care bed pending flight, not a holding bed")
 report(all(is.na(num(released$return_echelon)) | num(released$return_echelon) != 3),
        "no released casualty returned to duty from Role 2E")
 
-# ── 6. The attribute is registered ─────────────────────────────────────────
+# ── 6. The trigger measures the whole theatre queue ────────────────────────
+
+cat("\n-- what the trigger counts --\n")
+
+queue_src <- paste(readLines("R/trajectories.R", warn = FALSE), collapse = "\n")
+report(grepl("waiting_for_room", queue_src, fixed = TRUE) &&
+         grepl("waiting_for_staff", queue_src, fixed = TRUE),
+       "the theatre queue sums the casualties waiting for a room and those waiting for a section")
+
+# The count is exercised against a live environment rather than read off the
+# source, so a helper that named both halves and summed only one would fail.
+ed <- load_scenario("env_data.json", "default")
+ed$vars$r2eheavy$second_surgery$saturation_queue_threshold <- CHECK_THRESHOLD
+install_config(ed)
+set.seed(CHECK_SEED)
+invisible(capture.output(probe <- run_once(n_days = 2L, seed = CHECK_SEED)))
+assign("env", probe, envir = globalenv())
+ot_probe  <- env_data$elms$r2eheavy[[1]][["ot_bed"]]
+sec_probe <- env_data$elms$r2eheavy[[1]][["surg"]]
+recount <- sum(sapply(ot_probe, function(b) get_queue_count(probe, b))) +
+  sum(sapply(sec_probe, function(m) sum(sapply(m, function(r) get_queue_count(probe, r)))))
+report(identical(as.numeric(r2e_theatre_queue(1)), as.numeric(recount)),
+       "the theatre queue agrees with an independent recount over the same resources")
+report(length(sec_probe) > length(ot_probe),
+       paste("the establishment fields more sections (%d) than theatre beds (%d),",
+             "so a section-only count would cap the measurable queue"),
+       length(sec_probe), length(ot_probe))
+
+# ── 7. The attribute is registered ─────────────────────────────────────────
 
 cat("\n-- the attribute registry --\n")
 

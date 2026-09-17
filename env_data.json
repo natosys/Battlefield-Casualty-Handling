@@ -916,6 +916,19 @@
           ]
         },
         {
+          "acty": "surgery",
+          "vals": [
+            {
+              "var": "enabled",
+              "val": 1
+            },
+            {
+              "var": "theatre_label",
+              "val": "ot"
+            }
+          ]
+        },
+        {
           "acty": "icu_continuation",
           "vals": [
             { "var": "enabled",        "val": 1 },

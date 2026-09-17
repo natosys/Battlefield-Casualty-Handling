@@ -397,7 +397,21 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
   with_preserved_rng(
     role4_evac %>%
       mutate(
+        outstanding_repair = if ("definitive_repair_outstanding" %in% names(.)) {
+          !is.na(definitive_repair_outstanding) & definitive_repair_outstanding == 1
+        } else {
+          FALSE
+        },
         los_category = case_when(
+          # A casualty flown out with the definitive repair still to be
+          # performed is the sickest arrival this echelon receives, whatever
+          # their triage priority: the operation they are waiting for is the
+          # one that would have stabilised them. They take the operated
+          # Priority 1 category, which is the same reasoning that puts them on
+          # the critical airlift route and in an intensive care bed before the
+          # flight (R/trajectories.R), rather than the category their priority
+          # alone would give them.
+          outstanding_repair                                           ~ "p1_surgical",
           !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
           !is.na(priority) & priority == 3                             ~ "p3_dnbi",
           !is.na(priority) & priority == 1 &
@@ -416,7 +430,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
         r4_discharge_day  = evacuation_day + ceiling(los_days) - 1
       ) %>%
       ungroup() %>%
-      dplyr::select(-los_min, -los_mode, -los_max) %>%
+      dplyr::select(-los_min, -los_mode, -los_max, -outstanding_repair) %>%
       add_role4_icu_days(r4_los_params)
   )
 }
@@ -462,11 +476,23 @@ add_role4_icu_days <- function(assigned, r4_params) {
   # for them would step a general ward casualty down into a surgical ward,
   # moving bed-days between two wards neither of which is the one under study.
   icu_ward <- as.character(cont$icu_ward)
+  # A casualty released with the definitive repair outstanding is the third
+  # case, and sets neither condition above: theatre performed no definitive
+  # repair for them, so they carry no post_definitive_min at all. Their whole
+  # post-operative requirement falls here, served_days being zero, which is the
+  # same conservation contract read from the other end.
+  outstanding <- if ("definitive_repair_outstanding" %in% names(assigned)) {
+    !is.na(assigned$definitive_repair_outstanding) &
+      assigned$definitive_repair_outstanding == 1 & assigned$ward == icu_ward
+  } else {
+    rep(FALSE, nrow(assigned))
+  }
   operated <- if ("post_definitive_min" %in% names(assigned)) {
     !is.na(assigned$post_definitive_min) & assigned$ward == icu_ward
   } else {
     rep(FALSE, nrow(assigned))
   }
+  operated <- operated | outstanding
 
   total <- rep(0, nrow(assigned))
   if (any(operated)) {
@@ -526,6 +552,92 @@ role4_ward_phases <- function(assigned, r4_params) {
     filter(phase_start <= phase_end)
 
   bind_rows(icu_phase, ward_phase)
+}
+
+#' Whether the Role 4 theatre demand report is configured on
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return TRUE where `role4.surgery.enabled` is 1
+#' @details Absent block reads as off, so a configuration written before the
+#'   block existed reports no theatre demand rather than erroring.
+role4_surgery_enabled <- function(r4_params) {
+  surgery <- r4_params$surgery
+  if (is.null(surgery)) return(FALSE)
+  enabled <- suppressWarnings(as.numeric(surgery$enabled))
+  if (is.na(enabled) || !enabled %in% c(0, 1)) {
+    stop("role4.surgery.enabled must be 0 or 1; found: ", format(surgery$enabled))
+  }
+  enabled == 1
+}
+
+#' The label the Role 4 theatre demand is reported under
+#'
+#' @param r4_params `env_data$vars$role4` list
+#' @return The theatre label, or stops naming the field
+#' @details Named for the bed type the deployed echelons field rather than for
+#'   a service, on the same reasoning as the ward levels: a Role 4 theatre hour
+#'   is the same hour a forward one is.
+role4_theatre_label <- function(r4_params) {
+  label <- as.character(r4_params$surgery$theatre_label)
+  if (length(label) != 1L || is.na(label) || !nzchar(label)) {
+    stop("role4.surgery.theatre_label must name a theatre type; found: ",
+         paste(format(r4_params$surgery$theatre_label), collapse = ", "))
+  }
+  label
+}
+
+#' Computes the operating theatre demand a casualty stream places on Role 4
+#'
+#' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
+#'   `combined`) — see assign_role4_los()
+#' @param r4_params `env_data$vars$role4` list
+#' @return Tidy data frame with columns replication, day, theatre, operations,
+#'   theatre_minutes — one row per replication-day on which an operation is
+#'   owed. Empty where the configuration releases nobody.
+#'
+#' @details This reports a requirement rather than simulating an activity,
+#'   which is the same footing the bed census stands on: nothing queues for a
+#'   theatre here, nothing is refused and nothing is pushed back into theatre,
+#'   because the model sets the demand a deployed trauma system places on the
+#'   national support base and does not simulate that echelon.
+#'
+#'   The population is the casualties released under
+#'   `r2eheavy.second_surgery.saturation_queue_threshold` with their definitive
+#'   repair outstanding (R/trajectories.R). The duration is the one the
+#'   releasing theatre drew and carried rearward on the casualty
+#'   (`definitive_repair_minutes`), so the operation is conserved rather than
+#'   re-estimated and this function takes no draw at all. A casualty who
+#'   arrives with their repair complete is owed nothing and contributes no row.
+#'
+#'   The operation is owed on the day of admission, ahead of the intensive care
+#'   that follows it, so it cannot fall after the step-down the ward phases
+#'   apply; scripts/check_role4_surgical_demand.R asserts that ordering.
+#'
+#'   Reported in theatre-minutes and operations rather than as bed-days,
+#'   because a theatre is a throughput resource: an operation of 95 minutes
+#'   occupies no bed for a day, and adding it to the bed census would report
+#'   a quantity in two units at once.
+compute_role4_surgical_demand <- function(arrivals_log, r4_params) {
+  empty <- data.frame(replication = integer(0), day = integer(0),
+                      theatre = character(0), operations = integer(0),
+                      theatre_minutes = numeric(0))
+  if (!role4_surgery_enabled(r4_params)) return(empty)
+  needed <- c("definitive_repair_outstanding", "definitive_repair_minutes")
+  if (!all(needed %in% names(arrivals_log))) return(empty)
+
+  theatre <- role4_theatre_label(r4_params)
+  owed <- assign_role4_los(arrivals_log, r4_params) %>%
+    filter(!is.na(definitive_repair_outstanding) & definitive_repair_outstanding == 1)
+  if (nrow(owed) == 0) return(empty)
+
+  owed %>%
+    mutate(day = r4_admit_day, theatre = theatre,
+           theatre_minutes = ifelse(is.na(definitive_repair_minutes), 0,
+                                    definitive_repair_minutes)) %>%
+    group_by(replication, day, theatre) %>%
+    summarise(operations = dplyr::n(),
+              theatre_minutes = sum(theatre_minutes), .groups = "drop") %>%
+    as.data.frame()
 }
 
 #' Computes daily Role 4 (national support base) bed occupancy by ward
@@ -2998,6 +3110,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   ame_demand_daily          <- NULL
   ame_summary                <- NULL
   ame_replication_summary   <- NULL
+  role4_surgical_demand     <- NULL
 
   if (!is.null(env_data$vars$role4)) {
     role4_params <- env_data$vars$role4
@@ -3009,6 +3122,18 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     ame_capacity <- ame_airframe$critical_capacity + ame_airframe$standard_capacity
     role4_daily_by_rep <- compute_role4_census(combined, role4_params)
     ame_by_rep         <- compute_ame_demand(combined, ame_capacity)
+    # The operating theatre requirement the stream places on the national
+    # support base, reported beside the bed demand rather than inside it: a
+    # theatre is a throughput resource, so its demand is in operations and
+    # minutes rather than in bed-days.
+    role4_surgical_demand <- compute_role4_surgical_demand(combined, role4_params)
+    write.csv(role4_surgical_demand,
+              file.path(output_dir, "role4_surgical_demand.csv"), row.names = FALSE)
+    cat(sprintf(paste("Role 4 surgical demand: %d operation(s) owed,",
+                      "%.0f theatre-minutes, over %d day(s)\n"),
+                sum(role4_surgical_demand$operations),
+                sum(role4_surgical_demand$theatre_minutes),
+                length(unique(role4_surgical_demand$day))))
   }
 
   if (!is.null(env_data$vars$role4) && nrow(role4_daily_by_rep) > 0) {
@@ -3121,6 +3246,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     force_regeneration_daily           = force_regeneration_daily,
     force_regeneration_plot            = force_regeneration_plot,
     role4_census_daily          = role4_census_daily,
+    role4_surgical_demand       = role4_surgical_demand,
     role4_census_plot           = role4_census_plot,
     role4_summary                = role4_summary,
     role4_replication_summary   = role4_replication_summary,

@@ -31,6 +31,7 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "ame_icu_hold_start", "ame_route", "ame_wait_minutes", "dcs_pathway",
   "definitive_repair_minutes", "definitive_repair_outstanding", "dnbi_bf_hold",
   "dnbi_type", "dow", "dow_ceiling", "dow_echelon", "evacuation_day", "evacuation_decision_day",
+  "evacuation_reason",
   "injury_time", "injury_type", "last_dow_t", "mass_casualty_event", "mass_casualty_event_id",
   "mortuary_treated", "post_definitive_hold_start", "post_definitive_min",
   "post_definitive_pathway", "post_op_pathway", "priority", "r1_treated", "r2b",
@@ -43,7 +44,8 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "r2e_handling", "r2e_post_op_hold_min", "r2e_post_op_hold_start", "r2e_post_op_min",
   "r2e_recovery_hold_start", "r2e_resus", "r2e_surgery", "r2e_surgery_1_end",
   "r2e_surgery_1_start", "r2e_surgery_2_end", "r2e_surgery_2_start", "r2e_treated",
-  "recovery_to_duty_days", "reinf_combat_demand", "reinf_combat_fill", "reinf_support_demand",
+  "reconstruction_required", "recovery_to_duty_days", "reinf_combat_demand",
+  "reinf_combat_fill", "reinf_support_demand",
   "reinf_support_fill", "return_day", "return_echelon", "stabilisation_total", "surgery",
   "surgery_deferred", "team", "transport_start_time", "treatment_received",
   "treatment_start_time"

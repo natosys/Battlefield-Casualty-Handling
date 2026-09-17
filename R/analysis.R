@@ -586,6 +586,75 @@ role4_theatre_label <- function(r4_params) {
   label
 }
 
+#' The reconstruction sequence a casualty is owed at the national support base
+#'
+#' @param assigned Frame returned by assign_role4_los(), carrying
+#'   reconstruction_required, r4_admit_day and r4_icu_days
+#' @param r4_params `env_data$vars$role4` list
+#' @return One row per casualty-procedure, with replication, day and a
+#'   `procedure` label. Empty where nobody is owed a reconstruction sequence.
+#'
+#' @details A casualty whose wounds require staged soft-tissue coverage returns
+#'   to theatre repeatedly before anything definitive is done: irrigation,
+#'   debridement and a vacuum dressing change, on the interval
+#'   `role4.surgery.return_interval_*` states, until the wound is clean enough
+#'   to close. The sequence then ends in one reconstruction.
+#'
+#'   The interval is the parameter and the count is the consequence, which is
+#'   what keeps the count out of the configuration: how many procedures a
+#'   casualty receives follows from how long their debridement phase runs, and
+#'   that is the intensive care phase the census already derives from severity.
+#'   Reconstruction is what steps the casualty down, so debridement runs while
+#'   they are critically ill and the ward phase that follows carries none.
+#'
+#'   Returns after the reconstruction are governed by
+#'   `post_reconstruction_return_rate` and ship at zero. That is close to what
+#'   the reported flap failure rates imply, and the rate exists so the small
+#'   residual is representable rather than denied; see README Role 4
+#'   (National Support Base) Demand Modelling.
+#'
+#'   The interval is drawn per procedure, and the caller runs the draw inside
+#'   `with_preserved_rng()`, so the sequence is a function of the run rather
+#'   than of the caller's stream position and repeats on re-analysis.
+role4_reconstruction_sequence <- function(assigned, r4_params) {
+  empty <- data.frame(replication = integer(0), day = integer(0),
+                      procedure = character(0))
+  if (!"reconstruction_required" %in% names(assigned)) return(empty)
+  cohort <- assigned %>%
+    filter(!is.na(reconstruction_required) & reconstruction_required == 1)
+  if (nrow(cohort) == 0) return(empty)
+
+  surgery <- r4_params$surgery
+  bounds <- vapply(c("return_interval_min", "return_interval_mode", "return_interval_max"),
+                   function(nm) suppressWarnings(as.numeric(surgery[[nm]])), numeric(1))
+  if (any(is.na(bounds)) || any(bounds <= 0) ||
+        !(bounds[[1]] <= bounds[[2]] && bounds[[2]] <= bounds[[3]])) {
+    stop("role4.surgery.return_interval_min/mode/max must be positive with ",
+         "min <= mode <= max; found: ", paste(format(bounds), collapse = ", "),
+         call. = FALSE)
+  }
+
+  rows <- lapply(seq_len(nrow(cohort)), function(i) {
+    admit <- as.numeric(cohort$r4_admit_day[i])
+    phase <- as.numeric(cohort$r4_icu_days[i])
+    days <- numeric(0)
+    offset <- 0
+    # Each return is one interval after the last, and the phase ends at the
+    # reconstruction, so a phase shorter than one interval yields the
+    # reconstruction alone rather than no procedure at all.
+    repeat {
+      offset <- offset + rtriangle(1, a = bounds[[1]], b = bounds[[3]], c = bounds[[2]])
+      if (offset >= phase) break
+      days <- c(days, admit + floor(offset))
+    }
+    data.frame(replication = rep(cohort$replication[i], length(days) + 1),
+               day = c(days, admit + ceiling(max(phase, 0))),
+               procedure = c(rep("debridement", length(days)), "reconstruction"),
+               stringsAsFactors = FALSE)
+  })
+  do.call(rbind, rows)
+}
+
 #' Computes the operating theatre demand a casualty stream places on Role 4
 #'
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
@@ -613,10 +682,19 @@ role4_theatre_label <- function(r4_params) {
 #'   that follows it, so it cannot fall after the step-down the ward phases
 #'   apply; scripts/check_role4_surgical_demand.R asserts that ordering.
 #'
-#'   Reported in theatre-minutes and operations rather than as bed-days,
-#'   because a theatre is a throughput resource: an operation of 95 minutes
-#'   occupies no bed for a day, and adding it to the bed census would report
-#'   a quantity in two units at once.
+#'   Two populations contribute. A casualty released with their definitive
+#'   repair outstanding carries that one operation rearward with the duration
+#'   the releasing theatre drew, so it is conserved rather than re-estimated. A
+#'   casualty whose wounds require staged soft-tissue coverage carries the
+#'   reconstruction sequence `role4_reconstruction_sequence()` builds. The two
+#'   are independent and a casualty can be in both.
+#'
+#'   Reported in operations and theatre-minutes rather than as bed-days, because
+#'   a theatre is a throughput resource: an operation of 95 minutes occupies no
+#'   bed for a day, and adding it to the bed census would report a quantity in
+#'   two units at once. The minutes column counts only the conserved definitive
+#'   repairs, no open-access source reporting how long a debridement or a flap
+#'   takes at this echelon; the operations column counts every procedure.
 compute_role4_surgical_demand <- function(arrivals_log, r4_params) {
   empty <- data.frame(replication = integer(0), day = integer(0),
                       theatre = character(0), operations = integer(0),
@@ -626,16 +704,36 @@ compute_role4_surgical_demand <- function(arrivals_log, r4_params) {
   if (!all(needed %in% names(arrivals_log))) return(empty)
 
   theatre <- role4_theatre_label(r4_params)
-  owed <- assign_role4_los(arrivals_log, r4_params) %>%
-    filter(!is.na(definitive_repair_outstanding) & definitive_repair_outstanding == 1)
-  if (nrow(owed) == 0) return(empty)
+  assigned <- assign_role4_los(arrivals_log, r4_params)
+  if (nrow(assigned) == 0) return(empty)
 
-  owed %>%
-    mutate(day = r4_admit_day, theatre = theatre,
+  # The outstanding definitive repair, carried rearward with its drawn duration.
+  repairs <- assigned %>%
+    filter(!is.na(definitive_repair_outstanding) & definitive_repair_outstanding == 1) %>%
+    mutate(day = r4_admit_day,
            theatre_minutes = ifelse(is.na(definitive_repair_minutes), 0,
                                     definitive_repair_minutes)) %>%
+    dplyr::select(replication, day, theatre_minutes) %>%
+    mutate(operations = 1L)
+
+  # The reconstruction sequence, counted but not timed: no open-access source
+  # reports the theatre time a debridement or a flap takes at this echelon, so
+  # the minutes column carries only the durations the model actually conserves
+  # and the count carries every procedure.
+  # The interval draw runs inside the preserved stream, as the length-of-stay
+  # draw above it does, so the report is idempotent and leaves the caller's
+  # stream where it found it: analysing one run twice has to give one answer.
+  sequence <- with_preserved_rng(role4_reconstruction_sequence(assigned, r4_params)) %>%
+    mutate(theatre_minutes = 0, operations = 1L) %>%
+    dplyr::select(replication, day, theatre_minutes, operations)
+
+  combined_demand <- bind_rows(repairs, sequence)
+  if (nrow(combined_demand) == 0) return(empty)
+
+  combined_demand %>%
+    mutate(theatre = theatre) %>%
     group_by(replication, day, theatre) %>%
-    summarise(operations = dplyr::n(),
+    summarise(operations = sum(operations),
               theatre_minutes = sum(theatre_minutes), .groups = "drop") %>%
     as.data.frame()
 }

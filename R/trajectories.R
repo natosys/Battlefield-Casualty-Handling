@@ -2587,6 +2587,81 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     })
 }
 
+#' The configured share of Priority 1 surgical casualties needing reconstruction
+#'
+#' @return The share, or NA where the mechanism is configured off.
+#'
+#' @details Read from `role4.surgery.reconstruction_share`. An absent block or a
+#'   share of zero reads as off, which is what lets a configuration written
+#'   before this existed reproduce the model without it.
+r4_reconstruction_share <- function() {
+  surgery <- env_data$vars$role4$surgery
+  if (is.null(surgery) || is.null(surgery$reconstruction_share)) return(NA_real_)
+  share <- suppressWarnings(as.numeric(surgery$reconstruction_share))
+  if (length(share) != 1L || is.na(share) || share < 0 || share > 1) {
+    stop("role4.surgery.reconstruction_share must be a number between 0 and 1; found: ",
+         paste(format(surgery$reconstruction_share), collapse = ", "), call. = FALSE)
+  }
+  if (share <= 0) return(NA_real_)
+  share
+}
+
+#' Whether this casualty's wounds require reconstruction at the national support base
+#'
+#' @return 1 where the casualty is drawn into the reconstruction cohort, 0
+#'   otherwise.
+#'
+#' @details The draw is restricted to a Priority 1 casualty operated on in
+#'   theatre, which is the population the calibrating cohort is drawn from, and
+#'   is taken on the wound rather than on the casualty's expected recovery: a
+#'   casualty needing staged soft-tissue coverage is identified by what they are
+#'   wounded with, not by how long they would take to return to duty. See README
+#'   Role 4 (National Support Base) Demand Modelling for the source and its
+#'   cohort.
+#'
+#'   A share of zero or one consumes no random draw, on the degenerate-rate
+#'   convention `draw_dcs_pathway()` also follows, so a configuration turning
+#'   this off reproduces the model without it rather than merely approximating
+#'   it.
+draw_reconstruction_required <- function() {
+  share <- r4_reconstruction_share()
+  if (is.na(share)) return(0)
+  prio     <- get_attribute(env, "priority")
+  operated <- get_attribute(env, "surgery")
+  if (is.na(prio) || prio != 1) return(0)
+  if (is.na(operated) || operated != 1) return(0)
+  if (share >= 1) return(1)
+  as.numeric(runif(1) < share)
+}
+
+#' Why this casualty leaves theatre, or 0 where they are retained
+#'
+#' @return 0 for a casualty retained in theatre, or the reason they are
+#'   evacuated: 1 recovery beyond the theatre evacuation policy, 2 wounds
+#'   requiring reconstruction at the national support base, 3 released with the
+#'   definitive repair outstanding under forward surgical saturation.
+#'
+#' @details Reasons 2 and 3 override the policy comparison rather than
+#'   competing with it: neither casualty can be returned to duty in theatre
+#'   whatever their drawn recovery, one because the operation they are waiting
+#'   for cannot be performed here and the other because staged soft-tissue
+#'   coverage is weeks of repeated theatre visits this echelon does not provide.
+#'   Reason 3 is tested first, being the more acute of the two.
+#'
+#'   Computed once and recorded on the casualty rather than re-derived in the
+#'   branch, so the disposition taken and the reason reported cannot disagree.
+draw_evacuation_reason <- function() {
+  outstanding <- get_attribute(env, "definitive_repair_outstanding")
+  if (!is.na(outstanding) && outstanding == 1) return(3)
+  reconstruct <- get_attribute(env, "reconstruction_required")
+  if (!is.na(reconstruct) && reconstruct == 1) return(2)
+  rtd    <- get_attribute(env, "recovery_to_duty_days")
+  policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+  if (!is.na(rtd) && rtd <= policy) return(0)
+  1
+}
+
+
 #' Applies the final disposition at R2E under the theatre evacuation policy
 #'
 #' @param trj           Trajectory to append the disposition to
@@ -2598,24 +2673,20 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
 #' @return The trajectory, with the recovery-to-duty draw and the disposition
 #'   branch appended.
 r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
-  # recovery_to_duty_days is drawn first (draw_recovery_to_duty()) and the
-  # branch compares it against recovery$evacuation_policy_days:
-  # - expected recovery within the policy → retain in theatre: seize hold bed
-  #   for that drawn duration, log return_day
-  # - expected recovery beyond the policy → strategic evac
-  #   (r2e_strategic_evac())
+  # recovery_to_duty_days is drawn first (draw_recovery_to_duty()), then the
+  # reconstruction requirement and the evacuation reason it may decide.
   trj %>%
     set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
+    set_attribute("reconstruction_required", draw_reconstruction_required) %>%
+    set_attribute("evacuation_reason", draw_evacuation_reason) %>%
     branch(
+      # The reason is decided once, above, and recorded on the casualty; this
+      # branch only acts on it, so the two cannot disagree and the analysis can
+      # decompose the evacuated population by what sent each casualty rearward.
+      # - 0 → retain in theatre: seize a hold bed for the drawn recovery
+      # - anything else → strategic evacuation (r2e_strategic_evac())
       option = function() {
-        # A casualty whose definitive repair is still outstanding cannot be
-        # retained in theatre whatever their drawn recovery: the operation they
-        # are waiting for is the one this echelon has no capacity to perform.
-        outstanding <- get_attribute(env, "definitive_repair_outstanding")
-        if (!is.na(outstanding) && outstanding == 1) return(2)
-        rtd    <- get_attribute(env, "recovery_to_duty_days")
-        policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
-        if (!is.na(rtd) && rtd <= policy) return(1)
+        if (get_attribute(env, "evacuation_reason") == 0) return(1)
         return(2)
       },
       continue = TRUE,

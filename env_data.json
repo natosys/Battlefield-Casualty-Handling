@@ -443,6 +443,15 @@
               "val": 600
             }
           ]
+        },
+        {
+          "acty": "second_surgery",
+          "vals": [
+            {
+              "var": "saturation_queue_threshold",
+              "val": 0
+            }
+          ]
         }
       ]
     },

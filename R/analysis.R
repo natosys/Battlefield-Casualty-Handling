@@ -2438,7 +2438,7 @@ compute_ot_utilisation <- function(resources_raw) {
 #' @param in_theatre_share See analyse_run().
 #' @param output_dir See analyse_run().
 #' @return A list of `post_op_pathway_summary`, `surgery_deferred_count`,
-#'   `surgical_pathway_summary`, `operated`.
+#'   `definitive_repair_outstanding_count`, `surgical_pathway_summary`.
 #' @details Splits both the post-operative destination, an intensive care bed or the
 #'   degraded holding-bed fallback, and the damage control against single-stage
 #'   surgical pathway.
@@ -2452,6 +2452,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
   pathway_labels <- c("1" = "icu", "2" = "hold")
   post_op_pathway_summary <- NULL
   surgery_deferred_count  <- 0L
+  definitive_repair_outstanding_count <- 0L
   if ("post_op_pathway" %in% names(attributes_wide)) {
     post_op_pathway_summary <- attributes_wide %>%
       filter(!is.na(post_op_pathway)) %>%
@@ -2472,6 +2473,14 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
     surgery_deferred_count <- sum(!is.na(attributes_wide$surgery_deferred) &
                                     attributes_wide$surgery_deferred == 1L,
                                   na.rm = TRUE)
+  }
+  # Casualties released to strategic evacuation with the definitive repair
+  # outstanding, the surgical queue having reached the configured saturation
+  # threshold. Zero at the shipped threshold, which disables the release.
+  if ("definitive_repair_outstanding" %in% names(attributes_wide)) {
+    definitive_repair_outstanding_count <-
+      sum(!is.na(attributes_wide$definitive_repair_outstanding) &
+            attributes_wide$definitive_repair_outstanding == 1L, na.rm = TRUE)
   }
   # KPI 8a: surgical pathway split (Issue #173)
   # dcs_pathway: 1 = staged damage control (abbreviated operation, stabilisation,
@@ -2511,6 +2520,9 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
   }
 
   cat(sprintf("R2E OT-ICU gating: surgery deferred (ICU saturated, P2+): %d\n", surgery_deferred_count))
+  cat(sprintf(paste("R2E evacuated with definitive repair outstanding",
+                    "(surgical queue saturated): %d\n"),
+              definitive_repair_outstanding_count))
   if (!is.na(evacuation_policy_summary$in_theatre_share)) {
     cat(sprintf(
       "R2E evacuation policy (Issue #156): %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
@@ -2521,6 +2533,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
   list(
     post_op_pathway_summary = post_op_pathway_summary,
     surgery_deferred_count = surgery_deferred_count,
+    definitive_repair_outstanding_count = definitive_repair_outstanding_count,
     surgical_pathway_summary = surgical_pathway_summary
   )
 }
@@ -2917,6 +2930,8 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
                                                                    in_theatre_share, output_dir)
   post_op_pathway_summary <- post_operative_pathways_out$post_op_pathway_summary
   surgery_deferred_count <- post_operative_pathways_out$surgery_deferred_count
+  definitive_repair_outstanding_count <-
+    post_operative_pathways_out$definitive_repair_outstanding_count
   surgical_pathway_summary <- post_operative_pathways_out$surgical_pathway_summary
 
   # ── R2E OT-ICU gating impact — sub-optimal and delayed care ──────────────
@@ -3096,6 +3111,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     post_op_pathway_summary     = post_op_pathway_summary,
     surgical_pathway_summary    = surgical_pathway_summary,
     surgery_deferred_count      = surgery_deferred_count,
+    definitive_repair_outstanding_count = definitive_repair_outstanding_count,
     r2e_icu_gating_daily        = r2e_icu_gating_daily,
     r2e_icu_gating_plot         = r2e_icu_gating_plot,
     mass_casualty_events_summary       = mass_casualty_events_summary,
@@ -3574,7 +3590,8 @@ plot_r2b_bypass_reason_ci <- function(attributes_wide, combined, n_reps, rep_ids
 #' @param clamp_ci See analyse_run().
 #' @param rep_ids See analyse_run().
 #' @param output_dir Directory the tables are written to.
-#' @return A list of `post_op_pathway_ci`, `surgery_deferred_summary_ci`.
+#' @return A list of `post_op_pathway_ci`, `surgery_deferred_summary_ci`,
+#'   `definitive_repair_outstanding_summary_ci`.
 summarise_post_op_pathway_ci <- function(attributes_wide, clamp_ci, rep_ids, output_dir) {
   post_op_pathway_ci  <- NULL
   if ("post_op_pathway" %in% names(attributes_wide) && any(!is.na(attributes_wide$post_op_pathway))) {
@@ -3611,9 +3628,19 @@ summarise_post_op_pathway_ci <- function(attributes_wide, clamp_ci, rep_ids, out
       complete(replication = rep_ids, fill = list(n_evt = 0L))
     surgery_deferred_summary_ci <- clamp_ci(ci_mean(surgery_deferred_per_rep$n_evt))
   }
+
+  definitive_repair_outstanding_summary_ci <- clamp_ci(ci_mean(rep(0, length(rep_ids))))
+  if ("definitive_repair_outstanding" %in% names(attributes_wide)) {
+    outstanding_per_rep <- attributes_wide %>%
+      filter(!is.na(definitive_repair_outstanding) & definitive_repair_outstanding == 1L) %>%
+      count(replication, name = "n_evt") %>%
+      complete(replication = rep_ids, fill = list(n_evt = 0L))
+    definitive_repair_outstanding_summary_ci <- clamp_ci(ci_mean(outstanding_per_rep$n_evt))
+  }
   list(
     post_op_pathway_ci = post_op_pathway_ci,
-    surgery_deferred_summary_ci = surgery_deferred_summary_ci
+    surgery_deferred_summary_ci = surgery_deferred_summary_ci,
+    definitive_repair_outstanding_summary_ci = definitive_repair_outstanding_summary_ci
   )
 }
 
@@ -4360,6 +4387,8 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
                                                          output_dir)
   post_op_pathway_ci <- post_op_pathway_ci_out$post_op_pathway_ci
   surgery_deferred_summary_ci <- post_op_pathway_ci_out$surgery_deferred_summary_ci
+  definitive_repair_outstanding_summary_ci <-
+    post_op_pathway_ci_out$definitive_repair_outstanding_summary_ci
 
   # Transport Fleet Capacity Margin — mean ± CI queue by vehicle (Issue #6)
 
@@ -4493,6 +4522,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     r2b_bypass_reason_plot         = r2b_bypass_reason_plot_full,
     post_op_pathway_summary_ci     = post_op_pathway_ci,
     surgery_deferred_summary_ci    = surgery_deferred_summary_ci,
+    definitive_repair_outstanding_summary_ci = definitive_repair_outstanding_summary_ci,
     transport_capacity_margin_plot = p_transport_capacity_margin_ci,
     transport_utilisation_ci       = transport_utilisation_ci,
     dwell_time_summary_ci          = dwell_time_summary_ci,

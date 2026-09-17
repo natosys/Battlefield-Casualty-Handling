@@ -2470,7 +2470,21 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
       # here; what is given up is the return to theatre, which becomes demand on
       # the national support base rather than care withheld.
       trajectory("Released Before Definitive Repair — Theatre Saturated") %>%
-        set_attribute("definitive_repair_outstanding", 1)
+        set_attribute("definitive_repair_outstanding", 1) %>%
+        # The operation is drawn here rather than at the echelon that performs
+        # it, so the requirement is conserved by construction: one draw, from
+        # the distribution this theatre would have served it under, carried
+        # rearward on the casualty. The analysis layer reads it and takes no
+        # draw of its own, which is what keeps the Role 4 report a function of
+        # the run rather than of the caller's stream position.
+        set_attribute("definitive_repair_minutes", function() {
+          rtriangle(
+            n = 1,
+            a = env_data$vars$r2eheavy$surgery$min,
+            b = env_data$vars$r2eheavy$surgery$max,
+            c = env_data$vars$r2eheavy$surgery$mode
+          )
+        })
     )
 }
 

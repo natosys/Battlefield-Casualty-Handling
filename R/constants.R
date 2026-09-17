@@ -29,7 +29,7 @@ DAY_MIN <- 1440L
 MODEL_ATTRIBUTE_KEYS <- c(
   "ame_departure_time", "ame_hold_start", "ame_icu_hold", "ame_icu_hold_minutes",
   "ame_icu_hold_start", "ame_route", "ame_wait_minutes", "dcs_pathway",
-  "definitive_repair_outstanding", "dnbi_bf_hold",
+  "definitive_repair_minutes", "definitive_repair_outstanding", "dnbi_bf_hold",
   "dnbi_type", "dow", "dow_ceiling", "dow_echelon", "evacuation_day", "evacuation_decision_day",
   "injury_time", "injury_type", "last_dow_t", "mass_casualty_event", "mass_casualty_event_id",
   "mortuary_treated", "post_definitive_hold_start", "post_definitive_min",

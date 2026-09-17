@@ -928,7 +928,7 @@
             },
             {
               "var": "reconstruction_share",
-              "val": 0
+              "val": 0.2
             },
             {
               "var": "return_interval_min",

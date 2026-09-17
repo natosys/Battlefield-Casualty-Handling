@@ -56,7 +56,7 @@ POLICY_HOLD_BEDS <- c(30L, 45L, 60L, 90L)
 #'   the range runs from a threshold that fires on the first case waiting to one
 #'   deliberately beyond the queue a campaign reaches, so a value that is inert
 #'   is identified as inert by measurement rather than assumed.
-POLICY_SATURATION_THRESHOLDS <- c(0L, 1L, 2L, 3L, 5L, 8L, 12L)
+POLICY_SATURATION_THRESHOLDS <- c(0L, 1L, 2L, 3L, 5L, 8L, 12L, 16L, 24L)
 
 #' Replications per swept value
 #'

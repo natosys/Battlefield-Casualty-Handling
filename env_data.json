@@ -449,7 +449,7 @@
           "vals": [
             {
               "var": "saturation_queue_threshold",
-              "val": 0
+              "val": 8
             }
           ]
         }

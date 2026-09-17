@@ -93,10 +93,20 @@ CHECK_SEED <- as.integer(arg_value("--seed", 42L))
 
 #' Threshold that puts the release in force
 #'
-#' @details One queued casualty across the team's surgical sections. The
-#'   sections are rostered in alternating shifts, so a queue forms readily and
-#'   the arm is reached without contriving an establishment.
+#' @details One queued casualty, which is the most permissive setting the
+#'   release has and so reaches every assertion below on a 30-day run. It is
+#'   deliberately not the shipped threshold: the shipped value is checked
+#'   separately against `env_data.json`, and a check that exercised only the
+#'   shipped value would stop testing the mechanism the day the default moved.
 CHECK_THRESHOLD <- 1
+
+#' The shipped threshold, which the release is checked to fire at
+#'
+#' @details Eight queued casualties, set from the mean closing-window theatre
+#'   queue an unrelieved 360-day campaign carries (data/policy/). Restated here
+#'   so that a change to the default is caught by this check rather than only by
+#'   a measurement nobody re-runs.
+SHIPPED_THRESHOLD <- 8
 
 state <- new.env(parent = emptyenv())
 state$failures <- character(0)
@@ -138,9 +148,10 @@ install_config <- function(ed) {
 #'
 #' @param threshold The threshold to configure, or NULL to remove the
 #'   `second_surgery` block altogether.
+#' @param scenario Scenario profile to run under.
 #' @return The wrapped environment `run_once()` returns.
-run_at <- function(threshold) {
-  ed <- load_scenario("env_data.json", "default")
+run_at <- function(threshold, scenario = "default") {
+  ed <- load_scenario("env_data.json", scenario)
   if (is.null(threshold)) {
     ed$vars$r2eheavy$second_surgery <- NULL
   } else {
@@ -180,12 +191,30 @@ cat("-- the shipped configuration --\n")
 shipped <- load_scenario("env_data.json", "default")
 shipped_threshold <- shipped$vars$r2eheavy$second_surgery$saturation_queue_threshold
 report(!is.null(shipped_threshold) && length(shipped_threshold) == 1L &&
-         !is.na(shipped_threshold) && shipped_threshold == 0,
-       "r2eheavy.second_surgery.saturation_queue_threshold ships at 0, disabling the release")
+         !is.na(shipped_threshold) && shipped_threshold == SHIPPED_THRESHOLD,
+       "r2eheavy.second_surgery.saturation_queue_threshold ships at %d, in force",
+       SHIPPED_THRESHOLD)
 
 install_config(shipped)
-report(is.na(r2e_second_surgery_threshold()),
-       "the accessor reads the shipped threshold as disabled")
+report(isTRUE(r2e_second_surgery_threshold() == SHIPPED_THRESHOLD),
+       "the accessor reads the shipped threshold as in force")
+
+# The shipped threshold is a saturation response, so it is asserted against a
+# saturated configuration. A 30-day campaign at the Falklands-modified rates
+# carries a mean theatre queue near one and never reaches eight, which is the
+# lever behaving as intended rather than failing to fire: the same threshold
+# releases 141 casualties per campaign-year over 360 days (data/policy/).
+saturated_released <- released_count(wide_of(run_at(SHIPPED_THRESHOLD,
+                                                    scenario = "high_intensity")))
+report(saturated_released > 0,
+       paste("the release fires at the shipped threshold under a saturated",
+             "configuration (%d casualties over %d days at high intensity)"),
+       saturated_released, CHECK_DAYS)
+
+unsaturated_released <- released_count(wide_of(run_at(SHIPPED_THRESHOLD)))
+report(unsaturated_released == 0,
+       paste("and does not fire in a 30-day campaign at the Falklands-modified",
+             "rates, whose theatre queue never reaches the threshold"))
 
 # ── 2. A malformed threshold is rejected, naming the field ─────────────────
 

@@ -1953,7 +1953,8 @@ r2e_surgery_defer_path <- function(icu_beds, icu_path) {
 #' @param resource_name Name of the aeromedical evacuation pool being queued
 #'   for, "ame" or "ame_critical"
 #' @param bed_id        simmer selection id of the bed the casualty is staged in,
-#'   released if they die during the wait
+#'   released, and the release recorded in ame_hold_end, if they die during the
+#'   wait
 #' @param team_id       Integer index of the Role 2E Heavy team
 #' @param evac_team     This R2E team's evacuation section
 #' @return Simmer trajectory polling the casualty's risk on an interval until
@@ -2004,6 +2005,12 @@ r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
         set_attribute("dow", 1) %>%
         set_attribute("dow_echelon", 5) %>%
         release_selected(id = bed_id) %>%
+        # The staging bed ends here as well as at boarding, and this is the
+        # only route out of it that sets no departure time. Recording the
+        # release on the casualty rather than inferring it from the departure
+        # is what keeps the holding pool's occupancy split from charging this
+        # casualty's bed to the window's close.
+        set_attribute("ame_hold_end", function() now(env)) %>%
         r2e_treat_kia(team_id, evac_team) %>%
         r2e_transport_kia(team_id, evac_team) %>%
         simmer::leave(1),
@@ -2510,6 +2517,11 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 #'   Role 4 (National Support Base) Demand Modelling for which casualty each
 #'   pool is for and the doctrine that decides it.
 #'
+#'   ame_hold_end records when the staging bed was released, which boarding and
+#'   death while waiting both reach and only boarding sets a departure time for,
+#'   so the bed time a staged casualty consumed can be recovered whichever way
+#'   it left the pool.
+#'
 #'   The pool seat is never released: a boarded casualty permanently consumes
 #'   that sortie's capacity, and casualties board strictly in decision order, no
 #'   further acuity-based boarding priority beyond the critical/standard split
@@ -2580,6 +2592,7 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
         join(r2e_ame_wait_and_board("ame", 9, team_id, evac_team))
     ) %>%
     release_selected(id = 9) %>%
+    set_attribute("ame_hold_end", function() now(env)) %>%
     set_attribute("ame_departure_time", function() now(env)) %>%
     set_attribute("evacuation_day", function() floor(now(env) / DAY_MIN) + 1) %>%
     set_attribute("ame_wait_minutes", function() {

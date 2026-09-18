@@ -64,8 +64,8 @@ AIRLIFT_ROUTE_STANDARD <- 2
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param wide Per-casualty attributes for one replication, one row per
-#'   casualty, carrying the route and departure fields the evacuation wait needs
-#'   and the start and duration attributes each clinical stay records.
+#'   casualty, carrying the staging and release fields the evacuation wait
+#'   needs and the start and duration attributes each clinical stay records.
 #' @param horizon_min End of the campaign window, in minutes.
 #' @return A list of `total_bed_days`, the four components
 #'   `evacuation_bed_days`, `recovery_bed_days`, `post_definitive_bed_days` and
@@ -75,12 +75,17 @@ AIRLIFT_ROUTE_STANDARD <- 2
 #'
 #' @details One pool of holding beds serves four unrelated demands, and each is
 #'   reconstructed from what the model recorded rather than inferred as the
-#'   remainder of the others. A casualty awaiting the standard airlift pool
-#'   seizes a holding bed at the evacuation decision and releases it on
-#'   boarding; one awaiting the critical pool holds an intensive care bed
-#'   instead and contributes nothing here. The three clinical stays each record
-#'   the instant the bed was seized and the duration to be served, so each is
-#'   bounded without reference to the others.
+#'   remainder of the others. A casualty awaiting a sortie on either airlift
+#'   pool stages in a holding bed and releases it on boarding, a ventilated
+#'   casualty on the critical route reaching that bed only on step-down from
+#'   the intensive care its pre-flight period is served in. The three clinical
+#'   stays each record the instant the bed was seized and the duration to be
+#'   served, so each is bounded without reference to the others.
+#'
+#'   Each stay is bounded by the attribute its own exit route sets. The staging
+#'   stay ends at `ame_hold_end`, which a casualty records both on boarding a
+#'   sortie and on dying while waiting for one, rather than at the departure
+#'   time, which the second of those never reaches.
 #'
 #'   `unexplained_bed_days` is what makes the split checkable. Reporting
 #'   recovery as the remainder of the measured total would make the components
@@ -139,10 +144,15 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
     wide[[col]] * scale
   }
 
+  # The stay ends where the bed was released, which the casualty records on
+  # whichever route took it out of the pool: boarding a sortie, or dying while
+  # waiting for one. Deriving the end from the departure time alone charged a
+  # casualty who died awaiting a sortie to the window's close, that casualty
+  # never departing, which claimed the whole of a wait they did not serve.
   staging_minutes <- if ("ame_hold_start" %in% names(wide)) {
-    departed <- ifelse(is.na(wide$ame_departure_time), horizon_min,
-                       wide$ame_departure_time)
-    pmax(departed - wide$ame_hold_start, 0)
+    released <- if ("ame_hold_end" %in% names(wide)) wide$ame_hold_end else NA_real_
+    released <- ifelse(is.na(released), horizon_min, released)
+    pmax(released - wide$ame_hold_start, 0)
   } else {
     NULL
   }

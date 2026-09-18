@@ -19,30 +19,29 @@
 # to logistics or the reverse.
 #
 # The attribution is computed rather than estimated, and this check is what
-# holds it so. A casualty awaiting the standard airlift pool seizes a holding bed
-# on reaching the evacuation decision and releases it on boarding, so its whole
-# wait is holding occupancy. A casualty awaiting the critical pool holds an
-# intensive care bed instead and must contribute nothing. Recovery is then the
-# remainder of the measured pool occupancy, which makes the two sum to the total
-# by construction; what needs checking is that the evacuation component is right,
-# since an error there moves the same quantity out of recovery and the sum would
-# still hold.
+# holds it so. A casualty awaiting a sortie on either airlift pool stages in a
+# holding bed and releases it on boarding, so its staging wait is holding
+# occupancy; the three clinical stays that share the pool each record the
+# instant their bed was seized and the duration to be served. Every component
+# is computed independently rather than one of them being taken as the
+# remainder, so the sum can disagree with the monitor, and what this check
+# measures is whether it does.
 #
 # What this asserts:
 #
-#   1. The two components account for the pool's measured occupancy, to within
-#      CLOSE_SHARE, at the shipped configuration and under a cancellation rate
-#      that forms a backlog. They closed it exactly before the national support
-#      base levers were enabled; the residual that remains is the defect
-#      CLOSE_SHARE and POPULATION_OVERCOUNT_SHARE document and bound.
+#   1. The four components account for the pool's measured occupancy exactly,
+#      at the shipped configuration, under a cancellation rate that forms a
+#      backlog, and under one that leaves casualties staged at the close.
 #   2. The evacuation component is bounded by the pool: never negative, never
 #      more than the total.
-#   3. It counts the standard route and not the critical one, asserted against
-#      a run carrying both.
+#   3. It counts both airlift routes, asserted against a run carrying both.
 #   4. The evacuation component is recomputed independently, casualty by
 #      casualty from the attribute monitor, and agrees.
 #   5. A casualty still waiting when the window closes is charged to the
 #      window's end rather than dropped.
+#   6. A casualty who dies while awaiting a sortie is charged to its death
+#      rather than to the window's close, and the superseded estimator that
+#      charged it to the close is shown still to over-count.
 #
 # Assertion 4 is what keeps the rest from being circular: assertions 1 and 2
 # would hold for any evacuation component the code happened to produce.
@@ -122,29 +121,25 @@ POPULATION_TOL <- 1e-6
 
 #' Largest over-count any replication may leave, as a share of its own pool
 #'
-#' @details The components over-count a minority of campaigns, for a reason not
-#'   yet isolated: a recorded duration sometimes exceeds the bed time actually
-#'   served. The bound is stated rather than assumed to be zero so that the
-#'   residual is held where it is while the cause is investigated, and so that a
-#'   change which makes it worse fails here rather than passing unnoticed.
-#'
-#'   It did exactly that when both national support base levers were enabled.
-#'   The worst over-count rose from 3.3% of the pool to 6.4%, 12 of the 50
-#'   tracked replications over-counting, because the reconstruction cohort
-#'   evacuates more casualties on the standard airlift route and each of those
-#'   waits in a holding bed, so an already-known defect bites more often. The
-#'   bound is raised to 8% to admit the measured residual, deliberately and with
-#'   the cause left open rather than papered over: the ratchet still holds the
-#'   residual where this campaign put it, and the root cause belongs to the
-#'   issue raised for it.
-POPULATION_OVERCOUNT_SHARE <- 0.08
+#' @details Zero. The components over-counted a minority of campaigns until the
+#'   staging stay was bounded by the instant its bed was released rather than by
+#'   the instant its casualty departed: a casualty who died while awaiting a
+#'   sortie never departs, so that casualty was charged with the whole of a wait
+#'   it did not serve. With the stay bounded by `ame_hold_end`, which both
+#'   routes out of the staging bed set, no campaign in the tracked set
+#'   over-counts. The bound is a millionth of the pool rather than zero because
+#'   the total is integrated from the monitor's step function while the
+#'   components are summed from recorded durations, so the two reach the same
+#'   quantity by different arithmetic and agree to floating-point rather than
+#'   to the bit.
+POPULATION_OVERCOUNT_SHARE <- 1e-6
 
 #' Share of replications required to close exactly
 #'
-#' @details 80% against the 90% measured across the tracked set, which leaves
-#'   room for the ordinary variation between evidence sets without admitting a
-#'   change that stops most campaigns closing.
-POPULATION_EXACT_SHARE <- 0.80
+#' @details Every one. Closure is exact for each of the 650 tracked
+#'   replications, so anything less is a regression rather than ordinary
+#'   variation between evidence sets.
+POPULATION_EXACT_SHARE <- 1
 
 #' Tolerance the four components are required to close the pool within, in
 #' bed-days
@@ -154,25 +149,6 @@ POPULATION_EXACT_SHARE <- 0.80
 #'   recorded durations, so the two reach the same quantity by different
 #'   arithmetic. A thousandth of a bed-day is under two minutes of one bed.
 CLOSE_TOL <- 1e-3
-
-#' Largest share of the pool the components may leave unexplained in one run
-#'
-#' @details The components closed the pool to within a thousandth of a bed-day
-#'   before either national support base lever was enabled. They no longer do:
-#'   at the shipped configuration they over-count by 25.5 bed-days of 389, which
-#'   is 6.5% of the pool and the same defect POPULATION_OVERCOUNT_SHARE bounds
-#'   across replications, a recorded duration sometimes exceeding the bed time
-#'   actually served. The reconstruction cohort evacuates more casualties on the
-#'   standard airlift route, each of whom waits in a holding bed, so the defect
-#'   now reaches the shipped configuration rather than a minority of campaigns.
-#'
-#'   The bound is a share of the pool rather than an absolute figure, so it does
-#'   not quietly loosen as campaigns grow, and it is deliberately close to the
-#'   measured residual so that any further worsening fails here. The arithmetic
-#'   identity above it, that the reported sum is the four components, still
-#'   holds to CLOSE_TOL: what is unexplained is the gap against the monitor, not
-#'   an inconsistency between the components.
-CLOSE_SHARE <- 0.08
 
 #' Run one campaign and return its monitors and its split
 #'
@@ -210,12 +186,13 @@ censoring <- measure(CHECK_CENSORING_FAILURE)
 cat("\n-- the four components account for the pool in the campaigns run here --\n")
 
 for (arm in list(list("shipped reliability", shipped),
-                 list("a cancellation rate of 0.40", backlog))) {
+                 list("a cancellation rate of 0.40", backlog),
+                 list("a cancellation rate of 0.75", censoring))) {
   label <- arm[[1]]
   s     <- arm[[2]]$split
-  report(abs(s$unexplained_bed_days) <= CLOSE_SHARE * s$total_bed_days,
-         "%s: the four stays leave %.4f bed-days of %.3f unexplained, within %.0f%%",
-         label, s$unexplained_bed_days, s$total_bed_days, 100 * CLOSE_SHARE)
+  report(abs(s$unexplained_bed_days) <= CLOSE_TOL,
+         "%s: the four stays leave %.6f bed-days of %.3f unexplained",
+         label, s$unexplained_bed_days, s$total_bed_days)
   report(abs(s$accounted_bed_days - (s$evacuation_bed_days + s$recovery_bed_days +
                                        s$post_definitive_bed_days +
                                        s$post_op_hold_bed_days)) < TOL,
@@ -233,9 +210,11 @@ cat("\n-- closure across the tracked replications --\n")
 
 # The three campaigns above close exactly, and that is not evidence that every
 # campaign does: closure is a property of the population, and asserting it on one
-# seed is how a split that fails on a minority of campaigns passes a check. The
-# tracked evidence set carries the residual for 650 replications, so the property
-# is asserted where it can be measured rather than where it happens to hold.
+# seed is how a split that fails on a minority of campaigns passes a check. That
+# is how the defect this bound once documented survived, the campaigns run here
+# happening to carry no casualty who died in a staging bed. The tracked evidence
+# set carries the residual for 650 replications, so the property is asserted
+# where it can be measured rather than where it happens to hold.
 if (!file.exists(POPULATION_PATH)) {
   report(FALSE, "the tracked airlift responses %s exist", POPULATION_PATH)
 } else {
@@ -321,14 +300,16 @@ report(any(routes == AIRLIFT_ROUTE_CRITICAL) && any(routes == AIRLIFT_ROUTE_STAN
 #'   was seized, which is what `ame_hold_start` records, rather than from the
 #'   evacuation decision: a ventilated casualty on the critical route holds an
 #'   intensive care bed for its pre-flight period first and reaches a holding
-#'   bed only on step-down.
+#'   bed only on step-down. It ends where the bed was released, which
+#'   `ame_hold_end` records on both routes out of the staging bed, rather than
+#'   where the casualty departed, which a casualty who died waiting never does.
 recompute <- function(wide, route, horizon_min) {
   rows <- wide[!is.na(wide$ame_hold_start), ]
   if (!is.na(route)) rows <- rows[!is.na(rows$ame_route) & rows$ame_route == route, ]
   total <- 0
   for (i in seq_len(nrow(rows))) {
     start <- rows$ame_hold_start[i]
-    end   <- if (is.na(rows$ame_departure_time[i])) horizon_min else rows$ame_departure_time[i]
+    end   <- if (is.na(rows$ame_hold_end[i])) horizon_min else rows$ame_hold_end[i]
     if (start >= horizon_min) next
     total <- total + max(min(end, horizon_min) - start, 0)
   }
@@ -376,7 +357,7 @@ for (arm in list(list("shipped reliability", shipped),
 
 cat("\n-- a wait still running when the window closes is carried, not dropped --\n")
 
-still_waiting <- censoring$wide[is.na(censoring$wide$ame_departure_time) &
+still_waiting <- censoring$wide[is.na(censoring$wide$ame_hold_end) &
                                   !is.na(censoring$wide$ame_hold_start) &
                                   censoring$wide$ame_hold_start < censoring$horizon_min, ]
 report(nrow(still_waiting) > 0,
@@ -385,7 +366,7 @@ report(nrow(still_waiting) > 0,
 
 if (nrow(still_waiting) > 0) {
   censored <- sum(pmax(censoring$horizon_min - still_waiting$ame_hold_start, 0)) / DAY_MIN
-  boarded_rows <- censoring$wide[!is.na(censoring$wide$ame_departure_time), ]
+  boarded_rows <- censoring$wide[!is.na(censoring$wide$ame_hold_end), ]
   departed <- recompute(boarded_rows, NA, censoring$horizon_min)
   report(abs(censoring$split$evacuation_bed_days - (censored + departed)) < TOL,
          "the component is the boarded stays plus the open ones charged to the close (%.3f + %.3f)",
@@ -402,10 +383,62 @@ if (nrow(still_waiting) > 0) {
   report(nrow(never_held) > 0,
          "the censoring arm leaves casualties queued for a staging bed (%d)",
          nrow(never_held))
-  report(abs(censoring$split$unexplained_bed_days) <=
-           CLOSE_SHARE * censoring$split$total_bed_days,
-         "and the pool still closes within the stated bound (%.4f bed-days unexplained)",
+  report(abs(censoring$split$unexplained_bed_days) <= CLOSE_TOL,
+         "and the pool still closes exactly (%.6f bed-days unexplained)",
          censoring$split$unexplained_bed_days)
+}
+
+# ── 6. A casualty who dies awaiting a sortie is charged to its death ───────
+
+cat("\n-- a casualty who dies awaiting a sortie is charged to its death --\n")
+
+#' The evacuation component under the superseded departure-bounded estimator
+#'
+#' @param wide Per-casualty attributes.
+#' @param horizon_min End of the campaign window, in minutes.
+#' @return Bed-days the staging stays would contribute if each were bounded by
+#'   its casualty's departure rather than by the release of its bed.
+#'
+#' @details Kept so that the correction is asserted against the behaviour it
+#'   replaced rather than only against the monitor. A casualty who died while
+#'   waiting has no departure time, so this estimator charges it to the
+#'   window's close and over-counts the pool by the wait it did not serve.
+superseded <- function(wide, horizon_min) {
+  rows <- wide[!is.na(wide$ame_hold_start) & wide$ame_hold_start < horizon_min, ]
+  end  <- ifelse(is.na(rows$ame_departure_time), horizon_min, rows$ame_departure_time)
+  sum(pmax(pmin(end, horizon_min) - rows$ame_hold_start, 0)) / DAY_MIN
+}
+
+for (arm in list(list("shipped reliability", shipped),
+                 list("a cancellation rate of 0.40", backlog))) {
+  label <- arm[[1]]
+  a     <- arm[[2]]
+  died  <- a$wide[!is.na(a$wide$dow_echelon) & a$wide$dow_echelon == 5 &
+                    !is.na(a$wide$ame_hold_start), ]
+  report(nrow(died) > 0,
+         "%s: the run carries a casualty who died in a staging bed, so this is not vacuous (%d)",
+         label, nrow(died))
+  if (nrow(died) == 0) next
+
+  report(all(!is.na(died$ame_hold_end)),
+         "%s: every such casualty records the release of its staging bed", label)
+  report(all(is.na(died$ame_departure_time)),
+         "%s: and none of them departs, which is why the release is needed", label)
+  report(all(died$ame_hold_end < a$horizon_min - TOL),
+         "%s: each release falls inside the window rather than at its close", label)
+
+  # The gap between the two estimators is exactly the unserved remainder of the
+  # window, which is what the superseded one claimed. Asserting the size rather
+  # than only the direction is what would catch a correction that moved the
+  # boundary to some other instant.
+  unserved <- sum(a$horizon_min - died$ame_hold_end) / DAY_MIN
+  report(abs((superseded(a$wide, a$horizon_min) - a$split$evacuation_bed_days) -
+               unserved) < TOL,
+         "%s: the superseded estimator over-counts by the %.3f bed-days they did not serve",
+         label, unserved)
+  report(unserved > CLOSE_TOL,
+         "%s: and that over-count is large enough to have mattered (%.3f bed-days)",
+         label, unserved)
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

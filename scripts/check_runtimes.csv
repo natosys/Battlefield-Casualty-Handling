@@ -1,6 +1,7 @@
 check,seconds
 check_absent_attribute_columns.R,37
 check_airlift_collapse_protocol.R,5
+check_airlift_protocol.R,2
 check_analysis_decomposition.R,6
 check_analysis_idempotence.R,74
 check_arrival_rate_fidelity.R,12

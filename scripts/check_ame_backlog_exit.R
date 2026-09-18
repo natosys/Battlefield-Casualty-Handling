@@ -191,7 +191,7 @@ tail_backlog <- compute_ame_backlog(coincident, CHECK_DAYS)
 tail_standard <- tail_backlog[as.character(tail_backlog$pool) == STANDARD_POOL, ]
 tail_standard <- tail_standard[order(tail_standard$time), ]
 report(isTRUE(tail_standard$backlog[nrow(tail_standard)] == 0),
-       "a pool cleared at the campaign's last instant is carried to the close at 0, not 1 (found %s)",
+       "a pool cleared at the campaign's last instant reaches the close at 0, not 1 (found %s)",
        format(tail_standard$backlog[nrow(tail_standard)]))
 report(isTRUE(tail_standard$time[nrow(tail_standard)] == CHECK_DAYS * DAY_MIN),
        "and the series is extended to the window's close rather than stopping at its last event")

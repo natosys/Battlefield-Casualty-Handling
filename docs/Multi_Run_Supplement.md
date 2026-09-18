@@ -298,6 +298,8 @@ Mean utilisation across the swept range runs the wrong way on both platforms, ri
 Rscript scripts/run_airlift_sweep.R --refresh-baseline
 ```
 
+`scripts/check_airlift_protocol.R` asserts that the parameters above are the ones the code holds, that the tracked responses carry that replication count across the thirteen configurations, and that every figure the companion paper's three tables print is the tracked summary's own, a missing table, row or column failing rather than passing quietly. The experiment had no such check until the companion paper's figures were found to have drifted from this evidence set, and the wider audit that finding prompted is recorded in #384.
+
 This is a different experiment from [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep) below, which asks at a 360-day horizon whether a campaign collapses and reports a probability. This one asks what the schedule costs within the campaign the rest of the companion paper measures, and reports means with intervals. Each replication is reduced to one row of responses inside the forked worker that produced it, as the sustained-operations protocol reduces to a daily series, so thirteen configurations at fifty replications hold the responses rather than the monitoring data behind them. The tracked evidence set is `data/airlift/`.
 
 Two properties of the measurement needed establishing before any of it could be reported.

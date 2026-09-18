@@ -197,7 +197,7 @@ if (!file.exists(RESPONSE_PATH)) {
               "cancellation_rate", "ventilated_hold_hours")
   report(all(needed %in% names(responses)),
          "every response the paper prints is carried (%s)",
-         paste(setdiff(needed, names(responses)), collapse = ",") )
+         paste(setdiff(needed, names(responses)), collapse = ","))
 }
 
 # ── 3. The published tables match the tracked summary ────────────────────────
@@ -295,31 +295,36 @@ if (!file.exists(SUMMARY_PATH)) {
   # The peak-before-end response is negative in the data, the peak falling
   # before the campaign ends, and the paper prints the margin as a positive
   # number of days, which is why this row alone carries a scale of -1.
-  check_published_table(
-    "<!-- AIRLIFT BASELINE TABLE -->",
-    data.frame(arm = c("baseline", "high"), value = c(0, 0)),
-    list(list("Casualties boarded", "boarded", 1, 2),
-         list("Still waiting at the close", "queued_at_end", 1, 2),
-         list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
-         list("Share of R2E holding beds", "hold_evac_share", 100, 0),
-         list("Role 4 peak occupancy", "role4_peak", 1, 2),
-         list("Days the peak falls before", "role4_peak_after_end", -1, 2)))
+  baseline_arms <- data.frame(arm = c("baseline", "high"), value = c(0, 0))
+  baseline_rows <- list(
+    list("Casualties boarded", "boarded", 1, 2),
+    list("Still waiting at the close", "queued_at_end", 1, 2),
+    list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
+    list("Share of R2E holding beds", "hold_evac_share", 100, 0),
+    list("Role 4 peak occupancy", "role4_peak", 1, 2),
+    list("Days the peak falls before", "role4_peak_after_end", -1, 2)
+  )
+  check_published_table("<!-- AIRLIFT BASELINE TABLE -->", baseline_arms, baseline_rows)
 
-  check_published_table(
-    "<!-- AIRLIFT INTERVAL TABLE -->",
-    data.frame(arm = "interval", value = AIRLIFT_SORTIE_INTERVALS),
-    list(list("Sorties flown", "sorties_flown", 1, 2),
-         list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
-         list("Share of R2E holding beds", "hold_evac_share", 100, 0),
-         list("Ventilated pre-flight", "ventilated_hold_hours", 1, 2)))
+  interval_arms <- data.frame(arm = "interval", value = AIRLIFT_SORTIE_INTERVALS)
+  interval_rows <- list(
+    list("Sorties flown", "sorties_flown", 1, 2),
+    list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
+    list("Share of R2E holding beds", "hold_evac_share", 100, 0),
+    list("Ventilated pre-flight", "ventilated_hold_hours", 1, 2)
+  )
+  check_published_table("<!-- AIRLIFT INTERVAL TABLE -->", interval_arms, interval_rows)
 
-  check_published_table(
-    "<!-- AIRLIFT RELIABILITY TABLE -->",
-    data.frame(arm = "reliability", value = AIRLIFT_FAILURE_PROBABILITIES),
-    list(list("Sorties flown", "sorties_flown", 1, 2),
-         list("Realised cancellation rate", "cancellation_rate", 100, 0),
-         list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
-         list("Share of R2E holding beds", "hold_evac_share", 100, 0)))
+  reliability_arms <- data.frame(arm = "reliability",
+                                 value = AIRLIFT_FAILURE_PROBABILITIES)
+  reliability_rows <- list(
+    list("Sorties flown", "sorties_flown", 1, 2),
+    list("Realised cancellation rate", "cancellation_rate", 100, 0),
+    list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
+    list("Share of R2E holding beds", "hold_evac_share", 100, 0)
+  )
+  check_published_table("<!-- AIRLIFT RELIABILITY TABLE -->", reliability_arms,
+                        reliability_rows)
 }
 
 # ── 4. The interval construction is right on a hand-computable input ─────────

@@ -18,7 +18,7 @@ A discrete event simulation of a brigade force with aligned health assets was ru
 
 **Results**
 
-Casualty volume rises 2.43-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 26-fold, Role 2 Basic (R2B) holding beds about 5.6-fold, R2E holding beds about 5.3-fold and R2E intensive care about 6.4-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The theatre queue behaves differently at the two intensities rather than only at a different scale: at high intensity it stands empty for 5% of the campaign, runs unbroken for 26.9 of the 30 days and is still growing when the campaign ends, while at moderate intensity it stands empty for 80% and its longest unbroken run is 3.0 days. The shortfall in intensive care is a standing condition rather than an episodic one, the median campaign at high intensity delivering no post-definitive care in an intensive care bed at all from day 19 onward. The ambulance and truck fleets hold margin at both intensities.
+Casualty volume rises 2.40-fold from moderate to high intensity, while queues grow disproportionately. The Role 2 Enhanced (R2E) operating theatre queue rises about 26-fold, R2E intensive care about 25-fold, R2E holding beds about 24-fold and Role 2 Basic (R2B) holding beds about 5.9-fold. Surgical team scheduling is the major system constraint: a casualty occupies a theatre while waiting for a rostered surgical team, and the teams work 12-hour shifts against theatres available around the clock. R2E intensive care runs close to full at both intensities. The theatre queue behaves differently at the two intensities rather than only at a different scale: at high intensity it stands empty for 7% of the campaign, runs unbroken for 25.6 of the 30 days and is still growing when the campaign ends, while at moderate intensity it stands empty for 81% and its longest unbroken run is 3.0 days. The shortfall in intensive care is a standing condition rather than an episodic one, the median campaign at high intensity delivering no post-definitive care in an intensive care bed at all from day 5 onward. The ambulance and truck fleets hold margin at both intensities.
 
 **Conclusion**
 
@@ -126,7 +126,7 @@ $$\bar{x} \pm t_{0.975,\;n-1}\,\frac{s}{\sqrt{n}}$$
 
 where $n$ is the number of runs, $\bar{x}$ the average across them and $s$ the variation between them. Dividing by the square root of the number of runs is what makes additional runs improve precision: quadrupling the runs halves the width of the interval.
 
-Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 432.2 casualties and that average is known to within about 18 either way, while the campaigns themselves range from 360 to 489. Sizing against 431 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
+Two points govern how these intervals should be used. First, the interval describes how precisely the average is known, not how much one campaign varies. Several tables also report a 10th-to-90th-percentile range, which is the spread across campaigns, and it is many times the wider of the two. At moderate intensity, for example, the average campaign produces 435.7 casualties and that average is known to within about 17 either way, while the campaigns themselves range from 374 to 507. Sizing against 436 under-provides for the campaign that actually occurs. Second, where two intervals overlap, the simulation has not established a difference between them, and the gap between the two averages should not be acted on as though it were real.
 
 ### Replication Count and Resolution
 
@@ -166,12 +166,12 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 432.2 [414.4, 449.9] (p10–p90: 363.6–484.5) | 1,050.4 [1,026.0, 1,074.8] (p10–p90: 968.6–1,171.4) | 2.43× |
-| Wounded in action/run | 184.5 [169.3, 199.6] (p10–p90: 137.5–222.7) | 707.2 [681.0, 733.5] (p10–p90: 568.0–807.5) | 3.83× |
-| Died of wounds/run | 1.06 [0.80, 1.32] (p10–p90: 0–2.0) | 23.80 [21.84, 25.76] (p10–p90: 15.9–32.0) | 22.5× |
-| Died of wounds, as share of wounded | 0.55% [0.42%, 0.67%] | 3.35% [3.12%, 3.58%] | 6.12× |
+| Total casualties/run | 435.7 [418.4, 452.9] (p10–p90: 373.5–506.7) | 1,046.7 [1,019.5, 1,073.9] (p10–p90: 930.0–1,169.1) | 2.40× |
+| Wounded in action/run | 180.3 [165.2, 195.4] (p10–p90: 128.0–246.0) | 704.5 [679.7, 729.2] (p10–p90: 604.8–816.5) | 3.91× |
+| Died of wounds/run | 1.00 [0.73, 1.27] (p10–p90: 0–2.0) | 24.02 [22.40, 25.64] (p10–p90: 16.9–32.1) | 24.0× |
+| Died of wounds, as share of wounded | 0.54% [0.40%, 0.68%] | 3.40% [3.21%, 3.59%] | 6.29× |
 
-Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 363.6 to 484.5 casualties between the 10th and 90th percentiles against an average of 432.2. Surge capacity therefore has to be judged against the heavy day rather than the average one.
+Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 373.5 to 506.7 casualties between the 10th and 90th percentiles against an average of 435.7. Surge capacity therefore has to be judged against the heavy day rather than the average one.
 
 Deaths of wounds rise 22-fold while casualty volume rises 2.43-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
 
@@ -216,11 +216,11 @@ The rest of R2E follows the theatres rather than leading them. Intensive care ri
 
 ![Four stacked panels, one per resource pool, plotting queue length against campaign day for the moderate and high casualty intensities, each as a median line with an interquartile band, and each panel annotated with the share of the campaign that pool's queue stood empty at each intensity](../images/queue_length_over_time.png)
 
-<!-- CLEARANCE High intensity|R2E operating theatres|5 -->
-At high intensity the R2E theatre queue stands empty for 5% of the campaign, and its longest unbroken run above zero is 26.9 of the 30 days (interquartile range 23.6 to 28.9). It rises through the whole campaign rather than settling: a median of 39.2 casualties waiting on day 9, 108.8 on day 19 and 160.5 on day 29, still climbing when the run ends. A queue that has not turned over by day 30 has no level to be sized against, and the 30-day horizon is measuring the rate at which the backlog accumulates rather than any equilibrium it reaches, a limitation examined in [Limitations](#limitations).
+<!-- CLEARANCE High intensity|R2E operating theatres|7 -->
+At high intensity the R2E theatre queue stands empty for 7% of the campaign, and its longest unbroken run above zero is 25.6 of the 30 days (interquartile range 22.0 to 28.7). It rises through the whole campaign rather than settling: a median of 23.7 casualties waiting on day 9, 45.3 on day 19 and 67.5 on day 29, still climbing when the run ends. A queue that has not turned over by day 30 has no level to be sized against, and the 30-day horizon is measuring the rate at which the backlog accumulates rather than any equilibrium it reaches, a limitation examined in [Limitations](#limitations).
 
-<!-- CLEARANCE Moderate intensity|R2E operating theatres|80 -->
-At moderate intensity the same pool stands empty for 80% of the campaign, its median is zero throughout, and its longest unbroken busy run is 3.0 days. Casualties still wait, which is the finding recorded above, but the system recovers between the days on which they do.
+<!-- CLEARANCE Moderate intensity|R2E operating theatres|81 -->
+At moderate intensity the same pool stands empty for 81% of the campaign, its median is zero throughout, and its longest unbroken busy run is 3.0 days. Casualties still wait, which is the finding recorded above, but the system recovers between the days on which they do.
 
 The two readings point to different instruments. A queue that clears is a surge problem, answered by capability that can be brought to bear on the heavy day and stood down afterwards. A queue that never clears is an establishment problem, and no amount of surge capability reaches it because there is no trough to surge into. Option 1 is therefore a standing establishment measure at high intensity and a surge measure at moderate, and a force sized for one is not sized for the other.
 

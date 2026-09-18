@@ -353,8 +353,18 @@ if (!is.null(transport)) {
   # first column and the truck queue in the second, so a size the truck fleet
   # is not swept to prints "not swept" and is skipped.
   sizes <- sort(union(pmvamb, hx240m))
+
+  #' Rows of the tracked sweep holding the ambulance fleet at one size
+  #'
+  #' @param q The fleet size.
+  #' @return Logical vector selecting that sweep point's row.
   ambulance_at <- function(q) transport$vehicle == "PMVAmb" & transport$qty == q
-  truck_at     <- function(q) transport$vehicle == "HX240M" & transport$qty == q
+
+  #' Rows of the tracked sweep holding the truck fleet at one size
+  #'
+  #' @param q The fleet size.
+  #' @return Logical vector selecting that sweep point's row.
+  truck_at <- function(q) transport$vehicle == "HX240M" & transport$qty == q
 
   check_published_table("<!-- TRANSPORT SWEEP TABLE -->", sizes, list(
     list(1, column_reader(transport, ambulance_at, "mean_q"), 1, 4),
@@ -365,7 +375,16 @@ if (!is.null(transport)) {
 if (!is.null(icu_share)) {
   # The table's row labels are percentages and the tracked shares are
   # fractions, so each key is divided by a hundred before it is matched.
+  #' Rows of the tracked frontier at one forward share
+  #'
+  #' @param p The share as the table prints it, a percentage.
+  #' @return Logical vector selecting that sweep point's row.
   share_at <- function(p) abs(icu_share$share - p / 100) < TOL
+
+  #' A reader of one column of the tracked frontier
+  #'
+  #' @param column Name of the column to read.
+  #' @return A function of one printed share returning that column's value.
   icu_column <- function(column) column_reader(icu_share, share_at, column)
 
   check_published_table("<!-- ICU SHARE TABLE -->", 100 * sort(shares), list(

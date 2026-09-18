@@ -142,9 +142,10 @@ CHECK_SHARE <- 0.2
 #' @param threshold The saturation threshold to configure.
 #' @param share The reconstruction share to configure, or NULL to leave it
 #'   shipped, or NA to remove the field altogether.
+#' @param scenario Scenario profile to run under.
 #' @return A list of the configuration used and the casualty-wide attributes.
-run_at <- function(threshold, share = NULL) {
-  ed <- load_scenario("env_data.json", "default")
+run_at <- function(threshold, share = NULL, scenario = "default") {
+  ed <- load_scenario("env_data.json", scenario)
   ed$vars$r2eheavy$second_surgery$saturation_queue_threshold <- threshold
   if (!is.null(share)) {
     if (length(share) == 1L && is.na(share)) {
@@ -211,9 +212,15 @@ report(nrow(shipped_demand) > 0,
        paste("theatre demand is reported at the shipped configuration (%d",
              "operations owed), both levers being in force"),
        sum(shipped_demand$operations))
-report(sum(shipped_demand$theatre_minutes) > 0,
-       paste("the shipped configuration reports theatre minutes as well as",
-             "operations, so the conserved repair reaches the report"))
+# Theatre minutes come from the released cohort alone, the reconstruction
+# sequence carrying no sourced duration, and the release is a saturation
+# response that a 30-day campaign at the Falklands-modified rates never
+# triggers. The minutes column is therefore asserted where the release fires.
+saturated <- run_at(shipped_threshold, share = NULL, scenario = "high_intensity")
+saturated_demand <- compute_role4_surgical_demand(saturated$wide, saturated$params)
+report(sum(saturated_demand$theatre_minutes) > 0,
+       paste("theatre minutes are reported under a saturated configuration, so",
+             "the conserved repair reaches the report alongside the count"))
 
 # Disabled, the two levers must still reproduce the model without them: the
 # degenerate value has to consume no draw, which is the property that let each

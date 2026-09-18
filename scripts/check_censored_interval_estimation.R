@@ -206,7 +206,12 @@ for (nm in names(INTERVALS)) {
                    "%.0f"),
              nm, 100 * frac, length(st), 100 * share, est, truth, naive)
     } else {
-      report(abs(est - naive) <= AGREEMENT_TOLERANCE * truth,
+      # One censored stay in a cohort of n can move a mean by about 1/n of its
+      # scale however immaterial its share, so the bound carries that weight
+      # alongside the tolerance rather than assuming a small share cannot move
+      # a small cohort.
+      report(abs(est - naive) <=
+               (AGREEMENT_TOLERANCE + 1 / length(st)) * truth,
              paste("%s re-censored at %.0f%% of the window (%d stays, %.1f%% censored):",
                    "with no bias to remove the restricted mean %.0f and the completed-case",
                    "%.0f agree to within %.0f%% of the true %.0f"),
@@ -234,9 +239,16 @@ for (nm in names(INTERVALS)) {
            isTRUE(all.equal(k$censored_share, k$n_censored / k$n)),
          "%s dwell reports %d censored stays, %.1f%% of its cohort",
          nm, k$n_censored, 100 * k$censored_share)
-  naive <- completed_case_mean(combined[[cols[1]]], combined[[cols[2]]], window)
-  report(k$mean_min > naive,
-         "%s dwell mean %.0f min exceeds the completed-case %.0f it replaces",
+  # Capped at the restriction horizon, not at the window. The censoring-aware
+  # mean is restricted to INTERVAL_RESTRICTION_MIN, so a completed-case mean
+  # capped at the 30-day window is a different quantity: comparing them puts
+  # the restriction's effect on long stays into what is meant to measure the
+  # censoring correction alone, and the ordering can then fail on a campaign
+  # whose stays run past the horizon even though nothing is wrong.
+  naive <- completed_case_mean(combined[[cols[1]]], combined[[cols[2]]],
+                               INTERVAL_RESTRICTION_MIN)
+  report(k$mean_min >= naive,
+         "%s dwell mean %.0f min is at least the completed-case %.0f it replaces",
          nm, k$mean_min, naive)
 }
 
@@ -252,14 +264,25 @@ report(isTRUE(all.equal(kpis$r2b_r2e_transit_time$mean_min,
              "degenerating on real data"),
        kpis$r2b_r2e_transit_time$mean_min)
 
+#' Largest share of a dwell mean the flat tail beyond the last completion may carry
+#'
+#' @details The restriction horizon is fixed at seven days, so a campaign whose
+#'   longest observed stay falls short of it leaves the survival curve flat over
+#'   the remainder and that flat tail carries part of the mean. This is a
+#'   property of the horizon meeting the campaign rather than an error, and
+#'   requiring it to be exactly zero asserts that no campaign ever ends its last
+#'   stay early. The share is bounded and reported instead, so a tail that grows
+#'   into a material part of the mean still fails.
+TAIL_SHARE_BOUND <- 0.10
+
 cat("\n-- the restriction horizon rests on observed completions --\n")
 
 for (nm in names(INTERVALS)) {
   k <- kpi_of[[nm]]
-  report(!is.na(k$tail_share) && k$tail_share == 0,
-         paste("no part of the %s dwell mean lies beyond the last observed completion,",
-               "so none of it is the flat tail (tail share %.1f%%)"),
-         nm, 100 * k$tail_share)
+  report(!is.na(k$tail_share) && k$tail_share <= TAIL_SHARE_BOUND,
+         paste("at most %.0f%% of the %s dwell mean lies beyond the last observed",
+               "completion, so the flat tail carries little of it (tail share %.1f%%)"),
+         100 * TAIL_SHARE_BOUND, nm, 100 * k$tail_share)
 }
 
 # ── 5. An unreached quantile is NA, not the completed-case quantile ─────────

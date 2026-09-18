@@ -287,6 +287,11 @@ Mean utilisation across the swept range runs the wrong way on both platforms, ri
 
 ### National Support Base Demand and the Airlift Schedule
 
+<!-- AIRLIFT days=30 -->
+<!-- AIRLIFT replications=50 -->
+<!-- AIRLIFT failure_probabilities=0,0.05,0.10,0.15,0.25,0.40 -->
+<!-- AIRLIFT sortie_intervals=3,5,7,10,14 -->
+
 50 replications of a 30-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
 
 ```
@@ -301,7 +306,9 @@ Two properties of the measurement needed establishing before any of it could be 
 
 **A sortie scheduled at exactly the horizon is censored, not cancelled.** A sortie's outcome is reconstructed from the capacity it adds and the seats taken afterwards, and one scheduled at the instant the run ends never resolves. Counting it as a cancellation reported rates of 10%, 17% and 33% at a configured probability of zero in the sortie interval sweep, purely because 30 divides by 3, 5 and 10; the intervals that do not divide it correctly reported zero. Such a sortie is now dropped from both the scheduled and the flown count, after which the whole interval sweep reports zero and the reliability sweep tracks its configured values, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%.
 
-**The split of R2E holding occupancy is exact rather than estimated.** A casualty awaiting the standard airlift pool seizes a holding bed on reaching the evacuation decision and releases it on boarding, so its whole wait is holding occupancy; a casualty awaiting the critical pool holds an intensive care bed already seized upstream and contributes nothing to that pool. In-theatre recovery is then the remainder of the pool's measured occupancy rather than a second reconstruction, which makes the two components sum to the total by construction. What needs defending is the evacuation component, since an error there moves the same quantity out of recovery and the sum still holds, and `scripts/check_holding_occupancy_split.R` defends it: that it counts the standard route and not the critical one, asserted against a run carrying both; that it agrees with a casualty-by-casualty recount taken independently of the function under test; and that a wait still running when the window closes is charged to the window's end rather than dropped.
+**The split of R2E holding occupancy is measured rather than inferred.** One pool of holding beds carries four unrelated stays: the wait for a sortie, in-theatre recovery, the post-definitive holding fallback and the post-operative damage control hold. Each is reconstructed from what the model recorded, and none is taken as the remainder of the others, so the four can disagree with the pool the resource monitor measured and the difference is reported rather than absorbed. Both airlift routes stage in a holding bed, a ventilated casualty on the critical route reaching one only on step-down from its pre-flight intensive care, so the route decides how much of a wait consumes the pool rather than whether it does.
+
+Each stay is bounded by the attribute its own exit route sets, which is what makes the reconstruction exact. A casualty who dies while awaiting a sortie releases its staging bed and never departs, so bounding that stay by the departure charged it with the whole unserved remainder of the campaign; that was the residual a minority of campaigns carried, and it is why the error was always an over-count. `scripts/check_holding_occupancy_split.R` defends the result: that the four stays account for the measured pool exactly at the shipped configuration, under a cancellation rate that forms a backlog and under one that leaves casualties staged at the close; that they do so in every one of the tracked replications; that the evacuation component agrees with a casualty-by-casualty recount taken independently of the function under test; that a wait still running when the window closes is charged to the window's end rather than dropped; and that a casualty who died in a staging bed is charged to its death, asserted against the superseded estimator that charged it to the close.
 
 ### Strategic Airlift Reliability Sweep
 

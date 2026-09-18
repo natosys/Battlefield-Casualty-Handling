@@ -1,0 +1,313 @@
+"scenario","scenario_label","resource","n_reps","mean_q","sd_q","p10_q","p90_q","max_q","ci_lower","ci_upper"
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_ot_1_t1",50,0.841859500671207,1.21037125415686,0.0836939369430115,1.66563193596235,21,0.497875796257404,1.18584320508501
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_ot_2_t1",50,0.74287857156442,1.15769584695654,0.0411932446053868,1.50639927391866,20,0.413865052238905,1.07189209088994
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_1_t2",50,0.660173698563474,0.422459798878148,0.256742354465781,1.16674597254946,8,0.540111952148946,0.780235444978002
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_1_t1",50,0.659851888564884,0.642665995681207,0.129933861885194,1.4087372382551,19,0.477208233458252,0.842495543671515
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_2_t2",50,0.599021933965004,0.389533270921684,0.205208574744447,1.05251599413216,8,0.488317803258095,0.709726064671913
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_3_t2",50,0.566729696209619,0.452345612498647,0.147483786231635,1.19219383301963,8,0.438174495540214,0.695284896879024
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_2_t1",50,0.561670298197504,0.572834085272394,0.097947575292446,1.0949988880245,19,0.398872652442317,0.724467943952691
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_3_t1",50,0.556239295568096,0.713744159755417,0.0752988505701008,1.34232965573729,19,0.353395449737164,0.759083141399027
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_4_t2",50,0.52018961863089,0.385735409389167,0.0530842652395154,1.02574472984608,7,0.41056482822913,0.629814409032649
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_4_t1",50,0.50544812565389,0.5520603397466,0.067644384100778,1.18681202025058,19,0.348554313054002,0.662341938253779
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_icu_1_t1",50,0.463580062183483,1.18136075610942,0.0943441065989777,0.488031719028746,13,0.127841050091128,0.799319074275839
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_5_t1",50,0.453627075264384,0.789496836450938,0,0.999191830520265,19,0.229254556921201,0.677999593607567
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_hold_5_t2",50,0.386154188031648,0.333439449174277,0.0100467839067652,0.824418837802799,7,0.29139174507809,0.480916630985206
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_icu_2_t1",50,0.311930670171784,1.14405128389657,0.0209800144794141,0.33440832952992,13,-0.0132051072374729,0.637066447581041
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_icu_3_t1",50,0.245709560987185,1.1049338016759,0,0.206794870052813,12,-0.0683091509800481,0.559728272954418
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_anesthetist_1_t1",50,0.237922234817822,0.140389330941948,0.0782292374966587,0.4224585730189,2,0.198024028418971,0.277820441216673
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_icu_4_t1",50,0.212767121025352,1.08067021985508,0,0.12386915827421,12,-0.0943559572853416,0.519890199336045
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_1_t1",50,0.14681711220622,0.313457168130356,0,0.336193206051487,2,0.0577335706909763,0.235900653721463
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_5_t1",50,0.131176971931706,0.244571768160342,0,0.453725638585443,2,0.0616704444775065,0.200683499385906
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_2_t1",50,0.128207461782788,0.237642006831084,0,0.346483470946968,2,0.0606703507076987,0.195744572857877
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_3_t1",50,0.113877006917678,0.236057745026139,0,0.382821763145431,2,0.0467901380658365,0.18096387576952
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_4_t1",50,0.0987792262391323,0.232721296919678,0,0.286568134465181,2,0.0326405654476717,0.164917887030593
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_6_t1",50,0.09812541184739,0.266501997215032,0,0.277489353096129,2,0.0223863822555461,0.173864441439234
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_10_t1",50,0.0869300469261895,0.228554300892303,0,0.357728158725431,2,0.0219756333025719,0.151884460549807
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_12_t1",50,0.0865417237303702,0.246060390239468,0,0.178508904480987,2,0.0166121345622611,0.156471312898479
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_13_t1",50,0.0773077320419428,0.209473588670577,0,0.187724999022015,2,0.0177759968323588,0.136839467251527
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_7_t1",50,0.075274456231634,0.22706778531293,0,0.190664944891957,2,0.0107425056613197,0.139806406801948
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_9_t1",50,0.0685594323399858,0.191253627882471,0,0.167704984462259,2,0.0142057526936369,0.122913111986335
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_14_t1",50,0.0634573127357101,0.194588784047397,0,0.121171043274058,2,0.0081557921947024,0.118758833276718
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_11_t1",50,0.0628856168251037,0.181008151683408,0,0.136407748706311,2,0.0114436692975851,0.114327564352622
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_anesthetist_1_t1",50,0.0626906164478429,0.0509806247443046,4.69109887428196e-05,0.133285894475796,2,0.0482020832043038,0.0771791496913821
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_8_t1",50,0.0624714892867691,0.184022648457235,0,0.131319920995609,2,0.0101728312552266,0.114770147318312
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_anesthetist_1_t1",50,0.0597094661323601,0.0480723625664145,0.00926344682761718,0.128086716492632,2,0.0460474518547345,0.0733714804099857
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_28_t1",41,0.0593655530280057,0.188544293115261,0,0.0846562521814471,1,-0.000146369069373806,0.118877475125385
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_17_t1",50,0.0510518837115269,0.154750996932191,0,0.0977050708686895,2,0.00707213699856898,0.0950316304244849
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_26_t1",44,0.0503677882069393,0.145621276232117,0,0.187820423350781,1,0.00609487366549036,0.0946407027483883
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_19_t1",49,0.0435642039767747,0.148882633961155,0,0.0896277836632885,2,0.000800118455496879,0.0863282894980525
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_16_t1",50,0.0403253071104603,0.143042827705368,0,0.085594171826269,2,-0.000327014724622682,0.0809776289455432
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_18_t1",50,0.0401475422219973,0.145437539033835,0,0.0825457471286224,2,-0.00118534904245601,0.0814804334864507
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_27_t1",42,0.0379394885909609,0.115293706297672,0,0.0439210582824251,1,0.00201144049618285,0.0738675366857389
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_24_t1",46,0.0379051164359999,0.156503057857301,0,0.0356100091764959,2,-0.00857055490185452,0.0843807877738543
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_15_t1",50,0.0372640307546123,0.135661336904944,0,0.0785909565040972,2,-0.00129049460611958,0.0758185561153441
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_21_t1",48,0.0342400894692995,0.112446726659579,0,0.0892632994271911,2,0.00158896360901244,0.0668912153295866
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_30_t1",35,0.0339384502654587,0.0993755303173294,0,0.0720990690255516,1,-0.000198238767176125,0.0680751392980935
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_22_t1",47,0.0317617339279354,0.110026940468659,0,0.067531351943776,2,-0.000543386026471054,0.0640668538823419
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_PMVAmb_1",50,0.0307302428965927,0.18005945018601,0.000595096994968088,0.0124245983746407,30,-0.0204420866485614,0.0819025724417468
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_20_t1",49,0.028347474781358,0.111532961152022,0,0.0835552726291517,2,-0.0036885321205005,0.0603834816832164
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_PMVAmb_2",50,0.0272698737215438,0.179932365836229,0,0.00642807900449191,30,-0.0238663388510198,0.0784060862941074
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_PMVAmb_3",50,0.0272141097847933,0.186595354128688,0,0.00270625891831806,30,-0.0258157031086921,0.0802439226782786
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_25_t1",45,0.0258531253195254,0.0937939793509382,0,0.0445107296701103,2,-0.00232570564089525,0.054031956279946
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_facem_1_t2",50,0.0234421642101501,0.0162982760597175,0.00667396122366672,0.0400445261032929,1,0.018810245403977,0.0280740830163231
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_facem_1_t1",50,0.0210838936185513,0.0171521972864984,0.00657997497875109,0.0355950633040428,1,0.016209293084886,0.0259584941522165
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_evac_1_medic_1_t1",50,0.016528559053877,0.0268845558057182,0.00274984660517413,0.0286735577260601,3,0.00888805283249237,0.0241690652752615
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_evac_1_medic_1_t2",50,0.0155235174470762,0.0204718088442066,0.00229451535046492,0.0318667779355847,3,0.00970549374724305,0.0213415411469094
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_resus_1_t1",50,0.0114156665475241,0.0184508609956736,0,0.026316977940354,2,0.00617198987136485,0.0166593432236833
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_resus_1_t2",50,0.0110701070526966,0.015066731906721,3.98342914145431e-05,0.0245201072396317,2,0.00678818922220934,0.0153520248831839
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_1_facem_1_t1",50,0.0079248076200395,0.0295741090105862,0,0.00835154596257807,3,-0.000480061164857024,0.016329676404936
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_nurse_1_t1",50,0.00511225160427227,0.0167977381856219,0,0.011783206933667,1,0.000338387232477974,0.00988611597606656
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_2_facem_1_t1",48,0.00498358716970464,0.00727042823240551,0,0.0143004307018314,3,0.00287247487389614,0.00709469946551315
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_3_facem_1_t1",45,0.00451463341953369,0.00628019133486113,0,0.0137260816232728,3,0.00262785506500832,0.00640141177405907
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_icu_2_t1",30,0.00377699648043826,0.0118703558455583,0,0.0142837365517721,3,-0.00065546723779558,0.00820946019867209
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_nurse_1_t2",50,0.00376600901250873,0.0119401438500271,0,0.0103812586057931,1,0.000372657676164351,0.00715936034885311
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_icu_1_t1",50,0.00269135927046656,0.0134992269093168,0,0.00248402479236736,3,-0.00114507856878462,0.00652779710971774
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_icu_2_t2",26,0.00263966770480353,0.0134597171361939,0,0,2,-0.00279682969969715,0.00807616510930422
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_anesthetist_1_t1",50,0.00249975068941174,0.00152556497604552,0.00022051281156603,0.00455222831945352,1,0.00206618992036519,0.0029333114584583
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_anesthetist_1_t2",50,0.00244163149839726,0.00121035308123936,0.000750271599943084,0.00367041320186981,1,0.00209765295866947,0.00278561003812506
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_resus_2_t2",50,0.00223437332527723,0.0076100015618033,0,0.00405349723680954,1,7.16348110951352e-05,0.00439711183945932
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_icu_1_t2",50,0.00207655609304599,0.0107589166785731,0,0.00269712400229627,2,-0.000981094195545052,0.00513420638163703
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_resus_2_t1",50,0.00159788034461119,0.00489881979678072,0,0.00359653818153258,1,0.00020565116272588,0.0029901095264965
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_3_t1",20,0.00137749180161049,0.0061603306136994,0,0,1,-0.0015056316739105,0.00426061527713147
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_nurse_1_t1",50,0.000259770152314257,0.00135783495715892,0,0.00027127665230183,1,-0.000126122272792487,0.000645662577421002
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_nurse_1_t3",50,0.000200289268232342,0.000620269171523434,0,0.000395708488342775,1,2.40107201244401e-05,0.000376567816340243
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_nurse_1_t2",50,0.000197608941260844,0.000597165814400903,0,0.000518889185419847,1,2.78962945985609e-05,0.000367321587923127
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_1_t1",50,0.000134333609531554,0.000945832498285608,0,0,2,-0.000134469012306886,0.000403136231369994
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_resus_1_t1",50,0.000133172829471017,0.000521101400650807,0,9.40887952518393e-06,1,-1.49225499883625e-05,0.000281268208930397
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_HX240M_1",50,8.56655156332767e-05,0.000366590495002142,0,0,1,-1.85183503009551e-05,0.000189849381567508
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_resus_2_t1",50,5.41175911950351e-05,0.000382669157154907,0,0,1,-5.46357799635908e-05,0.000162870962353661
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_1_t2",50,4.68709274459471e-05,0.000247793772248942,0,0,1,-2.35512834386274e-05,0.000117293138330522
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_3_t2",20,3.48022738503877e-05,0.00015564050020206,0,0,1,-3.8039722466579e-05,0.000107644270167354
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_2_t1",50,3.43721661021821e-05,0.000243047917349234,0,0,1,-3.47012877432561e-05,0.00010344561994762
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_HX240M_2",50,1.82935586152954e-05,0.00012935499348909,0,0,1,-1.84687237769745e-05,5.50558410075653e-05
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_1_t3",50,1.64029287424557e-05,0.000115986221451101,0,0,1,-1.65599906747787e-05,4.93658481596901e-05
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_2_t2",50,9.79711359534699e-06,6.32993920203419e-05,0,0,1,-8.19237457162568e-06,2.77866017623196e-05
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_resus_3_t1",45,5.45841277575306e-06,3.66161460475115e-05,0,0,1,-5.54229534042924e-06,1.64591208919354e-05
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_2_t3",50,6.35698008803244e-07,4.4950637281156e-06,0,0,1,-6.41784967980121e-07,1.91318098558661e-06
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","ame",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","ame_critical",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_ot_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2b_ot_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_resus_4_t1",16,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_doctor_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_doctor_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_clinician_doctor_1_t3",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r1_technician_medic_3_t3",22,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_medic_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_medic_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_2_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_3_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_emerg_1_nurse_3_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_evac_1_medic_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_evac_1_medic_2_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_medic_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_medic_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_medic_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_medic_2_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_icu_1_nurse_2_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_medic_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_medic_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_surgeon_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_surgeon_1_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_surgeon_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2b_surg_1_surgeon_2_t2",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_1_medic_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_1_nurse_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_1_nurse_3_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_2_medic_1_t1",48,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_2_nurse_1_t1",48,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_2_nurse_2_t1",48,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_2_nurse_3_t1",48,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_3_medic_1_t1",45,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_3_nurse_1_t1",45,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_3_nurse_2_t1",45,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_emerg_3_nurse_3_t1",45,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_1_medic_1_t1",13,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_1_medic_2_t1",13,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_2_medic_1_t1",14,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_2_medic_2_t1",14,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_3_medic_1_t1",13,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_evac_3_medic_2_t1",13,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_nurse_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_nurse_3_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_nurse_4_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_surgeon_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_1_surgeon_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_nurse_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_nurse_3_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_nurse_4_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_surgeon_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_2_surgeon_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_nurse_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_nurse_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_nurse_3_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_nurse_4_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_surgeon_1_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","c_r2eheavy_surg_3_surgeon_2_t1",50,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_HX240M_3",37,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","t_HX240M_4",16,0,0,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_23_t1",46,NA,NA,0,0.0823964095737868,2,NA,NA
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","b_r2eheavy_hold_29_t1",40,NA,NA,0,0.104704229537535,1,NA,NA
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_ot_1_t1",50,19.7198547171268,9.82008923153501,7.56786813826712,33.9768868784542,100,16.9290162368371,22.5106931974165
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_ot_2_t1",50,19.4151111543136,9.97293432873371,6.83569653962916,33.1097453642284,99,16.580834578022,22.2493877306051
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_icu_1_t1",50,7.87592571573219,2.1663043225791,5.06060998104282,10.6953252647283,29,7.26026883920841,8.49158259225598
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_icu_2_t1",50,7.70486817497379,2.15306261955035,4.78195625336913,10.5043182017948,29,7.09297454881218,8.3167618011354
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_icu_3_t1",50,7.48382346575988,2.15584518744811,4.70186934547106,10.2593041705274,29,6.87113904255152,8.09650788896824
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_icu_4_t1",50,7.27498725961352,2.13808310449291,4.39608162977862,10.1165899712693,29,6.66735076452809,7.88262375469896
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_1_t2",50,3.2953686278296,1.05486680759681,2.09996225088257,4.72679151456456,18,2.99557879814377,3.59515845751543
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_2_t2",50,3.22410734009834,0.936233507228733,1.92043019932648,4.27996977795799,18,2.9580327213342,3.49018195886248
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_1_t1",50,3.1492205777584,1.03958887989268,2.12236409879275,4.54035625948281,18,2.85377268708458,3.44466846843223
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_3_t2",50,3.13625705726719,0.920417538637685,2.21175350907511,4.5513484596397,17,2.87467728704324,3.39783682749114
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_2_t1",50,3.13519927879002,0.919808476332256,1.90436218070188,4.24889848526611,17,2.87379260215808,3.39660595542197
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_5_t1",50,3.09458829071203,1.06769791762095,1.63808743167028,4.38939071750073,17,2.79115189990482,3.39802468151925
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_4_t2",50,3.0806611464684,0.895997261468536,2.18037542337181,4.07934277728548,17,2.82602154222626,3.33530075071055
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_4_t1",50,3.07021816043399,1.12564023001314,1.40018877805876,4.63286846493765,17,2.75031474664476,3.39012157422321
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_5_t2",50,3.04512956349157,1.05080684797991,2.06066506863853,4.37300090562959,17,2.7464935615623,3.34376556542084
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_hold_3_t1",50,3.0307922995022,1.24405192007952,1.35647835278609,4.64065466104165,17,2.67723665574218,3.38434794326223
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_1_t1",50,1.67536337206269,0.366025501769246,1.16249528743405,2.20403763369649,5,1.57134007542862,1.77938666869676
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_2_t1",50,1.66041370760148,0.352804667413927,1.18255815362912,2.07631451862488,5,1.56014773051822,1.76067968468473
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_3_t1",50,1.65191871330214,0.378211245190599,1.17987624670179,2.11743260071212,5,1.54443226670585,1.75940515989843
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_4_t1",50,1.63116327046398,0.370909417803708,1.17412736049237,2.11590301682979,5,1.52575198025042,1.73657456067755
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_8_t1",50,1.54115738952767,0.361740002557015,1.14530256125035,2.02253698836607,4,1.43835201829395,1.64396276076139
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_7_t1",50,1.54099186477314,0.413163481724478,0.967205131344744,2.08465341045773,4,1.42357210246138,1.6584116270849
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_6_t1",50,1.53947166136627,0.321868593778824,1.13081196497635,1.87793075562887,4,1.4479976191315,1.63094570360105
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_5_t1",50,1.52597606420777,0.326710447220695,1.09245677292502,1.93581602140552,4,1.43312598245005,1.6188261459655
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_9_t1",50,1.44204892526024,0.400017721269726,0.921082962617554,1.93130164602303,4,1.32836514673282,1.55573270378767
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_10_t1",50,1.4407228794695,0.388431981069893,0.930832234114758,1.91771187031216,4,1.33033173187546,1.55111402706354
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_12_t1",50,1.39444818428554,0.413677011413844,0.871804764232441,1.97846290263924,4,1.27688247845085,1.51201389012022
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_11_t1",50,1.38796775646786,0.388281245521874,0.967279440334507,1.92118960656972,4,1.27761944744257,1.49831606549314
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_13_t1",50,1.37218230244559,0.403458631296071,0.845392126537899,1.84313174740164,4,1.25752062810864,1.48684397678255
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_14_t1",50,1.35669435386325,0.425274856687696,0.858887311637505,2.06200053579036,4,1.23583257687121,1.47755613085529
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_16_t1",50,1.29492121464641,0.374613239345045,0.823129177309106,1.74914962226148,4,1.18845730999748,1.40138511929534
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_15_t1",50,1.28443472392972,0.357759982178502,0.806189180646219,1.73931161302669,4,1.18276046197238,1.38610898588706
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_18_t1",50,1.27812688360724,0.390865807256973,0.833374677483347,1.79821584294443,4,1.16704405026401,1.38920971695047
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_17_t1",50,1.26425718813823,0.403063725458416,0.826734027079448,1.81756037109138,4,1.14970774479855,1.3788066314779
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_19_t1",50,1.25416091974634,0.425582760454846,0.830310394147523,1.72009419569943,4,1.13321163747188,1.3751102020208
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_20_t1",50,1.21445726916048,0.428825129862266,0.732272494006803,1.82311483168036,4,1.09258651569608,1.33632802262488
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_22_t1",50,1.18098302202295,0.369192837730375,0.774909241650582,1.68085303234772,4,1.07605957846843,1.28590646557747
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_21_t1",50,1.15161194982962,0.394077735532224,0.727535512139041,1.63436772654871,4,1.03961629657048,1.26360760308876
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_23_t1",50,1.13477708253847,0.343571670634745,0.700445876587162,1.52762483583111,4,1.03713509410667,1.23241907097028
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_25_t1",50,1.1185575383896,0.338667801661783,0.80077289527553,1.56322860283626,4,1.02230921409967,1.21480586267953
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_24_t1",50,1.09047915812651,0.373319270824044,0.708991471973591,1.54174743332348,4,0.984382995262356,1.19657532099066
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_27_t1",50,1.06834402766902,0.423473085748344,0.633376675811197,1.66022730559771,4,0.947994308312262,1.18869374702577
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_26_t1",50,1.05509045319055,0.372429388724883,0.60285416808606,1.54079312664771,4,0.949247192020739,1.16093371436036
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_28_t1",50,1.00302773098429,0.345169596213136,0.656554781406104,1.53472120525041,4,0.90493161712779,1.1011238448408
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_29_t1",50,0.977905582359656,0.387357230116281,0.563750975168271,1.5187487953102,4,0.867819875607073,1.08799128911224
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_hold_30_t1",50,0.968623704542099,0.348929207883462,0.596687634165708,1.50793015046615,4,0.869459120871003,1.06778828821319
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_anesthetist_1_t1",50,0.691433313570681,0.0806704486990616,0.589585066710479,0.803872638472744,2,0.668507025718978,0.714359601422384
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_anesthetist_1_t1",50,0.233463832737745,0.0619662659961608,0.164444185898639,0.295834778171721,2,0.215853214794824,0.251074450680666
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_anesthetist_1_t1",50,0.225148946671608,0.0513826269344228,0.160224049921753,0.29504292259533,2,0.210546165669735,0.239751727673481
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_evac_1_medic_1_t2",50,0.212690094517084,0.0742688322385609,0.13649365744014,0.28291266088599,5,0.191583125933545,0.233797063100623
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_evac_1_medic_1_t1",50,0.206726056697878,0.069232260953607,0.129876248254641,0.302184034222445,4,0.187050465836003,0.226401647559753
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_resus_1_t2",50,0.16045681144881,0.0662987437646999,0.101486922702047,0.225563520709774,3,0.141614916947565,0.179298705950055
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_facem_1_t2",50,0.155227978931222,0.037458438115073,0.118538450175502,0.194185714863428,1,0.144582408607137,0.165873549255307
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_resus_1_t1",50,0.151487078869972,0.053551592380432,0.0972448438433728,0.218505670507867,3,0.136267884708664,0.16670627303128
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_facem_1_t1",50,0.150137226296268,0.0359923079839924,0.113329512002496,0.19042554247526,1,0.139908325545184,0.160366127047353
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_nurse_1_t2",50,0.0958320363748306,0.0595723016055321,0.0413052798532267,0.163837980424094,1,0.0789017755838952,0.112762297165766
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_nurse_1_t1",50,0.0916875952997861,0.0495209909193954,0.0366871044247519,0.165016848864147,1,0.0776138853994614,0.105761305200111
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_PMVAmb_1",50,0.0914747543355889,0.0659704910731195,0.0328350833881757,0.210168787875273,11,0.0727261482170992,0.110223360454079
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_icu_1_t1",50,0.073682315530577,0.0768983261970111,0.0152308160644608,0.198826706968131,6,0.0518280530325015,0.0955365780286524
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_icu_1_t2",50,0.0712252336019098,0.0762528930040554,0.0154325645418928,0.13232684105455,4,0.0495544011877049,0.0928960660161147
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_PMVAmb_2",50,0.0594411991363672,0.0585123363987922,0.0115280244262512,0.140330729557497,10,0.0428121771241221,0.0760702211486123
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_icu_2_t1",50,0.0524041494393599,0.076250338562249,0.00489976005904652,0.168491578968321,5,0.0307340429894839,0.0740742558892359
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_resus_2_t2",50,0.0487766891388879,0.0420509877558501,0.0115178371683634,0.100257273798336,2,0.0368259306481858,0.0607274476295899
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_icu_2_t2",50,0.0459141357100516,0.0686454951446079,0.00471699175550496,0.105075374732099,4,0.0264053018460067,0.0654229695740966
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_resus_2_t1",50,0.0450413612351317,0.0397864794953786,0.00880497984607265,0.0931751085900529,2,0.0337341688712998,0.0563485535989637
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_PMVAmb_3",50,0.0433515918345423,0.0550062244168717,0.00392332223658546,0.119522358539874,10,0.027718995822575,0.0589841878465097
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_3_facem_1_t1",47,0.0346569764648233,0.0959946542071338,0,0.0681489908985918,3,0.00647189010384638,0.0628420628258002
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_2_facem_1_t1",49,0.031100074844183,0.0554783639739482,0.00011820725000874,0.0898655170877034,3,0.0151648281438761,0.0470353215444899
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_1_facem_1_t1",49,0.0241186556392947,0.0449092957240467,8.54253491406469e-05,0.0671215601338712,3,0.0112191997931242,0.0370181114854653
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_resus_1_t1",50,0.019365985300673,0.0772830459445208,0,0.0153576894646422,6,-0.00259761333989188,0.0413295839412378
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_resus_4_t1",47,0.0162045172571163,0.07456868832448,0,0.0139343265856642,5,-0.00568966984746157,0.0380987043616941
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_resus_2_t1",50,0.0150289535287002,0.068554937876915,0,0.0083585687039096,6,-0.00445414424462419,0.0345120513020245
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2eheavy_resus_3_t1",50,0.0139950694259008,0.0687603160409895,0,0.0117372850932014,5,-0.00554639617584097,0.0335365350276427
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_anesthetist_1_t2",50,0.00709344255096153,0.001868926962872,0.00383010666994358,0.00914513974820577,1,0.00656229938496212,0.00762458571696093
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_anesthetist_1_t1",50,0.00659215430113968,0.00196239375909344,0.0045461547363404,0.00917231907749039,1,0.00603444816556088,0.00714986043671848
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_nurse_1_t2",50,0.00137781819097245,0.000887239051333583,0.000584414291194825,0.00258435426212496,1,0.00112566764251044,0.00162996873943447
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_nurse_1_t3",50,0.00112404462061849,0.000720973607296598,0.000235752464351136,0.00201406155726134,1,0.000919146188529388,0.0013289430527076
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_nurse_1_t1",50,0.00105729333303292,0.000750085648857114,0.000226940601147798,0.00217490093549977,1,0.000844121350275253,0.00127046531579059
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_1_t2",50,0.000264045632630428,0.000424984026862563,0,0.000948477117761518,1,0.000143266508560174,0.000384824756700681
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_1_t1",50,0.00015863906546406,0.000301094722345973,0,0.000482438608392134,1,7.30688921669751e-05,0.000244209238761146
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_HX240M_1",50,0.000145019688970229,0.000425025472552942,0,0.000462930322258586,1,2.42287861650962e-05,0.000265810591775362
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_1_t3",50,0.000112401147230223,0.000223391670387727,0,0.000285395759592736,1,4.89139369620922e-05,0.000175888357498353
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_2_medic_1_t1",46,7.7745107606435e-05,0.000205054483249579,0,0.000265451087266737,1,1.68514426497383e-05,0.000138638772563132
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_3_medic_1_t1",45,5.45152902641327e-05,0.000242287246292269,0,0,1,-1.82758569329646e-05,0.00012730643746123
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_1_medic_1_t1",45,3.52262683376332e-05,0.000159430908394168,0,0,1,-1.26720791745904e-05,8.31246158498568e-05
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_HX240M_2",50,3.09755422830935e-05,0.00021903015999306,0,0,1,-3.12721404456609e-05,9.32232250118478e-05
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_2_t1",50,1.5605400279499e-05,8.79463550559282e-05,0,0,1,-9.38867727970682e-06,4.05994778387047e-05
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_2_t2",50,1.53244227839243e-05,4.29442685423508e-05,0,8.85299376579533e-05,1,3.11979670262405e-06,2.75290488652246e-05
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_2_t3",50,5.91547902226641e-06,2.94110263975324e-05,0,0,1,-2.44304219681422e-06,1.4274000241347e-05
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","ame",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","ame_critical",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_ot_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","b_r2b_ot_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_doctor_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_doctor_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_clinician_doctor_1_t3",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_3_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_3_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r1_technician_medic_3_t3",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_medic_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_medic_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_2_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_3_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_emerg_1_nurse_3_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_evac_1_medic_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_evac_1_medic_2_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_medic_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_medic_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_medic_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_medic_2_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_icu_1_nurse_2_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_medic_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_medic_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_surgeon_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_surgeon_1_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_surgeon_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2b_surg_1_surgeon_2_t2",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_1_medic_1_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_1_nurse_1_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_1_nurse_2_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_1_nurse_3_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_2_medic_1_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_2_nurse_1_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_2_nurse_2_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_2_nurse_3_t1",49,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_3_medic_1_t1",47,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_3_nurse_1_t1",47,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_3_nurse_2_t1",47,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_emerg_3_nurse_3_t1",47,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_1_medic_2_t1",45,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_2_medic_2_t1",46,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_evac_3_medic_2_t1",45,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_nurse_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_nurse_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_nurse_3_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_nurse_4_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_surgeon_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_1_surgeon_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_nurse_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_nurse_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_nurse_3_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_nurse_4_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_surgeon_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_2_surgeon_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_nurse_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_nurse_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_nurse_3_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_nurse_4_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_surgeon_1_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","c_r2eheavy_surg_3_surgeon_2_t1",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_HX240M_3",50,0,0,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","t_HX240M_4",38,0,0,0,0,0,0,0

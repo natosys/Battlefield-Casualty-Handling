@@ -48,12 +48,14 @@ FIG_WIDTH_IN <- 9.0
 #' Rendered resolution of every figure, in dots per inch
 FIG_DPI <- 150
 
-#' Growth in casualty volume between the two casualty intensities
+#' Label of the totals table row the queue figure's reference line is read from
 #'
-#' @details Drawn as the reference line on the queue figure, so that a
-#'   resource to the right of it queues disproportionately to the load placed
-#'   on it. Taken from the comparative scenario table's own ratio column.
-CASUALTY_RATIO <- 2.33
+#' @details The reference line is the casualty volume ratio, which the totals
+#'   table above the queue table already prints. Reading it from there rather
+#'   than holding a second copy is what stops the line drifting away from the
+#'   table it is drawn against, which a hardcoded 2.33 had already done by the
+#'   time the tables were re-measured.
+CASUALTY_RATIO_ROW <- "Total casualties/run"
 
 #' Colour per casualty intensity, held constant across every figure
 INTENSITY_COLOURS <- c("Moderate intensity" = "#1f5566", "High intensity" = "#9c4a35")
@@ -243,6 +245,15 @@ build_totals_figure <- function(lines) {
 #'   intensities, so a resource to the right of it queues disproportionately
 #'   to the load placed on it, which is the paper's central claim.
 build_queue_figure <- function(lines) {
+  totals <- extract_table(lines, "### Comparative Scenario Analysis", skip = 0L)
+  volume <- totals[startsWith(trimws(sub("^\\|", "", totals)), CASUALTY_RATIO_ROW)]
+  if (length(volume) != 1L) {
+    fail(sprintf("totals table has no single '%s' row", CASUALTY_RATIO_ROW))
+  }
+  volume_cells <- cells(volume)
+  casualty_ratio <- lead_number(volume_cells[3]) / lead_number(volume_cells[2])
+  if (is.na(casualty_ratio)) fail("casualty volume ratio did not parse")
+
   rows <- extract_table(lines, "### Comparative Scenario Analysis", skip = 1L)
   recs <- list()
   for (row in rows) {
@@ -263,9 +274,9 @@ build_queue_figure <- function(lines) {
   df$label <- sprintf("%.3g \u2192 %.3g", df$moderate, df$high)
 
   ggplot(df, aes(x = ratio, y = group)) +
-    geom_vline(xintercept = CASUALTY_RATIO, linetype = "dashed",
+    geom_vline(xintercept = casualty_ratio, linetype = "dashed",
                colour = "grey35", linewidth = 0.6) +
-    geom_segment(aes(x = CASUALTY_RATIO, xend = ratio, yend = group),
+    geom_segment(aes(x = casualty_ratio, xend = ratio, yend = group),
                  colour = "#1f5566", linewidth = 0.8, alpha = 0.6) +
     geom_point(aes(size = high), colour = "#1f5566") +
     geom_text(aes(label = label), hjust = -0.3, size = 3.3, colour = "grey25") +
@@ -277,7 +288,7 @@ build_queue_figure <- function(lines) {
                                 "Point area is the queue at high intensity,\n",
                                 "so a resource may grow fast from a negligible base. ",
                                 "Labels give the mean queue at each intensity."),
-                         CASUALTY_RATIO),
+                         casualty_ratio),
       x = "Queue growth factor (log scale)", y = NULL,
       caption = paste("R2B operating theatre is omitted: its queue is zero at both",
                       "intensities by routing policy, so no growth factor exists.")

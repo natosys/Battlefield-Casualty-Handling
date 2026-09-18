@@ -5,10 +5,22 @@
 ##############################################
 #
 # Terminal / Claude Code cloud:
+#   Rscript scripts/run_transport_sweep.R --refresh-baseline       # write the tracked data/sweeps/
 #   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 10 reps x 30 days
 #   Rscript scripts/run_transport_sweep.R --pmvamb 1:5 --hx240m 1:4
 #   Rscript scripts/run_transport_sweep.R --iterations 30 --days 30
 #   Rscript scripts/run_transport_sweep.R --quick                  # smoke test (2 reps, 3 days)
+#
+# --refresh-baseline is the only way to write the tracked data/sweeps/ and the
+# tracked images/transport_capacity_margin_by_fleet_size.png. Without it every
+# invocation writes under outputs/ alone, so an exploratory run cannot move the
+# evidence set docs/Multi_Run_Analysis.md's fleet-size table is checked
+# against. The flag fixes the swept range, the replication count, the horizon
+# and the seed rather than accepting whichever the caller passed, an evidence
+# set measured at some other design not being the experiment
+# docs/Multi_Run_Supplement.md documents. It writes its own
+# transport_capacity_by_fleet_size.csv and leaves the forward ICU share
+# sweep's files in the same directory untouched.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
@@ -40,16 +52,54 @@ option_list <- list(
               help = "Path to env_data.json [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
               help = "Directory for CSV output [default: %default]"),
-  make_option("--images-dir", type = "character", default = "images",
-              help = "Directory for the saved plot [default: %default]")
+  make_option("--images-dir", type = "character", default = NULL,
+              help = paste("Directory for the saved plot [default: outputs/images,",
+                           "or images under --refresh-baseline]")),
+  make_option("--refresh-baseline", action = "store_true", default = FALSE,
+              help = "Write the tracked data/sweeps/ and images/ copies")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+
+if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
+  stop("--quick and --refresh-baseline are incompatible: a smoke test's two ",
+       "replications over three days are not the experiment the tracked ",
+       "evidence set records.", call. = FALSE)
+}
 
 if (opt$quick) {
   opt$iterations <- 2L
   opt$days       <- 3L
   message("Quick mode: iterations=2, days=3")
+}
+
+# A baseline refresh runs the protocol R/analysis.R holds rather than whatever
+# the caller passed, so the tracked set and the design the supplement documents
+# cannot diverge through a mistyped argument.
+if (isTRUE(opt$`refresh-baseline`)) {
+  opt$pmvamb     <- deparse(TRANSPORT_SWEEP_PMVAMB)
+  opt$hx240m     <- deparse(TRANSPORT_SWEEP_HX240M)
+  opt$iterations <- TRANSPORT_SWEEP_REPLICATIONS
+  opt$days       <- CAPACITY_SWEEP_DAYS
+  opt$seed       <- CAPACITY_SWEEP_SEED
+  message(sprintf(paste("Baseline refresh: running the documented protocol,",
+                        "%d replications x %d days per point at seed %d"),
+                  TRANSPORT_SWEEP_REPLICATIONS, CAPACITY_SWEEP_DAYS,
+                  CAPACITY_SWEEP_SEED))
+}
+
+output_dir <- if (isTRUE(opt$`refresh-baseline`)) {
+  file.path("data", "sweeps")
+} else {
+  opt[["output-dir"]]
+}
+
+images_dir <- if (!is.null(opt[["images-dir"]])) {
+  opt[["images-dir"]]
+} else if (isTRUE(opt$`refresh-baseline`)) {
+  "images"
+} else {
+  file.path("outputs", "images")
 }
 
 fleet_sizes <- list(
@@ -76,8 +126,8 @@ sweep <- plot_transport_capacity_margin_by_fleet_size(
   n_days      = opt$days,
   n_rep       = opt$iterations,
   path        = opt$path,
-  output_dir  = opt[["output-dir"]],
-  images_dir  = opt[["images-dir"]]
+  output_dir  = output_dir,
+  images_dir  = images_dir
 )
 
 message("\nTransport fleet-size sweep complete.")

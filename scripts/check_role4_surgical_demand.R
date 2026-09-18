@@ -131,9 +131,10 @@ install_config <- function(ed) {
 
 #' Reconstruction share that puts the cohort in force
 #'
-#' @details The shipped share is zero, both defaults being flipped together in
-#'   a later measurement campaign, so the cohort assertions are made at the
-#'   share the calibration supports.
+#' @details The shipped share, which the first assertion below checks this
+#'   constant against, so a change to the default is caught here rather than
+#'   silently reducing the cohort assertions to a measurement of something the
+#'   model no longer ships.
 CHECK_SHARE <- 0.2
 
 #' Run the model at a given saturation threshold and reconstruction share
@@ -141,9 +142,10 @@ CHECK_SHARE <- 0.2
 #' @param threshold The saturation threshold to configure.
 #' @param share The reconstruction share to configure, or NULL to leave it
 #'   shipped, or NA to remove the field altogether.
+#' @param scenario Scenario profile to run under.
 #' @return A list of the configuration used and the casualty-wide attributes.
-run_at <- function(threshold, share = NULL) {
-  ed <- load_scenario("env_data.json", "default")
+run_at <- function(threshold, share = NULL, scenario = "default") {
+  ed <- load_scenario("env_data.json", scenario)
   ed$vars$r2eheavy$second_surgery$saturation_queue_threshold <- threshold
   if (!is.null(share)) {
     if (length(share) == 1L && is.na(share)) {
@@ -199,21 +201,41 @@ report(identical(role4_theatre_label(shipped$vars$role4), "ot"),
 
 shipped_share <- shipped$vars$role4$surgery$reconstruction_share
 report(!is.null(shipped_share) && length(shipped_share) == 1L &&
-         !is.na(shipped_share) && shipped_share == 0,
-       "role4.surgery.reconstruction_share ships at 0, disabling the cohort")
+         !is.na(shipped_share) && shipped_share == CHECK_SHARE,
+       "role4.surgery.reconstruction_share ships at %s, putting the cohort in force",
+       format(CHECK_SHARE))
 
-off <- run_at(0)
+shipped_threshold <- shipped$vars$r2eheavy$second_surgery$saturation_queue_threshold
+shipped_run <- run_at(shipped_threshold)
+shipped_demand <- compute_role4_surgical_demand(shipped_run$wide, shipped_run$params)
+report(nrow(shipped_demand) > 0,
+       paste("theatre demand is reported at the shipped configuration (%d",
+             "operations owed), both levers being in force"),
+       sum(shipped_demand$operations))
+# Theatre minutes come from the released cohort alone, the reconstruction
+# sequence carrying no sourced duration, and the release is a saturation
+# response that a 30-day campaign at the Falklands-modified rates never
+# triggers. The minutes column is therefore asserted where the release fires.
+saturated <- run_at(shipped_threshold, share = NULL, scenario = "high_intensity")
+saturated_demand <- compute_role4_surgical_demand(saturated$wide, saturated$params)
+report(sum(saturated_demand$theatre_minutes) > 0,
+       paste("theatre minutes are reported under a saturated configuration, so",
+             "the conserved repair reaches the report alongside the count"))
+
+# Disabled, the two levers must still reproduce the model without them: the
+# degenerate value has to consume no draw, which is the property that let each
+# be built and verified before it was switched on.
+off <- run_at(0, share = 0)
 off_demand <- compute_role4_surgical_demand(off$wide, off$params)
 report(nrow(off_demand) == 0,
-       paste("no theatre demand is reported at the shipped configuration, both",
-             "the capacity release and the reconstruction cohort being disabled"))
+       paste("no theatre demand is reported with both levers set to zero,",
+             "so the report is a function of the configuration rather than of",
+             "the echelon existing"))
 
-# The degenerate share must consume no draw, which is what keeps the published
-# seed-42 evidence set exactly as it was rather than merely close to it.
 absent <- run_at(0, share = NA)
 report(isTRUE(all.equal(arrivals_of(off), arrivals_of(absent), check.attributes = FALSE)),
        paste("a share of zero and no share at all produce the same campaign, so",
-             "the cohort costs the published model nothing"))
+             "a disabled cohort costs the model nothing"))
 
 # ── 2. Malformed configuration is rejected, naming the field ───────────────
 

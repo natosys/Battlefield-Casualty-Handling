@@ -449,7 +449,7 @@
           "vals": [
             {
               "var": "saturation_queue_threshold",
-              "val": 0
+              "val": 8
             }
           ]
         }
@@ -928,7 +928,7 @@
             },
             {
               "var": "reconstruction_share",
-              "val": 0
+              "val": 0.2
             },
             {
               "var": "return_interval_min",

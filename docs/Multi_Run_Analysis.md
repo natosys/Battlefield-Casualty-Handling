@@ -517,31 +517,31 @@ Two events thirteen days apart is a thin draw from a process set to deliver an a
 
 **Design.** 50 replications of a 30-day campaign at each of two baselines, the shipped configuration under each casualty intensity, and at each of eleven swept values: six sortie cancellation probabilities from 0 to 0.40, and five intervals between scheduled sorties from 3 to 14 days. The full design is in `docs/Multi_Run_Supplement.md`.
 
-At the shipped configuration the constraint does not bind at moderate intensity. All four scheduled sorties fly, 162.7 casualties board [153.9, 171.6], 1.26 [0.63, 1.89] are left waiting when the campaign ends, and the mean wait is 0.81 days [0.68, 0.93]. At high intensity the same schedule leaves 26.96 [23.86, 30.06] waiting at a mean of 2.39 days [2.22, 2.57], so a backlog forms from volume alone, with every sortie flying.
+At the shipped configuration the constraint does not bind at moderate intensity. All four scheduled sorties fly, 162.6 casualties board [155.0, 170.3], 2.88 [0.08, 5.68] are left waiting when the campaign ends, and the mean wait is 0.85 days [0.67, 1.03]. At high intensity the same schedule leaves 108.3 [102.7, 113.8] waiting at a mean of 3.58 days [3.42, 3.73], so a backlog forms from volume alone, with every sortie flying.
 
 ### Timing Matters More Than Airframe-Days
 
-The clearest result is that two schedules flying the same number of sorties do not perform the same. At a 10-day interval two sorties fly and the mean wait is 2.30 days [2.05, 2.55]; at a 14-day interval two sorties also fly and the mean wait is 5.51 days [5.12, 5.90]. The count is identical and the wait more than doubles, so the quantity a planner is buying is not airframe-days but how early and how regularly the aircraft come.
+The clearest result is that two schedules flying the same number of sorties do not perform the same. At a 10-day interval two sorties fly and the mean wait is 2.31 days [2.08, 2.55]; at a 14-day interval two sorties also fly and the mean wait is 5.56 days [5.22, 5.91]. The count is identical and the wait more than doubles, so the quantity a planner is buying is not airframe-days but how early and how regularly the aircraft come.
 
 | Interval between sorties | Sorties flown | Mean wait (days) | Share of R2E holding beds held by the evacuation wait |
 |---|---|---|---|
-| 3 days | 9.00 | 0.18 [0.16, 0.20] | 2% [2%, 3%] |
-| 5 days | 5.00 | 0.34 [0.30, 0.37] | 9% [8%, 10%] |
-| 7 days (shipped) | 4.00 | 0.81 [0.68, 0.93] | 22% [19%, 25%] |
-| 10 days | 2.00 | 2.30 [2.05, 2.55] | 45% [42%, 48%] |
-| 14 days | 2.00 | 5.51 [5.12, 5.90] | 62% [59%, 64%] |
+| 3 days | 9.00 | 0.24 [0.18, 0.30] | 2% [2%, 3%] |
+| 5 days | 5.00 | 0.45 [0.34, 0.56] | 9% [8%, 11%] |
+| 7 days (shipped) | 4.00 | 0.85 [0.67, 1.03] | 20% [18%, 23%] |
+| 10 days | 2.00 | 2.31 [2.08, 2.55] | 48% [45%, 50%] |
+| 14 days | 2.00 | 5.56 [5.22, 5.91] | 63% [61%, 65%] |
 
-Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.81 to 4.17 days and the holding share 22% to 47%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.18 to 5.51 days and 2% to 62%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 17%, 25% and 41% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
+Against that, cancellation moves the same responses less. Across the whole range from a schedule that never fails to one losing two sorties in five, the mean wait runs 0.85 to 2.96 days and the holding share 20% to 45%, where shortening or lengthening the interval within a range a planner would actually consider spans 0.24 to 5.56 days and 2% to 63%. Reliability matters, and the realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, measuring 6%, 10%, 15%, 26% and 43% against a configured 5%, 10%, 15%, 25% and 40%. But a planner choosing between buying reliability and buying frequency should buy frequency.
 
 ### The Evacuation Wait Consumes Clinical Capacity on Both Routes
 
 A casualty waiting for either airlift pool holds an R2E holding bed for the part of that wait it spends staged. On the standard route that is the whole wait, the bed being seized at the evacuation decision. On the critical route a ventilated casualty first holds an intensive care bed for its bounded pre-flight period and then steps down into a holding bed for the remainder, and a stable one stages in a holding bed from the start. The route therefore does not decide whether a casualty consumes the pool, only how much of its wait it consumes.
 
-The coupling is substantial and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 22.2% [19.2%, 25.1%] of R2E holding bed occupancy at moderate intensity and 36.3% [34.2%, 38.4%] at high. It reaches 47.4% [41.4%, 53.4%] at a 40% cancellation rate and 61.6% [59.5%, 63.6%] at a 14-day sortie interval, where the wait becomes the pool's largest single consumer and the pool has stopped being a clinical resource in any meaningful sense. Since the holding pool also carries in-theatre recovery, the post-definitive holding fallback and the post-operative damage control hold, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 24.7 hours at a 3-day interval and 91.2 hours at 14. **Evidence: measured.**
+The coupling is substantial and grows with every lever that delays a sortie. At the shipped configuration the evacuation wait holds 20.5% [18.0%, 22.9%] of R2E holding bed occupancy at moderate intensity and 40.4% [38.3%, 42.4%] at high. It reaches 44.6% [38.8%, 50.5%] at a 40% cancellation rate and 63.0% [61.3%, 64.7%] at a 14-day sortie interval, where the wait becomes the pool's largest single consumer and the pool has stopped being a clinical resource in any meaningful sense. Since the holding pool also carries in-theatre recovery, the post-definitive holding fallback and the post-operative damage control hold, and the ventilated pre-flight intensive care hold stretches when that pool is full, the effect propagates: the ventilated hold runs 23.7 hours at a 3-day interval and 88.1 hours at 14. Each of those shares is a component of a split that now accounts for its campaign's holding pool exactly, in every one of the 650 replications behind this section. **Evidence: measured.**
 
 ### Demand on the Base Peaks at the Campaign's End, Not After It
 
-The single-campaign reading had national support base occupancy peaking on the campaign's last day and inferred that the base carries its heaviest load after the engagement that generates it. Replicated, the peak falls **1.36 days before** the campaign ends [0.83, 1.89 days before] at moderate intensity and 0.66 days before at high [0.23, 1.09], and the interval excludes zero in both cases. What the single campaign saw was the long tail decaying afterwards rather than the peak arriving late. Peak occupancy is 104.0 concurrent patients [97.6, 110.5] at moderate intensity and 159.6 [156.1, 163.2] at high.
+The single-campaign reading had national support base occupancy peaking on the campaign's last day and inferred that the base carries its heaviest load after the engagement that generates it. Replicated, the peak falls **1.74 days before** the campaign ends [1.04, 2.44 days before] at moderate intensity and 0.56 days before at high [0.16, 0.96], and the interval excludes zero in both cases. What the single campaign saw was the long tail decaying afterwards rather than the peak arriving late. Peak occupancy is 104.4 concurrent patients [98.3, 110.5] at moderate intensity and 153.5 [150.9, 156.2] at high.
 
 The planning consequence survives in a weaker form. A demand signal for the national support base should still be derived from the theatre's evacuation pipeline rather than from a casualty estimate, and it still extends well past the campaign; but it should be phased to peak with the engagement rather than after it.
 

@@ -962,16 +962,24 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #'   true backlog is instead reconstructed here from `r2e_departure_time`
 #'   (when the Strategic Evac disposition is decided and the AME wait
 #'   begins — a `+1` backlog event, one per pool via `ame_route`) and
-#'   `ame_departure_time` (when a casualty actually boards, NA while still
-#'   waiting — a `-1` event), cumulatively summed in event-time order per
+#'   `ame_hold_end` (when the casualty stops waiting, NA while it still is —
+#'   a `-1` event), cumulatively summed in event-time order per
 #'   (replication, pool).
+#'
+#'   The wait ends at `ame_hold_end` rather than at `ame_departure_time`
+#'   because a casualty can leave the queue without boarding: one that dies
+#'   during `r2e_ame_dow_poll()` sets no departure time, and taking the
+#'   departure as the only exit left it in the backlog for the rest of the
+#'   campaign. `ame_hold_end` is set on both routes out of the wait, so the
+#'   two exits are counted alike. A casualty still queued for the staging bed
+#'   it waits in has neither attribute and is correctly carried as waiting.
 compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN) {
   route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
   pool_levels  <- unname(route_labels)
   empty <- data.frame(replication = integer(0), time = numeric(0),
                       pool = character(0), backlog = integer(0))
 
-  relevant_keys <- c("r2e_departure_time", "ame_departure_time", "ame_route")
+  relevant_keys <- c("r2e_departure_time", "ame_hold_end", "ame_route")
   relevant <- attributes_log %>%
     filter(key %in% relevant_keys) %>%
     dplyr::select(name, replication, key, value) %>%
@@ -981,7 +989,7 @@ compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN
   if (nrow(relevant) == 0 || !all(c("r2e_departure_time", "ame_route") %in% names(relevant))) {
     return(empty)
   }
-  if (!"ame_departure_time" %in% names(relevant)) relevant$ame_departure_time <- NA_real_
+  if (!"ame_hold_end" %in% names(relevant)) relevant$ame_hold_end <- NA_real_
 
   waiting <- relevant %>%
     filter(!is.na(r2e_departure_time), !is.na(ame_route)) %>%
@@ -991,8 +999,8 @@ compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN
 
   events <- bind_rows(
     waiting %>% transmute(replication, pool, time = r2e_departure_time, delta = 1L),
-    waiting %>% filter(!is.na(ame_departure_time)) %>%
-      transmute(replication, pool, time = ame_departure_time, delta = -1L)
+    waiting %>% filter(!is.na(ame_hold_end)) %>%
+      transmute(replication, pool, time = ame_hold_end, delta = -1L)
   ) %>%
     arrange(replication, pool, time) %>%
     group_by(replication, pool) %>%
@@ -1002,10 +1010,16 @@ compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN
 
   if (!is.null(n_days)) {
     end_time <- n_days * day_min
+    # The last row at that instant, not the first: events are accumulated in
+    # the order this frame already carries, so only the last of several
+    # sharing an instant holds the level after all of them. A campaign whose
+    # closing arrival and departure coincide, which is the common case when a
+    # sortie clears the queue it just received, otherwise carries the
+    # intermediate level to the window's end and reads one casualty high.
     terminal <- events %>%
       group_by(replication, pool) %>%
       filter(time == max(time)) %>%
-      slice(1) %>%
+      slice(n()) %>%
       ungroup() %>%
       mutate(time = end_time) %>%
       filter(time > 0)

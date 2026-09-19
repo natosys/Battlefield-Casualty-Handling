@@ -13,6 +13,50 @@ library(dplyr)
 library(ggplot2)
 
 source("R/constants.R")
+source("R/queue_series.R")
+
+# ── The published comparison's protocol ───────────────────────────────────────
+# The design docs/Multi_Run_Supplement.md documents for the comparative
+# scenario analysis, held here so that the entry point's baseline refresh, the
+# supplement's marker comments and scripts/check_scenario_protocol.R all read
+# one definition rather than three copies of it.
+
+#' Replications the comparative scenario analysis runs at, per profile
+#'
+#' @details Fifty, the count `docs/Multi_Run_Supplement.md` derives for a
+#'   time-weighted queue or casualty-count response, and the count every other
+#'   replicated experiment in the companion paper uses.
+SCENARIO_REPLICATIONS <- 50L
+
+#' Campaign length the comparison runs over, in days
+SCENARIO_DAYS <- 30L
+
+#' Control seed the comparison runs under
+#'
+#' @details Set once before each profile rather than once for the pair, so
+#'   replication `i` of one intensity draws the same per-replication seed as
+#'   replication `i` of the other.
+SCENARIO_SEED <- 42L
+
+#' Scenario profiles the published comparison covers, in the order it prints them
+#'
+#' @details The two casualty intensities defined in the `scenarios` block of
+#'   `env_data.json`. The base configuration is not a third arm of this
+#'   experiment; `moderate_intensity` is the shipped campaign the rest of the
+#'   paper measures.
+SCENARIO_PROTOCOL_PROFILES <- c("moderate_intensity", "high_intensity")
+
+#' Casualty-total metrics the published totals table prints, in its row order
+SCENARIO_TOTAL_METRICS <- c("total_casualties", "wia_count", "dow_count", "dow_rate")
+
+#' Resource groups the published queue table prints, in its row order
+#'
+#' @details The groups `classify_queue_group()` assigns every monitored
+#'   resource to. A group absent from the tracked queue table would make the
+#'   published row unverifiable rather than merely unchecked, so the protocol
+#'   check asserts the set rather than inferring it from the data.
+SCENARIO_QUEUE_GROUPS <- c("R2B OT", "R2B Hold", "R2E OT", "R2E ICU",
+                           "R2E Hold", "Transport")
 
 # ── Single-scenario execution ─────────────────────────────────────────────────
 
@@ -188,6 +232,96 @@ classify_resource_group <- function(resource) {
   )
 }
 
+#' Classify a resource ID into one of the published queue-comparison groups
+#'
+#' @param resource Character vector of resource IDs as they appear in
+#'   mon$resources.
+#' @return Character vector of group labels drawn from SCENARIO_QUEUE_GROUPS,
+#'   or NA for a resource outside the comparison's scope.
+#'
+#' @details Distinct from classify_resource_group() above, which drives the
+#'   four-panel comparison figure and mirrors the Morris screening's KPI
+#'   grouping. The published queue table covers six groups rather than four,
+#'   the two holding pools included, so the two classifications are kept apart
+#'   rather than one being widened and silently changing the figure.
+classify_queue_group <- function(resource) {
+  dplyr::case_when(
+    grepl("^b_r2b_ot_",          resource) ~ "R2B OT",
+    grepl("^b_r2b_hold_",        resource) ~ "R2B Hold",
+    grepl("^b_r2eheavy_ot_",     resource) ~ "R2E OT",
+    grepl("^b_r2eheavy_icu_",    resource) ~ "R2E ICU",
+    grepl("^b_r2eheavy_hold_",   resource) ~ "R2E Hold",
+    grepl("^t_(PMVAmb|HX240M)_", resource) ~ "Transport",
+    TRUE ~ NA_character_
+  )
+}
+
+#' Mean queue of each published resource group, per replication
+#'
+#' @param mon Named list with a `resources` monitor as returned by
+#'   run_replications().
+#' @param n_days Campaign length in days, which bounds the averaging window.
+#' @return Data frame of replication, group and mean_q: one row per group per
+#'   replication.
+#'
+#' @details A pool's total queue is in none of the monitor's rows, each bed
+#'   being monitored separately, so it is recovered by pool_queue_steps()
+#'   (`R/queue_series.R`) and averaged over the campaign by step_bin_means()
+#'   with a single bin. That is the estimator the campaign time series uses, so
+#'   the published queue table and the queue-over-time figure measure one
+#'   quantity rather than two that happen to agree. A group whose beds never
+#'   queued contributes a zero rather than dropping out, so the table describes
+#'   the full establishment rather than only its busy parts.
+scenario_queue_groups_by_replication <- function(mon, n_days) {
+  horizon <- n_days * DAY_MIN
+  rows <- mon$resources %>%
+    mutate(group = classify_queue_group(resource)) %>%
+    filter(!is.na(group), time <= horizon)
+
+  keys <- unique(rows[, c("replication", "group")])
+  keys <- keys[order(keys$replication, keys$group), ]
+
+  bind_rows(lapply(seq_len(nrow(keys)), function(i) {
+    sub <- rows[rows$replication == keys$replication[i] & rows$group == keys$group[i], ]
+    steps <- pool_queue_steps(sub$resource, sub$time, sub$queue)
+    data.frame(
+      replication = keys$replication[i],
+      group       = keys$group[i],
+      mean_q      = step_bin_means(steps, c(0, horizon))
+    )
+  }))
+}
+
+#' Summarise each published resource group's queue across replications
+#'
+#' @param per_replication Data frame as returned by
+#'   scenario_queue_groups_by_replication().
+#' @return Data frame of group, n_reps, mean_q, p10_q, p90_q, ci_lower and
+#'   ci_upper, in SCENARIO_QUEUE_GROUPS order.
+#'
+#' @details The interval is the Student t one at 95%, matching every other
+#'   interval this project publishes (`docs/Multi_Run_Supplement.md`, Interval
+#'   Construction). A group measured in one replication alone carries an NA
+#'   interval rather than a zero-width one.
+summarise_scenario_queue_groups <- function(per_replication) {
+  groups <- SCENARIO_QUEUE_GROUPS[SCENARIO_QUEUE_GROUPS %in% per_replication$group]
+  bind_rows(lapply(groups, function(g) {
+    x <- per_replication$mean_q[per_replication$group == g]
+    n <- length(x)
+    m <- mean(x)
+    half <- if (n > 1) qt(0.975, df = n - 1) * sd(x) / sqrt(n) else NA_real_
+    data.frame(
+      group    = g,
+      n_reps   = n,
+      mean_q   = m,
+      p10_q    = as.numeric(quantile(x, 0.10, na.rm = TRUE)),
+      p90_q    = as.numeric(quantile(x, 0.90, na.rm = TRUE)),
+      ci_lower = m - half,
+      ci_upper = m + half
+    )
+  }))
+}
+
 #' Short display label for a scenario, derived from its identifier
 #'
 #' @param scenario Character vector of scenario identifiers as they appear in
@@ -272,10 +406,13 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
 #' @return Named list: results (one run_scenario() output per scenario,
 #'   named by scenario), queue_table (combined per-resource KPI table with
 #'   scenario/scenario_label columns), totals_table (combined casualty/DOW
-#'   totals table with scenario/scenario_label columns), plot (ggplot object)
+#'   totals table with scenario/scenario_label columns), queue_group_table
+#'   (the published per-pool queue comparison), queue_group_reps (its
+#'   per-replication values), plot (ggplot object)
 #'
-#' @details Writes outputs/scenario_comparison_queues.csv,
-#'   outputs/scenario_comparison_totals.csv, and images/scenario_comparison.png.
+#' @details Writes four CSVs under output_dir, scenario_comparison_queues.csv,
+#'   scenario_comparison_totals.csv, scenario_queue_group_replications.csv and
+#'   scenario_queue_groups.csv, and scenario_comparison.png under images_dir.
 #'   Each scenario is executed via run_scenario(), which sets env_data
 #'   globally per scenario in turn — scenarios are run sequentially, not
 #'   nested in parallel, since run_replications() already parallelises
@@ -307,16 +444,37 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
     cbind(scenario = r$scenario, scenario_label = r$label, r$totals)
   }))
 
+  # The published queue table reports pools rather than individual beds, and a
+  # pool's interval cannot be recovered from per-bed summaries, so the
+  # per-replication group series is carried alongside them rather than
+  # reconstructed later from a table that no longer holds it.
+  queue_group_replications <- bind_rows(lapply(results, function(r) {
+    cbind(scenario = r$scenario,
+          scenario_queue_groups_by_replication(r$mon, r$n_days))
+  }))
+
+  queue_group_table <- bind_rows(lapply(results, function(r) {
+    per_rep <- queue_group_replications[queue_group_replications$scenario == r$scenario, ]
+    cbind(scenario = r$scenario, scenario_label = r$label,
+          summarise_scenario_queue_groups(per_rep))
+  }))
+
   write.csv(queue_table,  file.path(output_dir, "scenario_comparison_queues.csv"),  row.names = FALSE)
   write.csv(totals_table, file.path(output_dir, "scenario_comparison_totals.csv"), row.names = FALSE)
+  write.csv(queue_group_replications,
+            file.path(output_dir, "scenario_queue_group_replications.csv"), row.names = FALSE)
+  write.csv(queue_group_table,
+            file.path(output_dir, "scenario_queue_groups.csv"), row.names = FALSE)
   message(sprintf("Comparative scenario tables written to %s/", output_dir))
 
   comparison_plot <- plot_scenario_comparison(queue_table, images_dir = images_dir)
 
   list(
-    results      = results,
-    queue_table  = queue_table,
-    totals_table = totals_table,
-    plot         = comparison_plot
+    results            = results,
+    queue_table        = queue_table,
+    totals_table       = totals_table,
+    queue_group_table  = queue_group_table,
+    queue_group_reps   = queue_group_replications,
+    plot               = comparison_plot
   )
 }

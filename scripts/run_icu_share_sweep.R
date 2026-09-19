@@ -5,10 +5,20 @@
 ##################################################
 #
 # Terminal / Claude Code cloud:
+#   Rscript scripts/run_icu_share_sweep.R --refresh-baseline     # write the tracked data/sweeps/
 #   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 10 reps x 30 days
 #   Rscript scripts/run_icu_share_sweep.R --shares "seq(0, 1, by = 0.1)"
 #   Rscript scripts/run_icu_share_sweep.R --iterations 30 --days 30
 #   Rscript scripts/run_icu_share_sweep.R --quick                # smoke test (2 reps, 3 days, 3 points)
+#
+# --refresh-baseline is the only way to write the tracked data/sweeps/ and the
+# tracked images/r2b_icu_share_frontier.png. Without it every invocation writes
+# under outputs/ alone, so an exploratory run cannot move the evidence set
+# docs/Multi_Run_Analysis.md's decision-frontier table is checked against. The
+# flag fixes the swept shares, the replication count, the horizon and the seed
+# rather than accepting whichever the caller passed. It writes its own
+# r2b_icu_share_frontier.csv and leaves the transport sweep's files in the same
+# directory untouched.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
@@ -38,17 +48,54 @@ option_list <- list(
               help = "Path to env_data.json [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
               help = "Directory for CSV output [default: %default]"),
-  make_option("--images-dir", type = "character", default = "images",
-              help = "Directory for the saved plot [default: %default]")
+  make_option("--images-dir", type = "character", default = NULL,
+              help = paste("Directory for the saved plot [default: outputs/images,",
+                           "or images under --refresh-baseline]")),
+  make_option("--refresh-baseline", action = "store_true", default = FALSE,
+              help = "Write the tracked data/sweeps/ and images/ copies")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+
+if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
+  stop("--quick and --refresh-baseline are incompatible: a smoke test's two ",
+       "replications over three days are not the experiment the tracked ",
+       "evidence set records.", call. = FALSE)
+}
 
 if (opt$quick) {
   opt$iterations <- 2L
   opt$days       <- 3L
   opt$shares     <- "c(0, 0.5, 1)"
   message("Quick mode: iterations=2, days=3, shares=c(0, 0.5, 1)")
+}
+
+# A baseline refresh runs the protocol R/analysis.R holds rather than whatever
+# the caller passed, so the tracked set and the design the supplement documents
+# cannot diverge through a mistyped argument.
+if (isTRUE(opt$`refresh-baseline`)) {
+  opt$shares     <- deparse(ICU_SHARE_SWEEP_SHARES)
+  opt$iterations <- ICU_SHARE_SWEEP_REPLICATIONS
+  opt$days       <- CAPACITY_SWEEP_DAYS
+  opt$seed       <- CAPACITY_SWEEP_SEED
+  message(sprintf(paste("Baseline refresh: running the documented protocol,",
+                        "%d replications x %d days per point at seed %d"),
+                  ICU_SHARE_SWEEP_REPLICATIONS, CAPACITY_SWEEP_DAYS,
+                  CAPACITY_SWEEP_SEED))
+}
+
+output_dir <- if (isTRUE(opt$`refresh-baseline`)) {
+  file.path("data", "sweeps")
+} else {
+  opt[["output-dir"]]
+}
+
+images_dir <- if (!is.null(opt[["images-dir"]])) {
+  opt[["images-dir"]]
+} else if (isTRUE(opt$`refresh-baseline`)) {
+  "images"
+} else {
+  file.path("outputs", "images")
 }
 
 shares <- eval(parse(text = opt$shares))
@@ -77,8 +124,8 @@ sweep <- plot_r2b_icu_share_frontier(
   n_days      = opt$days,
   n_rep       = opt$iterations,
   path        = opt$path,
-  output_dir  = opt[["output-dir"]],
-  images_dir  = opt[["images-dir"]]
+  output_dir  = output_dir,
+  images_dir  = images_dir
 )
 
 message("\nForward ICU share sweep complete.")

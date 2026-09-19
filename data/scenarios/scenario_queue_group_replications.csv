@@ -1,0 +1,601 @@
+"scenario","replication","group","mean_q"
+"moderate_intensity",1,"R2B Hold",3.16429329728727
+"moderate_intensity",1,"R2B OT",0
+"moderate_intensity",1,"R2E Hold",0
+"moderate_intensity",1,"R2E ICU",0.274535959126474
+"moderate_intensity",1,"R2E OT",0.405696537347757
+"moderate_intensity",1,"Transport",0.00218876812808297
+"moderate_intensity",2,"R2B Hold",8.73211234072575
+"moderate_intensity",2,"R2B OT",0
+"moderate_intensity",2,"R2E Hold",0.297827275390266
+"moderate_intensity",2,"R2E ICU",0.680489329234733
+"moderate_intensity",2,"R2E OT",1.76803995028107
+"moderate_intensity",2,"Transport",0.0110032603212974
+"moderate_intensity",3,"R2B Hold",8.78701223719502
+"moderate_intensity",3,"R2B OT",0
+"moderate_intensity",3,"R2E Hold",0.148589811404236
+"moderate_intensity",3,"R2E ICU",0.924904445396886
+"moderate_intensity",3,"R2E OT",3.02995262194528
+"moderate_intensity",3,"Transport",0.0126488687433723
+"moderate_intensity",4,"R2B Hold",26.3742863099054
+"moderate_intensity",4,"R2B OT",0
+"moderate_intensity",4,"R2E Hold",25.0065290133634
+"moderate_intensity",4,"R2E ICU",31.6917479883861
+"moderate_intensity",4,"R2E OT",14.0640232717152
+"moderate_intensity",4,"Transport",3.79545161409115
+"moderate_intensity",5,"R2B Hold",3.53390941090755
+"moderate_intensity",5,"R2B OT",0
+"moderate_intensity",5,"R2E Hold",0.963523994669135
+"moderate_intensity",5,"R2E ICU",0.280091299615826
+"moderate_intensity",5,"R2E OT",1.07028882705254
+"moderate_intensity",5,"Transport",0.00322603244986247
+"moderate_intensity",6,"R2B Hold",3.51428543180479
+"moderate_intensity",6,"R2B OT",0
+"moderate_intensity",6,"R2E Hold",0.004323778472868
+"moderate_intensity",6,"R2E ICU",0.184246579656578
+"moderate_intensity",6,"R2E OT",0.485285055766439
+"moderate_intensity",6,"Transport",0.000985876253845748
+"moderate_intensity",7,"R2B Hold",2.82401424816303
+"moderate_intensity",7,"R2B OT",0
+"moderate_intensity",7,"R2E Hold",5.12236398888307
+"moderate_intensity",7,"R2E ICU",0.179556905239018
+"moderate_intensity",7,"R2E OT",0.214935095341554
+"moderate_intensity",7,"Transport",0.00941769996438577
+"moderate_intensity",8,"R2B Hold",6.21747218863942
+"moderate_intensity",8,"R2B OT",0
+"moderate_intensity",8,"R2E Hold",0.122438590933174
+"moderate_intensity",8,"R2E ICU",0.683954754161729
+"moderate_intensity",8,"R2E OT",2.54954423593555
+"moderate_intensity",8,"Transport",0.00366579654584349
+"moderate_intensity",9,"R2B Hold",1.97396557969853
+"moderate_intensity",9,"R2B OT",0
+"moderate_intensity",9,"R2E Hold",0.144829219718424
+"moderate_intensity",9,"R2E ICU",0.226130971021741
+"moderate_intensity",9,"R2E OT",0.648228955619133
+"moderate_intensity",9,"Transport",0.00125755815743254
+"moderate_intensity",10,"R2B Hold",13.8477752893256
+"moderate_intensity",10,"R2B OT",0
+"moderate_intensity",10,"R2E Hold",4.51970097947834
+"moderate_intensity",10,"R2E ICU",0.906650123485743
+"moderate_intensity",10,"R2E OT",2.05619030089102
+"moderate_intensity",10,"Transport",0.0134535992395915
+"moderate_intensity",11,"R2B Hold",1.71220350920653
+"moderate_intensity",11,"R2B OT",0
+"moderate_intensity",11,"R2E Hold",0.061833767636692
+"moderate_intensity",11,"R2E ICU",0.115909351263766
+"moderate_intensity",11,"R2E OT",0
+"moderate_intensity",11,"Transport",0.00180733238010265
+"moderate_intensity",12,"R2B Hold",3.17390359909748
+"moderate_intensity",12,"R2B OT",0
+"moderate_intensity",12,"R2E Hold",6.08274202500059
+"moderate_intensity",12,"R2E ICU",1.14840351853148
+"moderate_intensity",12,"R2E OT",5.62530627827875
+"moderate_intensity",12,"Transport",0.0129169630401204
+"moderate_intensity",13,"R2B Hold",7.57627033150578
+"moderate_intensity",13,"R2B OT",0
+"moderate_intensity",13,"R2E Hold",8.34942141361992
+"moderate_intensity",13,"R2E ICU",5.67928446702895
+"moderate_intensity",13,"R2E OT",2.73432162989671
+"moderate_intensity",13,"Transport",0.0406219865317715
+"moderate_intensity",14,"R2B Hold",4.47486376255429
+"moderate_intensity",14,"R2B OT",0
+"moderate_intensity",14,"R2E Hold",1.25970610493153
+"moderate_intensity",14,"R2E ICU",0.163188026442275
+"moderate_intensity",14,"R2E OT",0.215282314919201
+"moderate_intensity",14,"Transport",0.0041072440135883
+"moderate_intensity",15,"R2B Hold",2.17508811132137
+"moderate_intensity",15,"R2B OT",0
+"moderate_intensity",15,"R2E Hold",0
+"moderate_intensity",15,"R2E ICU",0.499191440363425
+"moderate_intensity",15,"R2E OT",2.67078252587138
+"moderate_intensity",15,"Transport",0.0162725120926819
+"moderate_intensity",16,"R2B Hold",5.44715684217716
+"moderate_intensity",16,"R2B OT",0
+"moderate_intensity",16,"R2E Hold",0.84249772425863
+"moderate_intensity",16,"R2E ICU",0.232650462593219
+"moderate_intensity",16,"R2E OT",0.23998182957576
+"moderate_intensity",16,"Transport",0.00943476839806726
+"moderate_intensity",17,"R2B Hold",4.08901469388832
+"moderate_intensity",17,"R2B OT",0
+"moderate_intensity",17,"R2E Hold",0.0421832255087369
+"moderate_intensity",17,"R2E ICU",0.245032553658085
+"moderate_intensity",17,"R2E OT",0.0537092056280216
+"moderate_intensity",17,"Transport",0.000705596397371193
+"moderate_intensity",18,"R2B Hold",4.40147728795297
+"moderate_intensity",18,"R2B OT",0
+"moderate_intensity",18,"R2E Hold",0
+"moderate_intensity",18,"R2E ICU",0.244183253376159
+"moderate_intensity",18,"R2E OT",0.0116251023939146
+"moderate_intensity",18,"Transport",0.000792607719132211
+"moderate_intensity",19,"R2B Hold",7.30866679952209
+"moderate_intensity",19,"R2B OT",0
+"moderate_intensity",19,"R2E Hold",0
+"moderate_intensity",19,"R2E ICU",0.518799427293544
+"moderate_intensity",19,"R2E OT",2.77944914430293
+"moderate_intensity",19,"Transport",0.00381957772575637
+"moderate_intensity",20,"R2B Hold",5.0056584632369
+"moderate_intensity",20,"R2B OT",0
+"moderate_intensity",20,"R2E Hold",1.40144173381396
+"moderate_intensity",20,"R2E ICU",0.382532274212447
+"moderate_intensity",20,"R2E OT",0.553120110569434
+"moderate_intensity",20,"Transport",0.00625487193104475
+"moderate_intensity",21,"R2B Hold",3.20301346283218
+"moderate_intensity",21,"R2B OT",0
+"moderate_intensity",21,"R2E Hold",0
+"moderate_intensity",21,"R2E ICU",0.24298897945349
+"moderate_intensity",21,"R2E OT",0.539016430789967
+"moderate_intensity",21,"Transport",0.000529564939399607
+"moderate_intensity",22,"R2B Hold",4.57349218936779
+"moderate_intensity",22,"R2B OT",0
+"moderate_intensity",22,"R2E Hold",0.315006892332039
+"moderate_intensity",22,"R2E ICU",0.414415868074257
+"moderate_intensity",22,"R2E OT",0.70846314233846
+"moderate_intensity",22,"Transport",0.000569445485111323
+"moderate_intensity",23,"R2B Hold",2.42246847222506
+"moderate_intensity",23,"R2B OT",0
+"moderate_intensity",23,"R2E Hold",0.0671787955233574
+"moderate_intensity",23,"R2E ICU",0.238573574207454
+"moderate_intensity",23,"R2E OT",0.0826552074267174
+"moderate_intensity",23,"Transport",0.000154911940239673
+"moderate_intensity",24,"R2B Hold",5.60647504602149
+"moderate_intensity",24,"R2B OT",0
+"moderate_intensity",24,"R2E Hold",0
+"moderate_intensity",24,"R2E ICU",0.421902126273567
+"moderate_intensity",24,"R2E OT",0.850051652241245
+"moderate_intensity",24,"Transport",0.00561578795952789
+"moderate_intensity",25,"R2B Hold",1.40143669747663
+"moderate_intensity",25,"R2B OT",0
+"moderate_intensity",25,"R2E Hold",0.460427435229195
+"moderate_intensity",25,"R2E ICU",0.250536599534531
+"moderate_intensity",25,"R2E OT",0.0804126484847523
+"moderate_intensity",25,"Transport",0.00059426446338947
+"moderate_intensity",26,"R2B Hold",7.36051921367127
+"moderate_intensity",26,"R2B OT",0
+"moderate_intensity",26,"R2E Hold",0.00384530803761933
+"moderate_intensity",26,"R2E ICU",1.18325020124907
+"moderate_intensity",26,"R2E OT",3.82188000093758
+"moderate_intensity",26,"Transport",0.0133716309446237
+"moderate_intensity",27,"R2B Hold",2.64806726037947
+"moderate_intensity",27,"R2B OT",0
+"moderate_intensity",27,"R2E Hold",0
+"moderate_intensity",27,"R2E ICU",0.233455326818515
+"moderate_intensity",27,"R2E OT",0.304722867942855
+"moderate_intensity",27,"Transport",0.00132758562096536
+"moderate_intensity",28,"R2B Hold",7.00795910090242
+"moderate_intensity",28,"R2B OT",0
+"moderate_intensity",28,"R2E Hold",0
+"moderate_intensity",28,"R2E ICU",0.79800561925024
+"moderate_intensity",28,"R2E OT",1.45389436802349
+"moderate_intensity",28,"Transport",0.00688366985154879
+"moderate_intensity",29,"R2B Hold",1.11352537672484
+"moderate_intensity",29,"R2B OT",0
+"moderate_intensity",29,"R2E Hold",0.389159408644968
+"moderate_intensity",29,"R2E ICU",0.419301825233315
+"moderate_intensity",29,"R2E OT",0.727861579220138
+"moderate_intensity",29,"Transport",0.00327165327447714
+"moderate_intensity",30,"R2B Hold",3.60174509857951
+"moderate_intensity",30,"R2B OT",0
+"moderate_intensity",30,"R2E Hold",0
+"moderate_intensity",30,"R2E ICU",0.0859315411976904
+"moderate_intensity",30,"R2E OT",0.730425602212858
+"moderate_intensity",30,"Transport",0.0103706403031903
+"moderate_intensity",31,"R2B Hold",4.02779124771061
+"moderate_intensity",31,"R2B OT",0
+"moderate_intensity",31,"R2E Hold",0
+"moderate_intensity",31,"R2E ICU",0.401063701210481
+"moderate_intensity",31,"R2E OT",2.20984724332012
+"moderate_intensity",31,"Transport",0.00134248280015746
+"moderate_intensity",32,"R2B Hold",6.08565838689258
+"moderate_intensity",32,"R2B OT",0
+"moderate_intensity",32,"R2E Hold",0.153135442582656
+"moderate_intensity",32,"R2E ICU",0.279198078815668
+"moderate_intensity",32,"R2E OT",2.10183099186098
+"moderate_intensity",32,"Transport",0.00786800797739219
+"moderate_intensity",33,"R2B Hold",0.612609586266348
+"moderate_intensity",33,"R2B OT",0
+"moderate_intensity",33,"R2E Hold",1.83849171069202
+"moderate_intensity",33,"R2E ICU",0.0613679449208212
+"moderate_intensity",33,"R2E OT",0.15236303863966
+"moderate_intensity",33,"Transport",0.000715225812617535
+"moderate_intensity",34,"R2B Hold",1.08438088455486
+"moderate_intensity",34,"R2B OT",0
+"moderate_intensity",34,"R2E Hold",0
+"moderate_intensity",34,"R2E ICU",0.348858042097635
+"moderate_intensity",34,"R2E OT",0.731504397301124
+"moderate_intensity",34,"Transport",0.00402820768010441
+"moderate_intensity",35,"R2B Hold",7.68511946495945
+"moderate_intensity",35,"R2B OT",0
+"moderate_intensity",35,"R2E Hold",0.908839571658594
+"moderate_intensity",35,"R2E ICU",0.317523787130435
+"moderate_intensity",35,"R2E OT",0.553357674615904
+"moderate_intensity",35,"Transport",0.00142450233415435
+"moderate_intensity",36,"R2B Hold",10.3856315403287
+"moderate_intensity",36,"R2B OT",0
+"moderate_intensity",36,"R2E Hold",0.0826259962484625
+"moderate_intensity",36,"R2E ICU",0.560379310432357
+"moderate_intensity",36,"R2E OT",1.41417046806494
+"moderate_intensity",36,"Transport",0.0332984295498214
+"moderate_intensity",37,"R2B Hold",6.36403497443498
+"moderate_intensity",37,"R2B OT",0
+"moderate_intensity",37,"R2E Hold",4.23006479172791
+"moderate_intensity",37,"R2E ICU",0.265988683171978
+"moderate_intensity",37,"R2E OT",0.522682957142924
+"moderate_intensity",37,"Transport",0.00613795349740923
+"moderate_intensity",38,"R2B Hold",4.99482522221231
+"moderate_intensity",38,"R2B OT",0
+"moderate_intensity",38,"R2E Hold",0.0736880911592975
+"moderate_intensity",38,"R2E ICU",0.307892188722013
+"moderate_intensity",38,"R2E OT",0.258176458454306
+"moderate_intensity",38,"Transport",0.00291511369355168
+"moderate_intensity",39,"R2B Hold",4.93634337693023
+"moderate_intensity",39,"R2B OT",0
+"moderate_intensity",39,"R2E Hold",6.74664653373509
+"moderate_intensity",39,"R2E ICU",2.810962013043
+"moderate_intensity",39,"R2E OT",0.168283836607787
+"moderate_intensity",39,"Transport",0.00468875585231025
+"moderate_intensity",40,"R2B Hold",2.56677718841333
+"moderate_intensity",40,"R2B OT",0
+"moderate_intensity",40,"R2E Hold",0.528886380234617
+"moderate_intensity",40,"R2E ICU",0.39140235348069
+"moderate_intensity",40,"R2E OT",0.30858924436706
+"moderate_intensity",40,"Transport",0.000676299011852006
+"moderate_intensity",41,"R2B Hold",2.94061388993254
+"moderate_intensity",41,"R2B OT",0
+"moderate_intensity",41,"R2E Hold",0
+"moderate_intensity",41,"R2E ICU",0.237840118733975
+"moderate_intensity",41,"R2E OT",0.265631492801687
+"moderate_intensity",41,"Transport",7.84571633271804e-05
+"moderate_intensity",42,"R2B Hold",5.47117364944961
+"moderate_intensity",42,"R2B OT",0
+"moderate_intensity",42,"R2E Hold",6.93413067871256
+"moderate_intensity",42,"R2E ICU",2.50455691694384
+"moderate_intensity",42,"R2E OT",5.204464283844
+"moderate_intensity",42,"Transport",0.0275530176510079
+"moderate_intensity",43,"R2B Hold",2.35045127446222
+"moderate_intensity",43,"R2B OT",0
+"moderate_intensity",43,"R2E Hold",0
+"moderate_intensity",43,"R2E ICU",0.453420153032879
+"moderate_intensity",43,"R2E OT",1.72345866978958
+"moderate_intensity",43,"Transport",0.00557950512549719
+"moderate_intensity",44,"R2B Hold",4.22873384730572
+"moderate_intensity",44,"R2B OT",0
+"moderate_intensity",44,"R2E Hold",0
+"moderate_intensity",44,"R2E ICU",0.358577500169797
+"moderate_intensity",44,"R2E OT",0.762256582998535
+"moderate_intensity",44,"Transport",0.00850617787870874
+"moderate_intensity",45,"R2B Hold",2.73714746817835
+"moderate_intensity",45,"R2B OT",0
+"moderate_intensity",45,"R2E Hold",3.03301046950625
+"moderate_intensity",45,"R2E ICU",0.259288373638819
+"moderate_intensity",45,"R2E OT",0.204636426373732
+"moderate_intensity",45,"Transport",0.00111700062322783
+"moderate_intensity",46,"R2B Hold",9.98770150955194
+"moderate_intensity",46,"R2B OT",0
+"moderate_intensity",46,"R2E Hold",2.66938378530047
+"moderate_intensity",46,"R2E ICU",1.23150347557145
+"moderate_intensity",46,"R2E OT",4.72492057045071
+"moderate_intensity",46,"Transport",0.0503536841206734
+"moderate_intensity",47,"R2B Hold",5.30805566655636
+"moderate_intensity",47,"R2B OT",0
+"moderate_intensity",47,"R2E Hold",0
+"moderate_intensity",47,"R2E ICU",0.561418685914629
+"moderate_intensity",47,"R2E OT",1.94966793812881
+"moderate_intensity",47,"Transport",0.0170213848359776
+"moderate_intensity",48,"R2B Hold",2.71920873989103
+"moderate_intensity",48,"R2B OT",0
+"moderate_intensity",48,"R2E Hold",0
+"moderate_intensity",48,"R2E ICU",0.188463803990961
+"moderate_intensity",48,"R2E OT",0.899299695050377
+"moderate_intensity",48,"Transport",0.00158960117198018
+"moderate_intensity",49,"R2B Hold",9.51966006726633
+"moderate_intensity",49,"R2B OT",0
+"moderate_intensity",49,"R2E Hold",0
+"moderate_intensity",49,"R2E ICU",0.277427288997541
+"moderate_intensity",49,"R2E OT",0.419289367219456
+"moderate_intensity",49,"Transport",0.00182005824708367
+"moderate_intensity",50,"R2B Hold",2.53910620040294
+"moderate_intensity",50,"R2B OT",0
+"moderate_intensity",50,"R2E Hold",0
+"moderate_intensity",50,"R2E ICU",0.0906113842002853
+"moderate_intensity",50,"R2E OT",0.230321759225206
+"moderate_intensity",50,"Transport",0
+"high_intensity",1,"R2B Hold",20.3826530177594
+"high_intensity",1,"R2B OT",0
+"high_intensity",1,"R2E Hold",56.4149144962718
+"high_intensity",1,"R2E ICU",28.6392651321441
+"high_intensity",1,"R2E OT",11.1636562589165
+"high_intensity",1,"Transport",0.0487263405479096
+"high_intensity",2,"R2B Hold",41.5535238778183
+"high_intensity",2,"R2B OT",0
+"high_intensity",2,"R2E Hold",54.5604407962986
+"high_intensity",2,"R2E ICU",41.0055150829116
+"high_intensity",2,"R2E OT",37.704305594218
+"high_intensity",2,"Transport",0.215284976443421
+"high_intensity",3,"R2B Hold",40.7397494191383
+"high_intensity",3,"R2B OT",0
+"high_intensity",3,"R2E Hold",54.4794508856537
+"high_intensity",3,"R2E ICU",21.0016396791274
+"high_intensity",3,"R2E OT",42.7946219119261
+"high_intensity",3,"Transport",0.228149753372412
+"high_intensity",4,"R2B Hold",31.8655186304699
+"high_intensity",4,"R2B OT",0
+"high_intensity",4,"R2E Hold",26.8093932624381
+"high_intensity",4,"R2E ICU",32.8554425872818
+"high_intensity",4,"R2E OT",48.6411920188016
+"high_intensity",4,"Transport",0.137822966118552
+"high_intensity",5,"R2B Hold",24.0913092939172
+"high_intensity",5,"R2B OT",0
+"high_intensity",5,"R2E Hold",46.0260896541739
+"high_intensity",5,"R2E ICU",28.0105578388821
+"high_intensity",5,"R2E OT",67.6129047747874
+"high_intensity",5,"Transport",0.155566844564269
+"high_intensity",6,"R2B Hold",20.1728421804807
+"high_intensity",6,"R2B OT",0
+"high_intensity",6,"R2E Hold",30.7840691701873
+"high_intensity",6,"R2E ICU",39.9101674433216
+"high_intensity",6,"R2E OT",52.6184676061192
+"high_intensity",6,"Transport",0.0861167954561561
+"high_intensity",7,"R2B Hold",33.3292354042681
+"high_intensity",7,"R2B OT",0
+"high_intensity",7,"R2E Hold",39.1335465433143
+"high_intensity",7,"R2E ICU",25.9429368359499
+"high_intensity",7,"R2E OT",93.4690011975651
+"high_intensity",7,"Transport",0.561535549490328
+"high_intensity",8,"R2B Hold",29.6631048486155
+"high_intensity",8,"R2B OT",0
+"high_intensity",8,"R2E Hold",59.8035081802875
+"high_intensity",8,"R2E ICU",27.4555302258919
+"high_intensity",8,"R2E OT",63.5963168338229
+"high_intensity",8,"Transport",0.126284518356576
+"high_intensity",9,"R2B Hold",46.5773293779391
+"high_intensity",9,"R2B OT",0
+"high_intensity",9,"R2E Hold",34.3857268018789
+"high_intensity",9,"R2E ICU",38.0649960915793
+"high_intensity",9,"R2E OT",51.7604538348015
+"high_intensity",9,"Transport",0.205803254877399
+"high_intensity",10,"R2B Hold",32.6295577008454
+"high_intensity",10,"R2B OT",0
+"high_intensity",10,"R2E Hold",29.3749945061072
+"high_intensity",10,"R2E ICU",34.668113113892
+"high_intensity",10,"R2E OT",24.6119451877327
+"high_intensity",10,"Transport",0.276639966683362
+"high_intensity",11,"R2B Hold",22.7123993992169
+"high_intensity",11,"R2B OT",0
+"high_intensity",11,"R2E Hold",24.3285108621649
+"high_intensity",11,"R2E ICU",19.1347534789571
+"high_intensity",11,"R2E OT",30.9958482263248
+"high_intensity",11,"Transport",0.725516435235935
+"high_intensity",12,"R2B Hold",39.1055345450978
+"high_intensity",12,"R2B OT",0
+"high_intensity",12,"R2E Hold",32.8593859627869
+"high_intensity",12,"R2E ICU",29.3574519416133
+"high_intensity",12,"R2E OT",59.3145309969402
+"high_intensity",12,"Transport",0.377169635490804
+"high_intensity",13,"R2B Hold",32.8249397871843
+"high_intensity",13,"R2B OT",0
+"high_intensity",13,"R2E Hold",47.1253948897838
+"high_intensity",13,"R2E ICU",31.3564798747129
+"high_intensity",13,"R2E OT",35.1866911038145
+"high_intensity",13,"Transport",0.0756339622197184
+"high_intensity",14,"R2B Hold",28.2853030196224
+"high_intensity",14,"R2B OT",0
+"high_intensity",14,"R2E Hold",36.8090732898769
+"high_intensity",14,"R2E ICU",26.9190932064272
+"high_intensity",14,"R2E OT",34.2789365123139
+"high_intensity",14,"Transport",0.110675188090936
+"high_intensity",15,"R2B Hold",25.4829345935038
+"high_intensity",15,"R2B OT",0
+"high_intensity",15,"R2E Hold",29.1817518344978
+"high_intensity",15,"R2E ICU",31.0297483357475
+"high_intensity",15,"R2E OT",23.1301132708109
+"high_intensity",15,"Transport",0.391827620894705
+"high_intensity",16,"R2B Hold",27.28766795147
+"high_intensity",16,"R2B OT",0
+"high_intensity",16,"R2E Hold",29.4700143315643
+"high_intensity",16,"R2E ICU",38.1792433115827
+"high_intensity",16,"R2E OT",14.1866294501579
+"high_intensity",16,"Transport",0.0529386621771653
+"high_intensity",17,"R2B Hold",32.3484004185252
+"high_intensity",17,"R2B OT",0
+"high_intensity",17,"R2E Hold",35.7271504407751
+"high_intensity",17,"R2E ICU",22.2546522950793
+"high_intensity",17,"R2E OT",60.9652904552861
+"high_intensity",17,"Transport",0.530704449386561
+"high_intensity",18,"R2B Hold",30.888126380235
+"high_intensity",18,"R2B OT",0
+"high_intensity",18,"R2E Hold",29.9423762624983
+"high_intensity",18,"R2E ICU",29.9180198533242
+"high_intensity",18,"R2E OT",29.971893001952
+"high_intensity",18,"Transport",0.0439985454407945
+"high_intensity",19,"R2B Hold",31.7209118703252
+"high_intensity",19,"R2B OT",0
+"high_intensity",19,"R2E Hold",43.5558582458305
+"high_intensity",19,"R2E ICU",30.5816235189285
+"high_intensity",19,"R2E OT",41.3020136698185
+"high_intensity",19,"Transport",0.112177431471161
+"high_intensity",20,"R2B Hold",29.0063373561968
+"high_intensity",20,"R2B OT",0
+"high_intensity",20,"R2E Hold",39.2649833252518
+"high_intensity",20,"R2E ICU",18.859047976193
+"high_intensity",20,"R2E OT",40.0936643948731
+"high_intensity",20,"Transport",0.137640726317165
+"high_intensity",21,"R2B Hold",33.9988350754452
+"high_intensity",21,"R2B OT",0
+"high_intensity",21,"R2E Hold",39.0860567573942
+"high_intensity",21,"R2E ICU",19.3536066097177
+"high_intensity",21,"R2E OT",41.4597913586217
+"high_intensity",21,"Transport",0.102817423502657
+"high_intensity",22,"R2B Hold",31.3252801812824
+"high_intensity",22,"R2B OT",0
+"high_intensity",22,"R2E Hold",37.9682051889814
+"high_intensity",22,"R2E ICU",27.7429615521208
+"high_intensity",22,"R2E OT",29.5029167063117
+"high_intensity",22,"Transport",0.105603754770768
+"high_intensity",23,"R2B Hold",39.2041424122915
+"high_intensity",23,"R2B OT",0
+"high_intensity",23,"R2E Hold",42.2054708492019
+"high_intensity",23,"R2E ICU",41.2886381427173
+"high_intensity",23,"R2E OT",38.4441020756334
+"high_intensity",23,"Transport",0.201547034328607
+"high_intensity",24,"R2B Hold",27.8312397339418
+"high_intensity",24,"R2B OT",0
+"high_intensity",24,"R2E Hold",45.9413132540341
+"high_intensity",24,"R2E ICU",27.7481091853904
+"high_intensity",24,"R2E OT",28.0407776822758
+"high_intensity",24,"Transport",0.0838368977345348
+"high_intensity",25,"R2B Hold",32.4147210173536
+"high_intensity",25,"R2B OT",0
+"high_intensity",25,"R2E Hold",42.9945693582979
+"high_intensity",25,"R2E ICU",40.4615452749297
+"high_intensity",25,"R2E OT",76.0604398397314
+"high_intensity",25,"Transport",0.576566036496978
+"high_intensity",26,"R2B Hold",21.0406389057237
+"high_intensity",26,"R2B OT",0
+"high_intensity",26,"R2E Hold",34.3593982321402
+"high_intensity",26,"R2E ICU",39.7038074676481
+"high_intensity",26,"R2E OT",12.138191991831
+"high_intensity",26,"Transport",0.0575859066605488
+"high_intensity",27,"R2B Hold",34.8086513788016
+"high_intensity",27,"R2B OT",0
+"high_intensity",27,"R2E Hold",45.7226478431592
+"high_intensity",27,"R2E ICU",25.129613981441
+"high_intensity",27,"R2E OT",32.8270793858033
+"high_intensity",27,"Transport",0.13804300269572
+"high_intensity",28,"R2B Hold",32.7090419415393
+"high_intensity",28,"R2B OT",0
+"high_intensity",28,"R2E Hold",16.2893713804823
+"high_intensity",28,"R2E ICU",31.8100099078761
+"high_intensity",28,"R2E OT",24.8182369982396
+"high_intensity",28,"Transport",0.0561279074584576
+"high_intensity",29,"R2B Hold",22.1900104243501
+"high_intensity",29,"R2B OT",0
+"high_intensity",29,"R2E Hold",41.1780011225061
+"high_intensity",29,"R2E ICU",25.9023539482805
+"high_intensity",29,"R2E OT",31.6952202460449
+"high_intensity",29,"Transport",0.0458903737496401
+"high_intensity",30,"R2B Hold",28.0161096915752
+"high_intensity",30,"R2B OT",0
+"high_intensity",30,"R2E Hold",36.5502474447844
+"high_intensity",30,"R2E ICU",29.4807997274568
+"high_intensity",30,"R2E OT",33.924448187946
+"high_intensity",30,"Transport",0.0589136273418414
+"high_intensity",31,"R2B Hold",29.9694327218572
+"high_intensity",31,"R2B OT",0
+"high_intensity",31,"R2E Hold",37.7518860558655
+"high_intensity",31,"R2E ICU",44.236223448448
+"high_intensity",31,"R2E OT",27.36900094446
+"high_intensity",31,"Transport",0.104030463635859
+"high_intensity",32,"R2B Hold",30.5437785929159
+"high_intensity",32,"R2B OT",0
+"high_intensity",32,"R2E Hold",43.9047489800675
+"high_intensity",32,"R2E ICU",41.549174926447
+"high_intensity",32,"R2E OT",24.4023461122529
+"high_intensity",32,"Transport",0.0951423582844088
+"high_intensity",33,"R2B Hold",26.9695335184799
+"high_intensity",33,"R2B OT",0
+"high_intensity",33,"R2E Hold",38.5037207589243
+"high_intensity",33,"R2E ICU",47.8374916007584
+"high_intensity",33,"R2E OT",26.9145368947487
+"high_intensity",33,"Transport",0.416063339061764
+"high_intensity",34,"R2B Hold",12.5730759683436
+"high_intensity",34,"R2B OT",0
+"high_intensity",34,"R2E Hold",32.1160535418481
+"high_intensity",34,"R2E ICU",14.1618204958908
+"high_intensity",34,"R2E OT",11.9335183096423
+"high_intensity",34,"Transport",0.0124411058393913
+"high_intensity",35,"R2B Hold",31.3896371115175
+"high_intensity",35,"R2B OT",0
+"high_intensity",35,"R2E Hold",26.8373075451352
+"high_intensity",35,"R2E ICU",17.8526851795634
+"high_intensity",35,"R2E OT",43.7082801946464
+"high_intensity",35,"Transport",0.317196672351859
+"high_intensity",36,"R2B Hold",30.5976304285023
+"high_intensity",36,"R2B OT",0
+"high_intensity",36,"R2E Hold",37.8363859067162
+"high_intensity",36,"R2E ICU",28.036853077574
+"high_intensity",36,"R2E OT",16.0864177068068
+"high_intensity",36,"Transport",0.0310548972492074
+"high_intensity",37,"R2B Hold",20.5291609604279
+"high_intensity",37,"R2B OT",0
+"high_intensity",37,"R2E Hold",34.0708451859523
+"high_intensity",37,"R2E ICU",15.5562939729283
+"high_intensity",37,"R2E OT",11.6853187010659
+"high_intensity",37,"Transport",0.0225813227461071
+"high_intensity",38,"R2B Hold",32.7528413284308
+"high_intensity",38,"R2B OT",0
+"high_intensity",38,"R2E Hold",47.1563438711722
+"high_intensity",38,"R2E ICU",43.2319626368877
+"high_intensity",38,"R2E OT",38.6311403231439
+"high_intensity",38,"Transport",0.0907140763561981
+"high_intensity",39,"R2B Hold",24.0171082563826
+"high_intensity",39,"R2B OT",0
+"high_intensity",39,"R2E Hold",63.8835040464973
+"high_intensity",39,"R2E ICU",41.6758486476786
+"high_intensity",39,"R2E OT",20.5375381933692
+"high_intensity",39,"Transport",0.0740976145989986
+"high_intensity",40,"R2B Hold",37.4488976100605
+"high_intensity",40,"R2B OT",0
+"high_intensity",40,"R2E Hold",35.7279362439672
+"high_intensity",40,"R2E ICU",30.5937388147585
+"high_intensity",40,"R2E OT",78.3804862192318
+"high_intensity",40,"Transport",0.445720811346911
+"high_intensity",41,"R2B Hold",35.6555246954562
+"high_intensity",41,"R2B OT",0
+"high_intensity",41,"R2E Hold",27.0337992713082
+"high_intensity",41,"R2E ICU",30.5147977758366
+"high_intensity",41,"R2E OT",43.7393211125249
+"high_intensity",41,"Transport",0.0599101152889163
+"high_intensity",42,"R2B Hold",30.0630041918847
+"high_intensity",42,"R2B OT",0
+"high_intensity",42,"R2E Hold",38.5831352440536
+"high_intensity",42,"R2E ICU",37.4080243802081
+"high_intensity",42,"R2E OT",69.963363204285
+"high_intensity",42,"Transport",0.192868728262427
+"high_intensity",43,"R2B Hold",30.3910628590974
+"high_intensity",43,"R2B OT",0
+"high_intensity",43,"R2E Hold",42.8755617030529
+"high_intensity",43,"R2E ICU",36.4012922283893
+"high_intensity",43,"R2E OT",45.8714928452576
+"high_intensity",43,"Transport",0.0626374001203113
+"high_intensity",44,"R2B Hold",33.1328643460475
+"high_intensity",44,"R2B OT",0
+"high_intensity",44,"R2E Hold",27.0327086887
+"high_intensity",44,"R2E ICU",18.6748632175059
+"high_intensity",44,"R2E OT",66.5808262121792
+"high_intensity",44,"Transport",0.416508132408163
+"high_intensity",45,"R2B Hold",21.4183215207799
+"high_intensity",45,"R2B OT",0
+"high_intensity",45,"R2E Hold",42.3754484493768
+"high_intensity",45,"R2E ICU",12.1653059483501
+"high_intensity",45,"R2E OT",16.3274061925649
+"high_intensity",45,"Transport",0.214953895532756
+"high_intensity",46,"R2B Hold",35.5891600560435
+"high_intensity",46,"R2B OT",0
+"high_intensity",46,"R2E Hold",43.6451929923345
+"high_intensity",46,"R2E ICU",32.6882658776109
+"high_intensity",46,"R2E OT",42.0965690052656
+"high_intensity",46,"Transport",0.513258461677847
+"high_intensity",47,"R2B Hold",28.1816299137737
+"high_intensity",47,"R2B OT",0
+"high_intensity",47,"R2E Hold",44.3172377682081
+"high_intensity",47,"R2E ICU",22.9135061384759
+"high_intensity",47,"R2E OT",47.8830147266711
+"high_intensity",47,"Transport",0.0740174202314027
+"high_intensity",48,"R2B Hold",27.6304536709518
+"high_intensity",48,"R2B OT",0
+"high_intensity",48,"R2E Hold",43.872749950202
+"high_intensity",48,"R2E ICU",34.7911739683362
+"high_intensity",48,"R2E OT",19.3549589818513
+"high_intensity",48,"Transport",0.0604549424477326
+"high_intensity",49,"R2B Hold",40.5700630870005
+"high_intensity",49,"R2B OT",0
+"high_intensity",49,"R2E Hold",60.6820654326543
+"high_intensity",49,"R2E ICU",36.1846574021096
+"high_intensity",49,"R2E OT",12.5964821766506
+"high_intensity",49,"Transport",0.127844931134959
+"high_intensity",50,"R2B Hold",46.2341764816274
+"high_intensity",50,"R2B OT",0
+"high_intensity",50,"R2E Hold",48.5901215664008
+"high_intensity",50,"R2E ICU",28.7672307084441
+"high_intensity",50,"R2E OT",56.9201619798299
+"high_intensity",50,"Transport",0.17210916518851

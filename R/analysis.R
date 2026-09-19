@@ -32,6 +32,46 @@ source("R/queue_series.R")
 #'   tracked image without changing what it says.
 MASS_CASUALTY_JITTER_SEED <- 233L
 
+# ── The published capacity sweeps' protocol ──────────────────────────────────
+# The designs docs/Multi_Run_Supplement.md documents for the transport
+# fleet-size sweep and the forward ICU share frontier, held here so that the
+# entry points' baseline refreshes, the supplement's marker comments and
+# scripts/check_capacity_sweep_protocol.R read one definition rather than
+# three copies of it.
+
+#' Campaign length both published capacity sweeps run over, in days
+CAPACITY_SWEEP_DAYS <- 30L
+
+#' Control seed both published capacity sweeps run under
+CAPACITY_SWEEP_SEED <- 42L
+
+#' Replications the published transport fleet-size sweep runs at, per point
+#'
+#' @details Ten, which is enough to locate the capacity boundary in the queue
+#'   column and is not enough to read the utilisation column, a limit
+#'   `docs/Multi_Run_Analysis.md` states where it prints the table.
+TRANSPORT_SWEEP_REPLICATIONS <- 10L
+
+#' PMV Ambulance fleet sizes the published sweep covers
+#'
+#' @details Spans the shipped establishment of three and the sizes either side
+#'   of it, so the sweep says what departing from the establishment costs
+#'   rather than only that the establishment is adequate.
+TRANSPORT_SWEEP_PMVAMB <- 1:5
+
+#' HX2 40M truck fleet sizes the published sweep covers
+TRANSPORT_SWEEP_HX240M <- 1:4
+
+#' Replications the published forward ICU share frontier runs at, per point
+ICU_SHARE_SWEEP_REPLICATIONS <- 20L
+
+#' Forward intensive care shares the published frontier covers
+#'
+#' @details Zero to one in quarters. The shipped configuration is the first of
+#'   these, so the frontier's first point is the campaign the rest of the paper
+#'   measures.
+ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
+
 # ── Entry-point input validation ─────────────────────────────────────────────
 # This module's public entry points (analyse_run(), analyse_replications(),
 # and the two capacity sweeps) are the boundary between data produced

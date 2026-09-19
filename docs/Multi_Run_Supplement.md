@@ -26,6 +26,10 @@ This document is the design record for the replicated experiments reported in th
   - [Which Findings Are Horizon-Limited](#which-findings-are-horizon-limited)
   - [The Checks That Defend These Properties](#the-checks-that-defend-these-properties)
   - [A Replication Lost to Its Host](#a-replication-lost-to-its-host)
+- [Which Published Figures Rest on a Tracked Evidence Set](#which-published-figures-rest-on-a-tracked-evidence-set)
+  - [The Rule](#the-rule)
+  - [The Audit](#the-audit)
+  - [Why the Checks Do Not Share a Table Parser](#why-the-checks-do-not-share-a-table-parser)
 - [Experimental Designs](#experimental-designs)
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [Campaign Time Series of Queue Length and Degraded Care](#campaign-time-series-of-queue-length-and-degraded-care)
@@ -211,6 +215,58 @@ Every count this document and its companion paper carry is the count that contri
 
 ---
 
+## Which Published Figures Rest on a Tracked Evidence Set
+
+<small>[Return to Top](#contents)</small>
+
+A figure in a paper is only as auditable as the measurement behind it. This section records which of the companion paper's experiments keep that measurement in the repository, the rule deciding which must, and the reasoning behind two decisions that would otherwise be taken again per experiment.
+
+### The Rule
+
+**A published figure requires a tracked evidence set when it is the reduction of more than one run of the model.** Anything a reader cannot recover by opening a configuration file or the tracked seed-42 baseline, and can recover only by re-running the simulation, has to be kept, because re-running it is not auditing it: the reader would be checking their environment against the authors' rather than the paper against its evidence.
+
+Three kinds of figure the paper prints are therefore exempt. A configured value, such as an establishment size or a distribution parameter, is recoverable from `env_data.json`, which is tracked. A single-run figure is recoverable from the tracked seed-42 baseline under `logs/`, `data/` and `images/`, which `scripts/check_baseline_reproduction.R` asserts reproduces byte for byte. And a figure that restates a measurement another section already tracks, rather than reporting one of its own, belongs to that section's evidence set and is checked there.
+
+A tracked evidence set is not sufficient on its own. The section it backs can still drift away from it, which is what happened to the national support base section between two pull requests, printing a figure four times too small while the tracked measurement stood unchanged beside it. So each backed experiment also carries a protocol check asserting three things: that the protocol constants the code holds equal the ones this document states, that the tracked set is the experiment those constants describe, and that every figure the paper prints from it matches the tracked measurement. Each of those checks ends with an assertion against an input whose answer is computable by hand, because the first three would all hold for two copies of one error.
+
+### The Audit
+
+<!-- EVIDENCE AUDIT TABLE -->
+| Published experiment | Tracked evidence set | Protocol check |
+|---|---|---|
+| Comparative scenario analysis | `data/scenarios/` | `check_scenario_protocol.R` |
+| Campaign time series | `data/time_series/` | `check_time_series_figures.R` |
+| Sustained-operations horizon | `data/long_horizon/` | `check_long_horizon_protocol.R` |
+| Transport fleet-size sweep | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
+| Forward ICU share frontier | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
+| National support base demand and the airlift schedule | `data/airlift/` | `check_airlift_protocol.R` |
+| Strategic airlift collapse | `data/airlift/` | `check_airlift_collapse_protocol.R` |
+| Evacuation policy and holding establishment sweeps | `data/policy/` | `check_policy_sweep_protocol.R` |
+| Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
+| The R2B pre-open hold window | none; see below | `check_pre_open_window.R` (mechanism only) |
+| The post-operative intensive care gate | none; see below | `check_icu_gate_switch.R` (mechanism only) |
+| Mass casualty event stress test | none; see below | `check_mass_casualty_kia_split.R` (mechanism only) |
+
+Three experiments remain unbacked, and each is recorded here rather than left to be rediscovered.
+
+**The R2B pre-open hold window is an experiment and needs an evidence set.** It prints eight paired differences with intervals from 50 replications per arm, which is exactly the kind of figure the rule covers, and its entry point is `run.R` under a parameter override rather than a driver script, so there is no command to give a `--refresh-baseline` flag to. Closing it needs a runner of its own before it needs compute, which is why it did not close with the other three. `scripts/check_pre_open_window.R` asserts that a zero window reproduces the instant-diversion model exactly and that every casualty held forward is operated on there, which is the mechanism rather than the magnitudes.
+
+**The post-operative intensive care gate is an experiment and needs an evidence set** on the same reading, for the same reason. `scripts/check_icu_gate_switch.R` asserts that the mechanism behaves as the section describes, that the disabled arm defers nobody and that both pathways are reachable when the gate is in force, but it asserts nothing about the magnitudes the section prints.
+
+**The mass casualty stress test is an experiment and needs an evidence set,** though it is the weakest of the three cases: its own table states that 13 deaths per arm are too few for a precise figure and labels the finding direction only, so what a tracked set would defend is a comparison the paper already declines to read precisely. `scripts/check_mass_casualty_kia_split.R` covers the injection mechanism rather than the table.
+
+Three sections that were on the same list of unbacked ones are nonetheless exempt under the rule rather than owed an evidence set, and each is recorded so that a later reader does not put it back on the list. The theatre queue clearance statistics quoted in [The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate](Multi_Run_Analysis.md#the-theatre-queue-never-clears-at-high-intensity-and-clears-readily-at-moderate) are the campaign time series measurement read in prose, and `scripts/check_time_series_figures.R` asserts each percentage against `data/time_series/`. The surgical team utilisation figures in [Option 1](Multi_Run_Analysis.md#option-1-extend-surgical-team-coverage-towards-24-hours) are seed-42 single-run readings carried over from `docs/Single_Run_Analysis.md` and recoverable from the tracked baseline, not a replicated measurement of their own. And [Option 2](Multi_Run_Analysis.md#option-2-increase-r2b-holding-capacity-or-set-an-evacuation-threshold) is not an experiment at all: it labels all three of its remedies untested and the one measurement it quotes, the rise in the R2B holding queue between the two intensities, is the comparative scenario analysis read in prose and checked against `data/scenarios/`.
+
+### Why the Checks Do Not Share a Table Parser
+
+Five protocol checks now hold a near-identical parser for a markdown table in the companion paper: locate an HTML comment marking the table, split its rows on pipes, and read the leading figure out of each cell. `scripts/render_paper_figures.R` holds a sixth, which reads its tables by heading rather than by marker because it renders them rather than checking them. Factoring the five into one sourced file would stop the copies drifting apart, and the reasoning for keeping them apart is recorded here so that it is not relitigated each time a sixth check is written.
+
+They stay apart. A regression check earns its place by failing independently, and five checks reading one parser fail together: a defect in the shared file would report the same wrong answer in every section at once, which reads as a real drift across the whole paper and would most likely be investigated as one. The parsers are also not as identical as they look, the tables differing in whether their first column is a label or a swept value and in whether a cell can legitimately carry no figure, so a shared helper would accumulate the arguments needed to cover each caller and would end up harder to read than the copies it replaced. The duplication is real and is accepted as the price of independence.
+
+That reasoning does not extend to the code under test. Where two checks need the same estimator, they source the module holding it, `R/queue_series.R` and `R/censoring.R` being the two this project already shares that way, because there the point is precisely that two published figures of the same name are one quantity.
+
+---
+
 ## Experimental Designs
 
 <small>[Return to Top](#contents)</small>
@@ -221,11 +277,20 @@ A control seed is the seed given to the framework, from which the per-replicatio
 
 ### Comparative Scenario Analysis
 
+<!-- SCENARIO days=30 -->
+<!-- SCENARIO replications=50 -->
+<!-- SCENARIO seed=42 -->
+<!-- SCENARIO profiles=moderate_intensity,high_intensity -->
+
 50 replications of 30 simulated days per profile at control seed 42, under the shipped default establishment, the only overrides being those the scenario profile itself applies. Invoked as:
 
 ```
-Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity --iterations 50 --days 30 --seed 42
+Rscript scripts/run_scenarios.R --refresh-baseline
 ```
+
+The flag is the only way to write the tracked `data/scenarios/`, and it runs the protocol above rather than whatever arguments accompany it, so the tracked set and this design cannot diverge through a mistyped argument. Without it the runner writes under `outputs/` alone.
+
+Four files are written. Two carry the casualty totals and the per-resource queue summaries the runner has always produced. The other two carry the per-pool queue comparison the companion paper prints, once per replication and once reduced to a mean and interval. The per-replication file is kept because a pool's interval cannot be recovered from per-bed summaries, the pool total being in none of the monitor's rows: it is reconstructed by differencing each bed's own series into changes and accumulating them in time order, then averaged over the campaign by the same estimator the campaign time series uses. The published queue table and the queue-over-time figure therefore measure one quantity rather than two that happen to agree.
 
 A scenario profile is a named set of overrides applied on top of the shipped default `env_data.json` parameters, resolved by `resolve_scenario()` (`R/scenario.R`). Both profiles are defined in the `scenarios` block of `env_data.json`. Element, bed and transport fleet counts are structural configuration a scenario cannot override, so the two profiles differ in their casualty-generation parameters alone.
 
@@ -269,19 +334,40 @@ The mortality mechanism was confirmed separately by a stress test that forced in
 
 ### Forward ICU Share Decision Frontier
 
+<!-- SWEEP icu_share_replications=20 -->
+<!-- SWEEP shares=0,0.25,0.5,0.75,1 -->
+
 20 replications of 30 simulated days per sweep point at control seed 42, under the shipped default configuration with one override per point: `r2b_icu_share` set to 0, 0.25, 0.5, 0.75 and 1.0 in turn. Point 0 is the shipped default. Run via:
 
 ```
-Rscript scripts/run_icu_share_sweep.R --iterations 20 --days 30
+Rscript scripts/run_icu_share_sweep.R --refresh-baseline
 ```
 
-Forward intensive care utilisation is poorly determined at this replication count: it reads 22.4% at a zero share, where the beds serve the evacuation wait alone, then moves between 14.1% and 22.7% in no particular order once forward holding is enabled. Too few events per replication go into that column for it to be well determined, and it should not be read as a trend.
+The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it. It writes `r2b_icu_share_frontier.csv` alone and leaves the transport sweep's file in the same directory untouched.
+
+Forward intensive care utilisation rises steadily across the swept range, from 12.4% at a zero share, where the beds serve the evacuation wait alone, to 24.3% at a full one. That column therefore reads as the policy being applied rather than as noise, which an earlier measurement at these same replication counts did not: it moved between 14.1% and 22.7% in no particular order and was recorded here as too poorly determined to read. The earlier reading was not tracked, so what changed between the two cannot now be established; this one is tracked in `data/sweeps/` and its successor can be compared against it.
+
+Neither sweep keeps the per-replication responses behind its per-point mean, only the mean and its interval. `scripts/check_capacity_sweep_protocol.R` can therefore assert that each tracked interval is symmetric about its own mean where it is not clamped, that every mean lies inside its own interval and that not every bound sits on a clamp, but it cannot recompute the half-width from the replications. Recovering that would mean changing what both sweep functions return, which is a larger change than this evidence set needed; it is recorded here as a limit on what the check establishes rather than left to be inferred from the check's output.
 
 ### Transport Fleet-Size Sweep
 
+<!-- SWEEP days=30 -->
+<!-- SWEEP seed=42 -->
+<!-- SWEEP transport_replications=10 -->
+<!-- SWEEP pmvamb=1,2,3,4,5 -->
+<!-- SWEEP hx240m=1,2,3,4 -->
+
 10 replications of 30 simulated days per sweep point at control seed 42, under the shipped default configuration with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size.
 
-`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) rebuilds the environment at each sweep point via `build_environment()` and runs the same replication engine the comparative scenario runner uses. Run via `Rscript scripts/run_transport_sweep.R`. `outputs/transport_capacity_by_fleet_size.csv` holds the full per-point results, including the interval bounds omitted from the companion paper's table.
+`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) rebuilds the environment at each sweep point via `build_environment()` and runs the same replication engine the comparative scenario runner uses. Run via:
+
+```
+Rscript scripts/run_transport_sweep.R --refresh-baseline
+```
+
+The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it. `data/sweeps/transport_capacity_by_fleet_size.csv` holds the full per-point results, including the interval bounds omitted from the companion paper's table.
+
+The horizon and the control seed above are shared with the forward ICU share frontier, the two sweeps being one shape and checked by one protocol check, which is why this design states them and that one does not repeat them.
 
 Mean utilisation across the swept range runs the wrong way on both platforms, rising with fleet size where a fixed demand spread over more vehicles should lower it, and the interval on HX2 40M utilisation at three vehicles spans 2.3% to 19.9%. So few transport events occur per replication that the busy-time estimate at each sweep point is barely pinned down, which is why the companion paper reads the queue column and not this one.
 

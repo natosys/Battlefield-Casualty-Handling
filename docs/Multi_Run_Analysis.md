@@ -158,12 +158,13 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 <small>[Return to Top](#contents)</small>
 
-**The establishment gives way at the R2E operating theatres before anywhere else, and it is already under strain at moderate intensity rather than only at high.** Casualty volume rises by a factor of 2.43 from moderate to high intensity while the R2E theatre queue rises by a factor of about 26. Sizing the system from the casualty ratio alone would under-provide surgery by an order of magnitude.
+**The establishment gives way at the R2E operating theatres before anywhere else, and it is already under strain at moderate intensity rather than only at high.** Casualty volume rises by a factor of 2.40 from moderate to high intensity while the R2E theatre queue rises by a factor of about 26. Sizing the system from the casualty ratio alone would under-provide surgery by an order of magnitude.
 
 ### Comparative Scenario Analysis
 
 **Design.** 50 runs of a 30-day campaign at each casualty intensity, under the same establishment throughout.
 
+<!-- SCENARIO TOTALS TABLE -->
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
 | Total casualties/run | 435.7 [418.4, 452.9] (p10–p90: 373.5–506.7) | 1,046.7 [1,019.5, 1,073.9] (p10–p90: 930.0–1,169.1) | 2.40× |
@@ -173,26 +174,27 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 
 Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 373.5 to 506.7 casualties between the 10th and 90th percentiles against an average of 435.7. Surge capacity therefore has to be judged against the heavy day rather than the average one.
 
-Deaths of wounds rise 22-fold while casualty volume rises 2.43-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
+Deaths of wounds rise 24-fold while casualty volume rises 2.40-fold, but that comparison measures more than the health system, each intensity carrying the survival experience of its own campaign as well as its casualty rate.
 
 ![Four panels, one per metric, each plotting moderate and high casualty intensity as a point with a narrow 95% confidence interval bar and a wide band showing the 10th-to-90th-percentile spread across campaigns, for total casualties, wounded in action, deaths of wounds and deaths as a share of wounded](../images/paper_casualty_totals.png)
 
 The width of the pale band against the narrow bar inside it is the point to take from this figure. The confidence interval says the average is known precisely; the band says one campaign in five falls outside a range spanning roughly a third of that average. Planning against the point rather than the band under-provides for the campaign that arrives.
 
+<!-- SCENARIO QUEUE TABLE -->
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 0.533 [0.421, 0.644] | 3.214 [2.890, 3.537] | 6.03× |
-| R2E operating theatre | 1.696 [0.165, 3.227] | 43.13 [38.87, 47.40] | 25.4× |
-| R2E intensive care | 0.078 [0.061, 0.095] | 0.516 [0.418, 0.614] | 6.59× |
-| R2E holding beds | 0.056 [0.014, 0.099] | 1.038 [0.910, 1.166] | 18.4× |
-| Ambulance and truck fleets | 0.019 [0.000, 0.047] | 0.051 [0.020, 0.081] | 2.67× |
+| R2B holding beds | 5.196 [4.026, 6.366] | 30.597 [28.667, 32.527] | 5.89× |
+| R2E operating theatre | 1.506 [0.859, 2.152] | 38.666 [33.127, 44.205] | 25.68× |
+| R2E intensive care | 1.229 [−0.046, 2.504] | 30.380 [27.966, 32.795] | 24.72× |
+| R2E holding beds | 1.656 [0.522, 2.790] | 39.583 [36.780, 42.385] | 23.90× |
+| Ambulance and truck fleets | 0.083 [−0.069, 0.236] | 0.191 [0.141, 0.240] | 2.29× |
 
-Each figure is the average queue at that group of resources across a campaign, averaged over the 50 runs. A resource that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts.
+Each figure is the whole pool's queue, averaged over the campaign by time and then over the 50 runs. A pool's total is recorded by none of the simulation's monitor rows, each bed being monitored separately, so it is recovered by differencing each bed's own series into changes and accumulating them in time order, which is the same estimator the queue-over-time figure below rests on. A bed that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts. Two lower bounds fall below zero, which a queue cannot; they are printed as measured rather than clamped, a bound below zero being the readable sign that 50 runs have not pinned that average down.
 
-![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.43-fold rise in casualty volume, each point sized by its absolute queue at high intensity, R2E operating theatre furthest right and largest](../images/paper_queue_growth.png)
+![Horizontal plot of queue growth factor on a log scale for five resource groups, with a dashed reference line at the 2.40-fold rise in casualty volume, each point sized by its absolute queue at high intensity, the ambulance and truck fleets nearest the line and the three R2E pools clustered furthest right](../images/paper_queue_growth.png)
 
-Every queue grows faster than the casualty volume driving it. R2E operating theatre carries by far the largest absolute queue, and R2E holding grows the most in relative terms, 18.4-fold, from a base so low that the growth factor is the less useful of the two readings. The ambulance and truck fleets grow second fastest, which is why the figure sizes each point by its absolute queue: transport grows 7.25-fold from a base so small that the resulting queue is still a fraction of one casualty.
+Every bedded queue grows faster than the casualty volume driving it, and the three R2E pools grow at much the same rate: the operating theatres 25.68-fold, intensive care 24.72-fold and holding 23.90-fold. That is the signature of three stages of one pathway rather than three independent constraints. The ambulance and truck fleets are the exception and fall just short of the reference line, growing 2.29-fold against casualty volume's 2.40, which is the only pool in the system that absorbs the rise in load without queueing disproportionately for it. The figure sizes each point by its absolute queue for the same reason: a transport queue of 0.191 casualties at high intensity is a fifth of one casualty waiting, whatever its growth factor says.
 
 ![Four-panel bar chart of mean queue length by resource group, R2B operating theatre, R2E operating theatre, R2E intensive care and transport, comparing the high and moderate casualty intensities with error bars, on four different vertical scales](../images/scenario_comparison.png)
 
@@ -204,9 +206,9 @@ Each panel carries its own vertical scale, so the panels compare intensities rat
 
 Adding theatres would therefore not relieve the queue, which measures a wait for people and is relieved only by surgical team hours.
 
-Theatre contention is not confined to high intensity. The R2E theatre queue at moderate intensity averages 1.06 casualties, so casualties already wait for surgery at the lower of the two rates tested. The establishment is therefore not comfortably adequate at moderate intensity either: it absorbs that load without the queue growing without bound, but it does so with casualties waiting on its heavy days. Addressing the constraint is a standing requirement rather than a contingency measure.
+Theatre contention is not confined to high intensity. The R2E theatre queue at moderate intensity averages 1.51 casualties, so casualties already wait for surgery at the lower of the two rates tested. The establishment is therefore not comfortably adequate at moderate intensity either: it absorbs that load without the queue growing without bound, but it does so with casualties waiting on its heavy days. Addressing the constraint is a standing requirement rather than a contingency measure.
 
-The rest of R2E follows the theatres rather than leading them. Intensive care rises 4.3-fold, the flattest of the three R2E groups, because only casualties on the damage control pathway take a stabilisation episode. Its four beds run close to full at both intensities, so the queue is short not because the beds are ample but because casualties who cannot get one are diverted to a holding bed instead, which is examined in [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design). R2E holding beds rise 4.5-fold, absorbing what intensive care cannot, and they also hold every casualty waiting for strategic evacuation.
+The rest of R2E moves with the theatres rather than lagging them. Intensive care rises 24.72-fold and holding 23.90-fold against the theatres' 25.68-fold, and the three carry queues of comparable size at either intensity. That is what a single pathway looks like from the queue side: a casualty delayed at the theatres is a casualty who will shortly be delayed at the bed that follows, so relieving one pool without the others moves the wait rather than removing it. The four intensive care beds run close to full at both intensities, and the casualties who cannot get one are diverted to a holding bed rather than left waiting, which is examined in [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design). R2E holding absorbs that diversion on top of its own load, and it also holds every casualty waiting for strategic evacuation.
 
 ### The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate
 
@@ -260,7 +262,7 @@ How to source those hours is a separate question. Extending the rostered teams' 
 
 ### Option 2. Increase R2B Holding Capacity or Set an Evacuation Threshold
 
-**R2B holding is the second constraint, and the shortfall is present at both casualty intensities rather than appearing only under surge.** The R2B holding queue rises 5.45-fold from moderate to high intensity, the second largest movement in the queue comparison, driven by the rise in non-surgical wounded rather than by any change in disease. **Evidence: measured.**
+**R2B holding is the second constraint, and the shortfall is present at both casualty intensities rather than appearing only under surge.** The R2B holding queue rises 5.89-fold from moderate to high intensity, the smallest rise of any bedded pool, but it does so from the largest queue any pool carries at moderate intensity: 5.20 casualties waiting against 1.51 at the R2E theatres. The shortfall is therefore a standing one that surge makes worse rather than one surge creates, and it is driven by the rise in non-surgical wounded rather than by any change in disease. **Evidence: measured.**
 
 Ten holding beds are fielded across the two facilities against an expected occupancy of about 15.5, and disease casualties staying for days at a time are what fill them [[10]](#references). No change in surgical throughput closes a gap of that kind.
 
@@ -309,19 +311,20 @@ One further row is informative. Casualties whose entry to the R2E operating thea
 
 ![Four-panel line plot of mean queue and mean utilisation against fleet size for the ambulance and truck fleets, each line with a 95% confidence ribbon and a dashed vertical line marking the current establishment size](../images/transport_capacity_margin_by_fleet_size.png)
 
-The ambulance queue collapses between one and two vehicles and is flat thereafter, so three vehicles sit on the flat part of the curve rather than at its bend.
+The ambulance queue collapses between one and two vehicles and flattens from three onward, so three vehicles sit at the foot of the curve rather than at its bend.
 
+<!-- TRANSPORT SWEEP TABLE -->
 | Fleet size | Ambulance mean queue | Truck mean queue |
 |---|---|---|
-| 1 | 2.1060 [0.2270, 3.9850] | 0.0442 [0.0000, 0.1021] |
-| 2 | 0.0487 [0.0000, 0.0974] | 0.0011 [0.0000, 0.0022] |
-| 3 (current ambulance) | 0.0068 [0.0000, 0.0155] | 0.0001 [0.0000, 0.0002] |
-| 4 (current truck) | 0.0006 [0.0000, 0.0012] | 0.0000 |
-| 5 | 0.0001 [0.0000, 0.0001] | not swept |
+| 1 | 3.2124 [0.0000, 9.6483] | 0.0496 [0.0000, 0.1132] |
+| 2 | 0.4383 [0.0000, 1.3420] | 0.0134 [0.0000, 0.0328] |
+| 3 (current ambulance) | 0.1308 [0.0000, 0.4223] | 0.0002 [0.0000, 0.0005] |
+| 4 (current truck) | 0.0657 [0.0000, 0.2127] | 0.0001 [0.0000, 0.0002] |
+| 5 | 0.0979 [0.0000, 0.3191] | not swept |
 
-At one vehicle the ambulance fleet queues heavily, at an average of 2.11 casualties waiting, so the sweep locates the capacity boundary sharply rather than merely confirming that the current fleet is adequate. The queue falls roughly fortyfold at two vehicles and sevenfold again at three. What produces any queue at all is the day-to-day variation in casualty volume rather than its average, a transport queue forming on peak days and no others.
+At one vehicle the ambulance fleet queues heavily, at an average of 3.21 casualties waiting, so the sweep locates the capacity boundary sharply rather than merely confirming that the current fleet is adequate. The queue falls roughly sevenfold at two vehicles and threefold again at three, and then stops falling: the readings at four and five vehicles differ from the one at three by less than the spread between campaigns, so nothing is bought beyond the third vehicle. What produces any queue at all is the day-to-day variation in casualty volume rather than its average, a transport queue forming on peak days and no others. Every interval in the table reaches zero, which is the ten replications speaking rather than the fleet: the sweep locates the bend in the curve without pinning down the queue at any point on it.
 
-Two qualifications bound the recommendation. The sweep was run at moderate intensity only, and the intensity comparison puts the transport queue up 7.25-fold at high intensity, so this evidence does not establish that the margin survives surge; re-running the sweep at high intensity is listed in [Further Development](#further-development) and is the shortfall most likely to change this recommendation. And utilisation is too poorly determined at 10 runs to read at all, running the wrong way on both platforms; the queue column is the one to use.
+Two qualifications bound the recommendation. The sweep was run at moderate intensity only, and although the intensity comparison puts the transport queue up by the smallest factor of any pool, 2.29-fold to 0.191 casualties, that is a measurement at the shipped fleet size rather than a sweep at the higher intensity, so this evidence does not establish where the boundary falls under surge; re-running the sweep at high intensity is listed in [Further Development](#further-development) and is the shortfall most likely to change this recommendation. And utilisation is too poorly determined at 10 runs to read at all, running the wrong way on both platforms; the queue column is the one to use.
 
 ### Not Recommended: Delivering Post-Operative Intensive Care Forward
 
@@ -335,17 +338,20 @@ In this simulation design, a casualty's need for post-operative stabilisation is
 
 ![Five stacked line plots against the share of post-operative intensive care delivered forward, from 0% to 100%, showing R2E intensive care mean queue, R2B and R2E intensive care utilisation, the share of post-definitive care delivered in intensive care, and died-of-wounds count, each with a 95% confidence ribbon](../images/r2b_icu_share_frontier.png)
 
-Every panel moves little across the full range, and every confidence ribbon is wide enough to cover the whole movement.
+One panel moves across the full range and the other four do not. Forward intensive care utilisation rises steadily from 12.4% to 24.3% as the policy is turned up, which is the policy being applied rather than the policy working. Every panel that measures an outcome, the R2E queue, the R2E utilisation, the share of post-definitive care given in intensive care and the deaths of wounds, carries a confidence ribbon wide enough to cover its whole movement.
 
+<!-- ICU SHARE TABLE -->
 | Forward share | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
 |---|---|---|---|---|---|
-| 0% (current) | 0.108 [0.066, 0.149] | 22.4% | 87.7% | 35.5% [28.4, 42.6] | 0.80 [0.35, 1.25] |
-| 25% | 0.080 [0.042, 0.119] | 22.1% | 84.9% | 38.7% [30.4, 46.9] | 1.00 [0.52, 1.48] |
-| 50% | 0.078 [0.028, 0.129] | 14.1% | 83.4% | 41.6% [34.5, 48.8] | 1.00 [0.52, 1.48] |
-| 75% | 0.079 [0.036, 0.121] | 20.2% | 83.8% | 42.2% [31.4, 52.9] | 1.10 [0.47, 1.73] |
-| 100% | 0.125 [0.033, 0.218] | 22.7% | 83.9% | 42.0% [32.4, 51.6] | 1.00 [0.25, 1.73] |
+| 0% (current) | 0.652 [0.000, 1.485] | 12.4% | 88.1% | 34.4% [27.8, 41.0] | 1.80 [1.26, 2.34] |
+| 25% | 0.711 [0.000, 1.762] | 14.2% | 86.5% | 36.3% [29.7, 42.8] | 1.60 [0.88, 2.32] |
+| 50% | 0.503 [0.000, 1.175] | 17.1% | 87.6% | 36.5% [30.5, 42.6] | 1.55 [0.90, 2.20] |
+| 75% | 0.470 [0.000, 1.151] | 19.6% | 84.8% | 39.8% [32.9, 46.7] | 1.25 [0.59, 1.91] |
+| 100% | 0.452 [0.000, 1.122] | 24.3% | 86.9% | 40.1% [34.0, 46.1] | 1.65 [1.04, 2.26] |
 
-The policy achieves little because the group of casualties it reaches is small. About half of operated casualties take the single-stage pathway and have no stabilisation phase to move; of the remainder, only those operated on at R2B can have any of it delivered forward. What is left is too small a group to relieve a unit already running near 85% occupancy. The R2E intensive care queue moves between 0.078 and 0.125 casualties with overlapping intervals and no trend, and its highest value falls at the 100% setting, where the policy should help most.
+The policy achieves little because the group of casualties it reaches is small. About half of operated casualties take the single-stage pathway and have no stabilisation phase to move; of the remainder, only those operated on at R2B can have any of it delivered forward. What is left is too small a group to relieve a unit already running near 87% occupancy. The R2E intensive care queue drifts down from 0.652 casualties to 0.452 across the full range, which is the direction the policy intends, but every interval on it reaches zero and the interval at the 100% setting contains the mean at every other setting, so the drift is not separable from the variation between campaigns. Forward utilisation rises cleanly over the same range, from 12.4% to 24.3%, which establishes that the policy is doing what it is set to do and makes the absence of a resolved effect at R2E a finding about the mechanism rather than about the implementation.
+
+The one panel that moves against the policy is deaths of wounds, which falls from 1.80 per run at a zero share to 1.25 at 75% before returning to 1.65 at 100%. Its intervals overlap throughout and its shape is not monotone, so it is read as the variation between twenty campaigns rather than as an effect.
 
 Whether the policy would pay at higher casualty rates, where R2E intensive care is contended by a wider margin, is listed in [Further Development](#further-development).
 
@@ -629,7 +635,7 @@ Two narrower caveats apply. Clinical teams are taken whole rather than by indivi
 
 This paper set out to identify options for improving the land-based trauma system, and to establish where that system fails first as casualty intensity rises. It did so by running a discrete event simulation of a brigade force with aligned health assets at two casualty intensities, both derived from historical campaign data, and by testing individual design and policy settings a planner controls.
 
-**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.43-fold while the R2E theatre queue rises about 26-fold, R2B holding about 5.6-fold and R2E holding about 5.3-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict. It takes a different form at each intensity: the theatre queue never clears at high intensity and grows for the whole campaign, while at moderate intensity it clears for four fifths of it, so the same shortfall calls for permanent establishment in one case and surge capability in the other.
+**The system does not scale from moderate to high casualty intensity, and it fails at the R2E operating theatres first.** Casualty volume rises 2.40-fold while the R2E theatre queue rises about 26-fold, R2E intensive care about 25-fold, R2E holding about 24-fold and R2B holding about 5.9-fold. The constraint is surgical team scheduling rather than theatre space, because a casualty occupies a theatre while waiting for a team, and the teams work 12-hour shifts against theatres available around the clock. That contention is present at moderate intensity too, so it is a standing weakness rather than one confined to peer conflict. It takes a different form at each intensity: the theatre queue never clears at high intensity and grows for the whole campaign, while at moderate intensity it clears for four fifths of it, so the same shortfall calls for permanent establishment in one case and surge capability in the other.
 
 **Four options follow, and the first is the strongest.** Extending surgical team coverage towards 24 hours at R2B and R2E addresses the principal constraint and needs no additional operating theatres, though it does need provision in the operational viability period, organisational design and workforce model. Increasing R2B holding capacity, or setting an evacuation threshold, addresses the second constraint. Holding casualties at R2B for a team about to return demonstrably reduces the surgical load transferred rearward. Three ambulances are sufficient for inter-echelon medical evacuation in support of a brigade. Delivering post-operative intensive care forward at R2B is not recommended, showing no measurable benefit at any setting tested.
 

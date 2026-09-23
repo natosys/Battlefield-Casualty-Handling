@@ -141,7 +141,12 @@ if (isTRUE(opt$`refresh-baseline`)) {
   apply_mass_casualty_setting(json_data, opt$scenario, MASS_CASUALTY_ARMS[2])
   set.seed(MASS_CASUALTY_SEED)
   illustrative_env <- run_once(MASS_CASUALTY_DAYS, seed = MASS_CASUALTY_SEED, write_files = FALSE)
-  illustrative <- analyse_run(illustrative_env, output_dir = OUTPUT_DIR, images_dir = IMAGES_DIR)
+  illustrative_mon <- list(
+    arrivals   = get_mon_arrivals(list(illustrative_env),   ongoing = TRUE),
+    attributes = get_mon_attributes(list(illustrative_env)),
+    resources  = get_mon_resources(list(illustrative_env))
+  )
+  illustrative <- analyse_run(illustrative_mon, output_dir = OUTPUT_DIR, images_dir = IMAGES_DIR)
   message(sprintf("Illustrative run: %d event(s), image written to %s",
                   illustrative$mass_casualty_event_count,
                   file.path(IMAGES_DIR, "mass_casualty_events.png")))

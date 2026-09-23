@@ -255,14 +255,17 @@ leading_figure <- function(cell) {
 #' @param rows The table's lines.
 #' @param label Regular expression matching the row's label cell.
 #' @param response Response name the row reports.
+#' @param digits Decimal places the paper prints this row to, matching
+#'   `scripts/run_mass_casualty.R`'s `print_count_row()`.
 #' @return Invisible NULL.
-check_count_row <- function(rows, label, response) {
+check_count_row <- function(rows, label, response, digits = 1) {
   row <- rows[grepl(paste0("^\\| ", label), rows)]
   if (length(row) != 1) {
     report(FALSE, "the paper prints one '%s' row (found %d)", label, length(row))
     return(invisible(NULL))
   }
   cells <- table_cells(row)
+  tol <- 0.5 * 10^(-digits) + PRINT_TOL
   for (k in seq_along(MASS_CASUALTY_ARMS)) {
     tracked <- if (is.null(count_summary)) NA_real_ else {
       hit <- count_summary[count_summary$rate_per_day == MASS_CASUALTY_ARMS[k] &
@@ -270,9 +273,9 @@ check_count_row <- function(rows, label, response) {
       if (nrow(hit) == 1) hit$mean else NA_real_
     }
     printed <- if (k <= length(cells)) leading_figure(cells[k]) else NA_real_
-    ok <- !is.na(printed) && !is.na(tracked) && abs(printed - round(tracked, 2)) < PRINT_TOL
+    ok <- !is.na(printed) && !is.na(tracked) && abs(printed - round(tracked, digits)) < tol
     report(ok, "'%s' in column %d prints %s against the tracked %s",
-           label, k, format(printed), format(round(tracked, 2)))
+           label, k, format(printed), format(round(tracked, digits)))
   }
   invisible(NULL)
 }
@@ -313,8 +316,8 @@ check_dow_row <- function(rows, label, origin) {
 
 table_rows <- paper_table("<!-- MASS CASUALTY TABLE -->")
 if (!is.null(table_rows)) {
-  check_count_row(table_rows, "Average total casualties/run", "total_casualties")
-  check_count_row(table_rows, "Average events/run", "n_events")
+  check_count_row(table_rows, "Average total casualties/run", "total_casualties", digits = 1)
+  check_count_row(table_rows, "Average events/run", "n_events", digits = 2)
   check_dow_row(table_rows, "Died-of-wounds rate, ordinary casualties", "ordinary")
   check_dow_row(table_rows, "Died-of-wounds rate, event casualties", "event")
 }

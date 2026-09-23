@@ -243,15 +243,13 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Strategic airlift collapse | `data/airlift/` | `check_airlift_collapse_protocol.R` |
 | Evacuation policy and holding establishment sweeps | `data/policy/` | `check_policy_sweep_protocol.R` |
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
-| The R2B pre-open hold window | none; see below | `check_pre_open_window.R` (mechanism only) |
+| The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | none; see below | `check_icu_gate_switch.R` (mechanism only) |
 | Mass casualty event stress test | none; see below | `check_mass_casualty_kia_split.R` (mechanism only) |
 
-Three experiments remain unbacked, and each is recorded here rather than left to be rediscovered.
+Two experiments remain unbacked, and each is recorded here rather than left to be rediscovered. The R2B pre-open hold window no longer belongs on that list: `R/hold_window.R` and `scripts/run_hold_window.R` give the comparison a runner of its own, `data/hold_window/` tracks both arms' per-replication responses and their paired differences, and `scripts/check_hold_window_protocol.R` asserts the parameters, the tracked set and every figure [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window) below now prints from it.
 
-**The R2B pre-open hold window is an experiment and needs an evidence set.** It prints eight paired differences with intervals from 50 replications per arm, which is exactly the kind of figure the rule covers, and its entry point is `run.R` under a parameter override rather than a driver script, so there is no command to give a `--refresh-baseline` flag to. Closing it needs a runner of its own before it needs compute, which is why it did not close with the other three. `scripts/check_pre_open_window.R` asserts that a zero window reproduces the instant-diversion model exactly and that every casualty held forward is operated on there, which is the mechanism rather than the magnitudes.
-
-**The post-operative intensive care gate is an experiment and needs an evidence set** on the same reading, for the same reason. `scripts/check_icu_gate_switch.R` asserts that the mechanism behaves as the section describes, that the disabled arm defers nobody and that both pathways are reachable when the gate is in force, but it asserts nothing about the magnitudes the section prints.
+**The post-operative intensive care gate is an experiment and needs an evidence set,** its entry point being `run.R` under a parameter override rather than a driver script, on the same reading the pre-open window closed under. `scripts/check_icu_gate_switch.R` asserts that the mechanism behaves as the section describes, that the disabled arm defers nobody and that both pathways are reachable when the gate is in force, but it asserts nothing about the magnitudes the section prints.
 
 **The mass casualty stress test is an experiment and needs an evidence set,** though it is the weakest of the three cases: its own table states that 13 deaths per arm are too few for a precise figure and labels the finding direction only, so what a tracked set would defend is a comparison the paper already declines to read precisely. `scripts/check_mass_casualty_kia_split.R` covers the injection mechanism rather than the table.
 
@@ -316,11 +314,22 @@ The two statistics the companion paper quotes in prose, the share of the campaig
 
 ### The R2B Pre-Open Hold Window
 
-50 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override, `r2b.surgery.pre_open_window_min` set to 0 in one arm against its shipped 60 in the other.
+<!-- HOLD_WINDOW replications=50 -->
+<!-- HOLD_WINDOW days=30 -->
+<!-- HOLD_WINDOW seed=42 -->
+<!-- HOLD_WINDOW arms=0,60 -->
 
-The two arms are not the same realisation. A zero-window run and a 60-minute run at the same control seed share their per-replication seeds, but the first hold shifts `simmer`'s single global stream, and the arrival streams are force-size-reactive closures sampled by thinning [[12]](#references) whose rate the force regeneration loop feeds back from casualty event timing, so the two arms drift into different casualty streams from the first hold onward. Not one of the 50 replication pairs generated the same number of casualties in both arms, and the paired difference in total casualties spans $-32.00$ to $+12.72$. Pairing on the control seed therefore removes none of the between-run variance, and an effect of about six operations disappears into the noise of a response whose paired difference has a standard deviation of 11.
+50 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override, `r2b.surgery.pre_open_window_min` set to 0 in one arm against its shipped 60 in the other. Invoked as:
 
-Those standard deviations set the replication count the comparison would need. Resolving the forward-surgery effect to a half-width of two operations takes about 120 replications per arm. The bypass and R2E surgery rows, whose paired differences carry standard deviations of 27 and 32, would take several hundred to a few thousand.
+```
+Rscript scripts/run_hold_window.R --refresh-baseline
+```
+
+The flag is the only way to write the tracked `data/hold_window/`, and it runs the protocol above rather than whatever arguments accompany it, so the tracked set and this design cannot diverge through a mistyped argument. Without it the runner writes under `outputs/` alone. Three files are written: both arms' per-replication responses, each arm's own mean and interval, and the paired difference between arms for every response the published table prints.
+
+The two arms are not the same realisation. A zero-window run and a 60-minute run at the same control seed share their per-replication seeds, but the first hold shifts `simmer`'s single global stream, and the arrival streams are force-size-reactive closures sampled by thinning [[12]](#references) whose rate the force regeneration loop feeds back from casualty event timing, so the two arms drift into different casualty streams from the first hold onward. Not one of the 50 replication pairs generated the same number of casualties in both arms, and the paired difference in total casualties spans $-31.10$ to $+12.78$. Pairing on the control seed therefore removes none of the between-run variance, and an effect of about two operations disappears into the noise of a response whose paired difference has a standard deviation of 8.9.
+
+Those standard deviations set the replication count the comparison would need. Resolving the forward-surgery effect to a half-width of two operations takes about 76 replications per arm. The busy-theatre bypass and R2E first-surgery rows, whose paired differences carry standard deviations of 10.4 and 29.5, would take about 104 and 838 replications respectively to the same half-width. The evidence set behind this design is measured at 50 replications per arm, reproducing the published table rather than resolving the forward-surgery row: 76 is close enough to 50 that a further 26 replications per arm would likely settle it, but the R2E first-surgery row alone would need over sixteen times the compute of the table above, so resolving every row was not attempted here.
 
 Two further limits apply to the design. The comparison was run at the shipped default configuration only, so it says nothing about the window under surge. And 60 minutes is a single point on a range the screening bounds take from zero to six hours.
 

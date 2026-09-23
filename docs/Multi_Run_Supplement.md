@@ -244,12 +244,10 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Evacuation policy and holding establishment sweeps | `data/policy/` | `check_policy_sweep_protocol.R` |
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
-| The post-operative intensive care gate | none; see below | `check_icu_gate_switch.R` (mechanism only) |
+| The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
 | Mass casualty event stress test | none; see below | `check_mass_casualty_kia_split.R` (mechanism only) |
 
-Two experiments remain unbacked, and each is recorded here rather than left to be rediscovered. The R2B pre-open hold window no longer belongs on that list: `R/hold_window.R` and `scripts/run_hold_window.R` give the comparison a runner of its own, `data/hold_window/` tracks both arms' per-replication responses and their paired differences, and `scripts/check_hold_window_protocol.R` asserts the parameters, the tracked set and every figure [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window) below now prints from it.
-
-**The post-operative intensive care gate is an experiment and needs an evidence set,** its entry point being `run.R` under a parameter override rather than a driver script, on the same reading the pre-open window closed under. `scripts/check_icu_gate_switch.R` asserts that the mechanism behaves as the section describes, that the disabled arm defers nobody and that both pathways are reachable when the gate is in force, but it asserts nothing about the magnitudes the section prints.
+One experiment remains unbacked, and it is recorded here rather than left to be rediscovered. The R2B pre-open hold window and the post-operative intensive care gate no longer belong on that list: `R/hold_window.R`/`scripts/run_hold_window.R` and `R/icu_gate.R`/`scripts/run_icu_gate.R` each give their comparison a runner of its own, `data/hold_window/` and `data/icu_gate/` track both arms' per-replication responses and their paired differences, and `scripts/check_hold_window_protocol.R` and `scripts/check_icu_gate_protocol.R` each assert the parameters, the tracked set and every figure [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window) and [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate) above now print from them. `scripts/check_icu_gate_switch.R` remains alongside its protocol check, covering the mechanism rather than the magnitudes; neither subsumes the other.
 
 **The mass casualty stress test is an experiment and needs an evidence set,** though it is the weakest of the three cases: its own table states that 13 deaths per arm are too few for a precise figure and labels the finding direction only, so what a tracked set would defend is a comparison the paper already declines to read precisely. `scripts/check_mass_casualty_kia_split.R` covers the injection mechanism rather than the table.
 
@@ -335,7 +333,20 @@ Two further limits apply to the design. The comparison was run at the shipped de
 
 ### The Post-Operative Intensive Care Gate
 
-50 replications of 30 simulated days under the shipped default configuration, in two arms: the gate in force, and the gate disabled through `r2b.icu_gating.enabled` and `r2eheavy.icu_gating.enabled`, both set to zero. Disabling it reproduces the model as it stood before the gate existed, in that theatre entry does not depend on an intensive care bed being free and a casualty needing stabilisation is admitted to intensive care whether or not one is, queueing if none is. Reconstructing the earlier arm as a configuration rather than as a code state is what makes the experiment repeatable after a later model change; `scripts/check_icu_gate_switch.R` asserts that the disabled arm carries no deferral and no diverted recovery, and that both pathways are reachable when the gate is in force, so the first assertion is not vacuous.
+<!-- ICU_GATE replications=50 -->
+<!-- ICU_GATE days=30 -->
+<!-- ICU_GATE seed=42 -->
+<!-- ICU_GATE arms=0,1 -->
+
+50 replications of 30 simulated days under the shipped default configuration, in two arms: the gate in force, and the gate disabled through `r2b.icu_gating.enabled` and `r2eheavy.icu_gating.enabled`, both set to zero. Disabling it reproduces the model as it stood before the gate existed, in that theatre entry does not depend on an intensive care bed being free and a casualty needing stabilisation is admitted to intensive care whether or not one is, queueing if none is. Reconstructing the earlier arm as a configuration rather than as a code state is what makes the experiment repeatable after a later model change; `scripts/check_icu_gate_switch.R` asserts that the disabled arm carries no deferral and no diverted recovery, and that both pathways are reachable when the gate is in force, so the first assertion is not vacuous. Invoked as:
+
+```
+Rscript scripts/run_icu_gate.R --refresh-baseline
+```
+
+The flag is the only way to write the tracked `data/icu_gate/`, and it runs the protocol above rather than whatever arguments accompany it, so the tracked set and this design cannot diverge through a mistyped argument. Without it the runner writes under `outputs/` alone. Three files are written: both arms' per-replication responses, each arm's own mean and interval, and the paired difference between arms for every response the published section reports.
+
+This experiment and [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window) above are close enough in shape, a paired two-arm comparison at a fixed protocol, that a shared runner module was considered rather than building `R/icu_gate.R` separately. The two nonetheless differ in what each arm overrides and what each reduces to, `R/hold_window.R` reading casualty counts off single attributes and `R/icu_gate.R` reading a resource pool's occupancy off the monitor as well; on the same reasoning ["Why the Checks Do Not Share a Table Parser"](#why-the-checks-do-not-share-a-table-parser) above gives for keeping the protocol checks apart, a shared runner would accumulate the arguments needed to cover both callers and would end up harder to read than the two small modules it replaced. They stay apart, each following the other's arrangement without sharing its code.
 
 Both arms run under one control seed, so each draws the same 50 per-replication seeds and replication $i$ of one is paired with replication $i$ of the other. Replications within an arm remain independent of one another, each taking its own seed, so each arm's own interval is unaffected by the pairing across arms; the paired difference between arms is reported as well, and is the more precise of the two comparisons for the same reason common random numbers are used in the scenario comparison. This supersedes an earlier measurement whose intervals were computed over antithetically paired replications while the interval still divided by the replication count, and which was therefore narrower than its runs entitled it to be.
 

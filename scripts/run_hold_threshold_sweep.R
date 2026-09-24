@@ -5,11 +5,11 @@
 ##################################################
 #
 # Terminal / Claude Code cloud:
-#   Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline   # write the tracked data/sweeps/
-#   Rscript scripts/run_hold_threshold_sweep.R                      # default: 5/7/10 beds x 0/1/3/5/7 day thresholds, 10 reps x 30 days
+#   Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline  # write the tracked data/sweeps/
+#   Rscript scripts/run_hold_threshold_sweep.R      # default: 5/7/10 beds x 0-7 day thresholds
 #   Rscript scripts/run_hold_threshold_sweep.R --beds "c(5, 10)" --thresholds-days "c(0, 2, 5)"
 #   Rscript scripts/run_hold_threshold_sweep.R --iterations 20 --days 30
-#   Rscript scripts/run_hold_threshold_sweep.R --quick               # smoke test (2 reps, 3 days, 2x2 grid)
+#   Rscript scripts/run_hold_threshold_sweep.R --quick              # smoke test (2 reps, 2x2 grid)
 #
 # Why this exists. docs/Multi_Run_Analysis.md's Option 2 names the R2B
 # holding shortfall (README Further Development L4, about 15.5 beds expected
@@ -48,7 +48,8 @@ suppressPackageStartupMessages(library(optparse))
 option_list <- list(
   make_option("--beds",            type = "character",
               default = deparse(HOLD_THRESHOLD_SWEEP_BEDS),
-              help = "R2B holding beds per unit to sweep, as an R vector expression [default: %default]"),
+              help = paste("R2B holding beds per unit to sweep, as an R vector expression",
+                           "[default: %default]")),
   make_option("--thresholds-days", type = "character",
               default = deparse(HOLD_THRESHOLD_SWEEP_MINUTES / DAY_MIN),
               help = paste("Evacuation thresholds to sweep, in days, as an R vector",
@@ -129,9 +130,10 @@ if (any(thresholds_days < 0)) {
 }
 
 message(sprintf(
-  "R2B holding threshold sweep config: beds=%s, thresholds(days)=%s, iterations=%d, days=%d, seed=%d",
-  opt$beds, opt$`thresholds-days`, opt$iterations, opt$days, opt$seed
+  "R2B holding threshold sweep config: beds=%s, thresholds(days)=%s, iterations=%d,",
+  opt$beds, opt$`thresholds-days`, opt$iterations
 ))
+message(sprintf("days=%d, seed=%d", opt$days, opt$seed))
 
 # plot_r2b_hold_threshold_sweep() saves/restores the global env_data/day_min/
 # counts around its sweep (mirrors run_morris()'s env_data_base pattern,

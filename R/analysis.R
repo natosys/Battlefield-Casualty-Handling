@@ -306,13 +306,15 @@ validate_hold_threshold_sweep <- function(hold_beds, evac_threshold_min, caller)
   beds_ok <- is.numeric(hold_beds) && length(hold_beds) > 0 && !any(is.na(hold_beds)) &&
     all(hold_beds >= 1) && all(hold_beds == as.integer(hold_beds))
   if (!beds_ok) {
-    stop(sprintf("%s: hold_beds must be a non-empty vector of whole numbers of at least 1, found %s",
+    stop(sprintf(paste0("%s: hold_beds must be a non-empty vector of whole numbers of at ",
+                        "least 1, found %s"),
                  caller, paste(format(hold_beds), collapse = ", ")), call. = FALSE)
   }
   thresholds_ok <- is.numeric(evac_threshold_min) && length(evac_threshold_min) > 0 &&
     !any(is.na(evac_threshold_min)) && all(evac_threshold_min >= 0)
   if (!thresholds_ok) {
-    stop(sprintf("%s: evac_threshold_min must be a non-empty vector of non-negative minutes, found %s",
+    stop(sprintf(paste0("%s: evac_threshold_min must be a non-empty vector of non-negative ",
+                        "minutes, found %s"),
                  caller, paste(format(evac_threshold_min), collapse = ", ")), call. = FALSE)
   }
   invisible(TRUE)
@@ -5489,23 +5491,30 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
                "R2E ICU Mean Queue", "R2E ICU Utilisation",
                "Returns to Duty", "Died of Wounds")
 
+  #' One response's columns, renamed to the plot's shared mean/ci_lower/
+  #' ci_upper names and labelled with its panel title
+  #'
+  #' @param base Column name stem, e.g. "r2b_hold_q" for `mean_r2b_hold_q`.
+  #' @param metric_label One of `metrics`, naming this response's panel.
+  #' @return `sweep_df`'s hold_beds and evac_threshold_days columns, plus
+  #'   metric, mean, ci_lower and ci_upper for this response alone.
+  one_metric <- function(base, metric_label) {
+    sweep_df %>%
+      transmute(hold_beds, evac_threshold_days, metric = metric_label,
+                mean     = .data[[paste0("mean_", base)]],
+                ci_lower = .data[[paste0("ci_lower_", base)]],
+                ci_upper = .data[[paste0("ci_upper_", base)]])
+  }
+
   plot_df <- bind_rows(
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[1],
-                           mean = mean_r2b_hold_q, ci_lower = ci_lower_r2b_hold_q, ci_upper = ci_upper_r2b_hold_q),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[2],
-                           mean = mean_r2b_hold_util, ci_lower = ci_lower_r2b_hold_util, ci_upper = ci_upper_r2b_hold_util),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[3],
-                           mean = mean_r2e_hold_q, ci_lower = ci_lower_r2e_hold_q, ci_upper = ci_upper_r2e_hold_q),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[4],
-                           mean = mean_r2e_hold_util, ci_lower = ci_lower_r2e_hold_util, ci_upper = ci_upper_r2e_hold_util),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[5],
-                           mean = mean_r2e_icu_q, ci_lower = ci_lower_r2e_icu_q, ci_upper = ci_upper_r2e_icu_q),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[6],
-                           mean = mean_r2e_icu_util, ci_lower = ci_lower_r2e_icu_util, ci_upper = ci_upper_r2e_icu_util),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[7],
-                           mean = mean_rtd, ci_lower = ci_lower_rtd, ci_upper = ci_upper_rtd),
-    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[8],
-                           mean = mean_dow, ci_lower = ci_lower_dow, ci_upper = ci_upper_dow)
+    one_metric("r2b_hold_q",    metrics[1]),
+    one_metric("r2b_hold_util", metrics[2]),
+    one_metric("r2e_hold_q",    metrics[3]),
+    one_metric("r2e_hold_util", metrics[4]),
+    one_metric("r2e_icu_q",     metrics[5]),
+    one_metric("r2e_icu_util",  metrics[6]),
+    one_metric("rtd",           metrics[7]),
+    one_metric("dow",           metrics[8])
   ) %>%
     mutate(metric = factor(metric, levels = metrics),
            hold_beds_label = if (!is.null(baseline_beds)) {
@@ -5516,7 +5525,7 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
            })
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per point; the ribbon is a 95%% confidence interval across replications", n_rep)
+    sprintf("%d replications per point; the ribbon is a 95%% confidence interval", n_rep)
   } else {
     NULL
   }
@@ -5614,9 +5623,8 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
     beds      <- grid$hold_beds[i]
     threshold <- grid$evac_threshold_min[i]
 
-    message(sprintf(
-      "R2B holding threshold sweep: %d beds/unit, threshold %.0f min (%d reps x %d days)...",
-      beds, threshold, n_rep, n_days))
+    message(sprintf("R2B holding sweep: %d beds/unit, threshold %.0f min (%d reps x %d days)...",
+                    beds, threshold, n_rep, n_days))
 
     json_data <- set_r2b_hold_beds(json_data_base, beds)
     ed <- build_environment(json_data)

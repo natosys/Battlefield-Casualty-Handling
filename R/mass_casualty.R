@@ -188,7 +188,7 @@ mass_casualty_dow_rate <- function(rows, n_col, dow_col) {
   dow <- sum(rows[[dow_col]])
   if (n == 0) {
     return(data.frame(n = 0L, dow = 0L, rate = NA_real_,
-                       ci_lower = NA_real_, ci_upper = NA_real_))
+                      ci_lower = NA_real_, ci_upper = NA_real_))
   }
   test <- binom.test(dow, n)
   data.frame(n = n, dow = dow, rate = dow / n,

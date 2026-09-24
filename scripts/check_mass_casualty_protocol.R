@@ -199,15 +199,16 @@ if (!is.null(per_rep) && !is.null(dow_summary)) {
     arm <- per_rep[per_rep$rate_per_day == rate, ]
     rbind(
       data.frame(rate_per_day = rate, origin = "ordinary",
-                n = sum(arm$n_ordinary), dow = sum(arm$dow_ordinary)),
+                 n = sum(arm$n_ordinary), dow = sum(arm$dow_ordinary)),
       data.frame(rate_per_day = rate, origin = "event",
-                n = sum(arm$n_event), dow = sum(arm$dow_event))
+                 n = sum(arm$n_event), dow = sum(arm$dow_event))
     )
   }))
   joined_dow <- merge(dow_summary, recomputed_dow, by = c("rate_per_day", "origin"))
-  report(nrow(joined_dow) == nrow(dow_summary) &&
-           all(joined_dow$n.x == joined_dow$n.y) && all(joined_dow$dow.x == joined_dow$dow.y),
-         "the tracked died-of-wounds summary pools the same counts as the per-replication responses")
+  dow_pools_ok <- nrow(joined_dow) == nrow(dow_summary) &&
+    all(joined_dow$n.x == joined_dow$n.y) && all(joined_dow$dow.x == joined_dow$dow.y)
+  report(dow_pools_ok,
+         "the tracked died-of-wounds summary pools the counts the per-replication responses carry")
 }
 
 # ── 3. The published table matches the tracked measurement ───────────────────
@@ -269,7 +270,7 @@ check_count_row <- function(rows, label, response, digits = 1) {
   for (k in seq_along(MASS_CASUALTY_ARMS)) {
     tracked <- if (is.null(count_summary)) NA_real_ else {
       hit <- count_summary[count_summary$rate_per_day == MASS_CASUALTY_ARMS[k] &
-                              count_summary$response == response, ]
+                             count_summary$response == response, ]
       if (nrow(hit) == 1) hit$mean else NA_real_
     }
     printed <- if (k <= length(cells)) leading_figure(cells[k]) else NA_real_
@@ -296,12 +297,12 @@ check_dow_row <- function(rows, label, origin) {
   for (k in seq_along(MASS_CASUALTY_ARMS)) {
     hit <- if (is.null(dow_summary)) NULL else {
       dow_summary[dow_summary$rate_per_day == MASS_CASUALTY_ARMS[k] &
-                     dow_summary$origin == origin, ]
+                    dow_summary$origin == origin, ]
     }
     printed_cell <- if (k <= length(cells)) cells[k] else NA_character_
     if (!is.null(hit) && nrow(hit) == 1 && (is.na(hit$n) || hit$n == 0)) {
       report(!is.na(printed_cell) && grepl("not applicable", printed_cell),
-             "'%s' in column %d prints 'not applicable' where the tracked set carries no casualties",
+             "'%s' in column %d prints 'not applicable' where the tracked set has no casualties",
              label, k)
       next
     }

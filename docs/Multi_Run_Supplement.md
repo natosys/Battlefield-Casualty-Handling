@@ -398,15 +398,16 @@ The flag is the only way to write this sweep's copy of the tracked `data/sweeps/
 <!-- SWEEP pmvamb=1,2,3,4,5 -->
 <!-- SWEEP hx240m=1,2,3,4 -->
 
-10 replications of 30 simulated days per sweep point at control seed 42, under the shipped default configuration with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size.
+10 replications of 30 simulated days per sweep point at control seed 42, with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size. The design runs twice, once under the shipped default configuration and once under the `high_intensity` scenario profile, the second added under Issue #300 to establish whether the margin the first reports survives at the higher casualty rate.
 
-`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) rebuilds the environment at each sweep point via `build_environment()` and runs the same replication engine the comparative scenario runner uses. Run via:
+`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) resolves the named scenario against the parsed `env_data.json` (`resolve_scenario()`, `R/scenario.R`) before applying the per-point fleet-size override, rebuilds the environment via `build_environment()`, and runs the same replication engine the comparative scenario runner uses. Run via:
 
 ```
 Rscript scripts/run_transport_sweep.R --refresh-baseline
+Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseline
 ```
 
-The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it. `data/sweeps/transport_capacity_by_fleet_size.csv` holds the full per-point results, including the interval bounds omitted from the companion paper's table.
+The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it beyond `--scenario`. `data/sweeps/transport_capacity_by_fleet_size.csv` holds the shipped configuration's full per-point results, and `data/sweeps/transport_capacity_by_fleet_size_high_intensity.csv` the `high_intensity` re-run's, each including the interval bounds omitted from the companion paper's tables.
 
 The horizon and the control seed above are shared with the forward ICU share frontier, the two sweeps being one shape and checked by one protocol check, which is why this design states them and that one does not repeat them.
 
@@ -586,7 +587,7 @@ Four limitations are properties of the designs rather than of the model, and eac
 
 **Utilisation columns at 10 and 20 replications are not determined.** Both the transport sweep and the forward intensive care share sweep report utilisation figures that move without order across their swept range. Too few busy-time events accumulate per replication at those counts for the column to be read, and neither sweep's conclusion rests on it.
 
-**The sweeps were run at moderate intensity only.** The transport fleet sweep, the forward intensive care share frontier and the pre-open hold window comparison all use the shipped default configuration, so none of them establishes that its result survives at the higher casualty intensity. Re-running them at high intensity is listed among the further development items of the companion paper [[1]](#references).
+**Most sweeps were run at moderate intensity only.** The forward intensive care share frontier and the pre-open hold window comparison both use the shipped default configuration, so neither establishes that its result survives at the higher casualty intensity. The transport fleet-size sweep no longer carries this limitation, having been re-run at high intensity under the same design (below); re-running the remaining two is listed among the further development items of the companion paper [[1]](#references).
 
 Beyond these, the simulation is verified rather than validated: it behaves as its specification describes, which is a separate question from whether that specification represents the real trauma system well [[13]](#references). No design recorded here addresses that question, and none can.
 

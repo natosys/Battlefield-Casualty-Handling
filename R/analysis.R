@@ -4934,6 +4934,9 @@ transport_rep_kpis <- function(mon, pattern) {
 #'   establishment qty (e.g. from env_data.json's `transports` block).
 #' @param n_rep Replications per fleet-size point, for the plot subtitle;
 #'   NULL (default) uses a subtitle with no replication count.
+#' @param scenario Name of the scenario profile the sweep ran under, for the
+#'   plot subtitle; "default" (the default) omits it, since that is the
+#'   configuration every other figure in this file is drawn from.
 #' @return ggplot object: four panels arranged as a 2x2 grid — one column
 #'   per vehicle type (PMV Ambulance, HX240M), one row per metric (Mean
 #'   Queue, Mean Utilisation) — each showing that metric vs fleet size, with
@@ -4951,7 +4954,7 @@ transport_rep_kpis <- function(mon, pattern) {
 #'   "PMVAmb"), and the ribbon/mean-line/reference-line are mapped to named
 #'   aesthetics purely so ggplot2 draws an explanatory legend for them,
 #'   rather than leaving their meaning to prose alone.
-render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
+render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, scenario = "default") {
   vehicles <- unique(sweep_df$vehicle)
   vehicle_labels <- c(PMVAmb = "PMV Ambulance", HX240M = "HX240M")
   vehicle_labels <- vehicle_labels[vehicles]
@@ -4977,6 +4980,10 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
     sprintf("%d replications per fleet-size point", n_rep)
   } else {
     NULL
+  }
+  if (!identical(scenario, "default")) {
+    scenario_note <- sprintf("%s profile", scenario)
+    subtitle <- if (is.null(subtitle)) scenario_note else paste(subtitle, scenario_note, sep = ", ")
   }
 
   ggplot(plot_df, aes(x = qty, y = mean)) +
@@ -5005,6 +5012,15 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
 #'   list(PMVAmb = 1:5, HX240M = 1:4). Each element replaces the `qty` for
 #'   the matching entry in env_data.json's `transports` block for that sweep
 #'   point; the other vehicle type is held at its current establishment qty.
+#' @param scenario Name of a scenario profile to run the sweep under
+#'   (default "default", the shipped configuration). Resolved by
+#'   resolve_scenario() (R/scenario.R) before the fleet-size overrides are
+#'   applied, since a scenario overlays `vars` (casualty-generation
+#'   parameters) while the sweep itself edits `transports`, the two never
+#'   touching the same field. A non-default scenario suffixes the written
+#'   CSV and PNG filenames with `_<scenario>` so a moderate- and a
+#'   high-intensity sweep can both be tracked without one overwriting the
+#'   other.
 #' @param n_days Simulation duration per replication (default 30).
 #' @param n_rep  Replications per fleet-size point, for CI bounds (default 5).
 #' @param path File path to env_data.json (default "env_data.json").
@@ -5023,19 +5039,21 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
 #'   behaviour.
 #' @return Named list: data (swept results, one row per vehicle x fleet
 #'   size, with mean/95% CI for queue and utilisation), plot (ggplot object,
-#'   also saved to images_dir/transport_capacity_margin_by_fleet_size.png)
+#'   also saved to images_dir/transport_capacity_margin_by_fleet_size.png,
+#'   or that name with `_<scenario>` appended for a non-default scenario)
 #'
 #' @details For each vehicle type in `fleet_sizes` and each qty in its swept
-#'   range, deep-copies the parsed env_data.json, overwrites that vehicle's
-#'   `transports[[]]$qty` (the other vehicle type stays at its current
-#'   establishment qty), rebuilds via build_environment(), and runs n_rep
-#'   replications via run_replications() (R/replication.R) — the same
+#'   range, deep-copies the scenario-resolved env_data.json, overwrites that
+#'   vehicle's `transports[[]]$qty` (the other vehicle type stays at its
+#'   current establishment qty), rebuilds via build_environment(), and runs
+#'   n_rep replications via run_replications() (R/replication.R) — the same
 #'   replication engine the comparative scenario runner (Issue #10,
 #'   R/scenario_runner.R) uses, reused here directly rather than duplicated.
 #'   Fleet size is a structural (`elms`/`transports`) change, which
-#'   load_scenario()'s scenario-profile overlay mechanism does not cover
-#'   (see load_scenario()'s @details, R/environment.R) — the sweep therefore
-#'   edits the parsed JSON directly rather than going through run_scenario().
+#'   resolve_scenario()'s overlay mechanism does not cover (R/scenario.R),
+#'   so `scenario` is resolved once against the parsed JSON before the
+#'   per-point fleet-size edits are applied on top of it, rather than the
+#'   sweep going through run_scenario() for each point.
 #'   Per-replication queue/utilisation means are extracted with
 #'   transport_rep_kpis() (built on the same time-weighted-mean logic as
 #'   summarise_replications() and compute_utilisation(), used by
@@ -5055,6 +5073,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL) {
 #'   explicit restore is what makes the CSV and plot written after the loop
 #'   the caller's configuration's rather than the last sweep point's.
 plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVAmb = 1:5, HX240M = 1:4),
+                                                          scenario = "default",
                                                           n_days = 30, n_rep = 5,
                                                           path = "env_data.json",
                                                           output_dir = "outputs", images_dir = "images",
@@ -5074,11 +5093,13 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
   # roxygen @details above (Issue #236).
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
-  json_data_base <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+  json_data_base <- resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE), scenario)
   current_qty <- setNames(
     vapply(json_data_base$transports, function(t) t$qty, numeric(1)),
     vapply(json_data_base$transports, function(t) t$name, character(1))
   )
+
+  scenario_suffix <- if (identical(scenario, "default")) "" else paste0("_", scenario)
 
   #' Mean and 95% confidence interval of a sweep point's replications
   #'
@@ -5150,14 +5171,15 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
   day_min  <<- day_min_base
   counts   <<- counts_base
 
-  write.csv(sweep_df, file.path(output_dir, "transport_capacity_by_fleet_size.csv"), row.names = FALSE)
-  message(sprintf("Transport fleet-size sweep results written to %s/transport_capacity_by_fleet_size.csv",
-                  output_dir))
+  csv_name <- sprintf("transport_capacity_by_fleet_size%s.csv", scenario_suffix)
+  png_name <- sprintf("transport_capacity_margin_by_fleet_size%s.png", scenario_suffix)
 
-  p <- render_transport_sweep_plot(sweep_df, current_qty, n_rep = n_rep)
+  write.csv(sweep_df, file.path(output_dir, csv_name), row.names = FALSE)
+  message(sprintf("Transport fleet-size sweep results written to %s/%s", output_dir, csv_name))
 
-  ggsave(file.path(images_dir, "transport_capacity_margin_by_fleet_size.png"), p,
-        width = 12, height = 8, dpi = 150)
+  p <- render_transport_sweep_plot(sweep_df, current_qty, n_rep = n_rep, scenario = scenario)
+
+  ggsave(file.path(images_dir, png_name), p, width = 12, height = 8, dpi = 150)
 
   list(data = sweep_df, plot = p)
 }

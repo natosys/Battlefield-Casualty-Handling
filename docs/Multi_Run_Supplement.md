@@ -36,6 +36,7 @@ This document is the design record for the replicated experiments reported in th
   - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
   - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
+  - [R2B Holding Capacity vs. Evacuation Threshold Sweep](#r2b-holding-capacity-vs-evacuation-threshold-sweep)
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
   - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
   - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
@@ -368,6 +369,26 @@ The flag is the only way to write this sweep's copy of the tracked `data/sweeps/
 Forward intensive care utilisation rises steadily across the swept range, from 12.4% at a zero share, where the beds serve the evacuation wait alone, to 24.3% at a full one. That column therefore reads as the policy being applied rather than as noise, which an earlier measurement at these same replication counts did not: it moved between 14.1% and 22.7% in no particular order and was recorded here as too poorly determined to read. The earlier reading was not tracked, so what changed between the two cannot now be established; this one is tracked in `data/sweeps/` and its successor can be compared against it.
 
 Neither sweep keeps the per-replication responses behind its per-point mean, only the mean and its interval. `scripts/check_capacity_sweep_protocol.R` can therefore assert that each tracked interval is symmetric about its own mean where it is not clamped, that every mean lies inside its own interval and that not every bound sits on a clamp, but it cannot recompute the half-width from the replications. Recovering that would mean changing what both sweep functions return, which is a larger change than this evidence set needed; it is recorded here as a limit on what the check establishes rather than left to be inferred from the check's output.
+
+### R2B Holding Capacity vs. Evacuation Threshold Sweep
+
+<!-- SWEEP days=30 -->
+<!-- SWEEP seed=42 -->
+<!-- SWEEP hold_threshold_replications=10 -->
+<!-- SWEEP hold_beds=5,7,10 -->
+<!-- SWEEP evac_threshold_days=0,1,3,5,7 -->
+
+10 replications of 30 simulated days per grid point at control seed 42, under the shipped default configuration with two overrides per point: R2B holding beds per unit set to 5 (shipped), 7 or 10, and `r2b.holding.evac_threshold` set to disabled (shipped, equivalent to 0), 1, 3, 5 or 7 days, the fifteen-point cross product of both axes. Each replication is drawn independently rather than paired, the same convention the two sweeps above it use.
+
+`plot_r2b_hold_threshold_sweep()` (`R/analysis.R`) sets the two axes differently, because they enter the model at different points. The bed count is an `elms` establishment, so `set_r2b_hold_beds()` edits the parsed configuration before `build_environment()` runs for that point, the same mechanism the transport fleet-size sweep above uses for its own `transports` counts. The evacuation threshold is a `vars` entry, so it is set on the already-built configuration directly, the same mechanism the forward ICU share frontier above uses for its own `vars` override. Run via:
+
+```
+Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline
+```
+
+The flag is the only way to write this sweep's copy of the tracked `data/sweeps/` and the tracked `images/r2b_hold_threshold_sweep.png`, and it runs the protocol above rather than whatever arguments accompany it. It writes `r2b_hold_threshold_sweep.csv` alone and leaves the other two sweeps' files in the same directory untouched. Like them, it keeps only the mean and interval at each grid point rather than the per-replication responses behind it, the same limit on what `scripts/check_capacity_sweep_protocol.R` can establish that the paragraph above states for the other two.
+
+**Why the parameter is swept rather than screened.** `evac_threshold` ships disabled, at zero, and disabling it changes the model qualitatively rather than by degree: the whole drawn convalescence is served forward rather than a bounded share of it. A Morris elementary effect computed across the first grid step, from a lower bound of zero to the next value tested, would measure that on/off transition rather than the threshold's magnitude, and the measured response bears this out rather than merely raising a theoretical concern. At the shipped five beds per unit, moving from disabled to a one-day threshold takes the R2B holding queue from 0.93 casualties [0.40, 1.45] to 0.04 [0.00, 0.10], a single grid step accounting for the large majority of the whole swept range's movement (the queue only regains most of that ground by seven days, reaching 0.90 [0.38, 1.42]). Screening the parameter with a lower bound of zero would rank it by this step rather than by where a planner would actually set a threshold. The alternative the issue this sweep answers considered, a lower bound above zero, avoids the discontinuity but only by shipping a non-zero default, which would move every seed-42 figure and every calibration in this project for a screening convenience alone. Sweeping it directly answers the planning question this parameter exists for without either cost, and `evac_threshold` is accordingly not added to the screened set; `docs/Multi_Run_Analysis.md`'s Option 2 records the same finding against the planning recommendation it supports.
 
 ### Transport Fleet-Size Sweep
 

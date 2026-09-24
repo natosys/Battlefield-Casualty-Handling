@@ -10,6 +10,7 @@
 #   Rscript scripts/run_transport_sweep.R --pmvamb 1:5 --hx240m 1:4
 #   Rscript scripts/run_transport_sweep.R --iterations 30 --days 30
 #   Rscript scripts/run_transport_sweep.R --quick                  # smoke test (2 reps, 3 days)
+#   Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseline
 #
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
 # tracked images/transport_capacity_margin_by_fleet_size.png. Without it every
@@ -18,9 +19,10 @@
 # against. The flag fixes the swept range, the replication count, the horizon
 # and the seed rather than accepting whichever the caller passed, an evidence
 # set measured at some other design not being the experiment
-# docs/Multi_Run_Supplement.md documents. It writes its own
-# transport_capacity_by_fleet_size.csv and leaves the forward ICU share
-# sweep's files in the same directory untouched.
+# docs/Multi_Run_Supplement.md documents; --scenario still applies. It writes
+# its own transport_capacity_by_fleet_size.csv (or that name with
+# `_<scenario>` appended for a non-default --scenario) and leaves the forward
+# ICU share sweep's files in the same directory untouched.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
@@ -40,6 +42,8 @@ option_list <- list(
               help = "PMV Ambulance fleet sizes to sweep, as an R range/vector expression [default: %default]"),
   make_option("--hx240m",     type = "character", default = "1:4",
               help = "HX240M fleet sizes to sweep, as an R range/vector expression [default: %default]"),
+  make_option("--scenario",   type = "character", default = "default",
+              help = "Scenario profile to run the sweep under [default: %default]"),
   make_option("--iterations", type = "integer", default = 10L,
               help = "Replications per fleet-size point [default: %default]"),
   make_option("--days",       type = "integer", default = 30L,
@@ -108,8 +112,8 @@ fleet_sizes <- list(
 )
 
 message(sprintf(
-  "Transport fleet-size sweep config: PMVAmb=%s, HX240M=%s, iterations=%d, days=%d, seed=%d",
-  opt$pmvamb, opt$hx240m, opt$iterations, opt$days, opt$seed
+  "Transport fleet-size sweep config: PMVAmb=%s, HX240M=%s, iterations=%d, days=%d, seed=%d, scenario=%s",
+  opt$pmvamb, opt$hx240m, opt$iterations, opt$days, opt$seed, opt$scenario
 ))
 
 # plot_transport_capacity_margin_by_fleet_size() saves/restores the global
@@ -123,6 +127,7 @@ counts   <<- sapply(env_data$elms, length)
 set.seed(opt$seed)
 sweep <- plot_transport_capacity_margin_by_fleet_size(
   fleet_sizes = fleet_sizes,
+  scenario    = opt$scenario,
   n_days      = opt$days,
   n_rep       = opt$iterations,
   path        = opt$path,

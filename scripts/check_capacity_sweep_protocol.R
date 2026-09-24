@@ -15,12 +15,15 @@
 # delivering post-operative intensive care forward is not. Until Issue #384
 # both wrote their results to the gitignored outputs/ alone, so the tables the
 # recommendations rest on could be audited only by re-running ninety and one
-# hundred replications respectively.
+# hundred replications respectively. Issue #300 added a second transport
+# sweep under the high_intensity profile, checked against its own table by
+# the same steps rather than a third check, since it is the same design run
+# under a different scenario.
 #
-# The two sweeps share one check rather than taking one each because they are
-# one shape: a swept establishment or policy value, a per-point mean and
-# interval, and a table in the paper printing a column of each. A reader
-# auditing one audits the other by the same steps.
+# The three tracked evidence sets share one check rather than one each
+# because they are one shape: a swept establishment or policy value, a
+# per-point mean and interval, and a table in the paper printing a column of
+# each. A reader auditing one audits the others by the same steps.
 #
 # What this asserts:
 #
@@ -28,7 +31,7 @@
 #      docs/Multi_Run_Supplement.md documents in a marker comment.
 #   2. Each tracked evidence set is that experiment: the documented swept
 #      values, and the response columns its published table prints.
-#   3. Every figure the paper's two tables print matches the tracked
+#   3. Every figure the paper's tables print matches the tracked
 #      measurement, and a missing table, row or column fails rather than
 #      passing quietly.
 #   4. The interval each sweep reports is the Student t one at 95% on an input
@@ -71,8 +74,11 @@ SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
 #' The companion paper, which prints both tables
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
 
-#' Tracked transport fleet-size sweep
+#' Tracked transport fleet-size sweep, shipped configuration
 TRANSPORT_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_size.csv")
+
+#' Tracked transport fleet-size sweep, high_intensity profile
+TRANSPORT_HIGH_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_size_high_intensity.csv")
 
 #' Tracked forward ICU share frontier
 ICU_SHARE_PATH <- file.path("data", "sweeps", "r2b_icu_share_frontier.csv")
@@ -192,6 +198,13 @@ transport <- if (file.exists(TRANSPORT_PATH)) {
   NULL
 }
 
+transport_high <- if (file.exists(TRANSPORT_HIGH_PATH)) {
+  read.csv(TRANSPORT_HIGH_PATH, stringsAsFactors = FALSE)
+} else {
+  report(FALSE, "the tracked high_intensity transport sweep %s exists", TRANSPORT_HIGH_PATH)
+  NULL
+}
+
 icu_share <- if (file.exists(ICU_SHARE_PATH)) {
   read.csv(ICU_SHARE_PATH, stringsAsFactors = FALSE)
 } else {
@@ -211,6 +224,20 @@ if (!is.null(transport)) {
   report(all(needed %in% names(transport)),
          "the tracked sweep carries every response the table prints (%s)",
          paste(setdiff(needed, names(transport)), collapse = ","))
+}
+
+if (!is.null(transport_high)) {
+  swept_pmvamb <- sort(transport_high$qty[transport_high$vehicle == "PMVAmb"])
+  swept_hx240m <- sort(transport_high$qty[transport_high$vehicle == "HX240M"])
+  report(identical(as.integer(swept_pmvamb), as.integer(pmvamb)),
+         "the tracked high_intensity sweep carries the ambulance sizes the code holds")
+  report(identical(as.integer(swept_hx240m), as.integer(hx240m)),
+         "the tracked high_intensity sweep carries the truck sizes the code holds")
+
+  needed <- c("mean_q", "ci_lower_q", "ci_upper_q", "mean_util")
+  report(all(needed %in% names(transport_high)),
+         "the tracked high_intensity sweep carries every response the table prints (%s)",
+         paste(setdiff(needed, names(transport_high)), collapse = ","))
 }
 
 if (!is.null(icu_share)) {
@@ -372,6 +399,29 @@ if (!is.null(transport)) {
   ))
 }
 
+if (!is.null(transport_high)) {
+  sizes <- sort(union(pmvamb, hx240m))
+
+  #' Rows of the tracked high_intensity sweep holding the ambulance fleet at
+  #' one size
+  #'
+  #' @param q The fleet size.
+  #' @return Logical vector selecting that sweep point's row.
+  ambulance_at_high <- function(q) transport_high$vehicle == "PMVAmb" & transport_high$qty == q
+
+  #' Rows of the tracked high_intensity sweep holding the truck fleet at one
+  #' size
+  #'
+  #' @param q The fleet size.
+  #' @return Logical vector selecting that sweep point's row.
+  truck_at_high <- function(q) transport_high$vehicle == "HX240M" & transport_high$qty == q
+
+  check_published_table("<!-- TRANSPORT SWEEP TABLE HIGH INTENSITY -->", sizes, list(
+    list(1, column_reader(transport_high, ambulance_at_high, "mean_q"), 1, 4),
+    list(2, column_reader(transport_high, truck_at_high, "mean_q"), 1, 4)
+  ))
+}
+
 if (!is.null(icu_share)) {
   # The table's row labels are percentages and the tracked shares are
   # fractions, so each key is divided by a hundred before it is matched.
@@ -475,6 +525,12 @@ if (!is.null(transport)) {
                        0, NA, "the transport sweep queue")
   check_interval_shape(transport, "mean_util", "ci_lower_util", "ci_upper_util",
                        0, 1, "the transport sweep utilisation")
+}
+if (!is.null(transport_high)) {
+  check_interval_shape(transport_high, "mean_q", "ci_lower_q", "ci_upper_q",
+                       0, NA, "the high_intensity transport sweep queue")
+  check_interval_shape(transport_high, "mean_util", "ci_lower_util", "ci_upper_util",
+                       0, 1, "the high_intensity transport sweep utilisation")
 }
 if (!is.null(icu_share)) {
   check_interval_shape(icu_share, "mean_r2e_icu_q", "ci_lower_r2e_icu_q",

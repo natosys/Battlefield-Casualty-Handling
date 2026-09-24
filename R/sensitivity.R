@@ -400,7 +400,19 @@ morris_params <- data.frame(
     "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold",
     "r2b_pre_open_window",
     # ── Surgical pathway split ────────────────────────────────────────────
-    "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate"
+    "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate",
+    # ── Role 4, R2E critical hold, mass casualty split and forward release
+    #    thresholds — added by the Issue #339 screening-coverage audit, which
+    #    found these thirteen numeric leaves screened by neither this table
+    #    nor the exclusion note below ─────────────────────────────────────
+    "reconstruction_share", "role4_return_interval_mode",
+    "role4_post_reconstruction_return_rate",
+    "role4_los_p1_surgical_mode", "role4_los_p1_nonsurgical_mode",
+    "role4_los_p2_mode", "role4_los_p3_dnbi_mode",
+    "role4_icu_continuation_mode",
+    "r2e_vent_share", "r2e_critical_hold_mode",
+    "saturation_queue_threshold", "r2b_evac_threshold",
+    "mass_casualty_kia_fraction"
   ),
   lower = c(
     57,    25,    0.0100, 15,   15,   770,   0.70,  15,    8,   0,    40,
@@ -414,7 +426,13 @@ morris_params <- data.frame(
     4,    0.00,
     0,    0,     0.60,
     0,
-    0.30, 0.08, 0.00
+    0.30, 0.08, 0.00,
+    0.12, 2,     0,
+    10,   7,    5,    2.5,
+    2,
+    0.075, 864,
+    0,    0,
+    0.14
   ),
   upper = c(
     133,   70,    0.040,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
@@ -428,7 +446,13 @@ morris_params <- data.frame(
     14,   0.30,
     1,    2880,  0.95,
     360,
-    0.80, 0.40, 0.20
+    0.80, 0.40, 0.20,
+    0.28, 3,     0.014,
+    42,   28,   20,   10,
+    8,
+    0.30,  2016,
+    24,   10080,
+    0.56
   ),
   mode  = c(
     95,    45,    0.020,  30,   30,   1440,  0.90,  21,    12,  0,    60,
@@ -442,7 +466,13 @@ morris_params <- data.frame(
     7,    0.00,
     0,    1440,  0.80,
     60,
-    0.55, 0.20, 0.05
+    0.55, 0.20, 0.05,
+    0.20, 2.5,   0,
+    21,   14,   10,   5,
+    4,
+    0.15,  1440,
+    8,    0,
+    0.28
   ),
   # Each parameter's category, in the same order as the vectors above. The
   # three are Context, Capacity and Policy; README Sensitivity Analysis
@@ -469,7 +499,13 @@ morris_params <- data.frame(
     "Policy", "Context",
     "Policy", "Policy", "Policy",
     "Policy",
-    "Context", "Context", "Context"
+    "Context", "Context", "Context",
+    "Context", "Context", "Context",
+    "Context", "Context", "Context", "Context",
+    "Context",
+    "Context", "Capacity",
+    "Policy", "Policy",
+    "Context"
   ),
   stringsAsFactors = FALSE
 )
@@ -655,6 +691,37 @@ apply_routing_threshold_params <- function(ed, p) {
   ed
 }
 
+#' Apply the Role 4, R2E critical hold, mass casualty split and forward
+#' release threshold parameters added by the Issue #339 screening-coverage
+#' audit
+#'
+#' @param ed Parsed configuration to apply the design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with this family's fields set from `p`.
+apply_role4_and_threshold_params <- function(ed, p) {
+  # ── Role 4 (national support base) ─────────────────────────────────────
+  ed$vars$role4$surgery$reconstruction_share <- p[["reconstruction_share"]]
+  ed$vars$role4$surgery$return_interval_mode <- p[["role4_return_interval_mode"]]
+  ed$vars$role4$surgery$post_reconstruction_return_rate <-
+    p[["role4_post_reconstruction_return_rate"]]
+  ed$vars$role4$los_p1_surgical$mode    <- p[["role4_los_p1_surgical_mode"]]
+  ed$vars$role4$los_p1_nonsurgical$mode <- p[["role4_los_p1_nonsurgical_mode"]]
+  ed$vars$role4$los_p2$mode             <- p[["role4_los_p2_mode"]]
+  ed$vars$role4$los_p3_dnbi$mode        <- p[["role4_los_p3_dnbi_mode"]]
+  ed$vars$role4$icu_continuation$mode   <- p[["role4_icu_continuation_mode"]]
+
+  # ── R2E critical hold and forward theatre saturation release ───────────
+  ed$vars$r2eheavy$critical_hold$ventilated_share <- p[["r2e_vent_share"]]
+  ed$vars$r2eheavy$critical_hold$mode             <- p[["r2e_critical_hold_mode"]]
+  ed$vars$r2eheavy$second_surgery$saturation_queue_threshold <-
+    p[["saturation_queue_threshold"]]
+
+  # ── R2B holding evacuation threshold and mass casualty KIA split ───────
+  ed$vars$r2b$holding$evac_threshold          <- p[["r2b_evac_threshold"]]
+  ed$vars$mass_casualty$event$kia_fraction    <- p[["mass_casualty_kia_fraction"]]
+  ed
+}
+
 #' Apply the simplex-constrained composition parameters
 #'
 #' @param ed Parsed configuration to apply the design point to.
@@ -691,9 +758,10 @@ apply_composition_params <- function(ed, p) {
 #'   then a same-issue follow-up review reduced it to fifty-three by
 #'   removing two polling-interval parameters from screening (see
 #'   morris_params's own comment). Later issues have grown it to sixty-four,
-#'   the last six being balance coordinates rather than direct writes: each
-#'   pair is back-transformed to a whole composition at the end of this
-#'   function.
+#'   then Issue #339's screening-coverage audit added thirteen more (seventy-
+#'   seven scalars), the last six of the whole table being balance
+#'   coordinates rather than direct writes: each pair is back-transformed to
+#'   a whole composition at the end of this function.
 apply_params <- function(ed, p) {
   ed <- apply_duration_and_dow_ceiling_params(ed, p)
   ed <- apply_echelon_duration_params(ed, p)
@@ -701,6 +769,7 @@ apply_params <- function(ed, p) {
   ed <- apply_dow_curve_params(ed, p)
   ed <- apply_generation_and_event_params(ed, p)
   ed <- apply_routing_threshold_params(ed, p)
+  ed <- apply_role4_and_threshold_params(ed, p)
   ed <- apply_composition_params(ed, p)
   ed
 }

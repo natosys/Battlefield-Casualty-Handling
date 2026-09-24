@@ -1286,7 +1286,7 @@ Two classes of parameter are then held out of the screen. Polling-loop intervals
 
 Each screened parameter carries a baseline alongside its bounds, and the baseline does more work than the tables below suggest. Morris moves every parameter across its own range and never reads the baseline at all. A Sobol decomposition instead selects a subset and holds every parameter outside it fixed, at its baseline, at each of the $N \times (p+2)$ design points, so a baseline that has drifted from the shipped configuration decomposes the variance of a system nobody described. The Shiny Sensitivity Calibration tab displays the same column to a planner. Because neither use is exercised by an ordinary run, `scripts/check_morris_baseline.R` asserts the agreement rather than leaving it to inspection: that every baseline lies inside its own bounds, and that applying the whole baseline vector through `apply_params()` leaves `env_data.json` unchanged, which is precisely the condition under which a Sobol run's held-fixed background is the shipped configuration whatever subset it selects. The parameter-to-path mapping the second assertion needs is derived by perturbing each parameter in turn and observing which values move, so the check cannot itself drift from the code it describes.
 
-Sixty-five parameters are screened, spanning the main uncertain inputs across all three echelons plus the casualty generation, force regeneration, and strategic evacuation subsystems. Fifty-nine are ordinary scalars whose bounds are set using one of two rules, described below: **Rule A** (citation-anchored, moderate uncertainty) spans approximately baseline ±40%; **Rule B** (informed estimate, no literature anchor) spans baseline ×0.5–×2.0 (duration/rate parameters) or approximately baseline ±0.15–0.25 (probabilities), clipped to a clinically sensible range. The remaining six are the balance coordinates of the three casualty composition splits, which take their bounds by a transformation of a compositional range rather than from either rule (see [Simplex-Constrained Compositions](#simplex-constrained-compositions)).
+Seventy-eight parameters are screened, spanning the main uncertain inputs across all three echelons plus the casualty generation, force regeneration, Role 4 and strategic evacuation subsystems. Seventy-two are ordinary scalars whose bounds are set using one of two rules, described below: **Rule A** (citation-anchored, moderate uncertainty) spans approximately baseline ±40%; **Rule B** (informed estimate, no literature anchor) spans baseline ×0.5–×2.0 (duration/rate parameters) or approximately baseline ±0.15–0.25 (probabilities), clipped to a clinically sensible range. The remaining six are the balance coordinates of the three casualty composition splits, which take their bounds by a transformation of a compositional range rather than from either rule (see [Simplex-Constrained Compositions](#simplex-constrained-compositions)). Thirteen of the seventy-eight, spanning Role 4 length of stay and reconstruction, the R2E pre-flight critical hold, the forward theatre saturation release threshold, the R2B holding evacuation threshold and the mass casualty wounded/killed split, were added by an Issue #339 audit of every numeric leaf in `env_data.json` against the screened set and the exclusion list below, which found them screened by neither.
 
 **R1 — Forward Aid Post**
 
@@ -1316,6 +1316,7 @@ Sixty-five parameters are screened, spanning the main uncertain inputs across al
 | Holding bed duration                 | `r2b_hold_mode`      | 7200 min | 3600  | 14400 | B    |
 | Hold-bed reroute threshold           | `r2b_hold_threshold` | 80%      | 60%   | 95%   | B    |
 | Pre-open hold window                 | `r2b_pre_open_window` | 60 min  | 0     | 360   | —    |
+| Holding evacuation threshold         | `r2b_evac_threshold` | 0 min (disabled) | 0 | 10080 | — |
 
 **R2E — Field Hospital**
 
@@ -1330,6 +1331,9 @@ Sixty-five parameters are screened, spanning the main uncertain inputs across al
 | Forward ICU share               | `r2b_icu_share`     | 0%        | 0%    | 100%  | —    |
 | Forward hold time limit         | `r2b_forward_hold_max` | 1440 min | 0  | 2880  | —    |
 | OT shift duration               | `ot_hours`          | 12 hr     | 8     | 16    | A    |
+| Pre-flight critical hold duration | `r2e_critical_hold_mode` | 1440 min | 864 | 2016 | A |
+| Pre-flight critical hold ventilated share | `r2e_vent_share` | 15% | 7.5% | 30% | B |
+| Forward theatre saturation release threshold | `saturation_queue_threshold` | 8 casualties queued | 0 | 24 | — |
 
 **Died of Wounds — logistic curve and treatment efficacy**
 
@@ -1370,11 +1374,25 @@ Sixty-five parameters are screened, spanning the main uncertain inputs across al
 | Mass casualty event rate             | `mass_casualty_rate`         | 0/day        | 0     | 0.4   | B    |
 | Mass casualty size — maximum         | `mass_casualty_max_cas`      | 60           | 40    | 80    | B    |
 | Mass casualty size — minimum         | `mass_casualty_min_cas`      | 20           | 10    | 30    | B    |
+| Mass casualty wounded/killed split    | `mass_casualty_kia_fraction` | 28%          | 14%   | 56%   | B    |
 | Reinforcement demand cycle           | `fr_demand_interval_days`    | 7 days | 0     | 14    | B    |
 | Reinforcement fulfillment lag        | `fr_fulfillment_lag_days`    | 7 days       | 4     | 14    | B    |
 | Reinforcement fill distribution mode | `fr_fill_mode_frac`          | 0.85         | 0.5   | 1.05  | B    |
 | AME sortie interval                  | `ame_schedule_interval_days` | 7 days       | 4     | 14    | B    |
 | AME sortie cancellation probability  | `ame_failure_probability`    | 0%           | 0%    | 30%   | —    |
+
+**Role 4 — National Support Base**
+
+| Parameter                                | Variable                               | Baseline | Lower | Upper  | Rule |
+| ----------------------------------------- | --------------------------------------- | -------- | ----- | ------ | ---- |
+| Reconstruction cohort share               | `reconstruction_share`                  | 20%      | 12%   | 28%    | A    |
+| Reconstruction return interval            | `role4_return_interval_mode`            | 2.5 days | 2     | 3      | —    |
+| Post-reconstruction return-to-duty rate   | `role4_post_reconstruction_return_rate` | 0% (disabled) | 0% | 1.4% | A |
+| Length of stay — P1 surgical              | `role4_los_p1_surgical_mode`            | 21 days  | 10    | 42     | B    |
+| Length of stay — P1 non-surgical          | `role4_los_p1_nonsurgical_mode`         | 14 days  | 7     | 28     | B    |
+| Length of stay — P2                       | `role4_los_p2_mode`                     | 10 days  | 5     | 20     | B    |
+| Length of stay — P3 / DNBI                | `role4_los_p3_dnbi_mode`                | 5 days   | 2.5   | 10     | B    |
+| ICU-continuation phase duration           | `role4_icu_continuation_mode`           | 4 days   | 2     | 8      | B    |
 
 ##### Simplex-Constrained Compositions
 
@@ -1463,7 +1481,7 @@ Expanding the response set costs no additional simulation. The Morris design is 
 
 #### Parameter Name Reference
 
-The grouped tables above and the ranking table below identify each parameter by its `morris_params$name`, the same identifier used in `outputs/morris_ranking.csv`, in `apply_params()` (`R/sensitivity.R`), and on every `images/morris_*.png` axis. The table below maps all sixty-five to a plain-English title and category, sorted alphabetically by variable. Titles come from `MORRIS_LABELS` (`app.R`) and categories from `morris_params$category` (`R/sensitivity.R`); this table reproduces both rather than deriving from them, so it must be updated whenever a parameter is added, removed, retitled, or recategorised. The Shiny app's Sensitivity Calibration tab presents the same mapping alongside each parameter's screened bounds, with a CSV download ([Shiny Application](#shiny-application)).
+The grouped tables above and the ranking table below identify each parameter by its `morris_params$name`, the same identifier used in `outputs/morris_ranking.csv`, in `apply_params()` (`R/sensitivity.R`), and on every `images/morris_*.png` axis. The table below maps all seventy-eight to a plain-English title and category, sorted alphabetically by variable. Titles come from `MORRIS_LABELS` (`app.R`) and categories from `morris_params$category` (`R/sensitivity.R`); this table reproduces both rather than deriving from them, so it must be updated whenever a parameter is added, removed, retitled, or recategorised. The Shiny app's Sensitivity Calibration tab presents the same mapping alongside each parameter's screened bounds, with a CSV download ([Shiny Application](#shiny-application)).
 
 | Variable                     | Title                                     | Category                        |
 | ---------------------------- | ----------------------------------------- | ------------------------------- |
@@ -1481,6 +1499,7 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `kia_cbt_mean`               | KIA — Combat Mean Daily Rate              | Scenario / Casualty Context     |
 | `kia_spt_mean`               | KIA — Support Mean Daily Rate             | Scenario / Casualty Context     |
 | `long_resus_mode`            | Long Resuscitation Duration (Mode)        | Health System Design - Capacity |
+| `mass_casualty_kia_fraction` | Mass Casualty Wounded/Killed Split        | Scenario / Casualty Context     |
 | `mass_casualty_max_cas`      | Mass Casualty Event Size (Maximum)        | Scenario / Casualty Context     |
 | `mass_casualty_min_cas`      | Mass Casualty Event Size (Minimum)        | Scenario / Casualty Context     |
 | `mass_casualty_rate`         | Mass Casualty Event Rate (per day)        | Scenario / Casualty Context     |
@@ -1512,6 +1531,7 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `r1_transport`               | R1 Transport Time (Mode)                  | Scenario / Casualty Context     |
 | `r1_wia_treat_mode`          | R1 WIA Treatment Time (Mode)              | Health System Design - Capacity |
 | `r2b_dcs_factor`             | R2B DCS Efficacy Factor                   | Scenario / Casualty Context     |
+| `r2b_evac_threshold`         | R2B Holding Evacuation Threshold          | Health System Design - Policy   |
 | `r2b_hold_mode`              | R2B Holding Bed Duration (Mode)           | Health System Design - Capacity |
 | `r2b_hold_threshold`         | R2B Hold-Bed Reroute Threshold            | Health System Design - Policy   |
 | `r2b_pre_open_window`        | R2B Pre-Open Hold Window (Minutes)        | Health System Design - Policy   |
@@ -1520,11 +1540,22 @@ The grouped tables above and the ranking table below identify each parameter by 
 | `r2b_icu_share`              | R2B Forward ICU Share                     | Health System Design - Policy   |
 | `r2b_resus_factor`           | R2B/R2E DCR (Resus) Efficacy Factor       | Scenario / Casualty Context     |
 | `r2b_transport`              | R2B Transport Time (Mode)                 | Scenario / Casualty Context     |
+| `r2e_critical_hold_mode`     | R2E Pre-Flight Critical Hold Duration (Mode) | Health System Design - Capacity |
 | `r2e_dcs1_factor`            | R2E DCS 1st-Op Efficacy Factor            | Scenario / Casualty Context     |
 | `r2e_dcs2_factor`            | R2E DCS 2nd-Op Efficacy Factor            | Scenario / Casualty Context     |
 | `r2e_hold_mode`              | R2E Base Recovery-to-Duty Duration (Mode) | Health System Design - Capacity |
 | `r2e_postop_hold_penalty`    | R2E Post-Op Hold DOW Penalty (Multiplier) | Scenario / Casualty Context     |
 | `r2e_resus_factor`           | R2E DCR (Resus) Efficacy Factor           | Scenario / Casualty Context     |
+| `r2e_vent_share`             | R2E Pre-Flight Critical Hold Ventilated Share | Scenario / Casualty Context |
+| `reconstruction_share`       | Role 4 Reconstruction Cohort Share        | Scenario / Casualty Context     |
+| `role4_icu_continuation_mode` | Role 4 ICU-Continuation Phase Duration (Mode) | Scenario / Casualty Context |
+| `role4_los_p1_nonsurgical_mode` | Role 4 Length of Stay — P1 Non-Surgical (Mode) | Scenario / Casualty Context |
+| `role4_los_p1_surgical_mode` | Role 4 Length of Stay — P1 Surgical (Mode) | Scenario / Casualty Context    |
+| `role4_los_p2_mode`          | Role 4 Length of Stay — P2 (Mode)         | Scenario / Casualty Context     |
+| `role4_los_p3_dnbi_mode`     | Role 4 Length of Stay — P3 / DNBI (Mode)  | Scenario / Casualty Context     |
+| `role4_post_reconstruction_return_rate` | Role 4 Post-Reconstruction Return-to-Duty Rate | Scenario / Casualty Context |
+| `role4_return_interval_mode` | Role 4 Reconstruction Return Interval (Mode) | Scenario / Casualty Context  |
+| `saturation_queue_threshold` | Forward Theatre Saturation Release Threshold | Health System Design - Policy |
 | `short_resus_mode`           | R2E Short Resuscitation Duration (Mode)   | Health System Design - Capacity |
 | `stabilisation_icu_mode`     | R2E Stabilisation ICU Requirement (Mode)  | Health System Design - Capacity |
 | `surg_mode`                  | Surgery Duration (Mode)                   | Health System Design - Capacity |
@@ -1547,7 +1578,7 @@ One further constraint applies whatever the width. A screened triangular mode mu
 
 These bounds are estimates, so confidence in them is moderate overall and lower for Rule B parameters. Bounds set too narrow understate a parameter's influence; bounds set too wide mix realistic values with unrealistic ones. Because the model responds non-linearly, the ranking can shift with the bounds chosen, though widening every bound would raise µ\* without reordering parameters if responses were monotonic.
 
-The screen runs at the `--r` default of 20 Morris trajectories, giving 20 × (65 + 1) = 1,320 design points at five replications each, or 6,600 simulation runs. The method [[45]](#references) is unbiased at any trajectory count and gains precision as trajectories are added, so a lower r is cheaper but noisier rather than wrong: the standard error of a parameter's µ\* is its σ divided by the square root of r. At r = 20 that is ±2.8 for the noisiest parameter in the table and under ±1 for most, which separates the influential group from the negligible tail but does not order parameters whose µ\* values sit within a standard error of each other. The ranking should be read as a grouping by influence rather than as an exact sequence.
+The screen runs at the `--r` default of 20 Morris trajectories, giving 20 × (78 + 1) = 1,580 design points at five replications each, or 7,900 simulation runs. The method [[45]](#references) is unbiased at any trajectory count and gains precision as trajectories are added, so a lower r is cheaper but noisier rather than wrong: the standard error of a parameter's µ\* is its σ divided by the square root of r. At r = 20 that is ±2.8 for the noisiest parameter in the table and under ±1 for most, which separates the influential group from the negligible tail but does not order parameters whose µ\* values sit within a standard error of each other. The ranking should be read as a grouping by influence rather than as an exact sequence.
 
 
 

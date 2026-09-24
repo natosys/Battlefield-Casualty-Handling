@@ -162,6 +162,8 @@ if (isTRUE(opt$`refresh-baseline`)) {
                               images_dir = illustrative_images)
   file.copy(file.path(illustrative_images, "mass_casualty_events.png"),
            file.path(IMAGES_DIR, "mass_casualty_events.png"), overwrite = TRUE)
+  file.copy(file.path(illustrative_scratch, "mass_casualty_events_summary.csv"),
+           file.path(OUTPUT_DIR, "mass_casualty_illustrative_events.csv"), overwrite = TRUE)
   message(sprintf("Illustrative run: %d event(s), image written to %s",
                   illustrative$mass_casualty_event_count,
                   file.path(IMAGES_DIR, "mass_casualty_events.png")))

@@ -146,7 +146,21 @@ if (isTRUE(opt$`refresh-baseline`)) {
     attributes = get_mon_attributes(list(illustrative_env)),
     resources  = get_mon_resources(list(illustrative_env))
   )
-  illustrative <- analyse_run(illustrative_mon, output_dir = OUTPUT_DIR, images_dir = IMAGES_DIR)
+  # analyse_run() writes every plot it produces to images_dir, not the mass
+  # casualty timeline alone, and every CSV of a full single-run analysis to
+  # output_dir, several of them (mass_casualty_dow_summary.csv among them)
+  # under names this module's own replicated evidence set already uses for a
+  # different quantity. Both go to a scratch directory of their own, and only
+  # the one file this experiment needs, the mass casualty timeline, is copied
+  # out into IMAGES_DIR, on the convention docs/Multi_Run_Supplement.md
+  # documents for this image: it is copied into place from the run's own
+  # output directory rather than written there directly.
+  illustrative_scratch <- file.path(tempdir(), "mass_casualty_illustrative")
+  illustrative_images   <- file.path(illustrative_scratch, "images")
+  illustrative <- analyse_run(illustrative_mon, output_dir = illustrative_scratch,
+                              images_dir = illustrative_images)
+  file.copy(file.path(illustrative_images, "mass_casualty_events.png"),
+           file.path(IMAGES_DIR, "mass_casualty_events.png"), overwrite = TRUE)
   message(sprintf("Illustrative run: %d event(s), image written to %s",
                   illustrative$mass_casualty_event_count,
                   file.path(IMAGES_DIR, "mass_casualty_events.png")))

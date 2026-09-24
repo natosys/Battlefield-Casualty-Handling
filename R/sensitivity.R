@@ -1521,7 +1521,9 @@ rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
 #'   read back on a later call, so an interrupted screen resumes instead of
 #'   restarting. Clear it whenever the seed, r, the level count, the
 #'   parameter bounds or crn_seed change, or the cache would be read against
-#'   a design it does not belong to.
+#'   a design it does not belong to. A cache missing a response `morris_kpis`
+#'   now carries is archived automatically (see `cache_check_schema()`)
+#'   rather than resumed with that response silently unfilled.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
@@ -1584,6 +1586,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
+  cache_check_schema(cache_file, morris_kpis$name)
 
   Y <- evaluate_morris_design(sa, cache_file, n_rep, n_days, max_cores,
                               crn_seed, progress_dir)
@@ -1769,6 +1772,56 @@ cache_append <- function(path, i, res) {
   utils::write.table(row, path, sep = ",", row.names = FALSE,
                      col.names = !file.exists(path), append = file.exists(path))
   invisible(NULL)
+}
+
+#' Archive a design point cache whose header does not carry every response
+#' the caller is about to ask for
+#'
+#' @param path Cache CSV path, or NULL when the caller runs without a cache.
+#' @param cols Response names the evaluation loop will look up by, in the
+#'   order `morris_kpis$name` or `SOBOL_RESPONSES` currently lists them.
+#' @return Invisibly TRUE if the cache was archived, FALSE otherwise.
+#'
+#' @details Closes the trap Issue #348 raised: a response added to
+#'   `morris_kpis` (or `SOBOL_RESPONSES`) after a cache exists is invisible to
+#'   `cache_append()`, which writes a wider row under the file's original,
+#'   narrower header the moment the first design point re-evaluates. Every
+#'   later `read.csv()` then either errors on the ragged row (silently caught
+#'   by `cache_lookup()`, which re-evaluates every point from then on but
+#'   leaves the file permanently unreadable for the next resume) or, worse,
+#'   would appear to succeed if the new column were merely backfilled with
+#'   `NA`: `cache_lookup()`'s all-missing-row rule exists precisely so that a
+#'   response legitimately undefined for one design point does not force an
+#'   endless re-evaluation of that point, and a backfilled `NA` is
+#'   indistinguishable from that case, so the row would read as cached with
+#'   the new response silently absent, forever, with nothing reporting it.
+#'
+#'   The header is therefore checked once, before the evaluation loop starts,
+#'   against the exact column set that loop's `cache_lookup()` calls will ask
+#'   for. A cache missing any of them is renamed aside with a
+#'   `.stale-<timestamp>` suffix rather than repaired in place: recomputing a
+#'   design point is the only way to obtain the new response regardless of
+#'   whether the row is kept or discarded, since it re-runs the model rather
+#'   than replaying a monitor that was never cached (see the `data/sensitivity`
+#'   README's `points.csv` entry), so there is no cheaper repair for
+#'   `cache_append()` to make than starting the file over. Archiving rather
+#'   than deleting keeps the stale evidence recoverable rather than losing a
+#'   completed run outright.
+cache_check_schema <- function(path, cols) {
+  if (is.null(path) || !file.exists(path)) return(invisible(FALSE))
+  header <- tryCatch(names(utils::read.csv(path, nrows = 0, stringsAsFactors = FALSE)),
+                      error = function(e) NULL)
+  if (!is.null(header) && all(cols %in% header)) return(invisible(FALSE))
+  archived <- sprintf("%s.stale-%s", path, format(Sys.time(), "%Y%m%dT%H%M%OS0"))
+  file.rename(path, archived)
+  message(sprintf(
+    paste("Cache %s does not carry every response currently requested",
+          "(missing: %s); archived to %s and starting a fresh cache."),
+    path,
+    paste(setdiff(cols, header), collapse = ", "),
+    archived
+  ))
+  invisible(TRUE)
 }
 
 #' Report how much of each response is replication noise rather than design signal
@@ -2077,7 +2130,10 @@ tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all)
 #'   read back on a later call, so an interrupted production run resumes
 #'   instead of restarting. Clear it whenever the seed, the selected
 #'   parameters or their bounds change, or the cache would be read against
-#'   a design it does not belong to.
+#'   a design it does not belong to. A cache missing a response
+#'   `SOBOL_RESPONSES` now carries is archived automatically (see
+#'   `cache_check_schema()`) rather than resumed with that response silently
+#'   unfilled.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point (see run_morris()'s equivalent parameter). NULL preserves
 #'   prior behaviour.
@@ -2139,6 +2195,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
 
   if (!is.null(cache_dir)) dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
+  cache_check_schema(cache_file, SOBOL_RESPONSES)
 
   # Held in a local rather than read back off sb_r2b later: tell_safe()
   # returns NULL for a response whose bootstrap fails, and r2b_ot_q is

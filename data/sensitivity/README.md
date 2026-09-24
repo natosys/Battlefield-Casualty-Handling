@@ -59,6 +59,33 @@ decisions the re-screen has to settle first: whether to re-screen all
 thirty-six responses or only these two, and whether the restriction horizon
 should itself be screened.
 
+## The response and parameter set each tracked ranking was screened against
+
+Every tracked ranking here, the two superseded rows included, was screened
+against the same design: 65 parameters (`morris_params` in `R/sensitivity.R`,
+59 written directly plus the six balance coordinates of the three
+simplex-constrained composition groups in `MORRIS_COMPOSITIONS`) and 36
+responses (`morris_kpis`). Neither set carries a holding bed queue response
+at either echelon, and neither carries the R2E holding or intensive care bed
+counts as a screened parameter; `R/sensitivity.R`'s own comment on
+`morris_params` records why the remaining fixed establishment counts are
+excluded. Issue #348 raised both gaps and found a second, separable defect
+alongside them: `points.csv` had no way to detect a response added to an
+existing cache, which would have let such an addition read every design
+point as cached and leave the new column permanently empty rather than
+computed. `cache_check_schema()` closes that defect, asserted by
+`scripts/check_screen_cache.R`; it changes nothing about what this evidence
+set was screened against; the response and parameter counts above have not
+moved.
+
+Committing either gap's fix to a published ranking means re-running this
+design at the two responses or two parameters plus the change; that
+re-screen is coordinated with Issue #335 (deciding whether `evac_threshold`
+joins the screened set) and Issue #339 (re-screening the two dwell responses
+at their corrected definition) rather than run separately for each, since a
+Morris design is a function of its parameter count and adding one at a time
+would triple the compute cost of adding them together.
+
 ## Contents
 
 | Path | What it holds |

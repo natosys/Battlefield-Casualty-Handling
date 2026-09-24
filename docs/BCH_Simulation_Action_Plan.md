@@ -106,7 +106,7 @@
 | 301 | Time-series figures for queue length and degraded care rate | Medium | Medium | **Merged (PR #352)** |
 | 310 | Complete `run.R`'s command line surface and validate it at the boundary | Medium | Medium | **Merged (PR #317)** |
 | 311 | Two inferences in the single-run paper do not survive a longer horizon | Medium | Low | **Merged (PR #324)** |
-| 312 | The 30-day experimental horizon cannot surface constraints that develop over months | High | High | Open — partially advanced (PR #319, PR #347, PR #354, PR #358) |
+| 312 | The 30-day experimental horizon cannot surface constraints that develop over months | High | High | **Merged (PRs #319, #347, #354, #358, #404)** |
 | 313 | Review the R2E holding establishment and evacuation policy defaults | High | Medium | **Merged (PR #363)** |
 | 314 | Make Role 4 demand configurable and reportable against a stated capacity | Medium | Medium | **Merged (PRs #366, #369)** |
 | 315 | The R2E bed queue figure omits the holding beds | Medium | Low | **Merged (PR #329)** |
@@ -140,6 +140,18 @@
 ---
 
 ## Recently Merged Issues
+
+### Issue 312 — The Sustained-Operations Horizon, Complete ✓
+
+**Merged:** PR #404, branch `claude/work-on-312-a00yfe`
+
+The two tasks the previous partial merge (PR #358) left open are discharged, closing the issue across five pull requests (#319, #347, #354, #358, #404). `compute_long_horizon_cma()` (`R/warmup.R`) runs the Welch cumulative-moving-average diagnostic directly on the tracked 360-day daily series rather than reasoning from the per-block classification alone, for the two R2E bed pools closest to the convergence boundary at moderate intensity. It confirms the classification at both intensities: at high intensity the CMA has no level to approach, still climbing at day 360 (802.9 and 290.7 casualties for intensive care and holding); at moderate intensity it peaks near day 40 to 50 before settling into a narrow band, still moving by a few hundredths of a casualty per hundred days at the horizon's end, which is a slower-converging question than the block classification answers and does not move `WARM_UP_DAYS` from 0. `scripts/render_long_horizon_warmup.R` renders this from the tracked series alone, and `scripts/check_long_horizon_warmup.R` defends the arithmetic and the tracked figures.
+
+`docs/Multi_Run_Supplement.md` gains the scoping decision on a sensitivity re-screen at length: not warranted now, because the published Morris and Sobol screens run under the shipped default configuration, which carries a lighter casualty load than either scenario profile measured here, because the cost is on the order of days rather than the roughly nineteen hours a 30-day screen costs, and because the Morris coverage gaps tracked at #348 should close first if a re-screen ever happens for other reasons.
+
+**Seed-42 baseline (30 days, single run):** unchanged. No model code, `env_data.json` or tracked seed-42 artifact is touched.
+
+**Unblocked by this merge:** No issue was gated on #312 alone; #313 had already merged independently. Issue #405 (standardising every replicated experiment's horizon and replication count), raised from this closure, moves from `status: blocked` to `status: ready`.
 
 ### Issue 300 — Sweep the Transport Fleet at High Casualty Intensity ✓
 
@@ -3695,7 +3707,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 
 1. ~~**Issue 19** — Dev Container specification. All contributors now develop in a reproducible Linux R environment with `mclapply` running at full core count.~~ — **Merged PR #21.**
 
-### Phase 1 — Statistical Foundation (Issues 1 ✓, 22 ✓, 2 ✓, 3 ✓, 24 ✓, 75 ✓, 157 ✓, 158 ✓, 189 ✓, 186 ✓, 195 ✓, 208 ✓, 331 ✓, 296 ✓, 382 ✓, 384 ✓, 387 ✓, 388 ✓)
+### Phase 1 — Statistical Foundation (Issues 1 ✓, 22 ✓, 2 ✓, 3 ✓, 24 ✓, 75 ✓, 157 ✓, 158 ✓, 189 ✓, 186 ✓, 195 ✓, 208 ✓, 331 ✓, 296 ✓, 382 ✓, 384 ✓, 387 ✓, 388 ✓, 312 ✓)
 *Estimated effort: 3–4 weeks. All subsequent analyses depend on this foundation. **Complete.***
 
 1. ~~Multi-replication wrapper (`mclapply` + `wrap()`) — **Merged PR #16**~~
@@ -3726,6 +3738,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 6p. ~~**Issue 388** — The post-operative intensive care gate section had no tracked evidence set, its entry point likewise being `run.R` under a parameter override. `R/icu_gate.R` and `scripts/run_icu_gate.R` give it a runner on `R/hold_window.R`'s arrangement rather than sharing that module, tracking both arms' per-replication responses and their paired differences in `data/icu_gate/` at 50 replications per arm, and `scripts/check_icu_gate_protocol.R` asserts the parameters, the tracked set and every published figure against the measurement, validated by fault injection; `scripts/check_icu_gate_switch.R` continues to cover the mechanism. Regenerating the evidence set moved every figure in the section, including the mortality point estimate's direction, which now costs a fraction of a life rather than saving one as the design predicts, though the interval still spans zero.~~ — **Merged PR #394.**
 
 6q. **Issue 348, partially advanced** — The trap that would make any future response addition unsafe is closed: `cache_append()` wrote a design point's response vector under whatever header `points.csv` already carried, so a response added to `morris_kpis` or `SOBOL_RESPONSES` after a cache existed was invisible to it, either corrupting the file on the first re-evaluated row or, had the gap been backfilled with `NA`, reading every point as cached with the new response silently and permanently empty. `cache_check_schema()` checks a cache's header against the response set the evaluation loop is about to look up before that loop starts, archiving a cache that does not carry all of it under a `.stale-<timestamp>` suffix rather than resuming it. The two coverage gaps the issue also raises, the missing holding bed queue responses and the excluded R2E bed counts, remain open, gated on whichever of #335 or #339 next triggers a re-screen. — **PR #398, non-closing.**
+6r. ~~**Issue 312** — The two tasks the third partial advance left open are discharged. `compute_long_horizon_cma()` (`R/warmup.R`) runs the Welch cumulative-moving-average diagnostic directly on the tracked 360-day daily series for the two R2E bed pools closest to the convergence boundary at moderate intensity, rather than reasoning from the per-block classification alone: at high intensity the CMA has no level to approach, still climbing at day 360, and at moderate intensity it peaks near day 40 to 50 before settling into a narrow band, still moving slightly at the horizon's end, which is a slower-converging question than the block classification answers and leaves `WARM_UP_DAYS` at 0. A sensitivity re-screen at length is scoped and found not warranted now: the published screens run under the shipped default configuration, a lighter casualty load than either scenario profile this protocol measures, the cost is on the order of days rather than the roughly nineteen hours a 30-day screen costs, and the coverage gaps tracked at #348 should close first if a re-screen ever happens anyway. Raised #405 to standardise every replicated experiment's horizon and replication count against the protocol this issue established.~~ — **Merged PRs #319, #347, #354, #358 and #404.**
 
 ### Phase 2 — Model Fidelity (Issues 8 ✓, 35 ✓, 37 ✓, 44 ✓, 6 ✓, 5 ✓, 43 ✓, 14 ✓, 73 ✓, 74 ✓, 85 ✓, 76 ✓, 161 ✓, 156 ✓, 159 ✓, 173 ✓, 180 ✓, 178 ✓, 146 ✓, 313 ✓, 365 ✓, 376 ✓, 362 ✓)
 *Estimated effort: 2–3 weeks. Low-to-medium code changes, high impact on result validity.*
@@ -4657,20 +4670,26 @@ COMPLETE (merged to main):
        holding utilisation instead. evac_threshold stays outside the
        Morris screened set, the measured response confirming the
        discontinuity at its disabled default (PR #400)
+  #312 The sustained-operations horizon: protocol, measurement, duration
+       pilot, horizon audit, the 360-day airlift collapse entry point, and
+       the two items left by the third partial advance. The Welch
+       cumulative-moving-average diagnostic, run directly on the tracked
+       daily series rather than reasoned from the block means alone, confirms
+       the warm-up classification at both intensities, and a sensitivity
+       re-screen at length is scoped and found not warranted now, the
+       published screens running under a lighter load than either scenario
+       profile measured here (PRs #319, #347, #354, #358, #404)
 
 IN REVIEW (PRs open against main):
   (none)
 
 UNBLOCKED (start now):
-  #312 The sustained-operations horizon, partially advanced by PR #347,
-       PR #354 and PR #358. The protocol, its measurement, the duration
-       pilot, the horizon audit and the 360-day airlift collapse entry point
-       are done, the last having moved two of the experiment's arms and
-       withdrawn one published finding on re-execution. Two items remain:
-       scoping whether a sensitivity re-screen at length is warranted, which
-       sits with #348 and #339, #335 having settled its own half of that
-       question without triggering one; and the warm-up classification at
-       that horizon, which rests on the block means alone.
+  #405 Standardise every replicated experiment's horizon and replication
+       count against the sustained-operations protocol #312 established.
+       An audit-first task: state each of the thirteen experiments' current
+       protocol and whether it has a documented justification, decide which
+       should migrate to the sustained-operations default, and re-run only
+       those. Raised from #312's closure.
   #339 Re-screen r2b_dwell_mean, r2e_dwell_mean, ame_backlog_mean and
        ame_backlog_peak at their corrected response definitions. The tracked
        rankings cannot be re-derived, the cache holding scalar responses

@@ -1265,6 +1265,8 @@ This non-settling CMA is consistent with the battlefield casualty handling simul
 
 Warm-up exclusion is therefore **not applied** as the default. The `WARM_UP_DAYS` constant in `R/warmup.R` is set to `0L`. All KPI summaries and analysis outputs use the full observation window.
 
+The classification above is re-derived at the sustained-operations horizon, twelve times the 90 days this diagnostic covers, and the same cumulative moving average is computed directly on that horizon's tracked daily series for the two R2E bed pools closest to convergence at moderate intensity. Neither reading supports excluding a warm-up period at either casualty intensity: the moderate-intensity CMA is still moving by a small amount at day 360 rather than having settled onto a level, and the high-intensity CMA has no level to approach at all, four responses growing without bound over the whole horizon. `docs/Multi_Run_Supplement.md`'s Warm-up Classification section reports the finding and its evidence in full, this document reporting no simulation result of its own.
+
 The `--warm-up` CLI flag remains available for **parametric comparison runs**, such as sensitivity screening and scenario analysis, where a researcher wishes to study mid-campaign behaviour net of start-up effects, or where two scenarios differ in their initialisation characteristics and the comparison requires a common time base:
 
 ```bash

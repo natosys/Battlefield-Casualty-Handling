@@ -46,6 +46,13 @@
 #   5. Extra columns do not disturb a lookup. The Sobol cache carries a
 #      per-response standard deviation alongside each response, so a reader
 #      asking for the responses alone must still get exactly those.
+#
+#   6. A cache missing a response the caller is about to request is archived
+#      rather than resumed. Backfilling the missing column with NA instead
+#      would be indistinguishable from a response legitimately undefined at
+#      every design point (check 3's case), which is exactly the trap Issue
+#      #348 raised: the new response would read as cached and never compute.
+#      A cache that already carries everything requested is left untouched.
 
 source("R/sensitivity.R")
 
@@ -122,6 +129,30 @@ sd_got <- cache_lookup(tmp2, 1L, paste0("sd_", RESP))
 report(!is.null(sd_got) &&
          isTRUE(all.equal(as.numeric(sd_got), c(0.1, 0.2, 0.3))),
        "the standard-deviation columns are readable in their own right")
+
+# ── 6. A cache missing a requested response is archived, not backfilled ─────
+
+tmp3 <- tempfile(fileext = ".csv")
+on.exit(unlink(tmp3), add = TRUE)
+cache_append(tmp3, 1L, c(a = 1, b = 2))
+archived_before <- cache_check_schema(tmp3, c("a", "b", "d"))
+report(isTRUE(archived_before) && !file.exists(tmp3),
+       "a cache lacking a newly-requested response is archived, not left in place")
+report(length(Sys.glob(paste0(tmp3, ".stale-*"))) == 1L,
+       "the archived cache is recoverable under a .stale- suffix")
+
+got_after_archive <- cache_lookup(tmp3, 1L, c("a", "b", "d"))
+report(is.null(got_after_archive),
+       "the new response reads as absent after archiving, forcing recomputation")
+
+for (f in Sys.glob(paste0(tmp3, ".stale-*"))) unlink(f)
+
+tmp4 <- tempfile(fileext = ".csv")
+on.exit(unlink(tmp4), add = TRUE)
+cache_append(tmp4, 1L, c(a = 1, b = 2, d = 3))
+archived_when_complete <- cache_check_schema(tmp4, c("a", "b", "d"))
+report(isTRUE(!archived_when_complete) && file.exists(tmp4),
+       "a cache already carrying every requested response is left untouched")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

@@ -98,10 +98,11 @@ HOLD_THRESHOLD_SWEEP_BEDS <- c(5L, 7L, 10L)
 #'   the whole drawn convalescence (`r2b.holding.min`/`max`/`mode`, a
 #'   720-14400 minute triangular distribution with a 7200-minute mode) is
 #'   served forward. Every value above zero is a duration in its own right:
-#'   1440 minutes (one day) sits below the distribution's minimum, so it
-#'   evacuates the large majority of draws immediately; 4320 (three days) and
-#'   7200 (the distribution's own mode, five days) sit inside the range a
-#'   casualty is actually drawn from; 10080 (seven days) sits above the mode
+#'   1440 minutes (one day) sits just above the distribution's 720-minute
+#'   floor, so it binds nearly every draw and evacuates the large majority of
+#'   casualties early; 4320 (three days) and 7200 (the distribution's own
+#'   mode, five days) sit inside the range a casualty is actually drawn from
+#'   and bind a shrinking share of it; 10080 (seven days) sits above the mode
 #'   and binds only the longer stays. The step from zero to 1440 is therefore
 #'   the discontinuity the parameter's disabled state creates, and the
 #'   remaining steps trace the smooth region above it; reading the two apart

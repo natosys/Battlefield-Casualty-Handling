@@ -46,6 +46,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
 - [Planning Options in Priority Order](#planning-options-in-priority-order)
   - [Option 1. Extend Surgical Team Coverage Towards 24 Hours](#option-1-extend-surgical-team-coverage-towards-24-hours)
   - [Option 2. Increase R2B Holding Capacity or Set an Evacuation Threshold](#option-2-increase-r2b-holding-capacity-or-set-an-evacuation-threshold)
+    - [R2B Holding Capacity vs. Evacuation Threshold Sweep](#r2b-holding-capacity-vs-evacuation-threshold-sweep)
   - [Option 3. Hold Casualties at R2B for a Team About to Return](#option-3-hold-casualties-at-r2b-for-a-team-about-to-return)
     - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
   - [Option 4. Size the Medical Evacuation Fleet at Three Ambulances](#option-4-size-the-medical-evacuation-fleet-at-three-ambulances)
@@ -266,9 +267,39 @@ How to source those hours is a separate question. Extending the rostered teams' 
 
 Ten holding beds are fielded across the two facilities against an expected occupancy of about 15.5, and disease casualties staying for days at a time are what fill them [[10]](#references). No change in surgical throughput closes a gap of that kind.
 
-Three remedies are available. Shortening the length of stay cannot bring occupancy inside capacity at any clinically plausible figure. Increasing holding capacity to ten beds per facility would. Setting an evacuation threshold, so that a casualty whose expected recovery exceeds a set duration moves rearward rather than occupying a forward bed, is the cheapest, at the cost of transferring a non-surgical medical load onto R2E holding, which Option 1 has already identified as working near its limit.
+Three remedies were proposed. Shortening the length of stay cannot bring occupancy inside capacity at any clinically plausible figure and remains untested here. Increasing holding capacity and setting an evacuation threshold are substitutes, both relieving the forward queue at a different cost, and a joint sweep of the two settles which is the better buy. **Evidence for capacity: measured. Evidence for the threshold: measured, and it is the more expensive of the two.**
 
-**Evidence for all three: untested.** Choosing between them requires sweeping holding capacity jointly against the evacuation threshold, which needs no new model structure and is the most tractable item of further analysis in this paper.
+#### R2B Holding Capacity vs. Evacuation Threshold Sweep
+
+**Design.** 10 runs of a 30-day campaign at each of fifteen grid points: R2B holding beds per unit set to 5 (shipped), 7 or 10, crossed with the evacuation threshold set to disabled (shipped), 1, 3, 5 (the drawn convalescence's own mode) or 7 days. Each replication is an independent draw rather than a paired one, the same convention the Transport Fleet-Size Sweep and Forward ICU Share Decision Frontier below use. The full design is in `docs/Multi_Run_Supplement.md`.
+
+![Eight-panel plot of R2B holding queue and utilisation, R2E holding and intensive care queue and utilisation, returns to duty and died of wounds, each against the evacuation threshold in days, one line per swept bed count, with a 95% confidence ribbon](../images/r2b_hold_threshold_sweep.png)
+
+**Beds alone clear the forward queue at no measured cost to the pools behind it.** Holding the threshold at its shipped, disabled setting and raising the establishment from five to ten beds per unit takes the R2B holding queue from 0.93 casualties [0.40, 1.45] to 0.03 [0.00, 0.09], a 33-fold fall, while R2B holding utilisation falls from 79.9% [76.0, 83.7] to 68.1% [65.2, 71.0]. Neither of the pools that capacity might be expected to cost moves against it: the R2E holding queue is unchanged within its interval (0.15 [0.00, 0.36] against 0.12 [0.00, 0.27]) and R2E holding utilisation falls slightly (74.2% [64.6, 83.8] against 68.2% [58.4, 77.9]). Expanding to ten beds per unit is, on this evidence, close to a free lunch: it closes the shortfall Further Development L4 names and leaves no other pool measurably worse off.
+
+<!-- HOLD THRESHOLD SWEEP BED AXIS TABLE -->
+| R2B holding beds per unit | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue |
+|---|---|---|---|---|
+| 5 (shipped) | 0.93 [0.40, 1.45] | 79.9% [76.0, 83.7] | 0.15 [0.00, 0.36] | 0.92 [0.00, 2.68] |
+| 7 | 0.27 [0.15, 0.39] | 78.2% [76.1, 80.2] | 0.18 [0.00, 0.38] | 1.07 [0.00, 2.97] |
+| 10 | 0.03 [0.00, 0.09] | 68.1% [65.2, 71.0] | 0.12 [0.00, 0.27] | 1.27 [0.00, 3.72] |
+
+**The threshold only relieves the queue at a setting aggressive enough to evacuate nearly every convalescence early, and it does so by loading R2E holding rather than by removing the load.** Holding the establishment at its shipped five beds per unit, a one-day threshold takes the R2B holding queue from 0.93 [0.40, 1.45] to 0.04 [0.00, 0.10] and R2B holding utilisation from 79.9% to 36.0% [34.0, 37.9], a fall as sharp as the ten-bed establishment achieves. But the R2E holding queue rises alongside it, from 0.15 [0.00, 0.36] to 0.30 [0.00, 0.62], and R2E holding utilisation from 74.2% [64.6, 83.8] to 84.6% [77.5, 91.7]. The one-day setting sits just above the drawn convalescence's own 720-minute (half-day) floor, which is why it binds nearly every casualty rather than only the longest stays: this is functionally close to evacuating the whole cohort early, softened only by the half-day of forward convalescence the floor still allows. Three, five and seven-day thresholds bind a shrinking share of the same distribution and the R2B queue rises back toward its disabled level as they lengthen, reaching 0.90 [0.38, 1.42] at seven days, next to indistinguishable from the 0.93 disabled figure it is compared against.
+
+<!-- HOLD THRESHOLD SWEEP THRESHOLD AXIS TABLE -->
+| Evacuation threshold | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue |
+|---|---|---|---|---|
+| Disabled (shipped) | 0.93 [0.40, 1.45] | 79.9% [76.0, 83.7] | 0.15 [0.00, 0.36] | 0.92 [0.00, 2.68] |
+| 1 day | 0.04 [0.00, 0.10] | 36.0% [34.0, 37.9] | 0.30 [0.00, 0.62] | 1.01 [0.00, 2.53] |
+| 3 days | 0.22 [0.07, 0.36] | 67.4% [64.9, 70.0] | 0.17 [0.00, 0.39] | 0.91 [0.00, 2.63] |
+| 5 days (mode) | 0.64 [0.24, 1.03] | 76.9% [73.5, 80.2] | 0.28 [0.00, 0.58] | 1.01 [0.00, 2.90] |
+| 7 days | 0.90 [0.38, 1.42] | 79.7% [78.0, 81.5] | 0.20 [0.00, 0.45] | 1.15 [0.00, 2.95] |
+
+Returns to duty and died-of-wounds move across the grid (returns to duty peaking at 190.1 [178.2, 202.0] per run under the one-day threshold against 161.7 [149.1, 174.3] disabled, died of wounds falling from 2.00 [1.42, 2.58] to 1.60 [0.58, 2.62] at the same setting) but every comparison's interval is wide enough to overlap its neighbours, so neither campaign outcome is established at ten replications per point; the full grid, including these two responses at every point, is tracked in `data/sweeps/r2b_hold_threshold_sweep.csv`.
+
+**The recommendation follows directly.** Ten beds per unit closes the shortfall without a measured cost elsewhere. The evacuation threshold reaches the same forward relief only at a setting aggressive enough to be close to universal early evacuation, and at that setting it is the more expensive of the two, trading a forward queue for a measurably busier R2E holding pool rather than removing the load from the system. Where the establishment cannot be grown, a short threshold is a working alternative; where it can, capacity is the cleaner buy.
+
+This sweep also settles the question the research agenda raised alongside it: whether `evac_threshold` should join the Morris screen. It should not, on this evidence. The one-day step from the disabled setting produces most of the threshold's whole effect on its own (the R2B queue falls 92% of the way to its floor between disabled and one day, and only continues falling gradually from three days onward), which is the discontinuity a screening elementary effect computed across the first step from zero would measure: an effect this large from a single grid step would rank the parameter by the on/off transition rather than by where a planner would actually set it, exactly the concern the research agenda raised. Screening it with a lower bound above zero would avoid that, but only by shipping a non-zero default, moving every seed-42 figure and every calibration for a screening convenience. The sweep above answers the planning question directly and at a fraction of a re-screen's cost, so `evac_threshold` stays outside the screened set; `docs/Multi_Run_Supplement.md` records the same reasoning against the design in full.
 
 ### Option 3. Hold Casualties at R2B for a Team About to Return
 
@@ -600,14 +631,13 @@ The first two are a matter of compute time and would be settled by longer runs. 
 
 | Priority | Development | Decision it unblocks |
 |---|---|---|
-| 1 | Make the establishment variable, so team and bed counts can be swept as fleet sizes already are | Option 1: how best to source additional surgical team hours, and Option 2: how many holding beds |
-| 2 | Joint sweep of R2B holding capacity against an evacuation threshold | Option 2: which of the three remedies to adopt |
-| 3 | Re-run the unresolved experiments at the run counts stated above | Options 1 and 3, and the cost of rationing intensive care access |
-| 4 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
-| 5 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
-| 6 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
-| 7 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
-| 8 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
+| 1 | Make the establishment variable, so team counts can be swept as fleet sizes already are | Option 1: how best to source additional surgical team hours |
+| 2 | Re-run the unresolved experiments at the run counts stated above | Options 1 and 3, and the cost of rationing intensive care access |
+| 3 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
+| 4 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
+| 5 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
+| 6 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
+| 7 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
 
 Alongside these, the simulated system's design and its calibration would benefit from structured review by clinical and health planning subject matter experts. The parameters governing intensive care rationing and post-operative risk are informed estimates rather than measured values, and expert calibration would do more to improve confidence in the mortality findings than additional computation.
 

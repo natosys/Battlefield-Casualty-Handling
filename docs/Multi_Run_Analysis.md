@@ -495,16 +495,17 @@ What the table does not establish is whether any particular reliability is achie
 
 #### Mass Casualty Event Stress Test
 
-**Design.** 10 runs of a 30-day campaign with mass casualty events injected at an average of one event every five days, compared against 10 runs with no events injected. Each arm is a separate set of runs under one configuration.
+**Design.** 62 runs of a 30-day campaign with mass casualty events injected at an average of one event every five days, compared against 62 runs with no events injected. Each arm is a separate set of runs under one configuration; the full design, including the derivation of the 62-replication count, is in `docs/Multi_Run_Supplement.md`.
 
+<!-- MASS CASUALTY TABLE -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 444.6 | 682.1 |
-| Average events/run | 0 | 5.40 (range 3–8) |
-| Died-of-wounds rate, ordinary casualties | 0.18% | 0.28% |
-| Died-of-wounds rate, event casualties | not applicable | 0.58% |
+| Average total casualties/run | 441.1 | 691.5 |
+| Average events/run | 0 | 5.85 (range 1–11) |
+| Died-of-wounds rate, ordinary casualties | 0.30% [0.24%, 0.37%] | 0.33% [0.27%, 0.41%] |
+| Died-of-wounds rate, event casualties | not applicable | 0.91% [0.76%, 1.07%] |
 
-Casualties from mass casualty events die of wounds at 2.1 times the rate of ordinary casualties, consistent with a blast-dominant injury mix arriving faster than the system can absorb. **Evidence: direction only**, the 13 deaths in each arm being too few for a precise figure. The comparison arm is not a quiet baseline, the ordinary casualty stream producing heavy days of its own, which is why its rate is 0.18% rather than near zero.
+Casualties from mass casualty events die of wounds at 2.7 times the rate of ordinary casualties in the same injected campaigns, and the two intervals do not overlap. **Evidence: measured**, at 140 deaths among event casualties against 91 among ordinary casualties in the same arm, replicated at the count [Replication Count and Resolution](#replication-count-and-resolution) states a tenth-of-a-point difference needs. The comparison arm is not a quiet baseline, the ordinary casualty stream producing heavy days of its own, which is why its rate is 0.30% rather than near zero. What the wider replication count does not resolve is whether the mere presence of concurrent events raises the ordinary-casualty rate itself: 0.30% against 0.33% is a movement inside both arms' intervals, so that comparison stays **unresolved** rather than measured.
 
 When a mass casualty event occurs, the majority of casualties are given a holding bed to recover in because intensive care is unavailable, and those casualties consequently have poorer outcomes. In a verified campaign the split was 85 casualties in holding against 37 in intensive care under injection, where the same campaign without injection gave 58 and 79 [[10]](#references): the majority pathway reverses, and it stays reversed for the whole campaign rather than only during the events. Policies to relieve that pressure, by reducing intensive care time or discharging non-critical casualties from holding to recover capacity, and the triggers at which they should be introduced, are worth investigating and are listed in [Further Development](#further-development).
 

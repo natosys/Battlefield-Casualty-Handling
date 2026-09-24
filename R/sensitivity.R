@@ -1810,7 +1810,7 @@ cache_append <- function(path, i, res) {
 cache_check_schema <- function(path, cols) {
   if (is.null(path) || !file.exists(path)) return(invisible(FALSE))
   header <- tryCatch(names(utils::read.csv(path, nrows = 0, stringsAsFactors = FALSE)),
-                      error = function(e) NULL)
+                     error = function(e) NULL)
   if (!is.null(header) && all(cols %in% header)) return(invisible(FALSE))
   archived <- sprintf("%s.stale-%s", path, format(Sys.time(), "%Y%m%dT%H%M%OS0"))
   file.rename(path, archived)

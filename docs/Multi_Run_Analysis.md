@@ -51,6 +51,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
     - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
   - [Option 4. Size the Medical Evacuation Fleet at Three Ambulances](#option-4-size-the-medical-evacuation-fleet-at-three-ambulances)
     - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
+    - [Transport Fleet-Size Sweep at High Intensity](#transport-fleet-size-sweep-at-high-intensity)
   - [Not Recommended: Delivering Post-Operative Intensive Care Forward](#not-recommended-delivering-post-operative-intensive-care-forward)
     - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
 - [System Design Features That Shape the Results](#system-design-features-that-shape-the-results)
@@ -335,7 +336,7 @@ The remaining rows carry the same pattern. Casualties whose entry to the R2E ope
 
 ### Option 4. Size the Medical Evacuation Fleet at Three Ambulances
 
-**Three ambulances are sufficient for medical evacuation between echelons in support of a brigade, and two would carry the load with a reduced margin.** These are the ambulances that move casualties between R1, R2B and R2E, not those integral to the combat force that move casualties from the point of injury to R1. **Evidence: measured.**
+**Three ambulances are sufficient for medical evacuation between echelons in support of a brigade, and two would carry the load with a reduced margin. The margin survives at high intensity: the boundary between an inadequate and an adequate fleet does not move.** These are the ambulances that move casualties between R1, R2B and R2E, not those integral to the combat force that move casualties from the point of injury to R1. **Evidence: measured.**
 
 #### Transport Fleet-Size Sweep
 
@@ -356,7 +357,24 @@ The ambulance queue collapses between one and two vehicles and flattens from thr
 
 At one vehicle the ambulance fleet queues heavily, at an average of 3.21 casualties waiting, so the sweep locates the capacity boundary sharply rather than merely confirming that the current fleet is adequate. The queue falls roughly sevenfold at two vehicles and threefold again at three, and then stops falling: the readings at four and five vehicles differ from the one at three by less than the spread between campaigns, so nothing is bought beyond the third vehicle. What produces any queue at all is the day-to-day variation in casualty volume rather than its average, a transport queue forming on peak days and no others. Every interval in the table reaches zero, which is the ten replications speaking rather than the fleet: the sweep locates the bend in the curve without pinning down the queue at any point on it.
 
-Two qualifications bound the recommendation. The sweep was run at moderate intensity only, and although the intensity comparison puts the transport queue up by the smallest factor of any pool, 2.29-fold to 0.191 casualties, that is a measurement at the shipped fleet size rather than a sweep at the higher intensity, so this evidence does not establish where the boundary falls under surge; re-running the sweep at high intensity is listed in [Further Development](#further-development) and is the shortfall most likely to change this recommendation. And utilisation is too poorly determined at 10 runs to read at all, running the wrong way on both platforms; the queue column is the one to use.
+One qualification bounds the recommendation. Utilisation is too poorly determined at 10 runs to read at all, running the wrong way on both platforms; the queue column is the one to use.
+
+#### Transport Fleet-Size Sweep at High Intensity
+
+**Design.** The same sweep, 10 runs of a 30-day campaign at each fleet size, run under the `high_intensity` scenario profile rather than the shipped configuration; every other parameter, including the ambulance and truck ranges, is unchanged.
+
+![Four-panel line plot of mean queue and mean utilisation against fleet size for the ambulance and truck fleets under the high_intensity profile, each line with a 95% confidence ribbon and a dashed vertical line marking the current establishment size](../images/transport_capacity_margin_by_fleet_size_high_intensity.png)
+
+<!-- TRANSPORT SWEEP TABLE HIGH INTENSITY -->
+| Fleet size | Ambulance mean queue | Truck mean queue |
+|---|---|---|
+| 1 | 43.6263 [19.6849, 67.5676] | 0.1427 [0.0666, 0.2188] |
+| 2 | 0.3955 [0.1517, 0.6392] | 0.0050 [0.0027, 0.0073] |
+| 3 (current ambulance) | 0.0688 [0.0345, 0.1031] | 0.0006 [0.0001, 0.0012] |
+| 4 (current truck) | 0.0101 [0.0029, 0.0174] | 0.0000 [0.0000, 0.0001] |
+| 5 | 0.0026 [0.0000, 0.0062] | not swept |
+
+One vehicle is catastrophically inadequate at high intensity, the ambulance queue averaging 43.63 casualties waiting against 3.21 at moderate intensity, a rise far out of proportion to the 2.40-fold rise in casualty volume between the two intensities. The boundary the sweep locates does not move, though: at two vehicles the queue falls to 0.40, close to the 0.44 moderate-intensity reading at the same fleet size, and at three, the shipped fleet, it stands at 0.069. That figure is smaller than the 0.131 moderate-intensity reading at three vehicles, not larger, because the higher casualty volume gives the sweep more transport events to pin the estimate down rather than a heavier load to carry; the interval at three vehicles no longer reaches zero, at [0.0345, 0.1031], but the resolved value it excludes zero in favour of is under a tenth of one casualty. The truck fleet shows the same pattern at a smaller scale: one truck queues at 0.14 casualties, a resolved but small figure, and the shipped four clears to a queue of 0.0000249, smaller than the moderate-intensity reading at the same fleet size. Three ambulances and four trucks remain more than sufficient at high intensity, and the qualification that this option's evidence was measured at one casualty rate no longer applies. Utilisation carries the same 10-replication caveat as the moderate-intensity sweep and is not read from this table either.
 
 ### Not Recommended: Delivering Post-Operative Intensive Care Forward
 
@@ -635,9 +653,8 @@ The first two are a matter of compute time and would be settled by longer runs. 
 | 2 | Re-run the unresolved experiments at the run counts stated above | Options 1 and 3, and the cost of rationing intensive care access |
 | 3 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
 | 4 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
-| 5 | Re-run the transport fleet sweep at high intensity | Option 4: whether the margin survives surge |
-| 6 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
-| 7 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
+| 5 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
+| 6 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
 
 Alongside these, the simulated system's design and its calibration would benefit from structured review by clinical and health planning subject matter experts. The parameters governing intensive care rationing and post-operative risk are informed estimates rather than measured values, and expert calibration would do more to improve confidence in the mortality findings than additional computation.
 

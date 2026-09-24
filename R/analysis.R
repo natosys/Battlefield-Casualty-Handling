@@ -72,6 +72,44 @@ ICU_SHARE_SWEEP_REPLICATIONS <- 20L
 #'   measures.
 ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
 
+# ── The published R2B holding capacity / evacuation threshold sweep's protocol
+# The joint sweep Further Development L4 and the Option 2 research agenda item
+# propose: the shortfall between R2B's fielded holding beds and its expected
+# occupancy can be closed by adding beds, by an evacuation threshold that moves
+# a long-stay convalescent rearward, or some mix of the two, and the two levers
+# are substitutes a planner would price against each other. Held here for the
+# same reason as the sweep constants above it: one definition read by this
+# entry point's baseline refresh and by the supplement's marker comment.
+
+#' Replications the published R2B holding threshold sweep runs at, per point
+HOLD_THRESHOLD_SWEEP_REPLICATIONS <- 10L
+
+#' R2B holding beds per unit the published sweep covers
+#'
+#' @details Five is the shipped establishment; ten is the figure Option 2
+#'   names as the capacity remedy ("increasing holding capacity to ten beds
+#'   per facility"), so the sweep tests the paper's own proposed remedy rather
+#'   than an arbitrary range. Seven is the intermediate point between them.
+HOLD_THRESHOLD_SWEEP_BEDS <- c(5L, 7L, 10L)
+
+#' R2B holding evacuation thresholds the published sweep covers, in minutes
+#'
+#' @details Zero is the shipped value, meaning the threshold is disabled and
+#'   the whole drawn convalescence (`r2b.holding.min`/`max`/`mode`, a
+#'   720-14400 minute triangular distribution with a 7200-minute mode) is
+#'   served forward. Every value above zero is a duration in its own right:
+#'   1440 minutes (one day) sits below the distribution's minimum, so it
+#'   evacuates the large majority of draws immediately; 4320 (three days) and
+#'   7200 (the distribution's own mode, five days) sit inside the range a
+#'   casualty is actually drawn from; 10080 (seven days) sits above the mode
+#'   and binds only the longer stays. The step from zero to 1440 is therefore
+#'   the discontinuity the parameter's disabled state creates, and the
+#'   remaining steps trace the smooth region above it; reading the two apart
+#'   is why the parameter is swept rather than screened (see Further
+#'   Development L4 and `docs/Multi_Run_Supplement.md`'s discussion of this
+#'   sweep for the reasoning).
+HOLD_THRESHOLD_SWEEP_MINUTES <- c(0, 1440, 4320, 7200, 10080)
+
 # ── Entry-point input validation ─────────────────────────────────────────────
 # This module's public entry points (analyse_run(), analyse_replications(),
 # and the two capacity sweeps) are the boundary between data produced
@@ -246,6 +284,35 @@ validate_shares <- function(shares, caller) {
   if (!usable) {
     stop(sprintf("%s: shares must be a non-empty numeric vector within [0, 1], found %s",
                  caller, paste(format(shares), collapse = ", ")), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' Assert that a R2B holding threshold sweep's two axes are usable
+#'
+#' @param hold_beds Numeric vector of R2B holding beds per unit to sweep.
+#' @param evac_threshold_min Numeric vector of evacuation thresholds to sweep,
+#'   in minutes.
+#' @param caller Name of the calling entry point, used in the error message.
+#' @return TRUE, invisibly, if both axes are usable; otherwise stops.
+#'
+#' @details A bed count is a whole number of at least one, an evacuation
+#'   threshold zero or a positive number of minutes (zero disabling it, per
+#'   `r2b_evac_threshold()`, R/trajectories.R), so either axis carrying a
+#'   negative or fractional value would sweep for hours before producing a
+#'   result no configuration could reach.
+validate_hold_threshold_sweep <- function(hold_beds, evac_threshold_min, caller) {
+  beds_ok <- is.numeric(hold_beds) && length(hold_beds) > 0 && !any(is.na(hold_beds)) &&
+    all(hold_beds >= 1) && all(hold_beds == as.integer(hold_beds))
+  if (!beds_ok) {
+    stop(sprintf("%s: hold_beds must be a non-empty vector of whole numbers of at least 1, found %s",
+                 caller, paste(format(hold_beds), collapse = ", ")), call. = FALSE)
+  }
+  thresholds_ok <- is.numeric(evac_threshold_min) && length(evac_threshold_min) > 0 &&
+    !any(is.na(evac_threshold_min)) && all(evac_threshold_min >= 0)
+  if (!thresholds_ok) {
+    stop(sprintf("%s: evac_threshold_min must be a non-empty vector of non-negative minutes, found %s",
+                 caller, paste(format(evac_threshold_min), collapse = ", ")), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -5338,6 +5405,289 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
 
   ggsave(file.path(images_dir, "r2b_icu_share_frontier.png"), p,
          width = 10, height = 14, dpi = 150)
+
+  list(data = sweep_df, plot = p)
+}
+
+#' Returns-to-duty count per replication
+#'
+#' @param mon Wrapped monitoring list from the replication framework.
+#' @return A data frame of replication and its RTD count, zero where a
+#'   replication recorded none.
+#' @details `return_day` is set once per casualty who returns to duty, at any
+#'   echelon (R/trajectories.R), so counting its rows per replication counts
+#'   every return rather than one echelon's. Mirrors dow_rep_counts() above,
+#'   which reduces the same monitoring list's `dow` key the same way.
+rtd_rep_counts <- function(mon) {
+  mon$attributes %>%
+    filter(key == "return_day") %>%
+    count(replication, name = "rtd") %>%
+    right_join(data.frame(replication = unique(mon$attributes$replication)),
+               by = "replication") %>%
+    mutate(rtd = ifelse(is.na(rtd), 0, rtd))
+}
+
+#' Set the per-unit R2B holding bed establishment on parsed env_data.json
+#'
+#' @param json_data Parsed env_data.json, as `jsonlite::fromJSON(...,
+#'   simplifyVector = FALSE)` returns it.
+#' @param hold_beds Number of holding beds to establish at each R2B unit.
+#' @return The parsed configuration with that establishment set on every R2B
+#'   unit's `elms` entry.
+#'
+#' @details Every `elms` entry named `r2b` gets the same establishment, both
+#'   R2B units being fielded to the same holding capacity in the current
+#'   design; the two units cannot be swept independently because nothing
+#'   distinguishes their establishments in `env_data.json`. Fails rather than
+#'   returning the configuration unchanged where no R2B holding pool is found,
+#'   on the convention set_hold_establishment() (R/policy_sweep.R) follows for
+#'   R2E, so a sweep cannot silently measure the shipped establishment at
+#'   every point and report it as a frontier.
+set_r2b_hold_beds <- function(json_data, hold_beds) {
+  found <- FALSE
+  for (i in seq_along(json_data$elms)) {
+    if (!identical(json_data$elms[[i]]$elm, "r2b")) next
+    for (j in seq_along(json_data$elms[[i]]$beds)) {
+      if (!identical(json_data$elms[[i]]$beds[[j]]$name, "hold")) next
+      json_data$elms[[i]]$beds[[j]]$qty <- as.integer(hold_beds)
+      found <- TRUE
+    }
+  }
+  if (!found) {
+    stop("no R2B holding bed pool found in elms, so the establishment ",
+         "cannot be swept", call. = FALSE)
+  }
+  json_data
+}
+
+#' Build the R2B holding threshold sweep ggplot from computed sweep results
+#'
+#' @param sweep_df Data frame as returned in the `data` element of
+#'   plot_r2b_hold_threshold_sweep(): one row per hold_beds x
+#'   evac_threshold_min point, with mean_*/ci_lower_*/ci_upper_* columns for
+#'   each response.
+#' @param baseline_beds The shipped per-unit R2B holding establishment, used
+#'   to label that series distinctly; NULL omits the distinction.
+#' @param n_rep Replications per sweep point, for the plot subtitle; NULL
+#'   (default) uses a subtitle with no replication count.
+#' @return ggplot object: eight panels stacked by response, one line per swept
+#'   `hold_beds` value against the evacuation threshold in days, each with a
+#'   95% CI ribbon.
+#'
+#' @details Factored out of plot_r2b_hold_threshold_sweep() on the same
+#'   rationale as render_icu_share_sweep_plot() above. The forward pool (R2B
+#'   holding) and the two pools it can transfer load onto (R2E holding and R2E
+#'   intensive care) are grouped first, then the two campaign outcomes the
+#'   trade is ultimately priced against, returns to duty and died of wounds.
+#'   The x-axis is drawn in days rather than the minutes the parameter is
+#'   configured in, because a planner reads a hold duration in days and the
+#'   model's own doctrinal source states the range in days.
+render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_rep = NULL) {
+  metrics <- c("R2B Hold Mean Queue", "R2B Hold Utilisation",
+               "R2E Hold Mean Queue", "R2E Hold Utilisation",
+               "R2E ICU Mean Queue", "R2E ICU Utilisation",
+               "Returns to Duty", "Died of Wounds")
+
+  plot_df <- bind_rows(
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[1],
+                           mean = mean_r2b_hold_q, ci_lower = ci_lower_r2b_hold_q, ci_upper = ci_upper_r2b_hold_q),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[2],
+                           mean = mean_r2b_hold_util, ci_lower = ci_lower_r2b_hold_util, ci_upper = ci_upper_r2b_hold_util),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[3],
+                           mean = mean_r2e_hold_q, ci_lower = ci_lower_r2e_hold_q, ci_upper = ci_upper_r2e_hold_q),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[4],
+                           mean = mean_r2e_hold_util, ci_lower = ci_lower_r2e_hold_util, ci_upper = ci_upper_r2e_hold_util),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[5],
+                           mean = mean_r2e_icu_q, ci_lower = ci_lower_r2e_icu_q, ci_upper = ci_upper_r2e_icu_q),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[6],
+                           mean = mean_r2e_icu_util, ci_lower = ci_lower_r2e_icu_util, ci_upper = ci_upper_r2e_icu_util),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[7],
+                           mean = mean_rtd, ci_lower = ci_lower_rtd, ci_upper = ci_upper_rtd),
+    sweep_df %>% transmute(hold_beds, evac_threshold_days, metric = metrics[8],
+                           mean = mean_dow, ci_lower = ci_lower_dow, ci_upper = ci_upper_dow)
+  ) %>%
+    mutate(metric = factor(metric, levels = metrics),
+           hold_beds_label = if (!is.null(baseline_beds)) {
+             ifelse(hold_beds == baseline_beds,
+                    sprintf("%d (shipped)", hold_beds), sprintf("%d", hold_beds))
+           } else {
+             sprintf("%d", hold_beds)
+           })
+
+  subtitle <- if (!is.null(n_rep)) {
+    sprintf("%d replications per point; the ribbon is a 95%% confidence interval across replications", n_rep)
+  } else {
+    NULL
+  }
+
+  ggplot(plot_df, aes(x = evac_threshold_days, y = mean, color = hold_beds_label,
+                      fill = hold_beds_label)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    facet_wrap(~ metric, ncol = 2, scales = "free_y", strip.position = "top") +
+    scale_color_brewer(name = "R2B holding beds\nper unit", palette = "Dark2") +
+    scale_fill_brewer(name = "R2B holding beds\nper unit", palette = "Dark2") +
+    labs(title = "R2B Holding Capacity vs. Evacuation Threshold — Joint Sweep",
+         subtitle = subtitle,
+         x = "Evacuation threshold (days convalescence served forward; 0 = disabled)", y = NULL) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          legend.position = "bottom")
+}
+
+#' Sweep R2B holding capacity jointly against the evacuation threshold
+#'
+#' @param hold_beds Numeric vector of R2B holding beds per unit to sweep
+#'   (default HOLD_THRESHOLD_SWEEP_BEDS).
+#' @param evac_threshold_min Numeric vector of evacuation thresholds to sweep,
+#'   in minutes (default HOLD_THRESHOLD_SWEEP_MINUTES); zero disables the
+#'   threshold.
+#' @param n_days Simulation duration per replication (default 30).
+#' @param n_rep Replications per grid point, for CI bounds (default 10).
+#' @param path File path to env_data.json (default "env_data.json").
+#' @param output_dir Directory for CSV output (default "outputs").
+#' @param images_dir Directory for the saved plot (default "images").
+#' @param progress_dir Optional directory path; when supplied, an empty
+#'   marker file ("point_<i>.done") is written to it as each grid point
+#'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
+#' @param max_cores Optional integer cap on mclapply's mc.cores at each grid
+#'   point, passed through to run_replications().
+#' @return Named list: data (one row per hold_beds x evac_threshold_min grid
+#'   point, with mean and 95% CI for R2B holding queue and utilisation, R2E
+#'   holding queue and utilisation, R2E intensive care queue and utilisation,
+#'   returns to duty and died of wounds), plot (ggplot object, also saved to
+#'   images_dir/r2b_hold_threshold_sweep.png).
+#'
+#' @details Answers Option 2's open question directly: whether to close the
+#'   R2B holding shortfall (Further Development L4) with more beds, an
+#'   evacuation threshold, or some mix of the two, and what either buys the
+#'   two pools it can transfer load onto. The grid is the cross product of
+#'   both axes, following the shape scripts/run_policy_sweep.R's establishment
+#'   sweep uses for the analogous R2E trade, but built the way the other two
+#'   capacity sweeps in this file are: `hold_beds` changes an `elms` bed count
+#'   and so is set on the parsed JSON before build_environment() runs for that
+#'   point (set_r2b_hold_beds(), mirroring the transport fleet-size sweep's
+#'   `transports` edit above), while `evac_threshold_min` changes a `vars`
+#'   entry and so is set on the already-built env_data directly (mirroring
+#'   plot_r2b_icu_share_frontier() above it). The global env_data/day_min/
+#'   counts are restored to their pre-call values on completion, including on
+#'   the error path, matching every sweep in this file.
+plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
+                                          evac_threshold_min = HOLD_THRESHOLD_SWEEP_MINUTES,
+                                          n_days = 30, n_rep = 10,
+                                          path = "env_data.json",
+                                          output_dir = "outputs", images_dir = "images",
+                                          progress_dir = NULL, max_cores = NULL) {
+  caller <- "plot_r2b_hold_threshold_sweep"
+  validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
+  validate_hold_threshold_sweep(hold_beds, evac_threshold_min, caller)
+
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
+
+  config_snapshot <- capture_config_globals()
+  env_data_base <- env_data
+  day_min_base  <- day_min
+  counts_base   <- counts
+  on.exit(restore_config_globals(config_snapshot), add = TRUE)
+
+  json_data_base <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+
+  baseline_beds_vals <- vapply(json_data_base$elms, function(e) {
+    if (!identical(e$elm, "r2b")) return(NA_integer_)
+    beds <- Filter(function(b) identical(b$name, "hold"), e$beds)
+    if (length(beds) == 0) return(NA_integer_)
+    as.integer(beds[[1]]$qty)
+  }, integer(1))
+  baseline_beds <- baseline_beds_vals[!is.na(baseline_beds_vals)][1]
+
+  # Flattened to one row per (hold_beds, evac_threshold_min) grid point,
+  # rather than a nested loop, so a single running index drives the
+  # progress_dir marker-file count across the whole sweep (mirrors the
+  # transport fleet-size sweep's sweep_points construction above).
+  grid <- expand.grid(hold_beds = hold_beds, evac_threshold_min = evac_threshold_min,
+                      KEEP.OUT.ATTRS = FALSE)
+
+  sweep_df <- bind_rows(lapply(seq_len(nrow(grid)), function(i) {
+    beds      <- grid$hold_beds[i]
+    threshold <- grid$evac_threshold_min[i]
+
+    message(sprintf(
+      "R2B holding threshold sweep: %d beds/unit, threshold %.0f min (%d reps x %d days)...",
+      beds, threshold, n_rep, n_days))
+
+    json_data <- set_r2b_hold_beds(json_data_base, beds)
+    ed <- build_environment(json_data)
+    ed$vars$r2b$holding$evac_threshold <- threshold
+    env_data  <<- ed
+    day_min   <<- DAY_MIN
+    counts    <<- sapply(env_data$elms, length)
+
+    mon <- run_replications(n_rep, n_days, max_cores = max_cores)
+
+    r2b_hold <- transport_rep_kpis(mon, "^b_r2b_hold_")
+    r2e_hold <- transport_rep_kpis(mon, "^b_r2eheavy_hold_")
+    r2e_icu  <- transport_rep_kpis(mon, "^b_r2eheavy_icu_")
+    rtd      <- rtd_rep_counts(mon)
+    dow      <- dow_rep_counts(mon)
+
+    r2b_hold_q_stats    <- summarise_ci(r2b_hold$mean_q)
+    r2b_hold_util_stats <- summarise_ci(r2b_hold$mean_util)
+    r2e_hold_q_stats    <- summarise_ci(r2e_hold$mean_q)
+    r2e_hold_util_stats <- summarise_ci(r2e_hold$mean_util)
+    r2e_icu_q_stats     <- summarise_ci(r2e_icu$mean_q)
+    r2e_icu_util_stats  <- summarise_ci(r2e_icu$mean_util)
+    rtd_stats           <- summarise_ci(rtd$rtd)
+    dow_stats           <- summarise_ci(dow$dow)
+
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+
+    data.frame(
+      hold_beds               = beds,
+      evac_threshold_min      = threshold,
+      evac_threshold_days     = threshold / DAY_MIN,
+      mean_r2b_hold_q         = r2b_hold_q_stats$mean,
+      ci_lower_r2b_hold_q     = pmax(r2b_hold_q_stats$ci_lower, 0),
+      ci_upper_r2b_hold_q     = r2b_hold_q_stats$ci_upper,
+      mean_r2b_hold_util      = r2b_hold_util_stats$mean,
+      ci_lower_r2b_hold_util  = pmax(r2b_hold_util_stats$ci_lower, 0),
+      ci_upper_r2b_hold_util  = pmin(r2b_hold_util_stats$ci_upper, 1),
+      mean_r2e_hold_q         = r2e_hold_q_stats$mean,
+      ci_lower_r2e_hold_q     = pmax(r2e_hold_q_stats$ci_lower, 0),
+      ci_upper_r2e_hold_q     = r2e_hold_q_stats$ci_upper,
+      mean_r2e_hold_util      = r2e_hold_util_stats$mean,
+      ci_lower_r2e_hold_util  = pmax(r2e_hold_util_stats$ci_lower, 0),
+      ci_upper_r2e_hold_util  = pmin(r2e_hold_util_stats$ci_upper, 1),
+      mean_r2e_icu_q          = r2e_icu_q_stats$mean,
+      ci_lower_r2e_icu_q      = pmax(r2e_icu_q_stats$ci_lower, 0),
+      ci_upper_r2e_icu_q      = r2e_icu_q_stats$ci_upper,
+      mean_r2e_icu_util       = r2e_icu_util_stats$mean,
+      ci_lower_r2e_icu_util   = pmax(r2e_icu_util_stats$ci_lower, 0),
+      ci_upper_r2e_icu_util   = pmin(r2e_icu_util_stats$ci_upper, 1),
+      mean_rtd                = rtd_stats$mean,
+      ci_lower_rtd            = pmax(rtd_stats$ci_lower, 0),
+      ci_upper_rtd            = rtd_stats$ci_upper,
+      mean_dow                = dow_stats$mean,
+      ci_lower_dow            = pmax(dow_stats$ci_lower, 0),
+      ci_upper_dow            = dow_stats$ci_upper
+    )
+  }))
+
+  env_data <<- env_data_base
+  day_min  <<- day_min_base
+  counts   <<- counts_base
+
+  write.csv(sweep_df, file.path(output_dir, "r2b_hold_threshold_sweep.csv"), row.names = FALSE)
+  message(sprintf("R2B holding threshold sweep results written to %s/r2b_hold_threshold_sweep.csv",
+                  output_dir))
+
+  p <- render_hold_threshold_sweep_plot(sweep_df, baseline_beds = baseline_beds, n_rep = n_rep)
+
+  ggsave(file.path(images_dir, "r2b_hold_threshold_sweep.png"), p,
+         width = 12, height = 16, dpi = 150)
 
   list(data = sweep_df, plot = p)
 }

@@ -79,6 +79,7 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 }
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Directory the illustrative single run's image is written to
 IMAGES_DIR <- if (isTRUE(opt$`refresh-baseline`)) "images" else file.path("outputs", "images")
 dir.create(IMAGES_DIR, recursive = TRUE, showWarnings = FALSE)
 

@@ -31,7 +31,7 @@ Results appear as a set of tabs (see below). Full Analysis mode adds four KPI su
 
 The last Analyse tab, **Sensitivity Calibration**, is a separate activity from a normal Quick Run/Full Analysis cycle: instead of showing one configuration's results, it tells you which parameters are worth the effort of getting right in the first place. Run it when you want to prioritise where to spend limited data-gathering or expert-consultation effort, not as a routine step. It runs three things, each building on the last:
 
-- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all ~55 screened parameters.
+- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all 78 screened parameters.
 - **Run Sobol Decomposition** — a more expensive, more precise variance breakdown, pre-selecting the top 5 parameters Morris ranked highest. Use this to confirm Morris's ranking and see how much of a parameter's effect is independent versus dependent on other parameters.
 - **Run Transport Fleet Sweep** — tests a range of PMV Ambulance/HX240M fleet sizes directly, independent of Morris/Sobol, to see how much margin the current fleet size carries.
 

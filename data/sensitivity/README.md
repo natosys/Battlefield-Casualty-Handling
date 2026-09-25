@@ -3,95 +3,97 @@
 The measured evidence behind the sensitivity findings reported in
 [README.md](../../README.md#sensitivity-analysis) and in Further Development
 entries L18 and L29. It is tracked here because it cannot be regenerated
-cheaply: the two design point caches together represent roughly nineteen hours
-of computation on four cores, and every published index, rank and separation in
-the project derives from them.
+cheaply: the Morris design point cache alone represents about fourteen hours of
+computation on four cores, the Sobol cache many more, and every published index,
+rank and separation in the project derives from them.
 
 The Sobol decomposition, the noise floor measurement and the two re-analyses
 were produced from one code state, commit `ed3c426`, in the pinned Dev
 Container described in the [Development
 Environment](../../README.md#development-environment) section. The Morris
-screen was re-run at commit `2ae4c31` after `ame_failure_probability` moved to
-a shipped value of zero and its screening range to 0 to 0.30, so the parameter
-would be screened around the configuration that ships; that re-run was made in
-an unpinned R 4.3.3 environment. Each screen's `*_run_metadata.csv` records the
-design behind its own results.
+screen was re-run under Issue #339 at commit `a3dc41a`, in an unpinned R 4.3.3
+environment on four cores, over about fourteen hours; the host restarted once
+during the run and the screen resumed from its design point cache, which
+`scripts/check_screen_order.R` asserts re-evaluates nothing. Each screen's
+`*_run_metadata.csv` records the design behind its own results.
 
-**The Sobol decomposition therefore predates the Morris re-screen and is
-described by the previous bounds.** Its five selected parameters were chosen
-from the earlier Morris ranking, and all five are still the leading five on the
-re-screen, so the selection stands; but the decomposition itself has not been
-re-run at the current bounds, and no index in it should be quoted as describing
-the shipped configuration of `ame_failure_probability`. Re-running it is
-roughly fourteen hours of computation.
+**The Sobol decomposition therefore predates the Morris re-screen, and its
+parameter selection no longer matches it.** Its five selected parameters were
+chosen as the five leading ones on an earlier Morris ranking. On the current
+ranking three of them still lead (`mass_casualty_rate` 1st,
+`mass_casualty_max_cas` 2nd, `pri1_surg_prob` 4th), but `mass_casualty_min_cas`
+has fallen to 12th and `pri1_dcs_rate` to 25th, and their places in the top five
+are taken by `pri1_evac_prob` and `mass_casualty_kia_fraction`. At twenty
+trajectories no leading parameter is separated from the one below it, so this is
+a change of membership within an unresolved group rather than a firm reordering;
+but no index in the decomposition should be quoted as describing the current
+parameter set, and re-running it is roughly fourteen hours of computation.
 
-## Two rankings rest on a superseded response definition
+## The Issue #339 re-screen and the decisions behind it
 
-`morris_ranking_r2b_dwell_mean.csv` and `morris_ranking_r2e_dwell_mean.csv`
-were screened against a definition of those two responses that has since been
-replaced, and **no rank in either should be quoted as describing the model as
-it now stands.** Every other ranking here is unaffected.
+The re-screen was made because `r2b_dwell_mean` and `r2e_dwell_mean` changed
+definition under Issue #331, from the arithmetic mean of the stays that closed
+inside the run to the Kaplan-Meier restricted mean over every casualty who
+entered the echelon. The earlier definition dropped a stay still running when
+the window closed, which discounted the effect of exactly the parameters that
+lengthen stays, and the tracked cache could not re-derive the changed responses
+because it holds scalar responses rather than the monitoring data behind them.
+Four decisions were settled before it ran.
 
-Both responses were the arithmetic mean of the stays that closed inside the
-run. A stay still running when the window closed was dropped, and the dropped
-were not a random subset: they were the casualties still present, which is
-both the late arrivals and the long stayers (Issue #331). The responses are now
-the Kaplan-Meier restricted mean over everyone who entered the echelon, which
-carries a stay still running as the lower bound it is.
+**All thirty-six responses were re-screened, not only the two.** The design is
+shared, so evaluating it evaluates every response at no extra simulation cost,
+and a single run leaves one internally consistent evidence set at one commit.
+The other thirty-four rankings move because the parameter set grew, not
+because their definitions changed.
 
-This matters more for a screened response than for a reported figure. A
-parameter that lengthens dwell pushes more casualties past the end of the run,
-which under the old definition removed them from the mean, so the response
-discounted the effect of the very parameters it existed to rank, and discounted
-it by more as the effect grew. The measured censored share is heavily
-configuration-dependent, which is the same statement read across the design:
-21.6% of R2B stays and 18.0% of R2E stays at the shipped configuration and
-seed 42, but 55.5% of R2E stays under `high_intensity`, so design points differ
-in how much of the cohort the old response could see at all.
+**The restriction horizon is not screened.** `INTERVAL_RESTRICTION_MIN` fixes
+the Kaplan-Meier restricted mean at seven days. It is a reporting choice about
+how a censored interval is summarised, not a property of the trauma system a
+planner could change or that carries epistemic uncertainty about a true value,
+so screening it would rank the estimator rather than the model.
 
-**The rankings cannot be re-derived from the cache.** `morris_r20/points.csv`
-and `morris_design_and_responses.rds` hold the 36 scalar responses per design
-point, not the monitoring data they were computed from, so there is nothing to
-recompute a changed response from. Restoring these two rankings requires
-re-running the screen, roughly nineteen hours on four cores. That is tracked
-separately rather than done here, under Issue #339, which also carries the two
-decisions the re-screen has to settle first: whether to re-screen all
-thirty-six responses or only these two, and whether the restriction horizon
-should itself be screened.
+**Thirteen parameters were added, taking the set from 65 to 78.** An audit of
+every numeric leaf in `env_data.json` against `morris_params` and the README's
+exclusion list found thirteen screened by neither: the Role 4 reconstruction
+share, return interval and post-reconstruction return rate; the four Role 4
+length-of-stay modes; the Role 4 intensive care continuation duration; the R2E
+pre-flight critical hold share and duration; the forward theatre saturation
+release threshold; the R2B holding evacuation threshold; and the mass casualty
+wounded/killed split. Adding them to this run cost about a fifth more design
+points; adding them later would have cost a further full screen.
 
-## The response and parameter set each tracked ranking was screened against
+**The R2B holding evacuation threshold is screened, with its ranks
+annotated.** `docs/Multi_Run_Supplement.md` sets out why a screen cannot rank
+it: it ships disabled at zero, so its first grid step measures switching it on
+rather than the size of the threshold. The screen bears that out, ranking it
+first on R2B dwell, both forward return-to-duty rates and the p90 time to first
+surgery. It is kept in the design so that every other parameter is screened
+across configurations with the threshold in force as well as disabled, and its
+own ranks are annotated in the README as the on/off transition rather than a
+planning influence.
 
-Every tracked ranking here, the two superseded rows included, was screened
-against the same design: 65 parameters (`morris_params` in `R/sensitivity.R`,
-59 written directly plus the six balance coordinates of the three
-simplex-constrained composition groups in `MORRIS_COMPOSITIONS`) and 36
-responses (`morris_kpis`). Neither set carries a holding bed queue response
-at either echelon, and neither carries the R2E holding or intensive care bed
-counts as a screened parameter; `R/sensitivity.R`'s own comment on
-`morris_params` records why the remaining fixed establishment counts are
-excluded. Issue #348 raised both gaps and found a second, separable defect
-alongside them: `points.csv` had no way to detect a response added to an
-existing cache, which would have let such an addition read every design
-point as cached and leave the new column permanently empty rather than
-computed. `cache_check_schema()` closes that defect, asserted by
-`scripts/check_screen_cache.R`; it changes nothing about what this evidence
-set was screened against; the response and parameter counts above have not
-moved.
+Three of the added parameters, `role4_return_interval_mode`,
+`role4_post_reconstruction_return_rate` and `role4_icu_continuation_mode`,
+measure µ\* of exactly zero on every response. None of the thirty-six measures
+what they change, and they are kept so that a response added later can rank
+them without a new design. The four Role 4 length-of-stay modes are zero on
+every in-theatre response by construction, the census being computed after the
+simulation, and register only on the two Role 4 occupancy responses.
 
-Committing either gap's fix to a published ranking means re-running this
-design at the two responses or two parameters plus the change; that
-re-screen is coordinated with Issue #335 (deciding whether `evac_threshold`
-joins the screened set) and Issue #339 (re-screening the two dwell responses
-at their corrected definition) rather than run separately for each, since a
-Morris design is a function of its parameter count and adding one at a time
-would triple the compute cost of adding them together.
+Neither response set carries a holding bed queue response at either echelon,
+and neither parameter set carries the R2E holding or intensive care bed counts
+as a screened parameter; `R/sensitivity.R`'s own comment on `morris_params`
+records why the fixed establishment counts are excluded. Issue #348 raised both
+gaps. `cache_check_schema()`, asserted by `scripts/check_screen_cache.R`,
+closes the separable defect found alongside them, that `points.csv` could not
+detect a response added to an existing cache.
 
 ## Contents
 
 | Path | What it holds |
 |---|---|
-| `morris_r20/points.csv` | The Morris design point cache: 1,320 points, being 20 trajectories over 65 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
-| `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics. The two dwell responses rest on a superseded definition; see the section above |
+| `morris_r20/points.csv` | The Morris design point cache: 1,580 points, being 20 trajectories over 78 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
+| `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics |
 | `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |
 | `morris_r20/morris_run_metadata.csv` | The design behind the Morris results: trajectory count, levels, grid jump, replications, run length, commit and the responses flagged degenerate |

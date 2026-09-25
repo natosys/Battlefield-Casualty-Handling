@@ -119,7 +119,7 @@
 | 337 | Harden the CI system-library install against archive stalls | Low | Low | **Merged (PR #345)** |
 | 339 | Re-screen the four responses whose definition changed after the tracked Morris screen | Medium | High | **Merged (PR #407)** |
 | 342 | Nothing asserts that the two structure tables list every module and script they claim to | Low | Low | **Merged (PR #343)** |
-| 348 | The Morris screen cannot rank the resource that saturates, and adding a response to the cache silently produces an all-NA column | Medium | Medium | Open — partially advanced (PR #398) |
+| 348 | The Morris screen cannot rank the resource that saturates, and adding a response to the cache silently produces an all-NA column | Medium | Medium | **Closed (PR #398)** |
 | 362 | The R2E holding occupancy split over-counts the pool in a minority of campaigns | Medium | Medium | **Merged (PR #381)** |
 | 365 | A damage control casualty cannot be evacuated between the abbreviated operation and the definitive repair | Medium | Medium | **Merged (PR #371)** |
 | 368 | Role 4 surgical activity is not represented, so its demand is understated | Medium | Medium | **Merged (PR #374)** |
@@ -151,7 +151,7 @@ Two departures from the plan are recorded rather than hidden. The audit missed t
 
 **Seed-42 baseline (30 days, single run):** unchanged. No trajectory, `env_data.json` value or tracked seed-42 artifact is touched.
 
-**Unblocked by this merge:** #408 (re-run the Sobol decomposition on the new selection) moves from `status: blocked` to `status: ready`. #348 stays open, its window of adding the coverage gaps to a re-screen already happening having passed.
+**Unblocked by this merge:** #408 (re-run the Sobol decomposition on the new selection) moves from `status: blocked` to `status: ready`. #348 was already closed (PR #398, Task 1 only); its two remaining coverage gaps, a holding bed queue response at each echelon and the R2E bed counts as screened parameters, were not added to this re-screen and no issue currently tracks them.
 
 ### Issue 312 — The Sustained-Operations Horizon, Complete ✓
 
@@ -3749,7 +3749,7 @@ Implement a post-simulation Role 4 census calculation (not a constrained simmer 
 
 6p. ~~**Issue 388** — The post-operative intensive care gate section had no tracked evidence set, its entry point likewise being `run.R` under a parameter override. `R/icu_gate.R` and `scripts/run_icu_gate.R` give it a runner on `R/hold_window.R`'s arrangement rather than sharing that module, tracking both arms' per-replication responses and their paired differences in `data/icu_gate/` at 50 replications per arm, and `scripts/check_icu_gate_protocol.R` asserts the parameters, the tracked set and every published figure against the measurement, validated by fault injection; `scripts/check_icu_gate_switch.R` continues to cover the mechanism. Regenerating the evidence set moved every figure in the section, including the mortality point estimate's direction, which now costs a fraction of a life rather than saving one as the design predicts, though the interval still spans zero.~~ — **Merged PR #394.**
 
-6q. **Issue 348, partially advanced** — The trap that would make any future response addition unsafe is closed: `cache_append()` wrote a design point's response vector under whatever header `points.csv` already carried, so a response added to `morris_kpis` or `SOBOL_RESPONSES` after a cache existed was invisible to it, either corrupting the file on the first re-evaluated row or, had the gap been backfilled with `NA`, reading every point as cached with the new response silently and permanently empty. `cache_check_schema()` checks a cache's header against the response set the evaluation loop is about to look up before that loop starts, archiving a cache that does not carry all of it under a `.stale-<timestamp>` suffix rather than resuming it. The two coverage gaps the issue also raises, the missing holding bed queue responses and the excluded R2E bed counts, remain open, gated on whichever of #335 or #339 next triggers a re-screen. — **PR #398, non-closing.**
+6q. ~~**Issue 348** — The trap that would make any future response addition unsafe is closed: `cache_append()` wrote a design point's response vector under whatever header `points.csv` already carried, so a response added to `morris_kpis` or `SOBOL_RESPONSES` after a cache existed was invisible to it, either corrupting the file on the first re-evaluated row or, had the gap been backfilled with `NA`, reading every point as cached with the new response silently and permanently empty. `cache_check_schema()` checks a cache's header against the response set the evaluation loop is about to look up before that loop starts, archiving a cache that does not carry all of it under a `.stale-<timestamp>` suffix rather than resuming it. The issue was closed on this task alone: the two coverage gaps it also raised, the missing holding bed queue responses and the excluded R2E bed counts, were not added when the #339 re-screen ran, and no issue currently tracks them.~~ — **Merged PR #398.**
 6r. ~~**Issue 312** — The two tasks the third partial advance left open are discharged. `compute_long_horizon_cma()` (`R/warmup.R`) runs the Welch cumulative-moving-average diagnostic directly on the tracked 360-day daily series for the two R2E bed pools closest to the convergence boundary at moderate intensity, rather than reasoning from the per-block classification alone: at high intensity the CMA has no level to approach, still climbing at day 360, and at moderate intensity it peaks near day 40 to 50 before settling into a narrow band, still moving slightly at the horizon's end, which is a slower-converging question than the block classification answers and leaves `WARM_UP_DAYS` at 0. A sensitivity re-screen at length is scoped and found not warranted now: the published screens run under the shipped default configuration, a lighter casualty load than either scenario profile this protocol measures, the cost is on the order of days rather than the roughly nineteen hours a 30-day screen costs, and the coverage gaps tracked at #348 should close first if a re-screen ever happens anyway. Raised #405 to standardise every replicated experiment's horizon and replication count against the protocol this issue established.~~ — **Merged PRs #319, #347, #354, #358 and #404.**
 6s. ~~**Issue 339** — The Morris screen is re-run over thirty-six responses and seventy-eight parameters, replacing the four rankings taken against superseded response definitions and adding the thirteen parameters an audit of `env_data.json` found neither screened nor excluded. `r2b_evac_threshold` is screened with its ranks annotated as its on/off transition; #348's coverage gaps were not added. Raised #408.~~
 
@@ -4683,6 +4683,10 @@ COMPLETE (merged to main):
        holding utilisation instead. evac_threshold stays outside the
        Morris screened set, the measured response confirming the
        discontinuity at its disabled default (PR #400)
+  #348 Closed on its cache-trap task alone (PR #398). Its two remaining
+       coverage gaps, a holding bed queue response at each echelon and the
+       R2E bed counts as screened parameters, were not added when #339
+       re-screened; no issue currently tracks them.
   #312 The sustained-operations horizon: protocol, measurement, duration
        pilot, horizon audit, the 360-day airlift collapse entry point, and
        the two items left by the third partial advance. The Welch
@@ -4712,14 +4716,6 @@ UNBLOCKED (start now):
        fallen to 12th and 25th, and all three composition groups now qualify
        for whole-composition sampling. Best run once with #228's N ~ 800
        design rather than separately. Raised from #339.
-  #348 The Morris screen has no holding bed queue response and never varies
-       the establishment counts, so it cannot rank the resource that
-       saturates. The cache trap is closed (PR #398): a response added to a
-       populated cache is now archived under a .stale- suffix and
-       recomputed rather than reading as permanently NA. Sequencing the two
-       remaining coverage gaps was the substance, and the #339 re-screen
-       merged without them, so closing them now needs a screen of its own.
-       Raised from the #312 audit.
   #228 Higher-resolution Sobol decomposition — N ~ 800 at 8 to 12 replications
        to separate the leading pair and bring the measured 32.9% replication
        noise share under 20%. Closes Further Development L29. Unblocked by the

@@ -50,10 +50,20 @@ check    <- function(ok, msg) {
   }
 }
 
-#' Every leaf of the vars tree as a flat named list, keyed "elm.acty.var"
+#' Every leaf of the vars tree, plus every elms bed pool's size, as a flat
+#' named list, keyed "elm.acty.var" or "elms.<elm>.<instance>.<bed>"
 #'
 #' @param ed A built environment data list.
 #' @return A named list of every leaf value, keyed by its dotted path.
+#' @details `ed$elms` is not the raw `env_data.json` configuration but
+#'   `build_element_resources()`'s already-expanded resource identifier
+#'   lists (`R/environment.R`): each team instance carries a `<type>_bed`
+#'   character vector, one identifier per bed, and its length is the pool
+#'   size `apply_bed_establishment_params()` (`R/sensitivity.R`) screens.
+#'   There is no separate count field to read, so a bed pool's size is
+#'   flattened as that vector's length alongside the vars tree, under its
+#'   own namespace, instead of being invisible to this check's drift and
+#'   mode-mapping assertions (Issue #410).
 flatten_vars <- function(ed) {
   out <- list()
   for (elm in names(ed$vars)) {
@@ -61,6 +71,15 @@ flatten_vars <- function(ed) {
       vals <- ed$vars[[elm]][[acty]]
       for (v in names(vals)) {
         out[[paste(elm, acty, v, sep = ".")]] <- vals[[v]]
+      }
+    }
+  }
+  for (elm_type in names(ed$elms)) {
+    for (i in seq_along(ed$elms[[elm_type]])) {
+      instance <- ed$elms[[elm_type]][[i]]
+      bed_fields <- grep("_bed$", names(instance), value = TRUE)
+      for (field in bed_fields) {
+        out[[paste("elms", elm_type, i, field, sep = ".")]] <- length(instance[[field]])
       }
     }
   }

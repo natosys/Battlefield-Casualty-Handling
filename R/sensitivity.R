@@ -412,7 +412,13 @@ morris_params <- data.frame(
     "role4_icu_continuation_mode",
     "r2e_vent_share", "r2e_critical_hold_mode",
     "saturation_queue_threshold", "r2b_evac_threshold",
-    "mass_casualty_kia_fraction"
+    "mass_casualty_kia_fraction",
+    # ── R2E establishment counts — added by Issue #410, closing the two
+    #    coverage gaps Issue #348 raised and left unclosed. Both are integers
+    #    over a small range; the screen moves them continuously and
+    #    apply_bed_establishment_params() rounds to the nearest whole bed,
+    #    the discretisation decision #348 asked to have recorded ──────────
+    "r2e_icu_beds", "r2e_hold_beds"
   ),
   lower = c(
     57,    25,    0.0100, 15,   15,   770,   0.70,  15,    8,   0,    40,
@@ -432,7 +438,8 @@ morris_params <- data.frame(
     2,
     0.075, 864,
     0,    0,
-    0.14
+    0.14,
+    2,    20
   ),
   upper = c(
     133,   70,    0.040,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
@@ -452,7 +459,8 @@ morris_params <- data.frame(
     8,
     0.30,  2016,
     24,   10080,
-    0.56
+    0.56,
+    6,    40
   ),
   mode  = c(
     95,    45,    0.020,  30,   30,   1440,  0.90,  21,    12,  0,    60,
@@ -472,7 +480,8 @@ morris_params <- data.frame(
     4,
     0.15,  1440,
     8,    0,
-    0.28
+    0.28,
+    4,    30
   ),
   # Each parameter's category, in the same order as the vectors above. The
   # three are Context, Capacity and Policy; README Sensitivity Analysis
@@ -505,7 +514,8 @@ morris_params <- data.frame(
     "Context",
     "Context", "Capacity",
     "Policy", "Policy",
-    "Context"
+    "Context",
+    "Capacity", "Capacity"
   ),
   stringsAsFactors = FALSE
 )
@@ -722,6 +732,38 @@ apply_role4_and_threshold_params <- function(ed, p) {
   ed
 }
 
+#' Apply the R2E establishment bed counts added by Issue #410
+#'
+#' @param ed Built environment (post `build_environment()`) to apply the
+#'   design point to.
+#' @param p Named design point, one value per screened parameter.
+#' @return `ed`, with each R2E team instance's `icu_bed` and `hold_bed`
+#'   resource identifier vectors resized to the counts `p` draws.
+#' @details `ed$elms` here is not the raw `env_data.json` configuration but
+#'   `build_element_resources()`'s already-expanded resource identifier
+#'   lists, `build_env()` (`R/environment.R`) registering one simmer
+#'   resource per identifier the `icu_bed`/`hold_bed` vectors carry; there is
+#'   no separate bed-count field to write. Screening the establishment
+#'   therefore regenerates those two vectors at the new length, on the exact
+#'   naming convention `build_element_resources()` used to create them in
+#'   the first place, rather than writing a count anywhere. Morris moves
+#'   `r2e_icu_beds` and `r2e_hold_beds` continuously across their bounds; a
+#'   bed count is discrete, so each is rounded to the nearest whole bed
+#'   before the vector is built. This is the discretisation decision Issue
+#'   #348 asked to have recorded rather than left to whatever the code
+#'   happened to do: round-to-nearest over a continuous OAT step, rather
+#'   than a fixed integer grid, so a design point's `binf`/`bsup` stay the
+#'   literal bed-count bounds a reader expects.
+apply_bed_establishment_params <- function(ed, p) {
+  icu_n  <- round(p[["r2e_icu_beds"]])
+  hold_n <- round(p[["r2e_hold_beds"]])
+  for (i in seq_along(ed$elms$r2eheavy)) {
+    ed$elms$r2eheavy[[i]]$icu_bed  <- paste0("b_r2eheavy_icu_",  seq_len(icu_n),  "_t", i)
+    ed$elms$r2eheavy[[i]]$hold_bed <- paste0("b_r2eheavy_hold_", seq_len(hold_n), "_t", i)
+  }
+  ed
+}
+
 #' Apply the simplex-constrained composition parameters
 #'
 #' @param ed Parsed configuration to apply the design point to.
@@ -759,9 +801,10 @@ apply_composition_params <- function(ed, p) {
 #'   removing two polling-interval parameters from screening (see
 #'   morris_params's own comment). Later issues have grown it to sixty-four,
 #'   then Issue #339's screening-coverage audit added thirteen more (seventy-
-#'   seven scalars), the last six of the whole table being balance
-#'   coordinates rather than direct writes: each pair is back-transformed to
-#'   a whole composition at the end of this function.
+#'   seven scalars), and Issue #410 two more (seventy-nine), the last six of
+#'   the whole table being balance coordinates rather than direct writes:
+#'   each pair is back-transformed to a whole composition at the end of this
+#'   function.
 apply_params <- function(ed, p) {
   ed <- apply_duration_and_dow_ceiling_params(ed, p)
   ed <- apply_echelon_duration_params(ed, p)
@@ -770,6 +813,7 @@ apply_params <- function(ed, p) {
   ed <- apply_generation_and_event_params(ed, p)
   ed <- apply_routing_threshold_params(ed, p)
   ed <- apply_role4_and_threshold_params(ed, p)
+  ed <- apply_bed_establishment_params(ed, p)
   ed <- apply_composition_params(ed, p)
   ed
 }
@@ -852,7 +896,7 @@ morris_kpis <- data.frame(
     "ot_util_r2b", "ot_util_r2e",
     "r2b_surgery_count", "r2e_surgery_count",
     # ── Domain 4 — Echelon load and capacity ────────────────────────────
-    "r2b_ot_q", "r2e_ot_q", "r2e_icu_q", "transport_q",
+    "r2b_ot_q", "r2e_ot_q", "r2e_icu_q", "r2b_hold_q", "r2e_hold_q", "transport_q",
     # ── Domain 5 — Flow and disposition ─────────────────────────────────
     "rtd_rate_r1", "rtd_rate_r2b", "rtd_rate_r2e", "r2b_bypass_rate",
     # ── Domain 6 — Combat power ─────────────────────────────────────────
@@ -876,6 +920,7 @@ morris_kpis <- data.frame(
     "R2B OT Utilisation", "R2E OT Utilisation",
     "R2B Surgeries per Run", "R2E Surgical Episodes per Run",
     "Mean R2B OT Queue", "Mean R2E OT Queue", "Mean R2E ICU Queue",
+    "Mean R2B Holding Queue", "Mean R2E Holding Queue",
     "Mean Transport Queue (PMV Amb + HX240M)",
     "RTD Rate — R1", "RTD Rate — R2B", "RTD Rate — R2E", "R2B Bypass Rate",
     "Total RTD Count",
@@ -895,7 +940,7 @@ morris_kpis <- data.frame(
     rep("1 — Mortality", 6),
     rep("2 — Time-to-care", 5),
     rep("3 — Surgical throughput", 4),
-    rep("4 — Echelon load", 4),
+    rep("4 — Echelon load", 6),
     rep("5 — Flow and disposition", 4),
     "6 — Combat power",
     rep("7 — Strategic evacuation", 10),
@@ -907,7 +952,7 @@ morris_kpis <- data.frame(
     rep("C1, C2, C3, C5", 2),
     "C1, C3, C4", "C1, C3", "C1, C3, C4",
     "C3, C4", "C3, C4", "C2, C3, C4", "C2, C3, C4",
-    rep("C3, C4", 4),
+    rep("C3, C4", 6),
     rep("C1, C2, C5", 3), "C2, C3, C4",
     "C2, C5",
     "C2, C3, C5", "C2, C3, C5",
@@ -926,7 +971,7 @@ morris_kpis <- data.frame(
     "one response per echelon; time-weighted mean fraction of theatre capacity busy",
     "time series — per-replication mean total over the run",
     "time series — per-replication mean total over the run",
-    rep("time series — time-weighted mean queue length", 4),
+    rep("time series — time-weighted mean queue length", 6),
     rep("one response per echelon; returns at that echelon over total arrivals", 3),
     "scalar — bypassed casualties over WIA arrivals",
     "scalar — per-replication mean count",
@@ -1200,6 +1245,8 @@ extract_kpis <- function(mon) {
   r2b_ot_q    <- safe_q("^b_r2b_ot_")
   r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
   system_ot_q <- r2b_ot_q + r2e_ot_q
+  r2b_hold_q  <- safe_q("^b_r2b_hold_")
+  r2e_hold_q  <- safe_q("^b_r2eheavy_hold_")
 
   transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
   transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
@@ -1287,6 +1334,8 @@ extract_kpis <- function(mon) {
     r2b_ot_q                  = r2b_ot_q,
     r2e_ot_q                  = r2e_ot_q,
     r2e_icu_q                 = r2e_icu_q,
+    r2b_hold_q                = r2b_hold_q,
+    r2e_hold_q                = r2e_hold_q,
     transport_q               = transport_q,
     rtd_rate_r1               = rtd_rate(1),
     rtd_rate_r2b              = rtd_rate(2),

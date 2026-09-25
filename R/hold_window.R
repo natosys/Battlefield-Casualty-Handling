@@ -26,10 +26,10 @@
 # file.
 
 #' Replications per arm
-HOLD_WINDOW_REPLICATIONS <- 50L
+HOLD_WINDOW_REPLICATIONS <- 30L
 
 #' Campaign length in days each replication runs for
-HOLD_WINDOW_DAYS <- 30L
+HOLD_WINDOW_DAYS <- 360L
 
 #' Control seed the per-replication seeds are drawn from, one arm at a time
 HOLD_WINDOW_SEED <- 42L

@@ -26,10 +26,10 @@
 # on R/analysis.R for build_attributes_wide(); source those before this file.
 
 #' Replications per arm
-ICU_GATE_REPLICATIONS <- 50L
+ICU_GATE_REPLICATIONS <- 30L
 
 #' Campaign length in days each replication runs for
-ICU_GATE_DAYS <- 30L
+ICU_GATE_DAYS <- 360L
 
 #' Control seed the per-replication seeds are drawn from, one arm at a time
 ICU_GATE_SEED <- 42L

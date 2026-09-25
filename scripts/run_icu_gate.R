@@ -25,10 +25,11 @@
 # with replication $i$ of the other.
 #
 # --refresh-baseline is the only way to write the tracked data/icu_gate/, and
-# it runs the documented protocol (50 replications x 30 days x 2 arms at seed
-# 42) rather than whatever arguments accompany it, so the tracked set and the
-# design docs/Multi_Run_Supplement.md documents cannot diverge through a
-# mistyped argument. Without it the run writes under outputs/ alone.
+# it runs the documented protocol (30 replications x 360 days x 2 arms at seed
+# 42, the sustained-operations protocol R/long_horizon.R establishes) rather
+# than whatever arguments accompany it, so the tracked set and the design
+# docs/Multi_Run_Supplement.md documents cannot diverge through a mistyped
+# argument. Without it the run writes under outputs/ alone.
 
 source("R/environment.R")
 source("R/trajectories.R")

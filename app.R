@@ -735,6 +735,10 @@ MORRIS_LABELS <- c(
   pri2_dcs_rate = "Priority 2 Damage Control Rate",
   pri3_dcs_rate = "Priority 3 Damage Control Rate",
 
+  # ── R2E establishment bed counts (Issue #410) ────────────────────────────
+  r2e_icu_beds  = "R2E Intensive Care Bed Count",
+  r2e_hold_beds = "R2E Holding Bed Count",
+
   # ── Composition balance coordinates ──────────────────────────────────────
   # A balance carries a mu* for a contrast between parts, not for a single
   # named share, so each label names the two sides of its contrast — without

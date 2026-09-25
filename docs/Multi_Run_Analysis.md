@@ -304,35 +304,35 @@ This sweep also answers the question the research agenda raised alongside it: wh
 
 ### Option 3. Hold Casualties at R2B for a Team About to Return
 
-**Holding a casualty at R2B for a surgical team about to come on shift, rather than moving them to R2E, keeps a meaningful number of casualties forward and cuts diversions caused by the team being off shift; whether it reduces the surgical load reaching R2E is not established at this replication count.** About seven casualties per campaign are kept forward this way, and diversions caused by the team being off shift fall by about nine. **Evidence: measured.**
+**Holding a casualty at R2B for a surgical team about to come on shift, rather than moving them to R2E, keeps a meaningful number of casualties forward, cuts diversions caused by the team being off shift, and now also shows more R2B surgery being performed as a result; whether it reduces the surgical load reaching R2E is still not established at this replication count.** About eighty casualties per 360-day campaign are kept forward this way, diversions caused by the team being off shift fall by about sixty-one, and R2B surgeries rise by about thirty-seven. **Evidence: measured.**
 
 #### The R2B Pre-Open Hold Window
 
 The rule tested is a pre-open window of an arbitrarily selected 60 minutes: a casualty arriving while the R2B surgical team is off shift is held at R2B if that team is due back within the window, and moved to R2E otherwise.
 
-**Design.** 50 runs of a 30-day campaign for each of two arms, one with the window set to zero so that every such casualty is moved rearward immediately, the other with it set to 60 minutes. The third column is the average difference between the two arms. The full design, including why the two arms are not the same realisation, is in `docs/Multi_Run_Supplement.md`.
+**Design.** 30 runs of a 360-day campaign for each of two arms, one with the window set to zero so that every such casualty is moved rearward immediately, the other with it set to 60 minutes; the sustained-operations protocol, migrated from a 30-day design under Issue #405. The third column is the average difference between the two arms. The full design, including why the two arms are not the same realisation, is in `docs/Multi_Run_Supplement.md`.
 
 <!-- HOLD WINDOW TABLE -->
 | Measure | Window 0 | Window 60 min | Difference |
 | --- | --- | --- | --- |
-| Casualties held at R2B | 0 | 6.76 | +6.76 [+6.10, +7.42] |
-| R2B surgeries | 52.04 | 54.04 | +2.00 [−0.53, +4.53] |
-| Diverted, team off shift | 83.04 | 73.64 | −9.40 [−15.59, −3.21] |
-| Diverted, theatre busy | 17.44 | 17.96 | +0.52 [−2.43, +3.47] |
-| R2E first surgeries | 123.10 | 116.72 | −6.38 [−14.77, +2.01] |
-| R2E theatre entry deferred | 18.06 | 16.60 | −1.46 [−3.97, +1.05] |
-| Died of wounds per run | 1.34 | 1.36 | +0.02 [−0.43, +0.47] |
-| Total casualties | 453.88 | 444.72 | −9.16 [−31.10, +12.78] |
+| Casualties held at R2B | 0.00 | 80.03 | +80.03 [+76.45, +83.62] |
+| R2B surgeries | 632.83 | 669.57 | +36.73 [+19.19, +54.28] |
+| Diverted, team off shift | 1008.37 | 947.43 | −60.93 [−91.91, −29.96] |
+| Diverted, theatre busy | 230.13 | 245.47 | +15.33 [−7.88, +38.55] |
+| R2E first surgeries | 1573.83 | 1558.83 | −15.00 [−74.83, +44.83] |
+| R2E theatre entry deferred | 214.33 | 212.70 | −1.63 [−17.85, +14.58] |
+| Died of wounds per run | 15.83 | 15.40 | −0.43 [−2.75, +1.88] |
+| Total casualties | 5386.03 | 5359.90 | −26.13 [−139.02, +86.75] |
 
-The policy does what it was designed to do, in the two respects these runs settle. It keeps 6.76 casualties per campaign at R2B, where a zero window keeps none, and off-shift diversions fall by 9.40. Neither of those intervals includes zero, so both effects are established.
+The policy does what it was designed to do, in the three respects these runs now settle. It keeps 80.03 casualties per campaign at R2B, where a zero window keeps none, off-shift diversions fall by 60.93, and R2B surgeries rise by 36.73. None of those three intervals includes zero, so all three effects are established.
 
-![Forest plot of the eight measures, each showing the mean difference per campaign with a 95% confidence interval against a vertical zero line, two intervals clear of zero shown in green and six crossing it shown in grey](../images/paper_hold_window_effects.png)
+![Forest plot of the eight measures, each showing the mean difference per campaign with a 95% confidence interval against a vertical zero line, three intervals clear of zero shown in green and five crossing it shown in grey](../images/paper_hold_window_effects.png)
 
-Two of the eight measures are established and six are not. Casualties held at R2B and diversions avoided when the team is off shift sit clear of the zero line. The remainder, including whether R2B performs more surgery as a result and whether theatre entry at R2E is deferred less often, have intervals wide enough to contain no change at all.
+Three of the eight measures are established and five are not. Casualties held at R2B, diversions avoided when the team is off shift, and R2B surgeries performed sit clear of the zero line. The remainder, including whether theatre entry at R2E is deferred less often, have intervals wide enough to contain no change at all.
 
-Whether those casualties then receive surgery at R2B sooner than they would have at R2E is not established. R2B surgeries rise by 2.00, an interval wide enough to contain both no change at all and a substantially larger rise, so the simulation cannot distinguish between them. **Evidence for the surgical benefit: unresolved.** The cause is that introducing the hold changes the sequence of random draws, so the two arms generate different casualty streams and cannot be compared casualty for casualty. Settling it to a half-width of two operations would take about 76 runs per arm rather than 50, which the available compute did not allow.
+Whether R2B performing more surgery translates into less surgical load reaching R2E is not established, and lengthening the campaign did not resolve it the way accumulating more surgical events was expected to. R2E first surgeries fall by 15.00, an interval wide enough to contain both no change at all and a substantially larger fall. **Evidence for the downstream effect: unresolved.** Introducing the hold changes the sequence of random draws, so the two arms generate different casualty streams and cannot be compared casualty for casualty; over a 360-day campaign that divergence has twelve times as long to compound as it did over 30 days, and the R2E first-surgery row's paired standard deviation rose from 29.5 casualties to 160.2 as a result, worse rather than better. Settling it to a half-width of two operations would now take about 24,655 runs per arm, far beyond the 838 a 30-day design would have needed and beyond what any migration of this experiment's horizon can buy.
 
-The remaining rows carry the same pattern. Casualties whose entry to the R2E operating theatre is deferred for want of an intensive care bed fall by 1.46 per campaign, a point estimate in the direction the surgical-load story would predict, but the interval crosses zero at [−3.97, +1.05] and the effect is not established at 50 replications; resolving it to the same two-unit half-width would take about 76 runs per arm. The busy-theatre bypass count changes negligibly (+0.52 [−2.43, +3.47], about 104 runs per arm to resolve) and R2E first surgeries fall by 6.38 [−14.77, +2.01], the latter a point estimate in the predicted direction but, at roughly 838 runs per arm to resolve, well beyond what these 50 replications settle. Mortality is unchanged between the arms (+0.02 [−0.43, +0.47]), which at 50 runs is an absence of evidence rather than evidence of safety.
+The remaining rows carry a mix of the same pattern and the one row that did resolve. Casualties whose entry to the R2E operating theatre is deferred for want of an intensive care bed fall by 1.63 per campaign, a point estimate in the direction the surgical-load story would predict, but the interval crosses zero at [−17.85, +14.58] and the effect is not established. The busy-theatre bypass count rises by 15.33 [−7.88, +38.55], its required replication count rising from about 104 to about 3,712 for the same reason the R2E first-surgery row's did. R2B surgeries, by contrast, rise by 36.73 [+19.19, +54.28] and are now resolved: the longer horizon gave this response, measured at R2B itself rather than downstream at R2E, more surgical events to separate the arms by faster than the stream divergence eroded the comparison. Mortality is unchanged between the arms (−0.43 [−2.75, +1.88]), which remains an absence of evidence rather than evidence of safety.
 
 ### Option 4. Size the Medical Evacuation Fleet at Three Ambulances
 

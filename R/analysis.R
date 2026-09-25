@@ -39,18 +39,32 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 # scripts/check_capacity_sweep_protocol.R read one definition rather than
 # three copies of it.
 
-#' Campaign length both published capacity sweeps run over, in days
-CAPACITY_SWEEP_DAYS <- 30L
+#' Campaign length all three published capacity sweeps run over, in days
+#'
+#' @details 360, the sustained-operations protocol `R/long_horizon.R`
+#'   establishes. All three sweeps (transport fleet size, forward ICU share,
+#'   R2B holding threshold) migrated together under Issue #405, from 30 days,
+#'   so that a reader comparing their tables is comparing one horizon rather
+#'   than asking why they differ; the R2B holding threshold sweep's own
+#'   design record explains why the third is checked by no protocol script
+#'   but shares this constant regardless.
+CAPACITY_SWEEP_DAYS <- 360L
 
-#' Control seed both published capacity sweeps run under
+#' Control seed all three published capacity sweeps run under
 CAPACITY_SWEEP_SEED <- 42L
 
 #' Replications the published transport fleet-size sweep runs at, per point
 #'
-#' @details Ten, which is enough to locate the capacity boundary in the queue
-#'   column and is not enough to read the utilisation column, a limit
-#'   `docs/Multi_Run_Analysis.md` states where it prints the table.
-TRANSPORT_SWEEP_REPLICATIONS <- 10L
+#' @details 30, the sustained-operations protocol's replication count,
+#'   migrated from 10 under Issue #405 alongside the horizon. The unpaired
+#'   design carries no between-arm stream divergence to offset the longer
+#'   horizon's gain, and the queue response it is sized against is a
+#'   time-weighted mean rather than an accumulating count, so it behaves like
+#'   the post-operative intensive care gate's `icu_occupancy` response
+#'   (which improved on migration) rather than like a raw casualty count
+#'   (which did not); `docs/Multi_Run_Supplement.md` records the measured
+#'   outcome.
+TRANSPORT_SWEEP_REPLICATIONS <- 30L
 
 #' PMV Ambulance fleet sizes the published sweep covers
 #'
@@ -63,7 +77,13 @@ TRANSPORT_SWEEP_PMVAMB <- 1:5
 TRANSPORT_SWEEP_HX240M <- 1:4
 
 #' Replications the published forward ICU share frontier runs at, per point
-ICU_SHARE_SWEEP_REPLICATIONS <- 20L
+#'
+#' @details 30, migrated from 20 under Issue #405 to match the other two
+#'   capacity sweeps' replication count at the shared sustained-operations
+#'   horizon, rather than because this sweep's own responses were found
+#'   under-resolved: it runs under the shipped default configuration, below
+#'   the casualty load at which any response fails to converge.
+ICU_SHARE_SWEEP_REPLICATIONS <- 30L
 
 #' Forward intensive care shares the published frontier covers
 #'
@@ -82,7 +102,12 @@ ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
 # entry point's baseline refresh and by the supplement's marker comment.
 
 #' Replications the published R2B holding threshold sweep runs at, per point
-HOLD_THRESHOLD_SWEEP_REPLICATIONS <- 10L
+#'
+#' @details 30, migrated from 10 under Issue #405 to match the other two
+#'   capacity sweeps at the shared sustained-operations horizon, for the same
+#'   reason `ICU_SHARE_SWEEP_REPLICATIONS`'s own migration states: this sweep
+#'   also runs under the shipped default configuration.
+HOLD_THRESHOLD_SWEEP_REPLICATIONS <- 30L
 
 #' R2B holding beds per unit the published sweep covers
 #'

@@ -8,7 +8,7 @@
 #   Rscript scripts/run_transport_sweep.R --refresh-baseline       # write the tracked data/sweeps/
 #   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 10 reps x 30 days
 #   Rscript scripts/run_transport_sweep.R --pmvamb 1:5 --hx240m 1:4
-#   Rscript scripts/run_transport_sweep.R --iterations 30 --days 360
+#   Rscript scripts/run_transport_sweep.R --iterations 30 --days 30
 #   Rscript scripts/run_transport_sweep.R --quick                  # smoke test (2 reps, 3 days)
 #   Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseline
 #
@@ -16,14 +16,15 @@
 # tracked images/transport_capacity_margin_by_fleet_size.png. Without it every
 # invocation writes under outputs/ alone, so an exploratory run cannot move the
 # evidence set docs/Multi_Run_Analysis.md's fleet-size table is checked
-# against. The flag fixes the swept range, the replication count (30, the
-# sustained-operations protocol, migrated from 10 under Issue #405), the
-# horizon (360 days, migrated from 30) and the seed rather than accepting
-# whichever the caller passed, an evidence set measured at some other design
-# not being the experiment docs/Multi_Run_Supplement.md documents; --scenario
-# still applies. It writes its own transport_capacity_by_fleet_size.csv (or
-# that name with `_<scenario>` appended for a non-default --scenario) and
-# leaves the forward ICU share sweep's files in the same directory untouched.
+# against. The flag fixes the swept range, the replication count and the
+# horizon (30 replications of 360 days, the sustained-operations protocol
+# shared with the other two capacity sweeps, migrated from 10 x 30 under
+# Issue #405) and the seed rather than accepting whichever the caller passed,
+# an evidence set measured at some other design not being the experiment
+# docs/Multi_Run_Supplement.md documents; --scenario still applies. It writes
+# its own transport_capacity_by_fleet_size.csv (or that name with
+# `_<scenario>` appended for a non-default --scenario) and leaves the forward
+# ICU share sweep's files in the same directory untouched.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
@@ -85,11 +86,11 @@ if (isTRUE(opt$`refresh-baseline`)) {
   opt$pmvamb     <- deparse(TRANSPORT_SWEEP_PMVAMB)
   opt$hx240m     <- deparse(TRANSPORT_SWEEP_HX240M)
   opt$iterations <- TRANSPORT_SWEEP_REPLICATIONS
-  opt$days       <- TRANSPORT_SWEEP_DAYS
+  opt$days       <- CAPACITY_SWEEP_DAYS
   opt$seed       <- CAPACITY_SWEEP_SEED
   message(sprintf(paste("Baseline refresh: running the documented protocol,",
                         "%d replications x %d days per point at seed %d"),
-                  TRANSPORT_SWEEP_REPLICATIONS, TRANSPORT_SWEEP_DAYS,
+                  TRANSPORT_SWEEP_REPLICATIONS, CAPACITY_SWEEP_DAYS,
                   CAPACITY_SWEEP_SEED))
 }
 

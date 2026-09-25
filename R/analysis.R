@@ -39,18 +39,40 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 # scripts/check_capacity_sweep_protocol.R read one definition rather than
 # three copies of it.
 
-#' Campaign length both published capacity sweeps run over, in days
+#' Campaign length the forward ICU share frontier and the R2B holding
+#' threshold sweep run over, in days
+#'
+#' @details The transport fleet-size sweep no longer shares this constant: it
+#'   migrated to the sustained-operations protocol under Issue #405, both
+#'   experiments left here having been retained at 30 days on the analogy
+#'   `docs/Multi_Run_Supplement.md`'s "Standardising the Other Experiments"
+#'   section records, running under the shipped default configuration below
+#'   the casualty load at which any response fails to converge.
 CAPACITY_SWEEP_DAYS <- 30L
 
 #' Control seed both published capacity sweeps run under
 CAPACITY_SWEEP_SEED <- 42L
 
+#' Campaign length the published transport fleet-size sweep runs over, in days
+#'
+#' @details 360, the sustained-operations protocol `R/long_horizon.R`
+#'   establishes, migrated from 30 under Issue #405. Kept separate from
+#'   `CAPACITY_SWEEP_DAYS` because that constant is shared with the forward
+#'   ICU share frontier and the R2B holding threshold sweep, neither of which
+#'   migrated.
+TRANSPORT_SWEEP_DAYS <- 360L
+
 #' Replications the published transport fleet-size sweep runs at, per point
 #'
-#' @details Ten, which is enough to locate the capacity boundary in the queue
-#'   column and is not enough to read the utilisation column, a limit
-#'   `docs/Multi_Run_Analysis.md` states where it prints the table.
-TRANSPORT_SWEEP_REPLICATIONS <- 10L
+#' @details 30, the sustained-operations protocol's replication count,
+#'   migrated from 10 under Issue #405. The unpaired design carries no
+#'   between-arm stream divergence to offset the longer horizon's gain, and
+#'   the queue response it is sized against is a time-weighted mean rather
+#'   than an accumulating count, so it is expected to behave like the
+#'   post-operative intensive care gate's `icu_occupancy` response (which
+#'   improved on migration) rather than like a raw casualty count (which did
+#'   not); `docs/Multi_Run_Supplement.md` records the measured outcome.
+TRANSPORT_SWEEP_REPLICATIONS <- 30L
 
 #' PMV Ambulance fleet sizes the published sweep covers
 #'

@@ -451,13 +451,13 @@ The flag is the only way to write this sweep's copy of the tracked `data/sweeps/
 
 ### Transport Fleet-Size Sweep
 
-<!-- SWEEP days=30 -->
+<!-- SWEEP transport_days=360 -->
 <!-- SWEEP seed=42 -->
-<!-- SWEEP transport_replications=10 -->
+<!-- SWEEP transport_replications=30 -->
 <!-- SWEEP pmvamb=1,2,3,4,5 -->
 <!-- SWEEP hx240m=1,2,3,4 -->
 
-10 replications of 30 simulated days per sweep point at control seed 42, with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size. The design runs twice, once under the shipped default configuration and once under the `high_intensity` scenario profile, the second added under Issue #300 to establish whether the margin the first reports survives at the higher casualty rate.
+30 replications of 360 simulated days per sweep point at control seed 42, with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size; the sustained-operations protocol, migrated from 10 replications of 30 days under Issue #405. The design runs twice, once under the shipped default configuration and once under the `high_intensity` scenario profile, the second added under Issue #300 to establish whether the margin the first reports survives at the higher casualty rate.
 
 `plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) resolves the named scenario against the parsed `env_data.json` (`resolve_scenario()`, `R/scenario.R`) before applying the per-point fleet-size override, rebuilds the environment via `build_environment()`, and runs the same replication engine the comparative scenario runner uses. Run via:
 
@@ -468,7 +468,9 @@ Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseli
 
 The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it beyond `--scenario`. `data/sweeps/transport_capacity_by_fleet_size.csv` holds the shipped configuration's full per-point results, and `data/sweeps/transport_capacity_by_fleet_size_high_intensity.csv` the `high_intensity` re-run's, each including the interval bounds omitted from the companion paper's tables.
 
-The horizon and the control seed above are shared with the forward ICU share frontier, the two sweeps being one shape and checked by one protocol check, which is why this design states them and that one does not repeat them.
+The control seed above is shared with the forward ICU share frontier and the R2B holding threshold sweep, the three sweeps being one shape and checked by one protocol check (the first two) or none (the third, see [R2B Holding Capacity vs. Evacuation Threshold Sweep](#r2b-holding-capacity-vs-evacuation-threshold-sweep)). The horizon no longer is: this sweep migrated to the sustained-operations protocol under Issue #405, the other two retained at 30 days for the reasons [Standardising the Other Experiments](#standardising-the-other-experiments) records, so `CAPACITY_SWEEP_DAYS` (`R/analysis.R`) now names their shared 30-day horizon alone and this sweep carries its own `TRANSPORT_SWEEP_DAYS`.
+
+**Why this migration was expected to behave differently from the two paired-arm experiments migrated alongside it.** This sweep is unpaired, each point drawing its own replications rather than sharing a control seed with another arm, so it carries none of the stream-divergence penalty that made the R2B pre-open hold window and the post-operative intensive care gate harder to resolve at 360 days (see [Standardising the Other Experiments](#standardising-the-other-experiments)). And the response the companion paper reads, mean queue, is a time-weighted average over the campaign rather than an accumulating count, the same kind of quantity as the intensive care gate's `icu_occupancy`, the one response in either prior migration that did improve. [Option 4](Multi_Run_Analysis.md#option-4-size-the-medical-evacuation-fleet-at-three-ambulances) records whether the measurement bears this out.
 
 Mean utilisation across the swept range runs the wrong way on both platforms, rising with fleet size where a fixed demand spread over more vehicles should lower it, and the interval on HX2 40M utilisation at three vehicles spans 2.3% to 19.9%. So few transport events occur per replication that the busy-time estimate at each sweep point is barely pinned down, which is why the companion paper reads the queue column and not this one.
 

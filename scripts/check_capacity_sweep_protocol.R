@@ -158,6 +158,7 @@ check_swept_vector <- function(name, held) {
 scalars <- list(
   list("days", analysis_constant("CAPACITY_SWEEP_DAYS")),
   list("seed", analysis_constant("CAPACITY_SWEEP_SEED")),
+  list("transport_days", analysis_constant("TRANSPORT_SWEEP_DAYS")),
   list("transport_replications", analysis_constant("TRANSPORT_SWEEP_REPLICATIONS")),
   list("icu_share_replications", analysis_constant("ICU_SHARE_SWEEP_REPLICATIONS"))
 )

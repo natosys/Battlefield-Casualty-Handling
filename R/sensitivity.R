@@ -1171,6 +1171,23 @@ prepare_kpi_frames <- function(mon) {
   )
 }
 
+#' Every echelon load queue response, plus the pooled theatre aggregate
+#'
+#' @param safe_q Closure over the current design point's resource monitor,
+#'   returning a pool's time-weighted mean queue length for a resource-name
+#'   regex (see `extract_kpis()`, which defines it).
+#' @return Named list: `r2e_icu_q`, `r2b_ot_q`, `r2e_ot_q`, `system_ot_q`
+#'   (`r2b_ot_q` plus `r2e_ot_q`), `r2b_hold_q` and `r2e_hold_q`.
+extract_queue_kpis <- function(safe_q) {
+  r2e_icu_q  <- safe_q("^b_r2eheavy_icu_")
+  r2b_ot_q   <- safe_q("^b_r2b_ot_")
+  r2e_ot_q   <- safe_q("^b_r2eheavy_ot_")
+  r2b_hold_q <- safe_q("^b_r2b_hold_")
+  r2e_hold_q <- safe_q("^b_r2eheavy_hold_")
+  list(r2e_icu_q = r2e_icu_q, r2b_ot_q = r2b_ot_q, r2e_ot_q = r2e_ot_q,
+       system_ot_q = r2b_ot_q + r2e_ot_q, r2b_hold_q = r2b_hold_q, r2e_hold_q = r2e_hold_q)
+}
+
 #' Extract the Morris response vector from a run_replications() monitoring list
 #'
 #' @param mon Named list with arrivals, attributes, resources
@@ -1240,13 +1257,8 @@ extract_kpis <- function(mon) {
   #' @return The column as numeric, NA where the attribute was never set.
   a <- function(nm) as.numeric(combined[[nm]])
 
-  # ── Domain 4 — echelon load (and the two derived aggregates) ───────────
-  r2e_icu_q   <- safe_q("^b_r2eheavy_icu_")
-  r2b_ot_q    <- safe_q("^b_r2b_ot_")
-  r2e_ot_q    <- safe_q("^b_r2eheavy_ot_")
-  system_ot_q <- r2b_ot_q + r2e_ot_q
-  r2b_hold_q  <- safe_q("^b_r2b_hold_")
-  r2e_hold_q  <- safe_q("^b_r2eheavy_hold_")
+  # ── Domain 4 — echelon load (and the derived aggregate) ────────────────
+  qk <- extract_queue_kpis(safe_q)
 
   transport_q    <- safe_q("^t_PMVAmb_|^t_HX240M_")
   transport_util <- compute_utilisation(mon, "^t_PMVAmb_|^t_HX240M_")
@@ -1331,11 +1343,11 @@ extract_kpis <- function(mon) {
     ot_util_r2e               = ot_util_r2e,
     r2b_surgery_count         = r2b_surgery_count,
     r2e_surgery_count         = r2e_surgery_count,
-    r2b_ot_q                  = r2b_ot_q,
-    r2e_ot_q                  = r2e_ot_q,
-    r2e_icu_q                 = r2e_icu_q,
-    r2b_hold_q                = r2b_hold_q,
-    r2e_hold_q                = r2e_hold_q,
+    r2b_ot_q                  = qk$r2b_ot_q,
+    r2e_ot_q                  = qk$r2e_ot_q,
+    r2e_icu_q                 = qk$r2e_icu_q,
+    r2b_hold_q                = qk$r2b_hold_q,
+    r2e_hold_q                = qk$r2e_hold_q,
     transport_q               = transport_q,
     rtd_rate_r1               = rtd_rate(1),
     rtd_rate_r2b              = rtd_rate(2),
@@ -1352,7 +1364,7 @@ extract_kpis <- function(mon) {
     ame_backlog_standard_mean = role4$ame_backlog_standard_mean,
     ame_backlog_standard_peak = role4$ame_backlog_standard_peak,
     ame_sorties_flown         = role4$ame_sorties_flown,
-    system_ot_q               = system_ot_q,
+    system_ot_q               = qk$system_ot_q,
     transport_util            = transport_util
   )
 

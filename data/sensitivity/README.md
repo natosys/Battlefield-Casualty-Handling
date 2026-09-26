@@ -3,31 +3,32 @@
 The measured evidence behind the sensitivity findings reported in
 [README.md](../../README.md#sensitivity-analysis) and in Further Development
 entries L18 and L29. It is tracked here because it cannot be regenerated
-cheaply: the Morris design point cache alone represents about fourteen hours of
-computation on four cores, the Sobol cache many more, and every published index,
-rank and separation in the project derives from them.
+cheaply: the Morris design point cache alone represents about fifteen and a
+half hours of computation on four cores, the Sobol cache many more, and every
+published index, rank and separation in the project derives from them.
 
 The Sobol decomposition, the noise floor measurement and the two re-analyses
 were produced from one code state, commit `ed3c426`, in the pinned Dev
 Container described in the [Development
 Environment](../../README.md#development-environment) section. The Morris
-screen was re-run under Issue #339 at commit `a3dc41a`, in an unpinned R 4.3.3
-environment on four cores, over about fourteen hours; the host restarted once
-during the run and the screen resumed from its design point cache, which
-`scripts/check_screen_order.R` asserts re-evaluates nothing. Each screen's
-`*_run_metadata.csv` records the design behind its own results.
+screen was re-run under Issue #410 at commit `5ee47ee`, in an unpinned R 4.3.3
+environment on four cores, over about fifteen and a half hours; the host
+restarted once during the run and the screen resumed from its design point
+cache, which `scripts/check_screen_order.R` asserts re-evaluates nothing. Each
+screen's `*_run_metadata.csv` records the design behind its own results.
 
 **The Sobol decomposition therefore predates the Morris re-screen, and its
 parameter selection no longer matches it.** Its five selected parameters were
 chosen as the five leading ones on an earlier Morris ranking. On the current
-ranking three of them still lead (`mass_casualty_rate` 1st,
-`mass_casualty_max_cas` 2nd, `pri1_surg_prob` 4th), but `mass_casualty_min_cas`
-has fallen to 12th and `pri1_dcs_rate` to 25th, and their places in the top five
-are taken by `pri1_evac_prob` and `mass_casualty_kia_fraction`. At twenty
-trajectories no leading parameter is separated from the one below it, so this is
-a change of membership within an unresolved group rather than a firm reordering;
-but no index in the decomposition should be quoted as describing the current
-parameter set, and re-running it is roughly fourteen hours of computation.
+ranking two of them still lead (`mass_casualty_rate` 1st, `pri1_surg_prob`
+3rd), but `mass_casualty_max_cas` has fallen to 7th and `mass_casualty_min_cas`
+to 16th, while `pri1_dcs_rate` has risen from 25th to 4th; their former places
+in the top five are taken by `pri1_evac_prob` and `mc_p1_balance`. At twenty
+trajectories the leader is separated from the rest, but ranks two through
+seven are not separated from each other, so this is a change of membership
+within an unresolved second-tier group rather than a firm reordering; no index
+in the decomposition should be quoted as describing the current parameter set,
+and re-running it is roughly fifteen hours of computation.
 
 ## The Issue #339 re-screen and the decisions behind it
 
@@ -88,11 +89,56 @@ gaps. `cache_check_schema()`, asserted by `scripts/check_screen_cache.R`,
 closes the separable defect found alongside them, that `points.csv` could not
 detect a response added to an existing cache.
 
+## The Issue #410 re-screen and the decisions behind it
+
+Issue #348 closed by fixing the cache-schema defect alone (PR #398), leaving
+its two coverage gaps, an R2B/R2E holding queue response and the R2E
+establishment bed counts as screened parameters, orphaned and untracked. This
+re-screen closes both, taking the design from 78 to 80 parameters and from
+1,580 to 1,620 points, and re-screens all thirty-six responses against the
+larger design at no extra simulation cost, on the same rationale the Issue
+#339 re-screen gives above.
+
+**Two responses were added: `r2b_hold_q` and `r2e_hold_q`.** Each is the
+time-weighted mean queue length of its echelon's holding bed pool, on the same
+`safe_q()` regex-match convention every other queue response in the set uses
+(`^b_r2b_hold_` and `^b_r2eheavy_hold_`), so a holding bed queue is measured by
+the same estimator as the theatre and intensive care queues beside it.
+
+**Two parameters were added: `r2e_icu_beds` and `r2e_hold_beds`.** Screening
+the R2E intensive care and holding bed establishment counts needed a new
+`apply_bed_establishment_params()` function rather than a write into the
+`vars` tree every other parameter uses, because `ed$elms` at the point
+`apply_params()` receives it is not the raw `env_data.json` configuration but
+`build_element_resources()`'s already-expanded resource identifier vectors:
+each R2E team instance carries an `icu_bed` and a `hold_bed` character vector,
+one identifier per bed, and `build_env()` (`R/environment.R`) registers one
+`simmer` resource per identifier the vector carries. There is no separate
+count field to write, so the function regenerates each vector at the rounded
+length Morris draws, on the exact naming convention
+`build_element_resources()` used to create it. Morris moves a screened
+parameter continuously across its bounds, and a bed count is discrete, so each
+draw is rounded to the nearest whole bed before the vector is built:
+round-to-nearest over a continuous one-at-a-time step, rather than a fixed
+integer grid, so a design point's bounds stay the literal bed-count bounds a
+reader expects. This is the discretisation decision Issue #348 asked to have
+recorded rather than left to whatever the code happened to do.
+
+Both additions land where the audit that added them expected: `r2e_icu_beds`
+leads its own queue response (`morris_ranking_r2e_icu_q.csv`) at µ\* = 1.51,
+the only response in the tracked set where a fixed establishment count
+outranks every casualty-load or clinical-probability parameter, and
+`r2e_hold_beds` ranks 21st on the primary system queue ranking, ahead of the
+median parameter. Screening the establishment alongside the demand placed on
+it is what lets a ranking distinguish a queue driven by arrivals from one
+driven by capacity, which neither screen could do while the bed counts were
+fixed.
+
 ## Contents
 
 | Path | What it holds |
 |---|---|
-| `morris_r20/points.csv` | The Morris design point cache: 1,580 points, being 20 trajectories over 78 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
+| `morris_r20/points.csv` | The Morris design point cache: 1,620 points, being 20 trajectories over 80 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
 | `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics |
 | `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |

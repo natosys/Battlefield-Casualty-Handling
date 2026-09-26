@@ -71,6 +71,8 @@
 "saturation_queue_threshold",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
 "r2b_evac_threshold",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
 "mass_casualty_kia_fraction",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
+"r2e_icu_beds",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
+"r2e_hold_beds",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
 "triage_p1_balance",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
 "triage_p2_p3_balance",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"
 "dnbi_disease_balance",NA,NA,20,"r2b_ot_q","C3, C4",0,0,0,TRUE,"degenerate response — insufficient variation across the design"

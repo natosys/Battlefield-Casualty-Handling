@@ -12,6 +12,24 @@
 # measure the same quantity by the same estimator rather than by two
 # implementations that can drift apart.
 
+#' Number of beds established in one resource pool
+#'
+#' @param elms The built configuration's `elms`, as `build_environment()`
+#'   returns it: each element's instances with their resource identifiers
+#'   already expanded.
+#' @param pattern Resource-name pattern selecting the pool's beds.
+#' @return Integer count of established beds matching `pattern`.
+#'
+#' @details Counted from the configuration rather than from the resource
+#'   monitor, which carries no row for a bed that was never seized: dividing by
+#'   the beds the monitor happens to report drops every idle bed from the
+#'   denominator and overstates occupancy wherever the establishment exceeds
+#'   the realised peak. Every bed is registered at a capacity of one, so the
+#'   count is the pool's capacity.
+pool_establishment <- function(elms, pattern) {
+  sum(grepl(pattern, unlist(elms, use.names = FALSE)))
+}
+
 #' Total queue across one resource pool as a step function of time
 #'
 #' @param resource Character vector naming the monitored bed each row belongs to.

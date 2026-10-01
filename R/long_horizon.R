@@ -64,26 +64,28 @@ LONG_HORIZON_POOLS <- c(
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param n_days Campaign length in days.
+#' @param elms The built configuration's `elms`, from which each pool's
+#'   establishment is counted.
 #' @return Data frame of pool, day, mean_queue and occupancy, one row per pool
 #'   and day.
 #'
 #' @details Both quantities are time-weighted means over the day rather than
 #'   samples at its boundary, and occupancy is the pool's total in-use server
-#'   count divided by its total capacity, so it reads as the fraction of the
-#'   establishment in use rather than as a count.
-reduce_pool_series <- function(resources, n_days) {
+#'   count divided by its established bed count, so it reads as the fraction of
+#'   the establishment in use rather than as a count.
+reduce_pool_series <- function(resources, n_days, elms) {
   edges <- seq(0, n_days * DAY_MIN, by = DAY_MIN)
   do.call(rbind, lapply(names(LONG_HORIZON_POOLS), function(pool) {
     rows <- resources[grepl(LONG_HORIZON_POOLS[[pool]], resources$resource), ]
     if (nrow(rows) == 0) return(NULL)
     queue  <- pool_queue_steps(rows$resource, rows$time, rows$queue)
     server <- pool_queue_steps(rows$resource, rows$time, rows$server)
-    capacity <- sum(tapply(rows$capacity, rows$resource, max))
+    establishment <- pool_establishment(elms, LONG_HORIZON_POOLS[[pool]])
     data.frame(
       pool       = pool,
       day        = seq_len(n_days),
       mean_queue = step_bin_means(queue, edges),
-      occupancy  = step_bin_means(server, edges) / capacity
+      occupancy  = step_bin_means(server, edges) / establishment
     )
   }))
 }
@@ -163,7 +165,7 @@ reduce_long_replication <- function(env, n_days) {
   arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
   attributes <- simmer::get_mon_attributes(env)
 
-  pools <- reduce_pool_series(resources, n_days)
+  pools <- reduce_pool_series(resources, n_days, env_data$elms)
   flow  <- reduce_flow_series(arrivals, attributes, n_days)
 
   #' Reshape one reduced frame into the module's long form

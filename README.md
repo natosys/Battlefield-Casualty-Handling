@@ -772,7 +772,7 @@ $p_{max}$ and the treatment efficacy factors ([Treatment Efficacy Modifiers](#tr
 
 ### Multi-Echelon Check and Conditional Increment
 
-DOW checks are performed at four points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, and on completion of post-operative recovery at R2E (ICU or holding bed — see [Post-Operative Checkpoint](#post-operative-checkpoint) below). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
+DOW checks are performed at five points in the trajectory: on completion of R1 treatment, on arrival at R2B (after hold bed seizure), on arrival at R2E, on completion of post-operative recovery at R2E (ICU or holding bed, see [Post-Operative Checkpoint](#post-operative-checkpoint) below), and at each daily poll while a casualty awaits strategic evacuation (see [AME Wait Checkpoint](#ame-wait-checkpoint) below). To avoid double-counting mortality across echelons, the probability applied at each check after the first is a conditional increment — the additional mortality risk accumulated since the previous check — rather than the cumulative probability:
 
 $$
 p_{conditional} = \max\left(0, \frac{F(t_{now}) - F(t_{prev})}{1 - F(t_{prev})}\right)
@@ -811,7 +811,7 @@ $$
 0.020 \times 0.83 \times 0.56 \times 0.32 \times 0.25 = 0.00074
 $$
 
-This residual ceiling of 0.085% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with the Falklands 1982 historical outcome of effectively zero post-operative deaths in patients who survived to definitive surgical care at Ajax Bay.
+This residual ceiling of 0.074% represents the fraction of optimally treated P1 casualties expected to die of wounds despite receiving definitive care at every echelon — consistent with the Falklands 1982 historical outcome of effectively zero post-operative deaths in patients who survived to definitive surgical care at Ajax Bay.
 
 The multiplicative reduction factors are derived from aggregate post-care survival rates found in academic literature rather than fitted to individual-level combat casualty data, and have not been validated against a specifically comparable conflict dataset. Overestimating a factor would reduce modelled DOW sensitivity to system overload for treated casualties, while underestimating one would inflate DOW for patients who received definitive care; the relative ordering (DCS reduces the ceiling more than DCR, DCR more than TCCC) reflects clinical consensus and is unlikely to reverse under parameter uncertainty.
 
@@ -819,7 +819,7 @@ The multiplicative reduction factors are derived from aggregate post-care surviv
 
 The R2E surgical trajectory performs a pre-OT ICU availability check before seizing an OT bed, since damage control surgery is established doctrine specifically because post-operative critical care is expected to follow [[26]](#references), post-operative ICU or high-dependency care is the guideline-recommended standard after major trauma surgery [[27]](#references), and bed capacity is an explicitly named constraint at deployed damage-control facilities in LSCO [[2]](#references):
 
-1. **ICU available** — surgery proceeds unchanged; post-operative recovery is in ICU (short or full duration).
+1. **ICU available**: surgery proceeds unchanged, and post-operative stabilisation is in ICU.
 2. **ICU full, Priority 1** — surgery still proceeds (withholding it would expose a Priority 1 casualty who has not undergone surgery to near-certain DOW), but post-operative recovery is in a holding bed instead of ICU. `dow_ceiling` is multiplied by the post-op hold penalty (3.0 — Treatment Efficacy Modifiers table above) rather than a further reduction, reflecting reduced monitoring.
 3. **ICU full, Priority 2+** — OT entry is deferred. The casualty polls ICU availability every `icu_gating.defer_check_interval` minutes (30, by default) without holding any resource while waiting, and proceeds as path 1 once a bed frees.
 
@@ -827,7 +827,9 @@ Both the ICU and post-op-hold pathways lead into the same post-operative DOW che
 
 The post-definitive care that follows the definitive repair takes the same two-way split, recorded separately as `post_definitive_pathway`, and for the same reason: a casualty who has already been operated on cannot be made to wait indefinitely for a bed, so when intensive care is saturated they recover in a holding bed at the elevated ceiling instead. This is where the model's intensive care constraint now shows most clearly. At the shipped establishment of four beds, most casualties reaching this point take the holding-bed route, because the same four beds are also serving the stabilisation episode.
 
-R2B has the same pre-OT ICU check, and at R2B only the Priority 2+ deferral rule matters, since no Priority 1 override applies there. What the check constrains depends on the forward ICU share (see [Post-Operative Stabilisation](#post-operative-stabilisation)): at the shipped share of zero the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while at a non-zero share the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
+R2B has the same pre-OT ICU check with the same rule: Priority 1 proceeds unconditionally, and Priority 2+ defers theatre entry while that unit's intensive care is saturated. What the check constrains depends on the forward ICU share (see [Post-Operative Stabilisation](#post-operative-stabilisation)): at the shipped share of zero the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while at a non-zero share the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
+
+Each echelon's gate can be switched off through `icu_gating.enabled` (1 in both shipped echelons). Setting it to 0 reproduces the model before the gate existed: theatre entry no longer depends on a free intensive care bed, and a casualty needing stabilisation queues for intensive care instead of taking the holding-bed route. The switch exists so that the gate's effect can be measured against a supported configuration rather than an earlier code state.
 
 Priority 1 casualties are always committed to surgery, even when no post-operative ICU bed is available, accepting elevated post-operative mortality risk in preference to withholding surgery, which would leave them facing near-certain DOW. The clinical trade-off is described in [[26]](#references) and [[2]](#references), and the standard of post-operative ICU/HDU care against which the "hold" pathway is a departure is set out in [[27]](#references); the default 3.0× penalty multiplier is an informed estimate, chosen to produce a materially higher, but not overwhelming, realised DOW rate for the hold pathway relative to ICU.
 
@@ -1303,8 +1305,8 @@ Eighty parameters are screened, spanning the main uncertain inputs across all th
 | P3 DNBI surgical candidacy      | `pri3_dnbi_surg_prob`  | 40%      | 15%   | 55%   | B    |
 | P3 other surgical candidacy     | `pri3_other_surg_prob` | 60%      | 35%   | 75%   | B    |
 | Disease DNBI surgical candidacy | `disease_surgery_pct`  | 6%       | 3%    | 12%   | B    |
-| P1 strategic evacuation rate    | `pri1_evac_prob`       | 95%      | 70%   | 99%   | B    |
-| P2 strategic evacuation rate    | `pri2_evac_prob`       | 90%      | 65%   | 98%   | B    |
+| P1 R1 onward evacuation rate    | `pri1_evac_prob`       | 95%      | 70%   | 99%   | B    |
+| P2 R1 onward evacuation rate    | `pri2_evac_prob`       | 90%      | 65%   | 98%   | B    |
 
 **R2B — Battalion Aid Post**
 
@@ -1867,7 +1869,7 @@ Every casualty enters the model at R1 and is routed by classification: wounded i
 
 WIA and non-battle-injury casualties are then checked for died of wounds, using the time-dependent survival function described under [Died of Wounds](#died-of-wounds). The check is evaluated at elapsed time since injury, so at a typical R1 treatment time of about 20 minutes the Priority 1 probability is roughly 0.1%, approaching its 2.0% ceiling only after many hours without treatment. Battle fatigue and disease cases are exempt, since neither has a traumatic injury mechanism. A casualty flagged as died of wounds is reclassified and follows KIA handling.
 
-Survivors are then dispositioned. Around 95% of Priority 1 and 90% of Priority 2 casualties are evacuated to R2B, or directly to R2E if no R2B team is available. Those not meeting the evacuation criteria, mostly Priority 3 and DNBI cases, recover at R1 over 0.5 to 5 days, most often 2, and return to duty.
+Survivors are then dispositioned by type. Battle fatigue is held at R1 and returned to duty over 0.5 to 5 days, most often 2, with no onward routing. Around 95% of Priority 1 and 90% of Priority 2 casualties of every other type are evacuated forward. A wounded or non-battle-injury casualty goes to whichever R2B team is available, or directly to R2E if none is. A disease casualty is placed by holding occupancy instead: an R2B team is chosen only while its holding beds are less than 80% occupied (`r2b.holding.hold_threshold`), which reserves headroom for casualties arriving from resuscitation and surgery rather than letting long-stay disease cases fill the unit, and a disease casualty finding no team below the threshold goes to R2E. Those not evacuated, mostly Priority 3, recover at R1 over the same 0.5 to 5 days and return to duty.
 
 Durations are drawn from triangular distributions. WIA and DNBI treatment at R1 takes 10 to 30 minutes, most often 20 [[29]](#references). KIA processing takes 10 to 20 minutes, most often 15, followed by transport to the mortuary of 15 to 45 minutes, most often 30.
 
@@ -1884,19 +1886,27 @@ flowchart TD
     A(["Start"]) --> B["Set Attributes: <br> priority, dnbi_type, surgery, <br> dcs_pathway (statistically assigned)"]
     B --> C["Assign R1"]
     C --> D{"KIA?"}
-    D -- WIA/DNBI --> E["treat casualty"]
-    E --> F{"DOW?"}
-    F -- DOW --> G["treat KIA"]
-    F -- WIA/DNBI --> H{"Evac?"}
-    D -- KIA --> G
-    H -- Yes --> I{"R2B Ready?"}
-    I -- Yes --> J["Transfer to R2B"]
-    I -- No --> K["Transfer to R2E"]
-    K --> L(["End"])
+    D -- KIA --> G["Treat KIA"]
+    D -- WIA/DNBI --> E["Treat Casualty"]
+    E --> T{"Casualty Type?"}
+    T -- "Battle fatigue" --> BF["Hold at R1"]
+    BF --> N["Return to Duty"]
+    T -- Disease --> DH{"Evac?<br>(P1 ~95%, P2 ~90%)"}
+    DH -- Yes --> DS{"R2B Team with<br>Hold < 80%?"}
+    DS -- Yes --> J["Transfer to R2B"]
+    DS -- No --> K["Transfer to R2E"]
+    DH -- No --> M["Recover at R1"]
+    T -- "WIA / NBI" --> F{"DOW?"}
+    F -- DOW --> G
+    F -- Survived --> H{"Evac?<br>(P1 ~95%, P2 ~90%)"}
+    H -- Yes --> I{"R2B Team<br>Available?"}
+    I -- Yes --> J
+    I -- No --> K
+    H -- No --> M
+    M --> N
+    N --> L(["End"])
     J --> L
-    H -- No --> M["Recover at R1"]
-    M --> N["Return to Duty"]
-    N --> L
+    K --> L
     G --> O["Transfer KIA"]
     O --> L
 ```
@@ -1921,9 +1931,9 @@ Resuscitation takes 25 to 70 minutes, most often 45. No published duration for t
 | Documentation/Prep       | 2         | 3          | 5         |
 | **TOTAL**                | 25        | 45         | 70        |
 
-Casualties not needing surgery need a holding bed, and where that bed is found depends on capacity. A team is only chosen if its holding beds are less than 80% occupied, which reserves headroom for new arrivals rather than letting long-stay patients fill the unit. If a team has room the casualty recovers at R2B over 0.5 to 10 days, most often 5, and returns to duty. If no R2B team is below the threshold but R2E has holding capacity, the casualty is sent to R2E instead. If both are full, the casualty queues for an R2B bed, subject to a cap on queue length.
+Casualties not needing surgery need a holding bed, and where that bed is found depends on capacity. If the unit the casualty reached has a free holding bed, they recover there over 0.5 to 10 days, most often 5, and return to duty. If its beds are all occupied but R2E has holding capacity, the casualty is sent to R2E instead. If both are full, the casualty queues for an R2B bed, up to a cap proportional to R2B's share of the combined holding establishment (two casualties at the shipped ten R2B and thirty R2E beds); beyond the cap they are sent to R2E regardless. The 80% occupancy threshold that reserves forward headroom acts earlier, at R1, where it decides whether a disease casualty is sent to an R2B unit at all (see [Core Trajectory](#core-trajectory)).
 
-An optional evacuation threshold, `r2b.holding.evac_threshold`, caps how long one casualty may occupy a forward bed. A casualty whose drawn convalescence exceeds it is moved to R2E part-way through it and serves the remainder there, rather than a fresh duration drawn on arrival. How much convalescence a casualty needs follows from their injury and not from the bed they happen to be lying in, so the threshold settles where the time is served without changing how much of it there is; that is what makes the R2E load it produces attributable to the routing decision alone. The parameter ships at zero, which disables it, so the branch is unreachable at the shipped configuration and the whole drawn duration is served forward; `scripts/check_lever_realisation.R` asserts the conservation, the shipped setting and the unreachability that follows from it. It is distinct from `r2b.holding.hold_threshold`, which the paragraph above describes: that one is an occupancy fraction deciding whether a casualty is sent to an R2B unit at all, and this one a duration deciding how long they may stay once there. The Morris parameter named `r2b_hold_threshold` is the occupancy fraction.
+An optional evacuation threshold, `r2b.holding.evac_threshold`, caps how long one casualty may occupy a forward bed. A casualty whose drawn convalescence exceeds it is moved to R2E part-way through it and serves the remainder there, rather than a fresh duration drawn on arrival. How much convalescence a casualty needs follows from their injury and not from the bed they happen to be lying in, so the threshold settles where the time is served without changing how much of it there is; that is what makes the R2E load it produces attributable to the routing decision alone. The parameter ships at zero, which disables it, so the branch is unreachable at the shipped configuration and the whole drawn duration is served forward; `scripts/check_lever_realisation.R` asserts the conservation, the shipped setting and the unreachability that follows from it. It is distinct from `r2b.holding.hold_threshold`, described under [Core Trajectory](#core-trajectory): that one is an occupancy fraction deciding whether a casualty is sent to an R2B unit at all, and this one a duration deciding how long they may stay once there. The Morris parameter named `r2b_hold_threshold` is the occupancy fraction.
 
 Surgical candidacy is assessed next, behind an ICU availability gate. Priority 1 casualties proceed regardless of ICU status; Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. How much work the gate does depends on the forward ICU share described below: at the shipped share of zero the two ICU beds per team serve only the evacuation-wait fallback and the gate is close to inert, while at a non-zero share every casualty operated on here also recovers here, and the gate becomes a real constraint on forward surgical throughput.
 
@@ -1979,16 +1989,21 @@ flowchart TD
     NI1 --> NI3["Release Bed"]
     NI2 --> NI3
     K -- "OT busy, or team back<br>beyond the window" --> O{"Evac Ready?"}
-    J -- No --> P0{"R2B Hold < 80%?"}
+    J -- No --> P0{"R2B Hold<br>Bed Free?"}
     P0 -- Yes --> P["Seize Hold Bed"]
     P --> Q["Recover at R2B"]
-    Q --> R["Release Hold Bed"]
+    Q --> QE{"Drawn Stay Beyond<br>evac_threshold?<br>(0 = disabled)"}
+    QE -- No --> R["Release Hold Bed"]
     R --> S["Return to Duty"]
     S --> Z
+    QE -- "Yes (remainder<br>served at R2E)" --> QR["Release Hold Bed"]
+    QR --> O
     P0 -- "No, R2E has room" --> PB["Bypass to R2E"]
     PB --> Z
-    P0 -- "No, both full" --> PC["Queue for R2B Hold Bed"]
+    P0 -- "No, both full" --> PQ{"R2B Hold Queue<br>Within Cap?"}
+    PQ -- Yes --> PC["Queue for R2B Hold Bed"]
     PC --> P
+    PQ -- No --> PB
     NS -- No --> O
     NI3 --> O
     O -- Yes --> T["Select R2E"]
@@ -2077,7 +2092,7 @@ flowchart TD
     PD -- Yes --> C
     PD -- No --> P
     P -- Yes --> PS{"Casualties Awaiting Theatre<br>At or Above Saturation Threshold?"}
-    PS -- "No (always, at the shipped<br>threshold of 0 = disabled)" --> Q["Select Surg Section <br> Seize OT & Surg Section"]
+    PS -- "No (below the shipped<br>threshold of 8; 0 = disabled)" --> Q["Select Surg Section <br> Seize OT & Surg Section"]
     PS -- Yes --> PSR["Mark Definitive Repair<br>Outstanding"]
     PSR --> T0
     Q --> R["Surgery (Second)"]
@@ -2150,7 +2165,7 @@ A casualty released to strategic evacuation with the definitive repair outstandi
 
 The duration is conserved rather than estimated. The releasing theatre draws the operation it would have performed, from the same distribution its own second procedures are drawn from, and the casualty carries that draw rearward; the analysis reads it and takes no draw of its own. Total surgical time across the two echelons is therefore exactly what a casualty operated on entirely in theatre would have consumed, and the report is a function of the run rather than of how many times it is analysed. The same conservation extends to the intensive care that follows: theatre served none of the post-operative episode for such a casualty, so the whole of it falls here, and they take the operated Priority 1 ward and length of stay whatever their triage priority, on the reasoning that put them on the critical airlift route in the first place.
 
-Nothing queues for a theatre here, nothing is refused and nothing is pushed back into theatre. This is a requirement the deployed system generates, on the same footing as the bed demand beside it, and the model gives the national support base no theatre establishment for it to fall short of. Two limits attach. The report covers this one population: the two populations below are the only ones represented, so the theatre demand reported is a lower bound on what that echelon carries. And the population is empty at the shipped configuration, the release being disabled, so every figure this project reports carries no Role 4 theatre demand at all.
+Nothing queues for a theatre here, nothing is refused and nothing is pushed back into theatre. This is a requirement the deployed system generates, on the same footing as the bed demand beside it, and the model gives the national support base no theatre establishment for it to fall short of. One limit attaches. The report covers two populations, this released casualty and the reconstruction cohort below, and they are the only ones represented, so the theatre demand reported is a lower bound on what that echelon carries. Both ship in force: the release at a saturation threshold of eight casualties awaiting theatre, and the reconstruction cohort at a share of 0.2.
 
 ##### Staged Reconstruction
 
@@ -2162,7 +2177,7 @@ Which casualties enter the sequence is the harder question, and it is answered o
 
 Reconstruction is a reason to evacuate in its own right, alongside a recovery beyond the theatre evacuation policy and the capacity release described under [R2E Heavy Trajectory](#r2e-heavy-trajectory); `evacuation_reason` records which of the three decided each disposition. A casualty needing weeks of repeated theatre visits is not returned to duty in theatre whatever their drawn recovery says, which matters most at a long evacuation policy, where the requirement rather than the threshold is what sends them rearward.
 
-The cohort ships in force, `reconstruction_share` being 0.2, so every figure this project reports carries the reconstruction demand it generates. A share of zero still consumes no random draw, which is what let the mechanism be built and verified against the published evidence set before it was switched on.
+The cohort ships in force, `reconstruction_share` being 0.2, so every figure this project reports carries the reconstruction demand it generates. A share of zero consumes no random draw, so disabling the cohort reproduces a campaign without it exactly.
 
 #### Length of Stay
 
@@ -2186,7 +2201,7 @@ The shipped cadence of one sortie every 7 days is unsourced. AJP-4.10(B) [[34]](
 
 Sortie cancellation ships disabled, at a probability of zero. The same source prescribes no failure rate either, but the reason for shipping zero is one of scope rather than of evidence: this model's subject is the land-based trauma system, and its business with the strategic echelon is to state the demand that system generates rather than to simulate the reliability of the airlift meeting it, which is the treatment [Role 4 itself already receives](#role-4-national-support-base-demand-modelling). A planner modelling a contested or weather-limited air line of communication sets the probability to the rate that theatre expects; what the trauma system absorbs across that range is measured at [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](docs/Multi_Run_Analysis.md#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing).
 
-**Which pool a casualty uses** follows AJP-4.10(B) [[34]](#references) rather than an arbitrary split. A casualty reaching strategic evacuation has already completed post-operative recovery, so the default is a holding bed and the standard pool: the doctrine defines a casualty staging unit as holding *already stabilised* patients and describes critical care as an augmentation added only if required, and one explicitly limited by capacity. Priority 1 surgical evacuees are the exception, modelled as still needing in-transit critical care and routed to an ICU bed and the smaller critical pool. The doctrinal distinction is well sourced; which of this model's categories counts as already stabilised is an informed judgement, since the doctrine does not map it to triage priorities. If in reality fewer casualties need in-transit critical care, the model overstates both ICU contention with post-operative recovery and critical-pool backlog; if more do, it understates both.
+**Which pool a casualty uses** follows AJP-4.10(B) [[34]](#references) rather than an arbitrary split. A casualty reaching strategic evacuation has already completed post-operative recovery, so the default is a holding bed and the standard pool: the doctrine defines a casualty staging unit as holding *already stabilised* patients and describes critical care as an augmentation added only if required, and one explicitly limited by capacity. Priority 1 surgical evacuees are the exception, modelled as still needing in-transit critical care and routed to the smaller critical pool. Most of them stage for flight in a holding bed like any other evacuee; only the ventilated share, and any casualty released with the definitive repair outstanding, first hold an ICU bed, and only for a bounded pre-flight period before stepping down to a holding bed (see [R2E Heavy Trajectory](#r2e-heavy-trajectory)). The doctrinal distinction is well sourced; which of this model's categories counts as already stabilised is an informed judgement, since the doctrine does not map it to triage priorities. If in reality fewer casualties need in-transit critical care, the model overstates both ICU contention with post-operative recovery and critical-pool backlog; if more do, it understates both.
 
 Two mechanisms are simplifications made for tractability. The first is **AME capacity banking**: unclaimed capacity from an under-subscribed sortie persists on its pool and can be taken by a later arrival, rather than departing with the aircraft as empty seats would. This is an engineering necessity rather than a doctrinal claim: casualties who board never release the resource, matching one-way evacuation, so capacity has to accumulate for a pool to reopen at the next sortie. Its practical effect differs sharply by pool, since the standard pool's capacity comfortably exceeds demand while the critical pool fills on every sortie until demand is cleared. Banking also decides what a cancellation costs, and the cost is larger than the mechanism suggests. A sortie that does not fly adds nothing to either pool, and because capacity is never released there is no later sortie at which the missed places reappear: cancellation removes lift permanently rather than deferring it, so an early run of cancellations consumes a margin the schedule cannot rebuild. That is why sortie reliability behaves as a threshold rather than as a proportional loss, which [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](docs/Multi_Run_Analysis.md#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing) measures. Were the assumption wrong, and a cancelled sortie's load carried by the next aircraft, the trauma system would absorb an unreliable schedule far better than the model shows. Within a pool, casualties board in the order they reached the disposition, with no further prioritisation beyond the critical and standard split itself. Any finer ordering would redistribute waiting time within a pool without changing its throughput or backlog.
 
@@ -2223,11 +2238,11 @@ This same set is the response set the Morris screen ranks parameters against; [S
 - **Computation:** `sum(attributes_wide$dow == 1, na.rm = TRUE)` per replication.
 - **Note:** DOW probability is time-dependent, so DOW count increases under queue saturation and evacuation delay relative to non-congested baseline values, making this metric sensitive to system load.
 
-**DOW Rate by Echelon.** Count and proportion of DOW deaths occurring at each echelon (R1, R2B, R2E), derived from the `dow_echelon` attribute. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E (simmer supports only numeric attribute values).
+**DOW Rate by Echelon.** Count and proportion of DOW deaths occurring at each checkpoint (R1, R2B, R2E arrival, R2E post-operative recovery, and the strategic evacuation wait), derived from the `dow_echelon` attribute. Attribute encoding: 1 = R1, 2 = R2B, 3 = R2E, 4 = R2E post-operative, 5 = AME wait (simmer supports only numeric attribute values).
 
 - **Doctrinal basis:** AJP-4.10 §5: echelon-specific mortality is the primary indicator for role-appropriate capability allocation.
 - **Criteria:** C1, C2, C3, C5
-- **Computation:** Filter `attributes_wide` where `dow == 1`; decode `dow_echelon` (1→"r1", 2→"r2b", 3→"r2e"); count by decoded echelon label; divide by total arrivals for rate. Consistency check: echelon subtotals must sum to total DOW count.
+- **Computation:** Filter `attributes_wide` where `dow == 1`; decode `dow_echelon` (1→"r1", 2→"r2b", 3→"r2e", 4→"r2e_postop", 5→"ame_wait"); count by decoded echelon label; divide by total arrivals for rate. Consistency check: echelon subtotals must sum to total DOW count.
 - **Note:** Echelon DOW rates are sensitive to system load. Elevated R2B or R2E DOW rates indicate that transport or admission delays are accumulating mortality risk in the corresponding phase of care.
 
 ---
@@ -2419,7 +2434,7 @@ This section records what the model does not represent, how much each gap matter
 
 **L1 — Point of injury to R1 transit not modelled.** Casualties enter the model at R1, so tourniquet application, self and buddy aid, and tactical field care all sit outside its scope. Every time-to-care measure runs from R1 arrival rather than from wounding, which means the time to first surgical incision covers only the within-system delay and cannot be compared directly against the doctrinal two-hour standard. Closing it means either modelling the pre-R1 phase or carrying an explicit offset that a planner can add.
 
-**L4 — R2B holding capacity below expected occupancy.** Expected concurrent occupancy is around 15.5 beds against ten across both R2B units. Two-tier routing bounds the consequences: a team is only selected while its holding beds are below 80% occupied, and on arrival a casualty takes a bed if one is free, diverts to R2E if not, or queues within a cap when both echelons are saturated. Casualties are always dispositioned in finite time, but the routing shifts load onto R2E. A joint sweep of the establishment against an evacuation threshold measures the two remedies against each other rather than leaving the choice to reasoning alone: expanding to ten beds per unit clears the forward queue with no measured cost to R2E holding or intensive care, while an evacuation threshold only reaches comparable relief at a setting aggressive enough to evacuate nearly every convalescence early, and does so by measurably raising R2E holding utilisation rather than removing the load from the system (`docs/Multi_Run_Analysis.md`'s Option 2). The gap therefore remains until the establishment is actually expanded; the sweep settles which remedy to spend on rather than closing it.
+**L4 — R2B holding capacity below expected occupancy.** Expected concurrent occupancy is around 15.5 beds against ten across both R2B units. Two-tier routing bounds the consequences: at R1 a disease casualty is sent to a team only while its holding beds are below 80% occupied, and on arrival at R2B any casualty needing a holding bed takes one if it is free, diverts to R2E if not, or queues within a cap when both echelons are saturated. Casualties are always dispositioned in finite time, but the routing shifts load onto R2E. A joint sweep of the establishment against an evacuation threshold measures the two remedies against each other rather than leaving the choice to reasoning alone: expanding to ten beds per unit clears the forward queue with no measured cost to R2E holding or intensive care, while an evacuation threshold only reaches comparable relief at a setting aggressive enough to evacuate nearly every convalescence early, and does so by measurably raising R2E holding utilisation rather than removing the load from the system (`docs/Multi_Run_Analysis.md`'s Option 2). The gap therefore remains until the establishment is actually expanded; the sweep settles which remedy to spend on rather than closing it.
 
 **L11 — OT and ICU gating parameters are informed estimates.** The Priority 1 override threshold, the post-operative hold mortality multiplier and the post-operative hold length of stay are all informed estimates: no open-access source gives a ward-against-ICU mortality ratio for post-damage-control trauma patients, or a typical recovery length of stay outside ICU in an austere setting. Priority 2 and below casualties deferring theatre entry while ICU is saturated also have no escape route, so under sustained saturation one could in principle wait indefinitely rather than being triaged to non-operative management. The direction of the findings should be robust; the absolute post-operative mortality rates should be read as illustrative pending clinical review or a calibration target.
 
@@ -2433,9 +2448,9 @@ This section records what the model does not represent, how much each gap matter
 
 **L21 — R2B surgical throughput options cannot be tested.** Two ways of raising forward surgical throughput are deliberately out of reach. Extending shift hours needs a clinician fatigue and error-rate model the simulation does not have, without which longer hours would appear free. Adding a second surgical team per unit is an establishment decision for planners rather than something the model should assume. The shift-length parameter already threads through to environment construction for the first; the second needs the R2B surgical sub-element at a quantity of two and a rework of the shift-alternation counter, which alternates across units rather than within one.
 
-**L22 — The died-of-wounds calibration target is a bounded treated-cohort rate.** The historical anchor for the mortality ceilings is three deaths among the "over 650" casualties who reached the Ajax Bay Advanced Surgical Centre, a cohort drawn from both sides of the conflict and reported with an inexact denominator. Three consequences follow. The rate of approximately 0.46% is an upper bound rather than a point estimate, so the test applied to a configuration is one-sided, whether its measured rate sits at or beneath the bound; a two-sided test asking the interval to span it is stricter than an upper bound supports, since it fails a model for sitting comfortably below a ceiling, and neither shipped configuration is raised to meet the bound, because lifting modelled mortality to reach a ceiling would add deaths the historical record does not evidence (the measured rates and the ceilings fitted against them are reported in [Parameter Calibration](#parameter-calibration) and in [Comparative Scenario Analysis](docs/Multi_Run_Analysis.md#comparative-scenario-analysis); how many replications a mortality figure needs is derived once, in the Key Parameters table of `CLAUDE.md`). The cohort mixes British and Argentine casualties, whose prior treatment and evacuation timelines differ, while the model represents a single force, and the ceilings remain entangled with the treatment efficacy factors, so agreement with the bound confirms the pair jointly rather than either alone. And because the target constrains only casualties who survived to reach surgical care, the model's whole-of-wounded mortality rate is unconstrained by any historical figure, which is the quantity a planner is most likely to read off the output. Closing this would need a source reporting a campaign died-of-wounds count against an exact wounded-in-action denominator for one force; no open-access source doing so was identified.
+**L22 — The died-of-wounds calibration target is a bounded treated-cohort rate.** The historical anchor for the mortality ceilings is three deaths among the "over 650" casualties who reached the Ajax Bay Advanced Surgical Centre, a cohort drawn from both sides of the conflict and reported with an inexact denominator. Three consequences follow. The rate of approximately 0.46% is an upper bound rather than a point estimate, so the test applied to a configuration is one-sided, whether its measured rate sits at or beneath the bound; a two-sided test asking the interval to span it is stricter than an upper bound supports, since it fails a model for sitting comfortably below a ceiling, and neither shipped configuration is raised to meet the bound, because lifting modelled mortality to reach a ceiling would add deaths the historical record does not evidence (the measured rates and the ceilings fitted against them are reported in [Parameter Calibration](#parameter-calibration) and in [Comparative Scenario Analysis](docs/Multi_Run_Analysis.md#comparative-scenario-analysis); how many replications a mortality figure needs is derived once, in [Replication Count and Resolution](docs/Multi_Run_Analysis.md#replication-count-and-resolution)). The cohort mixes British and Argentine casualties, whose prior treatment and evacuation timelines differ, while the model represents a single force, and the ceilings remain entangled with the treatment efficacy factors, so agreement with the bound confirms the pair jointly rather than either alone. And because the target constrains only casualties who survived to reach surgical care, the model's whole-of-wounded mortality rate is unconstrained by any historical figure, which is the quantity a planner is most likely to read off the output. Closing this would need a source reporting a campaign died-of-wounds count against an exact wounded-in-action denominator for one force; no open-access source doing so was identified.
 
-**L23 — Recovery-to-duty severity factors are uncalibrated.** The theatre evacuation policy compares each casualty's drawn recovery-to-duty duration against a configurable threshold, which makes disposition a function of severity, but the four severity factors that scale the base convalescence distribution are informed estimates. No open-access source tabulates time to fitness for duty by triage priority for a battlefield trauma population, so the factors were anchored to the severity gradient in the Role 4 length-of-stay values and then set so that the realised in-theatre share falls inside the historical range. That range spans 7.6% to 42.1%, which is wide enough to admit many factor sets, so agreement with it is a weak test: the mechanism is defensible and the ordering between categories is not in doubt, but the specific values are not calibrated. Because the same factors set both the retention share and the holding-bed occupancy of everyone retained, an error moves R2E bed demand and strategic airlift demand together in opposite directions, and the policy sweep reported in the single-run analysis will be correspondingly too steep or too shallow. Closing the gap needs a source giving recovery-to-duty durations by severity, or a calibration target sharper than the in-theatre share.
+**L23 — Recovery-to-duty severity factors are uncalibrated.** The theatre evacuation policy compares each casualty's drawn recovery-to-duty duration against a configurable threshold, which makes disposition a function of severity, but the four severity factors that scale the base convalescence distribution are informed estimates. No open-access source tabulates time to fitness for duty by triage priority for a battlefield trauma population, so the factors were anchored to the severity gradient in the Role 4 length-of-stay values and then set so that the realised in-theatre share falls inside the historical range. That range spans 7.6% to 42.1%, which is wide enough to admit many factor sets, so agreement with it is a weak test: the mechanism is defensible and the ordering between categories is not in doubt, but the specific values are not calibrated. Because the same factors set both the retention share and the holding-bed occupancy of everyone retained, an error moves R2E bed demand and strategic airlift demand together in opposite directions, and the [evacuation policy sweep](docs/Multi_Run_Analysis.md#the-evacuation-policy-has-one-admissible-setting-that-is-also-stable) will be correspondingly too steep or too shallow. Closing the gap needs a source giving recovery-to-duty durations by severity, or a calibration target sharper than the in-theatre share.
 
 **L24 — Saturated-ICU recovery does not conserve the post-operative requirement.** A casualty's post-operative intensive care requirement is drawn once and divided between the echelons, so the total is the same on every ordinary route. One route is outside that guarantee. When R2E intensive care is saturated and a Priority 1 casualty recovers in a holding bed instead, the stay is drawn from its own shorter distribution rather than from what remains of the requirement, so a casualty who served part of it forward at R2B loses the rest. That pathway predates the conservation rule and its holding-bed duration is itself an informed estimate (see L11), which is why it was not simply rebased onto the requirement: doing so would silently lengthen the degraded pathway by a factor of roughly two and change the mortality comparison the pathway exists to expose. At the shipped forward share of zero the gap cannot arise, since nothing is served forward to be lost; at an intermediate share it affected 12 of 93 casualties at 0.25 and 15 of 108 at 0.50 in a 30-day run. Closing it needs either a sourced holding-bed recovery duration to rebase onto, or an explicit decision that degraded recovery is shorter by intent rather than by inheritance.
 

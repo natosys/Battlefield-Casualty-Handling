@@ -2,9 +2,9 @@ rule,count
 assignment_linter,137
 commas_linter,6
 function_length,2
-indentation_linter,159
+indentation_linter,157
 infix_spaces_linter,2
-line_length_linter,690
+line_length_linter,689
 object_name_linter,5
 pictographic_character,97
 semicolon_linter,53

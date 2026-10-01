@@ -8,7 +8,7 @@
 #   Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline  # write the tracked data/sweeps/
 #   Rscript scripts/run_hold_threshold_sweep.R      # default: 5/7/10 beds x 0-7 day thresholds
 #   Rscript scripts/run_hold_threshold_sweep.R --beds "c(5, 10)" --thresholds-days "c(0, 2, 5)"
-#   Rscript scripts/run_hold_threshold_sweep.R --iterations 20 --days 30
+#   Rscript scripts/run_hold_threshold_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_hold_threshold_sweep.R --quick              # smoke test (2 reps, 2x2 grid)
 #
 # Why this exists. docs/Multi_Run_Analysis.md's Option 2 names the R2B
@@ -35,7 +35,7 @@
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
 #   sweep <- plot_r2b_hold_threshold_sweep(hold_beds = c(5, 7, 10),
-#              evac_threshold_min = c(0, 1440, 4320, 7200, 10080), n_rep = 10, n_days = 30)
+#              evac_threshold_min = c(0, 1440, 4320, 7200, 10080), n_rep = 30, n_days = 360)
 
 source("R/environment.R")
 source("R/trajectories.R")

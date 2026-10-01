@@ -53,6 +53,15 @@ CAPACITY_SWEEP_DAYS <- 360L
 #' Control seed all three published capacity sweeps run under
 CAPACITY_SWEEP_SEED <- 42L
 
+#' Closing window the capacity sweeps' queue and occupancy responses are measured over, in days
+#'
+#' @details 90, the closing window `R/policy_sweep.R` measures the same pools
+#'   over. A campaign's closing state rather than its average, because the
+#'   question a capacity sweep asks is what the system settles to at a given
+#'   establishment; an average over the whole horizon mixes a settled system
+#'   with one still filling.
+CAPACITY_SWEEP_WINDOW_DAYS <- 90L
+
 #' Replications the published transport fleet-size sweep runs at, per point
 #'
 #' @details 30, the sustained-operations protocol's replication count,
@@ -4911,41 +4920,45 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   ))
 }
 
-#' Compute replication-level mean queue and utilisation for matching resources
+#' Compute replication-level pool queue and occupancy for matching resources
 #'
 #' @param mon Named list with a `resources` element as returned by
 #'   run_replications() (R/replication.R)
 #' @param pattern Regex matched against resource IDs (e.g. "^t_PMVAmb_")
-#' @return Data frame with one row per replication: replication, mean_q, mean_util
+#' @param n_days Campaign length in days.
+#' @param establishment Number of units established in the pool, from
+#'   `pool_establishment()`.
+#' @param window_days Closing window to measure over, in days.
+#' @return Data frame with one row per replication: replication, mean_q (the
+#'   pool's total queue) and mean_util (the pool's occupancy, the fraction of
+#'   its established units in use)
 #'
-#' @details Combines the time-weighted per-resource queue mean used by
-#'   summarise_replications() and the time-weighted per-resource utilisation
-#'   mean used by compute_utilisation() (both R/replication.R /
-#'   R/sensitivity.R) in a single pass over the matching resources, then
-#'   averages across resources within each replication. Unlike those two
-#'   functions, which aggregate straight across all replications,
-#'   this returns one row per replication — the unit
-#'   plot_transport_capacity_margin_by_fleet_size() needs to compute a 95%
-#'   CI across replications at each fleet-size sweep point.
-transport_rep_kpis <- function(mon, pattern) {
-  resource_means <- mon$resources %>%
-    filter(grepl(pattern, resource)) %>%
-    group_by(replication, resource) %>%
-    arrange(time) %>%
-    mutate(dt = lead(time, default = max(time)) - time) %>%
-    summarise(
-      resource_mean_q    = weighted.mean(queue, w = pmax(dt, 0), na.rm = TRUE),
-      resource_mean_util = weighted.mean(server / pmax(capacity, 1), w = pmax(dt, 0), na.rm = TRUE),
-      .groups = "drop"
-    )
+#' @details Both quantities are time-weighted means over the closing window,
+#'   of the pool taken as a whole rather than of each bed or vehicle taken
+#'   separately and then averaged. The pool total is in none of the monitor's
+#'   rows, so it is recovered by `pool_queue_steps()` (`R/queue_series.R`),
+#'   the estimator the scenario comparison, the campaign time series and the
+#'   policy sweep use, so every published queue figure measures one quantity.
+#'   Occupancy divides by the established units rather than by those the
+#'   monitor reports, a unit never seized having no row. Returns one row per
+#'   replication, the unit the sweeps need to compute a 95% CI across
+#'   replications at each sweep point.
+pool_rep_kpis <- function(mon, pattern, n_days, establishment,
+                          window_days = CAPACITY_SWEEP_WINDOW_DAYS) {
+  rows  <- mon$resources[grepl(pattern, mon$resources$resource), ]
+  # A smoke run shorter than the window is measured over its whole length.
+  edges <- c(max(0, n_days - window_days) * DAY_MIN, n_days * DAY_MIN)
 
-  resource_means %>%
-    group_by(replication) %>%
-    summarise(
-      mean_q    = mean(resource_mean_q, na.rm = TRUE),
-      mean_util = mean(resource_mean_util, na.rm = TRUE),
-      .groups   = "drop"
+  per_replication <- lapply(split(rows, rows$replication), function(r) {
+    queue  <- pool_queue_steps(r$resource, r$time, r$queue)
+    server <- pool_queue_steps(r$resource, r$time, r$server)
+    data.frame(
+      replication = r$replication[1],
+      mean_q      = step_bin_means(queue, edges),
+      mean_util   = step_bin_means(server, edges) / establishment
     )
+  })
+  do.call(rbind, unname(per_replication))
 }
 
 #' Build the fleet-size sweep ggplot from already-computed sweep results
@@ -4964,7 +4977,7 @@ transport_rep_kpis <- function(mon, pattern) {
 #'   configuration every other figure in this file is drawn from.
 #' @return ggplot object: four panels arranged as a 2x2 grid — one column
 #'   per vehicle type (PMV Ambulance, HX240M), one row per metric (Mean
-#'   Queue, Mean Utilisation) — each showing that metric vs fleet size, with
+#'   Queue, Pool Occupancy) — each showing that metric vs fleet size, with
 #'   a 95% CI ribbon and a dashed vertical line at that vehicle's current
 #'   establishment qty. A legend below the plot identifies the ribbon, the
 #'   mean line, and the dashed reference line.
@@ -4986,14 +4999,14 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
   vehicle_labels[is.na(vehicle_labels)] <- vehicles[is.na(vehicle_labels)]
 
   plot_df <- bind_rows(
-    sweep_df %>% transmute(vehicle, qty, metric = "Mean Queue",
+    sweep_df %>% transmute(vehicle, qty, metric = "Pool Queue",
                            mean = mean_q, ci_lower = ci_lower_q, ci_upper = ci_upper_q),
-    sweep_df %>% transmute(vehicle, qty, metric = "Mean Utilisation",
+    sweep_df %>% transmute(vehicle, qty, metric = "Pool Occupancy",
                            mean = mean_util, ci_lower = ci_lower_util, ci_upper = ci_upper_util)
   ) %>%
     mutate(
       vehicle = factor(vehicle, levels = vehicles),
-      metric  = factor(metric, levels = c("Mean Queue", "Mean Utilisation"))
+      metric  = factor(metric, levels = c("Pool Queue", "Pool Occupancy"))
     )
 
   vline_df <- expand.grid(vehicle = vehicles, metric = levels(plot_df$metric),
@@ -5002,7 +5015,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
            qty     = as.numeric(current_qty[as.character(vehicle)]))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per fleet-size point", n_rep)
+    sprintf("%d replications per fleet-size point; queue and occupancy are fleet totals over the closing %d days", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5079,11 +5092,10 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   so `scenario` is resolved once against the parsed JSON before the
 #'   per-point fleet-size edits are applied on top of it, rather than the
 #'   sweep going through run_scenario() for each point.
-#'   Per-replication queue/utilisation means are extracted with
-#'   transport_rep_kpis() (built on the same time-weighted-mean logic as
-#'   summarise_replications() and compute_utilisation(), used by
-#'   R/sensitivity.R's extract_kpis()) and aggregated to a mean and
-#'   t-distribution 95% CI across replications at each sweep point,
+#'   Per-replication queue and occupancy are the fleet's pool total over the
+#'   campaign's closing window, extracted with pool_rep_kpis() and aggregated
+#'   to a mean and t-distribution 95% CI across replications at each sweep
+#'   point,
 #'   mirroring summarise_scenario_totals()'s aggregation convention
 #'   (R/scenario_runner.R). Queue CI lower bounds are clamped to 0 and
 #'   utilisation CI bounds to [0, 1], consistent with the CI-clamping
@@ -5099,7 +5111,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   the caller's configuration's rather than the last sweep point's.
 plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVAmb = 1:5, HX240M = 1:4),
                                                           scenario = "default",
-                                                          n_days = 30, n_rep = 5,
+                                                          n_days = CAPACITY_SWEEP_DAYS, n_rep = TRANSPORT_SWEEP_REPLICATIONS,
                                                           path = "env_data.json",
                                                           output_dir = "outputs", images_dir = "images",
                                                           progress_dir = NULL, max_cores = NULL) {
@@ -5171,7 +5183,8 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
     counts   <<- sapply(env_data$elms, length)
 
     mon      <- run_replications(n_rep, n_days, max_cores = max_cores)
-    rep_kpis <- transport_rep_kpis(mon, pattern)
+    rep_kpis <- pool_rep_kpis(mon, pattern, n_days,
+                              pool_establishment(env_data$transports, pattern))
 
     q_stats    <- summarise_ci(rep_kpis$mean_q)
     util_stats <- summarise_ci(rep_kpis$mean_util)
@@ -5232,8 +5245,8 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
 #'   them show where the load moved and whether moving it bought better
 #'   post-definitive care.
 render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep = NULL) {
-  metrics <- c("R2E ICU Mean Queue", "R2B ICU Utilisation",
-               "R2E ICU Utilisation", "Post-Definitive Care in ICU", "DOW Count")
+  metrics <- c("R2E ICU Pool Queue", "R2B ICU Occupancy",
+               "R2E ICU Occupancy", "Post-Definitive Care in ICU", "DOW Count")
 
   plot_df <- bind_rows(
     sweep_df %>% transmute(share, metric = metrics[1],
@@ -5250,7 +5263,7 @@ render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep =
     mutate(metric = factor(metric, levels = metrics))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per share point; the ribbon is a 95%% confidence interval across replications", n_rep)
+    sprintf("%d replications per share point; queue and occupancy are pool totals over the closing %d days; the ribbon is a 95%% confidence interval across replications", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5322,7 +5335,7 @@ pd_icu_share_rep <- function(mon) {
 #'   replication recorded none.
 #' @details Reduced per replication rather than pooled, because a confidence
 #'   interval across replications is what the sweeps report.
-#'   `transport_rep_kpis()` already returns queue and utilisation this way for
+#'   `pool_rep_kpis()` already returns queue and occupancy this way for
 #'   an arbitrary resource pattern; the DOW count is the one metric needing
 #'   its own reduction.
 dow_rep_counts <- function(mon) {
@@ -5373,7 +5386,7 @@ dow_rep_counts <- function(mon) {
 #'   overwritten on the built env_data directly instead of on the parsed
 #'   JSON before building.
 plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
-                                        n_days = 30, n_rep = 10,
+                                        n_days = CAPACITY_SWEEP_DAYS, n_rep = ICU_SHARE_SWEEP_REPLICATIONS,
                                         path = "env_data.json",
                                         output_dir = "outputs", images_dir = "images",
                                         progress_dir = NULL, max_cores = NULL) {
@@ -5408,8 +5421,10 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
 
     mon <- run_replications(n_rep, n_days, max_cores = max_cores)
 
-    r2b_icu <- transport_rep_kpis(mon, "^b_r2b_icu_")
-    r2e_icu <- transport_rep_kpis(mon, "^b_r2eheavy_icu_")
+    r2b_icu <- pool_rep_kpis(mon, "^b_r2b_icu_", n_days,
+                             pool_establishment(env_data$elms, "^b_r2b_icu_"))
+    r2e_icu <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
+                             pool_establishment(env_data$elms, "^b_r2eheavy_icu_"))
     dow     <- dow_rep_counts(mon)
     pd      <- pd_icu_share_rep(mon)
 
@@ -5533,9 +5548,9 @@ set_r2b_hold_beds <- function(json_data, hold_beds) {
 #'   configured in, because a planner reads a hold duration in days and the
 #'   model's own doctrinal source states the range in days.
 render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_rep = NULL) {
-  metrics <- c("R2B Hold Mean Queue", "R2B Hold Utilisation",
-               "R2E Hold Mean Queue", "R2E Hold Utilisation",
-               "R2E ICU Mean Queue", "R2E ICU Utilisation",
+  metrics <- c("R2B Hold Pool Queue", "R2B Hold Occupancy",
+               "R2E Hold Pool Queue", "R2E Hold Occupancy",
+               "R2E ICU Pool Queue", "R2E ICU Occupancy",
                "Returns to Duty", "Died of Wounds")
 
   #' One response's columns, renamed to the plot's shared mean/ci_lower/
@@ -5572,7 +5587,7 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
            })
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per point; the ribbon is a 95%% confidence interval", n_rep)
+    sprintf("%d replications per point; queue and occupancy are pool totals over the closing %d days; the ribbon is a 95%% confidence interval", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5632,7 +5647,7 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
 #'   the error path, matching every sweep in this file.
 plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
                                           evac_threshold_min = HOLD_THRESHOLD_SWEEP_MINUTES,
-                                          n_days = 30, n_rep = 10,
+                                          n_days = CAPACITY_SWEEP_DAYS, n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS,
                                           path = "env_data.json",
                                           output_dir = "outputs", images_dir = "images",
                                           progress_dir = NULL, max_cores = NULL) {
@@ -5682,9 +5697,12 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
 
     mon <- run_replications(n_rep, n_days, max_cores = max_cores)
 
-    r2b_hold <- transport_rep_kpis(mon, "^b_r2b_hold_")
-    r2e_hold <- transport_rep_kpis(mon, "^b_r2eheavy_hold_")
-    r2e_icu  <- transport_rep_kpis(mon, "^b_r2eheavy_icu_")
+    r2b_hold <- pool_rep_kpis(mon, "^b_r2b_hold_", n_days,
+                              pool_establishment(env_data$elms, "^b_r2b_hold_"))
+    r2e_hold <- pool_rep_kpis(mon, "^b_r2eheavy_hold_", n_days,
+                              pool_establishment(env_data$elms, "^b_r2eheavy_hold_"))
+    r2e_icu  <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
+                              pool_establishment(env_data$elms, "^b_r2eheavy_icu_"))
     rtd      <- rtd_rep_counts(mon)
     dow      <- dow_rep_counts(mon)
 

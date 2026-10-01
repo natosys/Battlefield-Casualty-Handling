@@ -107,6 +107,7 @@ cat("\n-- the protocol's parameters match the supplement --\n")
 held <- list(
   replications = SCENARIO_REPLICATIONS,
   days         = SCENARIO_DAYS,
+  window_days  = SCENARIO_WINDOW_DAYS,
   seed         = SCENARIO_SEED
 )
 
@@ -145,6 +146,24 @@ parsed_profiles <- if (is.na(stated_profiles)) {
 report(identical(parsed_profiles, held_profiles),
        "the supplement states the profiles %s and the code holds %s",
        paste(parsed_profiles, collapse = ","), paste(held_profiles, collapse = ","))
+
+# The closing window is the one part of the estimator that depends on the
+# horizon, so it is asserted on a constructed pool whose answer is computable by
+# hand: one bed queueing a single casualty from day 8 of 10. Over a window
+# longer than the campaign the mean is the whole campaign's, 2 queued days in
+# 10 or 0.2; over a closing window of four days it is 2 queued days in 4 or 0.5.
+window_mon <- list(resources = data.frame(
+  replication = 1, resource = "b_r2b_hold_1_t1",
+  time = c(0, 8) * DAY_MIN, server = 0, queue = c(0, 1), capacity = 1
+))
+whole <- scenario_queue_groups_by_replication(window_mon, n_days = 10, window_days = 90)
+closing <- scenario_queue_groups_by_replication(window_mon, n_days = 10, window_days = 4)
+report(abs(whole$mean_q - 0.2) < 1e-9,
+       "a campaign shorter than the window is averaged whole: %.4f, expected 0.2000",
+       whole$mean_q)
+report(abs(closing$mean_q - 0.5) < 1e-9,
+       "a longer campaign reads its closing window: %.4f, expected 0.5000",
+       closing$mean_q)
 
 # ── 2. The tracked responses are the experiment the supplement documents ─────
 

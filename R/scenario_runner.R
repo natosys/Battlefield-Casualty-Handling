@@ -31,6 +31,15 @@ SCENARIO_REPLICATIONS <- 50L
 #' Campaign length the comparison runs over, in days
 SCENARIO_DAYS <- 30L
 
+#' Closing window the comparison's queue responses are measured over, in days
+#'
+#' @details 90, the window every pool queue and occupancy response in this
+#'   project is measured over (`CAPACITY_SWEEP_WINDOW_DAYS` in `R/analysis.R`,
+#'   `POLICY_WINDOW_DAYS` in `R/policy_sweep.R`). A campaign shorter than the
+#'   window is measured over its whole length, so a 30-day campaign reads as
+#'   it always has and a longer one reads its settled closing state.
+SCENARIO_WINDOW_DAYS <- 90L
+
 #' Control seed the comparison runs under
 #'
 #' @details Set once before each profile rather than once for the pair, so
@@ -261,19 +270,22 @@ classify_queue_group <- function(resource) {
 #' @param mon Named list with a `resources` monitor as returned by
 #'   run_replications().
 #' @param n_days Campaign length in days, which bounds the averaging window.
+#' @param window_days Closing window to average over, in days.
 #' @return Data frame of replication, group and mean_q: one row per group per
 #'   replication.
 #'
 #' @details A pool's total queue is in none of the monitor's rows, each bed
 #'   being monitored separately, so it is recovered by pool_queue_steps()
-#'   (`R/queue_series.R`) and averaged over the campaign by step_bin_means()
-#'   with a single bin. That is the estimator the campaign time series uses, so
+#'   (`R/queue_series.R`) and averaged over the campaign's closing window by
+#'   step_bin_means() with a single bin. That is the estimator the campaign time series uses, so
 #'   the published queue table and the queue-over-time figure measure one
 #'   quantity rather than two that happen to agree. A group whose beds never
 #'   queued contributes a zero rather than dropping out, so the table describes
 #'   the full establishment rather than only its busy parts.
-scenario_queue_groups_by_replication <- function(mon, n_days) {
+scenario_queue_groups_by_replication <- function(mon, n_days,
+                                                 window_days = SCENARIO_WINDOW_DAYS) {
   horizon <- n_days * DAY_MIN
+  from    <- max(0, n_days - window_days) * DAY_MIN
   rows <- mon$resources %>%
     mutate(group = classify_queue_group(resource)) %>%
     filter(!is.na(group), time <= horizon)
@@ -287,7 +299,7 @@ scenario_queue_groups_by_replication <- function(mon, n_days) {
     data.frame(
       replication = keys$replication[i],
       group       = keys$group[i],
-      mean_q      = step_bin_means(steps, c(0, horizon))
+      mean_q      = step_bin_means(steps, c(from, horizon))
     )
   }))
 }

@@ -210,6 +210,29 @@ report(abs(state_idle[["occupancy"]] - 0.125) < TOL,
        "an idle bed stays in the denominator: occupancy %.4f, expected 0.1250",
        state_idle[["occupancy"]])
 
+# The capacity sweeps reduce the same pools through pool_rep_kpis(), so the
+# two must agree on the pool total, the closing window and the denominator.
+# Replication 1 is the pool above with bed 2 holding one queued casualty from
+# day 8; replication 2 is the same pool entirely idle. Over the closing four
+# days (days 7 to 10) the pool's mean queue is (1 casualty x 2 days) / 4 = 0.5
+# in replication 1 and 0 in replication 2, and occupancy is 0.125 and 0 against
+# an establishment of four.
+rep_monitor <- list(resources = rbind(
+  transform(constructed, replication = 1, queue = c(0, 0, 0, 1)),
+  data.frame(resource = "b_x_1_t1", time = 0, server = 0, queue = 0,
+             capacity = 1, replication = 2)
+))
+kpis <- pool_rep_kpis(rep_monitor, "^b_x_[0-9]+_t[0-9]+$", n_days = 10,
+                      establishment = 4, window_days = 4)
+report(nrow(kpis) == 2 && identical(as.numeric(kpis$replication), c(1, 2)),
+       "pool_rep_kpis returns one row per replication")
+report(abs(kpis$mean_util[1] - 0.125) < TOL && abs(kpis$mean_util[2]) < TOL,
+       "pool_rep_kpis occupancy divides by the establishment: %.4f and %.4f",
+       kpis$mean_util[1], kpis$mean_util[2])
+report(abs(kpis$mean_q[1] - 0.5) < TOL && abs(kpis$mean_q[2]) < TOL,
+       "pool_rep_kpis queue is the pool total over the closing window: %.4f and %.4f",
+       kpis$mean_q[1], kpis$mean_q[2])
+
 # ── 3-4. The responses agree with the analysis pipeline ──────────────────────
 
 cat("\n-- the reduction agrees with the analysis pipeline --\n")

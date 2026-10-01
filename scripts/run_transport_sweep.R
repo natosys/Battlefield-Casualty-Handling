@@ -6,9 +6,9 @@
 #
 # Terminal / Claude Code cloud:
 #   Rscript scripts/run_transport_sweep.R --refresh-baseline       # write the tracked data/sweeps/
-#   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 10 reps x 30 days
+#   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 30 reps x 360 days
 #   Rscript scripts/run_transport_sweep.R --pmvamb 1:5 --hx240m 1:4
-#   Rscript scripts/run_transport_sweep.R --iterations 30 --days 30
+#   Rscript scripts/run_transport_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_transport_sweep.R --quick                  # smoke test (2 reps, 3 days)
 #   Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseline
 #
@@ -29,7 +29,7 @@
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
-#   sweep <- plot_transport_capacity_margin_by_fleet_size(list(PMVAmb = 1:5, HX240M = 1:4), n_rep = 10, n_days = 30)
+#   sweep <- plot_transport_capacity_margin_by_fleet_size(list(PMVAmb = 1:5, HX240M = 1:4), n_rep = 30, n_days = 360)
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -46,9 +46,9 @@ option_list <- list(
               help = "HX240M fleet sizes to sweep, as an R range/vector expression [default: %default]"),
   make_option("--scenario",   type = "character", default = "default",
               help = "Scenario profile to run the sweep under [default: %default]"),
-  make_option("--iterations", type = "integer", default = 10L,
+  make_option("--iterations", type = "integer", default = TRANSPORT_SWEEP_REPLICATIONS,
               help = "Replications per fleet-size point [default: %default]"),
-  make_option("--days",       type = "integer", default = 30L,
+  make_option("--days",       type = "integer", default = CAPACITY_SWEEP_DAYS,
               help = "Simulation duration in days [default: %default]"),
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed [default: %default]"),

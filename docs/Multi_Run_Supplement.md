@@ -18,6 +18,7 @@ This document is the design record for the replicated experiments reported in th
   - [Independence of Replications](#independence-of-replications)
   - [The Withdrawn Antithetic Pairing](#the-withdrawn-antithetic-pairing)
   - [Interval Construction](#interval-construction)
+  - [Queue and Occupancy Measurement](#queue-and-occupancy-measurement)
   - [Replication Count and Resolution](#replication-count-and-resolution)
   - [Warm-up Classification](#warm-up-classification)
 - [The Sustained-Operations Horizon](#the-sustained-operations-horizon)
@@ -107,6 +108,12 @@ where $n$ is the replication count, $\bar{x}$ the mean across replications of th
 The same expression is evaluated in `summarise_replications()` (`R/replication.R`), in the comparative scenario runner (`R/scenario_runner.R`) and everywhere in the analysis pipeline that reports an interval, so an interval quoted in the paper, one shown in the Shiny console and one written to a CSV output are the same quantity computed the same way. Where a comparison sets two configurations run at the same control seed against each other, the interval is on the mean of the per-replication paired difference rather than on the difference of the two means.
 
 Several tables in the companion paper also carry a 10th-to-90th-percentile range. That is the empirical spread across replications rather than an interval on the mean, and it is not derived from the expression above.
+
+### Queue and Occupancy Measurement
+
+A resource pool's queue and occupancy are measured on the pool as a whole, one pool per bed type at each facility (the R2B holding beds, the R2E intensive care beds, the ambulance fleet), and never as an average over its individual beds or vehicles. The monitor records each bed separately, so a pool's total queue is in none of its rows; `pool_queue_steps()` (`R/queue_series.R`) recovers it by differencing each bed's series into changes and accumulating them in time order, and the comparative scenarios, the campaign time series, the policy sweeps and the capacity sweeps all read that one estimator. Occupancy divides the pool's time-weighted count of units in use by the units established, counted from the configuration by `pool_establishment()` because a unit never seized has no monitor row and would otherwise leave the denominator.
+
+Queue and occupancy are measured over the campaign's closing 90 days, the window `CAPACITY_SWEEP_WINDOW_DAYS`, `SCENARIO_WINDOW_DAYS` and `POLICY_WINDOW_DAYS` each state. The question those responses answer is what the system settles to, and an average over a whole campaign mixes a settled system with one still filling. A campaign shorter than the window is measured over its whole length. Responses that accumulate, namely returns to duty, deaths of wounds, operations and national support base demand, are campaign totals and rates over the full horizon. The campaign time series is the one place the build-up is itself the finding, and it is drawn over the whole campaign. The tracked evidence sets of the three capacity sweeps report a mean queue per bed or vehicle over the whole campaign and are re-measured under this convention before their tables are read beside the other experiments.
 
 ### Replication Count and Resolution
 
@@ -332,6 +339,7 @@ A control seed is the seed given to the framework, from which the per-replicatio
 ### Comparative Scenario Analysis
 
 <!-- SCENARIO days=30 -->
+<!-- SCENARIO window_days=90 -->
 <!-- SCENARIO replications=50 -->
 <!-- SCENARIO seed=42 -->
 <!-- SCENARIO profiles=moderate_intensity,high_intensity -->
@@ -433,6 +441,7 @@ Neither sweep keeps the per-replication responses behind its per-point mean, onl
 
 <!-- SWEEP days=360 -->
 <!-- SWEEP seed=42 -->
+<!-- SWEEP window_days=90 -->
 <!-- SWEEP hold_threshold_replications=30 -->
 <!-- SWEEP hold_beds=5,7,10 -->
 <!-- SWEEP evac_threshold_days=0,1,3,5,7 -->
@@ -453,6 +462,7 @@ The flag is the only way to write this sweep's copy of the tracked `data/sweeps/
 
 <!-- SWEEP days=360 -->
 <!-- SWEEP seed=42 -->
+<!-- SWEEP window_days=90 -->
 <!-- SWEEP transport_replications=30 -->
 <!-- SWEEP pmvamb=1,2,3,4,5 -->
 <!-- SWEEP hx240m=1,2,3,4 -->

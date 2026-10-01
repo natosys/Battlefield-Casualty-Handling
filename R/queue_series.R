@@ -14,9 +14,9 @@
 
 #' Number of beds established in one resource pool
 #'
-#' @param elms The built configuration's `elms`, as `build_environment()`
-#'   returns it: each element's instances with their resource identifiers
-#'   already expanded.
+#' @param elms A built configuration's resource identifiers, as
+#'   `build_environment()` returns them: `elms` for beds or `transports` for
+#'   vehicles, each with its identifiers already expanded.
 #' @param pattern Resource-name pattern selecting the pool's beds.
 #' @return Integer count of established beds matching `pattern`.
 #'

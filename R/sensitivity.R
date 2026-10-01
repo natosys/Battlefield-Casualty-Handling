@@ -1854,15 +1854,20 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 # somewhere durable while a multi-hour sweep runs. The first column is the
 # design point index; the rest are that screen's responses, named as the screen
 # names them. Morris carries one column per entry in morris_kpis, Sobol the
-# five it decomposes, so the width is read from the file rather than assumed.
-#' The five responses run_sobol() decomposes, in the order it assembles them
+# three it decomposes, so the width is read from the file rather than assumed.
+#' The three responses run_sobol() decomposes, in the order it assembles them
 #'
 #' @details Named here because the point cache also carries a per-response
 #'   sd_ column, so the response set cannot be inferred from the file header
 #'   alone. The order is the order the decomposition indexes its columns by,
-#'   so reordering this vector misreads every cached response.
-SOBOL_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "system_ot_q",
-                     "transport_q", "transport_util")
+#'   so reordering this vector misreads every cached response. `r2b_ot_q` and
+#'   `transport_q` are excluded (Issue #228): `scripts/measure_noise_floor.R`
+#'   found the R2B theatre queue constant across the N=200 design and the
+#'   transport queue 89.1% replication noise, so neither carries a design
+#'   signal a larger sample would resolve. `transport_util` is retained
+#'   despite returning an out-of-range total-order index, a decision recorded
+#'   in `data/sensitivity/README.md` rather than silently dropped.
+SOBOL_RESPONSES <- c("r2e_ot_q", "system_ot_q", "transport_util")
 
 
 #' Read one design point's cached response vector
@@ -2013,7 +2018,7 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 
 #' Evaluate every Sobol design point, resuming from the cache where present
 #'
-#' @param sb_r2b The Sobol object whose `X` carries the design.
+#' @param sb_design The Sobol object whose `X` carries the design.
 #' @param n_points Number of design points, n_sobol * (p + 2).
 #' @param p_def The screened parameter definitions for this decomposition.
 #' @param full_params The baseline every unscreened parameter is held at.
@@ -2026,7 +2031,7 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 #'   cached point is read back by its index, which is what lets an interrupted
 #'   decomposition resume onto the same design;
 #'   scripts/check_screen_order.R asserts both.
-evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_file,
+evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache_file,
                                   n_rep, n_days, max_cores, crn_seed, progress_dir) {
   t(vapply(seq_len(n_points), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one
@@ -2046,21 +2051,18 @@ evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_fi
     }
     message(sprintf("  Sobol point %d / %d", i, n_points))
     row <- full_params
-    row[p_def$name] <- as.numeric(sb_r2b$X[i, ])
+    row[p_def$name] <- as.numeric(sb_design$X[i, ])
     res <- tryCatch(
       {
         kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
                             crn_seed = crn_seed, return_sd = TRUE)
-        c(r2b_ot_q       = kpis[["r2b_ot_q"]],
-          r2e_ot_q       = kpis[["r2e_ot_q"]],
+        c(r2e_ot_q       = kpis[["r2e_ot_q"]],
           system_ot_q    = kpis[["system_ot_q"]],
-          transport_q    = kpis[["transport_q"]],
           transport_util = kpis[["transport_util"]])
       },
       error = function(e) {
         warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2b_ot_q = NA_real_, r2e_ot_q = NA_real_, system_ot_q = NA_real_,
-          transport_q = NA_real_, transport_util = NA_real_)
+        c(r2e_ot_q = NA_real_, system_ot_q = NA_real_, transport_util = NA_real_)
       }
     )
     if (!is.null(cache_file) && !all(is.na(res))) {
@@ -2079,7 +2081,7 @@ evaluate_sobol_design <- function(sb_r2b, n_points, p_def, full_params, cache_fi
     # (Issue #15 follow-up).
     gc(full = TRUE)
     res
-  }, numeric(5)))
+  }, numeric(3)))
 }
 
 #' Tell a Sobol object its responses, surviving a degenerate one
@@ -2209,31 +2211,25 @@ build_sobol_matrices <- function(p_def, n_sobol, dirichlet_groups) {
 
 #' Tell each response's Sobol object its values, and record which succeeded
 #'
-#' @param sb_r2b,sb_r2e,sb_sys,sb_tq,sb_tutil The five untold Sobol objects.
+#' @param sb_r2e,sb_sys,sb_tutil The three untold Sobol objects.
 #' @param y_all The response matrix, one column per response.
-#' @return A list of `sb_objs`, the five objects keyed by response, and
+#' @return A list of `sb_objs`, the three objects keyed by response, and
 #'   `sobol_ok`, a flag per response saying whether indices were computed.
 #' @details A response whose values are degenerate leaves tell() unable to
 #'   compute indices; that object comes back NULL and is flagged rather than
-#'   discarding the other four.
-tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all) {
-  sb_r2b   <- tell_safe(sb_r2b,   y_all[, "r2b_ot_q"],       "r2b_ot_q")
+#'   discarding the others.
+tell_sobol_responses <- function(sb_r2e, sb_sys, sb_tutil, y_all) {
   sb_r2e   <- tell_safe(sb_r2e,   y_all[, "r2e_ot_q"],       "r2e_ot_q")
   sb_sys   <- tell_safe(sb_sys,   y_all[, "system_ot_q"],    "system_ot_q")
-  sb_tq    <- tell_safe(sb_tq,    y_all[, "transport_q"],    "transport_q")
   sb_tutil <- tell_safe(sb_tutil, y_all[, "transport_util"], "transport_util")
 
   sobol_ok <- c(
-    r2b_ot_q       = !is.null(sb_r2b),
     r2e_ot_q       = !is.null(sb_r2e),
     system_ot_q    = !is.null(sb_sys),
-    transport_q    = !is.null(sb_tq),
     transport_util = !is.null(sb_tutil)
   )
 
-
-  sb_objs <- list(r2b_ot_q = sb_r2b, r2e_ot_q = sb_r2e, system_ot_q = sb_sys,
-                   transport_q = sb_tq, transport_util = sb_tutil)
+  sb_objs <- list(r2e_ot_q = sb_r2e, system_ot_q = sb_sys, transport_util = sb_tutil)
   list(sb_objs = sb_objs, sobol_ok = sobol_ok)
 }
 
@@ -2272,11 +2268,11 @@ tell_sobol_responses <- function(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, y_all)
 #' @param crn_seed Optional integer pinning the replication seed vector, so
 #'   every design point is evaluated against common random numbers. NULL
 #'   leaves the seeds to the ambient stream.
-#' @return Named list of sobol2007 objects: r2b_ot_q, r2e_ot_q, system_ot_q,
-#'   transport_q, transport_util
+#' @return Named list of sobol2007 objects: r2e_ot_q, system_ot_q,
+#'   transport_util
 #'
 #' @details Applies sobol2007 (Saltelli et al. estimator) using a single design
-#'   pass shared across all five KPIs, giving N*(p+2) total evaluations.
+#'   pass shared across all three KPIs, giving N*(p+2) total evaluations.
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
@@ -2300,7 +2296,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   p_def   <- morris_params[p_idx, ]
   n_total <- n_sobol * (nrow(p_def) + 2L)
   message(sprintf(
-    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2b_ot_q, r2e_ot_q, system_ot_q, transport_q, transport_util)",
+    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2e_ot_q, system_ot_q, transport_util)",
     n_sobol, nrow(p_def), n_total, n_rep
   ))
 
@@ -2315,10 +2311,8 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   X1 <- base_matrices$X1
   X2 <- base_matrices$X2
 
-  sb_r2b   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_sys   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
-  sb_tq    <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
 
   full_params <- setNames(morris_params$mode, morris_params$name)
@@ -2327,19 +2321,19 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
   cache_check_schema(cache_file, SOBOL_RESPONSES)
 
-  # Held in a local rather than read back off sb_r2b later: tell_safe()
-  # returns NULL for a response whose bootstrap fails, and r2b_ot_q is
-  # routinely that response, so a later read off sb_r2b would land on
-  # NULL and the run metadata recorded an empty design size.
-  n_points <- nrow(sb_r2b$X)
+  # Held in a local rather than read back off sb_sys later: tell_safe()
+  # returns NULL for a response whose bootstrap fails, which would leave a
+  # later read off sb_sys at NULL and the run metadata recording an empty
+  # design size.
+  n_points <- nrow(sb_sys$X)
 
-  Y_all <- evaluate_sobol_design(sb_r2b, n_points, p_def, full_params, cache_file,
+  Y_all <- evaluate_sobol_design(sb_sys, n_points, p_def, full_params, cache_file,
                                  n_rep, n_days, max_cores, crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
 
-  told     <- tell_sobol_responses(sb_r2b, sb_r2e, sb_sys, sb_tq, sb_tutil, Y_all)
+  told     <- tell_sobol_responses(sb_r2e, sb_sys, sb_tutil, Y_all)
   sb_objs  <- told$sb_objs
   sobol_ok <- told$sobol_ok
   saved <- list()

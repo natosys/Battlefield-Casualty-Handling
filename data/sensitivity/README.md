@@ -7,28 +7,58 @@ cheaply: the Morris design point cache alone represents about fifteen and a
 half hours of computation on four cores, the Sobol cache many more, and every
 published index, rank and separation in the project derives from them.
 
-The Sobol decomposition, the noise floor measurement and the two re-analyses
-were produced from one code state, commit `ed3c426`, in the pinned Dev
-Container described in the [Development
-Environment](../../README.md#development-environment) section. The Morris
-screen was re-run under Issue #410 at commit `5ee47ee`, in an unpinned R 4.3.3
-environment on four cores, over about fifteen and a half hours; the host
+The Morris screen was run under Issue #410 at commit `5ee47ee`, in an unpinned R
+4.3.3 environment on four cores, over about fifteen and a half hours; the host
 restarted once during the run and the screen resumed from its design point
-cache, which `scripts/check_screen_order.R` asserts re-evaluates nothing. Each
-screen's `*_run_metadata.csv` records the design behind its own results.
+cache, which `scripts/check_screen_order.R` asserts re-evaluates nothing. The
+Sobol decomposition, the noise floor measurement and the two re-analyses were
+produced under Issues #408 and #228 at commit `b6093a8`, in the same unpinned
+R 4.3.3 environment. The decomposition ran at roughly 1.3 design points per minute on four cores, a
+hundred hours of compute, across repeated host restarts each resumed from the
+design point cache; the 8,000 responses are one design evaluated once, with no
+point repeated or discarded. Each screen's
+`*_run_metadata.csv` records the design behind its own results.
 
-**The Sobol decomposition therefore predates the Morris re-screen, and its
-parameter selection no longer matches it.** Its five selected parameters were
-chosen as the five leading ones on an earlier Morris ranking. On the current
-ranking two of them still lead (`mass_casualty_rate` 1st, `pri1_surg_prob`
-3rd), but `mass_casualty_max_cas` has fallen to 7th and `mass_casualty_min_cas`
-to 16th, while `pri1_dcs_rate` has risen from 25th to 4th; their former places
-in the top five are taken by `pri1_evac_prob` and `mc_p1_balance`. At twenty
-trajectories the leader is separated from the rest, but ranks two through
-seven are not separated from each other, so this is a change of membership
-within an unresolved second-tier group rather than a firm reordering; no index
-in the decomposition should be quoted as describing the current parameter set,
-and re-running it is roughly fifteen hours of computation.
+**The Sobol decomposition follows the current Morris ranking by the rule
+below.** It decomposes the unresolved leading cluster on the system OT queue
+ranking of the Issue #410 screen, ranks 1 to 7 (`mass_casualty_rate`,
+`pri1_evac_prob`, `pri1_surg_prob`, `pri1_dcs_rate`, `mc_p1_balance`,
+`mass_casualty_kia_fraction` and `mass_casualty_max_cas`, with µ\* from 13.04
+down to 3.42), and carries a composition group whole whenever one of its
+coordinates falls inside the cluster. `mc_p1_balance` does, so the mass casualty
+composition enters as a single object, sampled from a Dirichlet distribution,
+and its second coordinate `mc_p2_p3_balance` joins as the eighth column.
+`dnbi_disease_balance`, at rank 9, sits just outside the cluster and was not
+carried. The cut at rank 7 is not arbitrary at its edge in the way a top five
+would be: at r = 20 no parameter in ranks 2 to 7 separates from its neighbour,
+so the cluster is the unit the screen resolves, and ranks 1 to 7 is that unit
+with the leader included.
+
+The decomposition runs at N = 800 with 8 replications per design point, over
+30 days, under the shipped configuration (`ame_failure_probability` at zero)
+with the replication seed unpinned. It carries three responses: the system OT
+queue, the R2E OT queue (identical to it, since the R2B theatre queue is
+constant across the design) and transport utilisation. The transport queue and
+the R2B theatre queue are dropped, the first being almost entirely noise and
+the second constant. Transport utilisation is retained, but at 49.3% noise
+share it does not meet the 20% target the other two meet, and it is reported
+rather than interpreted; see the noise floor row below.
+
+**Results.** On the system OT queue, `mass_casualty_rate` carries a total-order
+index of 0.79 (95% CI [0.66, 0.92]), `mass_casualty_max_cas` 0.27, `pri1_surg_prob`
+0.20, `pri1_evac_prob` 0.14, `pri1_dcs_rate` 0.10, `mass_casualty_kia_fraction`
+0.10, `mc_p2_p3_balance` 0.06 and `mc_p1_balance` 0.04. The leader separates from
+the second at a difference of 0.525 ([0.366, 0.687], P > 0.999); the second does
+not separate from the third (difference 0.067, P = 0.81, needing N of about
+4,260). Three of the six separations the reading requires hold. Replication
+noise is 11.3% of the system queue's variance at 8 replications (95% CI
+[9.7%, 12.9%]), against 16.5% projected from the earlier four-replication
+measurement, so the realised share is below the projection. The reported
+indices are uncorrected; dividing by the deflation factor of 0.887 gives the
+upper end of the bracket the README states under L29. The Jansen and Martinez
+estimators agree that `mass_casualty_rate` leads and disagree about the order
+beneath it, and neither returns a total-order index at or below zero anywhere
+in the design, which is construction and not resolution.
 
 ## The Issue #339 re-screen and the decisions behind it
 
@@ -143,9 +173,11 @@ fixed.
 | `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |
 | `morris_r20/morris_run_metadata.csv` | The design behind the Morris results: trajectory count, levels, grid jump, replications, run length, commit and the responses flagged degenerate |
-| `sobol_n200/points.csv` | The Sobol design point cache: 1,400 points, being N = 200 over the five leading parameters plus two, at 4 replications and 30 days each |
-| `sobol_n200/sobol_<response>.csv` | First-order and total-order indices with 95% bootstrap intervals, per response. A `flag` column marks an index outside the theoretical [0, 1] range with ST ≥ S1 |
+| `sobol_n800/points.csv` | The Sobol design point cache: 8,000 points, being N = 800 over the eight decomposed coordinates plus two, at 8 replications and 30 days each. One row per design point, one column per decomposed response |
+| `sobol_n800/sobol_run_metadata.csv` | The design behind the decomposition: sample size, estimator, bootstrap resamples, replications, run length, the eight parameters in design order, the Dirichlet group and the commit |
+| `sobol_n800/sobol_<response>.csv` | First-order and total-order indices with 95% bootstrap intervals, per response. A `flag` column marks an index outside the theoretical [0, 1] range with ST ≥ S1 |
 | `noise_floor/points.csv` | Within-point standard deviations at 20 design points evaluated at 20 replications each, the measurement of replication noise |
+| `noise_floor/noise_floor_run_metadata.csv` | The parameters, point and replication counts, seed and commit behind the noise floor measurement |
 | `noise_floor/sobol_noise_floor.csv` | The noise share per response, with the deflation factor on the reported indices and the replication count that would make it negligible |
 | `sobol_estimator_comparison.csv` | The same cached responses recomputed under the Jansen and Martinez pick-freeze estimators alongside the reported Saltelli one |
 | `sobol_separation.csv` | Which orderings the sample establishes, from a bootstrap over the design rather than over the indices |
@@ -182,13 +214,13 @@ Rscript scripts/render_morris_plots.R --refresh-baseline    # to images/
 The three Sobol re-analyses read the decomposition rather than the screen:
 
 ```sh
-P=pri1_surg_prob,mass_casualty_rate,mass_casualty_max_cas,mass_casualty_min_cas,pri1_dcs_rate
+P=pri1_surg_prob,mass_casualty_rate,mass_casualty_max_cas,pri1_evac_prob,pri1_dcs_rate,mass_casualty_kia_fraction,mc_p1_balance,mc_p2_p3_balance
 
 Rscript scripts/compare_sobol_estimators.R \
-  --cache data/sensitivity/sobol_n200/points.csv --params "$P"
+  --cache data/sensitivity/sobol_n800/points.csv --params "$P"
 
 Rscript scripts/test_sobol_separation.R \
-  --cache data/sensitivity/sobol_n200/points.csv --params "$P"
+  --cache data/sensitivity/sobol_n800/points.csv --params "$P"
 ```
 
 `scripts/measure_noise_floor.R` does run the model, but resumes from
@@ -197,9 +229,9 @@ reproduces the reported table without re-simulating:
 
 ```sh
 Rscript scripts/measure_noise_floor.R --params "$P" \
-  --cache data/sensitivity/sobol_n200/points.csv \
+  --cache data/sensitivity/sobol_n800/points.csv \
   --point-cache data/sensitivity/noise_floor/points.csv \
-  --points 20 --reps 20
+  --points 20 --reps 20 --design-reps 8
 ```
 
 ## What the caches are and are not

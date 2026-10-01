@@ -230,8 +230,8 @@ cat("\n-- each day's reduced values depend only on that day and those before --\
 # day uses that day's events alone. Reducing one run's monitors over a shorter
 # horizon must therefore reproduce the shorter run's days exactly.
 resources_early <- resources[resources$time <= CHECK_BLOCK_DAYS * DAY_MIN, ]
-pools_full  <- reduce_pool_series(resources, CHECK_DAYS)
-pools_early <- reduce_pool_series(resources_early, CHECK_BLOCK_DAYS)
+pools_full  <- reduce_pool_series(resources, CHECK_DAYS, env_data$elms)
+pools_early <- reduce_pool_series(resources_early, CHECK_BLOCK_DAYS, env_data$elms)
 
 #' Identify each reduced pool row by the day and pool it reports
 #'

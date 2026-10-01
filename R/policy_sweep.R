@@ -111,6 +111,8 @@ POLICY_PATHWAY_ICU <- 1
 #' @param pattern Resource-name pattern selecting the pool's beds.
 #' @param n_days Campaign length in days.
 #' @param window_days Closing window to measure over.
+#' @param establishment Number of beds established in the pool, from
+#'   `pool_establishment()`.
 #' @return Named numeric vector of occupancy and mean_queue, both NA where the
 #'   monitor carries no row for the pool.
 #'
@@ -118,17 +120,18 @@ POLICY_PATHWAY_ICU <- 1
 #'   none of its rows and is recovered by differencing each bed's series into
 #'   changes and accumulating them in time order, which is what
 #'   pool_queue_steps() does. Occupancy is the time-weighted mean of the pool's
-#'   served count over the window, divided by the establishment.
-policy_pool_state <- function(resources, pattern, n_days, window_days) {
+#'   served count over the window, divided by the establishment, which is
+#'   counted from the configuration because an idle bed has no monitor row.
+policy_pool_state <- function(resources, pattern, n_days, window_days,
+                              establishment) {
   rows <- resources[grepl(pattern, resources$resource), ]
   if (nrow(rows) == 0) return(c(occupancy = NA_real_, mean_queue = NA_real_))
 
   edges <- c((n_days - window_days) * DAY_MIN, n_days * DAY_MIN)
   queue  <- pool_queue_steps(rows$resource, rows$time, rows$queue)
   server <- pool_queue_steps(rows$resource, rows$time, rows$server)
-  capacity <- sum(tapply(rows$capacity, rows$resource, max))
 
-  c(occupancy  = step_bin_means(server, edges) / capacity,
+  c(occupancy  = step_bin_means(server, edges) / establishment,
     mean_queue = step_bin_means(queue, edges))
 }
 
@@ -186,10 +189,12 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
     dplyr::right_join(arrivals, by = c("name", "replication"),
                       suffix = c("", "_arrival"))
 
-  hold <- policy_pool_state(resources, POLICY_POOLS[["R2E holding beds"]],
-                            n_days, window_days)
-  icu  <- policy_pool_state(resources, POLICY_POOLS[["R2E intensive care"]],
-                            n_days, window_days)
+  hold_pool <- POLICY_POOLS[["R2E holding beds"]]
+  icu_pool  <- POLICY_POOLS[["R2E intensive care"]]
+  hold <- policy_pool_state(resources, hold_pool, n_days, window_days,
+                            pool_establishment(env_data$elms, hold_pool))
+  icu  <- policy_pool_state(resources, icu_pool, n_days, window_days,
+                            pool_establishment(env_data$elms, icu_pool))
   theatre_queue <- policy_theatre_queue(resources, n_days, window_days)
 
   decided <- wide[!is.na(wide$r2e_evac) & wide$r2e_evac == 1, ]

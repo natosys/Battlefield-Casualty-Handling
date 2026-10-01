@@ -78,6 +78,8 @@ ICU_GATE_DOW_ECHELON_POSTOP <- 4
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param n_days Campaign length in days.
+#' @param establishment Number of beds established in the pool, from
+#'   `pool_establishment()`.
 #' @return Time-weighted mean served fraction of the pool's capacity over the
 #'   full campaign, or NA where the monitor carries no row for the pool.
 #'
@@ -86,15 +88,14 @@ ICU_GATE_DOW_ECHELON_POSTOP <- 4
 #'   changes and accumulating them in time order, on the convention
 #'   R/policy_sweep.R's `policy_pool_state()` establishes for the same pool
 #'   over a closing window rather than the whole campaign.
-icu_gate_occupancy <- function(resources, n_days) {
+icu_gate_occupancy <- function(resources, n_days, establishment) {
   rows <- resources[grepl(ICU_GATE_ICU_POOL, resources$resource), ]
   if (nrow(rows) == 0) return(NA_real_)
 
   edges    <- c(0, n_days * DAY_MIN)
   server   <- pool_queue_steps(rows$resource, rows$time, rows$server)
-  capacity <- sum(tapply(rows$capacity, rows$resource, max))
 
-  step_bin_means(server, edges) / capacity
+  step_bin_means(server, edges) / establishment
 }
 
 #' Reduce one replication to the intensive care gate's response row
@@ -118,7 +119,9 @@ reduce_icu_gate_replication <- function(env, n_days, gate_enabled) {
     dplyr::right_join(arrivals, by = c("name", "replication"),
                       suffix = c("", "_arrival"))
 
-  occupancy <- icu_gate_occupancy(resources, n_days)
+  occupancy <- icu_gate_occupancy(
+    resources, n_days, pool_establishment(env_data$elms, ICU_GATE_ICU_POOL)
+  )
 
   pathway <- wide[!is.na(wide$post_op_pathway), ]
   postop_dow <- !is.na(pathway$dow_echelon) &

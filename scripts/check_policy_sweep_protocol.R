@@ -180,7 +180,7 @@ constructed <- data.frame(
   stringsAsFactors = FALSE
 )
 state_10 <- policy_pool_state(constructed, "^b_x_[0-9]+_t[0-9]+$",
-                              n_days = 10, window_days = 4)
+                              n_days = 10, window_days = 4, establishment = 2)
 report(abs(state_10[["occupancy"]] - 0.25) < TOL,
        "the closing window's occupancy is %.4f, expected 0.2500",
        state_10[["occupancy"]])
@@ -188,9 +188,27 @@ report(abs(state_10[["mean_queue"]]) < TOL,
        "its mean queue is %.4f with nothing queued, expected 0",
        state_10[["mean_queue"]])
 
-absent <- policy_pool_state(constructed, "^b_missing_", n_days = 10, window_days = 4)
+absent <- policy_pool_state(constructed, "^b_missing_", n_days = 10, window_days = 4,
+                            establishment = 0)
 report(is.na(absent[["occupancy"]]) && is.na(absent[["mean_queue"]]),
        "a pool the monitor carries no row for reads as absent rather than zero")
+
+# The same two beds established as a pool of four, beds 3 and 4 never seized and
+# so absent from the monitor. Occupancy is the same served time over twice the
+# beds, (2/4) / 4 = 0.125; a denominator read off the monitor counts two beds
+# and reports 0.25, overstating occupancy wherever an establishment exceeds the
+# realised peak.
+constructed_elms <- list(x = list(list(x_bed = paste0("b_x_", 1:4, "_t1"),
+                                       crew  = "c_x_crew_1_t1")))
+report(pool_establishment(constructed_elms, "^b_x_[0-9]+_t[0-9]+$") == 4,
+       "the establishment counts the configured beds, idle ones included")
+state_idle <- policy_pool_state(
+  constructed, "^b_x_[0-9]+_t[0-9]+$", n_days = 10, window_days = 4,
+  establishment = pool_establishment(constructed_elms, "^b_x_[0-9]+_t[0-9]+$")
+)
+report(abs(state_idle[["occupancy"]] - 0.125) < TOL,
+       "an idle bed stays in the denominator: occupancy %.4f, expected 0.1250",
+       state_idle[["occupancy"]])
 
 # ── 3-4. The responses agree with the analysis pipeline ──────────────────────
 

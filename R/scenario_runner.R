@@ -16,14 +16,14 @@ source("R/constants.R")
 source("R/queue_series.R")
 
 # ── The published comparison's protocol ───────────────────────────────────────
-# The design docs/Multi_Run_Supplement.md documents for the comparative
+# The design docs/Methods.md documents for the comparative
 # scenario analysis, held here so that the entry point's baseline refresh, the
 # supplement's marker comments and scripts/check_scenario_protocol.R all read
 # one definition rather than three copies of it.
 
 #' Replications the comparative scenario analysis runs at, per profile
 #'
-#' @details Fifty, the count `docs/Multi_Run_Supplement.md` derives for a
+#' @details Fifty, the count `docs/Methods.md` derives for a
 #'   time-weighted queue or casualty-count response, and the count every other
 #'   replicated experiment in the companion paper uses.
 SCENARIO_REPLICATIONS <- 50L
@@ -312,7 +312,7 @@ scenario_queue_groups_by_replication <- function(mon, n_days,
 #'   ci_upper, in SCENARIO_QUEUE_GROUPS order.
 #'
 #' @details The interval is the Student t one at 95%, matching every other
-#'   interval this project publishes (`docs/Multi_Run_Supplement.md`, Interval
+#'   interval this project publishes (`docs/Methods.md`, Interval
 #'   Construction). A group measured in one replication alone carries an NA
 #'   interval rather than a zero-width one.
 summarise_scenario_queue_groups <- function(per_replication) {

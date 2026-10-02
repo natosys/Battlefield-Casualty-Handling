@@ -18,7 +18,7 @@
 #
 # Both arms run under one control seed, so each draws the same per-replication
 # seeds from R's PRNG, though not the same casualty stream: R/hold_window.R's
-# header and docs/Multi_Run_Supplement.md's "The R2B Pre-Open Hold Window"
+# header and docs/Methods.md's "The R2B Pre-Open Hold Window"
 # record why introducing the hold shifts the stream from the first hold
 # onward, and why the paired difference is reported anyway as the more precise
 # of the two comparisons available.
@@ -27,7 +27,7 @@
 # and it runs the documented protocol (30 replications x 360 days x 2 arms at
 # seed 42, the sustained-operations protocol R/long_horizon.R establishes)
 # rather than whatever arguments accompany it, so the tracked set and the
-# design docs/Multi_Run_Supplement.md documents cannot diverge through a
+# design docs/Methods.md documents cannot diverge through a
 # mistyped argument. Without it the run writes under outputs/ alone.
 
 source("R/environment.R")

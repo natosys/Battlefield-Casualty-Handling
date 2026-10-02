@@ -23,7 +23,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/hold_window.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment.
+#      docs/Methods.md documents in a marker comment.
 #   2. The tracked evidence set is that experiment: both documented arms, the
 #      documented replication count, and the response set the published table
 #      prints, with the summary and the paired differences each the reduction
@@ -73,7 +73,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's table
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")

@@ -18,7 +18,7 @@
 # Both arms run under one control seed, so replication $i$ of one is paired
 # with replication $i$ of the other, on the arrangement R/hold_window.R uses
 # for a paired two-arm comparison; the two modules stay separate rather than
-# sharing a runner (docs/Multi_Run_Supplement.md, "The Post-Operative
+# sharing a runner (docs/Methods.md, "The Post-Operative
 # Intensive Care Gate" records the decision). Each replication is reduced to
 # one row of the response set inside the forked worker that produced it.
 #
@@ -289,7 +289,7 @@ icu_gate_paired_difference <- function(rows, response, from, to,
 #' @details Uses the measured paired standard deviation and the normal
 #'   approximation $n = (1.96 s / h)^2$, on the convention
 #'   `R/policy_sweep.R`'s `policy_replications_for()` establishes and
-#'   `docs/Multi_Run_Supplement.md`'s replication-count derivation uses.
+#'   `docs/Methods.md`'s replication-count derivation uses.
 icu_gate_replications_for <- function(rows, response, from, to, half_width,
                                       arm_column = "gate_enabled") {
   a <- rows[rows[[arm_column]] == from, c("replication", response)]

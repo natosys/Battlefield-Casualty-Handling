@@ -13,7 +13,7 @@
 # window inherited from the campaign the baseline models rather than chosen by
 # measurement, and a window that short cannot tell a system in equilibrium from
 # one thirty days into a divergence. This entry point runs the protocol
-# documented in docs/Multi_Run_Supplement.md and writes two things: the daily
+# documented in docs/Methods.md and writes two things: the daily
 # series each replication was reduced to, and the per-block means the protocol's
 # stability statement is made from.
 #

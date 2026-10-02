@@ -94,7 +94,7 @@ wounded/killed split. Adding them to this run cost about a fifth more design
 points; adding them later would have cost a further full screen.
 
 **The R2B holding evacuation threshold is screened, with its ranks
-annotated.** `docs/Multi_Run_Supplement.md` sets out why a screen cannot rank
+annotated.** `docs/Methods.md` sets out why a screen cannot rank
 it: it ships disabled at zero, so its first grid step measures switching it on
 rather than the size of the threshold. The screen bears that out, ranking it
 first on R2B dwell, both forward return-to-duty rates and the p90 time to first

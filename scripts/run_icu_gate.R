@@ -17,7 +17,7 @@
 # that driver, on the arrangement scripts/run_hold_window.R establishes for a
 # paired two-arm comparison; the two experiments are close enough in shape to
 # share that arrangement without sharing a runner module
-# (docs/Multi_Run_Supplement.md, "The Post-Operative Intensive Care Gate"
+# (docs/Methods.md, "The Post-Operative Intensive Care Gate"
 # records the decision).
 #
 # Both arms run under one control seed, so each draws the same
@@ -28,7 +28,7 @@
 # it runs the documented protocol (30 replications x 360 days x 2 arms at seed
 # 42, the sustained-operations protocol R/long_horizon.R establishes) rather
 # than whatever arguments accompany it, so the tracked set and the design
-# docs/Multi_Run_Supplement.md documents cannot diverge through a mistyped
+# docs/Methods.md documents cannot diverge through a mistyped
 # argument. Without it the run writes under outputs/ alone.
 
 source("R/environment.R")

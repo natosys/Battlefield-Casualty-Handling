@@ -33,7 +33,7 @@ LONG_HORIZON_DAYS <- 360L
 
 #' Replications the protocol runs per configuration
 #'
-#' @details Thirty, which is the count `docs/Multi_Run_Supplement.md` derives
+#' @details Thirty, which is the count `docs/Methods.md` derives
 #'   for a block-level mean and the count the strategic airlift measurement this
 #'   protocol supersedes was made at.
 LONG_HORIZON_REPLICATIONS <- 30L

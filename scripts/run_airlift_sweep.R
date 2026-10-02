@@ -14,7 +14,7 @@
 # claim it rests on, that evacuation is bound by how many sorties depart rather
 # than by how many places each carries, is the one most likely to be an artifact
 # of the two cancellation draws that campaign happened to make.
-# docs/Multi_Run_Supplement.md recorded the sweep behind it as the one
+# docs/Methods.md recorded the sweep behind it as the one
 # experiment a reader could not re-execute from a tracked command, because it
 # was run from a driver script. This is that command.
 #

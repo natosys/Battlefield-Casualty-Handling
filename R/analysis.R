@@ -33,7 +33,7 @@ source("R/queue_series.R")
 MASS_CASUALTY_JITTER_SEED <- 233L
 
 # ── The published capacity sweeps' protocol ──────────────────────────────────
-# The designs docs/Multi_Run_Supplement.md documents for the transport
+# The designs docs/Methods.md documents for the transport
 # fleet-size sweep and the forward ICU share frontier, held here so that the
 # entry points' baseline refreshes, the supplement's marker comments and
 # scripts/check_capacity_sweep_protocol.R read one definition rather than
@@ -71,7 +71,7 @@ CAPACITY_SWEEP_WINDOW_DAYS <- 90L
 #'   time-weighted mean rather than an accumulating count, so it behaves like
 #'   the post-operative intensive care gate's `icu_occupancy` response
 #'   (which improved on migration) rather than like a raw casualty count
-#'   (which did not); `docs/Multi_Run_Supplement.md` records the measured
+#'   (which did not); `docs/Methods.md` records the measured
 #'   outcome.
 TRANSPORT_SWEEP_REPLICATIONS <- 30L
 
@@ -141,7 +141,7 @@ HOLD_THRESHOLD_SWEEP_BEDS <- c(5L, 7L, 10L)
 #'   the discontinuity the parameter's disabled state creates, and the
 #'   remaining steps trace the smooth region above it; reading the two apart
 #'   is why the parameter is swept rather than screened (see Further
-#'   Development L4 and `docs/Multi_Run_Supplement.md`'s discussion of this
+#'   Development L4 and `docs/Methods.md`'s discussion of this
 #'   sweep for the reasoning).
 HOLD_THRESHOLD_SWEEP_MINUTES <- c(0, 1440, 4320, 7200, 10080)
 

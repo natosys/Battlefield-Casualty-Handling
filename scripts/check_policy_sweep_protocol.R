@@ -25,7 +25,7 @@
 # What this asserts:
 #
 #   1. Every sweep parameter in R/policy_sweep.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment, and the
+#      docs/Methods.md documents in a marker comment, and the
 #      shipped policy is one of the swept values.
 #   2. The swept range spans the doctrinal 15 to 60 day decision range.
 #   3. The reduction's returns to duty and in-theatre share agree with
@@ -82,7 +82,7 @@ report <- function(ok, fmt, ...) {
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
 
 #' Supplement the sweep's parameters are read from
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' Tracked sweep summary the paper's table derives from
 SUMMARY_PATH <- file.path("data", "policy", "policy_sweep.csv")

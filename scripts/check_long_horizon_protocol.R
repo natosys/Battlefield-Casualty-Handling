@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The sustained-operations horizon is documented in
-# docs/Multi_Run_Supplement.md as a duration, a replication count and a block
+# docs/Methods.md as a duration, a replication count and a block
 # length, and it is executed from constants in R/long_horizon.R. Nothing held
 # the two together, so a protocol parameter changed in code would leave the
 # supplement describing an experiment the project no longer runs, and a tracked
@@ -81,7 +81,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The document the protocol's parameters are published in
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' Directory holding the tracked long-horizon evidence set
 SERIES_DIR <- file.path("data", "long_horizon")

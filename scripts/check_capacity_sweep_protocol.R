@@ -28,7 +28,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/analysis.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment.
+#      docs/Methods.md documents in a marker comment.
 #   2. Each tracked evidence set is that experiment: the documented swept
 #      values, and the response columns its published table prints.
 #   3. Every figure the paper's tables print matches the tracked
@@ -69,7 +69,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The supplement, which documents both designs
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints both tables
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
@@ -491,7 +491,7 @@ report(abs(t_half_width(5, sd(c(1, 2, 3, 4, 5))) -
 #'   This is what the tracked summary supports. The sweeps keep a mean and an
 #'   interval per point rather than the replications behind them, so the
 #'   half-width cannot be recomputed from the tracked set; that limit is
-#'   recorded in `docs/Multi_Run_Supplement.md`.
+#'   recorded in `docs/Methods.md`.
 check_interval_shape <- function(data, mean_col, lower_col, upper_col,
                                  clamp_low, clamp_high, label) {
   m <- data[[mean_col]]

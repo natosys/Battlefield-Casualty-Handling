@@ -38,7 +38,7 @@ MASS_CASUALTY_SEED <- 42L
 #' Injection rates compared, in events per day
 #'
 #' @details Zero is the shipped default (no injection); 0.2 is a mean of one
-#'   event every five days, the override `docs/Multi_Run_Supplement.md`
+#'   event every five days, the override `docs/Methods.md`
 #'   documents for this experiment.
 MASS_CASUALTY_ARMS <- c(0, 0.2)
 
@@ -209,7 +209,7 @@ mass_casualty_dow_rate <- function(rows, n_col, dow_col) {
 #'   independent means at equal replication counts,
 #'   $n = (1.96 \sqrt{s_1^2 + s_2^2} / h)^2$, the two-sample form of the
 #'   $n = (1.96 s / h)^2$ approximation `R/policy_sweep.R`'s
-#'   `policy_replications_for()` and `docs/Multi_Run_Supplement.md`'s
+#'   `policy_replications_for()` and `docs/Methods.md`'s
 #'   replication-count derivation both use for a paired one. The two arms here
 #'   are not paired (this module's header records why), so the two variances
 #'   add rather than being taken on one differenced sample.

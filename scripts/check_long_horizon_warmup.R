@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. compute_long_horizon_cma() (R/warmup.R) is what
-# docs/Multi_Run_Supplement.md's Warm-up Classification section now cites as
+# docs/Methods.md's Warm-up Classification section now cites as
 # the direct sustained-horizon Welch reading, alongside the per-block
 # classification R/long_horizon.R already carried a check for. Nothing
 # asserted the cumulative-average arithmetic itself, and nothing asserted
@@ -138,7 +138,7 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     if (nrow(row) == 0) NA_real_ else row$cma[1]
   }
 
-  # Values docs/Multi_Run_Supplement.md's sustained-horizon Welch paragraph
+  # Values docs/Methods.md's sustained-horizon Welch paragraph
   # states, read from the tracked evidence set at the time it was written.
   published <- list(
     list("moderate_intensity", "R2E intensive care", 30, 1.643),

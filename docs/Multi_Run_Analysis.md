@@ -599,21 +599,21 @@ What the table does not establish is whether any particular reliability is achie
 
 #### Mass Casualty Event Stress Test
 
-**Design.** 62 runs of a 30-day campaign with mass casualty events injected at an average of one event every five days, compared against 62 runs with no events injected. Each arm is a separate set of runs under one configuration; the full design, including the derivation of the 62-replication count, is in `docs/Methods.md`.
+**Design.** 30 runs of a 360-day campaign with mass casualty events injected at an average of one event every five days, compared against 30 runs with no events injected. Each arm is a separate set of runs under one configuration; the full design, including the derivation of the 30-replication count, is in `docs/Methods.md`.
 
 <!-- MASS CASUALTY TABLE -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 441.1 | 691.5 |
-| Average events/run | 0 | 5.85 (range 1–11) |
-| Died-of-wounds rate, ordinary casualties | 0.30% [0.24%, 0.37%] | 0.33% [0.27%, 0.41%] |
-| Died-of-wounds rate, event casualties | not applicable | 0.91% [0.76%, 1.07%] |
+| Average total casualties/run | 5359.9 | 8187.2 |
+| Average events/run | 0 | 69.83 (range 57–83) |
+| Died-of-wounds rate, ordinary casualties | 0.29% [0.26%, 0.31%] | 0.37% [0.34%, 0.40%] |
+| Died-of-wounds rate, event casualties | not applicable | 0.77% [0.72%, 0.84%] |
 
-Casualties from mass casualty events die of wounds at 2.7 times the rate of ordinary casualties in the same injected campaigns, and the two intervals do not overlap. **Evidence: measured**, at 140 deaths among event casualties against 91 among ordinary casualties in the same arm, replicated at the count [Replication Count and Resolution](#replication-count-and-resolution) states a tenth-of-a-point difference needs. The comparison arm is not a quiet baseline, the ordinary casualty stream producing heavy days of its own, which is why its rate is 0.30% rather than near zero. What the wider replication count does not resolve is whether the mere presence of concurrent events raises the ordinary-casualty rate itself: 0.30% against 0.33% is a movement inside both arms' intervals, so that comparison stays **unresolved** rather than measured.
+Casualties from mass casualty events die of wounds at 2.1 times the rate of ordinary casualties in the same injected campaigns, and the two intervals do not overlap. **Evidence: measured**, at 672 deaths among event casualties against 586 among ordinary casualties in the same arm. The comparison arm is not a quiet baseline, the ordinary casualty stream producing heavy days of its own, which is why its rate is 0.29% rather than near zero. Over a sustained campaign the presence of concurrent events also raises the ordinary-casualty rate itself, from 0.29% to 0.37%, a 1.3-fold rise whose intervals do not overlap, which the 30-day design could not resolve; the events draw down the capacity the ordinary stream is also using, so they cost the casualties who are not part of them. **Evidence: measured.**
 
-When a mass casualty event occurs, the majority of casualties are given a holding bed to recover in because intensive care is unavailable, and those casualties consequently have poorer outcomes. In a verified campaign the split was 85 casualties in holding against 37 in intensive care under injection, where the same campaign without injection gave 58 and 79 [[10]](#references): the majority pathway reverses, and it stays reversed for the whole campaign rather than only during the events. Policies to relieve that pressure, by reducing intensive care time or discharging non-critical casualties from holding to recover capacity, and the triggers at which they should be introduced, are worth investigating and are listed in [Further Development](#further-development).
+When a mass casualty event occurs, the majority of casualties are given a holding bed to recover in because intensive care is unavailable, and those casualties consequently have poorer outcomes. In a verified 30-day campaign the split was 85 casualties in holding against 37 in intensive care under injection, where the same campaign without injection gave 58 and 79 [[10]](#references): the majority pathway reverses, and it stays reversed for the whole campaign rather than only during the events. Policies to relieve that pressure, by reducing intensive care time or discharging non-critical casualties from holding to recover capacity, and the triggers at which they should be introduced, are worth investigating and are listed in [Further Development](#further-development).
 
-Theatre and diversion measures barely move under injection, which is the finding rather than an absence of one.
+The theatre and diversion measures that showed little movement under injection in the 30-day design are not carried by the 360-day response set, so that finding is **unresolved** at the sustained horizon rather than re-measured.
 
 ![Stem plot of two mass casualty events reconstructed from one campaign, each drawn as a vertical line at its simulation day with a point at its casualty count: 33 casualties midway through day 13 and 45 midway through day 26](../images/mass_casualty_events.png)
 

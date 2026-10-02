@@ -294,7 +294,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
-| Mass casualty event stress test | default, injection on or off | 30 d | 62 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
+| Mass casualty event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 30 d | 8 per point | 8,000 points | unpinned | total-order index; bootstrap |
@@ -545,13 +545,13 @@ The range runs past the point at which a higher threshold might stop firing, so 
 <!-- MASS_CASUALTY days=360 -->
 <!-- MASS_CASUALTY seed=42 -->
 <!-- MASS_CASUALTY arms=0,0.2 -->
-62 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
 
 ```
 Rscript scripts/run_mass_casualty.R --refresh-baseline
 ```
 
-The count is derived rather than assumed. [Replication Count and Resolution](#replication-count-and-resolution) states that separating a died-of-wounds rate by a tenth of a percentage point takes 62 runs, on the treated-cohort standard deviation of 0.0039 measured over 150 replications elsewhere in this project; a tenth of a point is the size of difference this experiment's comparison is read at, so 62 is the smallest replication count in reach of resolving it. The derivation is at the 30-day horizon and is re-derived when the experiment moves to the sustained-operations horizon. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
+The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00060 for the ordinary casualty rate in the background-only arm, 0.00073 for the ordinary rate and 0.00179 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 3 and 13 replications respectively, and a twentieth of a point requires 49 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 160,797 and 158,865 ordinary casualties and 86,751 event casualties. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
 
 Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/mass_casualty_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_mass_casualty.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
 

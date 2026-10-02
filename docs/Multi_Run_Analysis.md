@@ -378,15 +378,15 @@ The ambulance queue collapses between one and two vehicles and flattens from thr
 <!-- TRANSPORT SWEEP TABLE -->
 | Fleet size | Ambulance mean queue | Truck mean queue |
 |---|---|---|
-| 1 | 1.7085 [0.6284, 2.7886] | 0.1589 [0.0000, 0.3304] |
-| 2 | 0.0695 [0.0454, 0.0935] | 0.0276 [0.0000, 0.0772] |
-| 3 (current ambulance) | 0.0194 [0.0088, 0.0300] | 0.0011 [0.0000, 0.0023] |
-| 4 (current truck) | 0.0051 [0.0006, 0.0097] | 0.0005 [0.0000, 0.0012] |
-| 5 | 0.0039 [0.0000, 0.0082] | not swept |
+| 1 | 1.4397 [0.2895, 2.5898] | 0.4053 [0.0000, 1.0906] |
+| 2 | 0.0866 [0.0398, 0.1333] | 0.0099 [0.0005, 0.0193] |
+| 3 (current ambulance) | 0.0171 [0.0057, 0.0286] | 0.0007 [0.0000, 0.0015] |
+| 4 (current truck) | 0.0102 [0.0000, 0.0212] | 0.0035 [0.0000, 0.0103] |
+| 5 | 0.0513 [0.0000, 0.1272] | not swept |
 
-At one vehicle the ambulance fleet queues heavily, at an average of 1.71 casualties waiting, so the sweep locates the capacity boundary sharply rather than merely confirming that the current fleet is adequate. The queue falls roughly twenty-five-fold at two vehicles and threefold again at three, and then stops falling: the readings at four and five vehicles differ from the one at three by less than the spread between campaigns, so nothing is bought beyond the third vehicle. What produces any queue at all is the day-to-day variation in casualty volume rather than its average, a transport queue forming on peak days and no others.
+At one vehicle the ambulance fleet queues heavily, at an average of 1.44 casualties waiting over the closing 90 days, so the sweep locates the capacity boundary sharply rather than merely confirming that the current fleet is adequate. The queue falls roughly seventeen-fold at two vehicles (0.087) and five-fold again at three (0.017), and then stops falling: the readings at four and five vehicles (0.010 and 0.051) have intervals that span zero and differ from the one at three by less than the spread between campaigns, so nothing is bought beyond the third vehicle. What produces any queue at all is the day-to-day variation in casualty volume rather than its average, a transport queue forming on peak days and no others.
 
-The migration resolves the qualification the 10-replication design carried. Mean ambulance utilisation now falls monotonically with fleet size, from 36.4% at one vehicle to 7.3% at five, and truck utilisation the same way, from 10.5% at one to 3.5% at three and four; at the 30-replication, 360-day protocol the column reads as the fleet doing less work per vehicle as vehicles are added, rather than running the wrong way as the 10-replication design did. The queue column remains the one a planning decision should rest on, utilisation describing how busy a vehicle is rather than whether casualties wait for one, but it no longer needs excluding from the reading.
+The migration resolves the qualification the 10-replication design carried. Mean ambulance utilisation falls monotonically with fleet size, from 36.3% at one vehicle to 7.5% at five, and truck utilisation the same way, from 10.4% at one to 3.4% at three and 2.7% at four; at the 30-replication, 360-day protocol the column reads as the fleet doing less work per vehicle as vehicles are added, rather than running the wrong way as the 10-replication design did. The queue column remains the one a planning decision should rest on, utilisation describing how busy a vehicle is rather than whether casualties wait for one, but it no longer needs excluding from the reading.
 
 #### Transport Fleet-Size Sweep at High Intensity
 
@@ -397,15 +397,15 @@ The migration resolves the qualification the 10-replication design carried. Mean
 <!-- TRANSPORT SWEEP TABLE HIGH INTENSITY -->
 | Fleet size | Ambulance mean queue | Truck mean queue |
 |---|---|---|
-| 1 | 44.3415 [37.0002, 51.6828] | 0.1133 [0.1023, 0.1242] |
-| 2 | 0.5899 [0.5238, 0.6561] | 0.0047 [0.0041, 0.0054] |
-| 3 (current ambulance) | 0.0674 [0.0588, 0.0761] | 0.0005 [0.0004, 0.0005] |
-| 4 (current truck) | 0.0140 [0.0113, 0.0167] | 0.0000 [0.0000, 0.0001] |
-| 5 | 0.0025 [0.0022, 0.0028] | not swept |
+| 1 | 46.7132 [37.7039, 55.7225] | 0.1202 [0.1006, 0.1398] |
+| 2 | 1.1259 [0.8840, 1.3678] | 0.0090 [0.0075, 0.0104] |
+| 3 (current ambulance) | 0.2188 [0.1604, 0.2771] | 0.0013 [0.0009, 0.0018] |
+| 4 (current truck) | 0.0644 [0.0366, 0.0921] | 0.0002 [0.0001, 0.0004] |
+| 5 | 0.0122 [0.0088, 0.0155] | not swept |
 
-One vehicle is catastrophically inadequate at high intensity, the ambulance queue averaging 44.34 casualties waiting against 1.71 at moderate intensity, a rise far out of proportion to the 2.40-fold rise in casualty volume between the two intensities. The boundary the sweep locates does not move, though: at two vehicles the queue falls to 0.59, close to the 0.07 moderate-intensity reading at the same fleet size, and at three, the shipped fleet, it stands at 0.067, larger than the 0.019 moderate-intensity reading at the same fleet size but still under a tenth of one casualty. The truck fleet shows the same pattern at a smaller scale: one truck queues at 0.11 casualties, close to the moderate-intensity reading at the same fleet size, and the shipped four clears to a queue of 0.0000455. Three ambulances and four trucks remain more than sufficient at high intensity, and the qualification that this option's evidence was measured at one casualty rate no longer applies.
+One vehicle is catastrophically inadequate at high intensity, the ambulance queue averaging 46.71 casualties waiting against 1.44 at moderate intensity, a rise far out of proportion to the 2.34-fold rise in casualty volume between the two intensities. The boundary the sweep locates moves only a little: at two vehicles the queue falls to 1.13, thirteen times the 0.087 moderate-intensity reading at the same fleet size but about one casualty, and at three, the shipped fleet, it stands at 0.219, against 0.017 at moderate intensity and still under a quarter of one casualty. The truck fleet shows the same pattern at a smaller scale: one truck queues at 0.12 casualties and the shipped four clear to a queue of 0.0002. Three ambulances and four trucks remain sufficient at high intensity, and the qualification that this option's evidence was measured at one casualty rate no longer applies.
 
-Utilisation resolves here too and rises with casualty intensity rather than with fleet size: ambulance utilisation at three vehicles reads 30.7% against 12.2% at moderate intensity, and at one vehicle, where the queue is already catastrophic, it reaches 92.0%, close to saturation. The pattern across fleet sizes is the same as at moderate intensity, falling monotonically as vehicles are added (92.0% to 18.3% for ambulances, 25.3% to 6.5% for trucks), so the two intensities agree on the shape of the curve and differ only in how loaded each vehicle is at a given fleet size.
+Utilisation resolves here too and rises with casualty intensity rather than with fleet size: ambulance utilisation at three vehicles reads 30.9% against 12.1% at moderate intensity, and at one vehicle, where the queue is already catastrophic, it reaches 92.9%, close to saturation. The pattern across fleet sizes is the same as at moderate intensity, falling monotonically as vehicles are added (92.9% to 18.1% for ambulances, 25.5% to 6.5% for trucks), so the two intensities agree on the shape of the curve and differ only in how loaded each vehicle is at a given fleet size.
 
 ### Not Recommended: Delivering Post-Operative Intensive Care Forward
 

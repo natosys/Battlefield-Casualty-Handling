@@ -19,6 +19,15 @@
 "evacuation","still_waiting_at_close",3,NA
 "evacuation","mean_wait_days",0.389545,NA
 "evacuation","p90_wait_days",1.281469,NA
+"surgical_load","r2b_diverted_team_off_shift",1001,NA
+"surgical_load","r2b_diverted_theatre_busy",272,NA
+"surgical_load","r2b_hold_mean_beds_in_use",7.947636,NA
+"surgical_load","r2e_section_1_utilisation_of_open_time",24.944855,NA
+"surgical_load","r2e_section_1_queued_share_of_open_time",3.332449,NA
+"surgical_load","r2e_section_2_utilisation_of_open_time",45.381248,NA
+"surgical_load","r2e_section_2_queued_share_of_open_time",19.470736,NA
+"surgical_load","r2e_section_3_utilisation_of_open_time",23.948612,NA
+"surgical_load","r2e_section_3_queued_share_of_open_time",3.26901,NA
 "force","effective_force_combat_day_0",2500,NA
 "force","effective_force_combat_day_90",2417,NA
 "force","effective_force_combat_day_180",2418,NA

@@ -579,6 +579,61 @@ build_sobol <- function(data_dir) {
   res_table(c("Parameter", "Total-order index", "First-order index"), rows)
 }
 
+#' Value of a step function at given times
+#'
+#' @param t_ev Times at which the function changes, increasing.
+#' @param v_ev Value the function takes from each of those times.
+#' @param at Times to evaluate at.
+#' @return The function's value at each of `at`, taking the first value before the
+#'   first change.
+res_step_at <- function(t_ev, v_ev, at) {
+  v_ev[pmax(findInterval(at, t_ev), 1L)]
+}
+
+#' Time-weighted statistics of one resource over a campaign
+#'
+#' @param resources The resource monitor, with `resource`, `time`, `server`,
+#'   `queue` and `capacity` columns.
+#' @param name The resource's name.
+#' @param window_min The campaign length in minutes.
+#' @return A list of `util` (servers in use over capacity, both time-weighted,
+#'   so a resource open half the campaign is measured over that half), `open`
+#'   (the share of the campaign with capacity above zero), `queue_share` (the
+#'   share of the campaign with a queue of one or more) and `mean_in_use`.
+res_resource_stats <- function(resources, name, window_min) {
+  x <- resources[resources$resource == name & resources$time <= window_min, ]
+  x <- x[order(x$time), ]
+  dt <- pmax(c(x$time[-1], window_min) - x$time, 0)
+  list(util = sum(x$server * dt) / max(sum(x$capacity * dt), 1e-9),
+       open = sum(dt * (x$capacity > 0)) / window_min,
+       queue_share = sum(dt * (x$queue >= 1)) / window_min,
+       mean_in_use = sum(x$server * dt) / window_min)
+}
+
+#' Share of a surgical section's open time with a queue for any of its staff
+#'
+#' @param resources The resource monitor.
+#' @param section The R2E surgical section number.
+#' @param window_min The campaign length in minutes.
+#' @return The share of the time the section was rostered open during which
+#'   one or more casualties queued for any role in it.
+res_section_queue_share <- function(resources, section, window_min) {
+  r <- resources[resources$time <= window_min, ]
+  mine <- r[grepl(sprintf("^c_r2eheavy_surg_%d_", section), r$resource), ]
+  mine <- mine[order(mine$resource, mine$time), ]
+  mine$dq <- ave(mine$queue, mine$resource, FUN = function(q) q - c(0, head(q, -1)))
+  ev <- aggregate(dq ~ time, mine, sum)
+  ev <- ev[order(ev$time), ]
+  ev$q <- cumsum(ev$dq)
+  anchor <- mine[grepl("surgeon_1_", mine$resource), ]
+  anchor <- anchor[order(anchor$time), ]
+  tt <- sort(unique(c(ev$time, anchor$time, 0)))
+  dur <- diff(c(tt, window_min))
+  queued <- res_step_at(ev$time, ev$q, tt) >= 1
+  open <- res_step_at(anchor$time, anchor$capacity, tt) > 0
+  sum(dur * (queued & open)) / sum(dur * open)
+}
+
 #' Verification measurements of one seed-42 campaign
 #'
 #' @param mon The monitoring list of one run, with `arrivals` and `attributes`.
@@ -640,6 +695,21 @@ seed42_verification_rows <- function(mon, cfg, days) {
   wait <- wide("ame_wait_minutes")
   add("evacuation", "mean_wait_days", mean(wait, na.rm = TRUE) / DAY_MIN)
   add("evacuation", "p90_wait_days", unname(quantile(wait, 0.9, na.rm = TRUE)) / DAY_MIN)
+  res <- mon$resources
+  window <- days * DAY_MIN
+  bypass <- wide("r2b_bypass_reason")
+  add("surgical_load", "r2b_diverted_team_off_shift", sum(bypass == 1, na.rm = TRUE))
+  add("surgical_load", "r2b_diverted_theatre_busy", sum(bypass == 2, na.rm = TRUE))
+  hold_beds <- unique(res$resource[grepl("^b_r2b_hold_", res$resource)])
+  add("surgical_load", "r2b_hold_mean_beds_in_use",
+      sum(vapply(hold_beds, function(n) res_resource_stats(res, n, window)$mean_in_use, 0)))
+  for (k in 1:3) {
+    anchor <- sprintf("c_r2eheavy_surg_%d_surgeon_1_t1", k)
+    st <- res_resource_stats(res, anchor, window)
+    add("surgical_load", sprintf("r2e_section_%d_utilisation_of_open_time", k), 100 * st$util)
+    add("surgical_load", sprintf("r2e_section_%d_queued_share_of_open_time", k),
+        100 * res_section_queue_share(res, k, window))
+  }
   force <- att[att$key %in% c("effective_force_combat", "effective_force_support"), ]
   for (key in c("effective_force_combat", "effective_force_support")) {
     f <- force[force$key == key, ]
@@ -674,7 +744,8 @@ build_dow_calibration <- function(data_dir) {
 #' @param data_dir The data directory.
 #' @param section The section name in `seed42_verification.csv`.
 #' @param labels Named character vector mapping each metric to its row label.
-#' @param dp Decimal places for the realised and configured columns.
+#' @param dp Decimal places for the realised and configured columns, one value for
+#'   the table or a vector named by metric.
 #' @return The table lines.
 build_annex <- function(data_dir, section, labels, dp = 0L) {
   d <- res_read("seed42_verification.csv", data_dir)
@@ -682,8 +753,9 @@ build_annex <- function(data_dir, section, labels, dp = 0L) {
   rows <- lapply(names(labels), function(m) {
     x <- d[d$metric == m, ]
     if (nrow(x) != 1L) stop(sprintf("expected one '%s' metric, found %d", m, nrow(x)), call. = FALSE)
-    c(labels[[m]], res_num(x$value, dp, TRUE),
-      if (is.na(x$configured)) "not applicable" else res_num(x$configured, dp, TRUE))
+    k <- if (length(dp) > 1L) dp[[m]] else dp
+    c(labels[[m]], res_num(x$value, k, TRUE),
+      if (is.na(x$configured)) "not applicable" else res_num(x$configured, k, TRUE))
   })
   res_table(c("Measure", "Realised", "Configured expectation"), rows)
 }
@@ -733,6 +805,21 @@ RESULTS_TABLES <- list(
   annex_evacuation = function(dd) build_annex(dd, "evacuation", c(
     decisions = "Strategic evacuation decisions", boarded = "Boarded",
     still_waiting_at_close = "Still waiting at the close")),
+  annex_surgical_load = function(dd) build_annex(dd, "surgical_load", c(
+    r2b_diverted_team_off_shift = "Diverted from R2B, surgical team off shift",
+    r2b_diverted_theatre_busy = "Diverted from R2B, theatre busy",
+    r2b_hold_mean_beds_in_use = "R2B holding beds in use, both facilities (mean)",
+    r2e_section_1_utilisation_of_open_time = "R2E section 1 utilisation of open time (%)",
+    r2e_section_2_utilisation_of_open_time = "R2E section 2 utilisation of open time (%)",
+    r2e_section_3_utilisation_of_open_time = "R2E section 3 utilisation of open time (%)",
+    r2e_section_1_queued_share_of_open_time = "R2E section 1 queued share of open time (%)",
+    r2e_section_2_queued_share_of_open_time = "R2E section 2 queued share of open time (%)",
+    r2e_section_3_queued_share_of_open_time = "R2E section 3 queued share of open time (%)"),
+    c(r2b_diverted_team_off_shift = 0L, r2b_diverted_theatre_busy = 0L,
+      r2b_hold_mean_beds_in_use = 2L, r2e_section_1_utilisation_of_open_time = 1L,
+      r2e_section_2_utilisation_of_open_time = 1L, r2e_section_3_utilisation_of_open_time = 1L,
+      r2e_section_1_queued_share_of_open_time = 1L, r2e_section_2_queued_share_of_open_time = 1L,
+      r2e_section_3_queued_share_of_open_time = 1L)),
   annex_force = function(dd) build_annex(dd, "force", c(
     effective_force_combat_day_0 = "Combat force, day 0",
     effective_force_combat_day_180 = "Combat force, day 180",

@@ -469,7 +469,7 @@ The Sobol decomposition of the eight leading parameters on the same response gav
 
 <small>[Return to Top](#contents)</small>
 
-This annex records the measurements of one 360-day campaign at seed 42 that verify mechanisms a replicated experiment cannot show: that each arrival stream realises its configured rate, that the triage and damage control splits realise their configured shares, that the strategic evacuation timeline closes and that the force regeneration cycle holds the pool near establishment. It reports one run, carries no interval and measures no performance; the replicated sections above do that. The measurements are tracked in `data/seed42_verification.csv`, written with the baseline by `Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline`.
+This annex records the measurements of one 360-day campaign at seed 42 that verify mechanisms a replicated experiment cannot show: that each arrival stream realises its configured rate, that the triage and damage control splits realise their configured shares, that the strategic evacuation timeline closes, the surgical sections carry the load their rosters imply and the force regeneration cycle holds the pool near establishment. It reports one run, carries no interval and measures no performance; the replicated sections above do that. The measurements are tracked in `data/seed42_verification.csv`, written with the baseline by `Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline`.
 
 **Casualty generation.** A stream's configured expectation is its configured daily mean per thousand personnel times its population over a thousand times the days.
 
@@ -514,6 +514,22 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 | Strategic evacuation decisions | 2,428 | not applicable |
 | Boarded | 2,425 | not applicable |
 | Still waiting at the close | 3 | not applicable |
+<!-- /GEN -->
+
+**Surgical load.** Utilisation of open time is the time-weighted share of a section's rostered time during which its first surgeon was in use, and the queued share is the share of that open time with one or more casualties waiting for any role in the section.
+
+<!-- GEN annex_surgical_load -->
+| Measure | Realised | Configured expectation |
+|---|---|---|
+| Diverted from R2B, surgical team off shift | 1,001 | not applicable |
+| Diverted from R2B, theatre busy | 272 | not applicable |
+| R2B holding beds in use, both facilities (mean) | 7.95 | not applicable |
+| R2E section 1 utilisation of open time (%) | 24.9 | not applicable |
+| R2E section 2 utilisation of open time (%) | 45.4 | not applicable |
+| R2E section 3 utilisation of open time (%) | 23.9 | not applicable |
+| R2E section 1 queued share of open time (%) | 3.3 | not applicable |
+| R2E section 2 queued share of open time (%) | 19.5 | not applicable |
+| R2E section 3 queued share of open time (%) | 3.3 | not applicable |
 <!-- /GEN -->
 
 **Force regeneration.** The effective force is the combat or support pool at the day shown, under the shipped seven-day reinforcement cycle.

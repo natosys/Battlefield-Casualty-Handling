@@ -14,7 +14,7 @@
 # Why this check exists. plot_r2e_bed_queues() named the bed types it plotted,
 # "ot" and "icu", so the holding pool was excluded by construction and no
 # amount of data could put it in the figure. The tracked image was used in
-# docs/Single_Run_Analysis.md to characterise R2E, and it showed the queues for
+# single-run analysis document, since retired, to characterise R2E, and it showed the queues for
 # two pools while omitting a third whose aggregate queue at seed 42 is larger
 # than one of them. plot_r2b_bed_queues() selected on a wildcard and derived
 # the type from the resource name, so the same pipeline plotted the two

@@ -12,7 +12,7 @@
 # `data/`. Exits non-zero on any difference.
 #
 # This is the check that protects every published figure. `CLAUDE.md`'s Key
-# Parameters table, `docs/Single_Run_Analysis.md` and the seed-42 rows of
+# Parameters table, `docs/Results.md` Annex A and the seed-42 rows of
 # `docs/Multi_Run_Analysis.md` all derive from one run of one code state, and
 # the provenance note that says so rests on the claim that the run reproduces.
 # A change that shifts the random number stream, whether or not it changes the
@@ -31,7 +31,7 @@
 # note updated in the same commit, not something a check does on its way past.
 
 BASELINE_SEED       <- 42L
-BASELINE_DAYS       <- 30L
+BASELINE_DAYS       <- 360L
 BASELINE_ITERATIONS <- 1L
 
 # Tracked artifact to the name the run writes it under, relative to the run's
@@ -46,7 +46,8 @@ TRACKED_FILES <- list(
   c("data/arrivals_dnbi_cbt.txt",     "data/arrivals_dnbi_cbt.txt"),
   c("data/arrivals_dnbi_spt.txt",     "data/arrivals_dnbi_spt.txt"),
   c("data/arrivals_mass_casualty.txt", "data/arrivals_mass_casualty.txt"),
-  c("data/mass_casualty_events.csv",  "data/mass_casualty_events.csv")
+  c("data/mass_casualty_events.csv",  "data/mass_casualty_events.csv"),
+  c("data/seed42_verification.csv",   "data/seed42_verification.csv")
 )
 
 failures <- character(0)
@@ -140,9 +141,9 @@ if (length(failures) > 0L) {
   for (f in failures) message("  - ", f)
   message("\nThe tracked seed-42 baseline no longer reproduces. Either the change ",
           "under test\nshifted the random number stream, in which case the ",
-          "published figures in CLAUDE.md,\ndocs/Single_Run_Analysis.md and ",
+          "published figures in CLAUDE.md,\ndocs/Results.md and ",
           "docs/Multi_Run_Analysis.md need regenerating with\n",
-          "`Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline`, ",
+          "`Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline`, ",
           "or it did not,\nin which case this is a defect.")
   quit(status = 1L)
 }

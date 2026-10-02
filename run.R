@@ -8,7 +8,7 @@
 #   Rscript run.R --seed 42 --days 30 --iterations 1
 #   Rscript run.R --seed 42 --days 30 --iterations 10
 #   Rscript run.R --quick
-#   Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
+#   Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline
 #   Rscript run.R --seed 42 --days 30 --iterations 1 --output-dir /tmp/run42
 #   Rscript run.R --scenario moderate_intensity --days 360 --iterations 1
 #   Rscript run.R --mode multi --iterations 30 --days 360 --max-cores 4
@@ -24,7 +24,8 @@
 # Artifact policy (Issue #154). Every run writes its analysis artifacts to
 # output_dir ("outputs/", gitignored) and nothing else. The tracked seed-42
 # baseline evidence set — images/, logs/logs.txt, data/arrivals_*.txt and
-# data/mass_casualty_events.csv — is written only when refresh_baseline is
+# data/mass_casualty_events.csv and data/seed42_verification.csv — is written
+# only when refresh_baseline is
 # TRUE, and then all of it is written together from the one run, so the set
 # can never describe a mixture of runs. See the README's "Running the
 # simulation" section for the full artifact table.
@@ -35,6 +36,7 @@ source("R/replication.R")
 source("R/analysis.R")
 source("R/warmup.R")
 source("R/cli.R")
+source("R/results.R")
 
 # ── Main function ─────────────────────────────────────────────────────────────
 
@@ -199,6 +201,16 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   kpi_path <- file.path(output_dir, "replication_summary.csv")
   write.csv(kpi, kpi_path, row.names = FALSE)
   message(sprintf("Replication KPI summary written to %s", kpi_path))
+
+  if (iterations == 1L) {
+    # The verification measurements describe one run's mechanisms, so like the
+    # console log and the arrival diagnostics they exist for a single run only,
+    # and they are tracked with the baseline set under --refresh-baseline.
+    verification <- seed42_verification_rows(mon, env_data, days)
+    verification$value <- round(verification$value, 6)
+    verification$configured <- round(verification$configured, 6)
+    write.csv(verification, file.path(data_dir, "seed42_verification.csv"), row.names = FALSE)
+  }
 
   results <- analyse_run(mon, output_dir = output_dir, warm_up_days = warm_up_days,
                          images_dir = images_dir)

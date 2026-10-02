@@ -5,10 +5,11 @@
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_dow_calibration.R                     # all profiles, 3 x 50 reps each
+#   Rscript scripts/check_dow_calibration.R                     # all profiles, 3 x 50 reps
 #   Rscript scripts/check_dow_calibration.R --quick             # 2 x 10 reps, 10 days — smoke test only
 #   Rscript scripts/check_dow_calibration.R --scenario default  # one profile
 #   Rscript scripts/check_dow_calibration.R --measurements 5 --reps 50
+#   Rscript scripts/check_dow_calibration.R --days 360 --reps 10 --write-csv out.csv
 #
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
 # pre-merge hook or CI step. A full run executes 450 replications and takes a
@@ -107,6 +108,12 @@ SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") e
 N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
 N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
 CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
+#' Where to write each scenario's pooled measurement as CSV, or NULL to write none
+#'
+#' @details The sustained-horizon measurement Results.md reports is tracked this
+#'   way; the check itself stays at the historical campaign's length, which is
+#'   the horizon its anchors describe.
+WRITE_CSV    <- if ("--write-csv" %in% args) arg_value("--write-csv", NULL) else NULL
 # Fixed control seeds so a run is reproducible and two runs of this check on
 # unchanged code agree exactly. Each seeds one independent measurement.
 CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)
@@ -188,6 +195,8 @@ if (quick) {
   cat("QUICK MODE — too few replications to judge calibration. Wiring test only.\n\n")
 }
 
+records <- list()
+
 for (scenario in SCENARIOS) {
   singles <- numeric(0)
   pooled  <- numeric(0)
@@ -212,6 +221,13 @@ for (scenario in SCENARIOS) {
   # since it only ever moves the lower bound further below the bound.
   lo <- max(m - hw, 0)
   hi <- m + hw
+
+  anchor <- DOW_TARGETS[[scenario]]
+  records[[scenario]] <- data.frame(scenario = scenario, days = CHECK_DAYS,
+                                    measurements = length(singles), replications = n,
+                                    rate = m, ci_lower = lo, ci_upper = hi,
+                                    target = anchor$rate, anchor = anchor$label,
+                                    kind = anchor$kind, stringsAsFactors = FALSE)
 
   cat(sprintf("\n%s — %d replications\n", scenario, n))
   cat(sprintf("  individual measurements: %s\n",
@@ -261,6 +277,12 @@ for (scenario in SCENARIOS) {
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")
+if (!is.null(WRITE_CSV) && length(records)) {
+  dir.create(dirname(WRITE_CSV), recursive = TRUE, showWarnings = FALSE)
+  write.csv(do.call(rbind, records), WRITE_CSV, row.names = FALSE)
+  cat(sprintf("Pooled measurements written to %s\n", WRITE_CSV))
+}
+
 if (length(failures)) {
   cat(sprintf("%d check(s) failed:\n", length(failures)))
   for (f in failures) cat(" - ", f, "\n", sep = "")

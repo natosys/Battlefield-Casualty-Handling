@@ -525,7 +525,7 @@ check_scan_table <- function(file_path) {
 
 # The four documents that carry a table of contents block and the return
 # links beneath their H2 headings. Only these are rewritten.
-markdown_docs <- c("README.md", "docs/Single_Run_Analysis.md", "docs/Multi_Run_Analysis.md",
+markdown_docs <- c("README.md", "docs/Results.md", "docs/Multi_Run_Analysis.md",
                    "docs/Methods.md")
 
 # Every tracked markdown document, which is the scope of the link check alone.

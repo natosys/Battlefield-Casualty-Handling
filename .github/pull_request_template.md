@@ -27,7 +27,7 @@ none of the headings.
 ### Regression checks
 
 <!-- Which of the seed-42 baseline values in CLAUDE.md's Key Parameters table
-     and docs/Single_Run_Analysis.md this PR was checked against, and whether
+     and docs/Results.md Annex A this PR was checked against, and whether
      any moved. State the result of:
 
        Rscript scripts/run_all_checks.R --fast
@@ -46,6 +46,6 @@ none of the headings.
      delete what does not apply. -->
 
 - [ ] `README.md` (system reference: structure, trajectories, resources, assumptions, Further Development)
-- [ ] `docs/Single_Run_Analysis.md` (seed-42 single-run findings)
+- [ ] `docs/Results.md` (measurements, regenerated from the tracked evidence)
 - [ ] `docs/Multi_Run_Analysis.md` (every replicated finding: the scenario comparison, the policy-lever sweeps and the stress tests)
 - [ ] None: this PR changes no section any of the three documents owns

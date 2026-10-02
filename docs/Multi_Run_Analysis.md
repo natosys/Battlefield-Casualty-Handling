@@ -171,10 +171,10 @@ Element, bed and transport fleet sizes are parameters a planner using the simula
 <!-- SCENARIO TOTALS TABLE -->
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 435.7 [418.4, 452.9] (p10–p90: 373.5–506.7) | 1,046.7 [1,019.5, 1,073.9] (p10–p90: 930.0–1,169.1) | 2.40× |
-| Wounded in action/run | 180.3 [165.2, 195.4] (p10–p90: 128.0–246.0) | 704.5 [679.7, 729.2] (p10–p90: 604.8–816.5) | 3.91× |
-| Died of wounds/run | 1.00 [0.73, 1.27] (p10–p90: 0–2.0) | 24.02 [22.40, 25.64] (p10–p90: 16.9–32.1) | 24.0× |
-| Died of wounds, as share of wounded | 0.54% [0.40%, 0.68%] | 3.40% [3.21%, 3.59%] | 6.29× |
+| Total casualties/run | 5,322.5 [5,255.6, 5,389.3] (p10–p90: 5,108.4–5,515.7) | 12,479.7 [12,356.9, 12,602.4] (p10–p90: 12,115.7–12,915.6) | 2.34× |
+| Wounded in action/run | 2,267.9 [2,202.1, 2,333.7] (p10–p90: 2,053.2–2,420.6) | 8,409.0 [8,290.1, 8,527.9] (p10–p90: 7,987.5–8,790.8) | 3.71× |
+| Died of wounds/run | 11.77 [10.52, 13.02] (p10–p90: 7.0–16.0) | 303.73 [296.26, 311.21] (p10–p90: 280.8–329.3) | 25.8× |
+| Died of wounds, as share of wounded | 0.52% [0.47%, 0.57%] | 3.61% [3.53%, 3.70%] | 6.97× |
 
 Casualty counts vary widely from campaign to campaign, because each arrival stream draws its daily rate from a distribution before placing that day's arrivals within the day [[9]](#references), so the between-day variation FORECAS reports [[3]](#references) reaches the output rather than being averaged away. At moderate intensity the total spans 373.5 to 506.7 casualties between the 10th and 90th percentiles against an average of 435.7. Surge capacity therefore has to be judged against the heavy day rather than the average one.
 
@@ -188,11 +188,11 @@ The width of the pale band against the narrow bar inside it is the point to take
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 5.196 [4.026, 6.366] | 30.597 [28.667, 32.527] | 5.89× |
-| R2E operating theatre | 1.506 [0.859, 2.152] | 38.666 [33.127, 44.205] | 25.68× |
-| R2E intensive care | 1.229 [−0.046, 2.504] | 30.380 [27.966, 32.795] | 24.72× |
-| R2E holding beds | 1.656 [0.522, 2.790] | 39.583 [36.780, 42.385] | 23.90× |
-| Ambulance and truck fleets | 0.083 [−0.069, 0.236] | 0.191 [0.141, 0.240] | 2.29× |
+| R2B holding beds | 6.648 [5.981, 7.316] | 35.427 [33.946, 36.908] | 5.33× |
+| R2E operating theatre | 2.324 [1.650, 2.999] | 556.126 [501.727, 610.525] | 239.26× |
+| R2E intensive care | 1.522 [0.419, 2.624] | 1,474.941 [1,459.287, 1,490.596] | 969.24× |
+| R2E holding beds | 0.756 [−0.262, 1.774] | 465.425 [445.357, 485.492] | 615.43× |
+| Ambulance and truck fleets | 0.058 [−0.015, 0.131] | 0.219 [0.161, 0.277] | 3.78× |
 
 Each figure is the whole pool's queue, averaged over the campaign by time and then over the 50 runs. A pool's total is recorded by none of the simulation's monitor rows, each bed being monitored separately, so it is recovered by differencing each bed's own series into changes and accumulating them in time order, which is the same estimator the queue-over-time figure below rests on. A bed that stands idle throughout a campaign contributes a zero rather than dropping out, so the figures describe the full establishment rather than only its busy parts. Two lower bounds fall below zero, which a queue cannot; they are printed as measured rather than clamped, a bound below zero being the readable sign that 50 runs have not pinned that average down.
 

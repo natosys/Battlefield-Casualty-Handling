@@ -43,6 +43,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
   - [Comparative Scenario Analysis](#comparative-scenario-analysis)
   - [Surgical Team Scheduling Is the Principal Constraint](#surgical-team-scheduling-is-the-principal-constraint)
   - [The Theatre Queue Never Clears at High Intensity and Clears Readily at Moderate](#the-theatre-queue-never-clears-at-high-intensity-and-clears-readily-at-moderate)
+  - [Sustained Operations Reach a Level at Moderate Intensity, and Not in the R2E Pools at High](#sustained-operations-reach-a-level-at-moderate-intensity-and-not-in-the-r2e-pools-at-high)
 - [Planning Options in Priority Order](#planning-options-in-priority-order)
   - [Option 1. Extend Surgical Team Coverage Towards 24 Hours](#option-1-extend-surgical-team-coverage-towards-24-hours)
   - [Option 2. Increase R2B Holding Capacity or Set an Evacuation Threshold](#option-2-increase-r2b-holding-capacity-or-set-an-evacuation-threshold)
@@ -61,6 +62,7 @@ Extending surgical team coverage towards 24 hours at R2B and R2E needs no additi
     - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
   - [The Evacuation Policy Has One Admissible Setting That Is Also Stable](#the-evacuation-policy-has-one-admissible-setting-that-is-also-stable)
   - [The Holding Establishment Is Not a Substitute for the Policy at the Shipped Setting](#the-holding-establishment-is-not-a-substitute-for-the-policy-at-the-shipped-setting)
+  - [The Forward Surgical Saturation Release Trades Theatre Queue for Work at the National Support Base](#the-forward-surgical-saturation-release-trades-theatre-queue-for-work-at-the-national-support-base)
   - [Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing](#strategic-airlift-reliability-is-assumed-and-the-assumption-is-load-bearing)
   - [Mass Casualty Events Degrade Care Without Revealing New Constraints](#mass-casualty-events-degrade-care-without-revealing-new-constraints)
     - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
@@ -221,7 +223,7 @@ The rest of R2E moves with the theatres rather than lagging them. Intensive care
 ![Four stacked panels, one per resource pool, plotting queue length against campaign day for the moderate and high casualty intensities, each as a median line with an interquartile band, and each panel annotated with the share of the campaign that pool's queue stood empty at each intensity](../images/queue_length_over_time.png)
 
 <!-- CLEARANCE High intensity|R2E operating theatres|7 -->
-At high intensity the R2E theatre queue stands empty for 7% of the campaign, and its longest unbroken run above zero is 25.6 of the 30 days (interquartile range 22.0 to 28.7). It rises through the whole campaign rather than settling: a median of 23.7 casualties waiting on day 9, 45.3 on day 19 and 67.5 on day 29, still climbing when the run ends. A queue that has not turned over by day 30 has no level to be sized against, and the 30-day horizon is measuring the rate at which the backlog accumulates rather than any equilibrium it reaches, a limitation examined in [Limitations](#limitations).
+At high intensity the R2E theatre queue stands empty for 7% of the campaign, and its longest unbroken run above zero is 25.6 of the 30 days (interquartile range 22.0 to 28.7). It rises through the whole campaign rather than settling: a median of 23.7 casualties waiting on day 9, 45.3 on day 19 and 67.5 on day 29, still climbing when the run ends. A queue that has not turned over by day 30 has no level to be sized against, and the 30-day horizon is measuring the rate at which the backlog accumulates rather than any equilibrium it reaches, a limitation examined in [Limitations](#limitations) and measured in [Sustained Operations Reach a Level at Moderate Intensity, and Not in the R2E Pools at High](#sustained-operations-reach-a-level-at-moderate-intensity-and-not-in-the-r2e-pools-at-high).
 
 <!-- CLEARANCE Moderate intensity|R2E operating theatres|81 -->
 At moderate intensity the same pool stands empty for 81% of the campaign, its median is zero throughout, and its longest unbroken busy run is 3.0 days. Casualties still wait, which is the finding recorded above, but the system recovers between the days on which they do.
@@ -229,6 +231,33 @@ At moderate intensity the same pool stands empty for 81% of the campaign, its me
 The two readings point to different instruments. A queue that clears is a surge problem, answered by capability that can be brought to bear on the heavy day and stood down afterwards. A queue that never clears is an establishment problem, and no amount of surge capability reaches it because there is no trough to surge into. Option 1 is therefore a standing establishment measure at high intensity and a surge measure at moderate, and a force sized for one is not sized for the other.
 
 The other three pools separate the same way but less sharply. R2B holding beds carry a standing queue at high intensity that reaches about 35 casualties by day 5 and holds there, which is a backlog at a stable level rather than a growing one and is the signature of a pool saturated by arrivals it clears at a steady rate. R2E holding beds oscillate at high intensity on a period of about seven days, peaking near days 7, 14, 21 and 28, which matches the strategic aeromedical evacuation sortie interval: the holding queue is set by when the aircraft come rather than by the establishment of the beds. R2E intensive care carries the smallest queue of the four at either intensity, for the reason set out in [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design).
+
+### Sustained Operations Reach a Level at Moderate Intensity, and Not in the R2E Pools at High
+
+**Over a 360-day campaign the three R2E queues and the strategic evacuation backlog grow without bound at high intensity, while no response at moderate intensity shows a trend its own interval can separate from zero.** The 30-day comparisons above cannot tell a system in equilibrium from one thirty days into a divergence, and this measurement can. **Evidence: measured** for the high-intensity growth; the moderate-intensity result carries the limit set out below.
+
+**Design.** 30 runs of a 360-day campaign at each casualty intensity under the shipped reinforcement cycle, each reduced to twelve consecutive 30-day block means. A response is classified from the trend over the second half of the campaign, so that an opening transient is not mistaken for growth: converged where that trend's interval spans zero or its drift is under one percent of the response's late level per block, drifting otherwise. The full design is in `docs/Methods.md`.
+
+<!-- LONG HORIZON STABILITY TABLE -->
+| Response | Moderate intensity | High intensity |
+|---|---|---|
+| R2E operating theatre queue | converged at 2.21 | **drifting, +11.1%/block**, 40.5 to 605.9 |
+| R2E holding bed queue | converged at 0.57 | **drifting, +9.4%/block**, 38.8 to 502.3 |
+| R2E intensive care queue | converged at 1.20 | **drifting, +13.1%/block**, 30.1 to 1,630.8 |
+| Strategic evacuation backlog | converged at 2.08 | **drifting, +12.6%/block**, 56.7 to 1,828.2 |
+| R2B holding bed queue | converged at 6.45 | converged at 35.2 |
+| Casualty arrivals per day | converged at 14.8 | converged at 34.7 |
+| Deaths of wounds per day | converged at 0.03 | converged at 0.85 |
+
+The drift is per 30-day block and the range is block one to block twelve, so the four drifting responses are still growing at those rates in the last block rather than levelling off. Occupancy explains why. At high intensity the three R2E pools hold 0.90 to 0.97 of their beds in block one and reach 1.00 and stay there from block six (operating theatres and intensive care) or block seven (holding), so the queues grow because the pools have nothing left to give. The arrival stream is stationary across the campaign at both intensities, 14.8 casualties a day in block one and 14.3 in block twelve at moderate intensity and 35.2 against 35.0 at high, so the growth is the system's and not the stream's.
+
+**The moderate-intensity result is an absence of detectable trend and not a demonstration of a level.** Three of its responses converge only because the late trend's interval spans zero: the holding queue, the intensive care queue and the evacuation backlog carry positive point estimates of 20.5, 13.7 and 10.8 percent of their late level per block, as large as the drifting high-intensity responses, on levels of between 0.6 and 2.1 casualties. Thirty replications cannot separate a trend of that size from none at levels that small. The reading the evidence supports is that these queues stay small over a year at moderate intensity, not that they have stopped moving.
+
+Every response that converges settles into the band of its own late variation by block seven, and ten of the twenty by block two, so none carries an opening transient reaching far into the campaign. For a drifting response no settling point exists to measure, and the four are reported as having no steady state.
+
+The cumulative moving average Welch's procedure is read from agrees. At high intensity it has no level to approach: the intensive care pool runs from 30.1 casualties at day 30 to 802.9 at day 360 and the holding pool from 38.8 to 290.7, both still climbing. At moderate intensity it peaks in the first two months, at 1.94 casualties on day 52 for intensive care and 1.86 on day 28 for holding, then declines into a band of 1.10 to 1.29 for intensive care and 0.69 to 1.01 for holding from day 150 onward. Intensive care is flat between day 180 and day 360 (1.20 to 1.24), while holding is still falling (0.89 to 0.75), the cumulative average carrying the early weeks of the campaign for as long as the run lasts.
+
+**What this means for the figures in this paper.** At moderate intensity the 30-day figures describe the system rather than a moment in its history. At high intensity every figure resting on an R2E queue or the evacuation backlog is a point on a trend: the R2E theatre queue of 38.67 in the comparison above is block one's value, block one of the sustained run reads 40.5 and block twelve reads 605.9, and no high-intensity queue figure should be read as a level an establishment could be sized against, because there is none within a simulated year. The conclusions drawn from the comparison between intensities, and from the fact that the theatre queue does not clear, are unaffected. The sensitivity rankings are 30-day rankings and are labelled as such.
 
 ---
 
@@ -517,6 +546,28 @@ The occupancy row above the shipped establishment is overstated and awaits re-me
 
 Taken with the policy sweep, the pair supports the shipped configuration on both levers at once. The 21-day policy is the only admissible and stable setting in the doctrinal range, and at that setting the 30-bed establishment is within 15 beds of everything a larger pool could offer, at a cost of a small residual queue in a minority of campaigns. The binding constraint on post-operative care at the shipped configuration is intensive care capacity, which neither lever reaches.
 
+### The Forward Surgical Saturation Release Trades Theatre Queue for Work at the National Support Base
+
+**Releasing casualties to strategic evacuation with the definitive repair outstanding, once the forward theatre queue reaches a threshold, cuts the R2E theatre queue by about 70% at the shipped setting and moves the operation to the national support base.** The theatre queue falls from 8.17 casualties with the release disabled to 2.39 at the shipped threshold of eight, a paired difference of -5.78 casualties (p = 0.009), and the cost is paid elsewhere: 141 casualties a campaign-year reach the national support base unrepaired, and the base owes 1,097 operations against 917 without the release. **Evidence: measured.**
+
+**Design.** 30 runs of a 360-day campaign at each of nine thresholds, from 0 (disabled) to 24 casualties awaiting theatre, each arm paired with the others on one control seed. The shipped threshold of eight is the mean closing-window theatre queue an unrelieved campaign carries, which anchors it on a measured property of the model and not on whichever arm reads best among the responses below. The full design is in `docs/Methods.md`.
+
+<!-- SATURATION TABLE -->
+| Response | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
+|---|---|---|---|---|---|---|---|---|---|
+| Theatre mean queue | 8.17 [3.98, 12.36] | 1.88 [1.40, 2.35] | 2.00 [0.91, 3.08] | 3.21 [1.39, 5.04] | 2.34 [1.73, 2.94] | 2.39 [1.96, 2.82] | 2.98 [2.02, 3.95] | 3.98 [2.68, 5.28] | 4.31 [3.17, 5.45] |
+| Released with repair outstanding | 0.0 [0.0, 0.0] | 283.8 [262.8, 304.8] | 224.8 [205.6, 243.9] | 208.0 [180.4, 235.5] | 173.0 [148.6, 197.3] | 141.0 [122.3, 159.6] | 91.2 [66.8, 115.6] | 71.5 [54.0, 89.0] | 37.1 [23.4, 50.9] |
+| Role 4 operations owed | 916.7 [883.6, 949.8] | 1266.4 [1219.5, 1313.4] | 1200.8 [1154.3, 1247.3] | 1170.4 [1104.3, 1236.4] | 1138.4 [1081.0, 1195.8] | 1097.1 [1042.6, 1151.7] | 1032.3 [963.6, 1100.9] | 1005.3 [945.4, 1065.2] | 982.4 [941.8, 1023.0] |
+| Post-definitive ICU access (%) | 34.8 [33.6, 35.9] | 28.8 [27.4, 30.2] | 30.8 [29.2, 32.4] | 31.1 [29.2, 33.1] | 31.9 [29.9, 34.0] | 32.4 [30.6, 34.1] | 33.0 [30.4, 35.6] | 33.9 [32.4, 35.5] | 34.3 [32.8, 35.7] |
+| Died of wounds | 15.7 [13.9, 17.5] | 18.5 [16.9, 20.1] | 16.0 [14.3, 17.6] | 15.6 [14.2, 17.0] | 15.9 [14.3, 17.5] | 15.4 [14.1, 16.7] | 15.3 [13.5, 17.1] | 16.1 [15.0, 17.3] | 15.3 [13.5, 17.0] |
+| Returns to duty | 2132.6 [2106.2, 2158.9] | 2125.2 [2097.0, 2153.3] | 2133.3 [2101.5, 2165.2] | 2140.7 [2107.4, 2174.0] | 2114.3 [2085.9, 2142.7] | 2118.8 [2092.7, 2145.0] | 2119.7 [2092.9, 2146.5] | 2128.2 [2101.2, 2155.1] | 2118.9 [2094.2, 2143.5] |
+
+**The relief decays smoothly as the threshold rises, so the choice is where on a continuum to sit.** No threshold in the swept range is inert: at 24 the release still fires 37 times a campaign-year and still brings the queue to 4.31, about half the disabled arm's. Raising the threshold from one to 24 returns a growing share of the repair to the forward theatre, the casualties released falling from 284 to 37, and the operations owed at the national support base falling with them from 1,266 to 982.
+
+**The measured price of the release is in intensive care access and national support base work, not in lives.** Post-definitive intensive care access falls from 34.8% with the release disabled to 32.4% at the shipped threshold, a paired difference of -2.4 percentage points (p = 0.015), consistent with a casualty held in an intensive care bed through the pre-flight wait being a bed unavailable to the next operated casualty. Deaths of wounds read 15.4 at the shipped threshold against 15.7 disabled, a paired difference of -0.30 (p = 0.80), and returns to duty 2,118.8 against 2,132.6 (paired -13.7, p = 0.50); neither separates from zero at 30 runs. The one threshold that does cost deaths is the most aggressive: at a threshold of one, 18.5 against 15.7, a paired difference of +2.80 (p = 0.025), the arm that also releases the most casualties and drops intensive care access furthest. **Evidence: measured** for the queue, the releases and the national support base work; **unresolved** for the mortality difference at the shipped setting.
+
+The threshold behaves as a saturation response, which is why a value that fires constantly at sustained length is compatible with one that never fires in a short moderate campaign. The R2E theatre queue averages 1.51 casualties over a 30-day campaign at moderate intensity and 38.67 at high intensity, and 8.17 over the closing 90 days of a 360-day campaign at the shipped configuration, so a threshold of eight fires constantly at high intensity and at sustained length, and not at all in the seed-42 30-day campaign, which never reaches a queue of eight.
+
 ### Strategic Airlift Reliability Is Assumed, and the Assumption Is Load-Bearing
 
 **The simulation assumes every scheduled strategic evacuation sortie flies, and that assumption is doing more work than its place in the configuration suggests.** The model exists to measure the land-based trauma system, so it sets the demand that system places on strategic evacuation rather than simulating the reliability of the aircraft meeting it, which is the same treatment the national support base receives in [Demand on the National Support Base](#demand-on-the-national-support-base). A sortie cancellation probability remains configurable, and sweeping it shows what the assumption buys.
@@ -658,7 +709,7 @@ The first two are a matter of compute time and would be settled by longer runs. 
 | 3 | Sweep the R2B diversion thresholds across their range | Where to strike the trade between waiting forward and transferring load rearward |
 | 4 | Test policies for recovering holding capacity during a mass casualty event, and the triggers for applying them | How to relieve the reversal of the intensive care and holding pathways under surge |
 | 5 | Casualty severity conditioning of surgery durations | Whether theatre contention is understated on the heavy days it is measured on |
-| 6 | A campaign horizon long enough for the R2E theatre queue to turn over | What level the backlog settles at, which is the quantity an establishment would be sized against |
+| 6 | A sustained-horizon sensitivity screen, and a sizing of the R2E establishment against the level its queues reach under a defined surge | Whether the leading parameters and the establishment that would hold the high-intensity backlog differ from those found at 30 days |
 
 Alongside these, the simulated system's design and its calibration would benefit from structured review by clinical and health planning subject matter experts. The parameters governing intensive care rationing and post-operative risk are informed estimates rather than measured values, and expert calibration would do more to improve confidence in the mortality findings than additional computation.
 
@@ -676,7 +727,7 @@ Four limitations bear on how the options above should be read.
 
 **Comparisons between two configurations are not perfectly controlled.** Changing a setting alters the sequence of random draws, so the two arms of a comparison generate different casualty streams and cannot be matched campaign for campaign. The effect is a loss of precision rather than a bias: the averages remain correct and the intervals around them are wider than a matched design would give, which is why several comparisons here are unresolved at 50 runs. The casualty intensity comparison is unaffected, its arms differing by design rather than by a small perturbation.
 
-**The 30-day horizon is shorter than the R2E theatre queue takes to turn over at high intensity.** That queue is still growing when the campaign ends, so the campaign measures the rate at which the backlog accumulates and not the level it would settle at. Nothing reported here depends on that level: the conclusion drawn from the queue is that it does not clear, which a growing queue establishes more firmly than a settled one would. But no figure in this paper is a steady-state figure at high intensity, and a longer horizon would be needed before one could be quoted as the quantity an establishment should be sized against.
+**The 30-day comparisons are shorter than the R2E queues take to turn over at high intensity.** The sustained-horizon measurement ([Sustained Operations Reach a Level at Moderate Intensity, and Not in the R2E Pools at High](#sustained-operations-reach-a-level-at-moderate-intensity-and-not-in-the-r2e-pools-at-high)) shows those queues still growing at the end of a year, so the 30-day figures measure the rate at which the backlog accumulates and not a level. Nothing reported here depends on that level: the conclusion drawn from the queue is that it does not clear, which a growing queue establishes more firmly than a settled one would. But no figure in the 30-day comparisons is a steady-state figure at high intensity.
 
 Two narrower caveats apply. Clinical teams are taken whole rather than by individual clinician, so team utilisation overstates scarcity where a procedure needs only part of a team; and one pool of R2E holding beds carries both in-theatre recovery and the strategic evacuation wait, so those queue figures combine two demands.
 

@@ -90,6 +90,9 @@ SUMMARY_PATH <- file.path("data", "policy", "policy_sweep.csv")
 #' Tracked establishment sweep summary the paper's second table derives from
 ESTABLISHMENT_SUMMARY_PATH <- file.path("data", "policy", "establishment_sweep.csv")
 
+#' Tracked summary of the forward surgical saturation release sweep
+SATURATION_SUMMARY_PATH <- file.path("data", "policy", "saturation_sweep.csv")
+
 #' Campaign length the behavioural assertions run over, in days
 CHECK_DAYS <- 30L
 
@@ -506,6 +509,19 @@ check_published_table(SUMMARY_PATH, "<!-- POLICY TABLE -->", "policy_days",
 
 check_published_table(ESTABLISHMENT_SUMMARY_PATH, "<!-- ESTABLISHMENT TABLE -->",
                       "hold_beds", POLICY_HOLD_BEDS, "beds", establishment_rows)
+
+saturation_rows <- list(
+  list("Theatre mean queue", "theatre_mean_queue", 1),
+  list("Released with repair outstanding", "released_unrepaired", 1),
+  list("Role 4 operations owed", "role4_operations", 1),
+  list("Post-definitive ICU access", "post_definitive_icu_share", 100),
+  list("Died of wounds", "total_dow", 1),
+  list("Returns to duty", "total_rtd", 1)
+)
+
+check_published_table(SATURATION_SUMMARY_PATH, "<!-- SATURATION TABLE -->",
+                      "saturation_threshold", POLICY_SATURATION_THRESHOLDS,
+                      "queued casualties", saturation_rows)
 
 # The establishment sweep ran one policy, the shipped one, so a summary
 # carrying another would mean the published frontier mixes two levers.

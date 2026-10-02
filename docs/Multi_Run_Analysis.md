@@ -526,7 +526,7 @@ Taken together the sweep supports the shipped 21-day policy as the only setting 
 <!-- ESTABLISHMENT TABLE -->
 | Response | 30 beds (shipped) | 45 beds | 60 beds | 90 beds |
 |---|---|---|---|---|
-| R2E hold occupancy (%) | 51.9 [49.3, 54.4] | 40.5 [38.3, 42.7] | 38.4 [35.2, 41.6] | 38.5 [35.2, 41.7] |
+| R2E hold occupancy (%) | 51.9 [49.3, 54.4] | 33.8 [32.4, 35.2] | 24.9 [23.8, 26.0] | 16.9 [16.1, 17.8] |
 | R2E hold mean queue | 0.21 [0.07, 0.35] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] | 0.00 [0.00, 0.00] |
 | R2E ICU mean queue | 0.75 [0.54, 0.95] | 0.62 [0.49, 0.75] | 0.61 [0.49, 0.73] | 0.72 [0.49, 0.95] |
 | Post-definitive ICU access (%) | 32.4 [30.6, 34.1] | 32.8 [31.3, 34.4] | 33.5 [32.2, 34.7] | 33.3 [32.0, 34.5] |
@@ -536,9 +536,9 @@ Taken together the sweep supports the shipped 21-day policy as the only setting 
 | Never evacuated by horizon | 1.7 [0.5, 2.9] | 1.6 [0.6, 2.5] | 2.0 [0.9, 3.1] | 1.9 [0.8, 3.1] |
 | Role 4 peak beds | 182.0 [174.8, 189.3] | 181.3 [173.7, 188.9] | 179.1 [171.1, 187.0] | 180.5 [172.8, 188.3] |
 
-The occupancy row above the shipped establishment is overstated and awaits re-measurement. It was computed against the beds the resource monitor reported, and a bed never seized has no monitor row, so every idle bed fell out of the denominator; the 45, 60 and 90-bed arms therefore read alike where true occupancy falls roughly in proportion to the establishment. The reduction now divides by the configured establishment. No other row is affected, each being a queue or a count rather than a fraction of the pool.
+Occupancy is the mean number of holding beds in use over the closing 90 days divided by the configured establishment, so it falls as beds are added; the queue and count rows are unaffected by that denominator.
 
-**The first fifteen beds buy the queue, and nothing after them buys anything.** The shipped 30-bed pool carries a residual holding queue averaging 0.21 casualties over the closing quarter, and a handful of campaigns drive that average: the interval runs from 0.07 to 0.35 because most runs queue nobody and a few queue many. Adding 15 beds removes it, the queue falling to zero and occupancy from 51.9% to 40.5%. The next 45 beds then change nothing measurable at all: occupancy, both queues, intensive care access and the in-theatre share are identical at 45, 60 and 90 beds to within their intervals. The frontier is flat because the pool has stopped binding, not because the responses are insensitive. **Evidence: measured.**
+**The first fifteen beds buy the queue, and nothing after them buys anything.** The shipped 30-bed pool carries a residual holding queue averaging 0.21 casualties over the closing quarter, and a handful of campaigns drive that average: the interval runs from 0.07 to 0.35 because most runs queue nobody and a few queue many. Adding 15 beds removes it, the queue falling to zero and occupancy from 51.9% to 33.8%. The next 45 beds then change nothing measurable in any outcome: both queues, intensive care access and the in-theatre share are identical at 45, 60 and 90 beds to within their intervals, while occupancy simply dilutes (24.9% at 60 beds and 16.9% at 90) as the same load spreads over more beds. The frontier is flat because the pool has stopped binding, not because the responses are insensitive. **Evidence: measured.**
 
 **Clearing the queue is not the same as buying a clinical outcome.** Post-definitive intensive care access reads between 32.4% and 33.5% across every establishment including the shipped one, so the two-thirds of operated casualties taking the degraded holding-bed fallback (see [Intensive Care Access Is Rationed by Design](#intensive-care-access-is-rationed-by-design)) are not there because holding beds are short. Returns to duty move from 2,118.8 to 2,124.0 across the whole range, a 5-casualty movement per campaign-year against intervals roughly 50 wide, and deaths of wounds and the Role 4 peak move no further than their intervals allow. A tripling of the holding establishment is therefore not visible in any health outcome the model reports. **Evidence: measured.**
 

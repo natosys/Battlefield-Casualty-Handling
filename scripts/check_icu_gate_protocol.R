@@ -131,7 +131,7 @@ icu_gate_marker <- function(name) {
 }
 
 held <- list(replications = ICU_GATE_REPLICATIONS, days = ICU_GATE_DAYS,
-             seed = ICU_GATE_SEED)
+             window_days = ICU_GATE_WINDOW_DAYS, seed = ICU_GATE_SEED)
 for (param in names(held)) {
   stated <- suppressWarnings(as.numeric(icu_gate_marker(param)))
   report(!is.na(stated) && stated == held[[param]],

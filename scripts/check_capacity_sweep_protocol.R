@@ -83,6 +83,9 @@ TRANSPORT_HIGH_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_
 #' Tracked forward ICU share frontier
 ICU_SHARE_PATH <- file.path("data", "sweeps", "r2b_icu_share_frontier.csv")
 
+#' The tracked R2B holding capacity and evacuation threshold sweep
+HOLD_THRESHOLD_PATH <- file.path("data", "sweeps", "r2b_hold_threshold_sweep.csv")
+
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
@@ -213,6 +216,13 @@ icu_share <- if (file.exists(ICU_SHARE_PATH)) {
   NULL
 }
 
+hold_threshold <- if (file.exists(HOLD_THRESHOLD_PATH)) {
+  read.csv(HOLD_THRESHOLD_PATH, stringsAsFactors = FALSE)
+} else {
+  report(FALSE, "the tracked hold threshold sweep %s exists", HOLD_THRESHOLD_PATH)
+  NULL
+}
+
 if (!is.null(transport)) {
   swept_pmvamb <- sort(transport$qty[transport$vehicle == "PMVAmb"])
   swept_hx240m <- sort(transport$qty[transport$vehicle == "HX240M"])
@@ -328,7 +338,8 @@ check_published_table <- function(marker, row_keys, columns) {
   for (i in seq_along(row_keys)) {
     cells <- table_cells(data_rows[i])
     label <- leading_figure(cells[1])
-    report(!is.na(label) && abs(label - row_keys[i]) < TOL,
+    disabled <- row_keys[i] == 0 && grepl("^Disabled", cells[1])
+    report(disabled || (!is.na(label) && abs(label - row_keys[i]) < TOL),
            "row %d of %s is the %s point (label reads '%s')",
            i, marker, format(row_keys[i]), cells[1])
 
@@ -445,6 +456,45 @@ if (!is.null(icu_share)) {
     list(4, icu_column("mean_pd_icu_share"), 100, 1),
     list(5, icu_column("mean_dow"), 1, 2)
   ))
+}
+
+if (!is.null(hold_threshold)) {
+  # Both tables are slices of one grid. The bed axis holds the threshold at its
+  # disabled setting of zero and the threshold axis holds the establishment at
+  # the shipped five beds per unit, so the disabled row of the second repeats
+  # the shipped row of the first.
+  #' Rows of the tracked grid at one establishment, threshold disabled
+  #'
+  #' @param b Holding beds per unit.
+  #' @return Logical vector selecting that grid point's row.
+  beds_at <- function(b) hold_threshold$hold_beds == b & hold_threshold$evac_threshold_days == 0
+
+  #' Rows of the tracked grid at the shipped establishment, one threshold
+  #'
+  #' @param d Evacuation threshold in days, 0 for disabled.
+  #' @return Logical vector selecting that grid point's row.
+  threshold_at <- function(d) {
+    hold_threshold$hold_beds == 5 & hold_threshold$evac_threshold_days == d
+  }
+
+  #' The four columns both hold threshold tables print
+  #'
+  #' @param mask_of A function of the row key returning the logical mask
+  #'   selecting that grid point's row.
+  #' @return A list of column specifications for `check_published_table()`.
+  hold_columns <- function(mask_of) {
+    list(
+      list(1, column_reader(hold_threshold, mask_of, "mean_r2b_hold_q"), 1, 2),
+      list(2, column_reader(hold_threshold, mask_of, "mean_r2b_hold_util"), 100, 1),
+      list(3, column_reader(hold_threshold, mask_of, "mean_r2e_hold_q"), 1, 3),
+      list(4, column_reader(hold_threshold, mask_of, "mean_r2e_icu_q"), 1, 3)
+    )
+  }
+
+  check_published_table("<!-- HOLD THRESHOLD SWEEP BED AXIS TABLE -->", c(5, 7, 10),
+                        hold_columns(beds_at))
+  check_published_table("<!-- HOLD THRESHOLD SWEEP THRESHOLD AXIS TABLE -->", c(0, 1, 3, 5, 7),
+                        hold_columns(threshold_at))
 }
 
 # ── 4. The intervals are right on a hand-computable input ────────────────────

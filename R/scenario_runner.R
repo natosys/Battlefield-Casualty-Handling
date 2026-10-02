@@ -23,13 +23,12 @@ source("R/queue_series.R")
 
 #' Replications the comparative scenario analysis runs at, per profile
 #'
-#' @details Fifty, the count `docs/Methods.md` derives for a
-#'   time-weighted queue or casualty-count response, and the count every other
-#'   replicated experiment in the companion paper uses.
-SCENARIO_REPLICATIONS <- 50L
+#' @details Thirty, the sustained-operations protocol's count, so that the
+#'   comparison sits beside the sweeps rather than beneath a different design.
+SCENARIO_REPLICATIONS <- 30L
 
 #' Campaign length the comparison runs over, in days
-SCENARIO_DAYS <- 30L
+SCENARIO_DAYS <- 360L
 
 #' Closing window the comparison's queue responses are measured over, in days
 #'

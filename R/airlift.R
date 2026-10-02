@@ -19,14 +19,13 @@ source("R/constants.R")
 
 #' Replications the Role 4 and strategic evacuation measurement runs at
 #'
-#' @details Fifty, the count `docs/Methods.md` derives for a
-#'   time-weighted occupancy or wait response and the count every other
-#'   replicated experiment in the companion paper uses, so the figures here sit
-#'   beside those rather than beneath a different design.
-AIRLIFT_REPLICATIONS <- 50L
+#' @details Thirty, the sustained-operations protocol's count, so the figures
+#'   here sit beside those of the other replicated experiments rather than
+#'   beneath a different design.
+AIRLIFT_REPLICATIONS <- 30L
 
 #' Campaign length the measurement runs over, in days
-AIRLIFT_DAYS <- 30L
+AIRLIFT_DAYS <- 360L
 
 #' Sortie cancellation probabilities the reliability sweep covers
 #'

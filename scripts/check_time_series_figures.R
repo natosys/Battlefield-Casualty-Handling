@@ -75,10 +75,10 @@ SERIES_DIR <- file.path("data", "time_series")
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
 
 #' Campaign length the tracked series was measured over, in days
-HORIZON_DAYS <- 30
+HORIZON_DAYS <- 360
 
 #' Replications the tracked series was measured at, per intensity
-N_REPLICATIONS <- 50
+N_REPLICATIONS <- 30
 
 #' Tolerance on a floating point comparison of two computed reals
 TOL <- 1e-9

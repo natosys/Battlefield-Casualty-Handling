@@ -8,7 +8,7 @@
 #   Rscript scripts/render_time_series_figures.R                    # render only
 #   Rscript scripts/render_time_series_figures.R --run              # re-measure
 #   Rscript scripts/render_time_series_figures.R --run --refresh-baseline
-#   Rscript scripts/render_time_series_figures.R --run --iterations 10 --days 30
+#   Rscript scripts/render_time_series_figures.R --run --iterations 10 --days 360
 #
 # Why this exists. The paper's central claim is that queues grow
 # disproportionately to casualty volume, and it rests on one mean queue per
@@ -92,10 +92,10 @@ INTENSITIES <- c(
 )
 
 #' Replications run per intensity when --run is given
-N_ITERATIONS <- arg_count("--iterations", 50L)
+N_ITERATIONS <- arg_count("--iterations", 30L)
 
 #' Campaign length in days
-N_DAYS <- arg_count("--days", 30L)
+N_DAYS <- arg_count("--days", 360L)
 
 #' Control seed the measurement is drawn under
 #'

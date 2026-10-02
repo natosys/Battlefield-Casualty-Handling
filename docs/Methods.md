@@ -76,7 +76,7 @@ The document is presented in five parts. The first describes the replication fra
 
 Every experiment runs through the project's multi-run replication framework (`run_replications()`, `R/replication.R`), which executes a requested number of independent replications of the model and returns their monitoring data with a replication index attached. The model itself is built on the `simmer` discrete event simulation package for R [[4]](#references).
 
-The unit of analysis is the replication throughout. Every response is reduced to one number per replication, such as the mean queue at a resource across the 30 days or the count of casualties taking a given pathway, before any statistic is taken across replications. Observations within one campaign are not independent of one another, so no interval in this project is ever taken across casualties or across days.
+The unit of analysis is the replication throughout. Every response is reduced to one number per replication, such as the mean queue at a resource over the closing window or the count of casualties taking a given pathway, before any statistic is taken across replications. Observations within one campaign are not independent of one another, so no interval in this project is ever taken across casualties or across days.
 
 ### Independence of Replications
 
@@ -120,7 +120,7 @@ Queue and occupancy are measured over the campaign's closing 90 days, the window
 
 ### Replication Count and Resolution
 
-How many replications an experiment needs depends on the spread of its response, and the responses this model reports differ by orders of magnitude in how many events they accumulate. A mean queue integrates over every arrival and departure at a resource across 30 days. A died-of-wounds count rests on a handful of events per campaign.
+How many replications an experiment needs depends on the spread of its response, and the responses this model reports differ by orders of magnitude in how many events they accumulate. A mean queue integrates over every arrival and departure at a resource across the measurement window. A died-of-wounds count rests on a handful of events per campaign.
 
 The best determined spread available for this model is on the treated-cohort died-of-wounds rate, the rate among casualties reaching R2B or R2E, whose per-replication standard deviation is 0.0039 under the shipped configuration, measured over 150 replications. Setting the half-width of the interval above equal to a target and solving for $n$ gives the counts a given resolution requires.
 
@@ -148,7 +148,7 @@ That classification is supported rather than assumed. The Welch graphical diagno
 
 <small>[Return to Top](#contents)</small>
 
-The experiments of the companion paper originally ran for 30 days, a window inherited from the campaign the baseline models rather than chosen by measurement. A window that short cannot distinguish a system in equilibrium at a given load from one thirty days into a divergence, and the model has responses of both kinds. This section defines a second horizon of 360 days alongside the first, the protocol that measures it and the way a response's stability is classified from it. The protocol matrix under [Experimental Designs](#experimental-designs) states which experiment runs at which horizon, and the companion paper reports what the long horizon shows.
+The experiments of the companion paper originally ran for 30 days, a window inherited from the campaign the baseline models rather than chosen by measurement. A window that short cannot distinguish a system in equilibrium at a given load from one thirty days into a divergence, and the model has responses of both kinds. This section defines the sustained horizon of 360 days, the protocol that measures it and the way a response's stability is classified from it. Every replicated experiment now runs at that horizon except the force regeneration comparison and the sensitivity screens; the protocol matrix under [Experimental Designs](#experimental-designs) states which, and the companion paper reports what the long horizon shows.
 
 ### The Protocol
 
@@ -281,37 +281,37 @@ The matrix sets every experiment beside the others on the six properties a compa
 
 | Experiment | Configuration | Horizon | Replications | Arms or points | Pairing | Estimator and interval |
 |---|---|---|---|---|---|---|
-| Comparative scenario analysis | `moderate_intensity`, `high_intensity` | 30 d | 50 per profile | 2 profiles | each profile seeded afresh | pool queue, closing 90 d (whole campaign at 30 d); Student $t$ |
-| Campaign time series | the same two profiles | 30 d | 50 per profile | 2 profiles | each profile seeded afresh | pool queue in four-hour bins; median and interquartile band |
+| Comparative scenario analysis | `moderate_intensity`, `high_intensity` | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | pool queue, closing 90 d (whole campaign at 30 d); Student $t$ |
+| Campaign time series | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | pool queue in four-hour bins; median and interquartile band |
 | Sustained-operations horizon | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | daily series, 30-day block means; trend over the second half |
 | R2B pre-open hold window | default | 360 d | 30 per arm | 2 arms | one control seed, not one casualty stream | campaign counts; Student $t$, paired $t$ |
-| Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy (whole campaign); Student $t$, paired $t$ |
+| Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy, closing 90 d; Student $t$, paired $t$ |
 | Forward ICU share frontier | default | 360 d | 30 per point | 5 shares | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | R2B holding capacity and evacuation threshold | default | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | Transport fleet-size sweep | default; `high_intensity` | 360 d | 30 per point | 9 per configuration | unpaired | fleet pool queue and occupancy, closing 90 d; Student $t$ |
-| National support base demand and the airlift schedule | default and both profiles | 30 d | 50 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
+| National support base demand and the airlift schedule | default and both profiles | 360 d | 30 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
 | Strategic airlift reliability | default | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
-| Mass casualty event stress test | default, injection on or off | 30 d | 62 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
+| Mass casualty event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 30 d | 8 per point | 8,000 points | unpinned | total-order index; bootstrap |
 
-The experiments still at 30 days are those whose tracked evidence has not yet been re-measured at the sustained-operations horizon; the horizon and the replication counts in the matrix are the values the code holds and the protocol checks assert. The sensitivity screens stay at 30 days because the cost of a length-matched screen is prohibitive (see [Sensitivity Screens](#sensitivity-screens)), and their rankings are labelled as 30-day rankings wherever they are reported.
+The horizon and the replication counts in the matrix are the values the code holds and the protocol checks assert. Two designs stay at 30 days: the force regeneration comparison, which measures the daily casualty volume a reinforcement cycle sustains rather than a health system response and is not re-measured here, and the sensitivity screens, whose length-matched cost is prohibitive (see [Sensitivity Screens](#sensitivity-screens)); the screens' rankings are labelled as 30-day rankings wherever they are reported.
 
 The matrix makes explicit three differences that determine whether two tables can be read side by side. A table from the scenario comparison and one from a sweep describe different configurations, intensity profiles against the shipped default. A table measured over a closing window and one averaged over the whole campaign describe a settled system and a filling one. And a table of means across replications and one of pooled proportions have different units of analysis, which is why the interval method is stated in the last column.
 
 ### Comparative Scenario Analysis
 
-<!-- SCENARIO days=30 -->
+<!-- SCENARIO days=360 -->
 <!-- SCENARIO window_days=90 -->
-<!-- SCENARIO replications=50 -->
+<!-- SCENARIO replications=30 -->
 <!-- SCENARIO seed=42 -->
 <!-- SCENARIO profiles=moderate_intensity,high_intensity -->
 
-50 replications of 30 simulated days per profile at control seed 42, under the shipped default establishment, the only overrides being those the scenario profile itself applies. Invoked as:
+30 replications of 360 simulated days per profile at control seed 42, under the shipped default establishment, the only overrides being those the scenario profile itself applies. Invoked as:
 
 ```
 Rscript scripts/run_scenarios.R --refresh-baseline
@@ -319,7 +319,7 @@ Rscript scripts/run_scenarios.R --refresh-baseline
 
 The flag is the only way to write the tracked `data/scenarios/`, and it runs the protocol above rather than whatever arguments accompany it, so the tracked set and this design cannot diverge through a mistyped argument. Without it the runner writes under `outputs/` alone.
 
-Four files are written. Two carry the casualty totals and the per-resource queue summaries the runner has always produced. The other two carry the per-pool queue comparison the companion paper prints, once per replication and once reduced to a mean and interval. The per-replication file is kept because a pool's interval cannot be recovered from per-bed summaries, the pool total being in none of the monitor's rows: it is reconstructed by differencing each bed's own series into changes and accumulating them in time order, then averaged over the closing window (the whole campaign at 30 days) by the same step-function estimator the campaign time series uses. The published queue table and the queue-over-time figure therefore measure one quantity rather than two that happen to agree.
+Four files are written. Two carry the casualty totals and the per-resource queue summaries the runner has always produced. The other two carry the per-pool queue comparison the companion paper prints, once per replication and once reduced to a mean and interval. The per-replication file is kept because a pool's interval cannot be recovered from per-bed summaries, the pool total being in none of the monitor's rows: it is reconstructed by differencing each bed's own series into changes and accumulating them in time order, then averaged over the closing window by the same step-function estimator the campaign time series uses. The published queue table and the queue-over-time figure therefore measure one quantity rather than two that happen to agree.
 
 A scenario profile is a named set of overrides applied on top of the shipped default `env_data.json` parameters, resolved by `resolve_scenario()` (`R/scenario.R`). Both profiles are defined in the `scenarios` block of `env_data.json`. Element, bed and transport fleet counts are structural configuration a scenario cannot override, so the two profiles differ in their casualty-generation parameters alone.
 
@@ -329,10 +329,10 @@ A third, Vietnam-calibrated profile is missing for want of sources: FORECAS's Ap
 
 ### Campaign Time Series of Queue Length and Degraded Care
 
-50 replications of 30 simulated days per casualty intensity at control seed 42, under the shipped default establishment and the same two scenario profiles as the comparative analysis above. The seed is set once before each intensity rather than once for the pair, so replication $i$ of one intensity draws the same per-replication seed as replication $i$ of the other. Invoked as:
+30 replications of 360 simulated days per casualty intensity at control seed 42, under the shipped default establishment and the same two scenario profiles as the comparative analysis above. The seed is set once before each intensity rather than once for the pair, so replication $i$ of one intensity draws the same per-replication seed as replication $i$ of the other. Invoked as:
 
 ```
-Rscript scripts/render_time_series_figures.R --run --refresh-baseline --iterations 50 --days 30
+Rscript scripts/render_time_series_figures.R --run --refresh-baseline --iterations 30 --days 360
 ```
 
 Measurement and rendering are separated. The `--run` half executes the model and writes three aggregated series to `data/time_series/`: queue length per resource pool, replication and four-hour bin; the two clearance statistics per pool and replication; and the degraded-care rate per stage, replication and day. An invocation without `--run` reads those files and renders the figures from them alone, so both images are a function of tracked data rather than of a run that cannot be repeated, and re-rendering reproduces them byte for byte. Only the aggregated series is kept; the monitoring data behind it runs to hundreds of megabytes and nothing published derives from a single replication of it.
@@ -366,6 +366,7 @@ Two further limits apply to the design. The comparison was run at the shipped de
 
 <!-- ICU_GATE replications=30 -->
 <!-- ICU_GATE days=360 -->
+<!-- ICU_GATE window_days=90 -->
 <!-- ICU_GATE seed=42 -->
 <!-- ICU_GATE arms=0,1 -->
 
@@ -443,12 +444,12 @@ The horizon, replication count and control seed above are shared with the forwar
 
 ### National Support Base Demand and the Airlift Schedule
 
-<!-- AIRLIFT days=30 -->
-<!-- AIRLIFT replications=50 -->
+<!-- AIRLIFT days=360 -->
+<!-- AIRLIFT replications=30 -->
 <!-- AIRLIFT failure_probabilities=0,0.05,0.10,0.15,0.25,0.40 -->
 <!-- AIRLIFT sortie_intervals=3,5,7,10,14 -->
 
-50 replications of a 30-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
+30 replications of a 360-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
 
 ```
 Rscript scripts/run_airlift_sweep.R --refresh-baseline
@@ -540,17 +541,17 @@ The range runs past the point at which a higher threshold might stop firing, so 
 
 ### Mass Casualty Event Stress Test
 
-<!-- MASS_CASUALTY replications=62 -->
-<!-- MASS_CASUALTY days=30 -->
+<!-- MASS_CASUALTY replications=30 -->
+<!-- MASS_CASUALTY days=360 -->
 <!-- MASS_CASUALTY seed=42 -->
 <!-- MASS_CASUALTY arms=0,0.2 -->
-62 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
 
 ```
 Rscript scripts/run_mass_casualty.R --refresh-baseline
 ```
 
-The count is derived rather than assumed. [Replication Count and Resolution](#replication-count-and-resolution) states that separating a died-of-wounds rate by a tenth of a percentage point takes 62 runs, on the treated-cohort standard deviation of 0.0039 measured over 150 replications elsewhere in this project; a tenth of a point is the size of difference this experiment's comparison is read at, so 62 is the smallest replication count in reach of resolving it. The derivation is at the 30-day horizon and is re-derived when the experiment moves to the sustained-operations horizon. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
+The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00060 for the ordinary casualty rate in the background-only arm, 0.00073 for the ordinary rate and 0.00179 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 3 and 13 replications respectively, and a twentieth of a point requires 49 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 160,797 and 158,865 ordinary casualties and 86,751 event casualties. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
 
 Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/mass_casualty_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_mass_casualty.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
 

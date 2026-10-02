@@ -6,9 +6,9 @@
 #
 # Terminal / Claude Code cloud:
 #   Rscript scripts/run_icu_share_sweep.R --refresh-baseline     # write the tracked data/sweeps/
-#   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 10 reps x 30 days
+#   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 30 x 360 d
 #   Rscript scripts/run_icu_share_sweep.R --shares "seq(0, 1, by = 0.1)"
-#   Rscript scripts/run_icu_share_sweep.R --iterations 30 --days 30
+#   Rscript scripts/run_icu_share_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_icu_share_sweep.R --quick                # smoke test (2 reps, 3 days, 3 points)
 #
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
@@ -23,7 +23,7 @@
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
-#   sweep <- plot_r2b_icu_share_frontier(seq(0, 1, by = 0.25), n_rep = 10, n_days = 30)
+#   sweep <- plot_r2b_icu_share_frontier(seq(0, 1, by = 0.25), n_rep = 30, n_days = 360)
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -36,9 +36,9 @@ suppressPackageStartupMessages(library(optparse))
 option_list <- list(
   make_option("--shares",     type = "character", default = "seq(0, 1, by = 0.25)",
               help = "Forward ICU shares to sweep, as an R range/vector expression [default: %default]"),
-  make_option("--iterations", type = "integer", default = 10L,
+  make_option("--iterations", type = "integer", default = ICU_SHARE_SWEEP_REPLICATIONS,
               help = "Replications per share point [default: %default]"),
-  make_option("--days",       type = "integer", default = 30L,
+  make_option("--days",       type = "integer", default = CAPACITY_SWEEP_DAYS,
               help = "Simulation duration in days [default: %default]"),
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed [default: %default]"),

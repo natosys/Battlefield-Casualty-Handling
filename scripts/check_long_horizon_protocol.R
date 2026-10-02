@@ -376,24 +376,37 @@ if (!all(file.exists(stability_path, blocks_path))) {
   caveat <- mod[order(-mod$drift_per_block), ][1:3, ]
   report(all(round(100 * caveat$drift_per_block, 1) %in% c(20.5, 13.7, 10.8)) &&
            all(caveat$ci_lower < 0 & caveat$ci_upper > 0),
-         "the three moderate-intensity responses converging on a spanning interval carry +20.5, +13.7 and +10.8%%/block")
+         paste("the three moderate-intensity responses converging on a spanning interval",
+               "carry +20.5, +13.7 and +10.8%%/block"))
 
+  #' Mean casualty arrivals per day in one block of one scenario
+  #'
+  #' @param scen Scenario profile name.
+  #' @param b Block number.
+  #' @return The tracked block mean.
   arrivals <- function(scen, b) {
     blocks$mean[blocks$series == "arrivals" & blocks$scenario == scen & blocks$block == b]
   }
   report(identical(round(c(arrivals("moderate_intensity", 1), arrivals("moderate_intensity", 12),
                            arrivals("high_intensity", 1), arrivals("high_intensity", 12)), 1),
                    c(14.8, 14.3, 35.2, 35.0)),
-         "arrivals per day read 14.8 and 14.3 (moderate) and 35.2 and 35.0 (high) in blocks one and twelve")
+         paste("arrivals per day read 14.8 and 14.3 (moderate) and 35.2 and 35.0 (high)",
+               "in blocks one and twelve"))
 
   occ1 <- blocks$mean[blocks$series == "occupancy" & blocks$scenario == "high_intensity" &
                         blocks$block == 1 & grepl("^R2E", blocks$subject)]
   occ_settle <- stability$settles_by_block[stability$series == "occupancy" &
                                              stability$scenario == "high_intensity" &
                                              grepl("^R2E", stability$subject)]
-  report(identical(round(range(occ1), 2), c(0.90, 0.97)) && identical(as.numeric(sort(occ_settle)), c(6, 6, 7)),
-         "high-intensity R2E occupancy reads 0.90 to 0.97 in block one and settles by blocks 6 and 7")
+  report(identical(round(range(occ1), 2), c(0.90, 0.97)) &&
+           identical(as.numeric(sort(occ_settle)), c(6, 6, 7)),
+         paste("high-intensity R2E occupancy reads 0.90 to 0.97 in block one and",
+               "settles by blocks 6 and 7"))
 
+  #' Mean high-intensity R2E theatre queue in one block
+  #'
+  #' @param b Block number.
+  #' @return The tracked block mean.
   theatre <- function(b) {
     blocks$mean[blocks$series == "mean_queue" & blocks$subject == "R2E operating theatres" &
                   blocks$scenario == "high_intensity" & blocks$block == b]

@@ -30,9 +30,16 @@
 #   3. Each screen's tracked ranking files exist, so a metadata file cannot
 #      describe a run whose results were never kept.
 
-METHODS_PATH  <- file.path("docs", "Methods.md")
-MORRIS_META   <- file.path("data", "sensitivity", "morris_r20", "morris_run_metadata.csv")
-SOBOL_META    <- file.path("data", "sensitivity", "sobol_n800", "sobol_run_metadata.csv")
+#' The document the screens' design is published in
+METHODS_PATH <- file.path("docs", "Methods.md")
+
+#' Tracked run metadata of the Morris screen
+MORRIS_META <- file.path("data", "sensitivity", "morris_r20", "morris_run_metadata.csv")
+
+#' Tracked run metadata of the Sobol decomposition
+SOBOL_META <- file.path("data", "sensitivity", "sobol_n800", "sobol_run_metadata.csv")
+
+#' Tracked ranking the Morris screen's results were kept in
 MORRIS_RANKING <- file.path("data", "sensitivity", "morris_r20", "morris_ranking.csv")
 
 state <- new.env(parent = emptyenv())
@@ -126,13 +133,15 @@ for (screen in list(list("Morris", morris), list("Sobol", sobol))) {
 cat("\n-- each design has the size its parameters imply --\n")
 
 if (!is.null(morris)) {
-  r <- as.numeric(morris[["r"]]); k <- as.numeric(morris[["n_params"]])
+  r <- as.numeric(morris[["r"]])
+  k <- as.numeric(morris[["n_params"]])
   report(r * (k + 1) == as.numeric(morris[["n_design_points"]]),
          "the Morris design has r (k + 1) = %d points (recorded %s)", r * (k + 1),
          morris[["n_design_points"]])
 }
 if (!is.null(sobol)) {
-  n <- as.numeric(sobol[["n_sobol"]]); k <- as.numeric(sobol[["n_params"]])
+  n <- as.numeric(sobol[["n_sobol"]])
+  k <- as.numeric(sobol[["n_params"]])
   report(n * (k + 2) == as.numeric(sobol[["n_design_points"]]),
          "the Sobol design has N (k + 2) = %d points (recorded %s)", n * (k + 2),
          sobol[["n_design_points"]])

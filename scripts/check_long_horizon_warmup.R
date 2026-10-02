@@ -167,7 +167,11 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     x <- tracked[tracked$scenario == "moderate_intensity" & tracked$subject == pool, ]
     peak_day <- x$day[which.max(x$cma)]
     band <- round(range(x$cma[x$day >= 150]), 2)
-    expected <- if (pool == "R2E intensive care") list(52, c(1.10, 1.29)) else list(28, c(0.69, 1.01))
+    expected <- if (pool == "R2E intensive care") {
+      list(52, c(1.10, 1.29))
+    } else {
+      list(28, c(0.69, 1.01))
+    }
     report(peak_day == expected[[1]] && identical(band, expected[[2]]),
            "%s peaks on day %d and spans %s from day 150 (paper: day %d, %s)", pool,
            peak_day, paste(band, collapse = " to "), expected[[1]],

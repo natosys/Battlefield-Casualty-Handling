@@ -26,7 +26,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/airlift.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment.
+#      docs/Methods.md documents in a marker comment.
 #   2. The tracked per-replication responses carry the documented replication
 #      count, the documented arms and the response set the summary reports.
 #   3. Every figure the paper prints from this experiment matches the tracked
@@ -75,7 +75,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's figures
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")

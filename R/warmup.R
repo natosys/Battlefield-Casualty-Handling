@@ -23,7 +23,7 @@ source("R/constants.R")
 #'   `R/long_horizon.R` calls the same pools converged, because a cumulative
 #'   average carries the empty opening days for the run's whole length while a
 #'   block mean does not. Both readings are correct for what each measures;
-#'   see docs/Multi_Run_Supplement.md's Warm-up Classification section.
+#'   see docs/Methods.md's Warm-up Classification section.
 WARM_UP_DAYS <- 0L
 
 #' Bin total ICU queue into regular time intervals using step interpolation

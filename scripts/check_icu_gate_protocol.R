@@ -23,7 +23,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/icu_gate.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment.
+#      docs/Methods.md documents in a marker comment.
 #   2. The tracked evidence set is that experiment: both documented arms, the
 #      documented replication count, and the response set the published
 #      section prints, with the summary and the paired differences each the
@@ -41,7 +41,7 @@
 # measurement whose intervals were computed over antithetically paired
 # replications while still dividing by the replication count and were
 # therefore narrower than the runs entitled them to be
-# (docs/Multi_Run_Supplement.md, "The Withdrawn Antithetic Pairing").
+# (docs/Methods.md, "The Withdrawn Antithetic Pairing").
 #
 # This check covers the magnitudes the section prints. It sits alongside
 # scripts/check_icu_gate_switch.R, which covers the mechanism (that the
@@ -85,7 +85,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's section
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
@@ -374,7 +374,7 @@ report(nrow(single) == 1 && single$ci_lower == 0.4 && single$ci_upper == 0.4,
 # hand, and its half-width is qt(0.975, 4) * sd(d) / sqrt(5) on
 # d = (0.2, 0.2, 0.2, 0.2, 1.0), the paired reduction's own interval
 # construction being what supersedes the antithetically paired one
-# (docs/Multi_Run_Supplement.md, "The Withdrawn Antithetic Pairing").
+# (docs/Methods.md, "The Withdrawn Antithetic Pairing").
 pair_known <- data.frame(
   gate_enabled  = rep(c(0L, 1L), each = 5),
   replication   = rep(1:5, 2),

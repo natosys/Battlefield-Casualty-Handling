@@ -18,7 +18,7 @@
 # fixes the protocol's replication count, horizon, seed and scenario set rather
 # than accepting whichever the caller passed, because an evidence set measured
 # at some other design would not be the experiment
-# docs/Multi_Run_Supplement.md documents.
+# docs/Methods.md documents.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")

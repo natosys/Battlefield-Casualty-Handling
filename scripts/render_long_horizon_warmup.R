@@ -8,7 +8,7 @@
 #   Rscript scripts/render_long_horizon_warmup.R --refresh-baseline
 #   Rscript scripts/render_long_horizon_warmup.R
 #
-# Why this exists. The warm-up classification in docs/Multi_Run_Supplement.md
+# Why this exists. The warm-up classification in docs/Methods.md
 # is re-derived at the sustained-operations horizon by classifying each
 # response's 30-day block means (R/long_horizon.R's classify_stability()), not
 # by running the Welch graphical diagnostic itself past the 90 days
@@ -22,7 +22,7 @@
 # It renders from the tracked data/long_horizon/long_horizon_series.csv.gz
 # rather than re-running the model: that series already carries the
 # daily, per-replication values the diagnostic needs, at the horizon and
-# replication count docs/Multi_Run_Supplement.md's protocol section
+# replication count docs/Methods.md's protocol section
 # documents, so no simulation is repeated here. --refresh-baseline is the
 # only way to write the tracked images/welch_plot_long_horizon.png and
 # data/long_horizon/long_horizon_welch_cma.csv, matching the contract every

@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The sustained-operations horizon is documented in
-# docs/Multi_Run_Supplement.md as a duration, a replication count and a block
+# docs/Methods.md as a duration, a replication count and a block
 # length, and it is executed from constants in R/long_horizon.R. Nothing held
 # the two together, so a protocol parameter changed in code would leave the
 # supplement describing an experiment the project no longer runs, and a tracked
@@ -81,7 +81,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The document the protocol's parameters are published in
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' Directory holding the tracked long-horizon evidence set
 SERIES_DIR <- file.path("data", "long_horizon")
@@ -287,6 +287,133 @@ report(abs(b$mean[b$block == 2] - 5) < TOL,
 report(all(b$n_reps == 3), "each block records the replications behind it (3)")
 report(all(b$ci_lower < b$mean & b$mean < b$ci_upper),
        "each block's interval brackets its mean")
+
+# ── 6. The published stability reading matches the tracked classification ────
+
+cat("\n-- the published stability reading matches the tracked evidence --\n")
+
+#' The paper the stability reading is published in
+PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+
+stability_path <- file.path(SERIES_DIR, "long_horizon_stability.csv")
+blocks_path    <- file.path(SERIES_DIR, "long_horizon_blocks.csv")
+
+if (!all(file.exists(stability_path, blocks_path))) {
+  report(FALSE, "the tracked stability classification and block means exist")
+} else {
+  stability <- read.csv(stability_path, stringsAsFactors = FALSE)
+  blocks    <- read.csv(blocks_path, stringsAsFactors = FALSE)
+
+  #' Format a queue or rate level the way the paper's table prints it
+  #'
+  #' @param x A late-half mean.
+  #' @return Two decimals below ten, one decimal with thousands separators above.
+  level <- function(x) {
+    if (abs(x) < 10) formatC(x, format = "f", digits = 2)
+    else formatC(x, format = "f", digits = 1, big.mark = ",")
+  }
+
+  #' One table cell as the paper prints it from the tracked classification
+  #'
+  #' @param r One row of the tracked classification.
+  #' @return The cell text.
+  expected_cell <- function(r) {
+    if (r$stability == "drifting") {
+      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
+              formatC(r$first, format = "f", digits = 1, big.mark = ","),
+              formatC(r$last, format = "f", digits = 1, big.mark = ","))
+    } else {
+      sprintf("converged at %s", level(r$late_mean))
+    }
+  }
+
+  table_rows <- list(
+    list("R2E operating theatre queue", "mean_queue", "R2E operating theatres"),
+    list("R2E holding bed queue", "mean_queue", "R2E holding beds"),
+    list("R2E intensive care queue", "mean_queue", "R2E intensive care"),
+    list("Strategic evacuation backlog", "evac_backlog", "system"),
+    list("R2B holding bed queue", "mean_queue", "R2B holding beds"),
+    list("Casualty arrivals per day", "arrivals", "system"),
+    list("Deaths of wounds per day", "dow", "system")
+  )
+
+  paper <- readLines(PAPER_PATH, warn = FALSE)
+  at <- grep("<!-- LONG HORIZON STABILITY TABLE -->", paper, fixed = TRUE)
+  report(length(at) == 1, "the paper carries one stability table marker (found %d)",
+         length(at))
+  if (length(at) == 1) {
+    rows <- paper[(at + 1):length(paper)]
+    rows <- rows[seq_len(which(!grepl("^\\|", rows))[1] - 1)]
+    for (spec in table_rows) {
+      row <- rows[grepl(paste0("^\\| ", spec[[1]], " \\|"), rows)]
+      if (length(row) != 1) {
+        report(FALSE, "the paper prints one '%s' row (found %d)", spec[[1]], length(row))
+        next
+      }
+      cells <- trimws(strsplit(sub("^\\|", "", sub("\\|$", "", row)), "\\|")[[1]])[-1]
+      for (k in 1:2) {
+        scen <- c("moderate_intensity", "high_intensity")[k]
+        r <- stability[stability$scenario == scen & stability$series == spec[[2]] &
+                         stability$subject == spec[[3]], ]
+        report(nrow(r) == 1 && identical(cells[k], expected_cell(r)),
+               "'%s' at %s prints '%s' against the data's '%s'", spec[[1]], scen,
+               cells[k], if (nrow(r) == 1) expected_cell(r) else "no row")
+      }
+    }
+  }
+
+  # The figures the section's prose states, each read from the tracked set.
+  conv <- stability[stability$stability == "converged", ]
+  report(nrow(conv) == 20 && max(conv$settles_by_block) == 7 &&
+           sum(conv$settles_by_block <= 2) == 10,
+         "20 responses converge, all settle by block 7 and 10 by block 2 (found %d, %d, %d)",
+         nrow(conv), max(conv$settles_by_block), sum(conv$settles_by_block <= 2))
+
+  mod <- stability[stability$scenario == "moderate_intensity" &
+                     stability$series %in% c("mean_queue", "evac_backlog") &
+                     stability$subject %in% c("R2E holding beds", "R2E intensive care",
+                                              "system"), ]
+  caveat <- mod[order(-mod$drift_per_block), ][1:3, ]
+  report(all(round(100 * caveat$drift_per_block, 1) %in% c(20.5, 13.7, 10.8)) &&
+           all(caveat$ci_lower < 0 & caveat$ci_upper > 0),
+         paste("the three moderate-intensity responses converging on a spanning interval",
+               "carry +20.5, +13.7 and +10.8%%/block"))
+
+  #' Mean casualty arrivals per day in one block of one scenario
+  #'
+  #' @param scen Scenario profile name.
+  #' @param b Block number.
+  #' @return The tracked block mean.
+  arrivals <- function(scen, b) {
+    blocks$mean[blocks$series == "arrivals" & blocks$scenario == scen & blocks$block == b]
+  }
+  report(identical(round(c(arrivals("moderate_intensity", 1), arrivals("moderate_intensity", 12),
+                           arrivals("high_intensity", 1), arrivals("high_intensity", 12)), 1),
+                   c(14.8, 14.3, 35.2, 35.0)),
+         paste("arrivals per day read 14.8 and 14.3 (moderate) and 35.2 and 35.0 (high)",
+               "in blocks one and twelve"))
+
+  occ1 <- blocks$mean[blocks$series == "occupancy" & blocks$scenario == "high_intensity" &
+                        blocks$block == 1 & grepl("^R2E", blocks$subject)]
+  occ_settle <- stability$settles_by_block[stability$series == "occupancy" &
+                                             stability$scenario == "high_intensity" &
+                                             grepl("^R2E", stability$subject)]
+  report(identical(round(range(occ1), 2), c(0.90, 0.97)) &&
+           identical(as.numeric(sort(occ_settle)), c(6, 6, 7)),
+         paste("high-intensity R2E occupancy reads 0.90 to 0.97 in block one and",
+               "settles by blocks 6 and 7"))
+
+  #' Mean high-intensity R2E theatre queue in one block
+  #'
+  #' @param b Block number.
+  #' @return The tracked block mean.
+  theatre <- function(b) {
+    blocks$mean[blocks$series == "mean_queue" & blocks$subject == "R2E operating theatres" &
+                  blocks$scenario == "high_intensity" & blocks$block == b]
+  }
+  report(identical(round(c(theatre(1), theatre(12)), 1), c(40.5, 605.9)),
+         "the high-intensity R2E theatre queue reads 40.5 in block one and 605.9 in block twelve")
+}
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

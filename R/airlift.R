@@ -19,7 +19,7 @@ source("R/constants.R")
 
 #' Replications the Role 4 and strategic evacuation measurement runs at
 #'
-#' @details Fifty, the count `docs/Multi_Run_Supplement.md` derives for a
+#' @details Fifty, the count `docs/Methods.md` derives for a
 #'   time-weighted occupancy or wait response and the count every other
 #'   replicated experiment in the companion paper uses, so the figures here sit
 #'   beside those rather than beneath a different design.
@@ -452,7 +452,7 @@ run_airlift_sweep <- function(field, values, scenario = "moderate_intensity",
 # The sweep above measures what the airlift schedule costs within a 30-day
 # campaign. This one asks a different question at a different horizon: whether a
 # campaign collapses altogether, which is a property of a whole year rather than
-# of any month inside it. It is the experiment docs/Multi_Run_Supplement.md
+# of any month inside it. It is the experiment docs/Methods.md
 # recorded as the one a reader could not re-execute from a tracked command,
 # because it needs the long-horizon runner and the cancellation sweep together
 # and neither alone computes its response.

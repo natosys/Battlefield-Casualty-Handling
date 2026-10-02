@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. compute_long_horizon_cma() (R/warmup.R) is what
-# docs/Multi_Run_Supplement.md's Warm-up Classification section now cites as
+# docs/Methods.md's Warm-up Classification section now cites as
 # the direct sustained-horizon Welch reading, alongside the per-block
 # classification R/long_horizon.R already carried a check for. Nothing
 # asserted the cumulative-average arithmetic itself, and nothing asserted
@@ -138,7 +138,7 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     if (nrow(row) == 0) NA_real_ else row$cma[1]
   }
 
-  # Values docs/Multi_Run_Supplement.md's sustained-horizon Welch paragraph
+  # Values docs/Methods.md's sustained-horizon Welch paragraph
   # states, read from the tracked evidence set at the time it was written.
   published <- list(
     list("moderate_intensity", "R2E intensive care", 30, 1.643),
@@ -148,13 +148,34 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     list("high_intensity", "R2E intensive care", 30, 30.119),
     list("high_intensity", "R2E intensive care", 360, 802.908),
     list("high_intensity", "R2E holding beds", 30, 38.751),
-    list("high_intensity", "R2E holding beds", 360, 290.714)
+    list("high_intensity", "R2E holding beds", 360, 290.714),
+    list("moderate_intensity", "R2E intensive care", 52, 1.944),
+    list("moderate_intensity", "R2E holding beds", 28, 1.864),
+    list("moderate_intensity", "R2E intensive care", 180, 1.201),
+    list("moderate_intensity", "R2E holding beds", 180, 0.894)
   )
   for (p in published) {
     found <- cma_at(p[[1]], p[[2]], p[[3]])
     report(!is.na(found) && abs(found - p[[4]]) < 0.001,
            "%s %s day %d: published %.3f matches tracked %.3f",
            p[[1]], p[[2]], p[[3]], p[[4]], found)
+  }
+
+  # The moderate-intensity peaks fall on the days the paper names, and the
+  # bands the paper states hold from day 150 onward.
+  for (pool in c("R2E intensive care", "R2E holding beds")) {
+    x <- tracked[tracked$scenario == "moderate_intensity" & tracked$subject == pool, ]
+    peak_day <- x$day[which.max(x$cma)]
+    band <- round(range(x$cma[x$day >= 150]), 2)
+    expected <- if (pool == "R2E intensive care") {
+      list(52, c(1.10, 1.29))
+    } else {
+      list(28, c(0.69, 1.01))
+    }
+    report(peak_day == expected[[1]] && identical(band, expected[[2]]),
+           "%s peaks on day %d and spans %s from day 150 (paper: day %d, %s)", pool,
+           peak_day, paste(band, collapse = " to "), expected[[1]],
+           paste(expected[[2]], collapse = " to "))
   }
 }
 

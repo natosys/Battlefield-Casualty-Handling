@@ -17,7 +17,7 @@
 # simmer's single global random stream from the first hold onward, so the two
 # arms drift into different casualty streams rather than sharing one; pairing
 # on a common control seed removes none of the between-run variance this
-# implies (docs/Multi_Run_Supplement.md, "The R2B Pre-Open Hold Window"). Each
+# implies (docs/Methods.md, "The R2B Pre-Open Hold Window"). Each
 # replication is reduced to one row of the response set inside the forked
 # worker that produced it, on the arrangement R/policy_sweep.R and R/airlift.R
 # both use.
@@ -234,7 +234,7 @@ hold_window_paired_difference <- function(rows, response, from, to,
 #' @details Uses the measured paired standard deviation and the normal
 #'   approximation $n = (1.96 s / h)^2$, on the convention
 #'   `R/policy_sweep.R`'s `policy_replications_for()` establishes and
-#'   `docs/Multi_Run_Supplement.md`'s replication-count derivation uses.
+#'   `docs/Methods.md`'s replication-count derivation uses.
 hold_window_replications_for <- function(rows, response, from, to, half_width,
                                          arm_column = "window_min") {
   a <- rows[rows[[arm_column]] == from, c("replication", response)]

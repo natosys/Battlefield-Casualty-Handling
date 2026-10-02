@@ -26,7 +26,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/airlift.R equals the value
-#      docs/Multi_Run_Supplement.md documents in a marker comment.
+#      docs/Methods.md documents in a marker comment.
 #   2. collapse_response() selects the closing window, and nothing before it.
 #   3. It averages each replication over that window's days rather than
 #      sampling one of them, and classifies at an inclusive threshold.
@@ -80,7 +80,7 @@ report <- function(ok, fmt, ...) {
 PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
 
 #' Supplement the protocol parameters are read from
-SUPPLEMENT_PATH <- file.path("docs", "Multi_Run_Supplement.md")
+SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' Tracked collapse summary the paper's table derives from
 SUMMARY_PATH <- file.path("data", "airlift", "airlift_collapse.csv")

@@ -20,13 +20,13 @@
 # --refresh-baseline is the only way to write the tracked data/mass_casualty/,
 # and it runs the documented protocol (62 replications x 30 days x 2 arms at
 # seed 42) rather than whatever arguments accompany it, so the tracked set and
-# the design docs/Multi_Run_Supplement.md documents cannot diverge through a
+# the design docs/Methods.md documents cannot diverge through a
 # mistyped argument. Without it the run writes under outputs/ alone.
 #
 # The illustrative single run behind images/mass_casualty_events.png is
 # written alongside the replicated evidence set under --refresh-baseline,
 # since injection ships disabled and run.R --refresh-baseline cannot write it
-# (docs/Multi_Run_Supplement.md, "Mass Casualty Event Stress Test").
+# (docs/Methods.md, "Mass Casualty Event Stress Test").
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -153,7 +153,7 @@ if (isTRUE(opt$`refresh-baseline`)) {
   # under names this module's own replicated evidence set already uses for a
   # different quantity. Both go to a scratch directory of their own, and only
   # the one file this experiment needs, the mass casualty timeline, is copied
-  # out into IMAGES_DIR, on the convention docs/Multi_Run_Supplement.md
+  # out into IMAGES_DIR, on the convention docs/Methods.md
   # documents for this image: it is copied into place from the run's own
   # output directory rather than written there directly.
   illustrative_scratch <- file.path(tempdir(), "mass_casualty_illustrative")

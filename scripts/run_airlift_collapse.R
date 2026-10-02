@@ -9,7 +9,7 @@
 #   Rscript scripts/run_airlift_collapse.R --iterations 4 --days 90
 #   Rscript scripts/run_airlift_collapse.R --probabilities 0,0.15,0.25
 #
-# Why this exists. docs/Multi_Run_Supplement.md recorded this as the one
+# Why this exists. docs/Methods.md recorded this as the one
 # experiment a reader could not re-execute from a tracked command: it was run
 # from a driver script, and neither of the two entry points that later arrived
 # could reproduce it alone. scripts/run_long_horizon.R runs a reducing 360-day
@@ -22,7 +22,7 @@
 # The response is a classification rather than a mean because the
 # per-replication values are bimodal rather than spread, so a mean over them
 # would describe no campaign in the population. See R/airlift.R for the
-# threshold's basis and docs/Multi_Run_Supplement.md for the design.
+# threshold's basis and docs/Methods.md for the design.
 #
 # --refresh-baseline is the only way to write the tracked data/airlift/ copy.
 

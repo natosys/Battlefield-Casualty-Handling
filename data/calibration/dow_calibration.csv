@@ -1,0 +1,4 @@
+"scenario","days","measurements","replications","rate","ci_lower","ci_upper","target","anchor","kind"
+"default",360,3,30,0.00543823357149925,0.0049422110173816,0.0059342561256169,0.0046,"Ajax Bay","bound"
+"moderate_intensity",360,3,30,0.00364710976169164,0.00322004592739813,0.00407417359598515,0.0046,"Ajax Bay","bound"
+"high_intensity",360,3,30,0.037801602174866,0.0369767753915496,0.0386264289581823,0.034,"Okinawa","point"

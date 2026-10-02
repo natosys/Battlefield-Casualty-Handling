@@ -5015,7 +5015,9 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
            qty     = as.numeric(current_qty[as.character(vehicle)]))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per fleet-size point; queue and occupancy are fleet totals over the closing %d days", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
+    sprintf(paste("%d replications per fleet-size point; queue and occupancy are",
+                  "fleet totals over the closing %d days"),
+            n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5111,7 +5113,8 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   the caller's configuration's rather than the last sweep point's.
 plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVAmb = 1:5, HX240M = 1:4),
                                                           scenario = "default",
-                                                          n_days = CAPACITY_SWEEP_DAYS, n_rep = TRANSPORT_SWEEP_REPLICATIONS,
+                                                          n_days = CAPACITY_SWEEP_DAYS,
+                                                          n_rep = TRANSPORT_SWEEP_REPLICATIONS,
                                                           path = "env_data.json",
                                                           output_dir = "outputs", images_dir = "images",
                                                           progress_dir = NULL, max_cores = NULL) {
@@ -5263,7 +5266,10 @@ render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep =
     mutate(metric = factor(metric, levels = metrics))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per share point; queue and occupancy are pool totals over the closing %d days; the ribbon is a 95%% confidence interval across replications", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
+    sprintf(paste("%d replications per share point; queue and occupancy are pool totals",
+                  "over the closing %d days; the ribbon is a 95%% confidence interval",
+                  "across replications"),
+            n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5386,7 +5392,8 @@ dow_rep_counts <- function(mon) {
 #'   overwritten on the built env_data directly instead of on the parsed
 #'   JSON before building.
 plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
-                                        n_days = CAPACITY_SWEEP_DAYS, n_rep = ICU_SHARE_SWEEP_REPLICATIONS,
+                                        n_days = CAPACITY_SWEEP_DAYS,
+                                        n_rep = ICU_SHARE_SWEEP_REPLICATIONS,
                                         path = "env_data.json",
                                         output_dir = "outputs", images_dir = "images",
                                         progress_dir = NULL, max_cores = NULL) {
@@ -5587,7 +5594,9 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
            })
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf("%d replications per point; queue and occupancy are pool totals over the closing %d days; the ribbon is a 95%% confidence interval", n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
+    sprintf(paste("%d replications per point; queue and occupancy are pool totals over",
+                  "the closing %d days; the ribbon is a 95%% confidence interval"),
+            n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
   } else {
     NULL
   }
@@ -5647,7 +5656,8 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
 #'   the error path, matching every sweep in this file.
 plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
                                           evac_threshold_min = HOLD_THRESHOLD_SWEEP_MINUTES,
-                                          n_days = CAPACITY_SWEEP_DAYS, n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS,
+                                          n_days = CAPACITY_SWEEP_DAYS,
+                                          n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS,
                                           path = "env_data.json",
                                           output_dir = "outputs", images_dir = "images",
                                           progress_dir = NULL, max_cores = NULL) {

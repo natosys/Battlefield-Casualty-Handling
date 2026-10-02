@@ -6,7 +6,7 @@
 #
 # Terminal / Claude Code cloud:
 #   Rscript scripts/run_transport_sweep.R --refresh-baseline       # write the tracked data/sweeps/
-#   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 30 reps x 360 days
+#   Rscript scripts/run_transport_sweep.R                          # default: PMVAmb 1-5, HX240M 1-4, 30 x 360 d
 #   Rscript scripts/run_transport_sweep.R --pmvamb 1:5 --hx240m 1:4
 #   Rscript scripts/run_transport_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_transport_sweep.R --quick                  # smoke test (2 reps, 3 days)
@@ -29,7 +29,8 @@
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
-#   sweep <- plot_transport_capacity_margin_by_fleet_size(list(PMVAmb = 1:5, HX240M = 1:4), n_rep = 30, n_days = 360)
+#   sweep <- plot_transport_capacity_margin_by_fleet_size(
+#     list(PMVAmb = 1:5, HX240M = 1:4), n_rep = 30, n_days = 360)
 
 source("R/environment.R")
 source("R/trajectories.R")

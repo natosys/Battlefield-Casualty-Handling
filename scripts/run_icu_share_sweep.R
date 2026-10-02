@@ -6,7 +6,7 @@
 #
 # Terminal / Claude Code cloud:
 #   Rscript scripts/run_icu_share_sweep.R --refresh-baseline     # write the tracked data/sweeps/
-#   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 30 reps x 360 days
+#   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 30 x 360 d
 #   Rscript scripts/run_icu_share_sweep.R --shares "seq(0, 1, by = 0.1)"
 #   Rscript scripts/run_icu_share_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_icu_share_sweep.R --quick                # smoke test (2 reps, 3 days, 3 points)

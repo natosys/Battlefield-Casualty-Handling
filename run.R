@@ -8,7 +8,7 @@
 #   Rscript run.R --seed 42 --days 30 --iterations 1
 #   Rscript run.R --seed 42 --days 30 --iterations 10
 #   Rscript run.R --quick
-#   Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline
+#   Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline
 #   Rscript run.R --seed 42 --days 30 --iterations 1 --output-dir /tmp/run42
 #   Rscript run.R --scenario moderate_intensity --days 360 --iterations 1
 #   Rscript run.R --mode multi --iterations 30 --days 360 --max-cores 4

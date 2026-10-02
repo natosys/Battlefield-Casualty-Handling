@@ -31,7 +31,7 @@
 # note updated in the same commit, not something a check does on its way past.
 
 BASELINE_SEED       <- 42L
-BASELINE_DAYS       <- 30L
+BASELINE_DAYS       <- 360L
 BASELINE_ITERATIONS <- 1L
 
 # Tracked artifact to the name the run writes it under, relative to the run's
@@ -142,7 +142,7 @@ if (length(failures) > 0L) {
           "under test\nshifted the random number stream, in which case the ",
           "published figures in CLAUDE.md,\ndocs/Single_Run_Analysis.md and ",
           "docs/Multi_Run_Analysis.md need regenerating with\n",
-          "`Rscript run.R --seed 42 --days 30 --iterations 1 --refresh-baseline`, ",
+          "`Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline`, ",
           "or it did not,\nin which case this is a defect.")
   quit(status = 1L)
 }

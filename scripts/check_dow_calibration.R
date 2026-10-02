@@ -5,14 +5,14 @@
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_dow_calibration.R                     # all profiles, 3 x 50 reps each
+#   Rscript scripts/check_dow_calibration.R                     # all profiles, 3 x 10 reps x 360 days each
 #   Rscript scripts/check_dow_calibration.R --quick             # 2 x 10 reps, 10 days — smoke test only
 #   Rscript scripts/check_dow_calibration.R --scenario default  # one profile
 #   Rscript scripts/check_dow_calibration.R --measurements 5 --reps 50
 #
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
-# pre-merge hook or CI step. A full run executes 450 replications and takes a
-# few hours on four cores; --quick finishes in about a minute but is a wiring
+# pre-merge hook or CI step. A full run executes 90 replications of 360 days
+# and takes about an hour on four cores; --quick finishes in about a minute but is a wiring
 # test, not a calibration test, and says so in its output.
 #
 # Why this check exists: each configuration's mortality ceilings are
@@ -105,8 +105,8 @@ TOLERANCE <- 0.02
 SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
                   names(DOW_TARGETS)
 N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
-N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
-CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
+N_REPS       <- as.integer(arg_value("--reps",         10L))
+CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 360L))
 # Fixed control seeds so a run is reproducible and two runs of this check on
 # unchanged code agree exactly. Each seeds one independent measurement.
 CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)

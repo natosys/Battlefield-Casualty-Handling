@@ -46,7 +46,9 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
+  - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
   - [Sensitivity Screens](#sensitivity-screens)
+  - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
 - [Provenance](#provenance)
 - [Limitations of the Designs Recorded Here](#limitations-of-the-designs-recorded-here)
@@ -60,7 +62,7 @@ This document is the design record for the replicated experiments reported in th
 
 <small>[Return to Top](#contents)</small>
 
-This project reports its work across several documents. A verification paper traces a single campaign end to end and shows that the model behaves as its specification describes [[2]](#references). A system reference describes how the simulation is built, what each trajectory does and which assumptions it rests on [[3]](#references). A second paper reports the replicated experiments and the planning options that follow from them [[1]](#references). This document serves that second paper, the companion paper: it holds the experimental designs and the statistical method that paper states the conclusions of.
+This project reports its work across several documents. A results paper reports every measurement the replicated experiments produced, without interpretation, and verifies one seed-42 campaign against its configured rates [[2]](#references). A system reference describes how the simulation is built, what each trajectory does and which assumptions it rests on [[3]](#references). A second paper reports the replicated experiments and the planning options that follow from them [[1]](#references). This document serves that second paper, the companion paper: it holds the experimental designs and the statistical method that paper states the conclusions of.
 
 The division is one of audience rather than of subject. A planner reading the companion paper needs to know that three ambulances are sufficient and that the evidence for it is a queue that collapses between one and two vehicles. A reader auditing that recommendation needs to know that it rests on thirty replications per fleet size at one control seed, at both the shipped and `high_intensity` casualty rates, and which script produces it. The first reader is served by omitting that detail and the second by recording it, so it is recorded here.
 
@@ -294,6 +296,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
+| Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Mass casualty event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
@@ -561,6 +564,10 @@ The casualty count drawn for an event is its total, not the number of survivors.
 
 The comparison sorts casualties by origin rather than by a strict time window around each event (see the assumption note in `R/analysis.R`). The gap-based reconstruction the analysis pipeline applies to recover events from a single campaign has one known failure mode, reading two closely spaced events as one.
 
+### Treated-Cohort Mortality at the Sustained Horizon
+
+The died-of-wounds ceilings are fitted against historical anchors with `scripts/check_dow_calibration.R`, which runs at 30 days because the anchors describe a campaign of about that length; the check pools three independent measurements of 50 replications and fails where a configuration overshoots its anchor. The sustained-horizon measurement the results paper reports is the same procedure at 360 days, `Rscript scripts/check_dow_calibration.R --days 360 --reps 10 --write-csv data/calibration/dow_calibration.csv`, with three measurements of 10 replications per profile pooled to 30. Ten replications per measurement is enough because a 360-day campaign accumulates about twelve times the deaths of a 30-day one, so the per-replication rate is far less variable than at 30 days. The measurement is reported as a result and is not a pass condition, since the anchor does not describe a campaign of that length.
+
 ### Sensitivity Screens
 
 Two screens rank the model's parameters by their influence on its responses. A Morris elementary effects screen over every screened parameter identifies the influential few cheaply [[13]](#references), and a Sobol variance decomposition over the leading cluster that screen resolves apportions each response's variance among them [[14]](#references). Both run under the shipped default configuration, and both are 30-day rankings.
@@ -594,6 +601,12 @@ The decision is a scoping one and not a closure. It should be revisited if the d
 
 ---
 
+### The Results Document and the Seed-42 Verification
+
+`docs/Results.md` reports every measurement of the replicated experiments without interpretation. Each of its tables, and each figure quoted in its prose, is a generated span between `<!-- GEN name -->` markers, rebuilt from the tracked evidence under `data/` by `R/results.R` through `Rscript scripts/render_results_tables.R --refresh-baseline`; a quoted figure is a copy of a cell of the table beside it. `scripts/check_results_tables.R` asserts that re-rendering reproduces the document exactly, that the builders and the cell reader are correct on hand-computed inputs, that each table also printed by `docs/Multi_Run_Analysis.md` is identical to the generated one, and that no figure or recommendation is typed outside a span.
+
+Its annex verifies one 360-day campaign at seed 42, written to `data/seed42_verification.csv` by `run.R` and tracked with the baseline set, so `scripts/check_baseline_reproduction.R` reproduces it byte for byte. It reports whether each arrival stream realises its configured expectation, whether the triage and damage control splits realise their configured shares, whether the strategic evacuation timeline closes and what load the surgical sections carry, and carries no interval because it is one run.
+
 ## Force Regeneration Under Reinforcement
 
 <small>[Return to Top](#contents)</small>
@@ -621,7 +634,7 @@ The result matters to the designs above in one respect. Without reinforcement, c
 
 <small>[Return to Top](#contents)</small>
 
-The seed-42 evidence set the verification paper reports [[2]](#references) reproduces byte for byte in the project's pinned development container (`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`) and in an unpinned R 4.3.3 sandbox, and `scripts/check_baseline_reproduction.R` re-checks the reproduction whenever the model changes. The replicated evidence sets and the sensitivity screens were most recently measured in the unpinned sandbox. Each tracked set's metadata records the commit it was produced from, and a re-run in the pinned container remains the standard before its figures are treated as canonical.
+The seed-42 evidence set the results paper reports in its annex [[2]](#references) reproduces byte for byte in the project's pinned development container (`rocker/rstudio:4.4.2`, built from `.devcontainer/Dockerfile`) and in an unpinned R 4.3.3 sandbox, and `scripts/check_baseline_reproduction.R` re-checks the reproduction whenever the model changes. The replicated evidence sets and the sensitivity screens were most recently measured in the unpinned sandbox. Each tracked set's metadata records the commit it was produced from, and a re-run in the pinned container remains the standard before its figures are treated as canonical.
 
 The three result figures of the companion paper are rendered from the values in its own markdown tables by `scripts/render_paper_figures.R` rather than from a second copy of the data, so a figure cannot disagree with the table it illustrates.
 
@@ -667,7 +680,7 @@ A reader who wants to reproduce a result in the companion paper has the replicat
 
 [1] Battlefield Casualty Handling project. (2026). *Surgical Hours, Not Operating Theatres: Sizing the Land-Based Trauma System for Large Scale Combat Operations*. Retrieved 07 Sep 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Multi_Run_Analysis.md
 
-[2] Battlefield Casualty Handling project. (2026). *Applying Discrete Event Simulation to the Land-Based Trauma System: Baseline Performance and System Constraints in a Single Campaign*. Retrieved 07 Sep 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Single_Run_Analysis.md
+[2] Battlefield Casualty Handling project. (2026). *Measured Results of a Replicated Simulation of the Land-Based Trauma System*. Retrieved 02 Oct 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/docs/Results.md
 
 [3] Battlefield Casualty Handling project. (2026). *Battlefield Casualty Handling*. Retrieved 07 Sep 26, from https://github.com/natosys/Battlefield-Casualty-Handling/blob/main/README.md
 

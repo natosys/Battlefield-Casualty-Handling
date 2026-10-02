@@ -20,6 +20,9 @@
 # a sentence is always a copy of the table cell beside it. Base R only, so a
 # regression check can source it without loading simmer or running the model.
 
+#' Minutes per simulated day, from the single definition
+if (!exists("DAY_MIN")) source(file.path("R", "constants.R"))
+
 #' Directory the tracked evidence sets are read from
 RESULTS_DATA_DIR <- "data"
 
@@ -457,6 +460,215 @@ build_airlift <- function(data_dir, which) {
               "40%"), rows)
 }
 
+#' Queue clearance by resource pool at the two casualty intensities
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_queue_clearance <- function(data_dir) {
+  d <- res_read("time_series/queue_clearance.csv", data_dir)
+  pools <- c("R2B holding beds", "R2E operating theatres", "R2E intensive care", "R2E holding beds")
+  cell <- function(pool, intensity) {
+    x <- d[d$pool == pool & d$intensity == intensity, ]
+    q <- quantile(x$longest_busy_days, c(0.25, 0.75))
+    c(sprintf("%.0f%%", 100 * median(x$zero_share)),
+      sprintf("%.1f (%.1f\u2013%.1f)", median(x$longest_busy_days), q[[1]], q[[2]]))
+  }
+  rows <- lapply(pools, function(p) {
+    m <- cell(p, "Moderate intensity")
+    h <- cell(p, "High intensity")
+    c(p, m, h)
+  })
+  res_table(c("Resource pool", "Moderate: queue empty", "Moderate: longest run above zero (days)",
+              "High: queue empty", "High: longest run above zero (days)"), rows)
+}
+
+#' Degraded post-operative care rate by stage and intensity
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_degraded_care <- function(data_dir) {
+  d <- res_read("time_series/degraded_care_series.csv", data_dir)
+  last <- max(d$day)
+  first <- min(d$day)
+  rows <- list()
+  for (it in c("Moderate intensity", "High intensity")) {
+    for (st in c("Stabilisation", "Post-definitive care")) {
+      x <- d[d$intensity == it & d$stage == st, ]
+      w <- function(a, b) {
+        y <- x[x$day >= a & x$day <= b & !is.na(x$daily_rate), ]
+        sum(y$daily_rate * y$n_decisions) / sum(y$n_decisions)
+      }
+      m <- tapply(x$daily_rate, x$day, median, na.rm = TRUE)
+      hit <- as.integer(names(m))[which(m >= 0.999)[1]]
+      cum <- median(x$cumulative_rate[x$day == last], na.rm = TRUE)
+      rows[[length(rows) + 1L]] <- c(paste(it, st, sep = ": "),
+        if (is.na(hit)) "not reached" else as.character(hit),
+        sprintf("%.1f%%", 100 * w(first, first + 9)), sprintf("%.1f%%", 100 * w(last - 9, last)),
+        sprintf("%.1f%%", 100 * cum))
+    }
+  }
+  res_table(c("Intensity and stage", "First day the median daily rate reaches 100%",
+              "First ten days", "Last ten days", "Whole campaign"), rows)
+}
+
+#' Post-operative intensive care gate comparison table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_icu_gate <- function(data_dir) {
+  s <- res_read("icu_gate/icu_gate_summary.csv", data_dir)
+  p <- res_read("icu_gate/icu_gate_paired.csv", data_dir)
+  spec <- list(c("R2E ICU utilisation (%)", "icu_occupancy", 100, 1L),
+               c("Died of wounds per run", "total_dow", 1, 2L),
+               c("Total casualties", "total_casualties", 1, 1L))
+  rows <- lapply(spec, function(r) {
+    a <- s[s$response == r[2] & s$gate_enabled == 0, ]
+    b <- s[s$response == r[2] & s$gate_enabled == 1, ]
+    d <- p[p$response == r[2], ]
+    sc <- as.numeric(r[3]); dp <- as.integer(r[4])
+    c(r[1], res_ci(a$mean, a$ci_lower, a$ci_upper, dp, sc, big = TRUE),
+      res_ci(b$mean, b$ci_lower, b$ci_upper, dp, sc, big = TRUE),
+      sprintf("%s [%s, %s]", res_num(d$difference * sc, dp, TRUE, TRUE),
+              res_num(d$ci_lower * sc, dp, TRUE, TRUE), res_num(d$ci_upper * sc, dp, TRUE, TRUE)))
+  })
+  res_table(c("Measure", "Without the rule", "With the rule", "Paired difference"), rows)
+}
+
+#' Strategic airlift collapse classification table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_airlift_collapse <- function(data_dir) {
+  d <- res_read("airlift/airlift_collapse.csv", data_dir)
+  rows <- lapply(seq_len(nrow(d)), function(i) {
+    x <- d[i, ]
+    c(sprintf("%.0f%%", 100 * x$probability), sprintf("%d of %d", x$n_collapsed, x$n_reps),
+      sprintf("%.1f%% [%.1f%%, %.1f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
+      res_num(x$median_queue, 2L, TRUE), res_num(x$worst_queue, 2L, TRUE))
+  })
+  res_table(c("Sortie cancellation", "Collapsed", "Collapse rate (exact 95% interval)",
+              "Median closing-window queue", "Worst closing-window queue"), rows)
+}
+
+#' Morris elementary effects ranking, leading parameters
+#'
+#' @param data_dir The data directory.
+#' @param n Number of leading parameters to print.
+#' @return The table lines.
+build_morris_top <- function(data_dir, n = 20L) {
+  d <- res_read("sensitivity/morris_r20/morris_ranking.csv", data_dir)
+  d <- d[order(-d$mu_star), ][seq_len(n), ]
+  rows <- lapply(seq_len(n), function(i) {
+    c(as.character(i), sprintf("`%s`", d$parameter[i]), res_num(d$mu_star[i], 2L),
+      res_num(d$sigma_ee[i], 2L))
+  })
+  res_table(c("Rank", "Parameter", "\u00b5*", "\u03c3"), rows)
+}
+
+#' Sobol total-order decomposition of the system operating theatre queue
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_sobol <- function(data_dir) {
+  d <- res_read("sensitivity/sobol_n800/sobol_system_ot_q.csv", data_dir)
+  d <- d[order(-d$ST), ]
+  rows <- lapply(seq_len(nrow(d)), function(i) {
+    c(sprintf("`%s`", d$parameter[i]), res_ci(d$ST[i], d$ST_lower[i], d$ST_upper[i], 2L),
+      res_ci(d$S1[i], d$S1_lower[i], d$S1_upper[i], 2L))
+  })
+  res_table(c("Parameter", "Total-order index", "First-order index"), rows)
+}
+
+#' Verification measurements of one seed-42 campaign
+#'
+#' @param mon The monitoring list of one run, with `arrivals` and `attributes`.
+#' @param cfg The parsed configuration the run used.
+#' @param days The campaign length in days.
+#' @return A data frame of `section`, `metric`, `value` and `configured`, the
+#'   last the configured expectation the realised value is read against or `NA`.
+#'   A generator's configured daily mean is per thousand personnel, so a stream's
+#'   expectation is that mean times its population over a thousand times the
+#'   days; the force regeneration cycle moves the population a little over the
+#'   campaign, which the comparison therefore carries as a small drift.
+#'
+#' @details Only what verifies a mechanism that replication cannot show: that
+#'   each arrival stream realises its configured rate, that the triage and
+#'   damage control splits realise their configured shares, that the strategic
+#'   evacuation timeline closes, and the force regeneration trace. A run's
+#'   performance is measured by the replicated experiments, not by this.
+seed42_verification_rows <- function(mon, cfg, days) {
+  att <- mon$attributes[order(mon$attributes$time), ]
+  last <- att[!duplicated(paste(att$name, att$key), fromLast = TRUE), ]
+  wide <- function(key) {
+    x <- last[last$key == key, ]
+    setNames(x$value, x$name)
+  }
+  arr_names <- mon$arrivals$name
+  rows <- list()
+  add <- function(section, metric, value, configured = NA_real_) {
+    rows[[length(rows) + 1L]] <<- data.frame(section = section, metric = metric,
+                                             value = value, configured = configured,
+                                             stringsAsFactors = FALSE)
+  }
+  streams <- c("wia_cbt", "wia_spt", "kia_cbt", "kia_spt", "dnbi_cbt", "dnbi_spt")
+  for (st in streams) {
+    n <- sum(grepl(paste0("^", st, "[0-9]+$"), arr_names))
+    add("generation", paste0(st, "_total"), n, cfg$vars$generators[[st]]$mean_daily *
+        (if (grepl("_cbt$", st)) cfg$pops$combat else cfg$pops$support) / 1000 * days)
+  }
+  add("generation", "arrivals_total", length(arr_names))
+  pri <- wide("priority")
+  share <- c(cfg$vars$r1$priority$one, cfg$vars$r1$priority$two, cfg$vars$r1$priority$three)
+  for (k in 1:3) {
+    add("triage", paste0("priority_", k), sum(pri == k, na.rm = TRUE),
+        share[k] * sum(!is.na(pri)))
+  }
+  add("triage", "killed_in_action", sum(grepl("^kia_", arr_names)))
+  surg <- unique(c(names(wide("r2b_surgery")[wide("r2b_surgery") == 1]),
+                   names(wide("r2e_surgery")[wide("r2e_surgery") == 1])))
+  dcs <- wide("dcs_pathway")
+  for (k in 1:2) {
+    ids <- surg[pri[surg] == k & !is.na(pri[surg])]
+    add("damage_control", paste0("priority_", k, "_operated"), length(ids))
+    add("damage_control", paste0("priority_", k, "_damage_control"), sum(dcs[ids] == 1, na.rm = TRUE),
+        cfg$vars$r1$other[[paste0("pri", k, "_dcs_rate")]] * length(ids))
+  }
+  dec <- wide("evacuation_decision_day")
+  add("evacuation", "decisions", sum(!is.na(dec)))
+  add("evacuation", "boarded", sum(!is.na(wide("ame_departure_time"))))
+  add("evacuation", "still_waiting_at_close", sum(!is.na(dec)) - sum(!is.na(wide("ame_departure_time"))))
+  wait <- wide("ame_wait_minutes")
+  add("evacuation", "mean_wait_days", mean(wait, na.rm = TRUE) / DAY_MIN)
+  add("evacuation", "p90_wait_days", unname(quantile(wait, 0.9, na.rm = TRUE)) / DAY_MIN)
+  force <- att[att$key %in% c("effective_force_combat", "effective_force_support"), ]
+  for (key in c("effective_force_combat", "effective_force_support")) {
+    f <- force[force$key == key, ]
+    for (d in c(0, 90, 180, 270, days)) {
+      add("force", paste0(key, "_day_", d), f$value[max(which(f$time <= d * DAY_MIN))])
+    }
+  }
+  do.call(rbind, rows)
+}
+
+#' One section of the seed-42 verification measurements as a table
+#'
+#' @param data_dir The data directory.
+#' @param section The section name in `seed42_verification.csv`.
+#' @param labels Named character vector mapping each metric to its row label.
+#' @param dp Decimal places for the realised and configured columns.
+#' @return The table lines.
+build_annex <- function(data_dir, section, labels, dp = 0L) {
+  d <- res_read("seed42_verification.csv", data_dir)
+  d <- d[d$section == section, ]
+  rows <- lapply(names(labels), function(m) {
+    x <- d[d$metric == m, ]
+    if (nrow(x) != 1L) stop(sprintf("expected one '%s' metric, found %d", m, nrow(x)), call. = FALSE)
+    c(labels[[m]], res_num(x$value, dp, TRUE),
+      if (is.na(x$configured)) "not applicable" else res_num(x$configured, dp, TRUE))
+  })
+  res_table(c("Measure", "Realised", "Configured expectation"), rows)
+}
+
 #' Registry of generated tables
 #'
 #' @details Each entry is a function of the data directory returning the lines
@@ -478,7 +690,36 @@ RESULTS_TABLES <- list(
   mass_casualty = build_mass_casualty,
   airlift_baseline = function(dd) build_airlift(dd, "baseline"),
   airlift_interval = function(dd) build_airlift(dd, "interval"),
-  airlift_reliability = function(dd) build_airlift(dd, "reliability")
+  airlift_reliability = function(dd) build_airlift(dd, "reliability"),
+  queue_clearance = build_queue_clearance,
+  degraded_care = build_degraded_care,
+  icu_gate = build_icu_gate,
+  airlift_collapse = build_airlift_collapse,
+  morris_top = build_morris_top,
+  sobol = build_sobol,
+  annex_generation = function(dd) build_annex(dd, "generation", c(
+    wia_cbt_total = "Combat wounded in action", wia_spt_total = "Support wounded in action",
+    kia_cbt_total = "Combat killed in action", kia_spt_total = "Support killed in action",
+    dnbi_cbt_total = "Combat disease and non-battle injury",
+    dnbi_spt_total = "Support disease and non-battle injury")),
+  annex_triage = function(dd) build_annex(dd, "triage", c(
+    priority_1 = "Priority 1", priority_2 = "Priority 2", priority_3 = "Priority 3",
+    killed_in_action = "Killed in action")),
+  annex_damage_control = function(dd) build_annex(dd, "damage_control", c(
+    priority_1_operated = "Priority 1 operated",
+    priority_1_damage_control = "Priority 1 damage control",
+    priority_2_operated = "Priority 2 operated",
+    priority_2_damage_control = "Priority 2 damage control")),
+  annex_evacuation = function(dd) build_annex(dd, "evacuation", c(
+    decisions = "Strategic evacuation decisions", boarded = "Boarded",
+    still_waiting_at_close = "Still waiting at the close")),
+  annex_force = function(dd) build_annex(dd, "force", c(
+    effective_force_combat_day_0 = "Combat force, day 0",
+    effective_force_combat_day_180 = "Combat force, day 180",
+    effective_force_combat_day_360 = "Combat force, day 360",
+    effective_force_support_day_0 = "Support force, day 0",
+    effective_force_support_day_180 = "Support force, day 180",
+    effective_force_support_day_360 = "Support force, day 360"))
 )
 
 #' Split a markdown table row into trimmed cells

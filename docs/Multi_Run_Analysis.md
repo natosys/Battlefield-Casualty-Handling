@@ -635,12 +635,12 @@ At the shipped configuration the constraint does not bind at moderate intensity,
 
 | Response at the shipped schedule | Moderate intensity | High intensity |
 |---|---|---|
-| Casualties boarded | 162.64 [154.97, 170.31] | 220.34 [215.95, 224.73] |
-| Still waiting at the close | 2.88 [0.08, 5.68] | 108.28 [102.74, 113.82] |
-| Mean wait (days) | 0.85 [0.67, 1.03] | 3.58 [3.42, 3.73] |
-| Share of R2E holding beds held by the evacuation wait | 20% [18%, 23%] | 40% [38%, 42%] |
-| Role 4 peak occupancy (concurrent patients) | 104.38 [98.28, 110.48] | 153.52 [150.88, 156.16] |
-| Days the peak falls before the campaign ends | 1.74 [1.04, 2.44] | 0.56 [0.16, 0.96] |
+| Casualties boarded | 2275.33 [2225.02, 2325.64] | 2893.27 [2877.31, 2909.22] |
+| Still waiting at the close | 1.73 [0.75, 2.71] | 1905.30 [1887.18, 1923.42] |
+| Mean wait (days) | 0.39 [0.28, 0.50] | 17.64 [17.31, 17.98] |
+| Share of R2E holding beds held by the evacuation wait | 2% [1%, 3%] | 27% [26%, 29%] |
+| Role 4 peak occupancy (concurrent patients) | 181.67 [174.05, 189.28] | 198.03 [195.62, 200.45] |
+| Days the peak falls before the campaign ends | 141.63 [106.63, 176.63] | 168.70 [130.99, 206.41] |
 
 ### Timing Matters More Than Airframe-Days
 
@@ -650,10 +650,10 @@ The clearest result is that two schedules flying the same number of sorties do n
 
 | Response by interval between sorties | 3 days | 5 days | 7 days (shipped) | 10 days | 14 days |
 |---|---|---|---|---|---|
-| Sorties flown | 9.00 | 5.00 | 4.00 | 2.00 | 2.00 |
-| Mean wait (days) | 0.24 [0.18, 0.30] | 0.45 [0.34, 0.56] | 0.85 [0.67, 1.03] | 2.31 [2.08, 2.55] | 5.56 [5.22, 5.91] |
-| Share of R2E holding beds held by the evacuation wait | 2% [2%, 3%] | 9% [8%, 11%] | 20% [18%, 23%] | 48% [45%, 50%] | 63% [61%, 65%] |
-| Ventilated pre-flight intensive care hold (hours) | 23.74 [23.09, 24.39] | 25.52 [23.76, 27.28] | 28.24 [24.53, 31.95] | 41.42 [36.08, 46.75] | 88.05 [76.67, 99.44] |
+| Sorties flown | 119.00 | 71.00 | 51.00 | 35.00 | 25.00 |
+| Mean wait (days) | 0.30 [0.23, 0.37] | 0.32 [0.27, 0.36] | 0.39 [0.28, 0.50] | 8.44 [6.33, 10.54] | 27.35 [25.85, 28.86] |
+| Share of R2E holding beds held by the evacuation wait | 0% [0%, 0%] | 1% [0%, 1%] | 2% [1%, 3%] | 41% [36%, 45%] | 57% [56%, 58%] |
+| Ventilated pre-flight intensive care hold (hours) | 25.10 [24.67, 25.53] | 25.16 [24.62, 25.71] | 26.28 [25.36, 27.19] | 127.66 [103.19, 152.14] | 423.66 [397.04, 450.28] |
 
 Against that, cancellation moves the same responses less. The realised cancellation rate tracks the configured one closely enough to confirm the mechanism is doing what it is set to do, and across the whole range from a schedule that never fails to one losing two sorties in five the wait and the holding share move by less than shortening or lengthening the interval does within a range a planner would actually consider. A planner choosing between buying reliability and buying frequency should buy frequency.
 
@@ -661,10 +661,10 @@ Against that, cancellation moves the same responses less. The realised cancellat
 
 | Response by configured cancellation probability | 0% | 5% | 10% | 15% | 25% | 40% |
 |---|---|---|---|---|---|---|
-| Sorties flown | 4.00 | 3.76 | 3.60 | 3.40 | 2.96 | 2.28 |
-| Realised cancellation rate | 0% | 6% | 10% | 15% | 26% | 43% |
-| Mean wait (days) | 0.85 [0.67, 1.03] | 1.12 [0.78, 1.47] | 1.61 [0.79, 2.42] | 1.88 [1.02, 2.74] | 2.42 [1.54, 3.30] | 2.96 [2.01, 3.91] |
-| Share of R2E holding beds held by the evacuation wait | 20% [18%, 23%] | 23% [20%, 27%] | 26% [22%, 31%] | 29% [25%, 34%] | 36% [31%, 42%] | 45% [39%, 50%] |
+| Sorties flown | 51.00 | 48.37 | 45.80 | 42.57 | 38.33 | 30.93 |
+| Realised cancellation rate | 0% | 5% | 10% | 17% | 25% | 39% |
+| Mean wait (days) | 0.39 [0.28, 0.50] | 0.81 [0.23, 1.39] | 1.67 [0.80, 2.55] | 3.14 [1.76, 4.52] | 6.66 [4.04, 9.27] | 16.66 [13.70, 19.61] |
+| Share of R2E holding beds held by the evacuation wait | 2% [1%, 3%] | 6% [3%, 9%] | 12% [7%, 16%] | 19% [13%, 26%] | 29% [22%, 35%] | 48% [46%, 51%] |
 
 ### The Evacuation Wait Consumes Clinical Capacity on Both Routes
 

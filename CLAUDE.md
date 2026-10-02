@@ -591,7 +591,7 @@ These are the validated baseline values from the current single-run baseline. Re
 | DOW rate — P1 p_max (logistic) | 2.0% ceiling (Falklands 1982 calibration; re-fitted from 2.3% under Issue #203) |
 | DOW rate — P2 p_max (logistic) | 1.6% ceiling (Falklands 1982 calibration; re-fitted from 1.9% under Issue #203) |
 | DOW rate — P3 flat | 0.1% (structural placeholder; P3 never evacuated) |
-| Mean DOW/run (pooled across three independent measurements at 360 days) | Re-measurement at 360 days in progress |
+| Treated-cohort DOW rate at 360 days (pooled) | Treated-cohort DOW rate (casualties reaching R2B or R2E), pooled across three independent 10-replication measurements per configuration at 360 days (`data/calibration/`): shipped `default` 0.544% (95% CI [0.494%, 0.593%]), `moderate_intensity` 0.365% ([0.322%, 0.407%]) and `high_intensity` 3.780% ([3.698%, 3.863%]). The ceilings were fitted to 30-day anchors, the Ajax Bay bound of ~0.46% and the Okinawa rate of 3.40%, and `scripts/check_dow_calibration.R` still runs at 30 days; the 360-day `default` interval sits above the Ajax Bay bound, which the check's one-sided test would call an overshoot at that length. The 30-day check was not re-run for this refresh. See README Further Development L22 |
 | Replication count for mortality figures | The derivation, the counts each half-width requires and the resolution the 30-replication figures at the sustained horizon carry are stated in `docs/Multi_Run_Analysis.md`'s [Replication Count and Resolution](docs/Multi_Run_Analysis.md#replication-count-and-resolution) |
 | DNBI sub-types (seed 42) | battle_fatigue = 600, disease = 1,363, nbi = 391 |
 | bf_rtd (seed 42) | 595 |

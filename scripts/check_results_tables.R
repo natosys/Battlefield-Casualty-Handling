@@ -36,16 +36,23 @@ PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
 
 #' Marker the paper uses for each table a builder reproduces
 PAPER_MARKERS <- c(
-  scenario_totals = "SCENARIO TOTALS TABLE", scenario_queue = "SCENARIO QUEUE TABLE",
+  scenario_totals = "SCENARIO TOTALS TABLE",
+  scenario_queue = "SCENARIO QUEUE TABLE",
   long_horizon_stability = "LONG HORIZON STABILITY TABLE",
   hold_threshold_beds = "HOLD THRESHOLD SWEEP BED AXIS TABLE",
   hold_threshold_threshold = "HOLD THRESHOLD SWEEP THRESHOLD AXIS TABLE",
-  hold_window = "HOLD WINDOW TABLE", transport = "TRANSPORT SWEEP TABLE",
-  transport_high = "TRANSPORT SWEEP TABLE HIGH INTENSITY", icu_share = "ICU SHARE TABLE",
-  policy = "POLICY TABLE", establishment = "ESTABLISHMENT TABLE",
-  saturation = "SATURATION TABLE", mass_casualty = "MASS CASUALTY TABLE",
-  airlift_baseline = "AIRLIFT BASELINE TABLE", airlift_interval = "AIRLIFT INTERVAL TABLE",
-  airlift_reliability = "AIRLIFT RELIABILITY TABLE")
+  hold_window = "HOLD WINDOW TABLE",
+  transport = "TRANSPORT SWEEP TABLE",
+  transport_high = "TRANSPORT SWEEP TABLE HIGH INTENSITY",
+  icu_share = "ICU SHARE TABLE",
+  policy = "POLICY TABLE",
+  establishment = "ESTABLISHMENT TABLE",
+  saturation = "SATURATION TABLE",
+  mass_casualty = "MASS CASUALTY TABLE",
+  airlift_baseline = "AIRLIFT BASELINE TABLE",
+  airlift_interval = "AIRLIFT INTERVAL TABLE",
+  airlift_reliability = "AIRLIFT RELIABILITY TABLE"
+)
 
 #' Percentages a sentence may state without being a measured figure
 #'
@@ -60,7 +67,9 @@ failures <- character(0)
 #'
 #' @param ... Arguments passed to `sprintf()` to build the message.
 #' @return The accumulated failures, invisibly; called for its side effect.
-fail <- function(...) failures <<- c(failures, sprintf(...))
+fail <- function(...) {
+  assign("failures", c(failures, sprintf(...)), envir = globalenv())
+}
 
 #' Print one PASS or FAIL line and record a failure
 #'
@@ -129,29 +138,23 @@ report(identical(toy[2], "|---|---|---|"), "res_table writes the rule row: %s", 
 report(identical(res_cells(toy[3]), c("x", "1.5 [1.0, 2.0]", "7")),
        "res_cells splits a row into its cells")
 
-#' A registry holding one table of known content
-#'
-#' @details Swapped in for the real registry while the cell reader is exercised,
-#'   so its answers can be written down without reference to any evidence set.
-real_tables <- RESULTS_TABLES
-RESULTS_TABLES <- list(toy = function(dd) toy)
-report(identical(res_cell_value("toy|x|A|full", "."), "1.5 [1.0, 2.0]"),
+toy_tables <- list(toy = function(dd) toy)
+report(identical(res_cell_value("toy|x|A|full", ".", toy_tables), "1.5 [1.0, 2.0]"),
        "a cell reference returns the whole cell")
-report(identical(res_cell_value("toy|x|A|mean", "."), "1.5"),
+report(identical(res_cell_value("toy|x|A|mean", ".", toy_tables), "1.5"),
        "a cell reference returns the leading number")
-report(identical(res_cell_value("toy|x|A|ci", "."), "[1.0, 2.0]"),
+report(identical(res_cell_value("toy|x|A|ci", ".", toy_tables), "[1.0, 2.0]"),
        "a cell reference returns the interval")
-report(inherits(try(res_cell_value("toy|x|C|full", "."), silent = TRUE), "try-error"),
+report(inherits(try(res_cell_value("toy|x|C|full", ".", toy_tables), silent = TRUE), "try-error"),
        "a cell reference to a missing column is an error rather than an empty string")
-report(inherits(try(res_cell_value("toy|z|A|full", "."), silent = TRUE), "try-error"),
+report(inherits(try(res_cell_value("toy|z|A|full", ".", toy_tables), silent = TRUE), "try-error"),
        "a cell reference to a missing row is an error rather than an empty string")
 doc <- "before <!-- GEN cell:toy|x|B|full -->old<!-- /GEN --> after"
-report(identical(render_results(doc, "."),
-                 "before <!-- GEN cell:toy|x|B|full -->7<!-- /GEN --> after"),
+once <- render_results(doc, ".", toy_tables)
+report(identical(once, "before <!-- GEN cell:toy|x|B|full -->7<!-- /GEN --> after"),
        "render_results replaces a span's content and leaves the text around it")
-report(identical(render_results(render_results(doc, "."), "."), render_results(doc, ".")),
+report(identical(render_results(once, ".", toy_tables), once),
        "rendering twice gives the same text as rendering once")
-RESULTS_TABLES <- real_tables
 
 # ── 3. The paper's tables equal the generated ones while both exist ─────────
 
@@ -160,7 +163,8 @@ cat("\n-- the paper's tables equal the generated tables --\n")
 paper <- readLines(PAPER_PATH, encoding = "UTF-8", warn = FALSE)
 for (name in names(PAPER_MARKERS)) {
   printed <- paper_table_lines(paper, PAPER_MARKERS[[name]])
-  report(!is.null(printed) && identical(as.character(printed), as.character(RESULTS_TABLES[[name]]("data"))),
+  generated <- as.character(RESULTS_TABLES[[name]]("data"))
+  report(!is.null(printed) && identical(as.character(printed), generated),
          "the paper's %s table equals the generated one", name)
 }
 

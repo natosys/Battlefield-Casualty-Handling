@@ -139,18 +139,28 @@ SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 #' @return The table lines.
 build_scenario_totals <- function(data_dir) {
   d <- res_read("scenarios/scenario_comparison_totals.csv", data_dir)
+  #' Rows of the totals summary for one metric and profile
+  #'
+  #' @param metric The response key.
+  #' @param prof The scenario profile.
+  #' @return A one-row data frame.
   pick <- function(metric, prof) d[d$metric == metric & d$scenario == prof, ]
   spec <- list(
     list("Total casualties/run", "total_casualties", 1L, 1, FALSE, 2L),
     list("Wounded in action/run", "wia_count", 1L, 1, FALSE, 2L),
     list("Died of wounds/run", "dow_count", 2L, 1, FALSE, 1L),
-    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L))
+    list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L)
+  )
   rows <- lapply(spec, function(s) {
     cells <- vapply(SCENARIO_PROFILES, function(p) {
       x <- pick(s[[2]], p)
       base <- res_ci(x$mean, x$ci_lower, x$ci_upper, dp = s[[3]], scale = s[[4]], big = TRUE,
                      unit = if (s[[5]]) "%" else "")
       if (s[[5]]) return(base)
+      #' Format a p10 to p90 bound, printing zero as `0`
+      #'
+      #' @param v A value.
+      #' @return The formatted bound.
       f <- function(v) if (v == 0) "0" else res_num(v, 1L, big = TRUE)
       sprintf("%s (p10–p90: %s–%s)", base, f(x$p10), f(x$p90))
     }, character(1))
@@ -190,10 +200,18 @@ build_scenario_queue <- function(data_dir) {
 #' @return The table lines.
 build_long_horizon_stability <- function(data_dir) {
   d <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
+  #' Format a level with two decimals below ten and one above
+  #'
+  #' @param x A value or row.
+  #' @return The formatted level.
   level <- function(x) {
     if (abs(x) < 10) formatC(x, format = "f", digits = 2) else
       formatC(x, format = "f", digits = 1, big.mark = ",")
   }
+  #' One cell of the stability table
+  #'
+  #' @param r A response key.
+  #' @return The cell text.
   cell <- function(r) {
     if (r$stability == "drifting") {
       sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
@@ -210,7 +228,8 @@ build_long_horizon_stability <- function(data_dir) {
     list("Strategic evacuation backlog", "evac_backlog", "system"),
     list("R2B holding bed queue", "mean_queue", "R2B holding beds"),
     list("Casualty arrivals per day", "arrivals", "system"),
-    list("Deaths of wounds per day", "dow", "system"))
+    list("Deaths of wounds per day", "dow", "system")
+  )
   rows <- lapply(spec, function(s) {
     c(s[[1]], vapply(SCENARIO_PROFILES, function(p) {
       cell(d[d$scenario == p & d$series == s[[2]] & d$subject == s[[3]], ])
@@ -226,7 +245,17 @@ build_long_horizon_stability <- function(data_dir) {
 #' @return The table lines.
 build_hold_threshold <- function(data_dir, axis) {
   d <- res_read("sweeps/r2b_hold_threshold_sweep.csv", data_dir)
+  #' One establishment row of the hold sweep grid
+  #'
+  #' @param beds Holding beds per unit.
+  #' @param days Evacuation threshold in days.
+  #' @return A one-row data frame.
   pick <- function(beds, days) d[d$hold_beds == beds & d$evac_threshold_days == days, ]
+  #' One row of the hold sweep table
+  #'
+  #' @param label The row label.
+  #' @param x A value or row.
+  #' @return The row's cells.
   row <- function(label, x) {
     c(label, res_ci(x$mean_r2b_hold_q, x$ci_lower_r2b_hold_q, x$ci_upper_r2b_hold_q, 2L,
                     floor0 = TRUE),
@@ -279,8 +308,16 @@ build_hold_window <- function(data_dir) {
 #' @param high Whether to build the high-intensity table.
 #' @return The table lines.
 build_transport <- function(data_dir, high = FALSE) {
-  d <- res_read(if (high) "sweeps/transport_capacity_by_fleet_size_high_intensity.csv" else
-    "sweeps/transport_capacity_by_fleet_size.csv", data_dir)
+  file <- if (high) {
+    "sweeps/transport_capacity_by_fleet_size_high_intensity.csv"
+  } else {
+    "sweeps/transport_capacity_by_fleet_size.csv"
+  }
+  d <- res_read(file, data_dir)
+  #' One transport queue cell
+  #'
+  #' @param x A value or row.
+  #' @return The cell text.
   fmt <- function(x) {
     sprintf("%.4f [%.4f, %.4f]", x$mean_q, max(x$ci_lower_q, 0), x$ci_upper_q)
   }
@@ -331,7 +368,8 @@ build_policy <- function(data_dir) {
     list("Died of wounds", "total_dow", 2L, 1),
     list("Never evacuated by horizon", "never_evacuated", 1L, 1),
     list("Mean evacuation wait (d)", "mean_evac_wait_days", 2L, 1),
-    list("Role 4 peak beds", "role4_peak", 1L, 1))
+    list("Role 4 peak beds", "role4_peak", 1L, 1)
+  )
   res_sweep_table(d, c("Response", "15 d", "21 d (shipped)", "30 d", "45 d", "60 d"), arms, rows)
 }
 
@@ -351,8 +389,10 @@ build_establishment <- function(data_dir) {
     list("Returns to duty", "total_rtd", 1L, 1),
     list("Died of wounds", "total_dow", 1L, 1),
     list("Never evacuated by horizon", "never_evacuated", 1L, 1),
-    list("Role 4 peak beds", "role4_peak", 1L, 1))
-  res_sweep_table(d, c("Response", "30 beds (shipped)", "45 beds", "60 beds", "90 beds"), arms, rows)
+    list("Role 4 peak beds", "role4_peak", 1L, 1)
+  )
+  header <- c("Response", "30 beds (shipped)", "45 beds", "60 beds", "90 beds")
+  res_sweep_table(d, header, arms, rows)
 }
 
 #' Forward surgical saturation release sweep table
@@ -369,7 +409,8 @@ build_saturation <- function(data_dir) {
     list("Role 4 operations owed", "role4_operations", 1L, 1),
     list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
     list("Died of wounds", "total_dow", 1L, 1),
-    list("Returns to duty", "total_rtd", 1L, 1))
+    list("Returns to duty", "total_rtd", 1L, 1)
+  )
   header <- c("Response", "0 (disabled)", as.character(thresholds[2:5]), "8 (shipped)",
               as.character(thresholds[7:9]))
   res_sweep_table(d, header, arms, rows)
@@ -383,20 +424,54 @@ build_mass_casualty <- function(data_dir) {
   cnt <- res_read("mass_casualty/mass_casualty_count_summary.csv", data_dir)
   dow <- res_read("mass_casualty/mass_casualty_dow_summary.csv", data_dir)
   rep <- res_read("mass_casualty/mass_casualty_replications.csv", data_dir)
+  #' Mean total casualties of one arm
+  #'
+  #' @param r A response key.
+  #' @return The mean.
   tot <- function(r) cnt[cnt$rate_per_day == r & cnt$response == "total_casualties", "mean"]
   ev <- cnt[cnt$rate_per_day == 0.2 & cnt$response == "n_events", "mean"]
   range_ev <- range(rep$n_events[rep$rate_per_day == 0.2])
+  #' Pooled died-of-wounds rate cell of one arm and origin
+  #'
+  #' @param r A response key.
+  #' @param o An origin.
+  #' @return The cell text.
   pct <- function(r, o) {
     x <- dow[abs(dow$rate_per_day - r) < 1e-9 & dow$origin == o, ]
     sprintf("%.2f%% [%.2f%%, %.2f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper)
   }
+  events <- sprintf("%s (range %d\u2013%d)", res_num(ev, 2L), range_ev[1], range_ev[2])
   rows <- list(
     c("Average total casualties/run", res_num(tot(0), 1L), res_num(tot(0.2), 1L)),
-    c("Average events/run", "0", sprintf("%s (range %d–%d)", res_num(ev, 2L), range_ev[1],
-                                         range_ev[2])),
+    c("Average events/run", "0", events),
     c("Died-of-wounds rate, ordinary casualties", pct(0, "ordinary"), pct(0.2, "ordinary")),
-    c("Died-of-wounds rate, event casualties", "not applicable", pct(0.2, "event")))
+    c("Died-of-wounds rate, event casualties", "not applicable", pct(0.2, "event"))
+  )
   res_table(c("Metric", "No events injected", "Events injected"), rows)
+}
+
+#' Defaults for one cell of a strategic evacuation table
+AIRLIFT_CELL_DEFAULTS <- list(m = 1, dp = 2L, ci = TRUE, unit = "", neg = FALSE)
+
+#' One cell of a strategic evacuation table
+#'
+#' @param x One row of the airlift summary.
+#' @param opt Formatting options, overriding `AIRLIFT_CELL_DEFAULTS`.
+#' @return The cell text: the mean, with its interval where `ci` is set.
+air_cell <- function(x, opt) {
+  opt <- modifyList(AIRLIFT_CELL_DEFAULTS, opt)
+  a <- x$mean * opt$m
+  lo <- x$ci_lower * opt$m
+  hi <- x$ci_upper * opt$m
+  if (opt$neg) {
+    flipped <- c(-a, -hi, -lo)
+    a <- flipped[1]
+    lo <- flipped[2]
+    hi <- flipped[3]
+  }
+  if (!opt$ci) return(paste0(res_num(a, opt$dp), opt$unit))
+  sprintf("%s%s [%s%s, %s%s]", res_num(a, opt$dp), opt$unit, res_num(lo, opt$dp), opt$unit,
+          res_num(hi, opt$dp), opt$unit)
 }
 
 #' Strategic evacuation tables
@@ -406,58 +481,62 @@ build_mass_casualty <- function(data_dir) {
 #' @return The table lines.
 build_airlift <- function(data_dir, which) {
   d <- res_read("airlift/airlift_summary.csv", data_dir)
-  g <- function(arm, sc, val, resp) {
-    x <- d[d$arm == arm & d$scenario == sc & abs(d$value - val) < 1e-9 & d$response == resp, ]
+  #' One airlift summary row
+  #'
+  #' @param col The column specification.
+  #' @param resp The response key.
+  #' @return A one-row data frame.
+  pick <- function(col, resp) {
+    x <- d[d$arm == col[[1]] & d$scenario == col[[2]] & abs(d$value - col[[3]]) < 1e-9 &
+             d$response == resp, ]
     stopifnot(nrow(x) == 1L)
     x
   }
-  f <- function(x, neg = FALSE, m = 1, dp = 2L, ci = TRUE, unit = "") {
-    a <- x$mean * m; l <- x$ci_lower * m; u <- x$ci_upper * m
-    if (neg) { a <- -a; t <- -u; u <- -l; l <- t }
-    if (!ci) return(paste0(res_num(a, dp), unit))
-    sprintf("%s%s [%s%s, %s%s]", res_num(a, dp), unit, res_num(l, dp), unit, res_num(u, dp), unit)
-  }
-  if (which == "baseline") {
-    cols <- list(c("baseline", "moderate_intensity"), c("high", "high_intensity"))
-    G <- function(c, resp) g(c[1], c[2], 0, resp)
-    rows <- list(
-      c("Casualties boarded", vapply(cols, function(c) f(G(c, "boarded")), "")),
-      c("Still waiting at the close", vapply(cols, function(c) f(G(c, "queued_at_end")), "")),
-      c("Mean wait (days)", vapply(cols, function(c) f(G(c, "mean_wait_days")), "")),
-      c("Share of R2E holding beds held by the evacuation wait",
-        vapply(cols, function(c) f(G(c, "hold_evac_share"), m = 100, dp = 0L, unit = "%"), "")),
-      c("Role 4 peak occupancy (concurrent patients)",
-        vapply(cols, function(c) f(G(c, "role4_peak")), "")),
-      c("Days the peak falls before the campaign ends",
-        vapply(cols, function(c) f(G(c, "role4_peak_after_end"), neg = TRUE), "")))
-    return(res_table(c("Response at the shipped schedule", "Moderate intensity", "High intensity"),
-                     rows))
-  }
-  if (which == "interval") {
-    v <- c(3, 5, 7, 10, 14)
-    H <- function(x, resp) g("interval", "moderate_intensity", x, resp)
-    rows <- list(
-      c("Sorties flown", vapply(v, function(x) f(H(x, "sorties_flown"), ci = FALSE), "")),
-      c("Mean wait (days)", vapply(v, function(x) f(H(x, "mean_wait_days")), "")),
-      c("Share of R2E holding beds held by the evacuation wait",
-        vapply(v, function(x) f(H(x, "hold_evac_share"), m = 100, dp = 0L, unit = "%"), "")),
-      c("Ventilated pre-flight intensive care hold (hours)",
-        vapply(v, function(x) f(H(x, "ventilated_hold_hours")), "")))
-    return(res_table(c("Response by interval between sorties", "3 days", "5 days",
-                       "7 days (shipped)", "10 days", "14 days"), rows))
-  }
-  v <- c(0, 0.05, 0.10, 0.15, 0.25, 0.40)
-  H <- function(x, resp) g("reliability", "moderate_intensity", x, resp)
-  rows <- list(
-    c("Sorties flown", vapply(v, function(x) f(H(x, "sorties_flown"), ci = FALSE), "")),
-    c("Realised cancellation rate",
-      vapply(v, function(x) f(H(x, "cancellation_rate"), m = 100, dp = 0L, ci = FALSE, unit = "%"),
-             "")),
-    c("Mean wait (days)", vapply(v, function(x) f(H(x, "mean_wait_days")), "")),
-    c("Share of R2E holding beds held by the evacuation wait",
-      vapply(v, function(x) f(H(x, "hold_evac_share"), m = 100, dp = 0L, unit = "%"), "")))
-  res_table(c("Response by configured cancellation probability", "0%", "5%", "10%", "15%", "25%",
-              "40%"), rows)
+  share <- list(m = 100, dp = 0L, unit = "%")
+  spec <- switch(which,
+    baseline = list(
+      header = c("Response at the shipped schedule", "Moderate intensity", "High intensity"),
+      cols = list(list("baseline", "moderate_intensity", 0), list("high", "high_intensity", 0)),
+      rows = list(
+        list("Casualties boarded", "boarded", list()),
+        list("Still waiting at the close", "queued_at_end", list()),
+        list("Mean wait (days)", "mean_wait_days", list()),
+        list("Share of R2E holding beds held by the evacuation wait", "hold_evac_share", share),
+        list("Role 4 peak occupancy (concurrent patients)", "role4_peak", list()),
+        list("Days the peak falls before the campaign ends", "role4_peak_after_end",
+             list(neg = TRUE))
+      )
+    ),
+    interval = list(
+      header = c("Response by interval between sorties", "3 days", "5 days", "7 days (shipped)",
+                 "10 days", "14 days"),
+      cols = lapply(c(3, 5, 7, 10, 14), function(v) list("interval", "moderate_intensity", v)),
+      rows = list(
+        list("Sorties flown", "sorties_flown", list(ci = FALSE)),
+        list("Mean wait (days)", "mean_wait_days", list()),
+        list("Share of R2E holding beds held by the evacuation wait", "hold_evac_share", share),
+        list("Ventilated pre-flight intensive care hold (hours)", "ventilated_hold_hours",
+             list())
+      )
+    ),
+    reliability = list(
+      header = c("Response by configured cancellation probability", "0%", "5%", "10%", "15%",
+                 "25%", "40%"),
+      cols = lapply(c(0, 0.05, 0.10, 0.15, 0.25, 0.40), function(v) {
+        list("reliability", "moderate_intensity", v)
+      }),
+      rows = list(
+        list("Sorties flown", "sorties_flown", list(ci = FALSE)),
+        list("Realised cancellation rate", "cancellation_rate", c(share, list(ci = FALSE))),
+        list("Mean wait (days)", "mean_wait_days", list()),
+        list("Share of R2E holding beds held by the evacuation wait", "hold_evac_share", share)
+      )
+    )
+  )
+  rows <- lapply(spec$rows, function(r) {
+    c(r[[1]], vapply(spec$cols, function(col) air_cell(pick(col, r[[2]]), r[[3]]), ""))
+  })
+  res_table(spec$header, rows)
 }
 
 #' Queue clearance by resource pool at the two casualty intensities
@@ -467,6 +546,11 @@ build_airlift <- function(data_dir, which) {
 build_queue_clearance <- function(data_dir) {
   d <- res_read("time_series/queue_clearance.csv", data_dir)
   pools <- c("R2B holding beds", "R2E operating theatres", "R2E intensive care", "R2E holding beds")
+  #' One stage and intensity row of the degraded care table
+  #'
+  #' @param pool The resource pool.
+  #' @param intensity See the enclosing function.
+  #' @return The row's cells.
   cell <- function(pool, intensity) {
     x <- d[d$pool == pool & d$intensity == intensity, ]
     q <- quantile(x$longest_busy_days, c(0.25, 0.75))
@@ -494,6 +578,11 @@ build_degraded_care <- function(data_dir) {
   for (it in c("Moderate intensity", "High intensity")) {
     for (st in c("Stabilisation", "Post-definitive care")) {
       x <- d[d$intensity == it & d$stage == st, ]
+      #' Unweighted rate over a day range
+      #'
+      #' @param a First bound.
+      #' @param b Second bound.
+      #' @return The rate.
       w <- function(a, b) {
         y <- x[x$day >= a & x$day <= b & !is.na(x$daily_rate), ]
         sum(y$daily_rate * y$n_decisions) / sum(y$n_decisions)
@@ -501,10 +590,14 @@ build_degraded_care <- function(data_dir) {
       m <- tapply(x$daily_rate, x$day, median, na.rm = TRUE)
       hit <- as.integer(names(m))[which(m >= 0.999)[1]]
       cum <- median(x$cumulative_rate[x$day == last], na.rm = TRUE)
-      rows[[length(rows) + 1L]] <- c(paste(it, st, sep = ": "),
-        if (is.na(hit)) "not reached" else as.character(hit),
-        sprintf("%.1f%%", 100 * w(first, first + 9)), sprintf("%.1f%%", 100 * w(last - 9, last)),
-        sprintf("%.1f%%", 100 * cum))
+      reached <- if (is.na(hit)) "not reached" else as.character(hit)
+      #' Format a share as a percentage with one decimal
+      #'
+      #' @param v A value.
+      #' @return The formatted share.
+      pct <- function(v) sprintf("%.1f%%", 100 * v)
+      rows[[length(rows) + 1L]] <- c(paste(it, st, sep = ": "), reached, pct(w(first, first + 9)),
+                                     pct(w(last - 9, last)), pct(cum))
     }
   }
   res_table(c("Intensity and stage", "First day the median daily rate reaches 100%",
@@ -525,7 +618,8 @@ build_icu_gate <- function(data_dir) {
     a <- s[s$response == r[2] & s$gate_enabled == 0, ]
     b <- s[s$response == r[2] & s$gate_enabled == 1, ]
     d <- p[p$response == r[2], ]
-    sc <- as.numeric(r[3]); dp <- as.integer(r[4])
+    sc <- as.numeric(r[3])
+    dp <- as.integer(r[4])
     c(r[1], res_ci(a$mean, a$ci_lower, a$ci_upper, dp, sc, big = TRUE),
       res_ci(b$mean, b$ci_lower, b$ci_upper, dp, sc, big = TRUE),
       sprintf("%s [%s, %s]", res_num(d$difference * sc, dp, TRUE, TRUE),
@@ -654,22 +748,35 @@ res_section_queue_share <- function(resources, section, window_min) {
 seed42_verification_rows <- function(mon, cfg, days) {
   att <- mon$attributes[order(mon$attributes$time), ]
   last <- att[!duplicated(paste(att$name, att$key), fromLast = TRUE), ]
+  #' Last value of one attribute for every casualty
+  #'
+  #' @param key The attribute key.
+  #' @return A named numeric vector.
   wide <- function(key) {
     x <- last[last$key == key, ]
     setNames(x$value, x$name)
   }
   arr_names <- mon$arrivals$name
-  rows <- list()
+  acc <- new.env()
+  acc$rows <- list()
+  #' Append one measurement to the verification table
+  #'
+  #' @param section The section name.
+  #' @param metric The response key.
+  #' @param value The measured value.
+  #' @param configured The configured expectation.
+  #' @return Invisibly NULL.
   add <- function(section, metric, value, configured = NA_real_) {
-    rows[[length(rows) + 1L]] <<- data.frame(section = section, metric = metric,
-                                             value = value, configured = configured,
-                                             stringsAsFactors = FALSE)
+    row <- data.frame(section = section, metric = metric, value = value,
+                      configured = configured, stringsAsFactors = FALSE)
+    acc$rows[[length(acc$rows) + 1L]] <- row
   }
   streams <- c("wia_cbt", "wia_spt", "kia_cbt", "kia_spt", "dnbi_cbt", "dnbi_spt")
   for (st in streams) {
     n <- sum(grepl(paste0("^", st, "[0-9]+$"), arr_names))
-    add("generation", paste0(st, "_total"), n, cfg$vars$generators[[st]]$mean_daily *
-        (if (grepl("_cbt$", st)) cfg$pops$combat else cfg$pops$support) / 1000 * days)
+    pop <- if (grepl("_cbt$", st)) cfg$pops$combat else cfg$pops$support
+    expected <- cfg$vars$generators[[st]]$mean_daily * pop / 1000 * days
+    add("generation", paste0(st, "_total"), n, expected)
   }
   add("generation", "arrivals_total", length(arr_names))
   pri <- wide("priority")
@@ -685,13 +792,15 @@ seed42_verification_rows <- function(mon, cfg, days) {
   for (k in 1:2) {
     ids <- surg[pri[surg] == k & !is.na(pri[surg])]
     add("damage_control", paste0("priority_", k, "_operated"), length(ids))
-    add("damage_control", paste0("priority_", k, "_damage_control"), sum(dcs[ids] == 1, na.rm = TRUE),
-        cfg$vars$r1$other[[paste0("pri", k, "_dcs_rate")]] * length(ids))
+    rate <- cfg$vars$r1$other[[paste0("pri", k, "_dcs_rate")]]
+    add("damage_control", paste0("priority_", k, "_damage_control"),
+        sum(dcs[ids] == 1, na.rm = TRUE), rate * length(ids))
   }
   dec <- wide("evacuation_decision_day")
   add("evacuation", "decisions", sum(!is.na(dec)))
   add("evacuation", "boarded", sum(!is.na(wide("ame_departure_time"))))
-  add("evacuation", "still_waiting_at_close", sum(!is.na(dec)) - sum(!is.na(wide("ame_departure_time"))))
+  boarded <- sum(!is.na(wide("ame_departure_time")))
+  add("evacuation", "still_waiting_at_close", sum(!is.na(dec)) - boarded)
   wait <- wide("ame_wait_minutes")
   add("evacuation", "mean_wait_days", mean(wait, na.rm = TRUE) / DAY_MIN)
   add("evacuation", "p90_wait_days", unname(quantile(wait, 0.9, na.rm = TRUE)) / DAY_MIN)
@@ -717,7 +826,7 @@ seed42_verification_rows <- function(mon, cfg, days) {
       add("force", paste0(key, "_day_", d), f$value[max(which(f$time <= d * DAY_MIN))])
     }
   }
-  do.call(rbind, rows)
+  do.call(rbind, acc$rows)
 }
 
 #' Treated-cohort died-of-wounds rate against each campaign's historical anchor
@@ -730,8 +839,8 @@ build_dow_calibration <- function(data_dir) {
               high_intensity = "High intensity")
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
-    c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", if (x$kind == "bound") "at or below" else
-      "reported", 100 * x$target, x$anchor),
+    kind <- if (x$kind == "bound") "at or below" else "reported"
+    c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", kind, 100 * x$target, x$anchor),
       sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
       as.character(x$replications))
   })
@@ -752,13 +861,84 @@ build_annex <- function(data_dir, section, labels, dp = 0L) {
   d <- d[d$section == section, ]
   rows <- lapply(names(labels), function(m) {
     x <- d[d$metric == m, ]
-    if (nrow(x) != 1L) stop(sprintf("expected one '%s' metric, found %d", m, nrow(x)), call. = FALSE)
+    if (nrow(x) != 1L) {
+      stop(sprintf("expected one '%s' metric, found %d", m, nrow(x)), call. = FALSE)
+    }
     k <- if (length(dp) > 1L) dp[[m]] else dp
     c(labels[[m]], res_num(x$value, k, TRUE),
       if (is.na(x$configured)) "not applicable" else res_num(x$configured, k, TRUE))
   })
   res_table(c("Measure", "Realised", "Configured expectation"), rows)
 }
+
+#' Row labels of the seed-42 casualty generation table, by metric
+ANNEX_GENERATION <- c(
+  wia_cbt_total = "Combat wounded in action",
+  wia_spt_total = "Support wounded in action",
+  kia_cbt_total = "Combat killed in action",
+  kia_spt_total = "Support killed in action",
+  dnbi_cbt_total = "Combat disease and non-battle injury",
+  dnbi_spt_total = "Support disease and non-battle injury"
+)
+
+#' Row labels of the seed-42 triage table, by metric
+ANNEX_TRIAGE <- c(
+  priority_1 = "Priority 1",
+  priority_2 = "Priority 2",
+  priority_3 = "Priority 3",
+  killed_in_action = "Killed in action"
+)
+
+#' Row labels of the seed-42 damage control table, by metric
+ANNEX_DAMAGE_CONTROL <- c(
+  priority_1_operated = "Priority 1 operated",
+  priority_1_damage_control = "Priority 1 damage control",
+  priority_2_operated = "Priority 2 operated",
+  priority_2_damage_control = "Priority 2 damage control"
+)
+
+#' Row labels of the seed-42 strategic evacuation table, by metric
+ANNEX_EVACUATION <- c(
+  decisions = "Strategic evacuation decisions",
+  boarded = "Boarded",
+  still_waiting_at_close = "Still waiting at the close"
+)
+
+#' Row labels of the seed-42 surgical load table, by metric
+ANNEX_SURGICAL_LOAD <- c(
+  r2b_diverted_team_off_shift = "Diverted from R2B, surgical team off shift",
+  r2b_diverted_theatre_busy = "Diverted from R2B, theatre busy",
+  r2b_hold_mean_beds_in_use = "R2B holding beds in use, both facilities (mean)",
+  r2e_section_1_utilisation_of_open_time = "R2E section 1 utilisation of open time (%)",
+  r2e_section_2_utilisation_of_open_time = "R2E section 2 utilisation of open time (%)",
+  r2e_section_3_utilisation_of_open_time = "R2E section 3 utilisation of open time (%)",
+  r2e_section_1_queued_share_of_open_time = "R2E section 1 queued share of open time (%)",
+  r2e_section_2_queued_share_of_open_time = "R2E section 2 queued share of open time (%)",
+  r2e_section_3_queued_share_of_open_time = "R2E section 3 queued share of open time (%)"
+)
+
+#' Decimal places of each metric of the seed-42 surgical load table
+ANNEX_SURGICAL_LOAD_DP <- c(
+  r2b_diverted_team_off_shift = 0L,
+  r2b_diverted_theatre_busy = 0L,
+  r2b_hold_mean_beds_in_use = 2L,
+  r2e_section_1_utilisation_of_open_time = 1L,
+  r2e_section_2_utilisation_of_open_time = 1L,
+  r2e_section_3_utilisation_of_open_time = 1L,
+  r2e_section_1_queued_share_of_open_time = 1L,
+  r2e_section_2_queued_share_of_open_time = 1L,
+  r2e_section_3_queued_share_of_open_time = 1L
+)
+
+#' Row labels of the seed-42 force regeneration table, by metric
+ANNEX_FORCE <- c(
+  effective_force_combat_day_0 = "Combat force, day 0",
+  effective_force_combat_day_180 = "Combat force, day 180",
+  effective_force_combat_day_360 = "Combat force, day 360",
+  effective_force_support_day_0 = "Support force, day 0",
+  effective_force_support_day_180 = "Support force, day 180",
+  effective_force_support_day_360 = "Support force, day 360"
+)
 
 #' Registry of generated tables
 #'
@@ -789,44 +969,14 @@ RESULTS_TABLES <- list(
   morris_top = build_morris_top,
   sobol = build_sobol,
   dow_calibration = build_dow_calibration,
-  annex_generation = function(dd) build_annex(dd, "generation", c(
-    wia_cbt_total = "Combat wounded in action", wia_spt_total = "Support wounded in action",
-    kia_cbt_total = "Combat killed in action", kia_spt_total = "Support killed in action",
-    dnbi_cbt_total = "Combat disease and non-battle injury",
-    dnbi_spt_total = "Support disease and non-battle injury")),
-  annex_triage = function(dd) build_annex(dd, "triage", c(
-    priority_1 = "Priority 1", priority_2 = "Priority 2", priority_3 = "Priority 3",
-    killed_in_action = "Killed in action")),
-  annex_damage_control = function(dd) build_annex(dd, "damage_control", c(
-    priority_1_operated = "Priority 1 operated",
-    priority_1_damage_control = "Priority 1 damage control",
-    priority_2_operated = "Priority 2 operated",
-    priority_2_damage_control = "Priority 2 damage control")),
-  annex_evacuation = function(dd) build_annex(dd, "evacuation", c(
-    decisions = "Strategic evacuation decisions", boarded = "Boarded",
-    still_waiting_at_close = "Still waiting at the close")),
-  annex_surgical_load = function(dd) build_annex(dd, "surgical_load", c(
-    r2b_diverted_team_off_shift = "Diverted from R2B, surgical team off shift",
-    r2b_diverted_theatre_busy = "Diverted from R2B, theatre busy",
-    r2b_hold_mean_beds_in_use = "R2B holding beds in use, both facilities (mean)",
-    r2e_section_1_utilisation_of_open_time = "R2E section 1 utilisation of open time (%)",
-    r2e_section_2_utilisation_of_open_time = "R2E section 2 utilisation of open time (%)",
-    r2e_section_3_utilisation_of_open_time = "R2E section 3 utilisation of open time (%)",
-    r2e_section_1_queued_share_of_open_time = "R2E section 1 queued share of open time (%)",
-    r2e_section_2_queued_share_of_open_time = "R2E section 2 queued share of open time (%)",
-    r2e_section_3_queued_share_of_open_time = "R2E section 3 queued share of open time (%)"),
-    c(r2b_diverted_team_off_shift = 0L, r2b_diverted_theatre_busy = 0L,
-      r2b_hold_mean_beds_in_use = 2L, r2e_section_1_utilisation_of_open_time = 1L,
-      r2e_section_2_utilisation_of_open_time = 1L, r2e_section_3_utilisation_of_open_time = 1L,
-      r2e_section_1_queued_share_of_open_time = 1L, r2e_section_2_queued_share_of_open_time = 1L,
-      r2e_section_3_queued_share_of_open_time = 1L)),
-  annex_force = function(dd) build_annex(dd, "force", c(
-    effective_force_combat_day_0 = "Combat force, day 0",
-    effective_force_combat_day_180 = "Combat force, day 180",
-    effective_force_combat_day_360 = "Combat force, day 360",
-    effective_force_support_day_0 = "Support force, day 0",
-    effective_force_support_day_180 = "Support force, day 180",
-    effective_force_support_day_360 = "Support force, day 360"))
+  annex_generation = function(dd) build_annex(dd, "generation", ANNEX_GENERATION),
+  annex_triage = function(dd) build_annex(dd, "triage", ANNEX_TRIAGE),
+  annex_damage_control = function(dd) build_annex(dd, "damage_control", ANNEX_DAMAGE_CONTROL),
+  annex_evacuation = function(dd) build_annex(dd, "evacuation", ANNEX_EVACUATION),
+  annex_surgical_load = function(dd) {
+    build_annex(dd, "surgical_load", ANNEX_SURGICAL_LOAD, ANNEX_SURGICAL_LOAD_DP)
+  },
+  annex_force = function(dd) build_annex(dd, "force", ANNEX_FORCE)
 )
 
 #' Split a markdown table row into trimmed cells
@@ -841,12 +991,13 @@ res_cells <- function(line) {
 #'
 #' @param ref The reference without the `cell:` prefix: `table|row|column|part`.
 #' @param data_dir The data directory.
+#' @param tables The registry of table builders to resolve the table name against.
 #' @return The cell text, or its leading number (`mean`) or interval (`ci`).
-res_cell_value <- function(ref, data_dir) {
+res_cell_value <- function(ref, data_dir, tables = RESULTS_TABLES) {
   p <- strsplit(ref, "|", fixed = TRUE)[[1]]
   if (length(p) != 4L) stop(sprintf("cell reference '%s' needs table|row|column|part", ref),
                             call. = FALSE)
-  builder <- RESULTS_TABLES[[p[1]]]
+  builder <- tables[[p[1]]]
   if (is.null(builder)) stop(sprintf("no table named '%s'", p[1]), call. = FALSE)
   lines <- builder(data_dir)
   head <- res_cells(lines[1])
@@ -868,10 +1019,13 @@ res_cell_value <- function(ref, data_dir) {
 #'
 #' @param name The span's name from its marker.
 #' @param data_dir The data directory.
+#' @param tables The registry of table builders.
 #' @return A character vector of lines for a table, or a single string for a cell.
-res_span_content <- function(name, data_dir) {
-  if (startsWith(name, "cell:")) return(res_cell_value(sub("^cell:", "", name), data_dir))
-  builder <- RESULTS_TABLES[[name]]
+res_span_content <- function(name, data_dir, tables = RESULTS_TABLES) {
+  if (startsWith(name, "cell:")) {
+    return(res_cell_value(sub("^cell:", "", name), data_dir, tables))
+  }
+  builder <- tables[[name]]
   if (is.null(builder)) stop(sprintf("no generated table named '%s'", name), call. = FALSE)
   builder(data_dir)
 }
@@ -880,13 +1034,14 @@ res_span_content <- function(name, data_dir) {
 #'
 #' @param text The document as one string.
 #' @param data_dir The data directory.
+#' @param tables The registry of table builders.
 #' @return The document with each span's content replaced.
 #'
 #' @details A table span puts its lines on their own lines between the markers
 #'   and a cell span keeps its value inline, so a sentence reads normally in
 #'   the source. Rendering twice gives the same text, which is what lets a
 #'   check compare a document with its own re-rendering.
-render_results <- function(text, data_dir = RESULTS_DATA_DIR) {
+render_results <- function(text, data_dir = RESULTS_DATA_DIR, tables = RESULTS_TABLES) {
   m <- gregexpr(RESULTS_SPAN_PATTERN, text, perl = TRUE)[[1]]
   if (m[1] == -1L) return(text)
   starts <- as.integer(m)
@@ -896,7 +1051,7 @@ render_results <- function(text, data_dir = RESULTS_DATA_DIR) {
   for (i in seq_along(starts)) {
     span <- substr(text, starts[i], starts[i] + lens[i] - 1L)
     name <- sub(RESULTS_SPAN_PATTERN, "\\1", span, perl = TRUE)
-    content <- res_span_content(name, data_dir)
+    content <- res_span_content(name, data_dir, tables)
     block <- if (length(content) > 1L) {
       paste0("<!-- GEN ", name, " -->\n", paste(content, collapse = "\n"), "\n<!-- /GEN -->")
     } else {

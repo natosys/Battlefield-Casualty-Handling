@@ -31,6 +31,13 @@ ICU_GATE_REPLICATIONS <- 30L
 #' Campaign length in days each replication runs for
 ICU_GATE_DAYS <- 360L
 
+#' Closing window the intensive care occupancy response is measured over, in days
+#'
+#' @details 90, the window every pool occupancy and queue response in this
+#'   project is measured over. A campaign shorter than the window is measured
+#'   over its whole length.
+ICU_GATE_WINDOW_DAYS <- 90L
+
 #' Control seed the per-replication seeds are drawn from, one arm at a time
 ICU_GATE_SEED <- 42L
 
@@ -74,25 +81,26 @@ ICU_GATE_PATHWAY_HOLD <- 2
 #'   `summarise_post_operative_pathways()`).
 ICU_GATE_DOW_ECHELON_POSTOP <- 4
 
-#' Mean occupancy of the R2E intensive care pool over the whole campaign
+#' Mean occupancy of the R2E intensive care pool over the campaign's closing window
 #'
 #' @param resources Resource-monitor rows for one replication.
 #' @param n_days Campaign length in days.
 #' @param establishment Number of beds established in the pool, from
 #'   `pool_establishment()`.
+#' @param window_days Closing window to average over, in days.
 #' @return Time-weighted mean served fraction of the pool's capacity over the
-#'   full campaign, or NA where the monitor carries no row for the pool.
+#'   closing window, or NA where the monitor carries no row for the pool.
 #'
 #' @details The monitor records each bed separately, so the pool total is in
 #'   none of its rows and is recovered by differencing each bed's series into
 #'   changes and accumulating them in time order, on the convention
-#'   R/policy_sweep.R's `policy_pool_state()` establishes for the same pool
-#'   over a closing window rather than the whole campaign.
-icu_gate_occupancy <- function(resources, n_days, establishment) {
+#'   R/policy_sweep.R's `policy_pool_state()` establishes for the same pool.
+icu_gate_occupancy <- function(resources, n_days, establishment,
+                               window_days = ICU_GATE_WINDOW_DAYS) {
   rows <- resources[grepl(ICU_GATE_ICU_POOL, resources$resource), ]
   if (nrow(rows) == 0) return(NA_real_)
 
-  edges    <- c(0, n_days * DAY_MIN)
+  edges    <- c(max(0, n_days - window_days) * DAY_MIN, n_days * DAY_MIN)
   server   <- pool_queue_steps(rows$resource, rows$time, rows$server)
 
   step_bin_means(server, edges) / establishment

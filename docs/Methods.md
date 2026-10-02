@@ -281,15 +281,15 @@ The matrix sets every experiment beside the others on the six properties a compa
 
 | Experiment | Configuration | Horizon | Replications | Arms or points | Pairing | Estimator and interval |
 |---|---|---|---|---|---|---|
-| Comparative scenario analysis | `moderate_intensity`, `high_intensity` | 30 d | 50 per profile | 2 profiles | each profile seeded afresh | pool queue, closing 90 d (whole campaign at 30 d); Student $t$ |
-| Campaign time series | the same two profiles | 30 d | 50 per profile | 2 profiles | each profile seeded afresh | pool queue in four-hour bins; median and interquartile band |
+| Comparative scenario analysis | `moderate_intensity`, `high_intensity` | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | pool queue, closing 90 d (whole campaign at 30 d); Student $t$ |
+| Campaign time series | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | pool queue in four-hour bins; median and interquartile band |
 | Sustained-operations horizon | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | daily series, 30-day block means; trend over the second half |
 | R2B pre-open hold window | default | 360 d | 30 per arm | 2 arms | one control seed, not one casualty stream | campaign counts; Student $t$, paired $t$ |
-| Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy (whole campaign); Student $t$, paired $t$ |
+| Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy, closing 90 d; Student $t$, paired $t$ |
 | Forward ICU share frontier | default | 360 d | 30 per point | 5 shares | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | R2B holding capacity and evacuation threshold | default | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | Transport fleet-size sweep | default; `high_intensity` | 360 d | 30 per point | 9 per configuration | unpaired | fleet pool queue and occupancy, closing 90 d; Student $t$ |
-| National support base demand and the airlift schedule | default and both profiles | 30 d | 50 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
+| National support base demand and the airlift schedule | default and both profiles | 360 d | 30 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
 | Strategic airlift reliability | default | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
@@ -305,13 +305,13 @@ The matrix makes explicit three differences that determine whether two tables ca
 
 ### Comparative Scenario Analysis
 
-<!-- SCENARIO days=30 -->
+<!-- SCENARIO days=360 -->
 <!-- SCENARIO window_days=90 -->
-<!-- SCENARIO replications=50 -->
+<!-- SCENARIO replications=30 -->
 <!-- SCENARIO seed=42 -->
 <!-- SCENARIO profiles=moderate_intensity,high_intensity -->
 
-50 replications of 30 simulated days per profile at control seed 42, under the shipped default establishment, the only overrides being those the scenario profile itself applies. Invoked as:
+30 replications of 360 simulated days per profile at control seed 42, under the shipped default establishment, the only overrides being those the scenario profile itself applies. Invoked as:
 
 ```
 Rscript scripts/run_scenarios.R --refresh-baseline
@@ -329,10 +329,10 @@ A third, Vietnam-calibrated profile is missing for want of sources: FORECAS's Ap
 
 ### Campaign Time Series of Queue Length and Degraded Care
 
-50 replications of 30 simulated days per casualty intensity at control seed 42, under the shipped default establishment and the same two scenario profiles as the comparative analysis above. The seed is set once before each intensity rather than once for the pair, so replication $i$ of one intensity draws the same per-replication seed as replication $i$ of the other. Invoked as:
+30 replications of 360 simulated days per casualty intensity at control seed 42, under the shipped default establishment and the same two scenario profiles as the comparative analysis above. The seed is set once before each intensity rather than once for the pair, so replication $i$ of one intensity draws the same per-replication seed as replication $i$ of the other. Invoked as:
 
 ```
-Rscript scripts/render_time_series_figures.R --run --refresh-baseline --iterations 50 --days 30
+Rscript scripts/render_time_series_figures.R --run --refresh-baseline --iterations 30 --days 360
 ```
 
 Measurement and rendering are separated. The `--run` half executes the model and writes three aggregated series to `data/time_series/`: queue length per resource pool, replication and four-hour bin; the two clearance statistics per pool and replication; and the degraded-care rate per stage, replication and day. An invocation without `--run` reads those files and renders the figures from them alone, so both images are a function of tracked data rather than of a run that cannot be repeated, and re-rendering reproduces them byte for byte. Only the aggregated series is kept; the monitoring data behind it runs to hundreds of megabytes and nothing published derives from a single replication of it.
@@ -366,6 +366,7 @@ Two further limits apply to the design. The comparison was run at the shipped de
 
 <!-- ICU_GATE replications=30 -->
 <!-- ICU_GATE days=360 -->
+<!-- ICU_GATE window_days=90 -->
 <!-- ICU_GATE seed=42 -->
 <!-- ICU_GATE arms=0,1 -->
 
@@ -443,12 +444,12 @@ The horizon, replication count and control seed above are shared with the forwar
 
 ### National Support Base Demand and the Airlift Schedule
 
-<!-- AIRLIFT days=30 -->
-<!-- AIRLIFT replications=50 -->
+<!-- AIRLIFT days=360 -->
+<!-- AIRLIFT replications=30 -->
 <!-- AIRLIFT failure_probabilities=0,0.05,0.10,0.15,0.25,0.40 -->
 <!-- AIRLIFT sortie_intervals=3,5,7,10,14 -->
 
-50 replications of a 30-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
+30 replications of a 360-day campaign at control seed 42 in each of thirteen configurations: the shipped configuration under each casualty intensity, six values of `role4.ame.failure_probability` from 0 to 0.40, and five values of `role4.ame.schedule_interval_days` from 3 to 14. The seed is set once before each configuration, so replication $i$ of every arm draws the same per-replication seed. Invoked as:
 
 ```
 Rscript scripts/run_airlift_sweep.R --refresh-baseline
@@ -540,8 +541,8 @@ The range runs past the point at which a higher threshold might stop firing, so 
 
 ### Mass Casualty Event Stress Test
 
-<!-- MASS_CASUALTY replications=62 -->
-<!-- MASS_CASUALTY days=30 -->
+<!-- MASS_CASUALTY replications=30 -->
+<!-- MASS_CASUALTY days=360 -->
 <!-- MASS_CASUALTY seed=42 -->
 <!-- MASS_CASUALTY arms=0,0.2 -->
 62 replications of 30 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:

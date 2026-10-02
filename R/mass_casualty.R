@@ -27,10 +27,10 @@
 # file.
 
 #' Replications per arm
-MASS_CASUALTY_REPLICATIONS <- 62L
+MASS_CASUALTY_REPLICATIONS <- 30L
 
 #' Campaign length in days each replication runs for
-MASS_CASUALTY_DAYS <- 30L
+MASS_CASUALTY_DAYS <- 360L
 
 #' Control seed the per-replication seeds are drawn from, one arm at a time
 MASS_CASUALTY_SEED <- 42L

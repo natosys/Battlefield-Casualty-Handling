@@ -473,7 +473,9 @@ if (!is.null(hold_threshold)) {
   #'
   #' @param d Evacuation threshold in days, 0 for disabled.
   #' @return Logical vector selecting that grid point's row.
-  threshold_at <- function(d) hold_threshold$hold_beds == 5 & hold_threshold$evac_threshold_days == d
+  threshold_at <- function(d) {
+    hold_threshold$hold_beds == 5 & hold_threshold$evac_threshold_days == d
+  }
 
   #' The four columns both hold threshold tables print
   #'

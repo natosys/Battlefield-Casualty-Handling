@@ -617,7 +617,7 @@ Theatre and diversion measures barely move under injection, which is the finding
 
 ![Stem plot of two mass casualty events reconstructed from one campaign, each drawn as a vertical line at its simulation day with a point at its casualty count: 33 casualties midway through day 13 and 45 midway through day 26](../images/mass_casualty_events.png)
 
-Two events thirteen days apart is a thin draw from a process set to deliver an average of six across the campaign, so this campaign illustrates the mechanism while the table above carries the measurement.
+Two events thirteen days apart is a thin draw from a process set to deliver an average of six across the campaign, so this campaign illustrates the mechanism while the table above carries the measurement. Of the 78 casualties the two events drew, 27 arrive killed and 51 wounded at the configured killed share of 0.28.
 
 ---
 

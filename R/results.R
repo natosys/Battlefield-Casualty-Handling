@@ -30,7 +30,7 @@ RESULTS_DATA_DIR <- "data"
 #'
 #' @details A span is replaced wholesale on render, so nothing a person types
 #'   between the two markers survives; that is the point of the markers.
-RESULTS_SPAN_PATTERN <- "<!-- GEN ([^ ]+) -->(.*?)<!-- /GEN -->"
+RESULTS_SPAN_PATTERN <- "(?s)<!-- GEN (.+?) -->(.*?)<!-- /GEN -->"
 
 #' Format a number with a fixed number of decimals
 #'
@@ -650,6 +650,25 @@ seed42_verification_rows <- function(mon, cfg, days) {
   do.call(rbind, rows)
 }
 
+#' Treated-cohort died-of-wounds rate against each campaign's historical anchor
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_dow_calibration <- function(data_dir) {
+  d <- res_read("calibration/dow_calibration.csv", data_dir)
+  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
+              high_intensity = "High intensity")
+  rows <- lapply(seq_len(nrow(d)), function(i) {
+    x <- d[i, ]
+    c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", if (x$kind == "bound") "at or below" else
+      "reported", 100 * x$target, x$anchor),
+      sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
+      as.character(x$replications))
+  })
+  res_table(c("Configuration", "Historical anchor", "Treated-cohort died-of-wounds rate",
+              "Replications"), rows)
+}
+
 #' One section of the seed-42 verification measurements as a table
 #'
 #' @param data_dir The data directory.
@@ -697,6 +716,7 @@ RESULTS_TABLES <- list(
   airlift_collapse = build_airlift_collapse,
   morris_top = build_morris_top,
   sobol = build_sobol,
+  dow_calibration = build_dow_calibration,
   annex_generation = function(dd) build_annex(dd, "generation", c(
     wia_cbt_total = "Combat wounded in action", wia_spt_total = "Support wounded in action",
     kia_cbt_total = "Combat killed in action", kia_spt_total = "Support killed in action",

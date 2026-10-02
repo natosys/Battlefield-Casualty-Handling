@@ -76,7 +76,7 @@ The document is presented in five parts. The first describes the replication fra
 
 Every experiment runs through the project's multi-run replication framework (`run_replications()`, `R/replication.R`), which executes a requested number of independent replications of the model and returns their monitoring data with a replication index attached. The model itself is built on the `simmer` discrete event simulation package for R [[4]](#references).
 
-The unit of analysis is the replication throughout. Every response is reduced to one number per replication, such as the mean queue at a resource across the 30 days or the count of casualties taking a given pathway, before any statistic is taken across replications. Observations within one campaign are not independent of one another, so no interval in this project is ever taken across casualties or across days.
+The unit of analysis is the replication throughout. Every response is reduced to one number per replication, such as the mean queue at a resource over the closing window or the count of casualties taking a given pathway, before any statistic is taken across replications. Observations within one campaign are not independent of one another, so no interval in this project is ever taken across casualties or across days.
 
 ### Independence of Replications
 
@@ -120,7 +120,7 @@ Queue and occupancy are measured over the campaign's closing 90 days, the window
 
 ### Replication Count and Resolution
 
-How many replications an experiment needs depends on the spread of its response, and the responses this model reports differ by orders of magnitude in how many events they accumulate. A mean queue integrates over every arrival and departure at a resource across 30 days. A died-of-wounds count rests on a handful of events per campaign.
+How many replications an experiment needs depends on the spread of its response, and the responses this model reports differ by orders of magnitude in how many events they accumulate. A mean queue integrates over every arrival and departure at a resource across the measurement window. A died-of-wounds count rests on a handful of events per campaign.
 
 The best determined spread available for this model is on the treated-cohort died-of-wounds rate, the rate among casualties reaching R2B or R2E, whose per-replication standard deviation is 0.0039 under the shipped configuration, measured over 150 replications. Setting the half-width of the interval above equal to a target and solving for $n$ gives the counts a given resolution requires.
 
@@ -148,7 +148,7 @@ That classification is supported rather than assumed. The Welch graphical diagno
 
 <small>[Return to Top](#contents)</small>
 
-The experiments of the companion paper originally ran for 30 days, a window inherited from the campaign the baseline models rather than chosen by measurement. A window that short cannot distinguish a system in equilibrium at a given load from one thirty days into a divergence, and the model has responses of both kinds. This section defines a second horizon of 360 days alongside the first, the protocol that measures it and the way a response's stability is classified from it. The protocol matrix under [Experimental Designs](#experimental-designs) states which experiment runs at which horizon, and the companion paper reports what the long horizon shows.
+The experiments of the companion paper originally ran for 30 days, a window inherited from the campaign the baseline models rather than chosen by measurement. A window that short cannot distinguish a system in equilibrium at a given load from one thirty days into a divergence, and the model has responses of both kinds. This section defines the sustained horizon of 360 days, the protocol that measures it and the way a response's stability is classified from it. Every replicated experiment now runs at that horizon except the force regeneration comparison and the sensitivity screens; the protocol matrix under [Experimental Designs](#experimental-designs) states which, and the companion paper reports what the long horizon shows.
 
 ### The Protocol
 
@@ -299,7 +299,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 30 d | 8 per point | 8,000 points | unpinned | total-order index; bootstrap |
 
-The experiments still at 30 days are those whose tracked evidence has not yet been re-measured at the sustained-operations horizon; the horizon and the replication counts in the matrix are the values the code holds and the protocol checks assert. The sensitivity screens stay at 30 days because the cost of a length-matched screen is prohibitive (see [Sensitivity Screens](#sensitivity-screens)), and their rankings are labelled as 30-day rankings wherever they are reported.
+The horizon and the replication counts in the matrix are the values the code holds and the protocol checks assert. Two designs stay at 30 days: the force regeneration comparison, which measures the daily casualty volume a reinforcement cycle sustains rather than a health system response and is not re-measured here, and the sensitivity screens, whose length-matched cost is prohibitive (see [Sensitivity Screens](#sensitivity-screens)); the screens' rankings are labelled as 30-day rankings wherever they are reported.
 
 The matrix makes explicit three differences that determine whether two tables can be read side by side. A table from the scenario comparison and one from a sweep describe different configurations, intensity profiles against the shipped default. A table measured over a closing window and one averaged over the whole campaign describe a settled system and a filling one. And a table of means across replications and one of pooled proportions have different units of analysis, which is why the interval method is stated in the last column.
 
@@ -319,7 +319,7 @@ Rscript scripts/run_scenarios.R --refresh-baseline
 
 The flag is the only way to write the tracked `data/scenarios/`, and it runs the protocol above rather than whatever arguments accompany it, so the tracked set and this design cannot diverge through a mistyped argument. Without it the runner writes under `outputs/` alone.
 
-Four files are written. Two carry the casualty totals and the per-resource queue summaries the runner has always produced. The other two carry the per-pool queue comparison the companion paper prints, once per replication and once reduced to a mean and interval. The per-replication file is kept because a pool's interval cannot be recovered from per-bed summaries, the pool total being in none of the monitor's rows: it is reconstructed by differencing each bed's own series into changes and accumulating them in time order, then averaged over the closing window (the whole campaign at 30 days) by the same step-function estimator the campaign time series uses. The published queue table and the queue-over-time figure therefore measure one quantity rather than two that happen to agree.
+Four files are written. Two carry the casualty totals and the per-resource queue summaries the runner has always produced. The other two carry the per-pool queue comparison the companion paper prints, once per replication and once reduced to a mean and interval. The per-replication file is kept because a pool's interval cannot be recovered from per-bed summaries, the pool total being in none of the monitor's rows: it is reconstructed by differencing each bed's own series into changes and accumulating them in time order, then averaged over the closing window by the same step-function estimator the campaign time series uses. The published queue table and the queue-over-time figure therefore measure one quantity rather than two that happen to agree.
 
 A scenario profile is a named set of overrides applied on top of the shipped default `env_data.json` parameters, resolved by `resolve_scenario()` (`R/scenario.R`). Both profiles are defined in the `scenarios` block of `env_data.json`. Element, bed and transport fleet counts are structural configuration a scenario cannot override, so the two profiles differ in their casualty-generation parameters alone.
 

@@ -26,9 +26,8 @@ none of the headings.
 
 ### Regression checks
 
-<!-- Which of the seed-42 baseline values in CLAUDE.md's Key Parameters table
-     and docs/Results.md Annex A this PR was checked against, and whether
-     any moved. State the result of:
+<!-- Which of the seed-42 baseline values in docs/Results.md Annex A this PR
+     was checked against, and whether any moved. State the result of:
 
        Rscript scripts/run_all_checks.R --fast
 
@@ -42,10 +41,11 @@ none of the headings.
 
 ## Documents updated
 
-<!-- Per CLAUDE.md's README Maintenance section, tick what this PR updates and
+<!-- Per CLAUDE.md's Document Maintenance section, tick what this PR updates and
      delete what does not apply. -->
 
 - [ ] `README.md` (system reference: structure, trajectories, resources, assumptions, Further Development)
 - [ ] `docs/Results.md` (measurements, regenerated from the tracked evidence)
 - [ ] `docs/Planning_Implications.md` (the reading of the measurements as planning options; its figures regenerate from the tracked evidence)
-- [ ] None: this PR changes no section any of the three documents owns
+- [ ] `docs/Methods.md` (experimental designs, the replication framework and the interval method)
+- [ ] None: this PR changes no section any of the four documents owns

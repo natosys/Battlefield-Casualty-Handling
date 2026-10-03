@@ -4473,8 +4473,8 @@ wire_supplementary_outputs <- function(analysis_results, run_mode, output) {
   wire_supplementary_plot_downloads(analysis_results, run_mode, output)
 
   # R2B routing diagnostics (Issue #39) — pre-transport and at-R2B-hold
-  # bypass/queue counts; independent, non-summing counts (see CLAUDE.md
-  # Key Parameters table).
+  # bypass/queue counts; independent, non-summing counts (see Annex A of
+  # docs/Results.md).
   wire_r2b_and_theatre_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
                                small_dt)
 

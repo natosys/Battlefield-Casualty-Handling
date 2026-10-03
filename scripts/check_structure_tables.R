@@ -29,6 +29,9 @@
 #   2. Every R/*.R module has a row in CLAUDE.md's Repository Structure table.
 #   3. Every scripts/check_*.R has a row in CLAUDE.md's table.
 #   4. Every other scripts/*.R and scripts/*.sh entry point has a row in it.
+#   4a. Every tracked docs/*.md and docs/archive/*.md has a row in it, so a
+#      document added, renamed or retired without updating the document roles
+#      fails here rather than leaving a role naming a file that is gone.
 #   5. Neither table names a path that does not exist, so a renamed or deleted
 #      file cannot leave a row behind pointing at nothing.
 #
@@ -146,6 +149,10 @@ assert_covered(modules, claude_paths, "R/ module", "CLAUDE.md's Repository Struc
 assert_covered(check_scripts, claude_paths, "regression check script",
                "CLAUDE.md's Repository Structure table")
 assert_covered(other_scripts, claude_paths, "other scripts/ entry point",
+               "CLAUDE.md's Repository Structure table")
+
+documents <- tracked_files("^docs/(archive/)?[^/]+\\.md$")
+assert_covered(documents, claude_paths, "docs/ document",
                "CLAUDE.md's Repository Structure table")
 
 # ── 5. No row names a path that no longer exists ───────────────────────────

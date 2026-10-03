@@ -4975,7 +4975,8 @@ pool_rep_kpis <- function(mon, pattern, n_days, establishment,
 #'   NULL (default) uses a subtitle with no replication count.
 #' @param scenario Name of the scenario profile the sweep ran under, named in
 #'   the plot title; "default" (the default) is labelled as the shipped
-#'   moderate-intensity configuration.
+#'   default configuration, which shares the moderate-intensity casualty
+#'   rates but not its died-of-wounds calibration.
 #' @return ggplot object: four panels arranged as a 2x2 grid — one column
 #'   per vehicle type (PMV Ambulance, HX240M), one row per metric (Mean
 #'   Queue, Pool Occupancy) — each showing that metric vs fleet size, with
@@ -5025,7 +5026,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
   # Every title names the casualty profile it was drawn under, the shipped
   # configuration included, so two sweeps printed together cannot be confused.
   scenario_note <- if (identical(scenario, "default")) {
-    "Moderate Intensity (Shipped Configuration)"
+    "Shipped Default Configuration"
   } else {
     tools::toTitleCase(paste(gsub("_", " ", scenario), "profile"))
   }

@@ -286,6 +286,19 @@ The same measures under the `high_intensity` profile, each with a 95% confidence
 
 Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->1.4397<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[0.2895, 2.5898]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->0.0866<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.0171<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->46.7132<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->1.1259<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->0.2188<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0002<!-- /GEN -->.
 
+The table below sets the shared fleets beside the evacuation elements integral to each medical facility, under each casualty profile at its shipped establishment. Each figure is a whole-campaign time-weighted mean, so it differs from the closing-window fleet queue in [Comparative Scenario Analysis](#comparative-scenario-analysis). `[moderate_intensity and high_intensity · 360 d · 30 replications · per-resource means summed by holder, whole campaign]`
+
+<!-- GEN transport_holders -->
+| Asset | Held by | Moderate: mean queue | Moderate: largest queue | High: mean queue | High: largest queue |
+|---|---|---|---|---|---|
+| PMV Ambulance fleet (3) | Shared, not a medical facility | 0.053 | 30 | 0.202 | 24 |
+| HX2 40M fleet (4) | Shared, not a medical facility | 0.001 | 3 | 0.000 | 1 |
+| R2B evacuation crews (1 per team, 2) | Integral to R2B | 0.037 | 4 | 0.471 | 6 |
+| R2E evacuation sections (3) | Integral to R2E | 0.000 | 1 | 0.000 | 2 |
+<!-- /GEN -->
+
+At high intensity the R2B evacuation crews queued <!-- GEN cell:transport_holders|R2B evacuation crews (1 per team, 2)|High: mean queue|mean -->0.471<!-- /GEN --> casualties on average against <!-- GEN cell:transport_holders|R2B evacuation crews (1 per team, 2)|Moderate: mean queue|mean -->0.037<!-- /GEN --> at moderate intensity, and the R2E evacuation sections <!-- GEN cell:transport_holders|R2E evacuation sections (3)|High: mean queue|mean -->0.000<!-- /GEN -->. Utilisation of the integral elements is not in the tracked evidence set.
+
 ### Forward Intensive Care Share
 
 **Question.** What changes when a share of post-operative intensive care is delivered at R2B rather than R2E? `[default, forward share 0 to 100% · 360 d · 30 replications · pool totals, closing 90 d]`

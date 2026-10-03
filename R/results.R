@@ -331,6 +331,41 @@ build_transport <- function(data_dir, high = FALSE) {
   res_table(c("Fleet size", "Ambulance mean queue", "Truck mean queue"), rows)
 }
 
+#' Transport pools by holder, as resource prefix, row label and holder label
+#'
+#' @details The first two are the brigade's shared fleets, held by no medical
+#'   facility; the last two are evacuation elements organic to a facility. Each
+#'   evacuation crew is modelled as two medics seized together, so its queue is
+#'   its first medic's and the second's is zero by construction.
+TRANSPORT_HOLDERS <- list(
+  c("^t_PMVAmb_", "PMV Ambulance fleet (3)", "Shared, not a medical facility"),
+  c("^t_HX240M_", "HX2 40M fleet (4)", "Shared, not a medical facility"),
+  c("^c_r2b_evac_", "R2B evacuation crews (1 per team, 2)", "Integral to R2B"),
+  c("^c_r2eheavy_evac_", "R2E evacuation sections (3)", "Integral to R2E")
+)
+
+#' Transport queue by holder: shared fleets against facility-integral elements
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#' @details A pool's mean queue is the sum of its members' time-weighted means,
+#'   which is exact because every member is averaged over the same campaign.
+#'   Its interval is not printed: it cannot be recovered from per-member
+#'   summaries. The largest queue is the most any one member held at once.
+build_transport_holders <- function(data_dir) {
+  d <- res_read("scenarios/scenario_comparison_queues.csv", data_dir)
+  rows <- lapply(TRANSPORT_HOLDERS, function(h) {
+    cells <- unlist(lapply(SCENARIO_PROFILES, function(p) {
+      x <- d[d$scenario == p & grepl(h[1], d$resource), ]
+      if (nrow(x) == 0L) stop(sprintf("no %s resources for %s", h[1], p), call. = FALSE)
+      c(res_num(sum(x$mean_q), 3L), as.character(max(x$max_q)))
+    }))
+    c(h[2], h[3], cells)
+  })
+  res_table(c("Asset", "Held by", "Moderate: mean queue", "Moderate: largest queue",
+              "High: mean queue", "High: largest queue"), rows)
+}
+
 #' Forward intensive care share frontier table
 #'
 #' @param data_dir The data directory.
@@ -1033,6 +1068,7 @@ RESULTS_TABLES <- list(
   hold_window = build_hold_window,
   transport = function(dd) build_transport(dd, FALSE),
   transport_high = function(dd) build_transport(dd, TRUE),
+  transport_holders = build_transport_holders,
   icu_share = build_icu_share,
   policy = build_policy,
   establishment = build_establishment,

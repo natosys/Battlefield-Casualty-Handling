@@ -209,6 +209,10 @@ if (length(at) == 1L) {
     needed <- c(needed, slug(if (length(subs)) subs else sub("^## ", "", heading)))
   }
   table_text <- paste(rows, collapse = " ")
+  #' Whether the lever table links one results anchor
+  #'
+  #' @param a The anchor without its hash.
+  #' @return TRUE where a row of the table links it.
   linked_in_table <- function(a) grepl(sprintf("(Results.md#%s)", a), table_text, fixed = TRUE)
   absent <- needed[!vapply(needed, linked_in_table, logical(1))]
   report(length(absent) == 0L && length(needed) > 0L,

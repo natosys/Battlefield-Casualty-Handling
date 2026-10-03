@@ -655,6 +655,12 @@ build_airlift_collapse <- function(data_dir) {
 build_icu_gate_pathways <- function(data_dir) {
   r <- res_read("icu_gate/icu_gate_replications.csv", data_dir)
   on <- r[r$gate_enabled == 1, ]
+  #' One pathway row of the table
+  #'
+  #' @param label The pathway's name.
+  #' @param n Pooled casualty-replications on the pathway.
+  #' @param d Pooled deaths of wounds on the pathway.
+  #' @return The row's four cells.
   one <- function(label, n, d) {
     c(label, res_num(n, 0L, big = TRUE), res_num(d, 0L, big = TRUE),
       paste0(res_num(100 * d / n, 2L), "%"))

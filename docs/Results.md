@@ -490,7 +490,7 @@ Events added <!-- GEN cell:mass_casualty|Average events/run|Events injected|full
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** How many replications would each paired difference left open by the experiments above need before its interval narrowed to a stated half-width? `[as each experiment above · 360 d · 30 replications · paired, normal approximation to the interval half-width]`
+**Question.** Several comparisons above found a difference between two settings too small to distinguish from run-to-run variation at 30 replications. For each, how many replications would be needed to measure that difference to a stated precision, the half-width of its 95% interval? `[as each experiment above · 360 d · 30 replications · paired, normal approximation to the interval half-width]`
 
 <!-- GEN resolution -->
 | Comparison | Paired difference | Half-width sought | Replications needed |

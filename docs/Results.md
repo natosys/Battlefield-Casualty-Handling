@@ -480,7 +480,7 @@ No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|f
 
 ![Stem plot of two mass casualty events reconstructed from one campaign](../images/mass_casualty_events.png)
 
-Two mass casualty events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
+The mass casualty events of one illustrative seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
 
 Events added <!-- GEN cell:mass_casualty|Average events/run|Events injected|full -->69.83 (range 57–83)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:mass_casualty|Average total casualties/run|No events injected|full -->5359.9<!-- /GEN --> to <!-- GEN cell:mass_casualty|Average total casualties/run|Events injected|full -->8187.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:mass_casualty|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.72%, 0.84%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:mass_casualty|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.29% [0.26%, 0.31%]<!-- /GEN --> without injection and <!-- GEN cell:mass_casualty|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.37% [0.34%, 0.40%]<!-- /GEN --> with it.
 

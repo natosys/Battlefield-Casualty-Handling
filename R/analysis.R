@@ -2394,22 +2394,8 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
   if (mass_casualty_event_count > 0) {
     n_sim_days_mass_casualty <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
-    mass_casualty_timeline_plot <- ggplot(mass_casualty_events_summary,
-                                   aes(x = event_start / DAY_MIN, y = n_cas)) +
-      geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
-      geom_point(size = 3, color = "#D62828") +
-      scale_x_continuous(limits = c(0, n_sim_days_mass_casualty),
-                         breaks = seq(0, n_sim_days_mass_casualty, by = 2)) +
-      labs(
-        title    = "Mass Casualty Event Timeline",
-        subtitle = sprintf(
-          "%d event(s) across the simulation period (compound Poisson injection)",
-          mass_casualty_event_count
-        ),
-        x = "Simulation Day", y = "Casualties Injected by Event"
-      ) +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank())
+    mass_casualty_timeline_plot <- plot_mass_casualty_timeline(mass_casualty_events_summary,
+                                                               n_sim_days_mass_casualty)
 
     if (n_distinct(mass_casualty_events_summary$replication) > 1) {
       mass_casualty_timeline_plot <- mass_casualty_timeline_plot + facet_wrap(~ replication, ncol = 1)
@@ -5049,6 +5035,28 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
          strip.placement = "outside", legend.position = "bottom")
+}
+
+#' Plot the mass casualty event timeline: one stem per event at its day
+#'
+#' @param events Event summary with `event_start` (minutes) and `n_cas` columns.
+#' @param n_days Campaign length in days, which sets the horizontal axis.
+#' @return The ggplot object.
+#' @details Axis breaks are chosen for the horizon rather than fixed at every
+#'   second day, which is unreadable over a sustained campaign.
+plot_mass_casualty_timeline <- function(events, n_days) {
+  ggplot(events, aes(x = event_start / DAY_MIN, y = n_cas)) +
+    geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
+    geom_point(size = 3, color = "#D62828") +
+    scale_x_continuous(limits = c(0, n_days), breaks = scales::breaks_pretty(n = 12)) +
+    labs(
+      title    = "Mass Casualty Event Timeline",
+      subtitle = sprintf("%d event(s) across the simulation period (compound Poisson injection)",
+                         nrow(events)),
+      x = "Simulation Day", y = "Casualties Injected by Event"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.minor = element_blank())
 }
 
 #' Plot medevac fleet capacity margin across a range of fleet sizes

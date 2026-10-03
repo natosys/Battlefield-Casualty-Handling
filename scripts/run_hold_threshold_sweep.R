@@ -11,7 +11,7 @@
 #   Rscript scripts/run_hold_threshold_sweep.R --iterations 30 --days 360
 #   Rscript scripts/run_hold_threshold_sweep.R --quick              # smoke test (2 reps, 2x2 grid)
 #
-# Why this exists. docs/Multi_Run_Analysis.md's Option 2 names the R2B
+# Why this exists. docs/Results.md's Option 2 names the R2B
 # holding shortfall (README Further Development L4, about 15.5 beds expected
 # against ten fielded) and names two untested remedies that are substitutes
 # for each other: adding holding beds, and an evacuation threshold that moves
@@ -25,7 +25,7 @@
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
 # tracked images/r2b_hold_threshold_sweep.png. Without it every invocation
 # writes under outputs/ alone, so an exploratory run cannot move the evidence
-# set docs/Multi_Run_Analysis.md's table is checked against. The flag fixes
+# set docs/Results.md's table is checked against. The flag fixes
 # the swept grid, the replication count, the horizon and the seed rather than
 # accepting whichever the caller passed. It writes its own
 # r2b_hold_threshold_sweep.csv and leaves the other sweeps' files in the same

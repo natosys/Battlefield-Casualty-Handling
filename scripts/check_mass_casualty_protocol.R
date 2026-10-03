@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. Mass Casualty Events Degrade Care Without Revealing
-# New Constraints in docs/Multi_Run_Analysis.md prints a four-row table from
+# New Constraints in docs/Results.md prints a four-row table from
 # replicated arms, and until Issue #389 none of the figures behind it existed
 # in a tracked file: the experiment's entry point was run.R under a parameter
 # override rather than a driver script, so there was no command to give a

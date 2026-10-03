@@ -15,7 +15,7 @@
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
 # tracked images/transport_capacity_margin_by_fleet_size.png. Without it every
 # invocation writes under outputs/ alone, so an exploratory run cannot move the
-# evidence set docs/Multi_Run_Analysis.md's fleet-size table is checked
+# evidence set docs/Results.md's fleet-size table is checked
 # against. The flag fixes the swept range, the replication count and the
 # horizon (30 replications of 360 days, the sustained-operations protocol
 # shared with the other two capacity sweeps, migrated from 10 x 30 under

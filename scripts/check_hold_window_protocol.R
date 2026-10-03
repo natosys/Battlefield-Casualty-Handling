@@ -10,7 +10,7 @@
 #
 # Exits 0 when every check passes, 1 otherwise.
 #
-# Why this check exists. Option 3 of docs/Multi_Run_Analysis.md prints eight
+# Why this check exists. Option 3 of docs/Results.md prints eight
 # paired differences comparing the shipped 60-minute R2B pre-open window
 # against a window of zero, three of them established effects the section's
 # recommendation rests on. Until Issue #387 none of the twenty-four numbers

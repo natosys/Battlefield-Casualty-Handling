@@ -159,7 +159,7 @@ check_references <- function(file_path) {
 
 reference_docs <- c("README.md",
                     "docs/Results.md",
-                    "docs/Multi_Run_Analysis.md",
+                    "docs/Planning_Implications.md",
                     "docs/Methods.md")
 
 violations <- sum(vapply(reference_docs, check_references, numeric(1)))

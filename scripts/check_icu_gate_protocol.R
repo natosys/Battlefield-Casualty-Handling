@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The Post-Operative Intensive Care Gate section of
-# docs/Multi_Run_Analysis.md prints intensive care utilisation and mortality
+# docs/Results.md prints intensive care utilisation and mortality
 # figures comparing the shipped rationing rule against a configuration that
 # reconstructs the model as it stood before the rule existed. Until Issue
 # #388 none of the numbers behind that section existed in a tracked file: the

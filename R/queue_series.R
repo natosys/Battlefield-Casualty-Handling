@@ -8,7 +8,7 @@
 # functions recover it, summarise it over bins, and report whether it ever
 # cleared. Base R only and independent of every other module, so both
 # R/analysis.R and R/long_horizon.R source it: the campaign figures of
-# docs/Multi_Run_Analysis.md and the long-horizon protocol's block series then
+# docs/Results.md and the long-horizon protocol's block series then
 # measure the same quantity by the same estimator rather than by two
 # implementations that can drift apart.
 

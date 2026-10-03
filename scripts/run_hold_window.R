@@ -8,7 +8,7 @@
 #   Rscript scripts/run_hold_window.R --refresh-baseline
 #   Rscript scripts/run_hold_window.R --iterations 4 --days 10
 #
-# Why this exists. Option 3 of docs/Multi_Run_Analysis.md prints eight paired
+# Why this exists. Option 3 of docs/Results.md prints eight paired
 # differences comparing the shipped 60-minute R2B pre-open window against a
 # window of zero, and until this script existed the comparison had no driver:
 # it was invoked as run.R under a parameter override, so there was no command

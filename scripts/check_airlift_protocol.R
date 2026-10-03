@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. Four replicated experiments have a protocol check
-# asserting that the figures docs/Multi_Run_Analysis.md prints agree with the
+# asserting that the figures docs/Results.md prints agree with the
 # tracked evidence set behind them. This one had none: data/airlift/'s baseline
 # and sweep summaries were read by no check at all, the collapse check covering
 # only the collapse files.

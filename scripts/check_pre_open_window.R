@@ -39,7 +39,7 @@
 # stream, so the two runs are different realisations rather than a controlled
 # comparison, and either count can move either way in any one of them. Both are
 # reported below without gating, and the population-level movement is measured
-# across replications in docs/Multi_Run_Analysis.md instead.
+# across replications in docs/Results.md instead.
 #
 # minutes_to_shift_open() is checked directly as well, over a whole simulated
 # day, since every hold decision rests on it and its two cases (before and

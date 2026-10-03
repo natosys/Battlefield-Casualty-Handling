@@ -37,7 +37,7 @@
 #   6. The paired difference is taken within replication, and its replication
 #      sizing follows the supplement's normal approximation.
 #   7. The tracked data/policy/ summary carries the documented policies and
-#      replication count, and matches the table docs/Multi_Run_Analysis.md
+#      replication count, and matches the table docs/Results.md
 #      prints, row for row.
 #
 # Assertions 3 and 5 are what keep the rest from being circular: the others

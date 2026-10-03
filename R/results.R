@@ -1064,14 +1064,19 @@ res_cells <- function(line) {
 
 #' Resolve a cell reference against the generated tables
 #'
-#' @param ref The reference without the `cell:` prefix: `table|row|column|part`.
+#' @param ref The reference without the `cell:` prefix: `table|row|column|part`, or the
+#'   same four fields separated by `::` where the span sits inside a markdown table row,
+#'   whose cells a pipe would split.
 #' @param data_dir The data directory.
 #' @param tables The registry of table builders to resolve the table name against.
 #' @return The cell text, or its leading number (`mean`) or interval (`ci`).
 res_cell_value <- function(ref, data_dir, tables = RESULTS_TABLES) {
-  p <- strsplit(ref, "|", fixed = TRUE)[[1]]
-  if (length(p) != 4L) stop(sprintf("cell reference '%s' needs table|row|column|part", ref),
-                            call. = FALSE)
+  sep <- if (grepl("::", ref, fixed = TRUE)) "::" else "|"
+  p <- strsplit(ref, sep, fixed = TRUE)[[1]]
+  if (length(p) != 4L) {
+    stop(sprintf("cell reference '%s' needs table%srow%scolumn%spart", ref, sep, sep, sep),
+         call. = FALSE)
+  }
   builder <- tables[[p[1]]]
   if (is.null(builder)) stop(sprintf("no table named '%s'", p[1]), call. = FALSE)
   lines <- builder(data_dir)

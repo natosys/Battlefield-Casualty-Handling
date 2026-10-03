@@ -37,7 +37,7 @@
 #      zero width.
 #   6. The tracked data/airlift/ collapse summary carries the documented
 #      probabilities and replication count, and matches the table
-#      docs/Multi_Run_Analysis.md prints, row for row.
+#      docs/Results.md prints, row for row.
 #   7. The tracked per-replication classification is reproduced by reclassifying
 #      the tracked daily series, so the published table is auditable without
 #      re-running 180 replication-years.

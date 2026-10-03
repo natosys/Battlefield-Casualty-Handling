@@ -6050,28 +6050,36 @@ degraded_care_counts <- function(degraded) {
 #' @details Drawn beneath the rate so that a share is read alongside the number
 #'   of casualties it represents. One panel per intensity, each on its own
 #'   scale, with both stages in it, so the two stages are compared where their
-#'   counts are of one magnitude.
+#'   counts are of one magnitude. Each line is labelled at its end rather than
+#'   keyed in a legend, the two line types being hard to tell apart in a key.
 plot_degraded_care_counts <- function(count_ci) {
   count_ci$stage <- factor(count_ci$stage, levels = names(PATHWAY_STAGES))
+  end_labels <- count_ci %>%
+    group_by(intensity, stage) %>%
+    filter(day == max(day)) %>%
+    ungroup()
   ggplot(count_ci, aes(x = day, colour = intensity, fill = intensity)) +
     geom_ribbon(aes(ymin = q25, ymax = q75, group = stage), alpha = 0.20, colour = NA) +
     geom_line(aes(y = median, linetype = stage), linewidth = 1.0) +
+    geom_text(data = end_labels, aes(y = median, label = stage), hjust = 1, vjust = -0.8,
+              size = 3.6, fontface = "bold", show.legend = FALSE) +
     facet_wrap(~ intensity, ncol = 2, scales = "free_y") +
     scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS, guide = "none") +
     scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS, guide = "none") +
-    scale_linetype_manual(values = c("solid", "dashed")) +
-    scale_y_continuous(labels = scales::comma) +
+    scale_linetype_manual(values = c("solid", "42"), guide = "none") +
+    scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0.02, 0.12))) +
     expand_limits(y = 0) +
     labs(
       subtitle = paste("Casualties who have taken the holding-bed recovery so far in the",
-                       "campaign;\nmedian and interquartile range across replications."),
+                       "campaign, each line labelled\nwith its stage; median and",
+                       "interquartile range across replications."),
       x = "Campaign day", y = "Casualties (cumulative)",
       colour = NULL, fill = NULL, linetype = NULL
     ) +
     theme_minimal(base_size = 12) +
     theme(
       panel.grid.minor = element_blank(),
-      legend.position  = "bottom",
+      legend.position  = "none",
       strip.text       = element_text(face = "bold", hjust = 0)
     )
 }

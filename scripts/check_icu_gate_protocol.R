@@ -84,8 +84,8 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' The methods_text, which documents the experiment's design
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's section
 PAPER_PATH <- file.path("docs", "Results.md")
@@ -102,13 +102,13 @@ PAIRED_PATH <- file.path("data", "icu_gate", "icu_gate_paired.csv")
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
-# ── 1. The code's parameters are the ones the supplement documents ─────────
+# ── 1. The code's parameters are the ones the methods paper documents ─────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one intensive care gate protocol parameter the supplement states
+#' Read one intensive care gate protocol parameter the methods paper states
 #'
 #' @param name Marker name, as it appears after "ICU_GATE ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -118,8 +118,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   guesses which number in a paragraph is the replication count fails for
 #'   reasons that have nothing to do with the protocol.
 icu_gate_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- ICU_GATE %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- ICU_GATE %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- ICU_GATE [^=]+=(.*) -->$", "\\1", m)
 }
@@ -129,7 +129,7 @@ held <- list(replications = ICU_GATE_REPLICATIONS, days = ICU_GATE_DAYS,
 for (param in names(held)) {
   stated <- suppressWarnings(as.numeric(icu_gate_marker(param)))
   report(!is.na(stated) && stated == held[[param]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param, format(stated), format(held[[param]]))
 }
 
@@ -140,10 +140,10 @@ parsed_arms <- if (is.na(stated_arms)) {
   as.integer(trimws(strsplit(stated_arms, ",")[[1]]))
 }
 report(identical(parsed_arms, as.integer(ICU_GATE_ARMS)),
-       "the supplement states the arms %s and the code holds %s",
+       "the methods paper states the arms %s and the code holds %s",
        paste(parsed_arms, collapse = ","), paste(ICU_GATE_ARMS, collapse = ","))
 
-# ── 2. The tracked responses are the experiment the supplement documents ────
+# ── 2. The tracked responses are the experiment the methods paper documents ────
 
 cat("\n-- the tracked evidence set is that experiment --\n")
 

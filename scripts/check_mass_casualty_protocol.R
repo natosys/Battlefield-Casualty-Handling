@@ -70,8 +70,8 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' The methods_text, which documents the experiment's design
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's table
 PAPER_PATH <- file.path("docs", "Results.md")
@@ -91,19 +91,19 @@ TOL <- 1e-8
 #' Tolerance on a figure the paper prints rounded to its last decimal place
 PRINT_TOL <- 0.005
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one mass casualty protocol parameter the supplement states in a marker
+#' Read one mass casualty protocol parameter the methods paper states in a marker
 #'
 #' @param name Marker name, as it appears after "MASS_CASUALTY ".
 #' @return The marker's value as a character string, or NA where absent.
 mass_casualty_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- MASS_CASUALTY %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- MASS_CASUALTY %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- MASS_CASUALTY [^=]+=(.*) -->$", "\\1", m)
 }
@@ -113,7 +113,7 @@ held <- list(replications = MASS_CASUALTY_REPLICATIONS, days = MASS_CASUALTY_DAY
 for (param in names(held)) {
   stated <- suppressWarnings(as.numeric(mass_casualty_marker(param)))
   report(!is.na(stated) && stated == held[[param]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param, format(stated), format(held[[param]]))
 }
 
@@ -124,10 +124,10 @@ parsed_arms <- if (is.na(stated_arms)) {
   as.numeric(trimws(strsplit(stated_arms, ",")[[1]]))
 }
 report(isTRUE(all.equal(parsed_arms, MASS_CASUALTY_ARMS)),
-       "the supplement states the arms %s and the code holds %s",
+       "the methods paper states the arms %s and the code holds %s",
        paste(parsed_arms, collapse = ","), paste(MASS_CASUALTY_ARMS, collapse = ","))
 
-# ── 2. The tracked responses are the experiment the supplement documents ─────
+# ── 2. The tracked responses are the experiment the methods paper documents ─────
 
 cat("\n-- the tracked evidence set is that experiment --\n")
 

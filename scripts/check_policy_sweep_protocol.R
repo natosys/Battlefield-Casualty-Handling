@@ -14,7 +14,7 @@
 # model informs rather than sets, and the sweep behind it costs 150
 # replication-years, so nobody re-runs it to audit a change. Three things have
 # to be checked without running it. Its parameters must be the ones the
-# supplement documents. Its responses must mean what the paper says they mean,
+# methods paper documents. Its responses must mean what the results paper says they mean,
 # which for the two that also exist in the analysis pipeline (returns to duty
 # and the in-theatre share) means agreeing with the pipeline rather than merely
 # being computed: a sweep whose in-theatre share used a different definition
@@ -35,7 +35,7 @@
 #   5. The closing-window pool state reads the window and not the campaign,
 #      asserted on a constructed monitor whose answer is computable by hand.
 #   6. The paired difference is taken within replication, and its replication
-#      sizing follows the supplement's normal approximation.
+#      sizing follows the methods paper's normal approximation.
 #   7. The tracked data/policy/ summary carries the documented policies and
 #      replication count, and matches the table docs/Results.md
 #      prints, row for row.
@@ -81,8 +81,8 @@ report <- function(ok, fmt, ...) {
 #' Companion paper the published table is read from
 PAPER_PATH <- file.path("docs", "Results.md")
 
-#' Supplement the sweep's parameters are read from
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' Methods paper the sweep's parameters are read from
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' Tracked sweep summary the paper's table derives from
 SUMMARY_PATH <- file.path("data", "policy", "policy_sweep.csv")
@@ -112,13 +112,13 @@ TOL <- 1e-8
 #' Tolerance on a figure the paper prints rounded to one decimal place
 PRINT_TOL <- 0.05
 
-# ── 1-2. The code's parameters are the ones the supplement documents ─────────
+# ── 1-2. The code's parameters are the ones the methods paper documents ─────────
 
-cat("\n-- the sweep's parameters match the supplement --\n")
+cat("\n-- the sweep's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one sweep parameter the supplement states in a marker comment
+#' Read one sweep parameter the methods paper states in a marker comment
 #'
 #' @param name Marker name, as it appears after "POLICY ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -127,8 +127,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   because a check that guesses which number in a paragraph is the replication
 #'   count fails for reasons that have nothing to do with the sweep.
 policy_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- POLICY %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- POLICY %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- POLICY [^=]+=(.*) -->$", "\\1", m)
 }
@@ -138,7 +138,7 @@ for (param in list(list("days", POLICY_DAYS_HORIZON),
                    list("window_days", POLICY_WINDOW_DAYS))) {
   stated <- suppressWarnings(as.numeric(policy_marker(param[[1]])))
   report(!is.na(stated) && stated == param[[2]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param[[1]], format(stated), format(param[[2]]))
 }
 
@@ -150,7 +150,7 @@ parsed <- if (is.na(stated_policies)) {
 }
 report(length(parsed) == length(POLICY_DAYS) && !any(is.na(parsed)) &&
          all(parsed == POLICY_DAYS),
-       "the supplement states policies %s and the code holds %s",
+       "the methods paper states policies %s and the code holds %s",
        paste(parsed, collapse = ","), paste(POLICY_DAYS, collapse = ","))
 
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
@@ -310,7 +310,7 @@ report(arm_sd > 10 * sd(differences),
        "each arm's own spread (sd %.1f) dwarfs the paired differences' (sd %.2f)",
        arm_sd, sd(differences))
 
-# The normal approximation the supplement uses, recomputed here rather than
+# The normal approximation the methods paper uses, recomputed here rather than
 # taken from the function, so the assertion has an answer of its own.
 needed <- policy_replications_for(paired_rows, "total_dow", 21L, 30L, 1)
 expected_needed <- ceiling((qnorm(0.975) * sd(differences) / 1)^2)
@@ -320,17 +320,17 @@ report(!is.na(needed) && needed == expected_needed,
 report(is.na(policy_replications_for(paired_rows, "total_dow", 21L, 30L, 0)),
        "a non-positive half-width returns no count rather than an infinite one")
 
-# ── 6a. The establishment sweep's parameters match the supplement ────────────
+# ── 6a. The establishment sweep's parameters match the methods paper ────────────
 
-cat("\n-- the establishment sweep's parameters match the supplement --\n")
+cat("\n-- the establishment sweep's parameters match the methods paper --\n")
 
-#' Read one establishment parameter the supplement states in a marker comment
+#' Read one establishment parameter the methods paper states in a marker comment
 #'
 #' @param name Marker name, as it appears after "ESTABLISHMENT ".
 #' @return The marker's value as a character string, or NA where absent.
 establishment_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- ESTABLISHMENT %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- ESTABLISHMENT %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- ESTABLISHMENT [^=]+=(.*) -->$", "\\1", m)
 }
@@ -339,7 +339,7 @@ for (param in list(list("days", POLICY_DAYS_HORIZON),
                    list("replications", POLICY_REPLICATIONS))) {
   stated <- suppressWarnings(as.numeric(establishment_marker(param[[1]])))
   report(!is.na(stated) && stated == param[[2]],
-         "the supplement states the establishment sweep's %s = %s and the code holds %s",
+         "the methods paper states the establishment sweep's %s = %s and the code holds %s",
          param[[1]], format(stated), format(param[[2]]))
 }
 
@@ -351,7 +351,7 @@ parsed_beds <- if (is.na(stated_beds)) {
 }
 report(length(parsed_beds) == length(POLICY_HOLD_BEDS) && !any(is.na(parsed_beds)) &&
          all(parsed_beds == POLICY_HOLD_BEDS),
-       "the supplement states establishments %s and the code holds %s",
+       "the methods paper states establishments %s and the code holds %s",
        paste(parsed_beds, collapse = ","), paste(POLICY_HOLD_BEDS, collapse = ","))
 
 # ── 6b. The establishment axis reaches the resources it claims to ────────────

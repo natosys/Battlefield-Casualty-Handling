@@ -74,8 +74,8 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' The methods_text, which documents the experiment's design
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's figures
 PAPER_PATH <- file.path("docs", "Results.md")
@@ -100,9 +100,9 @@ TOL <- 1e-8
 #'   three decimals are both covered.
 PRINT_TOL <- 0.005
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
 held <- list(
   replications = SCENARIO_REPLICATIONS,
@@ -111,9 +111,9 @@ held <- list(
   seed         = SCENARIO_SEED
 )
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one scenario protocol parameter the supplement states in a marker
+#' Read one scenario protocol parameter the methods paper states in a marker
 #'
 #' @param name Marker name, as it appears after "SCENARIO ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -123,8 +123,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   number in a paragraph is the replication count fails for reasons that have
 #'   nothing to do with the protocol.
 scenario_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- SCENARIO %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- SCENARIO %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- SCENARIO [^=]+=(.*) -->$", "\\1", m)
 }
@@ -132,7 +132,7 @@ scenario_marker <- function(name) {
 for (param in names(held)) {
   stated <- suppressWarnings(as.numeric(scenario_marker(param)))
   report(!is.na(stated) && stated == held[[param]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param, format(stated), format(held[[param]]))
 }
 
@@ -144,7 +144,7 @@ parsed_profiles <- if (is.na(stated_profiles)) {
   trimws(strsplit(stated_profiles, ",")[[1]])
 }
 report(identical(parsed_profiles, held_profiles),
-       "the supplement states the profiles %s and the code holds %s",
+       "the methods paper states the profiles %s and the code holds %s",
        paste(parsed_profiles, collapse = ","), paste(held_profiles, collapse = ","))
 
 # The closing window is the one part of the estimator that depends on the
@@ -165,7 +165,7 @@ report(abs(closing$mean_q - 0.5) < 1e-9,
        "a longer campaign reads its closing window: %.4f, expected 0.5000",
        closing$mean_q)
 
-# ── 2. The tracked responses are the experiment the supplement documents ─────
+# ── 2. The tracked responses are the experiment the methods paper documents ─────
 
 cat("\n-- the tracked evidence set is that experiment --\n")
 

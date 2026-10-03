@@ -35,7 +35,7 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 # ── The published capacity sweeps' protocol ──────────────────────────────────
 # The designs docs/Methods.md documents for the transport
 # fleet-size sweep and the forward ICU share frontier, held here so that the
-# entry points' baseline refreshes, the supplement's marker comments and
+# entry points' baseline refreshes, the methods paper's marker comments and
 # scripts/check_capacity_sweep_protocol.R read one definition rather than
 # three copies of it.
 
@@ -108,7 +108,7 @@ ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
 # a long-stay convalescent rearward, or some mix of the two, and the two levers
 # are substitutes a planner would price against each other. Held here for the
 # same reason as the sweep constants above it: one definition read by this
-# entry point's baseline refresh and by the supplement's marker comment.
+# entry point's baseline refresh and by the methods paper's marker comment.
 
 #' Replications the published R2B holding threshold sweep runs at, per point
 #'

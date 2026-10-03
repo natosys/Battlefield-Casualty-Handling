@@ -476,7 +476,7 @@ policy_paired_difference <- function(rows, response, from, to,
 #'   pairs give no usable standard deviation.
 #'
 #' @details Uses the measured paired standard deviation and the normal
-#'   approximation $n = (1.96 s / h)^2$, which is what the supplement's
+#'   approximation $n = (1.96 s / h)^2$, which is what the methods paper's
 #'   replication-count derivation uses. Reported so that an unresolved
 #'   difference is stated with the count that would resolve it rather than left
 #'   as a failure to measure.

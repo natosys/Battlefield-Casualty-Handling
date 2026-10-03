@@ -14,7 +14,7 @@
 # docs/Methods.md as a duration, a replication count and a block
 # length, and it is executed from constants in R/long_horizon.R. Nothing held
 # the two together, so a protocol parameter changed in code would leave the
-# supplement describing an experiment the project no longer runs, and a tracked
+# methods paper describing an experiment the project no longer runs, and a tracked
 # series measured under the old parameters would go on being quoted under the
 # new ones.
 #
@@ -29,7 +29,7 @@
 # What this asserts:
 #
 #   1. Every protocol parameter in R/long_horizon.R equals the value the
-#      supplement documents.
+#      methods paper documents.
 #   2. The tracked series carries that duration, that replication count and
 #      every response and scenario the protocol names.
 #   3. The daily reduction agrees with the monitors it was reduced from: pool
@@ -81,7 +81,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' The document the protocol's parameters are published in
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' Directory holding the tracked long-horizon evidence set
 SERIES_DIR <- file.path("data", "long_horizon")
@@ -108,13 +108,13 @@ CHECK_SEED <- 42L
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one protocol parameter the supplement states in a marker comment
+#' Read one protocol parameter the methods paper states in a marker comment
 #'
 #' @param name Marker name, as it appears after "PROTOCOL ".
 #' @return The numeric value the marker carries, or NA where absent.
@@ -124,8 +124,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   count fails for reasons that have nothing to do with the protocol. The
 #'   marker is the author's statement of what the sentence beneath it claims.
 protocol_value <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- PROTOCOL %s=([0-9]+) -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- PROTOCOL %s=([0-9]+) -->", name), methods_text))
   if (length(m) == 0) return(NA_real_)
   as.numeric(gsub("[^0-9]", "", m))
 }
@@ -135,7 +135,7 @@ for (param in list(list("days", LONG_HORIZON_DAYS),
                    list("block_days", LONG_HORIZON_BLOCK_DAYS))) {
   stated <- protocol_value(param[[1]])
   report(!is.na(stated) && stated == param[[2]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param[[1]], format(stated), format(param[[2]]))
 }
 

@@ -18,7 +18,7 @@ source("R/queue_series.R")
 # ── The published comparison's protocol ───────────────────────────────────────
 # The design docs/Methods.md documents for the comparative
 # scenario analysis, held here so that the entry point's baseline refresh, the
-# supplement's marker comments and scripts/check_scenario_protocol.R all read
+# methods paper's marker comments and scripts/check_scenario_protocol.R all read
 # one definition rather than three copies of it.
 
 #' Replications the comparative scenario analysis runs at, per profile

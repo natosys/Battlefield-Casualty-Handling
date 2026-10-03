@@ -539,10 +539,9 @@ link_check_docs <- c(markdown_docs, "CLAUDE.md",
                      "docs/BCH_Simulation_Action_Plan.md",
                      "docs/BCH_Task_Role_Allocation.md",
                      "docs/Getting_Started.md",
-                     "docs/Project_Status_Review.md",
+                     "docs/archive/Project_Status_Review.md",
                      "docs/STYLE_GUIDE.md",
-                     "data/sensitivity/README.md",
-                     "scripts/README.md")
+                     "data/sensitivity/README.md")
 
 for (doc in markdown_docs) {
   update_or_check_toc(doc, "replace")

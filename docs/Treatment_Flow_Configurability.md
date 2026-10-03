@@ -19,7 +19,7 @@ This document evaluates whether the existing configuration mechanism can be exte
 
 Four components make a parameter user-adjustable today.
 
-`env_data.json` holds every configured value. Its `vars` block is a three-level tree of element, activity and variable, carrying 176 leaf values across nine elements. `build_variable_tree()` ([`R/environment.R:315`](../R/environment.R)) flattens it into `env_data$vars$<elm>$<acty>$<var>` for the model to read.
+`env_data.json` holds every configured value. Its `vars` block is a three-level tree of element, activity and variable, carrying 176 leaf values across nine elements. `build_variable_tree()` ([`R/environment.R`](../R/environment.R)) flattens it into `env_data$vars$<elm>$<acty>$<var>` for the model to read.
 
 [`R/app_params.R`](../R/app_params.R) is a field registry mapping each editable value to a Configure-panel widget, its bounds, its tooltip and its provenance citation. `build_param_registry()` assembles roughly two hundred field specifications; `apply_registry_values()` writes an edited set back into the parsed tree.
 
@@ -35,9 +35,9 @@ Three properties of the current code, none of them designed for this purpose, to
 
 **Leaf values are passed through uninterpreted.** `build_variable_tree()` applies no coercion to a value it reads, and the shipped file already carries arrays (the mass casualty schedule) and strings (`"lognormal"`, `"c17a"`) alongside its numbers. A specification of arbitrary shape can therefore live inside the existing `vars` tree without any schema change, and inherits the scenario overlay, the console's Save and Load Configuration handlers and the structural validator without further work. Anything placed outside `vars` inherits none of those.
 
-**The trajectory file is already decomposed into named single-purpose builders.** Roughly eighty of them exist, one per clinical step or decision, each taking its resources as arguments rather than resolving them itself. The two composition roots, `r2b_treat_wia()` ([`R/trajectories.R:1433`](../R/trajectories.R)) and `r2e_treat_wia()` (`:2483`), are the only places that turn an establishment into resource vectors, which makes them the natural point at which a specification would be consumed. Half of a step registry is therefore already present, and `r2e_surgery_block()` (`:1573`), which takes its section, selection identifier, attribute names, efficacy closure and resources as parameters, is a working example of what a fully parameterised step looks like.
+**The trajectory file is already decomposed into named single-purpose builders.** Roughly eighty of them exist, one per clinical step or decision, each taking its resources as arguments rather than resolving them itself. The two composition roots, `r2b_treat_wia()` ([`R/trajectories.R`](../R/trajectories.R)) and `r2e_treat_wia()`, are the only places that turn an establishment into resource vectors, which makes them the natural point at which a specification would be consumed. Half of a step registry is therefore already present, and `r2e_surgery_block()`, which takes its section, selection identifier, attribute names, efficacy closure and resources as parameters, is a working example of what a fully parameterised step looks like.
 
-**A structural switch already exists in configuration.** `r2eheavy.icu_gating.p1_bypass_priority_max` is read at `R/trajectories.R:2260` to decide which arm of the R2E surgical branch a casualty takes, and is exposed to the planner as a dropdown. The `high_intensity` profile goes further and changes a distribution family, not merely a distribution's parameters. Selecting behaviour rather than magnitude from configuration is therefore established practice in this codebase rather than a departure from it.
+**A structural switch already exists in configuration.** `r2eheavy.icu_gating.p1_bypass_priority_max` is read in `r2e_surgical_branch()` to decide which arm of the R2E surgical branch a casualty takes, and is exposed to the planner as a dropdown. The `high_intensity` profile goes further and changes a distribution family, not merely a distribution's parameters. Selecting behaviour rather than magnitude from configuration is therefore established practice in this codebase rather than a departure from it.
 
 The limit of the mechanism is equally clear. Trajectories are built once per run, from closures that read the configuration globals, so any decision that can be made at build time costs nothing at run time. A change requiring a step type the code does not contain, or an echelon the code does not know about, is a different order of work.
 
@@ -47,15 +47,15 @@ The limit of the mechanism is equally clear. Trajectories are built once per run
 
 The first option moves the clinical values still expressed as literals in R into `vars`, and registers each as a Configure-panel field. Seven substantive cases were identified.
 
-| Literal | Location in `R/trajectories.R` | Candidate parameter |
+| Literal | Function in `R/trajectories.R` | Candidate parameter |
 |---|---|---|
-| Priority 1 always proceeds through the R2B surgery gate | `:1091` | An R2B bypass priority threshold, mirroring the R2E field that already exists |
-| Intensive care availability tested as an instantaneous count against capacity, never as a reserve | `:889`, `:1092`, `:1841`, `:2254` | An occupancy fraction, as `select_r2b_for_hold()` (`:163`) already applies to holding beds |
-| R2B holding queue cap derived from a fixed bed-share formula | `:1268` | A configured queue cap share |
-| No bound on how long entry to theatre may be deferred pending a bed | `:1102`, `:1889` | A maximum defer period |
-| Vehicle type fixed per movement leg, by literal key into the transport block | `:517`, `:591`, `:661` | A transport key per leg |
-| Two different selection policies applied to the same R2B holding pool | `:1126` against `:1194` | One configured policy, the divergence appearing unintentional |
-| Critical strategic evacuation restricted to treated Priority 1 casualties | `:2380` | A priority threshold |
+| Priority 1 always proceeds through the R2B surgery gate | `r2b_surgery_gate()` | An R2B bypass priority threshold, mirroring the R2E field that already exists |
+| Intensive care availability tested as an instantaneous count against capacity, never as a reserve | `r2b_post_op_stabilisation()`, `r2b_surgery_gate()`, `r2e_post_definitive_care()`, `r2e_surgical_branch()` | An occupancy fraction, as `select_r2b_for_hold()` already applies to holding beds |
+| R2B holding queue cap derived from a fixed bed-share formula | `r2b_no_surgery_path()` | A configured queue cap share |
+| No bound on how long entry to theatre may be deferred pending a bed | `r2b_surgery_gate()`, `r2e_surgery_defer_path()` | A maximum defer period |
+| Vehicle type fixed per movement leg, by literal key into the transport block | `r1_transport_kia()`, `r1_transport_wia()`, `r2b_transport_kia()` | A transport key per leg |
+| Two different selection policies applied to the same R2B holding pool | `r2b_hold_recovery()` against `r2b_hold_queue_recovery()` | One configured policy, the divergence appearing unintentional |
+| Critical strategic evacuation restricted to treated Priority 1 casualties | `r2e_strategic_evac()` | A priority threshold |
 
 Each is small, independent and suited to its own issue, and each new field is continuous and therefore screenable alongside the existing parameter set. The option changes no topology: it widens the space of configurations a planner can express without adding any new shape to it.
 
@@ -65,7 +65,7 @@ Each is small, independent and suited to its own issue, and each new field is co
 
 The second option introduces a `pathway` activity for each element, whose leaf values are enumerated policy choices read at build time. Because the chosen arm is composed and the alternatives are never constructed, a switch costs nothing at run time and consumes no random draw. Five candidates follow directly from the branch inventory.
 
-A Role 1 forward routing switch would let Role 1 evacuate directly to Role 2 Enhanced, representing a laydown with no Role 2 Basic. A Role 2 Basic surgical switch would reduce that echelon to a non-surgical holding and evacuation function. An intensive-care-full policy switch would choose between the holding-bed fallback, the deferral poll and forward diversion, where the code currently decides between the first two by priority alone. A died-of-wounds checkpoint list would name which of the five checkpoints are live, replacing five hardcoded sites and their literal echelon codes. A roster pattern parameter would generalise the two-shift alternation in `build_env()` ([`R/environment.R:1144`](../R/environment.R)), which is currently a counter taken modulo two, into a shift count with a per-section assignment.
+A Role 1 forward routing switch would let Role 1 evacuate directly to Role 2 Enhanced, representing a laydown with no Role 2 Basic. A Role 2 Basic surgical switch would reduce that echelon to a non-surgical holding and evacuation function. An intensive-care-full policy switch would choose between the holding-bed fallback, the deferral poll and forward diversion, where the code currently decides between the first two by priority alone. A died-of-wounds checkpoint list would name which of the five checkpoints are live, replacing five hardcoded sites and their literal echelon codes. A roster pattern parameter would generalise the two-shift alternation in `build_env()` ([`R/environment.R`](../R/environment.R)), which is currently a counter taken modulo two, into a shift count with a per-section assignment.
 
 Two consequences follow and should be accepted deliberately. A structural switch is not a continuous quantity, so it cannot be screened under Morris or Sobol, and evidence for its effect has to come from replicated comparison runs of the kind the scenario runner already performs. Each switch also adds an arm to the trajectory diagrams in `README.md`, which the project requires to correspond exactly to the code.
 
@@ -115,9 +115,9 @@ Each switch requires its own regression check asserting that its non-default set
 
 `R/trajectories.R` loses the literal sites listed above; a switch is read at the two composition roots, which are already the only functions resolving resources.
 
-`R/environment.R` gains semantic validation of the enumerated values in `validate_env_data_json()` (`:96`), on the pattern of `resolve_ame_airframe()` (`:410`). One defect is worth repairing at the same time: that validator is reached only from the Shiny console, and the command-line entry points parse the configuration file without calling it.
+`R/environment.R` gains semantic validation of the enumerated values in `validate_env_data_json()`, on the pattern of `resolve_ame_airframe()`. One defect is worth repairing at the same time: that validator is reached only from the Shiny console, and the command-line entry points parse the configuration file without calling it.
 
-`R/app_params.R` gains one field per new parameter. Any generated field set must be built with `lapply` rather than a loop, and must force its path arguments, for the reason recorded at `R/app_params.R:428`.
+`R/app_params.R` gains one field per new parameter. Any generated field set must be built with `lapply` rather than a loop, and must force its path arguments, for the reason recorded in the note above `var_field()` in `R/app_params.R`.
 
 `README.md` requires its Simulation Design narrative and its three trajectory diagrams updated, and `docs/Getting_Started.md` its Configure panel field list. Each new regression check joins `scripts/` and the runtime table the suite runner schedules from.
 

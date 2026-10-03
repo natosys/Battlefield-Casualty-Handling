@@ -16,7 +16,7 @@ A **Casualty Intensity Profile** dropdown above the panels switches between the 
 
 ### 2. Run
 
-Set the **Simulation Duration** (days) and **Random Seed** (leave blank for a different draw each run), then choose a mode:
+Set the **Simulation Duration** (days, up to 180 in the console; the project's published experiments run 360 days from the command line, see the README's [Running the simulation](../README.md#running-the-simulation)) and **Random Seed** (leave blank for a different draw each run), then choose a mode:
 
 - **Quick Run** — one replication, ready in well under a minute for a typical 30-day run. Good for a fast first look, or for tuning parameters interactively.
 - **Full Analysis** — runs many independent replications (slider, 10–1000) and reports mean values with 95% confidence intervals. Use this before drawing any conclusion you intend to act on — a single Quick Run reflects one random draw and can be misleading on its own.
@@ -31,7 +31,7 @@ Results appear as a set of tabs (see below). Full Analysis mode adds four KPI su
 
 The last Analyse tab, **Sensitivity Calibration**, is a separate activity from a normal Quick Run/Full Analysis cycle: instead of showing one configuration's results, it tells you which parameters are worth the effort of getting right in the first place. Run it when you want to prioritise where to spend limited data-gathering or expert-consultation effort, not as a routine step. It runs three things, each building on the last:
 
-- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all 78 screened parameters.
+- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all 80 screened parameters.
 - **Run Sobol Decomposition** — a more expensive, more precise variance breakdown, pre-selecting the top 5 parameters Morris ranked highest. Use this to confirm Morris's ranking and see how much of a parameter's effect is independent versus dependent on other parameters.
 - **Run Transport Fleet Sweep** — tests a range of PMV Ambulance/HX240M fleet sizes directly, independent of Morris/Sobol, to see how much margin the current fleet size carries.
 
@@ -69,4 +69,4 @@ Each tab's own on-screen text explains what it shows and why it matters; this is
 
 ## Where to Go for More Detail
 
-This guide covers the workflow; it deliberately leaves out the model's citations, algorithms, and full results narrative. For that, see the [README](../README.md) — in particular the Simulation Design, Model Outputs, and Limitations sections for how the model works and what it does not represent — and the companion documents, [Results.md](Results.md) for the measurements and [Planning_Implications.md](Planning_Implications.md) for their reading as planning options.
+This guide covers the workflow; it deliberately leaves out the model's citations, algorithms, and full results narrative. For that, see the [README](../README.md) — in particular the Simulation Design, Model Outputs and Further Development sections for how the model works and what it does not represent — and the companion documents, [Results.md](Results.md) for the measurements and [Planning_Implications.md](Planning_Implications.md) for their reading as planning options.

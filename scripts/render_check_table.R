@@ -5,8 +5,8 @@
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/render_check_table.R                     # write outputs/Continuous_Integration.md
-#   Rscript scripts/render_check_table.R --refresh-baseline  # rewrite docs/Continuous_Integration.md
+#   Rscript scripts/render_check_table.R                     # render under outputs/
+#   Rscript scripts/render_check_table.R --refresh-baseline  # rewrite the tracked guide
 #
 # Why this exists. The per-check record lived in scripts/README.md, which listed
 # twenty-six of the fifty-odd checks that exist because nothing tied it to the

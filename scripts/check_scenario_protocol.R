@@ -78,7 +78,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's figures
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked casualty totals the published totals table is printed from
 TOTALS_PATH <- file.path("data", "scenarios", "scenario_comparison_totals.csv")
@@ -312,7 +312,7 @@ tracked_value <- function(data, key, value, scenario, column) {
   hit[[column]]
 }
 
-totals_rows <- paper_table("<!-- SCENARIO TOTALS TABLE -->")
+totals_rows <- paper_table("<!-- GEN scenario_totals -->")
 if (!is.null(totals_rows) && !is.null(totals)) {
   header <- table_cells(totals_rows[1])
   # Two intensity columns and a ratio column the paper computes from them.
@@ -330,12 +330,12 @@ if (!is.null(totals_rows) && !is.null(totals)) {
     expected <- vapply(held_profiles, function(s) {
       spec[[3]] * tracked_value(totals, "metric", spec[[2]], s, "mean")
     }, numeric(1))
-    check_published_row("<!-- SCENARIO TOTALS TABLE -->", totals_rows,
+    check_published_row("<!-- GEN scenario_totals -->", totals_rows,
                         spec[[1]], expected, spec[[4]])
   }
 }
 
-queue_rows <- paper_table("<!-- SCENARIO QUEUE TABLE -->")
+queue_rows <- paper_table("<!-- GEN scenario_queue -->")
 if (!is.null(queue_rows) && !is.null(groups)) {
   header <- table_cells(queue_rows[1])
   report(length(header) == length(held_profiles) + 1,
@@ -354,7 +354,7 @@ if (!is.null(queue_rows) && !is.null(groups)) {
     expected <- vapply(held_profiles, function(s) {
       tracked_value(groups, "group", spec[[2]], s, "mean_q")
     }, numeric(1))
-    check_published_row("<!-- SCENARIO QUEUE TABLE -->", queue_rows,
+    check_published_row("<!-- GEN scenario_queue -->", queue_rows,
                         spec[[1]], expected, 3)
   }
 }

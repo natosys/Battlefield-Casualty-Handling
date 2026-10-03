@@ -76,7 +76,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's table
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses, both arms
 REPLICATIONS_PATH <- file.path("data", "hold_window", "hold_window_replications.csv")
@@ -302,7 +302,7 @@ check_published_row <- function(rows, label, response) {
   invisible(NULL)
 }
 
-table_rows <- paper_table("<!-- HOLD WINDOW TABLE -->")
+table_rows <- paper_table("<!-- GEN hold_window -->")
 if (!is.null(table_rows)) {
   labels <- list(
     list("Casualties held at R2B", "held_r2b"),

@@ -74,7 +74,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's table
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses, both arms
 REPLICATIONS_PATH <- file.path("data", "mass_casualty", "mass_casualty_replications.csv")
@@ -315,7 +315,7 @@ check_dow_row <- function(rows, label, origin) {
   invisible(NULL)
 }
 
-table_rows <- paper_table("<!-- MASS CASUALTY TABLE -->")
+table_rows <- paper_table("<!-- GEN mass_casualty -->")
 if (!is.null(table_rows)) {
   check_count_row(table_rows, "Average total casualties/run", "total_casualties", digits = 1)
   check_count_row(table_rows, "Average events/run", "n_events", digits = 2)

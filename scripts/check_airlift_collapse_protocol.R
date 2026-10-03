@@ -77,7 +77,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' Companion paper the published table is read from
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Supplement the protocol parameters are read from
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
@@ -94,8 +94,8 @@ SERIES_PATH <- file.path("data", "airlift", "airlift_collapse_series.csv.gz")
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
-#' Tolerance on a figure the paper prints rounded to one decimal place
-PRINT_TOL <- 0.05
+#' Tolerance on a figure the paper prints rounded to two decimal places
+PRINT_TOL <- 0.006
 
 # ── 1. The code's parameters are the ones the supplement documents ───────────
 
@@ -298,14 +298,14 @@ if (!file.exists(SUMMARY_PATH)) {
     }
     counts <- as.numeric(regmatches(fields[2],
                                     gregexpr("[0-9]+", fields[2]))[[1]])
-    median_queue <- as.numeric(fields[5])
-    worst_queue <- as.numeric(fields[6])
+    median_queue <- as.numeric(fields[4])
+    worst_queue <- as.numeric(fields[5])
     report(counts[1] == arm$n_collapsed && counts[2] == arm$n_reps,
            "the paper's %s row states %d of %d and the data holds %d of %d",
            fields[1], counts[1], counts[2], arm$n_collapsed, arm$n_reps)
     report(abs(median_queue - arm$median_queue) < PRINT_TOL &&
              abs(worst_queue - arm$worst_queue) < PRINT_TOL,
-           "its median %.2f and worst %.1f match the data's %.2f and %.1f",
+           "its median %.2f and worst %.2f match the data's %.2f and %.2f",
            median_queue, worst_queue, arm$median_queue, arm$worst_queue)
   }
 }

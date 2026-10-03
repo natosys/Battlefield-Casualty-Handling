@@ -78,7 +78,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's figures
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses
 RESPONSE_PATH <- file.path("data", "airlift", "airlift_replications.csv")
@@ -304,7 +304,7 @@ if (!file.exists(SUMMARY_PATH)) {
     list("Role 4 peak occupancy", "role4_peak", 1, 2),
     list("Days the peak falls before", "role4_peak_after_end", -1, 2)
   )
-  check_published_table("<!-- AIRLIFT BASELINE TABLE -->", baseline_arms, baseline_rows)
+  check_published_table("<!-- GEN airlift_baseline -->", baseline_arms, baseline_rows)
 
   interval_arms <- data.frame(arm = "interval", value = AIRLIFT_SORTIE_INTERVALS)
   interval_rows <- list(
@@ -313,7 +313,7 @@ if (!file.exists(SUMMARY_PATH)) {
     list("Share of R2E holding beds", "hold_evac_share", 100, 0),
     list("Ventilated pre-flight", "ventilated_hold_hours", 1, 2)
   )
-  check_published_table("<!-- AIRLIFT INTERVAL TABLE -->", interval_arms, interval_rows)
+  check_published_table("<!-- GEN airlift_interval -->", interval_arms, interval_rows)
 
   reliability_arms <- data.frame(arm = "reliability",
                                  value = AIRLIFT_FAILURE_PROBABILITIES)
@@ -323,7 +323,7 @@ if (!file.exists(SUMMARY_PATH)) {
     list("Mean wait \\(days\\)", "mean_wait_days", 1, 2),
     list("Share of R2E holding beds", "hold_evac_share", 100, 0)
   )
-  check_published_table("<!-- AIRLIFT RELIABILITY TABLE -->", reliability_arms,
+  check_published_table("<!-- GEN airlift_reliability -->", reliability_arms,
                         reliability_rows)
 }
 

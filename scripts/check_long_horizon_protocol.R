@@ -293,7 +293,7 @@ report(all(b$ci_lower < b$mean & b$mean < b$ci_upper),
 cat("\n-- the published stability reading matches the tracked evidence --\n")
 
 #' The paper the stability reading is published in
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 stability_path <- file.path(SERIES_DIR, "long_horizon_stability.csv")
 blocks_path    <- file.path(SERIES_DIR, "long_horizon_blocks.csv")
@@ -338,7 +338,7 @@ if (!all(file.exists(stability_path, blocks_path))) {
   )
 
   paper <- readLines(PAPER_PATH, warn = FALSE)
-  at <- grep("<!-- LONG HORIZON STABILITY TABLE -->", paper, fixed = TRUE)
+  at <- grep("<!-- GEN long_horizon_stability -->", paper, fixed = TRUE)
   report(length(at) == 1, "the paper carries one stability table marker (found %d)",
          length(at))
   if (length(at) == 1) {

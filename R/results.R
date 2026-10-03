@@ -644,6 +644,26 @@ build_airlift_collapse <- function(data_dir) {
               "Median closing-window queue", "Worst closing-window queue"), rows)
 }
 
+#' Died-of-wounds rate by post-operative recovery pathway under the rationing rule
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: casualty-replications, deaths and the pooled rate for
+#'   each pathway in the arm where the rule is in force.
+#'
+#' @details Pooled over replications rather than averaged per replication, most
+#'   replications carrying a handful of deaths on each pathway.
+build_icu_gate_pathways <- function(data_dir) {
+  r <- res_read("icu_gate/icu_gate_replications.csv", data_dir)
+  on <- r[r$gate_enabled == 1, ]
+  one <- function(label, n, d) {
+    c(label, res_num(n, 0L, big = TRUE), res_num(d, 0L, big = TRUE),
+      paste0(res_num(100 * d / n, 2L), "%"))
+  }
+  res_table(c("Recovery pathway", "Casualty-replications", "Died of wounds", "Rate"),
+            list(one("Intensive care bed", sum(on$icu_pathway_n), sum(on$icu_pathway_dow)),
+                 one("Holding bed", sum(on$hold_pathway_n), sum(on$hold_pathway_dow))))
+}
+
 #' Paired comparisons and the half-width each was sized against
 #'
 #' @details One entry per paired difference the resolution table prints: the
@@ -1018,6 +1038,7 @@ RESULTS_TABLES <- list(
   queue_clearance = build_queue_clearance,
   degraded_care = build_degraded_care,
   icu_gate = build_icu_gate,
+  icu_gate_pathways = build_icu_gate_pathways,
   airlift_collapse = build_airlift_collapse,
   resolution = build_resolution,
   morris_top = build_morris_top,

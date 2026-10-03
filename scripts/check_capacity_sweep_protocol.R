@@ -72,7 +72,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints both tables
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked transport fleet-size sweep, shipped configuration
 TRANSPORT_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_size.csv")
@@ -405,7 +405,7 @@ if (!is.null(transport)) {
   #' @return Logical vector selecting that sweep point's row.
   truck_at <- function(q) transport$vehicle == "HX240M" & transport$qty == q
 
-  check_published_table("<!-- TRANSPORT SWEEP TABLE -->", sizes, list(
+  check_published_table("<!-- GEN transport -->", sizes, list(
     list(1, column_reader(transport, ambulance_at, "mean_q"), 1, 4),
     list(2, column_reader(transport, truck_at, "mean_q"), 1, 4)
   ))
@@ -428,7 +428,7 @@ if (!is.null(transport_high)) {
   #' @return Logical vector selecting that sweep point's row.
   truck_at_high <- function(q) transport_high$vehicle == "HX240M" & transport_high$qty == q
 
-  check_published_table("<!-- TRANSPORT SWEEP TABLE HIGH INTENSITY -->", sizes, list(
+  check_published_table("<!-- GEN transport_high -->", sizes, list(
     list(1, column_reader(transport_high, ambulance_at_high, "mean_q"), 1, 4),
     list(2, column_reader(transport_high, truck_at_high, "mean_q"), 1, 4)
   ))
@@ -449,7 +449,7 @@ if (!is.null(icu_share)) {
   #' @return A function of one printed share returning that column's value.
   icu_column <- function(column) column_reader(icu_share, share_at, column)
 
-  check_published_table("<!-- ICU SHARE TABLE -->", 100 * sort(shares), list(
+  check_published_table("<!-- GEN icu_share -->", 100 * sort(shares), list(
     list(1, icu_column("mean_r2e_icu_q"), 1, 3),
     list(2, icu_column("mean_r2b_icu_util"), 100, 1),
     list(3, icu_column("mean_r2e_icu_util"), 100, 1),
@@ -491,9 +491,9 @@ if (!is.null(hold_threshold)) {
     )
   }
 
-  check_published_table("<!-- HOLD THRESHOLD SWEEP BED AXIS TABLE -->", c(5, 7, 10),
+  check_published_table("<!-- GEN hold_threshold_beds -->", c(5, 7, 10),
                         hold_columns(beds_at))
-  check_published_table("<!-- HOLD THRESHOLD SWEEP THRESHOLD AXIS TABLE -->", c(0, 1, 3, 5, 7),
+  check_published_table("<!-- GEN hold_threshold_threshold -->", c(0, 1, 3, 5, 7),
                         hold_columns(threshold_at))
 }
 

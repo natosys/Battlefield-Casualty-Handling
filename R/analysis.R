@@ -4973,9 +4973,9 @@ pool_rep_kpis <- function(mon, pattern, n_days, establishment,
 #'   establishment qty (e.g. from env_data.json's `transports` block).
 #' @param n_rep Replications per fleet-size point, for the plot subtitle;
 #'   NULL (default) uses a subtitle with no replication count.
-#' @param scenario Name of the scenario profile the sweep ran under, for the
-#'   plot subtitle; "default" (the default) omits it, since that is the
-#'   configuration every other figure in this file is drawn from.
+#' @param scenario Name of the scenario profile the sweep ran under, named in
+#'   the plot title; "default" (the default) is labelled as the shipped
+#'   moderate-intensity configuration.
 #' @return ggplot object: four panels arranged as a 2x2 grid — one column
 #'   per vehicle type (PMV Ambulance, HX240M), one row per metric (Mean
 #'   Queue, Pool Occupancy) — each showing that metric vs fleet size, with
@@ -5022,9 +5022,12 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
   } else {
     NULL
   }
-  if (!identical(scenario, "default")) {
-    scenario_note <- sprintf("%s profile", scenario)
-    subtitle <- if (is.null(subtitle)) scenario_note else paste(subtitle, scenario_note, sep = ", ")
+  # Every title names the casualty profile it was drawn under, the shipped
+  # configuration included, so two sweeps printed together cannot be confused.
+  scenario_note <- if (identical(scenario, "default")) {
+    "Moderate Intensity (Shipped Configuration)"
+  } else {
+    tools::toTitleCase(paste(gsub("_", " ", scenario), "profile"))
   }
 
   ggplot(plot_df, aes(x = qty, y = mean)) +
@@ -5039,7 +5042,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
     scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
     scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
     scale_linetype_manual(name = NULL, values = c("Current Fleet Size" = "dashed")) +
-    labs(title = "Transport Fleet Capacity Margin by Fleet Size",
+    labs(title = paste("Transport Fleet Capacity Margin by Fleet Size,", scenario_note),
          subtitle = subtitle,
          x = "Fleet Size (vehicles)", y = NULL) +
     theme_minimal(base_size = 13) +

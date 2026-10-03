@@ -36,6 +36,115 @@ MORRIS_CATEGORY_LABELS <- c(
   "Policy"   = "Health System Design - Policy"
 )
 
+#' Plain-English label per screened parameter, keyed by morris_params$name
+MORRIS_LABELS <- c(
+  surg_mode              = "Surgery Duration (Mode)",
+  long_resus_mode        = "Long Resuscitation Duration (Mode)",
+  p1_p_max               = "Priority 1 DOW Ceiling",
+  r1_transport           = "R1 Transport Time (Mode)",
+  r2b_transport          = "R2B Transport Time (Mode)",
+  stabilisation_icu_mode = "Stabilisation ICU Requirement (Mode)",
+  pri1_surg_prob         = "Priority 1 Surgical Candidacy",
+  evacuation_policy_days = "Theatre Evacuation Policy (Days)",
+  ot_hours               = "OT Shift Length (Hours per Shift)",
+  mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
+  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
+
+  # ── Labels for the parameters the full-coverage audit added ─────────────
+  short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
+  r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
+  r2e_hold_mode                 = "R2E Base Recovery-to-Duty Duration (Mode)",
+  post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
+  r1_recovery_mode               = "R1 Battle Fatigue Hold Duration (Mode)",
+  r1_wia_treat_mode              = "R1 WIA Treatment Time (Mode)",
+
+  pri2_surg_prob            = "Priority 2 Surgical Candidacy",
+  pri3_dnbi_surg_prob       = "Priority 3 DNBI Surgical Candidacy",
+  pri3_other_surg_prob      = "Priority 3 Other Surgical Candidacy",
+  disease_surgery_pct        = "Disease Surgical Candidacy",
+  pri1_evac_prob             = "Priority 1 Strategic Evacuation Rate",
+  pri2_evac_prob             = "Priority 2 Strategic Evacuation Rate",
+
+  p1_p_base = "Priority 1 DOW Base Probability",
+  p1_k      = "Priority 1 DOW Logistic Steepness",
+  p1_t_mid  = "Priority 1 DOW Logistic Midpoint",
+  p2_p_base = "Priority 2 DOW Base Probability",
+  p2_p_max  = "Priority 2 DOW Ceiling",
+  p2_k      = "Priority 2 DOW Logistic Steepness",
+  p2_t_mid  = "Priority 2 DOW Logistic Midpoint",
+  p3_flat   = "Priority 3 Flat DOW Probability",
+
+  r1_tccc_factor           = "R1 TCCC Efficacy Factor",
+  r2b_resus_factor         = "R2B/R2E DCR (Resus) Efficacy Factor",
+  r2b_dcs_factor           = "R2B DCS Efficacy Factor",
+  r2e_resus_factor         = "R2E DCR (Resus) Efficacy Factor",
+  r2e_dcs1_factor          = "R2E DCS 1st-Op Efficacy Factor",
+  r2e_dcs2_factor          = "R2E DCS 2nd-Op Efficacy Factor",
+  r2e_postop_hold_penalty  = "R2E Post-Op Hold DOW Penalty (Multiplier)",
+  r2b_icu_penalty          = "R2B Forward ICU DOW Penalty (Multiplier)",
+
+  wia_cbt_mean  = "WIA — Combat Mean Daily Rate",
+  kia_cbt_mean  = "KIA — Combat Mean Daily Rate",
+  dnbi_cbt_mean = "DNBI — Combat Mean Daily Rate",
+  wia_spt_mean  = "WIA — Support Mean Daily Rate",
+  kia_spt_mean  = "KIA — Support Mean Daily Rate",
+  dnbi_spt_mean = "DNBI — Support Mean Daily Rate",
+
+  mass_casualty_min_cas = "Mass Casualty Event Size (Minimum)",
+
+  fr_demand_interval_days = "Reinforcement Demand Cycle (Days)",
+  fr_fulfillment_lag_days = "Reinforcement Fulfillment Lag (Days)",
+  fr_fill_mode_frac       = "Reinforcement Fill Distribution (Mode)",
+
+  ame_schedule_interval_days = "AME Sortie Interval (Days)",
+  ame_failure_probability    = "AME Sortie Cancellation Probability",
+
+  r2b_icu_share        = "R2B Forward ICU Share",
+  r2b_forward_hold_max = "R2B Forward Hold Time Limit (Minutes)",
+  post_definitive_icu_mode = "R2E Post-Definitive ICU Duration (Mode)",
+  r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold",
+  r2b_pre_open_window = "R2B Pre-Open Hold Window (Minutes)",
+
+  pri1_dcs_rate = "Priority 1 Damage Control Rate",
+  pri2_dcs_rate = "Priority 2 Damage Control Rate",
+  pri3_dcs_rate = "Priority 3 Damage Control Rate",
+
+  # ── R2E establishment bed counts (Issue #410) ────────────────────────────
+  r2e_icu_beds  = "R2E Intensive Care Bed Count",
+  r2e_hold_beds = "R2E Holding Bed Count",
+
+  # ── Composition balance coordinates ──────────────────────────────────────
+  # A balance carries a mu* for a contrast between parts, not for a single
+  # named share, so each label names the two sides of its contrast — without
+  # that, a reader has no way to tell what a high mu* on one of these means.
+  triage_p1_balance    = "Triage Balance — Priority 1 against Priority 2 and 3",
+  triage_p2_p3_balance = "Triage Balance — Priority 2 against Priority 3",
+  dnbi_disease_balance = "DNBI Balance — Disease against Battle Fatigue and NBI",
+  dnbi_bf_nbi_balance  = "DNBI Balance — Battle Fatigue against Non-Battle Injury",
+  mc_p1_balance        = "Mass Casualty Triage Balance — Priority 1 against Priority 2 and 3",
+  mc_p2_p3_balance     = "Mass Casualty Triage Balance — Priority 2 against Priority 3",
+  reconstruction_share                  = "Role 4 Reconstruction Cohort Share",
+  role4_return_interval_mode            = "Role 4 Reconstruction Return Interval (Mode)",
+  role4_post_reconstruction_return_rate = "Role 4 Post-Reconstruction Return-to-Duty Rate",
+  role4_los_p1_surgical_mode            = "Role 4 Length of Stay — P1 Surgical (Mode)",
+  role4_los_p1_nonsurgical_mode         = "Role 4 Length of Stay — P1 Non-Surgical (Mode)",
+  role4_los_p2_mode                     = "Role 4 Length of Stay — P2 (Mode)",
+  role4_los_p3_dnbi_mode                = "Role 4 Length of Stay — P3 / DNBI (Mode)",
+  role4_icu_continuation_mode           = "Role 4 ICU-Continuation Phase Duration (Mode)",
+  r2e_vent_share                        = "R2E Pre-Flight Critical Hold Ventilated Share",
+  r2e_critical_hold_mode                = "R2E Pre-Flight Critical Hold Duration (Mode)",
+  saturation_queue_threshold            = "Forward Theatre Saturation Release Threshold",
+  r2b_evac_threshold                    = "R2B Holding Evacuation Threshold",
+  mass_casualty_kia_fraction            = "Mass Casualty Wounded/Killed Split"
+)
+
+#' Parameters labelled on a Morris scatter plot, the most important by mu*
+#'
+#' @details Labelling every one of eighty points buries the few that matter
+#'   under overlapping text. The rest are drawn unlabelled; the full ranking
+#'   is in the tracked CSV beside each plot.
+MORRIS_PLOT_LABEL_TOP_N <- 12L
+
 #' Render a Morris mu*/sigma scatter plot with overlap-avoiding, category-coloured labels
 #'
 #' @param obj A tell()-populated morris object (has a populated $ee matrix)
@@ -71,15 +180,19 @@ plot_morris_scatter <- function(obj, title) {
   sigma   <- apply(ee, 2, sd, na.rm = TRUE)
   df <- data.frame(parameter = colnames(ee), mu_star = mu_star, sigma = sigma)
   df$category <- MORRIS_CATEGORY_LABELS[morris_params$category[match(df$parameter, morris_params$name)]]
+  # The PNG device in this project's environments lacks an em dash glyph.
+  plain <- gsub(" — ", ": ", unname(MORRIS_LABELS[df$parameter]), fixed = TRUE)
+  df$label <- ifelse(rank(-df$mu_star, ties.method = "first") <= MORRIS_PLOT_LABEL_TOP_N,
+                     ifelse(is.na(plain), df$parameter, plain), "")
 
   if (all(!is.finite(df$mu_star)) || all(!is.finite(df$sigma))) {
     stop("insufficient variation to plot")
   }
 
-  ggplot(df, aes(x = mu_star, y = sigma, label = parameter, color = category)) +
+  ggplot(df, aes(x = mu_star, y = sigma, label = label, color = category)) +
     geom_point(size = 2) +
     ggrepel::geom_text_repel(
-      size = 3, max.overlaps = Inf, segment.size = 0.25,
+      size = 3.3, max.overlaps = Inf, segment.size = 0.25,
       show.legend = FALSE, min.segment.length = 0,
       box.padding = 0.3, point.padding = 0.15, seed = 42
     ) +
@@ -90,7 +203,10 @@ plot_morris_scatter <- function(obj, title) {
     # tofu boxes), where base R's plotmath typesets the same symbols as
     # vector glyphs independent of font coverage — matching the axis labels
     # base R's plot.morris() (the function this replaced) always produced.
-    labs(title = title,
+    labs(title = gsub(" — ", ": ", title, fixed = TRUE),
+         subtitle = sprintf(paste("The %d parameters of largest importance are labelled;",
+                                  "the full ranking is in the ranking CSV."),
+                            MORRIS_PLOT_LABEL_TOP_N),
          x = expression(mu * "* (importance)"),
          y = expression(sigma * " (nonlinearity / interaction)")) +
     theme_minimal(base_size = 12) +

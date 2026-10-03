@@ -165,7 +165,7 @@ for (id in unique(block_id[carries_span])) {
   }
 }
 report(length(unlinked) == 0L,
-       "every paragraph or table row carrying a quoted figure links its results section (%d without: %s)",
+       "every paragraph or row carrying a quoted figure links its results section (%d without: %s)",
        length(unlinked), paste(utils::head(unlinked, 2), collapse = " / "))
 
 linked <- unique(sub("^.*\\(Results\\.md#([a-z0-9-]+)\\).*$", "\\1",
@@ -209,8 +209,8 @@ if (length(at) == 1L) {
     needed <- c(needed, slug(if (length(subs)) subs else sub("^## ", "", heading)))
   }
   table_text <- paste(rows, collapse = " ")
-  absent <- needed[!vapply(needed, function(a) grepl(sprintf("(Results.md#%s)", a), table_text,
-                                                   fixed = TRUE), logical(1))]
+  linked_in_table <- function(a) grepl(sprintf("(Results.md#%s)", a), table_text, fixed = TRUE)
+  absent <- needed[!vapply(needed, linked_in_table, logical(1))]
   report(length(absent) == 0L && length(needed) > 0L,
          "the lever table links every lever section of the results paper (absent: %s)",
          paste(absent, collapse = ", "))

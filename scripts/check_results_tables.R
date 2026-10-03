@@ -151,7 +151,8 @@ resolution <- build_resolution(toy_dir)
 report(length(resolution) == length(RESOLUTION_ROWS) + 2L,
        "the resolution table has one row per comparison (%d lines)", length(resolution))
 report(identical(res_cells(resolution[3]),
-                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "2.0", "1,234")),
+                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "2.0",
+                   "1,234")),
        "a resolution row prints the difference, the half-width and the replications: %s",
        resolution[3])
 report(inherits(try(build_resolution(file.path(toy_dir, "missing")), silent = TRUE), "try-error"),

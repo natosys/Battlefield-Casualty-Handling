@@ -72,7 +72,7 @@ report <- function(ok, fmt, ...) {
 SERIES_DIR <- file.path("data", "time_series")
 
 #' The paper the clearance percentages are quoted in
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Campaign length the tracked series was measured over, in days
 HORIZON_DAYS <- 360
@@ -151,36 +151,41 @@ medians <- clearance %>%
   group_by(intensity, pool) %>%
   summarise(median_zero_share = median(zero_share), .groups = "drop")
 
-#' Every clearance claim the paper states, as intensity, pool and percentage
+#' Every clearance claim the results paper states, as intensity, pool and percentage
 #'
 #' @return Data frame of intensity, pool and stated_pct, one row per claim.
 #'
-#' @details A claim is written in the paper as an HTML comment naming the
-#'   intensity and pool, immediately followed by the sentence stating the
-#'   figure. Marking the claims rather than parsing the prose for percentages
-#'   is deliberate: prose changes, and a check that guesses which number in a
-#'   paragraph is the measured one fails for reasons that have nothing to do
-#'   with the measurement. The marker is the author's statement of what the
-#'   sentence beneath it is claiming.
+#' @details The claims are the share-of-campaign-empty cells of the generated
+#'   `queue_clearance` table, one per pool and intensity. The table is read from the
+#'   document rather than regenerated, so a figure drifting from the tracked series
+#'   is seen here, and a missing span or column fails rather than checking nothing.
 paper_claims <- function() {
-  marks <- grep("^<!-- CLEARANCE ", paper)
-  if (length(marks) == 0) return(NULL)
-  bind_rows(lapply(marks, function(i) {
-    parts <- regmatches(paper[i],
-                        regexec("^<!-- CLEARANCE ([^|]+)\\|([^|]+)\\|([0-9.]+) -->$",
-                                paper[i]))[[1]]
-    if (length(parts) != 4) {
-      fail("unparseable clearance marker at %s line %d: %s", PAPER_PATH, i, paper[i])
-      return(NULL)
-    }
-    data.frame(intensity = trimws(parts[2]), pool = trimws(parts[3]),
-               stated_pct = as.numeric(parts[4]))
+  open <- grep("<!-- GEN queue_clearance -->", paper, fixed = TRUE)
+  if (length(open) != 1) return(NULL)
+  rest <- paper[(open + 1):length(paper)]
+  rows <- rest[seq_len(which(grepl("^<!-- /GEN", rest))[1] - 1)]
+  cells <- lapply(rows, function(r) {
+    trimws(strsplit(sub("^\\|", "", sub("\\|$", "", r)), "\\|")[[1]])
+  })
+  head <- cells[[1]]
+  columns <- c("Moderate intensity" = "Moderate: queue empty",
+               "High intensity" = "High: queue empty")
+  if (!all(columns %in% head)) {
+    fail("the clearance table lacks a queue-empty column (found: %s)",
+         paste(head, collapse = " | "))
+    return(NULL)
+  }
+  bind_rows(lapply(cells[-(1:2)], function(cl) {
+    bind_rows(lapply(names(columns), function(intensity) {
+      data.frame(intensity = intensity, pool = cl[1],
+                 stated_pct = as.numeric(sub("%", "", cl[match(columns[[intensity]], head)])))
+    }))
   }))
 }
 
 claims <- paper_claims()
 report(!is.null(claims) && nrow(claims) > 0,
-       "the paper carries at least one marked clearance claim (%d found)",
+       "the results paper prints clearance claims (%d found)",
        if (is.null(claims)) 0L else nrow(claims))
 
 if (!is.null(claims) && nrow(claims) > 0) {

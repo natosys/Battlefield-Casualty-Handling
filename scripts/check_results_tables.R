@@ -16,13 +16,13 @@
 # preceded it because a table was guarded and the sentences around it were not,
 # so a figure re-run in one place stayed stale in another. In Results.md every
 # table and every quoted figure is a generated span, and this check asserts
-# four things about that arrangement: that re-rendering the document from the
+# three things about that arrangement: that re-rendering the document from the
 # tracked data reproduces it exactly, that the builders and the cell reader are
 # correct on inputs whose answers are computable by hand (so a document agreeing
-# with its builders is not two copies of one error), that every table the paper
-# `docs/Multi_Run_Analysis.md` prints from the same evidence is identical to
-# the generated one while both exist, and that nothing in Results.md states a
-# figure outside a span or an interpretation the document disclaims.
+# with its builders is not two copies of one error), and that nothing in
+# Results.md states a figure outside a span or an interpretation the document
+# disclaims. The protocol checks read the tables this document prints, so each
+# experiment's table is asserted against its tracked evidence there.
 
 invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
 
@@ -30,29 +30,6 @@ source("R/results.R")
 
 #' The document under test
 RESULTS_PATH <- file.path("docs", "Results.md")
-
-#' The paper whose tables must equal the generated ones while both exist
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
-
-#' Marker the paper uses for each table a builder reproduces
-PAPER_MARKERS <- c(
-  scenario_totals = "SCENARIO TOTALS TABLE",
-  scenario_queue = "SCENARIO QUEUE TABLE",
-  long_horizon_stability = "LONG HORIZON STABILITY TABLE",
-  hold_threshold_beds = "HOLD THRESHOLD SWEEP BED AXIS TABLE",
-  hold_threshold_threshold = "HOLD THRESHOLD SWEEP THRESHOLD AXIS TABLE",
-  hold_window = "HOLD WINDOW TABLE",
-  transport = "TRANSPORT SWEEP TABLE",
-  transport_high = "TRANSPORT SWEEP TABLE HIGH INTENSITY",
-  icu_share = "ICU SHARE TABLE",
-  policy = "POLICY TABLE",
-  establishment = "ESTABLISHMENT TABLE",
-  saturation = "SATURATION TABLE",
-  mass_casualty = "MASS CASUALTY TABLE",
-  airlift_baseline = "AIRLIFT BASELINE TABLE",
-  airlift_interval = "AIRLIFT INTERVAL TABLE",
-  airlift_reliability = "AIRLIFT RELIABILITY TABLE"
-)
 
 #' Percentages a sentence may state without being a measured figure
 #'
@@ -81,19 +58,6 @@ report <- function(ok, fmt, ...) {
   msg <- sprintf(fmt, ...)
   cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", msg))
   if (!ok) fail("%s", msg)
-}
-
-#' The lines of the table that follows a paper marker
-#'
-#' @param lines The paper as a character vector.
-#' @param marker The marker text without its comment delimiters.
-#' @return The table lines, or NULL when the marker is absent.
-paper_table_lines <- function(lines, marker) {
-  at <- which(lines == sprintf("<!-- %s -->", marker))
-  if (length(at) != 1L) return(NULL)
-  rest <- lines[(at + 1L):length(lines)]
-  if (length(rest) && !nzchar(rest[1])) rest <- rest[-1L]
-  rest[seq_len(which(!grepl("^\\|", rest))[1] - 1L)]
 }
 
 # ── 1. The document reproduces from the tracked evidence ────────────────────
@@ -156,17 +120,53 @@ report(identical(once, "before <!-- GEN cell:toy|x|B|full -->7<!-- /GEN --> afte
 report(identical(render_results(once, ".", toy_tables), once),
        "rendering twice gives the same text as rendering once")
 
-# ── 3. The paper's tables equal the generated ones while both exist ─────────
+# ── 3. The resolution and pathway tables are correct on inputs computable by hand ──
 
-cat("\n-- the paper's tables equal the generated tables --\n")
+cat("\n-- the resolution and pathway tables are correct on hand-computed inputs --\n")
 
-paper <- readLines(PAPER_PATH, encoding = "UTF-8", warn = FALSE)
-for (name in names(PAPER_MARKERS)) {
-  printed <- paper_table_lines(paper, PAPER_MARKERS[[name]])
-  generated <- as.character(RESULTS_TABLES[[name]]("data"))
-  report(!is.null(printed) && identical(as.character(printed), generated),
-         "the paper's %s table equals the generated one", name)
+toy_dir <- file.path(tempdir(), "results_toy")
+for (d in c("hold_window", "icu_gate", "policy")) {
+  dir.create(file.path(toy_dir, d), recursive = TRUE, showWarnings = FALSE)
 }
+#' Write one paired-difference file whose every row carries the same known figures
+#'
+#' @param path Path under the toy data directory.
+#' @param keys Data frame of response, from and to, one row per paired comparison.
+#' @param extra Named list of further columns, such as the swept arm column.
+#' @return The path written, invisibly; called for its side effect.
+write_toy_paired <- function(path, keys, extra = NULL) {
+  d <- cbind(keys, n_pairs = 30L, difference = 0.5, ci_lower = -1, ci_upper = 2,
+             p_value = 0.4, reps_needed = 1234L)
+  if (!is.null(extra)) d <- cbind(d, extra)
+  write.csv(d, file.path(toy_dir, path), row.names = FALSE)
+}
+spec_files <- unique(vapply(RESOLUTION_ROWS, function(r) r[[1]], character(1)))
+for (path in spec_files) {
+  rows <- Filter(function(r) identical(r[[1]], path), RESOLUTION_ROWS)
+  write_toy_paired(path, data.frame(response = vapply(rows, function(r) r[[2]], character(1)),
+                                    from = vapply(rows, function(r) r[[4]], numeric(1)),
+                                    to = vapply(rows, function(r) r[[5]], numeric(1))))
+}
+resolution <- build_resolution(toy_dir)
+report(length(resolution) == length(RESOLUTION_ROWS) + 2L,
+       "the resolution table has one row per comparison (%d lines)", length(resolution))
+report(identical(res_cells(resolution[3]),
+                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "2.0",
+                   "1,234")),
+       "a resolution row prints the difference, the half-width and the replications: %s",
+       resolution[3])
+report(inherits(try(build_resolution(file.path(toy_dir, "missing")), silent = TRUE), "try-error"),
+       "a resolution table over absent evidence is an error rather than an empty table")
+
+write.csv(data.frame(gate_enabled = c(1, 1, 0), icu_pathway_n = c(100, 300, 5),
+                     icu_pathway_dow = c(1, 1, 0), hold_pathway_n = c(1000, 3000, 7),
+                     hold_pathway_dow = c(2, 6, 0)),
+          file.path(toy_dir, "icu_gate", "icu_gate_replications.csv"), row.names = FALSE)
+pathways <- build_icu_gate_pathways(toy_dir)
+report(identical(res_cells(pathways[3]), c("Intensive care bed", "400", "2", "0.50%")),
+       "the intensive care pathway pools its counts over the enabled arm only: %s", pathways[3])
+report(identical(res_cells(pathways[4]), c("Holding bed", "4,000", "8", "0.20%")),
+       "the holding pathway pools its counts and rate over the enabled arm only: %s", pathways[4])
 
 # ── 4. Nothing outside a span states a figure or an interpretation ──────────
 

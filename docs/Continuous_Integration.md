@@ -267,7 +267,7 @@ Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline
 
 That rewrites `images/`, `logs/logs.txt` and the `data/` diagnostics, including `data/seed42_verification.csv`, together,
 and they are committed in one commit. Every published seed-42 figure in
-`CLAUDE.md`, `docs/Results.md` and `docs/Multi_Run_Analysis.md` then
+`CLAUDE.md`, `docs/Results.md` and `docs/Planning_Implications.md` then
 needs revisiting in the same pull request, which is the work the check exists to
 make visible rather than to prevent.
 

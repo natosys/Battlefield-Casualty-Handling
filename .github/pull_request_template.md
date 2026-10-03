@@ -47,5 +47,5 @@ none of the headings.
 
 - [ ] `README.md` (system reference: structure, trajectories, resources, assumptions, Further Development)
 - [ ] `docs/Results.md` (measurements, regenerated from the tracked evidence)
-- [ ] `docs/Multi_Run_Analysis.md` (every replicated finding: the scenario comparison, the policy-lever sweeps and the stress tests)
+- [ ] `docs/Planning_Implications.md` (the reading of the measurements as planning options; its figures regenerate from the tracked evidence)
 - [ ] None: this PR changes no section any of the three documents owns

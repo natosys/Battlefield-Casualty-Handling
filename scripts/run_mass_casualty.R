@@ -9,7 +9,7 @@
 #   Rscript scripts/run_mass_casualty.R --iterations 4 --days 10
 #
 # Why this exists. Mass Casualty Events Degrade Care Without Revealing New
-# Constraints in docs/Multi_Run_Analysis.md prints a four-row table from 10
+# Constraints in docs/Results.md prints a four-row table from 10
 # replications of each of two arms, and until this script existed the
 # comparison had no driver: it was invoked as run.R under a parameter
 # override, so there was no command to give a --refresh-baseline flag to and

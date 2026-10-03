@@ -37,7 +37,7 @@
 #   6. The paired difference is taken within replication, and its replication
 #      sizing follows the supplement's normal approximation.
 #   7. The tracked data/policy/ summary carries the documented policies and
-#      replication count, and matches the table docs/Multi_Run_Analysis.md
+#      replication count, and matches the table docs/Results.md
 #      prints, row for row.
 #
 # Assertions 3 and 5 are what keep the rest from being circular: the others
@@ -79,7 +79,7 @@ report <- function(ok, fmt, ...) {
 }
 
 #' Companion paper the published table is read from
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Supplement the sweep's parameters are read from
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
@@ -504,10 +504,10 @@ establishment_rows <- list(
   list("Returns to duty", "total_rtd", 1)
 )
 
-check_published_table(SUMMARY_PATH, "<!-- POLICY TABLE -->", "policy_days",
+check_published_table(SUMMARY_PATH, "<!-- GEN policy -->", "policy_days",
                       POLICY_DAYS, "days", policy_rows)
 
-check_published_table(ESTABLISHMENT_SUMMARY_PATH, "<!-- ESTABLISHMENT TABLE -->",
+check_published_table(ESTABLISHMENT_SUMMARY_PATH, "<!-- GEN establishment -->",
                       "hold_beds", POLICY_HOLD_BEDS, "beds", establishment_rows)
 
 saturation_rows <- list(
@@ -519,7 +519,7 @@ saturation_rows <- list(
   list("Returns to duty", "total_rtd", 1)
 )
 
-check_published_table(SATURATION_SUMMARY_PATH, "<!-- SATURATION TABLE -->",
+check_published_table(SATURATION_SUMMARY_PATH, "<!-- GEN saturation -->",
                       "saturation_threshold", POLICY_SATURATION_THRESHOLDS,
                       "queued casualties", saturation_rows)
 

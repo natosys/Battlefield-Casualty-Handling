@@ -274,7 +274,7 @@ SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routi
 #' @details A command policy lever with no doctrinal figure behind it: how long
 #'   a forward unit will hold a convalescing casualty before moving them
 #'   rearward to serve the remainder of the same convalescence. Ships disabled.
-#'   `docs/Multi_Run_Analysis.md` proposes sweeping it jointly against R2B
+#'   `docs/Planning_Implications.md` proposes sweeping it jointly against R2B
 #'   holding capacity; no source sets a value, so any setting is an informed
 #'   estimate.
 SRC_EVAC_THRESHOLD    <- paste(

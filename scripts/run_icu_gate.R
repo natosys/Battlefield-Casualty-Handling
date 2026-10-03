@@ -9,7 +9,7 @@
 #   Rscript scripts/run_icu_gate.R --iterations 4 --days 10
 #
 # Why this exists. The Post-Operative Intensive Care Gate section of
-# docs/Multi_Run_Analysis.md prints the effect of `icu_gating.enabled` on
+# docs/Results.md prints the effect of `icu_gating.enabled` on
 # intensive care utilisation and mortality, and until this script existed the
 # comparison had no driver: it was invoked as run.R under a parameter
 # override, so there was no command to give a --refresh-baseline flag to and

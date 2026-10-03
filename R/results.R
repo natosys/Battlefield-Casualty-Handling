@@ -644,6 +644,85 @@ build_airlift_collapse <- function(data_dir) {
               "Median closing-window queue", "Worst closing-window queue"), rows)
 }
 
+#' Died-of-wounds rate by post-operative recovery pathway under the rationing rule
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: casualty-replications, deaths and the pooled rate for
+#'   each pathway in the arm where the rule is in force.
+#'
+#' @details Pooled over replications rather than averaged per replication, most
+#'   replications carrying a handful of deaths on each pathway.
+build_icu_gate_pathways <- function(data_dir) {
+  r <- res_read("icu_gate/icu_gate_replications.csv", data_dir)
+  on <- r[r$gate_enabled == 1, ]
+  #' One pathway row of the table
+  #'
+  #' @param label The pathway's name.
+  #' @param n Pooled casualty-replications on the pathway.
+  #' @param d Pooled deaths of wounds on the pathway.
+  #' @return The row's four cells.
+  one <- function(label, n, d) {
+    c(label, res_num(n, 0L, big = TRUE), res_num(d, 0L, big = TRUE),
+      paste0(res_num(100 * d / n, 2L), "%"))
+  }
+  res_table(c("Recovery pathway", "Casualty-replications", "Died of wounds", "Rate"),
+            list(one("Intensive care bed", sum(on$icu_pathway_n), sum(on$icu_pathway_dow)),
+                 one("Holding bed", sum(on$hold_pathway_n), sum(on$hold_pathway_dow))))
+}
+
+#' Paired comparisons and the half-width each was sized against
+#'
+#' @details One entry per paired difference the resolution table prints: the
+#'   evidence file, the response, the arm it is measured from and to, the arm
+#'   column, the half-width the experiment's own script sized it against (its
+#'   `PAIRED_HALF_WIDTHS`), and the row label. A half-width is a target the
+#'   script chose in the response's own units, so it is held beside the
+#'   difference rather than recomputed from it.
+RESOLUTION_ROWS <- list(
+  list("hold_window/hold_window_paired.csv", "r2e_first_surgeries", NA, 0, 60, 2,
+       "Hold window, R2E first surgeries"),
+  list("hold_window/hold_window_paired.csv", "r2e_theatre_deferred", NA, 0, 60, 1,
+       "Hold window, R2E theatre entry deferred"),
+  list("hold_window/hold_window_paired.csv", "diverted_busy", NA, 0, 60, 2,
+       "Hold window, diverted for a busy theatre"),
+  list("hold_window/hold_window_paired.csv", "total_dow", NA, 0, 60, 0.5,
+       "Hold window, died of wounds"),
+  list("icu_gate/icu_gate_paired.csv", "total_dow", NA, 0, 1, 0.5,
+       "Intensive care gate, died of wounds"),
+  list("policy/policy_sweep_paired.csv", "total_dow", "policy_days", 21, 15, 1,
+       "Policy 15 days against 21, died of wounds"),
+  list("policy/policy_sweep_paired.csv", "total_dow", "policy_days", 21, 45, 1,
+       "Policy 45 days against 21, died of wounds"),
+  list("policy/policy_sweep_paired.csv", "total_dow", "policy_days", 21, 60, 1,
+       "Policy 60 days against 21, died of wounds"),
+  list("policy/saturation_sweep_paired.csv", "total_dow", NA, 0, 8, 1,
+       "Saturation release at 8, died of wounds"),
+  list("policy/saturation_sweep_paired.csv", "total_rtd", NA, 0, 8, 10,
+       "Saturation release at 8, returns to duty")
+)
+
+#' Resolution of the paired differences the experiments leave open
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: each difference with its interval, the half-width its
+#'   experiment sized it against, and the replications that half-width requires.
+build_resolution <- function(data_dir) {
+  rows <- lapply(RESOLUTION_ROWS, function(r) {
+    p <- res_read(r[[1]], data_dir)
+    hit <- p[p$response == r[[2]] & p$from == r[[4]] & p$to == r[[5]], ]
+    if (nrow(hit) != 1L) {
+      stop(sprintf("expected one '%s' paired row from %s to %s in %s, found %d", r[[2]], r[[4]],
+                   r[[5]], r[[1]], nrow(hit)), call. = FALSE)
+    }
+    c(r[[7]],
+      sprintf("%s [%s, %s]", res_num(hit$difference, 2L, plus = TRUE),
+              res_num(hit$ci_lower, 2L, plus = TRUE), res_num(hit$ci_upper, 2L, plus = TRUE)),
+      res_num(r[[6]], 1L), res_num(hit$reps_needed, 0L, big = TRUE))
+  })
+  res_table(c("Comparison", "Paired difference", "Half-width sought", "Replications needed"),
+            rows)
+}
+
 #' Morris elementary effects ranking, leading parameters
 #'
 #' @param data_dir The data directory.
@@ -965,7 +1044,9 @@ RESULTS_TABLES <- list(
   queue_clearance = build_queue_clearance,
   degraded_care = build_degraded_care,
   icu_gate = build_icu_gate,
+  icu_gate_pathways = build_icu_gate_pathways,
   airlift_collapse = build_airlift_collapse,
+  resolution = build_resolution,
   morris_top = build_morris_top,
   sobol = build_sobol,
   dow_calibration = build_dow_calibration,
@@ -989,14 +1070,19 @@ res_cells <- function(line) {
 
 #' Resolve a cell reference against the generated tables
 #'
-#' @param ref The reference without the `cell:` prefix: `table|row|column|part`.
+#' @param ref The reference without the `cell:` prefix: `table|row|column|part`, or the
+#'   same four fields separated by `::` where the span sits inside a markdown table row,
+#'   whose cells a pipe would split.
 #' @param data_dir The data directory.
 #' @param tables The registry of table builders to resolve the table name against.
 #' @return The cell text, or its leading number (`mean`) or interval (`ci`).
 res_cell_value <- function(ref, data_dir, tables = RESULTS_TABLES) {
-  p <- strsplit(ref, "|", fixed = TRUE)[[1]]
-  if (length(p) != 4L) stop(sprintf("cell reference '%s' needs table|row|column|part", ref),
-                            call. = FALSE)
+  sep <- if (grepl("::", ref, fixed = TRUE)) "::" else "|"
+  p <- strsplit(ref, sep, fixed = TRUE)[[1]]
+  if (length(p) != 4L) {
+    stop(sprintf("cell reference '%s' needs table%srow%scolumn%spart", ref, sep, sep, sep),
+         call. = FALSE)
+  }
   builder <- tables[[p[1]]]
   if (is.null(builder)) stop(sprintf("no table named '%s'", p[1]), call. = FALSE)
   lines <- builder(data_dir)

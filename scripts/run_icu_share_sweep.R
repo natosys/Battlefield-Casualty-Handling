@@ -14,7 +14,7 @@
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
 # tracked images/r2b_icu_share_frontier.png. Without it every invocation writes
 # under outputs/ alone, so an exploratory run cannot move the evidence set
-# docs/Multi_Run_Analysis.md's decision-frontier table is checked against. The
+# docs/Results.md's decision-frontier table is checked against. The
 # flag fixes the swept shares, the replication count, the horizon and the seed
 # rather than accepting whichever the caller passed. It writes its own
 # r2b_icu_share_frontier.csv and leaves the transport sweep's files in the same

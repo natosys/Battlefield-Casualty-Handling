@@ -10,7 +10,7 @@
 #
 # Exits 0 when every check passes, 1 otherwise.
 #
-# Why this check exists. Option 3 of docs/Multi_Run_Analysis.md prints eight
+# Why this check exists. Option 3 of docs/Results.md prints eight
 # paired differences comparing the shipped 60-minute R2B pre-open window
 # against a window of zero, three of them established effects the section's
 # recommendation rests on. Until Issue #387 none of the twenty-four numbers
@@ -76,7 +76,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's table
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses, both arms
 REPLICATIONS_PATH <- file.path("data", "hold_window", "hold_window_replications.csv")
@@ -302,7 +302,7 @@ check_published_row <- function(rows, label, response) {
   invisible(NULL)
 }
 
-table_rows <- paper_table("<!-- HOLD WINDOW TABLE -->")
+table_rows <- paper_table("<!-- GEN hold_window -->")
 if (!is.null(table_rows)) {
   labels <- list(
     list("Casualties held at R2B", "held_r2b"),

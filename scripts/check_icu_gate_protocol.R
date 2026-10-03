@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The Post-Operative Intensive Care Gate section of
-# docs/Multi_Run_Analysis.md prints intensive care utilisation and mortality
+# docs/Results.md prints intensive care utilisation and mortality
 # figures comparing the shipped rationing rule against a configuration that
 # reconstructs the model as it stood before the rule existed. Until Issue
 # #388 none of the numbers behind that section existed in a tracked file: the
@@ -88,7 +88,7 @@ report <- function(ok, fmt, ...) {
 SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's section
-PAPER_PATH <- file.path("docs", "Multi_Run_Analysis.md")
+PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses, both arms
 REPLICATIONS_PATH <- file.path("data", "icu_gate", "icu_gate_replications.csv")
@@ -101,12 +101,6 @@ PAIRED_PATH <- file.path("data", "icu_gate", "icu_gate_paired.csv")
 
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
-
-#' Tolerance on a figure the paper prints rounded to its last decimal place
-#'
-#' @details Half a unit in the last printed place. The utilisation and
-#'   mortality figures print to two decimals as a percentage or a count.
-PRINT_TOL <- 0.006
 
 # ── 1. The code's parameters are the ones the supplement documents ─────────
 
@@ -257,62 +251,77 @@ tracked_paired <- function(response, field) {
   hit[[field]]
 }
 
-paper <- readLines(PAPER_PATH, warn = FALSE)
+paper <- readLines(PAPER_PATH, encoding = "UTF-8", warn = FALSE)
 
-#' Find the leading figure of a labelled quantity printed in prose
+#' The cells of one row of a generated table in the results paper
 #'
-#' @param pattern Regular expression matching the sentence, with the figure
-#'   itself in the first capture group.
-#' @return The captured figure as a numeric, or NA where no line matches.
+#' @param table Name of the generated span holding the table.
+#' @param label The row's first cell.
+#' @return Character vector of the row's cells after its label, or NULL where the span or
+#'   the row is absent or repeated.
 #'
-#' @details The section this check reads prints its figures in prose rather
-#'   than a table, so the check matches sentences by a fixed pattern rather
-#'   than a markdown row, on the reasoning `scripts/check_airlift_protocol.R`
-#'   applies to its own marker comments: a check that guesses which number in
-#'   a paragraph is the one meant fails for reasons unrelated to the
-#'   protocol.
-prose_figure <- function(pattern) {
-  body <- paste(paper, collapse = " ")
-  m <- regmatches(body, regexpr(pattern, body))
-  if (length(m) == 0) return(NA_real_)
-  captured <- sub(pattern, "\\1", m)
-  suppressWarnings(as.numeric(gsub("−", "-", captured)))
+#' @details Reads the document rather than regenerating the table, so a figure that has
+#'   drifted from the tracked evidence is seen here. A missing span or row returns NULL
+#'   rather than an empty vector, and every caller reports it.
+table_row <- function(table, label) {
+  open <- grep(sprintf("<!-- GEN %s -->", table), paper, fixed = TRUE)
+  if (length(open) != 1) return(NULL)
+  rest <- paper[(open + 1):length(paper)]
+  rows <- rest[seq_len(which(grepl("^<!-- /GEN", rest))[1] - 1)]
+  cells <- lapply(rows, function(r) {
+    trimws(strsplit(sub("^\\|", "", sub("\\|$", "", r)), "\\|")[[1]])
+  })
+  hit <- Filter(function(cl) identical(cl[1], label), cells)
+  if (length(hit) != 1) return(NULL)
+  hit[[1]][-1]
 }
 
-icu_disabled <- prose_figure("Average R2E intensive care utilisation falls from ([0-9.]+)% \\[")
-icu_enabled  <- prose_figure("to ([0-9.]+)% \\[[0-9.]+%, [0-9.]+%\\] with it")
-icu_diff     <- prose_figure("a paired difference of ([0-9.]+) percentage points \\[")
+#' The leading figure of a printed cell
+#'
+#' @param cell The cell's text, such as `-7.7 [-9.4, -6.0]` or `0.11%`.
+#' @return The figure as a numeric with the Unicode minus read as a sign, or NA.
+cell_figure <- function(cell) {
+  if (is.null(cell) || is.na(cell)) return(NA_real_)
+  lead <- sub("^([+\u2212-]?[0-9][0-9,]*\\.?[0-9]*).*$", "\\1", cell)
+  suppressWarnings(as.numeric(gsub(",", "", gsub("\u2212", "-", lead))))
+}
 
-icu_disabled_tracked <- round(100 * tracked_mean(0, "icu_occupancy"), 1)
-icu_enabled_tracked  <- round(100 * tracked_mean(1, "icu_occupancy"), 1)
-icu_diff_tracked     <- round(100 * abs(tracked_paired("icu_occupancy", "difference")), 2)
+#' Whether a printed figure is the tracked one rounded to the printed places
+#'
+#' @param printed The figure as printed.
+#' @param tracked The tracked figure, unrounded.
+#' @param digits Decimal places printed.
+#' @return TRUE where they agree to half a unit in the last place.
+printed_matches <- function(printed, tracked, digits) {
+  !is.na(printed) && !is.na(tracked) && abs(printed - tracked) <= 0.5 * 10^(-digits) + TOL
+}
 
-report(!is.na(icu_disabled) && abs(icu_disabled - icu_disabled_tracked) < PRINT_TOL,
-       "R2E ICU utilisation without the rule prints %s%% against the tracked %s%%",
-       format(icu_disabled), format(icu_disabled_tracked))
-report(!is.na(icu_enabled) && abs(icu_enabled - icu_enabled_tracked) < PRINT_TOL,
-       "R2E ICU utilisation with the rule prints %s%% against the tracked %s%%",
-       format(icu_enabled), format(icu_enabled_tracked))
-report(!is.na(icu_diff) && abs(icu_diff - icu_diff_tracked) < PRINT_TOL,
-       "the paired ICU utilisation difference prints %s points against the tracked %s",
-       format(icu_diff), format(icu_diff_tracked))
+util_row <- table_row("icu_gate", "R2E ICU utilisation (%)")
+dow_row  <- table_row("icu_gate", "Died of wounds per run")
+report(!is.null(util_row) && !is.null(dow_row),
+       "the results paper prints the utilisation and died-of-wounds rows of the gate table")
 
-dow_disabled <- prose_figure("Average deaths of wounds per campaign read ([0-9.]+) \\[")
-dow_enabled  <- prose_figure("and ([0-9.]+) \\[[0-9.]+, [0-9.]+\\] with it")
-dow_diff     <- prose_figure("a paired difference of ([0-9.]+) \\[")
-
-report(!is.na(dow_disabled) &&
-         abs(dow_disabled - round(tracked_mean(0, "total_dow"), 2)) < PRINT_TOL,
-       "died of wounds without the rule prints %s against the tracked %s",
-       format(dow_disabled), format(round(tracked_mean(0, "total_dow"), 2)))
-report(!is.na(dow_enabled) &&
-         abs(dow_enabled - round(tracked_mean(1, "total_dow"), 2)) < PRINT_TOL,
-       "died of wounds with the rule prints %s against the tracked %s",
-       format(dow_enabled), format(round(tracked_mean(1, "total_dow"), 2)))
-report(!is.na(dow_diff) &&
-         abs(dow_diff - round(abs(tracked_paired("total_dow", "difference")), 3)) < PRINT_TOL,
-       "the paired died of wounds difference prints %s against the tracked %s",
-       format(dow_diff), format(round(abs(tracked_paired("total_dow", "difference")), 3)))
+if (!is.null(util_row) && !is.null(dow_row)) {
+  report(printed_matches(cell_figure(util_row[1]), 100 * tracked_mean(0, "icu_occupancy"), 1),
+         "R2E ICU utilisation without the rule prints %s against the tracked %s",
+         util_row[1], format(100 * tracked_mean(0, "icu_occupancy")))
+  report(printed_matches(cell_figure(util_row[2]), 100 * tracked_mean(1, "icu_occupancy"), 1),
+         "R2E ICU utilisation with the rule prints %s against the tracked %s",
+         util_row[2], format(100 * tracked_mean(1, "icu_occupancy")))
+  report(printed_matches(cell_figure(util_row[3]),
+                         100 * tracked_paired("icu_occupancy", "difference"), 1),
+         "the paired utilisation difference prints %s against the tracked %s",
+         util_row[3], format(100 * tracked_paired("icu_occupancy", "difference")))
+  report(printed_matches(cell_figure(dow_row[1]), tracked_mean(0, "total_dow"), 2),
+         "died of wounds without the rule prints %s against the tracked %s",
+         dow_row[1], format(tracked_mean(0, "total_dow")))
+  report(printed_matches(cell_figure(dow_row[2]), tracked_mean(1, "total_dow"), 2),
+         "died of wounds with the rule prints %s against the tracked %s",
+         dow_row[2], format(tracked_mean(1, "total_dow")))
+  report(printed_matches(cell_figure(dow_row[3]), tracked_paired("total_dow", "difference"), 2),
+         "the paired died-of-wounds difference prints %s against the tracked %s",
+         dow_row[3], format(tracked_paired("total_dow", "difference")))
+}
 
 # The pathway death-rate figures are pooled counts within the enabled arm
 # rather than a mean of per-replication rates, on the reasoning
@@ -321,22 +330,20 @@ report(!is.na(dow_diff) &&
 # whole tracked evidence set.
 if (!is.null(per_rep)) {
   enabled <- per_rep[per_rep$gate_enabled == 1, ]
-  icu_n   <- sum(enabled$icu_pathway_n)
-  icu_dow <- sum(enabled$icu_pathway_dow)
-  hold_n  <- sum(enabled$hold_pathway_n)
-  hold_dow <- sum(enabled$hold_pathway_dow)
-
-  hold_rate <- prose_figure("casualties recovering in a holding bed died at ([0-9.]+)% against")
-  icu_rate  <- prose_figure("against ([0-9.]+)% for those recovering in intensive care")
-  hold_rate_tracked <- round(100 * hold_dow / hold_n, 2)
-  icu_rate_tracked  <- round(100 * icu_dow / icu_n, 2)
-
-  report(!is.na(hold_rate) && hold_n > 0 && abs(hold_rate - hold_rate_tracked) < PRINT_TOL,
-         "the holding-bed pathway death rate prints %s%% against the tracked %s%% (%d/%d)",
-         format(hold_rate), format(hold_rate_tracked), hold_dow, hold_n)
-  report(!is.na(icu_rate) && icu_n > 0 && abs(icu_rate - icu_rate_tracked) < PRINT_TOL,
-         "the intensive care pathway death rate prints %s%% against the tracked %s%% (%d/%d)",
-         format(icu_rate), format(icu_rate_tracked), icu_dow, icu_n)
+  pathways <- list(list("Intensive care bed", sum(enabled$icu_pathway_n),
+                        sum(enabled$icu_pathway_dow)),
+                   list("Holding bed", sum(enabled$hold_pathway_n),
+                        sum(enabled$hold_pathway_dow)))
+  for (pw in pathways) {
+    row <- table_row("icu_gate_pathways", pw[[1]])
+    report(!is.null(row) && pw[[2]] > 0 &&
+             printed_matches(cell_figure(row[3]), 100 * pw[[3]] / pw[[2]], 2) &&
+             cell_figure(row[1]) == pw[[2]] && cell_figure(row[2]) == pw[[3]],
+           "the %s pathway prints %s casualty-replications, %s deaths and %s against %d, %d",
+           tolower(pw[[1]]), if (is.null(row)) "no row" else row[1],
+           if (is.null(row)) "none" else row[2], if (is.null(row)) "none" else row[3],
+           pw[[2]], pw[[3]])
+  }
 }
 
 # ── 4. The reduction and its interval are right on a known input ───────────

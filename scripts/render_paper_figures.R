@@ -2,7 +2,7 @@
 
 ##############################################################################
 ## scripts/render_paper_figures.R                                           ##
-## Renders the multi-run paper's result tables as figures                   ##
+## Renders the results paper's tables as figures                   ##
 ##############################################################################
 #
 # Usage:
@@ -13,7 +13,7 @@
 # tracked set untouched; --refresh-baseline is the only way to write the
 # tracked images/ copies.
 #
-# Three tables in docs/Multi_Run_Analysis.md carry the paper's central
+# Three tables in docs/Results.md carry the paper's central
 # findings and are read as columns of numbers. This script renders each as a
 # figure, and it does so by parsing the tables out of the document itself
 # rather than by holding its own copy of the values. A figure therefore
@@ -30,7 +30,7 @@ suppressPackageStartupMessages({
 #'
 #' @details Every value plotted is parsed out of this document, so it is both
 #'   the source of the numbers and the thing the figures must agree with.
-PAPER_PATH <- "docs/Multi_Run_Analysis.md"
+PAPER_PATH <- "docs/Results.md"
 
 #' Directory holding the tracked figures
 #'
@@ -195,7 +195,7 @@ paper_theme <- function() {
 #'   across campaigns and the narrow one the confidence interval on the mean,
 #'   which the paper is explicit must not be read as the same quantity.
 build_totals_figure <- function(lines) {
-  rows <- extract_table(lines, "### Comparative Scenario Analysis", skip = 0L)
+  rows <- extract_table(lines, "## Comparative Scenario Analysis", skip = 0L)
   recs <- list()
   for (row in rows) {
     cl <- cells(row)
@@ -245,7 +245,7 @@ build_totals_figure <- function(lines) {
 #'   intensities, so a resource to the right of it queues disproportionately
 #'   to the load placed on it, which is the paper's central claim.
 build_queue_figure <- function(lines) {
-  totals <- extract_table(lines, "### Comparative Scenario Analysis", skip = 0L)
+  totals <- extract_table(lines, "## Comparative Scenario Analysis", skip = 0L)
   volume <- totals[startsWith(trimws(sub("^\\|", "", totals)), CASUALTY_RATIO_ROW)]
   if (length(volume) != 1L) {
     fail(sprintf("totals table has no single '%s' row", CASUALTY_RATIO_ROW))
@@ -254,7 +254,7 @@ build_queue_figure <- function(lines) {
   casualty_ratio <- lead_number(volume_cells[3]) / lead_number(volume_cells[2])
   if (is.na(casualty_ratio)) fail("casualty volume ratio did not parse")
 
-  rows <- extract_table(lines, "### Comparative Scenario Analysis", skip = 1L)
+  rows <- extract_table(lines, "## Comparative Scenario Analysis", skip = 1L)
   recs <- list()
   for (row in rows) {
     cl <- cells(row)
@@ -305,7 +305,7 @@ build_queue_figure <- function(lines) {
 #'   establish, which is the distinction the paper turns on and the reason
 #'   this table is worth plotting rather than only tabulating.
 build_window_figure <- function(lines) {
-  rows <- extract_table(lines, "#### The R2B Pre-Open Hold Window", skip = 0L)
+  rows <- extract_table(lines, "### R2B Pre-Open Hold Window", skip = 0L)
   recs <- list()
   for (row in rows) {
     cl <- cells(row)

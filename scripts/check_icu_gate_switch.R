@@ -41,7 +41,7 @@
 # any outcome in a particular direction. Turning it off changes which
 # activities consume random draws, so the two runs are different realisations
 # rather than a controlled comparison; the population-level effect is measured
-# across independent replications and reported in docs/Multi_Run_Analysis.md.
+# across independent replications and reported in docs/Results.md.
 
 suppressPackageStartupMessages({
   library(simmer)

@@ -13,7 +13,7 @@
 #
 # This is the check that protects every published figure. `CLAUDE.md`'s Key
 # Parameters table, `docs/Results.md` Annex A and the seed-42 rows of
-# `docs/Multi_Run_Analysis.md` all derive from one run of one code state, and
+# `docs/Planning_Implications.md` all derive from one run of one code state, and
 # the provenance note that says so rests on the claim that the run reproduces.
 # A change that shifts the random number stream, whether or not it changes the
 # model, silently invalidates all three documents at once; nothing else in the
@@ -142,7 +142,7 @@ if (length(failures) > 0L) {
   message("\nThe tracked seed-42 baseline no longer reproduces. Either the change ",
           "under test\nshifted the random number stream, in which case the ",
           "published figures in CLAUDE.md,\ndocs/Results.md and ",
-          "docs/Multi_Run_Analysis.md need regenerating with\n",
+          "docs/Planning_Implications.md need regenerating with\n",
           "`Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline`, ",
           "or it did not,\nin which case this is a defect.")
   quit(status = 1L)

@@ -646,9 +646,9 @@ build_degraded_care <- function(data_dir) {
 build_icu_gate <- function(data_dir) {
   s <- res_read("icu_gate/icu_gate_summary.csv", data_dir)
   p <- res_read("icu_gate/icu_gate_paired.csv", data_dir)
-  spec <- list(c("R2E ICU utilisation (%)", "icu_occupancy", 100, 1L),
-               c("Died of wounds per run", "total_dow", 1, 2L),
-               c("Total casualties", "total_casualties", 1, 1L))
+  spec <- list(c("R2E ICU utilisation, closing 90 days (%)", "icu_occupancy", 100, 1L),
+               c("Died of wounds per campaign (360 days)", "total_dow", 1, 2L),
+               c("Total casualties per campaign (360 days)", "total_casualties", 1, 1L))
   rows <- lapply(spec, function(r) {
     a <- s[s$response == r[2] & s$gate_enabled == 0, ]
     b <- s[s$response == r[2] & s$gate_enabled == 1, ]

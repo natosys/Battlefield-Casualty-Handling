@@ -321,17 +321,17 @@ The R2E intensive care queue was <!-- GEN cell:icu_share|0% (current)|R2E ICU me
 
 ### Post-Operative Intensive Care Gate
 
-**Question.** What does the rationing rule that defers lower-priority surgery when intensive care is saturated change? `[default, gate on and off · 360 d · 30 replications · paired, closing 90 d]`
+**Question.** What does the rationing rule that defers lower-priority surgery when intensive care is saturated change? `[default, gate on and off · 360 d · 30 replications · paired; utilisation over the closing 90 d, counts over the whole campaign]`
 
 <!-- GEN icu_gate -->
 | Measure | Without the rule | With the rule | Paired difference |
 |---|---|---|---|
-| R2E ICU utilisation (%) | 94.8 [93.8, 95.8] | 87.1 [86.0, 88.2] | −7.7 [−9.4, −6.0] |
-| Died of wounds per run | 14.50 [12.83, 16.17] | 15.40 [14.14, 16.66] | +0.90 [−1.17, +2.97] |
-| Total casualties | 5,405.2 [5,331.1, 5,479.4] | 5,359.9 [5,282.7, 5,437.1] | −45.3 [−141.5, +50.9] |
+| R2E ICU utilisation, closing 90 days (%) | 94.8 [93.8, 95.8] | 87.1 [86.0, 88.2] | −7.7 [−9.4, −6.0] |
+| Died of wounds per campaign (360 days) | 14.50 [12.83, 16.17] | 15.40 [14.14, 16.66] | +0.90 [−1.17, +2.97] |
+| Total casualties per campaign (360 days) | 5,405.2 [5,331.1, 5,479.4] | 5,359.9 [5,282.7, 5,437.1] | −45.3 [−141.5, +50.9] |
 <!-- /GEN -->
 
-R2E intensive care utilisation was <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Without the rule|full -->94.8 [93.8, 95.8]<!-- /GEN --> without the rule and <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|With the rule|full -->87.1 [86.0, 88.2]<!-- /GEN --> with it, a paired difference of <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Paired difference|full -->−7.7 [−9.4, −6.0]<!-- /GEN --> percentage points. Died of wounds per run were <!-- GEN cell:icu_gate|Died of wounds per run|Without the rule|full -->14.50 [12.83, 16.17]<!-- /GEN --> and <!-- GEN cell:icu_gate|Died of wounds per run|With the rule|full -->15.40 [14.14, 16.66]<!-- /GEN -->, a paired difference of <!-- GEN cell:icu_gate|Died of wounds per run|Paired difference|full -->+0.90 [−1.17, +2.97]<!-- /GEN -->.
+R2E intensive care utilisation was <!-- GEN cell:icu_gate|R2E ICU utilisation, closing 90 days (%)|Without the rule|full -->94.8 [93.8, 95.8]<!-- /GEN --> without the rule and <!-- GEN cell:icu_gate|R2E ICU utilisation, closing 90 days (%)|With the rule|full -->87.1 [86.0, 88.2]<!-- /GEN --> with it, a paired difference of <!-- GEN cell:icu_gate|R2E ICU utilisation, closing 90 days (%)|Paired difference|full -->−7.7 [−9.4, −6.0]<!-- /GEN --> percentage points. Died of wounds per run were <!-- GEN cell:icu_gate|Died of wounds per campaign (360 days)|Without the rule|full -->14.50 [12.83, 16.17]<!-- /GEN --> and <!-- GEN cell:icu_gate|Died of wounds per campaign (360 days)|With the rule|full -->15.40 [14.14, 16.66]<!-- /GEN -->, a paired difference of <!-- GEN cell:icu_gate|Died of wounds per campaign (360 days)|Paired difference|full -->+0.90 [−1.17, +2.97]<!-- /GEN -->.
 
 <!-- GEN icu_gate_pathways -->
 | Recovery pathway | Casualty-replications | Died of wounds | Rate |

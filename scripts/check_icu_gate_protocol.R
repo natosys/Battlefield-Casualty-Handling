@@ -296,8 +296,8 @@ printed_matches <- function(printed, tracked, digits) {
   !is.na(printed) && !is.na(tracked) && abs(printed - tracked) <= 0.5 * 10^(-digits) + TOL
 }
 
-util_row <- table_row("icu_gate", "R2E ICU utilisation (%)")
-dow_row  <- table_row("icu_gate", "Died of wounds per run")
+util_row <- table_row("icu_gate", "R2E ICU utilisation, closing 90 days (%)")
+dow_row  <- table_row("icu_gate", "Died of wounds per campaign (360 days)")
 report(!is.null(util_row) && !is.null(dow_row),
        "the results paper prints the utilisation and died-of-wounds rows of the gate table")
 

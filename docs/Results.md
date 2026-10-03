@@ -527,6 +527,36 @@ These screens are tagged 30 days because they were not re-measured at the sustai
 
 The table lists the twenty parameters with the largest Morris $\mu^*$ on the system operating theatre queue, of eighty screened. `mass_casualty_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
 
+Scatter plots of the screen for seven responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
+
+![Morris screening scatter plot of the mean system operating theatre queue across R2B and R2E](../images/morris_system_ot_q.png)
+
+Screening of the mean system operating theatre queue across R2B and R2E.
+
+![Placeholder panel for the Morris screening of the mean R2B operating theatre queue](../images/morris_r2b_ot_q.png)
+
+The response is degenerate, the forward theatre queue standing at zero at every design point, so no parameter produced an elementary effect and none is ranked.
+
+![Morris screening scatter plot of the mean R2E operating theatre queue](../images/morris_r2e_ot_q.png)
+
+Screening of the mean R2E operating theatre queue.
+
+![Morris screening scatter plot of the mean R2E intensive care queue](../images/morris_r2e_icu_q.png)
+
+Screening of the mean R2E intensive care queue.
+
+![Morris screening scatter plot of the total died-of-wounds count](../images/morris_dow_count.png)
+
+Screening of the total died-of-wounds count.
+
+![Morris screening scatter plot of the mean transport queue across the PMV Ambulance and HX240M fleets](../images/morris_transport_q.png)
+
+Screening of the mean transport queue across the PMV Ambulance and HX240M fleets.
+
+![Morris screening scatter plot of the mean transport utilisation across the PMV Ambulance and HX240M fleets](../images/morris_transport_util.png)
+
+Screening of the mean transport utilisation across the PMV Ambulance and HX240M fleets.
+
 <!-- GEN sobol -->
 | Parameter | Total-order index | First-order index |
 |---|---|---|

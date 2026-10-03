@@ -197,7 +197,7 @@ Each subsection varies one setting of the shipped configuration and reports the 
 
 **Question.** What changes when a casualty needing surgery at R2B is held forward for a surgical section about to reopen rather than moved rearward at once? `[default, hold window 0 and 60 min · 360 d · 30 replications · campaign totals, paired difference]`
 
-The R2B surgical section works a 12-hour shift while its theatre is available around the clock, so for half of each day a casualty needing surgery can find the theatre free with nobody rostered to operate. The pre-open hold window is how long before the section comes on shift such a casualty may be received into the theatre to wait for it rather than being evacuated to R2E; a window of zero evacuates every such casualty at once. The mechanism and the basis for the 60-minute default are in the [README](../README.md#r2b-trajectory).
+> <small>**Note.** The R2B surgical section works 12-hour shifts but its theatre is open around the clock. The window is how long before a shift starts a casualty may wait in the theatre instead of being evacuated to R2E; zero evacuates at once. See the [README](../README.md#r2b-trajectory).</small>
 
 <!-- GEN hold_window -->
 | Measure | Window 0 | Window 60 min | Difference |

@@ -252,6 +252,8 @@ With five beds per unit, a one-day threshold moved the R2B holding queue to <!--
 
 **Question.** At what fleet size does the transport queue form, at each casualty intensity? `[default and high_intensity · 360 d · 30 replications · pool totals, closing 90 d]`
 
+> <small>**Note.** The swept fleets are the shared brigade pools: PMV Ambulances carrying wounded from R1 to R2B, and HX2 40M trucks carrying the dead. Each R2B team's organic evacuation element, which moves wounded on to R2E, is separate and not swept. See the [README](../README.md#transport-assets).</small>
+
 The first table is the shipped moderate-intensity configuration and the second the high-intensity profile.
 
 <!-- GEN transport -->

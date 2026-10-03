@@ -6048,29 +6048,30 @@ degraded_care_counts <- function(degraded) {
 #' @return The ggplot object.
 #'
 #' @details Drawn beneath the rate so that a share is read alongside the number
-#'   of casualties it represents: the same share at high intensity is several
-#'   times as many casualties. Both intensities share each stage's scale for
-#'   that reason.
+#'   of casualties it represents. One panel per intensity, each on its own
+#'   scale, with both stages in it, so the two stages are compared where their
+#'   counts are of one magnitude.
 plot_degraded_care_counts <- function(count_ci) {
   count_ci$stage <- factor(count_ci$stage, levels = names(PATHWAY_STAGES))
   ggplot(count_ci, aes(x = day, colour = intensity, fill = intensity)) +
-    geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.20, colour = NA) +
-    geom_line(aes(y = median), linewidth = 1.0) +
-    facet_wrap(~ stage, ncol = 2, scales = "free_y") +
-    scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
-    scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
+    geom_ribbon(aes(ymin = q25, ymax = q75, group = stage), alpha = 0.20, colour = NA) +
+    geom_line(aes(y = median, linetype = stage), linewidth = 1.0) +
+    facet_wrap(~ intensity, ncol = 2, scales = "free_y") +
+    scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS, guide = "none") +
+    scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS, guide = "none") +
+    scale_linetype_manual(values = c("solid", "dashed")) +
     scale_y_continuous(labels = scales::comma) +
     expand_limits(y = 0) +
     labs(
       subtitle = paste("Casualties who have taken the holding-bed recovery so far in the",
                        "campaign;\nmedian and interquartile range across replications."),
       x = "Campaign day", y = "Casualties (cumulative)",
-      colour = NULL, fill = NULL
+      colour = NULL, fill = NULL, linetype = NULL
     ) +
     theme_minimal(base_size = 12) +
     theme(
       panel.grid.minor = element_blank(),
-      legend.position  = "none",
+      legend.position  = "bottom",
       strip.text       = element_text(face = "bold", hjust = 0)
     )
 }

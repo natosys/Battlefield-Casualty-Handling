@@ -142,7 +142,11 @@ A comparison between two configurations is sized the same way on the paired diff
 
 No warm-up period is discarded from any observation window. Discarding one removes the settling-in behaviour a model shows before it reaches steady state, which is worth doing only where steady state is the quantity of interest [[9]](#references). This is a terminating simulation with a fixed campaign length and a genuinely empty start, so the opening period is part of the quantity of interest rather than a transient to be removed: a deploying health system really does start empty, and how it copes while filling is a planning question in its own right.
 
-That classification is supported rather than assumed. The Welch graphical diagnostic, run over ten 90-day replications and reported in the system reference [[3]](#references), shows the behaviour a terminating model is expected to show, and `scripts/run_warmup.R` re-runs it on demand. It is also re-derived at the sustained-operations horizon, twelve times the experiments' own, by two diagnostics defined under [Classifying Stability](#classifying-stability) and [The Welch Diagnostic at Length](#the-welch-diagnostic-at-length), whose results the companion paper reports.
+That classification is supported rather than assumed. The Welch graphical diagnostic, run over ten 90-day replications, shows the behaviour a terminating model is expected to show, and `scripts/run_warmup.R` re-runs it on demand.
+
+![Welch plot of the R2E intensive care queue cumulative moving average across 90 days](../images/welch_plot_icu_queue.png)
+
+The cross-replication cumulative moving average of the R2E intensive care queue keeps moving to the end of the run rather than settling onto a level, which is the behaviour of a terminating simulation. It is also re-derived at the sustained-operations horizon, twelve times the experiments' own, by two diagnostics defined under [Classifying Stability](#classifying-stability) and [The Welch Diagnostic at Length](#the-welch-diagnostic-at-length), whose results the companion paper reports.
 
 ---
 

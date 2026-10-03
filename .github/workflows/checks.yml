@@ -7,7 +7,7 @@
 # tell a genuine regression from an environment difference, which for the
 # seed-42 reproduction is the whole question.
 #
-# The suite is split by cost, on the runtimes measured in scripts/README.md.
+# The suite is split by cost, on the runtimes in scripts/check_runtimes.csv, tabulated in docs/Continuous_Integration.md.
 # The fast suite runs on every pull request, several checks at a time;
 # check_dow_calibration.R runs 450 replications and takes three quarters of an
 # hour, so it runs weekly and on demand instead.
@@ -41,7 +41,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The pinned container of CLAUDE.md's provenance note and scripts/README.md.
+  # The pinned container of CLAUDE.md's provenance note.
   CONTAINER_IMAGE: rocker/rstudio:4.4.2@sha256:6bfc87fb66d0072e28d88d684a1f7b3e42a1c20360ee5eca5b43168a4eba3945
   # Binary packages for the container's Ubuntu release, so restoring the
   # lockfile takes minutes rather than the hour a source build would.

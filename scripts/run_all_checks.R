@@ -15,8 +15,8 @@
 # fails. Checks are discovered by glob rather than from a list, so a newly
 # added `check_*.R` is picked up without editing this file.
 #
-# The suite divides on cost. `scripts/README.md` records that fourteen checks
-# together take under twelve minutes while `check_dow_calibration.R` alone
+# The suite divides on cost. `scripts/check_runtimes.csv` records that the fast
+# checks together take under twelve minutes while `check_dow_calibration.R` alone
 # takes forty-five, because at its defaults it runs 450 replications across
 # three scenario profiles. The `--fast` selection is what a per-pull-request
 # gate can afford; `--slow` is what a scheduled or on-demand job runs. A check
@@ -72,7 +72,7 @@ DEFAULT_COST_SECS <- 30
 AUTO_JOBS_CAP     <- 8L
 
 # Checks too slow for a per-pull-request gate, with the runtime measured in
-# scripts/README.md. Add a check here only on the evidence of a measurement.
+# scripts/check_runtimes.csv. Add a check here only on the evidence of a measurement.
 SLOW_CHECKS <- c("check_dow_calibration.R")
 
 #' Checks that rewrite tracked files in place; see the banner above

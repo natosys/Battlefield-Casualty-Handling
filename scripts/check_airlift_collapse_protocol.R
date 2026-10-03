@@ -15,7 +15,7 @@
 # classification rather than a mean: a campaign is counted as collapsed where
 # its R2E holding queue over the closing 90 days averages twenty casualties or
 # more. Nobody re-runs it to audit a change, so three things have to be checked
-# without running it. Its parameters must be the ones the supplement documents,
+# without running it. Its parameters must be the ones the methods paper documents,
 # or the paper describes an experiment the code does not perform. Its classifier
 # must be correct on inputs whose answers are computable by hand, since a
 # classifier tested only against the experiment's own output would agree with
@@ -79,8 +79,8 @@ report <- function(ok, fmt, ...) {
 #' Companion paper the published table is read from
 PAPER_PATH <- file.path("docs", "Results.md")
 
-#' Supplement the protocol parameters are read from
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' Methods paper the protocol parameters are read from
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' Tracked collapse summary the paper's table derives from
 SUMMARY_PATH <- file.path("data", "airlift", "airlift_collapse.csv")
@@ -97,13 +97,13 @@ TOL <- 1e-8
 #' Tolerance on a figure the paper prints rounded to two decimal places
 PRINT_TOL <- 0.006
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one collapse parameter the supplement states in a marker comment
+#' Read one collapse parameter the methods paper states in a marker comment
 #'
 #' @param name Marker name, as it appears after "COLLAPSE ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -113,8 +113,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   count fails for reasons that have nothing to do with the protocol. The
 #'   marker is the author's statement of what the sentence beneath it claims.
 collapse_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- COLLAPSE %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- COLLAPSE %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- COLLAPSE [^=]+=(.*) -->$", "\\1", m)
 }
@@ -125,7 +125,7 @@ for (param in list(list("days", AIRLIFT_COLLAPSE_DAYS),
                    list("threshold", AIRLIFT_COLLAPSE_THRESHOLD))) {
   stated <- suppressWarnings(as.numeric(collapse_marker(param[[1]])))
   report(!is.na(stated) && stated == param[[2]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param[[1]], format(stated), format(param[[2]]))
 }
 
@@ -138,7 +138,7 @@ parsed <- if (is.na(stated_probabilities)) {
 report(length(parsed) == length(AIRLIFT_COLLAPSE_PROBABILITIES) &&
          !any(is.na(parsed)) &&
          all(abs(parsed - AIRLIFT_COLLAPSE_PROBABILITIES) < TOL),
-       "the supplement states probabilities %s and the code holds %s",
+       "the methods paper states probabilities %s and the code holds %s",
        paste(format(parsed), collapse = ","),
        paste(format(AIRLIFT_COLLAPSE_PROBABILITIES), collapse = ","))
 

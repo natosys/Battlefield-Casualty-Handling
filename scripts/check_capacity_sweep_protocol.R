@@ -68,8 +68,8 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' The supplement, which documents both designs
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' The methods_text, which documents both designs
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints both tables
 PAPER_PATH <- file.path("docs", "Results.md")
@@ -92,9 +92,9 @@ TOL <- 1e-8
 #' Tolerance on a figure the paper prints rounded to its last decimal place
 PRINT_TOL <- 0.005
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- both protocols' parameters match the supplement --\n")
+cat("\n-- both protocols' parameters match the methods paper --\n")
 
 # R/analysis.R carries the protocol constants alongside five thousand lines of
 # pipeline that need simmer's monitoring shapes to be interesting. The
@@ -120,9 +120,9 @@ analysis_constant <- function(name) {
            error = function(e) NULL)
 }
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one sweep protocol parameter the supplement states in a marker
+#' Read one sweep protocol parameter the methods paper states in a marker
 #'
 #' @param name Marker name, as it appears after "SWEEP ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -132,8 +132,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   number in a paragraph is the replication count fails for reasons that have
 #'   nothing to do with the protocol.
 sweep_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- SWEEP %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- SWEEP %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- SWEEP [^=]+=(.*) -->$", "\\1", m)
 }
@@ -152,7 +152,7 @@ check_swept_vector <- function(name, held) {
   }
   report(!is.null(held) && length(parsed) == length(held) && !any(is.na(parsed)) &&
            all(abs(parsed - held) < TOL),
-         "the supplement states %s %s and the code holds %s", name,
+         "the methods paper states %s %s and the code holds %s", name,
          paste(format(parsed), collapse = ","),
          paste(format(held), collapse = ","))
   invisible(NULL)
@@ -168,7 +168,7 @@ scalars <- list(
 for (param in scalars) {
   stated <- suppressWarnings(as.numeric(sweep_marker(param[[1]])))
   report(!is.na(stated) && !is.null(param[[2]]) && stated == param[[2]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param[[1]], format(stated),
          if (is.null(param[[2]])) "nothing" else format(param[[2]]))
 }

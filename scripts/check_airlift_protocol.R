@@ -74,8 +74,8 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' The supplement, which documents the experiment's design
-SUPPLEMENT_PATH <- file.path("docs", "Methods.md")
+#' The methods_text, which documents the experiment's design
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' The companion paper, which prints the experiment's figures
 PAPER_PATH <- file.path("docs", "Results.md")
@@ -95,13 +95,13 @@ TOL <- 1e-8
 #'   percentage is compared on its own scale, so the same tolerance serves both.
 PRINT_TOL <- 0.005
 
-# ── 1. The code's parameters are the ones the supplement documents ───────────
+# ── 1. The code's parameters are the ones the methods paper documents ───────────
 
-cat("\n-- the protocol's parameters match the supplement --\n")
+cat("\n-- the protocol's parameters match the methods paper --\n")
 
-supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one airlift parameter the supplement states in a marker comment
+#' Read one airlift parameter the methods paper states in a marker comment
 #'
 #' @param name Marker name, as it appears after "AIRLIFT ".
 #' @return The marker's value as a character string, or NA where absent.
@@ -111,8 +111,8 @@ supplement <- paste(readLines(SUPPLEMENT_PATH, warn = FALSE), collapse = "\n")
 #'   guesses which number in a paragraph is the replication count fails for
 #'   reasons that have nothing to do with the protocol.
 airlift_marker <- function(name) {
-  m <- regmatches(supplement,
-                  regexpr(sprintf("<!-- AIRLIFT %s=[^ ]+ -->", name), supplement))
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- AIRLIFT %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
   sub("^<!-- AIRLIFT [^=]+=(.*) -->$", "\\1", m)
 }
@@ -121,7 +121,7 @@ for (param in list(list("days", AIRLIFT_DAYS),
                    list("replications", AIRLIFT_REPLICATIONS))) {
   stated <- suppressWarnings(as.numeric(airlift_marker(param[[1]])))
   report(!is.na(stated) && stated == param[[2]],
-         "the supplement states %s = %s and the code holds %s",
+         "the methods paper states %s = %s and the code holds %s",
          param[[1]], format(stated), format(param[[2]]))
 }
 
@@ -139,7 +139,7 @@ check_swept_vector <- function(name, held) {
   }
   report(length(parsed) == length(held) && !any(is.na(parsed)) &&
            all(abs(parsed - held) < TOL),
-         "the supplement states %s %s and the code holds %s", name,
+         "the methods paper states %s %s and the code holds %s", name,
          paste(format(parsed), collapse = ","),
          paste(format(held), collapse = ","))
   invisible(NULL)
@@ -155,7 +155,7 @@ report(any(abs(AIRLIFT_FAILURE_PROBABILITIES) < TOL),
 report(7L %in% AIRLIFT_SORTIE_INTERVALS,
        "the interval sweep contains the shipped seven-day interval")
 
-# ── 2. The tracked responses are the experiment the supplement documents ─────
+# ── 2. The tracked responses are the experiment the methods paper documents ─────
 
 cat("\n-- the tracked evidence set is that experiment --\n")
 

@@ -71,7 +71,7 @@ if (opt$quick) {
 }
 
 # A baseline refresh runs the protocol R/analysis.R holds rather than whatever
-# the caller passed, so the tracked set and the design the supplement documents
+# the caller passed, so the tracked set and the design the methods paper documents
 # cannot diverge through a mistyped argument.
 if (isTRUE(opt$`refresh-baseline`)) {
   opt$shares     <- deparse(ICU_SHARE_SWEEP_SHARES)

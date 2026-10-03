@@ -446,7 +446,8 @@ build_saturation <- function(data_dir) {
     list("Died of wounds", "total_dow", 1L, 1),
     list("Returns to duty", "total_rtd", 1L, 1)
   )
-  header <- c("Response", "0 (disabled)", as.character(thresholds[2:5]), "8 (shipped)",
+  header <- c("Response, by release threshold (casualties queued)", "0 (disabled)",
+              as.character(thresholds[2:5]), "8 (shipped)",
               as.character(thresholds[7:9]))
   res_sweep_table(d, header, arms, rows)
 }

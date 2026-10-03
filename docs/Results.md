@@ -388,8 +388,10 @@ Holding occupancy was <!-- GEN cell:establishment|R2E hold occupancy (%)|30 beds
 
 **Question.** What changes when casualties are released to strategic evacuation with the definitive repair outstanding once the R2E theatre queue reaches a threshold? `[default, threshold 0 to 24 casualties · 360 d · 30 replications · paired, closing 90 d]`
 
+> <small>**Note.** The column heading is the release threshold: the number of casualties waiting for an R2E operating theatre at which the release fires (0 disables it; 8 ships). It applies only to a damage control casualty whose abbreviated operation was at R2E and who is due back in theatre for the definitive repair. Such a casualty goes to strategic evacuation instead, and the operation is owed at Role 4. See the [README](../README.md#r2e-heavy-trajectory).</small>
+
 <!-- GEN saturation -->
-| Response | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
+| Response, by release threshold (casualties queued) | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
 |---|---|---|---|---|---|---|---|---|---|
 | Theatre mean queue | 8.17 [3.98, 12.36] | 1.88 [1.40, 2.35] | 2.00 [0.91, 3.08] | 3.21 [1.39, 5.04] | 2.34 [1.73, 2.94] | 2.39 [1.96, 2.82] | 2.98 [2.02, 3.95] | 3.98 [2.68, 5.28] | 4.31 [3.17, 5.45] |
 | Released with repair outstanding | 0.0 [0.0, 0.0] | 283.8 [262.8, 304.8] | 224.8 [205.6, 243.9] | 208.0 [180.4, 235.5] | 173.0 [148.6, 197.3] | 141.0 [122.3, 159.6] | 91.2 [66.8, 115.6] | 71.5 [54.0, 89.0] | 37.1 [23.4, 50.9] |

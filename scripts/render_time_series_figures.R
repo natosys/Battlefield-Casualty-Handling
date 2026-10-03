@@ -235,7 +235,7 @@ dir.create(IMAGES_DIR, recursive = TRUE, showWarnings = FALSE)
 
 p_queue <- plot_queue_series(queue_ci, clearance_summary, n_reps)
 ggsave(file.path(IMAGES_DIR, "queue_length_over_time.png"), p_queue,
-       width = 10, height = 12, dpi = 150)
+       width = 12, height = 12, dpi = 150)
 
 p_degraded <- plot_degraded_care_series(daily_ci, cumulative_ci, n_reps)
 ggsave(file.path(IMAGES_DIR, "degraded_care_rate_over_time.png"), p_degraded,

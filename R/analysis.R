@@ -1253,7 +1253,8 @@ plot_ame_sortie <- function(sortie_data, airframe_label = NULL) {
   ggplot(sortie_summary, aes(x = sortie_day)) +
     geom_col(aes(y = mean_capacity_added), fill = "grey80", width = 0.6) +
     geom_col(aes(y = mean_seats_used, fill = modal_outcome), width = 0.6) +
-    facet_wrap(~ pool, ncol = 1, scales = "free_y") +
+    facet_wrap(~ pool + intensity, ncol = 2, scales = "free_y",
+               labeller = label_wrap_gen(multi_line = FALSE)) +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
     scale_fill_manual(
       values = c("Flown" = "#2A9D8F", "Cancelled" = "grey50", "Unknown" = "grey30"),
@@ -5978,27 +5979,31 @@ TIME_SERIES_INTENSITY_COLOURS <- c(
 #'   each panel so the figure states whether the queue clears.
 #' @param n_reps Replications behind each intensity, named by the subtitle.
 #' @return The ggplot object.
+#'
+#' @details One panel per pool and intensity, each on its own vertical scale.
+#'   The high-intensity queues run two to three orders of magnitude above the
+#'   moderate ones, so a shared scale would flatten every moderate series to
+#'   the axis; the magnitudes are compared in the results paper's tables.
 plot_queue_series <- function(queue_ci, clearance, n_reps) {
   queue_ci$pool  <- factor(queue_ci$pool, levels = names(TIME_SERIES_POOLS))
   clearance$pool <- factor(clearance$pool, levels = names(TIME_SERIES_POOLS))
 
   subtitle <- sprintf(paste(
     "%d replications per intensity; line is the median across replications, band the",
-    "interquartile range.\nEach point is the time-weighted mean queue over a %d-hour bin."
+    "interquartile range.\nEach point is the time-weighted mean queue over a %d-hour bin;",
+    "each panel has its own vertical scale."
   ), n_reps, TIME_SERIES_BIN_MIN %/% 60L)
 
   labels <- clearance %>%
-    mutate(label = sprintf("%s: queue empty %.0f%% of the campaign",
-                           intensity, 100 * median_zero_share)) %>%
-    group_by(pool) %>%
-    summarise(label = paste(label, collapse = "\n"), .groups = "drop")
+    mutate(label = sprintf("Queue empty %.0f%% of the campaign", 100 * median_zero_share))
 
   ggplot(queue_ci, aes(x = bin_start_day, colour = intensity, fill = intensity)) +
     geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.25, colour = NA) +
     geom_line(aes(y = median), linewidth = 0.8) +
     geom_text(data = labels, aes(x = 0, y = Inf, label = label), inherit.aes = FALSE,
-              hjust = 0, vjust = 1.2, size = 3.1, lineheight = 1.1, colour = "grey20") +
-    facet_wrap(~ pool, ncol = 1, scales = "free_y") +
+              hjust = 0, vjust = 1.2, size = 3.0, colour = "grey20") +
+    facet_wrap(~ pool + intensity, ncol = 2, scales = "free_y",
+               labeller = label_wrap_gen(multi_line = FALSE)) +
     scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
     scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
     expand_limits(y = 0) +
@@ -6011,7 +6016,7 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
     theme_minimal(base_size = 12) +
     theme(
       panel.grid.minor = element_blank(),
-      legend.position  = "bottom",
+      legend.position  = "none",
       strip.text       = element_text(face = "bold", hjust = 0)
     )
 }

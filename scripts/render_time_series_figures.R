@@ -237,9 +237,13 @@ p_queue <- plot_queue_series(queue_ci, clearance_summary, n_reps)
 ggsave(file.path(IMAGES_DIR, "queue_length_over_time.png"), p_queue,
        width = 12, height = 12, dpi = 150)
 
-p_degraded <- plot_degraded_care_series(daily_ci, cumulative_ci, n_reps)
+count_ci <- series_quantiles(degraded_care_counts(degraded),
+                             c("intensity", "stage", "day"), "cumulative_degraded")
+p_degraded <- plot_degraded_care_series(daily_ci, cumulative_ci, n_reps) /
+  plot_degraded_care_counts(count_ci) +
+  plot_layout(heights = c(2, 1))
 ggsave(file.path(IMAGES_DIR, "degraded_care_rate_over_time.png"), p_degraded,
-       width = 10, height = 8, dpi = 150)
+       width = 10, height = 11, dpi = 150)
 
 message(sprintf("Figures written to %s", IMAGES_DIR))
 print(as.data.frame(clearance_summary), row.names = FALSE)

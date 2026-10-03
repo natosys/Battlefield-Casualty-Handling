@@ -6021,6 +6021,60 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
     )
 }
 
+#' Cumulative count of casualties taking the degraded recovery, per replication
+#'
+#' @param degraded Degraded-care series as pathway_degraded_series() returns it,
+#'   carrying intensity, stage, replication, day, n_decisions and daily_rate.
+#' @return Data frame of intensity, stage, replication, day and
+#'   cumulative_degraded.
+#'
+#' @details The count is recovered as the daily rate times the day's
+#'   decisions, which is exact because the rate is that ratio; a day with no
+#'   decision contributes nothing.
+degraded_care_counts <- function(degraded) {
+  degraded %>%
+    mutate(n_degraded = ifelse(n_decisions > 0, round(daily_rate * n_decisions), 0)) %>%
+    arrange(intensity, stage, replication, day) %>%
+    group_by(intensity, stage, replication) %>%
+    mutate(cumulative_degraded = cumsum(n_degraded)) %>%
+    ungroup() %>%
+    dplyr::select(intensity, stage, replication, day, cumulative_degraded)
+}
+
+#' Plot the cumulative count of casualties taking the degraded recovery
+#'
+#' @param count_ci Cumulative count summarised by series_quantiles(), carrying
+#'   intensity, stage, day, median, q25 and q75 columns.
+#' @return The ggplot object.
+#'
+#' @details Drawn beneath the rate so that a share is read alongside the number
+#'   of casualties it represents: the same share at high intensity is several
+#'   times as many casualties. Both intensities share each stage's scale for
+#'   that reason.
+plot_degraded_care_counts <- function(count_ci) {
+  count_ci$stage <- factor(count_ci$stage, levels = names(PATHWAY_STAGES))
+  ggplot(count_ci, aes(x = day, colour = intensity, fill = intensity)) +
+    geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.20, colour = NA) +
+    geom_line(aes(y = median), linewidth = 1.0) +
+    facet_wrap(~ stage, ncol = 2, scales = "free_y") +
+    scale_colour_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
+    scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
+    scale_y_continuous(labels = scales::comma) +
+    expand_limits(y = 0) +
+    labs(
+      subtitle = paste("Casualties who have taken the holding-bed recovery so far in the",
+                       "campaign;\nmedian and interquartile range across replications."),
+      x = "Campaign day", y = "Casualties (cumulative)",
+      colour = NULL, fill = NULL
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.position  = "none",
+      strip.text       = element_text(face = "bold", hjust = 0)
+    )
+}
+
 #' Plot the degraded-care rate over the campaign, by pathway stage and intensity
 #'
 #' @param daily_ci Daily rate summarised by series_quantiles(), carrying
@@ -6037,8 +6091,8 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
 plot_degraded_care_series <- function(daily_ci, cumulative_ci, n_reps) {
   subtitle <- sprintf(paste(
     "%d replications per intensity; lines are medians across replications, band the",
-    "interquartile range of the daily rate.\nThe rate is the share of that stage's",
-    "casualties recovering in a holding bed rather than an intensive care bed."
+    "interquartile range\nof the daily rate. The rate is the share of that stage's",
+    "casualties recovering in a holding bed\nrather than an intensive care bed."
   ), n_reps)
 
   daily_ci$stage      <- factor(daily_ci$stage, levels = names(PATHWAY_STAGES))

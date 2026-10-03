@@ -186,6 +186,24 @@ paper_theme <- function() {
     )
 }
 
+#' Replication count a section's protocol tag states
+#'
+#' @param lines Character vector of the document's lines.
+#' @param heading Exact heading text the protocol tag sits under.
+#' @return Integer replication count.
+#' @details Read from the first protocol tag under the heading, so a figure's
+#'   subtitle cannot state a count the experiment it plots did not run.
+protocol_replications <- function(lines, heading) {
+  start <- which(trimws(lines) == heading)
+  if (length(start) != 1L) fail(sprintf("heading not found exactly once: %s", heading))
+  tagged <- grep("`\\[.* [0-9]+ replications .*\\]`", lines)
+  tagged <- tagged[tagged > start]
+  if (length(tagged) == 0L) fail(sprintf("no protocol tag found under heading: %s", heading))
+  n <- as.integer(sub(".* ([0-9]+) replications .*", "\\1", lines[tagged[1]]))
+  if (is.na(n)) fail(sprintf("protocol tag under %s did not parse", heading))
+  n
+}
+
 #' Figure 1: casualty and mortality totals at the two casualty intensities
 #'
 #' @param lines Character vector of the document's lines.
@@ -196,6 +214,7 @@ paper_theme <- function() {
 #'   which the paper is explicit must not be read as the same quantity.
 build_totals_figure <- function(lines) {
   rows <- extract_table(lines, "## Comparative Scenario Analysis", skip = 0L)
+  n_reps <- protocol_replications(lines, "## Comparative Scenario Analysis")
   recs <- list()
   for (row in rows) {
     cl <- cells(row)
@@ -229,7 +248,7 @@ build_totals_figure <- function(lines) {
     scale_colour_manual(values = INTENSITY_COLOURS) +
     labs(
       title = "Casualty and mortality totals at two casualty intensities",
-      subtitle = paste0("Point is the mean over 50 campaigns; narrow bar the 95% ",
+      subtitle = paste0("Point is the mean over ", n_reps, " campaigns; narrow bar the 95% ",
                         "confidence interval;\nwide band the 10th-to-90th-percentile ",
                         "spread across campaigns."),
       x = NULL, y = NULL

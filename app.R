@@ -678,7 +678,6 @@ MORRIS_LABELS <- c(
 
   # ── Labels for the parameters the full-coverage audit added ─────────────
   short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
-  r2b_hold_mode                 = "R2B Holding Bed Duration (Mode)",
   r2e_hold_mode                 = "R2E Base Recovery-to-Duty Duration (Mode)",
   post_op_hold_mode             = "R2E Post-Op Holding-Bed Duration (Mode)",
   r1_recovery_mode               = "R1 Battle Fatigue Hold Duration (Mode)",

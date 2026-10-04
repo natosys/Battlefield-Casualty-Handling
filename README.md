@@ -1243,6 +1243,8 @@ Each screened parameter carries a baseline alongside its bounds, and the baselin
 
 Eighty parameters are screened, spanning the main uncertain inputs across all three echelons plus the casualty generation, force regeneration, Role 4 and strategic evacuation subsystems. Seventy-four are ordinary scalars whose bounds are set using one of two rules, described below: **Rule A** (citation-anchored, moderate uncertainty) spans approximately baseline ±40%; **Rule B** (informed estimate, no literature anchor) spans baseline ×0.5–×2.0 (duration/rate parameters) or approximately baseline ±0.15–0.25 (probabilities), clipped to a clinically sensible range. The remaining six are the balance coordinates of the three casualty composition splits, which take their bounds by a transformation of a compositional range rather than from either rule (see [Simplex-Constrained Compositions](#simplex-constrained-compositions)). Thirteen of the eighty, spanning Role 4 length of stay and reconstruction, the R2E pre-flight critical hold, the forward theatre saturation release threshold, the R2B holding evacuation threshold and the mass casualty wounded/killed split, were added by an Issue #339 audit of every numeric leaf in `env_data.json` against the screened set and the exclusion list below, which found them screened by neither. Two more, the R2E intensive care and holding bed establishment counts (`r2e_icu_beds`, `r2e_hold_beds`), were added by an Issue #410 audit that found the same holding-bed and intensive-care queue responses the Issue #339 audit added carried no parameter that moved the bed pool itself, only the demand placed on it; screening the establishment alongside its demand is what lets a ranking distinguish a queue driven by arrivals from one driven by capacity.
 
+The tracked screen was run before the R2B holding duration was retired (see [Further Development](#further-development), L34), so it includes `r2b_hold_mode`, a parameter the model no longer reads. The design in `R/sensitivity.R` now screens seventy-nine parameters; the counts, tables and rankings in this section describe the published screen of eighty until it is re-run.
+
 **R1 — Forward Aid Post**
 
 | Parameter                       | Variable               | Baseline | Lower | Upper | Rule |
@@ -1268,7 +1270,7 @@ Eighty parameters are screened, spanning the main uncertain inputs across all th
 | Surgery duration (shared R2B/R2E)    | `surg_mode`          | 95 min   | 57    | 133   | A    |
 | Long resuscitation duration (shared) | `long_resus_mode`    | 45 min   | 25    | 70    | A    |
 | R2B→R2E transport time               | `r2b_transport`      | 30 min   | 15    | 45    | A    |
-| Holding bed duration                 | `r2b_hold_mode`      | 7200 min | 3600  | 14400 | B    |
+| Holding bed duration (retired)       | `r2b_hold_mode`      | 7200 min | 3600  | 14400 | B    |
 | Hold-bed reroute threshold           | `r2b_hold_threshold` | 80%      | 60%   | 95%   | B    |
 | Pre-open hold window                 | `r2b_pre_open_window` | 60 min  | 0     | 360   | —    |
 | Holding evacuation threshold         | `r2b_evac_threshold` | 0 min (disabled) | 0 | 10080 | — |
@@ -1487,7 +1489,7 @@ The grouped tables above and the table below identify each parameter by its `mor
 | `r1_wia_treat_mode`          | R1 WIA Treatment Time (Mode)              | Health System Design - Capacity |
 | `r2b_dcs_factor`             | R2B DCS Efficacy Factor                   | Scenario / Casualty Context     |
 | `r2b_evac_threshold`         | R2B Holding Evacuation Threshold          | Health System Design - Policy   |
-| `r2b_hold_mode`              | R2B Holding Bed Duration (Mode)           | Health System Design - Capacity |
+| `r2b_hold_mode` (retired)    | R2B Holding Bed Duration (Mode)           | Health System Design - Capacity |
 | `r2b_hold_threshold`         | R2B Hold-Bed Reroute Threshold            | Health System Design - Policy   |
 | `r2b_pre_open_window`        | R2B Pre-Open Hold Window (Minutes)        | Health System Design - Policy   |
 | `r2b_icu_penalty`            | R2B Forward ICU DOW Penalty (Multiplier)  | Scenario / Casualty Context     |
@@ -2278,7 +2280,7 @@ This section records what the model does not represent, how much each gap matter
 | L29 | The variance decomposition separates the leading parameter but not the order beneath it | Medium |
 | L32 | The establishment and the evacuation policy are never swept jointly, so their interaction is unknown | Medium |
 | L33 | The reconstruction cohort is identified by proportion rather than by the wound, and the saturation threshold rests on no source | Medium |
-| L34 | The R2B holding duration parameters no longer act, and the sensitivity screen predates the single convalescence draw | Medium |
+| L34 | The sensitivity screen predates the single convalescence draw | Medium |
 | L30 | Role 4 length of stay is drawn after the simulation | Low |
 | L31 | Configuration is held in globals rather than passed as an argument | Low |
 
@@ -2322,7 +2324,7 @@ This section records what the model does not represent, how much each gap matter
 
 **L33 — The reconstruction cohort is identified by proportion rather than by the wound, and the saturation threshold rests on no source.** Both levers that move work from the deployed trauma system to the national support base are now in force, and each carries a limit that is a property of the model rather than of its setting. The reconstruction cohort is drawn as a share of Priority 1 casualties operated on in theatre, because the model carries no anatomical description of a wound: it knows triage priority, whether an operation was performed and the damage control pathway, none of which distinguishes a casualty whose wounds need staged soft-tissue coverage from one whose do not. The share therefore reproduces the right proportion of casualties needing reconstruction rather than the right casualties, and closing that means giving a casualty an injury pattern at the point of injury, which conditions far more than this echelon. The saturation threshold has a different weakness: no open-access source reports the surgical backlog at which a theatre begins evacuating between the two operations, so the shipped eight is an informed estimate anchored on a measured property of the model, the mean theatre queue an unrelieved campaign carries, rather than on evidence about how theatres behave. A sweep across the range establishes what the setting costs and buys (see [Forward Surgical Saturation Release](docs/Results.md#forward-surgical-saturation-release)), which bounds the consequence of the estimate being wrong without removing it. The reconstruction sequence is also counted but not timed, no open-access source reporting how long a debridement or a flap takes at this echelon, so the reported theatre-minutes cover only the conserved definitive repairs while the operation count covers every procedure.
 
-**L34 — The R2B holding duration parameters no longer act, and the sensitivity screen predates the single convalescence draw.** A casualty's convalescence is drawn once from the R2E base distribution scaled by severity, so the `r2b.holding` minimum, maximum and mode no longer set any duration, and the Morris parameter `r2b_hold_mode` and the Configure panel's R2B holding duration fields screen or edit a quantity the model does not read. The tracked Morris and Sobol evidence sets were produced before the change, so their rankings describe the earlier model, in which the R2B duration was an independent input, and the screened parameters that scale convalescence (the severity factors and the R2E holding distribution) now also act on every casualty held forward. Closing it means removing the three fields from `env_data.json`, the registry and the screening design, and re-running both screens, about fourteen hours for the Morris cache alone.
+**L34 — The sensitivity screen predates the single convalescence draw.** A casualty's convalescence is drawn once from the R2E base distribution scaled by severity, so the R2B holding duration (`r2b.holding` minimum, maximum and mode) no longer exists in `env_data.json`, the Configure panel or the screening design. The tracked Morris and Sobol evidence sets were produced before the change, so their rankings describe the earlier model, in which the R2B duration was an independent input and the Morris parameter `r2b_hold_mode` was screened, and the parameters that scale convalescence (the severity factors and the R2E holding distribution) now also act on every casualty held forward. Closing it means re-running both screens on the current design, about fourteen hours for the Morris cache alone at 30 days.
 
 ### Low Impact
 

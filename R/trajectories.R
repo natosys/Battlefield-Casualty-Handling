@@ -408,6 +408,13 @@ draw_post_definitive_icu <- function() {
 #'   care is saturated), both limited by `forward_hold_max`.
 forward_hold_rule <- function() {
   cfg <- env_data$vars$r2b$post_op_icu
+  #' Read and validate one numeric field of the forward holding rule
+  #'
+  #' @param field Field name under `r2b.post_op_icu`.
+  #' @param default Value the field takes when absent.
+  #' @param lower Lower bound the value must reach, or exceed where `strict`.
+  #' @param strict Whether the value must exceed `lower` rather than reach it.
+  #' @return The value as a number; stops, naming the field, where malformed.
   num <- function(field, default, lower, strict = FALSE) {
     val <- cfg[[field]]
     if (is.null(val)) return(default)
@@ -1026,6 +1033,11 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
     )
 
   # The two grounds in sequence: stability window, then capacity hold.
+  #' One forward stay on a given bed type, stability window then capacity hold
+  #'
+  #' @param res_id The `select()` identifier: 6 for an intensive care bed, 7
+  #'   for a holding bed.
+  #' @return A trajectory seizing the bed, serving both grounds and releasing it.
   stay <- function(res_id) {
     trajectory() %>%
       set_attribute("r2b_post_op_min", function() forward_stability_minutes()) %>%

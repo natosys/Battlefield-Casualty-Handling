@@ -1,29 +1,32 @@
 #!/usr/bin/env Rscript
 ##################################################
-## scripts/run_icu_share_sweep.R                ##
-## Forward ICU share decision-frontier sweep    ##
+## scripts/run_forward_hold_sweep.R             ##
+## Forward holding decision-frontier sweep      ##
 ##################################################
 #
 # Terminal / Claude Code cloud:
-#   Rscript scripts/run_icu_share_sweep.R --refresh-baseline     # write the tracked data/sweeps/
-#   Rscript scripts/run_icu_share_sweep.R                        # default: shares 0-1 by 0.25, 30 x 360 d
-#   Rscript scripts/run_icu_share_sweep.R --shares "seq(0, 1, by = 0.1)"
-#   Rscript scripts/run_icu_share_sweep.R --iterations 30 --days 360
-#   Rscript scripts/run_icu_share_sweep.R --quick                # smoke test (2 reps, 3 days, 3 points)
+#   Rscript scripts/run_forward_hold_sweep.R --refresh-baseline  # write the tracked data/sweeps/
+#   Rscript scripts/run_forward_hold_sweep.R                     # default: the seven arms, 30 x 360 d
+#   Rscript scripts/run_forward_hold_sweep.R --iterations 30 --days 360
+#   Rscript scripts/run_forward_hold_sweep.R --quick             # smoke test (2 reps, 3 days, 3 arms)
+#
+# Each arm sets one forward holding rule at R2B (`r2b.post_op_icu`): a stability
+# window in minutes applied to both surgical pathways and the capacity trigger.
+# The arms are FORWARD_HOLD_SWEEP_ARMS in R/analysis.R.
 #
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
-# tracked images/r2b_icu_share_frontier.png. Without it every invocation writes
-# under outputs/ alone, so an exploratory run cannot move the evidence set
-# docs/Results.md's decision-frontier table is checked against. The
-# flag fixes the swept shares, the replication count, the horizon and the seed
-# rather than accepting whichever the caller passed. It writes its own
-# r2b_icu_share_frontier.csv and leaves the transport sweep's files in the same
-# directory untouched.
+# tracked images/r2b_forward_hold_frontier.png. Without it every invocation
+# writes under outputs/ alone, so an exploratory run cannot move the evidence
+# set docs/Results.md's decision-frontier table is checked against. The flag
+# fixes the arms, the replication count, the horizon and the seed rather than
+# accepting whichever the caller passed. It writes its own
+# r2b_forward_hold_frontier.csv and leaves the transport sweep's files in the
+# same directory untouched.
 #
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
-#   sweep <- plot_r2b_icu_share_frontier(seq(0, 1, by = 0.25), n_rep = 30, n_days = 360)
+#   sweep <- plot_r2b_forward_hold_frontier(FORWARD_HOLD_SWEEP_ARMS, n_rep = 30, n_days = 360)
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -34,16 +37,14 @@ source("R/scenario_runner.R")
 suppressPackageStartupMessages(library(optparse))
 
 option_list <- list(
-  make_option("--shares",     type = "character", default = "seq(0, 1, by = 0.25)",
-              help = "Forward ICU shares to sweep, as an R range/vector expression [default: %default]"),
-  make_option("--iterations", type = "integer", default = ICU_SHARE_SWEEP_REPLICATIONS,
-              help = "Replications per share point [default: %default]"),
+  make_option("--iterations", type = "integer", default = FORWARD_HOLD_SWEEP_REPLICATIONS,
+              help = "Replications per arm [default: %default]"),
   make_option("--days",       type = "integer", default = CAPACITY_SWEEP_DAYS,
               help = "Simulation duration in days [default: %default]"),
   make_option("--seed",       type = "integer", default = 42L,
               help = "Random seed [default: %default]"),
   make_option("--quick",      action = "store_true", default = FALSE,
-              help = "Smoke test: 2 iterations, 3 days, 3 share points"),
+              help = "Smoke test: 2 iterations, 3 days, 3 arms"),
   make_option("--path",       type = "character", default = "env_data.json",
               help = "Path to env_data.json [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
@@ -66,21 +67,19 @@ if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
 if (opt$quick) {
   opt$iterations <- 2L
   opt$days       <- 3L
-  opt$shares     <- "c(0, 0.5, 1)"
-  message("Quick mode: iterations=2, days=3, shares=c(0, 0.5, 1)")
+  message("Quick mode: iterations=2, days=3, arms=Off, 240 min, Capacity only")
 }
 
 # A baseline refresh runs the protocol R/analysis.R holds rather than whatever
 # the caller passed, so the tracked set and the design the methods paper documents
 # cannot diverge through a mistyped argument.
 if (isTRUE(opt$`refresh-baseline`)) {
-  opt$shares     <- deparse(ICU_SHARE_SWEEP_SHARES)
-  opt$iterations <- ICU_SHARE_SWEEP_REPLICATIONS
+  opt$iterations <- FORWARD_HOLD_SWEEP_REPLICATIONS
   opt$days       <- CAPACITY_SWEEP_DAYS
   opt$seed       <- CAPACITY_SWEEP_SEED
   message(sprintf(paste("Baseline refresh: running the documented protocol,",
-                        "%d replications x %d days per point at seed %d"),
-                  ICU_SHARE_SWEEP_REPLICATIONS, CAPACITY_SWEEP_DAYS,
+                        "%d replications x %d days per arm at seed %d"),
+                  FORWARD_HOLD_SWEEP_REPLICATIONS, CAPACITY_SWEEP_DAYS,
                   CAPACITY_SWEEP_SEED))
 }
 
@@ -98,19 +97,19 @@ images_dir <- if (!is.null(opt[["images-dir"]])) {
   file.path("outputs", "images")
 }
 
-shares <- eval(parse(text = opt$shares))
-
-if (any(shares < 0 | shares > 1)) {
-  stop("--shares must lie within [0, 1]: the forward ICU share is a fraction of one requirement.",
-       call. = FALSE)
+arms <- if (opt$quick) {
+  FORWARD_HOLD_SWEEP_ARMS[FORWARD_HOLD_SWEEP_ARMS$label %in%
+                            c("Off (current)", "240 min", "Capacity only"), ]
+} else {
+  FORWARD_HOLD_SWEEP_ARMS
 }
 
 message(sprintf(
-  "Forward ICU share sweep config: shares=%s, iterations=%d, days=%d, seed=%d",
-  opt$shares, opt$iterations, opt$days, opt$seed
+  "Forward holding sweep config: arms=%s, iterations=%d, days=%d, seed=%d",
+  paste(arms$label, collapse = "; "), opt$iterations, opt$days, opt$seed
 ))
 
-# plot_r2b_icu_share_frontier() saves/restores the global env_data/day_min/
+# plot_r2b_forward_hold_frontier() saves/restores the global env_data/day_min/
 # counts around its sweep (mirrors run_morris()'s env_data_base pattern,
 # R/sensitivity.R), so they must already be set — same convention as
 # scripts/run_transport_sweep.R.
@@ -119,8 +118,8 @@ day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 set.seed(opt$seed)
-sweep <- plot_r2b_icu_share_frontier(
-  shares      = shares,
+sweep <- plot_r2b_forward_hold_frontier(
+  arms        = arms,
   n_days      = opt$days,
   n_rep       = opt$iterations,
   path        = opt$path,
@@ -128,5 +127,5 @@ sweep <- plot_r2b_icu_share_frontier(
   images_dir  = images_dir
 )
 
-message("\nForward ICU share sweep complete.")
+message("\nForward holding sweep complete.")
 print(sweep$data)

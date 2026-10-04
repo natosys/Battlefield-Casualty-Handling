@@ -1,5 +1,5 @@
 rule,count
-missing_constant_header,171
+missing_constant_header,166
 missing_header,0
 missing_param,0
 missing_return,0

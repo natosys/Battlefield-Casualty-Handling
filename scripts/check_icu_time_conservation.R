@@ -49,13 +49,18 @@ source("R/replication.R")
 
 args       <- commandArgs(trailingOnly = TRUE)
 quick      <- "--quick" %in% args
+#' Run length of each configuration, in days
 CHECK_DAYS <- if (quick) 10L else 30L
+
+#' Control seed shared by every configuration
 CHECK_SEED <- 42L
 
-# One entry per configuration of the forward holding rule. `r2e_icu_beds`
-# overrides the R2E intensive care establishment where it is not NULL, which is
-# how the capacity trigger is made reachable in a short run: the shipped four
-# beds are rarely saturated in thirty days.
+#' Configurations of the forward holding rule the check runs
+#'
+#' @details One entry per configuration. `r2e_icu_beds` overrides the R2E
+#'   intensive care establishment where it is not NULL, which is how the
+#'   capacity trigger is made reachable in a short run: the shipped four beds
+#'   are rarely saturated in thirty days.
 CONFIGS <- list(
   off       = list(dcs = 0,   single = 0,   trigger = 0, r2e_icu_beds = NULL),
   stability = list(dcs = 240, single = 360, trigger = 0, r2e_icu_beds = NULL),
@@ -211,6 +216,13 @@ for (name in names(CONFIGS)) {
   # the stability window limited by requirement and hold limit; the upper
   # bound is the requirement limited by the hold limit, which only the
   # capacity trigger can approach.
+  #' Assert that forward minutes follow the rule for one pathway's casualties
+  #'
+  #' @param df One row per R2B-operated casualty of the pathway.
+  #' @param window The stability window configured for the pathway, in minutes.
+  #' @param total_col Name of the column holding the requirement drawn.
+  #' @param label The pathway's name, for the report.
+  #' @return Invisible NULL; called for its assertions.
   check_rule <- function(df, window, total_col, label) {
     if (!nrow(df)) return(invisible(NULL))
     total <- df[[total_col]]

@@ -168,14 +168,17 @@ assert_rejects("a negative warm-up is named",
 # ── 2. Sweep arguments ──────────────────────────────────────────────────────
 
 assert_rejects("a zero replication count is named", "n_rep",
-               plot_r2b_icu_share_frontier(shares = 0.5, n_days = 1L, n_rep = 0L,
-                                           path = JSON_PATH, output_dir = tempdir(),
-                                           images_dir = tempdir()))
+               plot_r2b_forward_hold_frontier(arms = FORWARD_HOLD_SWEEP_ARMS[1, ],
+                                              n_days = 1L, n_rep = 0L,
+                                              path = JSON_PATH, output_dir = tempdir(),
+                                              images_dir = tempdir()))
 
-assert_rejects("a share outside [0, 1] is named", "shares",
-               plot_r2b_icu_share_frontier(shares = c(0.5, 1.5), n_days = 1L, n_rep = 1L,
-                                           path = JSON_PATH, output_dir = tempdir(),
-                                           images_dir = tempdir()))
+assert_rejects("a negative window is named", "arms",
+               plot_r2b_forward_hold_frontier(
+                 arms = data.frame(label = "bad", window = -5, trigger = 0,
+                                   stringsAsFactors = FALSE),
+                 n_days = 1L, n_rep = 1L,
+                 path = JSON_PATH, output_dir = tempdir(), images_dir = tempdir()))
 
 # Aliased purely to keep the calls below inside the line length: the sweep's
 # own name is 44 characters before its first argument.

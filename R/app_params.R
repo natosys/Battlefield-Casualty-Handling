@@ -285,7 +285,9 @@ SRC_EVAC_THRESHOLD    <- paste(
 )
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
+#' Source note for the forward stability windows
 SRC_R2B_STABILITY     <- "Informed estimate; no open-access source states how long a casualty operated on at a forward surgical facility is held before they are fit to transfer. A command policy lever, set per surgical pathway: damage control casualties are the more physiologically deranged and a single-stage casualty the less. Ships at zero (nobody held forward on stability grounds). High uncertainty. See README R2B Trajectory, Post-Operative Intensive Care."
+#' Source note for the forward capacity hold
 SRC_R2B_CAPACITY      <- "Design parameter, not literature-derived: a casualty is held forward while R2E intensive care is saturated, up to the forward hold limit. Ships disabled. See README R2B Trajectory, Post-Operative Intensive Care."
 SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of requirement outstanding. Ships at 24h, the deployed evacuation norm. Binds both the stability window and the capacity hold, so zero disables forward holding outright."
 SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."

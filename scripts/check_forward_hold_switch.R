@@ -33,7 +33,10 @@ source("R/trajectories.R")
 source("R/replication.R")
 
 args <- commandArgs(trailingOnly = TRUE)
+#' Run length of each run, in days
 CHECK_DAYS <- if ("--days" %in% args) as.integer(args[which(args == "--days") + 1]) else 30L
+
+#' Control seed shared by every run
 CHECK_SEED <- 42L
 
 failures <- character(0)

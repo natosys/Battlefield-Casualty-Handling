@@ -255,6 +255,24 @@ for (name in names(CONFIGS)) {
            name, nrow(not_r2b))
   }
 
+  # Check 5: the minutes recorded are minutes a bed was occupied. The attribute
+  # alone cannot show it, a stay shorter than the attribute claims leaving every
+  # check above intact, so the R2B intensive care beds' own monitor is read: the
+  # time they were occupied must cover the minutes recorded for casualties held
+  # in them. It may exceed them, a bed also holding casualties awaiting
+  # evacuation, and falls short by the stays still running when the run ended.
+  icu_held <- r2b_op %>% filter(!is.na(fwd_pathway), fwd_pathway == 1)
+  if (nrow(icu_held)) {
+    res <- get_mon_resources(wrapped) %>% filter(grepl("^b_r2b_icu_[0-9]+_t[0-9]+$", resource))
+    busy <- res %>% arrange(resource, time) %>% group_by(resource) %>%
+      mutate(dt = dplyr::lead(time) - time) %>% filter(!is.na(dt)) %>%
+      summarise(busy = sum(server * dt), .groups = "drop")
+    recorded <- sum(icu_held$r2b)
+    report(sum(busy$busy) >= 0.97 * recorded,
+           "%s: R2B intensive care beds were occupied %.0f min against %.0f min recorded for %d casualties held in them",
+           name, sum(busy$busy), recorded, nrow(icu_held))
+  }
+
   results[[name]] <- list(dcs = nrow(dcs), single = nrow(single),
                           held = sum(r2b_op$r2b > 0))
 }

@@ -1044,7 +1044,10 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
       simmer::select(if (res_id == 6) icu_beds else hold_beds,
                      policy = "shortest-queue", id = res_id) %>%
       seize_selected(id = res_id) %>%
-      timeout(function() forward_stability_minutes()) %>%
+      # Read back from the attribute rather than recomputed: the attribute now
+      # counts the minutes served, so recomputing would see the headroom already
+      # spent and shorten the stay below the minutes recorded for it.
+      timeout(function() get_attribute(env, "r2b_post_op_min")) %>%
       join(capacity_hold) %>%
       release_selected(id = res_id)
   }

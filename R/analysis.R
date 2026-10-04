@@ -5525,7 +5525,7 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
 
   p <- render_forward_hold_sweep_plot(sweep_df, baseline_arm = baseline_arm, n_rep = n_rep)
 
-  ggsave(file.path(images_dir, "r2b_icu_share_frontier.png"), p,
+  ggsave(file.path(images_dir, "r2b_forward_hold_frontier.png"), p,
          width = 10, height = 14, dpi = 150)
 
   list(data = sweep_df, plot = p)

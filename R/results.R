@@ -452,6 +452,47 @@ build_casualty_surge <- function(data_dir) {
   res_table(c("Metric", "No events injected", "Events injected"), rows)
 }
 
+#' Casualty surge event size sweep table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details One row per swept event size, the no-event arm first. Peak queues
+#'   are the largest four-hour mean queue of each pool over the campaign.
+build_casualty_surge_size <- function(data_dir) {
+  d <- res_read("casualty_surge/casualty_surge_size_summary.csv", data_dir)
+  d <- d[order(d$size), ]
+  #' Pooled died-of-wounds rate cell with its exact interval
+  #'
+  #' @param r Rate.
+  #' @param lo Lower bound.
+  #' @param hi Upper bound.
+  #' @return The cell text.
+  pct <- function(r, lo, hi) {
+    ifelse(is.na(r), "not applicable", sprintf("%.2f%% [%.2f%%, %.2f%%]", 100 * r, 100 * lo, 100 * hi))
+  }
+  #' Mean peak queue cell with its half-width
+  #'
+  #' @param i Pool index.
+  #' @param k Row index.
+  #' @return The cell text.
+  peak <- function(i, k) {
+    sprintf("%s \u00b1 %s", res_num(d[[paste0("peak_queue_", i)]][k], 1L),
+            res_num(d[[paste0("peak_queue_", i, "_ci")]][k], 1L))
+  }
+  rows <- lapply(seq_len(nrow(d)), function(k) {
+    c(if (d$size[k] == 0) "None" else as.character(d$size[k]),
+      res_num(d$mean_events[k], 1L),
+      pct(d$dow_event_rate[k], d$dow_event_lower[k], d$dow_event_upper[k]),
+      pct(d$dow_ordinary_rate[k], d$dow_ordinary_lower[k], d$dow_ordinary_upper[k]),
+      peak(1L, k), peak(2L, k), peak(3L, k), peak(4L, k))
+  })
+  res_table(c("Event size", "Events/run", "Died of wounds, event casualties",
+              "Died of wounds, ordinary casualties", "Peak R2B holding queue",
+              "Peak R2E theatre queue", "Peak R2E intensive care queue",
+              "Peak R2E holding queue"), rows)
+}
+
 #' Defaults for one cell of a strategic evacuation table
 AIRLIFT_CELL_DEFAULTS <- list(m = 1, dp = 2L, ci = TRUE, unit = "", neg = FALSE)
 
@@ -1040,6 +1081,7 @@ RESULTS_TABLES <- list(
   establishment = build_establishment,
   saturation = build_saturation,
   casualty_surge = build_casualty_surge,
+  casualty_surge_size = build_casualty_surge_size,
   airlift_baseline = function(dd) build_airlift(dd, "baseline"),
   airlift_interval = function(dd) build_airlift(dd, "interval"),
   airlift_reliability = function(dd) build_airlift(dd, "reliability"),

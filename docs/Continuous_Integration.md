@@ -383,7 +383,7 @@ seconds.
 | `check_long_horizon_warmup.R` | fast | 8 s | the sustained-horizon Welch diagnostic is correct and the tracked plot and CSV reproduce it |
 | `check_markdown.R` | fast | 6 s | Markdown TOC, link and table checks |
 | `check_casualty_surge_kia_split.R` | fast | 41 s | a casualty surge event's casualty count is a total, split between the wounded and the immediately killed |
-| `check_casualty_surge_protocol.R` | fast | 7 s | the mass casualty stress test's parameters, its responses and its published table agree |
+| `check_casualty_surge_protocol.R` | fast | 7 s | the casualty surge stress test's parameters, its responses and its published table agree |
 | `check_measurement_reproducibility.R` | fast | 175 s | a measurement is a function of its control seed |
 | `check_morris_baseline.R` | fast | 8 s | Screened-parameter baseline agreement |
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |

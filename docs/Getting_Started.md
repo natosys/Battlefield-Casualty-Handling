@@ -10,7 +10,7 @@ This app runs a discrete event simulation of casualties moving through a deploye
 
 ### 1. Configure
 
-Every editable parameter lives in one of six panels: **Force Size**, **Health System Architecture** (team counts, bed capacity), **Medevac** (transport times and fleet size), **Health Provision** (treatment/surgery/recovery durations and thresholds), **Casualty Rates** (arrival distributions, triage split, DOW ceilings), and **Mass Casualty** (surge event injection). Hover the ⓘ icon beside any field for a plain-English explanation and its evidence source.
+Every editable parameter lives in one of six panels: **Force Size**, **Health System Architecture** (team counts, bed capacity), **Medevac** (transport times and fleet size), **Health Provision** (treatment/surgery/recovery durations and thresholds), **Casualty Rates** (arrival distributions, triage split, DOW ceilings), and **Casualty Surge** (surge event injection). Hover the ⓘ icon beside any field for a plain-English explanation and its evidence source.
 
 A **Casualty Intensity Profile** dropdown above the panels switches between the shipped scenario profiles (e.g. Falklands — Modified, Falklands — Unmodified, Okinawa — Casualty Rates) without needing to edit fields by hand. *Save Configuration* downloads your edited parameters as a JSON file; *Load Configuration* re-imports one. Neither writes to the app's on-disk configuration, so experimenting here is always safe to undo — just reload the page or re-upload a saved file.
 

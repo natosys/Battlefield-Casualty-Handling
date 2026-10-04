@@ -52,8 +52,8 @@ CASUALTY_SURGE_ARMS <- c(0, 0.2)
 #'   `casualty_surge_event` attribute reads 0 (background origin, present in
 #'   both arms); `n_event`/`dow_event` count those reading 1 (event origin,
 #'   necessarily empty in the background-only arm). `n_events` reconstructs
-#'   events from the event-origin casualties' arrival times by the same
-#'   gap-based grouping `summarise_casualty_surge_events()` (`R/analysis.R`)
+#'   events as the distinct event ids the generator assigned to event-origin
+#'   casualties, the grouping `reconstruct_surge_events()` (`R/analysis.R`)
 #'   applies to the illustrative single run, so the two counts cannot drift
 #'   apart under one definition of what separates two events.
 reduce_casualty_surge_replication <- function(env, rate_per_day) {
@@ -68,14 +68,7 @@ reduce_casualty_surge_replication <- function(env, rate_per_day) {
   event    <- !is.na(wide$casualty_surge_event) & wide$casualty_surge_event == 1
   died     <- !is.na(wide$dow) & wide$dow == 1
 
-  event_starts <- sort(wide$start_time[event])
-  window_max <- env_data$vars$casualty_surge$event$window_max
-  n_events <- if (length(event_starts) == 0) {
-    0L
-  } else {
-    gap <- c(Inf, diff(event_starts))
-    sum(gap > window_max)
-  }
+  n_events <- length(unique(wide$casualty_surge_event_id[event]))
 
   data.frame(
     rate_per_day = rate_per_day,
@@ -108,20 +101,20 @@ apply_casualty_surge_setting <- function(json_data, scenario, rate_per_day) {
   invisible(described)
 }
 
-#' Measure the casualty surge response set across replications at one arm
+#' Run replications and reduce each to one row inside its own worker
 #'
-#' @param rate_per_day Injection rate in force, in events per day.
-#' @param n_iterations Replications to run (default CASUALTY_SURGE_REPLICATIONS).
-#' @param n_days Campaign length in days (default CASUALTY_SURGE_DAYS).
+#' @param reducer Function of one wrapped environment returning a one-row
+#'   data frame of that replication's responses.
+#' @param n_iterations Replications to run.
+#' @param n_days Campaign length in days.
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
 #' @return Data frame with one row per replication, carrying the replication
-#'   index and the responses reduce_casualty_surge_replication() reports.
+#'   index and the responses `reducer` reports.
 #'
 #' @details Seeds are drawn as `run_replications()` draws them, from the
 #'   caller's control seed under the caller's generator kind, and the caller's
 #'   stream is restored on exit, on `R/hold_window.R`'s arrangement.
-run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY_SURGE_REPLICATIONS,
-                                          n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, max_cores = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -134,7 +127,7 @@ run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY
   #' @return The replication's one-row response frame, carrying its index.
   worker <- function(i) {
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    row <- reduce_casualty_surge_replication(env, rate_per_day)
+    row <- reducer(env)
     row$replication <- i
     row
   }
@@ -146,6 +139,22 @@ run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY
          call. = FALSE)
   }
   do.call(rbind, dispatched)
+}
+
+#' Measure the casualty surge response set across replications at one arm
+#'
+#' @param rate_per_day Injection rate in force, in events per day.
+#' @param n_iterations Replications to run (default CASUALTY_SURGE_REPLICATIONS).
+#' @param n_days Campaign length in days (default CASUALTY_SURGE_DAYS).
+#' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @return Data frame with one row per replication, carrying the replication
+#'   index and the responses reduce_casualty_surge_replication() reports.
+run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY_SURGE_REPLICATIONS,
+                                          n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+  measure_casualty_surge_replications(
+    function(env) reduce_casualty_surge_replication(env, rate_per_day),
+    n_iterations, n_days, max_cores
+  )
 }
 
 #' Mean and 95% confidence interval of the count responses across replications
@@ -216,4 +225,111 @@ casualty_surge_dow_rate <- function(rows, n_col, dow_col) {
 casualty_surge_replications_for <- function(s1, s2, half_width) {
   if (half_width <= 0) return(NA_real_)
   ceiling((qnorm(0.975) * sqrt(s1^2 + s2^2) / half_width)^2)
+}
+
+# ── Event size sweep ────────────────────────────────────────────────────────
+
+#' Fixed event sizes swept, in casualties per event
+#'
+#' @details The shipped generator draws each event uniformly between
+#'   `min_cas` and `max_cas`; the sweep fixes both at one value so that the
+#'   response is a function of size alone. The range runs from a single
+#'   background-scale burst (10) to well past anything the configured 20 to 60
+#'   range reaches, so the size at which care degrades is bracketed by
+#'   measurement rather than assumed.
+CASUALTY_SURGE_SIZES <- c(10L, 20L, 40L, 60L, 90L, 120L, 180L)
+
+#' Injection rate the size sweep runs at, in events per day
+CASUALTY_SURGE_SIZE_RATE <- 0.2
+
+#' Replications per size in the size sweep
+CASUALTY_SURGE_SIZE_REPLICATIONS <- 30L
+
+#' Set a fixed event size and injection rate on a resolved configuration
+#'
+#' @param json_data Parsed env_data.json.
+#' @param scenario Scenario profile to resolve.
+#' @param size Casualties per event; sets `min_cas` and `max_cas` together.
+#' @param rate_per_day Injection rate, in events per day; zero disables injection.
+#' @return Invisibly, the described configuration that was applied.
+apply_casualty_surge_size_setting <- function(json_data, scenario, size, rate_per_day) {
+  described <- apply_casualty_surge_setting(json_data, scenario, rate_per_day)
+  described$vars$casualty_surge$event$min_cas <- size
+  described$vars$casualty_surge$event$max_cas <- size
+  assign("env_data", described, envir = globalenv())
+  invisible(described)
+}
+
+#' Reduce one replication to the size sweep's response row
+#'
+#' @param env Wrapped simmer environment for one replication.
+#' @param size Event size the replication ran under (0 for the no-event arm).
+#' @return One-row data frame: the counts reduce_casualty_surge_replication()
+#'   reports, the largest realised event, and the peak four-hour mean queue of
+#'   each pool in `TIME_SERIES_POOLS` as `peak_queue_<n>`.
+#'
+#' @details Peaks are taken over the whole campaign, so a response that moves
+#'   with size reflects the events and not a closing-window average that an
+#'   event falling outside it would miss.
+reduce_casualty_surge_size_replication <- function(env, size) {
+  row <- reduce_casualty_surge_replication(env, if (size == 0) 0 else CASUALTY_SURGE_SIZE_RATE)
+  row$size <- size
+
+  attributes <- simmer::get_mon_attributes(env)
+  ids <- attributes$value[attributes$key == "casualty_surge_event_id" & attributes$value > 0]
+  row$max_event_size <- if (length(ids) == 0) 0L else max(table(ids))
+
+  resources <- simmer::get_mon_resources(env)
+  series <- pool_queue_series(resources, horizon_min = max(resources$time))
+  for (i in seq_along(TIME_SERIES_POOLS)) {
+    q <- series$queue[series$pool == names(TIME_SERIES_POOLS)[i]]
+    row[[paste0("peak_queue_", i)]] <- if (length(q) == 0) NA_real_ else max(q)
+  }
+  row
+}
+
+#' Measure the size sweep's response set across replications at one size
+#'
+#' @param size Casualties per event (0 for the no-event arm).
+#' @param n_iterations Replications to run.
+#' @param n_days Campaign length in days.
+#' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @return Data frame with one row per replication.
+run_casualty_surge_size_measurement <- function(size,
+                                               n_iterations = CASUALTY_SURGE_SIZE_REPLICATIONS,
+                                               n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+  measure_casualty_surge_replications(
+    function(env) reduce_casualty_surge_size_replication(env, size),
+    n_iterations, n_days, max_cores
+  )
+}
+
+#' Summarise the size sweep, one row per size
+#'
+#' @param rows Per-replication responses from
+#'   run_casualty_surge_size_measurement(), bound across sizes.
+#' @return Data frame of size, n_reps, mean events, largest realised event,
+#'   pooled event and ordinary died-of-wounds rates with exact intervals, and
+#'   the mean and 95% interval of each `peak_queue_<n>` response.
+summarise_casualty_surge_size <- function(rows) {
+  peaks <- grep("^peak_queue_", names(rows), value = TRUE)
+  do.call(rbind, lapply(sort(unique(rows$size)), function(sz) {
+    arm <- rows[rows$size == sz, ]
+    ev  <- casualty_surge_dow_rate(arm, "n_event", "dow_event")
+    ord <- casualty_surge_dow_rate(arm, "n_ordinary", "dow_ordinary")
+    out <- data.frame(
+      size = sz, n_reps = nrow(arm), mean_events = mean(arm$n_events),
+      max_event_size = max(arm$max_event_size),
+      dow_event_rate = ev$rate, dow_event_lower = ev$ci_lower, dow_event_upper = ev$ci_upper,
+      dow_ordinary_rate = ord$rate, dow_ordinary_lower = ord$ci_lower,
+      dow_ordinary_upper = ord$ci_upper
+    )
+    for (p in peaks) {
+      x <- arm[[p]]
+      e <- if (length(x) > 1) qt(0.975, df = length(x) - 1) * sd(x) / sqrt(length(x)) else 0
+      out[[p]] <- mean(x)
+      out[[paste0(p, "_ci")]] <- e
+    }
+    out
+  }))
 }

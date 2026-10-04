@@ -613,6 +613,13 @@ add_role4_icu_days <- function(assigned, r4_params) {
   } else {
     rep(0, nrow(assigned))
   }
+  # A single-stage casualty may have served part of the post-definitive
+  # requirement forward at R2B, which counts towards the same requirement.
+  forward_cols <- c("post_definitive_total", "r2b_post_op_min")
+  if (all(forward_cols %in% names(assigned))) {
+    forward <- !is.na(assigned$post_definitive_total) & !is.na(assigned$r2b_post_op_min)
+    served_days <- served_days + ifelse(forward, assigned$r2b_post_op_min / DAY_MIN, 0)
+  }
   # Two conditions, and the second is the one a first implementation missed.
   # A casualty theatre never operated on carries no post-operative episode for
   # Role 4 to continue. And a casualty whose category is not admitted to

@@ -577,8 +577,20 @@
           "acty": "post_op_icu",
           "vals": [
             {
-              "var": "share",
+              "var": "stability_window_dcs",
               "val": 0
+            },
+            {
+              "var": "stability_window_single_stage",
+              "val": 0
+            },
+            {
+              "var": "capacity_trigger",
+              "val": 0
+            },
+            {
+              "var": "capacity_poll_interval",
+              "val": 30
             },
             {
               "var": "forward_hold_max",

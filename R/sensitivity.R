@@ -397,7 +397,7 @@ morris_params <- data.frame(
     "fr_demand_interval_days", "fr_fulfillment_lag_days", "fr_fill_mode_frac",
     "ame_schedule_interval_days", "ame_failure_probability",
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
-    "r2b_icu_share", "r2b_forward_hold_max", "r2b_hold_threshold",
+    "r2b_stability_window_dcs", "r2b_forward_hold_max", "r2b_hold_threshold",
     "r2b_pre_open_window",
     # ── Surgical pathway split ────────────────────────────────────────────
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate",
@@ -451,7 +451,7 @@ morris_params <- data.frame(
     30,
     14,   14,   1.05,
     14,   0.30,
-    1,    2880,  0.95,
+    1440, 2880,  0.95,
     360,
     0.80, 0.40, 0.20,
     0.28, 3,     0.014,
@@ -693,7 +693,7 @@ apply_generation_and_event_params <- function(ed, p) {
 #' @return `ed`, with this family's fields set from `p`.
 apply_routing_threshold_params <- function(ed, p) {
   # ── R2B/R2E routing thresholds ──────────────────────────────────────────
-  ed$vars$r2b$post_op_icu$share            <- p[["r2b_icu_share"]]
+  ed$vars$r2b$post_op_icu$stability_window_dcs <- p[["r2b_stability_window_dcs"]]
   ed$vars$r2b$post_op_icu$forward_hold_max <- p[["r2b_forward_hold_max"]]
   ed$vars$r2b$holding$hold_threshold <- p[["r2b_hold_threshold"]]
   ed$vars$r2b$surgery$pre_open_window_min <- p[["r2b_pre_open_window"]]

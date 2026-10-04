@@ -267,12 +267,13 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
 # Heavy Trajectory explains what each is for clinically and why they are not
 # one quantity; what matters below is the contract that follows from it.
 #
-# Stabilisation is drawn once, whole, and the two accessors divide that single
-# draw between the echelons; post-definitive care is drawn only at R2E, which
-# is the only echelon performing a definitive repair. So no setting of the
-# forward share can move post-definitive care, and no route can change the
-# total stabilisation a casualty receives. A change here that draws a second
-# time, rather than dividing, breaks both properties silently;
+# Each episode is drawn once, whole, and what R2B serves forward is subtracted
+# from it at R2E rather than redrawn, so no setting of the forward holding rule
+# and no route can change the total a casualty receives. Stabilisation (damage
+# control) is drawn at R2B or R2E, wherever the casualty first needs it;
+# post-definitive care (single-stage) is drawn at R2B only where the rule holds
+# it forward, and at R2E otherwise. A change here that draws a second time,
+# rather than dividing, breaks that property silently;
 # scripts/check_icu_time_conservation.R is what catches it.
 
 #' Draws a casualty's whole stabilisation intensive care requirement, in minutes
@@ -282,7 +283,7 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
 #' @details How much stabilisation a casualty needs follows from the injury
 #'   rather than from the facility that happens to hold them, so one draw
 #'   covers the whole episode wherever it is served.
-#'   r2b_stabilisation_minutes() and r2e_stabilisation_minutes() below divide
+#'   forward_headroom() and r2e_stabilisation_minutes() below divide
 #'   that single draw between the echelons, which is what makes the total the
 #'   same on every route by construction rather than by two parameters being
 #'   kept consistent with each other. Each echelon records the minutes it
@@ -390,45 +391,141 @@ draw_post_definitive_icu <- function() {
   )
 }
 
-#' Minutes of the stabilisation requirement delivered forward at R2B
+#' The validated forward holding rule for post-operative intensive care at R2B
 #'
-#' @return The lesser of `r2b.post_op_icu.share` x the casualty's
-#'   `stabilisation_total` attribute and `r2b.post_op_icu.forward_hold_max`
+#' @return Named list: `window_dcs` and `window_single` (minutes a casualty
+#'   of that surgical pathway is held forward to stabilise, zero for none),
+#'   `capacity_trigger` (logical), `poll_interval` (minutes) and `hold_max`
+#'   (the longest forward stay, NA for no limit)
 #'
-#' @details Two levers, because a commander sets forward holding in two
-#'   different terms. The share is the intent: how much of the stabilisation
-#'   phase to attempt forward at all. The cap is the operational limit: how
-#'   long a scarce forward intensive care bed may be tied up by one casualty
-#'   before they are moved on regardless. The cap binds first, so setting it
-#'   to zero disables forward holding whatever the share says, and setting it
-#'   above the longest drawn requirement leaves the share acting alone.
-r2b_stabilisation_minutes <- function() {
-  intended <- get_attribute(env, "stabilisation_total") *
-    env_data$vars$r2b$post_op_icu$share
-  cap <- env_data$vars$r2b$post_op_icu$forward_hold_max
-  if (is.null(cap) || is.na(cap)) return(intended)
-  min(intended, cap)
+#' @details Reads `r2b.post_op_icu` and rejects a malformed field with a
+#'   message naming it. A field absent from the configuration reads as the
+#'   disabled value, so a configuration written before the rule existed is
+#'   the shipped model. Forward holding is decided per casualty on two
+#'   grounds, whichever the casualty meets: clinical stability (a window the
+#'   casualty is held for before they are fit to transfer, keyed to damage
+#'   control versus single-stage) and capacity (held on while R2E intensive
+#'   care is saturated), both limited by `forward_hold_max`.
+forward_hold_rule <- function() {
+  cfg <- env_data$vars$r2b$post_op_icu
+  num <- function(field, default, lower, strict = FALSE) {
+    val <- cfg[[field]]
+    if (is.null(val)) return(default)
+    bad <- length(val) != 1L || !is.numeric(val) || is.na(val) ||
+      (if (strict) val <= lower else val < lower)
+    if (bad) {
+      stop(sprintf("r2b.post_op_icu.%s must be a single number %s %s, found %s", field,
+                   if (strict) "above" else "of at least", lower,
+                   paste(format(val), collapse = ", ")), call. = FALSE)
+    }
+    as.numeric(val)
+  }
+  trigger <- num("capacity_trigger", 0, 0)
+  if (!trigger %in% c(0, 1)) {
+    stop(sprintf("r2b.post_op_icu.capacity_trigger must be 0 or 1, found %s", format(trigger)),
+         call. = FALSE)
+  }
+  hold_max <- num("forward_hold_max", NA_real_, 0)
+  list(
+    window_dcs    = num("stability_window_dcs", 0, 0),
+    window_single = num("stability_window_single_stage", 0, 0),
+    capacity_trigger = trigger == 1,
+    poll_interval = num("capacity_poll_interval", 30, 0, strict = TRUE),
+    hold_max      = hold_max
+  )
+}
+
+#' Whether forward post-operative holding is in force for the casualty's pathway
+#'
+#' @return TRUE when a stability window or the capacity trigger can hold this
+#'   casualty's post-operative intensive care forward at R2B
+forward_hold_enabled <- function() {
+  rule <- forward_hold_rule()
+  window <- if (single_stage()) rule$window_single else rule$window_dcs
+  window > 0 || rule$capacity_trigger
+}
+
+#' The post-operative intensive care requirement that may be held forward
+#'
+#' @return The casualty's whole requirement for the episode that follows their
+#'   R2B operation, in minutes: stabilisation for damage control, post-definitive
+#'   care for single-stage; zero where none has been drawn
+forward_requirement <- function() {
+  total <- get_attribute(env, if (single_stage()) "post_definitive_total" else "stabilisation_total")
+  if (is.na(total)) 0 else total
+}
+
+#' Minutes of the post-operative requirement already served forward at R2B
+#'
+#' @return The `r2b_post_op_min` attribute, zero where nothing was served
+forward_served <- function() {
+  served <- get_attribute(env, "r2b_post_op_min")
+  if (is.na(served)) 0 else served
+}
+
+#' The most this casualty may still be held forward at R2B
+#'
+#' @return The lesser of the requirement and `forward_hold_max`, less the
+#'   minutes already served, never negative
+forward_headroom <- function() {
+  limit <- forward_requirement()
+  cap <- forward_hold_rule()$hold_max
+  if (!is.na(cap)) limit <- min(limit, cap)
+  max(0, limit - forward_served())
+}
+
+#' Minutes held forward on stability grounds
+#'
+#' @return The stability window for the casualty's surgical pathway, limited by
+#'   the requirement and `forward_hold_max`; zero when no window is configured
+forward_stability_minutes <- function() {
+  rule <- forward_hold_rule()
+  window <- if (single_stage()) rule$window_single else rule$window_dcs
+  min(window, forward_headroom())
+}
+
+#' Whether R2E intensive care is saturated
+#'
+#' @return TRUE when every R2E intensive care bed is occupied; a casualty
+#'   waiting for one counts, so a pool with a queue is saturated
+#'
+#' @details The capacity ground for holding a casualty forward: R2E cannot
+#'   take them yet. Occupancy plus queue is read against capacity across every
+#'   R2E team's beds, the transfer destination being whichever team the
+#'   casualty is sent to.
+r2e_icu_saturated <- function() {
+  beds <- unlist(lapply(env_data$elms$r2eheavy, function(team) team[["icu_bed"]]))
+  if (length(beds) == 0) return(FALSE)
+  load <- sum(get_server_count(env, resources = beds)) + sum(get_queue_count(env, resources = beds))
+  cap <- sum(get_capacity(env, resources = beds))
+  !is.na(load) && !is.na(cap) && cap > 0 && load >= cap
+}
+
+#' Whether this casualty is held forward further on capacity grounds
+#'
+#' @return TRUE when the capacity trigger is configured, R2E intensive care is
+#'   saturated and the casualty has requirement and forward headroom left
+forward_capacity_due <- function() {
+  forward_hold_rule()$capacity_trigger && forward_headroom() > 0 && r2e_icu_saturated()
 }
 
 #' Minutes of the stabilisation requirement remaining for R2E
 #'
 #' @return The casualty's `stabilisation_total`, less whatever was served
 #'   forward. A casualty who was not operated on at R2B served nothing
-#'   forward, whatever the share and cap are set to, so receives the whole
-#'   requirement here — the same amount, on either route.
+#'   forward, so receives the whole requirement here: the same amount, on
+#'   either route.
 r2e_stabilisation_minutes <- function() {
   total <- get_attribute(env, "stabilisation_total")
   prior <- get_attribute(env, "r2b_surgery")
-  if (!is.na(prior) && prior == 1) {
-    return(max(0, total - r2b_stabilisation_minutes()))
-  }
+  if (!is.na(prior) && prior == 1) return(max(0, total - forward_served()))
   total
 }
 
 # ── R2B holding evacuation threshold ──────────────────────────────────────────
 #
 # The three functions below divide one convalescence draw between the echelons,
-# exactly as r2b_stabilisation_minutes() and r2e_stabilisation_minutes() divide
+# exactly as forward_served() and r2e_stabilisation_minutes() divide
 # the stabilisation requirement above. README R2B Trajectory states what the
 # threshold is for and why the time is divided rather than redrawn.
 #
@@ -824,118 +921,169 @@ r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
     leave(1)
 }
 
-#' Builds the forward post-operative stabilisation phase at R2B
+#' Builds the forward post-operative intensive care phase at R2B
 #'
 #' @param icu_beds  This R2B team's intensive care beds
 #' @param hold_beds This R2B team's holding beds
-#' @return Simmer trajectory serving the forward share of a damage control
-#'   casualty's post-operative intensive care requirement.
+#' @return Simmer trajectory serving the part of a casualty's post-operative
+#'   intensive care requirement that is held forward, for either surgical
+#'   pathway.
 #'
-#' @details This is the damage control resuscitation phase, which belongs
-#'   between the abbreviated operation performed at R2B and the definitive one
-#'   waiting at R2E; see the post-operative intensive care requirement block at
-#'   the top of this file for why the two episodes are modelled separately.
-#'   `r2b.post_op_icu.share` and `r2b.post_op_icu.forward_hold_max` set how much
-#'   of it is served here, the remainder falling to R2E, where it is served
-#'   before the definitive operation rather than after it.
+#' @details Where a casualty's post-operative intensive care is served is
+#'   decided per casualty, when their R2B operation ends, on two grounds
+#'   (forward_hold_rule()): clinical stability, a window they are held for
+#'   before they are fit to transfer, and capacity, a further hold while R2E
+#'   intensive care is saturated. Both are limited by
+#'   `r2b.post_op_icu.forward_hold_max`, and neither can exceed the casualty's
+#'   requirement, the remainder falling to R2E.
 #'
-#'   A single-stage casualty has no stabilisation phase at all: their operation
-#'   was their definitive repair, so there is no interval between two
-#'   procedures for one to occupy. They take neither the draw nor a bed here,
-#'   and their post-operative intensive care is the post-definitive episode
-#'   served at R2E.
+#'   The episode held forward is the one that follows the operation. For a
+#'   damage control casualty that is stabilisation, between the abbreviated
+#'   operation and the definitive one waiting at R2E, and the remainder is
+#'   served at R2E before the definitive operation. For a single-stage casualty
+#'   it is post-definitive care, drawn here rather than at R2E and served at R2E
+#'   after transfer in the amount that remains; see
+#'   r2e_post_definitive_care().
 #'
 #'   Either forward path multiplies dow_ceiling by r2b_icu_penalty: an R2B ICU
 #'   section fields two nurses and two medics and no intensivist, against R2E's
 #'   intensivist-led section, and the penalty is the mortality cost of that
-#'   difference. Without it, forward holding would be free in the model and any
-#'   sweep of the share would recommend its maximum as an artefact of relieving
-#'   the R2E queue at no cost. See README "Died of Wounds — Treatment Efficacy
-#'   Modifiers".
+#'   difference. Without it, forward holding would be free in the model and
+#'   any sweep of the rule would recommend its maximum as an artefact of
+#'   relieving the R2E queue at no cost. See README "Died of Wounds — Treatment
+#'   Efficacy Modifiers".
 #'
 #'   The stay lengthens the casualty's journey but opens no DOW checkpoint of
 #'   its own: dow_prob_conditional() prices elapsed time at the next checkpoint
 #'   the casualty reaches (the R2E arrival check), so the delay is charged
 #'   there, against the ceiling this trajectory has already raised.
 r2b_post_op_stabilisation <- function(icu_beds, hold_beds) {
-  # Branches on the surgical pathway, then on the forward minutes, then on R2B
-  # ICU availability:
-  # - single-stage               → no stabilisation phase exists
-  # - nothing to serve forward   → no forward stay (r2b_post_op_pathway unset);
-  #                                the whole requirement is served at R2E
-  # - ICU bed free               → ICU bed for the forward minutes
-  #                                (r2b_post_op_pathway = 1)
-  # - ICU saturated              → holding bed for the same duration, at a
-  #                                further elevated dow_ceiling
-  #                                (r2b_post_op_pathway = 2), mirroring the
-  #                                R2E post-op hold pathway
+  forward_stay <- r2b_forward_stay(icu_beds, hold_beds)
+
+  # Branches on the surgical pathway, then on whether the rule holds the
+  # casualty forward at all:
+  # - damage control, rule in force → draw the stabilisation requirement
+  #                                   and, if any is held, the forward stay
+  # - single-stage, rule in force   → draw the post-definitive requirement
+  #                                   here and, if any is held, the forward
+  #                                   stay; with the rule off no draw is taken
+  # - rule off for the pathway      → no forward stay; the whole requirement
+  #                                   is served at R2E
+  # The draw sits inside the branch so a casualty the rule does not apply to
+  # consumes no requirement they will not serve forward, which is what keeps
+  # the disabled configuration's random stream unchanged.
   trajectory("R2B Post-Operative Stabilisation") %>%
     branch(
-      # The draw itself sits inside the branch, not before it, so a
-      # single-stage casualty consumes no requirement they will never serve.
       option = function() if (single_stage()) 2 else 1,
       continue = TRUE,
 
       trajectory("R2B Damage Control Stabilisation") %>%
         set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
+        join(forward_stay),
+
+      trajectory("R2B Single-Stage Post-Operative Care") %>%
         branch(
-          option = function() {
-            if (r2b_stabilisation_minutes() <= 0) return(2)
-            return(1)
-          },
+          option = function() if (forward_hold_enabled()) 1 else 2,
           continue = TRUE,
+          trajectory("R2B Single-Stage Forward Requirement") %>%
+            set_attribute("post_definitive_total", function() draw_post_definitive_icu()) %>%
+            join(forward_stay),
+          trajectory("Single-Stage — Served Entirely at R2E")
+        )
+    )
+}
 
-          trajectory("R2B Forward Stabilisation") %>%
-            set_attribute("dow_ceiling", function() {
-              ceiling <- get_attribute(env, "dow_ceiling")
-              if (is.na(ceiling)) return(ceiling)
-              ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
-            }) %>%
-            # Branches on forward intensive care bed availability, read at
-            # this instant rather than queued for:
-            # - If a bed is free, stabilise forward in it
-            # - If every bed is occupied, evacuate for the whole requirement
-            branch(
-              option = function() {
-                usage <- sum(get_server_count(env, resources = icu_beds))
-                cap   <- sum(get_capacity(env, resources = icu_beds))
-                if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
-                return(2)
-              },
-              continue = TRUE,
+#' Builds the forward stay itself, shared by both surgical pathways
+#'
+#' @param icu_beds  This R2B team's intensive care beds
+#' @param hold_beds This R2B team's holding beds
+#' @return Simmer trajectory holding a casualty forward on stability grounds,
+#'   then on capacity grounds, in an intensive care bed or, where none is
+#'   free, a holding bed.
+#'
+#' @details Reached once the casualty's requirement has been drawn. A casualty
+#'   is held forward when a stability window applies to them or R2E intensive
+#'   care is saturated at this instant; otherwise they leave at once. The bed
+#'   is chosen when the stay begins and kept through the capacity hold, so the
+#'   same bed carries both grounds. `r2b_post_op_min` accumulates the minutes
+#'   served and is what R2E subtracts from the requirement, so conservation
+#'   holds by construction.
+r2b_forward_stay <- function(icu_beds, hold_beds) {
+  # Capacity hold: polled, the bed kept throughout, until R2E intensive care
+  # has room or the casualty's headroom is spent. Each poll is at most the
+  # remaining headroom, so the stay can never exceed the requirement or the cap.
+  capacity_hold <- trajectory("R2B Capacity Hold") %>%
+    branch(
+      option = function() if (forward_capacity_due()) 1 else 2,
+      continue = TRUE,
+      trajectory("R2B Capacity Poll") %>%
+        timeout(function() min(forward_hold_rule()$poll_interval, forward_headroom())) %>%
+        set_attribute("r2b_post_op_min", function() {
+          forward_served() + min(forward_hold_rule()$poll_interval, forward_headroom())
+        }) %>%
+        rollback(amount = 2, times = Inf, check = function() forward_capacity_due()),
+      trajectory("Transfer — R2E Can Receive")
+    )
 
-              # ICU bed available — the nominal forward pathway
-              trajectory("R2B Post-Op ICU") %>%
-                set_attribute("r2b_post_op_pathway", 1) %>%
-                set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
-                simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-                seize_selected(id = 6) %>%
-                timeout(function() r2b_stabilisation_minutes()) %>%
-                release_selected(id = 6),
+  # The two grounds in sequence: stability window, then capacity hold.
+  stay <- function(res_id) {
+    trajectory() %>%
+      set_attribute("r2b_post_op_min", function() forward_stability_minutes()) %>%
+      simmer::select(if (res_id == 6) icu_beds else hold_beds,
+                     policy = "shortest-queue", id = res_id) %>%
+      seize_selected(id = res_id) %>%
+      timeout(function() forward_stability_minutes()) %>%
+      join(capacity_hold) %>%
+      release_selected(id = res_id)
+  }
 
-              # ICU saturated — the same stay in a holding bed, at the same
-              # elevated risk the R2E post-op hold pathway carries for the same
-              # reason (reduced post-operative monitoring). The duration is the
-              # casualty's requirement either way: the bed changes what the stay
-              # is worth clinically, not how long they need it for.
-              trajectory("R2B Post-Op Hold — ICU Full") %>%
-                set_attribute("r2b_post_op_pathway", 2) %>%
-                set_attribute("r2b_post_op_min", function() r2b_stabilisation_minutes()) %>%
-                set_attribute("dow_ceiling", function() {
-                  ceiling <- get_attribute(env, "dow_ceiling")
-                  if (is.na(ceiling)) return(ceiling)
-                  ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
-                }) %>%
-                simmer::select(hold_beds, policy = "shortest-queue", id = 7) %>%
-                seize_selected(id = 7) %>%
-                timeout(function() r2b_stabilisation_minutes()) %>%
-                release_selected(id = 7)
-            ),
+  # Branches on whether the casualty is held forward, then on R2B ICU bed
+  # availability, read at this instant rather than queued for:
+  # - nothing to hold forward   → no forward stay (r2b_post_op_pathway unset)
+  # - ICU bed free              → ICU bed (r2b_post_op_pathway = 1)
+  # - ICU saturated             → holding bed for the same stay, at a further
+  #                               elevated dow_ceiling (r2b_post_op_pathway = 2),
+  #                               mirroring the R2E post-op hold pathway
+  trajectory("R2B Forward Stay") %>%
+    branch(
+      option = function() {
+        if (forward_stability_minutes() <= 0 && !forward_capacity_due()) return(3)
+        usage <- sum(get_server_count(env, resources = icu_beds))
+        cap   <- sum(get_capacity(env, resources = icu_beds))
+        if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
+        return(2)
+      },
+      continue = TRUE,
 
-          trajectory("No Forward Stabilisation")
-        ),
+      trajectory("R2B Post-Op ICU") %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
+        }) %>%
+        set_attribute("r2b_post_op_pathway", 1) %>%
+        join(stay(6)),
 
-      trajectory("Single-Stage — No Stabilisation Phase")
+      # ICU saturated — the same stay in a holding bed, at the same elevated
+      # risk the R2E post-op hold pathway carries for the same reason (reduced
+      # post-operative monitoring). The duration is the casualty's requirement
+      # either way: the bed changes what the stay is worth clinically, not how
+      # long they need it for.
+      trajectory("R2B Post-Op Hold — ICU Full") %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
+        }) %>%
+        set_attribute("r2b_post_op_pathway", 2) %>%
+        set_attribute("dow_ceiling", function() {
+          ceiling <- get_attribute(env, "dow_ceiling")
+          if (is.na(ceiling)) return(ceiling)
+          ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
+        }) %>%
+        join(stay(7)),
+
+      trajectory("No Forward Stay")
     )
 }
 
@@ -1878,6 +2026,22 @@ r2e_ot_surgery <- function(team_id, ot_beds, surg_teams) {
     )
 }
 
+#' Minutes of post-definitive intensive care still to be served at R2E
+#'
+#' @return The requirement drawn at R2B less the minutes served there, for a
+#'   single-stage casualty whose post-definitive care was held forward; a fresh
+#'   draw otherwise
+#'
+#' @details A casualty whose requirement was drawn at R2B (`post_definitive_total`
+#'   set) owes R2E the remainder, so the total is the same on every route. Where
+#'   no requirement was drawn forward the draw is taken here, as it always was,
+#'   which is what leaves the disabled configuration's stream untouched.
+r2e_post_definitive_minutes <- function() {
+  total <- get_attribute(env, "post_definitive_total")
+  if (is.na(total)) return(draw_post_definitive_icu())
+  max(0, total - forward_served())
+}
+
 #' Builds the post-definitive intensive care episode at R2E
 #'
 #' @param icu_beds  This R2E team's intensive care beds
@@ -1913,6 +2077,10 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
         # follows a repair that has not happened.
         outstanding <- get_attribute(env, "definitive_repair_outstanding")
         if (!is.na(outstanding) && outstanding == 1) return(3)
+        # Served in full at R2B: nothing remains for this echelon. The
+        # attribute is set to zero so the casualty still reads as operated.
+        if (!is.na(get_attribute(env, "post_definitive_total")) &&
+            get_attribute(env, "post_definitive_total") - forward_served() <= 0) return(4)
         usage <- sum(get_server_count(env, resources = icu_beds))
         cap   <- sum(get_capacity(env, resources = icu_beds))
         if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
@@ -1922,7 +2090,7 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
 
       trajectory("R2E Post-Definitive ICU") %>%
         set_attribute("post_definitive_pathway", 1) %>%
-        set_attribute("post_definitive_min", function() draw_post_definitive_icu()) %>%
+        set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
         timeout(function() get_attribute(env, "post_definitive_min")) %>%
@@ -1930,7 +2098,7 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
 
       trajectory("R2E Post-Definitive Hold — ICU Full") %>%
         set_attribute("post_definitive_pathway", 2) %>%
-        set_attribute("post_definitive_min", function() draw_post_definitive_icu()) %>%
+        set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
         set_attribute("dow_ceiling", function() {
           ceiling <- get_attribute(env, "dow_ceiling")
           if (is.na(ceiling)) return(ceiling)
@@ -1942,7 +2110,10 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
         timeout(function() get_attribute(env, "post_definitive_min")) %>%
         release_selected(id = 8),
 
-      trajectory("No Operation, No Post-Definitive Care")
+      trajectory("No Operation, No Post-Definitive Care"),
+
+      trajectory("Post-Definitive Care Served Forward in Full") %>%
+        set_attribute("post_definitive_min", 0)
     )
 }
 

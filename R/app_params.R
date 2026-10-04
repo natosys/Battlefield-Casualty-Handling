@@ -285,8 +285,9 @@ SRC_EVAC_THRESHOLD    <- paste(
 )
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
 SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
-SRC_R2B_ICU_SHARE     <- "Command policy lever, not an observed quantity: how much of the stabilisation phase a commander elects to deliver forward rather than evacuating for it. Ships at zero (all stabilisation at R2E). See README R2B Trajectory — Post-Operative Stabilisation."
-SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of stabilisation outstanding. Ships at 24h, the deployed evacuation norm below. Binds ahead of the forward ICU share, so zero disables forward holding outright."
+SRC_R2B_STABILITY     <- "Informed estimate; no open-access source states how long a casualty operated on at a forward surgical facility is held before they are fit to transfer. A command policy lever, set per surgical pathway: damage control casualties are the more physiologically deranged and a single-stage casualty the less. Ships at zero (nobody held forward on stability grounds). High uncertainty. See README R2B Trajectory, Post-Operative Intensive Care."
+SRC_R2B_CAPACITY      <- "Design parameter, not literature-derived: a casualty is held forward while R2E intensive care is saturated, up to the forward hold limit. Ships disabled. See README R2B Trajectory, Post-Operative Intensive Care."
+SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of requirement outstanding. Ships at 24h, the deployed evacuation norm. Binds both the stability window and the capacity hold, so zero disables forward holding outright."
 SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."
 SRC_R2B_PRE_OPEN      <- "Informed estimate; no open-access source states how far ahead of a surgical section's shift a forward facility should hold a casualty rather than divert them. Anchored on the 60-minute time-to-surgical-care standard and on the 15 to 45 minute road move to R2E that is the alternative. High uncertainty — see README R2B Trajectory."
 SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). See README Died of Wounds — Treatment Efficacy Modifiers."
@@ -791,20 +792,30 @@ r2b_fields <- function() {
                     "is then served forward."),
               min = 0, max = 20000, step = 60, source = SRC_EVAC_THRESHOLD)
   ))
-  # The forward ICU share and the capability penalty that prices it are
-  # registered side by side, though the penalty is a DOW parameter and the
-  # share a treatment-location one: the share is only interpretable next to
+  # The forward holding rule and the capability penalty that prices it are
+  # registered side by side, though the penalty is a DOW parameter and the rule
+  # a treatment-location one: a forward hold is only interpretable next to
   # what it costs, and a planner moving one needs to see the other.
   registry <- c(registry, list(
-    var_field("r2b_icu_share", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "r2b", "post_op_icu", "share",
-              "Forward ICU Share", "Fraction of an operated casualty's stabilisation requirement delivered forward at R2B rather than at R2E, subject to the time limit below. The total is the same whatever the split.",
-              min = 0, max = 1, step = 0.05, morris_name = "r2b_icu_share",
-              source = SRC_R2B_ICU_SHARE, slider = TRUE),
-    var_field("r2b_forward_hold_max", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "r2b", "post_op_icu", "forward_hold_max",
-              "Forward Hold Time Limit", "Maximum minutes an operated casualty may hold an R2B ICU bed before moving on to R2E, whatever stabilisation is outstanding. Caps the forward ICU share; zero disables forward holding entirely.",
+    var_field("r2b_stability_window_dcs", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "r2b", "post_op_icu", "stability_window_dcs",
+              "Stability Window, Damage Control (Minutes)", "Minutes a casualty operated on by damage control is held in forward intensive care before they are fit to transfer. Never more than their requirement or the time limit below. Zero holds nobody forward on stability grounds.",
+              type = "integer", min = 0, max = 1440, step = 30, morris_name = "r2b_stability_window_dcs",
+              source = SRC_R2B_STABILITY),
+    var_field("r2b_stability_window_single", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "r2b", "post_op_icu", "stability_window_single_stage",
+              "Stability Window, Single-Stage (Minutes)", "Minutes a casualty whose operation at R2B was their definitive repair is held in forward intensive care before they are fit to transfer. Taken from their post-definitive requirement, the remainder being served at R2E.",
+              type = "integer", min = 0, max = 1440, step = 30,
+              source = SRC_R2B_STABILITY),
+    var_field("r2b_capacity_trigger", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "r2b", "post_op_icu", "capacity_trigger",
+              "Capacity Hold (0 Off, 1 On)", "Whether an operated casualty is held forward on capacity grounds, while R2E intensive care is saturated, until it has room or the time limit below is reached.",
+              type = "integer", min = 0, max = 1, step = 1, source = SRC_R2B_CAPACITY),
+    var_field("r2b_capacity_poll_interval", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "r2b", "post_op_icu", "capacity_poll_interval",
+              "Capacity Hold Poll Interval (Minutes)", "How often R2E intensive care is re-checked while a casualty is held forward on capacity grounds. A polling interval, not a standing-order lever.",
+              type = "integer", min = 5, max = 240, step = 5, source = SRC_R2B_CAPACITY),
+    var_field("r2b_forward_hold_max", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "r2b", "post_op_icu", "forward_hold_max",
+              "Forward Hold Time Limit", "Maximum minutes an operated casualty may hold an R2B ICU bed before moving on to R2E, whatever requirement is outstanding. Caps both the stability window and the capacity hold; zero disables forward holding entirely.",
               type = "integer", min = 0, max = 4320, step = 30, morris_name = "r2b_forward_hold_max",
               source = SRC_R2B_FORWARD_CAP),
-    var_field("r2b_icu_penalty", GRP_PROVISION, "R2B — Post-Operative Stabilisation", "dow", "treatment_efficacy", "r2b_icu_penalty",
+    var_field("r2b_icu_penalty", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "dow", "treatment_efficacy", "r2b_icu_penalty",
               "Forward ICU DOW Penalty (Multiplier)", "Multiplier applied to the DOW ceiling for stabilisation time spent in an R2B ICU bed, which has no intensivist, rather than an R2E one, which does.",
               min = 1, max = 6, step = 0.01, morris_name = "r2b_icu_penalty",
               source = SRC_R2B_ICU_PENALTY)

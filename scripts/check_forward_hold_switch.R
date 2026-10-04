@@ -76,9 +76,10 @@ cat(sprintf("Forward holding switch check: %d-day runs, seed %d\n\n", CHECK_DAYS
 shipped <- run_with(identity)
 
 # A configuration that never carried the rule's fields.
-legacy <- run_with(function(rule) rule[setdiff(names(rule), c(
-  "stability_window_dcs", "stability_window_single_stage",
-  "capacity_trigger", "capacity_poll_interval"))])
+#' Fields of the forward holding rule that a legacy configuration lacks
+RULE_FIELDS <- c("stability_window_dcs", "stability_window_single_stage",
+                 "capacity_trigger", "capacity_poll_interval")
+legacy <- run_with(function(rule) rule[setdiff(names(rule), RULE_FIELDS)])
 report(isTRUE(all.equal(shipped, legacy)),
        "a configuration without the rule's fields reproduces the shipped run (%d attribute rows)",
        nrow(shipped))

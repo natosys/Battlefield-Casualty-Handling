@@ -173,12 +173,12 @@ assert_rejects("a zero replication count is named", "n_rep",
                                               path = JSON_PATH, output_dir = tempdir(),
                                               images_dir = tempdir()))
 
+bad_arms <- data.frame(label = "bad", window = -5, trigger = 0, stringsAsFactors = FALSE)
+
 assert_rejects("a negative window is named", "arms",
-               plot_r2b_forward_hold_frontier(
-                 arms = data.frame(label = "bad", window = -5, trigger = 0,
-                                   stringsAsFactors = FALSE),
-                 n_days = 1L, n_rep = 1L,
-                 path = JSON_PATH, output_dir = tempdir(), images_dir = tempdir()))
+               plot_r2b_forward_hold_frontier(arms = bad_arms, n_days = 1L, n_rep = 1L,
+                                              path = JSON_PATH, output_dir = tempdir(),
+                                              images_dir = tempdir()))
 
 # Aliased purely to keep the calls below inside the line length: the sweep's
 # own name is 44 characters before its first argument.

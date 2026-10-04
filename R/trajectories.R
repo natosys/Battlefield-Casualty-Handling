@@ -969,12 +969,12 @@ r2b_post_op_stabilisation <- function(icu_beds, hold_beds) {
 
   # Branches on the surgical pathway, then on whether the rule holds the
   # casualty forward at all:
-  # - damage control, rule in force → draw the stabilisation requirement
+  # - damage control, rule in force -> draw the stabilisation requirement
   #                                   and, if any is held, the forward stay
-  # - single-stage, rule in force   → draw the post-definitive requirement
+  # - single-stage, rule in force   -> draw the post-definitive requirement
   #                                   here and, if any is held, the forward
   #                                   stay; with the rule off no draw is taken
-  # - rule off for the pathway      → no forward stay; the whole requirement
+  # - rule off for the pathway      -> no forward stay; the whole requirement
   #                                   is served at R2E
   # The draw sits inside the branch so a casualty the rule does not apply to
   # consumes no requirement they will not serve forward, which is what keeps
@@ -1054,9 +1054,9 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
 
   # Branches on whether the casualty is held forward, then on R2B ICU bed
   # availability, read at this instant rather than queued for:
-  # - nothing to hold forward   → no forward stay (r2b_post_op_pathway unset)
-  # - ICU bed free              → ICU bed (r2b_post_op_pathway = 1)
-  # - ICU saturated             → holding bed for the same stay, at a further
+  # - nothing to hold forward   -> no forward stay (r2b_post_op_pathway unset)
+  # - ICU bed free              -> ICU bed (r2b_post_op_pathway = 1)
+  # - ICU saturated             -> holding bed for the same stay, at a further
   #                               elevated dow_ceiling (r2b_post_op_pathway = 2),
   #                               mirroring the R2E post-op hold pathway
   trajectory("R2B Forward Stay") %>%
@@ -2094,8 +2094,8 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds) {
         if (!is.na(outstanding) && outstanding == 1) return(3)
         # Served in full at R2B: nothing remains for this echelon. The
         # attribute is set to zero so the casualty still reads as operated.
-        if (!is.na(get_attribute(env, "post_definitive_total")) &&
-            get_attribute(env, "post_definitive_total") - forward_served() <= 0) return(4)
+        owed <- get_attribute(env, "post_definitive_total") - forward_served()
+        if (!is.na(owed) && owed <= 0) return(4)
         usage <- sum(get_server_count(env, resources = icu_beds))
         cap   <- sum(get_capacity(env, resources = icu_beds))
         if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)

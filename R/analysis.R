@@ -2369,6 +2369,32 @@ summarise_force_regeneration <- function(attributes_raw, output_dir, images_dir)
   )
 }
 
+#' Reconstruct one row per injected surge event from its tagged casualties
+#'
+#' @param tagged Casualty rows carrying `replication`, `start_time`,
+#'   `injury_type` and `mass_casualty_event_id` (the event each casualty
+#'   was injected by), restricted to event-origin casualties.
+#' @return Data frame of `replication`, `event_id`, `event_start`, `event_end`,
+#'   `n_cas`, `n_kia`, `n_wia` and `event_day`, one row per generated event.
+#'
+#' @details Events are grouped by the id the generator assigned rather than
+#'   clustered on arrival gaps. A gap rule merges two events whose starts fall
+#'   within one injection window of each other into a single apparent event
+#'   larger than the configured `max_cas`.
+reconstruct_surge_events <- function(tagged) {
+  tagged %>%
+    group_by(replication, event_id = mass_casualty_event_id) %>%
+    summarise(
+      event_start = min(start_time),
+      event_end   = max(start_time),
+      n_cas       = n(),
+      n_kia       = sum(!is.na(injury_type) & injury_type == 3),
+      n_wia       = n_cas - n_kia,
+      .groups     = "drop"
+    ) %>%
+    mutate(event_day = floor(event_start / DAY_MIN) + 1)
+}
+
 #' Summarise the mass casualty events the run injected
 #'
 #' @param combined Arrivals joined to attributes_wide, with casualty type, population
@@ -2378,29 +2404,11 @@ summarise_force_regeneration <- function(attributes_raw, output_dir, images_dir)
 #' @return A list of `mass_casualty_dow_summary`, `mass_casualty_event_count`,
 #'   `mass_casualty_events_summary`, `mass_casualty_timeline_plot`.
 summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
-  mass_casualty_gap_min <- env_data$vars$mass_casualty$event$window_max
-
   mass_casualty_tagged <- combined %>%
     filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
 
   if (nrow(mass_casualty_tagged) > 0) {
-    mass_casualty_events_summary <- mass_casualty_tagged %>%
-      arrange(replication, start_time) %>%
-      group_by(replication) %>%
-      mutate(
-        gap      = start_time - lag(start_time, default = -Inf),
-        event_id = cumsum(gap > mass_casualty_gap_min)
-      ) %>%
-      group_by(replication, event_id) %>%
-      summarise(
-        event_start = min(start_time),
-        event_end   = max(start_time),
-        n_cas       = n(),
-        n_kia       = sum(!is.na(injury_type) & injury_type == 3),
-        n_wia       = n_cas - n_kia,
-        .groups     = "drop"
-      ) %>%
-      mutate(event_day = floor(event_start / DAY_MIN) + 1)
+    mass_casualty_events_summary <- reconstruct_surge_events(mass_casualty_tagged)
   } else {
     mass_casualty_events_summary <- data.frame(
       replication = integer(0), event_id = integer(0), event_start = numeric(0),
@@ -2417,7 +2425,7 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
   # window-vs-origin comparison design choice).
   mass_casualty_dow_summary <- combined %>%
     filter(!is.na(mass_casualty_event)) %>%
-    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+    mutate(origin = if_else(mass_casualty_event == 1, "Casualty Surge Event", "Background")) %>%
     group_by(origin) %>%
     summarise(
       total    = n(),
@@ -2437,7 +2445,7 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
       scale_x_continuous(limits = c(0, n_sim_days_mass_casualty),
                          breaks = seq(0, n_sim_days_mass_casualty, by = 2)) +
       labs(
-        title    = "Mass Casualty Event Timeline",
+        title    = "Casualty Surge Event Timeline",
         subtitle = sprintf(
           "%d event(s) across the simulation period (compound Poisson injection)",
           mass_casualty_event_count
@@ -3376,12 +3384,9 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # 0 = background lognormal generation. Both of the event's pathways carry
   # the tag, the wounded and the immediately killed (Issue #149), so n_cas
   # below is an event's total and n_wia/n_kia its two components.
-  # Individual events are reconstructed
-  # from tagged casualties' arrival times by clustering consecutive arrivals
-  # (within each replication) whose inter-arrival gap does not exceed the
-  # configured mass casualty injection window (env_data$vars$mass_casualty$event$
-  # window_max) — casualties from the same event arrive closer together than
-  # this gap by construction (see generate_mass_casualty_events()).
+  # Individual events are reconstructed by grouping tagged casualties on the
+  # mass_casualty_event_id the generator assigned (reconstruct_surge_events()),
+  # not by clustering arrival gaps, which merged events starting close together.
 
   # KPI 9: Mass casualty event stress test analysis (Issue #9)
   mass_casualty_events_out <- summarise_mass_casualty_events(combined, output_dir, images_dir)
@@ -4321,21 +4326,11 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
 #'   `mass_casualty_events_summary_mr`, `mass_casualty_timeline_plot_mr`.
 summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir,
                                        images_dir) {
-  mass_casualty_gap_min   <- env_data$vars$mass_casualty$event$window_max
   mass_casualty_tagged_mr <- combined %>%
     filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
 
   mass_casualty_events_summary_mr <- if (nrow(mass_casualty_tagged_mr) > 0) {
-    mass_casualty_tagged_mr %>%
-      arrange(replication, start_time) %>%
-      group_by(replication) %>%
-      mutate(gap = start_time - lag(start_time, default = -Inf),
-             event_id = cumsum(gap > mass_casualty_gap_min)) %>%
-      group_by(replication, event_id) %>%
-      summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(),
-                n_kia = sum(!is.na(injury_type) & injury_type == 3),
-                n_wia = n_cas - n_kia, .groups = "drop") %>%
-      mutate(event_day = floor(event_start / DAY_MIN) + 1)
+    reconstruct_surge_events(mass_casualty_tagged_mr)
   } else {
     data.frame(replication = integer(0), event_id = integer(0), event_start = numeric(0),
                event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
@@ -4349,7 +4344,7 @@ summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, outp
 
   mass_casualty_dow_summary_mr <- combined %>%
     filter(!is.na(mass_casualty_event)) %>%
-    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+    mutate(origin = if_else(mass_casualty_event == 1, "Casualty Surge Event", "Background")) %>%
     group_by(origin) %>%
     summarise(total = n(), dow = sum(dow == 1, na.rm = TRUE), dow_rate = dow / total, .groups = "drop")
 
@@ -4365,7 +4360,7 @@ summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, outp
                  alpha = 0.35, color = "#D62828", size = 2) +
       scale_x_continuous(limits = c(0, n_sim_days_mc), breaks = seq(0, n_sim_days_mc, by = 2)) +
       labs(
-        title    = "Mass Casualty Event Timeline — All Replications Pooled",
+        title    = "Casualty Surge Event Timeline — All Replications Pooled",
         subtitle = sprintf(
           "%d events across %d replications (mean %.2f events/replication); points jittered to reduce overplotting",
           nrow(mass_casualty_events_summary_mr), n_reps, mass_casualty_event_count_ci[["mean"]]

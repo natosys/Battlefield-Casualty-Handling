@@ -223,7 +223,7 @@ GRP_HEALTH_ARCH  <- "Health System Architecture"
 GRP_LOGISTICS    <- "Medevac"
 GRP_PROVISION    <- "Health Provision"
 GRP_CASUALTY     <- "Casualty Rates"
-GRP_MASS_CASUALTY <- "Mass Casualty"
+GRP_MASS_CASUALTY <- "Casualty Surge"
 
 #' Maximum candidate event slots the Scheduled Event Days grid supports
 #'
@@ -298,9 +298,9 @@ SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army
 SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% historical range. High uncertainty — see README R2E Heavy Trajectory."
 SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
-SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
-SRC_MASS_CASUALTY_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Mass Casualty Event Injection."
-SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Casualty Surge Event Injection."
+SRC_MASS_CASUALTY_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Casualty Surge Event Injection."
+SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Casualty Surge Event Injection."
 SRC_AME_SCHEDULE      <- "AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence or failure rate — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an AME-configured C-17A carries 54 ambulatory and 36 high dependency stretcher patients; the C-130J and C-27J carry 97 and 21 stretcher patients respectively. See README Role 4 (National Support Base) Demand Modelling."
 
@@ -1000,11 +1000,11 @@ mass_casualty_fields <- function() {
   registry <- c(registry, list(
     var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
               "Event Timing Mode",
-              "How mass casualty events are timed: random (Poisson process) or a fixed list of planner-specified days.",
+              "How casualty surge events are timed: random (Poisson process) or a fixed list of planner-specified days.",
               source = SRC_MASS_CASUALTY,
               choices = c("Random (Poisson Rate)" = "poisson", "Scheduled (Deliberate Days)" = "scheduled")),
     var_field("mc_rate", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "rate_per_day",
-              "Event Rate (per day)", "Mean number of mass casualty events per day (Poisson process); 0 disables random-mode injection entirely.",
+              "Event Rate (per day)", "mean number of casualty surge events per day (Poisson process); 0 disables random-mode injection entirely.",
               min = 0, max = 1, step = 0.01, morris_name = "mass_casualty_rate", source = SRC_MASS_CASUALTY),
     # Casualties-per-event only applies as a *shared* setting in "poisson"
     # mode — every Poisson-drawn event uses the same range. "scheduled" mode
@@ -1057,13 +1057,13 @@ mass_casualty_fields <- function() {
   # mc_sched_pri_one/two/three_<i> fields instead (rendered only when
   # mode = scheduled, see render_group_body() in app.R).
   registry <- c(registry, list(
-    var_field("mc_pri_one", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "one",
+    var_field("mc_pri_one", GRP_MASS_CASUALTY, "Surge Event Priority Split", "mass_casualty", "priority", "one",
               "Priority 1 (Immediate) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 1 — independent of the background Triage Priority Split.",
               min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI),
-    var_field("mc_pri_two", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "two",
+    var_field("mc_pri_two", GRP_MASS_CASUALTY, "Surge Event Priority Split", "mass_casualty", "priority", "two",
               "Priority 2 (Urgent) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 2 — independent of the background Triage Priority Split.",
               min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI),
-    var_field("mc_pri_three", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "three",
+    var_field("mc_pri_three", GRP_MASS_CASUALTY, "Surge Event Priority Split", "mass_casualty", "priority", "three",
               "Priority 3 (Delayed) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 3 — independent of the background Triage Priority Split.",
               min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI)
   ))

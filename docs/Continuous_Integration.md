@@ -404,6 +404,7 @@ seconds.
 | `check_screen_order.R` | fast | 159 s | a screen evaluates its design in order, exactly once |
 | `check_sensitivity_protocol.R` | fast | 3 s | the sensitivity screens' documented design is the design their tracked run metadata records |
 | `check_structure_tables.R` | fast | 5 s | the two structure tables list every module and script they claim to |
+| `check_surge_event_size.R` | fast | 10 s | a casualty surge event never exceeds the configured size, however close together events start |
 | `check_testthat.R` | fast | 96 s | the Shiny console's unit and testServer suites |
 | `check_time_series_figures.R` | fast | 6 s | the campaign time series, and the claims the paper makes from them, agree with the tracked measurement |
 <!-- CHECK TABLE END -->

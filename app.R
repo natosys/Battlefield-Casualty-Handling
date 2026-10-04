@@ -673,8 +673,8 @@ MORRIS_LABELS <- c(
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   evacuation_policy_days = "Theatre Evacuation Policy (Days)",
   ot_hours               = "OT Shift Length (Hours per Shift)",
-  mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
-  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
+  mass_casualty_rate     = "Casualty Surge Event Rate (per day)",
+  mass_casualty_max_cas  = "Casualty Surge Event Size (Maximum)",
 
   # ── Labels for the parameters the full-coverage audit added ─────────────
   short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
@@ -715,7 +715,7 @@ MORRIS_LABELS <- c(
   kia_spt_mean  = "KIA — Support Mean Daily Rate",
   dnbi_spt_mean = "DNBI — Support Mean Daily Rate",
 
-  mass_casualty_min_cas = "Mass Casualty Event Size (Minimum)",
+  mass_casualty_min_cas = "Casualty Surge Event Size (Minimum)",
 
   fr_demand_interval_days = "Reinforcement Demand Cycle (Days)",
   fr_fulfillment_lag_days = "Reinforcement Fulfillment Lag (Days)",
@@ -1700,7 +1700,7 @@ render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden
   ))
 }
 
-#' Render the Mass Casualty Priority Split subgroup, shown in Poisson mode alone
+#' Render the Surge Event Priority Split subgroup, shown in Poisson mode alone
 #'
 #' @param sg See render_group_body().
 #' @param sg_fields See render_group_body().
@@ -1788,9 +1788,9 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
 
     # Event Timing Mode (the mode dropdown itself) always renders via the
     # default fallback below. Random Event Rate, Scheduled Event Days, and
-    # Mass Casualty Priority Split are each wrapped in a conditionalPanel()
+    # Surge Event Priority Split are each wrapped in a conditionalPanel()
     # keyed off input$mc_mode — the shared casualty-count/priority-split
-    # settings (Random Event Rate, Mass Casualty Priority Split) apply only
+    # settings (Random Event Rate, Surge Event Priority Split) apply only
     # to Poisson-mode events; Scheduled mode instead gives each event its
     # own casualty-count and priority fields, rendered inline in its card.
     # Injection Window (window_min/mode/max) and Wounded and Killed Split
@@ -1805,7 +1805,7 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(render_scheduled_events_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
-    if (identical(sg, "Mass Casualty Priority Split")) {
+    if (identical(sg, "Surge Event Priority Split")) {
       return(render_mass_casualty_split_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
@@ -3566,7 +3566,7 @@ analyse_tab_strategic_ame <- function(analysis_results, shrink_to_fit_plot_ui,
     )
 }
 
-#' Build the Analyse panel's Mass Casualty Events tab
+#' Build the Analyse panel's Casualty Surge Events tab
 #'
 #' The panel shows the mass casualty events the run injected.
 #'
@@ -3577,7 +3577,7 @@ analyse_tab_strategic_ame <- function(analysis_results, shrink_to_fit_plot_ui,
 #' @return A `nav_panel()` for the Analyse panel's tab set.
 analyse_tab_mass_casualty <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
                                       ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
-    nav_panel("Mass Casualty Events",
+    nav_panel("Casualty Surge Events",
       p(class = "text-muted mt-2",
         "Compound-Poisson mass casualty injection events, reconstructed from tagged ",
         "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
@@ -3589,7 +3589,7 @@ analyse_tab_mass_casualty <- function(analysis_results, run_mode, shrink_to_fit_
             "No mass casualty events occurred across these replications (env_data.json mass_casualty ",
             "configuration may be disabled, or none were drawn).")
       } else tagList(
-        h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
+        h6(class = "text-muted mt-2", "Casualty Surge Event Timeline"),
         p(class = "text-muted small",
           "Each point is one mass casualty event: when it occurred and how many casualties it ",
           "injected — use this to confirm your configured event schedule or rate produced the timing ",
@@ -3603,7 +3603,7 @@ analyse_tab_mass_casualty <- function(analysis_results, run_mode, shrink_to_fit_
         DTOutput("mass_casualty_events_table")
       ),
       tags$hr(),
-      h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
+      h6(class = "text-muted mt-2", "DOW Rate — Casualty Surge Event vs Background"),
       p(class = "text-muted small",
         "Compares died-of-wounds rate for casualties from a mass casualty event against ",
         "background-generated casualties — a higher event-origin rate suggests surge conditions ",
@@ -3766,7 +3766,7 @@ register_analyse_plots <- function(analysis_results, run_mode, tab_plot,
                          function() analysis_results()$transport_capacity_margin_plot, function() 600)
   new_shrink_to_fit_plot("plot_role4_census", "Role 4 Census — Full Size",
                          function() analysis_results()$role4_census_plot, function() 500)
-  new_shrink_to_fit_plot("plot_mass_casualty_timeline", "Mass Casualty Event Timeline — Full Size",
+  new_shrink_to_fit_plot("plot_mass_casualty_timeline", "Casualty Surge Event Timeline — Full Size",
                          function() analysis_results()$mass_casualty_timeline_plot, function() 500)
   invisible(NULL)
 }
@@ -4402,9 +4402,9 @@ wire_mass_casualty_outputs <- function(analysis_results, run_mode, output, ci_va
     req(analysis_results())
     if (identical(run_mode(), "full")) {
       req(analysis_results()$mass_casualty_event_count_ci)
-      ci_value_card("Mass Casualty Events", analysis_results()$mass_casualty_event_count_ci, digits = 2)
+      ci_value_card("Casualty Surge Events", analysis_results()$mass_casualty_event_count_ci, digits = 2)
     } else {
-      count_value_card("Mass Casualty Events", analysis_results()$mass_casualty_event_count)
+      count_value_card("Casualty Surge Events", analysis_results()$mass_casualty_event_count)
     }
   })
 

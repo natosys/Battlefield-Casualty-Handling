@@ -37,7 +37,7 @@ This document is the design record for the replicated experiments reported in th
   - [Campaign Time Series of Queue Length and Degraded Care](#campaign-time-series-of-queue-length-and-degraded-care)
   - [The R2B Pre-Open Hold Window](#the-r2b-pre-open-hold-window)
   - [The Post-Operative Intensive Care Gate](#the-post-operative-intensive-care-gate)
-  - [Forward ICU Share Decision Frontier](#forward-icu-share-decision-frontier)
+  - [Forward Holding Decision Frontier](#forward-holding-decision-frontier)
   - [R2B Holding Capacity vs. Evacuation Threshold Sweep](#r2b-holding-capacity-vs-evacuation-threshold-sweep)
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
   - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
@@ -246,7 +246,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Campaign time series | `data/time_series/` | `check_time_series_figures.R` |
 | Sustained-operations horizon | `data/long_horizon/` | `check_long_horizon_protocol.R`, `check_long_horizon_warmup.R` |
 | Transport fleet-size sweep | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
-| Forward ICU share frontier | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
+| Forward holding frontier | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
 | R2B holding capacity and evacuation threshold sweep | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
 | National support base demand and the airlift schedule | `data/airlift/` | `check_airlift_protocol.R` |
 | Strategic airlift collapse | `data/airlift/` | `check_airlift_collapse_protocol.R` |
@@ -292,7 +292,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Sustained-operations horizon | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | daily series, 30-day block means; trend over the second half |
 | R2B pre-open hold window | default | 360 d | 30 per arm | 2 arms | one control seed, not one casualty stream | campaign counts; Student $t$, paired $t$ |
 | Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy, closing 90 d; Student $t$, paired $t$ |
-| Forward ICU share frontier | default | 360 d | 30 per point | 5 shares | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
+| Forward holding frontier | default | 360 d | 30 per arm | 7 arms | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | R2B holding capacity and evacuation threshold | default | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | Transport fleet-size sweep | default; `high_intensity` | 360 d | 30 per point | 9 per configuration | unpaired | fleet pool queue and occupancy, closing 90 d; Student $t$ |
 | National support base demand and the airlift schedule | default and both profiles | 360 d | 30 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
@@ -391,18 +391,21 @@ Both arms run under one control seed, so each draws the same per-replication see
 
 The mortality mechanism was confirmed separately by a stress test that forced intensive care capacity to zero over a 90-day run. The degraded route then carries most casualties and produces measurable post-operative deaths, which establishes that the checkpoint fires as designed without establishing that the effect is quantitatively resolved at the died-of-wounds rates the moderate intensity profile is calibrated to.
 
-### Forward ICU Share Decision Frontier
+### Forward Holding Decision Frontier
 
-<!-- SWEEP icu_share_replications=30 -->
-<!-- SWEEP shares=0,0.25,0.5,0.75,1 -->
+<!-- SWEEP forward_hold_replications=30 -->
+<!-- SWEEP forward_hold_windows=0,120,240,480,1440,0,240 -->
+<!-- SWEEP forward_hold_triggers=0,0,0,0,0,1,1 -->
 
-30 replications of 360 simulated days per sweep point at control seed 42, under the shipped default configuration with one override per point: `r2b_icu_share` set to 0, 0.25, 0.5, 0.75 and 1.0 in turn. Point 0 is the shipped default. The three capacity sweeps share one horizon, replication count and control seed, the sustained-operations protocol, so that their tables are comparable. Run via:
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with the forward holding rule overridden per arm (`r2b.post_op_icu`). Five arms set a stability window of 0 (the shipped default), 120, 240, 480 and 1,440 minutes, applied to damage control and single-stage casualties alike, with the capacity trigger off. Two further arms hold the window at 0 and at 240 minutes with the capacity trigger on, so that a casualty is held on while R2E intensive care is saturated, up to the forward hold limit of 1,440 minutes the configuration ships. The three capacity sweeps share one horizon, replication count and control seed, the sustained-operations protocol, so that their tables are comparable. Run via:
 
 ```
-Rscript scripts/run_icu_share_sweep.R --refresh-baseline
+Rscript scripts/run_forward_hold_sweep.R --refresh-baseline
 ```
 
-The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it. It writes `r2b_icu_share_frontier.csv` alone and leaves the transport sweep's file in the same directory untouched.
+The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it. It writes `r2b_forward_hold_frontier.csv` alone and leaves the transport sweep's file in the same directory untouched.
+
+The rule itself is checked by `scripts/check_icu_time_conservation.R`, which asserts that a casualty's post-operative requirement is conserved across the two echelons on both surgical pathways and that the forward minutes follow the window, the capacity trigger and the hold limit, and by `scripts/check_forward_hold_switch.R`, which asserts that the shipped, disabled rule leaves the run's event log identical to a configuration that never carried it.
 
 None of the three capacity sweeps keeps the per-replication responses behind its per-point mean, only the mean and its interval. `scripts/check_capacity_sweep_protocol.R` can therefore assert that each tracked interval is symmetric about its own mean where it is not clamped, that every mean lies inside its own interval and that not every bound sits on a clamp, but it cannot recompute the half-width from the replications. Recovering that would mean changing what both sweep functions return, which is a larger change than this evidence set needed; it is recorded here as a limit on what the check establishes rather than left to be inferred from the check's output.
 
@@ -417,7 +420,7 @@ None of the three capacity sweeps keeps the per-replication responses behind its
 
 30 replications of 360 simulated days per grid point at control seed 42, under the shipped default configuration with two overrides per point: R2B holding beds per unit set to 5 (shipped), 7 or 10, and `r2b.holding.evac_threshold` set to disabled (shipped, equivalent to 0), 1, 3, 5 or 7 days, the fifteen-point cross product of both axes. Each replication is drawn independently rather than paired, the same convention the two sweeps above it use.
 
-`plot_r2b_hold_threshold_sweep()` (`R/analysis.R`) sets the two axes differently, because they enter the model at different points. The bed count is an `elms` establishment, so `set_r2b_hold_beds()` edits the parsed configuration before `build_environment()` runs for that point, the same mechanism the transport fleet-size sweep above uses for its own `transports` counts. The evacuation threshold is a `vars` entry, so it is set on the already-built configuration directly, the same mechanism the forward ICU share frontier above uses for its own `vars` override. Run via:
+`plot_r2b_hold_threshold_sweep()` (`R/analysis.R`) sets the two axes differently, because they enter the model at different points. The bed count is an `elms` establishment, so `set_r2b_hold_beds()` edits the parsed configuration before `build_environment()` runs for that point, the same mechanism the transport fleet-size sweep above uses for its own `transports` counts. The evacuation threshold is a `vars` entry, so it is set on the already-built configuration directly, the same mechanism the forward holding frontier above uses for its own `vars` override. Run via:
 
 ```
 Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline
@@ -447,7 +450,7 @@ Rscript scripts/run_transport_sweep.R --scenario high_intensity --refresh-baseli
 
 The flag is the only way to write this sweep's copy of the tracked `data/sweeps/`, and it runs the protocol above rather than whatever arguments accompany it beyond `--scenario`. `data/sweeps/transport_capacity_by_fleet_size.csv` holds the shipped configuration's full per-point results, and `data/sweeps/transport_capacity_by_fleet_size_high_intensity.csv` the `high_intensity` re-run's, each including the interval bounds omitted from the companion paper's tables.
 
-The horizon, replication count and control seed above are shared with the forward ICU share frontier and the R2B holding threshold sweep, so that a reader comparing the three tables is comparing one horizon rather than three; this design states them and the other two do not repeat them.
+The horizon, replication count and control seed above are shared with the forward holding frontier and the R2B holding threshold sweep, so that a reader comparing the three tables is comparing one horizon rather than three; this design states them and the other two do not repeat them.
 
 ### National Support Base Demand and the Airlift Schedule
 
@@ -656,7 +659,7 @@ Four limitations are properties of the designs rather than of the model, and eac
 
 **Every design runs at one control seed.** A control seed determines the whole set of per-replication seeds, so a measurement at 50 replications is one draw from the distribution of 50-replication measurements. The 0.132 percentage point spread across control seeds recorded under [Replication Count and Resolution](#replication-count-and-resolution) is the size of that effect on the best determined response the model reports, and it is the reason the calibration check pools three independent measurements.
 
-**Most sweeps run the shipped default configuration only.** The transport fleet-size sweep is also run at `high_intensity`; the forward intensive care share frontier, the pre-open hold window, the intensive care gate, the holding threshold sweep and the evacuation policy, establishment and saturation sweeps each use the default alone, so none establishes that its result survives at the higher casualty intensity. Re-running them is listed among the further development items of the companion paper [[1]](#references).
+**Most sweeps run the shipped default configuration only.** The transport fleet-size sweep is also run at `high_intensity`; the forward holding frontier, the pre-open hold window, the intensive care gate, the holding threshold sweep and the evacuation policy, establishment and saturation sweeps each use the default alone, so none establishes that its result survives at the higher casualty intensity. Re-running them is listed among the further development items of the companion paper [[1]](#references).
 
 **The sensitivity rankings are 30-day rankings under the default configuration.** They say which parameters matter to the responses as they stand at 30 days and not which would matter at the sustained-operations horizon, and the decision to leave them there is recorded under [Sensitivity Screens](#sensitivity-screens).
 

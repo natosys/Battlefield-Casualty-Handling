@@ -19,12 +19,13 @@ check_convalescence_invariance.R,49
 check_definitive_repair_release.R,150
 check_dow_calibration.R,2702
 check_env_data_summary.R,6
+check_forward_hold_switch.R,60
 check_hold_episode_reconstruction.R,43
 check_hold_window_protocol.R,7
 check_holding_occupancy_split.R,45
 check_icu_gate_protocol.R,7
 check_icu_gate_switch.R,120
-check_icu_time_conservation.R,68
+check_icu_time_conservation.R,120
 check_input_validation.R,16
 check_lever_realisation.R,28
 check_lint.R,92

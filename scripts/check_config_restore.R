@@ -200,9 +200,9 @@ with_stub("run_replications", clobber_and_fail, {
     )
   })
 
-  assert_restores_on_error("plot_r2b_icu_share_frontier", {
-    plot_r2b_icu_share_frontier(
-      shares = 0.5, n_days = 1L, n_rep = 1L,
+  assert_restores_on_error("plot_r2b_forward_hold_frontier", {
+    plot_r2b_forward_hold_frontier(
+      arms = FORWARD_HOLD_SWEEP_ARMS[2, ], n_days = 1L, n_rep = 1L,
       path = JSON_PATH, output_dir = tempdir(), images_dir = tempdir()
     )
   })

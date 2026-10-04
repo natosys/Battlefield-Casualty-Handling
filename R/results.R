@@ -333,23 +333,23 @@ build_transport <- function(data_dir, high = FALSE) {
   res_table(c("Fleet size", "Ambulance mean queue", "Truck mean queue"), rows)
 }
 
-#' Forward intensive care share frontier table
+#' Forward holding frontier table
 #'
 #' @param data_dir The data directory.
 #' @return The table lines.
-build_icu_share <- function(data_dir) {
-  d <- res_read("sweeps/r2b_icu_share_frontier.csv", data_dir)
+build_forward_hold <- function(data_dir) {
+  d <- res_read("sweeps/r2b_forward_hold_frontier.csv", data_dir)
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
-    c(if (x$share == 0) "0% (current)" else paste0(round(x$share * 100), "%"),
+    c(x$arm,
       res_ci(x$mean_r2e_icu_q, x$ci_lower_r2e_icu_q, x$ci_upper_r2e_icu_q, 3L, floor0 = TRUE),
       sprintf("%.1f%%", 100 * x$mean_r2b_icu_util), sprintf("%.1f%%", 100 * x$mean_r2e_icu_util),
       sprintf("%.1f [%.1f, %.1f]", 100 * x$mean_pd_icu_share, 100 * x$ci_lower_pd_icu_share,
               100 * x$ci_upper_pd_icu_share),
       res_ci(x$mean_dow, x$ci_lower_dow, x$ci_upper_dow, 2L))
   })
-  res_table(c("Forward share", "R2E ICU mean queue", "R2B ICU utilisation", "R2E ICU utilisation",
-              "Post-definitive care in ICU", "Died of wounds per run"), rows)
+  res_table(c("Forward holding rule", "R2E ICU mean queue", "R2B ICU utilisation",
+              "R2E ICU utilisation", "Post-definitive care in ICU", "Died of wounds per run"), rows)
 }
 
 #' Evacuation policy sweep table
@@ -1035,7 +1035,7 @@ RESULTS_TABLES <- list(
   hold_window = build_hold_window,
   transport = function(dd) build_transport(dd, FALSE),
   transport_high = function(dd) build_transport(dd, TRUE),
-  icu_share = build_icu_share,
+  forward_hold = build_forward_hold,
   policy = build_policy,
   establishment = build_establishment,
   saturation = build_saturation,

@@ -80,8 +80,8 @@ TRANSPORT_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_size.
 #' Tracked transport fleet-size sweep, high_intensity profile
 TRANSPORT_HIGH_PATH <- file.path("data", "sweeps", "transport_capacity_by_fleet_size_high_intensity.csv")
 
-#' Tracked forward ICU share frontier
-ICU_SHARE_PATH <- file.path("data", "sweeps", "r2b_icu_share_frontier.csv")
+#' Tracked forward holding frontier
+FORWARD_HOLD_PATH <- file.path("data", "sweeps", "r2b_forward_hold_frontier.csv")
 
 #' The tracked R2B holding capacity and evacuation threshold sweep
 HOLD_THRESHOLD_PATH <- file.path("data", "sweeps", "r2b_hold_threshold_sweep.csv")
@@ -163,7 +163,7 @@ scalars <- list(
   list("seed", analysis_constant("CAPACITY_SWEEP_SEED")),
   list("window_days", analysis_constant("CAPACITY_SWEEP_WINDOW_DAYS")),
   list("transport_replications", analysis_constant("TRANSPORT_SWEEP_REPLICATIONS")),
-  list("icu_share_replications", analysis_constant("ICU_SHARE_SWEEP_REPLICATIONS"))
+  list("forward_hold_replications", analysis_constant("FORWARD_HOLD_SWEEP_REPLICATIONS"))
 )
 for (param in scalars) {
   stated <- suppressWarnings(as.numeric(sweep_marker(param[[1]])))
@@ -175,21 +175,27 @@ for (param in scalars) {
 
 pmvamb <- analysis_constant("TRANSPORT_SWEEP_PMVAMB")
 hx240m <- analysis_constant("TRANSPORT_SWEEP_HX240M")
-shares <- analysis_constant("ICU_SHARE_SWEEP_SHARES")
+hold_labels   <- analysis_constant("FORWARD_HOLD_SWEEP_LABELS")
+hold_windows  <- analysis_constant("FORWARD_HOLD_SWEEP_WINDOWS")
+hold_triggers <- analysis_constant("FORWARD_HOLD_SWEEP_TRIGGERS")
 
 check_swept_vector("pmvamb", pmvamb)
 check_swept_vector("hx240m", hx240m)
-check_swept_vector("shares", shares)
+check_swept_vector("forward_hold_windows", hold_windows)
+check_swept_vector("forward_hold_triggers", hold_triggers)
+report(!is.null(hold_labels) && length(hold_labels) == length(hold_windows) &&
+         length(hold_triggers) == length(hold_windows) && !anyDuplicated(hold_labels),
+       "the forward holding sweep holds one unique label per window and trigger")
 
 # Each sweep must contain the shipped setting, or it says nothing about what
 # departing from the establishment costs. The ambulance fleet ships at three
-# and the truck fleet at four; the forward intensive care share ships at zero.
+# and the truck fleet at four; forward holding ships disabled.
 report(!is.null(pmvamb) && 3L %in% pmvamb,
        "the ambulance sweep contains the shipped establishment of three")
 report(!is.null(hx240m) && 4L %in% hx240m,
        "the truck sweep contains the shipped establishment of four")
-report(!is.null(shares) && any(abs(shares) < TOL),
-       "the share sweep contains the shipped forward share of zero")
+report(!is.null(hold_windows) && any(hold_windows == 0 & hold_triggers == 0),
+       "the forward holding sweep contains the shipped arm, no window and no capacity trigger")
 
 # ── 2. Each tracked evidence set is that experiment ──────────────────────────
 
@@ -209,10 +215,10 @@ transport_high <- if (file.exists(TRANSPORT_HIGH_PATH)) {
   NULL
 }
 
-icu_share <- if (file.exists(ICU_SHARE_PATH)) {
-  read.csv(ICU_SHARE_PATH, stringsAsFactors = FALSE)
+forward_hold <- if (file.exists(FORWARD_HOLD_PATH)) {
+  read.csv(FORWARD_HOLD_PATH, stringsAsFactors = FALSE)
 } else {
-  report(FALSE, "the tracked ICU share frontier %s exists", ICU_SHARE_PATH)
+  report(FALSE, "the tracked forward holding frontier %s exists", FORWARD_HOLD_PATH)
   NULL
 }
 
@@ -251,17 +257,18 @@ if (!is.null(transport_high)) {
          paste(setdiff(needed, names(transport_high)), collapse = ","))
 }
 
-if (!is.null(icu_share)) {
-  report(length(icu_share$share) == length(shares) &&
-           all(abs(sort(icu_share$share) - sort(shares)) < TOL),
-         "the tracked frontier carries the shares the code holds")
+if (!is.null(forward_hold)) {
+  report(identical(forward_hold$arm, hold_labels) &&
+           all(abs(forward_hold$window - hold_windows) < TOL) &&
+           all(forward_hold$capacity_trigger == hold_triggers),
+         "the tracked frontier carries the arms the code holds, in order")
 
   needed <- c("mean_r2e_icu_q", "ci_lower_r2e_icu_q", "ci_upper_r2e_icu_q",
               "mean_r2b_icu_util", "mean_r2e_icu_util", "mean_pd_icu_share",
               "mean_dow")
-  report(all(needed %in% names(icu_share)),
+  report(all(needed %in% names(forward_hold)),
          "the tracked frontier carries every response the table prints (%s)",
-         paste(setdiff(needed, names(icu_share)), collapse = ","))
+         paste(setdiff(needed, names(forward_hold)), collapse = ","))
 }
 
 # ── 3. The published tables match the tracked measurement ────────────────────
@@ -434,28 +441,34 @@ if (!is.null(transport_high)) {
   ))
 }
 
-if (!is.null(icu_share)) {
-  # The table's row labels are percentages and the tracked shares are
-  # fractions, so each key is divided by a hundred before it is matched.
-  #' Rows of the tracked frontier at one forward share
-  #'
-  #' @param p The share as the table prints it, a percentage.
-  #' @return Logical vector selecting that sweep point's row.
-  share_at <- function(p) abs(icu_share$share - p / 100) < TOL
-
-  #' A reader of one column of the tracked frontier
-  #'
-  #' @param column Name of the column to read.
-  #' @return A function of one printed share returning that column's value.
-  icu_column <- function(column) column_reader(icu_share, share_at, column)
-
-  check_published_table("<!-- GEN icu_share -->", 100 * sort(shares), list(
-    list(1, icu_column("mean_r2e_icu_q"), 1, 3),
-    list(2, icu_column("mean_r2b_icu_util"), 100, 1),
-    list(3, icu_column("mean_r2e_icu_util"), 100, 1),
-    list(4, icu_column("mean_pd_icu_share"), 100, 1),
-    list(5, icu_column("mean_dow"), 1, 2)
-  ))
+if (!is.null(forward_hold)) {
+  # The rows are arms rather than numeric points, so each is matched on its
+  # label and read by position, in the order the sweep ran them.
+  rows <- paper_table("<!-- GEN forward_hold -->")
+  if (!is.null(rows)) {
+    data_rows <- rows[-(1:2)]
+    report(length(data_rows) == nrow(forward_hold),
+           "the forward holding table prints one row per arm (%d of %d)",
+           length(data_rows), nrow(forward_hold))
+    if (length(data_rows) == nrow(forward_hold)) {
+      columns <- list(list(1, "mean_r2e_icu_q", 1, 3), list(2, "mean_r2b_icu_util", 100, 1),
+                      list(3, "mean_r2e_icu_util", 100, 1), list(4, "mean_pd_icu_share", 100, 1),
+                      list(5, "mean_dow", 1, 2))
+      for (i in seq_len(nrow(forward_hold))) {
+        cells <- table_cells(data_rows[i])
+        report(identical(cells[1], forward_hold$arm[i]),
+               "row %d of the forward holding table is the '%s' arm (label reads '%s')",
+               i, forward_hold$arm[i], cells[1])
+        for (col in columns) {
+          printed <- leading_figure(cells[col[[1]] + 1])
+          expected <- round(col[[3]] * forward_hold[[col[[2]]]][i], col[[4]])
+          report(!is.na(printed) && abs(printed - expected) < PRINT_TOL,
+                 "column %d of row %d of the forward holding table prints %s against the data's %s",
+                 col[[1]], i, format(printed), format(expected))
+        }
+      }
+    }
+  }
 }
 
 if (!is.null(hold_threshold)) {
@@ -583,11 +596,11 @@ if (!is.null(transport_high)) {
   check_interval_shape(transport_high, "mean_util", "ci_lower_util", "ci_upper_util",
                        0, 1, "the high_intensity transport sweep utilisation")
 }
-if (!is.null(icu_share)) {
-  check_interval_shape(icu_share, "mean_r2e_icu_q", "ci_lower_r2e_icu_q",
-                       "ci_upper_r2e_icu_q", 0, NA, "the ICU share queue")
-  check_interval_shape(icu_share, "mean_dow", "ci_lower_dow", "ci_upper_dow",
-                       0, NA, "the ICU share deaths of wounds")
+if (!is.null(forward_hold)) {
+  check_interval_shape(forward_hold, "mean_r2e_icu_q", "ci_lower_r2e_icu_q",
+                       "ci_upper_r2e_icu_q", 0, NA, "the forward holding queue")
+  check_interval_shape(forward_hold, "mean_dow", "ci_lower_dow", "ci_upper_dow",
+                       0, NA, "the forward holding deaths of wounds")
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

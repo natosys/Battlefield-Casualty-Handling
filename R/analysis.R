@@ -34,7 +34,7 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 
 # ── The published capacity sweeps' protocol ──────────────────────────────────
 # The designs docs/Methods.md documents for the transport
-# fleet-size sweep and the forward ICU share frontier, held here so that the
+# fleet-size sweep and the forward holding frontier, held here so that the
 # entry points' baseline refreshes, the methods paper's marker comments and
 # scripts/check_capacity_sweep_protocol.R read one definition rather than
 # three copies of it.
@@ -42,7 +42,7 @@ MASS_CASUALTY_JITTER_SEED <- 233L
 #' Campaign length all three published capacity sweeps run over, in days
 #'
 #' @details 360, the sustained-operations protocol `R/long_horizon.R`
-#'   establishes. All three sweeps (transport fleet size, forward ICU share,
+#'   establishes. All three sweeps (transport fleet size, forward holding,
 #'   R2B holding threshold) migrated together under Issue #405, from 30 days,
 #'   so that a reader comparing their tables is comparing one horizon rather
 #'   than asking why they differ; the R2B holding threshold sweep's own
@@ -85,21 +85,46 @@ TRANSPORT_SWEEP_PMVAMB <- 1:5
 #' HX2 40M truck fleet sizes the published sweep covers
 TRANSPORT_SWEEP_HX240M <- 1:4
 
-#' Replications the published forward ICU share frontier runs at, per point
+#' Replications the published forward holding frontier runs at, per point
 #'
 #' @details 30, migrated from 20 under Issue #405 to match the other two
 #'   capacity sweeps' replication count at the shared sustained-operations
 #'   horizon, rather than because this sweep's own responses were found
 #'   under-resolved: it runs under the shipped default configuration, below
 #'   the casualty load at which any response fails to converge.
-ICU_SHARE_SWEEP_REPLICATIONS <- 30L
+FORWARD_HOLD_SWEEP_REPLICATIONS <- 30L
 
-#' Forward intensive care shares the published frontier covers
+#' Labels of the forward holding arms the published frontier covers
 #'
-#' @details Zero to one in quarters. The shipped configuration is the first of
-#'   these, so the frontier's first point is the campaign the rest of the paper
-#'   measures.
-ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
+#' @details One per arm, in the order the sweep runs them. The first arm is the
+#'   shipped configuration, so the frontier's first point is the campaign the
+#'   rest of the paper measures.
+FORWARD_HOLD_SWEEP_LABELS <- c("Off (current)", "120 min", "240 min", "480 min", "1,440 min", "Capacity only", "240 min + capacity")
+
+#' Stability windows of the forward holding arms, in minutes
+#'
+#' @details Applied to both surgical pathways. They run from two hours to the
+#'   shipped forward hold limit of 24 hours, beyond which the limit binds and a
+#'   longer window changes nothing.
+FORWARD_HOLD_SWEEP_WINDOWS <- c(0, 120, 240, 480, 1440, 0, 240)
+
+#' Capacity trigger of the forward holding arms
+#'
+#' @details 1 where the arm holds a casualty forward while R2E intensive care
+#'   is saturated. The last two arms add it alone and beside a four-hour window.
+FORWARD_HOLD_SWEEP_TRIGGERS <- c(0, 0, 0, 0, 0, 1, 1)
+
+#' Forward holding arms the published frontier covers, as one data frame
+#'
+#' @details Assembled from the three vectors above, which stay single-line
+#'   literals so that `scripts/check_capacity_sweep_protocol.R` can read them
+#'   out of this file without sourcing it.
+FORWARD_HOLD_SWEEP_ARMS <- data.frame(
+  label   = FORWARD_HOLD_SWEEP_LABELS,
+  window  = FORWARD_HOLD_SWEEP_WINDOWS,
+  trigger = FORWARD_HOLD_SWEEP_TRIGGERS,
+  stringsAsFactors = FALSE
+)
 
 # ── The published R2B holding capacity / evacuation threshold sweep's protocol
 # The joint sweep Further Development L4 and the Option 2 research agenda item
@@ -114,7 +139,7 @@ ICU_SHARE_SWEEP_SHARES <- seq(0, 1, by = 0.25)
 #'
 #' @details 30, migrated from 10 under Issue #405 to match the other two
 #'   capacity sweeps at the shared sustained-operations horizon, for the same
-#'   reason `ICU_SHARE_SWEEP_REPLICATIONS`'s own migration states: this sweep
+#'   reason `FORWARD_HOLD_SWEEP_REPLICATIONS`'s own migration states: this sweep
 #'   also runs under the shipped default configuration.
 HOLD_THRESHOLD_SWEEP_REPLICATIONS <- 30L
 
@@ -304,21 +329,26 @@ validate_fleet_sizes <- function(fleet_sizes, caller) {
   invisible(TRUE)
 }
 
-#' Assert that a forward ICU share sweep's shares are usable
+#' Assert that a forward holding sweep's arms are usable
 #'
-#' @param shares Numeric vector of forward ICU shares to sweep
+#' @param arms Data frame with a character `label`, a numeric `window` in
+#'   minutes and a `trigger` of 0 or 1, one row per arm
 #' @param caller Name of the calling entry point, used in the error message
-#' @return TRUE, invisibly, if the shares are usable; otherwise stops
+#' @return TRUE, invisibly, if the arms are usable; otherwise stops
 #'
-#' @details A share is a proportion of the post-operative stabilisation
-#'   requirement served forward, so a value outside [0, 1] has no meaning and
-#'   would be swept for hours before producing one.
-validate_shares <- function(shares, caller) {
-  usable <- is.numeric(shares) && length(shares) > 0 && !any(is.na(shares)) &&
-    all(shares >= 0) && all(shares <= 1)
+#' @details A window is a duration and the trigger a switch, so a negative
+#'   window or a trigger other than 0 or 1 has no meaning and would be swept
+#'   for hours before producing one.
+validate_forward_hold_arms <- function(arms, caller) {
+  usable <- is.data.frame(arms) && nrow(arms) > 0 &&
+    all(c("label", "window", "trigger") %in% names(arms)) &&
+    is.character(arms$label) && !anyDuplicated(arms$label) &&
+    is.numeric(arms$window) && !any(is.na(arms$window)) && all(arms$window >= 0) &&
+    is.numeric(arms$trigger) && all(arms$trigger %in% c(0, 1))
   if (!usable) {
-    stop(sprintf("%s: shares must be a non-empty numeric vector within [0, 1], found %s",
-                 caller, paste(format(shares), collapse = ", ")), call. = FALSE)
+    stop(sprintf(paste("%s: arms must be a non-empty data frame of unique labels, windows",
+                       "of at least zero and triggers of 0 or 1, found %s"),
+                 caller, paste(utils::capture.output(print(arms)), collapse = " ")), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -612,6 +642,13 @@ add_role4_icu_days <- function(assigned, r4_params) {
            assigned$post_definitive_min / DAY_MIN)
   } else {
     rep(0, nrow(assigned))
+  }
+  # A single-stage casualty may have served part of the post-definitive
+  # requirement forward at R2B, which counts towards the same requirement.
+  forward_cols <- c("post_definitive_total", "r2b_post_op_min")
+  if (all(forward_cols %in% names(assigned))) {
+    forward <- !is.na(assigned$post_definitive_total) & !is.na(assigned$r2b_post_op_min)
+    served_days <- served_days + ifelse(forward, assigned$r2b_post_op_min / DAY_MIN, 0)
   }
   # Two conditions, and the second is the one a first implementation missed.
   # A casualty theatre never operated on carries no post-operative episode for
@@ -5225,48 +5262,52 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
   list(data = sweep_df, plot = p)
 }
 
-#' Build the forward-ICU-share frontier ggplot from computed sweep results
+#' Build the forward holding frontier ggplot from computed sweep results
 #'
 #' @param sweep_df Data frame as returned in the `data` element of
-#'   plot_r2b_icu_share_frontier(): one row per swept share, with
-#'   share/mean_*/ci_lower_*/ci_upper_* columns for the R2E ICU queue, the
-#'   R2B and R2E ICU utilisations, and the DOW count.
-#' @param baseline_share The shipped `r2b.post_op_icu.share`, marked on each
-#'   panel with a dashed reference line; NULL omits the line.
+#'   plot_r2b_forward_hold_frontier(): one row per arm, with
+#'   arm/window/capacity_trigger and mean_*/ci_lower_*/ci_upper_* columns for
+#'   the R2E ICU queue, the R2B and R2E ICU utilisations, the post-definitive
+#'   ICU share and the DOW count.
+#' @param baseline_arm The label of the shipped arm, marked on each panel with
+#'   a dashed reference line; NULL omits the line.
 #' @param n_rep Replications per sweep point, for the plot subtitle; NULL
 #'   (default) uses a subtitle with no replication count.
-#' @return ggplot object: five stacked panels sharing the share axis — R2E
-#'   ICU mean queue, R2B ICU utilisation, R2E ICU utilisation, the share of
+#' @return ggplot object: five stacked panels sharing the arm axis, R2E ICU
+#'   mean queue, R2B ICU utilisation, R2E ICU utilisation, the share of
 #'   post-definitive care served in an ICU bed rather than the degraded
-#'   holding-bed fallback, and DOW count — each with a 95% CI ribbon.
+#'   holding-bed fallback, and DOW count, each with a 95% CI ribbon.
 #'
-#' @details Factored out of plot_r2b_icu_share_frontier() on the same
+#' @details Factored out of plot_r2b_forward_hold_frontier() on the same
 #'   rationale as render_transport_sweep_plot() above, so a caller holding
 #'   only a sweep_df can redraw the figure without re-running the sweep.
 #'   The two quantities a planner is actually trading off, the R2E ICU queue
 #'   and the DOW count, are the first and last panels; the panels between
 #'   them show where the load moved and whether moving it bought better
-#'   post-definitive care.
-render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep = NULL) {
+#'   post-definitive care. The arms are ordered as the sweep ran them, so the
+#'   x axis is categorical rather than a numeric scale the capacity arms
+#'   would have no place on.
+render_forward_hold_sweep_plot <- function(sweep_df, baseline_arm = NULL, n_rep = NULL) {
   metrics <- c("R2E ICU Pool Queue", "R2B ICU Occupancy",
                "R2E ICU Occupancy", "Post-Definitive Care in ICU", "DOW Count")
+  sweep_df$arm <- factor(sweep_df$arm, levels = unique(sweep_df$arm))
 
   plot_df <- bind_rows(
-    sweep_df %>% transmute(share, metric = metrics[1],
+    sweep_df %>% transmute(arm, metric = metrics[1],
                            mean = mean_r2e_icu_q, ci_lower = ci_lower_r2e_icu_q, ci_upper = ci_upper_r2e_icu_q),
-    sweep_df %>% transmute(share, metric = metrics[2],
+    sweep_df %>% transmute(arm, metric = metrics[2],
                            mean = mean_r2b_icu_util, ci_lower = ci_lower_r2b_icu_util, ci_upper = ci_upper_r2b_icu_util),
-    sweep_df %>% transmute(share, metric = metrics[3],
+    sweep_df %>% transmute(arm, metric = metrics[3],
                            mean = mean_r2e_icu_util, ci_lower = ci_lower_r2e_icu_util, ci_upper = ci_upper_r2e_icu_util),
-    sweep_df %>% transmute(share, metric = metrics[4],
+    sweep_df %>% transmute(arm, metric = metrics[4],
                            mean = mean_pd_icu_share, ci_lower = ci_lower_pd_icu_share, ci_upper = ci_upper_pd_icu_share),
-    sweep_df %>% transmute(share, metric = metrics[5],
+    sweep_df %>% transmute(arm, metric = metrics[5],
                            mean = mean_dow, ci_lower = ci_lower_dow, ci_upper = ci_upper_dow)
   ) %>%
     mutate(metric = factor(metric, levels = metrics))
 
   subtitle <- if (!is.null(n_rep)) {
-    sprintf(paste("%d replications per share point; queue and occupancy are pool totals",
+    sprintf(paste("%d replications per arm; queue and occupancy are pool totals",
                   "over the closing %d days; the ribbon is a 95%% confidence interval",
                   "across replications"),
             n_rep, CAPACITY_SWEEP_WINDOW_DAYS)
@@ -5274,28 +5315,29 @@ render_icu_share_sweep_plot <- function(sweep_df, baseline_share = NULL, n_rep =
     NULL
   }
 
-  p <- ggplot(plot_df, aes(x = share, y = mean)) +
+  p <- ggplot(plot_df, aes(x = arm, y = mean, group = 1)) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = "95% Confidence Interval"), alpha = 0.3) +
     geom_line(aes(color = "Mean (across replications)"), linewidth = 1) +
     geom_point(aes(color = "Mean (across replications)"), size = 2)
 
-  if (!is.null(baseline_share)) {
-    p <- p + geom_vline(aes(xintercept = baseline_share, linetype = "Shipped Default"),
+  if (!is.null(baseline_arm)) {
+    p <- p + geom_vline(aes(xintercept = match(baseline_arm, levels(sweep_df$arm)),
+                            linetype = "Shipped Default"),
                         color = "firebrick", linewidth = 0.6) +
       scale_linetype_manual(name = NULL, values = c("Shipped Default" = "dashed"))
   }
 
   p +
     facet_wrap(~ metric, ncol = 1, scales = "free_y", strip.position = "left") +
-    scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
     scale_fill_manual(name = NULL, values = c("95% Confidence Interval" = "steelblue")) +
     scale_color_manual(name = NULL, values = c("Mean (across replications)" = "steelblue4")) +
-    labs(title = "Forward ICU Share — Decision Frontier",
+    labs(title = "Forward Holding at R2B: Decision Frontier",
          subtitle = subtitle,
-         x = "Share of post-operative ICU requirement delivered at R2B", y = NULL) +
+         x = "Forward holding rule (stability window, capacity trigger)", y = NULL) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
-          strip.placement = "outside", legend.position = "bottom")
+          strip.placement = "outside", legend.position = "bottom",
+          axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
 #' Mean and 95% confidence interval for one sweep response
@@ -5353,53 +5395,55 @@ dow_rep_counts <- function(mon) {
     mutate(dow = ifelse(is.na(dow), 0, dow))
 }
 
-#' Sweep the forward ICU share and report the resulting decision frontier
+#' Sweep the forward holding rule and report the resulting decision frontier
 #'
-#' @param shares Numeric vector of `r2b.post_op_icu.share` values to sweep,
-#'   each in [0, 1] (default `seq(0, 1, by = 0.25)`).
+#' @param arms Data frame of forward holding arms to sweep: `label`, the
+#'   `window` in minutes applied as both `r2b.post_op_icu.stability_window_dcs`
+#'   and `.stability_window_single_stage`, and the `trigger` of 0 or 1 set as
+#'   `capacity_trigger` (default `FORWARD_HOLD_SWEEP_ARMS`).
 #' @param n_days Simulation duration per replication (default 30).
-#' @param n_rep Replications per share point, for CI bounds (default 10).
+#' @param n_rep Replications per arm, for CI bounds (default 10).
 #' @param path File path to env_data.json (default "env_data.json").
 #' @param output_dir Directory for CSV output (default "outputs").
 #' @param images_dir Directory for the saved plot (default "images").
 #' @param progress_dir Optional directory path; when supplied, an empty
-#'   marker file ("point_<i>.done") is written to it as each share point
+#'   marker file ("point_<i>.done") is written to it as each arm
 #'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
-#'   share point, passed through to run_replications().
-#' @return Named list: data (one row per swept share, with mean and 95% CI
+#'   arm, passed through to run_replications().
+#' @return Named list: data (one row per arm, with mean and 95% CI
 #'   for the R2E ICU queue, R2B and R2E ICU utilisation, and DOW count),
 #'   plot (ggplot object, also saved to
-#'   images_dir/r2b_icu_share_frontier.png)
+#'   images_dir/r2b_forward_hold_frontier.png)
 #'
-#' @details Answers the question the forward ICU share exists to pose: how
+#' @details Answers the question forward holding exists to pose: how
 #'   much of the R2E ICU constraint can be relieved by holding
-#'   post-operative casualties forward at R2B, and what that costs in
-#'   mortality. Shifting the share forward moves ICU load from an
+#'   operated casualties forward at R2B, and what that costs in
+#'   mortality. Holding a casualty forward moves ICU load from an
 #'   intensivist-led facility to one without an intensivist, and
 #'   `r2b_icu_penalty` prices that difference into the DOW ceiling (see
 #'   r2b_post_op_stabilisation(), R/trajectories.R), so the two panels move
 #'   in opposite directions and the frontier between them is the planner's
 #'   actual decision surface. Reporting the frontier is more useful than
-#'   choosing a single split on the planner's behalf, which is why the
-#'   shipped default stays at zero.
+#'   choosing a single rule on the planner's behalf, which is why the
+#'   shipped default holds nobody forward.
 #'
 #'   Structurally this mirrors plot_transport_capacity_margin_by_fleet_size()
 #'   above and reuses the same replication engine, aggregation convention
 #'   (mean and t-distribution 95% CI across replications) and
 #'   global-state save/restore. It differs in that the swept quantity is a
-#'   `vars` entry rather than an `elms`/`transports` one, so the share is
+#'   `vars` entry rather than an `elms`/`transports` one, so the rule is
 #'   overwritten on the built env_data directly instead of on the parsed
 #'   JSON before building.
-plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
-                                        n_days = CAPACITY_SWEEP_DAYS,
-                                        n_rep = ICU_SHARE_SWEEP_REPLICATIONS,
-                                        path = "env_data.json",
-                                        output_dir = "outputs", images_dir = "images",
-                                        progress_dir = NULL, max_cores = NULL) {
-  caller <- "plot_r2b_icu_share_frontier"
+plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
+                                           n_days = CAPACITY_SWEEP_DAYS,
+                                           n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS,
+                                           path = "env_data.json",
+                                           output_dir = "outputs", images_dir = "images",
+                                           progress_dir = NULL, max_cores = NULL) {
+  caller <- "plot_r2b_forward_hold_frontier"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
-  validate_shares(shares, caller)
+  validate_forward_hold_arms(arms, caller)
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
@@ -5412,16 +5456,20 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
   # registered here as well as run explicitly below the sweep loop.
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
-  baseline_share <- env_data_base$vars$r2b$post_op_icu$share
+  rule <- env_data_base$vars$r2b$post_op_icu
+  shipped <- arms$window == rule$stability_window_dcs &
+    arms$window == rule$stability_window_single_stage &
+    arms$trigger == rule$capacity_trigger
+  baseline_arm <- if (any(shipped)) arms$label[shipped][1] else NULL
 
-
-  sweep_df <- bind_rows(lapply(seq_along(shares), function(i) {
-    share <- shares[i]
-    message(sprintf("Forward ICU share sweep: share = %.2f (%d reps x %d days)...",
-                    share, n_rep, n_days))
+  sweep_df <- bind_rows(lapply(seq_len(nrow(arms)), function(i) {
+    message(sprintf("Forward holding sweep: %s (%d reps x %d days)...",
+                    arms$label[i], n_rep, n_days))
 
     ed <- env_data_base
-    ed$vars$r2b$post_op_icu$share <- share
+    ed$vars$r2b$post_op_icu$stability_window_dcs <- arms$window[i]
+    ed$vars$r2b$post_op_icu$stability_window_single_stage <- arms$window[i]
+    ed$vars$r2b$post_op_icu$capacity_trigger <- arms$trigger[i]
     env_data <<- ed
     day_min  <<- day_min_base
     counts   <<- counts_base
@@ -5446,7 +5494,9 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
     }
 
     data.frame(
-      share                 = share,
+      arm                   = arms$label[i],
+      window                = arms$window[i],
+      capacity_trigger      = arms$trigger[i],
       mean_r2e_icu_q        = q_stats$mean,
       ci_lower_r2e_icu_q    = pmax(q_stats$ci_lower, 0),
       ci_upper_r2e_icu_q    = q_stats$ci_upper,
@@ -5469,13 +5519,13 @@ plot_r2b_icu_share_frontier <- function(shares = seq(0, 1, by = 0.25),
   day_min  <<- day_min_base
   counts   <<- counts_base
 
-  write.csv(sweep_df, file.path(output_dir, "r2b_icu_share_frontier.csv"), row.names = FALSE)
-  message(sprintf("Forward ICU share sweep results written to %s/r2b_icu_share_frontier.csv",
+  write.csv(sweep_df, file.path(output_dir, "r2b_forward_hold_frontier.csv"), row.names = FALSE)
+  message(sprintf("Forward holding sweep results written to %s/r2b_forward_hold_frontier.csv",
                   output_dir))
 
-  p <- render_icu_share_sweep_plot(sweep_df, baseline_share = baseline_share, n_rep = n_rep)
+  p <- render_forward_hold_sweep_plot(sweep_df, baseline_arm = baseline_arm, n_rep = n_rep)
 
-  ggsave(file.path(images_dir, "r2b_icu_share_frontier.png"), p,
+  ggsave(file.path(images_dir, "r2b_forward_hold_frontier.png"), p,
          width = 10, height = 14, dpi = 150)
 
   list(data = sweep_df, plot = p)
@@ -5547,7 +5597,7 @@ set_r2b_hold_beds <- function(json_data, hold_beds) {
 #'   95% CI ribbon.
 #'
 #' @details Factored out of plot_r2b_hold_threshold_sweep() on the same
-#'   rationale as render_icu_share_sweep_plot() above. The forward pool (R2B
+#'   rationale as render_forward_hold_sweep_plot() above. The forward pool (R2B
 #'   holding) and the two pools it can transfer load onto (R2E holding and R2E
 #'   intensive care) are grouped first, then the two campaign outcomes the
 #'   trade is ultimately priced against, returns to duty and died of wounds.
@@ -5651,7 +5701,7 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
 #'   point (set_r2b_hold_beds(), mirroring the transport fleet-size sweep's
 #'   `transports` edit above), while `evac_threshold_min` changes a `vars`
 #'   entry and so is set on the already-built env_data directly (mirroring
-#'   plot_r2b_icu_share_frontier() above it). The global env_data/day_min/
+#'   plot_r2b_forward_hold_frontier() above it). The global env_data/day_min/
 #'   counts are restored to their pre-call values on completion, including on
 #'   the error path, matching every sweep in this file.
 plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,

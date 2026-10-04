@@ -1,12 +1,12 @@
 rule,count
-assignment_linter,137
+assignment_linter,135
 commas_linter,6
 function_length,2
-indentation_linter,157
+indentation_linter,155
 infix_spaces_linter,2
-line_length_linter,687
+line_length_linter,685
 object_name_linter,5
-pictographic_character,97
+pictographic_character,93
 semicolon_linter,53
 trailing_blank_lines_linter,1
 trailing_whitespace_linter,18

@@ -100,26 +100,30 @@ report <- function(ok, fmt, ...) {
   invisible(NULL)
 }
 
-#' Forward intensive care share that makes the R2B gate a real constraint
+#' Forward stability window, in minutes, that makes the R2B gate a real constraint
 #'
-#' @details At the shipped share of zero the two intensive care beds per R2B
+#' @details At the shipped window of zero the two intensive care beds per R2B
 #'   team serve only the evacuation-wait fallback, so that gate almost never
 #'   fires and a run at the shipped configuration cannot tell whether its
-#'   switch is honoured. A non-zero share sends every casualty operated on
-#'   forward into one of those beds, which is the regime the gate exists for.
-R2B_GATE_SHARE <- 0.8
+#'   switch is honoured. A window sends every casualty operated on forward
+#'   into one of those beds, which is the regime the gate exists for.
+R2B_GATE_WINDOW <- 1440
 
 #' Run the model with the gate in a given state and return the wide attributes
 #'
 #' @param enabled 1 to leave the gate in force, 0 to disable it at both
 #'   echelons.
-#' @param r2b_share Forward intensive care share, or NULL to leave it shipped.
+#' @param r2b_window Forward stability window in minutes, applied to both
+#'   surgical pathways, or NULL to leave it shipped.
 #' @return One row per casualty, attributes pivoted to columns.
-measure_gate <- function(enabled, r2b_share = NULL) {
+measure_gate <- function(enabled, r2b_window = NULL) {
   ed <- load_scenario("env_data.json", "default")
   ed$vars$r2b$icu_gating$enabled       <- enabled
   ed$vars$r2eheavy$icu_gating$enabled  <- enabled
-  if (!is.null(r2b_share)) ed$vars$r2b$post_op_icu$share <- r2b_share
+  if (!is.null(r2b_window)) {
+    ed$vars$r2b$post_op_icu$stability_window_dcs <- r2b_window
+    ed$vars$r2b$post_op_icu$stability_window_single_stage <- r2b_window
+  }
   # Assigned explicitly into the global environment the model reads them from,
   # rather than with <<- from inside this function, which reads the same but
   # states the target less clearly in a script.
@@ -202,21 +206,21 @@ report(operated_on > 0 && operated_off > 0,
 
 # ── 4. The R2B gate's own switch is honoured ───────────────────────────────
 
-# Asserted at a non-zero forward intensive care share rather than at the
-# shipped one. At the shipped share of zero the R2B gate is close to inert, so
+# Asserted at a non-zero forward stability window rather than at the shipped
+# one. At the shipped window of zero the R2B gate is close to inert, so
 # a run there passes whether or not its switch is read, and an earlier version
 # of this check did exactly that.
 
-cat("\n-- the R2B gate, at a share that makes it bite --\n")
+cat("\n-- the R2B gate, at a window that makes it bite --\n")
 
-r2b_on  <- measure_gate(1, R2B_GATE_SHARE)
-r2b_off <- measure_gate(0, R2B_GATE_SHARE)
+r2b_on  <- measure_gate(1, R2B_GATE_WINDOW)
+r2b_off <- measure_gate(0, R2B_GATE_WINDOW)
 
 report(deferrals(r2b_on) > 0,
-       "at a forward share of %.1f the gates defer %d casualties, so the arm is not vacuous",
-       R2B_GATE_SHARE, deferrals(r2b_on))
+       "at a forward window of %d min the gates defer %d casualties, so the arm is not vacuous",
+       R2B_GATE_WINDOW, deferrals(r2b_on))
 report(deferrals(r2b_off) == 0,
-       "no casualty is deferred at that share with the gates disabled")
+       "no casualty is deferred at that window with the gates disabled")
 
 # ── 5. The switch is validated at the boundary ─────────────────────────────
 

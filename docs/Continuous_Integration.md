@@ -369,12 +369,13 @@ seconds.
 | `check_definitive_repair_release.R` | fast | 150 s | release to strategic evacuation with the definitive repair outstanding |
 | `check_dow_calibration.R` | slow | 2702 s | died-of-wounds rate against its campaign's anchor |
 | `check_env_data_summary.R` | fast | 6 s | README environment summary regeneration |
+| `check_forward_hold_switch.R` | fast | 60 s | disabled forward holding is the model as it stood |
 | `check_hold_episode_reconstruction.R` | fast | 43 s | an R2B holding episode is bounded by the attribute its own exit route sets |
 | `check_hold_window_protocol.R` | fast | 7 s | the R2B pre-open hold window's parameters, its responses and its published table agree |
 | `check_holding_occupancy_split.R` | fast | 45 s | R2E holding occupancy splits into recovery and evacuation wait, and the two account for the pool within a stated bound |
 | `check_icu_gate_protocol.R` | fast | 7 s | the post-operative intensive care gate's parameters, its responses and its published table agree |
 | `check_icu_gate_switch.R` | fast | 120 s | the intensive care gate disable switch reproduces the pre-gate model |
-| `check_icu_time_conservation.R` | fast | 68 s | post-operative ICU time is conserved across routes |
+| `check_icu_time_conservation.R` | fast | 120 s | post-operative ICU time is conserved across routes |
 | `check_input_validation.R` | fast | 16 s | entry points reject malformed input by name |
 | `check_lever_realisation.R` | fast | 28 s | two planner levers realise the value configured |
 | `check_lint.R` | fast | 92 s | Lint ratchet against the code standard |

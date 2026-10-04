@@ -724,7 +724,7 @@ MORRIS_LABELS <- c(
   ame_schedule_interval_days = "AME Sortie Interval (Days)",
   ame_failure_probability    = "AME Sortie Cancellation Probability",
 
-  r2b_icu_share        = "R2B Forward ICU Share",
+  r2b_stability_window_dcs = "R2B Forward Stability Window, Damage Control (Minutes)",
   r2b_forward_hold_max = "R2B Forward Hold Time Limit (Minutes)",
   post_definitive_icu_mode = "R2E Post-Definitive ICU Duration (Mode)",
   r2b_hold_threshold  = "R2B Hold-Bed Reroute Threshold",

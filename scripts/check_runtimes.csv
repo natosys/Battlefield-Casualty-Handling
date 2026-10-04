@@ -15,6 +15,7 @@ check_ci_check_table.R,2
 check_composition_ilr.R,8
 check_config_restore.R,18
 check_console_bindings.R,20
+check_convalescence_invariance.R,49
 check_definitive_repair_release.R,150
 check_dow_calibration.R,2702
 check_env_data_summary.R,6

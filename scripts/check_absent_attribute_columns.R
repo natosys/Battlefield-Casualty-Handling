@@ -82,11 +82,12 @@ arg_value <- function(flag, default) {
 
 #' Run length in days for the end-to-end arm
 #'
-#' @details One day is the shortest run the command line accepts and the
-#'   length at which the defect was reported. It is long enough to generate
-#'   casualties and short enough that most attributes go unset, which is the
-#'   condition under test.
-CHECK_DAYS <- as.integer(arg_value("--days", 1L))
+#' @details Short enough that most attributes go unset, which is the condition
+#'   under test, and long enough to generate casualties and to place at least
+#'   one in an R2B holding bed. One day, the length at which the defect was
+#'   reported, no longer reaches a holding bed at seed 42, since a casualty
+#'   whose convalescence exceeds the evacuation policy is no longer held there.
+CHECK_DAYS <- as.integer(arg_value("--days", 3L))
 
 #' Seed for the end-to-end arm
 CHECK_SEED <- as.integer(arg_value("--seed", 42L))

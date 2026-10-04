@@ -365,6 +365,7 @@ seconds.
 | `check_composition_ilr.R` | fast | 8 s | Simplex invariant regression check |
 | `check_config_restore.R` | fast | 18 s | a failed sweep or screen restores the configuration |
 | `check_console_bindings.R` | fast | 20 s | no console panel reads another panel's local |
+| `check_convalescence_invariance.R` | fast | 49 s | convalescence follows the casualty, not the facility |
 | `check_definitive_repair_release.R` | fast | 150 s | release to strategic evacuation with the definitive repair outstanding |
 | `check_dow_calibration.R` | slow | 2702 s | died-of-wounds rate against its campaign's anchor |
 | `check_env_data_summary.R` | fast | 6 s | README environment summary regeneration |

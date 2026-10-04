@@ -454,22 +454,24 @@ if (nrow(evacuated) == 0) {
   report(ok, "served plus residual convalescence matches the duration drawn for all %d evacuated casualties (worst gap %.2e min)",
          nrow(evacuated), worst)
 
-  # Check 10: the residual is what R2E serves. A fresh draw here is the defect
-  # this check exists for, and it would show as a recovery duration unrelated
-  # to the remainder carried in.
+  # Check 10: the casualty's one draw survives the move. R2E reads the
+  # convalescence drawn at R2B rather than drawing its own, so the duration it
+  # holds is the whole of the draw, of which the residual is the part left to
+  # serve.
   reached <- evacuated %>% filter(!is.na(recovery_to_duty_days))
   if (nrow(reached)) {
-    worst <- max(abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_residual))
-    ok <- worst < 1e-6
+    gap <- abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_drawn)
+    ok <- max(gap) < 1e-6
     if (!ok) {
-      fail("%d evacuated casualties drew a fresh R2E recovery duration instead of serving the residual (worst gap %.3f minutes)",
-           sum(abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_residual) >= 1e-6),
-           worst)
+      fail(paste("%d evacuated casualties drew a fresh R2E recovery duration instead of",
+                 "keeping the R2B draw (worst gap %.3f minutes)"),
+           sum(gap >= 1e-6), max(gap))
     }
-    report(ok, "all %d evacuated casualties reaching R2E disposition served the residual rather than a fresh draw (worst gap %.2e min)",
-           nrow(reached), worst)
+    report(ok, paste("all %d evacuated casualties reaching R2E disposition kept the one",
+                     "convalescence drawn at R2B (worst gap %.2e min)"),
+           nrow(reached), max(gap))
   } else {
-    fail("no evacuated casualty reached R2E disposition, so the residual was never served")
+    fail("no evacuated casualty reached R2E disposition, so the draw was never carried across")
     report(FALSE, "no evacuated casualty reached R2E disposition")
   }
 

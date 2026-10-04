@@ -376,7 +376,7 @@ morris_params <- data.frame(
     "pri1_surg_prob", "evacuation_policy_days", "ot_hours",
     "mass_casualty_rate",    "mass_casualty_max_cas",
     # ── R1/R2B/R2E durations ───────────────────────────────────────────────
-    "short_resus_mode", "r2b_hold_mode", "r2e_hold_mode",
+    "short_resus_mode", "r2e_hold_mode",
     "post_op_hold_mode", "r1_recovery_mode", "r1_wia_treat_mode",
     "post_definitive_icu_mode",
     # ── R1 surgical candidacy / evacuation probabilities ─────────────────
@@ -422,7 +422,7 @@ morris_params <- data.frame(
   ),
   lower = c(
     57,    25,    0.0100, 15,   15,   770,   0.70,  15,    8,   0,    40,
-    17,    3600,   23400,  380,   1440,  12,   720,
+    17,    23400,  380,   1440,  12,   720,
     0.55,  0.15,  0.35,  0.03,  0.70,  0.65,
     0.0005, 0.024, 72,   0.00025, 0.0080, 0.015, 108, 0.0005,
     0.68,  0.41,  0.17,  0.41,  0.10,  0.42,  1.5,  1.09,
@@ -443,7 +443,7 @@ morris_params <- data.frame(
   ),
   upper = c(
     133,   70,    0.040,  45,   45,   2160,  0.98,  60,    16,  0.4,  80,
-    39,    14400,  54450,  1200,  5760,  28,   2880,
+    39,    54450,  1200,  5760,  28,   2880,
     0.95,  0.55,  0.75,  0.12,  0.99,  0.98,
     0.002, 0.056, 168,  0.001,  0.032,  0.035, 252, 0.002,
     0.98,  0.71,  0.47,  0.71,  0.40,  0.72,  6.0,  1.59,
@@ -464,7 +464,7 @@ morris_params <- data.frame(
   ),
   mode  = c(
     95,    45,    0.020,  30,   30,   1440,  0.90,  21,    12,  0,    60,
-    28,    7200,   38880,  600,   2880,  20,   1440,
+    28,    38880,  600,   2880,  20,   1440,
     0.80,  0.40,  0.60,  0.06,  0.95,  0.90,
     0.001, 0.04,  120,  0.0005, 0.016, 0.025, 180, 0.001,
     0.83,  0.56,  0.32,  0.56,  0.25,  0.57,  3.0,  1.31,
@@ -497,7 +497,7 @@ morris_params <- data.frame(
   # failure that actually misleads a reader.
   category = c(
     "Capacity", "Capacity", "Context", "Context", "Context", "Capacity", "Context", "Policy", "Policy", "Context", "Context",
-    "Capacity", "Capacity", "Capacity", "Capacity", "Capacity", "Capacity",
+    "Capacity", "Capacity", "Capacity", "Capacity", "Capacity",
     "Capacity",
     "Context", "Context", "Context", "Context", "Context", "Context",
     "Context", "Context", "Context", "Context", "Context", "Context", "Context", "Context",
@@ -603,7 +603,6 @@ apply_duration_and_dow_ceiling_params <- function(ed, p) {
 apply_echelon_duration_params <- function(ed, p) {
   # ── R1/R2B/R2E durations ────────────────────────────────────────────────
   ed$vars$r2eheavy$short_resus$mode           <- p[["short_resus_mode"]]
-  ed$vars$r2b$holding$mode                    <- p[["r2b_hold_mode"]]
   ed$vars$r2eheavy$holding$mode               <- p[["r2e_hold_mode"]]
   ed$vars$r2eheavy$post_op_hold$mode          <- p[["post_op_hold_mode"]]
   ed$vars$r1$recovery$mode                    <- p[["r1_recovery_mode"]]

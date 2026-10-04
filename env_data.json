@@ -500,18 +500,6 @@
           "acty": "holding",
           "vals": [
             {
-              "var": "min",
-              "val": 720
-            },
-            {
-              "var": "max",
-              "val": 14400
-            },
-            {
-              "var": "mode",
-              "val": 7200
-            },
-            {
               "var": "hold_threshold",
               "val": 0.8
             },

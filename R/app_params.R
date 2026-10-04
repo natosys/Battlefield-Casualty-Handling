@@ -774,9 +774,6 @@ r2b_fields <- function() {
   registry <- c(registry, tri_fields("r2b_long_resus", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations", "r2b", "long_resus",
                                      "Long Resuscitation Duration", "Time occupying an R2B resuscitation bay for a complex case.",
                                      morris_mode_name = "long_resus_mode", bound = c(0, 200), source = SRC_RESUS_TASK_TABLE))
-  registry <- c(registry, tri_fields("r2b_holding", GRP_PROVISION, "R2B — Holding & Routing", "r2b", "holding",
-                                     "Holding Bed Duration", "Time occupying an R2B holding bed.",
-                                     morris_mode_name = "r2b_hold_mode", bound = c(0, 20000)))
   # Two different thresholds, registered together because a planner setting one
   # needs to see the other. The reroute threshold decides whether a casualty is
   # sent to R2B at all; the evacuation threshold decides how long they may stay

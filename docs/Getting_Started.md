@@ -64,7 +64,7 @@ Each tab's own on-screen text explains what it shows and why it matters; this is
 - **Return to Duty & DOW** — how much of the casualty stream recovered (battle-fatigue vs clinical return-to-duty) versus died of wounds, broken down by echelon.
 - **Force Regeneration** — effective force size over time, debited by injury and credited by return-to-duty/reinforcement. A persistently declining line means losses are outpacing recovery and reinforcement.
 - **Strategic AME** — aeromedical evacuation backlog and sortie performance, Role 4 (national support base) census and unconstrained bed demand, and actual wait time by route versus the theoretical best case.
-- **Mass Casualty Events** — the reconstructed timeline of any configured surge events and whether they carry a higher died-of-wounds rate than background casualties.
+- **Casualty Surge Events** — the reconstructed timeline of any configured surge events and whether they carry a higher died-of-wounds rate than background casualties.
 - **Sensitivity Calibration** — the full list of screened parameters and their plausible ranges (the same ranges the Configure sliders use), plus the controls for the optional screening described above. If you run Morris, look at μ\* (how much a parameter moves the result overall) and σ (how much that effect depends on other parameters' values — high σ means the parameter interacts with others rather than acting alone). If you run Sobol, S1 is the share of variance a parameter causes acting alone, ST is its share including every interaction — a parameter with high ST but low S1 is easy to miss with a simpler one-at-a-time check. The transport sweep plot shows queue margin against fleet size directly, no statistics needed to read it.
 
 ## Where to Go for More Detail

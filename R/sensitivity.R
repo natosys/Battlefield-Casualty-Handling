@@ -203,15 +203,15 @@ MORRIS_COMPOSITIONS <- list(
       ed
     }
   ),
-  mass_casualty = list(
+  casualty_surge = list(
     coords     = c("mc_p1_balance", "mc_p2_p3_balance"),
     parts      = c("Priority 1", "Priority 2", "Priority 3"),
     baseline   = c(0.70, 0.20, 0.10),
     lead_range = c(0.55, 0.85),
     apply = function(ed, x) {
-      ed$vars$mass_casualty$priority$one   <- x[1]
-      ed$vars$mass_casualty$priority$two   <- x[2]
-      ed$vars$mass_casualty$priority$three <- x[3]
+      ed$vars$casualty_surge$priority$one   <- x[1]
+      ed$vars$casualty_surge$priority$two   <- x[2]
+      ed$vars$casualty_surge$priority$three <- x[3]
       ed
     }
   )
@@ -374,7 +374,7 @@ morris_params <- data.frame(
     "surg_mode",      "long_resus_mode", "p1_p_max",
     "r1_transport",   "r2b_transport",   "stabilisation_icu_mode",
     "pri1_surg_prob", "evacuation_policy_days", "ot_hours",
-    "mass_casualty_rate",    "mass_casualty_max_cas",
+    "casualty_surge_rate",    "casualty_surge_max_cas",
     # ── R1/R2B/R2E durations ───────────────────────────────────────────────
     "short_resus_mode", "r2e_hold_mode",
     "post_op_hold_mode", "r1_recovery_mode", "r1_wia_treat_mode",
@@ -392,8 +392,8 @@ morris_params <- data.frame(
     # ── Casualty generation rates ────────────────────────────────────────
     "wia_cbt_mean", "kia_cbt_mean", "dnbi_cbt_mean",
     "wia_spt_mean", "kia_spt_mean", "dnbi_spt_mean",
-    # ── Mass casualty, force regeneration, strategic AME ──────────────────
-    "mass_casualty_min_cas",
+    # ── Casualty surge, force regeneration, strategic AME ──────────────────
+    "casualty_surge_min_cas",
     "fr_demand_interval_days", "fr_fulfillment_lag_days", "fr_fill_mode_frac",
     "ame_schedule_interval_days", "ame_failure_probability",
     # ── R2B/R2E routing thresholds ────────────────────────────────────────
@@ -401,7 +401,7 @@ morris_params <- data.frame(
     "r2b_pre_open_window",
     # ── Surgical pathway split ────────────────────────────────────────────
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate",
-    # ── Role 4, R2E critical hold, mass casualty split and forward release
+    # ── Role 4, R2E critical hold, casualty surge split and forward release
     #    thresholds — added by the Issue #339 screening-coverage audit, which
     #    found these thirteen numeric leaves screened by neither this table
     #    nor the exclusion note below ─────────────────────────────────────
@@ -412,7 +412,7 @@ morris_params <- data.frame(
     "role4_icu_continuation_mode",
     "r2e_vent_share", "r2e_critical_hold_mode",
     "saturation_queue_threshold", "r2b_evac_threshold",
-    "mass_casualty_kia_fraction",
+    "casualty_surge_kia_fraction",
     # ── R2E establishment counts — added by Issue #410, closing the two
     #    coverage gaps Issue #348 raised and left unclosed. Both are integers
     #    over a small range; the screen moves them continuously and
@@ -590,8 +590,8 @@ apply_duration_and_dow_ceiling_params <- function(ed, p) {
   ed$vars$r1$other$pri1_surgery             <- p[["pri1_surg_prob"]]
   ed$vars$surgical_roster$shift$ot_hours    <- p[["ot_hours"]]
   ed$vars$r2eheavy$recovery$evacuation_policy_days <- p[["evacuation_policy_days"]]
-  ed$vars$mass_casualty$event$rate_per_day  <- p[["mass_casualty_rate"]]
-  ed$vars$mass_casualty$event$max_cas       <- p[["mass_casualty_max_cas"]]
+  ed$vars$casualty_surge$event$rate_per_day  <- p[["casualty_surge_rate"]]
+  ed$vars$casualty_surge$event$max_cas       <- p[["casualty_surge_max_cas"]]
   ed
 }
 
@@ -660,7 +660,7 @@ apply_dow_curve_params <- function(ed, p) {
   ed
 }
 
-#' Apply the casualty generation, mass casualty, regeneration and evacuation parameters
+#' Apply the casualty generation, casualty surge, regeneration and evacuation parameters
 #'
 #' @param ed Parsed configuration to apply the design point to.
 #' @param p Named design point, one value per screened parameter.
@@ -674,8 +674,8 @@ apply_generation_and_event_params <- function(ed, p) {
   ed$vars$generators$kia_spt$mean_daily  <- p[["kia_spt_mean"]]
   ed$vars$generators$dnbi_spt$mean_daily <- p[["dnbi_spt_mean"]]
 
-  # ── Mass casualty, force regeneration, strategic AME ───────────────────
-  ed$vars$mass_casualty$event$min_cas <- p[["mass_casualty_min_cas"]]
+  # ── Casualty surge, force regeneration, strategic AME ───────────────────
+  ed$vars$casualty_surge$event$min_cas <- p[["casualty_surge_min_cas"]]
 
   ed$vars$force_regeneration$reinforcement$demand_interval_days  <- p[["fr_demand_interval_days"]]
   ed$vars$force_regeneration$reinforcement$fulfillment_lag_days  <- p[["fr_fulfillment_lag_days"]]
@@ -700,7 +700,7 @@ apply_routing_threshold_params <- function(ed, p) {
   ed
 }
 
-#' Apply the Role 4, R2E critical hold, mass casualty split and forward
+#' Apply the Role 4, R2E critical hold, casualty surge split and forward
 #' release threshold parameters added by the Issue #339 screening-coverage
 #' audit
 #'
@@ -725,9 +725,9 @@ apply_role4_and_threshold_params <- function(ed, p) {
   ed$vars$r2eheavy$second_surgery$saturation_queue_threshold <-
     p[["saturation_queue_threshold"]]
 
-  # ── R2B holding evacuation threshold and mass casualty KIA split ───────
+  # ── R2B holding evacuation threshold and casualty surge KIA split ───────
   ed$vars$r2b$holding$evac_threshold          <- p[["r2b_evac_threshold"]]
-  ed$vars$mass_casualty$event$kia_fraction    <- p[["mass_casualty_kia_fraction"]]
+  ed$vars$casualty_surge$event$kia_fraction    <- p[["casualty_surge_kia_fraction"]]
   ed
 }
 
@@ -1783,7 +1783,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 #'   $\sqrt{p(1-p)/(\kappa+1)}$; setting two standard deviations equal to the
 #'   half-width of the group's `lead_range` and solving for $\kappa$ gives
 #'   roughly 29 for the triage split, 31 for the DNBI composition and 36 for
-#'   the mass casualty split. A single figure would have been a spread nobody
+#'   the casualty surge split. A single figure would have been a spread nobody
 #'   had argued for; this one is the spread already documented.
 composition_concentration <- function(g) {
   p    <- g$baseline[1] / sum(g$baseline)

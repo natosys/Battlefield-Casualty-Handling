@@ -99,34 +99,34 @@ test_that("the resolved profile drives the derived configuration reactives", {
   })
 })
 
-test_that("scheduled mass casualty rows are added and removed within their bounds", {
+test_that("scheduled casualty surge rows are added and removed within their bounds", {
   shiny::testServer(server, {
     start <- mc_event_count()
     expect_gte(start, 1L)
 
     session$setInputs(mc_event_add = 1)
-    expect_equal(mc_event_count(), min(start + 1L, MASS_CASUALTY_SCHEDULE_SLOTS))
+    expect_equal(mc_event_count(), min(start + 1L, CASUALTY_SURGE_SCHEDULE_SLOTS))
 
     session$setInputs(mc_event_remove = 1)
     expect_identical(mc_event_count(), start)
   })
 })
 
-test_that("the scheduled mass casualty row count cannot fall below one", {
+test_that("the scheduled casualty surge row count cannot fall below one", {
   shiny::testServer(server, {
-    for (i in seq_len(MASS_CASUALTY_SCHEDULE_SLOTS + 1L)) {
+    for (i in seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS + 1L)) {
       session$setInputs(mc_event_remove = i)
     }
     expect_identical(mc_event_count(), 1L)
   })
 })
 
-test_that("the scheduled mass casualty row count cannot exceed the slot count", {
+test_that("the scheduled casualty surge row count cannot exceed the slot count", {
   shiny::testServer(server, {
-    for (i in seq_len(MASS_CASUALTY_SCHEDULE_SLOTS + 1L)) {
+    for (i in seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS + 1L)) {
       session$setInputs(mc_event_add = i)
     }
-    expect_equal(mc_event_count(), MASS_CASUALTY_SCHEDULE_SLOTS)
+    expect_equal(mc_event_count(), CASUALTY_SURGE_SCHEDULE_SLOTS)
   })
 })
 

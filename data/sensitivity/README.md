@@ -21,11 +21,11 @@ point repeated or discarded. Each screen's
 
 **The Sobol decomposition follows the current Morris ranking by the rule
 below.** It decomposes the unresolved leading cluster on the system OT queue
-ranking of the Issue #410 screen, ranks 1 to 7 (`mass_casualty_rate`,
+ranking of the Issue #410 screen, ranks 1 to 7 (`casualty_surge_rate`,
 `pri1_evac_prob`, `pri1_surg_prob`, `pri1_dcs_rate`, `mc_p1_balance`,
-`mass_casualty_kia_fraction` and `mass_casualty_max_cas`, with µ\* from 13.04
+`casualty_surge_kia_fraction` and `casualty_surge_max_cas`, with µ\* from 13.04
 down to 3.42), and carries a composition group whole whenever one of its
-coordinates falls inside the cluster. `mc_p1_balance` does, so the mass casualty
+coordinates falls inside the cluster. `mc_p1_balance` does, so the casualty surge
 composition enters as a single object, sampled from a Dirichlet distribution,
 and its second coordinate `mc_p2_p3_balance` joins as the eighth column.
 `dnbi_disease_balance`, at rank 9, sits just outside the cluster and was not
@@ -44,9 +44,9 @@ the second constant. Transport utilisation is retained, but at 49.3% noise
 share it does not meet the 20% target the other two meet, and it is reported
 rather than interpreted; see the noise floor row below.
 
-**Results.** On the system OT queue, `mass_casualty_rate` carries a total-order
-index of 0.79 (95% CI [0.66, 0.92]), `mass_casualty_max_cas` 0.27, `pri1_surg_prob`
-0.20, `pri1_evac_prob` 0.14, `pri1_dcs_rate` 0.10, `mass_casualty_kia_fraction`
+**Results.** On the system OT queue, `casualty_surge_rate` carries a total-order
+index of 0.79 (95% CI [0.66, 0.92]), `casualty_surge_max_cas` 0.27, `pri1_surg_prob`
+0.20, `pri1_evac_prob` 0.14, `pri1_dcs_rate` 0.10, `casualty_surge_kia_fraction`
 0.10, `mc_p2_p3_balance` 0.06 and `mc_p1_balance` 0.04. The leader separates from
 the second at a difference of 0.525 ([0.366, 0.687], P > 0.999); the second does
 not separate from the third (difference 0.067, P = 0.81, needing N of about
@@ -56,7 +56,7 @@ noise is 11.3% of the system queue's variance at 8 replications (95% CI
 measurement, so the realised share is below the projection. The reported
 indices are uncorrected; dividing by the deflation factor of 0.887 gives the
 upper end of the bracket the README states under L29. The Jansen and Martinez
-estimators agree that `mass_casualty_rate` leads and disagree about the order
+estimators agree that `casualty_surge_rate` leads and disagree about the order
 beneath it, and neither returns a total-order index at or below zero anywhere
 in the design, which is construction and not resolution.
 
@@ -89,7 +89,7 @@ exclusion list found thirteen screened by neither: the Role 4 reconstruction
 share, return interval and post-reconstruction return rate; the four Role 4
 length-of-stay modes; the Role 4 intensive care continuation duration; the R2E
 pre-flight critical hold share and duration; the forward theatre saturation
-release threshold; the R2B holding evacuation threshold; and the mass casualty
+release threshold; the R2B holding evacuation threshold; and the casualty surge
 wounded/killed split. Adding them to this run cost about a fifth more design
 points; adding them later would have cost a further full screen.
 
@@ -214,7 +214,7 @@ Rscript scripts/render_morris_plots.R --refresh-baseline    # to images/
 The three Sobol re-analyses read the decomposition rather than the screen:
 
 ```sh
-P=pri1_surg_prob,mass_casualty_rate,mass_casualty_max_cas,pri1_evac_prob,pri1_dcs_rate,mass_casualty_kia_fraction,mc_p1_balance,mc_p2_p3_balance
+P=pri1_surg_prob,casualty_surge_rate,casualty_surge_max_cas,pri1_evac_prob,pri1_dcs_rate,casualty_surge_kia_fraction,mc_p1_balance,mc_p2_p3_balance
 
 Rscript scripts/compare_sobol_estimators.R \
   --cache data/sensitivity/sobol_n800/points.csv --params "$P"

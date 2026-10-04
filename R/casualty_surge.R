@@ -1,9 +1,9 @@
 ##############################################################################
-## R/mass_casualty.R                                                        ##
-## The mass casualty event stress test, at its two arms                    ##
+## R/casualty_surge.R                                                        ##
+## The casualty surge event stress test, at its two arms                    ##
 ##############################################################################
 #
-# mass_casualty.event.rate_per_day lets a compound-Poisson surge of casualties
+# casualty_surge.event.rate_per_day lets a compound-Poisson surge of casualties
 # be injected on top of the ordinary arrival streams. This module measures
 # what that surge costs: how it moves total casualty volume, and whether
 # casualties it injects, and casualties from the background streams running
@@ -18,7 +18,7 @@
 # produced it, on the arrangement R/hold_window.R and R/policy_sweep.R both
 # use.
 #
-# Every casualty carries a mass_casualty_event attribute regardless of whether
+# Every casualty carries a casualty_surge_event attribute regardless of whether
 # injection is active (R/trajectories.R), 1 where it originated from an event
 # and 0 otherwise, so the same reduction applies to both arms: the
 # background-only arm simply has no casualty carrying a 1.
@@ -27,36 +27,36 @@
 # file.
 
 #' Replications per arm
-MASS_CASUALTY_REPLICATIONS <- 30L
+CASUALTY_SURGE_REPLICATIONS <- 30L
 
 #' Campaign length in days each replication runs for
-MASS_CASUALTY_DAYS <- 360L
+CASUALTY_SURGE_DAYS <- 360L
 
 #' Control seed the per-replication seeds are drawn from, one arm at a time
-MASS_CASUALTY_SEED <- 42L
+CASUALTY_SURGE_SEED <- 42L
 
 #' Injection rates compared, in events per day
 #'
 #' @details Zero is the shipped default (no injection); 0.2 is a mean of one
 #'   event every five days, the override `docs/Methods.md`
 #'   documents for this experiment.
-MASS_CASUALTY_ARMS <- c(0, 0.2)
+CASUALTY_SURGE_ARMS <- c(0, 0.2)
 
-#' Reduce one replication to the mass casualty stress test's response row
+#' Reduce one replication to the casualty surge stress test's response row
 #'
 #' @param env Wrapped simmer environment for one replication.
 #' @param rate_per_day Injection rate the replication ran under.
 #' @return One-row data frame of the response set.
 #'
 #' @details `n_ordinary`/`dow_ordinary` count casualties whose
-#'   `mass_casualty_event` attribute reads 0 (background origin, present in
+#'   `casualty_surge_event` attribute reads 0 (background origin, present in
 #'   both arms); `n_event`/`dow_event` count those reading 1 (event origin,
 #'   necessarily empty in the background-only arm). `n_events` reconstructs
 #'   events from the event-origin casualties' arrival times by the same
-#'   gap-based grouping `summarise_mass_casualty_events()` (`R/analysis.R`)
+#'   gap-based grouping `summarise_casualty_surge_events()` (`R/analysis.R`)
 #'   applies to the illustrative single run, so the two counts cannot drift
 #'   apart under one definition of what separates two events.
-reduce_mass_casualty_replication <- function(env, rate_per_day) {
+reduce_casualty_surge_replication <- function(env, rate_per_day) {
   arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
   attributes <- simmer::get_mon_attributes(env)
 
@@ -64,12 +64,12 @@ reduce_mass_casualty_replication <- function(env, rate_per_day) {
     dplyr::right_join(arrivals, by = c("name", "replication"),
                       suffix = c("", "_arrival"))
 
-  ordinary <- !is.na(wide$mass_casualty_event) & wide$mass_casualty_event == 0
-  event    <- !is.na(wide$mass_casualty_event) & wide$mass_casualty_event == 1
+  ordinary <- !is.na(wide$casualty_surge_event) & wide$casualty_surge_event == 0
+  event    <- !is.na(wide$casualty_surge_event) & wide$casualty_surge_event == 1
   died     <- !is.na(wide$dow) & wide$dow == 1
 
   event_starts <- sort(wide$start_time[event])
-  window_max <- env_data$vars$mass_casualty$event$window_max
+  window_max <- env_data$vars$casualty_surge$event$window_max
   n_events <- if (length(event_starts) == 0) {
     0L
   } else {
@@ -88,7 +88,7 @@ reduce_mass_casualty_replication <- function(env, rate_per_day) {
   )
 }
 
-#' Set the mass casualty injection rate on a resolved configuration
+#' Set the casualty surge injection rate on a resolved configuration
 #'
 #' @param json_data Parsed env_data.json.
 #' @param scenario Scenario profile to resolve.
@@ -98,30 +98,30 @@ reduce_mass_casualty_replication <- function(env, rate_per_day) {
 #' @details The rate is a variable rather than a bed count, so it is set after
 #'   `build_environment()` on the described form, on the convention
 #'   `R/hold_window.R`'s `apply_hold_window_setting()` establishes.
-apply_mass_casualty_setting <- function(json_data, scenario, rate_per_day) {
+apply_casualty_surge_setting <- function(json_data, scenario, rate_per_day) {
   resolved <- resolve_scenario(json_data, scenario)
   described <- build_environment(resolved)
-  described$vars$mass_casualty$event$rate_per_day <- rate_per_day
+  described$vars$casualty_surge$event$rate_per_day <- rate_per_day
   assign("env_data", described, envir = globalenv())
   assign("day_min", DAY_MIN, envir = globalenv())
   assign("counts", sapply(described$elms, length), envir = globalenv())
   invisible(described)
 }
 
-#' Measure the mass casualty response set across replications at one arm
+#' Measure the casualty surge response set across replications at one arm
 #'
 #' @param rate_per_day Injection rate in force, in events per day.
-#' @param n_iterations Replications to run (default MASS_CASUALTY_REPLICATIONS).
-#' @param n_days Campaign length in days (default MASS_CASUALTY_DAYS).
+#' @param n_iterations Replications to run (default CASUALTY_SURGE_REPLICATIONS).
+#' @param n_days Campaign length in days (default CASUALTY_SURGE_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
 #' @return Data frame with one row per replication, carrying the replication
-#'   index and the responses reduce_mass_casualty_replication() reports.
+#'   index and the responses reduce_casualty_surge_replication() reports.
 #'
 #' @details Seeds are drawn as `run_replications()` draws them, from the
 #'   caller's control seed under the caller's generator kind, and the caller's
 #'   stream is restored on exit, on `R/hold_window.R`'s arrangement.
-run_mass_casualty_measurement <- function(rate_per_day, n_iterations = MASS_CASUALTY_REPLICATIONS,
-                                          n_days = MASS_CASUALTY_DAYS, max_cores = NULL) {
+run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY_SURGE_REPLICATIONS,
+                                          n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -134,7 +134,7 @@ run_mass_casualty_measurement <- function(rate_per_day, n_iterations = MASS_CASU
   #' @return The replication's one-row response frame, carrying its index.
   worker <- function(i) {
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    row <- reduce_mass_casualty_replication(env, rate_per_day)
+    row <- reduce_casualty_surge_replication(env, rate_per_day)
     row$replication <- i
     row
   }
@@ -151,10 +151,10 @@ run_mass_casualty_measurement <- function(rate_per_day, n_iterations = MASS_CASU
 #' Mean and 95% confidence interval of the count responses across replications
 #'
 #' @param rows Per-replication responses as returned by
-#'   run_mass_casualty_measurement().
+#'   run_casualty_surge_measurement().
 #' @return Data frame of response, n_reps, mean, ci_lower and ci_upper, one
 #'   row per count-valued response (total_casualties, n_events).
-summarise_mass_casualty_counts <- function(rows) {
+summarise_casualty_surge_counts <- function(rows) {
   responses <- c("total_casualties", "n_events")
   do.call(rbind, lapply(responses, function(r) {
     x <- rows[[r]]
@@ -183,7 +183,7 @@ summarise_mass_casualty_counts <- function(rows) {
 #'   the rate itself. `binom.test()`'s exact Clopper-Pearson interval is used
 #'   rather than a normal approximation, which would be unstable at these
 #'   counts and could extend below zero.
-mass_casualty_dow_rate <- function(rows, n_col, dow_col) {
+casualty_surge_dow_rate <- function(rows, n_col, dow_col) {
   n   <- sum(rows[[n_col]])
   dow <- sum(rows[[dow_col]])
   if (n == 0) {
@@ -213,7 +213,7 @@ mass_casualty_dow_rate <- function(rows, n_col, dow_col) {
 #'   replication-count derivation both use for a paired one. The two arms here
 #'   are not paired (this module's header records why), so the two variances
 #'   add rather than being taken on one differenced sample.
-mass_casualty_replications_for <- function(s1, s2, half_width) {
+casualty_surge_replications_for <- function(s1, s2, half_width) {
   if (half_width <= 0) return(NA_real_)
   ceiling((qnorm(0.975) * sqrt(s1^2 + s2^2) / half_width)^2)
 }

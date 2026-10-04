@@ -418,14 +418,14 @@ build_saturation <- function(data_dir) {
   res_sweep_table(d, header, arms, rows)
 }
 
-#' Mass casualty event stress test table
+#' Casualty surge event stress test table
 #'
 #' @param data_dir The data directory.
 #' @return The table lines.
-build_mass_casualty <- function(data_dir) {
-  cnt <- res_read("mass_casualty/mass_casualty_count_summary.csv", data_dir)
-  dow <- res_read("mass_casualty/mass_casualty_dow_summary.csv", data_dir)
-  rep <- res_read("mass_casualty/mass_casualty_replications.csv", data_dir)
+build_casualty_surge <- function(data_dir) {
+  cnt <- res_read("casualty_surge/casualty_surge_count_summary.csv", data_dir)
+  dow <- res_read("casualty_surge/casualty_surge_dow_summary.csv", data_dir)
+  rep <- res_read("casualty_surge/casualty_surge_replications.csv", data_dir)
   #' Mean total casualties of one arm
   #'
   #' @param r A response key.
@@ -1039,7 +1039,7 @@ RESULTS_TABLES <- list(
   policy = build_policy,
   establishment = build_establishment,
   saturation = build_saturation,
-  mass_casualty = build_mass_casualty,
+  casualty_surge = build_casualty_surge,
   airlift_baseline = function(dd) build_airlift(dd, "baseline"),
   airlift_interval = function(dd) build_airlift(dd, "interval"),
   airlift_reliability = function(dd) build_airlift(dd, "reliability"),

@@ -8,7 +8,7 @@
 # Usage:
 #   Rscript scripts/compare_sobol_estimators.R \
 #     --cache outputs/cache/sobol_r20/points.csv \
-#     --params pri1_surg_prob,mass_casualty_rate,mass_casualty_max_cas,mass_casualty_min_cas,pri1_dcs_rate \
+#     --params pri1_surg_prob,casualty_surge_rate,casualty_surge_max_cas,casualty_surge_min_cas,pri1_dcs_rate \
 #     --output outputs
 #
 # Why this exists. `run_sobol()` estimates its indices with `sobol2007`. That

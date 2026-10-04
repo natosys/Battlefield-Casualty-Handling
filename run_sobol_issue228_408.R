@@ -23,13 +23,13 @@ day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
 top_params <- c(
-  "mass_casualty_rate",
+  "casualty_surge_rate",
   "pri1_evac_prob",
   "pri1_surg_prob",
   "pri1_dcs_rate",
   "mc_p1_balance",
-  "mass_casualty_kia_fraction",
-  "mass_casualty_max_cas"
+  "casualty_surge_kia_fraction",
+  "casualty_surge_max_cas"
 )
 
 message("Issue #408/#228 joint Sobol run: N=800, 8 reps, 30 days, params: ",

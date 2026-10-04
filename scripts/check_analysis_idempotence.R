@@ -17,7 +17,7 @@
 # data the simulation has already produced, so analysing one run's output
 # twice has to give one answer. It did not. assign_role4_los() draws each
 # evacuated casualty's Role 4 length of stay from a triangular distribution
-# at analysis time, and the pooled mass casualty timeline jitters its points
+# at analysis time, and the pooled casualty surge timeline jitters its points
 # at render time; neither reset the stream, so a second call continued it and
 # returned a different Role 4 census from identical monitoring data. The
 # published figures were reproducible only because run.R happens to call
@@ -30,7 +30,7 @@
 #      list return the same Role 4 census and write the same CSV outputs.
 #
 #   2. analyse_replications() is idempotent on the same terms, including the
-#      jittered mass casualty timeline image.
+#      jittered casualty surge timeline image.
 #
 #   3. The pipeline is RNG-neutral: .Random.seed is left exactly as the
 #      caller had it. This is the mechanism the two properties above rest on,
@@ -112,7 +112,7 @@ counts   <- sapply(env_data$elms, length)
 #'   file's path relative to `dir`
 #'
 #' @details Covers the images as well as the CSV and markdown outputs, so the
-#'   jittered mass casualty timeline is compared too. The directory is the
+#'   jittered casualty surge timeline is compared too. The directory is the
 #'   whole of what a caller sees besides the returned list, so digesting all
 #'   of it needs no judgement about which outputs a future draw might reach.
 output_digests <- function(dir) {
@@ -212,7 +212,7 @@ report(length(single_diff) == 0,
 
 # ── 2. analyse_replications() is idempotent ─────────────────────────────────
 #
-# The multi-run pipeline has the second consumer: the pooled mass casualty
+# The multi-run pipeline has the second consumer: the pooled casualty surge
 # timeline jitters its points at render time, which the image digests cover.
 
 cat("\n-- analyse_replications() is idempotent --\n")

@@ -32,8 +32,8 @@ check_lint.R,92
 check_long_horizon_protocol.R,40
 check_long_horizon_warmup.R,8
 check_markdown.R,6
-check_mass_casualty_kia_split.R,41
-check_mass_casualty_protocol.R,7
+check_casualty_surge_kia_split.R,41
+check_casualty_surge_protocol.R,7
 check_measurement_reproducibility.R,175
 check_morris_baseline.R,8
 check_planning_implications.R,8

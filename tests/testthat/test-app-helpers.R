@@ -35,7 +35,7 @@ test_that("a missing or malformed split slider leaves the values untouched", {
 })
 
 test_that("every compositional split the panel offers is expanded", {
-  slots <- seq_len(MASS_CASUALTY_SCHEDULE_SLOTS)
+  slots <- seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS)
   values <- inject_all_splits(c(
     list(pri_split = c(0.5, 0.8), dnbi_split = c(0.2, 0.7), mc_pri_split = c(0.7, 0.9)),
     setNames(rep(list(c(0.6, 0.8)), length(slots)),

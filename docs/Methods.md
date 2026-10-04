@@ -45,7 +45,7 @@ This document is the design record for the replicated experiments reported in th
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
-  - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
+  - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
   - [Sensitivity Screens](#sensitivity-screens)
   - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)
@@ -254,12 +254,12 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
-| Mass casualty event stress test | `data/mass_casualty/` | `check_mass_casualty_protocol.R`, `check_mass_casualty_kia_split.R` (mechanism) |
+| Casualty surge event stress test | `data/casualty_surge/` | `check_casualty_surge_protocol.R`, `check_casualty_surge_kia_split.R` (mechanism) |
 | Morris and Sobol sensitivity screens | `data/sensitivity/` | `check_sensitivity_protocol.R`, `check_screen_cache.R`, `check_screen_order.R`, `check_morris_baseline.R` (design, cache and baselines; the published rankings are not asserted) |
 
 Every replicated experiment has a tracked evidence set. The sensitivity screens are the one case in which the checks defend the design, the cache and the baselines but not the figures: the published rankings and Sobol indices are read from `data/sensitivity/` by the analysis scripts and are not asserted against it by a protocol check, which is a gap the consolidated results document is to close.
 
-Each protocol check ends with an assertion against an input whose answer is computable by hand, so that a table agreeing with its summary is not two copies of one error. The mechanism checks (`check_icu_gate_switch.R`, `check_mass_casualty_kia_split.R`) stay alongside the protocol checks that cover the same experiment, each covering a mechanism rather than magnitudes; neither is subsumed by its protocol check.
+Each protocol check ends with an assertion against an input whose answer is computable by hand, so that a table agreeing with its summary is not two copies of one error. The mechanism checks (`check_icu_gate_switch.R`, `check_casualty_surge_kia_split.R`) stay alongside the protocol checks that cover the same experiment, each covering a mechanism rather than magnitudes; neither is subsumed by its protocol check.
 
 Two kinds of published figure are exempt under the rule and are recorded so that a later reader does not put them back on the list. The theatre queue clearance statistics the companion paper quotes in prose are the campaign time series measurement read in prose, and `scripts/check_time_series_figures.R` asserts each percentage against `data/time_series/`. The surgical team utilisation figures the companion paper quotes for the extended-coverage option are seed-42 single-run readings, recoverable from the tracked baseline and not a replicated measurement of their own.
 
@@ -301,7 +301,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
-| Mass casualty event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
+| Casualty surge event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 30 d | 8 per point | 8,000 points | unpinned | total-order index; bootstrap |
@@ -549,23 +549,23 @@ The response set is the policy sweep's, extended with four the trade needs and n
 
 The range runs past the point at which a higher threshold might stop firing, so that an inert value is identified by measurement rather than assumed. Whether a threshold fires depends on the horizon and the casualty load, because the release is a saturation response to a queue that grows with both; the companion paper reports where the swept thresholds fire. `scripts/check_definitive_repair_release.R` asserts that the release is reachable at a threshold in force and absent at zero.
 
-### Mass Casualty Event Stress Test
+### Casualty Surge Event Stress Test
 
-<!-- MASS_CASUALTY replications=30 -->
-<!-- MASS_CASUALTY days=360 -->
-<!-- MASS_CASUALTY seed=42 -->
-<!-- MASS_CASUALTY arms=0,0.2 -->
-30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
+<!-- CASUALTY_SURGE replications=30 -->
+<!-- CASUALTY_SURGE days=360 -->
+<!-- CASUALTY_SURGE seed=42 -->
+<!-- CASUALTY_SURGE arms=0,0.2 -->
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `casualty_surge.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
 
 ```
-Rscript scripts/run_mass_casualty.R --refresh-baseline
+Rscript scripts/run_casualty_surge.R --refresh-baseline
 ```
 
-The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00060 for the ordinary casualty rate in the background-only arm, 0.00073 for the ordinary rate and 0.00179 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 3 and 13 replications respectively, and a twentieth of a point requires 49 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 160,797 and 158,865 ordinary casualties and 86,751 event casualties. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
+The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00060 for the ordinary casualty rate in the background-only arm, 0.00073 for the ordinary rate and 0.00179 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 3 and 13 replications respectively, and a twentieth of a point requires 49 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 160,797 and 158,865 ordinary casualties and 86,751 event casualties. `--refresh-baseline` is the only way to write the tracked `data/casualty_surge/`, and it runs the protocol above rather than whatever arguments accompany it.
 
-Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/mass_casualty_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_mass_casualty.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
+Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/casualty_surge_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_casualty_surge.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
 
-The casualty count drawn for an event is its total, not the number of survivors. A configured share, `mass_casualty.event.kia_fraction`, arrives killed at or near the point of injury and goes to the mortuary pathway rather than through triage. 
+The casualty count drawn for an event is its total, not the number of survivors. A configured share, `casualty_surge.event.kia_fraction`, arrives killed at or near the point of injury and goes to the mortuary pathway rather than through triage. 
 
 ---
 

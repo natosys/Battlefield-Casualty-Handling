@@ -6,7 +6,7 @@
 #
 # Usage:
 #   Rscript scripts/measure_noise_floor.R \
-#     --params pri1_surg_prob,mass_casualty_rate,... \
+#     --params pri1_surg_prob,casualty_surge_rate,... \
 #     --cache outputs/cache/sobol_r20/points.csv \
 #     --points 20 --reps 20 --design-reps 4 --days 30 --output outputs
 #

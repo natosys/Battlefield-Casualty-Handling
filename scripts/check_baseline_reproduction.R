@@ -45,8 +45,8 @@ TRACKED_FILES <- list(
   c("data/arrivals_kia_spt.txt",      "data/arrivals_kia_spt.txt"),
   c("data/arrivals_dnbi_cbt.txt",     "data/arrivals_dnbi_cbt.txt"),
   c("data/arrivals_dnbi_spt.txt",     "data/arrivals_dnbi_spt.txt"),
-  c("data/arrivals_mass_casualty.txt", "data/arrivals_mass_casualty.txt"),
-  c("data/mass_casualty_events.csv",  "data/mass_casualty_events.csv"),
+  c("data/arrivals_casualty_surge.txt", "data/arrivals_casualty_surge.txt"),
+  c("data/casualty_surge_events.csv",  "data/casualty_surge_events.csv"),
   c("data/seed42_verification.csv",   "data/seed42_verification.csv")
 )
 

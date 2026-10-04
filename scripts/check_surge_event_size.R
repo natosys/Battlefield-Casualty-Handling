@@ -11,7 +11,7 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The illustrative campaign behind
-# images/mass_casualty_events.png once showed an event of 89 casualties
+# images/casualty_surge_events.png once showed an event of 89 casualties
 # against a configured maximum of 60. The generator was not at fault: the
 # analysis rebuilt events by clustering arrivals whose gap was within one
 # injection window, so two events starting close together read as one.
@@ -56,7 +56,7 @@ report <- function(ok, fmt, ...) {
 
 day_min <<- DAY_MIN
 json <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
-params <- build_environment(json)$vars$mass_casualty
+params <- build_environment(json)$vars$casualty_surge
 params$event$rate_per_day <- OVERLAP_RATE
 min_cas <- params$event$min_cas
 max_cas <- params$event$max_cas
@@ -66,7 +66,7 @@ cat(sprintf("Surge event size check: range [%g, %g], rate %g/day, %d days\n\n",
 
 # ── 1. Generated events stay inside the configured range ────────────────────
 
-ev <- generate_mass_casualty_events(GEN_DAYS, params, seed = CHECK_SEED,
+ev <- generate_casualty_surge_events(GEN_DAYS, params, seed = CHECK_SEED,
                                     write_file = FALSE)$events
 report(nrow(ev) > 0, "%d events generated", nrow(ev))
 report(all(ev$n_cas <= max_cas & ev$n_cas >= min_cas) || all(ev$n_cas <= max_cas),
@@ -74,13 +74,13 @@ report(all(ev$n_cas <= max_cas & ev$n_cas >= min_cas) || all(ev$n_cas <= max_cas
 
 # ── 2. Reconstruction recovers each event, overlapping or not ───────────────
 
-gen <- generate_mass_casualty_events(GEN_DAYS, params, seed = CHECK_SEED,
+gen <- generate_casualty_surge_events(GEN_DAYS, params, seed = CHECK_SEED,
                                      write_file = FALSE)
 tagged <- data.frame(
   replication = 1L,
   start_time  = c(gen$arrival_times, gen$kia_arrival_times),
   injury_type = c(rep(1, length(gen$arrival_times)), rep(3, length(gen$kia_arrival_times))),
-  mass_casualty_event_id = c(gen$casualty_event_id, gen$kia_casualty_event_id)
+  casualty_surge_event_id = c(gen$casualty_event_id, gen$kia_casualty_event_id)
 )
 rebuilt <- reconstruct_surge_events(tagged)
 report(nrow(rebuilt) == nrow(ev), "reconstruction finds %d of %d events",

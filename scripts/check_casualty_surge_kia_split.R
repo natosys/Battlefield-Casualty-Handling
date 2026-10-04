@@ -1,19 +1,19 @@
 #!/usr/bin/env Rscript
 ##############################################################################
-## scripts/check_mass_casualty_kia_split.R                                  ##
-## Regression check — a mass casualty event's casualty count is a total,    ##
+## scripts/check_casualty_surge_kia_split.R                                  ##
+## Regression check — a casualty surge event's casualty count is a total,    ##
 ## split between the wounded and the immediately killed                     ##
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_mass_casualty_kia_split.R             # 30-day runs
-#   Rscript scripts/check_mass_casualty_kia_split.R --days 10   # shorter runs
+#   Rscript scripts/check_casualty_surge_kia_split.R             # 30-day runs
+#   Rscript scripts/check_casualty_surge_kia_split.R --days 10   # shorter runs
 #
 # Exits 0 when every check passes, 1 otherwise, so it can be wired into a
 # pre-merge hook or CI step.
 #
 # Why this check exists. An event's drawn casualty count is a total, of which
-# `mass_casualty.event.kia_fraction` are killed at or near the point of injury.
+# `casualty_surge.event.kia_fraction` are killed at or near the point of injury.
 # Three properties of that split are worth holding fixed against later edits,
 # and none of them is visible in the output of a single run:
 #
@@ -28,7 +28,7 @@
 #      run rather than of the generator: a killed casualty must carry
 #      injury_type 3 and reach mortuary handling, and must never be triaged.
 #
-#   3. The shipped configuration is unaffected. Mass casualty injection ships
+#   3. The shipped configuration is unaffected. Casualty surge injection ships
 #      disabled (`rate_per_day = 0`), so no event fires, no casualty is split
 #      and the fraction must not reach the random stream at all. A run at any
 #      fraction has to be bit-identical to a run at any other, or the tracked
@@ -96,23 +96,23 @@ base_env_data <- build_environment(resolve_scenario(json, SCENARIO))
 
 day_min <<- DAY_MIN
 
-SHIPPED_RATE     <- as.numeric(base_env_data$vars$mass_casualty$event$rate_per_day)
-SHIPPED_FRACTION <- as.numeric(base_env_data$vars$mass_casualty$event$kia_fraction)
+SHIPPED_RATE     <- as.numeric(base_env_data$vars$casualty_surge$event$rate_per_day)
+SHIPPED_FRACTION <- as.numeric(base_env_data$vars$casualty_surge$event$kia_fraction)
 
 #' Draw a long run of events at a given killed share, without simulating
 #'
-#' @param fraction Value for mass_casualty.event.kia_fraction
-#' @param rate Value for mass_casualty.event.rate_per_day
+#' @param fraction Value for casualty_surge.event.kia_fraction
+#' @param rate Value for casualty_surge.event.rate_per_day
 #' @param n_days Duration to draw over, in days
-#' @return generate_mass_casualty_events() output
+#' @return generate_casualty_surge_events() output
 draw_events <- function(fraction, rate = GEN_RATE, n_days = GEN_DAYS) {
-  params <- base_env_data$vars$mass_casualty
+  params <- base_env_data$vars$casualty_surge
   params$event$kia_fraction <- fraction
   params$event$rate_per_day <- rate
-  generate_mass_casualty_events(n_days, params, seed = CHECK_SEED, write_file = FALSE)
+  generate_casualty_surge_events(n_days, params, seed = CHECK_SEED, write_file = FALSE)
 }
 
-cat(sprintf("Mass casualty killed-share check: %s, %d-day runs at seed %d (shipped fraction %g)\n\n",
+cat(sprintf("Casualty surge killed-share check: %s, %d-day runs at seed %d (shipped fraction %g)\n\n",
             SCENARIO, CHECK_DAYS, CHECK_SEED, SHIPPED_FRACTION))
 
 # ── 1. The count is conserved at every fraction ─────────────────────────────
@@ -190,18 +190,18 @@ report(share_ok, "realised %.4f against configured %.4f over %d casualties (%.1f
 
 cat("\n-- an event's killed take the mortuary pathway --\n")
 
-#' Run the model once with mass casualty injection enabled
+#' Run the model once with casualty surge injection enabled
 #'
-#' @param fraction Value for mass_casualty.event.kia_fraction
-#' @param rate Value for mass_casualty.event.rate_per_day
+#' @param fraction Value for casualty_surge.event.kia_fraction
+#' @param rate Value for casualty_surge.event.rate_per_day
 #' @return Named list of the monitored quantities the checks below read
 #'
 #' @details Both values are written into the built env_data rather than into
 #'   env_data.json, so the check never touches the tracked configuration.
 run_at <- function(fraction, rate) {
   ed <- base_env_data
-  ed$vars$mass_casualty$event$kia_fraction <- fraction
-  ed$vars$mass_casualty$event$rate_per_day <- rate
+  ed$vars$casualty_surge$event$kia_fraction <- fraction
+  ed$vars$casualty_surge$event$rate_per_day <- rate
   env_data <<- ed
   counts   <<- sapply(ed$elms, length)
 
@@ -223,7 +223,7 @@ run_at <- function(fraction, rate) {
   list(
     digest   = paste(sprintf("%s:%.10f", arr$name, arr$end_time), collapse = "|"),
     n        = nrow(arr),
-    tagged   = who("mass_casualty_event", 1),
+    tagged   = who("casualty_surge_event", 1),
     killed   = who("injury_type", 3),
     wounded  = who("injury_type", 1),
     mortuary = who("mortuary_treated", 1),
@@ -305,5 +305,5 @@ if (length(failures)) {
   quit(status = 1)
 }
 
-cat("All mass casualty killed-share checks passed.\n")
+cat("All casualty surge killed-share checks passed.\n")
 quit(status = 0)

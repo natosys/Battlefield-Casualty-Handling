@@ -1,16 +1,16 @@
 #!/usr/bin/env Rscript
 ##############################################################################
-## scripts/check_mass_casualty_protocol.R                                   ##
-## Regression check — the mass casualty stress test's parameters, its       ##
+## scripts/check_casualty_surge_protocol.R                                   ##
+## Regression check — the casualty surge stress test's parameters, its       ##
 ## responses and its published table agree                                 ##
 ##############################################################################
 #
 # Usage:
-#   Rscript scripts/check_mass_casualty_protocol.R
+#   Rscript scripts/check_casualty_surge_protocol.R
 #
 # Exits 0 when every check passes, 1 otherwise.
 #
-# Why this check exists. Mass Casualty Events Degrade Care Without Revealing
+# Why this check exists. Casualty Surge Events Degrade Care Without Revealing
 # New Constraints in docs/Results.md prints a four-row table from
 # replicated arms, and until Issue #389 none of the figures behind it existed
 # in a tracked file: the experiment's entry point was run.R under a parameter
@@ -20,7 +20,7 @@
 #
 # What this asserts:
 #
-#   1. Every protocol parameter in R/mass_casualty.R equals the value
+#   1. Every protocol parameter in R/casualty_surge.R equals the value
 #      docs/Methods.md documents in a marker comment.
 #   2. The tracked evidence set is that experiment: both documented arms, the
 #      documented replication count, and the response set the published table
@@ -29,7 +29,7 @@
 #   3. Every figure the paper's four-row table prints matches the tracked
 #      measurement, and a missing row or column fails rather than passing
 #      quietly.
-#   4. summarise_mass_casualty_counts() and mass_casualty_dow_rate() are
+#   4. summarise_casualty_surge_counts() and casualty_surge_dow_rate() are
 #      correct on inputs whose answers are computable by hand, so a table
 #      agreeing with the summary is not two copies of one error.
 #
@@ -41,7 +41,7 @@ suppressPackageStartupMessages({
 })
 
 source("R/constants.R")
-source("R/mass_casualty.R")
+source("R/casualty_surge.R")
 
 state <- new.env(parent = emptyenv())
 state$failures <- character(0)
@@ -77,13 +77,13 @@ METHODS_PATH <- file.path("docs", "Methods.md")
 PAPER_PATH <- file.path("docs", "Results.md")
 
 #' Tracked per-replication responses, both arms
-REPLICATIONS_PATH <- file.path("data", "mass_casualty", "mass_casualty_replications.csv")
+REPLICATIONS_PATH <- file.path("data", "casualty_surge", "casualty_surge_replications.csv")
 
 #' Tracked per-arm count summary (total casualties, events)
-COUNT_SUMMARY_PATH <- file.path("data", "mass_casualty", "mass_casualty_count_summary.csv")
+COUNT_SUMMARY_PATH <- file.path("data", "casualty_surge", "casualty_surge_count_summary.csv")
 
 #' Tracked per-arm, per-origin died-of-wounds summary
-DOW_SUMMARY_PATH <- file.path("data", "mass_casualty", "mass_casualty_dow_summary.csv")
+DOW_SUMMARY_PATH <- file.path("data", "casualty_surge", "casualty_surge_dow_summary.csv")
 
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
@@ -97,35 +97,35 @@ cat("\n-- the protocol's parameters match the methods paper --\n")
 
 methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
 
-#' Read one mass casualty protocol parameter the methods paper states in a marker
+#' Read one casualty surge protocol parameter the methods paper states in a marker
 #'
-#' @param name Marker name, as it appears after "MASS_CASUALTY ".
+#' @param name Marker name, as it appears after "CASUALTY_SURGE ".
 #' @return The marker's value as a character string, or NA where absent.
-mass_casualty_marker <- function(name) {
+casualty_surge_marker <- function(name) {
   m <- regmatches(methods_text,
-                  regexpr(sprintf("<!-- MASS_CASUALTY %s=[^ ]+ -->", name), methods_text))
+                  regexpr(sprintf("<!-- CASUALTY_SURGE %s=[^ ]+ -->", name), methods_text))
   if (length(m) == 0) return(NA_character_)
-  sub("^<!-- MASS_CASUALTY [^=]+=(.*) -->$", "\\1", m)
+  sub("^<!-- CASUALTY_SURGE [^=]+=(.*) -->$", "\\1", m)
 }
 
-held <- list(replications = MASS_CASUALTY_REPLICATIONS, days = MASS_CASUALTY_DAYS,
-             seed = MASS_CASUALTY_SEED)
+held <- list(replications = CASUALTY_SURGE_REPLICATIONS, days = CASUALTY_SURGE_DAYS,
+             seed = CASUALTY_SURGE_SEED)
 for (param in names(held)) {
-  stated <- suppressWarnings(as.numeric(mass_casualty_marker(param)))
+  stated <- suppressWarnings(as.numeric(casualty_surge_marker(param)))
   report(!is.na(stated) && stated == held[[param]],
          "the methods paper states %s = %s and the code holds %s",
          param, format(stated), format(held[[param]]))
 }
 
-stated_arms <- mass_casualty_marker("arms")
+stated_arms <- casualty_surge_marker("arms")
 parsed_arms <- if (is.na(stated_arms)) {
   numeric(0)
 } else {
   as.numeric(trimws(strsplit(stated_arms, ",")[[1]]))
 }
-report(isTRUE(all.equal(parsed_arms, MASS_CASUALTY_ARMS)),
+report(isTRUE(all.equal(parsed_arms, CASUALTY_SURGE_ARMS)),
        "the methods paper states the arms %s and the code holds %s",
-       paste(parsed_arms, collapse = ","), paste(MASS_CASUALTY_ARMS, collapse = ","))
+       paste(parsed_arms, collapse = ","), paste(CASUALTY_SURGE_ARMS, collapse = ","))
 
 # ── 2. The tracked responses are the experiment the methods paper documents ─────
 
@@ -153,11 +153,11 @@ dow_summary <- if (file.exists(DOW_SUMMARY_PATH)) {
 }
 
 if (!is.null(per_rep)) {
-  report(setequal(unique(per_rep$rate_per_day), MASS_CASUALTY_ARMS),
+  report(setequal(unique(per_rep$rate_per_day), CASUALTY_SURGE_ARMS),
          "the tracked replications carry the documented arms")
   counts <- tapply(per_rep$replication, per_rep$rate_per_day, length)
-  report(all(counts == MASS_CASUALTY_REPLICATIONS),
-         "every arm carries %d replications (found %s)", MASS_CASUALTY_REPLICATIONS,
+  report(all(counts == CASUALTY_SURGE_REPLICATIONS),
+         "every arm carries %d replications (found %s)", CASUALTY_SURGE_REPLICATIONS,
          paste(counts, collapse = ","))
   required_cols <- c("total_casualties", "n_events", "n_ordinary", "dow_ordinary",
                      "n_event", "dow_event")
@@ -167,14 +167,14 @@ if (!is.null(per_rep)) {
 }
 
 if (!is.null(count_summary)) {
-  report(setequal(unique(count_summary$rate_per_day), MASS_CASUALTY_ARMS),
+  report(setequal(unique(count_summary$rate_per_day), CASUALTY_SURGE_ARMS),
          "the tracked count summary carries the documented arms")
-  report(all(count_summary$n_reps == MASS_CASUALTY_REPLICATIONS),
-         "every tracked count summary row carries %d replications", MASS_CASUALTY_REPLICATIONS)
+  report(all(count_summary$n_reps == CASUALTY_SURGE_REPLICATIONS),
+         "every tracked count summary row carries %d replications", CASUALTY_SURGE_REPLICATIONS)
 }
 
 if (!is.null(dow_summary)) {
-  report(setequal(unique(dow_summary$rate_per_day), MASS_CASUALTY_ARMS),
+  report(setequal(unique(dow_summary$rate_per_day), CASUALTY_SURGE_ARMS),
          "the tracked died-of-wounds summary carries the documented arms")
   report(setequal(unique(dow_summary$origin), c("ordinary", "event")),
          "the tracked died-of-wounds summary carries both origins")
@@ -195,7 +195,7 @@ if (!is.null(per_rep) && !is.null(count_summary)) {
 }
 
 if (!is.null(per_rep) && !is.null(dow_summary)) {
-  recomputed_dow <- do.call(rbind, lapply(MASS_CASUALTY_ARMS, function(rate) {
+  recomputed_dow <- do.call(rbind, lapply(CASUALTY_SURGE_ARMS, function(rate) {
     arm <- per_rep[per_rep$rate_per_day == rate, ]
     rbind(
       data.frame(rate_per_day = rate, origin = "ordinary",
@@ -217,7 +217,7 @@ cat("\n-- every published figure matches the tracked measurement --\n")
 
 paper <- readLines(PAPER_PATH, warn = FALSE)
 
-#' The rows of the marked mass casualty table in the paper
+#' The rows of the marked casualty surge table in the paper
 #'
 #' @param marker The HTML comment marking the table.
 #' @return The table's lines, or NULL where the marker is absent or repeated.
@@ -257,7 +257,7 @@ leading_figure <- function(cell) {
 #' @param label Regular expression matching the row's label cell.
 #' @param response Response name the row reports.
 #' @param digits Decimal places the paper prints this row to, matching
-#'   `scripts/run_mass_casualty.R`'s `print_count_row()`.
+#'   `scripts/run_casualty_surge.R`'s `print_count_row()`.
 #' @return Invisible NULL.
 check_count_row <- function(rows, label, response, digits = 1) {
   row <- rows[grepl(paste0("^\\| ", label), rows)]
@@ -267,9 +267,9 @@ check_count_row <- function(rows, label, response, digits = 1) {
   }
   cells <- table_cells(row)
   tol <- 0.5 * 10^(-digits) + PRINT_TOL
-  for (k in seq_along(MASS_CASUALTY_ARMS)) {
+  for (k in seq_along(CASUALTY_SURGE_ARMS)) {
     tracked <- if (is.null(count_summary)) NA_real_ else {
-      hit <- count_summary[count_summary$rate_per_day == MASS_CASUALTY_ARMS[k] &
+      hit <- count_summary[count_summary$rate_per_day == CASUALTY_SURGE_ARMS[k] &
                              count_summary$response == response, ]
       if (nrow(hit) == 1) hit$mean else NA_real_
     }
@@ -294,9 +294,9 @@ check_dow_row <- function(rows, label, origin) {
     return(invisible(NULL))
   }
   cells <- table_cells(row)
-  for (k in seq_along(MASS_CASUALTY_ARMS)) {
+  for (k in seq_along(CASUALTY_SURGE_ARMS)) {
     hit <- if (is.null(dow_summary)) NULL else {
-      dow_summary[dow_summary$rate_per_day == MASS_CASUALTY_ARMS[k] &
+      dow_summary[dow_summary$rate_per_day == CASUALTY_SURGE_ARMS[k] &
                     dow_summary$origin == origin, ]
     }
     printed_cell <- if (k <= length(cells)) cells[k] else NA_character_
@@ -315,7 +315,7 @@ check_dow_row <- function(rows, label, origin) {
   invisible(NULL)
 }
 
-table_rows <- paper_table("<!-- GEN mass_casualty -->")
+table_rows <- paper_table("<!-- GEN casualty_surge -->")
 if (!is.null(table_rows)) {
   check_count_row(table_rows, "Average total casualties/run", "total_casualties", digits = 1)
   check_count_row(table_rows, "Average events/run", "n_events", digits = 2)
@@ -332,7 +332,7 @@ cat("\n-- the reduction functions are correct on a known input --\n")
 # written down without reference to the function under test.
 known <- data.frame(rate_per_day = 0, replication = 1:5,
                     total_casualties = c(1, 2, 3, 4, 5), n_events = c(0, 0, 0, 0, 0))
-computed <- summarise_mass_casualty_counts(known)
+computed <- summarise_casualty_surge_counts(known)
 expected_half <- qt(0.975, df = 4) * sqrt(2.5) / sqrt(5)
 
 tc_row <- computed[computed$response == "total_casualties", ]
@@ -352,7 +352,7 @@ if (nrow(tc_row) == 1) {
 # its mean, since there is no spread to estimate a half-width from.
 one_rep <- data.frame(rate_per_day = 0, replication = 1L,
                       total_casualties = 4, n_events = 0)
-single <- summarise_mass_casualty_counts(one_rep)
+single <- summarise_casualty_surge_counts(one_rep)
 single_tc <- single[single$response == "total_casualties", ]
 report(nrow(single_tc) == 1 && single_tc$ci_lower == 4 && single_tc$ci_upper == 4,
        "a single-replication response carries an interval equal to its mean")
@@ -360,7 +360,7 @@ report(nrow(single_tc) == 1 && single_tc$ci_lower == 4 && single_tc$ci_upper == 
 # 6 deaths of 2000 at risk: an exact binomial (Clopper-Pearson) 95% interval
 # on that proportion is computable independently of the function under test.
 known_dow <- data.frame(n_ordinary = c(1000, 1000), dow_ordinary = c(3, 3))
-dow_rate_computed <- mass_casualty_dow_rate(known_dow, "n_ordinary", "dow_ordinary")
+dow_rate_computed <- casualty_surge_dow_rate(known_dow, "n_ordinary", "dow_ordinary")
 expected_test <- binom.test(6, 2000)
 report(dow_rate_computed$n == 2000 && dow_rate_computed$dow == 6,
        "the died-of-wounds rate pools counts across replications (n=%d, dow=%d)",
@@ -376,7 +376,7 @@ report(abs(dow_rate_computed$ci_lower - expected_test$conf.int[1]) < TOL &&
 # No casualties at risk in a subset (the background-only arm's event column)
 # is reported as not applicable rather than as a rate of zero.
 empty_dow <- data.frame(n_event = c(0, 0), dow_event = c(0, 0))
-empty_rate <- mass_casualty_dow_rate(empty_dow, "n_event", "dow_event")
+empty_rate <- casualty_surge_dow_rate(empty_dow, "n_event", "dow_event")
 report(empty_rate$n == 0 && is.na(empty_rate$rate),
        "an origin with no casualties at risk reports rate NA rather than 0")
 
@@ -389,5 +389,5 @@ if (length(state$failures)) {
   quit(status = 1)
 }
 
-cat("All mass casualty stress test protocol checks passed.\n")
+cat("All casualty surge stress test protocol checks passed.\n")
 quit(status = 0)

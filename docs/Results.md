@@ -36,7 +36,7 @@ The measurements record where queues form at each intensity and which responses 
   - [R2B Pre-Open Hold Window](#r2b-pre-open-hold-window)
   - [R2B Holding Capacity and Evacuation Threshold](#r2b-holding-capacity-and-evacuation-threshold)
   - [Transport Fleet Size](#transport-fleet-size)
-  - [Forward Intensive Care Share](#forward-intensive-care-share)
+  - [Forward Holding of Post-Operative Intensive Care](#forward-holding-of-post-operative-intensive-care)
   - [Post-Operative Intensive Care Gate](#post-operative-intensive-care-gate)
   - [Evacuation Policy](#evacuation-policy)
   - [R2E Holding Establishment](#r2e-holding-establishment)
@@ -282,25 +282,27 @@ The same measures under the `high_intensity` profile, each with a 95% confidence
 
 Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->1.4397<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[0.2895, 2.5898]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->0.0866<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.0171<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->46.7132<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->1.1259<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->0.2188<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0002<!-- /GEN -->.
 
-### Forward Intensive Care Share
+### Forward Holding of Post-Operative Intensive Care
 
-**Question.** What changes when a share of post-operative intensive care is delivered at R2B rather than R2E? `[default, forward share 0 to 100% · 360 d · 30 replications · pool totals, closing 90 d]`
+**Question.** What changes when a casualty operated on at R2B is held there for part of their post-operative intensive care, for a stability window or while R2E intensive care is saturated? `[default, seven forward holding arms · 360 d · 30 replications · pool totals, closing 90 d]`
 
-<!-- GEN icu_share -->
-| Forward share | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
+<!-- GEN forward_hold -->
+| Forward holding rule | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
 |---|---|---|---|---|---|
-| 0% (current) | 0.745 [0.540, 0.951] | 1.0% | 87.1% | 32.4 [30.6, 34.1] | 15.40 [14.14, 16.66] |
-| 25% | 0.987 [0.512, 1.462] | 6.1% | 86.8% | 33.7 [31.5, 35.9] | 16.67 [15.26, 18.07] |
-| 50% | 1.601 [0.000, 3.668] | 10.8% | 86.2% | 35.1 [33.3, 36.9] | 17.23 [15.66, 18.81] |
-| 75% | 0.735 [0.527, 0.943] | 15.7% | 86.4% | 36.0 [34.3, 37.7] | 17.53 [15.83, 19.24] |
-| 100% | 0.587 [0.493, 0.680] | 19.1% | 86.2% | 37.1 [35.9, 38.3] | 16.73 [15.76, 17.71] |
+| Off (current) | 1.578 [0.736, 2.420] | 1.5% | 87.6% | 31.4 [30.3, 32.5] | 11.67 [10.24, 13.09] |
+| 120 min | 1.012 [0.616, 1.409] | 5.3% | 85.9% | 33.9 [32.5, 35.2] | 12.03 [10.73, 13.34] |
+| 240 min | 0.771 [0.582, 0.961] | 9.2% | 86.3% | 35.6 [34.4, 36.8] | 11.23 [9.70, 12.76] |
+| 480 min | 0.861 [0.622, 1.099] | 17.2% | 85.9% | 35.4 [33.4, 37.4] | 12.73 [11.17, 14.30] |
+| 1,440 min | 0.819 [0.468, 1.171] | 38.9% | 83.2% | 41.1 [39.0, 43.3] | 13.43 [12.03, 14.84] |
+| Capacity only | 0.923 [0.535, 1.310] | 18.1% | 88.1% | 35.6 [34.0, 37.1] | 12.70 [10.85, 14.55] |
+| 240 min + capacity | 2.045 [0.000, 4.791] | 23.9% | 87.9% | 37.0 [34.9, 39.1] | 12.83 [11.30, 14.37] |
 <!-- /GEN -->
 
-![Five stacked panels against the share of post-operative intensive care delivered forward](../images/r2b_icu_share_frontier.png)
+![Five stacked panels against the forward holding rule](../images/r2b_forward_hold_frontier.png)
 
-R2E intensive care mean queue, R2B and R2E intensive care utilisation, the share of post-definitive care delivered in intensive care and the died-of-wounds count against the share of post-operative intensive care delivered forward, each with a 95% confidence ribbon.
+R2E intensive care mean queue, R2B and R2E intensive care utilisation, the share of post-definitive care delivered in intensive care and the died-of-wounds count under each forward holding arm, each with a 95% confidence ribbon. The windows apply to damage control and single-stage casualties alike.
 
-The R2E intensive care queue was <!-- GEN cell:icu_share|0% (current)|R2E ICU mean queue|full -->0.745 [0.540, 0.951]<!-- /GEN --> at a zero share and <!-- GEN cell:icu_share|100%|R2E ICU mean queue|full -->0.587 [0.493, 0.680]<!-- /GEN --> at 100%. R2B intensive care utilisation rose from <!-- GEN cell:icu_share|0% (current)|R2B ICU utilisation|full -->1.0%<!-- /GEN --> to <!-- GEN cell:icu_share|100%|R2B ICU utilisation|full -->19.1%<!-- /GEN --> while R2E intensive care utilisation moved from <!-- GEN cell:icu_share|0% (current)|R2E ICU utilisation|full -->87.1%<!-- /GEN --> to <!-- GEN cell:icu_share|100%|R2E ICU utilisation|full -->86.2%<!-- /GEN -->. Post-definitive care in an intensive care bed rose from <!-- GEN cell:icu_share|0% (current)|Post-definitive care in ICU|full -->32.4 [30.6, 34.1]<!-- /GEN --> to <!-- GEN cell:icu_share|100%|Post-definitive care in ICU|full -->37.1 [35.9, 38.3]<!-- /GEN -->, and died of wounds per run was <!-- GEN cell:icu_share|0% (current)|Died of wounds per run|full -->15.40 [14.14, 16.66]<!-- /GEN --> at a zero share and <!-- GEN cell:icu_share|100%|Died of wounds per run|full -->16.73 [15.76, 17.71]<!-- /GEN --> at 100%.
+The R2E intensive care queue was <!-- GEN cell:forward_hold|Off (current)|R2E ICU mean queue|full -->1.578 [0.736, 2.420]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|240 min|R2E ICU mean queue|full -->0.771 [0.582, 0.961]<!-- /GEN --> with a 240-minute window. R2B intensive care utilisation rose from <!-- GEN cell:forward_hold|Off (current)|R2B ICU utilisation|full -->1.5%<!-- /GEN --> with no forward holding to <!-- GEN cell:forward_hold|1,440 min|R2B ICU utilisation|full -->38.9%<!-- /GEN --> at a 1,440-minute window while R2E intensive care utilisation moved from <!-- GEN cell:forward_hold|Off (current)|R2E ICU utilisation|full -->87.6%<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|R2E ICU utilisation|full -->83.2%<!-- /GEN -->. Post-definitive care in an intensive care bed rose from <!-- GEN cell:forward_hold|Off (current)|Post-definitive care in ICU|full -->31.4 [30.3, 32.5]<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|Post-definitive care in ICU|full -->41.1 [39.0, 43.3]<!-- /GEN -->, and died of wounds per run was <!-- GEN cell:forward_hold|Off (current)|Died of wounds per run|full -->11.67 [10.24, 13.09]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|1,440 min|Died of wounds per run|full -->13.43 [12.03, 14.84]<!-- /GEN --> at 1,440 minutes. Holding on capacity grounds alone gave an R2E queue of <!-- GEN cell:forward_hold|Capacity only|R2E ICU mean queue|full -->0.923 [0.535, 1.310]<!-- /GEN -->, and a 240-minute window with the capacity trigger gave <!-- GEN cell:forward_hold|240 min + capacity|R2E ICU mean queue|full -->2.045 [0.000, 4.791]<!-- /GEN -->.
 
 ### Post-Operative Intensive Care Gate
 

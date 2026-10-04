@@ -199,7 +199,12 @@ for (nm in names(INTERVALS)) {
     n_cens <- sum(is.na(seen))
     if (n_cens == 0) next
     share <- n_cens / length(st)
-    if (share >= MATERIAL_CENSORING) {
+    # Material where the completed-case mean is measurably biased, which a
+    # few censored stays can cause on their own when the stays are long (a
+    # held R2B stay runs up to the evacuation policy), so the share of stays
+    # censored is not what decides it.
+    biased <- abs(naive - truth) > (AGREEMENT_TOLERANCE + 1 / length(st)) * truth
+    if (share >= MATERIAL_CENSORING || biased) {
       report(abs(est - truth) <= abs(naive - truth),
              paste("%s re-censored at %.0f%% of the window (%d stays, %.1f%% censored):",
                    "restricted mean %.0f is nearer the true %.0f than the completed-case",

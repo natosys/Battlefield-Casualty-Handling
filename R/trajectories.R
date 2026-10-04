@@ -474,9 +474,9 @@ r2b_hold_minutes <- function() {
 #'
 #' @return What the draw leaves after the forward stay, which is zero for a
 #'   casualty who recovers forward and returns to duty from R2B. A positive
-#'   value both selects the evacuation branch and becomes the casualty's
-#'   `recovery_to_duty_days` at R2E (`draw_recovery_to_duty()`, below), so the
-#'   remainder is served rather than redrawn.
+#'   value selects the evacuation branch; R2E serves the remainder of the
+#'   casualty's one `recovery_to_duty_days` draw
+#'   (r2e_convalescence_remaining_minutes()), so nothing is redrawn.
 r2b_hold_residual_minutes <- function() {
   max(0, get_attribute(env, "r2b_hold_drawn") - r2b_hold_minutes())
 }
@@ -1164,12 +1164,7 @@ r2b_hold_recovery <- function(hold_beds, evacuation_team) {
     seize_selected(id = 5) %>%
     set_attribute("r2b_hold_start", function() now(env)) %>%
     set_attribute("r2b_hold_drawn", function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2b$holding$min,
-        b = env_data$vars$r2b$holding$max,
-        c = env_data$vars$r2b$holding$mode
-      )
+      get_attribute(env, "recovery_to_duty_days") * DAY_MIN
     }) %>%
     timeout(r2b_hold_minutes) %>%
     # Evac-threshold branch
@@ -1202,6 +1197,30 @@ r2b_hold_recovery <- function(hold_beds, evacuation_team) {
     )
 }
 
+#' Whether a casualty's convalescence rules out holding them forward at R2B
+#'
+#' @return TRUE when the casualty's drawn `recovery_to_duty_days` exceeds the
+#'   theatre evacuation policy.
+#' @details Such a casualty is evacuated from theatre whichever echelon holds
+#'   them (draw_evacuation_reason()), so a forward bed would be occupied only
+#'   to be vacated by the same decision. Reading the policy here keeps one
+#'   convalescence governing both the disposition and the forward stay.
+r2b_hold_ineligible <- function() {
+  drawn  <- get_attribute(env, "recovery_to_duty_days")
+  policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+  !is.na(drawn) && drawn > policy
+}
+
+#' Builds the R2B route of a casualty ineligible for forward holding
+#'
+#' @param evacuation_team This R2B team's own organic evacuation resource
+#' @return Simmer trajectory moving the casualty straight to R2E.
+r2b_hold_ineligible_path <- function(evacuation_team) {
+  trajectory("R2B Hold Ineligible, Convalescence Beyond Policy") %>%
+    set_attribute("r2b_hold_ineligible", 1) %>%
+    r2b_evacuate_to_r2e(evacuation_team)
+}
+
 #' Builds the R2B holding-bed bypass to R2E
 #'
 #' @param evacuation_team This R2B team's own organic evacuation resource
@@ -1232,12 +1251,7 @@ r2b_hold_queue_recovery <- function(hold_beds, evacuation_team) {
     seize_selected(id = 5) %>%
     set_attribute("r2b_hold_start", function() now(env)) %>%
     set_attribute("r2b_hold_drawn", function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r2b$holding$min,
-        b = env_data$vars$r2b$holding$max,
-        c = env_data$vars$r2b$holding$mode
-      )
+      get_attribute(env, "recovery_to_duty_days") * DAY_MIN
     }) %>%
     timeout(r2b_hold_minutes) %>%
     # Branches on the convalescence left after the evacuation threshold:
@@ -1276,8 +1290,10 @@ r2b_hold_queue_recovery <- function(hold_beds, evacuation_team) {
 #' @return Simmer trajectory routing the casualty to a holding bed here, to
 #'   R2E, or to this team's holding queue.
 r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
-  # Three-stage routing policy:
+  # Four-way routing policy:
   #
+  # Branch 2d: drawn convalescence exceeds the evacuation policy: straight to
+  #            R2E, where the policy evacuates the casualty from theatre
   # Branch 2a: this R2B unit's hold beds have capacity → seize immediately
   # Branch 2b: R2B hold full; R2E hold has capacity → bypass to R2E
   #            Also used when R2B hold queue cap is exceeded (fallback)
@@ -1285,8 +1301,13 @@ r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
   #            Cap = floor(R2B_beds / (R2B_beds + R2E_beds) * R2B_beds)
   #            With 10 R2B and 30 R2E beds: cap = floor(10/40 * 10) = 2 patients
   trajectory("R2B No Surgery") %>%
+    set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
     branch(
       option = function() {
+        # Branch 2d: the casualty's convalescence exceeds the theatre
+        # evacuation policy, so they are not held forward at all
+        if (r2b_hold_ineligible()) return(4)
+
         # Branch 2a: this R2B unit has hold capacity
         r2b_usage <- sum(get_server_count(env, resources = hold_beds))
         r2b_cap   <- sum(get_capacity(env, resources = hold_beds))
@@ -1315,7 +1336,9 @@ r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
       # Branch 2b: R2B full, R2E has capacity (or queue cap exceeded) — bypass
       r2b_hold_bypass(evacuation_team),
       # Branch 2c: Both full, queue within proportional cap — queue at R2B
-      r2b_hold_queue_recovery(hold_beds, evacuation_team)
+      r2b_hold_queue_recovery(hold_beds, evacuation_team),
+      # Branch 2d: convalescence beyond the evacuation policy, no forward hold
+      r2b_hold_ineligible_path(evacuation_team)
     )
 }
 
@@ -2064,13 +2087,11 @@ r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
 #'   a casualty's prognosis, its Role 4 ward and its evacuation route all follow
 #'   from one severity classification rather than from independent draws.
 draw_recovery_to_duty <- function() {
-  # A casualty moved here by the R2B holding evacuation threshold already
-  # drew their whole convalescence forward and served part of it there, so
-  # what remains is served rather than redrawn (r2b_hold_residual_minutes(),
-  # above). Redrawing would give the threshold an effect on total modelled
-  # convalescence, which is not what a routing lever is asked to change.
-  residual <- get_attribute(env, "r2b_hold_residual")
-  if (!is.na(residual) && residual > 0) return(residual / DAY_MIN)
+  # A casualty's convalescence is drawn once, where their severity and
+  # treatment are first known (R2B no-surgery path, or here), and every echelon
+  # serves part of that one duration.
+  drawn <- get_attribute(env, "recovery_to_duty_days")
+  if (!is.na(drawn)) return(drawn)
 
   prio  <- get_attribute(env, "priority")
   itype <- get_attribute(env, "injury_type")
@@ -2675,6 +2696,16 @@ draw_evacuation_reason <- function() {
 }
 
 
+#' Minutes of the casualty's one convalescence still to serve at R2E
+#'
+#' @return The drawn `recovery_to_duty_days` less the bed time already served
+#'   forward at R2B (`r2b_hold_served`), floored at zero.
+r2e_convalescence_remaining_minutes <- function() {
+  served <- get_attribute(env, "r2b_hold_served")
+  if (is.na(served)) served <- 0
+  max(0, get_attribute(env, "recovery_to_duty_days") * DAY_MIN - served)
+}
+
 #' Applies the final disposition at R2E under the theatre evacuation policy
 #'
 #' @param trj           Trajectory to append the disposition to
@@ -2710,7 +2741,7 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
         # The hold bed is held for the same duration the disposition was
         # decided on, so a retained casualty's bed-days and the prognosis
         # that retained them cannot disagree.
-        timeout(function() get_attribute(env, "recovery_to_duty_days") * DAY_MIN) %>%
+        timeout(r2e_convalescence_remaining_minutes) %>%
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("return_day", function() now(env)) %>%

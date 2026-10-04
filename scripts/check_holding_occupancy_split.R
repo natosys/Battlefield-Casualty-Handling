@@ -150,6 +150,15 @@ POPULATION_EXACT_SHARE <- 1
 #'   arithmetic. A thousandth of a bed-day is under two minutes of one bed.
 CLOSE_TOL <- 1e-3
 
+#' Priority 1 and 2 died-of-wounds ceilings every campaign here is run at
+#'
+#' @details Raised from the shipped 0.9% and 0.7% because a casualty dying in a
+#'   staging bed is a rare event at the shipped values, absent from a 30-day
+#'   campaign at most seeds. The assertions about that exit would otherwise
+#'   depend on the luck of the seed, and become vacuous on any change to the
+#'   random stream. The mechanism is unchanged; only its frequency is.
+CHECK_DOW_CEILING <- 0.6
+
 #' Run one campaign and return its monitors and its split
 #'
 #' @param failure_probability Sortie cancellation probability to run at.
@@ -162,6 +171,12 @@ measure <- function(failure_probability) {
   json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
   apply_airlift_setting(json_data, CHECK_SCENARIO, "failure_probability",
                         failure_probability)
+  # Written to the global the model reads; a bare assignment here would bind a
+  # local copy the run never sees.
+  described <- get("env_data", envir = globalenv())
+  described$vars$dow$params$p1_p_max <- CHECK_DOW_CEILING
+  described$vars$dow$params$p2_p_max <- CHECK_DOW_CEILING
+  assign("env_data", described, envir = globalenv())
 
   set.seed(CHECK_SEED)
   env <- run_once(CHECK_DAYS, seed = CHECK_SEED)
@@ -409,16 +424,20 @@ superseded <- function(wide, horizon_min) {
   sum(pmax(pmin(end, horizon_min) - rows$ame_hold_start, 0)) / DAY_MIN
 }
 
+# A death in a staging bed needs a long enough wait, so it is absent from the
+# arms where sorties are rarely lost; the assertions are made on every arm that
+# carries one and the check requires that at least one does.
+n_died_arms <- 0L
 for (arm in list(list("shipped reliability", shipped),
-                 list("a cancellation rate of 0.40", backlog))) {
+                 list("a cancellation rate of 0.40", backlog),
+                 list("a cancellation rate of 0.75", censoring))) {
   label <- arm[[1]]
   a     <- arm[[2]]
   died  <- a$wide[!is.na(a$wide$dow_echelon) & a$wide$dow_echelon == 5 &
                     !is.na(a$wide$ame_hold_start), ]
-  report(nrow(died) > 0,
-         "%s: the run carries a casualty who died in a staging bed, so this is not vacuous (%d)",
-         label, nrow(died))
+  report(TRUE, "%s: casualties who died in a staging bed (%d)", label, nrow(died))
   if (nrow(died) == 0) next
+  n_died_arms <- n_died_arms + 1L
 
   report(all(!is.na(died$ame_hold_end)),
          "%s: every such casualty records the release of its staging bed", label)
@@ -440,6 +459,10 @@ for (arm in list(list("shipped reliability", shipped),
          "%s: and that over-count is large enough to have mattered (%.3f bed-days)",
          label, unserved)
 }
+report(n_died_arms > 0,
+       paste("at least one arm carries a casualty who died in a staging bed, so this is",
+             "not vacuous (%d arms)"),
+       n_died_arms)
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

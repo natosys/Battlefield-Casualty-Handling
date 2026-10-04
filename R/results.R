@@ -262,10 +262,12 @@ build_hold_threshold <- function(data_dir, axis) {
       sprintf("%.1f%% [%.1f, %.1f]", 100 * x$mean_r2b_hold_util, 100 * x$ci_lower_r2b_hold_util,
               100 * x$ci_upper_r2b_hold_util),
       res_ci(x$mean_r2e_hold_q, x$ci_lower_r2e_hold_q, x$ci_upper_r2e_hold_q, 3L, floor0 = TRUE),
-      res_ci(x$mean_r2e_icu_q, x$ci_lower_r2e_icu_q, x$ci_upper_r2e_icu_q, 3L, floor0 = TRUE))
+      res_ci(x$mean_r2e_icu_q, x$ci_lower_r2e_icu_q, x$ci_upper_r2e_icu_q, 3L, floor0 = TRUE),
+      res_ci(x$mean_rtd, x$ci_lower_rtd, x$ci_upper_rtd, 0L, floor0 = TRUE),
+      res_ci(x$mean_dow, x$ci_lower_dow, x$ci_upper_dow, 1L, floor0 = TRUE))
   }
   tail_header <- c("R2B hold mean queue", "R2B hold utilisation", "R2E hold mean queue",
-                   "R2E ICU mean queue")
+                   "R2E ICU mean queue", "Returns to duty", "Deaths of wounds")
   if (axis == "beds") {
     rows <- lapply(c(5, 7, 10), function(b) {
       row(if (b == 5) "5 (shipped)" else as.character(b), pick(b, 0))

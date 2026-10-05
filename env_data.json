@@ -771,11 +771,11 @@
           "acty": "params",
           "vals": [
             { "var": "p1_p_base", "val": 0.001  },
-            { "var": "p1_p_max",  "val": 0.020  },
+            { "var": "p1_p_max",  "val": 0.0089 },
             { "var": "p1_k",      "val": 0.04   },
             { "var": "p1_t_mid",  "val": 120    },
             { "var": "p2_p_base", "val": 0.0005 },
-            { "var": "p2_p_max",  "val": 0.016  },
+            { "var": "p2_p_max",  "val": 0.0074 },
             { "var": "p2_k",      "val": 0.025  },
             { "var": "p2_t_mid",  "val": 180    },
             { "var": "p3_flat",   "val": 0.001  }
@@ -784,12 +784,12 @@
         {
           "acty": "treatment_efficacy",
           "vals": [
-            { "var": "r1_tccc_factor",   "val": 0.83 },
-            { "var": "r2b_resus_factor", "val": 0.56 },
-            { "var": "r2b_dcs_factor",   "val": 0.32 },
-            { "var": "r2e_resus_factor", "val": 0.56 },
-            { "var": "r2e_dcs1_factor",  "val": 0.25 },
-            { "var": "r2e_dcs2_factor",  "val": 0.57 },
+            { "var": "r1_tccc_factor",   "val": 1.0  },
+            { "var": "r2b_resus_factor", "val": 0.9  },
+            { "var": "r2b_dcs_factor",   "val": 0.55 },
+            { "var": "r2e_resus_factor", "val": 0.9  },
+            { "var": "r2e_dcs1_factor",  "val": 0.55 },
+            { "var": "r2e_dcs2_factor",  "val": 0.8  },
             { "var": "r2e_postop_hold_penalty", "val": 3.0 },
             { "var": "r2b_icu_penalty",         "val": 1.31 }
           ]
@@ -1042,39 +1042,8 @@
     "moderate_intensity": {
       "label": "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)",
       "source": "Payne (1983); Jolly (2018); Blood, Zouris & Rotblatt (1998) FORECAS Table A.8",
-      "notes": "Named for FORECAS's own battle-intensity framing (NONE/LOW/MODERATE/HEAVY/INTENSE) rather than a specific historical engagement, since FORECAS's casualty-rate model selects a distribution family by battle intensity, not by named conflict — Falklands is the moderate-intensity calibration exemplar this project has validated, per FORECAS's own text pairing lognormal-distributed WIA/KIA incidence with 'a moderate battle intensity scenario'. Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. Only the DOW ceiling and treatment-efficacy factors are overridden: the base values for those two groups are OIF/OEF-era (TCCC, damage control resuscitation/surgery), which did not exist as doctrine in 1982, so applying them to this scenario would misattribute modern treatment technique for the low historical DOW rate. See README 'Scenario Profiles' section.",
-      "vars": [
-        {
-          "elm": "dow",
-          "actys": [
-            {
-              "acty": "params",
-              "vals": [
-                { "var": "p1_p_base", "val": 0.001 },
-                { "var": "p1_p_max",  "val": 0.0089 },
-                { "var": "p1_k",      "val": 0.04  },
-                { "var": "p1_t_mid",  "val": 120   },
-                { "var": "p2_p_base", "val": 0.0005 },
-                { "var": "p2_p_max",  "val": 0.0074 },
-                { "var": "p2_k",      "val": 0.025 },
-                { "var": "p2_t_mid",  "val": 180   },
-                { "var": "p3_flat",   "val": 0.001 }
-              ]
-            },
-            {
-              "acty": "treatment_efficacy",
-              "vals": [
-                { "var": "r1_tccc_factor",   "val": 1.0  },
-                { "var": "r2b_resus_factor", "val": 0.90 },
-                { "var": "r2b_dcs_factor",   "val": 0.55 },
-                { "var": "r2e_resus_factor", "val": 0.90 },
-                { "var": "r2e_dcs1_factor",  "val": 0.55 },
-                { "var": "r2e_dcs2_factor",  "val": 0.80 }
-              ]
-            }
-          ]
-        }
-      ]
+      "notes": "Named for FORECAS's own battle-intensity framing (NONE/LOW/MODERATE/HEAVY/INTENSE) rather than a specific historical engagement, since FORECAS's casualty-rate model selects a distribution family by battle intensity, not by named conflict — Falklands is the moderate-intensity calibration exemplar this project has validated, per FORECAS's own text pairing lognormal-distributed WIA/KIA incidence with 'a moderate battle intensity scenario'. Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. The shipped base configuration is this calibration, including its Falklands-calibrated DOW ceilings and treatment-efficacy factors, so this profile overrides nothing and is kept as an explicit alias of the default. See README 'Scenario Profiles' section.",
+      "vars": []
     },
     "high_intensity": {
       "label": "High Intensity — Okinawa (peer-conflict, mass casualty production)",

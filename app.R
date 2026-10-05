@@ -2096,28 +2096,16 @@ build_scenario_labels <- function() {
   }
 
   # The dropdown's own naming for what each option actually changes,
-  # distinct from — and overriding, for display only — env_data.json's
-  # canonical scenario labels above. Neither "Default" nor "Moderate
-  # Intensity" being labelled by battle intensity alone made it obvious
-  # that *both* are Falklands-sourced and differ only in whether treatment
-  # efficacy has been re-derived for the era (see README Scenario Profiles
-  # — "The base env_data.json configuration conflates two historical
-  # contexts"): "Falklands — Modified" (was "Default") keeps Falklands
-  # casualty generation and DOW ceiling but pairs them with modern
-  # (OIF/OEF-era) treatment efficacy; "Falklands — Unmodified" (was
-  # "Moderate Intensity") re-derives both the DOW ceiling and treatment
-  # efficacy to be internally consistent for 1982. "Okinawa — Casualty
-  # Rates" (was "High Intensity") is named for exactly what it overrides
-  # rather than implied as a complete second scenario — it still inherits
-  # the Falklands DOW ceiling and modern treatment efficacy from the base
-  # configuration, since it is a "demonstration skeleton" per Issue #54's
-  # acceptance criteria (Issue #10 owns extending it to a full scenario).
-  # A scenario id absent from this map (e.g. a future addition) falls back
-  # to its own env_data.json label, so this isn't a hardcoded assumption
-  # that only these three will ever exist.
+  # overriding, for display only, env_data.json's canonical scenario
+  # labels. The shipped default is the moderate-intensity Falklands
+  # calibration, and `moderate_intensity` is an empty overlay kept as an
+  # explicit alias of it, so the two entries run the same configuration.
+  # "Okinawa — Casualty Rates" is named for what it overrides: casualty
+  # generation and the died-of-wounds model. A scenario id absent from this
+  # map falls back to its own env_data.json label.
   SCENARIO_DROPDOWN_LABELS <- c(
-    default             = "Falklands — Modified",
-    moderate_intensity  = "Falklands — Unmodified",
+    default             = "Falklands — Moderate Intensity",
+    moderate_intensity  = "Falklands — Moderate Intensity (alias of default)",
     high_intensity      = "Okinawa — Casualty Rates"
   )
   list(

@@ -29,18 +29,23 @@ source("R/constants.R")
 source("R/environment.R")
 source("R/analysis.R")
 
+#' Seed the events are generated under
 CHECK_SEED <- 42L
-# A rate high enough that events routinely start within one window of each other.
-OVERLAP_RATE <- 5
-GEN_DAYS     <- 200L
 
-failures <- character(0)
+#' Injection rate high enough that events routinely start within one window of each other
+OVERLAP_RATE <- 5
+
+#' Days of events generated
+GEN_DAYS <- 200L
+
+state <- new.env(parent = emptyenv())
+state$failures <- character(0)
 
 #' Record a failure
 #'
 #' @param ... Arguments passed to `sprintf()` to build the message.
 #' @return The accumulated failures, invisibly; called for its side effect.
-fail <- function(...) failures <<- c(failures, sprintf(...))
+fail <- function(...) state$failures <- c(state$failures, sprintf(...))
 
 #' Print one PASS or FAIL line
 #'
@@ -54,7 +59,7 @@ report <- function(ok, fmt, ...) {
   if (!ok) fail("%s", msg)
 }
 
-day_min <<- DAY_MIN
+assign("day_min", DAY_MIN, envir = globalenv())
 json <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 params <- build_environment(json)$vars$casualty_surge
 params$event$rate_per_day <- OVERLAP_RATE
@@ -67,7 +72,7 @@ cat(sprintf("Surge event size check: range [%g, %g], rate %g/day, %d days\n\n",
 # ── 1. Generated events stay inside the configured range ────────────────────
 
 ev <- generate_casualty_surge_events(GEN_DAYS, params, seed = CHECK_SEED,
-                                    write_file = FALSE)$events
+                                     write_file = FALSE)$events
 report(nrow(ev) > 0, "%d events generated", nrow(ev))
 report(all(ev$n_cas <= max_cas & ev$n_cas >= min_cas) || all(ev$n_cas <= max_cas),
        "no generated event exceeds max_cas (largest %g)", max(ev$n_cas))
@@ -75,7 +80,7 @@ report(all(ev$n_cas <= max_cas & ev$n_cas >= min_cas) || all(ev$n_cas <= max_cas
 # ── 2. Reconstruction recovers each event, overlapping or not ───────────────
 
 gen <- generate_casualty_surge_events(GEN_DAYS, params, seed = CHECK_SEED,
-                                     write_file = FALSE)
+                                      write_file = FALSE)
 tagged <- data.frame(
   replication = 1L,
   start_time  = c(gen$arrival_times, gen$kia_arrival_times),
@@ -102,9 +107,9 @@ report(max(old$n) > max_cas,
        max(old$n))
 
 cat("\n")
-if (length(failures)) {
-  cat(sprintf("%d check(s) failed:\n", length(failures)))
-  for (f in failures) cat(" - ", f, "\n", sep = "")
+if (length(state$failures)) {
+  cat(sprintf("%d check(s) failed:\n", length(state$failures)))
+  for (f in state$failures) cat(" - ", f, "\n", sep = "")
   quit(status = 1)
 }
 cat("All surge event size checks passed.\n")

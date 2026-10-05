@@ -2439,7 +2439,7 @@ summarise_casualty_surge_events <- function(combined, output_dir, images_dir) {
     n_sim_days_casualty_surge <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
     casualty_surge_timeline_plot <- ggplot(casualty_surge_events_summary,
-                                   aes(x = event_start / DAY_MIN, y = n_cas)) +
+                                           aes(x = event_start / DAY_MIN, y = n_cas)) +
       geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
       geom_point(size = 3, color = "#D62828") +
       scale_x_continuous(limits = c(0, n_sim_days_casualty_surge),
@@ -2463,10 +2463,11 @@ summarise_casualty_surge_events <- function(combined, output_dir, images_dir) {
            width = 12, height = 6, dpi = 150)
   }
 
-  write.csv(casualty_surge_events_summary, file.path(output_dir, "casualty_surge_events_summary.csv"),
-           row.names = FALSE)
+  write.csv(casualty_surge_events_summary,
+            file.path(output_dir, "casualty_surge_events_summary.csv"),
+            row.names = FALSE)
   write.csv(casualty_surge_dow_summary,    file.path(output_dir, "casualty_surge_dow_summary.csv"),
-           row.names = FALSE)
+            row.names = FALSE)
   list(
     casualty_surge_dow_summary = casualty_surge_dow_summary,
     casualty_surge_event_count = casualty_surge_event_count,
@@ -4325,7 +4326,7 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
 #' @return A list of `casualty_surge_dow_summary_mr`, `casualty_surge_event_count_ci`,
 #'   `casualty_surge_events_summary_mr`, `casualty_surge_timeline_plot_mr`.
 summarise_casualty_surge_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir,
-                                       images_dir) {
+                                        images_dir) {
   casualty_surge_tagged_mr <- combined %>%
     filter(!is.na(casualty_surge_event) & casualty_surge_event == 1)
 
@@ -4837,7 +4838,7 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
 
   # Casualty surge event stress test — pooled across replications (Issue #9)
   casualty_surge_ci_out <- summarise_casualty_surge_ci(clamp_ci, combined, n_reps, rep_ids,
-                                                     output_dir, images_dir)
+                                                       output_dir, images_dir)
   casualty_surge_dow_summary_mr <- casualty_surge_ci_out$casualty_surge_dow_summary_mr
   casualty_surge_event_count_ci <- casualty_surge_ci_out$casualty_surge_event_count_ci
   casualty_surge_events_summary_mr <- casualty_surge_ci_out$casualty_surge_events_summary_mr

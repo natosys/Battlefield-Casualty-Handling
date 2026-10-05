@@ -2287,7 +2287,9 @@ wire_scenario_resolution <- function(raw_env_data, input, output, SCENARIO_DROPD
 #' @param session See wire_scenario_selector().
 #' @return `mc_event_count`.
 wire_casualty_surge_rows <- function(raw_env_data, input, session) {
-  mc_event_count <- reactiveVal(max(1L, count_active_casualty_surge_events(isolate(raw_env_data()))))
+  mc_event_count <- reactiveVal(
+    max(1L, count_active_casualty_surge_events(isolate(raw_env_data())))
+  )
 
   observeEvent(input$mc_event_add, {
     n <- mc_event_count()
@@ -3576,7 +3578,7 @@ analyse_tab_strategic_ame <- function(analysis_results, shrink_to_fit_plot_ui,
 #' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
 #' @return A `nav_panel()` for the Analyse panel's tab set.
 analyse_tab_casualty_surge <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
-                                      ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+                                       ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
     nav_panel("Casualty Surge Events",
       p(class = "text-muted mt-2",
         "Compound-Poisson casualty surge injection events, reconstructed from tagged ",
@@ -3586,8 +3588,8 @@ analyse_tab_casualty_surge <- function(analysis_results, run_mode, shrink_to_fit
       uiOutput("casualty_surge_event_count_card"),
       if (nrow(analysis_results()$casualty_surge_events_summary) == 0) {
         div(class = "alert alert-secondary",
-            "No casualty surge events occurred across these replications (env_data.json casualty_surge ",
-            "configuration may be disabled, or none were drawn).")
+            "No casualty surge events occurred across these replications ",
+            "(env_data.json casualty_surge configuration may be disabled, or none were drawn).")
       } else tagList(
         h6(class = "text-muted mt-2", "Casualty Surge Event Timeline"),
         p(class = "text-muted small",
@@ -3697,7 +3699,7 @@ wire_analyse_body <- function(analysis_results, run_mode, run_state,
                                   ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
                                   ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
         analyse_tab_casualty_surge(analysis_results, run_mode, shrink_to_fit_plot_ui,
-                                  ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+                                   ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         analyse_tab_sensitivity()
       )
     )
@@ -4397,12 +4399,13 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
 #' @param small_dt See wire_supplementary_outputs().
 #' @return Invisibly NULL; called for the outputs it registers.
 wire_casualty_surge_outputs <- function(analysis_results, run_mode, output, ci_value_card,
-                                       count_value_card, small_dt) {
+                                        count_value_card, small_dt) {
   output$casualty_surge_event_count_card <- renderUI({
     req(analysis_results())
     if (identical(run_mode(), "full")) {
       req(analysis_results()$casualty_surge_event_count_ci)
-      ci_value_card("Casualty Surge Events", analysis_results()$casualty_surge_event_count_ci, digits = 2)
+      ci_value_card("Casualty Surge Events",
+                    analysis_results()$casualty_surge_event_count_ci, digits = 2)
     } else {
       count_value_card("Casualty Surge Events", analysis_results()$casualty_surge_event_count)
     }
@@ -4487,7 +4490,7 @@ wire_supplementary_outputs <- function(analysis_results, run_mode, output) {
   wire_role4_outputs(analysis_results, run_mode, output, ci_value_card, small_dt)
 
   wire_casualty_surge_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
-                             small_dt)
+                              small_dt)
 
   calibration_df <- wire_calibration_outputs(output)
   list(

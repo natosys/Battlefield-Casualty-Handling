@@ -512,7 +512,9 @@ casualty_surge_schedule_slot_fields <- function(index) {
           sprintf("Event %d — Priority 3 Share", index),
           "Proportion of this event's casualties triaged as Priority 3 — independent of every other event's priority mix.",
           get = function(json) get_casualty_surge_schedule_slot(json, "pri_three", index, 0.1),
-          set = function(json, v) set_casualty_surge_schedule_slot(json, "pri_three", index, v, 0.1),
+          set = function(json, v) {
+            set_casualty_surge_schedule_slot(json, "pri_three", index, v, 0.1)
+          },
           type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI,
           path = "casualty_surge.schedule")
   )

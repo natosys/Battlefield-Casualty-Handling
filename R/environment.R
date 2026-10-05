@@ -710,7 +710,7 @@ generate_casualty_arrivals <- function(gen_vars, force_global, force_bound, n_da
 #'   are wrapped, the combat wounded and the combat killed, each keeping its
 #'   own sink because each generator numbers its own entities from zero.
 wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casualty_surge_ids,
-                                    id_sink = "wia_cbt_casualty_surge_event_id") {
+                                     id_sink = "wia_cbt_casualty_surge_event_id") {
   mc_ptr <- 1L
   n_mc <- length(casualty_surge_times)
   pending_bg <- NA_real_
@@ -1002,7 +1002,7 @@ casualty_surge_event_casualties <- function(event_start, event_params, n_minutes
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
 generate_casualty_surge_events <- function(n_days, params, seed = NULL,
-                                          write_file = TRUE, data_dir = "data") {
+                                           write_file = TRUE, data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
   if (write_file) dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -1091,7 +1091,7 @@ generate_casualty_surge_events <- function(n_days, params, seed = NULL,
     # Both pathways' arrivals, since the file records when an event's
     # casualties reach the system rather than which stream carries them.
     write.table(sort(c(arrival_times, kia_arrival_times)),
-               file = file.path(data_dir, "arrivals_casualty_surge.txt"),
+                file = file.path(data_dir, "arrivals_casualty_surge.txt"),
                row.names = FALSE, col.names = FALSE)
     write.csv(events, file.path(data_dir, "casualty_surge_events.csv"), row.names = FALSE)
   }

@@ -150,7 +150,7 @@ measure_casualty_surge_replications <- function(reducer, n_iterations, n_days, m
 #' @return Data frame with one row per replication, carrying the replication
 #'   index and the responses reduce_casualty_surge_replication() reports.
 run_casualty_surge_measurement <- function(rate_per_day, n_iterations = CASUALTY_SURGE_REPLICATIONS,
-                                          n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+                                           n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
   measure_casualty_surge_replications(
     function(env) reduce_casualty_surge_replication(env, rate_per_day),
     n_iterations, n_days, max_cores
@@ -296,8 +296,8 @@ reduce_casualty_surge_size_replication <- function(env, size) {
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
 #' @return Data frame with one row per replication.
 run_casualty_surge_size_measurement <- function(size,
-                                               n_iterations = CASUALTY_SURGE_SIZE_REPLICATIONS,
-                                               n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
+                                                n_iterations = CASUALTY_SURGE_SIZE_REPLICATIONS,
+                                                n_days = CASUALTY_SURGE_DAYS, max_cores = NULL) {
   measure_casualty_surge_replications(
     function(env) reduce_casualty_surge_size_replication(env, size),
     n_iterations, n_days, max_cores

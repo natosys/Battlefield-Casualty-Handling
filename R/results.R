@@ -469,7 +469,8 @@ build_casualty_surge_size <- function(data_dir) {
   #' @param hi Upper bound.
   #' @return The cell text.
   pct <- function(r, lo, hi) {
-    ifelse(is.na(r), "not applicable", sprintf("%.2f%% [%.2f%%, %.2f%%]", 100 * r, 100 * lo, 100 * hi))
+    ifelse(is.na(r), "not applicable",
+           sprintf("%.2f%% [%.2f%%, %.2f%%]", 100 * r, 100 * lo, 100 * hi))
   }
   #' Mean peak queue cell with its half-width
   #'

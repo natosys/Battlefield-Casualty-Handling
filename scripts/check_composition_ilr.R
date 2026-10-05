@@ -74,7 +74,7 @@ observed <- list(
            env_data$vars$r1$other$battle_fatigue_pct,
            env_data$vars$r1$other$nbi_pct),
   casualty_surge = c(env_data$vars$casualty_surge$priority$one,
-                    env_data$vars$casualty_surge$priority$two,
+                     env_data$vars$casualty_surge$priority$two,
                     env_data$vars$casualty_surge$priority$three)
 )
 for (nm in names(MORRIS_COMPOSITIONS)) {
@@ -128,7 +128,7 @@ for (i in seq_len(nrow(design$X))) {
     dnbi = c(ed$vars$r1$other$disease_pct, ed$vars$r1$other$battle_fatigue_pct,
              ed$vars$r1$other$nbi_pct),
     casualty_surge = c(ed$vars$casualty_surge$priority$one,
-                      ed$vars$casualty_surge$priority$two,
+                       ed$vars$casualty_surge$priority$two,
                       ed$vars$casualty_surge$priority$three)
   )
   if (!all(vapply(written, valid_composition, logical(1)))) n_bad <- n_bad + 1L

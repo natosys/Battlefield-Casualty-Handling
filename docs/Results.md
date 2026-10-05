@@ -14,7 +14,7 @@ Each replicated experiment ran 30 independent replications of a 360-day campaign
 
 **Results**
 
-At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,322.5<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,479.7<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->2.324<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->556.126<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->1%<!-- /GEN --> of the campaign and was still growing at day 360, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->68%<!-- /GEN -->. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.544% [0.494%, 0.593%]<!-- /GEN --> at 360 days.
+At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,402.9<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,409.5<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->4.384<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->519.388<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->1%<!-- /GEN --> of the campaign and was still growing at day 360, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->68%<!-- /GEN -->. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.544% [0.494%, 0.593%]<!-- /GEN --> at 360 days.
 
 **Conclusion**
 
@@ -36,6 +36,7 @@ The measurements record where queues form at each intensity and which responses 
   - [R2B Pre-Open Hold Window](#r2b-pre-open-hold-window)
   - [R2B Holding Capacity and Evacuation Threshold](#r2b-holding-capacity-and-evacuation-threshold)
   - [Transport Fleet Size](#transport-fleet-size)
+    - [Utilisation of Shared Fleets and Integral Evacuation Elements](#utilisation-of-shared-fleets-and-integral-evacuation-elements)
   - [Forward Holding of Post-Operative Intensive Care](#forward-holding-of-post-operative-intensive-care)
   - [Post-Operative Intensive Care Gate](#post-operative-intensive-care-gate)
   - [Evacuation Policy](#evacuation-policy)
@@ -73,27 +74,27 @@ Every table and every quoted figure is regenerated from the tracked evidence und
 <!-- GEN scenario_totals -->
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 5,322.5 [5,255.6, 5,389.3] (p10–p90: 5,108.4–5,515.7) | 12,479.7 [12,356.9, 12,602.4] (p10–p90: 12,115.7–12,915.6) | 2.34× |
-| Wounded in action/run | 2,267.9 [2,202.1, 2,333.7] (p10–p90: 2,053.2–2,420.6) | 8,409.0 [8,290.1, 8,527.9] (p10–p90: 7,987.5–8,790.8) | 3.71× |
-| Died of wounds/run | 11.77 [10.52, 13.02] (p10–p90: 7.0–16.0) | 303.73 [296.26, 311.21] (p10–p90: 280.8–329.3) | 25.8× |
-| Died of wounds, as share of wounded | 0.52% [0.47%, 0.57%] | 3.61% [3.53%, 3.70%] | 6.97× |
+| Total casualties/run | 5,402.9 [5,315.9, 5,489.8] (p10–p90: 5,127.9–5,668.3) | 12,409.5 [12,291.1, 12,527.9] (p10–p90: 12,093.0–12,795.4) | 2.30× |
+| Wounded in action/run | 2,345.5 [2,275.9, 2,415.2] (p10–p90: 2,100.8–2,569.2) | 8,365.9 [8,238.8, 8,493.0] (p10–p90: 7,972.9–8,796.5) | 3.57× |
+| Died of wounds/run | 10.67 [9.33, 12.00] (p10–p90: 6.0–15.0) | 277.60 [272.10, 283.10] (p10–p90: 259.9–295.1) | 26.0× |
+| Died of wounds, as share of wounded | 0.45% [0.40%, 0.51%] | 3.32% [3.27%, 3.36%] | 7.30× |
 <!-- /GEN -->
 
 ![Four panels of total casualties, wounded in action, deaths of wounds and deaths as a share of wounded at the two casualty intensities](../images/paper_casualty_totals.png)
 
 Each panel plots the moderate and high casualty intensities as a point with a narrow 95% confidence interval bar and a wide band for the 10th-to-90th-percentile spread across campaigns. The bar shows how precisely the average is known and the band shows how much one campaign varies.
 
-Moderate intensity produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,322.5<!-- /GEN --> casualties per run (95% interval <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|ci -->[5,255.6, 5,389.3]<!-- /GEN -->) and high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,479.7<!-- /GEN --> (<!-- GEN cell:scenario_totals|Total casualties/run|High intensity|ci -->[12,356.9, 12,602.4]<!-- /GEN -->), a ratio of <!-- GEN cell:scenario_totals|Total casualties/run|Ratio|full -->2.34×<!-- /GEN -->. Wounded in action rose by <!-- GEN cell:scenario_totals|Wounded in action/run|Ratio|full -->3.71×<!-- /GEN -->, died of wounds per run by <!-- GEN cell:scenario_totals|Died of wounds/run|Ratio|full -->25.8×<!-- /GEN --> and died of wounds as a share of wounded by <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Ratio|full -->6.97×<!-- /GEN -->, from <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Moderate intensity|mean -->0.52%<!-- /GEN --> to <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|High intensity|mean -->3.61%<!-- /GEN -->.
+Moderate intensity produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,402.9<!-- /GEN --> casualties per run (95% interval <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|ci -->[5,315.9, 5,489.8]<!-- /GEN -->) and high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,409.5<!-- /GEN --> (<!-- GEN cell:scenario_totals|Total casualties/run|High intensity|ci -->[12,291.1, 12,527.9]<!-- /GEN -->), a ratio of <!-- GEN cell:scenario_totals|Total casualties/run|Ratio|full -->2.30×<!-- /GEN -->. Wounded in action rose by <!-- GEN cell:scenario_totals|Wounded in action/run|Ratio|full -->3.57×<!-- /GEN -->, died of wounds per run by <!-- GEN cell:scenario_totals|Died of wounds/run|Ratio|full -->26.0×<!-- /GEN --> and died of wounds as a share of wounded by <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Ratio|full -->7.30×<!-- /GEN -->, from <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Moderate intensity|mean -->0.45%<!-- /GEN --> to <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|High intensity|mean -->3.32%<!-- /GEN -->.
 
 <!-- GEN scenario_queue -->
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 6.648 [5.981, 7.316] | 35.427 [33.946, 36.908] | 5.33× |
-| R2E operating theatre | 2.324 [1.650, 2.999] | 556.126 [501.727, 610.525] | 239.26× |
-| R2E intensive care | 1.522 [0.419, 2.624] | 1,474.941 [1,459.287, 1,490.596] | 969.24× |
-| R2E holding beds | 0.756 [−0.262, 1.774] | 465.425 [445.357, 485.492] | 615.43× |
-| Ambulance and truck fleets | 0.058 [−0.015, 0.131] | 0.219 [0.161, 0.277] | 3.78× |
+| R2B holding beds | 4.836 [3.566, 6.106] | 30.585 [25.220, 35.950] | 6.32× |
+| R2E operating theatre | 4.384 [1.434, 7.335] | 519.388 [464.786, 573.991] | 118.46× |
+| R2E intensive care | 1.355 [0.554, 2.156] | 1,438.305 [1,423.919, 1,452.690] | 1061.56× |
+| R2E holding beds | 0.078 [−0.034, 0.190] | 556.080 [528.497, 583.663] | 7107.95× |
+| Ambulance and truck fleets | 0.428 [−0.337, 1.193] | 0.217 [0.175, 0.260] | 0.51× |
 <!-- /GEN -->
 
 ![Horizontal plot of queue growth factor on a logarithmic scale for five resource groups with a dashed reference line at the growth in casualty volume](../images/paper_queue_growth.png)
@@ -104,7 +105,7 @@ Queue growth factor from moderate to high intensity on a logarithmic scale, with
 
 Mean queue length by resource group at each casualty intensity. Each panel has its own vertical scale, and the error bars show the spread across campaigns rather than a confidence interval.
 
-The R2B operating theatre queue was zero at both intensities. At moderate intensity the R2B holding beds carried a mean queue of <!-- GEN cell:scenario_queue|R2B holding beds|Moderate intensity mean queue|mean -->6.648<!-- /GEN --> casualties (<!-- GEN cell:scenario_queue|R2B holding beds|Moderate intensity mean queue|ci -->[5.981, 7.316]<!-- /GEN -->), against <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->2.324<!-- /GEN --> at the R2E operating theatres (<!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|ci -->[1.650, 2.999]<!-- /GEN -->). At high intensity the R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->556.126<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|ci -->[501.727, 610.525]<!-- /GEN -->), the R2E intensive care queue <!-- GEN cell:scenario_queue|R2E intensive care|High intensity mean queue|mean -->1,474.941<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E intensive care|High intensity mean queue|ci -->[1,459.287, 1,490.596]<!-- /GEN -->) and the R2E holding queue <!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|mean -->465.425<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|ci -->[445.357, 485.492]<!-- /GEN -->); the ratios to moderate intensity were <!-- GEN cell:scenario_queue|R2E operating theatre|Ratio|full -->239.26×<!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E intensive care|Ratio|full -->969.24×<!-- /GEN --> and <!-- GEN cell:scenario_queue|R2E holding beds|Ratio|full -->615.43×<!-- /GEN -->. The ambulance and truck fleets queued <!-- GEN cell:scenario_queue|Ambulance and truck fleets|Moderate intensity mean queue|mean -->0.058<!-- /GEN --> and <!-- GEN cell:scenario_queue|Ambulance and truck fleets|High intensity mean queue|mean -->0.219<!-- /GEN --> casualties at the two intensities. The high-intensity R2E figures are means over a window in which the queues were still growing, as the sections that follow record, so they describe the closing 90 days and not a level.
+The R2B operating theatre queue was zero at both intensities. At moderate intensity the R2B holding beds carried a mean queue of <!-- GEN cell:scenario_queue|R2B holding beds|Moderate intensity mean queue|mean -->4.836<!-- /GEN --> casualties (<!-- GEN cell:scenario_queue|R2B holding beds|Moderate intensity mean queue|ci -->[3.566, 6.106]<!-- /GEN -->), against <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->4.384<!-- /GEN --> at the R2E operating theatres (<!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|ci -->[1.434, 7.335]<!-- /GEN -->). At high intensity the R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->519.388<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|ci -->[464.786, 573.991]<!-- /GEN -->), the R2E intensive care queue <!-- GEN cell:scenario_queue|R2E intensive care|High intensity mean queue|mean -->1,438.305<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E intensive care|High intensity mean queue|ci -->[1,423.919, 1,452.690]<!-- /GEN -->) and the R2E holding queue <!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|mean -->556.080<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|ci -->[528.497, 583.663]<!-- /GEN -->); the ratios to moderate intensity were <!-- GEN cell:scenario_queue|R2E operating theatre|Ratio|full -->118.46×<!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E intensive care|Ratio|full -->1061.56×<!-- /GEN --> and <!-- GEN cell:scenario_queue|R2E holding beds|Ratio|full -->7107.95×<!-- /GEN -->. The ambulance and truck fleets queued <!-- GEN cell:scenario_queue|Ambulance and truck fleets|Moderate intensity mean queue|mean -->0.428<!-- /GEN --> and <!-- GEN cell:scenario_queue|Ambulance and truck fleets|High intensity mean queue|mean -->0.217<!-- /GEN --> casualties at the two intensities. The high-intensity R2E figures are means over a window in which the queues were still growing, as the sections that follow record, so they describe the closing 90 days and not a level.
 
 ---
 
@@ -286,6 +287,23 @@ Mean queue and mean utilisation against fleet size for the ambulance and truck f
 The same measures under the `high_intensity` profile, each with a 95% confidence ribbon and a dashed vertical line at the current establishment size.
 
 Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->1.4397<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[0.2895, 2.5898]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->0.0866<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.0171<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->46.7132<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->1.1259<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->0.2188<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0002<!-- /GEN -->.
+
+#### Utilisation of Shared Fleets and Integral Evacuation Elements
+
+**Question.** How heavily is each transport holder used, the shared brigade fleets and the evacuation elements integral to R2B and R2E? `[default and high_intensity · 360 d · 30 replications · pool totals, closing 90 d, shipped establishment, not swept]`
+
+Utilisation is the time-weighted share of the established units in use over the closing 90 days. An evacuation crew is two medics seized together, so a crew is measured on its lead medic.
+
+<!-- GEN transport_holders -->
+| Holder | Asset | Moderate intensity mean queue | Moderate intensity utilisation | High intensity mean queue | High intensity utilisation |
+|---|---|---|---|---|---|
+| PMV Ambulance fleet | Shared | 0.428 [0.000, 1.193] | 12.5% [12.0%, 13.0%] | 0.217 [0.174, 0.260] | 30.4% [29.7%, 31.1%] |
+| HX2 40M fleet | Shared | 0.000 [0.000, 0.000] | 2.5% [2.4%, 2.6%] | 0.000 [0.000, 0.000] | 6.2% [6.0%, 6.3%] |
+| R2B evacuation crews | Integral | 0.062 [0.045, 0.080] | 15.7% [14.9%, 16.6%] | 0.421 [0.384, 0.458] | 41.0% [39.9%, 42.1%] |
+| R2E evacuation sections | Integral | 0.000 [0.000, 0.000] | 0.0% [0.0%, 0.0%] | 0.000 [0.000, 0.000] | 0.4% [0.4%, 0.4%] |
+<!-- /GEN -->
+
+At moderate intensity the R2B evacuation crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|Moderate intensity utilisation|mean -->15.7%<!-- /GEN --> of the window and the ambulance fleet for <!-- GEN cell:transport_holders|PMV Ambulance fleet|Moderate intensity utilisation|mean -->12.5%<!-- /GEN -->. At high intensity the crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|mean -->41.0%<!-- /GEN --> (interval <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|ci -->[39.9%, 42.1%]<!-- /GEN -->) and queued <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity mean queue|mean -->0.421<!-- /GEN --> casualties, the ambulance fleet was in use for <!-- GEN cell:transport_holders|PMV Ambulance fleet|High intensity utilisation|mean -->30.4%<!-- /GEN --> and the truck fleet for <!-- GEN cell:transport_holders|HX2 40M fleet|High intensity utilisation|mean -->6.2%<!-- /GEN -->. The R2E evacuation sections were in use for <!-- GEN cell:transport_holders|R2E evacuation sections|High intensity utilisation|mean -->0.4%<!-- /GEN --> at high intensity.
 
 ### Forward Holding of Post-Operative Intensive Care
 

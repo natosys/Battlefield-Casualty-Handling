@@ -89,6 +89,13 @@ GROUPS_PATH <- file.path("data", "scenarios", "scenario_queue_groups.csv")
 GROUP_REPS_PATH <- file.path("data", "scenarios",
                              "scenario_queue_group_replications.csv")
 
+#' Tracked per-holder queue and utilisation summary the holders table is printed from
+HOLDERS_PATH <- file.path("data", "scenarios", "scenario_transport_holders.csv")
+
+#' Tracked per-replication holder series the holder summary is reduced from
+HOLDER_REPS_PATH <- file.path("data", "scenarios",
+                              "scenario_transport_holder_replications.csv")
+
 #' Tolerance on a comparison of two computed reals
 TOL <- 1e-8
 
@@ -146,6 +153,21 @@ report(identical(parsed_profiles, held_profiles),
        "the methods paper states the profiles %s and the code holds %s",
        paste(parsed_profiles, collapse = ","), paste(held_profiles, collapse = ","))
 
+# The four holders, their shared or integral kind and the lead-medic rule the
+# integral ones are measured on are part of the design, so the set is asserted
+# rather than inferred from whatever the tracked file happens to hold.
+report(identical(SCENARIO_TRANSPORT_HOLDERS$holder,
+                 c("PMV Ambulance fleet", "HX2 40M fleet",
+                   "R2B evacuation crews", "R2E evacuation sections")) &&
+         identical(SCENARIO_TRANSPORT_HOLDERS$kind,
+                   c("shared", "shared", "integral", "integral")),
+       "the transport holders are the two shared fleets then the two integral elements")
+lead_only <- c("c_r2b_evac_1_medic_1_t1", "c_r2eheavy_evac_3_medic_1_t2")
+second    <- c("c_r2b_evac_1_medic_2_t1", "c_r2eheavy_evac_3_medic_2_t2")
+report(all(mapply(grepl, SCENARIO_TRANSPORT_HOLDERS$pattern[3:4], lead_only)) &&
+         !any(mapply(grepl, SCENARIO_TRANSPORT_HOLDERS$pattern[3:4], second)),
+       "an evacuation crew is measured on its lead medic alone")
+
 # The closing window is the one part of the estimator that depends on the
 # horizon, so it is asserted on a constructed pool whose answer is computable by
 # hand: one bed queueing a single casualty from day 8 of 10. Over a window
@@ -163,6 +185,29 @@ report(abs(whole$mean_q - 0.2) < 1e-9,
 report(abs(closing$mean_q - 0.5) < 1e-9,
        "a longer campaign reads its closing window: %.4f, expected 0.5000",
        closing$mean_q)
+
+# Utilisation on a constructed crew whose answer is computable by hand: a
+# two-crew pool whose lead medic is busy for the second half of a one-day window
+# is 0.5 busy units over two established, 0.25. The second medic is busy
+# throughout and must not reach the figure, and a holder with no rows at all
+# reports zeros rather than dropping out of the replication.
+crew_mon <- list(resources = data.frame(
+  replication = 1,
+  resource    = c("c_r2b_evac_1_medic_1_t1", "c_r2b_evac_1_medic_1_t1",
+                  "c_r2b_evac_1_medic_2_t1"),
+  time        = c(0, DAY_MIN / 2, 0),
+  server      = c(0, 1, 1), queue = c(0, 0, 0), capacity = 1
+))
+crew_est <- setNames(c(1L, 1L, 2L, 1L), SCENARIO_TRANSPORT_HOLDERS$holder)
+crew <- scenario_transport_holders_by_replication(crew_mon, n_days = 1, crew_est,
+                                                  window_days = 90)
+crew_row <- crew[crew$holder == "R2B evacuation crews", ]
+report(nrow(crew) == nrow(SCENARIO_TRANSPORT_HOLDERS) &&
+         abs(crew_row$utilisation - 0.25) < 1e-9,
+       "crew utilisation is the lead medic's busy share of the crews (%.4f, expected 0.2500)",
+       crew_row$utilisation)
+report(all(crew$utilisation[crew$holder != "R2B evacuation crews"] == 0),
+       "a holder never seized reports zero utilisation rather than dropping out")
 
 # ── 2. The tracked responses are the experiment the methods paper documents ─────
 
@@ -187,6 +232,45 @@ group_reps <- if (file.exists(GROUP_REPS_PATH)) {
 } else {
   report(FALSE, "the tracked per-replication queue series %s exists", GROUP_REPS_PATH)
   NULL
+}
+
+holders <- if (file.exists(HOLDERS_PATH)) {
+  read.csv(HOLDERS_PATH, stringsAsFactors = FALSE)
+} else {
+  report(FALSE, "the tracked holder summary %s exists", HOLDERS_PATH)
+  NULL
+}
+
+holder_reps <- if (file.exists(HOLDER_REPS_PATH)) {
+  read.csv(HOLDER_REPS_PATH, stringsAsFactors = FALSE)
+} else {
+  report(FALSE, "the tracked per-replication holder series %s exists", HOLDER_REPS_PATH)
+  NULL
+}
+
+if (!is.null(holders)) {
+  report(setequal(unique(holders$scenario), held_profiles),
+         "the tracked holder summary carries the documented profiles")
+  report(all(holders$n_reps == held$replications),
+         "every tracked holder row carries %s replications", format(held$replications))
+  report(setequal(unique(holders$holder), SCENARIO_TRANSPORT_HOLDERS$holder) &&
+           nrow(holders) == length(held_profiles) * nrow(SCENARIO_TRANSPORT_HOLDERS),
+         "the tracked holder summary carries every holder at every profile once")
+  report(all(holders$util_mean >= 0 & holders$util_mean <= 1),
+         "every tracked utilisation is a share between 0 and 1")
+}
+
+if (!is.null(holders) && !is.null(holder_reps)) {
+  recomputed <- bind_rows(lapply(split(holder_reps, holder_reps$scenario), function(r) {
+    cbind(scenario = r$scenario[1], summarise_scenario_transport_holders(r))
+  }))
+  joined <- merge(holders, recomputed, by = c("scenario", "holder"))
+  report(nrow(joined) == nrow(holders) &&
+           all(abs(joined$q_mean.x - joined$q_mean.y) < 1e-9) &&
+           all(abs(joined$util_mean.x - joined$util_mean.y) < 1e-9) &&
+           all(abs(joined$util_ci_lower.x - joined$util_ci_lower.y) < 1e-9) &&
+           all(abs(joined$util_ci_upper.x - joined$util_ci_upper.y) < 1e-9),
+         "the tracked holder summary is the reduction of the tracked per-replication series")
 }
 
 if (!is.null(totals)) {
@@ -358,6 +442,31 @@ if (!is.null(queue_rows) && !is.null(groups)) {
   }
 }
 
+holder_rows <- paper_table("<!-- GEN transport_holders -->")
+if (!is.null(holder_rows) && !is.null(holders)) {
+  report(length(table_cells(holder_rows[1])) == 2 * length(held_profiles) + 1,
+         "the holders table prints a kind and a queue and utilisation per profile")
+  for (h in SCENARIO_TRANSPORT_HOLDERS$holder) {
+    expected <- unlist(lapply(held_profiles, function(s) {
+      c(tracked_value(holders, "holder", h, s, "q_mean"),
+        100 * tracked_value(holders, "holder", h, s, "util_mean"))
+    }))
+    row <- holder_rows[grepl(paste0("^\\| ", h), holder_rows)]
+    cells <- if (length(row) == 1) table_cells(row)[-1] else character(0)
+    report(length(cells) == 4, "the paper prints one '%s' row under the holders table", h)
+    if (length(cells) == 4) {
+      digits <- c(3, 1, 3, 1)
+      for (k in 1:4) {
+        printed <- leading_figure(cells[k])
+        report(!is.na(printed) && abs(printed - round(expected[k], digits[k])) <
+                 10^-digits[k] / 2 + 1e-9,
+               "'%s' column %d of the holders table prints %s against the data's %s",
+               h, k, format(printed), format(round(expected[k], digits[k])))
+      }
+    }
+  }
+}
+
 # ── 4. The reduction and its interval are right on a known input ─────────────
 
 cat("\n-- the queue reduction is correct on a hand-computable input --\n")
@@ -410,6 +519,19 @@ one_replication <- data.frame(group = "R2E OT", replication = 1L, mean_q = 4)
 single <- summarise_scenario_queue_groups(one_replication)
 report(nrow(single) == 1 && is.na(single$ci_lower) && is.na(single$ci_upper),
        "a single-replication group carries no interval rather than a zero-width one")
+
+# The holder summary uses the same Student t construction for both responses.
+# Utilisation 0.1 to 0.5 in steps of 0.1 has mean 0.3 and the same half-width
+# as the queue example scaled by a tenth.
+known_holder <- data.frame(holder = "R2B evacuation crews", kind = "integral",
+                           replication = 1:5, mean_q = c(1, 2, 3, 4, 5),
+                           utilisation = c(1, 2, 3, 4, 5) / 10)
+holder_summary <- summarise_scenario_transport_holders(known_holder)
+report(nrow(holder_summary) == 1 &&
+         abs(holder_summary$q_ci_upper - (3 + expected_half)) < TOL &&
+         abs(holder_summary$util_mean - 0.3) < TOL &&
+         abs(holder_summary$util_ci_lower - (0.3 - expected_half / 10)) < TOL,
+       "the holder summary's means and Student t intervals are right on a known input")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

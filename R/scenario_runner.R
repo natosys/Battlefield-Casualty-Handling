@@ -66,6 +66,26 @@ SCENARIO_TOTAL_METRICS <- c("total_casualties", "wia_count", "dow_count", "dow_r
 SCENARIO_QUEUE_GROUPS <- c("R2B OT", "R2B Hold", "R2E OT", "R2E ICU",
                            "R2E Hold", "Transport")
 
+#' Transport holders the published utilisation table prints, in its row order
+#'
+#' @details One row per holder: its display label, whether the asset is shared
+#'   across the brigade or integral to a facility, and the pattern selecting
+#'   its monitored resources. The shared fleets are the vehicles of
+#'   `env_data.json`'s `transports` block. An evacuation crew is two medics
+#'   seized together, so the integral holders are measured on the crew's lead
+#'   medic (`medic_1`), which every seizure takes first: counting the second
+#'   medic as well would count one crew twice. The protocol check asserts the
+#'   set rather than inferring it from the data.
+SCENARIO_TRANSPORT_HOLDERS <- data.frame(
+  holder  = c("PMV Ambulance fleet", "HX2 40M fleet",
+              "R2B evacuation crews", "R2E evacuation sections"),
+  kind    = c("shared", "shared", "integral", "integral"),
+  pattern = c("^t_PMVAmb_", "^t_HX240M_",
+              "^c_r2b_evac_[0-9]+_medic_1_t[0-9]+$",
+              "^c_r2eheavy_evac_[0-9]+_medic_1_t[0-9]+$"),
+  stringsAsFactors = FALSE
+)
+
 # ── Single-scenario execution ─────────────────────────────────────────────────
 
 #' Compute replication-level totals (casualty counts, DOW count, DOW/WIA rate)
@@ -162,7 +182,9 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'   "Default (base configuration)"), n_iterations (requested), n_replications
 #'   (realised, and the count any label should name), n_days, mon (raw
 #'   monitoring data), queue_kpi (summarise_replications() output),
-#'   totals (summarise_scenario_totals() output)
+#'   totals (summarise_scenario_totals() output), transport_establishment
+#'   (scenario_transport_establishment() output, captured here because
+#'   env_data is restored on exit)
 #'
 #' @details Sets env_data, day_min, and counts globally (<<-), consistent
 #'   with run.R and scripts/run_sensitivity.R, since run_once()/build_env()
@@ -203,6 +225,7 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
   mon <- run_replications(n_iterations, n_days, ot_hours = ot_hours)
 
   list(
+    transport_establishment = scenario_transport_establishment(env_data),
     scenario     = scenario,
     label        = label,
     n_iterations = n_iterations,
@@ -333,6 +356,101 @@ summarise_scenario_queue_groups <- function(per_replication) {
   }))
 }
 
+#' Units established in each transport holder
+#'
+#' @param data A built configuration, as `build_environment()` returns it.
+#' @return Integer vector named by SCENARIO_TRANSPORT_HOLDERS$holder.
+#'
+#' @details Counted from the configuration rather than the resource monitor,
+#'   which has no row for a unit never seized, so that an idle unit stays in
+#'   the denominator of utilisation. The shared fleets are counted in
+#'   `transports` and the integral crews in `elms`.
+scenario_transport_establishment <- function(data) {
+  vapply(seq_len(nrow(SCENARIO_TRANSPORT_HOLDERS)), function(i) {
+    shared <- SCENARIO_TRANSPORT_HOLDERS$kind[i] == "shared"
+    source_list <- if (shared) data$transports else data$elms
+    as.integer(pool_establishment(source_list, SCENARIO_TRANSPORT_HOLDERS$pattern[i]))
+  }, integer(1)) %>%
+    setNames(SCENARIO_TRANSPORT_HOLDERS$holder)
+}
+
+#' Mean queue and utilisation of each transport holder, per replication
+#'
+#' @param mon Named list with a `resources` monitor as returned by
+#'   run_replications().
+#' @param n_days Campaign length in days, which bounds the averaging window.
+#' @param establishment Integer vector as returned by
+#'   scenario_transport_establishment().
+#' @param window_days Closing window to average over, in days.
+#' @return Data frame of replication, holder, kind, mean_q and utilisation:
+#'   one row per holder per replication.
+#'
+#' @details Both responses are time-weighted means over the closing window of
+#'   the pool total recovered by pool_queue_steps(), utilisation being the
+#'   busy-unit step function over the established units, on the convention of
+#'   the bed pools. A holder that never queued or was never seized
+#'   contributes zeros rather than dropping out, so a replication always
+#'   carries every holder.
+scenario_transport_holders_by_replication <- function(mon, n_days, establishment,
+                                                      window_days = SCENARIO_WINDOW_DAYS) {
+  horizon <- n_days * DAY_MIN
+  edges   <- c(max(0, n_days - window_days) * DAY_MIN, horizon)
+  reps    <- sort(unique(mon$resources$replication))
+
+  bind_rows(lapply(seq_len(nrow(SCENARIO_TRANSPORT_HOLDERS)), function(i) {
+    h    <- SCENARIO_TRANSPORT_HOLDERS[i, ]
+    rows <- mon$resources[grepl(h$pattern, mon$resources$resource) &
+                            mon$resources$time <= horizon, ]
+    bind_rows(lapply(reps, function(r) {
+      sub <- rows[rows$replication == r, ]
+      if (nrow(sub) == 0) {
+        q <- 0
+        u <- 0
+      } else {
+        q <- step_bin_means(pool_queue_steps(sub$resource, sub$time, sub$queue), edges)
+        u <- step_bin_means(pool_queue_steps(sub$resource, sub$time, sub$server), edges) /
+          establishment[[h$holder]]
+      }
+      data.frame(replication = r, holder = h$holder, kind = h$kind,
+                 mean_q = q, utilisation = u, stringsAsFactors = FALSE)
+    }))
+  }))
+}
+
+#' Summarise each transport holder's queue and utilisation across replications
+#'
+#' @param per_replication Data frame as returned by
+#'   scenario_transport_holders_by_replication().
+#' @return Data frame of holder, kind, n_reps, then mean, ci_lower and ci_upper
+#'   for the queue (`q_`) and for utilisation (`util_`), in
+#'   SCENARIO_TRANSPORT_HOLDERS order.
+#'
+#' @details The interval is the Student t one at 95%, as in
+#'   summarise_scenario_queue_groups(). Utilisation is a share and the
+#'   interval is not clamped; the table builder does that where it prints.
+summarise_scenario_transport_holders <- function(per_replication) {
+  holders <- SCENARIO_TRANSPORT_HOLDERS$holder[
+    SCENARIO_TRANSPORT_HOLDERS$holder %in% per_replication$holder]
+  #' Mean and Student t interval of one response
+  #'
+  #' @param x Numeric vector, one value per replication.
+  #' @return Named numeric vector of mean, lower and upper.
+  interval <- function(x) {
+    n    <- length(x)
+    half <- if (n > 1) qt(0.975, df = n - 1) * sd(x) / sqrt(n) else NA_real_
+    c(mean(x), mean(x) - half, mean(x) + half)
+  }
+  bind_rows(lapply(holders, function(h) {
+    sub <- per_replication[per_replication$holder == h, ]
+    q <- interval(sub$mean_q)
+    u <- interval(sub$utilisation)
+    data.frame(holder = h, kind = sub$kind[1], n_reps = nrow(sub),
+               q_mean = q[1], q_ci_lower = q[2], q_ci_upper = q[3],
+               util_mean = u[1], util_ci_lower = u[2], util_ci_upper = u[3],
+               stringsAsFactors = FALSE)
+  }))
+}
+
 #' Short display label for a scenario, derived from its identifier
 #'
 #' @param scenario Character vector of scenario identifiers as they appear in
@@ -419,11 +537,14 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
 #'   scenario/scenario_label columns), totals_table (combined casualty/DOW
 #'   totals table with scenario/scenario_label columns), queue_group_table
 #'   (the published per-pool queue comparison), queue_group_reps (its
-#'   per-replication values), plot (ggplot object)
+#'   per-replication values), transport_holder_table and
+#'   transport_holder_reps (the transport holders' queue and utilisation,
+#'   reduced and per replication), plot (ggplot object)
 #'
-#' @details Writes four CSVs under output_dir, scenario_comparison_queues.csv,
-#'   scenario_comparison_totals.csv, scenario_queue_group_replications.csv and
-#'   scenario_queue_groups.csv, and scenario_comparison.png under images_dir.
+#' @details Writes six CSVs under output_dir, scenario_comparison_queues.csv,
+#'   scenario_comparison_totals.csv, scenario_queue_group_replications.csv,
+#'   scenario_queue_groups.csv, scenario_transport_holder_replications.csv and
+#'   scenario_transport_holders.csv, and scenario_comparison.png under images_dir.
 #'   Each scenario is executed via run_scenario(), which sets env_data
 #'   globally per scenario in turn — scenarios are run sequentially, not
 #'   nested in parallel, since run_replications() already parallelises
@@ -470,12 +591,30 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
           summarise_scenario_queue_groups(per_rep))
   }))
 
+  # The transport holders are reported on the same footing, per replication
+  # and then reduced, so a holder's interval is formed across replications.
+  transport_holder_replications <- bind_rows(lapply(results, function(r) {
+    cbind(scenario = r$scenario,
+          scenario_transport_holders_by_replication(r$mon, r$n_days,
+                                                    r$transport_establishment))
+  }))
+
+  transport_holder_table <- bind_rows(lapply(results, function(r) {
+    per_rep <- transport_holder_replications[transport_holder_replications$scenario == r$scenario, ]
+    cbind(scenario = r$scenario, scenario_label = r$label,
+          summarise_scenario_transport_holders(per_rep))
+  }))
+
   write.csv(queue_table,  file.path(output_dir, "scenario_comparison_queues.csv"),  row.names = FALSE)
   write.csv(totals_table, file.path(output_dir, "scenario_comparison_totals.csv"), row.names = FALSE)
   write.csv(queue_group_replications,
             file.path(output_dir, "scenario_queue_group_replications.csv"), row.names = FALSE)
   write.csv(queue_group_table,
             file.path(output_dir, "scenario_queue_groups.csv"), row.names = FALSE)
+  write.csv(transport_holder_replications,
+            file.path(output_dir, "scenario_transport_holder_replications.csv"), row.names = FALSE)
+  write.csv(transport_holder_table,
+            file.path(output_dir, "scenario_transport_holders.csv"), row.names = FALSE)
   message(sprintf("Comparative scenario tables written to %s/", output_dir))
 
   comparison_plot <- plot_scenario_comparison(queue_table, images_dir = images_dir)
@@ -486,6 +625,8 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
     totals_table       = totals_table,
     queue_group_table  = queue_group_table,
     queue_group_reps   = queue_group_replications,
+    transport_holder_table = transport_holder_table,
+    transport_holder_reps  = transport_holder_replications,
     plot               = comparison_plot
   )
 }

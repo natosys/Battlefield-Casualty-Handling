@@ -333,6 +333,38 @@ build_transport <- function(data_dir, high = FALSE) {
   res_table(c("Fleet size", "Ambulance mean queue", "Truck mean queue"), rows)
 }
 
+#' Transport holder queue and utilisation table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details One row per holder, the shared brigade fleets then the facility's
+#'   integral evacuation elements, each with its closing-window mean queue and
+#'   utilisation at both intensities. Utilisation is a share, so its interval
+#'   is clamped to the zero to 100% it can take; the queue's lower bound is
+#'   clamped at zero as in the other pool tables.
+build_transport_holders <- function(data_dir) {
+  d <- res_read("scenarios/scenario_transport_holders.csv", data_dir)
+  #' One utilisation cell, as a percentage with its clamped interval
+  #'
+  #' @param x A row of the summary.
+  #' @return The cell text.
+  util <- function(x) {
+    sprintf("%.1f%% [%.1f%%, %.1f%%]", 100 * x$util_mean,
+            100 * max(x$util_ci_lower, 0), 100 * min(x$util_ci_upper, 1))
+  }
+  rows <- lapply(unique(d$holder), function(h) {
+    x <- lapply(SCENARIO_PROFILES, function(p) d[d$holder == h & d$scenario == p, ])
+    c(h, if (x[[1]]$kind == "shared") "Shared" else "Integral",
+      unlist(lapply(x, function(r) {
+        c(res_ci(r$q_mean, r$q_ci_lower, r$q_ci_upper, 3L, floor0 = TRUE), util(r))
+      })))
+  })
+  res_table(c("Holder", "Asset", "Moderate intensity mean queue",
+              "Moderate intensity utilisation", "High intensity mean queue",
+              "High intensity utilisation"), rows)
+}
+
 #' Forward holding frontier table
 #'
 #' @param data_dir The data directory.
@@ -1077,6 +1109,7 @@ RESULTS_TABLES <- list(
   hold_window = build_hold_window,
   transport = function(dd) build_transport(dd, FALSE),
   transport_high = function(dd) build_transport(dd, TRUE),
+  transport_holders = build_transport_holders,
   forward_hold = build_forward_hold,
   policy = build_policy,
   establishment = build_establishment,

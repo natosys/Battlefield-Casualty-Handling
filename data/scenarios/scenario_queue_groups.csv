@@ -1,13 +1,13 @@
 "scenario","scenario_label","group","n_reps","mean_q","p10_q","p90_q","ci_lower","ci_upper"
 "moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B OT",30,0,0,0,0,0
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,6.64823078953215,4.77754830168871,9.51981500432027,5.98089314064669,7.31556843841761
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,2.32432749735091,0.670650081494123,4.47455797521002,1.64988958381009,2.99876541089172
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E ICU",30,1.52175372232281,0.363742186303639,2.34089641743636,0.419401925965847,2.62410551867977
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,0.756254582674455,0,0.743484771932383,-0.261653590361538,1.77416275571045
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.0579339519438622,0.00260970918614907,0.0848415302620061,-0.014986066011815,0.13085396989954
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,4.8360418442493,1.61083853841567,8.61614443692858,3.56580573363965,6.10627795485895
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,4.38445008290711,0.942286854603121,5.526674887804,1.43426069481299,7.33463947100123
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E ICU",30,1.35489127903106,0.409662753142832,2.1445604047973,0.553937187865575,2.15584537019654
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,0.0782335144324374,0,0.0404685296065957,-0.0338344880686399,0.190301516933515
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.427918531953899,0.00323005428885643,0.17795888795108,-0.337006298481611,1.19284336238941
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B OT",30,0,0,0,0,0
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,35.4270426477127,30.6075254597446,40.1904116910538,33.9456915968797,36.9083936985456
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,556.126140173105,414.608605211779,688.906977032897,501.727348370491,610.52493197572
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,1474.94125761951,1428.76489829369,1531.66353828487,1459.28683433628,1490.59568090274
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,465.424633094578,411.948451512354,539.810440191416,445.356861529036,485.492404660119
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,0.219010788867353,0.0726924590107047,0.435724451176476,0.160606026071465,0.27741555166324
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,30.584823879562,13.6711532186786,50.6948423716802,25.2195477850369,35.9500999740871
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,519.388350049141,316.285539493335,693.121634553908,464.785568120613,573.99113197767
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,1438.30450786919,1389.52024317645,1488.45301136119,1423.91880534025,1452.69021039814
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,556.080011920468,473.429897296473,648.726690302128,528.496666242068,583.663357598867
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,0.217464314736942,0.098532083579818,0.406068239996853,0.174620221197761,0.260308408276122

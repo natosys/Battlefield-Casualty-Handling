@@ -351,6 +351,9 @@ main <- function(refresh) {
   out_dir <- if (refresh) TRACKED_DIR else UNTRACKED_DIR
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
+  # RENDERS: paper_casualty_totals.png
+  # RENDERS: paper_queue_growth.png
+  # RENDERS: paper_hold_window_effects.png
   specs <- list(
     list(name = "paper_casualty_totals.png", height = 5.9, fn = build_totals_figure),
     list(name = "paper_queue_growth.png", height = 4.6, fn = build_queue_figure),

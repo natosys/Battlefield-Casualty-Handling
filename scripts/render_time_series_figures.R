@@ -35,6 +35,9 @@
 # and run.R itself carry: an ordinary run writes under outputs/ and cannot
 # disturb tracked evidence.
 
+# RENDERS: queue_length_over_time.png
+# RENDERS: degraded_care_rate_over_time.png
+
 source("R/environment.R")
 source("R/trajectories.R")
 source("R/replication.R")

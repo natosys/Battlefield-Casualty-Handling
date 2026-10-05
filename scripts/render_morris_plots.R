@@ -35,6 +35,8 @@
 # written. A mismatch stops the run rather than producing a plot that
 # disagrees with the table more subtly than the one it replaces.
 
+# RENDERS: morris_*.png
+
 suppressPackageStartupMessages({
   source("R/sensitivity.R")
 })

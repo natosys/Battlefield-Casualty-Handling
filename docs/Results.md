@@ -166,6 +166,10 @@ Each response was reduced to twelve consecutive 30-day block means and classifie
 | Deaths of wounds per day | converged at 0.03 | converged at 0.85 |
 <!-- /GEN -->
 
+![Panels of 30-day block means against campaign day for every response at the moderate and high casualty intensities](../images/long_horizon_blocks.png)
+
+Block means of every queue, occupancy, arrival, evacuation backlog and mortality response over the campaign at the two casualty intensities, each panel headed by its stability classification at each intensity.
+
 Four responses at high intensity were classified as drifting: the R2E operating theatre queue (<!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full -->**drifting, +11.1%/block**, 40.5 to 605.9<!-- /GEN -->), the R2E holding bed queue (<!-- GEN cell:long_horizon_stability|R2E holding bed queue|High intensity|full -->**drifting, +9.4%/block**, 38.8 to 502.3<!-- /GEN -->), the R2E intensive care queue (<!-- GEN cell:long_horizon_stability|R2E intensive care queue|High intensity|full -->**drifting, +13.1%/block**, 30.1 to 1,630.8<!-- /GEN -->) and the strategic evacuation backlog (<!-- GEN cell:long_horizon_stability|Strategic evacuation backlog|High intensity|full -->**drifting, +12.6%/block**, 56.7 to 1,828.2<!-- /GEN -->). The R2B holding bed queue at high intensity was classified as converged, at <!-- GEN cell:long_horizon_stability|R2B holding bed queue|High intensity|full -->converged at 35.2<!-- /GEN -->. No response at moderate intensity was classified as drifting; the R2E operating theatre queue was <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|Moderate intensity|full -->converged at 2.21<!-- /GEN --> and the R2B holding bed queue <!-- GEN cell:long_horizon_stability|R2B holding bed queue|Moderate intensity|full -->converged at 6.45<!-- /GEN -->.
 
 ---
@@ -317,6 +321,10 @@ The R2E intensive care queue was <!-- GEN cell:forward_hold|Off (current)|R2E IC
 | Total casualties | 5,405.2 [5,331.1, 5,479.4] | 5,359.9 [5,282.7, 5,437.1] | −45.3 [−141.5, +50.9] |
 <!-- /GEN -->
 
+![Four panels comparing the post-operative intensive care gate disabled and enabled](../images/icu_gate.png)
+
+Intensive care occupancy, deaths of wounds and the casualties taking each post-operative pathway with the gate disabled and enabled, each point with its 95% confidence interval.
+
 R2E intensive care utilisation was <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Without the rule|full -->94.8 [93.8, 95.8]<!-- /GEN --> without the rule and <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|With the rule|full -->87.1 [86.0, 88.2]<!-- /GEN --> with it, a paired difference of <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Paired difference|full -->−7.7 [−9.4, −6.0]<!-- /GEN --> percentage points. Died of wounds per run were <!-- GEN cell:icu_gate|Died of wounds per run|Without the rule|full -->14.50 [12.83, 16.17]<!-- /GEN --> and <!-- GEN cell:icu_gate|Died of wounds per run|With the rule|full -->15.40 [14.14, 16.66]<!-- /GEN -->, a paired difference of <!-- GEN cell:icu_gate|Died of wounds per run|Paired difference|full -->+0.90 [−1.17, +2.97]<!-- /GEN -->.
 
 <!-- GEN icu_gate_pathways -->
@@ -348,6 +356,10 @@ Where the rule was in force, casualties recovering in a holding bed died of woun
 | Role 4 peak beds | 206.5 [199.0, 214.0] | 206.1 [198.4, 213.8] | 105.4 [99.3, 111.5] | 29.6 [26.0, 33.3] | 15.0 [12.1, 18.0] |
 <!-- /GEN -->
 
+![Six panels of returns to duty, deaths of wounds, in-theatre share and R2E queues against evacuation policy days](../images/policy_sweep.png)
+
+Six responses against the evacuation policy in days, each with its 95% confidence interval and the shipped policy marked by a dashed line.
+
 At the shipped 21-day policy the R2E holding queue was <!-- GEN cell:policy|R2E hold mean queue|21 d (shipped)|full -->0.32 [0.01, 0.63]<!-- /GEN --> and its occupancy <!-- GEN cell:policy|R2E hold occupancy (%)|21 d (shipped)|full -->44.8 [42.1, 47.4]<!-- /GEN -->. At 30 days the holding occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|30 d|full -->100.0 [100.0, 100.0]<!-- /GEN --> and the queue <!-- GEN cell:policy|R2E hold mean queue|30 d|full -->733.98 [689.13, 778.83]<!-- /GEN -->; at 45 and 60 days the occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|45 d|full -->100.0 [100.0, 100.0]<!-- /GEN --> and <!-- GEN cell:policy|R2E hold occupancy (%)|60 d|full -->100.0 [100.0, 100.0]<!-- /GEN -->. Returns to duty per campaign were <!-- GEN cell:policy|Returns to duty|15 d|full -->1492.0 [1470.9, 1513.0]<!-- /GEN --> at 15 days, <!-- GEN cell:policy|Returns to duty|21 d (shipped)|full -->1686.8 [1662.8, 1710.7]<!-- /GEN --> at 21, <!-- GEN cell:policy|Returns to duty|30 d|full -->1872.7 [1851.7, 1893.7]<!-- /GEN --> at 30, <!-- GEN cell:policy|Returns to duty|45 d|full -->1793.9 [1774.2, 1813.6]<!-- /GEN --> at 45 and <!-- GEN cell:policy|Returns to duty|60 d|full -->1735.7 [1703.6, 1767.7]<!-- /GEN --> at 60. Died of wounds were <!-- GEN cell:policy|Died of wounds|15 d|full -->10.93 [10.04, 11.83]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|21 d (shipped)|full -->11.67 [10.24, 13.09]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|30 d|full -->16.17 [14.54, 17.79]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|45 d|full -->21.43 [19.63, 23.24]<!-- /GEN --> and <!-- GEN cell:policy|Died of wounds|60 d|full -->24.07 [22.24, 25.89]<!-- /GEN --> across the five policies. The realised in-theatre share was <!-- GEN cell:policy|In-theatre share (%)|15 d|full -->5.2 [5.0, 5.5]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|21 d (shipped)|full -->12.1 [11.8, 12.3]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|30 d|full -->29.9 [29.3, 30.5]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|45 d|full -->66.5 [65.8, 67.3]<!-- /GEN --> and <!-- GEN cell:policy|In-theatre share (%)|60 d|full -->87.2 [86.6, 87.8]<!-- /GEN --> percent. Paired differences against the shipped policy are in `data/policy/policy_sweep_paired.csv`.
 
 ### R2E Holding Establishment
@@ -368,6 +380,10 @@ At the shipped 21-day policy the R2E holding queue was <!-- GEN cell:policy|R2E 
 | Role 4 peak beds | 206.1 [198.4, 213.8] | 204.0 [195.2, 212.9] | 198.6 [192.0, 205.1] | 199.0 [191.5, 206.5] |
 <!-- /GEN -->
 
+![Six panels of campaign responses against R2E holding beds](../images/establishment_sweep.png)
+
+The same six responses against the R2E holding bed establishment at the shipped evacuation policy, with the shipped establishment marked by a dashed line.
+
 Holding occupancy was <!-- GEN cell:establishment|R2E hold occupancy (%)|30 beds (shipped)|full -->44.8 [42.1, 47.4]<!-- /GEN --> at the shipped 30 beds, <!-- GEN cell:establishment|R2E hold occupancy (%)|45 beds|full -->29.9 [27.8, 31.9]<!-- /GEN --> at 45, <!-- GEN cell:establishment|R2E hold occupancy (%)|60 beds|full -->21.3 [20.0, 22.6]<!-- /GEN --> at 60 and <!-- GEN cell:establishment|R2E hold occupancy (%)|90 beds|full -->13.9 [13.1, 14.8]<!-- /GEN --> at 90 percent. The R2E holding queue was <!-- GEN cell:establishment|R2E hold mean queue|30 beds (shipped)|full -->0.32 [0.01, 0.63]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|R2E hold mean queue|45 beds|full -->0.00 [0.00, 0.00]<!-- /GEN --> at 45. Returns to duty per campaign were <!-- GEN cell:establishment|Returns to duty|30 beds (shipped)|full -->1686.8 [1662.8, 1710.7]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|Returns to duty|90 beds|full -->1668.3 [1644.1, 1692.5]<!-- /GEN --> at 90, and died of wounds <!-- GEN cell:establishment|Died of wounds|30 beds (shipped)|full -->11.7 [10.2, 13.1]<!-- /GEN --> and <!-- GEN cell:establishment|Died of wounds|90 beds|full -->11.9 [10.7, 13.1]<!-- /GEN -->.
 
 ### Forward Surgical Saturation Release
@@ -384,6 +400,10 @@ Holding occupancy was <!-- GEN cell:establishment|R2E hold occupancy (%)|30 beds
 | Died of wounds | 11.8 [10.4, 13.1] | 11.9 [10.6, 13.1] | 11.0 [9.1, 12.9] | 11.1 [9.8, 12.5] | 12.9 [11.4, 14.3] | 11.7 [10.2, 13.1] | 12.7 [11.0, 14.4] | 10.8 [9.6, 12.1] | 12.3 [10.8, 13.9] |
 | Returns to duty | 1668.1 [1647.5, 1688.8] | 1648.7 [1622.9, 1674.5] | 1649.8 [1621.3, 1678.2] | 1650.8 [1625.4, 1676.1] | 1681.9 [1651.3, 1712.5] | 1686.8 [1662.8, 1710.7] | 1655.7 [1629.4, 1682.0] | 1661.2 [1637.2, 1685.3] | 1657.1 [1630.6, 1683.6] |
 <!-- /GEN -->
+
+![Six panels of campaign responses against the forward surgical saturation release threshold](../images/saturation_sweep.png)
+
+The same six responses against the R2E theatre queue length at which a casualty is released, with the shipped threshold marked by a dashed line.
 
 With the release disabled the closing-window theatre queue was <!-- GEN cell:saturation|Theatre mean queue|0 (disabled)|full -->5.77 [3.82, 7.71]<!-- /GEN --> casualties and no casualty was released with the repair outstanding. At the shipped threshold of eight the queue was <!-- GEN cell:saturation|Theatre mean queue|8 (shipped)|full -->3.95 [2.71, 5.19]<!-- /GEN --> and <!-- GEN cell:saturation|Released with repair outstanding|8 (shipped)|full -->146.9 [132.7, 161.1]<!-- /GEN --> casualties per campaign were released with the repair outstanding, with <!-- GEN cell:saturation|Role 4 operations owed|8 (shipped)|full -->1127.1 [1089.6, 1164.6]<!-- /GEN --> operations owed at the national support base against <!-- GEN cell:saturation|Role 4 operations owed|0 (disabled)|full -->963.4 [934.0, 992.7]<!-- /GEN --> with the release disabled. Returns to duty and died of wounds per campaign were <!-- GEN cell:saturation|Returns to duty|8 (shipped)|full -->1686.8 [1662.8, 1710.7]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|8 (shipped)|full -->11.7 [10.2, 13.1]<!-- /GEN --> at the shipped threshold and <!-- GEN cell:saturation|Returns to duty|0 (disabled)|full -->1668.1 [1647.5, 1688.8]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|0 (disabled)|full -->11.8 [10.4, 13.1]<!-- /GEN --> with the release disabled.
 
@@ -428,6 +448,10 @@ Shortening the interval between sorties below the shipped seven days left the me
 | Share of R2E holding beds held by the evacuation wait | 2% [1%, 3%] | 6% [3%, 9%] | 12% [7%, 16%] | 19% [13%, 26%] | 29% [22%, 35%] | 48% [46%, 51%] |
 <!-- /GEN -->
 
+![Eight panels of strategic evacuation responses against sortie cancellation probability and the interval between sorties](../images/airlift_sweeps.png)
+
+Wait for a sortie, casualties still waiting at the horizon, Role 4 peak beds and the share of holding bed-days spent awaiting a sortie against sortie cancellation probability and the interval between sorties, with the shipped value of each marked by a dashed line.
+
 The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|mean -->0.39<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability|Mean wait (days)|10%|mean -->1.67<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability|Mean wait (days)|25%|mean -->6.66<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability|Mean wait (days)|40%|mean -->16.66<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability|Sorties flown|0%|full -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability|Sorties flown|40%|full -->30.93<!-- /GEN -->.
 
 **Collapse classification.** A campaign was classified as collapsed where its R2E holding queue over the closing 90 days averaged twenty casualties or more. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
@@ -442,6 +466,10 @@ The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|me
 | 20% | 12 of 30 | 40.0% [22.7%, 59.4%] | 0.79 | 218.03 |
 | 25% | 16 of 30 | 53.3% [34.3%, 71.7%] | 26.51 | 273.03 |
 <!-- /GEN -->
+
+![Line plot of the share of campaigns collapsing against sortie cancellation probability](../images/airlift_collapse.png)
+
+The share of campaigns classified as collapsed against sortie cancellation probability, with exact binomial 95% confidence intervals.
 
 No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|full -->0%<!-- /GEN --> or 5% cancellation. <!-- GEN cell:airlift_collapse|10%|Collapsed|full -->3 of 30<!-- /GEN --> collapsed at 10% cancellation, <!-- GEN cell:airlift_collapse|15%|Collapsed|full -->7 of 30<!-- /GEN --> at 15%, <!-- GEN cell:airlift_collapse|20%|Collapsed|full -->12 of 30<!-- /GEN --> at 20% and <!-- GEN cell:airlift_collapse|25%|Collapsed|full -->16 of 30<!-- /GEN --> at 25%.
 
@@ -462,9 +490,9 @@ No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|f
 | Died-of-wounds rate, event casualties | not applicable | 0.77% [0.71%, 0.83%] |
 <!-- /GEN -->
 
-![Stem plot of two casualty surge events reconstructed from one campaign](../images/casualty_surge_events.png)
+![Stem plot of casualty surge events reconstructed from one campaign](../images/casualty_surge_events.png)
 
-Two casualty surge events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
+Casualty surge events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
 
 Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->72.47 (range 59–91)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5395.9<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8102.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.71%, 0.83%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.23% [0.20%, 0.25%]<!-- /GEN --> with it.
 
@@ -488,6 +516,10 @@ Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|ful
 | 120 | 72.5 | 0.90% [0.87%, 0.94%] | 0.30% [0.28%, 0.33%] | 197.7 ± 21.4 | 1030.1 ± 114.4 | 1683.7 ± 30.8 | 652.2 ± 44.1 |
 | 180 | 72.5 | 0.94% [0.91%, 0.97%] | 0.35% [0.32%, 0.38%] | 254.3 ± 33.9 | 2529.6 ± 182.1 | 1728.6 ± 25.9 | 882.8 ± 39.2 |
 <!-- /GEN -->
+
+![Line plot of the died-of-wounds rate of event and ordinary casualties against casualty surge event size](../images/casualty_surge_size_sweep.png)
+
+The died-of-wounds rate of event and ordinary casualties against the number of casualties per event, with pooled exact binomial 95% confidence intervals.
 
 Peak queues are the largest four-hour mean queue of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.40% [0.32%, 0.50%]<!-- /GEN --> and the peak R2E intensive care queue <!-- GEN cell:casualty_surge_size|10|Peak R2E intensive care queue|full -->24.6 ± 6.3<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E intensive care queue|full -->18.9 ± 4.1<!-- /GEN --> with no events injected. At 20 casualties per event the intensive care queue peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E intensive care queue|full -->156.4 ± 31.6<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E intensive care queue|full -->644.7 ± 45.6<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->44.5 ± 7.1<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->130.6 ± 12.9<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->387.7 ± 57.5<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2529.6 ± 182.1<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->0.83% [0.78%, 0.88%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->0.94% [0.91%, 0.97%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->0.35% [0.32%, 0.38%]<!-- /GEN --> at 180.
 

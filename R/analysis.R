@@ -16,6 +16,7 @@ library(triangle)
 source("R/constants.R")
 source("R/censoring.R")
 source("R/queue_series.R")
+source("R/figures.R")
 
 # Jitter applied to the pooled casualty surge timeline is cosmetic — it
 # separates events that fall on the same day — but it is drawn at render
@@ -2438,26 +2439,8 @@ summarise_casualty_surge_events <- function(combined, output_dir, images_dir) {
   if (casualty_surge_event_count > 0) {
     n_sim_days_casualty_surge <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
-    casualty_surge_timeline_plot <- ggplot(casualty_surge_events_summary,
-                                           aes(x = event_start / DAY_MIN, y = n_cas)) +
-      geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
-      geom_point(size = 3, color = "#D62828") +
-      scale_x_continuous(limits = c(0, n_sim_days_casualty_surge),
-                         breaks = seq(0, n_sim_days_casualty_surge, by = 2)) +
-      labs(
-        title    = "Casualty Surge Event Timeline",
-        subtitle = sprintf(
-          "%d event(s) across the simulation period (compound Poisson injection)",
-          casualty_surge_event_count
-        ),
-        x = "Simulation Day", y = "Casualties Injected by Event"
-      ) +
-      theme_minimal(base_size = 13) +
-      theme(panel.grid.minor = element_blank())
-
-    if (n_distinct(casualty_surge_events_summary$replication) > 1) {
-      casualty_surge_timeline_plot <- casualty_surge_timeline_plot + facet_wrap(~ replication, ncol = 1)
-    }
+    casualty_surge_timeline_plot <- plot_casualty_surge_timeline(casualty_surge_events_summary,
+                                                                 n_sim_days_casualty_surge)
 
     ggsave(file.path(images_dir, "casualty_surge_events.png"), casualty_surge_timeline_plot,
            width = 12, height = 6, dpi = 150)

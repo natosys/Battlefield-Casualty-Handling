@@ -96,8 +96,8 @@ is_declared <- function(name, declared) {
 #' @return Integer vector of width and height.
 png_size <- function(path) {
   header <- readBin(path, "raw", 24L)
-  be32 <- function(bytes) sum(as.integer(bytes) * 256^(3:0))
-  as.integer(c(be32(header[17:20]), be32(header[21:24])))
+  place <- 256^(3:0)
+  as.integer(c(sum(as.integer(header[17:20]) * place), sum(as.integer(header[21:24]) * place)))
 }
 
 cat("Figure provenance check\n\n")
@@ -124,9 +124,8 @@ cat("\n-- the sweep renderer runs from tracked data alone --\n")
 scratch <- file.path(tempdir(), "figure_provenance")
 dir.create(scratch, recursive = TRUE, showWarnings = FALSE)
 tracked_before <- unname(tools::md5sum(Sys.glob("images/*.png")))
-runner <- sprintf(
-  paste0("source('%s'); quit(status = if ('simmer' %%in%% loadedNamespaces()) 3L else 0L)"),
-  SWEEP_SCRIPT)
+runner_body <- "source('%s'); quit(status = if ('simmer' %%in%% loadedNamespaces()) 3L else 0L)"
+runner <- sprintf(runner_body, SWEEP_SCRIPT)
 status <- system2(file.path(R.home("bin"), "Rscript"),
                   c("--no-init-file", "-e", shQuote(runner), "--images-dir", shQuote(scratch)),
                   stdout = FALSE, stderr = FALSE)

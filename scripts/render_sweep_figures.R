@@ -148,79 +148,91 @@ current_qty <- setNames(
   vapply(env_json$transports, function(t) t$name, character(1))
 )
 
+transport <- read_tracked("sweeps", "transport_capacity_by_fleet_size.csv")
+transport_high <- read_tracked("sweeps", "transport_capacity_by_fleet_size_high_intensity.csv")
+
 # RENDERS: transport_capacity_margin_by_fleet_size.png
-save_figure(render_transport_sweep_plot(
-  read_tracked("sweeps", "transport_capacity_by_fleet_size.csv"), current_qty,
-  n_rep = TRANSPORT_SWEEP_REPLICATIONS), "transport_capacity_margin_by_fleet_size.png", 12, 8)
+p_transport <- render_transport_sweep_plot(transport, current_qty,
+                                           n_rep = TRANSPORT_SWEEP_REPLICATIONS)
+save_figure(p_transport, "transport_capacity_margin_by_fleet_size.png", 12, 8)
 
 # RENDERS: transport_capacity_margin_by_fleet_size_high_intensity.png
-save_figure(render_transport_sweep_plot(
-  read_tracked("sweeps", "transport_capacity_by_fleet_size_high_intensity.csv"), current_qty,
-  n_rep = TRANSPORT_SWEEP_REPLICATIONS, scenario = "high_intensity"),
-  "transport_capacity_margin_by_fleet_size_high_intensity.png", 12, 8)
+p_transport_high <- render_transport_sweep_plot(transport_high, current_qty,
+                                                n_rep = TRANSPORT_SWEEP_REPLICATIONS,
+                                                scenario = "high_intensity")
+save_figure(p_transport_high, "transport_capacity_margin_by_fleet_size_high_intensity.png", 12, 8)
 
 post_op_rule <- env_json$vars$r2b$post_op_icu
 forward_shipped <- FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_dcs &
   FORWARD_HOLD_SWEEP_ARMS$window == post_op_rule$stability_window_single_stage &
   FORWARD_HOLD_SWEEP_ARMS$trigger == post_op_rule$capacity_trigger
+forward_baseline <- if (any(forward_shipped)) FORWARD_HOLD_SWEEP_ARMS$label[forward_shipped][1]
 
 # RENDERS: r2b_forward_hold_frontier.png
-save_figure(render_forward_hold_sweep_plot(
-  read_tracked("sweeps", "r2b_forward_hold_frontier.csv"),
-  baseline_arm = if (any(forward_shipped)) FORWARD_HOLD_SWEEP_ARMS$label[forward_shipped][1],
-  n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS), "r2b_forward_hold_frontier.png", 10, 14)
+p_forward <- render_forward_hold_sweep_plot(read_tracked("sweeps", "r2b_forward_hold_frontier.csv"),
+                                            baseline_arm = forward_baseline,
+                                            n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS)
+save_figure(p_forward, "r2b_forward_hold_frontier.png", 10, 14)
 
 # RENDERS: r2b_hold_threshold_sweep.png
-save_figure(render_hold_threshold_sweep_plot(
+p_threshold <- render_hold_threshold_sweep_plot(
   read_tracked("sweeps", "r2b_hold_threshold_sweep.csv"),
   baseline_beds = shipped_beds("r2b", "hold"),
-  n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS), "r2b_hold_threshold_sweep.png", 12, 16)
+  n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS
+)
+save_figure(p_threshold, "r2b_hold_threshold_sweep.png", 12, 16)
+
+surge_events <- read_tracked("casualty_surge", "casualty_surge_illustrative_events.csv")
 
 # RENDERS: casualty_surge_events.png
-save_figure(plot_casualty_surge_timeline(
-  read_tracked("casualty_surge", "casualty_surge_illustrative_events.csv"),
-  CASUALTY_SURGE_DAYS), "casualty_surge_events.png", 12, 6)
+save_figure(plot_casualty_surge_timeline(surge_events, CASUALTY_SURGE_DAYS),
+            "casualty_surge_events.png", 12, 6)
+
+surge_size <- read_tracked("casualty_surge", "casualty_surge_size_summary.csv")
 
 # RENDERS: casualty_surge_size_sweep.png
-save_figure(plot_casualty_surge_size(
-  read_tracked("casualty_surge", "casualty_surge_size_summary.csv")),
-  "casualty_surge_size_sweep.png", 10, 6)
+save_figure(plot_casualty_surge_size(surge_size), "casualty_surge_size_sweep.png", 10, 6)
+
+policy <- read_tracked("policy", "policy_sweep.csv")
 
 # RENDERS: policy_sweep.png
-save_figure(plot_policy_sweep(read_tracked("policy", "policy_sweep.csv"),
-                              shipped_var("recovery", "evacuation_policy_days")),
+save_figure(plot_policy_sweep(policy, shipped_var("recovery", "evacuation_policy_days")),
             "policy_sweep.png", 11, 10)
 
+establishment <- read_tracked("policy", "establishment_sweep.csv")
+
 # RENDERS: establishment_sweep.png
-save_figure(plot_establishment_sweep(read_tracked("policy", "establishment_sweep.csv"),
-                                     shipped_beds("r2eheavy", "hold")),
+save_figure(plot_establishment_sweep(establishment, shipped_beds("r2eheavy", "hold")),
             "establishment_sweep.png", 11, 10)
 
+saturation <- read_tracked("policy", "saturation_sweep.csv")
+saturation_shipped <- shipped_var("second_surgery", "saturation_queue_threshold")
+
 # RENDERS: saturation_sweep.png
-save_figure(plot_saturation_sweep(read_tracked("policy", "saturation_sweep.csv"),
-                                  shipped_var("second_surgery", "saturation_queue_threshold")),
-            "saturation_sweep.png", 11, 10)
+save_figure(plot_saturation_sweep(saturation, saturation_shipped), "saturation_sweep.png", 11, 10)
 
 # RENDERS: icu_gate.png
-save_figure(plot_icu_gate(read_tracked("icu_gate", "icu_gate_summary.csv")),
-            "icu_gate.png", 10, 8)
+save_figure(plot_icu_gate(read_tracked("icu_gate", "icu_gate_summary.csv")), "icu_gate.png", 10, 8)
+
+airlift_shipped <- list(
+  failure_probability = shipped_airlift("failure_probability"),
+  interval_days = shipped_airlift("schedule_interval_days")
+)
 
 # RENDERS: airlift_sweeps.png
-save_figure(plot_airlift_sweeps(
-  read_tracked("airlift", "airlift_summary.csv"),
-  list(failure_probability = shipped_airlift("failure_probability"),
-       interval_days = shipped_airlift("schedule_interval_days"))),
-  "airlift_sweeps.png", 11, 12)
+p_airlift <- plot_airlift_sweeps(read_tracked("airlift", "airlift_summary.csv"), airlift_shipped)
+save_figure(p_airlift, "airlift_sweeps.png", 11, 12)
 
 # RENDERS: airlift_collapse.png
 save_figure(plot_airlift_collapse(read_tracked("airlift", "airlift_collapse.csv")),
             "airlift_collapse.png", 9, 6)
 
+long_blocks <- read_tracked("long_horizon", "long_horizon_blocks.csv")
+long_stability <- read_tracked("long_horizon", "long_horizon_stability.csv")
+
 # RENDERS: long_horizon_blocks.png
-save_figure(plot_long_horizon_blocks(
-  read_tracked("long_horizon", "long_horizon_blocks.csv"),
-  read_tracked("long_horizon", "long_horizon_stability.csv")),
-  "long_horizon_blocks.png", 14, 16)
+save_figure(plot_long_horizon_blocks(long_blocks, long_stability),
+            "long_horizon_blocks.png", 14, 16)
 
 if (!refresh) {
   cat(sprintf("\nTracked images/ untouched. Re-run with --refresh-baseline to write them.\n"))

@@ -58,7 +58,7 @@ release_resources <- function(trj, resources) {
 #'   instant they occur. Pool membership is read from the entity's
 #'   generator-assigned name (e.g. "wia_cbt3", "dnbi_spt1"), the same
 #'   startsWith()/grepl() convention already used elsewhere in this file
-#'   (e.g. the mass_casualty_event_id/priority attributes below) to recover
+#'   (e.g. the casualty_surge_event_id/priority attributes below) to recover
 #'   stream identity from an entity deep in its trajectory. KIA and
 #'   strategic-evac (r2e_evac = 1) entities never reach credit_rtd() (see
 #'   below), so they remain a permanent loss without a separate subtraction
@@ -3033,9 +3033,9 @@ r2e_treat_wia <- function(team_id) {
 #' @details Sets injury_time and last_dow_t, debits the casualty's pool
 #'   (`debit_force_size()`), and assigns injury_type (1 = WIA, 2 = DNBI,
 #'   3 = KIA, from the casualty's name prefix; read by the Role 4 census in
-#'   `R/analysis.R` at strategic evacuation), mass_casualty_event_id (the
+#'   `R/analysis.R` at strategic evacuation), casualty_surge_event_id (the
 #'   1-indexed event the casualty originated from, 0 for a background
-#'   casualty) and mass_casualty_event (1 where that id is non-zero).
+#'   casualty) and casualty_surge_event (1 where that id is non-zero).
 assign_injury_attributes <- function(trj) {
   trj %>%
     log_(function() paste0(get_name(env))) %>%
@@ -3052,23 +3052,23 @@ assign_injury_attributes <- function(trj) {
       if (startsWith(name, "dnbi")) return(2L)
       3L
     }) %>%
-    set_attribute("mass_casualty_event_id", function() {
+    set_attribute("casualty_surge_event_id", function() {
       name <- get_name(env)
-      # Two streams carry a mass casualty overlay, the combat wounded and
+      # Two streams carry a casualty surge overlay, the combat wounded and
       # the combat killed, each with its own sink built in emission order
-      # by wrap_with_mass_casualty() (R/environment.R).
+      # by wrap_with_casualty_surge() (R/environment.R).
       sink <- if (startsWith(name, "wia_cbt")) {
-        wia_cbt_mass_casualty_event_id
+        wia_cbt_casualty_surge_event_id
       } else if (startsWith(name, "kia_cbt")) {
-        kia_cbt_mass_casualty_event_id
+        kia_cbt_casualty_surge_event_id
       } else {
         return(0L)
       }
       idx <- as.integer(sub("^[a-z]+_cbt", "", name)) + 1L
       if (idx >= 1L && idx <= length(sink)) sink[idx] else 0L
     }) %>%
-    set_attribute("mass_casualty_event", function() {
-      if (get_attribute(env, "mass_casualty_event_id") > 0) 1 else 0
+    set_attribute("casualty_surge_event", function() {
+      if (get_attribute(env, "casualty_surge_event_id") > 0) 1 else 0
     })
 }
 
@@ -3078,7 +3078,7 @@ assign_injury_attributes <- function(trj) {
 #' @return The trajectory, with the clinical attributes assigned.
 #'
 #' @details Sets priority (WIA and DNBI only) by weighted draw, a
-#'   mass-casualty-tagged casualty drawing from its own event's priority split
+#'   casualty-surge-tagged casualty drawing from its own event's priority split
 #'   in "scheduled" mode and from the shared blast-dominant split in "poisson"
 #'   mode; dow_ceiling, the priority's died-of-wounds ceiling; dnbi_type
 #'   (1 = battle fatigue, 2 = disease, 3 = non-battle injury) for DNBI
@@ -3089,18 +3089,18 @@ assign_clinical_attributes <- function(trj) {
   trj %>%
     set_attribute("priority", function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
-        if (get_attribute(env, "mass_casualty_event") == 1) {
-          eid    <- get_attribute(env, "mass_casualty_event_id")
-          ev_row <- mass_casualty_event_priority_table[mass_casualty_event_priority_table$event_id == eid, ]
+        if (get_attribute(env, "casualty_surge_event") == 1) {
+          eid    <- get_attribute(env, "casualty_surge_event_id")
+          ev_row <- casualty_surge_event_priority_table[casualty_surge_event_priority_table$event_id == eid, ]
           # Per-event priority (scheduled mode) if the event's own row has
           # one; poisson-mode events carry NA pri_one, falling back to the
-          # shared mass_casualty priority split.
+          # shared casualty_surge priority split.
           prob <- if (nrow(ev_row) == 1 && !is.na(ev_row$pri_one[1])) {
             c(ev_row$pri_one[1], ev_row$pri_two[1], ev_row$pri_three[1])
           } else {
-            c(env_data$vars$mass_casualty$priority$one,
-              env_data$vars$mass_casualty$priority$two,
-              env_data$vars$mass_casualty$priority$three)
+            c(env_data$vars$casualty_surge$priority$one,
+              env_data$vars$casualty_surge$priority$two,
+              env_data$vars$casualty_surge$priority$three)
           }
           sample(1:3, 1, prob = prob)
         } else {

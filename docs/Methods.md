@@ -45,7 +45,8 @@ This document is the design record for the replicated experiments reported in th
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
-  - [Mass Casualty Event Stress Test](#mass-casualty-event-stress-test)
+  - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
+    - [Event Size Sweep](#event-size-sweep)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
   - [Sensitivity Screens](#sensitivity-screens)
   - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)
@@ -106,7 +107,7 @@ $$\bar{x} \pm t_{0.975,\;n-1}\,\frac{s}{\sqrt{n}}$$
 
 where $n$ is the replication count, $\bar{x}$ the mean across replications of the per-replication response and $s$ its sample standard deviation. The same expression is evaluated in `summarise_replications()` (`R/replication.R`), in the comparative scenario runner (`R/scenario_runner.R`) and everywhere in the analysis pipeline that reports an interval, so an interval quoted in the results paper, one shown in the Shiny console and one written to a CSV output are the same quantity computed the same way. Where a comparison sets two configurations run at the same control seed against each other, the interval is on the mean of the per-replication paired difference rather than on the difference of the two means, and the paired difference is accompanied by a $p$-value from the paired $t$ test.
 
-**Exact binomial (Clopper-Pearson) interval on a proportion.** This applies where the quantity is a share of events and a per-replication rate would describe no replication: the share of campaigns that collapse in the airlift reliability sweep, where each campaign is one trial, and the died-of-wounds rate pooled across casualties in the mass casualty comparison, where most replications record no death at all. An exact interval is used because a count of zero is then reported with an interval above zero rather than as an exactly known rate. The pooled mass casualty rate treats casualties as independent trials, which dependence within a campaign makes optimistic, so its interval is a lower bound on the uncertainty and is read that way.
+**Exact binomial (Clopper-Pearson) interval on a proportion.** This applies where the quantity is a share of events and a per-replication rate would describe no replication: the share of campaigns that collapse in the airlift reliability sweep, where each campaign is one trial, and the died-of-wounds rate pooled across casualties in the casualty surge comparison, where most replications record no death at all. An exact interval is used because a count of zero is then reported with an interval above zero rather than as an exactly known rate. The pooled casualty surge rate treats casualties as independent trials, which dependence within a campaign makes optimistic, so its interval is a lower bound on the uncertainty and is read that way.
 
 **Normal approximation for sizing, never for reporting.** The replication count a given resolution requires is $n = (z_{0.975}\,s/h)^2$ for a target half-width $h$ and a measured standard deviation $s$ (see [Replication Count and Resolution](#replication-count-and-resolution)). It sizes an experiment and appears in the `reps_needed` columns of the tracked paired differences; no reported interval is computed from it.
 
@@ -254,12 +255,12 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
-| Mass casualty event stress test | `data/mass_casualty/` | `check_mass_casualty_protocol.R`, `check_mass_casualty_kia_split.R` (mechanism) |
+| Casualty surge event stress test | `data/casualty_surge/` | `check_casualty_surge_protocol.R`, `check_casualty_surge_kia_split.R` (mechanism) |
 | Morris and Sobol sensitivity screens | `data/sensitivity/` | `check_sensitivity_protocol.R`, `check_screen_cache.R`, `check_screen_order.R`, `check_morris_baseline.R` (design, cache and baselines; the published rankings are not asserted) |
 
 Every replicated experiment has a tracked evidence set. The sensitivity screens are the one case in which the checks defend the design, the cache and the baselines but not the figures: the published rankings and Sobol indices are read from `data/sensitivity/` by the analysis scripts and are not asserted against it by a protocol check, which is a gap the consolidated results document is to close.
 
-Each protocol check ends with an assertion against an input whose answer is computable by hand, so that a table agreeing with its summary is not two copies of one error. The mechanism checks (`check_icu_gate_switch.R`, `check_mass_casualty_kia_split.R`) stay alongside the protocol checks that cover the same experiment, each covering a mechanism rather than magnitudes; neither is subsumed by its protocol check.
+Each protocol check ends with an assertion against an input whose answer is computable by hand, so that a table agreeing with its summary is not two copies of one error. The mechanism checks (`check_icu_gate_switch.R`, `check_casualty_surge_kia_split.R`) stay alongside the protocol checks that cover the same experiment, each covering a mechanism rather than magnitudes; neither is subsumed by its protocol check.
 
 Two kinds of published figure are exempt under the rule and are recorded so that a later reader does not put them back on the list. The theatre queue clearance statistics the companion paper quotes in prose are the campaign time series measurement read in prose, and `scripts/check_time_series_figures.R` asserts each percentage against `data/time_series/`. The surgical team utilisation figures the companion paper quotes for the extended-coverage option are seed-42 single-run readings, recoverable from the tracked baseline and not a replicated measurement of their own.
 
@@ -301,7 +302,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
-| Mass casualty event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
+| Casualty surge event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 30 d | 5 per point | 1,620 points | unpinned | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 30 d | 8 per point | 8,000 points | unpinned | total-order index; bootstrap |
@@ -549,23 +550,38 @@ The response set is the policy sweep's, extended with four the trade needs and n
 
 The range runs past the point at which a higher threshold might stop firing, so that an inert value is identified by measurement rather than assumed. Whether a threshold fires depends on the horizon and the casualty load, because the release is a saturation response to a queue that grows with both; the companion paper reports where the swept thresholds fire. `scripts/check_definitive_repair_release.R` asserts that the release is reachable at a threshold in force and absent at zero.
 
-### Mass Casualty Event Stress Test
+### Casualty Surge Event Stress Test
 
-<!-- MASS_CASUALTY replications=30 -->
-<!-- MASS_CASUALTY days=360 -->
-<!-- MASS_CASUALTY seed=42 -->
-<!-- MASS_CASUALTY arms=0,0.2 -->
-30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `mass_casualty.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
+<!-- CASUALTY_SURGE replications=30 -->
+<!-- CASUALTY_SURGE days=360 -->
+<!-- CASUALTY_SURGE seed=42 -->
+<!-- CASUALTY_SURGE arms=0,0.2 -->
+30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override: `casualty_surge.event.rate_per_day` set to 0.2 events per day, a mean of five days between events, against a background-only arm at the shipped value of 0. Invoked as:
 
 ```
-Rscript scripts/run_mass_casualty.R --refresh-baseline
+Rscript scripts/run_casualty_surge.R --refresh-baseline
 ```
 
-The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00060 for the ordinary casualty rate in the background-only arm, 0.00073 for the ordinary rate and 0.00179 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 3 and 13 replications respectively, and a twentieth of a point requires 49 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 160,797 and 158,865 ordinary casualties and 86,751 event casualties. `--refresh-baseline` is the only way to write the tracked `data/mass_casualty/`, and it runs the protocol above rather than whatever arguments accompany it.
+The count is derived rather than assumed. The responses are died-of-wounds rates, so the derivation uses their per-replication standard deviation measured on the experiment itself at the sustained horizon: 0.00070 for the ordinary casualty rate in the background-only arm, 0.00062 for the ordinary rate and 0.00174 for the event casualty rate in the injected arm. Setting the half-width $z s / \sqrt{n}$ equal to a tenth of a percentage point, the size of difference the comparison is read at, requires 2, 2 and 12 replications respectively, and a twentieth of a point requires 47 for the event rate, so 30 replications per arm resolves the comparison with margin. The rates are also pooled across replications with an exact binomial interval, which at this horizon rests on 161,877 and 156,428 ordinary casualties and 86,637 event casualties. `--refresh-baseline` is the only way to write the tracked `data/casualty_surge/`, and it runs the protocol above rather than whatever arguments accompany it.
 
-Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/mass_casualty_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_mass_casualty.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
+Injection ships disabled, so everything in this experiment needs that override, the illustrative single run and `images/casualty_surge_events.png` included, and none of it can be reproduced by a shipped-configuration run. That makes this figure the one tracked image `run.R --refresh-baseline` cannot write; `scripts/run_casualty_surge.R --refresh-baseline` writes it alongside the replicated evidence set, at the module's own seed and horizon.
 
-The casualty count drawn for an event is its total, not the number of survivors. A configured share, `mass_casualty.event.kia_fraction`, arrives killed at or near the point of injury and goes to the mortuary pathway rather than through triage. 
+#### Event Size Sweep
+
+<!-- CASUALTY_SURGE_SIZE replications=30 -->
+<!-- CASUALTY_SURGE_SIZE days=360 -->
+<!-- CASUALTY_SURGE_SIZE seed=42 -->
+<!-- CASUALTY_SURGE_SIZE rate=0.2 -->
+<!-- CASUALTY_SURGE_SIZE sizes=10,20,40,60,90,120,180 -->
+The 20 to 60 casualty range of an injected event is an informed estimate, so the stress test above cannot say how large an event must be before care degrades. The sweep fixes `casualty_surge.event.min_cas` and `max_cas` at one value, so that the response is a function of size alone, and runs 30 replications of 360 simulated days at each of seven sizes at control seed 42, with the stress test's injection rate of 0.2 events per day, beside a no-event arm. Each response is the pooled died-of-wounds rate of event and ordinary casualties, with an exact binomial interval, and the largest four-hour mean queue of each of four pools over the campaign, with a Student $t$ interval across replications. Peaks are taken over the whole campaign because an event falling outside a closing window would otherwise be missed. Invoked as:
+
+```
+Rscript scripts/run_casualty_surge_size_sweep.R --refresh-baseline
+```
+
+Each size is checkpointed as it completes and resumed rather than re-run. `--refresh-baseline` is the only way to write the tracked size sweep files in `data/casualty_surge/`, and it runs the protocol above rather than the caller's arguments. Events are rebuilt from the event identifier the generator assigns each casualty, not from arrival gaps, since two events starting within one injection window of each other would otherwise be read as a single event larger than the configured size; `scripts/check_surge_event_size.R` defends that.
+
+The casualty count drawn for an event is its total, not the number of survivors. A configured share, `casualty_surge.event.kia_fraction`, arrives killed at or near the point of injury and goes to the mortuary pathway rather than through triage. 
 
 ---
 
@@ -594,7 +610,7 @@ The Morris screen runs 20 trajectories on a four-level grid with a jump of two o
 Rscript scripts/run_sensitivity.R
 ```
 
-The Sobol decomposition runs on a Saltelli design with $N = 800$ over 8 columns, which is 8,000 design points ($800 \times 10$), with 8 replications of 30 days at each point, the Sobol 2007 estimator, and 1,000 bootstrap resamples for the intervals. The columns are the unresolved leading cluster of the Morris ranking on the system operating theatre queue, ranks 1 to 7, together with the second coordinate of the mass casualty composition, which enters as a single object sampled from a Dirichlet distribution whenever one of its coordinates falls inside the cluster. The cut at rank 7 is the unit the screen resolves: at 20 trajectories no parameter between ranks 2 and 7 separates from its neighbour. Invoked as:
+The Sobol decomposition runs on a Saltelli design with $N = 800$ over 8 columns, which is 8,000 design points ($800 \times 10$), with 8 replications of 30 days at each point, the Sobol 2007 estimator, and 1,000 bootstrap resamples for the intervals. The columns are the unresolved leading cluster of the Morris ranking on the system operating theatre queue, ranks 1 to 7, together with the second coordinate of the casualty surge composition, which enters as a single object sampled from a Dirichlet distribution whenever one of its coordinates falls inside the cluster. The cut at rank 7 is the unit the screen resolves: at 20 trajectories no parameter between ranks 2 and 7 separates from its neighbour. Invoked as:
 
 ```
 Rscript scripts/run_sensitivity.R --sobol
@@ -602,7 +618,7 @@ Rscript scripts/run_sensitivity.R --sobol
 
 Three further scripts defend the decomposition's reading. `scripts/measure_noise_floor.R` measures how much of the variance is replication noise by evaluating a sample of design points at many more replications than the decomposition used, and reports the factor the indices are deflated by. `scripts/compare_sobol_estimators.R` recomputes the cached responses under the Jansen and Martinez estimators, which share the design and so cost no further simulation. `scripts/test_sobol_separation.R` bootstraps the design rather than the indices, so that two indices estimated from the same evaluations keep their correlation, and reports the sample size each unestablished separation would require. A screen that takes days is protected against its environment by `scripts/screen_cache.sh` and `scripts/supervise_screen.sh`, which checkpoint the design point cache onto its own git ref and restore it before each attempt; `scripts/check_screen_cache.R` and `scripts/check_screen_order.R` assert that a resumed screen re-evaluates nothing and that the design and its evaluation order repeat at one control seed. The tracked evidence set is `data/sensitivity/`, and `scripts/check_sensitivity_protocol.R` asserts that the design parameters above are the ones its run metadata records.
 
-**Why the screens stay at 30 days.** A screen at the sustained-operations horizon would be blind to nothing it is not already blind to at 30 days and would cost far more. The case for a length-matched re-screen rests on the sustained-operations measurement of the companion paper, which finds the R2E queues drifting at high intensity and converging, within the resolution of the replications, at moderate intensity. The screens run under the shipped default, whose casualty load is comparable to moderate intensity: the 62 background-only replications of the mass casualty comparison average 441.1 casualties in 30 days against 435.7 for `moderate_intensity` over 50, with overlapping intervals. A configuration at that load is not expected to behave worse than moderate intensity, so the responses the screens rank sit on the converging side of the boundary. The cost is not small: the 30-day Morris screen takes roughly fifteen and a half hours and the Sobol decomposition roughly a hundred, and scaling by the runtime ratio of 3.8 that a 360-day campaign measures against a 30-day one at the base configuration puts a length-matched pair at roughly eighteen days before congested design points widen it.
+**Why the screens stay at 30 days.** A screen at the sustained-operations horizon would be blind to nothing it is not already blind to at 30 days and would cost far more. The case for a length-matched re-screen rests on the sustained-operations measurement of the companion paper, which finds the R2E queues drifting at high intensity and converging, within the resolution of the replications, at moderate intensity. The screens run under the shipped default, whose casualty load is comparable to moderate intensity: the 62 background-only replications of the casualty surge comparison average 441.1 casualties in 30 days against 435.7 for `moderate_intensity` over 50, with overlapping intervals. A configuration at that load is not expected to behave worse than moderate intensity, so the responses the screens rank sit on the converging side of the boundary. The cost is not small: the 30-day Morris screen takes roughly fifteen and a half hours and the Sobol decomposition roughly a hundred, and scaling by the runtime ratio of 3.8 that a 360-day campaign measures against a 30-day one at the base configuration puts a length-matched pair at roughly eighteen days before congested design points widen it.
 
 The decision is a scoping one and not a closure. It should be revisited if the default configuration's casualty load moves toward high intensity, which would weaken the analogy to moderate intensity, or if a screen is being run for another reason, which would make extending its horizon cheap by comparison.
 

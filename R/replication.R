@@ -9,17 +9,17 @@ library(parallel)
 source("R/constants.R")
 
 # ── Single simulation build + run ─────────────────────────────────────────────
-#' Generate the run's mass casualty event stream and initialise its sinks
+#' Generate the run's casualty surge event stream and initialise its sinks
 #'
 #' @param n_days      Simulation duration in days
 #' @param write_files Write the event schedule to `data_dir` (TRUE for
 #'   single-run diagnostics; FALSE for parallel replication workers)
 #' @param data_dir    Directory the event schedule is written to when
 #'   `write_files` is TRUE
-#' @return The list returned by generate_mass_casualty_events(): the event
+#' @return The list returned by generate_casualty_surge_events(): the event
 #'   table and the wounded and killed arrival times and event ids.
 #'
-#' @details Mass casualty injection (Issue #9) is exogenous and pre-computed (a
+#' @details Casualty surge injection (Issue #9) is exogenous and pre-computed (a
 #'   compound Poisson process, or in "scheduled" mode a planner-specified
 #'   day/probability list) rather than population-scaled the way the six
 #'   background streams are. The event stream is therefore drawn once, here,
@@ -27,30 +27,30 @@ source("R/constants.R")
 #'   by add_casualty_generators().
 #'
 #'   The three globals initialised here are the sinks
-#'   wrap_with_mass_casualty() writes each emitted entity's event id into, and
+#'   wrap_with_casualty_surge() writes each emitted entity's event id into, and
 #'   the priority table build_casualty_trajectory() reads that id against; they
 #'   are assigned with <<- for the same reason env, env_data, day_min and
 #'   counts are, being state the trajectory closures resolve at run time rather
-#'   than arguments simmer can pass. wia_cbt_mass_casualty_event_id and
-#'   kia_cbt_mass_casualty_event_id are built incrementally (0 = background) as
+#'   than arguments simmer can pass. wia_cbt_casualty_surge_event_id and
+#'   kia_cbt_casualty_surge_event_id are built incrementally (0 = background) as
 #'   entities are actually emitted, so they must start empty on every
 #'   replication. In forked mclapply workers <<- modifies only the fork's
 #'   global state.
-init_mass_casualty_stream <- function(n_days, write_files, data_dir) {
-  mass_casualty <- generate_mass_casualty_events(n_days,
-                      env_data$vars$mass_casualty, write_file = write_files,
+init_casualty_surge_stream <- function(n_days, write_files, data_dir) {
+  casualty_surge <- generate_casualty_surge_events(n_days,
+                      env_data$vars$casualty_surge, write_file = write_files,
                       data_dir = data_dir)
-  wia_cbt_mass_casualty_event_id <<- integer(0)
-  kia_cbt_mass_casualty_event_id <<- integer(0)
-  mass_casualty_event_priority_table <<- mass_casualty$events
-  mass_casualty
+  wia_cbt_casualty_surge_event_id <<- integer(0)
+  kia_cbt_casualty_surge_event_id <<- integer(0)
+  casualty_surge_event_priority_table <<- casualty_surge$events
+  casualty_surge
 }
 
 #' Add the force-size globals and the six casualty generators to the environment
 #'
 #' @param env           The simmer environment under construction
 #' @param casualty      The casualty trajectory every generator feeds
-#' @param mass_casualty The event stream returned by init_mass_casualty_stream()
+#' @param casualty_surge The event stream returned by init_casualty_surge_stream()
 #' @param n_days        Simulation duration in days
 #' @return The environment, with the force-size and evacuation-wait globals and
 #'   the six casualty generators added.
@@ -63,14 +63,14 @@ init_mass_casualty_stream <- function(n_days, write_files, data_dir) {
 #'   event (R/trajectories.R), plus a periodic reinforcement trajectory, closing
 #'   the loop the old fixed-population generator could not represent.
 #'
-#'   wrap_with_mass_casualty() interleaves the pre-computed event stream into
+#'   wrap_with_casualty_surge() interleaves the pre-computed event stream into
 #'   the wia_cbt closure in true chronological order, writing each emitted
 #'   entity's event id into the sink named by id_sink.
 #'   build_casualty_trajectory() reads that sink via the entity's
-#'   generator-assigned index to set the mass_casualty_event and
-#'   mass_casualty_event_id attributes and to look up that event's own priority
+#'   generator-assigned index to set the casualty_surge_event and
+#'   casualty_surge_event_id attributes and to look up that event's own priority
 #'   split (scheduled mode only; NA pri_one for poisson-mode events falls back
-#'   to the shared env_data$vars$mass_casualty$priority split). An event's
+#'   to the shared env_data$vars$casualty_surge$priority split). An event's
 #'   immediate killed (Issue #149) are overlaid the same way on kia_cbt, with
 #'   their own sink, so they take the mortuary pathway the background killed
 #'   stream already takes rather than the wounded trajectory.
@@ -81,21 +81,21 @@ init_mass_casualty_stream <- function(n_days, write_files, data_dir) {
 #'   drawing on the same pool samples against the same bound. With reinforcement
 #'   disabled, the shipped default, each returns its own establishment strength
 #'   and the streams sample exactly as they did before.
-add_casualty_generators <- function(env, casualty, mass_casualty, n_days) {
+add_casualty_generators <- function(env, casualty, casualty_surge, n_days) {
   bound_combat  <- reinforcement_force_bound(env_data$pops$combat)
   bound_support <- reinforcement_force_bound(env_data$pops$support)
 
-  wia_cbt_gen <- wrap_with_mass_casualty(
+  wia_cbt_gen <- wrap_with_casualty_surge(
     generate_casualty_arrivals(env_data$vars$generators$wia_cbt,
                                "effective_force_combat", bound_combat, n_days),
-    mass_casualty$arrival_times, mass_casualty$casualty_event_id,
-    id_sink = "wia_cbt_mass_casualty_event_id")
+    casualty_surge$arrival_times, casualty_surge$casualty_event_id,
+    id_sink = "wia_cbt_casualty_surge_event_id")
 
-  kia_cbt_gen <- wrap_with_mass_casualty(
+  kia_cbt_gen <- wrap_with_casualty_surge(
     generate_casualty_arrivals(env_data$vars$generators$kia_cbt,
                                "effective_force_combat", bound_combat, n_days),
-    mass_casualty$kia_arrival_times, mass_casualty$kia_casualty_event_id,
-    id_sink = "kia_cbt_mass_casualty_event_id")
+    casualty_surge$kia_arrival_times, casualty_surge$kia_casualty_event_id,
+    id_sink = "kia_cbt_casualty_surge_event_id")
 
   env %>%
     add_global("effective_force_combat", env_data$pops$combat) %>%
@@ -126,7 +126,7 @@ add_casualty_generators <- function(env, casualty, mass_casualty, n_days) {
 #'
 #' @details Reinforcement demand cycle (Issue #18 follow-up): only scheduled
 #'   when demand_interval_days > 0, so the shipped disabled default consumes no
-#'   RNG draws and adds no generator at all, matching the mass-casualty
+#'   RNG draws and adds no generator at all, matching the casualty-surge
 #'   rate_per_day = 0 disable-path convention elsewhere in this file. First
 #'   demand fires at day `demand_interval_days`, not day 0 — a pool starts at
 #'   full strength, so an immediate submission would have zero demand.
@@ -175,7 +175,7 @@ add_reinforcement_cycle <- function(env, n_days) {
 #'
 #'   Both start at zero capacity — they always exist (any casualty reaching
 #'   Strategic Evac unconditionally tries to seize one of them, so neither can
-#'   be conditionally absent the way mass casualty injection or reinforcement
+#'   be conditionally absent the way casualty surge injection or reinforcement
 #'   are), but capacity is only ever added to by the periodic AME sortie
 #'   generator. No generator is added at all — so AME never opens and every
 #'   strategic evacuee queues indefinitely — when schedule_interval_days is
@@ -218,7 +218,7 @@ add_strategic_evac <- function(env, n_days) {
 #' @return A wrapped simmer environment (use get_mon_*() on a list of these)
 #'
 #' @details The body is the assembly sequence: build the environment, draw the
-#'   mass casualty event stream, add the casualty generators, add the
+#'   casualty surge event stream, add the casualty generators, add the
 #'   reinforcement cycle and the strategic evacuation resources where the
 #'   configuration schedules them, run, and wrap. Each step is a named function
 #'   above, carrying the reasoning for what it adds.
@@ -235,9 +235,9 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
   env <<- build_env(env, env_data, ot_hours = ot_hours)
   casualty <- build_casualty_trajectory()
 
-  mass_casualty <- init_mass_casualty_stream(n_days, write_files, data_dir)
+  casualty_surge <- init_casualty_surge_stream(n_days, write_files, data_dir)
 
-  env <<- add_casualty_generators(env, casualty, mass_casualty, n_days) %>%
+  env <<- add_casualty_generators(env, casualty, casualty_surge, n_days) %>%
     add_reinforcement_cycle(n_days) %>%
     add_strategic_evac(n_days)
 

@@ -42,7 +42,8 @@ The measurements record where queues form at each intensity and which responses 
   - [R2E Holding Establishment](#r2e-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
-- [Mass Casualty Events](#mass-casualty-events)
+- [Casualty Surge Events](#casualty-surge-events)
+- [Casualty Surge Event Size](#casualty-surge-event-size)
 - [Resolution of Paired Differences](#resolution-of-paired-differences)
 - [Sensitivity Screens](#sensitivity-screens)
 - [Annex A. Model Verification of One Seed-42 Campaign](#annex-a-model-verification-of-one-seed-42-campaign)
@@ -446,26 +447,49 @@ No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|f
 
 ---
 
-## Mass Casualty Events
+## Casualty Surge Events
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** What changes when mass casualty events are injected into a campaign? `[default, injection off and on at 0.2 events per day · 360 d · 30 replications per arm · independent seeds, pooled exact binomial]`
+**Question.** What changes when casualty surge events are injected into a campaign? `[default, injection off and on at 0.2 events per day · 360 d · 30 replications per arm · independent seeds, pooled exact binomial]`
 
-<!-- GEN mass_casualty -->
+<!-- GEN casualty_surge -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 5359.9 | 8187.2 |
-| Average events/run | 0 | 69.83 (range 57–83) |
-| Died-of-wounds rate, ordinary casualties | 0.29% [0.26%, 0.31%] | 0.37% [0.34%, 0.40%] |
-| Died-of-wounds rate, event casualties | not applicable | 0.77% [0.72%, 0.84%] |
+| Average total casualties/run | 5395.9 | 8102.2 |
+| Average events/run | 0 | 72.47 (range 59–91) |
+| Died-of-wounds rate, ordinary casualties | 0.22% [0.19%, 0.24%] | 0.23% [0.20%, 0.25%] |
+| Died-of-wounds rate, event casualties | not applicable | 0.77% [0.71%, 0.83%] |
 <!-- /GEN -->
 
-![Stem plot of two mass casualty events reconstructed from one campaign](../images/mass_casualty_events.png)
+![Stem plot of two casualty surge events reconstructed from one campaign](../images/casualty_surge_events.png)
 
-Two mass casualty events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
+Two casualty surge events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
 
-Events added <!-- GEN cell:mass_casualty|Average events/run|Events injected|full -->69.83 (range 57–83)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:mass_casualty|Average total casualties/run|No events injected|full -->5359.9<!-- /GEN --> to <!-- GEN cell:mass_casualty|Average total casualties/run|Events injected|full -->8187.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:mass_casualty|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.72%, 0.84%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:mass_casualty|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.29% [0.26%, 0.31%]<!-- /GEN --> without injection and <!-- GEN cell:mass_casualty|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.37% [0.34%, 0.40%]<!-- /GEN --> with it.
+Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->72.47 (range 59–91)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5395.9<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8102.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.71%, 0.83%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.23% [0.20%, 0.25%]<!-- /GEN --> with it.
+
+---
+
+## Casualty Surge Event Size
+
+<small>[Return to Top](#contents)</small>
+
+**Question.** At what size do casualty surge events begin to degrade care? `[default, every event fixed at one size · 0.2 events per day · 360 d · 30 replications per size · independent seeds, pooled exact binomial and Student t]`
+
+<!-- GEN casualty_surge_size -->
+| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E intensive care queue | Peak R2E holding queue |
+|---|---|---|---|---|---|---|---|
+| None | 0.0 | not applicable | 0.22% [0.19%, 0.24%] | 44.2 ± 7.0 | 44.5 ± 7.1 | 18.9 ± 4.1 | 23.4 ± 5.3 |
+| 10 | 72.5 | 0.40% [0.32%, 0.50%] | 0.23% [0.20%, 0.25%] | 51.6 ± 7.2 | 43.1 ± 5.8 | 24.6 ± 6.3 | 46.6 ± 9.1 |
+| 20 | 72.5 | 0.61% [0.54%, 0.68%] | 0.24% [0.21%, 0.26%] | 59.2 ± 8.0 | 49.9 ± 7.9 | 156.4 ± 31.6 | 128.2 ± 13.6 |
+| 40 | 72.5 | 0.80% [0.74%, 0.86%] | 0.25% [0.23%, 0.28%] | 99.4 ± 8.8 | 73.0 ± 7.9 | 644.7 ± 45.6 | 236.2 ± 20.0 |
+| 60 | 72.5 | 0.83% [0.78%, 0.88%] | 0.25% [0.23%, 0.28%] | 117.0 ± 13.8 | 130.6 ± 12.9 | 1067.0 ± 68.1 | 352.9 ± 14.4 |
+| 90 | 72.5 | 0.87% [0.83%, 0.91%] | 0.30% [0.27%, 0.33%] | 148.7 ± 13.7 | 387.7 ± 57.5 | 1562.3 ± 49.7 | 525.3 ± 29.4 |
+| 120 | 72.5 | 0.90% [0.87%, 0.94%] | 0.30% [0.28%, 0.33%] | 197.7 ± 21.4 | 1030.1 ± 114.4 | 1683.7 ± 30.8 | 652.2 ± 44.1 |
+| 180 | 72.5 | 0.94% [0.91%, 0.97%] | 0.35% [0.32%, 0.38%] | 254.3 ± 33.9 | 2529.6 ± 182.1 | 1728.6 ± 25.9 | 882.8 ± 39.2 |
+<!-- /GEN -->
+
+Peak queues are the largest four-hour mean queue of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.40% [0.32%, 0.50%]<!-- /GEN --> and the peak R2E intensive care queue <!-- GEN cell:casualty_surge_size|10|Peak R2E intensive care queue|full -->24.6 ± 6.3<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E intensive care queue|full -->18.9 ± 4.1<!-- /GEN --> with no events injected. At 20 casualties per event the intensive care queue peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E intensive care queue|full -->156.4 ± 31.6<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E intensive care queue|full -->644.7 ± 45.6<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->44.5 ± 7.1<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->130.6 ± 12.9<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->387.7 ± 57.5<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2529.6 ± 182.1<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->0.83% [0.78%, 0.88%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->0.94% [0.91%, 0.97%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->0.35% [0.32%, 0.38%]<!-- /GEN --> at 180.
 
 ---
 
@@ -505,13 +529,13 @@ These screens are tagged 30 days because they were not re-measured at the sustai
 <!-- GEN morris_top -->
 | Rank | Parameter | µ* | σ |
 |---|---|---|---|
-| 1 | `mass_casualty_rate` | 13.04 | 12.81 |
+| 1 | `casualty_surge_rate` | 13.04 | 12.81 |
 | 2 | `pri1_evac_prob` | 4.72 | 5.98 |
 | 3 | `pri1_surg_prob` | 4.35 | 4.68 |
 | 4 | `pri1_dcs_rate` | 4.21 | 6.06 |
 | 5 | `mc_p1_balance` | 4.20 | 7.14 |
-| 6 | `mass_casualty_kia_fraction` | 3.49 | 6.14 |
-| 7 | `mass_casualty_max_cas` | 3.42 | 5.97 |
+| 6 | `casualty_surge_kia_fraction` | 3.49 | 6.14 |
+| 7 | `casualty_surge_max_cas` | 3.42 | 5.97 |
 | 8 | `wia_cbt_mean` | 2.64 | 3.63 |
 | 9 | `dnbi_disease_balance` | 2.45 | 3.08 |
 | 10 | `surg_mode` | 2.33 | 3.33 |
@@ -520,14 +544,14 @@ These screens are tagged 30 days because they were not re-measured at the sustai
 | 13 | `p1_p_max` | 2.03 | 3.56 |
 | 14 | `pri2_surg_prob` | 2.01 | 2.86 |
 | 15 | `r2b_pre_open_window` | 2.00 | 3.73 |
-| 16 | `mass_casualty_min_cas` | 1.98 | 3.74 |
+| 16 | `casualty_surge_min_cas` | 1.98 | 3.74 |
 | 17 | `r2e_hold_mode` | 1.94 | 3.35 |
 | 18 | `pri2_evac_prob` | 1.92 | 3.08 |
 | 19 | `triage_p2_p3_balance` | 1.89 | 3.04 |
 | 20 | `kia_cbt_mean` | 1.84 | 3.21 |
 <!-- /GEN -->
 
-The table lists the twenty parameters with the largest Morris $\mu^*$ on the system operating theatre queue, of eighty screened. `mass_casualty_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
+The table lists the twenty parameters with the largest Morris $\mu^*$ on the system operating theatre queue, of eighty screened. `casualty_surge_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
 
 Scatter plots of the screen for seven responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
 
@@ -562,17 +586,17 @@ Screening of the mean transport utilisation across the PMV Ambulance and HX240M 
 <!-- GEN sobol -->
 | Parameter | Total-order index | First-order index |
 |---|---|---|
-| `mass_casualty_rate` | 0.79 [0.66, 0.92] | 0.34 [0.17, 0.47] |
-| `mass_casualty_max_cas` | 0.27 [0.17, 0.37] | −0.06 [−0.09, −0.02] |
+| `casualty_surge_rate` | 0.79 [0.66, 0.92] | 0.34 [0.17, 0.47] |
+| `casualty_surge_max_cas` | 0.27 [0.17, 0.37] | −0.06 [−0.09, −0.02] |
 | `pri1_surg_prob` | 0.20 [0.07, 0.35] | 0.06 [−0.01, 0.11] |
 | `pri1_evac_prob` | 0.14 [0.04, 0.24] | −0.00 [−0.04, 0.04] |
 | `pri1_dcs_rate` | 0.10 [0.04, 0.17] | −0.00 [−0.04, 0.03] |
-| `mass_casualty_kia_fraction` | 0.10 [−0.00, 0.21] | 0.04 [−0.01, 0.09] |
+| `casualty_surge_kia_fraction` | 0.10 [−0.00, 0.21] | 0.04 [−0.01, 0.09] |
 | `mc_p2_p3_balance` | 0.06 [0.01, 0.12] | −0.02 [−0.04, 0.02] |
 | `mc_p1_balance` | 0.04 [−0.07, 0.13] | −0.01 [−0.05, 0.03] |
 <!-- /GEN -->
 
-The Sobol decomposition of the eight leading parameters on the same response gave `mass_casualty_rate` a total-order index of <!-- GEN cell:sobol|`mass_casualty_rate`|Total-order index|full -->0.79 [0.66, 0.92]<!-- /GEN -->. The next index was <!-- GEN cell:sobol|`mass_casualty_max_cas`|Total-order index|full -->0.27 [0.17, 0.37]<!-- /GEN --> for `mass_casualty_max_cas`.
+The Sobol decomposition of the eight leading parameters on the same response gave `casualty_surge_rate` a total-order index of <!-- GEN cell:sobol|`casualty_surge_rate`|Total-order index|full -->0.79 [0.66, 0.92]<!-- /GEN -->. The next index was <!-- GEN cell:sobol|`casualty_surge_max_cas`|Total-order index|full -->0.27 [0.17, 0.37]<!-- /GEN --> for `casualty_surge_max_cas`.
 
 ---
 

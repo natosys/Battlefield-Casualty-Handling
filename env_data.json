@@ -850,7 +850,7 @@
       ]
     },
     {
-      "elm": "mass_casualty",
+      "elm": "casualty_surge",
       "actys": [
         {
           "acty": "event",

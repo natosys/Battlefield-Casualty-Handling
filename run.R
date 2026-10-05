@@ -24,7 +24,7 @@
 # Artifact policy (Issue #154). Every run writes its analysis artifacts to
 # output_dir ("outputs/", gitignored) and nothing else. The tracked seed-42
 # baseline evidence set — images/, logs/logs.txt, data/arrivals_*.txt and
-# data/mass_casualty_events.csv and data/seed42_verification.csv — is written
+# data/casualty_surge_events.csv and data/seed42_verification.csv — is written
 # only when refresh_baseline is
 # TRUE, and then all of it is written together from the one run, so the set
 # can never describe a mixture of runs. See the README's "Running the
@@ -55,7 +55,7 @@ print_analysis_plots <- function(results) {
     "r2b_hold_occupancy_plot", "r2b_bypass_reason_plot", "r2b_treatment",
     "r2b_gantt", "r2e_surgery", "r2e_bed_queues", "waiting_times",
     "transport_capacity_margin_plot", "r2e_gantt", "r2e_icu_gating_plot",
-    "mass_casualty_timeline_plot", "force_regeneration_plot", "role4_census_plot",
+    "casualty_surge_timeline_plot", "force_regeneration_plot", "role4_census_plot",
     "ame_backlog_plot", "ame_sortie_plot"
   )
   for (plot_name in plot_order) {

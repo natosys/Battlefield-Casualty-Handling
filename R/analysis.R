@@ -17,20 +17,20 @@ source("R/constants.R")
 source("R/censoring.R")
 source("R/queue_series.R")
 
-# Jitter applied to the pooled mass casualty timeline is cosmetic — it
+# Jitter applied to the pooled casualty surge timeline is cosmetic — it
 # separates events that fall on the same day — but it is drawn at render
 # time, so an unseeded jitter gives a different image every time the same
 # monitoring data is plotted. A fixed seed makes the tracked image a function
 # of the data alone; position_jitter() restores the caller's stream itself,
 # so the pipeline stays stream-neutral (Issue #233).
-#' Seed the mass casualty timeline's jitter is drawn under
+#' Seed the casualty surge timeline's jitter is drawn under
 #'
 #' @details position_jitter() draws from the session stream at plot time, so
 #'   an unseeded jitter gives a different image every time the same
 #'   monitoring data is plotted. Fixing the seed makes the tracked image a
 #'   function of the data alone. Any value serves; changing it changes the
 #'   tracked image without changing what it says.
-MASS_CASUALTY_JITTER_SEED <- 233L
+CASUALTY_SURGE_JITTER_SEED <- 233L
 
 # ── The published capacity sweeps' protocol ──────────────────────────────────
 # The designs docs/Methods.md documents for the transport
@@ -2369,55 +2369,63 @@ summarise_force_regeneration <- function(attributes_raw, output_dir, images_dir)
   )
 }
 
-#' Summarise the mass casualty events the run injected
+#' Reconstruct one row per injected surge event from its tagged casualties
+#'
+#' @param tagged Casualty rows carrying `replication`, `start_time`,
+#'   `injury_type` and `casualty_surge_event_id` (the event each casualty
+#'   was injected by), restricted to event-origin casualties.
+#' @return Data frame of `replication`, `event_id`, `event_start`, `event_end`,
+#'   `n_cas`, `n_kia`, `n_wia` and `event_day`, one row per generated event.
+#'
+#' @details Events are grouped by the id the generator assigned rather than
+#'   clustered on arrival gaps. A gap rule merges two events whose starts fall
+#'   within one injection window of each other into a single apparent event
+#'   larger than the configured `max_cas`.
+reconstruct_surge_events <- function(tagged) {
+  tagged %>%
+    group_by(replication, event_id = casualty_surge_event_id) %>%
+    summarise(
+      event_start = min(start_time),
+      event_end   = max(start_time),
+      n_cas       = n(),
+      n_kia       = sum(!is.na(injury_type) & injury_type == 3),
+      n_wia       = n_cas - n_kia,
+      .groups     = "drop"
+    ) %>%
+    mutate(event_day = floor(event_start / DAY_MIN) + 1)
+}
+
+#' Summarise the casualty surge events the run injected
 #'
 #' @param combined Arrivals joined to attributes_wide, with casualty type, population
 #'   source and arrival day derived.
 #' @param output_dir Directory the tables are written to.
 #' @param images_dir Directory the plots are written to.
-#' @return A list of `mass_casualty_dow_summary`, `mass_casualty_event_count`,
-#'   `mass_casualty_events_summary`, `mass_casualty_timeline_plot`.
-summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
-  mass_casualty_gap_min <- env_data$vars$mass_casualty$event$window_max
+#' @return A list of `casualty_surge_dow_summary`, `casualty_surge_event_count`,
+#'   `casualty_surge_events_summary`, `casualty_surge_timeline_plot`.
+summarise_casualty_surge_events <- function(combined, output_dir, images_dir) {
+  casualty_surge_tagged <- combined %>%
+    filter(!is.na(casualty_surge_event) & casualty_surge_event == 1)
 
-  mass_casualty_tagged <- combined %>%
-    filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
-
-  if (nrow(mass_casualty_tagged) > 0) {
-    mass_casualty_events_summary <- mass_casualty_tagged %>%
-      arrange(replication, start_time) %>%
-      group_by(replication) %>%
-      mutate(
-        gap      = start_time - lag(start_time, default = -Inf),
-        event_id = cumsum(gap > mass_casualty_gap_min)
-      ) %>%
-      group_by(replication, event_id) %>%
-      summarise(
-        event_start = min(start_time),
-        event_end   = max(start_time),
-        n_cas       = n(),
-        n_kia       = sum(!is.na(injury_type) & injury_type == 3),
-        n_wia       = n_cas - n_kia,
-        .groups     = "drop"
-      ) %>%
-      mutate(event_day = floor(event_start / DAY_MIN) + 1)
+  if (nrow(casualty_surge_tagged) > 0) {
+    casualty_surge_events_summary <- reconstruct_surge_events(casualty_surge_tagged)
   } else {
-    mass_casualty_events_summary <- data.frame(
+    casualty_surge_events_summary <- data.frame(
       replication = integer(0), event_id = integer(0), event_start = numeric(0),
       event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
       n_wia = integer(0), event_day = numeric(0)
     )
   }
 
-  mass_casualty_event_count <- nrow(mass_casualty_events_summary)
+  casualty_surge_event_count <- nrow(casualty_surge_events_summary)
 
-  # DOW rate comparison: casualties originating from a mass casualty surge vs.
+  # DOW rate comparison: casualties originating from a casualty surge vs.
   # background-generated casualties, as a proxy for elevated mortality under
-  # mass casualty surge conditions (see README Limitations for the
+  # casualty surge conditions (see README Limitations for the
   # window-vs-origin comparison design choice).
-  mass_casualty_dow_summary <- combined %>%
-    filter(!is.na(mass_casualty_event)) %>%
-    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+  casualty_surge_dow_summary <- combined %>%
+    filter(!is.na(casualty_surge_event)) %>%
+    mutate(origin = if_else(casualty_surge_event == 1, "Casualty Surge Event", "Background")) %>%
     group_by(origin) %>%
     summarise(
       total    = n(),
@@ -2426,44 +2434,45 @@ summarise_mass_casualty_events <- function(combined, output_dir, images_dir) {
       .groups  = "drop"
     )
 
-  mass_casualty_timeline_plot <- NULL
-  if (mass_casualty_event_count > 0) {
-    n_sim_days_mass_casualty <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
+  casualty_surge_timeline_plot <- NULL
+  if (casualty_surge_event_count > 0) {
+    n_sim_days_casualty_surge <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
 
-    mass_casualty_timeline_plot <- ggplot(mass_casualty_events_summary,
-                                   aes(x = event_start / DAY_MIN, y = n_cas)) +
+    casualty_surge_timeline_plot <- ggplot(casualty_surge_events_summary,
+                                           aes(x = event_start / DAY_MIN, y = n_cas)) +
       geom_segment(aes(xend = event_start / DAY_MIN, y = 0, yend = n_cas), color = "#D62828") +
       geom_point(size = 3, color = "#D62828") +
-      scale_x_continuous(limits = c(0, n_sim_days_mass_casualty),
-                         breaks = seq(0, n_sim_days_mass_casualty, by = 2)) +
+      scale_x_continuous(limits = c(0, n_sim_days_casualty_surge),
+                         breaks = seq(0, n_sim_days_casualty_surge, by = 2)) +
       labs(
-        title    = "Mass Casualty Event Timeline",
+        title    = "Casualty Surge Event Timeline",
         subtitle = sprintf(
           "%d event(s) across the simulation period (compound Poisson injection)",
-          mass_casualty_event_count
+          casualty_surge_event_count
         ),
         x = "Simulation Day", y = "Casualties Injected by Event"
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank())
 
-    if (n_distinct(mass_casualty_events_summary$replication) > 1) {
-      mass_casualty_timeline_plot <- mass_casualty_timeline_plot + facet_wrap(~ replication, ncol = 1)
+    if (n_distinct(casualty_surge_events_summary$replication) > 1) {
+      casualty_surge_timeline_plot <- casualty_surge_timeline_plot + facet_wrap(~ replication, ncol = 1)
     }
 
-    ggsave(file.path(images_dir, "mass_casualty_events.png"), mass_casualty_timeline_plot,
+    ggsave(file.path(images_dir, "casualty_surge_events.png"), casualty_surge_timeline_plot,
            width = 12, height = 6, dpi = 150)
   }
 
-  write.csv(mass_casualty_events_summary, file.path(output_dir, "mass_casualty_events_summary.csv"),
-           row.names = FALSE)
-  write.csv(mass_casualty_dow_summary,    file.path(output_dir, "mass_casualty_dow_summary.csv"),
-           row.names = FALSE)
+  write.csv(casualty_surge_events_summary,
+            file.path(output_dir, "casualty_surge_events_summary.csv"),
+            row.names = FALSE)
+  write.csv(casualty_surge_dow_summary,    file.path(output_dir, "casualty_surge_dow_summary.csv"),
+            row.names = FALSE)
   list(
-    mass_casualty_dow_summary = mass_casualty_dow_summary,
-    mass_casualty_event_count = mass_casualty_event_count,
-    mass_casualty_events_summary = mass_casualty_events_summary,
-    mass_casualty_timeline_plot = mass_casualty_timeline_plot
+    casualty_surge_dow_summary = casualty_surge_dow_summary,
+    casualty_surge_event_count = casualty_surge_event_count,
+    casualty_surge_events_summary = casualty_surge_events_summary,
+    casualty_surge_timeline_plot = casualty_surge_timeline_plot
   )
 }
 
@@ -3370,25 +3379,22 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   force_regeneration_daily <- force_regeneration_out$force_regeneration_daily
   force_regeneration_plot <- force_regeneration_out$force_regeneration_plot
 
-  # ── KPI 9: Mass casualty event stress test analysis ─────────────
-  # mass_casualty_event: 1 = casualty originated from a compound-Poisson
-  # mass casualty injection event (R/environment.R::generate_mass_casualty_events()),
+  # ── KPI 9: Casualty surge event stress test analysis ─────────────
+  # casualty_surge_event: 1 = casualty originated from a compound-Poisson
+  # casualty surge injection event (R/environment.R::generate_casualty_surge_events()),
   # 0 = background lognormal generation. Both of the event's pathways carry
   # the tag, the wounded and the immediately killed (Issue #149), so n_cas
   # below is an event's total and n_wia/n_kia its two components.
-  # Individual events are reconstructed
-  # from tagged casualties' arrival times by clustering consecutive arrivals
-  # (within each replication) whose inter-arrival gap does not exceed the
-  # configured mass casualty injection window (env_data$vars$mass_casualty$event$
-  # window_max) — casualties from the same event arrive closer together than
-  # this gap by construction (see generate_mass_casualty_events()).
+  # Individual events are reconstructed by grouping tagged casualties on the
+  # casualty_surge_event_id the generator assigned (reconstruct_surge_events()),
+  # not by clustering arrival gaps, which merged events starting close together.
 
-  # KPI 9: Mass casualty event stress test analysis (Issue #9)
-  mass_casualty_events_out <- summarise_mass_casualty_events(combined, output_dir, images_dir)
-  mass_casualty_dow_summary <- mass_casualty_events_out$mass_casualty_dow_summary
-  mass_casualty_event_count <- mass_casualty_events_out$mass_casualty_event_count
-  mass_casualty_events_summary <- mass_casualty_events_out$mass_casualty_events_summary
-  mass_casualty_timeline_plot <- mass_casualty_events_out$mass_casualty_timeline_plot
+  # KPI 9: Casualty surge event stress test analysis (Issue #9)
+  casualty_surge_events_out <- summarise_casualty_surge_events(combined, output_dir, images_dir)
+  casualty_surge_dow_summary <- casualty_surge_events_out$casualty_surge_dow_summary
+  casualty_surge_event_count <- casualty_surge_events_out$casualty_surge_event_count
+  casualty_surge_events_summary <- casualty_surge_events_out$casualty_surge_events_summary
+  casualty_surge_timeline_plot <- casualty_surge_events_out$casualty_surge_timeline_plot
 
   # ── Role 4 (national support base) census and AME sortie demand ──────────────
   # compute_role4_census()/compute_ame_demand() (above) return per-replication
@@ -3532,10 +3538,10 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
     definitive_repair_outstanding_count = definitive_repair_outstanding_count,
     r2e_icu_gating_daily        = r2e_icu_gating_daily,
     r2e_icu_gating_plot         = r2e_icu_gating_plot,
-    mass_casualty_events_summary       = mass_casualty_events_summary,
-    mass_casualty_event_count          = mass_casualty_event_count,
-    mass_casualty_dow_summary          = mass_casualty_dow_summary,
-    mass_casualty_timeline_plot        = mass_casualty_timeline_plot,
+    casualty_surge_events_summary       = casualty_surge_events_summary,
+    casualty_surge_event_count          = casualty_surge_event_count,
+    casualty_surge_dow_summary          = casualty_surge_dow_summary,
+    casualty_surge_timeline_plot        = casualty_surge_timeline_plot,
     force_regeneration_daily           = force_regeneration_daily,
     force_regeneration_plot            = force_regeneration_plot,
     role4_census_daily          = role4_census_daily,
@@ -4308,7 +4314,7 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
   ame_wait_time_summary_mr
 }
 
-#' Summarise the mass casualty stress test, pooled across replications
+#' Summarise the casualty surge stress test, pooled across replications
 #'
 #' @param clamp_ci See analyse_run().
 #' @param combined Arrivals joined to attributes_wide, with casualty type, population
@@ -4317,70 +4323,60 @@ summarise_ame_wait_by_route <- function(combined, output_dir) {
 #' @param rep_ids See analyse_run().
 #' @param output_dir Directory the tables are written to.
 #' @param images_dir Directory the plots are written to.
-#' @return A list of `mass_casualty_dow_summary_mr`, `mass_casualty_event_count_ci`,
-#'   `mass_casualty_events_summary_mr`, `mass_casualty_timeline_plot_mr`.
-summarise_mass_casualty_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir,
-                                       images_dir) {
-  mass_casualty_gap_min   <- env_data$vars$mass_casualty$event$window_max
-  mass_casualty_tagged_mr <- combined %>%
-    filter(!is.na(mass_casualty_event) & mass_casualty_event == 1)
+#' @return A list of `casualty_surge_dow_summary_mr`, `casualty_surge_event_count_ci`,
+#'   `casualty_surge_events_summary_mr`, `casualty_surge_timeline_plot_mr`.
+summarise_casualty_surge_ci <- function(clamp_ci, combined, n_reps, rep_ids, output_dir,
+                                        images_dir) {
+  casualty_surge_tagged_mr <- combined %>%
+    filter(!is.na(casualty_surge_event) & casualty_surge_event == 1)
 
-  mass_casualty_events_summary_mr <- if (nrow(mass_casualty_tagged_mr) > 0) {
-    mass_casualty_tagged_mr %>%
-      arrange(replication, start_time) %>%
-      group_by(replication) %>%
-      mutate(gap = start_time - lag(start_time, default = -Inf),
-             event_id = cumsum(gap > mass_casualty_gap_min)) %>%
-      group_by(replication, event_id) %>%
-      summarise(event_start = min(start_time), event_end = max(start_time), n_cas = n(),
-                n_kia = sum(!is.na(injury_type) & injury_type == 3),
-                n_wia = n_cas - n_kia, .groups = "drop") %>%
-      mutate(event_day = floor(event_start / DAY_MIN) + 1)
+  casualty_surge_events_summary_mr <- if (nrow(casualty_surge_tagged_mr) > 0) {
+    reconstruct_surge_events(casualty_surge_tagged_mr)
   } else {
     data.frame(replication = integer(0), event_id = integer(0), event_start = numeric(0),
                event_end = numeric(0), n_cas = integer(0), n_kia = integer(0),
                n_wia = integer(0), event_day = numeric(0))
   }
 
-  mass_casualty_event_count_per_rep <- mass_casualty_events_summary_mr %>%
+  casualty_surge_event_count_per_rep <- casualty_surge_events_summary_mr %>%
     count(replication, name = "n_events") %>%
     complete(replication = rep_ids, fill = list(n_events = 0L))
-  mass_casualty_event_count_ci <- clamp_ci(ci_mean(mass_casualty_event_count_per_rep$n_events))
+  casualty_surge_event_count_ci <- clamp_ci(ci_mean(casualty_surge_event_count_per_rep$n_events))
 
-  mass_casualty_dow_summary_mr <- combined %>%
-    filter(!is.na(mass_casualty_event)) %>%
-    mutate(origin = if_else(mass_casualty_event == 1, "Mass Casualty Event", "Background")) %>%
+  casualty_surge_dow_summary_mr <- combined %>%
+    filter(!is.na(casualty_surge_event)) %>%
+    mutate(origin = if_else(casualty_surge_event == 1, "Casualty Surge Event", "Background")) %>%
     group_by(origin) %>%
     summarise(total = n(), dow = sum(dow == 1, na.rm = TRUE), dow_rate = dow / total, .groups = "drop")
 
-  write.csv(mass_casualty_events_summary_mr, file.path(output_dir, "mass_casualty_events_summary_multirun.csv"), row.names = FALSE)
-  write.csv(mass_casualty_dow_summary_mr, file.path(output_dir, "mass_casualty_dow_summary_multirun.csv"), row.names = FALSE)
+  write.csv(casualty_surge_events_summary_mr, file.path(output_dir, "casualty_surge_events_summary_multirun.csv"), row.names = FALSE)
+  write.csv(casualty_surge_dow_summary_mr, file.path(output_dir, "casualty_surge_dow_summary_multirun.csv"), row.names = FALSE)
 
-  mass_casualty_timeline_plot_mr <- NULL
-  if (nrow(mass_casualty_events_summary_mr) > 0) {
+  casualty_surge_timeline_plot_mr <- NULL
+  if (nrow(casualty_surge_events_summary_mr) > 0) {
     n_sim_days_mc <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
-    mass_casualty_timeline_plot_mr <- ggplot(mass_casualty_events_summary_mr, aes(x = event_start / DAY_MIN, y = n_cas)) +
+    casualty_surge_timeline_plot_mr <- ggplot(casualty_surge_events_summary_mr, aes(x = event_start / DAY_MIN, y = n_cas)) +
       geom_point(position = position_jitter(width = 0.15, height = 0,
-                                            seed = MASS_CASUALTY_JITTER_SEED),
+                                            seed = CASUALTY_SURGE_JITTER_SEED),
                  alpha = 0.35, color = "#D62828", size = 2) +
       scale_x_continuous(limits = c(0, n_sim_days_mc), breaks = seq(0, n_sim_days_mc, by = 2)) +
       labs(
-        title    = "Mass Casualty Event Timeline — All Replications Pooled",
+        title    = "Casualty Surge Event Timeline — All Replications Pooled",
         subtitle = sprintf(
           "%d events across %d replications (mean %.2f events/replication); points jittered to reduce overplotting",
-          nrow(mass_casualty_events_summary_mr), n_reps, mass_casualty_event_count_ci[["mean"]]
+          nrow(casualty_surge_events_summary_mr), n_reps, casualty_surge_event_count_ci[["mean"]]
         ),
         x = "Simulation Day", y = "Casualties Injected by Event"
       ) +
       theme_minimal(base_size = 13) +
       theme(panel.grid.minor = element_blank())
-    ggsave(file.path(images_dir, "mass_casualty_events_multirun.png"), mass_casualty_timeline_plot_mr, width = 12, height = 6, dpi = 150)
+    ggsave(file.path(images_dir, "casualty_surge_events_multirun.png"), casualty_surge_timeline_plot_mr, width = 12, height = 6, dpi = 150)
   }
   list(
-    mass_casualty_dow_summary_mr = mass_casualty_dow_summary_mr,
-    mass_casualty_event_count_ci = mass_casualty_event_count_ci,
-    mass_casualty_events_summary_mr = mass_casualty_events_summary_mr,
-    mass_casualty_timeline_plot_mr = mass_casualty_timeline_plot_mr
+    casualty_surge_dow_summary_mr = casualty_surge_dow_summary_mr,
+    casualty_surge_event_count_ci = casualty_surge_event_count_ci,
+    casualty_surge_events_summary_mr = casualty_surge_events_summary_mr,
+    casualty_surge_timeline_plot_mr = casualty_surge_timeline_plot_mr
   )
 }
 
@@ -4838,15 +4834,15 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
   # Actual AME wait time by route — pooled across all replications (Issue #23 follow-up)
   ame_wait_time_summary_mr <- summarise_ame_wait_by_route(combined, output_dir)
 
-  # Mass casualty event stress test — pooled across replications (Issue #9)
+  # Casualty surge event stress test — pooled across replications (Issue #9)
 
-  # Mass casualty event stress test — pooled across replications (Issue #9)
-  mass_casualty_ci_out <- summarise_mass_casualty_ci(clamp_ci, combined, n_reps, rep_ids,
-                                                     output_dir, images_dir)
-  mass_casualty_dow_summary_mr <- mass_casualty_ci_out$mass_casualty_dow_summary_mr
-  mass_casualty_event_count_ci <- mass_casualty_ci_out$mass_casualty_event_count_ci
-  mass_casualty_events_summary_mr <- mass_casualty_ci_out$mass_casualty_events_summary_mr
-  mass_casualty_timeline_plot_mr <- mass_casualty_ci_out$mass_casualty_timeline_plot_mr
+  # Casualty surge event stress test — pooled across replications (Issue #9)
+  casualty_surge_ci_out <- summarise_casualty_surge_ci(clamp_ci, combined, n_reps, rep_ids,
+                                                       output_dir, images_dir)
+  casualty_surge_dow_summary_mr <- casualty_surge_ci_out$casualty_surge_dow_summary_mr
+  casualty_surge_event_count_ci <- casualty_surge_ci_out$casualty_surge_event_count_ci
+  casualty_surge_events_summary_mr <- casualty_surge_ci_out$casualty_surge_events_summary_mr
+  casualty_surge_timeline_plot_mr <- casualty_surge_ci_out$casualty_surge_timeline_plot_mr
 
   # ── Casualty Flow — total casualties per day, mean ± CI across reps ──────
 
@@ -4950,10 +4946,10 @@ analyse_replications <- function(mon, warm_up_period = WARM_UP_DAYS,
     role4_summary_ci               = role4_summary_ci,
     ame_summary_ci                 = ame_summary_ci,
     ame_wait_time_summary          = ame_wait_time_summary_mr,
-    mass_casualty_timeline_plot    = mass_casualty_timeline_plot_mr,
-    mass_casualty_events_summary   = mass_casualty_events_summary_mr,
-    mass_casualty_event_count_ci   = mass_casualty_event_count_ci,
-    mass_casualty_dow_summary      = mass_casualty_dow_summary_mr
+    casualty_surge_timeline_plot    = casualty_surge_timeline_plot_mr,
+    casualty_surge_events_summary   = casualty_surge_events_summary_mr,
+    casualty_surge_event_count_ci   = casualty_surge_event_count_ci,
+    casualty_surge_dow_summary      = casualty_surge_dow_summary_mr
   ))
 }
 

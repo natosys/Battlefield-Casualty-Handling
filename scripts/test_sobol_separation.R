@@ -7,7 +7,7 @@
 # Usage:
 #   Rscript scripts/test_sobol_separation.R \
 #     --cache outputs/cache/sobol_r20/points.csv \
-#     --params pri1_surg_prob,mass_casualty_rate,... \
+#     --params pri1_surg_prob,casualty_surge_rate,... \
 #     --output outputs
 #
 # Why this exists, and why it is not answered by the reported intervals.

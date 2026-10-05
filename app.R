@@ -399,13 +399,13 @@ SPLIT_SLIDER_META <- list(
                        labels = c("P1", "P2", "P3"))
 )
 # One compositional-split slider per Scheduled Event Days row (Issue #9) —
-# generated rather than hand-written since MASS_CASUALTY_SCHEDULE_SLOTS
+# generated rather than hand-written since CASUALTY_SURGE_SCHEDULE_SLOTS
 # entries are all identical in colour/labels, just keyed by event index.
 SPLIT_SLIDER_META <- c(SPLIT_SLIDER_META, setNames(
-  lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+  lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
     list(colors = c("#c0392b", "#e08e2d", "#2a78d6"), labels = c("P1", "P2", "P3"))
   }),
-  sprintf("mc_event_pri_split_%d", seq_len(MASS_CASUALTY_SCHEDULE_SLOTS))
+  sprintf("mc_event_pri_split_%d", seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS))
 ))
 
 #' Recolour a two-handle ion.rangeSlider's track to show all three
@@ -629,7 +629,7 @@ inject_all_splits <- function(values) {
   values <- inject_split(values, "pri_split",  c("pri_one", "pri_two", "pri_three"))
   values <- inject_split(values, "dnbi_split", c("dnbi_bf_pct", "dnbi_disease_pct", "dnbi_nbi_pct"))
   values <- inject_split(values, "mc_pri_split", c("mc_pri_one", "mc_pri_two", "mc_pri_three"))
-  for (i in seq_len(MASS_CASUALTY_SCHEDULE_SLOTS)) {
+  for (i in seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS)) {
     values <- inject_split(values, sprintf("mc_event_pri_split_%d", i),
                            sprintf(c("mc_sched_pri_one_%d", "mc_sched_pri_two_%d", "mc_sched_pri_three_%d"), i))
   }
@@ -673,8 +673,8 @@ MORRIS_LABELS <- c(
   pri1_surg_prob         = "Priority 1 Surgical Candidacy",
   evacuation_policy_days = "Theatre Evacuation Policy (Days)",
   ot_hours               = "OT Shift Length (Hours per Shift)",
-  mass_casualty_rate     = "Mass Casualty Event Rate (per day)",
-  mass_casualty_max_cas  = "Mass Casualty Event Size (Maximum)",
+  casualty_surge_rate     = "Casualty Surge Event Rate (per day)",
+  casualty_surge_max_cas  = "Casualty Surge Event Size (Maximum)",
 
   # ── Labels for the parameters the full-coverage audit added ─────────────
   short_resus_mode            = "R2E Short Resuscitation Duration (Mode)",
@@ -715,7 +715,7 @@ MORRIS_LABELS <- c(
   kia_spt_mean  = "KIA — Support Mean Daily Rate",
   dnbi_spt_mean = "DNBI — Support Mean Daily Rate",
 
-  mass_casualty_min_cas = "Mass Casualty Event Size (Minimum)",
+  casualty_surge_min_cas = "Casualty Surge Event Size (Minimum)",
 
   fr_demand_interval_days = "Reinforcement Demand Cycle (Days)",
   fr_fulfillment_lag_days = "Reinforcement Fulfillment Lag (Days)",
@@ -746,8 +746,8 @@ MORRIS_LABELS <- c(
   triage_p2_p3_balance = "Triage Balance — Priority 2 against Priority 3",
   dnbi_disease_balance = "DNBI Balance — Disease against Battle Fatigue and NBI",
   dnbi_bf_nbi_balance  = "DNBI Balance — Battle Fatigue against Non-Battle Injury",
-  mc_p1_balance        = "Mass Casualty Triage Balance — Priority 1 against Priority 2 and 3",
-  mc_p2_p3_balance     = "Mass Casualty Triage Balance — Priority 2 against Priority 3"
+  mc_p1_balance        = "Casualty Surge Triage Balance — Priority 1 against Priority 2 and 3",
+  mc_p2_p3_balance     = "Casualty Surge Triage Balance — Priority 2 against Priority 3"
 )
 
 # ── UI helpers ────────────────────────────────────────────────────────────
@@ -1628,9 +1628,9 @@ render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden
   # display via a custom message + the client-side handler registered
   # below, rather than triggering a re-render of this whole group —
   # re-rendering the group here would also rebuild the Event Timing
-  # Mode dropdown and every other Mass Casualty field at its JSON
+  # Mode dropdown and every other Casualty Surge field at its JSON
   # default, discarding whatever the user currently has live in the UI.
-  mc_count <- max(1L, sum(vapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+  mc_count <- max(1L, sum(vapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
     d <- defaults[[sprintf("mc_sched_day_%d", i)]]
     !is.null(d) && !is.na(d) && d > 0
   }, logical(1))))
@@ -1641,7 +1641,7 @@ render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden
       p(class = "text-muted small",
         sprintf(
           "Each event fires independently at its own probability (1 = always) and has its own casualty count and priority mix. Use +/− to add or remove rows (up to %d); removing resets a row rather than deleting it. For more events, edit env_data.json directly.",
-          MASS_CASUALTY_SCHEDULE_SLOTS
+          CASUALTY_SURGE_SCHEDULE_SLOTS
         )),
       tags$script(HTML(
         "if (!window.__mcToggleHandlerRegistered) {
@@ -1658,14 +1658,14 @@ render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden
       ),
       # A plain flex-wrap container rather than layout_column_wrap():
       # bslib's grid locks in a fixed number of explicit row tracks
-      # sized for all MASS_CASUALTY_SCHEDULE_SLOTS cards, so hidden
+      # sized for all CASUALTY_SURGE_SCHEDULE_SLOTS cards, so hidden
       # (display:none) slots still reserved their row's height — every
       # +/- click left a wall of dead space below the visible cards.
       # Flexbox correctly drops display:none items from layout, so the
       # container's height always matches only what's actually shown.
       div(
         style = "display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;",
-        !!!lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+        !!!lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
           day_f      <- Find(function(f) identical(f$id, sprintf("mc_sched_day_%d", i)),       sg_fields)
           prob_f     <- Find(function(f) identical(f$id, sprintf("mc_sched_prob_%d", i)),      sg_fields)
           min_cas_f  <- Find(function(f) identical(f$id, sprintf("mc_sched_min_cas_%d", i)),   sg_fields)
@@ -1700,14 +1700,14 @@ render_scheduled_events_subgroup <- function(sg, sg_fields, defaults, overridden
   ))
 }
 
-#' Render the Mass Casualty Priority Split subgroup, shown in Poisson mode alone
+#' Render the Surge Event Priority Split subgroup, shown in Poisson mode alone
 #'
 #' @param sg See render_group_body().
 #' @param sg_fields See render_group_body().
 #' @param defaults See render_group_body().
 #' @param overridden_paths See render_group_body().
 #' @return A shiny tag or tag list for this subgroup.
-render_mass_casualty_split_subgroup <- function(sg, sg_fields, defaults, overridden_paths) {
+render_casualty_surge_split_subgroup <- function(sg, sg_fields, defaults, overridden_paths) {
   one_f <- Find(function(f) identical(f$id, "mc_pri_one"), sg_fields)
   p1 <- defaults[["mc_pri_one"]]; p2 <- defaults[["mc_pri_two"]]
   mc_pri_lbl <- field_label(list(
@@ -1788,9 +1788,9 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
 
     # Event Timing Mode (the mode dropdown itself) always renders via the
     # default fallback below. Random Event Rate, Scheduled Event Days, and
-    # Mass Casualty Priority Split are each wrapped in a conditionalPanel()
+    # Surge Event Priority Split are each wrapped in a conditionalPanel()
     # keyed off input$mc_mode — the shared casualty-count/priority-split
-    # settings (Random Event Rate, Mass Casualty Priority Split) apply only
+    # settings (Random Event Rate, Surge Event Priority Split) apply only
     # to Poisson-mode events; Scheduled mode instead gives each event its
     # own casualty-count and priority fields, rendered inline in its card.
     # Injection Window (window_min/mode/max) and Wounded and Killed Split
@@ -1805,8 +1805,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
       return(render_scheduled_events_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
-    if (identical(sg, "Mass Casualty Priority Split")) {
-      return(render_mass_casualty_split_subgroup(sg, sg_fields, defaults, overridden_paths))
+    if (identical(sg, "Surge Event Priority Split")) {
+      return(render_casualty_surge_split_subgroup(sg, sg_fields, defaults, overridden_paths))
     }
 
     tagList(
@@ -1844,7 +1844,7 @@ ui <- page_navbar(
     uiOutput("scenario_scope_note"),
     accordion(
       id = "config_accordion", open = c(GRP_FORCE),
-      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_MASS_CASUALTY), function(g) {
+      !!!lapply(c(GRP_FORCE, GRP_HEALTH_ARCH, GRP_LOGISTICS, GRP_PROVISION, GRP_CASUALTY, GRP_CASUALTY_SURGE), function(g) {
         sidebar_output_id <- if (identical(g, GRP_HEALTH_ARCH)) {
           "force_design_diagram"
         } else if (identical(g, GRP_LOGISTICS)) {
@@ -2056,7 +2056,7 @@ wire_configure_panel <- function(input, output, session) {
   wire_range_slider_text_sync(input, session, "pri_split")
   wire_range_slider_text_sync(input, session, "dnbi_split")
   wire_range_slider_text_sync(input, session, "mc_pri_split")
-  lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+  lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
     wire_range_slider_text_sync(input, session, sprintf("mc_event_pri_split_%d", i))
   })
 
@@ -2280,18 +2280,20 @@ wire_scenario_resolution <- function(raw_env_data, input, output, SCENARIO_DROPD
   )
 }
 
-#' Wire the scheduled mass casualty event rows
+#' Wire the scheduled casualty surge event rows
 #'
 #' @param raw_env_data See wire_scenario_selector().
 #' @param input See wire_scenario_selector().
 #' @param session See wire_scenario_selector().
 #' @return `mc_event_count`.
-wire_mass_casualty_rows <- function(raw_env_data, input, session) {
-  mc_event_count <- reactiveVal(max(1L, count_active_mass_casualty_events(isolate(raw_env_data()))))
+wire_casualty_surge_rows <- function(raw_env_data, input, session) {
+  mc_event_count <- reactiveVal(
+    max(1L, count_active_casualty_surge_events(isolate(raw_env_data())))
+  )
 
   observeEvent(input$mc_event_add, {
     n <- mc_event_count()
-    if (n < MASS_CASUALTY_SCHEDULE_SLOTS) {
+    if (n < CASUALTY_SURGE_SCHEDULE_SLOTS) {
       n <- n + 1L
       mc_event_count(n)
       session$sendCustomMessage("mc_toggle_row", list(index = n, show = TRUE))
@@ -2302,7 +2304,7 @@ wire_mass_casualty_rows <- function(raw_env_data, input, session) {
     if (n > 1L) {
       # Reset the row about to be hidden back to its defaults — hiding via
       # display:none does not clear its inputs' values, and every Scheduled
-      # Event Days field is always rendered/bound (see MASS_CASUALTY_
+      # Event Days field is always rendered/bound (see CASUALTY_SURGE_
       # SCHEDULE_SLOTS' own comment), so a hidden-but-nonzero Day would
       # otherwise keep firing silently in Quick Run / Save Configuration.
       updateNumericInput(session, sprintf("mc_sched_day_%d", n),      value = 0)
@@ -2514,10 +2516,10 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
   # Tracks how many Scheduled Event Days rows are currently visible. This is
   # internal server state only — it is never read inside a renderUI, so
   # changing it does not invalidate (and re-render from JSON defaults) the
-  # Mass Casualty group body. Visibility itself is toggled client-side via
+  # Casualty Surge group body. Visibility itself is toggled client-side via
   # the "mc_toggle_row" custom message (handler registered once in
   # render_group_body()'s "Scheduled Event Days" case).
-  mc_event_count <- wire_mass_casualty_rows(raw_env_data, input, session)
+  mc_event_count <- wire_casualty_surge_rows(raw_env_data, input, session)
 
   wire_configure_group_bodies(fields_by_group, input, output, dow_shape, gen_distributions,
                               scenario_json, scenario_overridden_paths)
@@ -2586,13 +2588,13 @@ build_config_validator <- function() {
       }
     }
 
-    # Mass casualty casualties-per-event min/max pairs (Issue #9) — the
+    # Casualty surge casualties-per-event min/max pairs (Issue #9) — the
     # shared Poisson-mode pair and every Scheduled Event Days row, whether
     # or not that row is currently visible (a hidden row is always reset to
     # defaults, but validating it regardless costs nothing and stays
     # correct if that assumption ever changes).
     mc_min_max_ids <- c(list(c("mc_min_cas", "mc_max_cas")),
-                        lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
+                        lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
                           sprintf(c("mc_sched_min_cas_%d", "mc_sched_max_cas_%d"), i)
                         }))
     for (ids in mc_min_max_ids) {
@@ -3566,50 +3568,50 @@ analyse_tab_strategic_ame <- function(analysis_results, shrink_to_fit_plot_ui,
     )
 }
 
-#' Build the Analyse panel's Mass Casualty Events tab
+#' Build the Analyse panel's Casualty Surge Events tab
 #'
-#' The panel shows the mass casualty events the run injected.
+#' The panel shows the casualty surge events the run injected.
 #'
 #' @param analysis_results See wire_analyse_body().
 #' @param run_mode See wire_analyse_body().
 #' @param shrink_to_fit_plot_ui See wire_analyse_body().
 #' @param ANALYSE_PLOT_CHROME_WITH_INTRO_PX See wire_analyse_body().
 #' @return A `nav_panel()` for the Analyse panel's tab set.
-analyse_tab_mass_casualty <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
-                                      ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
-    nav_panel("Mass Casualty Events",
+analyse_tab_casualty_surge <- function(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                       ANALYSE_PLOT_CHROME_WITH_INTRO_PX) {
+    nav_panel("Casualty Surge Events",
       p(class = "text-muted mt-2",
-        "Compound-Poisson mass casualty injection events, reconstructed from tagged ",
+        "Compound-Poisson casualty surge injection events, reconstructed from tagged ",
         "casualties' arrival times, and a comparison of died-of-wounds rate for casualties originating ",
-        "from a mass casualty event vs. background generation.",
+        "from a casualty surge event vs. background generation.",
         if (identical(run_mode(), "full")) " Events are pooled across every replication." else ""),
-      uiOutput("mass_casualty_event_count_card"),
-      if (nrow(analysis_results()$mass_casualty_events_summary) == 0) {
+      uiOutput("casualty_surge_event_count_card"),
+      if (nrow(analysis_results()$casualty_surge_events_summary) == 0) {
         div(class = "alert alert-secondary",
-            "No mass casualty events occurred across these replications (env_data.json mass_casualty ",
-            "configuration may be disabled, or none were drawn).")
+            "No casualty surge events occurred across these replications ",
+            "(env_data.json casualty_surge configuration may be disabled, or none were drawn).")
       } else tagList(
-        h6(class = "text-muted mt-2", "Mass Casualty Event Timeline"),
+        h6(class = "text-muted mt-2", "Casualty Surge Event Timeline"),
         p(class = "text-muted small",
-          "Each point is one mass casualty event: when it occurred and how many casualties it ",
+          "Each point is one casualty surge event: when it occurred and how many casualties it ",
           "injected — use this to confirm your configured event schedule or rate produced the timing ",
           "and scale of surge you intended."),
-        shrink_to_fit_plot_ui("plot_mass_casualty_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
-        downloadButton("dl_mass_casualty_timeline_png", "Download PNG"),
-        downloadButton("dl_mass_casualty_timeline_pdf", "Download PDF"),
-        downloadButton("dl_mass_casualty_timeline_csv", "Download Data (CSV)"),
+        shrink_to_fit_plot_ui("plot_casualty_surge_timeline", 500, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        downloadButton("dl_casualty_surge_timeline_png", "Download PNG"),
+        downloadButton("dl_casualty_surge_timeline_pdf", "Download PDF"),
+        downloadButton("dl_casualty_surge_timeline_csv", "Download Data (CSV)"),
         tags$hr(),
         h6(class = "text-muted mt-2", "Individual Events"),
-        DTOutput("mass_casualty_events_table")
+        DTOutput("casualty_surge_events_table")
       ),
       tags$hr(),
-      h6(class = "text-muted mt-2", "DOW Rate — Mass Casualty Event vs Background"),
+      h6(class = "text-muted mt-2", "DOW Rate — Casualty Surge Event vs Background"),
       p(class = "text-muted small",
-        "Compares died-of-wounds rate for casualties from a mass casualty event against ",
+        "Compares died-of-wounds rate for casualties from a casualty surge event against ",
         "background-generated casualties — a higher event-origin rate suggests surge conditions ",
         "are degrading care, not just adding volume."),
-      DTOutput("mass_casualty_dow_table"),
-      downloadButton("dl_mass_casualty_dow_csv", "Download Data (CSV)")
+      DTOutput("casualty_surge_dow_table"),
+      downloadButton("dl_casualty_surge_dow_csv", "Download Data (CSV)")
     )
 }
 
@@ -3696,8 +3698,8 @@ wire_analyse_body <- function(analysis_results, run_mode, run_state,
         analyse_tab_strategic_ame(analysis_results, shrink_to_fit_plot_ui,
                                   ANALYSE_PLOT_CHROME_WITH_INTRO_PX,
                                   ANALYSE_PLOT_CHROME_WITH_HEADING_PX),
-        analyse_tab_mass_casualty(analysis_results, run_mode, shrink_to_fit_plot_ui,
-                                  ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
+        analyse_tab_casualty_surge(analysis_results, run_mode, shrink_to_fit_plot_ui,
+                                   ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
         analyse_tab_sensitivity()
       )
     )
@@ -3766,8 +3768,8 @@ register_analyse_plots <- function(analysis_results, run_mode, tab_plot,
                          function() analysis_results()$transport_capacity_margin_plot, function() 600)
   new_shrink_to_fit_plot("plot_role4_census", "Role 4 Census — Full Size",
                          function() analysis_results()$role4_census_plot, function() 500)
-  new_shrink_to_fit_plot("plot_mass_casualty_timeline", "Mass Casualty Event Timeline — Full Size",
-                         function() analysis_results()$mass_casualty_timeline_plot, function() 500)
+  new_shrink_to_fit_plot("plot_casualty_surge_timeline", "Casualty Surge Event Timeline — Full Size",
+                         function() analysis_results()$casualty_surge_timeline_plot, function() 500)
   invisible(NULL)
 }
 
@@ -3830,8 +3832,8 @@ wire_plot_image_downloads <- function(analysis_results, tab_plot, output) {
   output$dl_transport_capacity_margin_pdf <- plot_download_handler(function() analysis_results()$transport_capacity_margin_plot, 12, 8, "pdf")
   output$dl_role4_census_png <- plot_download_handler(function() analysis_results()$role4_census_plot, 12, 6, "png")
   output$dl_role4_census_pdf <- plot_download_handler(function() analysis_results()$role4_census_plot, 12, 6, "pdf")
-  output$dl_mass_casualty_timeline_png <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "png")
-  output$dl_mass_casualty_timeline_pdf <- plot_download_handler(function() analysis_results()$mass_casualty_timeline_plot, 12, 6, "pdf")
+  output$dl_casualty_surge_timeline_png <- plot_download_handler(function() analysis_results()$casualty_surge_timeline_plot, 12, 6, "png")
+  output$dl_casualty_surge_timeline_pdf <- plot_download_handler(function() analysis_results()$casualty_surge_timeline_plot, 12, 6, "pdf")
   plot_download_handler
 }
 
@@ -4052,9 +4054,9 @@ wire_supplementary_plot_downloads <- function(analysis_results, run_mode, output
       write.csv(df, file, row.names = FALSE)
     }
   )
-  output$dl_mass_casualty_timeline_csv <- downloadHandler(
-    filename = "mass_casualty_events_summary.csv",
-    content  = function(file) write.csv(analysis_results()$mass_casualty_events_summary, file, row.names = FALSE)
+  output$dl_casualty_surge_timeline_csv <- downloadHandler(
+    filename = "casualty_surge_events_summary.csv",
+    content  = function(file) write.csv(analysis_results()$casualty_surge_events_summary, file, row.names = FALSE)
   )
   invisible(NULL)
 }
@@ -4387,7 +4389,7 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
   invisible(NULL)
 }
 
-#' Wire the mass casualty event outputs
+#' Wire the casualty surge event outputs
 #'
 #' @param analysis_results See wire_supplementary_outputs().
 #' @param run_mode See wire_supplementary_outputs().
@@ -4396,30 +4398,31 @@ wire_role4_outputs <- function(analysis_results, run_mode, output, ci_value_card
 #' @param count_value_card See wire_supplementary_outputs().
 #' @param small_dt See wire_supplementary_outputs().
 #' @return Invisibly NULL; called for the outputs it registers.
-wire_mass_casualty_outputs <- function(analysis_results, run_mode, output, ci_value_card,
-                                       count_value_card, small_dt) {
-  output$mass_casualty_event_count_card <- renderUI({
+wire_casualty_surge_outputs <- function(analysis_results, run_mode, output, ci_value_card,
+                                        count_value_card, small_dt) {
+  output$casualty_surge_event_count_card <- renderUI({
     req(analysis_results())
     if (identical(run_mode(), "full")) {
-      req(analysis_results()$mass_casualty_event_count_ci)
-      ci_value_card("Mass Casualty Events", analysis_results()$mass_casualty_event_count_ci, digits = 2)
+      req(analysis_results()$casualty_surge_event_count_ci)
+      ci_value_card("Casualty Surge Events",
+                    analysis_results()$casualty_surge_event_count_ci, digits = 2)
     } else {
-      count_value_card("Mass Casualty Events", analysis_results()$mass_casualty_event_count)
+      count_value_card("Casualty Surge Events", analysis_results()$casualty_surge_event_count)
     }
   })
 
-  output$mass_casualty_events_table <- renderDT({
-    req(analysis_results()$mass_casualty_events_summary)
-    small_dt(analysis_results()$mass_casualty_events_summary)
+  output$casualty_surge_events_table <- renderDT({
+    req(analysis_results()$casualty_surge_events_summary)
+    small_dt(analysis_results()$casualty_surge_events_summary)
   })
 
-  output$mass_casualty_dow_table <- renderDT({
-    req(analysis_results()$mass_casualty_dow_summary)
-    small_dt(analysis_results()$mass_casualty_dow_summary %>% mutate(dow_rate = round(dow_rate, 4)))
+  output$casualty_surge_dow_table <- renderDT({
+    req(analysis_results()$casualty_surge_dow_summary)
+    small_dt(analysis_results()$casualty_surge_dow_summary %>% mutate(dow_rate = round(dow_rate, 4)))
   })
-  output$dl_mass_casualty_dow_csv <- downloadHandler(
-    filename = "mass_casualty_dow_summary.csv",
-    content  = function(file) write.csv(analysis_results()$mass_casualty_dow_summary, file, row.names = FALSE)
+  output$dl_casualty_surge_dow_csv <- downloadHandler(
+    filename = "casualty_surge_dow_summary.csv",
+    content  = function(file) write.csv(analysis_results()$casualty_surge_dow_summary, file, row.names = FALSE)
   )
   invisible(NULL)
 }
@@ -4486,8 +4489,8 @@ wire_supplementary_outputs <- function(analysis_results, run_mode, output) {
 
   wire_role4_outputs(analysis_results, run_mode, output, ci_value_card, small_dt)
 
-  wire_mass_casualty_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
-                             small_dt)
+  wire_casualty_surge_outputs(analysis_results, run_mode, output, ci_value_card, count_value_card,
+                              small_dt)
 
   calibration_df <- wire_calibration_outputs(output)
   list(

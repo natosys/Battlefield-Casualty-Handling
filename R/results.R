@@ -418,14 +418,14 @@ build_saturation <- function(data_dir) {
   res_sweep_table(d, header, arms, rows)
 }
 
-#' Mass casualty event stress test table
+#' Casualty surge event stress test table
 #'
 #' @param data_dir The data directory.
 #' @return The table lines.
-build_mass_casualty <- function(data_dir) {
-  cnt <- res_read("mass_casualty/mass_casualty_count_summary.csv", data_dir)
-  dow <- res_read("mass_casualty/mass_casualty_dow_summary.csv", data_dir)
-  rep <- res_read("mass_casualty/mass_casualty_replications.csv", data_dir)
+build_casualty_surge <- function(data_dir) {
+  cnt <- res_read("casualty_surge/casualty_surge_count_summary.csv", data_dir)
+  dow <- res_read("casualty_surge/casualty_surge_dow_summary.csv", data_dir)
+  rep <- res_read("casualty_surge/casualty_surge_replications.csv", data_dir)
   #' Mean total casualties of one arm
   #'
   #' @param r A response key.
@@ -450,6 +450,48 @@ build_mass_casualty <- function(data_dir) {
     c("Died-of-wounds rate, event casualties", "not applicable", pct(0.2, "event"))
   )
   res_table(c("Metric", "No events injected", "Events injected"), rows)
+}
+
+#' Casualty surge event size sweep table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details One row per swept event size, the no-event arm first. Peak queues
+#'   are the largest four-hour mean queue of each pool over the campaign.
+build_casualty_surge_size <- function(data_dir) {
+  d <- res_read("casualty_surge/casualty_surge_size_summary.csv", data_dir)
+  d <- d[order(d$size), ]
+  #' Pooled died-of-wounds rate cell with its exact interval
+  #'
+  #' @param r Rate.
+  #' @param lo Lower bound.
+  #' @param hi Upper bound.
+  #' @return The cell text.
+  pct <- function(r, lo, hi) {
+    ifelse(is.na(r), "not applicable",
+           sprintf("%.2f%% [%.2f%%, %.2f%%]", 100 * r, 100 * lo, 100 * hi))
+  }
+  #' Mean peak queue cell with its half-width
+  #'
+  #' @param i Pool index.
+  #' @param k Row index.
+  #' @return The cell text.
+  peak <- function(i, k) {
+    sprintf("%s \u00b1 %s", res_num(d[[paste0("peak_queue_", i)]][k], 1L),
+            res_num(d[[paste0("peak_queue_", i, "_ci")]][k], 1L))
+  }
+  rows <- lapply(seq_len(nrow(d)), function(k) {
+    c(if (d$size[k] == 0) "None" else as.character(d$size[k]),
+      res_num(d$mean_events[k], 1L),
+      pct(d$dow_event_rate[k], d$dow_event_lower[k], d$dow_event_upper[k]),
+      pct(d$dow_ordinary_rate[k], d$dow_ordinary_lower[k], d$dow_ordinary_upper[k]),
+      peak(1L, k), peak(2L, k), peak(3L, k), peak(4L, k))
+  })
+  res_table(c("Event size", "Events/run", "Died of wounds, event casualties",
+              "Died of wounds, ordinary casualties", "Peak R2B holding queue",
+              "Peak R2E theatre queue", "Peak R2E intensive care queue",
+              "Peak R2E holding queue"), rows)
 }
 
 #' Defaults for one cell of a strategic evacuation table
@@ -1039,7 +1081,8 @@ RESULTS_TABLES <- list(
   policy = build_policy,
   establishment = build_establishment,
   saturation = build_saturation,
-  mass_casualty = build_mass_casualty,
+  casualty_surge = build_casualty_surge,
+  casualty_surge_size = build_casualty_surge_size,
   airlift_baseline = function(dd) build_airlift(dd, "baseline"),
   airlift_interval = function(dd) build_airlift(dd, "interval"),
   airlift_reliability = function(dd) build_airlift(dd, "reliability"),

@@ -33,7 +33,7 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "definitive_repair_minutes", "definitive_repair_outstanding", "dnbi_bf_hold",
   "dnbi_type", "dow", "dow_ceiling", "dow_echelon", "evacuation_day", "evacuation_decision_day",
   "evacuation_reason",
-  "injury_time", "injury_type", "last_dow_t", "mass_casualty_event", "mass_casualty_event_id",
+  "injury_time", "injury_type", "last_dow_t", "casualty_surge_event", "casualty_surge_event_id",
   "mortuary_treated", "post_definitive_hold_start", "post_definitive_min",
   "post_definitive_pathway", "post_definitive_total", "post_op_pathway", "priority", "r1_treated", "r2b",
   "r2b_bypass_reason", "r2b_bypass_time", "r2b_bypassed", "r2b_departure_time", "r2b_hold_bypass",

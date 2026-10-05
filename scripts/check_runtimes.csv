@@ -9,6 +9,9 @@ check_arrival_rate_fidelity.R,12
 check_baseline_reproduction.R,37
 check_bed_queue_coverage.R,27
 check_capacity_sweep_protocol.R,7
+check_casualty_surge_kia_split.R,41
+check_casualty_surge_protocol.R,7
+check_casualty_surge_size_protocol.R,5
 check_censored_interval_estimation.R,22
 check_ci_apt_guards.R,2
 check_ci_check_table.R,2
@@ -32,8 +35,6 @@ check_lint.R,92
 check_long_horizon_protocol.R,40
 check_long_horizon_warmup.R,8
 check_markdown.R,6
-check_mass_casualty_kia_split.R,41
-check_mass_casualty_protocol.R,7
 check_measurement_reproducibility.R,175
 check_morris_baseline.R,8
 check_planning_implications.R,8
@@ -54,5 +55,6 @@ check_screen_cache.R,7
 check_screen_order.R,159
 check_sensitivity_protocol.R,3
 check_structure_tables.R,5
+check_surge_event_size.R,10
 check_testthat.R,96
 check_time_series_figures.R,6

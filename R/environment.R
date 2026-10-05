@@ -681,38 +681,38 @@ generate_casualty_arrivals <- function(gen_vars, force_global, force_bound, n_da
 }
 
 #' Wraps a background arrival generator closure to interleave pre-computed
-#' mass casualty events into the same generator stream
+#' casualty surge events into the same generator stream
 #'
 #' @param background_fn A zero-argument distribution function as returned by
 #'   generate_casualty_arrivals() (the wia_cbt or kia_cbt combat stream)
-#' @param mass_casualty_times Sorted numeric vector of mass casualty casualty
+#' @param casualty_surge_times Sorted numeric vector of casualty surge
 #'   arrival times (simulation minutes), as returned by
-#'   generate_mass_casualty_events()$arrival_times
-#' @param mass_casualty_ids Integer vector parallel to mass_casualty_times
+#'   generate_casualty_surge_events()$arrival_times
+#' @param casualty_surge_ids Integer vector parallel to casualty_surge_times
 #'   giving each casualty's 1-indexed source event id
 #' @param id_sink Name of the global vector this wrapper appends each
-#'   emitted entity's event id to — "wia_cbt_mass_casualty_event_id" for
-#'   the wounded overlay, "kia_cbt_mass_casualty_event_id" for the
+#'   emitted entity's event id to — "wia_cbt_casualty_surge_event_id" for
+#'   the wounded overlay, "kia_cbt_casualty_surge_event_id" for the
 #'   immediate-killed one
 #' @return A zero-argument distribution function that, on each call, emits
-#'   whichever of (next background candidate, next pending mass casualty
+#'   whichever of (next background candidate, next pending casualty surge
 #'   arrival) is chronologically earliest, preserving a single strictly
 #'   ordered arrival stream through one generator/trajectory
 #'
-#' @details Mass casualty timing is exogenous (an imposed shock, not
+#' @details Casualty surge timing is exogenous (an imposed shock, not
 #'   population-scaled — see README Casualty Generation), so it is still
-#'   computed up front by generate_mass_casualty_events() exactly as before;
+#'   computed up front by generate_casualty_surge_events() exactly as before;
 #'   only the background stream is force-size-reactive. As a side effect,
-#'   appends 0 (background) or the event id (mass casualty) to the global
+#'   appends 0 (background) or the event id (casualty surge) to the global
 #'   `id_sink` vector in strict emission order, which
 #'   build_casualty_trajectory() indexes by each entity's generator-assigned
-#'   position to recover its mass_casualty_event_id attribute. Two streams
+#'   position to recover its casualty_surge_event_id attribute. Two streams
 #'   are wrapped, the combat wounded and the combat killed, each keeping its
 #'   own sink because each generator numbers its own entities from zero.
-wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_casualty_ids,
-                                    id_sink = "wia_cbt_mass_casualty_event_id") {
+wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casualty_surge_ids,
+                                     id_sink = "wia_cbt_casualty_surge_event_id") {
   mc_ptr <- 1L
-  n_mc <- length(mass_casualty_times)
+  n_mc <- length(casualty_surge_times)
   pending_bg <- NA_real_
   bg_exhausted <- FALSE
   last_time <- 0
@@ -741,11 +741,11 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
       }
     }
 
-    mc_due <- mc_ptr <= n_mc && (bg_exhausted || mass_casualty_times[mc_ptr] <= pending_bg)
+    mc_due <- mc_ptr <= n_mc && (bg_exhausted || casualty_surge_times[mc_ptr] <= pending_bg)
 
     if (mc_due) {
-      t  <- mass_casualty_times[mc_ptr]
-      id <- mass_casualty_ids[mc_ptr]
+      t  <- casualty_surge_times[mc_ptr]
+      id <- casualty_surge_ids[mc_ptr]
       mc_ptr <<- mc_ptr + 1L
       append_event_id(id)
     } else {
@@ -776,8 +776,8 @@ wrap_with_mass_casualty <- function(background_fn, mass_casualty_times, mass_cas
 #'   before run(), depending on the live, force-size-reactive generators
 #'   above, so the arrival-time diagnostics are reconstructed here from
 #'   get_mon_arrivals() after the run completes, filtered by each stream's
-#'   generator-name prefix. Mass casualty's diagnostic file is written by
-#'   generate_mass_casualty_events() instead, that stream being pre-computed.
+#'   generator-name prefix. Casualty surge's diagnostic file is written by
+#'   generate_casualty_surge_events() instead, that stream being pre-computed.
 write_arrival_diagnostics <- function(env, data_dir = "data") {
   dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
   arr <- get_mon_arrivals(env)
@@ -790,11 +790,11 @@ write_arrival_diagnostics <- function(env, data_dir = "data") {
   invisible(NULL)
 }
 
-#' Draws event start times for the "poisson" mass casualty mode
+#' Draws event start times for the "poisson" casualty surge mode
 #'
 #' @param n_days Duration in days
 #' @param event_params List with rate_per_day, as read from
-#'   env_data$vars$mass_casualty$event
+#'   env_data$vars$casualty_surge$event
 #' @return Numeric vector of event start times (simulation minutes),
 #'   ascending; empty if rate_per_day <= 0
 #'
@@ -803,7 +803,7 @@ write_arrival_diagnostics <- function(env, data_dir = "data") {
 #'   returns immediately with no RNG draws consumed, so the stream
 #'   downstream of this call is unaffected — the basis for Issue #9's
 #'   disable-path acceptance criterion.
-mass_casualty_event_starts_poisson <- function(n_days, event_params) {
+casualty_surge_event_starts_poisson <- function(n_days, event_params) {
   n_minutes    <- day_min * n_days
   rate_per_min <- event_params$rate_per_day / day_min
 
@@ -820,14 +820,14 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params) {
 }
 
 #' Draws event start times and per-event parameters for the "scheduled"
-#' mass casualty mode
+#' casualty surge mode
 #'
 #' @param n_days Duration in days
 #' @param schedule_params List with `days` (simulation day, 1-indexed, on
 #'   which a candidate event may occur), `probabilities` (per-day Bernoulli
 #'   occurrence probability), and `min_cas`/`max_cas`/`pri_one`/`pri_two`/
 #'   `pri_three` (per-day casualty-count bounds and triage priority split),
-#'   all parallel arrays as read from env_data$vars$mass_casualty$schedule.
+#'   all parallel arrays as read from env_data$vars$casualty_surge$schedule.
 #'   Any array empty or omitted defaults every day to the same value
 #'   (probability 1; min_cas/max_cas 20/60; priority 0.7/0.2/0.1 — the
 #'   Issue #9 Recommended Approach values), so a planner can specify only
@@ -850,8 +850,8 @@ mass_casualty_event_starts_poisson <- function(n_days, event_params) {
 #'   stochastic even though the day itself is planner-specified. The
 #'   injection window (window_min/mode/max) is not customisable per event —
 #'   it remains a single shared value read from `params$event` by the
-#'   caller (generate_mass_casualty_events()) regardless of mode.
-mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
+#'   caller (generate_casualty_surge_events()) regardless of mode.
+casualty_surge_event_starts_scheduled <- function(n_days, schedule_params) {
   n_minutes <- day_min * n_days
   empty <- data.frame(start = numeric(0), min_cas = numeric(0), max_cas = numeric(0),
                       pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
@@ -878,7 +878,7 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
 
   lens <- c(length(probs), length(min_cas), length(max_cas), length(pri_one), length(pri_two), length(pri_three))
   if (any(lens != n)) {
-    stop("mass_casualty.schedule arrays must each be empty (defaulted) or match schedule.days in length")
+    stop("casualty_surge.schedule arrays must each be empty (defaulted) or match schedule.days in length")
   }
 
   fire <- runif(n) < probs
@@ -893,12 +893,12 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
 }
 
 #' Draws casualty arrival times, count, injection window, and wounded/killed
-#' split for one mass casualty event
+#' split for one casualty surge event
 #'
 #' @param event_start Event start time (simulation minutes)
 #' @param event_params List with min_cas, max_cas, window_min, window_mode,
 #'   window_max, kia_fraction, as read from
-#'   env_data$vars$mass_casualty$event
+#'   env_data$vars$casualty_surge$event
 #' @param n_minutes Total simulation duration in minutes (arrivals at or
 #'   after this are dropped)
 #' @return Named list: `times` (numeric vector of wounded casualty arrival
@@ -915,7 +915,7 @@ mass_casualty_event_starts_scheduled <- function(n_days, schedule_params) {
 #'   the caller merges each into a chronological stream. `kia_fraction = 0`
 #'   consumes no additional draw beyond the binomial itself and yields an
 #'   empty `kia_times`.
-mass_casualty_event_casualties <- function(event_start, event_params, n_minutes) {
+casualty_surge_event_casualties <- function(event_start, event_params, n_minutes) {
   n_cas_draw <- round(event_params$min_cas +
                         runif(1) * (event_params$max_cas - event_params$min_cas))
 
@@ -944,10 +944,10 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
   list(times = in_run(wia_offsets), kia_times = in_run(kia_offsets), window = window)
 }
 
-#' Generates mass casualty event arrival timestamps
+#' Generates casualty surge event arrival timestamps
 #'
 #' @param n_days Duration in days
-#' @param params The full env_data$vars$mass_casualty list, with `event`
+#' @param params The full env_data$vars$casualty_surge list, with `event`
 #'   (mode ["poisson"|"scheduled"], rate_per_day, min_cas, max_cas,
 #'   window_min, window_mode, window_max), `schedule` (days, probabilities,
 #'   min_cas, max_cas, pri_one/two/three — read only when
@@ -979,16 +979,16 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
 #'
 #' @details Two event-timing modes are supported, selected by
 #'   `params$event$mode`: "poisson" (default) implements a compound
-#'   Poisson process for mass casualty injection (Fischer et al., 2025;
+#'   Poisson process for casualty surge injection (Fischer et al., 2025;
 #'   Debacker et al., 2016) — event inter-arrival times are drawn from an
-#'   Exponential(rate_per_day) distribution (`mass_casualty_event_starts_poisson()`),
+#'   Exponential(rate_per_day) distribution (`casualty_surge_event_starts_poisson()`),
 #'   with every event sharing the same min_cas/max_cas and priority split;
 #'   "scheduled" instead takes a planner-specified list of candidate
 #'   simulation days, each with its own independent occurrence probability,
 #'   casualty-count bounds, and priority split
-#'   (`mass_casualty_event_starts_scheduled()`). Both modes then draw each
+#'   (`casualty_surge_event_starts_scheduled()`). Both modes then draw each
 #'   fired event's casualty count and per-casualty offsets from a shared
-#'   injection window (`mass_casualty_event_casualties()`): Uniform(min_cas,
+#'   injection window (`casualty_surge_event_casualties()`): Uniform(min_cas,
 #'   max_cas) casualties distributed across a Triangular(window_min,
 #'   window_mode, window_max)-minute window — the window itself is not
 #'   customisable per event in either mode. That count is a total, of which
@@ -1001,8 +1001,8 @@ mass_casualty_event_casualties <- function(event_start, event_params, n_minutes)
 #'   lognormal generation is unaffected, satisfying Issue #9's
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
-generate_mass_casualty_events <- function(n_days, params, seed = NULL,
-                                          write_file = TRUE, data_dir = "data") {
+generate_casualty_surge_events <- function(n_days, params, seed = NULL,
+                                           write_file = TRUE, data_dir = "data") {
   if (!is.null(seed)) set.seed(seed)
   if (write_file) dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -1015,9 +1015,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
                              pri_one = numeric(0), pri_two = numeric(0), pri_three = numeric(0))
 
   sched <- if (identical(mode, "scheduled")) {
-    mass_casualty_event_starts_scheduled(n_days, params$schedule)
+    casualty_surge_event_starts_scheduled(n_days, params$schedule)
   } else {
-    starts <- mass_casualty_event_starts_poisson(n_days, params$event)
+    starts <- casualty_surge_event_starts_poisson(n_days, params$event)
     # Built explicitly per-column (not data.frame(start = starts, min_cas =
     # params$event$min_cas, ...)) because data.frame() cannot recycle a
     # length-1 scalar against a length-0 `starts` (rate_per_day = 0, the
@@ -1029,9 +1029,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
 
   if (nrow(sched) == 0) {
     if (write_file) {
-      write.table(numeric(0), file = file.path(data_dir, "arrivals_mass_casualty.txt"),
+      write.table(numeric(0), file = file.path(data_dir, "arrivals_casualty_surge.txt"),
                  row.names = FALSE, col.names = FALSE)
-      write.csv(empty_events, file.path(data_dir, "mass_casualty_events.csv"),
+      write.csv(empty_events, file.path(data_dir, "casualty_surge_events.csv"),
                row.names = FALSE)
     }
     return(list(arrival_times = numeric(0), casualty_event_id = integer(0),
@@ -1052,7 +1052,7 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
                          window_min = params$event$window_min, window_mode = params$event$window_mode,
                          window_max = params$event$window_max,
                          kia_fraction = params$event$kia_fraction)
-    cas <- mass_casualty_event_casualties(sched$start[i], event_params, n_minutes)
+    cas <- casualty_surge_event_casualties(sched$start[i], event_params, n_minutes)
 
     arrival_times     <- c(arrival_times, cas$times)
     casualty_event_id <- c(casualty_event_id, rep(i, length(cas$times)))
@@ -1091,9 +1091,9 @@ generate_mass_casualty_events <- function(n_days, params, seed = NULL,
     # Both pathways' arrivals, since the file records when an event's
     # casualties reach the system rather than which stream carries them.
     write.table(sort(c(arrival_times, kia_arrival_times)),
-               file = file.path(data_dir, "arrivals_mass_casualty.txt"),
+                file = file.path(data_dir, "arrivals_casualty_surge.txt"),
                row.names = FALSE, col.names = FALSE)
-    write.csv(events, file.path(data_dir, "mass_casualty_events.csv"), row.names = FALSE)
+    write.csv(events, file.path(data_dir, "casualty_surge_events.csv"), row.names = FALSE)
   }
 
   list(arrival_times = arrival_times, casualty_event_id = casualty_event_id,

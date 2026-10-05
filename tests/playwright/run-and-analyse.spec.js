@@ -30,7 +30,7 @@ const ANALYSE_TABS = [
   ['Return to Duty & DOW', null],
   ['Force Regeneration', null],
   ['Strategic AME', null],
-  ['Mass Casualty Events', null],
+  ['Casualty Surge Events', null],
   ['Sensitivity Calibration', null],
 ];
 

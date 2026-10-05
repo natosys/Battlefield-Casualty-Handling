@@ -73,9 +73,9 @@ observed <- list(
   dnbi = c(env_data$vars$r1$other$disease_pct,
            env_data$vars$r1$other$battle_fatigue_pct,
            env_data$vars$r1$other$nbi_pct),
-  mass_casualty = c(env_data$vars$mass_casualty$priority$one,
-                    env_data$vars$mass_casualty$priority$two,
-                    env_data$vars$mass_casualty$priority$three)
+  casualty_surge = c(env_data$vars$casualty_surge$priority$one,
+                     env_data$vars$casualty_surge$priority$two,
+                    env_data$vars$casualty_surge$priority$three)
 )
 for (nm in names(MORRIS_COMPOSITIONS)) {
   check(max(abs(observed[[nm]] - MORRIS_COMPOSITIONS[[nm]]$baseline)) < tol,
@@ -127,9 +127,9 @@ for (i in seq_len(nrow(design$X))) {
                ed$vars$r1$priority$three),
     dnbi = c(ed$vars$r1$other$disease_pct, ed$vars$r1$other$battle_fatigue_pct,
              ed$vars$r1$other$nbi_pct),
-    mass_casualty = c(ed$vars$mass_casualty$priority$one,
-                      ed$vars$mass_casualty$priority$two,
-                      ed$vars$mass_casualty$priority$three)
+    casualty_surge = c(ed$vars$casualty_surge$priority$one,
+                       ed$vars$casualty_surge$priority$two,
+                      ed$vars$casualty_surge$priority$three)
   )
   if (!all(vapply(written, valid_composition, logical(1)))) n_bad <- n_bad + 1L
 }
@@ -148,10 +148,10 @@ check(max(abs(c(ed$vars$r1$priority$one, ed$vars$r1$priority$two,
 check(max(abs(c(ed$vars$r1$other$disease_pct, ed$vars$r1$other$battle_fatigue_pct,
                 ed$vars$r1$other$nbi_pct) - observed$dnbi)) < tol,
       "DNBI composition at the coordinate modes equals the shipped composition")
-check(max(abs(c(ed$vars$mass_casualty$priority$one,
-                ed$vars$mass_casualty$priority$two,
-                ed$vars$mass_casualty$priority$three) - observed$mass_casualty)) < tol,
-      "mass casualty split at the coordinate modes equals the shipped split")
+check(max(abs(c(ed$vars$casualty_surge$priority$one,
+                ed$vars$casualty_surge$priority$two,
+                ed$vars$casualty_surge$priority$three) - observed$casualty_surge)) < tol,
+      "casualty surge split at the coordinate modes equals the shipped split")
 
 # ── 6. Dirichlet sampling stays on the simplex ────────────────────────────────
 

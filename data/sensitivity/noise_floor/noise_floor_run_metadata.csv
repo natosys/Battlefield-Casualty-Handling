@@ -3,7 +3,7 @@
 "run_at","2026-10-01T18:35:10+0000"
 "commit","b6093a8004e4057426ac88a530cc36091e1ce74d"
 "r_version","4.3.3"
-"parameters","pri1_surg_prob|mass_casualty_rate|mass_casualty_max_cas|pri1_evac_prob|pri1_dcs_rate|mass_casualty_kia_fraction|mc_p1_balance|mc_p2_p3_balance"
+"parameters","pri1_surg_prob|casualty_surge_rate|casualty_surge_max_cas|pri1_evac_prob|pri1_dcs_rate|casualty_surge_kia_fraction|mc_p1_balance|mc_p2_p3_balance"
 "n_points","20"
 "n_reps","20"
 "design_reps","8"

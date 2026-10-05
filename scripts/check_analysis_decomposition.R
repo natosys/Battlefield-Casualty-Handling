@@ -16,7 +16,7 @@
 # fails whenever that conditional does not fire, and the failure is invisible
 # until a run happens to take that path: an analysis at four replications
 # exercises a branch that an analysis at one does not, and a configuration with
-# no mass casualty events exercises neither.
+# no casualty surge events exercises neither.
 #
 # This is not hypothetical. Decomposing `analyse_run()` produced exactly this
 # fault three times over. Two stages returned a value computed only where more

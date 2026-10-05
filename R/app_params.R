@@ -172,41 +172,41 @@ set_transport_field <- function(json, name, field, value) {
   stop(sprintf("set_transport_field: transport not found: %s", name))
 }
 
-#' Read one indexed slot of a mass_casualty.schedule array field (days or
+#' Read one indexed slot of a casualty_surge.schedule array field (days or
 #' probabilities), defaulting missing/short-array slots rather than erroring
 #'
 #' @param json Parsed env_data.json (raw tree)
-#' @param var "days" or "probabilities" (mass_casualty.schedule.<var>)
-#' @param index 1-indexed slot position (1..MASS_CASUALTY_SCHEDULE_SLOTS)
+#' @param var "days" or "probabilities" (casualty_surge.schedule.<var>)
+#' @param index 1-indexed slot position (1..CASUALTY_SURGE_SCHEDULE_SLOTS)
 #' @param default_fill Value to return when the underlying array is shorter
 #'   than `index` — 0 for "days" (an unused slot), 1 for "probabilities"
 #'   (always fires if the day is set)
 #' @return The slot's value, or `default_fill` where the array is shorter
 #'   than `index`
-get_mass_casualty_schedule_slot <- function(json, var, index, default_fill) {
-  arr <- unlist(get_raw_var(json, "mass_casualty", "schedule", var))
+get_casualty_surge_schedule_slot <- function(json, var, index, default_fill) {
+  arr <- unlist(get_raw_var(json, "casualty_surge", "schedule", var))
   if (length(arr) >= index) arr[index] else default_fill
 }
 
-#' Write one indexed slot of a mass_casualty.schedule array field, padding
-#' any shorter existing array up to MASS_CASUALTY_SCHEDULE_SLOTS with
+#' Write one indexed slot of a casualty_surge.schedule array field, padding
+#' any shorter existing array up to CASUALTY_SURGE_SCHEDULE_SLOTS with
 #' `default_fill` first so every slot's set() independently produces a
 #' full-length array regardless of application order (see
 #' apply_registry_values(), which calls every registered field's set() once)
 #'
 #' @param json Parsed env_data.json (raw tree)
-#' @param var "days" or "probabilities" (mass_casualty.schedule.<var>)
-#' @param index 1-indexed slot position (1..MASS_CASUALTY_SCHEDULE_SLOTS)
+#' @param var "days" or "probabilities" (casualty_surge.schedule.<var>)
+#' @param index 1-indexed slot position (1..CASUALTY_SURGE_SCHEDULE_SLOTS)
 #' @param value Value to write into the slot
 #' @param default_fill Value the array is padded with before the write
 #' @return The tree with the slot replaced and the array padded to full length
-set_mass_casualty_schedule_slot <- function(json, var, index, value, default_fill) {
-  arr <- unlist(get_raw_var(json, "mass_casualty", "schedule", var))
-  if (length(arr) < MASS_CASUALTY_SCHEDULE_SLOTS) {
-    arr <- c(arr, rep(default_fill, MASS_CASUALTY_SCHEDULE_SLOTS - length(arr)))
+set_casualty_surge_schedule_slot <- function(json, var, index, value, default_fill) {
+  arr <- unlist(get_raw_var(json, "casualty_surge", "schedule", var))
+  if (length(arr) < CASUALTY_SURGE_SCHEDULE_SLOTS) {
+    arr <- c(arr, rep(default_fill, CASUALTY_SURGE_SCHEDULE_SLOTS - length(arr)))
   }
   arr[index] <- value
-  set_raw_var(json, "mass_casualty", "schedule", var, arr)
+  set_raw_var(json, "casualty_surge", "schedule", var, arr)
 }
 
 # ── Registry group names ─────────────────────────────────────────────────
@@ -223,7 +223,7 @@ GRP_HEALTH_ARCH  <- "Health System Architecture"
 GRP_LOGISTICS    <- "Medevac"
 GRP_PROVISION    <- "Health Provision"
 GRP_CASUALTY     <- "Casualty Rates"
-GRP_MASS_CASUALTY <- "Mass Casualty"
+GRP_CASUALTY_SURGE <- "Casualty Surge"
 
 #' Maximum candidate event slots the Scheduled Event Days grid supports
 #'
@@ -231,12 +231,12 @@ GRP_MASS_CASUALTY <- "Mass Casualty"
 #'   validation all reading a static field set, so app.R's "+ Add Event" and
 #'   "Remove Last Event" controls reveal and hide rows up to this cap rather
 #'   than growing the registry. A slot whose Day field is 0 is unused, as
-#'   get_mass_casualty_schedule_slot() and generate_mass_casualty_events()
+#'   get_casualty_surge_schedule_slot() and generate_casualty_surge_events()
 #'   treat it, and hiding a row resets its fields, so a removed event cannot
 #'   keep firing unseen. Raising this raises the field count the Configure
 #'   panel renders; a configuration needing more explicit events than this is
 #'   edited in env_data.json directly.
-MASS_CASUALTY_SCHEDULE_SLOTS <- 20
+CASUALTY_SURGE_SCHEDULE_SLOTS <- 20
 
 # ── Field constructors ───────────────────────────────────────────────────
 
@@ -298,9 +298,9 @@ SRC_EVAC_POLICY       <- "The 30-day theatre evacuation policy stated in US Army
 SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% historical range. High uncertainty — see README R2E Heavy Trajectory."
 SRC_PRE_FLIGHT_ICU    <- "Bounded on the Camp Bastion deployed-ICU observation that coalition casualties are usually evacuated within 24 hours of admission; the ventilated share is an informed estimate, as no open-access source reports it — see README R2E Heavy Trajectory."
 SRC_VEHICLE_CAPACITY  <- "Real-world vehicle specification (see README Transport Assets); fleet size is a planning assumption, not independently cited."
-SRC_MASS_CASUALTY     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Mass Casualty Event Injection."
-SRC_MASS_CASUALTY_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Mass Casualty Event Injection."
-SRC_MASS_CASUALTY_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Mass Casualty Event Injection."
+SRC_CASUALTY_SURGE     <- "Informed by the compound Poisson parameterisation of Fischer et al. (2025) and blast-dominant LSCO injury context; no open-access source tabulates event-level MASCAL rate/size distributions, so these are informed engineering estimates, not literature-calibrated values. See README Casualty Generation — Casualty Surge Event Injection."
+SRC_CASUALTY_SURGE_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Casualty Surge Event Injection."
+SRC_CASUALTY_SURGE_PRI <- "Blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); informed engineering estimate, independent of the background Triage Priority Split above. See README Casualty Generation — Casualty Surge Event Injection."
 SRC_AME_SCHEDULE      <- "AJP-4.10(B) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence or failure rate — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
 SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an AME-configured C-17A carries 54 ambulatory and 36 high dependency stretcher patients; the C-130J and C-27J carry 97 and 21 stretcher patients respectively. See README Role 4 (National Support Base) Demand Modelling."
 
@@ -450,83 +450,85 @@ var_field <- function(id, group, subgroup, elm, acty, var, label, tooltip,
         source = source, path = paste0(elm, ".", acty), slider = slider, choices = choices)
 }
 
-#' One mass_casualty.schedule event slot's full field set: Day, Occurrence
+#' One casualty_surge.schedule event slot's full field set: Day, Occurrence
 #' Probability, Casualties per Event (min/max), and Priority Split
 #' (one/two/three) — each event independently configurable
 #'
-#' @param index 1-indexed slot position (1..MASS_CASUALTY_SCHEDULE_SLOTS)
+#' @param index 1-indexed slot position (1..CASUALTY_SURGE_SCHEDULE_SLOTS)
 #' @return List of seven field specs: `mc_sched_day_<index>`,
 #'   `mc_sched_prob_<index>`, `mc_sched_min_cas_<index>`,
 #'   `mc_sched_max_cas_<index>`, `mc_sched_pri_one_<index>`,
 #'   `mc_sched_pri_two_<index>`, `mc_sched_pri_three_<index>`. The three
 #'   pri_* fields are registry-only (get/set); the Configure panel renders
 #'   them as one range slider per event (`mc_event_pri_split_<index>`, see
-#'   render_group_body() in app.R), matching the shared Mass Casualty
+#'   render_group_body() in app.R), matching the shared Casualty Surge
 #'   Priority Split's own compositional-slider pattern.
-mass_casualty_schedule_slot_fields <- function(index) {
+casualty_surge_schedule_slot_fields <- function(index) {
   force(index)
   list(
-    field(sprintf("mc_sched_day_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+    field(sprintf("mc_sched_day_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Simulation Day", index),
           "Simulation day (1-indexed) this candidate event may occur on. Set to 0 to leave this slot unused.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "days", index, 0),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "days", index, v, 0),
-          type = "integer", min = 0, max = 180, step = 1, source = SRC_MASS_CASUALTY,
-          path = "mass_casualty.schedule"),
-    field(sprintf("mc_sched_prob_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "days", index, 0),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "days", index, v, 0),
+          type = "integer", min = 0, max = 180, step = 1, source = SRC_CASUALTY_SURGE,
+          path = "casualty_surge.schedule"),
+    field(sprintf("mc_sched_prob_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Occurrence Probability", index),
           "Probability this event actually fires on its day (drawn independently each replication). 1 = always fires.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "probabilities", index, 1),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "probabilities", index, v, 1),
-          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY,
-          path = "mass_casualty.schedule", slider = TRUE),
-    field(sprintf("mc_sched_min_cas_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "probabilities", index, 1),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "probabilities", index, v, 1),
+          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE,
+          path = "casualty_surge.schedule", slider = TRUE),
+    field(sprintf("mc_sched_min_cas_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Casualties per Event (Minimum)", index),
           "Minimum number of casualties this event injects if it fires (Uniform distribution) — independent of every other event's casualty count.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "min_cas", index, 20),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "min_cas", index, v, 20),
-          type = "integer", min = 1, max = 500, step = 1, source = SRC_MASS_CASUALTY,
-          path = "mass_casualty.schedule"),
-    field(sprintf("mc_sched_max_cas_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "min_cas", index, 20),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "min_cas", index, v, 20),
+          type = "integer", min = 1, max = 500, step = 1, source = SRC_CASUALTY_SURGE,
+          path = "casualty_surge.schedule"),
+    field(sprintf("mc_sched_max_cas_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Casualties per Event (Maximum)", index),
           "Maximum number of casualties this event injects if it fires (Uniform distribution) — independent of every other event's casualty count.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "max_cas", index, 60),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "max_cas", index, v, 60),
-          type = "integer", min = 1, max = 500, step = 1, source = SRC_MASS_CASUALTY,
-          path = "mass_casualty.schedule"),
-    field(sprintf("mc_sched_pri_one_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "max_cas", index, 60),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "max_cas", index, v, 60),
+          type = "integer", min = 1, max = 500, step = 1, source = SRC_CASUALTY_SURGE,
+          path = "casualty_surge.schedule"),
+    field(sprintf("mc_sched_pri_one_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Priority 1 Share", index),
           "Proportion of this event's casualties triaged as Priority 1 — independent of every other event's priority mix.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "pri_one", index, 0.7),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "pri_one", index, v, 0.7),
-          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI,
-          path = "mass_casualty.schedule"),
-    field(sprintf("mc_sched_pri_two_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "pri_one", index, 0.7),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "pri_one", index, v, 0.7),
+          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI,
+          path = "casualty_surge.schedule"),
+    field(sprintf("mc_sched_pri_two_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Priority 2 Share", index),
           "Proportion of this event's casualties triaged as Priority 2 — independent of every other event's priority mix.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "pri_two", index, 0.2),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "pri_two", index, v, 0.2),
-          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI,
-          path = "mass_casualty.schedule"),
-    field(sprintf("mc_sched_pri_three_%d", index), GRP_MASS_CASUALTY, "Scheduled Event Days",
+          get = function(json) get_casualty_surge_schedule_slot(json, "pri_two", index, 0.2),
+          set = function(json, v) set_casualty_surge_schedule_slot(json, "pri_two", index, v, 0.2),
+          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI,
+          path = "casualty_surge.schedule"),
+    field(sprintf("mc_sched_pri_three_%d", index), GRP_CASUALTY_SURGE, "Scheduled Event Days",
           sprintf("Event %d — Priority 3 Share", index),
           "Proportion of this event's casualties triaged as Priority 3 — independent of every other event's priority mix.",
-          get = function(json) get_mass_casualty_schedule_slot(json, "pri_three", index, 0.1),
-          set = function(json, v) set_mass_casualty_schedule_slot(json, "pri_three", index, v, 0.1),
-          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI,
-          path = "mass_casualty.schedule")
+          get = function(json) get_casualty_surge_schedule_slot(json, "pri_three", index, 0.1),
+          set = function(json, v) {
+            set_casualty_surge_schedule_slot(json, "pri_three", index, v, 0.1)
+          },
+          type = "numeric", min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI,
+          path = "casualty_surge.schedule")
   )
 }
 
-#' Count how many mass_casualty.schedule slots currently have a non-zero
+#' Count how many casualty_surge.schedule slots currently have a non-zero
 #' Day value, used to seed the Configure panel's initial visible event-row
 #' count (see mc_event_count reactiveVal in app.R)
 #'
 #' @param json Parsed env_data.json (raw tree)
 #' @return Integer count of active (Day > 0) slots, 0 if none
-count_active_mass_casualty_events <- function(json) {
-  sum(vapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), function(i) {
-    d <- get_mass_casualty_schedule_slot(json, "days", i, 0)
+count_active_casualty_surge_events <- function(json) {
+  sum(vapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
+    d <- get_casualty_surge_schedule_slot(json, "days", i, 0)
     !is.null(d) && !is.na(d) && d > 0
   }, logical(1)))
 }
@@ -990,37 +992,37 @@ strategic_ame_fields <- function() {
   registry
 }
 
-#' Registry fields for mass casualty event injection
+#' Registry fields for casualty surge event injection
 #'
 #' @return A list of field specs, in the order the Configure panel renders
 #'   them. See build_param_registry() for the shape of one spec.
-mass_casualty_fields <- function() {
+casualty_surge_fields <- function() {
   registry <- list()
-  # ── Mass Casualty ──────────────────────────────────────────────────────────
+  # ── Casualty Surge ──────────────────────────────────────────────────────────
   registry <- c(registry, list(
-    var_field("mc_mode", GRP_MASS_CASUALTY, "Event Timing Mode", "mass_casualty", "event", "mode",
+    var_field("mc_mode", GRP_CASUALTY_SURGE, "Event Timing Mode", "casualty_surge", "event", "mode",
               "Event Timing Mode",
-              "How mass casualty events are timed: random (Poisson process) or a fixed list of planner-specified days.",
-              source = SRC_MASS_CASUALTY,
+              "How casualty surge events are timed: random (Poisson process) or a fixed list of planner-specified days.",
+              source = SRC_CASUALTY_SURGE,
               choices = c("Random (Poisson Rate)" = "poisson", "Scheduled (Deliberate Days)" = "scheduled")),
-    var_field("mc_rate", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "rate_per_day",
-              "Event Rate (per day)", "Mean number of mass casualty events per day (Poisson process); 0 disables random-mode injection entirely.",
-              min = 0, max = 1, step = 0.01, morris_name = "mass_casualty_rate", source = SRC_MASS_CASUALTY),
+    var_field("mc_rate", GRP_CASUALTY_SURGE, "Random Event Rate", "casualty_surge", "event", "rate_per_day",
+              "Event Rate (per day)", "mean number of casualty surge events per day (Poisson process); 0 disables random-mode injection entirely.",
+              min = 0, max = 1, step = 0.01, morris_name = "casualty_surge_rate", source = SRC_CASUALTY_SURGE),
     # Casualties-per-event only applies as a *shared* setting in "poisson"
     # mode — every Poisson-drawn event uses the same range. "scheduled" mode
     # instead gives each event its own min/max (mc_sched_min_cas_<i>/
     # mc_sched_max_cas_<i> below), so these two fields live in the
     # Random Event Rate subgroup (rendered only when mode = poisson, see
     # render_group_body() in app.R) rather than a mode-independent subgroup.
-    var_field("mc_min_cas", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "min_cas",
+    var_field("mc_min_cas", GRP_CASUALTY_SURGE, "Random Event Rate", "casualty_surge", "event", "min_cas",
               "Casualties per Event — Minimum", "Minimum number of casualties injected by a single fired event (Uniform distribution). Shared across every Poisson-mode event.",
-              type = "integer", min = 1, max = 500, step = 1, morris_name = "mass_casualty_min_cas", source = SRC_MASS_CASUALTY),
-    var_field("mc_max_cas", GRP_MASS_CASUALTY, "Random Event Rate", "mass_casualty", "event", "max_cas",
+              type = "integer", min = 1, max = 500, step = 1, morris_name = "casualty_surge_min_cas", source = SRC_CASUALTY_SURGE),
+    var_field("mc_max_cas", GRP_CASUALTY_SURGE, "Random Event Rate", "casualty_surge", "event", "max_cas",
               "Casualties per Event — Maximum", "Maximum number of casualties injected by a single fired event (Uniform distribution). Shared across every Poisson-mode event.",
-              type = "integer", min = 1, max = 500, step = 1, morris_name = "mass_casualty_max_cas", source = SRC_MASS_CASUALTY)
+              type = "integer", min = 1, max = 500, step = 1, morris_name = "casualty_surge_max_cas", source = SRC_CASUALTY_SURGE)
   ))
   registry <- c(registry, unlist(
-    lapply(seq_len(MASS_CASUALTY_SCHEDULE_SLOTS), mass_casualty_schedule_slot_fields),
+    lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), casualty_surge_schedule_slot_fields),
     recursive = FALSE
   ))
   # Not tri_fields(): that helper hardcodes var names "min"/"mode"/"max"
@@ -1030,42 +1032,42 @@ mass_casualty_fields <- function() {
   # this triple automatically via the "mc_window_min/_mode/_max" id suffixes
   # — the live curve card renders exactly as it would via tri_fields(). The
   # injection window is not customisable per event in either mode (see
-  # generate_mass_casualty_events(), R/environment.R), so this subgroup
+  # generate_casualty_surge_events(), R/environment.R), so this subgroup
   # renders unconditionally, unlike Random Event Rate/Scheduled Event Days.
   registry <- c(registry, list(
-    var_field("mc_window_min", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_min",
+    var_field("mc_window_min", GRP_CASUALTY_SURGE, "Injection Window", "casualty_surge", "event", "window_min",
               "Injection Window — Minimum", "Minutes over which a fired event's casualties arrive (triangular min). Applies to every event.",
-              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY),
-    var_field("mc_window_mode", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_mode",
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_CASUALTY_SURGE),
+    var_field("mc_window_mode", GRP_CASUALTY_SURGE, "Injection Window", "casualty_surge", "event", "window_mode",
               "Injection Window — Most Likely (Mode)", "Minutes over which a fired event's casualties arrive (triangular mode). Applies to every event.",
-              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY),
-    var_field("mc_window_max", GRP_MASS_CASUALTY, "Injection Window", "mass_casualty", "event", "window_max",
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_CASUALTY_SURGE),
+    var_field("mc_window_max", GRP_CASUALTY_SURGE, "Injection Window", "casualty_surge", "event", "window_max",
               "Injection Window — Maximum", "Minutes over which a fired event's casualties arrive (triangular max). Applies to every event.",
-              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_MASS_CASUALTY)
+              type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_CASUALTY_SURGE)
   ))
   # Immediate-killed share (Issue #149) — applies in both modes, as the
   # injection window does, so it takes its own subgroup and renders
   # unconditionally through app.R's default subgroup fallback rather than
   # joining the Poisson-gated priority split below.
   registry <- c(registry, list(
-    var_field("mc_kia_fraction", GRP_MASS_CASUALTY, "Wounded and Killed Split", "mass_casualty", "event", "kia_fraction",
+    var_field("mc_kia_fraction", GRP_CASUALTY_SURGE, "Wounded and Killed Split", "casualty_surge", "event", "kia_fraction",
               "Immediate Killed Share", "Proportion of a fired event's casualties killed at or near the point of injury, taking the mortuary pathway rather than the wounded trajectory. Applies to every event in both modes.",
-              min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_KIA)
+              min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_KIA)
   ))
   # Shared priority split — like Casualties per Event above, this only
   # applies in "poisson" mode; "scheduled" mode uses each event's own
   # mc_sched_pri_one/two/three_<i> fields instead (rendered only when
   # mode = scheduled, see render_group_body() in app.R).
   registry <- c(registry, list(
-    var_field("mc_pri_one", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "one",
-              "Priority 1 (Immediate) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 1 — independent of the background Triage Priority Split.",
-              min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI),
-    var_field("mc_pri_two", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "two",
-              "Priority 2 (Urgent) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 2 — independent of the background Triage Priority Split.",
-              min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI),
-    var_field("mc_pri_three", GRP_MASS_CASUALTY, "Mass Casualty Priority Split", "mass_casualty", "priority", "three",
-              "Priority 3 (Delayed) Share", "Proportion of Poisson-mode mass-casualty-derived casualties triaged as Priority 3 — independent of the background Triage Priority Split.",
-              min = 0, max = 1, step = 0.01, source = SRC_MASS_CASUALTY_PRI)
+    var_field("mc_pri_one", GRP_CASUALTY_SURGE, "Surge Event Priority Split", "casualty_surge", "priority", "one",
+              "Priority 1 (Immediate) Share", "Proportion of Poisson-mode casualty-surge-derived casualties triaged as Priority 1 — independent of the background Triage Priority Split.",
+              min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI),
+    var_field("mc_pri_two", GRP_CASUALTY_SURGE, "Surge Event Priority Split", "casualty_surge", "priority", "two",
+              "Priority 2 (Urgent) Share", "Proportion of Poisson-mode casualty-surge-derived casualties triaged as Priority 2 — independent of the background Triage Priority Split.",
+              min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI),
+    var_field("mc_pri_three", GRP_CASUALTY_SURGE, "Surge Event Priority Split", "casualty_surge", "priority", "three",
+              "Priority 3 (Delayed) Share", "Proportion of Poisson-mode casualty-surge-derived casualties triaged as Priority 3 — independent of the background Triage Priority Split.",
+              min = 0, max = 1, step = 0.01, source = SRC_CASUALTY_SURGE_PRI)
   ))
 
   registry
@@ -1086,7 +1088,7 @@ build_param_registry <- function() {
   registry <- c(registry, r2b_fields())
   registry <- c(registry, r2e_fields())
   registry <- c(registry, strategic_ame_fields())
-  registry <- c(registry, mass_casualty_fields())
+  registry <- c(registry, casualty_surge_fields())
   registry
 }
 

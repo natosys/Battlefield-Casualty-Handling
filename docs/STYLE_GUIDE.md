@@ -499,7 +499,7 @@ scripts is separate work and is not required by this document.
 | `check_icu_time_conservation.R` | Yes | Yes | Yes | Yes | 1 of 4 |
 | `check_lever_realisation.R` | Yes | Yes | Yes | Yes | 4 of 8 |
 | `check_markdown.R` | No | No | No | Exit 1 only | 9 of 12 |
-| `check_mass_casualty_kia_split.R` | Yes | Yes | Yes | Yes | 2 of 5 |
+| `check_casualty_surge_kia_split.R` | Yes | Yes | Yes | Yes | 2 of 5 |
 | `check_measurement_reproducibility.R` | Yes | Yes | Yes | Yes | 2 of 6 |
 | `check_morris_baseline.R` | Yes | Banner only | No | Exit 1 only | 1 of 6 |
 | `check_pre_open_window.R` | Yes | Yes | Yes | Yes | 1 of 4 |

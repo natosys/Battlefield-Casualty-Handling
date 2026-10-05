@@ -455,17 +455,40 @@ No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|f
 <!-- GEN casualty_surge -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 5359.9 | 8187.2 |
-| Average events/run | 0 | 69.83 (range 57–83) |
-| Died-of-wounds rate, ordinary casualties | 0.29% [0.26%, 0.31%] | 0.37% [0.34%, 0.40%] |
-| Died-of-wounds rate, event casualties | not applicable | 0.77% [0.72%, 0.84%] |
+| Average total casualties/run | 5395.9 | 8102.2 |
+| Average events/run | 0 | 72.47 (range 59–91) |
+| Died-of-wounds rate, ordinary casualties | 0.22% [0.19%, 0.24%] | 0.23% [0.20%, 0.25%] |
+| Died-of-wounds rate, event casualties | not applicable | 0.77% [0.71%, 0.83%] |
 <!-- /GEN -->
 
 ![Stem plot of two casualty surge events reconstructed from one campaign](../images/casualty_surge_events.png)
 
 Two casualty surge events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
 
-Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->69.83 (range 57–83)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5359.9<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8187.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.72%, 0.84%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.29% [0.26%, 0.31%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.37% [0.34%, 0.40%]<!-- /GEN --> with it.
+Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->72.47 (range 59–91)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5395.9<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8102.2<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->0.77% [0.71%, 0.83%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.23% [0.20%, 0.25%]<!-- /GEN --> with it.
+
+---
+
+## Casualty Surge Event Size
+
+<small>[Return to Top](#contents)</small>
+
+**Question.** At what size do casualty surge events begin to degrade care? `[default, every event fixed at one size · 0.2 events per day · 360 d · 30 replications per size · independent seeds, pooled exact binomial and Student t]`
+
+<!-- GEN casualty_surge_size -->
+| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E intensive care queue | Peak R2E holding queue |
+|---|---|---|---|---|---|---|---|
+| None | 0.0 | not applicable | 0.22% [0.19%, 0.24%] | 44.2 ± 7.0 | 44.5 ± 7.1 | 18.9 ± 4.1 | 23.4 ± 5.3 |
+| 10 | 72.5 | 0.40% [0.32%, 0.50%] | 0.23% [0.20%, 0.25%] | 51.6 ± 7.2 | 43.1 ± 5.8 | 24.6 ± 6.3 | 46.6 ± 9.1 |
+| 20 | 72.5 | 0.61% [0.54%, 0.68%] | 0.24% [0.21%, 0.26%] | 59.2 ± 8.0 | 49.9 ± 7.9 | 156.4 ± 31.6 | 128.2 ± 13.6 |
+| 40 | 72.5 | 0.80% [0.74%, 0.86%] | 0.25% [0.23%, 0.28%] | 99.4 ± 8.8 | 73.0 ± 7.9 | 644.7 ± 45.6 | 236.2 ± 20.0 |
+| 60 | 72.5 | 0.83% [0.78%, 0.88%] | 0.25% [0.23%, 0.28%] | 117.0 ± 13.8 | 130.6 ± 12.9 | 1067.0 ± 68.1 | 352.9 ± 14.4 |
+| 90 | 72.5 | 0.87% [0.83%, 0.91%] | 0.30% [0.27%, 0.33%] | 148.7 ± 13.7 | 387.7 ± 57.5 | 1562.3 ± 49.7 | 525.3 ± 29.4 |
+| 120 | 72.5 | 0.90% [0.87%, 0.94%] | 0.30% [0.28%, 0.33%] | 197.7 ± 21.4 | 1030.1 ± 114.4 | 1683.7 ± 30.8 | 652.2 ± 44.1 |
+| 180 | 72.5 | 0.94% [0.91%, 0.97%] | 0.35% [0.32%, 0.38%] | 254.3 ± 33.9 | 2529.6 ± 182.1 | 1728.6 ± 25.9 | 882.8 ± 39.2 |
+<!-- /GEN -->
+
+Peak queues are the largest four-hour mean queue of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.40% [0.32%, 0.50%]<!-- /GEN --> and the peak R2E intensive care queue <!-- GEN cell:casualty_surge_size|10|Peak R2E intensive care queue|full -->24.6 ± 6.3<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E intensive care queue|full -->18.9 ± 4.1<!-- /GEN --> with no events injected. At 20 casualties per event the intensive care queue peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E intensive care queue|full -->156.4 ± 31.6<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E intensive care queue|full -->644.7 ± 45.6<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->44.5 ± 7.1<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->130.6 ± 12.9<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->387.7 ± 57.5<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2529.6 ± 182.1<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->0.83% [0.78%, 0.88%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->0.94% [0.91%, 0.97%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.22% [0.19%, 0.24%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->0.35% [0.32%, 0.38%]<!-- /GEN --> at 180.
 
 ---
 

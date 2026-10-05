@@ -2095,18 +2095,14 @@ build_scenario_labels <- function() {
     trimws(sub("\\s*\\(.*$", "", lbl))
   }
 
-  # The dropdown's own naming for what each option actually changes,
-  # overriding, for display only, env_data.json's canonical scenario
-  # labels. The shipped default is the moderate-intensity Falklands
-  # calibration, and `moderate_intensity` is an empty overlay kept as an
-  # explicit alias of it, so the two entries run the same configuration.
-  # "Okinawa — Casualty Rates" is named for what it overrides: casualty
-  # generation and the died-of-wounds model. A scenario id absent from this
-  # map falls back to its own env_data.json label.
+  # The dropdown's own naming, overriding env_data.json's canonical scenario
+  # labels for display only. The shipped default is the moderate-intensity
+  # Falklands calibration; "high_intensity" overlays Okinawa casualty rates
+  # and its own died-of-wounds model. A scenario id absent from this map
+  # falls back to its own env_data.json label.
   SCENARIO_DROPDOWN_LABELS <- c(
-    default             = "Falklands — Moderate Intensity",
-    moderate_intensity  = "Falklands — Moderate Intensity (alias of default)",
-    high_intensity      = "Okinawa — Casualty Rates"
+    default         = "Moderate Intensity",
+    high_intensity  = "High Intensity"
   )
   list(
     SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,
@@ -2127,7 +2123,10 @@ wire_scenario_dropdown <- function(raw_env_data, input, output, SCENARIO_DROPDOW
                                    shorten_scenario_label) {
   scenario_choices <- reactive({
     base <- raw_env_data()
-    ids  <- c("default", names(base$scenarios))
+    # An overlay that overrides nothing (the `moderate_intensity` alias of the
+    # default) is not offered, so each option runs a distinct configuration.
+    overlaid <- vapply(base$scenarios, function(sc) length(sc$vars) > 0, logical(1))
+    ids  <- c("default", names(base$scenarios)[overlaid])
     labels <- vapply(ids, function(s) {
       if (s %in% names(SCENARIO_DROPDOWN_LABELS)) return(SCENARIO_DROPDOWN_LABELS[[s]])
       lbl <- base$scenarios[[s]]$label

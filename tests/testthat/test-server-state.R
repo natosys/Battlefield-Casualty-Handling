@@ -47,8 +47,12 @@ test_that("the scenario selector offers the profiles the configuration defines",
     choices <- scenario_choices()
     expect_true(is.character(choices))
     expect_identical(unname(choices)[1], "default")
-    expect_setequal(unname(choices),
-                    c("default", names(test_startup_json()$scenarios)))
+    # An overlay that overrides nothing is an alias of the default and is
+    # not offered, so each option runs a distinct configuration.
+    scenarios <- test_startup_json()$scenarios
+    overlaid <- names(scenarios)[vapply(scenarios, function(sc) length(sc$vars) > 0, logical(1))]
+    expect_setequal(unname(choices), c("default", overlaid))
+    expect_identical(names(choices), c("Moderate Intensity", "High Intensity"))
     # Every option carries a label, and none of them is the bare identifier
     # padded out by the fallback in scenario_choices().
     expect_true(all(nzchar(names(choices))))
@@ -133,7 +137,7 @@ test_that("the scheduled casualty surge row count cannot exceed the slot count",
 test_that("loading a valid configuration replaces the base configuration", {
   shiny::testServer(server, {
     edited <- test_startup_json()
-    edited$scenarios <- edited$scenarios[1]
+    edited$scenarios <- edited$scenarios["high_intensity"]
     session$setInputs(upload_json = test_upload(edited))
     expect_setequal(unname(scenario_choices()),
                     c("default", names(edited$scenarios)))

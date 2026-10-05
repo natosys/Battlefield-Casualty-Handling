@@ -46,6 +46,7 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
+    - [Event Size Sweep](#event-size-sweep)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
   - [Sensitivity Screens](#sensitivity-screens)
   - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)

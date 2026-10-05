@@ -359,6 +359,9 @@ seconds.
 | `check_baseline_reproduction.R` | fast | 37 s | Seed-42 tracked evidence set reproduction |
 | `check_bed_queue_coverage.R` | fast | 27 s | a bed queue figure covers every bed type its echelon fields |
 | `check_capacity_sweep_protocol.R` | fast | 7 s | the transport fleet-size sweep and the forward ICU share frontier agree with their published tables |
+| `check_casualty_surge_kia_split.R` | fast | 41 s | a casualty surge event's casualty count is a total, split between the wounded and the immediately killed |
+| `check_casualty_surge_protocol.R` | fast | 7 s | the casualty surge stress test's parameters, its responses and its published table agree |
+| `check_casualty_surge_size_protocol.R` | fast | 5 s | the casualty surge event size sweep's parameters, its evidence set and its summary agree |
 | `check_censored_interval_estimation.R` | fast | 22 s | an interval still open when the window closes is carried as the lower bound it is, not dropped |
 | `check_ci_apt_guards.R` | fast | 2 s | every CI system-library install carries the same stall guards |
 | `check_ci_check_table.R` | fast | 2 s | the CI guide's check table lists every check |
@@ -382,8 +385,6 @@ seconds.
 | `check_long_horizon_protocol.R` | fast | 40 s | the long-horizon protocol's parameters, its reduction and its published series agree with one another |
 | `check_long_horizon_warmup.R` | fast | 8 s | the sustained-horizon Welch diagnostic is correct and the tracked plot and CSV reproduce it |
 | `check_markdown.R` | fast | 6 s | Markdown TOC, link and table checks |
-| `check_casualty_surge_kia_split.R` | fast | 41 s | a casualty surge event's casualty count is a total, split between the wounded and the immediately killed |
-| `check_casualty_surge_protocol.R` | fast | 7 s | the casualty surge stress test's parameters, its responses and its published table agree |
 | `check_measurement_reproducibility.R` | fast | 175 s | a measurement is a function of its control seed |
 | `check_morris_baseline.R` | fast | 8 s | Screened-parameter baseline agreement |
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |

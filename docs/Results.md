@@ -43,6 +43,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
 - [Casualty Surge Events](#casualty-surge-events)
+- [Casualty Surge Event Size](#casualty-surge-event-size)
 - [Resolution of Paired Differences](#resolution-of-paired-differences)
 - [Sensitivity Screens](#sensitivity-screens)
 - [Annex A. Model Verification of One Seed-42 Campaign](#annex-a-model-verification-of-one-seed-42-campaign)

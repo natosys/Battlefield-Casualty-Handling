@@ -204,7 +204,7 @@ crew <- scenario_transport_holders_by_replication(crew_mon, n_days = 1, crew_est
 crew_row <- crew[crew$holder == "R2B evacuation crews", ]
 report(nrow(crew) == nrow(SCENARIO_TRANSPORT_HOLDERS) &&
          abs(crew_row$utilisation - 0.25) < 1e-9,
-       "crew utilisation is the lead medic's busy share over the established crews (%.4f, expected 0.2500)",
+       "crew utilisation is the lead medic's busy share of the crews (%.4f, expected 0.2500)",
        crew_row$utilisation)
 report(all(crew$utilisation[crew$holder != "R2B evacuation crews"] == 0),
        "a holder never seized reports zero utilisation rather than dropping out")

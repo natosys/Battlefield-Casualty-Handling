@@ -367,7 +367,8 @@ summarise_scenario_queue_groups <- function(per_replication) {
 #'   `transports` and the integral crews in `elms`.
 scenario_transport_establishment <- function(data) {
   vapply(seq_len(nrow(SCENARIO_TRANSPORT_HOLDERS)), function(i) {
-    source_list <- if (SCENARIO_TRANSPORT_HOLDERS$kind[i] == "shared") data$transports else data$elms
+    shared <- SCENARIO_TRANSPORT_HOLDERS$kind[i] == "shared"
+    source_list <- if (shared) data$transports else data$elms
     as.integer(pool_establishment(source_list, SCENARIO_TRANSPORT_HOLDERS$pattern[i]))
   }, integer(1)) %>%
     setNames(SCENARIO_TRANSPORT_HOLDERS$holder)

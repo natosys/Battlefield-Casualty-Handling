@@ -17,8 +17,8 @@
 # test, not a calibration test, and says so in its output.
 #
 # Why this check exists: each configuration's mortality ceilings are
-# calibrated against a historical anchor, and for the two Falklands-calibrated
-# configurations that anchor is the Ajax Bay Advanced Surgical Centre's three
+# calibrated against a historical anchor, and for the default and its
+# `moderate_intensity` alias, which are the same configuration, that anchor is the Ajax Bay Advanced Surgical Centre's three
 # deaths among the "over 650" casualties who reached forward surgical care, a
 # rate of approximately 0.46% (README — Parameter Calibration). Nothing in an
 # ordinary run compares the model against it. The comparison was made by hand
@@ -38,7 +38,7 @@
 #      is inexact. The failure condition is therefore one-sided: the model
 #      overshooting the bound. A configuration sitting comfortably below it
 #      is consistent with the historical record and passes, which is why
-#      moderate_intensity passes at roughly 0.27%.
+#      the default passes at roughly 0.27%.
 #
 # high_intensity is checked against a different anchor, because it models a
 # different campaign under a different standard of care: the US Army on
@@ -53,7 +53,7 @@
 # departure from this project's usual practice is deliberate, and is why the
 # overshoot was reported. Died of wounds averages about one death per
 # replication, so a single 50-replication measurement does not resolve it:
-# three measurements of the shipped base configuration returned 0.524%,
+# three measurements of the base configuration shipped before the moderate-intensity calibration became the default returned 0.524%,
 # 0.359% and 0.368%, a spread of 0.17 percentage points, about as wide as the
 # whole interval any one of them reports.
 # The replication is the unit of analysis, which it is entitled to be because
@@ -93,7 +93,7 @@ arg_value <- function(flag, default) {
 #
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
 #     care (Westphalen, 2018), an upper bound because the denominator is
-#     inexact. Applies to the two Falklands-calibrated configurations.
+#     inexact. Applies to the default and its `moderate_intensity` alias.
 #   Okinawa: 3.4% of casualties who reached a hospital alive died there
 #     (Marble, 2025), a reported rate against a stated denominator.
 DOW_TARGETS <- list(

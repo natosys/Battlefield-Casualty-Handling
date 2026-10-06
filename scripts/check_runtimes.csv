@@ -47,6 +47,7 @@ check_replication_independence.R,68
 check_replication_loss_reporting.R,19
 check_replication_memory.R,25
 check_results_tables.R,9
+check_role4_demand_protocol.R,11
 check_role4_surgical_demand.R,169
 check_role4_ward_phases.R,9
 check_roxygen.R,5

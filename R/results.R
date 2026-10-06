@@ -1095,6 +1095,180 @@ ANNEX_FORCE <- c(
   effective_force_support_day_360 = "Support force, day 360"
 )
 
+# ── National support base bed demand ─────────────────────────────────────────
+# The census, its composition, the theatre demand owed with it and whether it
+# has settled come from data/role4_demand/ (R/role4_demand.R); the response of
+# demand to the forward levers comes from the evidence sets of those levers,
+# which already carry the Role 4 peak, the closing 90-day mean and the
+# operations owed, and from the cancellation sweep of the same directory.
+
+#' Casualty intensities of the Role 4 demand tables, as their column headings
+ROLE4_INTENSITY_HEADINGS <- c(moderate_intensity = "Moderate intensity",
+                              high_intensity = "High intensity")
+
+#' Measures of the census, as the row label prints them and the response key
+ROLE4_CENSUS_MEASURES <- list(c("mean beds", "mean"), c("peak beds", "peak"),
+                              c("closing 90-day mean beds", "closing_mean"))
+
+#' Role 4 census table, by ward phase or by origin
+#'
+#' @param data_dir The data directory.
+#' @param which `"ward"` for the census by ward phase or `"origin"` for the
+#'   census by origin of the casualty.
+#' @return The table lines: for the total and each part, the mean, the peak and
+#'   the closing 90-day mean of the daily census at each casualty intensity.
+build_role4_census <- function(data_dir, which) {
+  d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
+  subjects <- switch(which,
+    ward = list(c("Total", "Total"), c("Intensive care phase", "icu"),
+                c("Step-down ward phase", "hold")),
+    origin = list(c("Total", "Total"), c("Battle injury", "Battle injury"),
+                  c("Disease and non-battle injury", "Disease and non-battle injury"),
+                  c("Reconstruction cohort", "Reconstruction cohort")))
+  rows <- list()
+  for (sub in subjects) {
+    for (meas in ROLE4_CENSUS_MEASURES) {
+      cells <- vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+        x <- d[d$scenario == sc & d$series == "census" & d$subject == sub[2] &
+                 d$response == meas[2], ]
+        stopifnot(nrow(x) == 1L)
+        res_ci(x$mean, x$ci_lower, x$ci_upper, dp = 2L, floor0 = TRUE)
+      }, character(1))
+      rows[[length(rows) + 1L]] <- c(paste0(sub[1], ", ", meas[1]), cells)
+    }
+  }
+  res_table(c(if (which == "ward") "Census by ward phase" else "Census by origin",
+              unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
+#' Role 4 operating theatre demand table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the operations owed at the national support base, inside
+#'   the campaign, after it and in all by the casualties it admitted, and the theatre
+#'   minutes of the definitive repairs among them, at each casualty intensity.
+build_role4_operations <- function(data_dir) {
+  d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
+  spec <- list(
+    list("Operations owed within the 360 days", "operations", "total", 0L),
+    list("Operations owed after day 360", "operations_after_horizon", "total", 0L),
+    list("Operations owed by casualties admitted during the campaign", "operations_admitted",
+         "total", 0L),
+    list("Operations owed on the busiest day", "operations", "peak", 2L),
+    list("Closing 90-day mean operations owed per day", "operations", "closing_mean", 2L),
+    list("Theatre minutes owed for definitive repairs", "theatre_minutes", "total", 0L)
+  )
+  rows <- lapply(spec, function(r) {
+    c(r[[1]], vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+      x <- d[d$scenario == sc & d$series == r[[2]] & d$subject == "Total" &
+               d$response == r[[3]], ]
+      stopifnot(nrow(x) == 1L)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[4]], big = TRUE, floor0 = TRUE)
+    }, character(1)))
+  })
+  res_table(c("Demand owed alongside the census", unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
+#' Role 4 census stationarity table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: for the total and each part of the census, the
+#'   classification of its 30-day block means over the campaign, the first
+#'   block from which it stays within its late band, and its late mean, at each
+#'   casualty intensity.
+build_role4_stability <- function(data_dir) {
+  d <- res_read("role4_demand/role4_demand_stability.csv", data_dir)
+  subjects <- list(c("Total", "Total"), c("Intensive care phase", "icu"),
+                   c("Step-down ward phase", "hold"), c("Battle injury", "Battle injury"),
+                   c("Disease and non-battle injury", "Disease and non-battle injury"),
+                   c("Reconstruction cohort", "Reconstruction cohort"))
+  rows <- lapply(subjects, function(sub) {
+    cells <- unlist(lapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+      x <- d[d$scenario == sc & d$subject == sub[2], ]
+      stopifnot(nrow(x) == 1L)
+      c(x$stability, if (is.na(x$settles_by_block)) "none" else as.character(x$settles_by_block),
+        res_num(x$late_mean, 2L))
+    }))
+    c(sub[1], cells)
+  })
+  header <- c("Census", unlist(lapply(unname(ROLE4_INTENSITY_HEADINGS), function(h) {
+    paste(h, c("classification", "settles by block", "late mean beds"))
+  })))
+  res_table(header, rows)
+}
+
+#' Days at which the cumulative moving average of the census is read
+ROLE4_CMA_DAYS <- c(30L, 90L, 180L, 360L)
+
+#' Role 4 census cumulative moving average table
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the cumulative moving average of the cross-replication
+#'   mean total census at each reading day, at each casualty intensity.
+#'
+#' @details The Welch cumulative moving average, as docs/Methods.md applies it to
+#'   the sustained-horizon pools, of the mean across replications of the total
+#'   daily census. A series that has settled flattens; one still filling keeps
+#'   rising.
+build_role4_cma <- function(data_dir) {
+  d <- res_read("role4_demand/role4_demand_daily.csv", data_dir)
+  d <- d[d$subject == "Total", ]
+  rows <- lapply(ROLE4_CMA_DAYS, function(day) {
+    c(sprintf("Day %d", day), vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
+      m <- d[d$scenario == sc, ]
+      m <- m[order(m$day), ]
+      res_num(mean(m$mean[m$day <= day]), 2L)
+    }, character(1)))
+  })
+  res_table(c("Cumulative moving average of the mean total census (beds)",
+              unname(ROLE4_INTENSITY_HEADINGS)), rows)
+}
+
+#' Rows of the Role 4 demand tables for the three lever evidence sets
+ROLE4_LEVER_ROWS <- list(
+  list("Role 4 peak beds", "role4_peak", 1L, 1),
+  list("Role 4 closing 90-day mean beds", "role4_sustained", 1L, 1),
+  list("Role 4 operations owed", "role4_operations", 0L, 1)
+)
+
+#' Role 4 demand against one forward lever
+#'
+#' @param data_dir The data directory.
+#' @param which One of `"policy"`, `"establishment"`, `"saturation"` or
+#'   `"cancellation"`.
+#' @return The table lines: the peak, the closing 90-day mean and the operations
+#'   owed at each swept value of the lever.
+build_role4_levers <- function(data_dir, which) {
+  if (which == "cancellation") {
+    d <- res_read("role4_demand/role4_demand_reliability_summary.csv", data_dir)
+    probs <- c(0, 0.05, 0.10, 0.15, 0.25, 0.40)
+    spec <- list(list("Role 4 peak beds", "census", "peak", 1L),
+                 list("Role 4 closing 90-day mean beds", "census", "closing_mean", 1L),
+                 list("Role 4 operations owed", "operations_admitted", "total", 0L))
+    rows <- lapply(spec, function(r) {
+      c(r[[1]], vapply(probs, function(p) {
+        x <- d[abs(d$failure_probability - p) < 1e-9 & d$series == r[[2]] &
+                 d$subject == "Total" & d$response == r[[3]], ]
+        stopifnot(nrow(x) == 1L)
+        res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[4]], floor0 = TRUE)
+      }, character(1)))
+    })
+    return(res_table(c("Response", "0% (shipped)", "5%", "10%", "15%", "25%", "40%"), rows))
+  }
+  switch(which,
+    policy = res_sweep_table(res_read("policy/policy_sweep.csv", data_dir),
+      c("Response", "15 d", "21 d (shipped)", "30 d", "45 d", "60 d"),
+      lapply(c(15, 21, 30, 45, 60), function(v) list(policy_days = v)), ROLE4_LEVER_ROWS),
+    establishment = res_sweep_table(res_read("policy/establishment_sweep.csv", data_dir),
+      c("Response", "30 beds (shipped)", "45 beds", "60 beds", "90 beds"),
+      lapply(c(30, 45, 60, 90), function(v) list(hold_beds = v)), ROLE4_LEVER_ROWS),
+    saturation = res_sweep_table(res_read("policy/saturation_sweep.csv", data_dir),
+      c("Response", "0 (disabled)", "1", "2", "3", "5", "8 (shipped)", "12", "16", "24"),
+      lapply(c(0, 1, 2, 3, 5, 8, 12, 16, 24), function(v) list(saturation_threshold = v)),
+      ROLE4_LEVER_ROWS),
+    stop(sprintf("no Role 4 lever table named '%s'", which), call. = FALSE))
+}
+
 #' Registry of generated tables
 #'
 #' @details Each entry is a function of the data directory returning the lines
@@ -1124,6 +1298,15 @@ RESULTS_TABLES <- list(
   icu_gate = build_icu_gate,
   icu_gate_pathways = build_icu_gate_pathways,
   airlift_collapse = build_airlift_collapse,
+  role4_census_ward = function(dd) build_role4_census(dd, "ward"),
+  role4_census_origin = function(dd) build_role4_census(dd, "origin"),
+  role4_operations = build_role4_operations,
+  role4_stability = build_role4_stability,
+  role4_cma = build_role4_cma,
+  role4_levers_policy = function(dd) build_role4_levers(dd, "policy"),
+  role4_levers_establishment = function(dd) build_role4_levers(dd, "establishment"),
+  role4_levers_saturation = function(dd) build_role4_levers(dd, "saturation"),
+  role4_levers_cancellation = function(dd) build_role4_levers(dd, "cancellation"),
   resolution = build_resolution,
   morris_top = build_morris_top,
   sobol = build_sobol,

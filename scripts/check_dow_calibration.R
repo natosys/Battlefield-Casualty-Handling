@@ -18,8 +18,8 @@
 #
 # Why this check exists: each configuration's mortality ceilings are
 # calibrated against a historical anchor, and for the default and its
-# `moderate_intensity` alias, which are the same configuration, that anchor is the Ajax Bay Advanced Surgical Centre's three
-# deaths among the "over 650" casualties who reached forward surgical care, a
+# `moderate_intensity` alias, which are the same configuration, that anchor is
+# the Ajax Bay Advanced Surgical Centre's three deaths among the "over 650" casualties who reached forward surgical care, a
 # rate of approximately 0.46% (README — Parameter Calibration). Nothing in an
 # ordinary run compares the model against it. The comparison was made by hand
 # at each recalibration, which is how the model came to be reported as
@@ -53,7 +53,8 @@
 # departure from this project's usual practice is deliberate, and is why the
 # overshoot was reported. Died of wounds averages about one death per
 # replication, so a single 50-replication measurement does not resolve it:
-# three measurements of the base configuration shipped before the moderate-intensity calibration became the default returned 0.524%,
+# three measurements of the base configuration shipped before the
+# moderate-intensity calibration became the default returned 0.524%,
 # 0.359% and 0.368%, a spread of 0.17 percentage points, about as wide as the
 # whole interval any one of them reports.
 # The replication is the unit of analysis, which it is entitled to be because

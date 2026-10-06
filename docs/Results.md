@@ -710,7 +710,7 @@ The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ i
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** Which of the eighty screened parameters most influence the system operating theatre queue, and how is that influence divided among the leading eight? `[default · 30 d · Morris r = 20 with 5 replications per point; Sobol N = 800 with 8 replications per point]`
+**Question.** Which of the eighty screened parameters most influence the R2E operating theatre queue, and how is that influence divided among the leading eight? `[default · 30 d · Morris r = 20 with 5 replications per point; Sobol N = 800 with 8 replications per point]`
 
 These screens are tagged 30 days because they were not re-measured at the sustained horizon; their rankings describe a month of campaign.
 
@@ -739,13 +739,13 @@ These screens are tagged 30 days because they were not re-measured at the sustai
 | 20 | `kia_cbt_mean` | 1.84 | 3.21 |
 <!-- /GEN -->
 
-The table lists the twenty parameters with the largest Morris $\mu^*$ on the system operating theatre queue, of eighty screened. `casualty_surge_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
+The table lists the twenty parameters with the largest Morris $\mu^*$ on the R2E operating theatre queue, of eighty screened. `casualty_surge_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
 
 Scatter plots of the screen for seven responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
 
 ![Morris screening scatter plot of the mean system operating theatre queue across R2B and R2E](../images/morris_system_ot_q.png)
 
-Screening of the mean system operating theatre queue across R2B and R2E.
+Screening of the summed R2B and R2E operating theatre queue. The R2B queue is zero at every design point, so this response equals the R2E queue below and is retained for the tracked design point caches rather than as a separate response.
 
 ![Placeholder panel for the Morris screening of the mean R2B operating theatre queue](../images/morris_r2b_ot_q.png)
 

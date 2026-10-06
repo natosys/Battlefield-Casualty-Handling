@@ -870,9 +870,10 @@ compute_utilisation <- function(mon, pattern) {
 #'
 #'   Two responses have no Model Outputs parent and are retained as derived
 #'   aggregates rather than as KPIs in their own right: `system_ot_q`, the
-#'   sum of the two theatre queue responses, which is the ranking reported in
-#'   `outputs/morris_ranking.csv` and in the README's published table; and
-#'   `transport_util`, which applies Domain 3's utilisation reduction to the
+#'   sum of the two theatre queue responses, retained only so that the
+#'   tracked design point caches keep their schema (the R2B theatre queue is
+#'   zero at every design point, so it equals `r2e_ot_q` and is not ranked as
+#'   primary); and `transport_util`, which applies Domain 3's utilisation reduction to the
 #'   transport fleet, whose queues stay near zero under baseline demand and
 #'   would otherwise register no sensitivity at all (Issue #6). Both are
 #'   marked as derived in the `domain` column.
@@ -1666,7 +1667,7 @@ rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
 #'   `images/` would leave twenty-nine untracked files in a tracked
 #'   directory.
 #' @return Named list: morris_objs (per-response sensitivity objects), Y
-#'   (response matrix), X (design matrix), ranking (the primary system OT
+#'   (response matrix), X (design matrix), ranking (the primary R2E OT
 #'   queue ranking, sorted descending by mu_star), rankings (the same data
 #'   frame per response, named by response), kpis (`morris_kpis`)
 #'
@@ -1744,13 +1745,14 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   degenerates <- ranked$degenerates
   morris_objs <- ranked$morris_objs
 
-  # The primary ranking remains system OT queue, the aggregate bottleneck
-  # response the README's published table reports, written under its
-  # historical filename as well as its per-response one.
-  ranking <- rankings[["system_ot_q"]]
+  # The primary ranking is the R2E theatre queue, the only theatre queue that
+  # varies: the R2B component of `system_ot_q` is zero at every design point,
+  # so the two rankings are identical. Written under the historical filename
+  # as well as its per-response one.
+  ranking <- rankings[["r2e_ot_q"]]
   write.csv(ranking, file.path(output_dir, "morris_ranking.csv"), row.names = FALSE)
   message("Primary parameter ranking written to outputs/morris_ranking.csv")
-  message("\nTop parameters by mu* (system OT queue):")
+  message("\nTop parameters by mu* (R2E OT queue):")
   print(ranking, digits = 4)
 
   write_screen_metadata(output_dir, "morris", list(

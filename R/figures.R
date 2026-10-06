@@ -361,3 +361,164 @@ plot_casualty_surge_timeline <- function(events, n_sim_days) {
   }
   p
 }
+
+#' Display names of the Role 4 wards the census figure draws
+#'
+#' @details Keyed by the ward level `env_data.json` names, so a ward the figure
+#'   has no name for is drawn under its own level rather than dropped.
+ROLE4_FIGURE_WARDS <- c(icu = "Intensive care phase", hold = "Step-down ward phase")
+
+#' Role 4 census over time figure
+#'
+#' @param daily_df Tracked `data/role4_demand/role4_demand_daily.csv`.
+#' @return ggplot object of the daily census against campaign day, one column
+#'   per casualty intensity and two rows, the census divided by ward phase and
+#'   by origin, each beside the total it sums to.
+#'
+#' @details The line is the mean across replications and the band its 95%
+#'   interval. The total is drawn in both rows so that each composition reads
+#'   against the quantity it divides rather than against an unlabelled sum.
+plot_role4_census_over_time <- function(daily_df) {
+  intensity <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
+  origins <- c("Battle injury", "Disease and non-battle injury", "Reconstruction cohort")
+  wards <- ifelse(daily_df$subject %in% names(ROLE4_FIGURE_WARDS),
+                  ROLE4_FIGURE_WARDS[daily_df$subject], daily_df$subject)
+  daily_df$subject <- unname(wards)
+  by_ward <- daily_df %>% filter(subject %in% c(unname(ROLE4_FIGURE_WARDS), "Total")) %>%
+    mutate(composition = "By ward phase")
+  by_origin <- daily_df %>% filter(subject %in% c(origins, "Total")) %>%
+    mutate(composition = "By origin")
+  plot_df <- bind_rows(by_ward, by_origin) %>%
+    mutate(scenario = factor(intensity[scenario], levels = intensity),
+           composition = factor(composition, levels = c("By ward phase", "By origin")),
+           subject = factor(subject, levels = c("Total", unname(ROLE4_FIGURE_WARDS), origins)))
+  ggplot(plot_df, aes(x = day, y = mean, colour = subject, fill = subject)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 0.8) +
+    facet_grid(composition ~ scenario) +
+    scale_colour_brewer(palette = "Dark2") +
+    scale_fill_brewer(palette = "Dark2") +
+    labs(title = "Role 4 Bed Demand over a 360-Day Campaign",
+         subtitle = sprintf("%d replications per intensity; bands are 95%% intervals",
+                            max(plot_df$n_reps)),
+         x = "Campaign day", y = "Beds occupied (concurrent patients)",
+         colour = NULL, fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          legend.position = "bottom")
+}
+
+#' Levers the Role 4 demand figure draws, in plotting order
+ROLE4_LEVER_LABELS <- c(
+  policy = "Evacuation policy (days recoverable in theatre)",
+  establishment = "R2E holding beds per unit",
+  saturation = "R2E theatre queue at which a casualty is released",
+  cancellation = "Sortie cancellation probability"
+)
+
+#' Responses of the Role 4 demand figure, in plotting order
+ROLE4_LEVER_RESPONSES <- c(peak = "Peak beds", closing_mean = "Closing 90-day mean beds",
+                           operations = "Operations owed")
+
+#' Role 4 demand against each forward lever figure
+#'
+#' @param policy Tracked `data/policy/policy_sweep.csv`.
+#' @param establishment Tracked `data/policy/establishment_sweep.csv`.
+#' @param saturation Tracked `data/policy/saturation_sweep.csv`.
+#' @param reliability Tracked
+#'   `data/role4_demand/role4_demand_reliability_summary.csv`.
+#' @param shipped Named list of the shipped value of each lever, with
+#'   `policy`, `establishment`, `saturation` and `cancellation`.
+#' @return ggplot object, one column per lever and one row per response (peak
+#'   beds, closing 90-day mean beds and operations owed), with the shipped value
+#'   of each marked by a dashed line.
+#'
+#' @details The three policy sets carry the peak as `role4_peak`, the closing
+#'   90-day mean as `role4_sustained` and the operations owed by the casualties
+#'   admitted as `role4_operations`; the reliability set carries the first two
+#'   for the census total and the operations as `operations_admitted`. Each is
+#'   renamed to a shared response so one figure draws all four levers.
+plot_role4_demand_levers <- function(policy, establishment, saturation, reliability, shipped) {
+  keep <- c("role4_peak" = "peak", "role4_sustained" = "closing_mean",
+            "role4_operations" = "operations")
+  #' One lever's evidence set in the figure's shared shape
+  #'
+  #' @param d Summary of one lever's sweep.
+  #' @param x_col Column holding the swept value.
+  #' @param lever Key of the lever, one of `ROLE4_LEVER_LABELS`.
+  #' @return Data frame of lever, x, response, mean, ci_lower, ci_upper and n_reps.
+  from_set <- function(d, x_col, lever) {
+    d <- d[d$response %in% names(keep), ]
+    data.frame(lever = lever, x = d[[x_col]], response = unname(keep[d$response]),
+               mean = d$mean, ci_lower = d$ci_lower, ci_upper = d$ci_upper,
+               n_reps = d$n_reps, stringsAsFactors = FALSE)
+  }
+  census <- reliability[reliability$subject == "Total" &
+                          ((reliability$series == "census" &
+                              reliability$response %in% c("peak", "closing_mean")) |
+                             (reliability$series == "operations_admitted" &
+                                reliability$response == "total")), ]
+  census$response[census$response == "total"] <- "operations"
+  cancel <- data.frame(lever = "cancellation", x = census$failure_probability,
+                       response = census$response, mean = census$mean,
+                       ci_lower = census$ci_lower, ci_upper = census$ci_upper,
+                       n_reps = census$n_reps, stringsAsFactors = FALSE)
+  plot_df <- bind_rows(from_set(policy, "policy_days", "policy"),
+                       from_set(establishment, "hold_beds", "establishment"),
+                       from_set(saturation, "saturation_threshold", "saturation"),
+                       cancel) %>%
+    mutate(lever = factor(ROLE4_LEVER_LABELS[lever], levels = ROLE4_LEVER_LABELS),
+           response = factor(ROLE4_LEVER_RESPONSES[response], levels = ROLE4_LEVER_RESPONSES))
+  shipped_df <- data.frame(lever = factor(ROLE4_LEVER_LABELS[names(shipped)],
+                                          levels = ROLE4_LEVER_LABELS),
+                           x = unlist(shipped), stringsAsFactors = FALSE)
+  ggplot(plot_df, aes(x = x, y = mean)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = FIGURE_INTERVAL_FILL, alpha = 0.3) +
+    geom_line(color = FIGURE_MEAN_COLOUR, linewidth = 1) +
+    geom_point(color = FIGURE_MEAN_COLOUR, size = 2) +
+    geom_vline(data = shipped_df, aes(xintercept = x), color = FIGURE_SHIPPED_COLOUR,
+               linetype = "dashed", linewidth = 0.6) +
+    facet_grid(response ~ lever, scales = "free", switch = "y",
+               labeller = labeller(lever = label_wrap_gen(24))) +
+    labs(title = "Role 4 Bed Demand against Each Forward Lever",
+         subtitle = sprintf(paste("%d replications per point over 360 days; bands are 95%%",
+                                  "intervals; dashed line marks the shipped value"),
+                            max(plot_df$n_reps)),
+         x = NULL, y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          strip.placement = "outside")
+}
+
+#' Role 4 operations owed over time figure
+#'
+#' @param weekly_df Tracked
+#'   `data/role4_demand/role4_demand_operations_weekly.csv`.
+#' @return ggplot object of the mean operations owed per day over each week of
+#'   the campaign, one column per casualty intensity, by source and in all.
+#'
+#' @details The line is the mean across replications and the band its 95%
+#'   interval. A week is the interval between scheduled sorties, so each point
+#'   holds one whole cycle of the evacuation schedule.
+plot_role4_operations_over_time <- function(weekly_df) {
+  intensity <- c(moderate_intensity = "Moderate intensity", high_intensity = "High intensity")
+  levels_subject <- c("Total", "Definitive repair", "Debridement", "Reconstruction")
+  plot_df <- weekly_df %>%
+    mutate(scenario = factor(intensity[scenario], levels = intensity),
+           subject = factor(subject, levels = levels_subject))
+  ggplot(plot_df, aes(x = block_start_day, y = mean, colour = subject, fill = subject)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 0.8) +
+    facet_wrap(~ scenario) +
+    scale_colour_brewer(palette = "Dark2") +
+    scale_fill_brewer(palette = "Dark2") +
+    labs(title = "Role 4 Operating Theatre Demand over a 360-Day Campaign",
+         subtitle = sprintf(paste("Mean operations owed per day over each week; %d replications",
+                                  "per intensity; bands are 95%% intervals"),
+                            max(plot_df$n_reps)),
+         x = "Campaign day (start of week)", y = "Operations owed per day",
+         colour = NULL, fill = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          legend.position = "bottom")
+}

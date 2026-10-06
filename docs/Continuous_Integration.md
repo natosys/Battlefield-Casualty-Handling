@@ -397,6 +397,7 @@ seconds.
 | `check_replication_loss_reporting.R` | fast | 19 s | a lost replication is reported, not silently dropped |
 | `check_replication_memory.R` | fast | 25 s | peak memory does not grow with the replication count |
 | `check_results_tables.R` | fast | 9 s | docs/Results.md is what the tracked evidence says |
+| `check_role4_demand_protocol.R` | fast | 11 s | the Role 4 bed demand experiment's parameters, its reduction and its published figures agree |
 | `check_role4_surgical_demand.R` | fast | 169 s | the operating theatre requirement a released casualty carries to the national support base |
 | `check_role4_ward_phases.R` | fast | 9 s | the Role 4 ward split conserves the length of stay |
 | `check_roxygen.R` | fast | 5 s | Roxygen ratchet against R1 and R2 |

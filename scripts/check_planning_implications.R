@@ -46,10 +46,12 @@ EVIDENCE_LABELS <- c("Measured", "Direction only", "Unresolved", "Untested")
 #' Results sections whose levers the lever table must cover
 #'
 #' @details Each subsection of the forward holding and evacuation levers section,
-#'   the national support base section, the casualty surge section and the
-#'   comparative scenario section, which carries the surgical team diagnosis.
+#'   the national support base and Role 4 bed demand sections, the casualty surge
+#'   section and the comparative scenario section, which carries the surgical team
+#'   diagnosis.
 COVERED_SECTIONS <- c("## Forward Holding and Evacuation Levers",
                       "## National Support Base and Strategic Airlift",
+                      "## Role 4 Bed Demand",
                       "## Casualty Surge Events", "## Comparative Scenario Analysis")
 
 #' Percentages a sentence may state without being a measured figure

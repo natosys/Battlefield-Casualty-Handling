@@ -42,6 +42,7 @@ This document is the design record for the replicated experiments reported in th
   - [Transport Fleet-Size Sweep](#transport-fleet-size-sweep)
   - [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule)
   - [Strategic Airlift Reliability Sweep](#strategic-airlift-reliability-sweep)
+  - [Role 4 Bed Demand](#role-4-bed-demand)
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
@@ -250,6 +251,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Forward holding frontier | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
 | R2B holding capacity and evacuation threshold sweep | `data/sweeps/` | `check_capacity_sweep_protocol.R` |
 | National support base demand and the airlift schedule | `data/airlift/` | `check_airlift_protocol.R` |
+| Role 4 bed demand | `data/role4_demand/` | `check_role4_demand_protocol.R` |
 | Strategic airlift collapse | `data/airlift/` | `check_airlift_collapse_protocol.R` |
 | Evacuation policy and holding establishment sweeps | `data/policy/` | `check_policy_sweep_protocol.R` |
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
@@ -299,6 +301,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | R2B holding capacity and evacuation threshold | default | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | Transport fleet-size sweep | default; `high_intensity` | 360 d | 30 per point | 9 per configuration | unpaired | fleet pool queue and occupancy, closing 90 d; Student $t$ |
 | National support base demand and the airlift schedule | default and both profiles | 360 d | 30 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
+| Role 4 bed demand | both profiles; moderate with six cancellation probabilities | 360 d | 30 per configuration | 8 configurations | one control seed per configuration | daily census, mean, peak and closing 90 d; Student $t$ |
 | Strategic airlift reliability | default | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
@@ -504,6 +507,27 @@ Rscript scripts/run_airlift_collapse.R --refresh-baseline
 ```
 
 Each replication is reduced to a daily series inside the forked worker that produced it and the series alone is returned, since holding thirty 360-day monitoring sets in memory is what would otherwise bound the experiment. The two capabilities the design needs exist separately in the other entry points, `scripts/run_long_horizon.R` running a reducing 360-day replicated campaign and `scripts/run_airlift_sweep.R` sweeping `role4.ame.failure_probability` at a 30-day horizon; this command is the two together with the collapse classification, which neither of them reports. `scripts/check_airlift_collapse_protocol.R` asserts that the parameters above are the ones the code holds, that the classifier averages each replication over the closing window's days at an inclusive threshold rather than reading the window's worst day, and that the tracked summary is the table the companion paper prints.
+
+### Role 4 Bed Demand
+
+<!-- ROLE4DEMAND days=360 -->
+<!-- ROLE4DEMAND replications=30 -->
+<!-- ROLE4DEMAND window_days=90 -->
+<!-- ROLE4DEMAND seed=42 -->
+<!-- ROLE4DEMAND scenarios=moderate_intensity,high_intensity -->
+<!-- ROLE4DEMAND failure_probabilities=0,0.05,0.10,0.15,0.25,0.40 -->
+
+30 replications of a 360-day campaign at control seed 42 under each casualty intensity, and the same count under the moderate profile at each of six values of `role4.ame.failure_probability` from 0 to 0.40. The seed is set once before each configuration, so replication $i$ of every configuration draws the per-replication seed the strategic airlift measurement drew for it. Invoked as:
+
+```
+Rscript scripts/run_role4_demand.R --refresh-baseline
+```
+
+The national support base is given no capacity, queue or shortfall, so what is reduced is the demand a campaign places on it. Each replication is reduced inside the forked worker that produced it to a daily census of the casualties in a Role 4 bed, divided by ward phase (the intensive care phase and the step-down ward that follows it) and by origin (battle injury, disease and non-battle injury, and the reconstruction cohort, which takes precedence over injury type because the reconstruction sequence sets the length of its intensive care phase), together with the operations owed that day, divided by source (the definitive repair a casualty carries rearward, the debridements and the reconstruction that ends a reconstruction sequence), and the theatre minutes owed. The three divisions are counted from one expansion of each stay into bed-days, so the wards sum to the total and so do the origins, and a stay running past the horizon is counted to the horizon and no further. The length of stay is drawn under the replication's own seed, as in [National Support Base Demand and the Airlift Schedule](#national-support-base-demand-and-the-airlift-schedule), and the census and the operations owed rest on one draw, so the census total is the Role 4 peak that section reports and the operations owed are those the policy sweep reports.
+
+The operations owed are rebuilt from the two draws `compute_role4_surgical_demand()` takes, in the same order, so they are that function's own operations carrying the source it discards, and a source split that did not sum to its total would fail the check below. The reconstruction sequence of a casualty admitted late runs past the last day, so those operations are counted apart rather than clamped into the final day or dropped, which makes the total the one the policy sweep reports. The figure of operations over time averages each whole week, the interval between scheduled sorties, and drops a trailing partial week rather than weighting it by fewer days. Three responses are taken from each daily series: its mean over the whole campaign, its peak, and its mean over the closing 90 days, the window the other sustained-horizon responses use. The mean includes the opening days, in which the census is still filling, because a planner commits beds against the whole campaign, and the closing-window mean is the figure that reads as sustained once the opening has passed. The interval is the Student $t$ interval about the mean of the replications. Whether demand has settled is read on the sustained-operations convention of [The Protocol](#the-protocol): the 30-day block means of the census are classified by their late slope, and the cumulative moving average of the mean total census is read at four days, the census being a function of cumulative evacuations rather than of a pool's occupancy and so not assumed to settle. The response of demand to the evacuation policy, the R2E holding establishment and the saturation release is read from those sweeps' own evidence sets, which already carry the peak, the closing-window mean and the operations owed; the cancellation response is measured here, the airlift sweep's evidence set carrying the peak alone, and at a horizon, a seed and a configuration that make its peak the airlift reliability arm's own.
+
+`scripts/check_role4_demand_protocol.R` asserts that the parameters above are the ones the code holds, that the tracked evidence carries that replication count and horizon at both intensities and every probability, that the responses, the summary and the daily mean are each the reduction of the series beside them, that the wards and the origins each sum to the total on every day and the three sources sum to the operations owed, that the census peak equals the peak the strategic airlift, reliability and policy evidence sets report under the same seed, and that every figure the results section prints is the tracked summary's own. The reductions are asserted against hand-computed inputs, so a table agreeing with the summary is not two copies of one error. The tracked evidence set is `data/role4_demand/`.
 
 ### Evacuation Policy Sweep
 

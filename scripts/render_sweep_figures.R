@@ -227,6 +227,25 @@ save_figure(p_airlift, "airlift_sweeps.png", 11, 12)
 save_figure(plot_airlift_collapse(read_tracked("airlift", "airlift_collapse.csv")),
             "airlift_collapse.png", 9, 6)
 
+# RENDERS: role4_demand_census.png
+save_figure(plot_role4_census_over_time(read_tracked("role4_demand", "role4_demand_daily.csv")),
+            "role4_demand_census.png", 12, 9)
+
+# RENDERS: role4_demand_operations.png
+save_figure(plot_role4_operations_over_time(
+  read_tracked("role4_demand", "role4_demand_operations_weekly.csv")
+), "role4_demand_operations.png", 11, 5)
+
+# RENDERS: role4_demand_levers.png
+save_figure(plot_role4_demand_levers(
+  policy, establishment, saturation,
+  read_tracked("role4_demand", "role4_demand_reliability_summary.csv"),
+  shipped = list(policy = shipped_var("recovery", "evacuation_policy_days"),
+                 establishment = shipped_beds("r2eheavy", "hold"),
+                 saturation = saturation_shipped,
+                 cancellation = airlift_shipped$failure_probability)
+), "role4_demand_levers.png", 12, 10)
+
 long_blocks <- read_tracked("long_horizon", "long_horizon_blocks.csv")
 long_stability <- read_tracked("long_horizon", "long_horizon_stability.csv")
 

@@ -23,6 +23,18 @@
 "high_intensity","census","icu","peak",30,61.8333333333333,61.1749096264009,62.4917570402658
 "high_intensity","census","icu","closing_mean",30,39.9637037037037,39.593662200492,40.3337452069155
 "high_intensity","census","icu","total",30,14135.4,14052.0333055478,14218.7666944522
+"high_intensity","operations","Debridement","mean",30,2.51453703703704,2.45897387719698,2.57010019687709
+"high_intensity","operations","Debridement","peak",30,12.2333333333333,11.6394080055122,12.8272586611545
+"high_intensity","operations","Debridement","closing_mean",30,2.5562962962963,2.44019739482127,2.67239519777132
+"high_intensity","operations","Debridement","total",30,905.233333333333,885.230595790913,925.236070875754
+"high_intensity","operations","Definitive repair","mean",30,0.276018518518518,0.262454900646058,0.289582136390979
+"high_intensity","operations","Definitive repair","peak",30,6.86666666666667,6.36922120527262,7.36411212806071
+"high_intensity","operations","Definitive repair","closing_mean",30,0.134814814814815,0.123349285020003,0.146280344609627
+"high_intensity","operations","Definitive repair","total",30,99.3666666666667,94.4837642325809,104.249569100752
+"high_intensity","operations","Reconstruction","mean",30,1.0225,1.00715062310031,1.03784937689969
+"high_intensity","operations","Reconstruction","peak",30,5,4.72264088462927,5.27735911537073
+"high_intensity","operations","Reconstruction","closing_mean",30,1.07444444444444,1.04440412196462,1.10448476692427
+"high_intensity","operations","Reconstruction","total",30,368.1,362.574224316112,373.625775683888
 "high_intensity","operations","Total","mean",30,3.81305555555556,3.74233043412229,3.88378067698883
 "high_intensity","operations","Total","peak",30,13.4666666666667,12.9596479323763,13.9736854009571
 "high_intensity","operations","Total","closing_mean",30,3.76555555555556,3.62219805876017,3.90891305235094
@@ -63,6 +75,18 @@
 "moderate_intensity","census","icu","peak",30,64.3,61.2980600205519,67.3019399794481
 "moderate_intensity","census","icu","closing_mean",30,30.7122222222222,28.5909111595389,32.8335332849055
 "moderate_intensity","census","icu","total",30,10388.7,10063.5956991857,10713.8043008143
+"moderate_intensity","operations","Debridement","mean",30,1.86583333333333,1.79010719927189,1.94155946739478
+"moderate_intensity","operations","Debridement","peak",30,7.63333333333333,7.21174595736339,8.05492070930328
+"moderate_intensity","operations","Debridement","closing_mean",30,1.95,1.81196504546777,2.08803495453223
+"moderate_intensity","operations","Debridement","total",30,671.7,644.438591737879,698.961408262121
+"moderate_intensity","operations","Definitive repair","mean",30,0.404074074074074,0.348085192055087,0.460062956093061
+"moderate_intensity","operations","Definitive repair","peak",30,5.76666666666667,5.06854673924292,6.46478659409041
+"moderate_intensity","operations","Definitive repair","closing_mean",30,0.501111111111111,0.340539651790805,0.661682570431417
+"moderate_intensity","operations","Definitive repair","total",30,145.466666666667,125.310669139831,165.622664193502
+"moderate_intensity","operations","Reconstruction","mean",30,0.850277777777778,0.825880253885694,0.874675301669862
+"moderate_intensity","operations","Reconstruction","peak",30,4.8,4.5157914800306,5.08420851996939
+"moderate_intensity","operations","Reconstruction","closing_mean",30,0.909259259259259,0.866974930400235,0.951543588118283
+"moderate_intensity","operations","Reconstruction","total",30,306.1,297.31689139885,314.88310860115
 "moderate_intensity","operations","Total","mean",30,3.12018518518519,2.98023223691433,3.26013813345604
 "moderate_intensity","operations","Total","peak",30,11.3,10.6709540511735,11.9290459488265
 "moderate_intensity","operations","Total","closing_mean",30,3.36037037037037,3.04582676279191,3.67491397794883

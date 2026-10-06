@@ -153,6 +153,7 @@ responses <- read_evidence("role4_demand_replications.csv")
 summary_rows <- read_evidence("role4_demand_summary.csv")
 daily <- read_evidence("role4_demand_daily.csv")
 stability <- read_evidence("role4_demand_stability.csv")
+weekly <- read_evidence("role4_demand_operations_weekly.csv")
 reliability <- read_evidence("role4_demand_reliability_replications.csv")
 reliability_summary <- read_evidence("role4_demand_reliability_summary.csv")
 
@@ -167,6 +168,10 @@ if (!is.null(series)) {
                   c("census", "operations", "theatre_minutes", "operations_after_horizon",
                     "operations_admitted")),
          "the series carries the census and the demand owed within, after and in all")
+  ops_subjects <- unique(series$subject[series$series == "operations"])
+  report(setequal(ops_subjects, c(ROLE4_TOTAL, unname(ROLE4_OPERATION_SOURCES))),
+         "the operations owed are divided by the three sources and the total (%s)",
+         paste(sort(ops_subjects), collapse = ", "))
   census_subjects <- unique(series$subject[series$series == "census"])
   report(setequal(census_subjects, c(ROLE4_TOTAL, "icu", "hold", unname(ROLE4_ORIGINS))),
          "the census is divided by the total, both ward phases and the three origins (%s)",
@@ -253,6 +258,15 @@ if (!is.null(reliability) && !is.null(reliability_summary)) {
          "the cancellation summary is summarise_role4_demand() of its responses")
 }
 
+if (!is.null(series) && !is.null(weekly)) {
+  again <- role4_operations_weekly(series)
+  rownames(again) <- NULL
+  tracked <- weekly[order(weekly$scenario, weekly$subject, weekly$block_start_day), names(again)]
+  rownames(tracked) <- NULL
+  report(frames_agree(again, tracked),
+         "the tracked weekly operations are role4_operations_weekly() of the tracked series")
+}
+
 # A composition is only a composition if its parts sum to what it divides.
 if (!is.null(series)) {
   census <- series[series$series == "census", ]
@@ -272,6 +286,13 @@ if (!is.null(series)) {
          "the two ward phases sum to the total census on every day of every replication")
   report(gap(unname(ROLE4_ORIGINS)) == 0,
          "the three origins sum to the total census on every day of every replication")
+  ops <- series[series$series == "operations", ]
+  ops_total <- tapply(ops$value[ops$subject == ROLE4_TOTAL],
+                      ops[ops$subject == ROLE4_TOTAL, c("scenario", "replication", "day")], sum)
+  parts <- ops[ops$subject %in% unname(ROLE4_OPERATION_SOURCES), ]
+  part_sums <- tapply(parts$value, parts[, c("scenario", "replication", "day")], sum)
+  report(max(abs(part_sums - ops_total), na.rm = TRUE) == 0,
+         "the three sources sum to the operations owed on every day of every replication")
 }
 
 # ── 4. The census agrees with the evidence sets that already report a peak ──────
@@ -431,13 +452,21 @@ check_census_table("<!-- GEN role4_census_origin -->",
 
 ops_rows <- paper_table("<!-- GEN role4_operations -->")
 if (!is.null(ops_rows) && !is.null(summary_rows)) {
-  spec <- list(c("Operations owed within the 360 days", "operations", "total"),
-               c("Operations owed after day 360", "operations_after_horizon", "total"),
+  spec <- list(c("Operations owed within the 360 days", "operations", "total", ROLE4_TOTAL),
+               c("Definitive repairs owed within the 360 days", "operations", "total",
+                 "Definitive repair"),
+               c("Debridements owed within the 360 days", "operations", "total", "Debridement"),
+               c("Reconstructions owed within the 360 days", "operations", "total",
+                 "Reconstruction"),
+               c("Operations owed after day 360", "operations_after_horizon", "total",
+                 ROLE4_TOTAL),
                c("Operations owed by casualties admitted during the campaign",
-                 "operations_admitted", "total"),
-               c("Operations owed on the busiest day", "operations", "peak"),
-               c("Closing 90-day mean operations owed per day", "operations", "closing_mean"),
-               c("Theatre minutes owed for definitive repairs", "theatre_minutes", "total"))
+                 "operations_admitted", "total", ROLE4_TOTAL),
+               c("Operations owed on the busiest day", "operations", "peak", ROLE4_TOTAL),
+               c("Closing 90-day mean operations owed per day", "operations", "closing_mean",
+                 ROLE4_TOTAL),
+               c("Theatre minutes owed for definitive repairs", "theatre_minutes", "total",
+                 ROLE4_TOTAL))
   for (s in spec) {
     # Totals print as whole numbers and the rest to two decimals, so each is
     # compared to half a unit of its own last printed place.
@@ -450,7 +479,7 @@ if (!is.null(ops_rows) && !is.null(summary_rows)) {
     cells <- table_cells(row)[-1]
     for (k in seq_along(ROLE4_DEMAND_SCENARIOS)) {
       x <- summary_rows[summary_rows$scenario == ROLE4_DEMAND_SCENARIOS[k] &
-                          summary_rows$series == s[2] & summary_rows$subject == ROLE4_TOTAL &
+                          summary_rows$series == s[2] & summary_rows$subject == s[4] &
                           summary_rows$response == s[3], ]
       report(nrow(x) == 1 && abs(leading_number(cells[k]) - x$mean) < tol,
              "'%s' for %s prints %s against the data's %s", s[1], ROLE4_DEMAND_SCENARIOS[k],
@@ -524,6 +553,41 @@ report(nrow(role4_census_from_phases(phases[0, ], c("icu", "hold"), 8L)) == 8L *
          all(role4_census_from_phases(phases[0, ], c("icu", "hold"), 8L)$occupancy == 0L),
        "a campaign in which nobody reaches Role 4 reports a zero census on every day")
 
+# Operations: a stub standing in for the events a campaign owes, so the daily
+# series can be checked by hand: two repairs on day 2, a debridement on day 2 and
+# one on day 4, a reconstruction on day 4 and one on day 7, which is past the
+# horizon of five days.
+#' Stub of the events a campaign owes, with known days, sources and minutes
+#'
+#' @param arrivals_log Ignored; the stub owes the same events whatever it is given.
+#' @param r4_params Ignored.
+#' @return Data frame of day, source and theatre_minutes, one row per operation.
+role4_operation_events <- function(arrivals_log, r4_params) {
+  data.frame(day = c(2, 2, 2, 4, 4, 7),
+             source = c("repair", "repair", "debridement", "debridement", "reconstruction",
+                        "reconstruction"),
+             theatre_minutes = c(60, 90, 0, 0, 0, 0), stringsAsFactors = FALSE)
+}
+ops <- role4_operations_detail(NULL, NULL, 5L)
+#' Operations owed each day by one source
+#'
+#' @param src Source key to read.
+#' @return Numeric vector of daily operations, in day order.
+by_source <- function(src) ops$daily$operations[ops$daily$source == src]
+report(identical(by_source("repair"), c(0, 2, 0, 0, 0)) &&
+         identical(by_source("debridement"), c(0, 1, 0, 1, 0)) &&
+         identical(by_source("reconstruction"), c(0, 0, 0, 1, 0)),
+       "each operation falls on its own day and under its own source")
+report(sum(ops$daily$theatre_minutes) == 150 && ops$after_horizon == 1,
+       "the minutes are the repairs' and the operation past the horizon is counted apart")
+weekly_in <- data.frame(scenario = "default", replication = rep(1:2, each = 15),
+                        day = rep(1:15, 2), series = "operations", subject = ROLE4_TOTAL,
+                        value = c(rep(1, 7), rep(3, 7), 100, rep(2, 7), rep(4, 7), 100),
+                        stringsAsFactors = FALSE)
+wk <- role4_operations_weekly(weekly_in)
+report(identical(wk$block_start_day, c(1L, 8L)) && all(abs(wk$mean - c(1.5, 3.5)) < TOL),
+       "the weekly mean averages whole weeks across replications and drops the partial one")
+
 # Responses: two replications of a four-day census, closing window of two days.
 hand <- data.frame(
   replication = rep(1:2, each = 4), day = rep(1:4, 2), series = "census",
@@ -548,7 +612,7 @@ report(all(d$mean == c(1.5, 2.5, 4.5, 5.5)) && all(d$n_reps == 2L),
 cat("\n-- the evidence and the module report demand only --\n")
 
 forbidden <- "capacity|shortfall|queue"
-tracked_columns <- unlist(lapply(list(series, responses, summary_rows, daily, stability,
+tracked_columns <- unlist(lapply(list(series, responses, summary_rows, daily, stability, weekly,
                                       reliability, reliability_summary), names))
 report(!any(grepl(forbidden, tracked_columns, ignore.case = TRUE)),
        "no tracked column of the evidence set names a capacity, queue or shortfall")

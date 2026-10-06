@@ -151,35 +151,81 @@ role4_census_detail <- function(arrivals_log, r4_params, n_days) {
   role4_census_from_phases(phases, role4_ward_levels(r4_params), n_days)
 }
 
+#' Sources of the operations owed at Role 4, in display order
+#'
+#' @details A definitive repair is the operation a casualty released with it
+#'   outstanding carries rearward; a debridement is a return to theatre in the
+#'   reconstruction sequence before the wound is closed; the reconstruction is
+#'   the operation that ends that sequence.
+ROLE4_OPERATION_SOURCES <- c(repair = "Definitive repair", debridement = "Debridement",
+                             reconstruction = "Reconstruction")
+
+#' Every operation owed at Role 4, one row each, with its source
+#'
+#' @param arrivals_log Per-casualty arrivals and attributes.
+#' @param r4_params `env_data$vars$role4` list.
+#' @return Data frame of day, source and theatre_minutes, one row per operation;
+#'   zero rows where the configuration reports no theatre demand.
+#'
+#' @details Rebuilds the demand compute_role4_surgical_demand() reports from the
+#'   same two draws in the same order, so the operations here are that
+#'   function's own and merely carry the source it discards;
+#'   scripts/check_role4_demand_protocol.R asserts that they sum to its total.
+#'   The minutes are the conserved definitive repairs alone, no open-access
+#'   source reporting how long a debridement or a flap takes.
+role4_operation_events <- function(arrivals_log, r4_params) {
+  empty <- data.frame(day = numeric(0), source = character(0), theatre_minutes = numeric(0))
+  needed <- c("definitive_repair_outstanding", "definitive_repair_minutes")
+  if (!role4_surgery_enabled(r4_params) || !all(needed %in% names(arrivals_log))) {
+    return(empty)
+  }
+  assigned <- assign_role4_los(arrivals_log, r4_params)
+  if (nrow(assigned) == 0) return(empty)
+
+  released <- assigned[!is.na(assigned$definitive_repair_outstanding) &
+                         assigned$definitive_repair_outstanding == 1, ]
+  repairs <- data.frame(
+    day = released$r4_admit_day, source = rep("repair", nrow(released)),
+    theatre_minutes = ifelse(is.na(released$definitive_repair_minutes), 0,
+                             released$definitive_repair_minutes),
+    stringsAsFactors = FALSE
+  )
+  sequence <- with_preserved_rng(role4_reconstruction_sequence(assigned, r4_params))
+  staged <- data.frame(day = sequence$day, source = sequence$procedure,
+                       theatre_minutes = rep(0, nrow(sequence)), stringsAsFactors = FALSE)
+  rbind(repairs, staged)
+}
+
 #' Role 4 operating theatre demand owed alongside the census
 #'
 #' @param arrivals_log Per-casualty arrivals and attributes.
 #' @param r4_params `env_data$vars$role4` list.
 #' @param n_days Campaign length in days.
-#' @return List of `daily`, a data frame of day, operations and theatre_minutes
-#'   with one row per day from 1 to `n_days` and zero on a day on which nothing
-#'   is owed, and `after_horizon`, the operations owed after the last day.
+#' @return List of `daily`, a data frame of day, source, operations and
+#'   theatre_minutes with one row per source and day from 1 to `n_days` and zero
+#'   on a day with nothing owed, and `after_horizon`, the operations owed after
+#'   the last day.
 #'
 #' @details The reconstruction sequence of a casualty admitted late in the
 #'   campaign runs on past its end, so the operations owed by the casualties a
 #'   campaign admitted are not all owed inside it. They are counted separately
 #'   rather than clamped into the last day or dropped, so that the total is the
 #'   one R/policy_sweep.R reports and the daily series still ends on the
-#'   campaign's last day. The minutes column carries the conserved definitive
-#'   repairs alone, as compute_role4_surgical_demand() states, and every such
-#'   repair is owed on the day of admission, so none falls beyond the horizon.
+#'   campaign's last day. Every definitive repair is owed on the day of
+#'   admission, so none falls beyond the horizon.
 role4_operations_detail <- function(arrivals_log, r4_params, n_days) {
-  out <- data.frame(day = seq_len(n_days), operations = 0, theatre_minutes = 0)
-  demand <- compute_role4_surgical_demand(arrivals_log, r4_params)
-  if (nrow(demand) == 0) return(list(daily = out, after_horizon = 0))
-  inside <- demand[demand$day >= 1 & demand$day <= n_days, ]
-  if (nrow(inside) > 0) {
-    by_day <- aggregate(cbind(operations, theatre_minutes) ~ day, data = inside, FUN = sum)
-    hit <- match(by_day$day, out$day)
-    out$operations[hit] <- by_day$operations
-    out$theatre_minutes[hit] <- by_day$theatre_minutes
+  events <- role4_operation_events(arrivals_log, r4_params)
+  out <- expand.grid(day = seq_len(n_days), source = names(ROLE4_OPERATION_SOURCES),
+                     stringsAsFactors = FALSE)
+  out$operations <- 0
+  out$theatre_minutes <- 0
+  inside <- events[events$day >= 1 & events$day <= n_days, ]
+  for (i in seq_len(nrow(inside))) {
+    hit <- which(out$day == inside$day[i] & out$source == inside$source[i])
+    out$operations[hit] <- out$operations[hit] + 1
+    out$theatre_minutes[hit] <- out$theatre_minutes[hit] + inside$theatre_minutes[i]
   }
-  list(daily = out, after_horizon = sum(demand$operations[demand$day > n_days]))
+  list(daily = out, after_horizon = sum(events$day > n_days))
 }
 
 #' Reduce one replication's per-casualty data to the daily demand series
@@ -191,8 +237,8 @@ role4_operations_detail <- function(arrivals_log, r4_params, n_days) {
 #' @param seed The replication's seed, under which the length-of-stay draw is
 #'   taken.
 #' @return Data frame of day, series, subject and value in long form: the
-#'   `census` of each subject, the `operations` and `theatre_minutes` owed each
-#'   day, and two single-row series on the last day: the
+#'   `census` of each subject, the `operations` owed each day by source and in
+#'   all, the `theatre_minutes` owed each day, and two single-row series on the last day: the
 #'   `operations_after_horizon` owed after it and the `operations_admitted`
 #'   owed in all by the casualties the campaign admitted.
 #'
@@ -210,17 +256,22 @@ reduce_role4_demand <- function(wide, r4_params, n_days, seed) {
     set.seed(seed)
     role4_operations_detail(wide, r4_params, n_days)
   })
+  daily <- ops$daily
+  label <- unname(ROLE4_OPERATION_SOURCES[daily$source])
+  per_day <- aggregate(cbind(operations, theatre_minutes) ~ day, data = daily, FUN = sum)
   rbind(
     data.frame(day = census$day, series = "census", subject = census$subject,
                value = census$occupancy, stringsAsFactors = FALSE),
-    data.frame(day = ops$daily$day, series = "operations", subject = ROLE4_TOTAL,
-               value = ops$daily$operations, stringsAsFactors = FALSE),
-    data.frame(day = ops$daily$day, series = "theatre_minutes", subject = ROLE4_TOTAL,
-               value = ops$daily$theatre_minutes, stringsAsFactors = FALSE),
+    data.frame(day = daily$day, series = "operations", subject = label,
+               value = daily$operations, stringsAsFactors = FALSE),
+    data.frame(day = per_day$day, series = "operations", subject = ROLE4_TOTAL,
+               value = per_day$operations, stringsAsFactors = FALSE),
+    data.frame(day = per_day$day, series = "theatre_minutes", subject = ROLE4_TOTAL,
+               value = per_day$theatre_minutes, stringsAsFactors = FALSE),
     data.frame(day = n_days, series = "operations_after_horizon", subject = ROLE4_TOTAL,
                value = ops$after_horizon, stringsAsFactors = FALSE),
     data.frame(day = n_days, series = "operations_admitted", subject = ROLE4_TOTAL,
-               value = sum(ops$daily$operations) + ops$after_horizon, stringsAsFactors = FALSE)
+               value = sum(daily$operations) + ops$after_horizon, stringsAsFactors = FALSE)
   )
 }
 
@@ -365,4 +416,42 @@ role4_census_daily <- function(series) {
   out <- data.frame(stats[, c("scenario", "subject", "day")], stats$value)
   names(out) <- c("scenario", "subject", "day", "n_reps", "mean", "ci_lower", "ci_upper")
   out[order(out$scenario, out$subject, out$day), ]
+}
+
+#' Days in the block the operations owed are averaged over for the figure
+#'
+#' @details Seven, the interval between scheduled sorties, so that a block holds
+#'   one whole cycle of the evacuation schedule and the figure does not trade
+#'   the weekly rhythm of admissions for noise.
+ROLE4_OPERATIONS_BLOCK_DAYS <- 7L
+
+#' Cross-replication mean operations owed per day, by source and week
+#'
+#' @param series Daily series as returned by run_role4_demand(), with a
+#'   `scenario` column.
+#' @return Data frame of scenario, subject, block_start_day, n_reps, mean,
+#'   ci_lower and ci_upper: the mean operations owed per day over each whole
+#'   block of ROLE4_OPERATIONS_BLOCK_DAYS days, with its 95% interval across
+#'   replications, for each source and for the total.
+#'
+#' @details A trailing partial block is dropped rather than averaged over fewer
+#'   days, which would give it more weight than the days it holds.
+role4_operations_weekly <- function(series) {
+  ops <- series[series$series == "operations", ]
+  ops$block <- (ops$day - 1L) %/% ROLE4_OPERATIONS_BLOCK_DAYS
+  full <- tapply(ops$day, ops$block, function(d) length(unique(d)))
+  ops <- ops[ops$block %in% as.integer(names(full)[full == ROLE4_OPERATIONS_BLOCK_DAYS]), ]
+  per_rep <- aggregate(value ~ scenario + replication + subject + block, data = ops, FUN = mean)
+  stats <- aggregate(value ~ scenario + subject + block, data = per_rep, FUN = function(x) {
+    n <- length(x)
+    m <- mean(x)
+    e <- if (n > 1) qt(0.975, df = n - 1) * sd(x) / sqrt(n) else 0
+    c(n = n, mean = m, lower = m - e, upper = m + e)
+  })
+  out <- data.frame(stats[, c("scenario", "subject")],
+                    block_start_day = stats$block * ROLE4_OPERATIONS_BLOCK_DAYS + 1L,
+                    stats$value)
+  names(out) <- c("scenario", "subject", "block_start_day", "n_reps", "mean", "ci_lower",
+                  "ci_upper")
+  out[order(out$scenario, out$subject, out$block_start_day), ]
 }

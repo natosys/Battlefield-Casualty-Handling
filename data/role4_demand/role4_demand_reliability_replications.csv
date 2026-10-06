@@ -179,6 +179,96 @@
 0,"default",28,"census","icu",32.6305555555556,67,33.0222222222222,11747
 0,"default",29,"census","icu",30.4694444444444,57,33.9333333333333,10969
 0,"default",30,"census","icu",32.3,61,34.9444444444444,11628
+0,"default",1,"operations","Debridement",2.125,9,2.27777777777778,765
+0,"default",2,"operations","Debridement",1.69166666666667,7,1.86666666666667,609
+0,"default",3,"operations","Debridement",1.72777777777778,9,1.58888888888889,622
+0,"default",4,"operations","Debridement",1.80833333333333,7,1.6,651
+0,"default",5,"operations","Debridement",2.16388888888889,8,1.97777777777778,779
+0,"default",6,"operations","Debridement",2.14166666666667,7,1.93333333333333,771
+0,"default",7,"operations","Debridement",1.81388888888889,7,1.95555555555556,653
+0,"default",8,"operations","Debridement",1.93055555555556,8,1.73333333333333,695
+0,"default",9,"operations","Debridement",1.49444444444444,6,1.76666666666667,538
+0,"default",10,"operations","Debridement",1.88333333333333,6,1.51111111111111,678
+0,"default",11,"operations","Debridement",1.55555555555556,6,1.74444444444444,560
+0,"default",12,"operations","Debridement",2.19444444444444,8,3.38888888888889,790
+0,"default",13,"operations","Debridement",1.93888888888889,6,1.76666666666667,698
+0,"default",14,"operations","Debridement",1.78333333333333,7,1.51111111111111,642
+0,"default",15,"operations","Debridement",1.82777777777778,7,1.9,658
+0,"default",16,"operations","Debridement",2.22777777777778,8,2.16666666666667,802
+0,"default",17,"operations","Debridement",1.60833333333333,7,2.04444444444444,579
+0,"default",18,"operations","Debridement",1.82222222222222,9,2.21111111111111,656
+0,"default",19,"operations","Debridement",2.08611111111111,10,1.97777777777778,751
+0,"default",20,"operations","Debridement",1.65,6,1.54444444444444,594
+0,"default",21,"operations","Debridement",1.66111111111111,8,1.76666666666667,598
+0,"default",22,"operations","Debridement",1.92222222222222,9,2.51111111111111,692
+0,"default",23,"operations","Debridement",1.84166666666667,8,1.74444444444444,663
+0,"default",24,"operations","Debridement",1.88055555555556,7,1.93333333333333,677
+0,"default",25,"operations","Debridement",1.56388888888889,7,1.74444444444444,563
+0,"default",26,"operations","Debridement",1.74166666666667,8,2.26666666666667,627
+0,"default",27,"operations","Debridement",1.96666666666667,8,2.24444444444444,708
+0,"default",28,"operations","Debridement",2.13611111111111,10,2.15555555555556,769
+0,"default",29,"operations","Debridement",1.81111111111111,8,1.81111111111111,652
+0,"default",30,"operations","Debridement",1.975,8,1.85555555555556,711
+0,"default",1,"operations","Definitive repair",0.591666666666667,6,0.911111111111111,213
+0,"default",2,"operations","Definitive repair",0.463888888888889,5,0.466666666666667,167
+0,"default",3,"operations","Definitive repair",0.266666666666667,4,0.0777777777777778,96
+0,"default",4,"operations","Definitive repair",0.380555555555556,8,0.566666666666667,137
+0,"default",5,"operations","Definitive repair",0.516666666666667,5,0.333333333333333,186
+0,"default",6,"operations","Definitive repair",0.505555555555556,7,0.355555555555556,182
+0,"default",7,"operations","Definitive repair",0.316666666666667,6,0.155555555555556,114
+0,"default",8,"operations","Definitive repair",0.480555555555556,5,0.433333333333333,173
+0,"default",9,"operations","Definitive repair",0.352777777777778,6,0.866666666666667,127
+0,"default",10,"operations","Definitive repair",0.263888888888889,5,0.177777777777778,95
+0,"default",11,"operations","Definitive repair",0.211111111111111,5,0.366666666666667,76
+0,"default",12,"operations","Definitive repair",0.891666666666667,5,2.21111111111111,321
+0,"default",13,"operations","Definitive repair",0.233333333333333,4,0.311111111111111,84
+0,"default",14,"operations","Definitive repair",0.263888888888889,4,0.0777777777777778,95
+0,"default",15,"operations","Definitive repair",0.391666666666667,5,0.366666666666667,141
+0,"default",16,"operations","Definitive repair",0.402777777777778,4,0.588888888888889,145
+0,"default",17,"operations","Definitive repair",0.194444444444444,5,0.3,70
+0,"default",18,"operations","Definitive repair",0.508333333333333,5,1.02222222222222,183
+0,"default",19,"operations","Definitive repair",0.511111111111111,5,0.2,184
+0,"default",20,"operations","Definitive repair",0.286111111111111,4,0.2,103
+0,"default",21,"operations","Definitive repair",0.275,9,0.333333333333333,99
+0,"default",22,"operations","Definitive repair",0.305555555555556,7,0.277777777777778,110
+0,"default",23,"operations","Definitive repair",0.491666666666667,5,0.411111111111111,177
+0,"default",24,"operations","Definitive repair",0.272222222222222,4,0.111111111111111,98
+0,"default",25,"operations","Definitive repair",0.275,5,0.477777777777778,99
+0,"default",26,"operations","Definitive repair",0.558333333333333,9,1.31111111111111,201
+0,"default",27,"operations","Definitive repair",0.383333333333333,5,0.577777777777778,138
+0,"default",28,"operations","Definitive repair",0.530555555555556,5,0.588888888888889,191
+0,"default",29,"operations","Definitive repair",0.547222222222222,11,0.555555555555556,197
+0,"default",30,"operations","Definitive repair",0.45,10,0.4,162
+0,"default",1,"operations","Reconstruction",0.902777777777778,6,0.866666666666667,325
+0,"default",2,"operations","Reconstruction",0.822222222222222,6,0.888888888888889,296
+0,"default",3,"operations","Reconstruction",0.802777777777778,5,0.711111111111111,289
+0,"default",4,"operations","Reconstruction",0.830555555555556,4,0.866666666666667,299
+0,"default",5,"operations","Reconstruction",0.916666666666667,5,0.844444444444444,330
+0,"default",6,"operations","Reconstruction",0.986111111111111,4,1.06666666666667,355
+0,"default",7,"operations","Reconstruction",0.805555555555556,4,0.8,290
+0,"default",8,"operations","Reconstruction",0.883333333333333,5,0.811111111111111,318
+0,"default",9,"operations","Reconstruction",0.733333333333333,6,0.988888888888889,264
+0,"default",10,"operations","Reconstruction",0.805555555555556,4,0.766666666666667,290
+0,"default",11,"operations","Reconstruction",0.744444444444444,5,0.911111111111111,268
+0,"default",12,"operations","Reconstruction",0.936111111111111,5,1.25555555555556,337
+0,"default",13,"operations","Reconstruction",0.916666666666667,5,0.977777777777778,330
+0,"default",14,"operations","Reconstruction",0.830555555555556,4,0.788888888888889,299
+0,"default",15,"operations","Reconstruction",0.805555555555556,5,0.9,290
+0,"default",16,"operations","Reconstruction",0.919444444444444,4,0.988888888888889,331
+0,"default",17,"operations","Reconstruction",0.736111111111111,5,0.8,265
+0,"default",18,"operations","Reconstruction",0.866666666666667,5,0.944444444444444,312
+0,"default",19,"operations","Reconstruction",0.911111111111111,4,0.911111111111111,328
+0,"default",20,"operations","Reconstruction",0.838888888888889,5,0.877777777777778,302
+0,"default",21,"operations","Reconstruction",0.794444444444444,4,0.811111111111111,286
+0,"default",22,"operations","Reconstruction",0.827777777777778,4,1,298
+0,"default",23,"operations","Reconstruction",0.852777777777778,5,0.9,307
+0,"default",24,"operations","Reconstruction",0.825,5,0.833333333333333,297
+0,"default",25,"operations","Reconstruction",0.741666666666667,5,0.9,267
+0,"default",26,"operations","Reconstruction",0.847222222222222,5,1,305
+0,"default",27,"operations","Reconstruction",0.911111111111111,4,1.12222222222222,328
+0,"default",28,"operations","Reconstruction",0.911111111111111,4,1.01111111111111,328
+0,"default",29,"operations","Reconstruction",0.902777777777778,5,0.855555555555556,325
+0,"default",30,"operations","Reconstruction",0.9,7,0.877777777777778,324
 0,"default",1,"operations","Total",3.61944444444444,12,4.05555555555556,1303
 0,"default",2,"operations","Total",2.97777777777778,11,3.22222222222222,1072
 0,"default",3,"operations","Total",2.79722222222222,11,2.37777777777778,1007
@@ -275,7 +365,7 @@
 0,"default",4,"theatre_minutes","Total",46.0175996095954,1005.52846569461,75.1966202059813,16566.3358594543
 0,"default",5,"theatre_minutes","Total",58.945102606088,683.300538713077,37.5183704410688,21220.2369381917
 0,"default",6,"theatre_minutes","Total",58.6188907563298,765.445029365245,39.0686680477695,21102.8006722787
-0,"default",7,"theatre_minutes","Total",38.7071999730974,695.8792027843,17.0822555106247,13934.5919903151
+0,"default",7,"theatre_minutes","Total",38.7071999730974,695.879202784301,17.0822555106247,13934.5919903151
 0,"default",8,"theatre_minutes","Total",54.4738886442121,617.135622976504,45.4245141541312,19610.5999119164
 0,"default",9,"theatre_minutes","Total",41.1503973413894,834.756589414307,99.0119053052778,14814.1430429002
 0,"default",10,"theatre_minutes","Total",30.1600422220158,599.66000490433,20.6212288529998,10857.6151999257
@@ -479,6 +569,96 @@
 0.05,"default",28,"census","icu",26.5194444444444,53,23.5777777777778,9547
 0.05,"default",29,"census","icu",34.6166666666667,59,35.9666666666667,12462
 0.05,"default",30,"census","icu",25.325,55,28.3666666666667,9117
+0.05,"default",1,"operations","Debridement",2.125,9,2.27777777777778,765
+0.05,"default",2,"operations","Debridement",1.775,9,2.2,639
+0.05,"default",3,"operations","Debridement",1.72777777777778,9,1.58888888888889,622
+0.05,"default",4,"operations","Debridement",1.80277777777778,8,1.7,649
+0.05,"default",5,"operations","Debridement",2.16388888888889,8,1.97777777777778,779
+0.05,"default",6,"operations","Debridement",2.12222222222222,9,2.58888888888889,764
+0.05,"default",7,"operations","Debridement",1.81388888888889,7,1.95555555555556,653
+0.05,"default",8,"operations","Debridement",1.93055555555556,8,1.73333333333333,695
+0.05,"default",9,"operations","Debridement",1.49444444444444,6,1.76666666666667,538
+0.05,"default",10,"operations","Debridement",1.88333333333333,6,1.51111111111111,678
+0.05,"default",11,"operations","Debridement",1.71944444444444,7,1.9,619
+0.05,"default",12,"operations","Debridement",2.19444444444444,8,3.38888888888889,790
+0.05,"default",13,"operations","Debridement",1.93888888888889,6,1.76666666666667,698
+0.05,"default",14,"operations","Debridement",1.78333333333333,7,1.51111111111111,642
+0.05,"default",15,"operations","Debridement",1.82777777777778,7,1.9,658
+0.05,"default",16,"operations","Debridement",2.22777777777778,8,2.16666666666667,802
+0.05,"default",17,"operations","Debridement",1.55277777777778,7,1.56666666666667,559
+0.05,"default",18,"operations","Debridement",1.82222222222222,9,2.21111111111111,656
+0.05,"default",19,"operations","Debridement",1.75833333333333,9,1.44444444444444,633
+0.05,"default",20,"operations","Debridement",1.65,6,1.54444444444444,594
+0.05,"default",21,"operations","Debridement",1.91666666666667,12,1.96666666666667,690
+0.05,"default",22,"operations","Debridement",1.92222222222222,9,2.51111111111111,692
+0.05,"default",23,"operations","Debridement",1.80833333333333,7,1.6,651
+0.05,"default",24,"operations","Debridement",1.88055555555556,7,1.93333333333333,677
+0.05,"default",25,"operations","Debridement",1.56388888888889,7,1.74444444444444,563
+0.05,"default",26,"operations","Debridement",1.74166666666667,8,2.26666666666667,627
+0.05,"default",27,"operations","Debridement",1.96666666666667,8,2.24444444444444,708
+0.05,"default",28,"operations","Debridement",1.42222222222222,8,1.41111111111111,512
+0.05,"default",29,"operations","Debridement",2.16944444444444,9,2.13333333333333,781
+0.05,"default",30,"operations","Debridement",1.54722222222222,8,1.64444444444444,557
+0.05,"default",1,"operations","Definitive repair",0.591666666666667,6,0.911111111111111,213
+0.05,"default",2,"operations","Definitive repair",0.327777777777778,5,0.288888888888889,118
+0.05,"default",3,"operations","Definitive repair",0.266666666666667,4,0.0777777777777778,96
+0.05,"default",4,"operations","Definitive repair",0.183333333333333,8,0.0555555555555556,66
+0.05,"default",5,"operations","Definitive repair",0.516666666666667,5,0.333333333333333,186
+0.05,"default",6,"operations","Definitive repair",0.563888888888889,10,1.01111111111111,203
+0.05,"default",7,"operations","Definitive repair",0.316666666666667,6,0.155555555555556,114
+0.05,"default",8,"operations","Definitive repair",0.480555555555556,5,0.433333333333333,173
+0.05,"default",9,"operations","Definitive repair",0.352777777777778,6,0.866666666666667,127
+0.05,"default",10,"operations","Definitive repair",0.263888888888889,5,0.177777777777778,95
+0.05,"default",11,"operations","Definitive repair",0.322222222222222,4,0.588888888888889,116
+0.05,"default",12,"operations","Definitive repair",0.891666666666667,5,2.21111111111111,321
+0.05,"default",13,"operations","Definitive repair",0.233333333333333,4,0.311111111111111,84
+0.05,"default",14,"operations","Definitive repair",0.263888888888889,4,0.0777777777777778,95
+0.05,"default",15,"operations","Definitive repair",0.391666666666667,5,0.366666666666667,141
+0.05,"default",16,"operations","Definitive repair",0.402777777777778,4,0.588888888888889,145
+0.05,"default",17,"operations","Definitive repair",0.311111111111111,5,0.188888888888889,112
+0.05,"default",18,"operations","Definitive repair",0.508333333333333,5,1.02222222222222,183
+0.05,"default",19,"operations","Definitive repair",0.411111111111111,11,0.244444444444444,148
+0.05,"default",20,"operations","Definitive repair",0.286111111111111,4,0.2,103
+0.05,"default",21,"operations","Definitive repair",0.477777777777778,9,0.166666666666667,172
+0.05,"default",22,"operations","Definitive repair",0.305555555555556,7,0.277777777777778,110
+0.05,"default",23,"operations","Definitive repair",0.483333333333333,5,0.288888888888889,174
+0.05,"default",24,"operations","Definitive repair",0.272222222222222,4,0.111111111111111,98
+0.05,"default",25,"operations","Definitive repair",0.275,5,0.477777777777778,99
+0.05,"default",26,"operations","Definitive repair",0.558333333333333,9,1.31111111111111,201
+0.05,"default",27,"operations","Definitive repair",0.383333333333333,5,0.577777777777778,138
+0.05,"default",28,"operations","Definitive repair",0.319444444444444,9,0.255555555555556,115
+0.05,"default",29,"operations","Definitive repair",0.897222222222222,11,1.08888888888889,323
+0.05,"default",30,"operations","Definitive repair",0.280555555555556,10,0.4,101
+0.05,"default",1,"operations","Reconstruction",0.902777777777778,6,0.866666666666667,325
+0.05,"default",2,"operations","Reconstruction",0.855555555555556,4,0.888888888888889,308
+0.05,"default",3,"operations","Reconstruction",0.802777777777778,5,0.711111111111111,289
+0.05,"default",4,"operations","Reconstruction",0.786111111111111,6,0.733333333333333,283
+0.05,"default",5,"operations","Reconstruction",0.916666666666667,5,0.844444444444444,330
+0.05,"default",6,"operations","Reconstruction",0.925,5,1.03333333333333,333
+0.05,"default",7,"operations","Reconstruction",0.805555555555556,4,0.8,290
+0.05,"default",8,"operations","Reconstruction",0.883333333333333,5,0.811111111111111,318
+0.05,"default",9,"operations","Reconstruction",0.733333333333333,6,0.988888888888889,264
+0.05,"default",10,"operations","Reconstruction",0.805555555555556,4,0.766666666666667,290
+0.05,"default",11,"operations","Reconstruction",0.75,4,0.755555555555556,270
+0.05,"default",12,"operations","Reconstruction",0.936111111111111,5,1.25555555555556,337
+0.05,"default",13,"operations","Reconstruction",0.916666666666667,5,0.977777777777778,330
+0.05,"default",14,"operations","Reconstruction",0.830555555555556,4,0.788888888888889,299
+0.05,"default",15,"operations","Reconstruction",0.805555555555556,5,0.9,290
+0.05,"default",16,"operations","Reconstruction",0.919444444444444,4,0.988888888888889,331
+0.05,"default",17,"operations","Reconstruction",0.694444444444444,5,0.755555555555556,250
+0.05,"default",18,"operations","Reconstruction",0.866666666666667,5,0.944444444444444,312
+0.05,"default",19,"operations","Reconstruction",0.819444444444444,6,0.822222222222222,295
+0.05,"default",20,"operations","Reconstruction",0.838888888888889,5,0.877777777777778,302
+0.05,"default",21,"operations","Reconstruction",0.822222222222222,4,0.866666666666667,296
+0.05,"default",22,"operations","Reconstruction",0.827777777777778,4,1,298
+0.05,"default",23,"operations","Reconstruction",0.841666666666667,5,0.755555555555556,303
+0.05,"default",24,"operations","Reconstruction",0.825,5,0.833333333333333,297
+0.05,"default",25,"operations","Reconstruction",0.741666666666667,5,0.9,267
+0.05,"default",26,"operations","Reconstruction",0.847222222222222,5,1,305
+0.05,"default",27,"operations","Reconstruction",0.911111111111111,4,1.12222222222222,328
+0.05,"default",28,"operations","Reconstruction",0.686111111111111,4,0.644444444444444,247
+0.05,"default",29,"operations","Reconstruction",1.01388888888889,5,1.03333333333333,365
+0.05,"default",30,"operations","Reconstruction",0.738888888888889,5,0.811111111111111,266
 0.05,"default",1,"operations","Total",3.61944444444444,12,4.05555555555556,1303
 0.05,"default",2,"operations","Total",2.95833333333333,11,3.37777777777778,1065
 0.05,"default",3,"operations","Total",2.79722222222222,11,2.37777777777778,1007
@@ -575,7 +755,7 @@
 0.05,"default",4,"theatre_minutes","Total",22.4654393087606,1005.52846569461,7.68385483937811,8087.55815115381
 0.05,"default",5,"theatre_minutes","Total",58.945102606088,683.300538713077,37.5183704410688,21220.2369381917
 0.05,"default",6,"theatre_minutes","Total",64.395006907558,884.762412523049,111.51631151135,23182.2024867209
-0.05,"default",7,"theatre_minutes","Total",38.7071999730974,695.8792027843,17.0822555106247,13934.5919903151
+0.05,"default",7,"theatre_minutes","Total",38.7071999730974,695.879202784301,17.0822555106247,13934.5919903151
 0.05,"default",8,"theatre_minutes","Total",54.4738886442121,617.135622976504,45.4245141541312,19610.5999119164
 0.05,"default",9,"theatre_minutes","Total",41.1503973413894,834.756589414307,99.0119053052778,14814.1430429002
 0.05,"default",10,"theatre_minutes","Total",30.1600422220158,599.66000490433,20.6212288529998,10857.6151999257
@@ -779,6 +959,96 @@
 0.1,"default",28,"census","icu",28.4611111111111,63,34.0666666666667,10246
 0.1,"default",29,"census","icu",29.4277777777778,54,24.8777777777778,10594
 0.1,"default",30,"census","icu",25.325,55,28.3666666666667,9117
+0.1,"default",1,"operations","Debridement",1.59166666666667,7,1.38888888888889,573
+0.1,"default",2,"operations","Debridement",1.56666666666667,12,1.61111111111111,564
+0.1,"default",3,"operations","Debridement",1.72777777777778,9,1.58888888888889,622
+0.1,"default",4,"operations","Debridement",2.01111111111111,8,1.61111111111111,724
+0.1,"default",5,"operations","Debridement",2.16388888888889,8,1.97777777777778,779
+0.1,"default",6,"operations","Debridement",1.9,10,1.95555555555556,684
+0.1,"default",7,"operations","Debridement",1.81388888888889,7,1.95555555555556,653
+0.1,"default",8,"operations","Debridement",1.74722222222222,8,1.57777777777778,629
+0.1,"default",9,"operations","Debridement",1.80277777777778,7,1.96666666666667,649
+0.1,"default",10,"operations","Debridement",1.88333333333333,6,1.51111111111111,678
+0.1,"default",11,"operations","Debridement",1.71944444444444,7,1.9,619
+0.1,"default",12,"operations","Debridement",2.19444444444444,8,3.38888888888889,790
+0.1,"default",13,"operations","Debridement",1.93888888888889,6,1.76666666666667,698
+0.1,"default",14,"operations","Debridement",1.88055555555556,13,2.37777777777778,677
+0.1,"default",15,"operations","Debridement",1.73611111111111,12,1.33333333333333,625
+0.1,"default",16,"operations","Debridement",1.64166666666667,5,1.5,591
+0.1,"default",17,"operations","Debridement",1.55277777777778,7,1.56666666666667,559
+0.1,"default",18,"operations","Debridement",1.87222222222222,10,1.4,674
+0.1,"default",19,"operations","Debridement",1.75833333333333,9,1.44444444444444,633
+0.1,"default",20,"operations","Debridement",1.65,6,1.54444444444444,594
+0.1,"default",21,"operations","Debridement",2.03333333333333,11,2.24444444444444,732
+0.1,"default",22,"operations","Debridement",1.92222222222222,9,2.51111111111111,692
+0.1,"default",23,"operations","Debridement",1.60833333333333,8,1.21111111111111,579
+0.1,"default",24,"operations","Debridement",1.64722222222222,8,1.23333333333333,593
+0.1,"default",25,"operations","Debridement",1.56388888888889,7,1.74444444444444,563
+0.1,"default",26,"operations","Debridement",1.49722222222222,6,1.63333333333333,539
+0.1,"default",27,"operations","Debridement",1.83333333333333,9,2.14444444444444,660
+0.1,"default",28,"operations","Debridement",1.89722222222222,8,2.44444444444444,683
+0.1,"default",29,"operations","Debridement",1.95277777777778,12,1.64444444444444,703
+0.1,"default",30,"operations","Debridement",1.54722222222222,8,1.64444444444444,557
+0.1,"default",1,"operations","Definitive repair",0.361111111111111,7,0.133333333333333,130
+0.1,"default",2,"operations","Definitive repair",0.15,4,0.133333333333333,54
+0.1,"default",3,"operations","Definitive repair",0.266666666666667,4,0.0777777777777778,96
+0.1,"default",4,"operations","Definitive repair",0.305555555555556,8,0.277777777777778,110
+0.1,"default",5,"operations","Definitive repair",0.516666666666667,5,0.333333333333333,186
+0.1,"default",6,"operations","Definitive repair",0.4,7,0.688888888888889,144
+0.1,"default",7,"operations","Definitive repair",0.316666666666667,6,0.155555555555556,114
+0.1,"default",8,"operations","Definitive repair",0.255555555555556,4,0.0555555555555556,92
+0.1,"default",9,"operations","Definitive repair",0.216666666666667,3,0.211111111111111,78
+0.1,"default",10,"operations","Definitive repair",0.263888888888889,5,0.177777777777778,95
+0.1,"default",11,"operations","Definitive repair",0.322222222222222,4,0.588888888888889,116
+0.1,"default",12,"operations","Definitive repair",0.891666666666667,5,2.21111111111111,321
+0.1,"default",13,"operations","Definitive repair",0.233333333333333,4,0.311111111111111,84
+0.1,"default",14,"operations","Definitive repair",0.502777777777778,8,0.555555555555556,181
+0.1,"default",15,"operations","Definitive repair",0.677777777777778,12,0.333333333333333,244
+0.1,"default",16,"operations","Definitive repair",0.141666666666667,4,0.211111111111111,51
+0.1,"default",17,"operations","Definitive repair",0.311111111111111,5,0.188888888888889,112
+0.1,"default",18,"operations","Definitive repair",0.255555555555556,5,0.0777777777777778,92
+0.1,"default",19,"operations","Definitive repair",0.411111111111111,11,0.244444444444444,148
+0.1,"default",20,"operations","Definitive repair",0.286111111111111,4,0.2,103
+0.1,"default",21,"operations","Definitive repair",0.325,6,0.311111111111111,117
+0.1,"default",22,"operations","Definitive repair",0.305555555555556,7,0.277777777777778,110
+0.1,"default",23,"operations","Definitive repair",0.297222222222222,5,0.1,107
+0.1,"default",24,"operations","Definitive repair",0.227777777777778,5,0.122222222222222,82
+0.1,"default",25,"operations","Definitive repair",0.275,5,0.477777777777778,99
+0.1,"default",26,"operations","Definitive repair",0.266666666666667,9,0.0777777777777778,96
+0.1,"default",27,"operations","Definitive repair",0.355555555555556,5,0.5,128
+0.1,"default",28,"operations","Definitive repair",0.325,9,0.444444444444444,117
+0.1,"default",29,"operations","Definitive repair",0.580555555555556,11,0.111111111111111,209
+0.1,"default",30,"operations","Definitive repair",0.280555555555556,10,0.4,101
+0.1,"default",1,"operations","Reconstruction",0.805555555555556,5,0.755555555555556,290
+0.1,"default",2,"operations","Reconstruction",0.736111111111111,4,0.744444444444444,265
+0.1,"default",3,"operations","Reconstruction",0.802777777777778,5,0.711111111111111,289
+0.1,"default",4,"operations","Reconstruction",0.891666666666667,4,0.844444444444444,321
+0.1,"default",5,"operations","Reconstruction",0.916666666666667,5,0.844444444444444,330
+0.1,"default",6,"operations","Reconstruction",0.891666666666667,5,0.933333333333333,321
+0.1,"default",7,"operations","Reconstruction",0.805555555555556,4,0.8,290
+0.1,"default",8,"operations","Reconstruction",0.847222222222222,4,0.766666666666667,305
+0.1,"default",9,"operations","Reconstruction",0.802777777777778,5,0.955555555555556,289
+0.1,"default",10,"operations","Reconstruction",0.805555555555556,4,0.766666666666667,290
+0.1,"default",11,"operations","Reconstruction",0.75,4,0.755555555555556,270
+0.1,"default",12,"operations","Reconstruction",0.936111111111111,5,1.25555555555556,337
+0.1,"default",13,"operations","Reconstruction",0.916666666666667,5,0.977777777777778,330
+0.1,"default",14,"operations","Reconstruction",0.875,5,1.04444444444444,315
+0.1,"default",15,"operations","Reconstruction",0.861111111111111,4,0.744444444444444,310
+0.1,"default",16,"operations","Reconstruction",0.736111111111111,4,0.766666666666667,265
+0.1,"default",17,"operations","Reconstruction",0.694444444444444,5,0.755555555555556,250
+0.1,"default",18,"operations","Reconstruction",0.872222222222222,5,0.677777777777778,314
+0.1,"default",19,"operations","Reconstruction",0.819444444444444,6,0.822222222222222,295
+0.1,"default",20,"operations","Reconstruction",0.838888888888889,5,0.877777777777778,302
+0.1,"default",21,"operations","Reconstruction",0.825,5,0.922222222222222,297
+0.1,"default",22,"operations","Reconstruction",0.827777777777778,4,1,298
+0.1,"default",23,"operations","Reconstruction",0.777777777777778,4,0.744444444444444,280
+0.1,"default",24,"operations","Reconstruction",0.744444444444444,5,0.733333333333333,268
+0.1,"default",25,"operations","Reconstruction",0.741666666666667,5,0.9,267
+0.1,"default",26,"operations","Reconstruction",0.744444444444444,4,0.688888888888889,268
+0.1,"default",27,"operations","Reconstruction",0.772222222222222,4,0.9,278
+0.1,"default",28,"operations","Reconstruction",0.772222222222222,9,1.07777777777778,278
+0.1,"default",29,"operations","Reconstruction",0.858333333333333,5,0.744444444444444,309
+0.1,"default",30,"operations","Reconstruction",0.738888888888889,5,0.811111111111111,266
 0.1,"default",1,"operations","Total",2.75833333333333,12,2.27777777777778,993
 0.1,"default",2,"operations","Total",2.45277777777778,16,2.48888888888889,883
 0.1,"default",3,"operations","Total",2.79722222222222,11,2.37777777777778,1007
@@ -875,7 +1145,7 @@
 0.1,"default",4,"theatre_minutes","Total",35.4837237860845,1005.52846569461,28.9620694389246,12774.1405629904
 0.1,"default",5,"theatre_minutes","Total",58.945102606088,683.300538713077,37.5183704410688,21220.2369381917
 0.1,"default",6,"theatre_minutes","Total",48.2393568618203,884.762412523049,84.8521481186179,17366.1684702553
-0.1,"default",7,"theatre_minutes","Total",38.7071999730974,695.8792027843,17.0822555106247,13934.5919903151
+0.1,"default",7,"theatre_minutes","Total",38.7071999730974,695.879202784301,17.0822555106247,13934.5919903151
 0.1,"default",8,"theatre_minutes","Total",30.5958332633157,590.634139551392,5.4220481034186,11014.4999747937
 0.1,"default",9,"theatre_minutes","Total",26.662127384091,468.076040442079,23.1607942269651,9598.36585827277
 0.1,"default",10,"theatre_minutes","Total",30.1600422220158,599.66000490433,20.6212288529998,10857.6151999257
@@ -1079,6 +1349,96 @@
 0.15,"default",28,"census","icu",28.4611111111111,63,34.0666666666667,10246
 0.15,"default",29,"census","icu",30.5027777777778,52,31.8,10981
 0.15,"default",30,"census","icu",27.6916666666667,55,29.1444444444444,9969
+0.15,"default",1,"operations","Debridement",1.75,10,1.73333333333333,630
+0.15,"default",2,"operations","Debridement",1.76388888888889,15,1.83333333333333,635
+0.15,"default",3,"operations","Debridement",1.72777777777778,9,1.58888888888889,622
+0.15,"default",4,"operations","Debridement",2.01111111111111,8,1.61111111111111,724
+0.15,"default",5,"operations","Debridement",2.16388888888889,8,1.97777777777778,779
+0.15,"default",6,"operations","Debridement",1.73055555555556,11,1.6,623
+0.15,"default",7,"operations","Debridement",1.81944444444444,10,1.75555555555556,655
+0.15,"default",8,"operations","Debridement",1.97222222222222,9,1.97777777777778,710
+0.15,"default",9,"operations","Debridement",1.95833333333333,10,1.66666666666667,705
+0.15,"default",10,"operations","Debridement",1.88333333333333,6,1.51111111111111,678
+0.15,"default",11,"operations","Debridement",1.86944444444444,11,1.68888888888889,673
+0.15,"default",12,"operations","Debridement",1.85833333333333,10,1.82222222222222,669
+0.15,"default",13,"operations","Debridement",1.93888888888889,6,1.76666666666667,698
+0.15,"default",14,"operations","Debridement",1.57222222222222,7,1.87777777777778,566
+0.15,"default",15,"operations","Debridement",2.01111111111111,13,2,724
+0.15,"default",16,"operations","Debridement",1.94722222222222,13,1.71111111111111,701
+0.15,"default",17,"operations","Debridement",1.55277777777778,7,1.56666666666667,559
+0.15,"default",18,"operations","Debridement",1.93888888888889,11,2.03333333333333,698
+0.15,"default",19,"operations","Debridement",1.75833333333333,9,1.44444444444444,633
+0.15,"default",20,"operations","Debridement",1.65,6,1.54444444444444,594
+0.15,"default",21,"operations","Debridement",1.55277777777778,10,1.33333333333333,559
+0.15,"default",22,"operations","Debridement",1.92222222222222,9,2.51111111111111,692
+0.15,"default",23,"operations","Debridement",1.50555555555556,8,1.75555555555556,542
+0.15,"default",24,"operations","Debridement",1.74166666666667,9,1.25555555555556,627
+0.15,"default",25,"operations","Debridement",1.56388888888889,7,1.74444444444444,563
+0.15,"default",26,"operations","Debridement",1.49722222222222,6,1.63333333333333,539
+0.15,"default",27,"operations","Debridement",1.78055555555556,7,1.88888888888889,641
+0.15,"default",28,"operations","Debridement",1.89722222222222,8,2.44444444444444,683
+0.15,"default",29,"operations","Debridement",2.025,9,2.63333333333333,729
+0.15,"default",30,"operations","Debridement",1.70833333333333,11,2.11111111111111,615
+0.15,"default",1,"operations","Definitive repair",0.366666666666667,7,0.244444444444444,132
+0.15,"default",2,"operations","Definitive repair",0.252777777777778,5,0.377777777777778,91
+0.15,"default",3,"operations","Definitive repair",0.266666666666667,4,0.0777777777777778,96
+0.15,"default",4,"operations","Definitive repair",0.305555555555556,8,0.277777777777778,110
+0.15,"default",5,"operations","Definitive repair",0.516666666666667,5,0.333333333333333,186
+0.15,"default",6,"operations","Definitive repair",0.391666666666667,4,0.788888888888889,141
+0.15,"default",7,"operations","Definitive repair",0.258333333333333,7,0.322222222222222,93
+0.15,"default",8,"operations","Definitive repair",0.252777777777778,5,0.177777777777778,91
+0.15,"default",9,"operations","Definitive repair",0.458333333333333,11,0.3,165
+0.15,"default",10,"operations","Definitive repair",0.263888888888889,5,0.177777777777778,95
+0.15,"default",11,"operations","Definitive repair",0.702777777777778,13,0.944444444444444,253
+0.15,"default",12,"operations","Definitive repair",0.452777777777778,5,0.277777777777778,163
+0.15,"default",13,"operations","Definitive repair",0.233333333333333,4,0.311111111111111,84
+0.15,"default",14,"operations","Definitive repair",0.45,5,0.688888888888889,162
+0.15,"default",15,"operations","Definitive repair",0.683333333333333,12,1.11111111111111,246
+0.15,"default",16,"operations","Definitive repair",0.488888888888889,11,0.777777777777778,176
+0.15,"default",17,"operations","Definitive repair",0.311111111111111,5,0.188888888888889,112
+0.15,"default",18,"operations","Definitive repair",0.344444444444444,5,0.111111111111111,124
+0.15,"default",19,"operations","Definitive repair",0.411111111111111,11,0.244444444444444,148
+0.15,"default",20,"operations","Definitive repair",0.286111111111111,4,0.2,103
+0.15,"default",21,"operations","Definitive repair",0.188888888888889,6,0.1,68
+0.15,"default",22,"operations","Definitive repair",0.305555555555556,7,0.277777777777778,110
+0.15,"default",23,"operations","Definitive repair",0.302777777777778,9,0.211111111111111,109
+0.15,"default",24,"operations","Definitive repair",0.330555555555556,7,0.211111111111111,119
+0.15,"default",25,"operations","Definitive repair",0.275,5,0.477777777777778,99
+0.15,"default",26,"operations","Definitive repair",0.266666666666667,9,0.0777777777777778,96
+0.15,"default",27,"operations","Definitive repair",0.322222222222222,5,0.288888888888889,116
+0.15,"default",28,"operations","Definitive repair",0.325,9,0.444444444444444,117
+0.15,"default",29,"operations","Definitive repair",0.411111111111111,10,0.355555555555556,148
+0.15,"default",30,"operations","Definitive repair",0.230555555555556,10,0.111111111111111,83
+0.15,"default",1,"operations","Reconstruction",0.858333333333333,3,0.955555555555556,309
+0.15,"default",2,"operations","Reconstruction",0.783333333333333,4,0.877777777777778,282
+0.15,"default",3,"operations","Reconstruction",0.802777777777778,5,0.711111111111111,289
+0.15,"default",4,"operations","Reconstruction",0.891666666666667,4,0.844444444444444,321
+0.15,"default",5,"operations","Reconstruction",0.916666666666667,5,0.844444444444444,330
+0.15,"default",6,"operations","Reconstruction",0.791666666666667,4,0.822222222222222,285
+0.15,"default",7,"operations","Reconstruction",0.855555555555556,5,0.877777777777778,308
+0.15,"default",8,"operations","Reconstruction",0.85,4,0.955555555555556,306
+0.15,"default",9,"operations","Reconstruction",0.905555555555556,5,0.788888888888889,326
+0.15,"default",10,"operations","Reconstruction",0.805555555555556,4,0.766666666666667,290
+0.15,"default",11,"operations","Reconstruction",0.897222222222222,5,0.922222222222222,323
+0.15,"default",12,"operations","Reconstruction",0.866666666666667,6,0.811111111111111,312
+0.15,"default",13,"operations","Reconstruction",0.916666666666667,5,0.977777777777778,330
+0.15,"default",14,"operations","Reconstruction",0.802777777777778,6,0.8,289
+0.15,"default",15,"operations","Reconstruction",0.863888888888889,5,0.866666666666667,311
+0.15,"default",16,"operations","Reconstruction",0.908333333333333,5,0.877777777777778,327
+0.15,"default",17,"operations","Reconstruction",0.694444444444444,5,0.755555555555556,250
+0.15,"default",18,"operations","Reconstruction",0.919444444444444,6,1.04444444444444,331
+0.15,"default",19,"operations","Reconstruction",0.819444444444444,6,0.822222222222222,295
+0.15,"default",20,"operations","Reconstruction",0.838888888888889,5,0.877777777777778,302
+0.15,"default",21,"operations","Reconstruction",0.691666666666667,4,0.688888888888889,249
+0.15,"default",22,"operations","Reconstruction",0.827777777777778,4,1,298
+0.15,"default",23,"operations","Reconstruction",0.741666666666667,4,0.888888888888889,267
+0.15,"default",24,"operations","Reconstruction",0.830555555555556,4,0.688888888888889,299
+0.15,"default",25,"operations","Reconstruction",0.741666666666667,5,0.9,267
+0.15,"default",26,"operations","Reconstruction",0.744444444444444,4,0.688888888888889,268
+0.15,"default",27,"operations","Reconstruction",0.797222222222222,5,0.911111111111111,287
+0.15,"default",28,"operations","Reconstruction",0.772222222222222,9,1.07777777777778,278
+0.15,"default",29,"operations","Reconstruction",0.9,4,1.04444444444444,324
+0.15,"default",30,"operations","Reconstruction",0.827777777777778,7,1.02222222222222,298
 0.15,"default",1,"operations","Total",2.975,12,2.93333333333333,1071
 0.15,"default",2,"operations","Total",2.8,16,3.08888888888889,1008
 0.15,"default",3,"operations","Total",2.79722222222222,11,2.37777777777778,1007
@@ -1176,7 +1536,7 @@
 0.15,"default",5,"theatre_minutes","Total",58.945102606088,683.300538713077,37.5183704410688,21220.2369381917
 0.15,"default",6,"theatre_minutes","Total",44.0683187286269,514.406108097574,92.4534394766422,15864.5947423057
 0.15,"default",7,"theatre_minutes","Total",31.7082829057766,720.650067285645,40.4231118531431,11414.9818460796
-0.15,"default",8,"theatre_minutes","Total",30.1734690166225,697.183243021885,21.3381496323104,10862.4488459841
+0.15,"default",8,"theatre_minutes","Total",30.1734690166225,697.183243021884,21.3381496323104,10862.4488459841
 0.15,"default",9,"theatre_minutes","Total",54.1523197827793,1221.2816829003,38.1789357809681,19494.8351218005
 0.15,"default",10,"theatre_minutes","Total",30.1600422220158,599.66000490433,20.6212288529998,10857.6151999257
 0.15,"default",11,"theatre_minutes","Total",81.300306720574,1718.36609231516,109.520903063614,29268.1104194066
@@ -1192,7 +1552,7 @@
 0.15,"default",21,"theatre_minutes","Total",20.5866405268643,502.195316587153,12.9286885045962,7411.19058967116
 0.15,"default",22,"theatre_minutes","Total",35.4136589823809,874.010619257723,32.1528738451071,12748.9172336571
 0.15,"default",23,"theatre_minutes","Total",34.0147312241339,1051.76117048101,23.5206383009043,12245.3032406882
-0.15,"default",24,"theatre_minutes","Total",36.0503880028483,769.685716981254,24.5377923304008,12978.1396810254
+0.15,"default",24,"theatre_minutes","Total",36.0503880028483,769.685716981255,24.5377923304008,12978.1396810254
 0.15,"default",25,"theatre_minutes","Total",31.8983232683739,645.400796876418,55.9757384149263,11483.3963766146
 0.15,"default",26,"theatre_minutes","Total",31.7129275567812,1118.62173397766,8.28353019370494,11416.6539204412
 0.15,"default",27,"theatre_minutes","Total",37.7013053939759,741.182267632823,36.6060496105579,13572.4699418313
@@ -1379,6 +1739,96 @@
 0.25,"default",28,"census","icu",24.6472222222222,59,27.4555555555556,8873
 0.25,"default",29,"census","icu",24.6694444444444,52,24.7,8881
 0.25,"default",30,"census","icu",26.4138888888889,54,33.0333333333333,9509
+0.25,"default",1,"operations","Debridement",1.825,9,1.56666666666667,657
+0.25,"default",2,"operations","Debridement",1.90277777777778,9,1.72222222222222,685
+0.25,"default",3,"operations","Debridement",1.98333333333333,8,1.77777777777778,714
+0.25,"default",4,"operations","Debridement",1.62777777777778,12,1.28888888888889,586
+0.25,"default",5,"operations","Debridement",1.65,12,1.71111111111111,594
+0.25,"default",6,"operations","Debridement",1.63611111111111,12,1.78888888888889,589
+0.25,"default",7,"operations","Debridement",1.65555555555556,10,1.77777777777778,596
+0.25,"default",8,"operations","Debridement",1.84444444444444,11,1.68888888888889,664
+0.25,"default",9,"operations","Debridement",1.37222222222222,9,1.06666666666667,494
+0.25,"default",10,"operations","Debridement",1.88333333333333,6,1.51111111111111,678
+0.25,"default",11,"operations","Debridement",1.56666666666667,11,1.22222222222222,564
+0.25,"default",12,"operations","Debridement",1.84166666666667,13,2.23333333333333,663
+0.25,"default",13,"operations","Debridement",1.7,10,2.04444444444444,612
+0.25,"default",14,"operations","Debridement",1.55277777777778,10,1.36666666666667,559
+0.25,"default",15,"operations","Debridement",1.51388888888889,8,1.05555555555556,545
+0.25,"default",16,"operations","Debridement",1.78611111111111,10,2.02222222222222,643
+0.25,"default",17,"operations","Debridement",1.43055555555556,7,1.97777777777778,515
+0.25,"default",18,"operations","Debridement",1.36666666666667,13,1.21111111111111,492
+0.25,"default",19,"operations","Debridement",1.73611111111111,10,1.8,625
+0.25,"default",20,"operations","Debridement",1.81388888888889,8,1.36666666666667,653
+0.25,"default",21,"operations","Debridement",1.44722222222222,14,1.3,521
+0.25,"default",22,"operations","Debridement",1.49166666666667,8,1.87777777777778,537
+0.25,"default",23,"operations","Debridement",1.74444444444444,13,1.82222222222222,628
+0.25,"default",24,"operations","Debridement",1.54444444444444,11,1.92222222222222,556
+0.25,"default",25,"operations","Debridement",1.56388888888889,7,1.74444444444444,563
+0.25,"default",26,"operations","Debridement",1.99444444444444,14,2.47777777777778,718
+0.25,"default",27,"operations","Debridement",1.58611111111111,10,1.87777777777778,571
+0.25,"default",28,"operations","Debridement",1.55277777777778,11,1.61111111111111,559
+0.25,"default",29,"operations","Debridement",1.55555555555556,10,1.52222222222222,560
+0.25,"default",30,"operations","Debridement",1.73888888888889,10,2.28888888888889,626
+0.25,"default",1,"operations","Definitive repair",0.25,10,0.288888888888889,90
+0.25,"default",2,"operations","Definitive repair",0.408333333333333,7,0.788888888888889,147
+0.25,"default",3,"operations","Definitive repair",0.575,6,0.311111111111111,207
+0.25,"default",4,"operations","Definitive repair",0.311111111111111,10,0.0111111111111111,112
+0.25,"default",5,"operations","Definitive repair",0.319444444444444,11,0.211111111111111,115
+0.25,"default",6,"operations","Definitive repair",0.202777777777778,6,0.333333333333333,73
+0.25,"default",7,"operations","Definitive repair",0.261111111111111,8,0.322222222222222,94
+0.25,"default",8,"operations","Definitive repair",0.319444444444444,7,0.211111111111111,115
+0.25,"default",9,"operations","Definitive repair",0.219444444444444,11,0.244444444444444,79
+0.25,"default",10,"operations","Definitive repair",0.263888888888889,5,0.177777777777778,95
+0.25,"default",11,"operations","Definitive repair",0.236111111111111,7,0,85
+0.25,"default",12,"operations","Definitive repair",0.261111111111111,6,0.477777777777778,94
+0.25,"default",13,"operations","Definitive repair",0.561111111111111,8,0.566666666666667,202
+0.25,"default",14,"operations","Definitive repair",0.186111111111111,5,0.0888888888888889,67
+0.25,"default",15,"operations","Definitive repair",0.241666666666667,6,0,87
+0.25,"default",16,"operations","Definitive repair",0.175,5,0.233333333333333,63
+0.25,"default",17,"operations","Definitive repair",0.291666666666667,4,0.6,105
+0.25,"default",18,"operations","Definitive repair",0.0888888888888889,3,0.0555555555555556,32
+0.25,"default",19,"operations","Definitive repair",0.344444444444444,10,0.0333333333333333,124
+0.25,"default",20,"operations","Definitive repair",0.416666666666667,8,0.322222222222222,150
+0.25,"default",21,"operations","Definitive repair",0.15,6,0.0222222222222222,54
+0.25,"default",22,"operations","Definitive repair",0.155555555555556,7,0.155555555555556,56
+0.25,"default",23,"operations","Definitive repair",0.397222222222222,8,0.377777777777778,143
+0.25,"default",24,"operations","Definitive repair",0.0638888888888889,4,0,23
+0.25,"default",25,"operations","Definitive repair",0.275,5,0.477777777777778,99
+0.25,"default",26,"operations","Definitive repair",0.416666666666667,9,0.6,150
+0.25,"default",27,"operations","Definitive repair",0.180555555555556,5,0.0777777777777778,65
+0.25,"default",28,"operations","Definitive repair",0.158333333333333,6,0.0555555555555556,57
+0.25,"default",29,"operations","Definitive repair",0.230555555555556,9,0.211111111111111,83
+0.25,"default",30,"operations","Definitive repair",0.166666666666667,10,0.133333333333333,60
+0.25,"default",1,"operations","Reconstruction",0.816666666666667,5,0.733333333333333,294
+0.25,"default",2,"operations","Reconstruction",0.808333333333333,5,0.711111111111111,291
+0.25,"default",3,"operations","Reconstruction",0.95,6,1.03333333333333,342
+0.25,"default",4,"operations","Reconstruction",0.730555555555556,5,0.633333333333333,263
+0.25,"default",5,"operations","Reconstruction",0.736111111111111,7,0.755555555555556,265
+0.25,"default",6,"operations","Reconstruction",0.791666666666667,4,0.866666666666667,285
+0.25,"default",7,"operations","Reconstruction",0.769444444444444,5,0.877777777777778,277
+0.25,"default",8,"operations","Reconstruction",0.888888888888889,6,0.822222222222222,320
+0.25,"default",9,"operations","Reconstruction",0.677777777777778,5,0.688888888888889,244
+0.25,"default",10,"operations","Reconstruction",0.805555555555556,4,0.766666666666667,290
+0.25,"default",11,"operations","Reconstruction",0.697222222222222,6,0.533333333333333,251
+0.25,"default",12,"operations","Reconstruction",0.836111111111111,5,0.988888888888889,301
+0.25,"default",13,"operations","Reconstruction",0.75,5,0.877777777777778,270
+0.25,"default",14,"operations","Reconstruction",0.680555555555556,5,0.6,245
+0.25,"default",15,"operations","Reconstruction",0.680555555555556,7,0.466666666666667,245
+0.25,"default",16,"operations","Reconstruction",0.841666666666667,5,1.02222222222222,303
+0.25,"default",17,"operations","Reconstruction",0.719444444444444,4,0.933333333333333,259
+0.25,"default",18,"operations","Reconstruction",0.594444444444444,4,0.611111111111111,214
+0.25,"default",19,"operations","Reconstruction",0.794444444444444,5,0.744444444444444,286
+0.25,"default",20,"operations","Reconstruction",0.85,5,0.711111111111111,306
+0.25,"default",21,"operations","Reconstruction",0.630555555555556,4,0.555555555555556,227
+0.25,"default",22,"operations","Reconstruction",0.758333333333333,5,0.922222222222222,273
+0.25,"default",23,"operations","Reconstruction",0.788888888888889,5,0.755555555555556,284
+0.25,"default",24,"operations","Reconstruction",0.683333333333333,5,0.855555555555556,246
+0.25,"default",25,"operations","Reconstruction",0.741666666666667,5,0.9,267
+0.25,"default",26,"operations","Reconstruction",0.85,5,0.988888888888889,306
+0.25,"default",27,"operations","Reconstruction",0.722222222222222,5,0.766666666666667,260
+0.25,"default",28,"operations","Reconstruction",0.738888888888889,5,0.777777777777778,266
+0.25,"default",29,"operations","Reconstruction",0.769444444444444,6,0.777777777777778,277
+0.25,"default",30,"operations","Reconstruction",0.772222222222222,5,0.988888888888889,278
 0.25,"default",1,"operations","Total",2.89166666666667,15,2.58888888888889,1041
 0.25,"default",2,"operations","Total",3.11944444444444,13,3.22222222222222,1123
 0.25,"default",3,"operations","Total",3.50833333333333,12,3.12222222222222,1263
@@ -1481,7 +1931,7 @@
 0.25,"default",10,"theatre_minutes","Total",30.1600422220158,599.66000490433,20.6212288529998,10857.6151999257
 0.25,"default",11,"theatre_minutes","Total",28.5647695030115,821.087160630874,0,10283.3170210841
 0.25,"default",12,"theatre_minutes","Total",29.6975547828886,705.876686606713,55.2761876434649,10691.1197218399
-0.25,"default",13,"theatre_minutes","Total",64.156063297735,908.146327723873,63.6840896196111,23096.1827871846
+0.25,"default",13,"theatre_minutes","Total",64.156063297735,908.146327723873,63.684089619611,23096.1827871846
 0.25,"default",14,"theatre_minutes","Total",23.4570658291423,590.203388383357,12.0773251997738,8444.54369849124
 0.25,"default",15,"theatre_minutes","Total",26.6876740697816,640.584119577379,0,9607.56266512137
 0.25,"default",16,"theatre_minutes","Total",20.8557254276674,570.235347608656,27.9424089308142,7508.06115396028
@@ -1679,6 +2129,96 @@
 0.4,"default",28,"census","icu",22.3,55,21.7444444444444,8028
 0.4,"default",29,"census","icu",24.2611111111111,52,32.2777777777778,8734
 0.4,"default",30,"census","icu",17.0138888888889,52,11.4111111111111,6125
+0.4,"default",1,"operations","Debridement",1.46666666666667,14,1.58888888888889,528
+0.4,"default",2,"operations","Debridement",1.34722222222222,10,0.9,485
+0.4,"default",3,"operations","Debridement",1.35,8,1.06666666666667,486
+0.4,"default",4,"operations","Debridement",1.43333333333333,9,1.36666666666667,516
+0.4,"default",5,"operations","Debridement",1.175,11,1.44444444444444,423
+0.4,"default",6,"operations","Debridement",1.41666666666667,10,0.877777777777778,510
+0.4,"default",7,"operations","Debridement",1.14166666666667,9,1.38888888888889,411
+0.4,"default",8,"operations","Debridement",1.51666666666667,13,1.13333333333333,546
+0.4,"default",9,"operations","Debridement",1.25,15,1.75555555555556,450
+0.4,"default",10,"operations","Debridement",1.41666666666667,12,1.24444444444444,510
+0.4,"default",11,"operations","Debridement",1.44166666666667,10,1.68888888888889,519
+0.4,"default",12,"operations","Debridement",1.075,11,1.25555555555556,387
+0.4,"default",13,"operations","Debridement",1.15,9,1.53333333333333,414
+0.4,"default",14,"operations","Debridement",1.47222222222222,12,1.88888888888889,530
+0.4,"default",15,"operations","Debridement",1.28611111111111,13,1.38888888888889,463
+0.4,"default",16,"operations","Debridement",1.38055555555556,10,0.777777777777778,497
+0.4,"default",17,"operations","Debridement",1.60833333333333,14,1.15555555555556,579
+0.4,"default",18,"operations","Debridement",1.38055555555556,10,1.14444444444444,497
+0.4,"default",19,"operations","Debridement",1.2,12,1.73333333333333,432
+0.4,"default",20,"operations","Debridement",1.34722222222222,11,1.53333333333333,485
+0.4,"default",21,"operations","Debridement",1.38333333333333,15,1.47777777777778,498
+0.4,"default",22,"operations","Debridement",1.38333333333333,9,1.85555555555556,498
+0.4,"default",23,"operations","Debridement",1.52777777777778,11,1.3,550
+0.4,"default",24,"operations","Debridement",1.53333333333333,10,1.58888888888889,552
+0.4,"default",25,"operations","Debridement",1.51111111111111,10,1.84444444444444,544
+0.4,"default",26,"operations","Debridement",1.23333333333333,12,1.31111111111111,444
+0.4,"default",27,"operations","Debridement",1.625,11,1.27777777777778,585
+0.4,"default",28,"operations","Debridement",1.25555555555556,11,1.27777777777778,452
+0.4,"default",29,"operations","Debridement",1.65277777777778,13,2.12222222222222,595
+0.4,"default",30,"operations","Debridement",1.14722222222222,12,0.766666666666667,413
+0.4,"default",1,"operations","Definitive repair",0.169444444444444,6,0.144444444444444,61
+0.4,"default",2,"operations","Definitive repair",0.141666666666667,6,0.0444444444444444,51
+0.4,"default",3,"operations","Definitive repair",0.213888888888889,6,0.122222222222222,77
+0.4,"default",4,"operations","Definitive repair",0.244444444444444,8,0.0222222222222222,88
+0.4,"default",5,"operations","Definitive repair",0.0888888888888889,9,0.0222222222222222,32
+0.4,"default",6,"operations","Definitive repair",0.138888888888889,6,0.122222222222222,50
+0.4,"default",7,"operations","Definitive repair",0.130555555555556,6,0.0222222222222222,47
+0.4,"default",8,"operations","Definitive repair",0.230555555555556,7,0.1,83
+0.4,"default",9,"operations","Definitive repair",0.105555555555556,4,0.0111111111111111,38
+0.4,"default",10,"operations","Definitive repair",0.191666666666667,6,0,69
+0.4,"default",11,"operations","Definitive repair",0.0555555555555556,3,0,20
+0.4,"default",12,"operations","Definitive repair",0.0888888888888889,4,0.0444444444444444,32
+0.4,"default",13,"operations","Definitive repair",0.119444444444444,6,0.0555555555555556,43
+0.4,"default",14,"operations","Definitive repair",0.113888888888889,6,0.0333333333333333,41
+0.4,"default",15,"operations","Definitive repair",0.05,3,0,18
+0.4,"default",16,"operations","Definitive repair",0.163888888888889,6,0.166666666666667,59
+0.4,"default",17,"operations","Definitive repair",0.219444444444444,10,0.177777777777778,79
+0.4,"default",18,"operations","Definitive repair",0.0388888888888889,2,0.0111111111111111,14
+0.4,"default",19,"operations","Definitive repair",0.0861111111111111,6,0.0333333333333333,31
+0.4,"default",20,"operations","Definitive repair",0.102777777777778,4,0,37
+0.4,"default",21,"operations","Definitive repair",0.138888888888889,6,0.0222222222222222,50
+0.4,"default",22,"operations","Definitive repair",0.319444444444444,11,0.633333333333333,115
+0.4,"default",23,"operations","Definitive repair",0.258333333333333,9,0.0222222222222222,93
+0.4,"default",24,"operations","Definitive repair",0.0638888888888889,4,0.0111111111111111,23
+0.4,"default",25,"operations","Definitive repair",0.244444444444444,6,0.211111111111111,88
+0.4,"default",26,"operations","Definitive repair",0.0694444444444444,3,0.0333333333333333,25
+0.4,"default",27,"operations","Definitive repair",0.130555555555556,5,0.111111111111111,47
+0.4,"default",28,"operations","Definitive repair",0.05,3,0,18
+0.4,"default",29,"operations","Definitive repair",0.136111111111111,8,0.0444444444444444,49
+0.4,"default",30,"operations","Definitive repair",0.0916666666666667,6,0.0333333333333333,33
+0.4,"default",1,"operations","Reconstruction",0.688888888888889,5,0.666666666666667,248
+0.4,"default",2,"operations","Reconstruction",0.627777777777778,5,0.455555555555556,226
+0.4,"default",3,"operations","Reconstruction",0.605555555555556,4,0.455555555555556,218
+0.4,"default",4,"operations","Reconstruction",0.697222222222222,5,0.677777777777778,251
+0.4,"default",5,"operations","Reconstruction",0.563888888888889,5,0.744444444444444,203
+0.4,"default",6,"operations","Reconstruction",0.633333333333333,5,0.322222222222222,228
+0.4,"default",7,"operations","Reconstruction",0.541666666666667,3,0.655555555555556,195
+0.4,"default",8,"operations","Reconstruction",0.705555555555556,6,0.544444444444444,254
+0.4,"default",9,"operations","Reconstruction",0.602777777777778,7,0.722222222222222,217
+0.4,"default",10,"operations","Reconstruction",0.619444444444444,5,0.544444444444444,223
+0.4,"default",11,"operations","Reconstruction",0.636111111111111,5,0.8,229
+0.4,"default",12,"operations","Reconstruction",0.547222222222222,6,0.6,197
+0.4,"default",13,"operations","Reconstruction",0.586111111111111,5,0.744444444444444,211
+0.4,"default",14,"operations","Reconstruction",0.752777777777778,7,0.922222222222222,271
+0.4,"default",15,"operations","Reconstruction",0.622222222222222,4,0.688888888888889,224
+0.4,"default",16,"operations","Reconstruction",0.638888888888889,4,0.277777777777778,230
+0.4,"default",17,"operations","Reconstruction",0.736111111111111,5,0.622222222222222,265
+0.4,"default",18,"operations","Reconstruction",0.638888888888889,6,0.522222222222222,230
+0.4,"default",19,"operations","Reconstruction",0.580555555555556,5,0.844444444444444,209
+0.4,"default",20,"operations","Reconstruction",0.666666666666667,5,0.666666666666667,240
+0.4,"default",21,"operations","Reconstruction",0.611111111111111,4,0.622222222222222,220
+0.4,"default",22,"operations","Reconstruction",0.672222222222222,5,0.788888888888889,242
+0.4,"default",23,"operations","Reconstruction",0.694444444444444,5,0.666666666666667,250
+0.4,"default",24,"operations","Reconstruction",0.647222222222222,5,0.733333333333333,233
+0.4,"default",25,"operations","Reconstruction",0.691666666666667,6,0.755555555555556,249
+0.4,"default",26,"operations","Reconstruction",0.536111111111111,4,0.522222222222222,193
+0.4,"default",27,"operations","Reconstruction",0.686111111111111,6,0.566666666666667,247
+0.4,"default",28,"operations","Reconstruction",0.661111111111111,5,0.766666666666667,238
+0.4,"default",29,"operations","Reconstruction",0.783333333333333,6,1.05555555555556,282
+0.4,"default",30,"operations","Reconstruction",0.541666666666667,4,0.366666666666667,195
 0.4,"default",1,"operations","Total",2.325,14,2.4,837
 0.4,"default",2,"operations","Total",2.11666666666667,12,1.4,762
 0.4,"default",3,"operations","Total",2.16944444444444,12,1.64444444444444,781
@@ -1775,7 +2315,7 @@
 0.4,"default",4,"theatre_minutes","Total",28.3903388507837,1005.52846569461,2.42727165879384,10220.5219862822
 0.4,"default",5,"theatre_minutes","Total",9.12456145924118,975.515418899757,3.03218807790241,3284.84212532683
 0.4,"default",6,"theatre_minutes","Total",16.1830661945774,801.176121908409,13.5510594648412,5825.90383004787
-0.4,"default",7,"theatre_minutes","Total",15.8601774672094,695.8792027843,3.12601528637228,5709.66388819539
+0.4,"default",7,"theatre_minutes","Total",15.8601774672094,695.879202784301,3.12601528637228,5709.66388819539
 0.4,"default",8,"theatre_minutes","Total",27.4459497952107,902.631975872112,13.0736835661359,9880.54192627586
 0.4,"default",9,"theatre_minutes","Total",12.2710195911069,515.023013286449,1.56181396438553,4417.5670527985
 0.4,"default",10,"theatre_minutes","Total",21.1595992175415,794.203702476028,0,7617.45571831495

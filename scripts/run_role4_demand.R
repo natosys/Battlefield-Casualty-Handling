@@ -108,6 +108,7 @@ if ("intensity" %in% arms) {
   responses <- role4_demand_responses(series, opt$days, ROLE4_DEMAND_WINDOW_DAYS)
   summary_rows <- summarise_role4_demand(responses)
   daily <- role4_census_daily(series)
+  operations_weekly <- role4_operations_weekly(series)
 
   # Stationarity on the sustained-operations convention (R/long_horizon.R): block
   # means of the daily census, classified by the late slope. The census is a
@@ -124,6 +125,8 @@ if ("intensity" %in% arms) {
   write.csv(responses, file.path(OUTPUT_DIR, "role4_demand_replications.csv"), row.names = FALSE)
   write.csv(summary_rows, file.path(OUTPUT_DIR, "role4_demand_summary.csv"), row.names = FALSE)
   write.csv(daily, file.path(OUTPUT_DIR, "role4_demand_daily.csv"), row.names = FALSE)
+  write.csv(operations_weekly, file.path(OUTPUT_DIR, "role4_demand_operations_weekly.csv"),
+            row.names = FALSE)
   write.csv(stability, file.path(OUTPUT_DIR, "role4_demand_stability.csv"), row.names = FALSE)
 }
 

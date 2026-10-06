@@ -1150,20 +1150,26 @@ build_role4_census <- function(data_dir, which) {
 build_role4_operations <- function(data_dir) {
   d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
   spec <- list(
-    list("Operations owed within the 360 days", "operations", "total", 0L),
-    list("Operations owed after day 360", "operations_after_horizon", "total", 0L),
-    list("Operations owed by casualties admitted during the campaign", "operations_admitted",
+    list("Operations owed within the 360 days", "operations", "Total", "total", 0L),
+    list("Definitive repairs owed within the 360 days", "operations", "Definitive repair",
          "total", 0L),
-    list("Operations owed on the busiest day", "operations", "peak", 2L),
-    list("Closing 90-day mean operations owed per day", "operations", "closing_mean", 2L),
-    list("Theatre minutes owed for definitive repairs", "theatre_minutes", "total", 0L)
+    list("Debridements owed within the 360 days", "operations", "Debridement", "total", 0L),
+    list("Reconstructions owed within the 360 days", "operations", "Reconstruction", "total",
+         0L),
+    list("Operations owed after day 360", "operations_after_horizon", "Total", "total", 0L),
+    list("Operations owed by casualties admitted during the campaign", "operations_admitted",
+         "Total", "total", 0L),
+    list("Operations owed on the busiest day", "operations", "Total", "peak", 2L),
+    list("Closing 90-day mean operations owed per day", "operations", "Total", "closing_mean",
+         2L),
+    list("Theatre minutes owed for definitive repairs", "theatre_minutes", "Total", "total", 0L)
   )
   rows <- lapply(spec, function(r) {
     c(r[[1]], vapply(names(ROLE4_INTENSITY_HEADINGS), function(sc) {
-      x <- d[d$scenario == sc & d$series == r[[2]] & d$subject == "Total" &
-               d$response == r[[3]], ]
+      x <- d[d$scenario == sc & d$series == r[[2]] & d$subject == r[[3]] &
+               d$response == r[[4]], ]
       stopifnot(nrow(x) == 1L)
-      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[4]], big = TRUE, floor0 = TRUE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[5]], big = TRUE, floor0 = TRUE)
     }, character(1)))
   })
   res_table(c("Demand owed alongside the census", unname(ROLE4_INTENSITY_HEADINGS)), rows)

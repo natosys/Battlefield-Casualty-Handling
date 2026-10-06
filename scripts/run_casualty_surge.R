@@ -79,6 +79,9 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 }
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Suffix every file of this run carries, so a named scenario is kept beside the default
+OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
+
 #' Directory the illustrative single run's image is written to
 IMAGES_DIR <- if (isTRUE(opt$`refresh-baseline`)) "images" else file.path("outputs", "images")
 dir.create(IMAGES_DIR, recursive = TRUE, showWarnings = FALSE)
@@ -123,11 +126,14 @@ dow_summary <- do.call(rbind, lapply(CASUALTY_SURGE_ARMS, function(rate) {
   )
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "casualty_surge_replications.csv"),
+write.csv(per_replication, file.path(OUTPUT_DIR,
+                    sprintf("casualty_surge_replications%s.csv", OUTPUT_SUFFIX)),
           row.names = FALSE)
-write.csv(count_summary, file.path(OUTPUT_DIR, "casualty_surge_count_summary.csv"),
+write.csv(count_summary, file.path(OUTPUT_DIR,
+                    sprintf("casualty_surge_count_summary%s.csv", OUTPUT_SUFFIX)),
           row.names = FALSE)
-write.csv(dow_summary, file.path(OUTPUT_DIR, "casualty_surge_dow_summary.csv"),
+write.csv(dow_summary, file.path(OUTPUT_DIR,
+                    sprintf("casualty_surge_dow_summary%s.csv", OUTPUT_SUFFIX)),
           row.names = FALSE)
 message(sprintf("Casualty surge responses and summaries written to %s", OUTPUT_DIR))
 
@@ -135,7 +141,7 @@ message(sprintf("Casualty surge responses and summaries written to %s", OUTPUT_D
 # documented override and the module's own seed and horizon, written only
 # under a baseline refresh since it is the one tracked image run.R
 # --refresh-baseline cannot produce (injection ships disabled).
-if (isTRUE(opt$`refresh-baseline`)) {
+if (isTRUE(opt$`refresh-baseline`) && identical(OUTPUT_SUFFIX, "")) {
   config_snapshot <- capture_config_globals()
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 

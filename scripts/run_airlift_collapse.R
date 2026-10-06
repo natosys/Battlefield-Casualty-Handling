@@ -82,6 +82,9 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Suffix every file of this run carries, so a named scenario is kept beside the default
+OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
+
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
 #' Measure one cancellation probability and return its per-replication response
@@ -126,10 +129,14 @@ summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
   cbind(data.frame(probability = probability), summarise_collapse(arm))
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "airlift_collapse_replications.csv"),
+write.csv(per_replication, file.path(OUTPUT_DIR,
+                    sprintf("airlift_collapse_replications%s.csv", OUTPUT_SUFFIX)),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "airlift_collapse.csv"), row.names = FALSE)
-series_path <- file.path(OUTPUT_DIR, "airlift_collapse_series.csv.gz")
+write.csv(summary_rows,
+          file.path(OUTPUT_DIR, sprintf("airlift_collapse%s.csv", OUTPUT_SUFFIX)),
+          row.names = FALSE)
+series_path <- file.path(OUTPUT_DIR,
+                         sprintf("airlift_collapse_series%s.csv.gz", OUTPUT_SUFFIX))
 write.csv(daily_series, gzfile(series_path), row.names = FALSE)
 message(sprintf("Collapse responses, summary and daily series written to %s", OUTPUT_DIR))
 

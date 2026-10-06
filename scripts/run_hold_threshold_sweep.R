@@ -69,6 +69,8 @@ option_list <- list(
   make_option("--images-dir",      type = "character", default = NULL,
               help = paste("Directory for the saved plot [default: outputs/images,",
                            "or images under --refresh-baseline]")),
+  make_option("--scenario",        type = "character", default = "default",
+              help = "Scenario profile to run under [default: %default]"),
   make_option("--max-cores",       type = "integer", default = NULL,
               help = "Cap on concurrent forks [default: the machine's cores]"),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
@@ -152,7 +154,8 @@ sweep <- plot_r2b_hold_threshold_sweep(
   path                = opt$path,
   output_dir          = output_dir,
   images_dir          = images_dir,
-  max_cores           = opt$`max-cores`
+  max_cores           = opt$`max-cores`,
+  scenario            = opt$scenario
 )
 
 message("\nR2B holding threshold sweep complete.")

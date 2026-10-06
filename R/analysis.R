@@ -5663,6 +5663,10 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
 #'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each grid
 #'   point, passed through to run_replications().
+#' @param scenario Name of a scenario profile to run the sweep under, resolved
+#'   once against the parsed JSON before the grid is run. A non-default
+#'   scenario suffixes the written CSV and PNG filenames with `_<scenario>`
+#'   (`scenario_output_suffix()`), so it cannot overwrite the default's.
 #' @return Named list: data (one row per hold_beds x evac_threshold_min grid
 #'   point, with mean and 95% CI for R2B holding queue and utilisation, R2E
 #'   holding queue and utilisation, R2E intensive care queue and utilisation,
@@ -5689,7 +5693,8 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
                                           n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS,
                                           path = "env_data.json",
                                           output_dir = "outputs", images_dir = "images",
-                                          progress_dir = NULL, max_cores = NULL) {
+                                          progress_dir = NULL, max_cores = NULL,
+                                          scenario = "default") {
   caller <- "plot_r2b_hold_threshold_sweep"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
   validate_hold_threshold_sweep(hold_beds, evac_threshold_min, caller)
@@ -5703,7 +5708,9 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
   counts_base   <- counts
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
-  json_data_base <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+  json_data_base <- resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE),
+                                     scenario)
+  scenario_suffix <- scenario_output_suffix(scenario)
 
   baseline_beds_vals <- vapply(json_data_base$elms, function(e) {
     if (!identical(e$elm, "r2b")) return(NA_integer_)
@@ -5793,13 +5800,13 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
   day_min  <<- day_min_base
   counts   <<- counts_base
 
-  write.csv(sweep_df, file.path(output_dir, "r2b_hold_threshold_sweep.csv"), row.names = FALSE)
-  message(sprintf("R2B holding threshold sweep results written to %s/r2b_hold_threshold_sweep.csv",
-                  output_dir))
+  csv_name <- sprintf("r2b_hold_threshold_sweep%s.csv", scenario_suffix)
+  write.csv(sweep_df, file.path(output_dir, csv_name), row.names = FALSE)
+  message(sprintf("R2B holding threshold sweep results written to %s/%s", output_dir, csv_name))
 
   p <- render_hold_threshold_sweep_plot(sweep_df, baseline_beds = baseline_beds, n_rep = n_rep)
 
-  ggsave(file.path(images_dir, "r2b_hold_threshold_sweep.png"), p,
+  ggsave(file.path(images_dir, sprintf("r2b_hold_threshold_sweep%s.png", scenario_suffix)), p,
          width = 12, height = 16, dpi = 150)
 
   list(data = sweep_df, plot = p)

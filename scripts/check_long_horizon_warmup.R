@@ -138,21 +138,22 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     if (nrow(row) == 0) NA_real_ else row$cma[1]
   }
 
-  # Values docs/Methods.md's sustained-horizon Welch paragraph
-  # states, read from the tracked evidence set at the time it was written.
+  # Values read from the tracked evidence set at the time it was last
+  # re-measured, so a re-run that moves the diagnostic fails here rather than
+  # passing unnoticed.
   published <- list(
-    list("moderate_intensity", "R2E intensive care", 30, 1.643),
-    list("moderate_intensity", "R2E intensive care", 360, 1.237),
-    list("moderate_intensity", "R2E holding beds", 30, 1.836),
-    list("moderate_intensity", "R2E holding beds", 360, 0.752),
-    list("high_intensity", "R2E intensive care", 30, 30.119),
-    list("high_intensity", "R2E intensive care", 360, 802.908),
-    list("high_intensity", "R2E holding beds", 30, 38.751),
-    list("high_intensity", "R2E holding beds", 360, 290.714),
-    list("moderate_intensity", "R2E intensive care", 52, 1.944),
-    list("moderate_intensity", "R2E holding beds", 28, 1.864),
-    list("moderate_intensity", "R2E intensive care", 180, 1.201),
-    list("moderate_intensity", "R2E holding beds", 180, 0.894)
+    list("moderate_intensity", "R2E intensive care", 30, 1.129),
+    list("moderate_intensity", "R2E intensive care", 360, 1.040),
+    list("moderate_intensity", "R2E holding beds", 30, 2.656),
+    list("moderate_intensity", "R2E holding beds", 360, 0.432),
+    list("high_intensity", "R2E intensive care", 30, 32.503),
+    list("high_intensity", "R2E intensive care", 360, 782.662),
+    list("high_intensity", "R2E holding beds", 30, 48.553),
+    list("high_intensity", "R2E holding beds", 360, 346.516),
+    list("moderate_intensity", "R2E intensive care", 72, 1.251),
+    list("moderate_intensity", "R2E holding beds", 8, 4.374),
+    list("moderate_intensity", "R2E intensive care", 180, 1.056),
+    list("moderate_intensity", "R2E holding beds", 180, 0.768)
   )
   for (p in published) {
     found <- cma_at(p[[1]], p[[2]], p[[3]])
@@ -168,9 +169,9 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
     peak_day <- x$day[which.max(x$cma)]
     band <- round(range(x$cma[x$day >= 150]), 2)
     expected <- if (pool == "R2E intensive care") {
-      list(52, c(1.10, 1.29))
+      list(72, c(0.92, 1.06))
     } else {
-      list(28, c(0.69, 1.01))
+      list(8, c(0.43, 0.91))
     }
     report(peak_day == expected[[1]] && identical(band, expected[[2]]),
            "%s peaks on day %d and spans %s from day 150 (paper: day %d, %s)", pool,

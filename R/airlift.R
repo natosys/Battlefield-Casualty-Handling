@@ -217,6 +217,12 @@ reduce_airlift_replication <- function(env, n_days, seed) {
   attributes <- simmer::get_mon_attributes(env)
   resources  <- simmer::get_mon_resources(env)
 
+  # simmer reports a casualty still inside a timeout at the instant the run ends
+  # twice when ongoing arrivals are requested, which the join below would carry
+  # into every count and into each stay that casualty is serving, charging it
+  # to the pool twice. One row per casualty is what the reduction assumes.
+  arrivals <- arrivals[!duplicated(arrivals[, c("name", "replication")]), ]
+
   # The same join analyse_run() builds, which is what compute_role4_census()
   # and compute_ame_sorties() read: one row per casualty carrying both its
   # arrival record and every attribute it set.

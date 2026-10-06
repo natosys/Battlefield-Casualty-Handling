@@ -156,7 +156,26 @@
 
 ## Issues In Review (PRs Open — Awaiting Owner Merge)
 
-*No PRs currently open against main.*
+### Issue 448 — Moderate-Intensity Calibration Made the Shipped Default; Every Evidence Set Re-Measured
+
+**Branch:** `claude/work-on-448-nj8pj6` (pull request pending)
+
+The shipped base configuration now carries the `moderate_intensity` died-of-wounds calibration: ceilings `p1_p_max` 0.0089 and `p2_p_max` 0.0074 with the 1982-era treatment efficacy factors (1.0, 0.90, 0.55, 0.90, 0.55 and 0.80), replacing the 0.020 and 0.016 ceilings paired with the modern-care factors (0.83, 0.56, 0.32, 0.56, 0.25 and 0.57). `moderate_intensity` is kept as an empty overlay, an explicit alias of the default, so the comparative experiments still resolve it; `high_intensity` is the one overlay that changes the configuration. The console dropdown offers "Moderate Intensity" and "High Intensity", the alias being omitted because it would run the base configuration twice. Every tracked evidence set was re-measured (scenarios, long horizon and its Welch cumulative moving average, time series, calibration, the transport, forward holding and R2B hold and threshold sweeps, hold window, intensive care gate, policy, establishment and saturation sweeps, the airlift sweep and collapse, and the casualty surge stress test and size sweep), the per-arm checkpoints of the policy, establishment, saturation and surge size sweeps being deleted first so that no arm was resumed from the retired calibration. The treated-cohort died-of-wounds rate at 360 days moves from 0.544% (95% CI [0.494%, 0.593%]) to 0.319% ([0.284%, 0.354%]), inside the Ajax Bay bound of 0.46%. Re-measuring the airlift sweep exposed a defect in `reduce_airlift_replication()`: simmer reports a casualty inside a timeout at the instant the run ends twice under ongoing arrivals, which double counted one 13-minute stay in one of 390 replications; each casualty is now counted once. The screened died-of-wounds baselines and bounds in `R/sensitivity.R` follow the new default, while the tracked Morris and Sobol screens still describe the retired calibration and are re-run under #454 (README Further Development L34).
+
+**Seed-42 baseline (360 days, single run):** the arrival stream is redrawn under the new draw sequence, so 36 of the 39 verification measurements change. The superseded values:
+
+| Measurement | Before | After |
+|---|---|---|
+| arrivals_total | 5324 | 5509 |
+| priority_1 | 2841 | 3034 |
+| killed_in_action | 862 | 905 |
+| priority_1_operated | 1476 | 1536 |
+| decisions | 2736 | 2838 |
+| mean_wait_days | 0.344116 | 0.412262 |
+| p90_wait_days | 1.337776 | 1.591813 |
+| effective_force_combat_day_360 | 2412 | 2408 |
+
+**Unblocked by this merge:** #449, #451 and #454, which measure against the baseline this issue sets.
 
 ---
 

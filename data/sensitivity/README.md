@@ -21,7 +21,7 @@ point repeated or discarded. Each screen's
 
 **The Sobol decomposition follows the current Morris ranking by the rule
 below.** It decomposes the unresolved leading cluster on the system OT queue
-ranking of the Issue #410 screen, ranks 1 to 7 (`casualty_surge_rate`,
+ranking (the R2E OT queue, identical to the system OT queue) of the Issue #410 screen, ranks 1 to 7 (`casualty_surge_rate`,
 `pri1_evac_prob`, `pri1_surg_prob`, `pri1_dcs_rate`, `mc_p1_balance`,
 `casualty_surge_kia_fraction` and `casualty_surge_max_cas`, with µ\* from 13.04
 down to 3.42), and carries a composition group whole whenever one of its
@@ -170,7 +170,7 @@ fixed.
 |---|---|
 | `morris_r20/points.csv` | The Morris design point cache: 1,620 points, being 20 trajectories over 80 parameters plus one, at 5 replications and 30 days each. One row per design point, one column per screened response |
 | `morris_r20/morris_ranking_<response>.csv` | Per-parameter µ\* and σ for each of the 36 screened responses, with that response's criteria mapping and degeneracy diagnostics |
-| `morris_r20/morris_ranking.csv` | The primary system OT queue ranking, repeated under its historical filename. This is the file the published ranking table is built from |
+| `morris_r20/morris_ranking.csv` | The primary R2E OT queue ranking (numerically the system OT queue ranking, whose `kpi` column it still carries, the R2B queue being zero throughout), repeated under its historical filename. This is the file the published ranking table is built from |
 | `morris_r20/morris_design_and_responses.rds` | The design matrix and response matrix as R objects, for re-analysis without re-running the screen |
 | `morris_r20/morris_run_metadata.csv` | The design behind the Morris results: trajectory count, levels, grid jump, replications, run length, commit and the responses flagged degenerate |
 | `sobol_n800/points.csv` | The Sobol design point cache: 8,000 points, being N = 800 over the eight decomposed coordinates plus two, at 8 replications and 30 days each. One row per design point, one column per decomposed response |

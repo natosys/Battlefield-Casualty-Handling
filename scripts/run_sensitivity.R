@@ -32,7 +32,7 @@
 # design, so the response count does not change how long the sweep takes.
 # Each writes outputs/morris_ranking_<response>.csv and
 # images/morris_<response>.png; outputs/morris_ranking.csv repeats the
-# primary system OT queue ranking.
+# primary R2E OT queue ranking.
 
 source("R/environment.R")
 source("R/trajectories.R")

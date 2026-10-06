@@ -138,8 +138,8 @@ report(!is.na(stated_scenarios) &&
        "the methods paper states the scenarios the code holds (%s)",
        paste(ROLE4_DEMAND_SCENARIOS, collapse = ","))
 
-stated_probs <- suppressWarnings(as.numeric(strsplit(role4_marker("failure_probabilities"),
-                                                      ",")[[1]]))
+stated_text <- role4_marker("failure_probabilities")
+stated_probs <- suppressWarnings(as.numeric(strsplit(stated_text, ",")[[1]]))
 report(length(stated_probs) == length(CANCELLATION_PROBABILITIES) && !any(is.na(stated_probs)) &&
          all(abs(stated_probs - CANCELLATION_PROBABILITIES) < TOL),
        "the methods paper states the cancellation probabilities the sweep covers")

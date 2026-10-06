@@ -1119,12 +1119,12 @@ ROLE4_CENSUS_MEASURES <- list(c("mean beds", "mean"), c("peak beds", "peak"),
 #'   the closing 90-day mean of the daily census at each casualty intensity.
 build_role4_census <- function(data_dir, which) {
   d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
-  subjects <- switch(which,
-    ward = list(c("Total", "Total"), c("Intensive care phase", "icu"),
-                c("Step-down ward phase", "hold")),
-    origin = list(c("Total", "Total"), c("Battle injury", "Battle injury"),
-                  c("Disease and non-battle injury", "Disease and non-battle injury"),
-                  c("Reconstruction cohort", "Reconstruction cohort")))
+  ward_subjects <- list(c("Total", "Total"), c("Intensive care phase", "icu"),
+                        c("Step-down ward phase", "hold"))
+  origin_subjects <- list(c("Total", "Total"), c("Battle injury", "Battle injury"),
+                          c("Disease and non-battle injury", "Disease and non-battle injury"),
+                          c("Reconstruction cohort", "Reconstruction cohort"))
+  subjects <- if (which == "ward") ward_subjects else origin_subjects
   rows <- list()
   for (sub in subjects) {
     for (meas in ROLE4_CENSUS_MEASURES) {
@@ -1255,18 +1255,23 @@ build_role4_levers <- function(data_dir, which) {
     })
     return(res_table(c("Response", "0% (shipped)", "5%", "10%", "15%", "25%", "40%"), rows))
   }
-  switch(which,
-    policy = res_sweep_table(res_read("policy/policy_sweep.csv", data_dir),
-      c("Response", "15 d", "21 d (shipped)", "30 d", "45 d", "60 d"),
-      lapply(c(15, 21, 30, 45, 60), function(v) list(policy_days = v)), ROLE4_LEVER_ROWS),
-    establishment = res_sweep_table(res_read("policy/establishment_sweep.csv", data_dir),
-      c("Response", "30 beds (shipped)", "45 beds", "60 beds", "90 beds"),
-      lapply(c(30, 45, 60, 90), function(v) list(hold_beds = v)), ROLE4_LEVER_ROWS),
-    saturation = res_sweep_table(res_read("policy/saturation_sweep.csv", data_dir),
-      c("Response", "0 (disabled)", "1", "2", "3", "5", "8 (shipped)", "12", "16", "24"),
-      lapply(c(0, 1, 2, 3, 5, 8, 12, 16, 24), function(v) list(saturation_threshold = v)),
-      ROLE4_LEVER_ROWS),
-    stop(sprintf("no Role 4 lever table named '%s'", which), call. = FALSE))
+  sweeps <- list(
+    policy = list(file = "policy/policy_sweep.csv", key = "policy_days",
+                  header = c("Response", "15 d", "21 d (shipped)", "30 d", "45 d", "60 d"),
+                  values = c(15, 21, 30, 45, 60)),
+    establishment = list(file = "policy/establishment_sweep.csv", key = "hold_beds",
+                         header = c("Response", "30 beds (shipped)", "45 beds", "60 beds",
+                                    "90 beds"),
+                         values = c(30, 45, 60, 90)),
+    saturation = list(file = "policy/saturation_sweep.csv", key = "saturation_threshold",
+                      header = c("Response", "0 (disabled)", "1", "2", "3", "5", "8 (shipped)",
+                                 "12", "16", "24"),
+                      values = c(0, 1, 2, 3, 5, 8, 12, 16, 24))
+  )
+  sweep <- sweeps[[which]]
+  if (is.null(sweep)) stop(sprintf("no Role 4 lever table named '%s'", which), call. = FALSE)
+  arms <- lapply(sweep$values, function(v) setNames(list(v), sweep$key))
+  res_sweep_table(res_read(sweep$file, data_dir), sweep$header, arms, ROLE4_LEVER_ROWS)
 }
 
 #' Registry of generated tables

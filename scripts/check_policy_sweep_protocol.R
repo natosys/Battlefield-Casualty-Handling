@@ -534,6 +534,19 @@ if (file.exists(ESTABLISHMENT_SUMMARY_PATH)) {
          format(shipped_policy))
 }
 
+# ── 7. A named scenario's evidence cannot overwrite the default's ───────────────
+
+cat("\n-- a named scenario's output files carry its name --\n")
+
+report(identical(scenario_output_suffix("default"), "") &&
+         identical(scenario_output_suffix(NULL), ""),
+       "the shipped configuration's files carry no suffix, so the tracked set is unchanged")
+report(identical(scenario_output_suffix("high_intensity"), "_high_intensity"),
+       "a named scenario's files carry its name, on the transport sweep's convention")
+report(POLICY_BASELINE_HOLD_BEDS %in% POLICY_HOLD_BEDS,
+       "the crossed grid's baseline establishment (%d) is one the sweep covers",
+       POLICY_BASELINE_HOLD_BEDS)
+
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")

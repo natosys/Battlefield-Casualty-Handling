@@ -102,3 +102,19 @@ resolve_scenario <- function(json_data, scenario = "default") {
 
   json_data
 }
+
+#' Filename suffix that keeps a scenario's evidence beside the default's
+#'
+#' @param scenario Name of the scenario profile a run is made under, "default"
+#'   or NULL for the shipped configuration.
+#' @return The empty string for the shipped configuration, otherwise the
+#'   scenario name preceded by an underscore (`"_high_intensity"`).
+#'
+#' @details Every experiment script appends this to the stem of each file it
+#'   writes, checkpoints included, so a run under a named profile can never
+#'   overwrite the tracked default evidence set, and the same convention
+#'   `scripts/run_transport_sweep.R` established applies to all of them.
+scenario_output_suffix <- function(scenario = "default") {
+  if (is.null(scenario) || identical(scenario, "default")) return("")
+  paste0("_", scenario)
+}

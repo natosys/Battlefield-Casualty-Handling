@@ -216,14 +216,14 @@ if (BASELINE_THRESHOLD %in% thresholds && length(thresholds) > 1) {
 }
 
 write.csv(per_replication,
-          file.path(OUTPUT_DIR,
-                    sprintf("saturation_sweep_replications%s.csv", OUTPUT_SUFFIX)),
+          scenario_output_path(OUTPUT_DIR, "saturation_sweep_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, sprintf("saturation_sweep%s.csv", OUTPUT_SUFFIX)),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "saturation_sweep", opt$scenario),
           row.names = FALSE)
 if (!is.null(paired)) {
-  write.csv(paired, file.path(OUTPUT_DIR,
-                          sprintf("saturation_sweep_paired%s.csv", OUTPUT_SUFFIX)),
+  write.csv(paired,
+            scenario_output_path(OUTPUT_DIR, "saturation_sweep_paired", opt$scenario),
             row.names = FALSE)
 }
 message(sprintf("Saturation sweep responses, summary and paired differences written to %s",

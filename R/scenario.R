@@ -118,3 +118,14 @@ scenario_output_suffix <- function(scenario = "default") {
   if (is.null(scenario) || identical(scenario, "default")) return("")
   paste0("_", scenario)
 }
+
+#' Path of one evidence file, carrying the scenario's suffix
+#'
+#' @param dir Directory the file is written to.
+#' @param stem File name without the scenario suffix or the extension.
+#' @param scenario Scenario profile the run was made under.
+#' @param ext Extension including the dot.
+#' @return The path `dir/<stem><suffix><ext>`.
+scenario_output_path <- function(dir, stem, scenario = "default", ext = ".csv") {
+  file.path(dir, paste0(stem, scenario_output_suffix(scenario), ext))
+}

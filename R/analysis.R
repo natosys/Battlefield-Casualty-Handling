@@ -5708,9 +5708,7 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
   counts_base   <- counts
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
-  json_data_base <- resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE),
-                                     scenario)
-  scenario_suffix <- scenario_output_suffix(scenario)
+  json_data_base <- resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE), scenario)
 
   baseline_beds_vals <- vapply(json_data_base$elms, function(e) {
     if (!identical(e$elm, "r2b")) return(NA_integer_)
@@ -5800,13 +5798,13 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
   day_min  <<- day_min_base
   counts   <<- counts_base
 
-  csv_name <- sprintf("r2b_hold_threshold_sweep%s.csv", scenario_suffix)
-  write.csv(sweep_df, file.path(output_dir, csv_name), row.names = FALSE)
-  message(sprintf("R2B holding threshold sweep results written to %s/%s", output_dir, csv_name))
+  csv_path <- scenario_output_path(output_dir, "r2b_hold_threshold_sweep", scenario)
+  write.csv(sweep_df, csv_path, row.names = FALSE)
+  message("R2B holding threshold sweep results written to ", csv_path)
 
   p <- render_hold_threshold_sweep_plot(sweep_df, baseline_beds = baseline_beds, n_rep = n_rep)
 
-  ggsave(file.path(images_dir, sprintf("r2b_hold_threshold_sweep%s.png", scenario_suffix)), p,
+  ggsave(scenario_output_path(images_dir, "r2b_hold_threshold_sweep", scenario, ".png"), p,
          width = 12, height = 16, dpi = 150)
 
   list(data = sweep_df, plot = p)

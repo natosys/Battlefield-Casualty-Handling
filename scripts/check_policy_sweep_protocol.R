@@ -534,7 +534,7 @@ if (file.exists(ESTABLISHMENT_SUMMARY_PATH)) {
          format(shipped_policy))
 }
 
-# ── 7. A named scenario's evidence cannot overwrite the default's ───────────────
+# ── 7. A named scenario's evidence cannot overwrite the default's ──────────
 
 cat("\n-- a named scenario's output files carry its name --\n")
 

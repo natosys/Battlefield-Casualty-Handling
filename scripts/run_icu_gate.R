@@ -83,9 +83,6 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 }
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
-#' Suffix every file of this run carries, so a named scenario is kept beside the default
-OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
-
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
 #' Measure one arm and return its per-replication responses
@@ -138,14 +135,15 @@ paired <- do.call(rbind, lapply(ICU_GATE_RESPONSES, function(response) {
   row
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR,
-                    sprintf("icu_gate_replications%s.csv", OUTPUT_SUFFIX)),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR,
-                    sprintf("icu_gate_summary%s.csv", OUTPUT_SUFFIX)),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired, file.path(OUTPUT_DIR,
-                    sprintf("icu_gate_paired%s.csv", OUTPUT_SUFFIX)), row.names = FALSE)
+write.csv(paired,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_paired", opt$scenario),
+          row.names = FALSE)
 message(sprintf("Intensive care gate responses, summary and paired differences written to %s",
                 OUTPUT_DIR))
 

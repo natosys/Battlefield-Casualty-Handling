@@ -126,14 +126,14 @@ dow_summary <- do.call(rbind, lapply(CASUALTY_SURGE_ARMS, function(rate) {
   )
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR,
-                    sprintf("casualty_surge_replications%s.csv", OUTPUT_SUFFIX)),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_replications", opt$scenario),
           row.names = FALSE)
-write.csv(count_summary, file.path(OUTPUT_DIR,
-                    sprintf("casualty_surge_count_summary%s.csv", OUTPUT_SUFFIX)),
+write.csv(count_summary,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_count_summary", opt$scenario),
           row.names = FALSE)
-write.csv(dow_summary, file.path(OUTPUT_DIR,
-                    sprintf("casualty_surge_dow_summary%s.csv", OUTPUT_SUFFIX)),
+write.csv(dow_summary,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_dow_summary", opt$scenario),
           row.names = FALSE)
 message(sprintf("Casualty surge responses and summaries written to %s", OUTPUT_DIR))
 

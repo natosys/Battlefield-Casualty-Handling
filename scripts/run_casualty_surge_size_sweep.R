@@ -96,10 +96,10 @@ measure_size <- function(size) {
 per_replication <- do.call(rbind, lapply(c(0L, CASUALTY_SURGE_SIZES), measure_size))
 summary_rows <- summarise_casualty_surge_size(per_replication)
 
-write.csv(per_replication, file.path(OUTPUT_DIR,
-                    sprintf("casualty_surge_size_replications%s.csv", OUTPUT_SUFFIX)),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_size_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR,
-                    sprintf("casualty_surge_size_summary%s.csv", OUTPUT_SUFFIX)),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_size_summary", opt$scenario),
           row.names = FALSE)
 message(sprintf("Size sweep written to %s", OUTPUT_DIR))

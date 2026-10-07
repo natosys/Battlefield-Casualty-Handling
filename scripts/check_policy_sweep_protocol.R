@@ -534,6 +534,48 @@ if (file.exists(ESTABLISHMENT_SUMMARY_PATH)) {
          format(shipped_policy))
 }
 
+# ── 6c. The high-intensity grid's evidence set is the documented design ─────────
+
+cat("\n-- the high-intensity grid's tracked evidence is the documented design --\n")
+
+#' Read one high-intensity grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "HIGHGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+highgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- HIGHGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- HIGHGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked high-intensity grid's evidence files
+HIGH_PREFIX <- file.path("data", "policy", "establishment_sweep_high_intensity")
+report(identical(highgrid_marker("scenario"), "high_intensity"),
+       "the methods paper states the grid's scenario as high_intensity")
+if (file.exists(paste0(HIGH_PREFIX, "_replications.csv"))) {
+  high_reps <- read.csv(paste0(HIGH_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  high_sum <- read.csv(paste0(HIGH_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  high_paired <- read.csv(paste0(HIGH_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  cells <- unique(high_reps[, c("policy_days", "hold_beds")])
+  report(nrow(cells) == length(POLICY_DAYS) * length(POLICY_HOLD_BEDS) &&
+           all(table(paste(high_reps$policy_days, high_reps$hold_beds)) == POLICY_REPLICATIONS),
+         "the tracked grid has %d cells of %d replications each", nrow(cells),
+         POLICY_REPLICATIONS)
+  one <- high_reps[high_reps$policy_days == 30L & high_reps$hold_beds == 90L, ]
+  stated <- high_sum[high_sum$policy_days == 30L & high_sum$hold_beds == 90L &
+                       high_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  baseline <- highgrid_marker("baseline")
+  report(!is.na(baseline) && !(baseline %in% high_paired$to) &&
+           all(high_paired$from == baseline) &&
+           length(unique(high_paired$to)) == nrow(cells) - 1L,
+         "every other cell is paired against the baseline cell %s", baseline)
+} else {
+  report(FALSE, "the high-intensity grid's replications are tracked")
+}
+
 # ── 7. A named scenario's evidence cannot overwrite the default's ──────────
 
 cat("\n-- a named scenario's output files carry its name --\n")

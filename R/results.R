@@ -429,6 +429,85 @@ build_establishment <- function(data_dir) {
   res_sweep_table(d, header, arms, rows)
 }
 
+#' Closing-window queue below which a pool is counted as not collapsed
+#'
+#' @details The same twenty casualties the strategic airlift collapse experiment
+#'   classifies against (`AIRLIFT_COLLAPSE_THRESHOLD` in `R/airlift.R`), restated
+#'   here because this module is independent of every other. A replication whose
+#'   closing 90-day mean queue is below it is counted as holding the pool.
+RESULTS_QUEUE_THRESHOLD <- 20
+
+#' Evacuation policy by R2E holding establishment grid under high intensity
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: one row per policy and establishment.
+build_policy_establishment_high <- function(data_dir) {
+  d <- res_read("policy/establishment_sweep_high_intensity.csv", data_dir)
+  keys <- unique(d[, c("policy_days", "hold_beds")])
+  keys <- keys[order(keys$policy_days, keys$hold_beds), ]
+  cols <- list(list("hold_mean_queue", 1L), list("icu_mean_queue", 1L),
+               list("total_rtd", 1L), list("total_dow", 1L),
+               list("never_evacuated", 1L), list("role4_peak", 1L))
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    cells <- vapply(cols, function(cl) {
+      x <- res_row(d, cl[[1]], policy_days = keys$policy_days[i], hold_beds = keys$hold_beds[i])
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = cl[[2]], big = TRUE, floor0 = TRUE)
+    }, character(1))
+    c(sprintf("%d d, %d beds", keys$policy_days[i], keys$hold_beds[i]), cells)
+  })
+  res_table(c("Policy and holding beds", "R2E hold mean queue", "R2E ICU mean queue",
+              "Returns to duty", "Died of wounds", "Never evacuated by horizon",
+              "Role 4 peak beds"), rows)
+}
+
+#' Replications holding each R2E pool under high intensity, by grid cell
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: for each policy and establishment, the replications of
+#'   the campaign's thirty whose closing-window mean queue was below
+#'   `RESULTS_QUEUE_THRESHOLD` in the holding pool, the intensive care pool and both.
+build_policy_establishment_high_stability <- function(data_dir) {
+  r <- res_read("policy/establishment_sweep_high_intensity_replications.csv", data_dir)
+  keys <- unique(r[, c("policy_days", "hold_beds")])
+  keys <- keys[order(keys$policy_days, keys$hold_beds), ]
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    x <- r[r$policy_days == keys$policy_days[i] & r$hold_beds == keys$hold_beds[i], ]
+    hold <- x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD
+    icu <- x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
+    c(sprintf("%d d, %d beds", keys$policy_days[i], keys$hold_beds[i]),
+      sprintf("%d of %d", sum(hold), nrow(x)), sprintf("%d of %d", sum(icu), nrow(x)),
+      sprintf("%d of %d", sum(hold & icu), nrow(x)))
+  })
+  res_table(c("Policy and holding beds", "Holding queue below threshold",
+              "ICU queue below threshold", "Both below threshold"), rows)
+}
+
+#' Paired differences against the shipped policy and establishment under high intensity
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: for each grid cell other than the baseline, the paired
+#'   difference in returns to duty, died of wounds and Role 4 peak beds with its
+#'   95% interval.
+build_policy_establishment_high_paired <- function(data_dir) {
+  d <- res_read("policy/establishment_sweep_high_intensity_paired.csv", data_dir)
+  arms <- unique(d$to)
+  pol <- as.integer(sub("d_.*", "", arms))
+  bed <- as.integer(sub(".*_([0-9]+)b$", "\\1", arms))
+  arms <- arms[order(pol, bed)]
+  cols <- c("total_rtd", "total_dow", "role4_peak")
+  rows <- lapply(arms, function(a) {
+    cells <- vapply(cols, function(cl) {
+      x <- d[d$to == a & d$response == cl, ]
+      stopifnot(nrow(x) == 1L)
+      sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
+              res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE))
+    }, character(1))
+    c(sprintf("%s d, %s beds", sub("d_.*", "", a), sub(".*_([0-9]+)b$", "\\1", a)), cells)
+  })
+  res_table(c("Policy and holding beds", "Returns to duty", "Died of wounds",
+              "Role 4 peak beds"), rows)
+}
+
 #' Forward surgical saturation release sweep table
 #'
 #' @param data_dir The data directory.
@@ -1298,6 +1377,9 @@ RESULTS_TABLES <- list(
   forward_hold = build_forward_hold,
   policy = build_policy,
   establishment = build_establishment,
+  policy_establishment_high = build_policy_establishment_high,
+  policy_establishment_high_stability = build_policy_establishment_high_stability,
+  policy_establishment_high_paired = build_policy_establishment_high_paired,
   saturation = build_saturation,
   casualty_surge = build_casualty_surge,
   casualty_surge_size = build_casualty_surge_size,

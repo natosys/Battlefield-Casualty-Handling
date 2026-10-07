@@ -45,6 +45,7 @@ This document is the design record for the replicated experiments reported in th
   - [Role 4 Bed Demand](#role-4-bed-demand)
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
+  - [High-Intensity Policy by Establishment Grid](#high-intensity-policy-by-establishment-grid)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
@@ -305,6 +306,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Strategic airlift reliability | default | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
+| High-intensity policy by establishment grid | high intensity | 360 d | 30 per cell | 5 policies by 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ against the shipped cell |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Casualty surge event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
@@ -563,6 +565,18 @@ The establishment is swept because it and the evacuation policy are substitutes:
 The two axes enter the configuration at different points, and the distinction is load-bearing rather than incidental. The policy is a variable and is set after `build_environment()`, which is what gives the parsed name-and-value pairs their names; the establishment is a bed count in `elms`, from which `build_environment()` constructs the resources themselves, so it is set before that call. Setting either on the wrong side of it writes a value nothing reads, which is a failure that produces a plausible flat result rather than an error. `set_hold_establishment()` accordingly fails where the element or its pool cannot be found rather than returning the configuration unchanged, and `scripts/check_policy_sweep_protocol.R` asserts that each swept establishment builds that many resources, at counts deliberately not multiples of the shipped 30 so that an off-by-a-factor error is visible as well as an ignored argument.
 
 The arms are paired on one control seed, as the policy sweep's are, so a difference between two establishments is measured within replication. The establishment sweep writes its own `establishment_sweep*` files rather than adding rows to the policy sweep's, that sweep being a published result with a regression check reading it; one file carrying both experiments would leave the check unable to tell which rows it was asserting. The tracked evidence set is `data/policy/`.
+
+### High-Intensity Policy by Establishment Grid
+
+<!-- HIGHGRID scenario=high_intensity -->
+<!-- HIGHGRID baseline=21d_30b -->
+Thirty replications of 360 simulated days at each of the twenty cells of the cross product of the five evacuation policies and the four R2E holding establishments above, at control seed 42 under the `high_intensity` profile. The profile is applied through `resolve_scenario()` before either override, and every file the run writes carries `_high_intensity` before its extension (`scenario_output_suffix()` in `R/scenario.R`), checkpoints included, so the run cannot overwrite the default evidence set. Invoked as:
+
+```
+Rscript scripts/run_policy_sweep.R --scenario high_intensity --refresh-baseline --policies 15,21,30,45,60 --hold-beds 30,45,60,90
+```
+
+The two levers are crossed rather than swept separately because the question under the high-intensity profile is which combination holds the R2E pools, and the default sweeps cannot answer it: no R2E pool saturates there until the policy reaches 30 days, and the holding queue is near zero at the shipped establishment. Each cell is paired on one control seed, as the sweeps above are, and the paired difference of each cell is taken against the shipped 21-day policy at 30 beds within replication. Pairing on the policy alone would merge the four establishments of a policy into four differences per replication, so the cell is the unit of pairing and the script labels each by policy and beds (`21d_30b`). The stability counts in the results paper are the replications whose closing 90-day mean queue is below twenty casualties in the holding pool, the intensive care pool and both, the threshold the strategic airlift collapse experiment classifies against, so that a pool is judged by one criterion throughout the paper. The tracked evidence set is `data/policy/`, in the `establishment_sweep_high_intensity*` files.
 
 ### Forward Surgical Saturation Release Sweep
 

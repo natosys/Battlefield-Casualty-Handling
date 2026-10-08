@@ -73,6 +73,14 @@ res_read <- function(path, data_dir = RESULTS_DATA_DIR) {
   read.csv(full, stringsAsFactors = FALSE)
 }
 
+#' File name of an evidence file under a scenario's suffix
+#'
+#' @param stem The path without the suffix or the extension.
+#' @param suffix The scenario suffix, `""` for the shipped configuration or
+#'   `"_high_intensity"` for the high-intensity evidence set.
+#' @return The path `<stem><suffix>.csv`.
+res_file <- function(stem, suffix = "") paste0(stem, suffix, ".csv")
+
 #' One row of a long-format summary
 #'
 #' @param d A summary with a `response` column.
@@ -242,9 +250,10 @@ build_long_horizon_stability <- function(data_dir) {
 #'
 #' @param data_dir The data directory.
 #' @param axis `"beds"` for the establishment axis, `"threshold"` for the threshold axis.
+#' @param suffix Scenario suffix of the evidence file, `""` for the shipped configuration.
 #' @return The table lines.
-build_hold_threshold <- function(data_dir, axis) {
-  d <- res_read("sweeps/r2b_hold_threshold_sweep.csv", data_dir)
+build_hold_threshold <- function(data_dir, axis, suffix = "") {
+  d <- res_read(res_file("sweeps/r2b_hold_threshold_sweep", suffix), data_dir)
   #' One establishment row of the hold sweep grid
   #'
   #' @param beds Holding beds per unit.
@@ -283,10 +292,11 @@ build_hold_threshold <- function(data_dir, axis) {
 #' R2B pre-open hold window table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped configuration.
 #' @return The table lines.
-build_hold_window <- function(data_dir) {
-  s <- res_read("hold_window/hold_window_summary.csv", data_dir)
-  p <- res_read("hold_window/hold_window_paired.csv", data_dir)
+build_hold_window <- function(data_dir, suffix = "") {
+  s <- res_read(res_file("hold_window/hold_window_summary", suffix), data_dir)
+  p <- res_read(res_file("hold_window/hold_window_paired", suffix), data_dir)
   spec <- list(c("Casualties held at R2B", "held_r2b"), c("R2B surgeries", "r2b_surgeries"),
                c("Diverted, team off shift", "diverted_offshift"),
                c("Diverted, theatre busy", "diverted_busy"),
@@ -511,9 +521,10 @@ build_policy_establishment_high_paired <- function(data_dir) {
 #' Forward surgical saturation release sweep table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence file, `""` for the shipped configuration.
 #' @return The table lines.
-build_saturation <- function(data_dir) {
-  d <- res_read("policy/saturation_sweep.csv", data_dir)
+build_saturation <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("policy/saturation_sweep", suffix), data_dir)
   thresholds <- c(0, 1, 2, 3, 5, 8, 12, 16, 24)
   arms <- lapply(thresholds, function(t) list(saturation_threshold = t))
   rows <- list(
@@ -532,11 +543,12 @@ build_saturation <- function(data_dir) {
 #' Casualty surge event stress test table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped configuration.
 #' @return The table lines.
-build_casualty_surge <- function(data_dir) {
-  cnt <- res_read("casualty_surge/casualty_surge_count_summary.csv", data_dir)
-  dow <- res_read("casualty_surge/casualty_surge_dow_summary.csv", data_dir)
-  rep <- res_read("casualty_surge/casualty_surge_replications.csv", data_dir)
+build_casualty_surge <- function(data_dir, suffix = "") {
+  cnt <- res_read(res_file("casualty_surge/casualty_surge_count_summary", suffix), data_dir)
+  dow <- res_read(res_file("casualty_surge/casualty_surge_dow_summary", suffix), data_dir)
+  rep <- res_read(res_file("casualty_surge/casualty_surge_replications", suffix), data_dir)
   #' Mean total casualties of one arm
   #'
   #' @param r A response key.
@@ -762,10 +774,11 @@ build_degraded_care <- function(data_dir) {
 #' Post-operative intensive care gate comparison table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped configuration.
 #' @return The table lines.
-build_icu_gate <- function(data_dir) {
-  s <- res_read("icu_gate/icu_gate_summary.csv", data_dir)
-  p <- res_read("icu_gate/icu_gate_paired.csv", data_dir)
+build_icu_gate <- function(data_dir, suffix = "") {
+  s <- res_read(res_file("icu_gate/icu_gate_summary", suffix), data_dir)
+  p <- res_read(res_file("icu_gate/icu_gate_paired", suffix), data_dir)
   spec <- list(c("R2E ICU utilisation (%)", "icu_occupancy", 100, 1L),
                c("Died of wounds per run", "total_dow", 1, 2L),
                c("Total casualties", "total_casualties", 1, 1L))
@@ -802,13 +815,14 @@ build_airlift_collapse <- function(data_dir) {
 #' Died-of-wounds rate by post-operative recovery pathway under the rationing rule
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence file, `""` for the shipped configuration.
 #' @return The table lines: casualty-replications, deaths and the pooled rate for
 #'   each pathway in the arm where the rule is in force.
 #'
 #' @details Pooled over replications rather than averaged per replication, most
 #'   replications carrying a handful of deaths on each pathway.
-build_icu_gate_pathways <- function(data_dir) {
-  r <- res_read("icu_gate/icu_gate_replications.csv", data_dir)
+build_icu_gate_pathways <- function(data_dir, suffix = "") {
+  r <- res_read(res_file("icu_gate/icu_gate_replications", suffix), data_dir)
   on <- r[r$gate_enabled == 1, ]
   #' One pathway row of the table
   #'
@@ -1371,6 +1385,13 @@ RESULTS_TABLES <- list(
   hold_threshold_beds = function(dd) build_hold_threshold(dd, "beds"),
   hold_threshold_threshold = function(dd) build_hold_threshold(dd, "threshold"),
   hold_window = build_hold_window,
+  hold_window_high = function(dd) build_hold_window(dd, "_high_intensity"),
+  hold_threshold_beds_high = function(dd) build_hold_threshold(dd, "beds", "_high_intensity"),
+  hold_threshold_threshold_high = function(dd) build_hold_threshold(dd, "threshold", "_high_intensity"),
+  saturation_high = function(dd) build_saturation(dd, "_high_intensity"),
+  casualty_surge_high = function(dd) build_casualty_surge(dd, "_high_intensity"),
+  icu_gate_high = function(dd) build_icu_gate(dd, "_high_intensity"),
+  icu_gate_pathways_high = function(dd) build_icu_gate_pathways(dd, "_high_intensity"),
   transport = function(dd) build_transport(dd, FALSE),
   transport_high = function(dd) build_transport(dd, TRUE),
   transport_holders = build_transport_holders,

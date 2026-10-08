@@ -5646,6 +5646,93 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
           legend.position = "bottom")
 }
 
+#' Measure one point of the R2B holding capacity by evacuation threshold grid
+#'
+#' @param json_data_base Parsed, scenario-resolved env_data.json.
+#' @param beds R2B holding beds per unit at this point.
+#' @param threshold Evacuation threshold at this point, in minutes.
+#' @param n_rep Replications at the point.
+#' @param n_days Simulation duration per replication.
+#' @param max_cores Optional cap on mclapply's mc.cores.
+#' @return A one-row data frame of the point's means and 95% intervals.
+#'
+#' @details Sets the global env_data, day_min and counts for the point; the
+#'   caller restores them.
+measure_hold_threshold_point <- function(json_data_base, beds, threshold, n_rep, n_days,
+                                         max_cores) {
+  json_data <- set_r2b_hold_beds(json_data_base, beds)
+  ed <- build_environment(json_data)
+  ed$vars$r2b$holding$evac_threshold <- threshold
+  assign("env_data", ed, envir = globalenv())
+  assign("day_min", DAY_MIN, envir = globalenv())
+  assign("counts", sapply(ed$elms, length), envir = globalenv())
+
+  mon <- run_replications(n_rep, n_days, max_cores = max_cores)
+
+  r2b_hold <- pool_rep_kpis(mon, "^b_r2b_hold_", n_days,
+                            pool_establishment(env_data$elms, "^b_r2b_hold_"))
+  r2e_hold <- pool_rep_kpis(mon, "^b_r2eheavy_hold_", n_days,
+                            pool_establishment(env_data$elms, "^b_r2eheavy_hold_"))
+  r2e_icu  <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
+                            pool_establishment(env_data$elms, "^b_r2eheavy_icu_"))
+  rtd      <- rtd_rep_counts(mon)
+  dow      <- dow_rep_counts(mon)
+
+  r2b_hold_q_stats    <- summarise_ci(r2b_hold$mean_q)
+  r2b_hold_util_stats <- summarise_ci(r2b_hold$mean_util)
+  r2e_hold_q_stats    <- summarise_ci(r2e_hold$mean_q)
+  r2e_hold_util_stats <- summarise_ci(r2e_hold$mean_util)
+  r2e_icu_q_stats     <- summarise_ci(r2e_icu$mean_q)
+  r2e_icu_util_stats  <- summarise_ci(r2e_icu$mean_util)
+  rtd_stats           <- summarise_ci(rtd$rtd)
+  dow_stats           <- summarise_ci(dow$dow)
+
+  data.frame(
+    hold_beds               = beds,
+    evac_threshold_min      = threshold,
+    evac_threshold_days     = threshold / DAY_MIN,
+    mean_r2b_hold_q         = r2b_hold_q_stats$mean,
+    ci_lower_r2b_hold_q     = pmax(r2b_hold_q_stats$ci_lower, 0),
+    ci_upper_r2b_hold_q     = r2b_hold_q_stats$ci_upper,
+    mean_r2b_hold_util      = r2b_hold_util_stats$mean,
+    ci_lower_r2b_hold_util  = pmax(r2b_hold_util_stats$ci_lower, 0),
+    ci_upper_r2b_hold_util  = pmin(r2b_hold_util_stats$ci_upper, 1),
+    mean_r2e_hold_q         = r2e_hold_q_stats$mean,
+    ci_lower_r2e_hold_q     = pmax(r2e_hold_q_stats$ci_lower, 0),
+    ci_upper_r2e_hold_q     = r2e_hold_q_stats$ci_upper,
+    mean_r2e_hold_util      = r2e_hold_util_stats$mean,
+    ci_lower_r2e_hold_util  = pmax(r2e_hold_util_stats$ci_lower, 0),
+    ci_upper_r2e_hold_util  = pmin(r2e_hold_util_stats$ci_upper, 1),
+    mean_r2e_icu_q          = r2e_icu_q_stats$mean,
+    ci_lower_r2e_icu_q      = pmax(r2e_icu_q_stats$ci_lower, 0),
+    ci_upper_r2e_icu_q      = r2e_icu_q_stats$ci_upper,
+    mean_r2e_icu_util       = r2e_icu_util_stats$mean,
+    ci_lower_r2e_icu_util   = pmax(r2e_icu_util_stats$ci_lower, 0),
+    ci_upper_r2e_icu_util   = pmin(r2e_icu_util_stats$ci_upper, 1),
+    mean_rtd                = rtd_stats$mean,
+    ci_lower_rtd            = pmax(rtd_stats$ci_lower, 0),
+    ci_upper_rtd            = rtd_stats$ci_upper,
+    mean_dow                = dow_stats$mean,
+    ci_lower_dow            = pmax(dow_stats$ci_lower, 0),
+    ci_upper_dow            = dow_stats$ci_upper
+  )
+}
+
+#' Read a grid point's checkpoint, or measure it and write the checkpoint
+#'
+#' @param path Checkpoint file, or NULL to measure without checkpointing.
+#' @param measure Function of no arguments returning the point's data frame.
+#' @return The point's data frame.
+#'
+#' @details A sweep of this size runs for hours, so each point is written as it
+#'   completes and read back rather than re-measured after an interruption.
+cached_hold_threshold_point <- function(path, measure) {
+  if (!is.null(path) && file.exists(path)) return(read.csv(path, stringsAsFactors = FALSE))
+  point <- measure()
+  if (!is.null(path)) write.csv(point, path, row.names = FALSE)
+  point
+}
+
 #' Sweep R2B holding capacity jointly against the evacuation threshold
 #'
 #' @param hold_beds Numeric vector of R2B holding beds per unit to sweep
@@ -5667,6 +5754,9 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
 #'   once against the parsed JSON before the grid is run. A non-default
 #'   scenario suffixes the written CSV and PNG filenames with `_<scenario>`
 #'   (`scenario_output_suffix()`), so it cannot overwrite the default's.
+#' @param checkpoint_dir Optional directory each grid point is checkpointed to as
+#'   it completes and resumed from, named for its replications and days so a
+#'   checkpoint from another protocol is never reused. NULL measures without.
 #' @return Named list: data (one row per hold_beds x evac_threshold_min grid
 #'   point, with mean and 95% CI for R2B holding queue and utilisation, R2E
 #'   holding queue and utilisation, R2E intensive care queue and utilisation,
@@ -5694,7 +5784,7 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
                                           path = "env_data.json",
                                           output_dir = "outputs", images_dir = "images",
                                           progress_dir = NULL, max_cores = NULL,
-                                          scenario = "default") {
+                                          scenario = "default", checkpoint_dir = NULL) {
   caller <- "plot_r2b_hold_threshold_sweep"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
   validate_hold_threshold_sweep(hold_beds, evac_threshold_min, caller)
@@ -5732,66 +5822,18 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
     message(sprintf("R2B holding sweep: %d beds/unit, threshold %.0f min (%d reps x %d days)...",
                     beds, threshold, n_rep, n_days))
 
-    json_data <- set_r2b_hold_beds(json_data_base, beds)
-    ed <- build_environment(json_data)
-    ed$vars$r2b$holding$evac_threshold <- threshold
-    env_data  <<- ed
-    day_min   <<- DAY_MIN
-    counts    <<- sapply(env_data$elms, length)
-
-    mon <- run_replications(n_rep, n_days, max_cores = max_cores)
-
-    r2b_hold <- pool_rep_kpis(mon, "^b_r2b_hold_", n_days,
-                              pool_establishment(env_data$elms, "^b_r2b_hold_"))
-    r2e_hold <- pool_rep_kpis(mon, "^b_r2eheavy_hold_", n_days,
-                              pool_establishment(env_data$elms, "^b_r2eheavy_hold_"))
-    r2e_icu  <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
-                              pool_establishment(env_data$elms, "^b_r2eheavy_icu_"))
-    rtd      <- rtd_rep_counts(mon)
-    dow      <- dow_rep_counts(mon)
-
-    r2b_hold_q_stats    <- summarise_ci(r2b_hold$mean_q)
-    r2b_hold_util_stats <- summarise_ci(r2b_hold$mean_util)
-    r2e_hold_q_stats    <- summarise_ci(r2e_hold$mean_q)
-    r2e_hold_util_stats <- summarise_ci(r2e_hold$mean_util)
-    r2e_icu_q_stats     <- summarise_ci(r2e_icu$mean_q)
-    r2e_icu_util_stats  <- summarise_ci(r2e_icu$mean_util)
-    rtd_stats           <- summarise_ci(rtd$rtd)
-    dow_stats           <- summarise_ci(dow$dow)
+    ckpt <- if (is.null(checkpoint_dir)) NULL else {
+      scenario_output_path(checkpoint_dir, sprintf("hold_threshold_point_%db_%.0fmin_%dr_%dd",
+                                                   beds, threshold, n_rep, n_days), scenario)
+    }
+    point <- cached_hold_threshold_point(ckpt, function() {
+      measure_hold_threshold_point(json_data_base, beds, threshold, n_rep, n_days, max_cores)
+    })
 
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
-
-    data.frame(
-      hold_beds               = beds,
-      evac_threshold_min      = threshold,
-      evac_threshold_days     = threshold / DAY_MIN,
-      mean_r2b_hold_q         = r2b_hold_q_stats$mean,
-      ci_lower_r2b_hold_q     = pmax(r2b_hold_q_stats$ci_lower, 0),
-      ci_upper_r2b_hold_q     = r2b_hold_q_stats$ci_upper,
-      mean_r2b_hold_util      = r2b_hold_util_stats$mean,
-      ci_lower_r2b_hold_util  = pmax(r2b_hold_util_stats$ci_lower, 0),
-      ci_upper_r2b_hold_util  = pmin(r2b_hold_util_stats$ci_upper, 1),
-      mean_r2e_hold_q         = r2e_hold_q_stats$mean,
-      ci_lower_r2e_hold_q     = pmax(r2e_hold_q_stats$ci_lower, 0),
-      ci_upper_r2e_hold_q     = r2e_hold_q_stats$ci_upper,
-      mean_r2e_hold_util      = r2e_hold_util_stats$mean,
-      ci_lower_r2e_hold_util  = pmax(r2e_hold_util_stats$ci_lower, 0),
-      ci_upper_r2e_hold_util  = pmin(r2e_hold_util_stats$ci_upper, 1),
-      mean_r2e_icu_q          = r2e_icu_q_stats$mean,
-      ci_lower_r2e_icu_q      = pmax(r2e_icu_q_stats$ci_lower, 0),
-      ci_upper_r2e_icu_q      = r2e_icu_q_stats$ci_upper,
-      mean_r2e_icu_util       = r2e_icu_util_stats$mean,
-      ci_lower_r2e_icu_util   = pmax(r2e_icu_util_stats$ci_lower, 0),
-      ci_upper_r2e_icu_util   = pmin(r2e_icu_util_stats$ci_upper, 1),
-      mean_rtd                = rtd_stats$mean,
-      ci_lower_rtd            = pmax(rtd_stats$ci_lower, 0),
-      ci_upper_rtd            = rtd_stats$ci_upper,
-      mean_dow                = dow_stats$mean,
-      ci_lower_dow            = pmax(dow_stats$ci_lower, 0),
-      ci_upper_dow            = dow_stats$ci_upper
-    )
+    point
   }))
 
   env_data <<- env_data_base

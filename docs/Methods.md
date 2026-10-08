@@ -46,6 +46,7 @@ This document is the design record for the replicated experiments reported in th
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [High-Intensity Policy by Establishment Grid](#high-intensity-policy-by-establishment-grid)
+  - [High-Intensity Replications of the Lever Experiments](#high-intensity-replications-of-the-lever-experiments)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
@@ -577,6 +578,24 @@ Rscript scripts/run_policy_sweep.R --scenario high_intensity --refresh-baseline 
 ```
 
 The two levers are crossed rather than swept separately because the question under the high-intensity profile is which combination holds the R2E pools, and the default sweeps cannot answer it: no R2E pool saturates there until the policy reaches 30 days, and the holding queue is near zero at the shipped establishment. Each cell is paired on one control seed, as the sweeps above are, and the paired difference of each cell is taken against the shipped 21-day policy at 30 beds within replication. Pairing on the policy alone would merge the four establishments of a policy into four differences per replication, so the cell is the unit of pairing and the script labels each by policy and beds (`21d_30b`). The stability counts in the results paper are the replications whose closing 90-day mean queue is below twenty casualties in the holding pool, the intensive care pool and both, the threshold the strategic airlift collapse experiment classifies against, so that a pool is judged by one criterion throughout the paper. The tracked evidence set is `data/policy/`, in the `establishment_sweep_high_intensity*` files.
+
+### High-Intensity Replications of the Lever Experiments
+
+<!-- HIGHINT scenario=high_intensity -->
+<!-- HIGHINT replications=30 -->
+<!-- HIGHINT days=360 -->
+Six further experiments are repeated under the `high_intensity` profile at the protocol each already documents: the R2B pre-open hold window, the post-operative intensive care gate, the casualty surge stress test, the forward surgical saturation release sweep, the joint R2B holding capacity and evacuation threshold sweep, and the casualty surge event size sweep. Each is invoked as its default experiment is, with `--scenario high_intensity` added, and `--refresh-baseline` still fixes the replications, horizon and seed rather than accepting the caller's:
+
+```
+Rscript scripts/run_hold_window.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_icu_gate.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_casualty_surge.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_saturation_sweep.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_hold_threshold_sweep.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_casualty_surge_size_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+The profile is applied through `resolve_scenario()` before the experiment's own override, so the lever is varied around the high-intensity configuration rather than the default. Every file an experiment writes, its arm and grid-point checkpoints included, carries `_high_intensity` before its extension (`scenario_output_path()` in `R/scenario.R`), so a run under the profile cannot overwrite the default evidence set and the two sets sit side by side under one directory. The experiments with arms or grid points checkpoint each as it completes and resume from the checkpoint, named for its replications and days so that a checkpoint from another protocol is never reused; a sweep of fifteen 360-day grid points would otherwise lose every point to one interruption. The illustrative single run behind the casualty surge timeline is written for the default profile only, since the image it produces is tracked under one name. The strategic airlift sortie interval and reliability sweeps are not repeated, those experiments fixing their own scenarios arm by arm.
 
 ### Forward Surgical Saturation Release Sweep
 

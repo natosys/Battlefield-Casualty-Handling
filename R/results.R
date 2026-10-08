@@ -1387,7 +1387,9 @@ RESULTS_TABLES <- list(
   hold_window = build_hold_window,
   hold_window_high = function(dd) build_hold_window(dd, "_high_intensity"),
   hold_threshold_beds_high = function(dd) build_hold_threshold(dd, "beds", "_high_intensity"),
-  hold_threshold_threshold_high = function(dd) build_hold_threshold(dd, "threshold", "_high_intensity"),
+  hold_threshold_threshold_high = function(dd) {
+    build_hold_threshold(dd, "threshold", "_high_intensity")
+  },
   saturation_high = function(dd) build_saturation(dd, "_high_intensity"),
   casualty_surge_high = function(dd) build_casualty_surge(dd, "_high_intensity"),
   icu_gate_high = function(dd) build_icu_gate(dd, "_high_intensity"),

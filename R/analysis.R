@@ -5374,6 +5374,68 @@ dow_rep_counts <- function(mon) {
     mutate(dow = ifelse(is.na(dow), 0, dow))
 }
 
+#' Measure one forward holding arm
+#'
+#' @param env_data_base The built configuration to override.
+#' @param arm One row of the arm table: label, window and trigger.
+#' @param n_rep Replications.
+#' @param n_days Simulation duration in days.
+#' @param max_cores Cap on concurrent forks, or NULL.
+#' @return A one-row data frame of the arm's responses with 95% intervals.
+#'
+#' @details Factored out of plot_r2b_forward_hold_frontier() so that an arm can
+#'   be checkpointed as it completes.
+measure_forward_hold_arm <- function(env_data_base, arm, n_rep, n_days, max_cores) {
+  ed <- env_data_base
+  ed$vars$r2b$post_op_icu$stability_window_dcs <- arm$window
+  ed$vars$r2b$post_op_icu$stability_window_single_stage <- arm$window
+  ed$vars$r2b$post_op_icu$capacity_trigger <- arm$trigger
+  assign("env_data", ed, envir = globalenv())
+
+  mon <- run_replications(n_rep, n_days, max_cores = max_cores)
+
+  r2b_icu <- pool_rep_kpis(mon, "^b_r2b_icu_", n_days,
+                           pool_establishment(ed$elms, "^b_r2b_icu_"))
+  r2e_icu <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
+                           pool_establishment(ed$elms, "^b_r2eheavy_icu_"))
+  #' Mean and 95% interval of one response's replications
+  #'
+  #' @param x Numeric vector of per-replication values.
+  #' @return Named vector of mean, lower and upper.
+  ci <- function(x) {
+    n <- length(x)
+    m <- mean(x, na.rm = TRUE)
+    h <- qt(0.975, df = pmax(n - 1, 1)) * sd(x, na.rm = TRUE) / sqrt(n)
+    c(mean = m, lower = m - h, upper = m + h)
+  }
+  q   <- ci(r2e_icu$mean_q)
+  rb  <- ci(r2b_icu$mean_util)
+  re  <- ci(r2e_icu$mean_util)
+  dow <- ci(dow_rep_counts(mon)$dow)
+  pd  <- ci(pd_icu_share_rep(mon)$pd_icu_share)
+
+  data.frame(
+    arm                   = arm$label,
+    window                = arm$window,
+    capacity_trigger      = arm$trigger,
+    mean_r2e_icu_q        = q[["mean"]],
+    ci_lower_r2e_icu_q    = max(q[["lower"]], 0),
+    ci_upper_r2e_icu_q    = q[["upper"]],
+    mean_r2b_icu_util     = rb[["mean"]],
+    ci_lower_r2b_icu_util = max(rb[["lower"]], 0),
+    ci_upper_r2b_icu_util = min(rb[["upper"]], 1),
+    mean_r2e_icu_util     = re[["mean"]],
+    ci_lower_r2e_icu_util = max(re[["lower"]], 0),
+    ci_upper_r2e_icu_util = min(re[["upper"]], 1),
+    mean_pd_icu_share     = pd[["mean"]],
+    ci_lower_pd_icu_share = max(pd[["lower"]], 0),
+    ci_upper_pd_icu_share = min(pd[["upper"]], 1),
+    mean_dow              = dow[["mean"]],
+    ci_lower_dow          = max(dow[["lower"]], 0),
+    ci_upper_dow          = dow[["upper"]]
+  )
+}
+
 #' Sweep the forward holding rule and report the resulting decision frontier
 #'
 #' @param arms Data frame of forward holding arms to sweep: `label`, the
@@ -5390,6 +5452,10 @@ dow_rep_counts <- function(mon) {
 #'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   arm, passed through to run_replications().
+#' @param scenario Scenario profile to run under; a non-default profile suffixes the
+#'   written CSV and PNG with `_<scenario>` (`scenario_output_suffix()`).
+#' @param checkpoint_dir Directory each arm is checkpointed to as it completes, or
+#'   NULL to measure without checkpointing.
 #' @return Named list: data (one row per arm, with mean and 95% CI
 #'   for the R2E ICU queue, R2B and R2E ICU utilisation, and DOW count),
 #'   plot (ggplot object, also saved to
@@ -5419,7 +5485,8 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
                                            n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS,
                                            path = "env_data.json",
                                            output_dir = "outputs", images_dir = "images",
-                                           progress_dir = NULL, max_cores = NULL) {
+                                           progress_dir = NULL, max_cores = NULL,
+                                           scenario = "default", checkpoint_dir = NULL) {
   caller <- "plot_r2b_forward_hold_frontier"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
   validate_forward_hold_arms(arms, caller)
@@ -5428,12 +5495,16 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
   config_snapshot <- capture_config_globals()
-  env_data_base <- env_data
-  day_min_base  <- day_min
-  counts_base   <- counts
   # See plot_transport_capacity_margin_by_fleet_size() for why the restore is
   # registered here as well as run explicitly below the sweep loop.
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
+  if (!identical(scenario, "default")) {
+    apply_config_globals(resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE),
+                                          scenario))
+  }
+  env_data_base <- env_data
+  day_min_base  <- day_min
+  counts_base   <- counts
 
   rule <- env_data_base$vars$r2b$post_op_icu
   shipped <- arms$window == rule$stability_window_dcs &
@@ -5444,67 +5515,31 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
   sweep_df <- bind_rows(lapply(seq_len(nrow(arms)), function(i) {
     message(sprintf("Forward holding sweep: %s (%d reps x %d days)...",
                     arms$label[i], n_rep, n_days))
-
-    ed <- env_data_base
-    ed$vars$r2b$post_op_icu$stability_window_dcs <- arms$window[i]
-    ed$vars$r2b$post_op_icu$stability_window_single_stage <- arms$window[i]
-    ed$vars$r2b$post_op_icu$capacity_trigger <- arms$trigger[i]
-    env_data <<- ed
-    day_min  <<- day_min_base
-    counts   <<- counts_base
-
-    mon <- run_replications(n_rep, n_days, max_cores = max_cores)
-
-    r2b_icu <- pool_rep_kpis(mon, "^b_r2b_icu_", n_days,
-                             pool_establishment(env_data$elms, "^b_r2b_icu_"))
-    r2e_icu <- pool_rep_kpis(mon, "^b_r2eheavy_icu_", n_days,
-                             pool_establishment(env_data$elms, "^b_r2eheavy_icu_"))
-    dow     <- dow_rep_counts(mon)
-    pd      <- pd_icu_share_rep(mon)
-
-    q_stats         <- summarise_ci(r2e_icu$mean_q)
-    r2b_util_stats  <- summarise_ci(r2b_icu$mean_util)
-    r2e_util_stats  <- summarise_ci(r2e_icu$mean_util)
-    dow_stats       <- summarise_ci(dow$dow)
-    pd_stats        <- summarise_ci(pd$pd_icu_share)
-
+    ckpt <- if (is.null(checkpoint_dir)) NULL else {
+      dir.create(checkpoint_dir, showWarnings = FALSE, recursive = TRUE)
+      scenario_output_path(checkpoint_dir, sprintf("forward_hold_arm_%d_%dr_%dd", i, n_rep, n_days),
+                           scenario)
+    }
+    point <- cached_hold_threshold_point(ckpt, function() {
+      measure_forward_hold_arm(env_data_base, arms[i, ], n_rep, n_days, max_cores)
+    })
     if (!is.null(progress_dir)) {
       file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
     }
-
-    data.frame(
-      arm                   = arms$label[i],
-      window                = arms$window[i],
-      capacity_trigger      = arms$trigger[i],
-      mean_r2e_icu_q        = q_stats$mean,
-      ci_lower_r2e_icu_q    = pmax(q_stats$ci_lower, 0),
-      ci_upper_r2e_icu_q    = q_stats$ci_upper,
-      mean_r2b_icu_util     = r2b_util_stats$mean,
-      ci_lower_r2b_icu_util = pmax(r2b_util_stats$ci_lower, 0),
-      ci_upper_r2b_icu_util = pmin(r2b_util_stats$ci_upper, 1),
-      mean_r2e_icu_util     = r2e_util_stats$mean,
-      ci_lower_r2e_icu_util = pmax(r2e_util_stats$ci_lower, 0),
-      ci_upper_r2e_icu_util = pmin(r2e_util_stats$ci_upper, 1),
-      mean_pd_icu_share     = pd_stats$mean,
-      ci_lower_pd_icu_share = pmax(pd_stats$ci_lower, 0),
-      ci_upper_pd_icu_share = pmin(pd_stats$ci_upper, 1),
-      mean_dow              = dow_stats$mean,
-      ci_lower_dow          = pmax(dow_stats$ci_lower, 0),
-      ci_upper_dow          = dow_stats$ci_upper
-    )
+    point
   }))
 
   env_data <<- env_data_base
   day_min  <<- day_min_base
   counts   <<- counts_base
 
-  write.csv(sweep_df, file.path(output_dir, "r2b_forward_hold_frontier.csv"), row.names = FALSE)
-  message(sprintf("Forward holding sweep results written to %s/r2b_forward_hold_frontier.csv",
-                  output_dir))
+  csv_path <- scenario_output_path(output_dir, "r2b_forward_hold_frontier", scenario)
+  write.csv(sweep_df, csv_path, row.names = FALSE)
+  message(sprintf("Forward holding sweep results written to %s", csv_path))
 
   p <- render_forward_hold_sweep_plot(sweep_df, baseline_arm = baseline_arm, n_rep = n_rep)
 
-  ggsave(file.path(images_dir, "r2b_forward_hold_frontier.png"), p,
+  ggsave(scenario_output_path(images_dir, "r2b_forward_hold_frontier", scenario, ".png"), p,
          width = 10, height = 14, dpi = 150)
 
   list(data = sweep_df, plot = p)

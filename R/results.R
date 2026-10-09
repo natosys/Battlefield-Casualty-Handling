@@ -378,9 +378,11 @@ build_transport_holders <- function(data_dir) {
 #' Forward holding frontier table
 #'
 #' @param data_dir The data directory.
+#' @param suffix File suffix selecting the scenario's copy, `"_high_intensity"` for
+#'   the high-intensity measurement.
 #' @return The table lines.
-build_forward_hold <- function(data_dir) {
-  d <- res_read("sweeps/r2b_forward_hold_frontier.csv", data_dir)
+build_forward_hold <- function(data_dir, suffix = "") {
+  d <- res_read(paste0("sweeps/", res_file("r2b_forward_hold_frontier", suffix)), data_dir)
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
     c(x$arm,
@@ -646,9 +648,12 @@ air_cell <- function(x, opt) {
 #'
 #' @param data_dir The data directory.
 #' @param which One of `"baseline"`, `"interval"` or `"reliability"`.
+#' @param suffix File suffix selecting the scenario's copy; `"_high_intensity"` reads
+#'   the sweeps measured at high intensity, which carry no baseline arm.
 #' @return The table lines.
-build_airlift <- function(data_dir, which) {
-  d <- res_read("airlift/airlift_summary.csv", data_dir)
+build_airlift <- function(data_dir, which, suffix = "") {
+  d <- res_read(paste0("airlift/", res_file("airlift_summary", suffix)), data_dir)
+  sweep_scenario <- if (nzchar(suffix)) "high_intensity" else "moderate_intensity"
   #' One airlift summary row
   #'
   #' @param col The column specification.
@@ -678,7 +683,7 @@ build_airlift <- function(data_dir, which) {
     interval = list(
       header = c("Response by interval between sorties", "3 days", "5 days", "7 days (shipped)",
                  "10 days", "14 days"),
-      cols = lapply(c(3, 5, 7, 10, 14), function(v) list("interval", "moderate_intensity", v)),
+      cols = lapply(c(3, 5, 7, 10, 14), function(v) list("interval", sweep_scenario, v)),
       rows = list(
         list("Sorties flown", "sorties_flown", list(ci = FALSE)),
         list("Mean wait (days)", "mean_wait_days", list()),
@@ -691,7 +696,7 @@ build_airlift <- function(data_dir, which) {
       header = c("Response by configured cancellation probability", "0%", "5%", "10%", "15%",
                  "25%", "40%"),
       cols = lapply(c(0, 0.05, 0.10, 0.15, 0.25, 0.40), function(v) {
-        list("reliability", "moderate_intensity", v)
+        list("reliability", sweep_scenario, v)
       }),
       rows = list(
         list("Sorties flown", "sorties_flown", list(ci = FALSE)),
@@ -1413,6 +1418,9 @@ RESULTS_TABLES <- list(
   airlift_baseline = function(dd) build_airlift(dd, "baseline"),
   airlift_interval = function(dd) build_airlift(dd, "interval"),
   airlift_reliability = function(dd) build_airlift(dd, "reliability"),
+  airlift_interval_high = function(dd) build_airlift(dd, "interval", "_high_intensity"),
+  airlift_reliability_high = function(dd) build_airlift(dd, "reliability", "_high_intensity"),
+  forward_hold_high = function(dd) build_forward_hold(dd, "_high_intensity"),
   queue_clearance = build_queue_clearance,
   degraded_care = build_degraded_care,
   icu_gate = build_icu_gate,

@@ -8,6 +8,7 @@
 #   Rscript scripts/run_airlift_sweep.R --refresh-baseline
 #   Rscript scripts/run_airlift_sweep.R --iterations 10 --arms baseline
 #   Rscript scripts/run_airlift_sweep.R --arms reliability,interval
+#   Rscript scripts/run_airlift_sweep.R --refresh-baseline --scenario high_intensity
 #
 # Why this exists. Every published finding about strategic aeromedical
 # evacuation and the national support base came from one campaign, and the
@@ -25,6 +26,11 @@
 # forms at all, so the sweep rather than the baseline is where the finding
 # lives.
 #
+# --scenario high_intensity repeats the two sweeps at the casualty intensity the
+# system fails at, writing airlift_*_high_intensity.csv beside the default files;
+# the baselines of both intensities are already in the default files. Each swept
+# value is checkpointed as it completes and read back on a re-run.
+#
 # --refresh-baseline is the only way to write the tracked data/airlift/ copies.
 
 source("R/environment.R")
@@ -38,8 +44,13 @@ suppressPackageStartupMessages(library(optparse))
 
 option_list <- list(
   make_option("--arms", type = "character",
-              default = "baseline,high,reliability,interval",
-              help = "Comma-separated arms to run [default: %default]"),
+              default = NULL,
+              help = paste("Comma-separated arms to run [default: all four, or",
+                           "reliability,interval under a named --scenario]")),
+  make_option("--scenario", type = "character", default = "default",
+              help = paste("Profile for the reliability and interval sweeps; a named profile",
+                           "runs those two arms alone and suffixes every file written with",
+                           "_<scenario> [default: %default]")),
   make_option("--iterations", type = "integer", default = AIRLIFT_REPLICATIONS,
               help = "Replications per arm [default: %default]"),
   make_option("--days", type = "integer", default = AIRLIFT_DAYS,
@@ -58,6 +69,23 @@ if (opt$iterations < 1L) {
   stop("--iterations must be at least 1, found ", opt$iterations, call. = FALSE)
 }
 if (opt$days < 1L) stop("--days must be at least 1, found ", opt$days, call. = FALSE)
+
+#' Profile the reliability and interval sweeps run under
+SWEEP_SCENARIO <- if (identical(opt$scenario, "default")) "moderate_intensity" else opt$scenario
+#' Suffix every file written carries
+OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
+if (is.null(opt$arms)) {
+  opt$arms <- if (identical(opt$scenario, "default")) {
+    "baseline,high,reliability,interval"
+  } else {
+    "reliability,interval"
+  }
+}
+if (!identical(opt$scenario, "default") && any(c("baseline", "high") %in%
+                                                trimws(strsplit(opt$arms, ",")[[1]]))) {
+  stop("--arms: the baseline arms are measured by the default invocation, which holds ",
+       "both intensities; --scenario ", opt$scenario, " runs the sweeps alone", call. = FALSE)
+}
 
 #' Directory the measurement is written to
 OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
@@ -109,21 +137,42 @@ if ("high" %in% arms) {
   results$high <- transform(measure_baseline("high_intensity"),
                             arm = "high", scenario = "high_intensity")
 }
+#' Directory the sweep points are checkpointed to as each completes
+CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "airlift_sweep_checkpoints")
+
+#' Measure one swept arm, one value at a time, resuming a value already measured
+#'
+#' @param arm Arm name, written to the `arm` column.
+#' @param field The `role4.ame` field to sweep.
+#' @param values Values of the field to measure.
+#' @return The arm's per-replication responses across its values.
+#'
+#' @details A value is measured on its own and written as it completes, so an
+#'   interruption costs the value in flight rather than the sweep. Measuring one
+#'   value at a time draws the same stream as measuring them together, the
+#'   control seed being set before each.
+measure_sweep_arm <- function(arm, field, values) {
+  dir.create(CHECKPOINT_DIR, recursive = TRUE, showWarnings = FALSE)
+  rows <- lapply(values, function(v) {
+    ckpt <- file.path(CHECKPOINT_DIR, sprintf("%s_%s_%dr_%dd%s.rds", arm, format(v),
+                                              opt$iterations, opt$days, OUTPUT_SUFFIX))
+    if (file.exists(ckpt)) return(readRDS(ckpt))
+    point <- run_airlift_sweep(field, v, scenario = SWEEP_SCENARIO,
+                               n_iterations = opt$iterations, n_days = opt$days,
+                               seed = opt$seed, max_cores = opt$`max-cores`)
+    saveRDS(point, ckpt)
+    point
+  })
+  transform(do.call(rbind, rows), arm = arm, scenario = SWEEP_SCENARIO)
+}
+
 if ("reliability" %in% arms) {
-  rows <- run_airlift_sweep("failure_probability", AIRLIFT_FAILURE_PROBABILITIES,
-                            scenario = "moderate_intensity",
-                            n_iterations = opt$iterations, n_days = opt$days,
-                            seed = opt$seed, max_cores = opt$`max-cores`)
-  results$reliability <- transform(rows, arm = "reliability",
-                                   scenario = "moderate_intensity")
+  results$reliability <- measure_sweep_arm("reliability", "failure_probability",
+                                           AIRLIFT_FAILURE_PROBABILITIES)
 }
 if ("interval" %in% arms) {
-  rows <- run_airlift_sweep("schedule_interval_days", AIRLIFT_SORTIE_INTERVALS,
-                            scenario = "moderate_intensity",
-                            n_iterations = opt$iterations, n_days = opt$days,
-                            seed = opt$seed, max_cores = opt$`max-cores`)
-  results$interval <- transform(rows, arm = "interval",
-                                scenario = "moderate_intensity")
+  results$interval <- measure_sweep_arm("interval", "schedule_interval_days",
+                                        AIRLIFT_SORTIE_INTERVALS)
 }
 
 per_replication <- do.call(rbind, results)
@@ -146,9 +195,9 @@ summarise_arms <- function(rows) {
 
 summary_rows <- summarise_arms(per_replication)
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "airlift_replications.csv"),
+write.csv(per_replication, scenario_output_path(OUTPUT_DIR, "airlift_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "airlift_summary.csv"), row.names = FALSE)
+write.csv(summary_rows, scenario_output_path(OUTPUT_DIR, "airlift_summary", opt$scenario), row.names = FALSE)
 message(sprintf("Per-replication responses and summary written to %s", OUTPUT_DIR))
 
 #' Print one response across every value of one arm

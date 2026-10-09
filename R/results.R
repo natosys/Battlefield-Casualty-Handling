@@ -1420,6 +1420,7 @@ RESULTS_TABLES <- list(
   airlift_reliability = function(dd) build_airlift(dd, "reliability"),
   airlift_interval_high = function(dd) build_airlift(dd, "interval", "_high_intensity"),
   airlift_reliability_high = function(dd) build_airlift(dd, "reliability", "_high_intensity"),
+  forward_hold_high = function(dd) build_forward_hold(dd, "_high_intensity"),
   queue_clearance = build_queue_clearance,
   degraded_care = build_degraded_care,
   icu_gate = build_icu_gate,

@@ -368,6 +368,26 @@ R2E intensive care mean queue, R2B and R2E intensive care utilisation, the share
 
 The R2E intensive care queue was <!-- GEN cell:forward_hold|Off (current)|R2E ICU mean queue|full -->1.355 [0.554, 2.156]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|240 min|R2E ICU mean queue|full -->0.911 [0.674, 1.149]<!-- /GEN --> with a 240-minute window. R2B intensive care utilisation rose from <!-- GEN cell:forward_hold|Off (current)|R2B ICU utilisation|full -->1.6%<!-- /GEN --> with no forward holding to <!-- GEN cell:forward_hold|1,440 min|R2B ICU utilisation|full -->36.8%<!-- /GEN --> at a 1,440-minute window while R2E intensive care utilisation moved from <!-- GEN cell:forward_hold|Off (current)|R2E ICU utilisation|full -->87.8%<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|R2E ICU utilisation|full -->82.9%<!-- /GEN -->. Post-definitive care in an intensive care bed rose from <!-- GEN cell:forward_hold|Off (current)|Post-definitive care in ICU|full -->31.7 [30.6, 32.8]<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|Post-definitive care in ICU|full -->41.4 [39.7, 43.1]<!-- /GEN -->, and died of wounds per run was <!-- GEN cell:forward_hold|Off (current)|Died of wounds per run|full -->10.67 [9.33, 12.00]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|1,440 min|Died of wounds per run|full -->12.23 [10.59, 13.87]<!-- /GEN --> at 1,440 minutes. Holding on capacity grounds alone gave an R2E queue of <!-- GEN cell:forward_hold|Capacity only|R2E ICU mean queue|full -->0.953 [0.468, 1.437]<!-- /GEN -->, and a 240-minute window with the capacity trigger gave <!-- GEN cell:forward_hold|240 min + capacity|R2E ICU mean queue|full -->0.666 [0.546, 0.786]<!-- /GEN -->.
 
+**High-intensity profile.** The same seven arms under `high_intensity` `[high_intensity, seven forward holding arms · 360 d · 30 replications · pool totals, closing 90 d]`:
+
+<!-- GEN forward_hold_high -->
+| Forward holding rule | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
+|---|---|---|---|---|---|
+| Off (current) | 1438.305 [1423.919, 1452.690] | 12.3% | 100.0% | 0.2 [0.2, 0.3] | 277.60 [272.10, 283.10] |
+| 120 min | 1441.629 [1424.180, 1459.078] | 20.1% | 100.0% | 0.3 [0.2, 0.3] | 300.87 [293.39, 308.34] |
+| 240 min | 1462.552 [1445.361, 1479.743] | 28.9% | 100.0% | 0.2 [0.2, 0.3] | 304.67 [297.44, 311.89] |
+| 480 min | 1441.944 [1419.803, 1464.085] | 39.8% | 100.0% | 0.2 [0.2, 0.3] | 309.50 [302.08, 316.92] |
+| 1,440 min | 1421.368 [1405.829, 1436.906] | 65.2% | 100.0% | 0.3 [0.2, 0.4] | 333.40 [325.77, 341.03] |
+| Capacity only | 1431.916 [1412.631, 1451.201] | 64.4% | 100.0% | 0.3 [0.2, 0.4] | 337.57 [329.95, 345.19] |
+| 240 min + capacity | 1426.679 [1413.398, 1439.960] | 65.1% | 100.0% | 0.3 [0.2, 0.4] | 328.20 [320.71, 335.69] |
+<!-- /GEN -->
+
+![Five stacked panels against the forward holding rule at high intensity](../images/r2b_forward_hold_frontier_high_intensity.png)
+
+The panels of the figure above under the high-intensity profile.
+
+The R2E intensive care queue was <!-- GEN cell:forward_hold_high|Off (current)|R2E ICU mean queue|full -->1438.305 [1423.919, 1452.690]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|240 min|R2E ICU mean queue|full -->1462.552 [1445.361, 1479.743]<!-- /GEN --> with a 240-minute window. R2E intensive care utilisation was <!-- GEN cell:forward_hold_high|Off (current)|R2E ICU utilisation|full -->100.0%<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|1,440 min|R2E ICU utilisation|full -->100.0%<!-- /GEN --> at a 1,440-minute window, while R2B intensive care utilisation rose from <!-- GEN cell:forward_hold_high|Off (current)|R2B ICU utilisation|full -->12.3%<!-- /GEN --> to <!-- GEN cell:forward_hold_high|1,440 min|R2B ICU utilisation|full -->65.2%<!-- /GEN -->. Died of wounds per run was <!-- GEN cell:forward_hold_high|Off (current)|Died of wounds per run|full -->277.60 [272.10, 283.10]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|Capacity only|Died of wounds per run|full -->337.57 [329.95, 345.19]<!-- /GEN --> on the capacity trigger alone.
+
 ### Post-Operative Intensive Care Gate
 
 **Question.** What does the rationing rule that defers lower-priority surgery when intensive care is saturated change? `[default, gate on and off · 360 d · 30 replications · paired, closing 90 d]`

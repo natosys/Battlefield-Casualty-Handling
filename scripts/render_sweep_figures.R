@@ -174,6 +174,12 @@ p_forward <- render_forward_hold_sweep_plot(read_tracked("sweeps", "r2b_forward_
                                             n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS)
 save_figure(p_forward, "r2b_forward_hold_frontier.png", 10, 14)
 
+# RENDERS: r2b_forward_hold_frontier_high_intensity.png
+forward_high <- read_tracked("sweeps", "r2b_forward_hold_frontier_high_intensity.csv")
+p_forward_high <- render_forward_hold_sweep_plot(forward_high, baseline_arm = forward_baseline,
+                                                 n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS)
+save_figure(p_forward_high, "r2b_forward_hold_frontier_high_intensity.png", 10, 14)
+
 # RENDERS: r2b_hold_threshold_sweep.png
 p_threshold <- render_hold_threshold_sweep_plot(
   read_tracked("sweeps", "r2b_hold_threshold_sweep.csv"),

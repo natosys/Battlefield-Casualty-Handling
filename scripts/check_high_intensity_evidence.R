@@ -163,6 +163,13 @@ for (arm in names(HIGH_AIRLIFT_ARMS)) {
          length(vals), HIGH_REPLICATIONS)
 }
 
+forward_high <- read_tracked(paste0("data/sweeps/r2b_forward_hold_frontier", HIGH_SUFFIX, ".csv"))
+forward_base <- read_tracked("data/sweeps/r2b_forward_hold_frontier.csv")
+report(!is.null(forward_high) && !is.null(forward_base) &&
+         identical(forward_high$arm, forward_base$arm) &&
+         !isTRUE(all.equal(forward_high, forward_base)),
+       "forward holding frontier: the high-intensity file carries the default arms and differs")
+
 hold_sweep <- read_tracked(paste0("data/sweeps/r2b_hold_threshold_sweep", HIGH_SUFFIX, ".csv"))
 report(!is.null(hold_sweep) && nrow(hold_sweep) == 15L &&
          !anyDuplicated(hold_sweep[, c("hold_beds", "evac_threshold_min")]),

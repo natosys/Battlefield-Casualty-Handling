@@ -81,8 +81,8 @@ if (is.null(opt$arms)) {
     "reliability,interval"
   }
 }
-if (!identical(opt$scenario, "default") && any(c("baseline", "high") %in%
-                                                trimws(strsplit(opt$arms, ",")[[1]]))) {
+requested_arms <- trimws(strsplit(opt$arms, ",")[[1]])
+if (!identical(opt$scenario, "default") && any(c("baseline", "high") %in% requested_arms)) {
   stop("--arms: the baseline arms are measured by the default invocation, which holds ",
        "both intensities; --scenario ", opt$scenario, " runs the sweeps alone", call. = FALSE)
 }
@@ -197,7 +197,8 @@ summary_rows <- summarise_arms(per_replication)
 
 write.csv(per_replication, scenario_output_path(OUTPUT_DIR, "airlift_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, scenario_output_path(OUTPUT_DIR, "airlift_summary", opt$scenario), row.names = FALSE)
+write.csv(summary_rows, scenario_output_path(OUTPUT_DIR, "airlift_summary", opt$scenario),
+          row.names = FALSE)
 message(sprintf("Per-replication responses and summary written to %s", OUTPUT_DIR))
 
 #' Print one response across every value of one arm

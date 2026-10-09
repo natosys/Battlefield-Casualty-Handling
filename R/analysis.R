@@ -5517,8 +5517,8 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
                     arms$label[i], n_rep, n_days))
     ckpt <- if (is.null(checkpoint_dir)) NULL else {
       dir.create(checkpoint_dir, showWarnings = FALSE, recursive = TRUE)
-      scenario_output_path(checkpoint_dir, sprintf("forward_hold_arm_%d_%dr_%dd", i, n_rep, n_days),
-                           scenario)
+      stem <- sprintf("forward_hold_arm_%d_%dr_%dd", i, n_rep, n_days)
+      scenario_output_path(checkpoint_dir, stem, scenario)
     }
     point <- cached_hold_threshold_point(ckpt, function() {
       measure_forward_hold_arm(env_data_base, arms[i, ], n_rep, n_days, max_cores)

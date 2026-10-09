@@ -584,7 +584,7 @@ The two levers are crossed rather than swept separately because the question und
 <!-- HIGHINT scenario=high_intensity -->
 <!-- HIGHINT replications=30 -->
 <!-- HIGHINT days=360 -->
-Seven further experiments are repeated under the `high_intensity` profile at the protocol each already documents: the R2B pre-open hold window, the post-operative intensive care gate, the casualty surge stress test, the forward surgical saturation release sweep, the joint R2B holding capacity and evacuation threshold sweep, the casualty surge event size sweep and the strategic airlift collapse classification. Each is invoked as its default experiment is, with `--scenario high_intensity` added, and `--refresh-baseline` still fixes the replications, horizon and seed rather than accepting the caller's:
+Nine further experiments are repeated under the `high_intensity` profile at the protocol each already documents: the strategic airlift sortie interval and reliability sweeps, the forward holding frontier, the R2B pre-open hold window, the post-operative intensive care gate, the casualty surge stress test, the forward surgical saturation release sweep, the joint R2B holding capacity and evacuation threshold sweep, the casualty surge event size sweep and the strategic airlift collapse classification. Each is invoked as its default experiment is, with `--scenario high_intensity` added, and `--refresh-baseline` still fixes the replications, horizon and seed rather than accepting the caller's:
 
 ```
 Rscript scripts/run_hold_window.R --scenario high_intensity --refresh-baseline
@@ -594,9 +594,13 @@ Rscript scripts/run_saturation_sweep.R --scenario high_intensity --refresh-basel
 Rscript scripts/run_hold_threshold_sweep.R --scenario high_intensity --refresh-baseline
 Rscript scripts/run_casualty_surge_size_sweep.R --scenario high_intensity --refresh-baseline
 Rscript scripts/run_airlift_collapse.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_airlift_sweep.R --scenario high_intensity --refresh-baseline
+Rscript scripts/run_forward_hold_sweep.R --scenario high_intensity --refresh-baseline
 ```
 
 The profile is applied through `resolve_scenario()` before the experiment's own override, so the lever is varied around the high-intensity configuration rather than the default. Every file an experiment writes, its arm and grid-point checkpoints included, carries `_high_intensity` before its extension (`scenario_output_path()` in `R/scenario.R`), so a run under the profile cannot overwrite the default evidence set and the two sets sit side by side under one directory. The experiments with arms or grid points checkpoint each as it completes and resume from the checkpoint, named for its replications and days so that a checkpoint from another protocol is never reused; a sweep of fifteen 360-day grid points would otherwise lose every point to one interruption. The illustrative single run behind the casualty surge timeline is written for the default profile only, since the image it produces is tracked under one name. The strategic airlift sortie interval and reliability sweeps (`scripts/run_airlift_sweep.R`) are not repeated, that experiment fixing its own scenarios arm by arm, and the forward intensive care holding sweep is not repeated, its script not yet taking a scenario.
+
+The airlift sweeps under the profile run the interval and reliability arms alone, writing `airlift_replications_high_intensity.csv` and `airlift_summary_high_intensity.csv`, because the default files already hold the baseline of both intensities; each swept value is checkpointed as it completes. The forward holding frontier runs its seven arms of the default protocol under the profile.
 
 ### Forward Surgical Saturation Release Sweep
 

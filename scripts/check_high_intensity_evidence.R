@@ -10,7 +10,7 @@
 #
 # Exits 0 when every check passes, 1 otherwise.
 #
-# Why this check exists. Seven lever experiments were repeated under the
+# Why this check exists. Nine lever experiments were repeated under the
 # high_intensity profile, each writing its own `_high_intensity` files beside
 # the default set. The per-experiment protocol checks defend the default sets
 # only, so nothing would notice a high-intensity run that carried the wrong
@@ -89,6 +89,14 @@ HIGH_EXPERIMENTS <- list(
        arm = "probability", arms = c(0, 0.05, 0.10, 0.15, 0.20, 0.25))
 )
 
+#' The airlift sweep arms: arm name, swept field values the high-intensity file carries
+#'
+#' @details Both arms are keyed on `value`, the setting swept, and filtered by `arm`.
+HIGH_AIRLIFT_ARMS <- list(
+  reliability = c(0, 0.05, 0.10, 0.15, 0.25, 0.40),
+  interval = c(3, 5, 7, 10, 14)
+)
+
 #' Read one marker the methods paper states for the high-intensity runs
 #'
 #' @param name Marker name, as it appears after "HIGHINT ".
@@ -144,6 +152,24 @@ for (e in HIGH_EXPERIMENTS) {
          e$label, HIGH_REPLICATIONS)
 }
 
+airlift_high <- read_tracked(paste0("data/airlift/airlift_replications", HIGH_SUFFIX, ".csv"))
+for (arm in names(HIGH_AIRLIFT_ARMS)) {
+  rows <- if (is.null(airlift_high)) NULL else airlift_high[airlift_high$arm == arm, ]
+  vals <- HIGH_AIRLIFT_ARMS[[arm]]
+  ok <- !is.null(rows) && all(rows$scenario == "high_intensity") &&
+    all(vapply(vals, function(v) sum(abs(rows$value - v) < 1e-9) == HIGH_REPLICATIONS,
+               logical(1))) && nrow(rows) == length(vals) * HIGH_REPLICATIONS
+  report(ok, "airlift %s sweep: %d values of %d high-intensity replications each", arm,
+         length(vals), HIGH_REPLICATIONS)
+}
+
+forward_high <- read_tracked(paste0("data/sweeps/r2b_forward_hold_frontier", HIGH_SUFFIX, ".csv"))
+forward_base <- read_tracked("data/sweeps/r2b_forward_hold_frontier.csv")
+report(!is.null(forward_high) && !is.null(forward_base) &&
+         identical(forward_high$arm, forward_base$arm) &&
+         !isTRUE(all.equal(forward_high, forward_base)),
+       "forward holding frontier: the high-intensity file carries the default arms and differs")
+
 hold_sweep <- read_tracked(paste0("data/sweeps/r2b_hold_threshold_sweep", HIGH_SUFFIX, ".csv"))
 report(!is.null(hold_sweep) && nrow(hold_sweep) == 15L &&
          !anyDuplicated(hold_sweep[, c("hold_beds", "evac_threshold_min")]),
@@ -179,6 +205,12 @@ stated <- cs_sum$mean[is_injected(cs_sum) & cs_sum$response == "total_casualties
 report(length(stated) == 1L &&
          abs(stated - mean(cs_rep$total_casualties[is_injected(cs_rep)])) < 1e-9,
        "casualty surge: the summary mean of total casualties is the replications' mean")
+
+airlift_base <- read_tracked("data/airlift/airlift_replications.csv")
+report(!is.null(airlift_base) && !is.null(airlift_high) &&
+         !any(airlift_base$arm %in% c("reliability", "interval") &
+                airlift_base$scenario == "high_intensity"),
+       "airlift: the default file holds no high-intensity sweep rows, the sweeps sitting beside it")
 
 # ── 4. The default sets were not overwritten ─────────────────────────────────
 

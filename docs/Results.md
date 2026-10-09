@@ -631,6 +631,30 @@ Wait for a sortie, casualties still waiting at the horizon, Role 4 peak beds and
 
 The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|mean -->0.33<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability|Mean wait (days)|10%|mean -->1.46<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability|Mean wait (days)|25%|mean -->7.78<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability|Mean wait (days)|40%|mean -->15.81<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability|Sorties flown|0%|full -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability|Sorties flown|40%|full -->31.43<!-- /GEN -->.
 
+**High-intensity profile.** The same two sweeps under `high_intensity` `[high_intensity, interval 3 to 14 days and cancellation 0 to 40% · 360 d · 30 replications · campaign means]`:
+
+<!-- GEN airlift_interval_high -->
+| Response by interval between sorties | 3 days | 5 days | 7 days (shipped) | 10 days | 14 days |
+|---|---|---|---|---|---|
+| Sorties flown | 119.00 | 71.00 | 51.00 | 35.00 | 25.00 |
+| Mean wait (days) | 14.27 [13.69, 14.85] | 16.76 [16.29, 17.22] | 18.57 [18.04, 19.10] | 39.03 [38.32, 39.75] | 59.32 [58.47, 60.17] |
+| Share of R2E holding beds held by the evacuation wait | 1% [0%, 1%] | 31% [29%, 32%] | 38% [37%, 39%] | 50% [49%, 51%] | 58% [57%, 59%] |
+| Ventilated pre-flight intensive care hold (hours) | 25.46 [25.07, 25.85] | 62.08 [60.21, 63.95] | 269.45 [257.03, 281.87] | 559.98 [540.34, 579.63] | 850.45 [823.13, 877.76] |
+<!-- /GEN -->
+
+At the shipped seven-day interval the mean wait was <!-- GEN cell:airlift_interval_high|Mean wait (days)|7 days (shipped)|mean -->18.57<!-- /GEN --> days. Shortening the interval to five days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|5 days|mean -->16.76<!-- /GEN --> days and to three days <!-- GEN cell:airlift_interval_high|Mean wait (days)|3 days|mean -->14.27<!-- /GEN --> days with <!-- GEN cell:airlift_interval_high|Sorties flown|3 days|mean -->119.00<!-- /GEN --> sorties flown, while lengthening it to ten and fourteen days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|10 days|mean -->39.03<!-- /GEN --> and <!-- GEN cell:airlift_interval_high|Mean wait (days)|14 days|mean -->59.32<!-- /GEN --> days.
+
+<!-- GEN airlift_reliability_high -->
+| Response by configured cancellation probability | 0% | 5% | 10% | 15% | 25% | 40% |
+|---|---|---|---|---|---|---|
+| Sorties flown | 51.00 | 48.53 | 45.37 | 43.07 | 38.07 | 30.43 |
+| Realised cancellation rate | 0% | 5% | 11% | 16% | 25% | 40% |
+| Mean wait (days) | 18.57 [18.04, 19.10] | 21.24 [20.08, 22.40] | 25.58 [24.13, 27.02] | 28.90 [27.20, 30.59] | 35.78 [33.21, 38.36] | 48.09 [45.11, 51.06] |
+| Share of R2E holding beds held by the evacuation wait | 38% [37%, 39%] | 40% [39%, 41%] | 42% [41%, 43%] | 44% [43%, 45%] | 48% [46%, 49%] | 53% [52%, 55%] |
+<!-- /GEN -->
+
+The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|0%|mean -->18.57<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability_high|Mean wait (days)|10%|mean -->25.58<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability_high|Mean wait (days)|25%|mean -->35.78<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability_high|Mean wait (days)|40%|mean -->48.09<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability_high|Sorties flown|0%|mean -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability_high|Sorties flown|40%|mean -->30.43<!-- /GEN -->.
+
 **Collapse classification.** A campaign was classified as collapsed where its R2E holding queue over the closing 90 days averaged twenty casualties or more. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
 
 <!-- GEN airlift_collapse -->

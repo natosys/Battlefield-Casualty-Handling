@@ -84,7 +84,9 @@ HIGH_EXPERIMENTS <- list(
   list(label = "saturation release", stem = "data/policy/saturation_sweep_replications",
        arm = "saturation_threshold", arms = c(0, 1, 2, 3, 5, 8, 12, 16, 24)),
   list(label = "surge event size", stem = "data/casualty_surge/casualty_surge_size_replications",
-       arm = "size", arms = c(0, 10, 20, 40, 60, 90, 120, 180))
+       arm = "size", arms = c(0, 10, 20, 40, 60, 90, 120, 180)),
+  list(label = "airlift collapse", stem = "data/airlift/airlift_collapse_replications",
+       arm = "probability", arms = c(0, 0.05, 0.10, 0.15, 0.20, 0.25))
 )
 
 #' Read one marker the methods paper states for the high-intensity runs

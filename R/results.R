@@ -800,9 +800,10 @@ build_icu_gate <- function(data_dir, suffix = "") {
 #' Strategic airlift collapse classification table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence file, `""` for the shipped configuration.
 #' @return The table lines.
-build_airlift_collapse <- function(data_dir) {
-  d <- res_read("airlift/airlift_collapse.csv", data_dir)
+build_airlift_collapse <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("airlift/airlift_collapse", suffix), data_dir)
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
     c(sprintf("%.0f%%", 100 * x$probability), sprintf("%d of %d", x$n_collapsed, x$n_reps),
@@ -1394,6 +1395,7 @@ RESULTS_TABLES <- list(
   saturation_high = function(dd) build_saturation(dd, "_high_intensity"),
   casualty_surge_high = function(dd) build_casualty_surge(dd, "_high_intensity"),
   casualty_surge_size_high = function(dd) build_casualty_surge_size(dd, "_high_intensity"),
+  airlift_collapse_high = function(dd) build_airlift_collapse(dd, "_high_intensity"),
   icu_gate_high = function(dd) build_icu_gate(dd, "_high_intensity"),
   icu_gate_pathways_high = function(dd) build_icu_gate_pathways(dd, "_high_intensity"),
   transport = function(dd) build_transport(dd, FALSE),

@@ -1,0 +1,2 @@
+"arm","window","capacity_trigger","mean_r2e_icu_q","ci_lower_r2e_icu_q","ci_upper_r2e_icu_q","mean_r2b_icu_util","ci_lower_r2b_icu_util","ci_upper_r2b_icu_util","mean_r2e_icu_util","ci_lower_r2e_icu_util","ci_upper_r2e_icu_util","mean_pd_icu_share","ci_lower_pd_icu_share","ci_upper_pd_icu_share","mean_dow","ci_lower_dow","ci_upper_dow"
+"Off (current)",0,0,1438.30450786919,1423.91880534025,1452.69021039814,0.123139490022104,0.108806152385988,0.13747282765822,1,1,1,0.00230692755385562,0.00180544478148371,0.00280841032622752,277.6,272.102794111029,283.097205888971

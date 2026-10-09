@@ -374,6 +374,7 @@ seconds.
 | `check_env_data_summary.R` | fast | 6 s | README environment summary regeneration |
 | `check_figure_provenance.R` | fast | 20 s | every figure of the results paper has a render-only producer that runs from tracked data alone |
 | `check_forward_hold_switch.R` | fast | 60 s | disabled forward holding is the model as it stood |
+| `check_high_intensity_evidence.R` | fast | 5 s | the high-intensity replications of the lever experiments are the documented design and sit beside the default sets |
 | `check_hold_episode_reconstruction.R` | fast | 43 s | an R2B holding episode is bounded by the attribute its own exit route sets |
 | `check_hold_window_protocol.R` | fast | 7 s | the R2B pre-open hold window's parameters, its responses and its published table agree |
 | `check_holding_occupancy_split.R` | fast | 45 s | R2E holding occupancy splits into recovery and evacuation wait, and the two account for the pool within a stated bound |

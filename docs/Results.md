@@ -850,6 +850,23 @@ The died-of-wounds rate of event and ordinary casualties against the number of c
 
 Peak queues are the largest four-hour mean queue of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.32% [0.25%, 0.40%]<!-- /GEN --> and the peak R2E intensive care queue <!-- GEN cell:casualty_surge_size|10|Peak R2E intensive care queue|full -->33.4 ± 12.8<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E intensive care queue|full -->14.4 ± 3.1<!-- /GEN --> with no events injected. At 20 casualties per event the intensive care queue peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E intensive care queue|full -->143.6 ± 25.4<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E intensive care queue|full -->654.3 ± 49.3<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->44.1 ± 11.9<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->142.4 ± 14.8<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->416.9 ± 63.0<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2556.0 ± 178.4<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->0.44% [0.41%, 0.48%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->0.48% [0.46%, 0.51%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.20% [0.18%, 0.22%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->0.25% [0.22%, 0.27%]<!-- /GEN --> at 180.
 
+**High-intensity profile.** The same sweep under `high_intensity` `[high_intensity, every event fixed at one size · 0.2 events per day · 360 d · 30 replications per size · independent seeds]`:
+
+<!-- GEN casualty_surge_size_high -->
+| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E intensive care queue | Peak R2E holding queue |
+|---|---|---|---|---|---|---|---|
+| None | 0.0 | not applicable | 2.24% [2.19%, 2.29%] | 152.3 ± 12.5 | 619.1 ± 57.8 | 1665.7 ± 15.0 | 641.4 ± 29.4 |
+| 10 | 72.5 | 2.47% [2.26%, 2.68%] | 2.29% [2.24%, 2.34%] | 156.7 ± 14.8 | 791.6 ± 46.0 | 1674.8 ± 16.0 | 677.7 ± 22.4 |
+| 20 | 72.5 | 2.70% [2.55%, 2.86%] | 2.28% [2.23%, 2.32%] | 180.3 ± 15.1 | 1063.1 ± 70.8 | 1697.5 ± 18.1 | 736.1 ± 27.3 |
+| 40 | 72.5 | 2.72% [2.62%, 2.83%] | 2.27% [2.22%, 2.32%] | 191.5 ± 17.5 | 1511.1 ± 75.6 | 1700.8 ± 16.8 | 831.9 ± 32.8 |
+| 60 | 72.5 | 2.87% [2.78%, 2.96%] | 2.30% [2.25%, 2.35%] | 201.1 ± 18.5 | 1939.3 ± 86.1 | 1735.1 ± 19.3 | 884.6 ± 32.4 |
+| 90 | 72.5 | 2.98% [2.91%, 3.06%] | 2.37% [2.32%, 2.42%] | 244.5 ± 21.1 | 2667.5 ± 96.6 | 1745.6 ± 19.0 | 1005.1 ± 40.0 |
+| 120 | 72.5 | 3.04% [2.97%, 3.10%] | 2.34% [2.29%, 2.39%] | 267.6 ± 21.6 | 3386.0 ± 127.4 | 1746.2 ± 16.6 | 1138.6 ± 32.8 |
+| 180 | 72.5 | 2.96% [2.91%, 3.02%] | 2.43% [2.38%, 2.48%] | 334.7 ± 32.0 | 4802.4 ± 180.2 | 1751.3 ± 16.7 | 1320.2 ± 49.8 |
+<!-- /GEN -->
+
+At 20 casualties per event the peak R2E intensive care queue was <!-- GEN cell:casualty_surge_size_high|20|Peak R2E intensive care queue|full -->1697.5 ± 18.1<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size_high|None|Peak R2E intensive care queue|full -->1665.7 ± 15.0<!-- /GEN --> with no events injected.
+
 ---
 
 ## Resolution of Paired Differences

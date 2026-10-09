@@ -578,12 +578,13 @@ build_casualty_surge <- function(data_dir, suffix = "") {
 #' Casualty surge event size sweep table
 #'
 #' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence file, `""` for the shipped configuration.
 #' @return The table lines.
 #'
 #' @details One row per swept event size, the no-event arm first. Peak queues
 #'   are the largest four-hour mean queue of each pool over the campaign.
-build_casualty_surge_size <- function(data_dir) {
-  d <- res_read("casualty_surge/casualty_surge_size_summary.csv", data_dir)
+build_casualty_surge_size <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("casualty_surge/casualty_surge_size_summary", suffix), data_dir)
   d <- d[order(d$size), ]
   #' Pooled died-of-wounds rate cell with its exact interval
   #'
@@ -1392,6 +1393,7 @@ RESULTS_TABLES <- list(
   },
   saturation_high = function(dd) build_saturation(dd, "_high_intensity"),
   casualty_surge_high = function(dd) build_casualty_surge(dd, "_high_intensity"),
+  casualty_surge_size_high = function(dd) build_casualty_surge_size(dd, "_high_intensity"),
   icu_gate_high = function(dd) build_icu_gate(dd, "_high_intensity"),
   icu_gate_pathways_high = function(dd) build_icu_gate_pathways(dd, "_high_intensity"),
   transport = function(dd) build_transport(dd, FALSE),

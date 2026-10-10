@@ -675,6 +675,10 @@ At the shipped seven-day interval the mean wait was <!-- GEN cell:airlift_interv
 
 The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|0%|mean -->18.57<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability_high|Mean wait (days)|10%|mean -->25.58<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability_high|Mean wait (days)|25%|mean -->35.78<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability_high|Mean wait (days)|40%|mean -->48.09<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability_high|Sorties flown|0%|mean -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability_high|Sorties flown|40%|mean -->30.43<!-- /GEN -->.
 
+![Eight panels of strategic evacuation responses against sortie cancellation probability and the interval between sorties at high intensity](../images/airlift_sweeps_high_intensity.png)
+
+The panels of the figure above under the high-intensity profile, with the shipped value of each sweep marked by a dashed line.
+
 **Collapse classification.** A campaign was classified as collapsed where its R2E holding queue over the closing 90 days averaged twenty casualties or more. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
 
 <!-- GEN airlift_collapse -->

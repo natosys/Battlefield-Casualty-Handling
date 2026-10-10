@@ -229,6 +229,11 @@ airlift_shipped <- list(
 p_airlift <- plot_airlift_sweeps(read_tracked("airlift", "airlift_summary.csv"), airlift_shipped)
 save_figure(p_airlift, "airlift_sweeps.png", 11, 12)
 
+# RENDERS: airlift_sweeps_high_intensity.png
+p_airlift_high <- plot_airlift_sweeps(read_tracked("airlift", "airlift_summary_high_intensity.csv"),
+                                      airlift_shipped, profile = "(High Intensity)")
+save_figure(p_airlift_high, "airlift_sweeps_high_intensity.png", 11, 12)
+
 # RENDERS: airlift_collapse.png
 save_figure(plot_airlift_collapse(read_tracked("airlift", "airlift_collapse.csv")),
             "airlift_collapse.png", 9, 6)

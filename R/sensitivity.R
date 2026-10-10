@@ -1554,6 +1554,11 @@ rank_response <- function(obj, kpi, Y) {
 #'   design, and scripts/check_screen_order.R asserts them.
 evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
                                    crn_seed, progress_dir) {
+  workers <- suppressWarnings(as.integer(Sys.getenv("BCH_POINT_WORKERS", "1")))
+  if (!is.na(workers) && workers > 1L) {
+    return(evaluate_morris_design_parallel(sa, cache_file, n_rep, n_days, crn_seed,
+                                           progress_dir, workers))
+  }
   t(vapply(seq_len(nrow(sa$X)), function(i) {
     # A production screen is r * (p + 1) design points in one long-lived
     # process: at r = 20 over the current parameter set that is 1,320 points
@@ -1597,6 +1602,55 @@ evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
     gc(full = TRUE)
     kpis
   }, numeric(nrow(morris_kpis))))
+}
+
+#' Evaluate the uncached Morris design points several at a time
+#'
+#' @param sa The Morris design object.
+#' @param cache_file Design point cache path, or NULL.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param crn_seed Optional common random number seed, as for `eval_params()`.
+#' @param progress_dir Optional directory receiving a marker per finished point.
+#' @param workers Number of design points evaluated concurrently.
+#' @return A matrix with one row per design point and one column per response.
+#' @details Selected by the `BCH_POINT_WORKERS` environment variable. Each point
+#'   runs its replications serially inside one forked worker, so the cores stay
+#'   busy when one replication in a point runs far longer than the rest, which
+#'   leaves most cores idle under replication-level parallelism. A worker seeds
+#'   its stream from the point index, so a point's responses do not depend on
+#'   which points ran beside it or on the order they finished, and workers
+#'   append their own row to the cache as they finish.
+evaluate_morris_design_parallel <- function(sa, cache_file, n_rep, n_days, crn_seed,
+                                            progress_dir, workers) {
+  n_points <- nrow(sa$X)
+  Y <- matrix(NA_real_, n_points, nrow(morris_kpis), dimnames = list(NULL, morris_kpis$name))
+  todo <- integer(0)
+  for (i in seq_len(n_points)) {
+    cached <- if (!is.null(cache_file) && file.exists(cache_file)) {
+      cache_lookup(cache_file, i, morris_kpis$name)
+    }
+    if (is.null(cached)) todo <- c(todo, i) else Y[i, ] <- cached
+  }
+  message(sprintf("  %d of %d points cached; evaluating %d with %d workers",
+                  n_points - length(todo), n_points, length(todo), workers))
+  res <- parallel::mclapply(todo, function(i) {
+    set.seed(1000003L + i)
+    message(sprintf("  Point %d / %d", i, n_points))
+    kpis <- tryCatch(
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = 1L, crn_seed = crn_seed),
+      error = function(e) {
+        warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
+        setNames(rep(NA_real_, nrow(morris_kpis)), morris_kpis$name)
+      }
+    )
+    if (!is.null(cache_file) && !all(is.na(kpis))) cache_append(cache_file, i, kpis)
+    if (!is.null(progress_dir)) file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    kpis
+  }, mc.cores = workers, mc.preschedule = FALSE)
+  for (j in seq_along(todo)) {
+    if (is.numeric(res[[j]]) && length(res[[j]]) == ncol(Y)) Y[todo[j], ] <- res[[j]]
+  }
+  Y
 }
 
 #' Rank every response, writing its per-response ranking and plot

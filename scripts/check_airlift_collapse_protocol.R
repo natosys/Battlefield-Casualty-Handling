@@ -281,6 +281,10 @@ if (!file.exists(SUMMARY_PATH)) {
          "every arm carries %d replications", AIRLIFT_COLLAPSE_REPLICATIONS)
 
   paper <- readLines(PAPER_PATH, warn = FALSE)
+  # The default table only: the high-intensity table that follows it is defended
+  # by scripts/check_high_intensity_evidence.R against its own tracked files.
+  high_start <- grep("^\\*\\*High-intensity profile\\.\\*\\* The same classification", paper)
+  if (length(high_start) == 1L) paper <- paper[seq_len(high_start - 1L)]
   pattern <- "^\\| ([0-9]+)% ?[^|]*\\| ([0-9]+) of ([0-9]+) \\|"
   rows <- paper[grepl(pattern, paper)]
   report(length(rows) == nrow(tracked),

@@ -102,3 +102,30 @@ resolve_scenario <- function(json_data, scenario = "default") {
 
   json_data
 }
+
+#' Filename suffix that keeps a scenario's evidence beside the default's
+#'
+#' @param scenario Name of the scenario profile a run is made under, "default"
+#'   or NULL for the shipped configuration.
+#' @return The empty string for the shipped configuration, otherwise the
+#'   scenario name preceded by an underscore (`"_high_intensity"`).
+#'
+#' @details Every experiment script appends this to the stem of each file it
+#'   writes, checkpoints included, so a run under a named profile can never
+#'   overwrite the tracked default evidence set, and the same convention
+#'   `scripts/run_transport_sweep.R` established applies to all of them.
+scenario_output_suffix <- function(scenario = "default") {
+  if (is.null(scenario) || identical(scenario, "default")) return("")
+  paste0("_", scenario)
+}
+
+#' Path of one evidence file, carrying the scenario's suffix
+#'
+#' @param dir Directory the file is written to.
+#' @param stem File name without the scenario suffix or the extension.
+#' @param scenario Scenario profile the run was made under.
+#' @param ext Extension including the dot.
+#' @return The path `dir/<stem><suffix><ext>`.
+scenario_output_path <- function(dir, stem, scenario = "default", ext = ".csv") {
+  file.path(dir, paste0(stem, scenario_output_suffix(scenario), ext))
+}

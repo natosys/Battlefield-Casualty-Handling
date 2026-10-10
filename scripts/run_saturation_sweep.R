@@ -89,6 +89,9 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Suffix every file of this run carries, so a named scenario is kept beside the default
+OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
+
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
 #' The evacuation policy every arm runs under, in days
@@ -132,7 +135,8 @@ measure_arm <- function(threshold) {
 #' @param threshold Saturation threshold the arm ran at.
 #' @return The file path for that arm.
 arm_path <- function(threshold) {
-  file.path(OUTPUT_DIR, sprintf("saturation_sweep_arm_%dq.csv", threshold))
+  file.path(OUTPUT_DIR,
+            sprintf("saturation_sweep_arm_%dq%s.csv", threshold, OUTPUT_SUFFIX))
 }
 
 #' Measure one arm, or read it back where it has already been measured
@@ -212,12 +216,14 @@ if (BASELINE_THRESHOLD %in% thresholds && length(thresholds) > 1) {
 }
 
 write.csv(per_replication,
-          file.path(OUTPUT_DIR, "saturation_sweep_replications.csv"),
+          scenario_output_path(OUTPUT_DIR, "saturation_sweep_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "saturation_sweep.csv"),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "saturation_sweep", opt$scenario),
           row.names = FALSE)
 if (!is.null(paired)) {
-  write.csv(paired, file.path(OUTPUT_DIR, "saturation_sweep_paired.csv"),
+  write.csv(paired,
+            scenario_output_path(OUTPUT_DIR, "saturation_sweep_paired", opt$scenario),
             row.names = FALSE)
 }
 message(sprintf("Saturation sweep responses, summary and paired differences written to %s",

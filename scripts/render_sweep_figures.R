@@ -174,6 +174,12 @@ p_forward <- render_forward_hold_sweep_plot(read_tracked("sweeps", "r2b_forward_
                                             n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS)
 save_figure(p_forward, "r2b_forward_hold_frontier.png", 10, 14)
 
+# RENDERS: r2b_forward_hold_frontier_high_intensity.png
+forward_high <- read_tracked("sweeps", "r2b_forward_hold_frontier_high_intensity.csv")
+p_forward_high <- render_forward_hold_sweep_plot(forward_high, baseline_arm = forward_baseline,
+                                                 n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS)
+save_figure(p_forward_high, "r2b_forward_hold_frontier_high_intensity.png", 10, 14)
+
 # RENDERS: r2b_hold_threshold_sweep.png
 p_threshold <- render_hold_threshold_sweep_plot(
   read_tracked("sweeps", "r2b_hold_threshold_sweep.csv"),
@@ -222,6 +228,11 @@ airlift_shipped <- list(
 # RENDERS: airlift_sweeps.png
 p_airlift <- plot_airlift_sweeps(read_tracked("airlift", "airlift_summary.csv"), airlift_shipped)
 save_figure(p_airlift, "airlift_sweeps.png", 11, 12)
+
+# RENDERS: airlift_sweeps_high_intensity.png
+p_airlift_high <- plot_airlift_sweeps(read_tracked("airlift", "airlift_summary_high_intensity.csv"),
+                                      airlift_shipped, profile = "(High Intensity)")
+save_figure(p_airlift_high, "airlift_sweeps_high_intensity.png", 11, 12)
 
 # RENDERS: airlift_collapse.png
 save_figure(plot_airlift_collapse(read_tracked("airlift", "airlift_collapse.csv")),

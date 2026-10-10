@@ -84,6 +84,10 @@ dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
+#' Directory each arm's checkpoint is written to and resumed from
+CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "airlift_collapse_checkpoints")
+dir.create(CHECKPOINT_DIR, recursive = TRUE, showWarnings = FALSE)
+
 #' Measure one cancellation probability and return its per-replication response
 #'
 #' @param probability Sortie cancellation probability to run at.
@@ -117,7 +121,29 @@ measure_arm <- function(probability) {
   list(response = response, series = subject)
 }
 
-arms <- lapply(probabilities, measure_arm)
+#' Measure one cancellation probability, or read it back where already measured
+#'
+#' @param probability Sortie cancellation probability to run at.
+#' @return The arm's responses and daily series, as `measure_arm()` returns them.
+#'
+#' @details Each arm is written as it completes, named for its probability,
+#'   replications, days and scenario so that a checkpoint from another protocol
+#'   is never reused. The experiment is six 360-day arms of 30 replications,
+#'   long enough that an interruption should cost the arm in flight and no more.
+measure_or_resume <- function(probability) {
+  stem <- sprintf("airlift_collapse_arm_%s_%dr_%dd", format(probability), opt$iterations,
+                  opt$days)
+  path <- scenario_output_path(CHECKPOINT_DIR, stem, opt$scenario, ".rds")
+  if (file.exists(path)) {
+    message(sprintf("Cancellation probability %s: resumed from %s", format(probability), path))
+    return(readRDS(path))
+  }
+  arm <- measure_arm(probability)
+  saveRDS(arm, path)
+  arm
+}
+
+arms <- lapply(probabilities, measure_or_resume)
 per_replication <- do.call(rbind, lapply(arms, `[[`, "response"))
 daily_series <- do.call(rbind, lapply(arms, `[[`, "series"))
 
@@ -126,10 +152,14 @@ summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
   cbind(data.frame(probability = probability), summarise_collapse(arm))
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "airlift_collapse_replications.csv"),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "airlift_collapse_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "airlift_collapse.csv"), row.names = FALSE)
-series_path <- file.path(OUTPUT_DIR, "airlift_collapse_series.csv.gz")
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "airlift_collapse", opt$scenario),
+          row.names = FALSE)
+series_path <-
+  scenario_output_path(OUTPUT_DIR, "airlift_collapse_series", opt$scenario, ext = ".csv.gz")
 write.csv(daily_series, gzfile(series_path), row.names = FALSE)
 message(sprintf("Collapse responses, summary and daily series written to %s", OUTPUT_DIR))
 

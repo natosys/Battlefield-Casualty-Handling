@@ -64,6 +64,9 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 }
 dir.create(file.path(OUTPUT_DIR, "size_checkpoints"), recursive = TRUE, showWarnings = FALSE)
 
+#' Suffix every file of this run carries, so a named scenario is kept beside the default
+OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
+
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
 #' Measure one size, resuming its checkpoint when present
@@ -71,7 +74,8 @@ json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 #' @param size Casualties per event; 0 is the no-event arm.
 #' @return The size's per-replication responses.
 measure_size <- function(size) {
-  checkpoint <- file.path(OUTPUT_DIR, "size_checkpoints", sprintf("size_%03d.csv", size))
+  checkpoint <- file.path(OUTPUT_DIR, "size_checkpoints",
+                          sprintf("size_%03d%s.csv", size, OUTPUT_SUFFIX))
   if (file.exists(checkpoint)) {
     message(sprintf("Size %d: resuming %s", size, checkpoint))
     return(read.csv(checkpoint))
@@ -92,8 +96,10 @@ measure_size <- function(size) {
 per_replication <- do.call(rbind, lapply(c(0L, CASUALTY_SURGE_SIZES), measure_size))
 summary_rows <- summarise_casualty_surge_size(per_replication)
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "casualty_surge_size_replications.csv"),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_size_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "casualty_surge_size_summary.csv"),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "casualty_surge_size_summary", opt$scenario),
           row.names = FALSE)
 message(sprintf("Size sweep written to %s", OUTPUT_DIR))

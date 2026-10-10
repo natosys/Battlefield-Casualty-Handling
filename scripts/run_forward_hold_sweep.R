@@ -8,6 +8,7 @@
 #   Rscript scripts/run_forward_hold_sweep.R --refresh-baseline  # write the tracked data/sweeps/
 #   Rscript scripts/run_forward_hold_sweep.R                     # default: the seven arms, 30 x 360 d
 #   Rscript scripts/run_forward_hold_sweep.R --iterations 30 --days 360
+#   Rscript scripts/run_forward_hold_sweep.R --refresh-baseline --scenario high_intensity
 #   Rscript scripts/run_forward_hold_sweep.R --quick             # smoke test (2 reps, 3 days, 3 arms)
 #
 # Each arm sets one forward holding rule at R2B (`r2b.post_op_icu`): a stability
@@ -23,6 +24,11 @@
 # r2b_forward_hold_frontier.csv and leaves the transport sweep's files in the
 # same directory untouched.
 #
+# --scenario applies a profile from env_data.json before the arms and appends
+# _<scenario> to every file written (scenario_output_path(), R/scenario.R), so a
+# high-intensity run cannot overwrite the default set. Each arm is checkpointed
+# under forward_hold_checkpoints/ as it completes and read back on a re-run.
+#
 # RStudio Console (interactive):
 #   source("R/environment.R"); source("R/trajectories.R"); source("R/replication.R")
 #   source("R/analysis.R"); source("R/scenario_runner.R")
@@ -31,6 +37,7 @@
 source("R/environment.R")
 source("R/trajectories.R")
 source("R/replication.R")
+source("R/scenario.R")
 source("R/analysis.R")
 source("R/scenario_runner.R")
 
@@ -45,6 +52,9 @@ option_list <- list(
               help = "Random seed [default: %default]"),
   make_option("--quick",      action = "store_true", default = FALSE,
               help = "Smoke test: 2 iterations, 3 days, 3 arms"),
+  make_option("--scenario",   type = "character", default = "default",
+              help = paste("Scenario profile to run under; a named profile suffixes every",
+                           "written file with _<scenario> [default: %default]")),
   make_option("--path",       type = "character", default = "env_data.json",
               help = "Path to env_data.json [default: %default]"),
   make_option("--output-dir", type = "character", default = "outputs",
@@ -117,6 +127,8 @@ env_data <<- load_elms(opt$path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
+checkpoint_dir <- file.path(output_dir, "forward_hold_checkpoints")
+
 set.seed(opt$seed)
 sweep <- plot_r2b_forward_hold_frontier(
   arms        = arms,
@@ -124,7 +136,9 @@ sweep <- plot_r2b_forward_hold_frontier(
   n_rep       = opt$iterations,
   path        = opt$path,
   output_dir  = output_dir,
-  images_dir  = images_dir
+  images_dir  = images_dir,
+  scenario    = opt$scenario,
+  checkpoint_dir = checkpoint_dir
 )
 
 message("\nForward holding sweep complete.")

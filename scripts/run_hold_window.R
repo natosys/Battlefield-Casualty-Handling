@@ -131,11 +131,15 @@ paired <- do.call(rbind, lapply(HOLD_WINDOW_RESPONSES, function(response) {
   row
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "hold_window_replications.csv"),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "hold_window_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "hold_window_summary.csv"),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "hold_window_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired, file.path(OUTPUT_DIR, "hold_window_paired.csv"), row.names = FALSE)
+write.csv(paired,
+          scenario_output_path(OUTPUT_DIR, "hold_window_paired", opt$scenario),
+          row.names = FALSE)
 message(sprintf("Hold window responses, summary and paired differences written to %s",
                 OUTPUT_DIR))
 

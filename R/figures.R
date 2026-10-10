@@ -202,11 +202,13 @@ AIRLIFT_PANELS <- data.frame(
 #' @param summary_df Tracked `data/airlift/airlift_summary.csv`.
 #' @param shipped Named list with `failure_probability` and `interval_days`,
 #'   the shipped values marked on each sweep.
+#' @param profile Name of the casualty intensity the summary was measured under,
+#'   shown in the title; empty for the shipped configuration.
 #' @return ggplot object, one column per sweep and one row per response.
 #'
 #' @details The two sweeps share the responses but not the axis, so each is
 #'   drawn in its own column with a free horizontal scale.
-plot_airlift_sweeps <- function(summary_df, shipped) {
+plot_airlift_sweeps <- function(summary_df, shipped, profile = "") {
   sweeps <- data.frame(
     arm    = c("reliability", "interval"),
     column = c("Sortie cancellation probability", "Days between sorties"),
@@ -228,7 +230,7 @@ plot_airlift_sweeps <- function(summary_df, shipped) {
                linetype = "dashed", linewidth = 0.6) +
     facet_grid(panel ~ column, scales = "free", switch = "y",
                labeller = labeller(panel = label_wrap_gen(22))) +
-    labs(title = "Strategic Airlift: Sortie Reliability and Interval",
+    labs(title = trimws(paste("Strategic Airlift: Sortie Reliability and Interval", profile)),
          subtitle = sprintf(paste("%d replications per point over 360 days; bands are 95%%",
                                   "intervals; dashed line marks the shipped value"),
                             unique(plot_df$n_reps)),

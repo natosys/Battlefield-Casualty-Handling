@@ -8,6 +8,8 @@
 #   Rscript scripts/run_policy_sweep.R --refresh-baseline
 #   Rscript scripts/run_policy_sweep.R --iterations 4 --days 90 --window 30
 #   Rscript scripts/run_policy_sweep.R --policies 21,30
+#   Rscript scripts/run_policy_sweep.R --scenario high_intensity \
+#     --policies 15,21,30,45,60 --hold-beds 30,45,60,90 --refresh-baseline
 #
 # Why this exists. The shipped evacuation policy of 21 days rests on a single
 # comparison against 30, run to test a mechanism rather than to find a value.
@@ -23,6 +25,12 @@
 #
 # Each arm is checkpointed as it completes and resumed rather than re-run, so an
 # interruption costs the arm in flight rather than all 150 replication-years.
+#
+# --scenario writes every file, checkpoints included, with `_<scenario>`
+# appended to its stem (scenario_output_suffix() in R/scenario.R), so a run
+# under a named profile cannot overwrite the default evidence set. Where both
+# axes are swept, each cell is paired against the shipped policy at the shipped
+# establishment rather than on the policy alone.
 #
 # --refresh-baseline is the only way to write the tracked data/policy/ copy.
 
@@ -145,11 +153,13 @@ measure_arm <- function(policy_days, hold_beds = NA_integer_) {
 #' @param hold_beds Establishment the arm ran at, or NA for the shipped one.
 #' @return The file path for that arm.
 arm_path <- function(policy_days, hold_beds = NA_integer_) {
+  suffix <- scenario_output_suffix(opt$scenario)
   if (is.na(hold_beds)) {
-    return(file.path(OUTPUT_DIR, sprintf("policy_sweep_arm_%dd.csv", policy_days)))
+    return(file.path(OUTPUT_DIR,
+                     sprintf("policy_sweep_arm_%dd%s.csv", policy_days, suffix)))
   }
   file.path(OUTPUT_DIR,
-            sprintf("establishment_sweep_arm_%dd_%db.csv", policy_days, hold_beds))
+            sprintf("establishment_sweep_arm_%dd_%db%s.csv", policy_days, hold_beds, suffix))
 }
 
 #' Stem the run's outputs are written under
@@ -160,7 +170,8 @@ arm_path <- function(policy_days, hold_beds = NA_integer_) {
 #'   it; a run that varies the establishment measures something else, and one
 #'   file carrying both would leave that check unable to tell which rows it was
 #'   asserting.
-OUTPUT_STEM <- if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "policy_sweep"
+OUTPUT_STEM <- paste0(if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "policy_sweep",
+                      scenario_output_suffix(opt$scenario))
 
 #' Measure one arm, or read it back where it has already been measured
 #'
@@ -232,8 +243,46 @@ PAIRED_HALF_WIDTHS <- c(total_dow = 1, total_rtd = 10, role4_peak = 5,
 #' Policy the paired differences are measured against
 BASELINE_POLICY <- 21L
 
+#' Whether both axes vary, so each cell is paired within its own establishment
+#'
+#' @details A crossed grid cannot be paired on the policy alone: the rows of one
+#'   policy at four establishments would be merged by replication into four
+#'   differences each, and the interval would describe no comparison anyone
+#'   asked for. Each cell is instead paired against the shipped policy at the
+#'   shipped establishment, which is the configuration a planner holds today.
+CROSSED_GRID <- SWEEPING_ESTABLISHMENT && length(policies) > 1 && length(establishments) > 1
+
+#' Pair every arm against the baseline arm and size the replications each needs
+#'
+#' @param rows Per-replication responses carrying an `arm` column.
+#' @param baseline Label of the arm the others are measured against.
+#' @param others Labels of the arms to measure.
+#' @return One row per arm and paired response, with the replications that would
+#'   resolve the difference to the response's half-width.
+pair_arms <- function(rows, baseline, others) {
+  do.call(rbind, lapply(others, function(arm) {
+    do.call(rbind, lapply(PAIRED_RESPONSES, function(response) {
+      row <- policy_paired_difference(rows, response, baseline, arm, arm_column = "arm")
+      row$reps_needed <- policy_replications_for(rows, response, baseline, arm,
+                                                 PAIRED_HALF_WIDTHS[[response]],
+                                                 arm_column = "arm")
+      row
+    }))
+  }))
+}
+
 paired <- NULL
-if (BASELINE_POLICY %in% policies && length(policies) > 1) {
+if (CROSSED_GRID) {
+  rows <- per_replication
+  rows$arm <- sprintf("%dd_%db", rows$policy_days, rows$hold_beds)
+  baseline_arm <- sprintf("%dd_%db", BASELINE_POLICY, POLICY_BASELINE_HOLD_BEDS)
+  if (baseline_arm %in% rows$arm) {
+    paired <- pair_arms(rows, baseline_arm, setdiff(unique(rows$arm), baseline_arm))
+  } else {
+    message(sprintf("Baseline arm %s is not in the grid; no paired differences written",
+                    baseline_arm))
+  }
+} else if (BASELINE_POLICY %in% policies && length(policies) > 1) {
   others <- setdiff(policies, BASELINE_POLICY)
   paired <- do.call(rbind, lapply(others, function(policy_days) {
     do.call(rbind, lapply(PAIRED_RESPONSES, function(response) {
@@ -317,8 +366,9 @@ if (!is.null(paired)) {
   cat("|---|---|---|---|---|---|\n")
   for (i in seq_len(nrow(paired))) {
     r <- paired[i, ]
-    cat(sprintf("| %s | %d d | %+.2f | [%+.2f, %+.2f] | %.3f | %s |\n",
-                r$response, r$to, r$difference, r$ci_lower, r$ci_upper, r$p_value,
+    to_label <- if (CROSSED_GRID) r$to else sprintf("%d d", r$to)
+    cat(sprintf("| %s | %s | %+.2f | [%+.2f, %+.2f] | %.3f | %s |\n",
+                r$response, to_label, r$difference, r$ci_lower, r$ci_upper, r$p_value,
                 if (is.na(r$reps_needed)) "n/a" else format(r$reps_needed)))
   }
 }

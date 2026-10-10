@@ -37,6 +37,13 @@
 #'   both published configurations appear in the sweep.
 POLICY_DAYS <- c(15L, 21L, 30L, 45L, 60L)
 
+#' R2E holding establishment the crossed grid's paired differences are taken against
+#'
+#' @details The shipped establishment, so a crossed policy by establishment grid
+#'   reports each cell against the configuration a planner currently holds
+#'   rather than against an arbitrary arm.
+POLICY_BASELINE_HOLD_BEDS <- 30L
+
 #' R2E holding bed establishments swept, as bed counts
 #'
 #' @details Absolute counts rather than multiples of today's pool, because an

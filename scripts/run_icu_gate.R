@@ -135,11 +135,15 @@ paired <- do.call(rbind, lapply(ICU_GATE_RESPONSES, function(response) {
   row
 }))
 
-write.csv(per_replication, file.path(OUTPUT_DIR, "icu_gate_replications.csv"),
+write.csv(per_replication,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_replications", opt$scenario),
           row.names = FALSE)
-write.csv(summary_rows, file.path(OUTPUT_DIR, "icu_gate_summary.csv"),
+write.csv(summary_rows,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_summary", opt$scenario),
           row.names = FALSE)
-write.csv(paired, file.path(OUTPUT_DIR, "icu_gate_paired.csv"), row.names = FALSE)
+write.csv(paired,
+          scenario_output_path(OUTPUT_DIR, "icu_gate_paired", opt$scenario),
+          row.names = FALSE)
 message(sprintf("Intensive care gate responses, summary and paired differences written to %s",
                 OUTPUT_DIR))
 

@@ -154,6 +154,29 @@ archived_when_complete <- cache_check_schema(tmp4, c("a", "b", "d"))
 report(isTRUE(!archived_when_complete) && file.exists(tmp4),
        "a cache already carrying every requested response is left untouched")
 
+# ── Response set and the surgical delivery response ────────────────────────
+
+report(!"system_ot_q" %in% morris_kpis$name && !"system_ot_q" %in% SOBOL_RESPONSES,
+       "the duplicate system_ot_q response is retired from both screens")
+report("surgical_delivery_rate" %in% morris_kpis$name &&
+         "surgical_delivery_rate" %in% SOBOL_RESPONSES,
+       "surgical_delivery_rate is screened by Morris and decomposed by Sobol")
+report(!anyDuplicated(morris_kpis$name) &&
+         all(lengths(morris_kpis[c("label", "domain", "criteria", "reduction")]) ==
+               nrow(morris_kpis)),
+       "every response carries a unique name and one label, domain, criteria and reduction")
+
+delivery_cases <- data.frame(
+  casualty_type = c("wia", "wia", "wia", "wia", "kia", "dnbi"),
+  surgery       = c(1, 1, 1, 0, 1, 0),
+  r2b_surgery   = c(1, NA, NA, NA, NA, NA),
+  r2e_surgery   = c(NA, 1, NA, NA, NA, NA)
+)
+report(isTRUE(all.equal(surgical_delivery_rate(delivery_cases), 2 / 3)),
+       "delivery rate is operated over non-KIA casualties requiring surgery (2 of 3)")
+report(is.na(surgical_delivery_rate(delivery_cases[delivery_cases$surgery == 0, ])),
+       "delivery rate is absent, not zero, where nobody required surgery")
+
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")

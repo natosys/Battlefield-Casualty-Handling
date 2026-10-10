@@ -914,12 +914,12 @@ build_morris_top <- function(data_dir, n = 20L) {
   res_table(c("Rank", "Parameter", "\u00b5*", "\u03c3"), rows)
 }
 
-#' Sobol total-order decomposition of the system operating theatre queue
+#' Sobol total-order decomposition of the R2E operating theatre queue
 #'
 #' @param data_dir The data directory.
 #' @return The table lines.
 build_sobol <- function(data_dir) {
-  d <- res_read("sensitivity/sobol_n800/sobol_system_ot_q.csv", data_dir)
+  d <- res_read("sensitivity/sobol_n800/sobol_r2e_ot_q.csv", data_dir)
   d <- d[order(-d$ST), ]
   rows <- lapply(seq_len(nrow(d)), function(i) {
     c(sprintf("`%s`", d$parameter[i]), res_ci(d$ST[i], d$ST_lower[i], d$ST_upper[i], 2L),

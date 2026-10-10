@@ -4938,7 +4938,7 @@ wire_sobol_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_
   new_shrink_to_fit_plot("sobol_plot", "Sobol Indices — Full Size", function() {
     out <- sobol_results()
     req(out, length(out$res) > 0)
-    sb <- out$res$system_ot_q
+    sb <- out$res$r2e_ot_q
     req(!is.null(sb))
     df <- bind_rows(
       data.frame(parameter = sb$parameter, index = "S1 (First-Order)", value = sb$S1,
@@ -4951,7 +4951,7 @@ wire_sobol_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_
       geom_col(position = position_dodge(width = 0.7), width = 0.6) +
       geom_errorbar(aes(ymin = pmax(lower, 0), ymax = upper),
                     position = position_dodge(width = 0.7), width = 0.2) +
-      labs(title = "Sobol Indices — System OT Queue (R2B + R2E)",
+      labs(title = "Sobol Indices — R2E OT Queue",
            subtitle = "S1 = variance from the parameter alone; ST = variance including interactions with other parameters",
            x = NULL, y = "Sobol Index", fill = NULL) +
       theme_minimal(base_size = 13) +
@@ -4975,7 +4975,7 @@ wire_sobol_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_
 
   output$sobol_results_ui <- renderUI({
     req(sobol_state() == "done", sobol_results())
-    if (length(sobol_results()$res) == 0 || is.null(sobol_results()$res$system_ot_q)) {
+    if (length(sobol_results()$res) == 0 || is.null(sobol_results()$res$r2e_ot_q)) {
       return(div(class = "alert alert-warning",
                   "Sobol indices could not be estimated for the selected parameters (a near-zero-variance response — see console warnings). Try a different parameter selection."))
     }
@@ -4984,7 +4984,8 @@ wire_sobol_results <- function(ANALYSE_PLOT_CHROME_WITH_INTRO_PX, new_shrink_to_
       h5("Sobol S1 / ST Indices"),
       p(class = "text-muted small",
         "Parameters with high ST but low S1 have significant interaction effects — their influence on ",
-        "system OT queue depends on the value of at least one other parameter, not just their own value."),
+        "R2E OT queue depends on the value of at least one other parameter, ",
+        "not just their own value."),
       shrink_to_fit_plot_ui("sobol_plot", 450, chrome_px = ANALYSE_PLOT_CHROME_WITH_INTRO_PX),
       downloadButton("dl_sobol_csv_zip", "Download Sobol Indices — All KPIs (ZIP)")
     )

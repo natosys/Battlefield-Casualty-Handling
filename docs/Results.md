@@ -992,11 +992,7 @@ These screens are tagged 30 days because they were not re-measured at the sustai
 
 The table lists the twenty parameters with the largest Morris $\mu^*$ on the R2E operating theatre queue, of eighty screened. `casualty_surge_rate` ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->13.04<!-- /GEN -->, and the next six parameters ranked within $\mu^*$ of <!-- GEN cell:morris_top|2|µ*|full -->4.72<!-- /GEN --> to <!-- GEN cell:morris_top|7|µ*|full -->3.42<!-- /GEN -->.
 
-Scatter plots of the screen for seven responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
-
-![Morris screening scatter plot of the mean system operating theatre queue across R2B and R2E](../images/morris_system_ot_q.png)
-
-Screening of the summed R2B and R2E operating theatre queue. The R2B queue is zero at every design point, so this response equals the R2E queue below and is retained for the tracked design point caches rather than as a separate response.
+Scatter plots of the screen for six responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
 
 ![Placeholder panel for the Morris screening of the mean R2B operating theatre queue](../images/morris_r2b_ot_q.png)
 
@@ -1025,17 +1021,17 @@ Screening of the mean transport utilisation across the PMV Ambulance and HX240M 
 <!-- GEN sobol -->
 | Parameter | Total-order index | First-order index |
 |---|---|---|
-| `casualty_surge_rate` | 0.79 [0.66, 0.92] | 0.34 [0.17, 0.47] |
-| `casualty_surge_max_cas` | 0.27 [0.17, 0.37] | −0.06 [−0.09, −0.02] |
-| `pri1_surg_prob` | 0.20 [0.07, 0.35] | 0.06 [−0.01, 0.11] |
-| `pri1_evac_prob` | 0.14 [0.04, 0.24] | −0.00 [−0.04, 0.04] |
-| `pri1_dcs_rate` | 0.10 [0.04, 0.17] | −0.00 [−0.04, 0.03] |
-| `casualty_surge_kia_fraction` | 0.10 [−0.00, 0.21] | 0.04 [−0.01, 0.09] |
-| `mc_p2_p3_balance` | 0.06 [0.01, 0.12] | −0.02 [−0.04, 0.02] |
+| `casualty_surge_rate` | 0.79 [0.67, 0.92] | 0.34 [0.17, 0.46] |
+| `casualty_surge_max_cas` | 0.27 [0.17, 0.36] | −0.06 [−0.09, −0.02] |
+| `pri1_surg_prob` | 0.20 [0.06, 0.35] | 0.06 [−0.01, 0.12] |
+| `pri1_evac_prob` | 0.14 [0.04, 0.23] | −0.00 [−0.04, 0.03] |
+| `pri1_dcs_rate` | 0.10 [0.04, 0.17] | −0.00 [−0.03, 0.03] |
+| `casualty_surge_kia_fraction` | 0.10 [−0.02, 0.21] | 0.04 [−0.01, 0.09] |
+| `mc_p2_p3_balance` | 0.06 [0.00, 0.12] | −0.02 [−0.04, 0.02] |
 | `mc_p1_balance` | 0.04 [−0.07, 0.13] | −0.01 [−0.05, 0.03] |
 <!-- /GEN -->
 
-The Sobol decomposition of the eight leading parameters on the same response gave `casualty_surge_rate` a total-order index of <!-- GEN cell:sobol|`casualty_surge_rate`|Total-order index|full -->0.79 [0.66, 0.92]<!-- /GEN -->. The next index was <!-- GEN cell:sobol|`casualty_surge_max_cas`|Total-order index|full -->0.27 [0.17, 0.37]<!-- /GEN --> for `casualty_surge_max_cas`.
+The Sobol decomposition of the eight leading parameters on the same response gave `casualty_surge_rate` a total-order index of <!-- GEN cell:sobol|`casualty_surge_rate`|Total-order index|full -->0.79 [0.67, 0.92]<!-- /GEN -->. The next index was <!-- GEN cell:sobol|`casualty_surge_max_cas`|Total-order index|full -->0.27 [0.17, 0.36]<!-- /GEN --> for `casualty_surge_max_cas`.
 
 ---
 

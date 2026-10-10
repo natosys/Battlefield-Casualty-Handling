@@ -868,15 +868,19 @@ compute_utilisation <- function(mon, pattern) {
 #'   Outputs entry, so the screen's response set is self-documenting in code
 #'   rather than only in the README.
 #'
-#'   Two responses have no Model Outputs parent and are retained as derived
-#'   aggregates rather than as KPIs in their own right: `system_ot_q`, the
-#'   sum of the two theatre queue responses, retained only so that the
-#'   tracked design point caches keep their schema (the R2B theatre queue is
-#'   zero at every design point, so it equals `r2e_ot_q` and is not ranked as
-#'   primary); and `transport_util`, which applies Domain 3's utilisation reduction to the
-#'   transport fleet, whose queues stay near zero under baseline demand and
-#'   would otherwise register no sensitivity at all (Issue #6). Both are
-#'   marked as derived in the `domain` column.
+#'   One response has no Model Outputs parent and is retained as a derived
+#'   aggregate rather than as a KPI in its own right: `transport_util`, which
+#'   applies Domain 3's utilisation reduction to the transport fleet, whose
+#'   queues stay near zero under baseline demand and would otherwise register
+#'   no sensitivity at all (Issue #6). It is marked as derived in the `domain`
+#'   column.
+#'
+#'   `surgical_delivery_rate` measures surgical delivery directly: the share
+#'   of casualties requiring surgery (excluding those killed in action) who
+#'   are operated on in theatre. A theatre queue length does not register a
+#'   casualty deferred pending intensive care, diverted forward, released with
+#'   the definitive repair outstanding, or dead before reaching theatre, each
+#'   of which the rate counts as surgery not delivered.
 #'
 #'   Counts are reported as the per-replication mean rather than as a total
 #'   across the replications evaluated at a design point, so a response keeps
@@ -894,7 +898,7 @@ morris_kpis <- data.frame(
     "r2b_dwell_mean", "r2b_r2e_transit_mean", "r2e_dwell_mean",
     # ── Domain 3 — Surgical throughput ──────────────────────────────────
     "ot_util_r2b", "ot_util_r2e",
-    "r2b_surgery_count", "r2e_surgery_count",
+    "r2b_surgery_count", "r2e_surgery_count", "surgical_delivery_rate",
     # ── Domain 4 — Echelon load and capacity ────────────────────────────
     "r2b_ot_q", "r2e_ot_q", "r2e_icu_q", "r2b_hold_q", "r2e_hold_q", "transport_q",
     # ── Domain 5 — Flow and disposition ─────────────────────────────────
@@ -909,7 +913,7 @@ morris_kpis <- data.frame(
     "ame_backlog_standard_mean", "ame_backlog_standard_peak",
     "ame_sorties_flown",
     # ── Derived aggregates (no Model Outputs parent) ────────────────────
-    "system_ot_q", "transport_util"
+    "transport_util"
   ),
   label = c(
     "Total DOW Count",
@@ -919,6 +923,7 @@ morris_kpis <- data.frame(
     "Mean R2B Dwell Time", "Mean R2B to R2E Transit Time", "Mean R2E Dwell Time",
     "R2B OT Utilisation", "R2E OT Utilisation",
     "R2B Surgeries per Run", "R2E Surgical Episodes per Run",
+    "Surgical Delivery Rate (Share of Casualties Requiring Surgery Operated On)",
     "Mean R2B OT Queue", "Mean R2E OT Queue", "Mean R2E ICU Queue",
     "Mean R2B Holding Queue", "Mean R2E Holding Queue",
     "Mean Transport Queue (PMV Amb + HX240M)",
@@ -933,25 +938,24 @@ morris_kpis <- data.frame(
     "Mean Strategic AME Backlog — Standard Pool",
     "Peak Strategic AME Backlog — Standard Pool",
     "Strategic AME Sorties Flown",
-    "System OT Queue (R2B + R2E)",
     "Mean Transport Utilisation (PMV Amb + HX240M)"
   ),
   domain = c(
     rep("1 — Mortality", 6),
     rep("2 — Time-to-care", 5),
-    rep("3 — Surgical throughput", 4),
+    rep("3 — Surgical throughput", 5),
     rep("4 — Echelon load", 6),
     rep("5 — Flow and disposition", 4),
     "6 — Combat power",
     rep("7 — Strategic evacuation", 10),
-    rep("Derived", 2)
+    "Derived"
   ),
   criteria = c(
     "C1, C2, C5",
     rep("C1, C2, C3, C5", 5),
     rep("C1, C2, C3, C5", 2),
     "C1, C3, C4", "C1, C3", "C1, C3, C4",
-    "C3, C4", "C3, C4", "C2, C3, C4", "C2, C3, C4",
+    "C3, C4", "C3, C4", "C2, C3, C4", "C2, C3, C4", "C1, C2, C4, C5",
     rep("C3, C4", 6),
     rep("C1, C2, C5", 3), "C2, C3, C4",
     "C2, C5",
@@ -960,7 +964,7 @@ morris_kpis <- data.frame(
     "C2, C4, C5", "C2, C4, C5",
     rep("C3, C4, C5", 4),
     "C3, C4, C5",
-    "C3, C4", "C3, C4"
+    "C3, C4"
   ),
   reduction = c(
     "scalar — per-replication mean count",
@@ -971,6 +975,7 @@ morris_kpis <- data.frame(
     "one response per echelon; time-weighted mean fraction of theatre capacity busy",
     "time series — per-replication mean total over the run",
     "time series — per-replication mean total over the run",
+    "scalar — casualties operated on in theatre over non-KIA casualties requiring surgery",
     rep("time series — time-weighted mean queue length", 6),
     rep("one response per echelon; returns at that echelon over total arrivals", 3),
     "scalar — bypassed casualties over WIA arrivals",
@@ -984,7 +989,6 @@ morris_kpis <- data.frame(
     "time series — time-weighted mean, per pool",
     "time series — peak, per pool",
     "event series — per-replication mean count of sorties flown",
-    "time series — time-weighted mean queue length, summed across echelons",
     "time series — time-weighted mean fraction of fleet busy"
   ),
   stringsAsFactors = FALSE
@@ -1176,8 +1180,8 @@ prepare_kpi_frames <- function(mon) {
 #' @param safe_q Closure over the current design point's resource monitor,
 #'   returning a pool's time-weighted mean queue length for a resource-name
 #'   regex (see `extract_kpis()`, which defines it).
-#' @return Named list: `r2e_icu_q`, `r2b_ot_q`, `r2e_ot_q`, `system_ot_q`
-#'   (`r2b_ot_q` plus `r2e_ot_q`), `r2b_hold_q` and `r2e_hold_q`.
+#' @return Named list: `r2e_icu_q`, `r2b_ot_q`, `r2e_ot_q`, `r2b_hold_q` and
+#'   `r2e_hold_q`.
 extract_queue_kpis <- function(safe_q) {
   r2e_icu_q  <- safe_q("^b_r2eheavy_icu_")
   r2b_ot_q   <- safe_q("^b_r2b_ot_")
@@ -1185,7 +1189,37 @@ extract_queue_kpis <- function(safe_q) {
   r2b_hold_q <- safe_q("^b_r2b_hold_")
   r2e_hold_q <- safe_q("^b_r2eheavy_hold_")
   list(r2e_icu_q = r2e_icu_q, r2b_ot_q = r2b_ot_q, r2e_ot_q = r2e_ot_q,
-       system_ot_q = r2b_ot_q + r2e_ot_q, r2b_hold_q = r2b_hold_q, r2e_hold_q = r2e_hold_q)
+       r2b_hold_q = r2b_hold_q, r2e_hold_q = r2e_hold_q)
+}
+
+#' Share of casualties requiring surgery who are operated on in theatre
+#'
+#' @param combined The combined per-casualty frame (`prepare_kpi_frames()`), one
+#'   row per casualty with `casualty_type`, `surgery`, `r2b_surgery` and
+#'   `r2e_surgery` columns.
+#' @return A number in [0, 1], NA_real_ where no casualty required surgery.
+#' @details The denominator is every casualty not killed in action whose
+#'   `surgery` requirement is 1, assigned on arrival; the numerator is those who
+#'   went on to be operated on at R2B or R2E (`r2b_surgery` or `r2e_surgery`
+#'   set, which the trajectories do only after the operation). A casualty who
+#'   dies, is deferred, is released with the definitive repair outstanding or is
+#'   still waiting when the window closes is therefore counted as not delivered.
+surgical_delivery_rate <- function(combined) {
+  #' Whether each casualty's attribute equals 1
+  #'
+  #' @param nm Name of the attribute column.
+  #' @return A logical vector, FALSE where the column is absent or the value NA.
+  flag <- function(nm) {
+    x <- if (nm %in% names(combined)) {
+      as.numeric(combined[[nm]])
+    } else {
+      rep(NA_real_, nrow(combined))
+    }
+    !is.na(x) & x == 1
+  }
+  requires <- flag("surgery") & combined$casualty_type != "kia"
+  if (!any(requires)) return(NA_real_)
+  sum(requires & (flag("r2b_surgery") | flag("r2e_surgery"))) / sum(requires)
 }
 
 #' Extract the Morris response vector from a run_replications() monitoring list
@@ -1343,6 +1377,7 @@ extract_kpis <- function(mon) {
     ot_util_r2e               = ot_util_r2e,
     r2b_surgery_count         = r2b_surgery_count,
     r2e_surgery_count         = r2e_surgery_count,
+    surgical_delivery_rate    = surgical_delivery_rate(combined),
     r2b_ot_q                  = qk$r2b_ot_q,
     r2e_ot_q                  = qk$r2e_ot_q,
     r2e_icu_q                 = qk$r2e_icu_q,
@@ -1364,7 +1399,6 @@ extract_kpis <- function(mon) {
     ame_backlog_standard_mean = role4$ame_backlog_standard_mean,
     ame_backlog_standard_peak = role4$ame_backlog_standard_peak,
     ame_sorties_flown         = role4$ame_sorties_flown,
-    system_ot_q               = qk$system_ot_q,
     transport_util            = transport_util
   )
 
@@ -1746,9 +1780,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   morris_objs <- ranked$morris_objs
 
   # The primary ranking is the R2E theatre queue, the only theatre queue that
-  # varies: the R2B component of `system_ot_q` is zero at every design point,
-  # so the two rankings are identical. Written under the historical filename
-  # as well as its per-response one.
+  # varies (the R2B theatre queue is zero at every design point). Written under
+  # the historical filename as well as its per-response one.
   ranking <- rankings[["r2e_ot_q"]]
   write.csv(ranking, file.path(output_dir, "morris_ranking.csv"), row.names = FALSE)
   message("Primary parameter ranking written to outputs/morris_ranking.csv")
@@ -1868,7 +1901,7 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 #'   signal a larger sample would resolve. `transport_util` is retained
 #'   despite returning an out-of-range total-order index, a decision recorded
 #'   in `data/sensitivity/README.md` rather than silently dropped.
-SOBOL_RESPONSES <- c("r2e_ot_q", "system_ot_q", "transport_util")
+SOBOL_RESPONSES <- c("r2e_ot_q", "surgical_delivery_rate", "transport_util")
 
 
 #' Read one design point's cached response vector
@@ -2057,13 +2090,13 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
       {
         kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
                             crn_seed = crn_seed, return_sd = TRUE)
-        c(r2e_ot_q       = kpis[["r2e_ot_q"]],
-          system_ot_q    = kpis[["system_ot_q"]],
-          transport_util = kpis[["transport_util"]])
+        c(r2e_ot_q               = kpis[["r2e_ot_q"]],
+          surgical_delivery_rate = kpis[["surgical_delivery_rate"]],
+          transport_util         = kpis[["transport_util"]])
       },
       error = function(e) {
         warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2e_ot_q = NA_real_, system_ot_q = NA_real_, transport_util = NA_real_)
+        c(r2e_ot_q = NA_real_, surgical_delivery_rate = NA_real_, transport_util = NA_real_)
       }
     )
     if (!is.null(cache_file) && !all(is.na(res))) {
@@ -2212,25 +2245,25 @@ build_sobol_matrices <- function(p_def, n_sobol, dirichlet_groups) {
 
 #' Tell each response's Sobol object its values, and record which succeeded
 #'
-#' @param sb_r2e,sb_sys,sb_tutil The three untold Sobol objects.
+#' @param sb_r2e,sb_deliv,sb_tutil The three untold Sobol objects.
 #' @param y_all The response matrix, one column per response.
 #' @return A list of `sb_objs`, the three objects keyed by response, and
 #'   `sobol_ok`, a flag per response saying whether indices were computed.
 #' @details A response whose values are degenerate leaves tell() unable to
 #'   compute indices; that object comes back NULL and is flagged rather than
 #'   discarding the others.
-tell_sobol_responses <- function(sb_r2e, sb_sys, sb_tutil, y_all) {
+tell_sobol_responses <- function(sb_r2e, sb_deliv, sb_tutil, y_all) {
   sb_r2e   <- tell_safe(sb_r2e,   y_all[, "r2e_ot_q"],       "r2e_ot_q")
-  sb_sys   <- tell_safe(sb_sys,   y_all[, "system_ot_q"],    "system_ot_q")
+  sb_deliv <- tell_safe(sb_deliv, y_all[, "surgical_delivery_rate"], "surgical_delivery_rate")
   sb_tutil <- tell_safe(sb_tutil, y_all[, "transport_util"], "transport_util")
 
   sobol_ok <- c(
-    r2e_ot_q       = !is.null(sb_r2e),
-    system_ot_q    = !is.null(sb_sys),
-    transport_util = !is.null(sb_tutil)
+    r2e_ot_q               = !is.null(sb_r2e),
+    surgical_delivery_rate = !is.null(sb_deliv),
+    transport_util         = !is.null(sb_tutil)
   )
 
-  sb_objs <- list(r2e_ot_q = sb_r2e, system_ot_q = sb_sys, transport_util = sb_tutil)
+  sb_objs <- list(r2e_ot_q = sb_r2e, surgical_delivery_rate = sb_deliv, transport_util = sb_tutil)
   list(sb_objs = sb_objs, sobol_ok = sobol_ok)
 }
 
@@ -2269,7 +2302,7 @@ tell_sobol_responses <- function(sb_r2e, sb_sys, sb_tutil, y_all) {
 #' @param crn_seed Optional integer pinning the replication seed vector, so
 #'   every design point is evaluated against common random numbers. NULL
 #'   leaves the seeds to the ambient stream.
-#' @return Named list of sobol2007 objects: r2e_ot_q, system_ot_q,
+#' @return Named list of sobol2007 objects: r2e_ot_q, surgical_delivery_rate,
 #'   transport_util
 #'
 #' @details Applies sobol2007 (Saltelli et al. estimator) using a single design
@@ -2297,8 +2330,8 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   p_def   <- morris_params[p_idx, ]
   n_total <- n_sobol * (nrow(p_def) + 2L)
   message(sprintf(
-    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2e_ot_q, system_ot_q, transport_util)",
-    n_sobol, nrow(p_def), n_total, n_rep
+    "Sobol: n=%d, p=%d → %d evaluations × %d reps (%s)",
+    n_sobol, nrow(p_def), n_total, n_rep, paste(SOBOL_RESPONSES, collapse = ", ")
   ))
 
   # See run_morris() for why the restore is registered here as well as run
@@ -2313,7 +2346,7 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   X2 <- base_matrices$X2
 
   sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
-  sb_sys   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_deliv <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
   sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
 
   full_params <- setNames(morris_params$mode, morris_params$name)
@@ -2322,19 +2355,19 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
   cache_check_schema(cache_file, SOBOL_RESPONSES)
 
-  # Held in a local rather than read back off sb_sys later: tell_safe()
+  # Held in a local rather than read back off sb_deliv later: tell_safe()
   # returns NULL for a response whose bootstrap fails, which would leave a
-  # later read off sb_sys at NULL and the run metadata recording an empty
+  # later read off sb_deliv at NULL and the run metadata recording an empty
   # design size.
-  n_points <- nrow(sb_sys$X)
+  n_points <- nrow(sb_deliv$X)
 
-  Y_all <- evaluate_sobol_design(sb_sys, n_points, p_def, full_params, cache_file,
+  Y_all <- evaluate_sobol_design(sb_deliv, n_points, p_def, full_params, cache_file,
                                  n_rep, n_days, max_cores, crn_seed, progress_dir)
 
   env_data <<- env_data_base
 
 
-  told     <- tell_sobol_responses(sb_r2e, sb_sys, sb_tutil, Y_all)
+  told     <- tell_sobol_responses(sb_r2e, sb_deliv, sb_tutil, Y_all)
   sb_objs  <- told$sb_objs
   sobol_ok <- told$sobol_ok
   saved <- list()

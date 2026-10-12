@@ -48,6 +48,7 @@ This document is the design record for the replicated experiments reported in th
   - [High-Intensity Policy by Establishment Grid](#high-intensity-policy-by-establishment-grid)
   - [High-Intensity Replications of the Lever Experiments](#high-intensity-replications-of-the-lever-experiments)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
+  - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
@@ -259,6 +260,7 @@ A tracked evidence set is not sufficient on its own. The section it backs can st
 | Strategic airlift collapse | `data/airlift/` | `check_airlift_collapse_protocol.R` |
 | Evacuation policy and holding establishment sweeps | `data/policy/` | `check_policy_sweep_protocol.R` |
 | Forward surgical saturation release sweep | `data/policy/` | `check_policy_sweep_protocol.R` |
+| Surgical team establishment sweep | `data/surgical_teams/` | `check_surgical_sweep_protocol.R`, `check_surgical_roster.R` (mechanism) |
 | The R2B pre-open hold window | `data/hold_window/` | `check_hold_window_protocol.R` |
 | The post-operative intensive care gate | `data/icu_gate/` | `check_icu_gate_protocol.R`, `check_icu_gate_switch.R` (mechanism) |
 | Casualty surge event stress test | `data/casualty_surge/` | `check_casualty_surge_protocol.R`, `check_casualty_surge_kia_split.R` (mechanism) |
@@ -311,6 +313,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | High-intensity policy by establishment grid | high intensity | 360 d | 30 per cell | 5 policies by 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ against the shipped cell |
 | Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
+| Surgical team establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queue and campaign counts, daily queue classified; Student $t$, paired $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Casualty surge event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
@@ -617,6 +620,25 @@ The sweep exists because the threshold had no source to set it from. No open-acc
 The response set is the policy sweep's, extended with four the trade needs and neither sweep previously carried: the forward theatre queue, the casualties released with the repair outstanding, and the operations and theatre-minutes owed at the national support base. The theatre queue is measured over both stages of the two-stage seizure, an operating theatre bed and then a surgical section, because a casualty waiting to be operated on is blocked on exactly one of them and counting either alone counts half the backlog; that is also what `r2e_theatre_queue()` reads live inside the model, so the swept response and the decision the sweep varies measure the same quantity. The arms are paired on one control seed as the policy sweep's are, each arm is checkpointed as it completes, and the sweep writes its own `saturation_sweep*` files. The tracked evidence set is `data/policy/`.
 
 The range runs past the point at which a higher threshold might stop firing, so that an inert value is identified by measurement rather than assumed. Whether a threshold fires depends on the horizon and the casualty load, because the release is a saturation response to a queue that grows with both; the companion paper reports where the swept thresholds fire. `scripts/check_definitive_repair_release.R` asserts that the release is reachable at a threshold in force and absent at zero.
+
+### Surgical Team Establishment Sweep
+
+<!-- SURGICAL_TEAMS replications=30 -->
+<!-- SURGICAL_TEAMS days=360 -->
+<!-- SURGICAL_TEAMS seed=42 -->
+<!-- SURGICAL_TEAMS window_days=90 -->
+<!-- SURGICAL_TEAMS baseline=R2E 3, R2B 1 -->
+<!-- SURGICAL_TEAMS arms=R2E 3, R2B 1;R2E 4, R2B 1;R2E 6, R2B 1;R2E 3, R2B 2;R2E 4, R2B 2 -->
+Thirty replications of 360 simulated days at each of five surgical establishments, at control seed 42, under the shipped default configuration and again under the `high_intensity` profile. An arm is a count of surgical sections per echelon: R2E at 3 (shipped), 4 and 6 sections, and R2B at 1 (shipped) or 2 per unit, with the last arm applying 4 at R2E and 2 at R2B together. R2E fields two operating theatres in every arm, so four sections puts two on each shift and staffs both theatres around the clock, while six adds a third pair of sections for which there is no theatre. The counts enter through `elms.r2eheavy.sub_elms.surg.qty` and `elms.r2b.sub_elms.surg.qty` and are set on the resolved configuration before `build_environment()` constructs the resources from them, `set_surgical_sections()` failing where the element cannot be found rather than returning the configuration unchanged. Invoked as:
+
+```
+Rscript scripts/run_surgical_team_sweep.R --refresh-baseline
+Rscript scripts/run_surgical_team_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+The sweep tests the first recommendation of the planning paper, which until it ran rested on an argument from the model's structure. Two properties of the roster make the arms interpretable, and `scripts/check_surgical_roster.R` asserts both. Every member of a section carries one shift, so a section is staffed or not and never half of each; and sections alternate between the two shifts in the order they are built, so a fourth R2E section makes two on each shift and a second R2B section takes the shift the first does not. A unit that fields more than one section chooses among them for each casualty, preferring one on shift and then the least loaded, ties broken at random (`select_surg_section()` in `R/trajectories.R`); a unit fielding one consumes no random number in the choice, which is why the shipped arm reproduces the tracked seed-42 campaign byte for byte.
+
+Each replication is reduced inside the forked worker to one row of responses and a daily series of the R2E theatre queue and occupancy. The counts of diversions from R2B (for a closed section and for a busy theatre), operations performed at each echelon and deferrals at the intensive care gate are those the hold window reduction reports; the theatre queue is the two-stage backlog of the saturation sweep, measured over the closing 90 days, and the remaining responses are the casualties released with the repair outstanding, deaths of wounds, returns to duty and the share of post-definitive care served in an intensive care bed. The daily series is what allows the verdict that matters for the establishment: it is averaged into 30-day blocks and classified by the late-half fit of [Classifying Stability](#classifying-stability), so that an arm is reported as converged or drifting and, where it drifts, by the shortfall per day that remains. The arms are paired on one control seed each, as the establishment sweeps are, and each arm is checkpointed as it completes. Changing an establishment alters the draws a replication takes, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. The tracked evidence set is `data/surgical_teams/`.
 
 ### Casualty Surge Event Stress Test
 

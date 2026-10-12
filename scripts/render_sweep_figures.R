@@ -217,6 +217,13 @@ saturation_shipped <- shipped_var("second_surgery", "saturation_queue_threshold"
 # RENDERS: saturation_sweep.png
 save_figure(plot_saturation_sweep(saturation, saturation_shipped), "saturation_sweep.png", 11, 10)
 
+surgical_moderate <- read_tracked("surgical_teams", "surgical_team_sweep_summary.csv")
+surgical_high <- read_tracked("surgical_teams", "surgical_team_sweep_summary_high_intensity.csv")
+
+# RENDERS: surgical_team_sweep.png
+save_figure(plot_surgical_team_sweep(surgical_moderate, surgical_high, "R2E 3, R2B 1"),
+            "surgical_team_sweep.png", 10, 13)
+
 # RENDERS: icu_gate.png
 save_figure(plot_icu_gate(read_tracked("icu_gate", "icu_gate_summary.csv")), "icu_gate.png", 10, 8)
 

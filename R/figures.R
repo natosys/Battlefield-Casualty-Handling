@@ -151,6 +151,62 @@ plot_saturation_sweep <- function(summary_df, shipped_threshold) {
                sprintf("%d replications per threshold over 360 days", unique(plot_df$n_reps)))
 }
 
+#' Responses of the surgical team establishment figure
+#'
+#' @details Six responses in plotting order: the queue the establishment is
+#'   meant to relieve, the diversions from R2B it is meant to remove, the
+#'   operations performed at R2E, the deferrals at the intensive care gate, and
+#'   the two outcomes. Counts are drawn as stored.
+SURGICAL_TEAM_PANELS <- data.frame(
+  response = c("theatre_mean_queue", "diverted_offshift", "r2e_first_surgeries",
+               "r2e_theatre_deferred", "total_dow", "total_rtd"),
+  label    = c("R2E theatre mean queue", "R2B cases diverted, team off shift",
+               "R2E first surgeries", "R2E theatre entry deferred", "Died of wounds",
+               "Returns to duty"),
+  stringsAsFactors = FALSE
+)
+
+#' Surgical team establishment figure
+#'
+#' @param moderate_df Tracked `data/surgical_teams/surgical_team_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped establishment.
+#' @return ggplot object of six responses by arm, one column per intensity.
+#'
+#' @details The arms are categorical, not a numeric axis, since they vary two
+#'   counts at once, so each is a point with its 95% interval and the shipped
+#'   arm is drawn in the reference colour. Each cell has its own vertical scale,
+#'   the two intensities differing by orders of magnitude in the queue.
+plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  missing <- setdiff(SURGICAL_TEAM_PANELS$response, both$response)
+  if (length(missing) > 0) {
+    stop("summary lacks response(s) the figure draws: ", paste(missing, collapse = ", "))
+  }
+  arms <- unique(moderate_df$arm)
+  plot_df <- both %>%
+    inner_join(SURGICAL_TEAM_PANELS, by = "response") %>%
+    mutate(panel = factor(label, levels = SURGICAL_TEAM_PANELS$label),
+           intensity = factor(intensity, levels = c("Moderate intensity", "High intensity")),
+           arm = factor(arm, levels = arms),
+           is_shipped = arm == shipped)
+  ggplot(plot_df, aes(x = arm, y = mean, colour = is_shipped)) +
+    geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), size = 0.5) +
+    facet_grid(panel ~ intensity, scales = "free_y") +
+    scale_colour_manual(name = NULL, values = c(`TRUE` = FIGURE_SHIPPED_COLOUR,
+                                                `FALSE` = FIGURE_MEAN_COLOUR),
+                        labels = c(`TRUE` = "Shipped establishment",
+                                   `FALSE` = "Other establishment")) +
+    labs(title = "Surgical Team Establishment Sweep",
+         subtitle = sprintf("%d replications per arm over 360 days; mean and 95%% interval",
+                            unique(plot_df$n_reps)),
+         x = "Surgical sections at R2E and per R2B unit", y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+          axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "bottom")
+}
+
 #' Responses of the post-operative intensive care gate figure
 #'
 #' @details The pathway counts are the casualties each post-operative route

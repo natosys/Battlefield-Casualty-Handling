@@ -389,6 +389,117 @@ build_load_demand <- function(data_dir) {
                      lapply(disp, res_t_interval))))
 }
 
+#' Arm that the surgical team sweep's differences are measured against
+SURGICAL_TEAM_BASELINE <- "R2E 3, R2B 1"
+
+#' Responses of the surgical team sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The same set, in the same order, in the summary table and the paired
+#'   table, so a reader finds a response in the same row of both. The scale of
+#'   100 turns a share into percentage points.
+SURGICAL_TEAM_ROWS <- list(
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("Diverted, team off shift", "diverted_offshift", 1L, 1),
+  list("Diverted, theatre busy", "diverted_busy", 1L, 1),
+  list("R2B surgeries", "r2b_surgeries", 1L, 1),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("R2E theatre entry deferred", "r2e_theatre_deferred", 1L, 1),
+  list("Released with repair outstanding", "released_unrepaired", 1L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100)
+)
+
+#' Surgical team sweep table: each response and the queue's classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per arm.
+#'
+#' @details The classification and the shortfall per day are those of the R2E
+#'   theatre queue's late-half fit, read from the stability file the sweep wrote
+#'   from its own daily series, and are printed in the stability table's form
+#'   so the two sections state the same verdict in the same words.
+build_surgical_team <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("surgical_teams/surgical_team_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("surgical_teams/surgical_team_sweep_stability", suffix), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param label Row label.
+  #' @param response Response key.
+  #' @param dp Decimal places.
+  #' @param scale Multiplier, 100 for a share.
+  #' @return The row's cells.
+  one <- function(label, response, dp, scale) {
+    c(label, vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == response, ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", response,
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = dp, scale = scale, floor0 = TRUE)
+    }, character(1)))
+  }
+  #' The queue's classification for one arm, in the stability table's words
+  #'
+  #' @param a Arm label.
+  #' @return The cell text.
+  verdict <- function(a) {
+    r <- st[st$arm == a, ]
+    if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', found %d", a,
+                                    nrow(r)), call. = FALSE)
+    if (r$stability == "drifting") {
+      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
+              formatC(r$first, format = "f", digits = 1, big.mark = ","),
+              formatC(r$last, format = "f", digits = 1, big.mark = ","))
+    } else {
+      sprintf("converged at %s", formatC(r$late_mean, format = "f",
+                                         digits = if (abs(r$late_mean) < 10) 2 else 1,
+                                         big.mark = ","))
+    }
+  }
+  #' The queue's shortfall per day for one arm, with its interval
+  #'
+  #' @param a Arm label.
+  #' @return The cell text.
+  shortfall <- function(a) {
+    r <- st[st$arm == a, ]
+    f <- c(r$shortfall_per_day, r$shortfall_lower, r$shortfall_upper)
+    f[abs(f) < 0.0005] <- 0
+    res_ci(f[1], f[2], f[3], dp = 3L)
+  }
+  rows <- c(
+    list(one(SURGICAL_TEAM_ROWS[[1]][[1]], SURGICAL_TEAM_ROWS[[1]][[2]],
+             SURGICAL_TEAM_ROWS[[1]][[3]], SURGICAL_TEAM_ROWS[[1]][[4]]),
+         c("R2E theatre queue, late-half classification", vapply(arms, verdict, character(1))),
+         c("R2E theatre queue shortfall per day", vapply(arms, shortfall, character(1)))),
+    lapply(SURGICAL_TEAM_ROWS[-1], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]]))
+  )
+  header <- c("Response", ifelse(arms == SURGICAL_TEAM_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Surgical team sweep table of paired differences against the shipped establishment
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per arm other than the shipped one.
+build_surgical_team_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("surgical_teams/surgical_team_sweep_paired", suffix), data_dir)
+  arms <- unique(d$to)
+  rows <- lapply(SURGICAL_TEAM_ROWS, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped establishment", arms), rows)
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -1628,6 +1739,10 @@ RESULTS_TABLES <- list(
   forward_hold = build_forward_hold,
   policy = build_policy,
   establishment = build_establishment,
+  surgical_team = build_surgical_team,
+  surgical_team_high = function(dd) build_surgical_team(dd, "_high_intensity"),
+  surgical_team_paired = build_surgical_team_paired,
+  surgical_team_paired_high = function(dd) build_surgical_team_paired(dd, "_high_intensity"),
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,

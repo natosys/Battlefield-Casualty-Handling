@@ -213,6 +213,9 @@ reduce_surgical_replication <- function(env, n_days,
 #' @param n_days Campaign length in days (default SURGICAL_SWEEP_DAYS).
 #' @param window_days Closing window for the queue and occupancy responses.
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param checkpoint_dir Directory each finished replication is saved to and read
+#'   back from, or NULL for none. A replication is named by its index and seed, so
+#'   a changed control seed never reads another seed's file.
 #' @return A list of `rows`, one row per replication, and `series`, the daily
 #'   series of every replication bound together with a `replication` column.
 #'
@@ -223,7 +226,7 @@ reduce_surgical_replication <- function(env, n_days,
 run_surgical_measurement <- function(n_iterations = SURGICAL_SWEEP_REPLICATIONS,
                                      n_days = SURGICAL_SWEEP_DAYS,
                                      window_days = SURGICAL_SWEEP_WINDOW_DAYS,
-                                     max_cores = NULL) {
+                                     max_cores = NULL, checkpoint_dir = NULL) {
   rng_state <- capture_rng_state()
   on.exit(restore_rng_state(rng_state), add = TRUE)
 
@@ -235,10 +238,17 @@ run_surgical_measurement <- function(n_iterations = SURGICAL_SWEEP_REPLICATIONS,
   #' @param i Index of the replication, into `rep_seeds`.
   #' @return The replication's row and series, each carrying its index.
   worker <- function(i) {
+    saved <- if (is.null(checkpoint_dir)) NULL else
+      file.path(checkpoint_dir, sprintf("replication_%03d_%d.rds", i, rep_seeds[i]))
+    if (!is.null(saved) && file.exists(saved)) return(readRDS(saved))
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
     out <- reduce_surgical_replication(env, n_days, window_days)
     out$row$replication <- i
     out$series$replication <- i
+    if (!is.null(saved)) {
+      saveRDS(out, paste0(saved, ".tmp"))
+      file.rename(paste0(saved, ".tmp"), saved)
+    }
     out
   }
 

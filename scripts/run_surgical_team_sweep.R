@@ -124,8 +124,12 @@ measure_arm <- function(i) {
 
   message(sprintf("%s: %d replications x %d days", arm$arm, opt$iterations, opt$days))
   set.seed(opt$seed)
+  ckpt <- file.path("outputs", "checkpoints",
+                    basename(scenario_output_path(".", arm_stem(i), opt$scenario)))
+  dir.create(ckpt, recursive = TRUE, showWarnings = FALSE)
   out <- run_surgical_measurement(n_iterations = opt$iterations, n_days = opt$days,
-                                  window_days = opt$window, max_cores = opt$`max-cores`)
+                                  window_days = opt$window, max_cores = opt$`max-cores`,
+                                  checkpoint_dir = ckpt)
   out$rows$arm <- arm$arm
   out$series$arm <- arm$arm
   out

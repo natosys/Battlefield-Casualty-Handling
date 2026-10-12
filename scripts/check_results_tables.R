@@ -227,14 +227,13 @@ write.csv(do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
                scenario = p)
   }))
 })), file.path(toy_dir, "long_horizon", "long_horizon_stability.csv"), row.names = FALSE)
-occ <- do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
-  do.call(rbind, lapply(c("R2E operating theatres", "R2E holding beds", "R2E intensive care"),
-                        function(sub) {
-    data.frame(day = rep(1:3, 3), series = "occupancy", subject = sub,
-               value = rep(c(0.5, 0.6, 0.7), each = 3), replication = rep(1:3, each = 3),
-               scenario = p)
-  }))
-}))
+toy_pools <- c("R2E operating theatres", "R2E holding beds", "R2E intensive care")
+toy_grid <- expand.grid(p = SCENARIO_PROFILES, sub = toy_pools, stringsAsFactors = FALSE)
+occ <- do.call(rbind, Map(function(p, sub) {
+  data.frame(day = rep(1:3, 3), series = "occupancy", subject = sub,
+             value = rep(c(0.5, 0.6, 0.7), each = 3), replication = rep(1:3, each = 3),
+             scenario = p)
+}, toy_grid$p, toy_grid$sub))
 gz <- gzfile(file.path(toy_dir, "long_horizon", "long_horizon_series.csv.gz"), "w")
 write.csv(occ, gz, row.names = FALSE)
 close(gz)

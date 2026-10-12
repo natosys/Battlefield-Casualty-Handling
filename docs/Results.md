@@ -31,6 +31,7 @@ The measurements record where queues form at each intensity and which responses 
 - [Comparative Scenario Analysis](#comparative-scenario-analysis)
 - [Queue Behaviour over the Campaign](#queue-behaviour-over-the-campaign)
 - [Sustained Operations](#sustained-operations)
+  - [Demand, Utilisation and Shortfall per Day](#demand-utilisation-and-shortfall-per-day)
 - [Treated-Cohort Mortality](#treated-cohort-mortality)
 - [Forward Holding and Evacuation Levers](#forward-holding-and-evacuation-levers)
   - [R2B Pre-Open Hold Window](#r2b-pre-open-hold-window)
@@ -174,6 +175,31 @@ Each response was reduced to twelve consecutive 30-day block means and classifie
 Block means of every queue, occupancy, arrival, evacuation backlog and mortality response over the campaign at the two casualty intensities, each panel headed by its stability classification at each intensity.
 
 Four responses at high intensity were classified as drifting: the R2E operating theatre queue (<!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full -->**drifting, +11.7%/block**, 36.9 to 573.6<!-- /GEN -->), the R2E holding bed queue (<!-- GEN cell:long_horizon_stability|R2E holding bed queue|High intensity|full -->**drifting, +9.3%/block**, 48.6 to 595.9<!-- /GEN -->), the R2E intensive care queue (<!-- GEN cell:long_horizon_stability|R2E intensive care queue|High intensity|full -->**drifting, +13.0%/block**, 32.5 to 1,590.1<!-- /GEN -->) and the strategic evacuation backlog (<!-- GEN cell:long_horizon_stability|Strategic evacuation backlog|High intensity|full -->**drifting, +12.4%/block**, 68.8 to 1,850.7<!-- /GEN -->). The R2B holding bed queue at high intensity was classified as converged, at <!-- GEN cell:long_horizon_stability|R2B holding bed queue|High intensity|full -->converged at 32.6<!-- /GEN -->. No response at moderate intensity was classified as drifting; the R2E operating theatre queue was <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|Moderate intensity|full -->converged at 3.27<!-- /GEN --> and the R2B holding bed queue <!-- GEN cell:long_horizon_stability|R2B holding bed queue|Moderate intensity|full -->converged at 4.73<!-- /GEN -->.
+
+### Demand, Utilisation and Shortfall per Day
+
+**Question.** How much more demand does the high-intensity profile place on the system than the moderate-intensity one, how fully is each R2E pool used over the closing 90 days, and at what rate does a pool fall behind where it has not settled? `[moderate_intensity and high_intensity · 360 d · 30 replications · closing 90 d and the late half of the campaign]`
+
+<!-- GEN load_demand -->
+| Demand measure | Moderate intensity | High intensity | Ratio |
+|---|---|---|---|
+| Wounded in action/run | 2,345.5 [2,275.9, 2,415.2] | 8,365.9 [8,238.8, 8,493.0] | 3.57× |
+| R2B and R2E first surgeries/run | 2,291.8 [2,242.9, 2,340.6] | 5,115.8 [5,082.0, 5,149.6] | 2.23× |
+| Post-definitive recovery dispositions/run | 3,149.6 [3,097.3, 3,202.0] | 5,674.4 [5,640.6, 5,708.3] | 1.80× |
+<!-- /GEN -->
+
+The wounded in action rose <!-- GEN cell:load_demand|Wounded in action/run|Ratio|full -->3.57×<!-- /GEN -->, the first surgeries at R2B and R2E <!-- GEN cell:load_demand|R2B and R2E first surgeries/run|Ratio|full -->2.23×<!-- /GEN --> and the post-definitive recovery dispositions <!-- GEN cell:load_demand|Post-definitive recovery dispositions/run|Ratio|full -->1.80×<!-- /GEN --> from moderate to high intensity. The surgeries and dispositions are per-campaign counts from the shipped configuration's arms of the [R2B pre-open hold window](#r2b-pre-open-hold-window) and [evacuation policy](#evacuation-policy) experiments, and the total casualties are in the [comparative scenario analysis](#comparative-scenario-analysis).
+
+<!-- GEN load_shortfall -->
+| Pool | Moderate: shortfall per day | Moderate: utilisation | High: shortfall per day | High: utilisation |
+|---|---|---|---|---|
+| R2E operating theatres | 0.016 [−0.005, 0.037] | 49.8% [45.9%, 53.8%] | 1.629 [1.505, 1.753] | 100.0% [100.0%, 100.0%] |
+| R2E holding beds | 0.000 [−0.001, 0.001] | 44.8% [42.6%, 46.9%] | 1.459 [1.408, 1.511] | 100.0% [100.0%, 100.0%] |
+| R2E intensive care | 0.004 [−0.003, 0.012] | 87.8% [86.8%, 88.9%] | 4.954 [4.905, 5.002] | 100.0% [100.0%, 100.0%] |
+| Strategic evacuation backlog | 0.005 [−0.004, 0.014] | not applicable | 5.550 [5.499, 5.601] | not applicable |
+<!-- /GEN -->
+
+The shortfall per day is the slope of the 30-day block means over the late half of the campaign, the fit the stability classification uses, divided by the 30 days of a block; the estimator is defined in [Methods](Methods.md#classifying-stability). At moderate intensity every shortfall interval contains zero. At high intensity the R2E theatre queue grew by <!-- GEN cell:load_shortfall|R2E operating theatres|High: shortfall per day|full -->1.629 [1.505, 1.753]<!-- /GEN --> casualties a day, the holding bed queue by <!-- GEN cell:load_shortfall|R2E holding beds|High: shortfall per day|full -->1.459 [1.408, 1.511]<!-- /GEN -->, the intensive care queue by <!-- GEN cell:load_shortfall|R2E intensive care|High: shortfall per day|full -->4.954 [4.905, 5.002]<!-- /GEN --> and the strategic evacuation backlog by <!-- GEN cell:load_shortfall|Strategic evacuation backlog|High: shortfall per day|full -->5.550 [5.499, 5.601]<!-- /GEN -->. Over the closing 90 days the R2E theatres were in use <!-- GEN cell:load_shortfall|R2E operating theatres|Moderate: utilisation|full -->49.8% [45.9%, 53.8%]<!-- /GEN --> of the time at moderate intensity and <!-- GEN cell:load_shortfall|R2E operating theatres|High: utilisation|full -->100.0% [100.0%, 100.0%]<!-- /GEN --> at high, the holding beds <!-- GEN cell:load_shortfall|R2E holding beds|Moderate: utilisation|full -->44.8% [42.6%, 46.9%]<!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E holding beds|High: utilisation|full -->100.0% [100.0%, 100.0%]<!-- /GEN -->, and the intensive care beds <!-- GEN cell:load_shortfall|R2E intensive care|Moderate: utilisation|full -->87.8% [86.8%, 88.9%]<!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E intensive care|High: utilisation|full -->100.0% [100.0%, 100.0%]<!-- /GEN -->. The strategic evacuation backlog counts casualties awaiting a sortie and has no bed establishment, so it carries no utilisation.
 
 ---
 

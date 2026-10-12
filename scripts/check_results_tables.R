@@ -197,6 +197,99 @@ report(identical(res_cells(pathways[3]), c("Intensive care bed", "400", "2", "0.
 report(identical(res_cells(pathways[4]), c("Holding bed", "4,000", "8", "0.20%")),
        "the holding pathway pools its counts and rate over the enabled arm only: %s", pathways[4])
 
+# The shortfall per day and utilisation estimators, on inputs computable by hand: a
+# slope of 30 casualties per 30-day block is one a day, and the closing mean of a
+# series is taken over its last days within each replication.
+sf <- res_shortfall_per_day(30, 15, 45)
+report(isTRUE(all.equal(unname(sf), c(1, 0.5, 1.5))),
+       "a slope of 30 per 30-day block is 1 a day, with its interval scaled alike: %s",
+       paste(sf, collapse = ", "))
+report(isTRUE(all.equal(unname(res_shortfall_per_day(5, 5, 5, block_days = 10)), rep(0.5, 3))),
+       "the shortfall per day divides by the block length it is given")
+ti <- res_t_interval(c(1, 2, 3))
+report(isTRUE(all.equal(unname(ti), c(2, 2 - 4.302653 / sqrt(3), 2 + 4.302653 / sqrt(3)),
+                        tolerance = 1e-6)),
+       "the Student t interval of 1, 2, 3 is 2 plus or minus t(0.975, 2) / sqrt(3)")
+report(identical(unname(res_t_interval(c(4, 4))), c(4, 4, 4)),
+       "a sample with no spread has a degenerate interval at its mean")
+toy_series <- data.frame(day = rep(1:4, 2), value = c(1, 2, 3, 4, 10, 20, 30, 40),
+                         replication = rep(1:2, each = 4))
+report(isTRUE(all.equal(res_closing_means(toy_series, closing_days = 2), c(3.5, 35))),
+       "the closing mean is taken over the last days of each replication separately")
+
+dir.create(file.path(toy_dir, "long_horizon"), showWarnings = FALSE)
+dir.create(file.path(toy_dir, "scenarios"), showWarnings = FALSE)
+pools <- list(c("mean_queue", "R2E operating theatres"), c("mean_queue", "R2E holding beds"),
+              c("mean_queue", "R2E intensive care"), c("evac_backlog", "system"))
+write.csv(do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
+  do.call(rbind, lapply(pools, function(q) {
+    data.frame(series = q[1], subject = q[2], slope = 60, ci_lower = 30, ci_upper = 90,
+               scenario = p)
+  }))
+})), file.path(toy_dir, "long_horizon", "long_horizon_stability.csv"), row.names = FALSE)
+occ <- do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
+  do.call(rbind, lapply(c("R2E operating theatres", "R2E holding beds", "R2E intensive care"),
+                        function(sub) {
+    data.frame(day = rep(1:3, 3), series = "occupancy", subject = sub,
+               value = rep(c(0.5, 0.6, 0.7), each = 3), replication = rep(1:3, each = 3),
+               scenario = p)
+  }))
+}))
+gz <- gzfile(file.path(toy_dir, "long_horizon", "long_horizon_series.csv.gz"), "w")
+write.csv(occ, gz, row.names = FALSE)
+close(gz)
+shortfall <- build_load_shortfall(toy_dir)
+cells <- res_cells(shortfall[3])
+report(identical(cells[2], "2.000 [1.000, 3.000]"),
+       "the shortfall cell prints the slope per day and its interval: %s", cells[2])
+report(startsWith(cells[3], "60.0% ["),
+       "utilisation is the mean of the per-replication closing means: %s", cells[3])
+report(identical(res_cells(shortfall[6])[3], "not applicable"),
+       "the evacuation backlog carries no utilisation")
+report(length(shortfall) == 6L, "the shortfall table has the four pools (%d lines)",
+       length(shortfall))
+
+write.csv(data.frame(scenario = rep(SCENARIO_PROFILES, each = 1), metric = "wia_count",
+                     mean = c(100, 350), ci_lower = c(90, 340), ci_upper = c(110, 360)),
+          file.path(toy_dir, "scenarios", "scenario_comparison_totals.csv"), row.names = FALSE)
+for (sfx in c("", "_high_intensity")) {
+  k <- if (nzchar(sfx)) 2 else 1
+  write.csv(data.frame(window_min = 60, r2b_surgeries = 100 * k, r2e_first_surgeries = 200 * k,
+                       replication = 1:3),
+            file.path(toy_dir, "hold_window", paste0("hold_window_replications", sfx, ".csv")),
+            row.names = FALSE)
+}
+write.csv(data.frame(policy_days = c(21, 21, 15), hold_beds = NA, dispositions = c(1000, 1000, 5),
+                     replication = 1:3),
+          file.path(toy_dir, "policy", "policy_sweep_replications.csv"), row.names = FALSE)
+write.csv(data.frame(policy_days = c(21, 21, 21, 60), hold_beds = c(30, 30, 90, 30),
+                     dispositions = c(2000, 2000, 7, 9), replication = c(1, 2, 1, 1)),
+          file.path(toy_dir, "policy", "establishment_sweep_high_intensity_replications.csv"),
+          row.names = FALSE)
+demand <- build_load_demand(toy_dir)
+report(identical(res_cells(demand[3])[4], "3.50\u00d7"),
+       "the wounded-in-action ratio is the ratio of the means: %s", res_cells(demand[3])[4])
+report(identical(res_cells(demand[4])[2:4], c("300.0 [300.0, 300.0]", "600.0 [600.0, 600.0]",
+                                              "2.00\u00d7")),
+       "the surgeries sum the two echelons per replication in the shipped-window arm: %s",
+       paste(res_cells(demand[4])[2:4], collapse = " / "))
+report(identical(res_cells(demand[5])[4], "2.00\u00d7") &&
+         identical(res_cells(demand[5])[2], "1,000.0 [1,000.0, 1,000.0]"),
+       "the dispositions are those of the shipped policy and establishment only: %s",
+       paste(res_cells(demand[5]), collapse = " / "))
+
+# The prose beside the shortfall table says every moderate-intensity shortfall interval
+# contains zero; that sentence is typed, so it is asserted against the table.
+real_short <- build_load_shortfall(RESULTS_DATA_DIR)
+moderate_cells <- vapply(real_short[-(1:2)], function(l) res_cells(l)[2], character(1))
+spans_zero <- vapply(moderate_cells, function(cell) {
+  b <- as.numeric(gsub("\u2212", "-", regmatches(cell, gregexpr("-?\u2212?[0-9.]+", cell))[[1]]))
+  length(b) == 3L && b[2] <= 0 && b[3] >= 0
+}, logical(1))
+report(all(spans_zero),
+       "every moderate-intensity shortfall interval contains zero, as the prose states: %s",
+       paste(moderate_cells, collapse = " / "))
+
 # ── 4. Nothing outside a span states a figure or an interpretation ──────────
 
 cat("\n-- the document states no figure outside a span and no recommendation --\n")

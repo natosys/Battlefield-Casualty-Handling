@@ -246,6 +246,149 @@ build_long_horizon_stability <- function(data_dir) {
   res_table(c("Response", "Moderate intensity", "High intensity"), rows)
 }
 
+#' Length of a stability block and of the closing window, in days
+#'
+#' @details The block length is the sustained-operations protocol's, so the slope
+#'   a stability classification reports per block converts to a rate per day
+#'   by dividing by it; the closing window is the one every pool figure of this
+#'   paper is measured over.
+LOAD_BLOCK_DAYS <- 30L
+
+#' Days of the closing window utilisation is measured over
+LOAD_CLOSING_DAYS <- 90L
+
+#' Mean and Student t interval of a sample
+#'
+#' @param x A numeric vector of per-replication values.
+#' @return A named vector of `mean`, `lower` and `upper`; the interval is the
+#'   95% Student t one about the mean, and degenerate to the mean for a sample
+#'   with no spread.
+res_t_interval <- function(x) {
+  n <- length(x)
+  m <- mean(x)
+  half <- if (n > 1L && sd(x) > 0) qt(0.975, n - 1L) * sd(x) / sqrt(n) else 0
+  c(mean = m, lower = m - half, upper = m + half)
+}
+
+#' A late-campaign slope as a shortfall per day
+#'
+#' @param slope Slope of the block means over the late half of the campaign, in
+#'   casualties per block.
+#' @param lower,upper Bounds of the interval on that slope.
+#' @param block_days Block length in days.
+#' @return A named vector of `mean`, `lower` and `upper` in casualties per day.
+#'
+#' @details A queue whose block means rise by `slope` casualties from one block
+#'   to the next is growing by `slope / block_days` casualties a day, which is
+#'   the throughput the pool is short by while it grows. The interval is the
+#'   slope's own, scaled by the same divisor.
+res_shortfall_per_day <- function(slope, lower, upper, block_days = LOAD_BLOCK_DAYS) {
+  c(mean = slope / block_days, lower = lower / block_days, upper = upper / block_days)
+}
+
+#' Per-replication mean of a daily series over the closing window
+#'
+#' @param series The long-horizon daily series restricted to one response.
+#' @param closing_days Days in the closing window.
+#' @return One mean per replication over the last `closing_days` days of the
+#'   campaign.
+res_closing_means <- function(series, closing_days = LOAD_CLOSING_DAYS) {
+  last <- max(series$day)
+  inside <- series[series$day > last - closing_days, ]
+  as.numeric(tapply(inside$value, inside$replication, mean))
+}
+
+#' Shortfall per day and utilisation of each R2E pool and the evacuation backlog
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details The shortfall per day is the late-half slope of the 30-day block means
+#'   that the stability classification fits, divided by the block length, with the
+#'   slope's own 95% interval. Utilisation is the occupancy averaged over the
+#'   closing 90 days within each replication, summarised by a Student t interval
+#'   across replications. The strategic evacuation backlog is a count of
+#'   casualties awaiting a sortie and has no bed establishment, so it carries no
+#'   utilisation.
+build_load_shortfall <- function(data_dir) {
+  st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
+  series <- res_read("long_horizon/long_horizon_series.csv.gz", data_dir)
+  spec <- list(
+    list("R2E operating theatres", "mean_queue", "R2E operating theatres", TRUE),
+    list("R2E holding beds", "mean_queue", "R2E holding beds", TRUE),
+    list("R2E intensive care", "mean_queue", "R2E intensive care", TRUE),
+    list("Strategic evacuation backlog", "evac_backlog", "system", FALSE)
+  )
+  rows <- lapply(spec, function(s) {
+    cells <- unlist(lapply(SCENARIO_PROFILES, function(p) {
+      r <- st[st$scenario == p & st$series == s[[2]] & st$subject == s[[3]], ]
+      if (nrow(r) != 1L) {
+        stop(sprintf("expected one stability row for %s %s under %s, found %d", s[[2]], s[[3]],
+                     p, nrow(r)), call. = FALSE)
+      }
+      f <- res_shortfall_per_day(r$slope, r$ci_lower, r$ci_upper)
+      f[abs(f) < 0.0005] <- 0
+      use <- if (s[[4]]) {
+        o <- series[series$scenario == p & series$series == "occupancy" &
+                      series$subject == s[[3]], ]
+        if (nrow(o) == 0L) stop(sprintf("no occupancy series for %s under %s", s[[3]], p),
+                                call. = FALSE)
+        u <- res_t_interval(res_closing_means(o))
+        res_ci(u[["mean"]], u[["lower"]], min(u[["upper"]], 1), dp = 1L, scale = 100, unit = "%")
+      } else "not applicable"
+      c(res_ci(f[["mean"]], f[["lower"]], f[["upper"]], dp = 3L), use)
+    }))
+    c(s[[1]], cells)
+  })
+  res_table(c("Pool", "Moderate: shortfall per day", "Moderate: utilisation",
+              "High: shortfall per day", "High: utilisation"), rows)
+}
+
+#' Demand ratios between the two casualty intensities
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the wounded in action, the first surgeries at R2B and
+#'   R2E, and the post-definitive recovery dispositions per campaign at each
+#'   intensity, with their ratio.
+#'
+#' @details The surgeries and dispositions are per-replication counts from the
+#'   shipped configuration's arm of the tracked hold window and evacuation policy
+#'   evidence, summarised by a Student t interval; the wounded in action are the
+#'   comparative scenario analysis's.
+build_load_demand <- function(data_dir) {
+  tot <- res_read("scenarios/scenario_comparison_totals.csv", data_dir)
+  hw <- lapply(c("", "_high_intensity"), function(sfx) {
+    r <- res_read(res_file("hold_window/hold_window_replications", sfx), data_dir)
+    r <- r[r$window_min == 60, ]
+    r$r2b_surgeries + r$r2e_first_surgeries
+  })
+  pol <- list(res_read("policy/policy_sweep_replications.csv", data_dir),
+              res_read("policy/establishment_sweep_high_intensity_replications.csv", data_dir))
+  disp <- lapply(pol, function(r) {
+    r <- r[r$policy_days == 21 & (is.na(r$hold_beds) | r$hold_beds == 30), ]
+    r$dispositions
+  })
+  wia <- lapply(SCENARIO_PROFILES, function(p) {
+    x <- tot[tot$metric == "wia_count" & tot$scenario == p, ]
+    c(mean = x$mean, lower = x$ci_lower, upper = x$ci_upper)
+  })
+  #' One row of the demand table
+  #'
+  #' @param label Row label.
+  #' @param ints List of two interval vectors, moderate then high.
+  #' @return The row's four cells.
+  one <- function(label, ints) {
+    c(label, vapply(ints, function(i) {
+      res_ci(i[["mean"]], i[["lower"]], i[["upper"]], dp = 1L, big = TRUE)
+    }, character(1)), sprintf("%.2f×", ints[[2]][["mean"]] / ints[[1]][["mean"]]))
+  }
+  res_table(c("Demand measure", "Moderate intensity", "High intensity", "Ratio"),
+            list(one("Wounded in action/run", wia),
+                 one("R2B and R2E first surgeries/run", lapply(hw, res_t_interval)),
+                 one("Post-definitive recovery dispositions/run",
+                     lapply(disp, res_t_interval))))
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -1463,6 +1606,8 @@ RESULTS_TABLES <- list(
   scenario_totals = build_scenario_totals,
   scenario_queue = build_scenario_queue,
   long_horizon_stability = build_long_horizon_stability,
+  load_demand = build_load_demand,
+  load_shortfall = build_load_shortfall,
   hold_threshold_beds = function(dd) build_hold_threshold(dd, "beds"),
   hold_threshold_threshold = function(dd) build_hold_threshold(dd, "threshold"),
   hold_window = build_hold_window,

@@ -25,7 +25,8 @@
 # every lever the results paper reports and labels each; and that no design or
 # provenance content has crept back in. It also asserts that the half-widths
 # behind the resolution table are the ones the experiments' own scripts sized
-# their replication counts against.
+# their replication counts against, and that no comparison it lists as
+# unresolved has an interval excluding zero.
 
 invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
 
@@ -225,6 +226,22 @@ if (length(at) == 1L) {
 # ── 4. The resolution table's half-widths are the experiments' own ──────────
 
 cat("\n-- the resolution table's half-widths are those the experiments sized against --\n")
+
+#' A document with one resolved comparison typed into its resolution table
+#'
+#' @param doc The document as one string.
+#' @return The document with a row whose interval excludes zero appended to the table.
+inject_resolved_row <- function(doc) {
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
+}
+open_rows <- res_resolution_excluding_zero(text)
+report(length(open_rows) == 0L,
+       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       paste(open_rows, collapse = "; "))
+report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
+       "a row whose interval excludes zero, injected into the table, is caught")
+
 
 for (spec in RESOLUTION_ROWS) {
   stated <- script_half_width(HALF_WIDTH_SCRIPTS[[spec[[1]]]], spec[[2]])

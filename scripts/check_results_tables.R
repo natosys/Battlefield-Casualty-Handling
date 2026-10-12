@@ -21,7 +21,9 @@
 # correct on inputs whose answers are computable by hand (so a document agreeing
 # with its builders is not two copies of one error), and that nothing in
 # Results.md states a figure outside a span or an interpretation the document
-# disclaims. The protocol checks read the tables this document prints, so each
+# disclaims. It also asserts that the resolution table lists no comparison
+# whose interval excludes zero, such a comparison being resolved rather than
+# open. The protocol checks read the tables this document prints, so each
 # experiment's table is asserted against its tracked evidence there.
 
 invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
@@ -157,6 +159,33 @@ report(identical(res_cells(resolution[3]),
        resolution[3])
 report(inherits(try(build_resolution(file.path(toy_dir, "missing")), silent = TRUE), "try-error"),
        "a resolution table over absent evidence is an error rather than an empty table")
+
+hold <- read.csv(file.path(toy_dir, "hold_window", "hold_window_paired.csv"))
+hold[hold$response == "r2e_first_surgeries", c("ci_lower", "ci_upper")] <- c(0.1, 0.9)
+write.csv(hold, file.path(toy_dir, "hold_window", "hold_window_paired.csv"), row.names = FALSE)
+split_open <- build_resolution(toy_dir)
+split_shut <- build_resolved(toy_dir)
+report(length(split_open) == length(RESOLUTION_ROWS) + 1L &&
+         !any(grepl("R2E first surgeries", split_open, fixed = TRUE)),
+       "a comparison whose interval excludes zero leaves the resolution table")
+report(identical(split_shut[3], "| Hold window, R2E first surgeries | +0.50 [+0.10, +0.90] |") &&
+         length(split_shut) == 3L,
+       "and is printed in the resolved table alone: %s", split_shut[3])
+
+#' A document with one resolved comparison typed into its resolution table
+#'
+#' @param doc The document as one string.
+#' @return The document with a row whose interval excludes zero appended to the table.
+inject_resolved_row <- function(doc) {
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
+}
+open_rows <- res_resolution_excluding_zero(text)
+report(length(open_rows) == 0L,
+       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       paste(open_rows, collapse = "; "))
+report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
+       "a row whose interval excludes zero, injected into the table, is caught")
 
 write.csv(data.frame(gate_enabled = c(1, 1, 0), icu_pathway_n = c(100, 300, 5),
                      icu_pathway_dow = c(1, 1, 0), hold_pathway_n = c(1000, 3000, 7),

@@ -877,26 +877,100 @@ RESOLUTION_ROWS <- list(
        "Saturation release at 8, returns to duty")
 )
 
-#' Resolution of the paired differences the experiments leave open
+#' Every paired comparison the resolution tables draw on, read from its evidence
 #'
 #' @param data_dir The data directory.
-#' @return The table lines: each difference with its interval, the half-width its
-#'   experiment sized it against, and the replications that half-width requires.
-build_resolution <- function(data_dir) {
-  rows <- lapply(RESOLUTION_ROWS, function(r) {
+#' @return One list per entry of `RESOLUTION_ROWS`, holding the entry (`spec`) and its
+#'   single paired-difference row (`hit`).
+res_resolution_hits <- function(data_dir) {
+  lapply(RESOLUTION_ROWS, function(r) {
     p <- res_read(r[[1]], data_dir)
     hit <- p[p$response == r[[2]] & p$from == r[[4]] & p$to == r[[5]], ]
     if (nrow(hit) != 1L) {
       stop(sprintf("expected one '%s' paired row from %s to %s in %s, found %d", r[[2]], r[[4]],
                    r[[5]], r[[1]], nrow(hit)), call. = FALSE)
     }
-    c(r[[7]],
-      sprintf("%s [%s, %s]", res_num(hit$difference, 2L, plus = TRUE),
-              res_num(hit$ci_lower, 2L, plus = TRUE), res_num(hit$ci_upper, 2L, plus = TRUE)),
-      res_num(r[[6]], 1L), res_num(hit$reps_needed, 0L, big = TRUE))
+    list(spec = r, hit = hit)
+  })
+}
+
+#' Whether a paired difference's interval contains zero
+#'
+#' @param hit One paired-difference row.
+#' @return TRUE where the 95% interval spans zero, so the difference is not resolved.
+res_spans_zero <- function(hit) {
+  hit$ci_lower <= 0 && hit$ci_upper >= 0
+}
+
+#' A paired difference and its interval as one cell
+#'
+#' @param hit One paired-difference row.
+#' @return The cell text, signed to two decimal places.
+res_paired_cell <- function(hit) {
+  sprintf("%s [%s, %s]", res_num(hit$difference, 2L, plus = TRUE),
+          res_num(hit$ci_lower, 2L, plus = TRUE), res_num(hit$ci_upper, 2L, plus = TRUE))
+}
+
+#' Resolution of the paired differences the experiments leave open
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: each difference whose interval contains zero, with the
+#'   half-width its experiment sized it against and the replications that half-width
+#'   requires.
+#'
+#' @details A comparison whose interval excludes zero is resolved at the replications
+#'   run, so it is left out here and printed by `build_resolved()` instead. The split is
+#'   taken from the evidence on every render, so a re-run that resolves a difference
+#'   moves it between the tables rather than leaving it listed as open.
+build_resolution <- function(data_dir) {
+  hits <- Filter(function(h) res_spans_zero(h$hit), res_resolution_hits(data_dir))
+  rows <- lapply(hits, function(h) {
+    c(h$spec[[7]], res_paired_cell(h$hit), res_num(h$spec[[6]], 1L),
+      res_num(h$hit$reps_needed, 0L, big = TRUE))
   })
   res_table(c("Comparison", "Paired difference", "Half-width sought", "Replications needed"),
             rows)
+}
+
+#' The paired differences the experiments resolved
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: each comparison of `RESOLUTION_ROWS` whose 95% interval
+#'   excludes zero, with its difference and interval.
+build_resolved <- function(data_dir) {
+  hits <- Filter(function(h) !res_spans_zero(h$hit), res_resolution_hits(data_dir))
+  rows <- lapply(hits, function(h) c(h$spec[[7]], res_paired_cell(h$hit)))
+  res_table(c("Comparison", "Paired difference"), rows)
+}
+
+#' Rows of a printed resolution table whose interval excludes zero
+#'
+#' @param text A document as one string.
+#' @param span The name of the generated span holding the table.
+#' @return The comparison labels of every row whose printed interval excludes zero;
+#'   empty where every interval contains it. An error where the span is absent.
+#'
+#' @details Reads the interval as the document prints it rather than from the
+#'   evidence, so a row typed or rendered into the table is caught whatever produced it.
+res_resolution_excluding_zero <- function(text, span = "resolution") {
+  open <- sprintf("<!-- GEN %s -->", span)
+  at <- regexpr(open, text, fixed = TRUE)
+  if (at < 0L) stop(sprintf("no '%s' span in the document", span), call. = FALSE)
+  body <- substr(text, at + nchar(open), nchar(text))
+  body <- substr(body, 1L, regexpr("<!-- /GEN -->", body, fixed = TRUE) - 1L)
+  lines <- strsplit(trimws(body), "\n")[[1]]
+  rows <- lapply(lines[-(1:2)], res_cells)
+  #' Parse one printed bound
+  #'
+  #' @param x The bound as printed, signed with a plus or a minus sign.
+  #' @return The bound as a numeric.
+  bound <- function(x) as.numeric(gsub(",", "", gsub("\u2212", "-", sub("^\\+", "", x))))
+  out <- character(0)
+  for (r in rows) {
+    ci <- regmatches(r[2], regexec("\\[([^]]+), ([^]]+)\\]", r[2]))[[1]]
+    if (length(ci) != 3L || bound(ci[2]) > 0 || bound(ci[3]) < 0) out <- c(out, r[1])
+  }
+  out
 }
 
 #' Morris elementary effects ranking, leading parameters
@@ -1436,6 +1510,7 @@ RESULTS_TABLES <- list(
   role4_levers_saturation = function(dd) build_role4_levers(dd, "saturation"),
   role4_levers_cancellation = function(dd) build_role4_levers(dd, "cancellation"),
   resolution = build_resolution,
+  resolved = build_resolved,
   morris_top = build_morris_top,
   sobol = build_sobol,
   dow_calibration = build_dow_calibration,

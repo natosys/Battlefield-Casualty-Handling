@@ -2098,11 +2098,13 @@ build_scenario_labels <- function() {
   # The dropdown's own naming, overriding env_data.json's canonical scenario
   # labels for display only. The shipped default is the moderate-intensity
   # Falklands calibration; "high_intensity" overlays Okinawa casualty rates
-  # and its own died-of-wounds model. A scenario id absent from this map
+  # and its own died-of-wounds model; "high_intensity_modern_care" keeps those
+  # casualty rates under the shipped treatment model. A scenario id absent from this map
   # falls back to its own env_data.json label.
   SCENARIO_DROPDOWN_LABELS <- c(
     default         = "Moderate Intensity",
-    high_intensity  = "High Intensity"
+    high_intensity  = "High Intensity",
+    high_intensity_modern_care = "High Intensity, Modern Care"
   )
   list(
     SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,

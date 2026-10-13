@@ -141,6 +141,15 @@ res_sweep_table <- function(d, header, arms, rows) {
 #' The two scenario profiles the comparative tables compare
 SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 
+#' The profile that separates the care era from the casualty load
+#'
+#' @details Carries the high-intensity casualty generators under the shipped
+#'   treatment model. The three comparative tables print it after their ratio
+#'   column, so the two-profile columns they have always printed keep their
+#'   positions; the difference between it and `high_intensity` is the care era,
+#'   and the difference between it and `moderate_intensity` is the load.
+SCENARIO_CARE_PROFILE <- "high_intensity_modern_care"
+
 #' Comparative scenario totals table
 #'
 #' @param data_dir The data directory.
@@ -159,24 +168,38 @@ build_scenario_totals <- function(data_dir) {
     list("Died of wounds/run", "dow_count", 2L, 1, FALSE, 1L),
     list("Died of wounds, as share of wounded", "dow_rate", 2L, 100, TRUE, 2L)
   )
+  #' One totals cell: the mean with its interval, and the p10 to p90 band for a count
+  #'
+  #' @param s One row of `spec`.
+  #' @param p The scenario profile.
+  #' @return The cell text.
+  total_cell <- function(s, p) {
+    x <- pick(s[[2]], p)
+    base <- res_ci(x$mean, x$ci_lower, x$ci_upper, dp = s[[3]], scale = s[[4]], big = TRUE,
+                   unit = if (s[[5]]) "%" else "")
+    if (s[[5]]) return(base)
+    #' Format a p10 to p90 bound, printing zero as `0`
+    #'
+    #' @param v A value.
+    #' @return The formatted bound.
+    f <- function(v) if (v == 0) "0" else res_num(v, 1L, big = TRUE)
+    sprintf("%s (p10–p90: %s–%s)", base, f(x$p10), f(x$p90))
+  }
+  #' One totals cell of the profile that separates the care era from the load
+  #'
+  #' @param s One row of `spec`.
+  #' @return The cell text.
+  care_cell <- function(s) total_cell(s, SCENARIO_CARE_PROFILE)
   rows <- lapply(spec, function(s) {
-    cells <- vapply(SCENARIO_PROFILES, function(p) {
-      x <- pick(s[[2]], p)
-      base <- res_ci(x$mean, x$ci_lower, x$ci_upper, dp = s[[3]], scale = s[[4]], big = TRUE,
-                     unit = if (s[[5]]) "%" else "")
-      if (s[[5]]) return(base)
-      #' Format a p10 to p90 bound, printing zero as `0`
-      #'
-      #' @param v A value.
-      #' @return The formatted bound.
-      f <- function(v) if (v == 0) "0" else res_num(v, 1L, big = TRUE)
-      sprintf("%s (p10–p90: %s–%s)", base, f(x$p10), f(x$p90))
-    }, character(1))
+    cells <- vapply(SCENARIO_PROFILES, function(p) total_cell(s, p), character(1))
     a <- pick(s[[2]], SCENARIO_PROFILES[1])$mean
     b <- pick(s[[2]], SCENARIO_PROFILES[2])$mean
-    c(s[[1]], cells, sprintf("%.*f×", s[[6]], b / a))
+    m <- pick(s[[2]], SCENARIO_CARE_PROFILE)$mean
+    c(s[[1]], cells, sprintf("%.*f×", s[[6]], b / a), care_cell(s),
+      sprintf("%.*f×", s[[6]], m / a))
   })
-  res_table(c("Metric", "Moderate intensity", "High intensity", "Ratio"), rows)
+  res_table(c("Metric", "Moderate intensity", "High intensity", "Ratio",
+              "High intensity, modern care", "Ratio, modern care"), rows)
 }
 
 #' Comparative scenario queue table
@@ -196,10 +219,15 @@ build_scenario_queue <- function(data_dir) {
     }, character(1))
     ratio <- if (x[[1]]$mean_q == 0) "not applicable" else
       sprintf("%.2f×", x[[2]]$mean_q / x[[1]]$mean_q)
-    c(g[1], cells, ratio)
+    m <- d[d$group == g[2] & d$scenario == SCENARIO_CARE_PROFILE, ]
+    care <- sprintf("%s [%s, %s]", res_num(m$mean_q, 3L, big = TRUE),
+                    res_num(m$ci_lower, 3L, big = TRUE), res_num(m$ci_upper, 3L, big = TRUE))
+    care_ratio <- if (x[[1]]$mean_q == 0) "not applicable" else
+      sprintf("%.2f×", m$mean_q / x[[1]]$mean_q)
+    c(g[1], cells, ratio, care, care_ratio)
   })
   res_table(c("Resource group", "Moderate intensity mean queue", "High intensity mean queue",
-              "Ratio"), rows)
+              "Ratio", "High intensity, modern care mean queue", "Ratio, modern care"), rows)
 }
 
 #' Sustained-horizon stability classification table
@@ -769,7 +797,8 @@ build_transport_holders <- function(data_dir) {
             100 * max(x$util_ci_lower, 0), 100 * min(x$util_ci_upper, 1))
   }
   rows <- lapply(unique(d$holder), function(h) {
-    x <- lapply(SCENARIO_PROFILES, function(p) d[d$holder == h & d$scenario == p, ])
+    x <- lapply(c(SCENARIO_PROFILES, SCENARIO_CARE_PROFILE),
+                function(p) d[d$holder == h & d$scenario == p, ])
     c(h, if (x[[1]]$kind == "shared") "Shared" else "Integral",
       unlist(lapply(x, function(r) {
         c(res_ci(r$q_mean, r$q_ci_lower, r$q_ci_upper, 3L, floor0 = TRUE), util(r))
@@ -777,7 +806,8 @@ build_transport_holders <- function(data_dir) {
   })
   res_table(c("Holder", "Asset", "Moderate intensity mean queue",
               "Moderate intensity utilisation", "High intensity mean queue",
-              "High intensity utilisation"), rows)
+              "High intensity utilisation", "High intensity, modern care mean queue",
+              "High intensity, modern care utilisation"), rows)
 }
 
 #' Forward holding frontier table

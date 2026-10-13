@@ -193,7 +193,8 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
            is_shipped = arm == shipped)
   ggplot(plot_df, aes(x = arm, y = mean, colour = is_shipped)) +
     geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), size = 0.5) +
-    facet_grid(panel ~ intensity, scales = "free_y") +
+    facet_wrap(~ panel + intensity, ncol = 2, scales = "free_y",
+               labeller = label_wrap_gen(30, multi_line = FALSE)) +
     scale_colour_manual(name = NULL, values = c(`TRUE` = FIGURE_SHIPPED_COLOUR,
                                                 `FALSE` = FIGURE_MEAN_COLOUR),
                         labels = c(`TRUE` = "Shipped establishment",
@@ -203,7 +204,7 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
                             unique(plot_df$n_reps)),
          x = "Surgical sections at R2E and per R2B unit", y = NULL) +
     theme_minimal(base_size = 12) +
-    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"),
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold", size = 9),
           axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "bottom")
 }
 

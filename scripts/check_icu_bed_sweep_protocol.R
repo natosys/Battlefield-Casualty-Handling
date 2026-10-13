@@ -198,7 +198,7 @@ for (label in names(SUFFIXES)) {
     identical(sort(as.integer(r)), seq_len(ICU_BED_SWEEP_REPLICATIONS))
   }, logical(1)))
   report(numbered, "%s: replications are numbered from one in every arm", label)
-  needed <- c(ICU_BED_SWEEP_PAIRED_RESPONSES, "total_casualties")
+  needed <- c(ICU_BED_SWEEP_PAIRED_RESPONSES, "hold_occupancy", "dispositions")
   report(all(needed %in% names(rows)), "%s: the response set is present (missing: %s)", label,
          paste(setdiff(needed, names(rows)), collapse = ", "))
 

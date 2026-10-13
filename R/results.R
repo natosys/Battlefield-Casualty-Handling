@@ -2150,6 +2150,9 @@ adequacy_role4_cell <- function(data_dir, int) {
   sprintf("**Not assessed**: demand only, peak census %s beds", res_num(total, 0L, big = TRUE))
 }
 
+#' Integral evacuation holders whose worst verdict the matrix reports
+INTEGRAL_HOLDERS <- c("R2B evacuation crews", "R2E evacuation sections")
+
 #' Adequacy matrix: a verdict and its evidence for each element at each intensity
 #'
 #' @param data_dir The data directory.
@@ -2177,8 +2180,7 @@ build_adequacy_matrix <- function(data_dir) {
       cells(function(i) adequacy_holder_cell(data_dir, c("PMV Ambulance fleet", "HX2 40M fleet"),
                                              i))),
     c("Integral evacuation elements",
-      cells(function(i) adequacy_holder_cell(data_dir, c("R2B evacuation crews",
-                                                        "R2E evacuation sections"), i))),
+      cells(function(i) adequacy_holder_cell(data_dir, INTEGRAL_HOLDERS, i))),
     c("R2B surgery", cells(function(i) adequacy_r2b_surgery_cell(data_dir, i))),
     c("R2B holding", pool("R2B holding beds")),
     c("R2E theatres and surgical teams", pool("R2E operating theatres")),
@@ -2276,9 +2278,11 @@ build_adequacy_sizing <- function(data_dir) {
                              "with a second section per unit"),
                        res_num(mean(one$diverted_offshift + one$diverted_busy), 0L, big = TRUE),
                        res_num(mean(two$diverted_offshift + two$diverted_busy), 0L, big = TRUE))
-      rows[[length(rows) + 1L]] <- c(case("R2B surgery"), res_num(exported, 2L),
+      rows[[length(rows) + 1L]] <- c(
+        case("R2B surgery"), res_num(exported, 2L),
         res_num(delivered, 2L),
-        sprintf("%s of today's output", adequacy_pct(exported / delivered)), sweep)
+        sprintf("%s of today's output", adequacy_pct(exported / delivered)), sweep
+      )
     }
     if (verdict(adequacy_pool_cell(data_dir, "R2E operating theatres", int)) == "Inadequate") {
       short <- adequacy_shortfall(data_dir, "mean_queue", "R2E operating theatres", int)
@@ -2286,35 +2290,43 @@ build_adequacy_sizing <- function(data_dir) {
       delivered <- mean(base$r2e_first_surgeries) / ADEQUACY_CAMPAIGN_DAYS
       arms <- st_s[grepl("^R2E [0-9], R2B 1$", st_s$arm), ]
       units <- as.numeric(sub("^R2E ([0-9]).*$", "\\1", arms$arm))
-      rows[[length(rows) + 1L]] <- c(case("R2E theatres and surgical teams"),
+      rows[[length(rows) + 1L]] <- c(
+        case("R2E theatres and surgical teams"),
         res_num(short, 2L), res_num(delivered, 2L),
         sprintf("%s of today's output, %s extra sections", adequacy_pct(short / delivered),
                 res_num(ADEQUACY_R2E_SECTIONS * short / delivered, 1L)),
-        adequacy_sweep_text(arms, units, "sections"))
+        adequacy_sweep_text(arms, units, "sections")
+      )
     }
     if (verdict(adequacy_pool_cell(data_dir, "R2E intensive care", int)) == "Inadequate") {
       short <- adequacy_shortfall(data_dir, "mean_queue", "R2E intensive care", int)
       ib <- res_read(res_file("icu_beds/icu_bed_sweep_stability", sfx), data_dir)
       ib <- ib[ib$pool == "R2E intensive care", ]
       units <- as.numeric(sub("^([0-9]+) beds$", "\\1", ib$arm))
-      rows[[length(rows) + 1L]] <- c(case("R2E intensive care"), res_num(short, 2L),
+      rows[[length(rows) + 1L]] <- c(
+        case("R2E intensive care"), res_num(short, 2L),
         "not measured per bed", "not estimable from a per-bed throughput; see sweep",
-        adequacy_sweep_text(ib, units, "beds"))
+        adequacy_sweep_text(ib, units, "beds")
+      )
     }
     if (verdict(adequacy_pool_cell(data_dir, "R2E holding beds", int)) == "Inadequate") {
       short <- adequacy_shortfall(data_dir, "mean_queue", "R2E holding beds", int)
-      rows[[length(rows) + 1L]] <- c(case("R2E holding"), res_num(short, 2L),
+      rows[[length(rows) + 1L]] <- c(
+        case("R2E holding"), res_num(short, 2L),
         "not measured per bed", "not estimable from a per-bed throughput",
-        "Untested: the holding establishment by policy grid at this intensity awaits measurement")
+        "Untested: the holding establishment by policy grid at this intensity awaits measurement"
+      )
     }
     if (verdict(adequacy_airlift_cell(data_dir, int)) == "Inadequate") {
       short <- adequacy_shortfall(data_dir, "evac_backlog", "system", int)
       per_stream <- ADEQUACY_PLACES_PER_SORTIE / ADEQUACY_SORTIE_INTERVAL_DAYS
-      rows[[length(rows) + 1L]] <- c(case("Strategic airlift"), res_num(short, 2L),
+      rows[[length(rows) + 1L]] <- c(
+        case("Strategic airlift"), res_num(short, 2L),
         res_num(per_stream, 2L),
         sprintf("%s extra sortie streams of one sortie per interval",
                 res_num(short / per_stream, 1L)),
-        "Untested: the sortie interval, policy and holding grid awaits measurement here")
+        "Untested: the sortie interval, policy and holding grid awaits measurement here"
+      )
     }
   }
   res_table(c("Case", "Shortfall per day", "Delivered per day", "Estimated uplift",

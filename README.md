@@ -437,8 +437,6 @@ The following table summarises the medical elements configured in `env_data.json
 | R2B | 2 | OT (1); Resus (2); ICU (2); Hold (5) | NA | Anesthetist (1), Surgeon (2), Medic (1) | Facem (1), Nurse (3), Medic (1) | Nurse (2), Medic (2) | Medic (2) |
 | R2EHEAVY | 1 | OT (2); Resus (4); ICU (4); Hold (30) | NA | Anesthetist (1), Surgeon (2), Nurse (4) | Facem (1), Nurse (3), Medic (1) | Intensivist (1), Nurse (4) | Medic (2) |
 
-An intensive care stay at R2E seizes the bed alone: the stabilisation, post-operative and pre-flight stays take no member of the intensive care section, so the pool is limited by `elms.r2eheavy.beds.icu.qty` and not by the section's staff, and the nurses per bed the establishment implies is a cost the model does not charge. The [results paper](docs/Results.md#r2e-intensive-care-bed-establishment) reports what additional beds buy.
-
 #### Surgical Shift Roster
 
 One shift length rosters every surgical section in the theatre, at R2B and R2E alike. It sets the first shift's length; the second covers the remainder of the 24-hour day. See [Schedules and Rosters](#schedules-and-rosters) for how the sections alternate across the two shifts.
@@ -457,6 +455,8 @@ These are the available transport platforms and their characteristics:
 | HX240M | 4 | 50 |
 
 <!-- ENV SUMMARY END -->
+
+An intensive care stay at R2E seizes the bed alone: the stabilisation, post-operative and pre-flight stays take no member of the intensive care section, so the pool is limited by `elms.r2eheavy.beds.icu.qty` and not by the section's staff, and the nurses per bed the establishment implies is a cost the model does not charge. The [results paper](docs/Results.md#r2e-intensive-care-bed-establishment) reports what additional beds buy.
 
 ### Schedules and Rosters
 

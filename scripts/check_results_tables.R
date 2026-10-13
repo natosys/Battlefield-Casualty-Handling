@@ -75,7 +75,7 @@ spans <- regmatches(text, gregexpr(RESULTS_SPAN_PATTERN, text, perl = TRUE))[[1]
 names_used <- sub(RESULTS_SPAN_PATTERN, "\\1", spans, perl = TRUE)
 report(length(spans) > 0L, "the document carries generated spans (found %d)", length(spans))
 
-table_names <- names(RESULTS_TABLES)
+table_names <- setdiff(names(RESULTS_TABLES), PLANNING_ONLY_TABLES)
 tables_used <- names_used[!startsWith(names_used, "cell:")]
 report(all(table_names %in% tables_used),
        "every registered table is printed in the document (missing: %s)",

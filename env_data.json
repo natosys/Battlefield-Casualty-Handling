@@ -1118,6 +1118,50 @@
           ]
         }
       ]
+    },
+    "high_intensity_modern_care": {
+      "label": "High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model",
+      "source": "Blood, Zouris & Rotblatt (1998), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated), as for high_intensity; the died-of-wounds ceilings and treatment efficacy factors are those of the shipped moderate-intensity configuration (Falklands 1982 calibration paired with the shipped treatment efficacy factors), not Okinawa's",
+      "notes": "ISOLATING PROFILE, NOT A CALIBRATED ONE: high_intensity changes two things at once, the casualty generators (Okinawa) and the mortality model (the died-of-wounds ceilings and treatment efficacy factors, set to 1945-era care and calibrated to the Okinawa hospital died-of-wounds rate), so every comparison between moderate_intensity and high_intensity mixes a heavier load with an older standard of care. This profile overrides the casualty generators only, identically to high_intensity, and inherits the shipped died-of-wounds ceilings and treatment efficacy factors. The difference between high_intensity and high_intensity_modern_care therefore isolates the care era, and the difference between moderate_intensity and high_intensity_modern_care isolates the load. It is not calibrated to any historical died-of-wounds rate: the shipped ceilings were fitted to the Ajax Bay bound at the Falklands load and are applied here to a substantially heavier load, so its mortality is a load-only comparison and not a prediction of a modern peer-conflict rate. The priority split, DNBI composition and transport times are inherited from base, as for high_intensity.",
+      "vars": [
+        {
+          "elm": "generators",
+          "actys": [
+            {
+              "acty": "wia_cbt",
+              "vals": [
+                { "var": "mean_daily", "val": 6.86 },
+                { "var": "sd_daily", "val": 6.65 },
+                { "var": "distribution", "val": "exponential" }
+              ]
+            },
+            {
+              "acty": "kia_cbt",
+              "vals": [
+                { "var": "mean_daily", "val": 1.63 },
+                { "var": "sd_daily", "val": 1.73 },
+                { "var": "distribution", "val": "exponential" }
+              ]
+            },
+            {
+              "acty": "wia_spt",
+              "vals": [
+                { "var": "mean_daily", "val": 6.86 },
+                { "var": "sd_daily", "val": 6.65 },
+                { "var": "distribution", "val": "exponential" }
+              ]
+            },
+            {
+              "acty": "kia_spt",
+              "vals": [
+                { "var": "mean_daily", "val": 1.63 },
+                { "var": "sd_daily", "val": 1.73 },
+                { "var": "distribution", "val": "exponential" }
+              ]
+            }
+          ]
+        }
+      ]
     }
   }
 }

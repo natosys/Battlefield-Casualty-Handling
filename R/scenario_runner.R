@@ -49,10 +49,13 @@ SCENARIO_SEED <- 42L
 #' Scenario profiles the published comparison covers, in the order it prints them
 #'
 #' @details The two casualty intensities defined in the `scenarios` block of
-#'   `env_data.json`. The base configuration is not a third arm of this
-#'   experiment; `moderate_intensity` is the shipped campaign the rest of the
-#'   paper measures.
-SCENARIO_PROTOCOL_PROFILES <- c("moderate_intensity", "high_intensity")
+#'   `env_data.json`, and `high_intensity_modern_care`, which carries the
+#'   high-intensity casualty generators under the shipped treatment model so
+#'   that the care era and the load can be told apart. The base configuration
+#'   is not an arm of this experiment; `moderate_intensity` is the shipped
+#'   campaign the rest of the paper measures.
+SCENARIO_PROTOCOL_PROFILES <- c("moderate_intensity", "high_intensity",
+                                "high_intensity_modern_care")
 
 #' Casualty-total metrics the published totals table prints, in its row order
 SCENARIO_TOTAL_METRICS <- c("total_casualties", "wia_count", "dow_count", "dow_rate")

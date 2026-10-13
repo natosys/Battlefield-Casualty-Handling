@@ -7,3 +7,7 @@
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","wia_count",30,8365.9,7972.9,8796.5,8238.8188040785,8492.9811959215
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_count",30,277.6,259.9,295.1,272.102794111029,283.097205888971
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_rate",30,0.033185192751364,0.0319835183055938,0.034760456898677,0.0327405948431168,0.0336297906596113
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","total_casualties",30,12383.8333333333,11981.4,12809.6,12262.428267828,12505.2383988387
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","wia_count",30,8309.23333333333,7957.5,8680,8201.19636442472,8417.27030224195
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","dow_count",30,37.2666666666667,27.9,44.2,34.9566354104013,39.576697922932
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","dow_rate",30,0.00448511830614452,0.00353817196446019,0.00530822305169099,0.00420867939837778,0.00476155721391125

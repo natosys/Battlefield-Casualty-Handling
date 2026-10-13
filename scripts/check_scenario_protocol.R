@@ -362,8 +362,13 @@ leading_figure <- function(cell) {
 #' @param expected Numeric vector of the values the row's columns should print,
 #'   in the table's column order, already on the printed scale.
 #' @param digits Decimal places the paper prints the row to.
+#' @param columns The printed column of each expected value, after the label
+#'   column (default the first `length(expected)`). The table prints the
+#'   profile that separates the care era from the load after its ratio, so its
+#'   value is not in the column the order of the profiles would give.
 #' @return Invisible NULL.
-check_published_row <- function(marker, rows, label, expected, digits) {
+check_published_row <- function(marker, rows, label, expected, digits,
+                                columns = seq_along(expected)) {
   row <- rows[grepl(paste0("^\\| ", label), rows)]
   if (length(row) != 1) {
     report(FALSE, "the paper prints one '%s' row under %s (found %d)",
@@ -371,12 +376,13 @@ check_published_row <- function(marker, rows, label, expected, digits) {
     return(invisible(NULL))
   }
   cells <- table_cells(row)
-  for (k in seq_along(expected)) {
+  for (j in seq_along(expected)) {
+    k <- columns[j]
     printed <- if (k <= length(cells)) leading_figure(cells[k]) else NA_real_
-    ok <- !is.na(printed) && !is.na(expected[k]) &&
-      abs(printed - round(expected[k], digits)) < PRINT_TOL
+    ok <- !is.na(printed) && !is.na(expected[j]) &&
+      abs(printed - round(expected[j], digits)) < PRINT_TOL
     report(ok, "'%s' in column %d of %s prints %s against the data's %s",
-           label, k, marker, format(printed), format(round(expected[k], digits)))
+           label, k, marker, format(printed), format(round(expected[j], digits)))
   }
   invisible(NULL)
 }
@@ -398,9 +404,10 @@ tracked_value <- function(data, key, value, scenario, column) {
 totals_rows <- paper_table("<!-- GEN scenario_totals -->")
 if (!is.null(totals_rows) && !is.null(totals)) {
   header <- table_cells(totals_rows[1])
-  # Two intensity columns and a ratio column the paper computes from them.
-  report(length(header) == length(held_profiles) + 1,
-         "the totals table prints one column per profile and a ratio (found %d)",
+  # Two intensity columns and the ratio the paper computes from them, then the
+  # care-era profile and its own ratio against the moderate campaign.
+  report(length(header) == length(held_profiles) + 2,
+         "the totals table prints one column per profile and two ratios (found %d)",
          length(header))
 
   specs <- list(
@@ -414,15 +421,15 @@ if (!is.null(totals_rows) && !is.null(totals)) {
       spec[[3]] * tracked_value(totals, "metric", spec[[2]], s, "mean")
     }, numeric(1))
     check_published_row("<!-- GEN scenario_totals -->", totals_rows,
-                        spec[[1]], expected, spec[[4]])
+                        spec[[1]], expected, spec[[4]], columns = c(1, 2, 4))
   }
 }
 
 queue_rows <- paper_table("<!-- GEN scenario_queue -->")
 if (!is.null(queue_rows) && !is.null(groups)) {
   header <- table_cells(queue_rows[1])
-  report(length(header) == length(held_profiles) + 1,
-         "the queue table prints one column per profile and a ratio (found %d)",
+  report(length(header) == length(held_profiles) + 2,
+         "the queue table prints one column per profile and two ratios (found %d)",
          length(header))
 
   labels <- list(
@@ -438,7 +445,7 @@ if (!is.null(queue_rows) && !is.null(groups)) {
       tracked_value(groups, "group", spec[[2]], s, "mean_q")
     }, numeric(1))
     check_published_row("<!-- GEN scenario_queue -->", queue_rows,
-                        spec[[1]], expected, 3)
+                        spec[[1]], expected, 3, columns = c(1, 2, 4))
   }
 }
 
@@ -453,10 +460,11 @@ if (!is.null(holder_rows) && !is.null(holders)) {
     }))
     row <- holder_rows[grepl(paste0("^\\| ", h), holder_rows)]
     cells <- if (length(row) == 1) table_cells(row)[-1] else character(0)
-    report(length(cells) == 4, "the paper prints one '%s' row under the holders table", h)
-    if (length(cells) == 4) {
-      digits <- c(3, 1, 3, 1)
-      for (k in 1:4) {
+    n_cells <- 2 * length(held_profiles)
+    report(length(cells) == n_cells, "the paper prints one '%s' row under the holders table", h)
+    if (length(cells) == n_cells) {
+      digits <- rep(c(3, 1), length(held_profiles))
+      for (k in seq_len(n_cells)) {
         printed <- leading_figure(cells[k])
         report(!is.na(printed) && abs(printed - round(expected[k], digits[k])) <
                  10^-digits[k] / 2 + 1e-9,

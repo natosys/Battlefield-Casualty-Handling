@@ -51,13 +51,14 @@ CHECK_DAYS <- 30L
 #' Seed of the behavioural half
 CHECK_SEED <- 42L
 
-failures <- character(0)
+state <- new.env()
+state$failures <- character(0)
 
 #' Record a failure
 #'
 #' @param ... Arguments passed to `sprintf()` to build the message.
 #' @return The accumulated failures, invisibly; called for its side effect.
-fail <- function(...) failures <<- c(failures, sprintf(...))
+fail <- function(...) state$failures <- c(state$failures, sprintf(...))
 
 #' Print one PASS or FAIL line and record a failure
 #'
@@ -215,9 +216,9 @@ report(doubled$used == doubled$sections,
        "every R2B surgical section serves a case (%d of %d)", doubled$used,
        doubled$sections)
 
-if (length(failures) > 0L) {
-  cat(sprintf("\n%d check(s) FAILED:\n", length(failures)))
-  for (f in failures) cat("  - ", f, "\n", sep = "")
+if (length(state$failures) > 0L) {
+  cat(sprintf("\n%d check(s) FAILED:\n", length(state$failures)))
+  for (f in state$failures) cat("  - ", f, "\n", sep = "")
   quit(status = 1L)
 }
 cat("\nEvery surgical section shares one shift and the roster alternates as designed.\n")

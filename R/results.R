@@ -2333,11 +2333,29 @@ build_adequacy_sizing <- function(data_dir) {
               "Sweep evidence"), rows)
 }
 
+#' Evacuation policy trade: the outcome, stability and cost rows of the policy sweep
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: the policy sweep restricted to returns to duty, deaths
+#'   of wounds, the in-theatre share, R2E occupancy and post-definitive intensive
+#'   care access, the casualties never evacuated and the Role 4 peak beds, one
+#'   column per policy.
+build_policy_trade <- function(data_dir) {
+  lines <- build_policy(data_dir)
+  keep <- c("Returns to duty", "Died of wounds", "In-theatre share (%)",
+            "R2E hold occupancy (%)", "R2E ICU occupancy (%)", "Post-definitive ICU access (%)",
+            "Never evacuated by horizon", "Role 4 peak beds")
+  labels <- vapply(lines[-(1:2)], function(l) res_cells(l)[1], character(1))
+  rows <- lines[-(1:2)][match(keep, labels)]
+  if (anyNA(rows)) stop("the policy sweep lacks a row the trade table prints", call. = FALSE)
+  c(lines[1:2], rows)
+}
+
 #' Tables registered for the planning paper alone
 #'
 #' @details The adequacy matrix and its sizing table interpret the results paper's
 #'   measurements, so the results paper does not print them; the planning paper does.
-PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing")
+PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing", "policy_trade")
 
 #' Registry of generated tables
 #'
@@ -2406,6 +2424,7 @@ RESULTS_TABLES <- list(
   role4_levers_cancellation = function(dd) build_role4_levers(dd, "cancellation"),
   adequacy_matrix = build_adequacy_matrix,
   adequacy_sizing = build_adequacy_sizing,
+  policy_trade = build_policy_trade,
   resolution = build_resolution,
   resolved = build_resolved,
   morris_top = build_morris_top,

@@ -48,7 +48,10 @@ METHODS_PATH <- file.path("docs", "Methods.md")
 #' Heading of the section that carries the lever table
 LEVER_HEADING <- "## Every Lever, and What the Evidence Supports"
 
-#' Evidence labels a lever row must carry at least one of
+#' Columns of the lever table
+LEVER_COLUMNS <- c("Lever", "Setting supported", "Cost", "Moderate intensity", "High intensity")
+
+#' Evidence labels each intensity cell of a lever row must carry at least one of
 EVIDENCE_LABELS <- c("Measured", "Direction only", "Unresolved", "Untested")
 
 #' Results sections whose levers the lever table must cover
@@ -199,14 +202,37 @@ if (length(at) == 1L) {
   rows <- section[grepl("^\\| ", section)]
   rows <- rows[-1]
   report(length(rows) >= 10L, "the lever table has a row per lever (%d rows)", length(rows))
-  unlabelled <- rows[!vapply(rows, function(r) {
-    last <- trimws(utils::tail(strsplit(sub("^\\|", "", sub("\\|$", "", r)), "\\|")[[1]], 1))
+  #' The cells of a markdown table row
+  #'
+  #' @param r The row.
+  #' @return The trimmed cells.
+  row_cells <- function(r) trimws(strsplit(sub("^\\|", "", sub("\\|$", "", r)), "\\|")[[1]])
+  header <- row_cells(section[grepl("^\\| ", section)][1])
+  report(identical(header, LEVER_COLUMNS),
+         "the lever table has the columns %s (found: %s)", paste(LEVER_COLUMNS, collapse = ", "),
+         paste(header, collapse = ", "))
+  #' Whether a cell carries an evidence label
+  #'
+  #' @param cell The cell text.
+  #' @return TRUE where one of the evidence labels appears in bold.
+  has_label <- function(cell) {
     any(vapply(EVIDENCE_LABELS, function(l) {
-      grepl(sprintf("\\*\\*%s\\*\\*", l), last, ignore.case = TRUE)
+      grepl(sprintf("\\*\\*%s\\*\\*", l), cell, ignore.case = TRUE)
     }, logical(1)))
+  }
+  parsed <- lapply(rows, row_cells)
+  report(all(lengths(parsed) == length(LEVER_COLUMNS)),
+         "every lever row has one cell per column (%d rows)", length(parsed))
+  unlabelled <- rows[!vapply(parsed, function(cells) {
+    length(cells) == length(LEVER_COLUMNS) && has_label(cells[4]) && has_label(cells[5])
   }, logical(1))]
-  report(length(unlabelled) == 0L, "every lever row carries an evidence label (%d without)",
+  report(length(unlabelled) == 0L,
+         "every lever row carries an evidence label at each intensity (%d without)",
          length(unlabelled))
+  unpriced <- rows[!vapply(parsed, function(cells) {
+    length(cells) == length(LEVER_COLUMNS) && nzchar(cells[3])
+  }, logical(1))]
+  report(length(unpriced) == 0L, "every lever row states a cost (%d without)", length(unpriced))
 
   needed <- character(0)
   for (heading in COVERED_SECTIONS) {
@@ -352,7 +378,40 @@ report(grepl("<!-- GEN adequacy_matrix -->", text, fixed = TRUE) &&
          grepl("## Is the System Adequate?", text, fixed = TRUE),
        "the planning paper prints the matrix and the sizing table under their section")
 
-# ── 6. No design or provenance content remains ──────────────────────────────
+# ── 6. The costs the lever table states are the shipped establishment's ─────
+
+cat("\n-- the personnel costs in the lever table are the team compositions of env_data.json --\n")
+
+env_cfg <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
+
+#' The composition of one sub-element of one element, as the lever table prints it
+#'
+#' @param elm The element name.
+#' @param sub_elm The sub-element name.
+#' @param joiner The text joining the last two members.
+#' @return The members as counts and names, such as "1 anaesthetist, 2 surgeons, 4 nurses".
+team_text <- function(elm, sub_elm, joiner = ", ") {
+  e <- Filter(function(x) identical(x$elm, elm), env_cfg$elms)[[1]]
+  s <- Filter(function(x) identical(x$sub_elm, sub_elm), e$sub_elms)[[1]]
+  noun <- c(anesthetist = "anaesthetist", surgeon = "surgeon", nurse = "nurse", medic = "medic",
+            intensivist = "intensivist")
+  parts <- vapply(s$resources, function(r) {
+    sprintf("%d %s%s", r$qty, noun[[r$name]], if (r$qty == 1L) "" else "s")
+  }, character(1))
+  if (length(parts) > 1L && joiner != ", ") {
+    paste0(paste(utils::head(parts, -1L), collapse = ", "), joiner, utils::tail(parts, 1L))
+  } else paste(parts, collapse = ", ")
+}
+lever_text <- paste(text, collapse = "\n")
+for (spec in list(c("R2E surgical section: ", "r2eheavy", "surg", ", "),
+                  c("R2B surgical section: ", "r2b", "surg", ", "),
+                  c("an R2E intensive care section being ", "r2eheavy", "icu", " and "))) {
+  expected <- paste0(spec[1], team_text(spec[2], spec[3], spec[4]))
+  report(grepl(expected, lever_text, fixed = TRUE),
+         "the lever table states '%s', the composition in env_data.json", expected)
+}
+
+# ── 7. No design or provenance content remains ──────────────────────────────
 
 cat("\n-- the document holds no design or provenance content --\n")
 

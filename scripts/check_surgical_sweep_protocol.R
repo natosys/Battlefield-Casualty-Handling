@@ -276,7 +276,8 @@ toy_series <- function(arm, f, n_reps = 3L, n_days = 360L) {
 }
 
 # A queue growing three casualties a day has block means rising 90 a block, so
-# its shortfall is exactly three a day; a flat queue has none.
+# its shortfall is exactly three a day; a flat queue has none and, never having
+# moved, is classified degenerate rather than converged.
 toy <- rbind(toy_series("growing", function(d) 3 * d),
              toy_series("flat", function(d) rep(5, length(d))))
 got <- suppressWarnings(surgical_stability(toy))
@@ -288,8 +289,8 @@ report(isTRUE(all.equal(grow$shortfall_per_day, 3, tolerance = 1e-6)),
 report(identical(as.character(grow$stability), "drifting"),
        "and is classified drifting (%s)", grow$stability)
 report(isTRUE(all.equal(flat$shortfall_per_day, 0, tolerance = 1e-6)) &&
-         identical(as.character(flat$stability), "converged"),
-       "a flat queue has no shortfall and is classified converged (%.6f, %s)",
+         identical(as.character(flat$stability), "degenerate"),
+       "a flat queue has no shortfall and is classified degenerate (%.6f, %s)",
        flat$shortfall_per_day, flat$stability)
 report(inherits(try(surgical_stability(toy_series("short", function(d) d, n_days = 90L)),
                     silent = TRUE), "try-error"),

@@ -50,6 +50,7 @@ This document is the design record for the replicated experiments reported in th
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
+  - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
@@ -663,6 +664,35 @@ Rscript scripts/run_icu_bed_sweep.R --scenario high_intensity --refresh-baseline
 An intensive care stay at R2E seizes the bed alone. The R2E intensive care sections (an intensivist and four nurses each, three of them) are built as resources, but the stabilisation, post-operative and pre-flight stays take no member of a section, so staff do not constrain the pool and sweeping beds alone measures what the model represents. That is a property the design depends on and `scripts/check_icu_bed_sweep_protocol.R` asserts it as an absence, so a later change that makes a stay seize staff fails the check and sends the design back for revision. The ratio of nurses to beds each arm would imply at the shipped three sections is reported beside the results as a cost the model does not charge.
 
 Each replication is reduced inside the forked worker to one row of responses and a daily series of the R2E intensive care and holding queues and occupancy. The scalar responses are those of the policy sweep (`reduce_policy_replication()`), so the occupancies, queues, returns to duty, deaths of wounds, post-definitive intensive care access and Role 4 census are the quantities that sweep reports; the share of post-operative care taken in a holding bed, the deferrals at the theatre gate and the mean strategic evacuation wait of the critical route are added. The daily series is averaged into 30-day blocks and classified by the late-half fit of [Classifying Stability](#classifying-stability), so each pool is reported as converged or drifting and, where it drifts, by the shortfall per day that remains. The arms are paired on one control seed each, as the other establishment sweeps are, and changing the establishment alters the draws a replication takes, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each arm is checkpointed as it completes, and each finished replication is saved as it completes under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight; the seeds are fixed by the control seed, so the resumed result equals an uninterrupted one. The tracked evidence set is `data/icu_beds/`.
+
+### Adequacy Verdict Criteria
+
+<!-- ADEQUACY util_marginal=0.85 -->
+<!-- ADEQUACY empty_marginal=0.5 -->
+<!-- ADEQUACY util_over=0.1 -->
+<!-- ADEQUACY empty_over=0.95 -->
+<!-- ADEQUACY queue_marginal=0.25 -->
+<!-- ADEQUACY queue_inadequate=1 -->
+<!-- ADEQUACY queue_over=0.05 -->
+<!-- ADEQUACY export_marginal=0.25 -->
+<!-- ADEQUACY export_inadequate=0.5 -->
+<!-- ADEQUACY backlog_marginal=1 -->
+<!-- ADEQUACY places_per_sortie=90 -->
+<!-- ADEQUACY sortie_interval_days=7 -->
+<!-- ADEQUACY r2e_sections=3 -->
+<!-- ADEQUACY campaign_days=360 -->
+The adequacy matrix of the planning paper assigns each of ten elements of the deployed system a verdict at each casualty intensity, and runs no simulation of its own: `build_adequacy_matrix()` reads the tracked sustained-operations series, queue clearance, transport holder and hold window evidence, so a verdict cannot differ from the evidence beneath it. The criteria are applied in the order the table gives, the first that holds deciding the verdict, and each threshold is an informed estimate under this project's source prioritisation, since no open-access source states one for a deployed trauma system. The one with a documented basis is the 85% utilisation level, the saturation-risk reading of the README's operating theatre utilisation metric.
+
+| Evidence | Inadequate | Marginal | Over-provisioned |
+|---|---|---|---|
+| Bed or theatre pool | Queue classified drifting upward | Closing 90-day utilisation at or above 85%, or queue empty for under 50% of the campaign | Utilisation under 10% and queue empty for at least 95% |
+| Element with a queue (R1 staff, transport, integral evacuation) | Mean queue at or above 1 | Mean queue at or above 0.25, or utilisation at or above 85% | Utilisation under 10% and mean queue under 0.05 |
+| R2B surgery | At least 50% of casualties requiring surgery routed past R2B | At least 25% routed past | Under 25% routed past and theatre utilisation under 10% |
+| Strategic airlift | Backlog classified drifting upward | Settled backlog of at least 1 casualty | Not applicable |
+
+An element not meeting any criterion is adequate, which states that no sustained backlog forms and that the element has headroom, not that no casualty waits. The shared transport fleets and the integral evacuation elements take the worst verdict of their members. R2B surgery is judged by the casualties routed past it because the routing policy sends a casualty rearward when the theatre is busy or its team is off shift, so the forward theatre cannot queue and its shortfall appears as exported demand; its utilisation is the 24-hour room occupancy. Role 4 carries no verdict, because the model sets the demand placed on the national support base and assigns it no capacity.
+
+The sizing estimate for an inadequate element divides its shortfall per day, the late-half slope of the 30-day block means over the block length (or for R2B surgery the casualties routed past per day), by the throughput delivered per day: the first surgeries performed at R2E per day for the surgical sections, which the shipped establishment fields three of, and the places of one sortie over the sortie interval (90 casualties over 7 days) for the strategic airlift. It is an estimate of the lower bound, because it prices the pool in isolation and the pools are coupled: relief at one lets casualties through to the next. Where a sweep has measured the establishment, the table states the shortfall per day across the swept counts and the count at which a straight line through them reaches zero, an extrapolation beyond the tested range and labelled as such. `scripts/check_planning_implications.R` asserts that these constants equal the markers above, that each verdict function is correct on hand-computed inputs, that the matrix covers every element, and that every inadequate cell has a sizing row.
 
 ### Casualty Surge Event Stress Test
 

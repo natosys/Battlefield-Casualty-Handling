@@ -34,6 +34,7 @@ Extending surgical team coverage towards 24 hours at Role 2 Basic (R2B) and R2E 
 - [Introduction](#introduction)
 - [The System and the Evidence Labels](#the-system-and-the-evidence-labels)
 - [Where the Trauma System Fails First](#where-the-trauma-system-fails-first)
+- [Is the System Adequate?](#is-the-system-adequate)
 - [Every Lever, and What the Evidence Supports](#every-lever-and-what-the-evidence-supports)
 - [Recommendations in Priority Order](#recommendations-in-priority-order)
   - [1. Extend Surgical Team Coverage Towards 24 Hours](#1-extend-surgical-team-coverage-towards-24-hours)
@@ -112,6 +113,48 @@ Two readings of the results paper govern every statement below. Where two interv
 **Intensive care is rationed rather than queued.** When R2E intensive care is full the simulation gives some casualties a holding bed instead and defers others' surgery until a bed is free, so the shortfall appears as casualties receiving a lesser standard of care rather than as a queue. At high intensity the share of post-definitive care delivered in a holding bed reaches 100% in the median campaign from day <!-- GEN cell:degraded_care::High intensity: Post-definitive care::First day the median daily rate reaches 100%::mean -->3<!-- /GEN -->, and over the whole campaign it is <!-- GEN cell:degraded_care::High intensity: Post-definitive care::Whole campaign::mean -->99.8%<!-- /GEN --> against <!-- GEN cell:degraded_care::Moderate intensity: Post-definitive care::Whole campaign::mean -->68.3%<!-- /GEN --> at moderate intensity ([Results: queue behaviour over the campaign](Results.md#queue-behaviour-over-the-campaign)). A rate that is a standing condition from the first week is answered only by the establishment, not by a reserve brought forward on particular days. **Evidence: measured.**
 
 **A zero R2B theatre queue signals a shortfall being exported, not spare capacity.** The routing policy moves a casualty requiring surgery to R2E whenever the R2B theatre is occupied or its team is off shift beyond the pre-open window, so no queue can form there ([Results: comparative scenario analysis](Results.md#comparative-scenario-analysis)). Any measure of whether R2B is adequately resourced has to count what was sent rearward, not what waited.
+
+---
+
+## Is the System Adequate?
+
+<small>[Return to Top](#contents)</small>
+
+**Adequacy is a verdict for each element at each intensity, and the shipped establishment fails differently at the two.** Health planning sizes medical support against an assessed casualty load at each role, and the casualty estimates for large scale combat operations exceed the loads current establishments were built for [[1]](#references) [[2]](#references). The matrix below gives each element a verdict and the evidence behind it, produced from the tracked measurements so that a verdict cannot differ from its evidence. The criteria are stated in the [methods paper](Methods.md#adequacy-verdict-criteria). An adequate element has no sustained backlog and some headroom, which is not the same as no casualty waiting. Role 4 carries no verdict because the model sets the demand placed on the national support base and gives it no capacity.
+
+<!-- GEN adequacy_matrix -->
+| Element | Moderate intensity | High intensity |
+|---|---|---|
+| R1 | **Adequate**: longest R1 staff queue 0.00 | **Adequate**: longest R1 staff queue 0.00 |
+| Shared transport fleets | **Marginal**: used 12.5%, mean queue 0.43 | **Adequate**: used 30.4%, mean queue 0.22 |
+| Integral evacuation elements | **Adequate**: used 15.7%, mean queue 0.06 | **Marginal**: used 41.0%, mean queue 0.42 |
+| R2B surgery | **Inadequate**: 62.5% of casualties requiring surgery routed past, theatres used 8.5% | **Inadequate**: 73.0% of casualties requiring surgery routed past, theatres used 18.7% |
+| R2B holding | **Marginal**: queue settled, used 66.6%, queue empty 46.6% | **Marginal**: queue settled, used 70.6%, queue empty 4.4% |
+| R2E theatres and surgical teams | **Adequate**: queue settled, used 49.8%, queue empty 65.4% | **Inadequate**: queue drifting, +11.7%/block, used 100.0%, queue empty 0.6% |
+| R2E intensive care | **Marginal**: queue settled, used 87.8%, queue empty 62.8% | **Inadequate**: queue drifting, +13.0%/block, used 100.0%, queue empty 0.5% |
+| R2E holding | **Adequate**: queue settled, used 44.8%, queue empty 92.0% | **Inadequate**: queue drifting, +9.3%/block, used 100.0%, queue empty 0.8% |
+| Strategic airlift | **Marginal**: backlog settled, late-half mean 1.9 awaiting a sortie | **Inadequate**: backlog drifting, +12.4%/block, late-half mean 1347.2 awaiting a sortie |
+| Role 4 | **Not assessed**: demand only, peak census 203 beds | **Not assessed**: demand only, peak census 216 beds |
+<!-- /GEN -->
+
+**At moderate intensity the shipped establishment holds, except where it exports demand.** No R2E pool is classified drifting, but the intensive care beds, the forward holding beds, the ambulance fleet and the strategic evacuation backlog run with too little headroom to absorb a heavy day. R2B surgery is the exception. The routing policy sends a casualty rearward when the theatre is busy or its team is off shift, so the forward theatre never queues, and its shortfall appears as <!-- GEN cell:adequacy_sizing::R2B surgery, moderate intensity::Shortfall per day::mean -->3.33<!-- /GEN --> casualties a day routed past it against <!-- GEN cell:adequacy_sizing::R2B surgery, moderate intensity::Delivered per day::mean -->2.00<!-- /GEN --> operations performed there ([Results: demand, utilisation and shortfall per day](Results.md#demand-utilisation-and-shortfall-per-day)). A second surgical section per unit narrows the gap but does not close it: <!-- GEN cell:adequacy_sizing::R2B surgery, moderate intensity::Sweep evidence::full -->Measured: casualties routed past per run fall from 1,199 to 414 with a second section per unit<!-- /GEN --> ([Results: surgical team establishment](Results.md#surgical-team-establishment)). **Evidence: measured.**
+
+**At high intensity the three R2E pools, R2B surgery and the strategic airlift are inadequate, and the sizing estimates are lower bounds that the sweeps confirm are not enough.** Pricing each pool in isolation, the R2E theatre queue grows by <!-- GEN cell:adequacy_sizing::R2E theatres and surgical teams, high intensity::Shortfall per day::mean -->1.63<!-- /GEN --> casualties a day against <!-- GEN cell:adequacy_sizing::R2E theatres and surgical teams, high intensity::Delivered per day::mean -->9.82<!-- /GEN --> first surgeries delivered, which the estimate prices at <!-- GEN cell:adequacy_sizing::R2E theatres and surgical teams, high intensity::Estimated uplift::full -->16.6% of today's output, 0.5 extra sections<!-- /GEN -->. The measurement is larger: <!-- GEN cell:adequacy_sizing::R2E theatres and surgical teams, high intensity::Sweep evidence::full -->Measured: shortfall per day from 1.63 at 3 sections to 0.20 at 6; no tested count settles; line reaches zero near 6 sections<!-- /GEN -->. The intensive care beds behave the same way, with <!-- GEN cell:adequacy_sizing::R2E intensive care, high intensity::Sweep evidence::full -->Measured: shortfall per day from 4.95 at 4 beds to 4.59 at 16; no tested count settles; line reaches zero near 168 beds<!-- /GEN -->, an extrapolation far outside the tested range that states only that bed count is not the binding lever ([Results: surgical team establishment](Results.md#surgical-team-establishment), [Results: R2E intensive care bed establishment](Results.md#r2e-intensive-care-bed-establishment)). The pools are coupled, so relief at one lets casualties through to the next, and an estimate that prices a pool alone understates the uplift. **Evidence: measured.**
+
+**Two inadequate cells are not yet sized by a measurement.** The R2E holding beds fall behind at <!-- GEN cell:adequacy_sizing::R2E holding, high intensity::Shortfall per day::mean -->1.46<!-- /GEN --> casualties a day and the strategic evacuation backlog grows at <!-- GEN cell:adequacy_sizing::Strategic airlift, high intensity::Shortfall per day::mean -->5.55<!-- /GEN --> a day, against a sortie stream that carries <!-- GEN cell:adequacy_sizing::Strategic airlift, high intensity::Delivered per day::mean -->12.86<!-- /GEN --> casualties a day. Pricing the airlift in isolation gives <!-- GEN cell:adequacy_sizing::Strategic airlift, high intensity::Estimated uplift::full -->0.4 extra sortie streams of one sortie per interval<!-- /GEN -->, and no bed count is estimated for the holding pool because the evidence holds no per-bed throughput ([Results: demand, utilisation and shortfall per day](Results.md#demand-utilisation-and-shortfall-per-day)). Both cells await the holding establishment and sortie schedule grids at high intensity. **Evidence: untested.**
+
+<!-- GEN adequacy_sizing -->
+| Case | Shortfall per day | Delivered per day | Estimated uplift | Sweep evidence |
+|---|---|---|---|---|
+| R2B surgery, moderate intensity | 3.33 | 2.00 | 167.0% of today's output | Measured: casualties routed past per run fall from 1,199 to 414 with a second section per unit |
+| R2B surgery, high intensity | 11.86 | 4.39 | 270.2% of today's output | Measured: casualties routed past per run fall from 4,268 to 2,134 with a second section per unit |
+| R2E theatres and surgical teams, high intensity | 1.63 | 9.82 | 16.6% of today's output, 0.5 extra sections | Measured: shortfall per day from 1.63 at 3 sections to 0.20 at 6; no tested count settles; line reaches zero near 6 sections |
+| R2E intensive care, high intensity | 4.95 | not measured per bed | not estimable from a per-bed throughput; see sweep | Measured: shortfall per day from 4.95 at 4 beds to 4.59 at 16; no tested count settles; line reaches zero near 168 beds |
+| R2E holding, high intensity | 1.46 | not measured per bed | not estimable from a per-bed throughput | Untested: the holding establishment by policy grid at this intensity awaits measurement |
+| Strategic airlift, high intensity | 5.55 | 12.86 | 0.4 extra sortie streams of one sortie per interval | Untested: the sortie interval, policy and holding grid awaits measurement here |
+<!-- /GEN -->
+
+**Planning for moderate intensity needs margin in a few elements and a second forward surgical section; planning for high intensity cannot be met from the pools measured.** A force sized for moderate intensity needs no uplift of the R2E theatres or holding beds, should hold margin at the intensive care beds, the forward holding beds, the ambulance fleet and the airlift, which are marginal at that rate, and should field a second surgical section per R2B unit if the routing gap matters, since that closes most but not all of it. A force that must be sustained at high intensity finds no tested establishment that settles its R2E pools, so the sweeps give it no number to buy. The levers that remain, and the grids still to be run, are set out in the recommendations and the research agenda. **Evidence: measured for the pools swept, untested for the rest.**
 
 ---
 

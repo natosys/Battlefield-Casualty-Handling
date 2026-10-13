@@ -26,7 +26,11 @@
 # provenance content has crept back in. It also asserts that the half-widths
 # behind the resolution table are the ones the experiments' own scripts sized
 # their replication counts against, and that no comparison it lists as
-# unresolved has an interval excluding zero.
+# unresolved has an interval excluding zero. It further defends the adequacy
+# matrix: that the criteria in R/results.R equal the ones the methods paper
+# states, that each verdict function is correct on hand-computed inputs at and
+# either side of its threshold, that the matrix covers every element, and that
+# every inadequate cell has a sizing row.
 
 invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
 
@@ -37,6 +41,9 @@ PLANNING_PATH <- file.path("docs", "Planning_Implications.md")
 
 #' The results paper every quoted figure comes from
 RESULTS_PATH <- file.path("docs", "Results.md")
+
+#' The methods paper, which states the adequacy criteria in marker comments
+METHODS_PATH <- file.path("docs", "Methods.md")
 
 #' Heading of the section that carries the lever table
 LEVER_HEADING <- "## Every Lever, and What the Evidence Supports"
@@ -250,7 +257,102 @@ for (spec in RESOLUTION_ROWS) {
          format(stated))
 }
 
-# ── 5. No design or provenance content remains ──────────────────────────────
+# ── 5. The adequacy matrix is defended ──────────────────────────────────────
+
+cat("\n-- the adequacy matrix: criteria, verdict functions, coverage and sizing --\n")
+
+methods_text <- paste(readLines(METHODS_PATH, encoding = "UTF-8", warn = FALSE), collapse = "\n")
+
+#' Read one adequacy criterion the methods paper states in a marker comment
+#'
+#' @param name The marker's name.
+#' @return The marker's value as a number, or NA where absent.
+adequacy_marker <- function(name) {
+  m <- regmatches(methods_text, regexpr(sprintf("<!-- ADEQUACY %s=[^ ]+ -->", name),
+                                        methods_text))
+  if (length(m) == 0L) return(NA_real_)
+  as.numeric(sub("^<!-- ADEQUACY [^=]+=(.*) -->$", "\\1", m))
+}
+
+#' Each adequacy criterion by marker name, as R/results.R holds it
+ADEQUACY_STATED <- c(util_marginal = ADEQUACY_UTIL_MARGINAL,
+                     empty_marginal = ADEQUACY_EMPTY_MARGINAL,
+                     util_over = ADEQUACY_UTIL_OVER, empty_over = ADEQUACY_EMPTY_OVER,
+                     queue_marginal = ADEQUACY_QUEUE_MARGINAL,
+                     queue_inadequate = ADEQUACY_QUEUE_INADEQUATE, queue_over = ADEQUACY_QUEUE_OVER,
+                     export_marginal = ADEQUACY_EXPORT_MARGINAL,
+                     export_inadequate = ADEQUACY_EXPORT_INADEQUATE,
+                     backlog_marginal = ADEQUACY_BACKLOG_MARGINAL,
+                     places_per_sortie = ADEQUACY_PLACES_PER_SORTIE,
+                     sortie_interval_days = ADEQUACY_SORTIE_INTERVAL_DAYS,
+                     r2e_sections = ADEQUACY_R2E_SECTIONS, campaign_days = ADEQUACY_CAMPAIGN_DAYS)
+for (nm in names(ADEQUACY_STATED)) {
+  stated <- adequacy_marker(nm)
+  report(!is.na(stated) && abs(stated - ADEQUACY_STATED[[nm]]) < 1e-9,
+         "adequacy criterion '%s' is %s in R/results.R and %s in the methods paper", nm,
+         format(ADEQUACY_STATED[[nm]]), format(stated))
+}
+
+report(identical(c(adequacy_pool_verdict(TRUE, 0.5, 1), adequacy_pool_verdict(FALSE, 0.85, 1),
+                   adequacy_pool_verdict(FALSE, 0.5, 0.49), adequacy_pool_verdict(FALSE, 0.5, 0.5),
+                   adequacy_pool_verdict(FALSE, 0.09, 0.95),
+                   adequacy_pool_verdict(FALSE, 0.09, 0.94),
+                   adequacy_pool_verdict(FALSE, 0.1, 1)),
+                 c("Inadequate", "Marginal", "Marginal", "Adequate", "Over-provisioned", "Adequate",
+                   "Adequate")),
+       "the pool verdict is correct on hand-computed inputs, at and either side of each threshold")
+report(identical(c(adequacy_queue_verdict(1), adequacy_queue_verdict(0.25),
+                   adequacy_queue_verdict(0.1, 0.85), adequacy_queue_verdict(0.04, 0.09),
+                   adequacy_queue_verdict(0.05, 0.09), adequacy_queue_verdict(0.1)),
+                 c("Inadequate", "Marginal", "Marginal", "Over-provisioned", "Adequate",
+                   "Adequate")),
+       "the queue verdict is correct on hand-computed inputs, at and either side of each threshold")
+report(identical(c(adequacy_export_verdict(0.5, 0.5), adequacy_export_verdict(0.25, 0.5),
+                   adequacy_export_verdict(0.2, 0.09), adequacy_export_verdict(0.2, 0.1)),
+                 c("Inadequate", "Marginal", "Over-provisioned", "Adequate")),
+       "the R2B surgery verdict is correct on hand-computed inputs")
+report(identical(c(adequacy_backlog_verdict(TRUE, 0), adequacy_backlog_verdict(FALSE, 1),
+                   adequacy_backlog_verdict(FALSE, 0.99)), c("Inadequate", "Marginal", "Adequate")),
+       "the airlift verdict is correct on hand-computed inputs")
+report(abs(adequacy_zero_crossing(c(3, 4, 6), c(1.5, 1, 0)) - 6) < 1e-9 &&
+         is.na(adequacy_zero_crossing(c(3, 4, 6), c(1, 1.5, 2))),
+       "the zero crossing is correct on a hand-computed line and absent where the line rises")
+
+matrix_lines <- build_adequacy_matrix(RESULTS_DATA_DIR)
+matrix_rows <- lapply(matrix_lines[-(1:2)], res_cells)
+#' The elements of the matrix, in order
+ADEQUACY_ELEMENTS <- c("R1", "Shared transport fleets", "Integral evacuation elements",
+                       "R2B surgery", "R2B holding", "R2E theatres and surgical teams",
+                       "R2E intensive care", "R2E holding", "Strategic airlift", "Role 4")
+report(identical(vapply(matrix_rows, `[`, character(1), 1L), ADEQUACY_ELEMENTS),
+       "the matrix lists every element, in order")
+#' The verdict a matrix cell opens with
+#'
+#' @param cell The cell text.
+#' @return The verdict.
+verdict_of <- function(cell) sub("^\\*\\*([^*]+)\\*\\*.*$", "\\1", cell)
+cells_all <- unlist(lapply(matrix_rows, `[`, 2:3))
+report(all(verdict_of(cells_all) %in% c("Inadequate", "Marginal", "Adequate", "Over-provisioned",
+                                        "Not assessed")),
+       "every cell of the matrix carries one of the stated verdicts")
+report(all(verdict_of(unlist(lapply(matrix_rows[10L], `[`, 2:3))) == "Not assessed") &&
+         !any(verdict_of(unlist(lapply(matrix_rows[-10L], `[`, 2:3))) == "Not assessed"),
+       "Role 4 alone is not assessed")
+sizing_cases <- vapply(lapply(build_adequacy_sizing(RESULTS_DATA_DIR)[-(1:2)], res_cells), `[`,
+                       character(1), 1L)
+inadequate_cases <- unlist(lapply(matrix_rows, function(r) {
+  hit <- verdict_of(r[2:3]) == "Inadequate"
+  paste0(r[1], c(", moderate intensity", ", high intensity"))[hit]
+}))
+report(setequal(sizing_cases, inadequate_cases),
+       "every inadequate cell has a sizing row and no other does (%d inadequate, %d sized)",
+       length(inadequate_cases), length(sizing_cases))
+report(grepl("<!-- GEN adequacy_matrix -->", text, fixed = TRUE) &&
+         grepl("<!-- GEN adequacy_sizing -->", text, fixed = TRUE) &&
+         grepl("## Is the System Adequate?", text, fixed = TRUE),
+       "the planning paper prints the matrix and the sizing table under their section")
+
+# ── 6. No design or provenance content remains ──────────────────────────────
 
 cat("\n-- the document holds no design or provenance content --\n")
 

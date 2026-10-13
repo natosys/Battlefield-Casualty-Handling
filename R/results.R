@@ -1889,6 +1889,444 @@ build_role4_levers <- function(data_dir, which) {
   res_sweep_table(res_read(sweep$file, data_dir), sweep$header, arms, ROLE4_LEVER_ROWS)
 }
 
+#' Closing-window utilisation at or above which a pool counts as marginal
+#'
+#' @details An informed estimate rather than a sourced value. A queue's wait grows
+#'   steeply as utilisation approaches one, so a pool used for more than 85% of the
+#'   closing 90 days has too little headroom to absorb a heavy day.
+ADEQUACY_UTIL_MARGINAL <- 0.85
+
+#' Share of the campaign a queue must stand empty for a pool to count as adequate
+#'
+#' @details An informed estimate. A queue occupied for more than half the campaign
+#'   leaves no headroom in which it clears, whatever its trend.
+ADEQUACY_EMPTY_MARGINAL <- 0.5
+
+#' Utilisation below which an element with no queue counts as over-provisioned
+#'
+#' @details An informed estimate, set low because utilisation is a time average and
+#'   an element needs slack to answer a surge.
+ADEQUACY_UTIL_OVER <- 0.10
+
+#' Share of the campaign a queue must stand empty for an element to count as over-provisioned
+ADEQUACY_EMPTY_OVER <- 0.95
+
+#' Mean queue at or above which an element counts as marginal
+ADEQUACY_QUEUE_MARGINAL <- 0.25
+
+#' Mean queue at or above which an element counts as inadequate
+#'
+#' @details One casualty waiting on average.
+ADEQUACY_QUEUE_INADEQUATE <- 1
+
+#' Mean queue below which an element with low utilisation counts as over-provisioned
+ADEQUACY_QUEUE_OVER <- 0.05
+
+#' Share of casualties requiring surgery routed past R2B at or above which it is marginal
+ADEQUACY_EXPORT_MARGINAL <- 0.25
+
+#' Share of casualties requiring surgery routed past R2B at or above which it is inadequate
+ADEQUACY_EXPORT_INADEQUATE <- 0.5
+
+#' Mean strategic evacuation backlog at or above which the airlift counts as marginal
+ADEQUACY_BACKLOG_MARGINAL <- 1
+
+#' Casualties one sortie of the shipped airframe carries
+#'
+#' @details The critical and standard places of the C-17A in `env_data.json`.
+ADEQUACY_PLACES_PER_SORTIE <- 90
+
+#' Days between strategic evacuation sorties in the shipped configuration
+ADEQUACY_SORTIE_INTERVAL_DAYS <- 7
+
+#' R2E surgical sections in the shipped establishment
+ADEQUACY_R2E_SECTIONS <- 3
+
+#' Days of the campaign the throughput estimates are taken over
+ADEQUACY_CAMPAIGN_DAYS <- 360
+
+#' Verdict for a pool that carries a queue, a trend and a utilisation
+#'
+#' @param drifting Whether the pool's queue is classified drifting upward.
+#' @param util Closing-window utilisation as a fraction.
+#' @param empty Share of the campaign the queue stands empty, as a fraction.
+#' @return One of `Inadequate`, `Marginal`, `Over-provisioned` and `Adequate`.
+#'
+#' @details Criteria, in order: a drifting queue is inadequate; a pool used at or
+#'   above `ADEQUACY_UTIL_MARGINAL`, or whose queue stands empty for less than
+#'   `ADEQUACY_EMPTY_MARGINAL` of the campaign, is marginal; a pool used below
+#'   `ADEQUACY_UTIL_OVER` whose queue stands empty for at least
+#'   `ADEQUACY_EMPTY_OVER` is over-provisioned; any other pool is adequate.
+adequacy_pool_verdict <- function(drifting, util, empty) {
+  if (drifting) return("Inadequate")
+  if (util >= ADEQUACY_UTIL_MARGINAL || empty < ADEQUACY_EMPTY_MARGINAL) return("Marginal")
+  if (util < ADEQUACY_UTIL_OVER && empty >= ADEQUACY_EMPTY_OVER) return("Over-provisioned")
+  "Adequate"
+}
+
+#' Verdict for an element measured by a mean queue and, where it has one, a utilisation
+#'
+#' @param queue Mean queue.
+#' @param util Utilisation as a fraction, or `NA` where the element has none.
+#' @return One of `Inadequate`, `Marginal`, `Over-provisioned` and `Adequate`.
+#'
+#' @details A mean queue at or above `ADEQUACY_QUEUE_INADEQUATE` is inadequate; one
+#'   at or above `ADEQUACY_QUEUE_MARGINAL`, or a utilisation at or above
+#'   `ADEQUACY_UTIL_MARGINAL`, is marginal; a utilisation below `ADEQUACY_UTIL_OVER`
+#'   with a queue below `ADEQUACY_QUEUE_OVER` is over-provisioned.
+adequacy_queue_verdict <- function(queue, util = NA_real_) {
+  if (queue >= ADEQUACY_QUEUE_INADEQUATE) return("Inadequate")
+  if (queue >= ADEQUACY_QUEUE_MARGINAL || (!is.na(util) && util >= ADEQUACY_UTIL_MARGINAL)) {
+    return("Marginal")
+  }
+  if (!is.na(util) && util < ADEQUACY_UTIL_OVER && queue < ADEQUACY_QUEUE_OVER) {
+    return("Over-provisioned")
+  }
+  "Adequate"
+}
+
+#' Verdict for R2B surgery from the share of casualties routed past it
+#'
+#' @param export Share of casualties requiring surgery diverted away from R2B, as a
+#'   fraction.
+#' @param util Closing-window utilisation of the R2B theatres as a fraction.
+#' @return One of `Inadequate`, `Marginal`, `Over-provisioned` and `Adequate`.
+#'
+#' @details R2B surgery never queues, because the routing policy sends a casualty
+#'   rearward when the theatre or its team is unavailable, so the shortfall shows
+#'   as casualties exported. At or above `ADEQUACY_EXPORT_INADEQUATE` is
+#'   inadequate; at or above `ADEQUACY_EXPORT_MARGINAL` is marginal; below
+#'   `ADEQUACY_EXPORT_MARGINAL` with utilisation under `ADEQUACY_UTIL_OVER` is
+#'   over-provisioned.
+adequacy_export_verdict <- function(export, util) {
+  if (export >= ADEQUACY_EXPORT_INADEQUATE) return("Inadequate")
+  if (export >= ADEQUACY_EXPORT_MARGINAL) return("Marginal")
+  if (util < ADEQUACY_UTIL_OVER) return("Over-provisioned")
+  "Adequate"
+}
+
+#' Verdict for the strategic evacuation backlog
+#'
+#' @param drifting Whether the backlog is classified drifting upward.
+#' @param level Mean backlog over the late half of the campaign.
+#' @return One of `Inadequate`, `Marginal` and `Adequate`.
+#'
+#' @details A drifting backlog is inadequate; a settled one at or above
+#'   `ADEQUACY_BACKLOG_MARGINAL` casualties is marginal; any other is adequate.
+adequacy_backlog_verdict <- function(drifting, level) {
+  if (drifting) return("Inadequate")
+  if (level >= ADEQUACY_BACKLOG_MARGINAL) return("Marginal")
+  "Adequate"
+}
+
+#' Profile key and queue-clearance label of each intensity the matrix reports
+ADEQUACY_INTENSITIES <- list(
+  list(profile = "moderate_intensity", label = "Moderate intensity", suffix = ""),
+  list(profile = "high_intensity", label = "High intensity", suffix = "_high_intensity")
+)
+
+#' A verdict and its evidence as one matrix cell
+#'
+#' @param verdict The verdict.
+#' @param evidence The evidence text.
+#' @return The cell text.
+adequacy_cell <- function(verdict, evidence) sprintf("**%s**: %s", verdict, evidence)
+
+#' Percentage with one decimal
+#'
+#' @param x A fraction.
+#' @return The percentage text.
+adequacy_pct <- function(x) sprintf("%.1f%%", 100 * x)
+
+#' Adequacy verdict of a bed or theatre pool at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param pool Pool name as the long-horizon series and queue clearance files print it.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell.
+adequacy_pool_cell <- function(data_dir, pool, int) {
+  st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
+  r <- st[st$scenario == int$profile & st$series == "mean_queue" & st$subject == pool, ]
+  if (nrow(r) != 1L) {
+    stop(sprintf("expected one stability row for %s under %s, found %d", pool, int$profile,
+                 nrow(r)), call. = FALSE)
+  }
+  series <- res_read("long_horizon/long_horizon_series.csv.gz", data_dir)
+  o <- series[series$scenario == int$profile & series$series == "occupancy" &
+                series$subject == pool, ]
+  util <- mean(res_closing_means(o))
+  qc <- res_read("time_series/queue_clearance.csv", data_dir)
+  empty <- mean(qc$zero_share[qc$pool == pool & qc$intensity == int$label])
+  drifting <- identical(r$stability, "drifting") && r$drift_per_block > 0
+  trend <- if (drifting) sprintf("drifting, %+.1f%%/block", 100 * r$drift_per_block) else "settled"
+  adequacy_cell(adequacy_pool_verdict(drifting, util, empty),
+                sprintf("queue %s, used %s, queue empty %s", trend, adequacy_pct(util),
+                        adequacy_pct(empty)))
+}
+
+#' Adequacy verdict of a transport holder at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param holders The holder names whose worst case decides the verdict.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell.
+adequacy_holder_cell <- function(data_dir, holders, int) {
+  d <- res_read("scenarios/scenario_transport_holders.csv", data_dir)
+  d <- d[d$scenario == int$profile & d$holder %in% holders, ]
+  if (nrow(d) != length(holders)) {
+    stop(sprintf("expected %d holder rows under %s, found %d", length(holders), int$profile,
+                 nrow(d)), call. = FALSE)
+  }
+  verdicts <- mapply(adequacy_queue_verdict, d$q_mean, d$util_mean)
+  order <- c("Inadequate", "Marginal", "Adequate", "Over-provisioned")
+  worst <- order[min(match(verdicts, order))]
+  adequacy_cell(worst, sprintf("used %s, mean queue %s", adequacy_pct(max(d$util_mean)),
+                               res_num(max(d$q_mean), 2L)))
+}
+
+#' Adequacy verdict of the R1 staff at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell, decided by the longest mean queue of any R1 staff resource.
+adequacy_r1_cell <- function(data_dir, int) {
+  d <- res_read("scenarios/scenario_comparison_queues.csv", data_dir)
+  d <- d[d$scenario == int$profile & grepl("^c_r1_", d$resource), ]
+  if (nrow(d) == 0L) stop(sprintf("no R1 staff queues under %s", int$profile), call. = FALSE)
+  q <- max(d$mean_q)
+  adequacy_cell(adequacy_queue_verdict(q), sprintf("longest R1 staff queue %s", res_num(q, 2L)))
+}
+
+#' Adequacy verdict of R2B surgery at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell, decided by the share of casualties requiring surgery routed
+#'   past R2B and the R2B theatres' utilisation.
+adequacy_r2b_surgery_cell <- function(data_dir, int) {
+  hw <- res_read(res_file("hold_window/hold_window_replications", int$suffix), data_dir)
+  hw <- hw[hw$window_min == 60, ]
+  diverted <- hw$diverted_offshift + hw$diverted_busy
+  export <- mean(diverted / (diverted + hw$r2b_surgeries))
+  series <- res_read("long_horizon/long_horizon_series.csv.gz", data_dir)
+  o <- series[series$scenario == int$profile & series$series == "occupancy" &
+                series$subject == "R2B operating theatres", ]
+  util <- mean(res_closing_means(o))
+  adequacy_cell(adequacy_export_verdict(export, util),
+                sprintf("%s of casualties requiring surgery routed past, theatres used %s",
+                        adequacy_pct(export), adequacy_pct(util)))
+}
+
+#' Adequacy verdict of the strategic airlift at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell, decided by the evacuation backlog's classification and level.
+adequacy_airlift_cell <- function(data_dir, int) {
+  st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
+  r <- st[st$scenario == int$profile & st$series == "evac_backlog", ]
+  if (nrow(r) != 1L) {
+    stop(sprintf("expected one backlog row under %s, found %d", int$profile, nrow(r)),
+         call. = FALSE)
+  }
+  drifting <- identical(r$stability, "drifting") && r$drift_per_block > 0
+  trend <- if (drifting) sprintf("drifting, %+.1f%%/block", 100 * r$drift_per_block) else "settled"
+  adequacy_cell(adequacy_backlog_verdict(drifting, r$late_mean),
+                sprintf("backlog %s, late-half mean %s awaiting a sortie", trend,
+                        res_num(r$late_mean, 1L)))
+}
+
+#' Role 4 cell: demand stated, adequacy not assessed
+#'
+#' @param data_dir The data directory.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The matrix cell: the model sets the demand on the national support base and
+#'   gives it no capacity, so no verdict is possible.
+adequacy_role4_cell <- function(data_dir, int) {
+  d <- res_read("role4_demand/role4_demand_summary.csv", data_dir)
+  d <- d[d$scenario == int$profile & d$series == "census" & d$subject == "Total" &
+           d$response == "peak", ]
+  total <- d$mean
+  sprintf("**Not assessed**: demand only, peak census %s beds", res_num(total, 0L, big = TRUE))
+}
+
+#' Adequacy matrix: a verdict and its evidence for each element at each intensity
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details The criteria are the `ADEQUACY_*` constants above, stated in
+#'   docs/Methods.md and asserted equal to its marker comments by
+#'   scripts/check_planning_implications.R. Role 4 carries no verdict because the
+#'   model reports the demand placed on the national support base and assigns it no
+#'   capacity.
+build_adequacy_matrix <- function(data_dir) {
+  #' One cell per intensity
+  #'
+  #' @param f A function of one intensity returning a cell.
+  #' @return The two cells.
+  cells <- function(f) vapply(ADEQUACY_INTENSITIES, f, character(1))
+  #' One pool's cells
+  #'
+  #' @param name The pool name.
+  #' @return The two cells.
+  pool <- function(name) cells(function(i) adequacy_pool_cell(data_dir, name, i))
+  rows <- list(
+    c("R1", cells(function(i) adequacy_r1_cell(data_dir, i))),
+    c("Shared transport fleets",
+      cells(function(i) adequacy_holder_cell(data_dir, c("PMV Ambulance fleet", "HX2 40M fleet"),
+                                             i))),
+    c("Integral evacuation elements",
+      cells(function(i) adequacy_holder_cell(data_dir, c("R2B evacuation crews",
+                                                        "R2E evacuation sections"), i))),
+    c("R2B surgery", cells(function(i) adequacy_r2b_surgery_cell(data_dir, i))),
+    c("R2B holding", pool("R2B holding beds")),
+    c("R2E theatres and surgical teams", pool("R2E operating theatres")),
+    c("R2E intensive care", pool("R2E intensive care")),
+    c("R2E holding", pool("R2E holding beds")),
+    c("Strategic airlift", cells(function(i) adequacy_airlift_cell(data_dir, i))),
+    c("Role 4", cells(function(i) adequacy_role4_cell(data_dir, i)))
+  )
+  res_table(c("Element", "Moderate intensity", "High intensity"), rows)
+}
+
+#' Zero crossing of a straight line through a sweep's shortfall per day
+#'
+#' @param units Swept unit counts.
+#' @param shortfall Shortfall per day at each count.
+#' @return The count at which the fitted line reaches zero, or `NA` when the fitted
+#'   shortfall does not fall as units are added.
+adequacy_zero_crossing <- function(units, shortfall) {
+  fit <- stats::lm(shortfall ~ units)
+  b <- unname(stats::coef(fit))
+  if (!is.finite(b[2]) || b[2] >= 0) return(NA_real_)
+  -b[1] / b[2]
+}
+
+#' Late-campaign shortfall per day of one pool at one intensity
+#'
+#' @param data_dir The data directory.
+#' @param series,subject The stability file's series and subject keys.
+#' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @return The slope of the late-half block means divided by the block length.
+adequacy_shortfall <- function(data_dir, series, subject, int) {
+  st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
+  r <- st[st$scenario == int$profile & st$series == series & st$subject == subject, ]
+  if (nrow(r) != 1L) {
+    stop(sprintf("expected one stability row for %s %s under %s, found %d", series, subject,
+                 int$profile, nrow(r)), call. = FALSE)
+  }
+  r$slope / LOAD_BLOCK_DAYS
+}
+
+#' Sweep result text for a swept establishment
+#'
+#' @param st The sweep's stability file, with `arm`, `shortfall_per_day` and `stability`.
+#' @param units Swept unit count of each row of `st`, in row order.
+#' @param noun The unit name.
+#' @return Text stating the shortfall per day across the sweep, whether any count settles,
+#'   and the count at which a straight line through the shortfalls reaches zero.
+adequacy_sweep_text <- function(st, units, noun) {
+  settled <- any(st$stability != "drifting")
+  zero <- adequacy_zero_crossing(units, st$shortfall_per_day)
+  sprintf("Measured: %s per day from %s at %s %s to %s at %s; %s; line reaches zero near %s",
+          "shortfall", res_num(st$shortfall_per_day[1], 2L), res_num(units[1], 0L), noun,
+          res_num(st$shortfall_per_day[length(units)], 2L), res_num(units[length(units)], 0L),
+          if (settled) "a count settles" else "no tested count settles",
+          if (is.na(zero)) "never" else sprintf("%s %s", res_num(zero, 0L), noun))
+}
+
+#' Sizing rows for the elements the matrix finds inadequate
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+#'
+#' @details Each row is an element and intensity whose matrix verdict is
+#'   `Inadequate`; a matrix cell with no sizing rule stops the build so a new verdict
+#'   cannot go unsized. The shortfall per day is the late-half slope of the block
+#'   means over the block length, or for R2B surgery the casualties routed past per
+#'   day. The estimated uplift divides it by the delivered throughput per day, as a
+#'   share of today's throughput and, where the establishment is a count of sections
+#'   or sorties, as extra units. The sweep column states what the sweeps measured,
+#'   or the measurement that remains to be made.
+build_adequacy_sizing <- function(data_dir) {
+  rows <- list()
+  for (int in ADEQUACY_INTENSITIES) {
+    sfx <- int$suffix
+    hw <- res_read(res_file("hold_window/hold_window_replications", sfx), data_dir)
+    hw <- hw[hw$window_min == 60, ]
+    sr <- res_read(res_file("surgical_teams/surgical_team_sweep_replications", sfx), data_dir)
+    st_s <- res_read(res_file("surgical_teams/surgical_team_sweep_stability", sfx), data_dir)
+    #' Case label of a sizing row
+    #'
+    #' @param element The element name.
+    #' @return The element with this intensity.
+    case <- function(element) paste0(element, ", ", tolower(int$label))
+    #' The verdict a matrix cell opens with
+    #'
+    #' @param txt The cell text.
+    #' @return The verdict.
+    verdict <- function(txt) sub("^\\*\\*([^*]+)\\*\\*.*$", "\\1", txt)
+    if (verdict(adequacy_r2b_surgery_cell(data_dir, int)) == "Inadequate") {
+      exported <- mean(hw$diverted_offshift + hw$diverted_busy) / ADEQUACY_CAMPAIGN_DAYS
+      delivered <- mean(hw$r2b_surgeries) / ADEQUACY_CAMPAIGN_DAYS
+      two <- sr[sr$arm == "R2E 3, R2B 2", ]
+      one <- sr[sr$arm == "R2E 3, R2B 1", ]
+      sweep <- sprintf(paste("Measured: casualties routed past per run fall from %s to %s",
+                             "with a second section per unit"),
+                       res_num(mean(one$diverted_offshift + one$diverted_busy), 0L, big = TRUE),
+                       res_num(mean(two$diverted_offshift + two$diverted_busy), 0L, big = TRUE))
+      rows[[length(rows) + 1L]] <- c(case("R2B surgery"), res_num(exported, 2L),
+        res_num(delivered, 2L),
+        sprintf("%s of today's output", adequacy_pct(exported / delivered)), sweep)
+    }
+    if (verdict(adequacy_pool_cell(data_dir, "R2E operating theatres", int)) == "Inadequate") {
+      short <- adequacy_shortfall(data_dir, "mean_queue", "R2E operating theatres", int)
+      base <- sr[sr$arm == "R2E 3, R2B 1", ]
+      delivered <- mean(base$r2e_first_surgeries) / ADEQUACY_CAMPAIGN_DAYS
+      arms <- st_s[grepl("^R2E [0-9], R2B 1$", st_s$arm), ]
+      units <- as.numeric(sub("^R2E ([0-9]).*$", "\\1", arms$arm))
+      rows[[length(rows) + 1L]] <- c(case("R2E theatres and surgical teams"),
+        res_num(short, 2L), res_num(delivered, 2L),
+        sprintf("%s of today's output, %s extra sections", adequacy_pct(short / delivered),
+                res_num(ADEQUACY_R2E_SECTIONS * short / delivered, 1L)),
+        adequacy_sweep_text(arms, units, "sections"))
+    }
+    if (verdict(adequacy_pool_cell(data_dir, "R2E intensive care", int)) == "Inadequate") {
+      short <- adequacy_shortfall(data_dir, "mean_queue", "R2E intensive care", int)
+      ib <- res_read(res_file("icu_beds/icu_bed_sweep_stability", sfx), data_dir)
+      ib <- ib[ib$pool == "R2E intensive care", ]
+      units <- as.numeric(sub("^([0-9]+) beds$", "\\1", ib$arm))
+      rows[[length(rows) + 1L]] <- c(case("R2E intensive care"), res_num(short, 2L),
+        "not measured per bed", "not estimable from a per-bed throughput; see sweep",
+        adequacy_sweep_text(ib, units, "beds"))
+    }
+    if (verdict(adequacy_pool_cell(data_dir, "R2E holding beds", int)) == "Inadequate") {
+      short <- adequacy_shortfall(data_dir, "mean_queue", "R2E holding beds", int)
+      rows[[length(rows) + 1L]] <- c(case("R2E holding"), res_num(short, 2L),
+        "not measured per bed", "not estimable from a per-bed throughput",
+        "Untested: the holding establishment by policy grid at this intensity awaits measurement")
+    }
+    if (verdict(adequacy_airlift_cell(data_dir, int)) == "Inadequate") {
+      short <- adequacy_shortfall(data_dir, "evac_backlog", "system", int)
+      per_stream <- ADEQUACY_PLACES_PER_SORTIE / ADEQUACY_SORTIE_INTERVAL_DAYS
+      rows[[length(rows) + 1L]] <- c(case("Strategic airlift"), res_num(short, 2L),
+        res_num(per_stream, 2L),
+        sprintf("%s extra sortie streams of one sortie per interval",
+                res_num(short / per_stream, 1L)),
+        "Untested: the sortie interval, policy and holding grid awaits measurement here")
+    }
+  }
+  res_table(c("Case", "Shortfall per day", "Delivered per day", "Estimated uplift",
+              "Sweep evidence"), rows)
+}
+
+#' Tables registered for the planning paper alone
+#'
+#' @details The adequacy matrix and its sizing table interpret the results paper's
+#'   measurements, so the results paper does not print them; the planning paper does.
+PLANNING_ONLY_TABLES <- c("adequacy_matrix", "adequacy_sizing")
+
 #' Registry of generated tables
 #'
 #' @details Each entry is a function of the data directory returning the lines
@@ -1954,6 +2392,8 @@ RESULTS_TABLES <- list(
   role4_levers_establishment = function(dd) build_role4_levers(dd, "establishment"),
   role4_levers_saturation = function(dd) build_role4_levers(dd, "saturation"),
   role4_levers_cancellation = function(dd) build_role4_levers(dd, "cancellation"),
+  adequacy_matrix = build_adequacy_matrix,
+  adequacy_sizing = build_adequacy_sizing,
   resolution = build_resolution,
   resolved = build_resolved,
   morris_top = build_morris_top,

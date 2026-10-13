@@ -576,6 +576,62 @@ if (file.exists(paste0(HIGH_PREFIX, "_replications.csv"))) {
   report(FALSE, "the high-intensity grid's replications are tracked")
 }
 
+# ── 6d. The moderate-intensity grid's evidence set is the documented design ────
+
+cat("\n-- the moderate-intensity grid's tracked evidence is the documented design --\n")
+
+#' Read one moderate-intensity grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "MODGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+modgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- MODGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- MODGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked moderate-intensity grid's evidence files
+MOD_PREFIX <- file.path("data", "policy", "establishment_sweep_moderate_grid")
+mod_policies <- as.integer(strsplit(modgrid_marker("policies"), ",")[[1]])
+mod_beds <- as.integer(strsplit(modgrid_marker("hold_beds"), ",")[[1]])
+report(identical(modgrid_marker("output_tag"), "moderate_grid") &&
+         identical(modgrid_marker("baseline"), "21d_30b") &&
+         identical(as.integer(modgrid_marker("replications")), POLICY_REPLICATIONS) &&
+         identical(as.integer(modgrid_marker("days")), POLICY_DAYS_HORIZON),
+       "the methods paper states the grid's tag, baseline, replications and horizon")
+if (file.exists(paste0(MOD_PREFIX, "_replications.csv"))) {
+  mod_reps <- read.csv(paste0(MOD_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  mod_sum <- read.csv(paste0(MOD_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  mod_paired <- read.csv(paste0(MOD_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  counts <- table(paste(mod_reps$policy_days, mod_reps$hold_beds))
+  report(length(counts) == length(mod_policies) * length(mod_beds) &&
+           all(counts == POLICY_REPLICATIONS) &&
+           setequal(unique(mod_reps$policy_days), mod_policies) &&
+           setequal(unique(mod_reps$hold_beds), mod_beds),
+         "the tracked grid has the documented %d cells of %d replications each",
+         length(mod_policies) * length(mod_beds), POLICY_REPLICATIONS)
+  one <- mod_reps[mod_reps$policy_days == 27L & mod_reps$hold_beds == 45L, ]
+  stated <- mod_sum[mod_sum$policy_days == 27L & mod_sum$hold_beds == 45L &
+                      mod_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  report(all(mod_paired$from == "21d_30b") &&
+           length(unique(mod_paired$to)) == length(counts) - 1L &&
+           !("21d_30b" %in% mod_paired$to),
+         "every other cell is paired against the baseline cell 21d_30b")
+  est <- read.csv(file.path("data", "policy", "establishment_sweep_replications.csv"),
+                  stringsAsFactors = FALSE)
+  shared <- mod_reps[mod_reps$policy_days == 21L, ]
+  matched <- merge(shared, est, by = c("policy_days", "hold_beds", "total_rtd"))
+  report(!any(mod_reps$policy_days %in% c(24L, 27L) &
+                mod_reps$policy_days %in% est$policy_days) &&
+           !any(est$policy_days %in% c(24L, 27L)) && nrow(matched) >= nrow(shared),
+         "the 21-day cells are the establishment sweep's measurement and the sweep is untouched")
+} else {
+  report(FALSE, "the moderate-intensity grid's replications are tracked")
+}
+
 # ── 7. A named scenario's evidence cannot overwrite the default's ──────────
 
 cat("\n-- a named scenario's output files carry its name --\n")

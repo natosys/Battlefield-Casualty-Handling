@@ -10,6 +10,8 @@
 #   Rscript scripts/run_policy_sweep.R --policies 21,30
 #   Rscript scripts/run_policy_sweep.R --scenario high_intensity \
 #     --policies 15,21,30,45,60 --hold-beds 30,45,60,90 --refresh-baseline
+#   Rscript scripts/run_policy_sweep.R --policies 21,24,27,30 --hold-beds 30,45,60 \
+#     --output-tag moderate_grid --refresh-baseline
 #
 # Why this exists. The shipped evacuation policy of 21 days rests on a single
 # comparison against 30, run to test a mechanism rather than to find a value.
@@ -31,6 +33,11 @@
 # under a named profile cannot overwrite the default evidence set. Where both
 # axes are swept, each cell is paired against the shipped policy at the shipped
 # establishment rather than on the policy alone.
+#
+# --output-tag names a grid run at the shipped configuration, whose summary,
+# replication and paired files would otherwise take the stem of the published
+# establishment sweep; the arm checkpoints are shared, since an arm is the same
+# measurement whichever grid asks for it.
 #
 # --refresh-baseline is the only way to write the tracked data/policy/ copy.
 
@@ -59,6 +66,10 @@ option_list <- list(
                            "policy axis alone is swept [default: shipped]")),
   make_option("--scenario", type = "character", default = "default",
               help = "Scenario profile to run under [default: %default]"),
+  make_option("--output-tag", type = "character", default = NULL,
+              help = paste("Tag appended to the stem of the summary, replication and",
+                           "paired files, so a grid at the shipped configuration does",
+                           "not overwrite the establishment sweep [default: none]")),
   make_option("--seed", type = "integer", default = 42L,
               help = "Control seed [default: %default]"),
   make_option("--max-cores", type = "integer", default = NULL,
@@ -171,6 +182,7 @@ arm_path <- function(policy_days, hold_beds = NA_integer_) {
 #'   file carrying both would leave that check unable to tell which rows it was
 #'   asserting.
 OUTPUT_STEM <- paste0(if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "policy_sweep",
+                      if (is.null(opt$`output-tag`)) "" else paste0("_", opt$`output-tag`),
                       scenario_output_suffix(opt$scenario))
 
 #' Measure one arm, or read it back where it has already been measured

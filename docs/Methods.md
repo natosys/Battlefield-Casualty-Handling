@@ -590,6 +590,22 @@ Rscript scripts/run_policy_sweep.R --scenario high_intensity --refresh-baseline 
 
 The two levers are crossed rather than swept separately because the question under the high-intensity profile is which combination holds the R2E pools, and the default sweeps cannot answer it: no R2E pool saturates there until the policy reaches 30 days, and the holding queue is near zero at the shipped establishment. Each cell is paired on one control seed, as the sweeps above are, and the paired difference of each cell is taken against the shipped 21-day policy at 30 beds within replication. Pairing on the policy alone would merge the four establishments of a policy into four differences per replication, so the cell is the unit of pairing and the script labels each by policy and beds (`21d_30b`). The stability counts in the results paper are the replications whose closing 90-day mean queue is below twenty casualties in the holding pool, the intensive care pool and both, the threshold the strategic airlift collapse experiment classifies against, so that a pool is judged by one criterion throughout the paper. The tracked evidence set is `data/policy/`, in the `establishment_sweep_high_intensity*` files.
 
+### Moderate-Intensity Policy by Establishment Grid
+
+<!-- MODGRID policies=21,24,27,30 -->
+<!-- MODGRID hold_beds=30,45,60 -->
+<!-- MODGRID baseline=21d_30b -->
+<!-- MODGRID replications=30 -->
+<!-- MODGRID days=360 -->
+<!-- MODGRID output_tag=moderate_grid -->
+Thirty replications of 360 simulated days at each of the twelve cells of the cross product of four evacuation policies and three R2E holding establishments, at control seed 42 under the shipped default configuration. The evacuation policy sweep measured 21 and 30 days at moderate intensity and found the R2E holding pool under half occupied at the first and saturated at the second, and nothing between them; this grid measures 24 and 27 days beside them, at the shipped 30 holding beds and at 45 and 60. Invoked as:
+
+```
+Rscript scripts/run_policy_sweep.R --policies 21,24,27,30 --hold-beds 30,45,60 --output-tag moderate_grid --refresh-baseline
+```
+
+The run uses the arrangement of the high-intensity grid above: each cell is one arm paired on one control seed, the paired difference of each cell is taken against the shipped 21-day policy at 30 beds within replication, and the stability counts are the replications whose closing 90-day mean queue is below twenty casualties in the holding pool, the intensive care pool and both. Its arm checkpoints are shared with the establishment sweep, since an arm at a given policy and establishment is one measurement whichever grid asks for it, so the three cells at 21 days are read back from the establishment sweep and the nine others are new. The `--output-tag` option gives the summary, replication and paired files their own stem (`establishment_sweep_moderate_grid`), which keeps the grid from overwriting the establishment sweep that a published table and a regression check read. The largest policy that holds both pools at an establishment is the greatest swept policy at which no replication of the cell exceeds the threshold in either pool, and the gain per added bed divides the paired gain in returns to duty at that cell by the beds added beyond the shipped 30. The tracked evidence set is `data/policy/`, in the `establishment_sweep_moderate_grid*` files.
+
 ### High-Intensity Replications of the Lever Experiments
 
 <!-- HIGHINT scenario=high_intensity -->

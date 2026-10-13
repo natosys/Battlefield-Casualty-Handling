@@ -884,12 +884,13 @@ build_establishment <- function(data_dir) {
 #'   closing 90-day mean queue is below it is counted as holding the pool.
 RESULTS_QUEUE_THRESHOLD <- 20
 
-#' Evacuation policy by R2E holding establishment grid under high intensity
+#' Evacuation policy by R2E holding establishment grid
 #'
 #' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: one row per policy and establishment.
-build_policy_establishment_high <- function(data_dir) {
-  d <- res_read("policy/establishment_sweep_high_intensity.csv", data_dir)
+build_policy_grid <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
   keys <- unique(d[, c("policy_days", "hold_beds")])
   keys <- keys[order(keys$policy_days, keys$hold_beds), ]
   cols <- list(list("hold_mean_queue", 1L), list("icu_mean_queue", 1L),
@@ -907,14 +908,15 @@ build_policy_establishment_high <- function(data_dir) {
               "Role 4 peak beds"), rows)
 }
 
-#' Replications holding each R2E pool under high intensity, by grid cell
+#' Replications holding each R2E pool, by grid cell
 #'
 #' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each policy and establishment, the replications of
 #'   the campaign's thirty whose closing-window mean queue was below
 #'   `RESULTS_QUEUE_THRESHOLD` in the holding pool, the intensive care pool and both.
-build_policy_establishment_high_stability <- function(data_dir) {
-  r <- res_read("policy/establishment_sweep_high_intensity_replications.csv", data_dir)
+build_policy_grid_stability <- function(data_dir, stem) {
+  r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   keys <- unique(r[, c("policy_days", "hold_beds")])
   keys <- keys[order(keys$policy_days, keys$hold_beds), ]
   rows <- lapply(seq_len(nrow(keys)), function(i) {
@@ -929,14 +931,15 @@ build_policy_establishment_high_stability <- function(data_dir) {
               "ICU queue below threshold", "Both below threshold"), rows)
 }
 
-#' Paired differences against the shipped policy and establishment under high intensity
+#' Paired differences against the shipped policy and establishment, by grid cell
 #'
 #' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each grid cell other than the baseline, the paired
 #'   difference in returns to duty, died of wounds and Role 4 peak beds with its
 #'   95% interval.
-build_policy_establishment_high_paired <- function(data_dir) {
-  d <- res_read("policy/establishment_sweep_high_intensity_paired.csv", data_dir)
+build_policy_grid_paired <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, "_paired.csv"), data_dir)
   arms <- unique(d$to)
   pol <- as.integer(sub("d_.*", "", arms))
   bed <- as.integer(sub(".*_([0-9]+)b$", "\\1", arms))
@@ -2351,6 +2354,89 @@ build_policy_trade <- function(data_dir) {
   c(lines[1:2], rows)
 }
 
+#' The grid at high intensity, as `build_policy_grid()` reads it
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_policy_establishment_high <- function(data_dir) {
+  build_policy_grid(data_dir, "establishment_sweep_high_intensity")
+}
+
+#' Stability counts of the high-intensity grid
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_policy_establishment_high_stability <- function(data_dir) {
+  build_policy_grid_stability(data_dir, "establishment_sweep_high_intensity")
+}
+
+#' Paired differences of the high-intensity grid
+#'
+#' @param data_dir The data directory.
+#' @return The table lines.
+build_policy_establishment_high_paired <- function(data_dir) {
+  build_policy_grid_paired(data_dir, "establishment_sweep_high_intensity")
+}
+
+#' Stem of the moderate-intensity grid's evidence files
+POLICY_GRID_MODERATE_STEM <- "establishment_sweep_moderate_grid"
+
+#' Largest policy that holds both R2E pools in every replication, by establishment
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @return The table lines: for each establishment, the largest swept policy at
+#'   which the closing-window queue of both R2E pools was below
+#'   `RESULTS_QUEUE_THRESHOLD` in every replication, the returns to duty at that
+#'   policy, the paired gain over the shipped policy and establishment and the gain
+#'   per bed added beyond the shipped establishment.
+#'
+#' @details A policy is stable at an establishment when no replication of the
+#'   cell exceeds the threshold in either pool; the largest stable policy is the
+#'   greatest swept value for which that holds, so a stable value beyond an
+#'   unstable one is not skipped to.
+build_policy_grid_largest_stable <- function(data_dir, stem) {
+  r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
+  s <- res_read(paste0("policy/", stem, ".csv"), data_dir)
+  p <- res_read(paste0("policy/", stem, "_paired.csv"), data_dir)
+  base_beds <- POLICY_GRID_BASELINE_BEDS
+  rows <- lapply(sort(unique(r$hold_beds)), function(b) {
+    cell <- r[r$hold_beds == b, ]
+    stable <- vapply(sort(unique(cell$policy_days)), function(d) {
+      x <- cell[cell$policy_days == d, ]
+      all(x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD)
+    }, logical(1))
+    days <- sort(unique(cell$policy_days))
+    if (!any(stable)) return(c(as.character(b), "none in the grid", "not applicable",
+                               "not applicable", "not applicable"))
+    best <- max(days[stable])
+    rtd <- res_row(s, "total_rtd", policy_days = best, hold_beds = b)
+    arm <- sprintf("%dd_%db", best, b)
+    gain <- if (arm == sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)) {
+      "0 (the shipped setting)"
+    } else {
+      g <- p[p$to == arm & p$response == "total_rtd", ]
+      sprintf("%s [%s, %s]", res_num(g$difference, 1L, TRUE, TRUE),
+              res_num(g$ci_lower, 1L, TRUE, TRUE), res_num(g$ci_upper, 1L, TRUE, TRUE))
+    }
+    per_bed <- if (b > base_beds && arm != sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)) {
+      g <- p[p$to == arm & p$response == "total_rtd", ]
+      res_num(g$difference / (b - base_beds), 1L, FALSE, TRUE)
+    } else "not applicable"
+    c(as.character(b), sprintf("%d d", best),
+      res_ci(rtd$mean, rtd$ci_lower, rtd$ci_upper, dp = 1L, big = TRUE), gain, per_bed)
+  })
+  res_table(c("Holding beds", "Largest policy holding both pools in every replication",
+              "Returns to duty there", "Paired gain over 21 d and 30 beds",
+              "Gain per added bed"), rows)
+}
+
+#' Policy of the grid's paired baseline arm, in days
+POLICY_GRID_BASELINE_DAYS <- 21L
+
+#' Holding establishment of the grid's paired baseline arm, in beds
+POLICY_GRID_BASELINE_BEDS <- 30L
+
 #' Tables registered for the planning paper alone
 #'
 #' @details The adequacy matrix and its sizing table interpret the results paper's
@@ -2399,6 +2485,19 @@ RESULTS_TABLES <- list(
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,
+  policy_grid_largest_high = function(dd) {
+    build_policy_grid_largest_stable(dd, "establishment_sweep_high_intensity")
+  },
+  policy_establishment_moderate = function(dd) build_policy_grid(dd, POLICY_GRID_MODERATE_STEM),
+  policy_establishment_moderate_stability = function(dd) {
+    build_policy_grid_stability(dd, POLICY_GRID_MODERATE_STEM)
+  },
+  policy_establishment_moderate_paired = function(dd) {
+    build_policy_grid_paired(dd, POLICY_GRID_MODERATE_STEM)
+  },
+  policy_grid_largest_moderate = function(dd) {
+    build_policy_grid_largest_stable(dd, POLICY_GRID_MODERATE_STEM)
+  },
   saturation = build_saturation,
   casualty_surge = build_casualty_surge,
   casualty_surge_size = build_casualty_surge_size,

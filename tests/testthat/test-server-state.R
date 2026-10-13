@@ -52,7 +52,10 @@ test_that("the scenario selector offers the profiles the configuration defines",
     scenarios <- test_startup_json()$scenarios
     overlaid <- names(scenarios)[vapply(scenarios, function(sc) length(sc$vars) > 0, logical(1))]
     expect_setequal(unname(choices), c("default", overlaid))
-    expect_identical(names(choices), c("Moderate Intensity", "High Intensity", "High Intensity, Modern Care"))
+    expect_identical(
+      names(choices),
+      c("Moderate Intensity", "High Intensity", "High Intensity, Modern Care")
+    )
     # Every option carries a label, and none of them is the bare identifier
     # padded out by the fallback in scenario_choices().
     expect_true(all(nzchar(names(choices))))

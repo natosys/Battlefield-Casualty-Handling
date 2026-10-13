@@ -262,7 +262,8 @@ run_icu_bed_measurement <- function(n_iterations = ICU_BED_SWEEP_REPLICATIONS,
   #' @return The replication's row and series, each carrying its index.
   worker <- function(i) {
     saved <- if (is.null(checkpoint_dir)) NULL else
-      file.path(checkpoint_dir, sprintf("replication_%03d_%d_d%d.rds", i, rep_seeds[i], n_days))
+      file.path(checkpoint_dir,
+                sprintf("replication_%03d_%d_d%d.rds", i, rep_seeds[i], n_days))
     if (!is.null(saved) && file.exists(saved)) return(readRDS(saved))
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
     out <- reduce_icu_bed_replication(env, n_days, rep_seeds[i], window_days)

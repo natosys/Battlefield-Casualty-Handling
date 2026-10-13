@@ -208,6 +208,58 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
           axis.text.x = element_text(angle = 30, hjust = 1), legend.position = "bottom")
 }
 
+#' Responses of the R2E intensive care bed sweep figure
+#'
+#' @details `scale` turns a share into percentage points.
+ICU_BED_PANELS <- data.frame(
+  response = c("icu_mean_queue", "icu_occupancy", "hold_mean_queue",
+               "postop_degraded_share", "post_definitive_icu_share", "total_dow",
+               "total_rtd", "mean_evac_wait_critical"),
+  label    = c("R2E ICU mean queue", "R2E ICU occupancy (%)", "R2E holding mean queue",
+               "Post-operative care in a holding bed (%)",
+               "Post-definitive ICU access (%)", "Died of wounds", "Returns to duty",
+               "Critical-route evacuation wait (days)"),
+  scale    = c(1, 100, 1, 100, 100, 1, 1, 1),
+  stringsAsFactors = FALSE
+)
+
+#' R2E intensive care bed establishment figure
+#'
+#' @param moderate_df Tracked `data/icu_beds/icu_bed_sweep_summary.csv`.
+#' @param high_df Tracked `..._summary_high_intensity.csv`.
+#' @param shipped Arm label of the shipped establishment.
+#' @return ggplot object of eight responses against the bed count, one column
+#'   per intensity.
+#'
+#' @details Each cell has its own vertical scale, the two intensities differing
+#'   by orders of magnitude in the queues. The shipped establishment is drawn in
+#'   the reference colour.
+plot_icu_bed_sweep <- function(moderate_df, high_df, shipped) {
+  both <- rbind(cbind(moderate_df, intensity = "Moderate intensity"),
+                cbind(high_df, intensity = "High intensity"))
+  plot_df <- label_panels(both, ICU_BED_PANELS) %>%
+    mutate(beds = as.numeric(sub(" beds$", "", arm)),
+           intensity = factor(intensity, levels = c("Moderate intensity", "High intensity")),
+           is_shipped = arm == shipped)
+  ggplot(plot_df, aes(x = beds, y = mean)) +
+    geom_line(colour = FIGURE_MEAN_COLOUR, linewidth = 0.4) +
+    geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper, colour = is_shipped), size = 0.5) +
+    facet_wrap(~ panel + intensity, ncol = 2, scales = "free_y",
+               labeller = label_wrap_gen(30, multi_line = FALSE)) +
+    scale_x_continuous(breaks = sort(unique(plot_df$beds))) +
+    scale_colour_manual(name = NULL, values = c(`TRUE` = FIGURE_SHIPPED_COLOUR,
+                                                `FALSE` = FIGURE_MEAN_COLOUR),
+                        labels = c(`TRUE` = "Shipped establishment",
+                                   `FALSE` = "Other establishment")) +
+    labs(title = "R2E Intensive Care Bed Establishment Sweep",
+         subtitle = sprintf("%d replications per arm over 360 days; mean and 95%% interval",
+                            unique(plot_df$n_reps)),
+         x = "R2E intensive care beds", y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold", size = 9),
+          legend.position = "bottom")
+}
+
 #' Responses of the post-operative intensive care gate figure
 #'
 #' @details The pathway counts are the casualties each post-operative route

@@ -597,6 +597,17 @@ build_icu_bed <- function(data_dir, suffix = "") {
     f[abs(f) < 0.0005] <- 0
     res_ci(f[1], f[2], f[3], dp = 3L)
   }
+  reps <- res_read(res_file("icu_beds/icu_bed_sweep_replications", suffix), data_dir)
+  #' Replications in which either R2E pool's closing queue reached the threshold
+  #'
+  #' @param a Arm label.
+  #' @return The count as "k of n".
+  collapsed <- function(a) {
+    x <- reps[reps$arm == a, ]
+    sprintf("%d of %d", sum(x$icu_mean_queue >= RESULTS_QUEUE_THRESHOLD |
+                              x$hold_mean_queue >= RESULTS_QUEUE_THRESHOLD, na.rm = TRUE),
+            nrow(x))
+  }
   beds <- as.numeric(sub(" beds$", "", arms))
   rows <- c(
     list(c("Nurses per ICU bed at three sections", sprintf("%.2f", ICU_BED_NURSES_TOTAL / beds)),
@@ -610,7 +621,9 @@ build_icu_bed <- function(data_dir, suffix = "") {
     list(c("R2E holding queue, late-half classification",
            vapply(arms, verdict("R2E holding beds"), character(1))),
          c("R2E holding queue shortfall per day",
-           vapply(arms, shortfall("R2E holding beds"), character(1)))),
+           vapply(arms, shortfall("R2E holding beds"), character(1))),
+         c("Replications with an R2E pool queue of 20 or more",
+           vapply(arms, collapsed, character(1)))),
     lapply(ICU_BED_ROWS[-(1:3)], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]]))
   )
   header <- c("Response", ifelse(arms == ICU_BED_BASELINE, paste(arms, "(shipped)"), arms))

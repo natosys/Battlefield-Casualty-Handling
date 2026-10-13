@@ -267,6 +267,8 @@ run_surgical_measurement <- function(n_iterations = SURGICAL_SWEEP_REPLICATIONS,
 #' @param series Daily series of every arm in long form, carrying `arm`,
 #'   `replication`, `day`, `series`, `subject` and `value`.
 #' @param block_days Block length in days (default LONG_HORIZON_BLOCK_DAYS).
+#' @param pool Pool whose daily mean queue is classified (default
+#'   SURGICAL_SWEEP_POOL, the R2E operating theatres).
 #' @return One row per arm of the queue's classification: its first, last and
 #'   late-mean block levels, the late slope with its interval, the shortfall per
 #'   day, the drift per block and `converged`, `drifting` or `degenerate`.
@@ -276,8 +278,9 @@ run_surgical_measurement <- function(n_iterations = SURGICAL_SWEEP_REPLICATIONS,
 #'   one the sustained-operations section reaches for the shipped establishment.
 #'   The shortfall per day is the late slope divided by the block length, with
 #'   the slope's interval, as `docs/Methods.md` defines it.
-surgical_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
-  queue <- series[series$series == "mean_queue" & series$subject == SURGICAL_SWEEP_POOL, ]
+surgical_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS,
+                               pool = SURGICAL_SWEEP_POOL) {
+  queue <- series[series$series == "mean_queue" & series$subject == pool, ]
   n_blocks <- floor(max(queue$day) / block_days)
   if (n_blocks < SURGICAL_SWEEP_MIN_BLOCKS) {
     stop(sprintf(paste("a campaign of %d days holds %d blocks of %d days; the late-half fit",

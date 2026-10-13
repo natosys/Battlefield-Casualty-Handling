@@ -500,6 +500,157 @@ build_surgical_team_paired <- function(data_dir, suffix = "") {
   res_table(c("Paired difference against the shipped establishment", arms), rows)
 }
 
+#' Arm the intensive care bed sweep's differences are measured against
+ICU_BED_BASELINE <- "4 beds"
+
+#' R2E intensive care nurses fielded in total at the shipped three sections
+#'
+#' @details Three sections of four nurses and an intensivist each, from
+#'   `env_data.json`; the ratio of nurses to beds the sweep reports is this
+#'   figure over the bed count. It is a staffing cost the model does not charge,
+#'   no intensive care stay seizing the section.
+ICU_BED_NURSES_TOTAL <- 12
+
+#' Responses of the intensive care bed sweep, as `list(label, response, dp, scale)`
+#'
+#' @details The same set, in the same order, in the summary table and the paired
+#'   table, so a reader finds a response in the same row of both. The scale of
+#'   100 turns a share into percentage points.
+ICU_BED_ROWS <- list(
+  list("R2E ICU mean queue", "icu_mean_queue", 2L, 1),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("Post-operative care in a holding bed (%)", "postop_degraded_share", 1L, 100),
+  list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
+  list("R2E theatre entry deferred", "r2e_theatre_deferred", 1L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Returns to duty", "total_rtd", 1L, 1),
+  list("Critical-route evacuation wait (days)", "mean_evac_wait_critical", 2L, 1),
+  list("Role 4 peak census", "role4_peak", 1L, 1),
+  list("Role 4 closing mean census", "role4_sustained", 1L, 1)
+)
+
+#' Intensive care bed sweep table: each response and the queues' classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per arm.
+#'
+#' @details The classifications and shortfalls per day are those of the R2E
+#'   intensive care and holding queues' late-half fits, read from the stability
+#'   file the sweep wrote from its own daily series, in the stability table's
+#'   words. The nurses per bed row is the shipped total over the bed count.
+build_icu_bed <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("icu_beds/icu_bed_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("icu_beds/icu_bed_sweep_stability", suffix), data_dir)
+  arms <- unique(d$arm)
+  #' One response's row across the arms
+  #'
+  #' @param label Row label.
+  #' @param response Response key.
+  #' @param dp Decimal places.
+  #' @param scale Multiplier, 100 for a share.
+  #' @return The row's cells.
+  one <- function(label, response, dp, scale) {
+    c(label, vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == response, ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", response,
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = dp, scale = scale, floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One pool's stability row for one arm
+  #'
+  #' @param a Arm label.
+  #' @param pool Pool name.
+  #' @return The one stability row.
+  stab <- function(a, pool) {
+    r <- st[st$arm == a & st$pool == pool, ]
+    if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', pool '%s', found %d",
+                                    a, pool, nrow(r)), call. = FALSE)
+    r
+  }
+  #' A pool's classification for one arm, in the stability table's words
+  #'
+  #' @param pool Pool name.
+  #' @return A function of the arm label returning the cell text.
+  verdict <- function(pool) function(a) {
+    r <- stab(a, pool)
+    if (r$stability == "drifting") {
+      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
+              formatC(r$first, format = "f", digits = 1, big.mark = ","),
+              formatC(r$last, format = "f", digits = 1, big.mark = ","))
+    } else {
+      sprintf("converged at %s", formatC(r$late_mean, format = "f",
+                                         digits = if (abs(r$late_mean) < 10) 2 else 1,
+                                         big.mark = ","))
+    }
+  }
+  #' A pool's shortfall per day for one arm, with its interval
+  #'
+  #' @param pool Pool name.
+  #' @return A function of the arm label returning the cell text.
+  shortfall <- function(pool) function(a) {
+    r <- stab(a, pool)
+    f <- c(r$shortfall_per_day, r$shortfall_lower, r$shortfall_upper)
+    f[abs(f) < 0.0005] <- 0
+    res_ci(f[1], f[2], f[3], dp = 3L)
+  }
+  reps <- res_read(res_file("icu_beds/icu_bed_sweep_replications", suffix), data_dir)
+  #' Replications in which either R2E pool's closing queue reached the threshold
+  #'
+  #' @param a Arm label.
+  #' @return The count as "k of n".
+  collapsed <- function(a) {
+    x <- reps[reps$arm == a, ]
+    sprintf("%d of %d", sum(x$icu_mean_queue >= RESULTS_QUEUE_THRESHOLD |
+                              x$hold_mean_queue >= RESULTS_QUEUE_THRESHOLD, na.rm = TRUE),
+            nrow(x))
+  }
+  beds <- as.numeric(sub(" beds$", "", arms))
+  rows <- c(
+    list(c("Nurses per ICU bed at three sections", sprintf("%.2f", ICU_BED_NURSES_TOTAL / beds)),
+         one(ICU_BED_ROWS[[1]][[1]], ICU_BED_ROWS[[1]][[2]], ICU_BED_ROWS[[1]][[3]],
+             ICU_BED_ROWS[[1]][[4]]),
+         c("R2E ICU queue, late-half classification",
+           vapply(arms, verdict("R2E intensive care"), character(1))),
+         c("R2E ICU queue shortfall per day",
+           vapply(arms, shortfall("R2E intensive care"), character(1)))),
+    lapply(ICU_BED_ROWS[2:3], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]])),
+    list(c("R2E holding queue, late-half classification",
+           vapply(arms, verdict("R2E holding beds"), character(1))),
+         c("R2E holding queue shortfall per day",
+           vapply(arms, shortfall("R2E holding beds"), character(1))),
+         c("Replications with an R2E pool queue of 20 or more",
+           vapply(arms, collapsed, character(1)))),
+    lapply(ICU_BED_ROWS[-(1:3)], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]]))
+  )
+  header <- c("Response", ifelse(arms == ICU_BED_BASELINE, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Intensive care bed sweep table of paired differences against the shipped establishment
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per arm other than the shipped one.
+build_icu_bed_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("icu_beds/icu_bed_sweep_paired", suffix), data_dir)
+  arms <- unique(d$to)
+  rows <- lapply(ICU_BED_ROWS, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped establishment", arms), rows)
+}
+
 #' The two R2B holding sweep tables
 #'
 #' @param data_dir The data directory.
@@ -1743,6 +1894,10 @@ RESULTS_TABLES <- list(
   surgical_team_high = function(dd) build_surgical_team(dd, "_high_intensity"),
   surgical_team_paired = build_surgical_team_paired,
   surgical_team_paired_high = function(dd) build_surgical_team_paired(dd, "_high_intensity"),
+  icu_bed = build_icu_bed,
+  icu_bed_high = function(dd) build_icu_bed(dd, "_high_intensity"),
+  icu_bed_paired = build_icu_bed_paired,
+  icu_bed_paired_high = function(dd) build_icu_bed_paired(dd, "_high_intensity"),
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,

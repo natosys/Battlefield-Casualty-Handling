@@ -45,6 +45,7 @@ The measurements record where queues form at each intensity and which responses 
   - [High-Intensity Evacuation Policy and Holding Establishment](#high-intensity-evacuation-policy-and-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
+  - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
 - [National Support Base and Strategic Airlift](#national-support-base-and-strategic-airlift)
 - [Role 4 Bed Demand](#role-4-bed-demand)
 - [Casualty Surge Events](#casualty-surge-events)
@@ -716,6 +717,99 @@ At the shipped establishment the high-intensity R2E theatre queue averaged <!-- 
 ![Two columns of panels of campaign responses against the surgical section establishment at moderate and high intensity](../images/surgical_team_sweep.png)
 
 The R2E theatre queue and the diversions, deaths of wounds and returns to duty of each establishment, at moderate intensity (left) and high intensity (right), with the shipped establishment marked.
+
+
+### R2E Intensive Care Bed Establishment
+
+**Question.** What changes when the R2E intensive care establishment is raised from the shipped four beds, and does the R2E intensive care queue converge at any bed count swept? `[default and high_intensity, R2E ICU 4 to 16 beds · 360 d · 30 replications · paired, closing 90 d]`
+
+Each arm is a bed count for the R2E intensive care pool: four (shipped), six, eight, twelve and sixteen. No stay at R2E seizes an intensive care section, so the beds are varied without staff and the nurses per bed row is the shipped three sections of four nurses over the bed count, a ratio the model does not charge. R2B intensive care beds are not varied.
+
+<!-- GEN icu_bed -->
+| Response | 4 beds (shipped) | 6 beds | 8 beds | 12 beds | 16 beds |
+|---|---|---|---|---|---|
+| Nurses per ICU bed at three sections | 3.00 | 2.00 | 1.50 | 1.00 | 0.75 |
+| R2E ICU mean queue | 1.35 [0.55, 2.16] | 0.47 [0.35, 0.59] | 0.34 [0.28, 0.40] | 0.13 [0.10, 0.17] | 0.90 [0.00, 2.65] |
+| R2E ICU queue, late-half classification | converged at 1.05 | converged at 0.53 | converged at 0.41 | converged at 0.17 | **drifting, -27.0%/block**, 0.2 to 1.0 |
+| R2E ICU queue shortfall per day | 0.004 [−0.003, 0.012] | 0.000 [−0.003, 0.002] | −0.002 [−0.004, 0.000] | −0.001 [−0.002, 0.001] | −0.016 [−0.027, −0.006] |
+| R2E ICU occupancy (%) | 87.8 [86.8, 88.9] | 80.1 [78.5, 81.6] | 74.7 [73.1, 76.2] | 62.1 [59.8, 64.5] | 52.9 [49.1, 56.7] |
+| R2E holding mean queue | 0.08 [0.00, 0.19] | 0.07 [0.01, 0.13] | 0.01 [0.00, 0.03] | 0.01 [0.00, 0.02] | 5.34 [0.00, 16.27] |
+| R2E holding queue, late-half classification | converged at 0.09 | converged at 0.12 | converged at 0.27 | converged at 0.07 | converged at 5.21 |
+| R2E holding queue shortfall per day | 0.000 [−0.001, 0.001] | −0.001 [−0.004, 0.001] | −0.006 [−0.014, 0.002] | −0.002 [−0.004, 0.001] | −0.007 [−0.030, 0.016] |
+| Replications with an R2E pool queue of 20 or more | 0 of 30 | 0 of 30 | 0 of 30 | 0 of 30 | 1 of 30 |
+| Post-operative care in a holding bed (%) | 50.2 [49.1, 51.4] | 35.9 [34.5, 37.3] | 25.3 [23.7, 26.8] | 11.2 [10.2, 12.3] | 5.5 [2.1, 8.8] |
+| Post-definitive ICU access (%) | 31.7 [30.6, 32.8] | 51.0 [49.2, 52.8] | 65.9 [64.1, 67.7] | 85.6 [84.1, 87.1] | 92.7 [87.6, 97.8] |
+| R2E theatre entry deferred | 220.2 [209.1, 231.4] | 162.1 [151.8, 172.4] | 125.5 [115.7, 135.3] | 68.4 [60.4, 76.3] | 37.3 [17.6, 57.0] |
+| Died of wounds | 10.67 [9.33, 12.00] | 10.77 [9.41, 12.13] | 10.07 [8.83, 11.31] | 10.33 [9.24, 11.43] | 10.60 [9.39, 11.81] |
+| Returns to duty | 1673.3 [1647.0, 1699.6] | 1669.9 [1644.6, 1695.1] | 1672.0 [1643.1, 1700.9] | 1676.1 [1647.6, 1704.7] | 1677.9 [1650.9, 1704.9] |
+| Critical-route evacuation wait (days) | 0.54 [0.47, 0.62] | 0.54 [0.40, 0.69] | 0.53 [0.31, 0.76] | 0.56 [0.37, 0.75] | 1.07 [0.03, 2.10] |
+| Role 4 peak census | 202.6 [193.6, 211.7] | 200.6 [190.6, 210.6] | 208.9 [199.1, 218.6] | 211.4 [201.5, 221.2] | 201.8 [192.2, 211.3] |
+| Role 4 closing mean census | 109.0 [104.0, 114.1] | 104.8 [99.5, 110.0] | 103.2 [99.6, 106.8] | 104.9 [98.6, 111.2] | 104.0 [99.8, 108.2] |
+<!-- /GEN -->
+
+<!-- GEN icu_bed_paired -->
+| Paired difference against the shipped establishment | 6 beds | 8 beds | 12 beds | 16 beds |
+|---|---|---|---|---|
+| R2E ICU mean queue | −0.89 [−1.69, −0.09] | −1.02 [−1.83, −0.20] | −1.22 [−2.02, −0.42] | −0.45 [−2.42, +1.51] |
+| R2E ICU occupancy (%) | −7.8 [−9.7, −5.8] | −13.2 [−15.2, −11.2] | −25.7 [−28.4, −23.1] | −34.9 [−38.9, −31.0] |
+| R2E holding mean queue | −0.01 [−0.13, +0.11] | −0.07 [−0.18, +0.04] | −0.07 [−0.18, +0.04] | +5.27 [−5.67, +16.20] |
+| Post-operative care in a holding bed (%) | −14.4 [−16.1, −12.7] | −25.0 [−26.8, −23.1] | −39.0 [−40.4, −37.6] | −44.8 [−48.1, −41.4] |
+| Post-definitive ICU access (%) | +19.3 [+17.3, +21.3] | +34.2 [+32.0, +36.3] | +53.9 [+52.3, +55.5] | +61.0 [+56.2, +65.8] |
+| R2E theatre entry deferred | −58.2 [−73.0, −43.3] | −94.7 [−109.8, −79.7] | −151.9 [−164.5, −139.2] | −182.9 [−202.9, −163.0] |
+| Died of wounds | +0.10 [−1.75, +1.95] | −0.60 [−2.47, +1.27] | −0.33 [−1.95, +1.28] | −0.07 [−1.78, +1.64] |
+| Returns to duty | −3.4 [−36.0, +29.2] | −1.3 [−41.0, +38.3] | +2.8 [−30.0, +35.7] | +4.6 [−29.9, +39.1] |
+| Critical-route evacuation wait (days) | +0.00 [−0.14, +0.14] | −0.01 [−0.25, +0.23] | +0.02 [−0.16, +0.20] | +0.52 [−0.49, +1.53] |
+| Role 4 peak census | −2.0 [−16.6, +12.6] | +6.2 [−5.5, +18.0] | +8.7 [−4.2, +21.7] | −0.9 [−13.0, +11.3] |
+| Role 4 closing mean census | −4.3 [−11.9, +3.4] | −5.8 [−11.5, −0.2] | −4.1 [−12.0, +3.7] | −5.1 [−11.4, +1.3] |
+<!-- /GEN -->
+
+At the shipped establishment the R2E intensive care queue over the closing 90 days averaged <!-- GEN cell:icu_bed|R2E ICU mean queue|4 beds (shipped)|full -->1.35 [0.55, 2.16]<!-- /GEN --> and was classified <!-- GEN cell:icu_bed|R2E ICU queue, late-half classification|4 beds (shipped)|full -->converged at 1.05<!-- /GEN -->, with <!-- GEN cell:icu_bed|R2E ICU occupancy (%)|4 beds (shipped)|full -->87.8 [86.8, 88.9]<!-- /GEN --> percent occupancy; <!-- GEN cell:icu_bed|Post-operative care in a holding bed (%)|4 beds (shipped)|full -->50.2 [49.1, 51.4]<!-- /GEN --> percent of post-operative care was taken in a holding bed and <!-- GEN cell:icu_bed|Post-definitive ICU access (%)|4 beds (shipped)|full -->31.7 [30.6, 32.8]<!-- /GEN --> percent of post-definitive care in an intensive care bed. Twelve beds changed the share of post-operative care taken in a holding bed by <!-- GEN cell:icu_bed_paired|Post-operative care in a holding bed (%)|12 beds|full -->−39.0 [−40.4, −37.6]<!-- /GEN --> percentage points and the post-definitive access by <!-- GEN cell:icu_bed_paired|Post-definitive ICU access (%)|12 beds|full -->+53.9 [+52.3, +55.5]<!-- /GEN --> percentage points. The paired differences in deaths of wounds at six, eight, twelve and sixteen beds were <!-- GEN cell:icu_bed_paired|Died of wounds|6 beds|full -->+0.10 [−1.75, +1.95]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|8 beds|full -->−0.60 [−2.47, +1.27]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|12 beds|full -->−0.33 [−1.95, +1.28]<!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Died of wounds|16 beds|full -->−0.07 [−1.78, +1.64]<!-- /GEN -->, and in returns to duty <!-- GEN cell:icu_bed_paired|Returns to duty|6 beds|full -->−3.4 [−36.0, +29.2]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|8 beds|full -->−1.3 [−41.0, +38.3]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|12 beds|full -->+2.8 [−30.0, +35.7]<!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Returns to duty|16 beds|full -->+4.6 [−29.9, +39.1]<!-- /GEN -->. In the sixteen-bed arm <!-- GEN cell:icu_bed|Replications with an R2E pool queue of 20 or more|16 beds|full -->1 of 30<!-- /GEN --> replications ended with an R2E pool queue of twenty or more.
+
+At high intensity the same five arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
+
+<!-- GEN icu_bed_high -->
+| Response | 4 beds (shipped) | 6 beds | 8 beds | 12 beds | 16 beds |
+|---|---|---|---|---|---|
+| Nurses per ICU bed at three sections | 3.00 | 2.00 | 1.50 | 1.00 | 0.75 |
+| R2E ICU mean queue | 1438.30 [1423.92, 1452.69] | 1378.59 [1365.04, 1392.15] | 1329.59 [1311.45, 1347.73] | 1272.33 [1252.52, 1292.13] | 1210.12 [1193.38, 1226.86] |
+| R2E ICU queue, late-half classification | **drifting, +13.0%/block**, 32.5 to 1,590.1 | **drifting, +13.5%/block**, 26.5 to 1,529.2 | **drifting, +13.7%/block**, 19.9 to 1,477.6 | **drifting, +14.2%/block**, 13.2 to 1,413.2 | **drifting, +14.7%/block**, 9.9 to 1,349.4 |
+| R2E ICU queue shortfall per day | 4.954 [4.905, 5.002] | 4.875 [4.808, 4.941] | 4.775 [4.694, 4.856] | 4.678 [4.629, 4.726] | 4.589 [4.533, 4.645] |
+| R2E ICU occupancy (%) | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
+| R2E holding mean queue | 556.08 [528.50, 583.66] | 639.45 [615.32, 663.59] | 711.27 [692.81, 729.72] | 796.56 [776.83, 816.29] | 853.16 [830.12, 876.20] |
+| R2E holding queue, late-half classification | **drifting, +9.3%/block**, 48.6 to 595.9 | **drifting, +8.8%/block**, 51.1 to 684.1 | **drifting, +9.0%/block**, 56.8 to 759.6 | **drifting, +8.7%/block**, 62.6 to 850.3 | **drifting, +8.2%/block**, 67.0 to 909.1 |
+| R2E holding queue shortfall per day | 1.459 [1.408, 1.511] | 1.601 [1.498, 1.704] | 1.813 [1.694, 1.932] | 1.974 [1.907, 2.040] | 2.013 [1.870, 2.155] |
+| Replications with an R2E pool queue of 20 or more | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 |
+| Post-operative care in a holding bed (%) | 99.1 [99.0, 99.3] | 98.6 [98.4, 98.7] | 97.8 [97.6, 98.1] | 96.1 [95.8, 96.5] | 93.8 [93.3, 94.4] |
+| Post-definitive ICU access (%) | 0.2 [0.2, 0.3] | 0.4 [0.3, 0.5] | 0.7 [0.6, 0.8] | 1.5 [1.2, 1.7] | 2.4 [2.1, 2.8] |
+| R2E theatre entry deferred | 1013.5 [991.8, 1035.2] | 1019.8 [997.6, 1042.0] | 1014.0 [995.1, 1032.9] | 1006.1 [987.1, 1025.1] | 1015.3 [995.0, 1035.5] |
+| Died of wounds | 277.60 [272.10, 283.10] | 282.93 [275.34, 290.53] | 287.17 [281.47, 292.86] | 283.77 [276.05, 291.49] | 285.10 [278.08, 292.12] |
+| Returns to duty | 2840.0 [2806.2, 2873.9] | 2841.6 [2811.9, 2871.2] | 2834.4 [2800.0, 2868.8] | 2824.0 [2797.2, 2850.9] | 2832.7 [2799.4, 2866.1] |
+| Critical-route evacuation wait (days) | 21.90 [21.49, 22.30] | 25.25 [24.89, 25.61] | 27.97 [27.64, 28.29] | 32.07 [31.72, 32.41] | 34.95 [34.51, 35.39] |
+| Role 4 peak census | 215.8 [214.0, 217.5] | 218.2 [216.0, 220.4] | 219.2 [216.2, 222.2] | 218.3 [216.1, 220.6] | 218.2 [215.9, 220.5] |
+| Role 4 closing mean census | 143.1 [141.4, 144.9] | 144.2 [142.7, 145.7] | 142.9 [141.3, 144.5] | 143.3 [142.0, 144.7] | 142.9 [141.3, 144.5] |
+<!-- /GEN -->
+
+<!-- GEN icu_bed_paired_high -->
+| Paired difference against the shipped establishment | 6 beds | 8 beds | 12 beds | 16 beds |
+|---|---|---|---|---|
+| R2E ICU mean queue | −59.71 [−80.72, −38.71] | −108.72 [−132.27, −85.16] | −165.98 [−186.02, −145.94] | −228.18 [−248.00, −208.36] |
+| R2E ICU occupancy (%) | −0.0 [−0.0, +0.0] | +0.0 [+0.0, +0.0] | +0.0 [−0.0, +0.0] | +0.0 [+0.0, +0.0] |
+| R2E holding mean queue | +83.37 [+48.04, +118.71] | +155.19 [+120.10, +190.27] | +240.48 [+213.82, +267.15] | +297.08 [+265.14, +329.02] |
+| Post-operative care in a holding bed (%) | −0.6 [−0.8, −0.4] | −1.3 [−1.6, −1.1] | −3.0 [−3.4, −2.6] | −5.3 [−5.9, −4.7] |
+| Post-definitive ICU access (%) | +0.2 [+0.1, +0.3] | +0.5 [+0.4, +0.6] | +1.2 [+1.0, +1.4] | +2.2 [+1.8, +2.6] |
+| R2E theatre entry deferred | +6.3 [−24.5, +37.1] | +0.5 [−21.4, +22.4] | −7.4 [−35.2, +20.4] | +1.8 [−29.9, +33.4] |
+| Died of wounds | +5.33 [−5.12, +15.79] | +9.57 [+1.43, +17.70] | +6.17 [−5.16, +17.49] | +7.50 [−1.92, +16.92] |
+| Returns to duty | +1.5 [−46.3, +49.4] | −5.7 [−49.6, +38.3] | −16.0 [−58.1, +26.1] | −7.3 [−55.9, +41.3] |
+| Critical-route evacuation wait (days) | +3.36 [+2.86, +3.85] | +6.07 [+5.52, +6.62] | +10.17 [+9.64, +10.69] | +13.05 [+12.53, +13.57] |
+| Role 4 peak census | +2.4 [−0.1, +4.9] | +3.4 [+0.3, +6.6] | +2.6 [−0.7, +5.9] | +2.5 [−0.7, +5.7] |
+| Role 4 closing mean census | +1.1 [−1.0, +3.1] | −0.2 [−2.4, +2.0] | +0.2 [−1.9, +2.3] | −0.2 [−2.6, +2.1] |
+<!-- /GEN -->
+
+At the shipped establishment the high-intensity R2E intensive care queue averaged <!-- GEN cell:icu_bed_high|R2E ICU mean queue|4 beds (shipped)|full -->1438.30 [1423.92, 1452.69]<!-- /GEN --> and was classified <!-- GEN cell:icu_bed_high|R2E ICU queue, late-half classification|4 beds (shipped)|full -->**drifting, +13.0%/block**, 32.5 to 1,590.1<!-- /GEN -->, a shortfall of <!-- GEN cell:icu_bed_high|R2E ICU queue shortfall per day|4 beds (shipped)|full -->4.954 [4.905, 5.002]<!-- /GEN --> casualties per day. At sixteen beds, four times the shipped establishment, the queue averaged <!-- GEN cell:icu_bed_high|R2E ICU mean queue|16 beds|full -->1210.12 [1193.38, 1226.86]<!-- /GEN -->, was classified <!-- GEN cell:icu_bed_high|R2E ICU queue, late-half classification|16 beds|full -->**drifting, +14.7%/block**, 9.9 to 1,349.4<!-- /GEN --> and fell short by <!-- GEN cell:icu_bed_high|R2E ICU queue shortfall per day|16 beds|full -->4.589 [4.533, 4.645]<!-- /GEN --> per day, so no bed count swept classified the pool as converged. Over the same arms the R2E holding queue shortfall per day went from <!-- GEN cell:icu_bed_high|R2E holding queue shortfall per day|4 beds (shipped)|full -->1.459 [1.408, 1.511]<!-- /GEN --> at the shipped establishment to <!-- GEN cell:icu_bed_high|R2E holding queue shortfall per day|16 beds|full -->2.013 [1.870, 2.155]<!-- /GEN --> at sixteen beds, and the mean evacuation wait of the critical route from <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|4 beds (shipped)|full -->21.90 [21.49, 22.30]<!-- /GEN --> days to <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|16 beds|full -->34.95 [34.51, 35.39]<!-- /GEN --> days. The paired differences at sixteen beds were <!-- GEN cell:icu_bed_paired_high|Died of wounds|16 beds|full -->+7.50 [−1.92, +16.92]<!-- /GEN --> in deaths of wounds and <!-- GEN cell:icu_bed_paired_high|Returns to duty|16 beds|full -->−7.3 [−55.9, +41.3]<!-- /GEN --> in returns to duty.
+
+![Two columns of panels of campaign responses against the R2E intensive care bed count at moderate and high intensity](../images/icu_bed_sweep.png)
+
+The R2E intensive care queue, occupancy, holding queue, post-operative and post-definitive care and the critical-route evacuation wait of each establishment, with deaths of wounds and returns to duty, at moderate intensity (left) and high intensity (right), with the shipped establishment marked.
 
 ---
 

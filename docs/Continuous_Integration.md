@@ -378,6 +378,7 @@ seconds.
 | `check_hold_episode_reconstruction.R` | fast | 43 s | an R2B holding episode is bounded by the attribute its own exit route sets |
 | `check_hold_window_protocol.R` | fast | 7 s | the R2B pre-open hold window's parameters, its responses and its published table agree |
 | `check_holding_occupancy_split.R` | fast | 45 s | R2E holding occupancy splits into recovery and evacuation wait, and the two account for the pool within a stated bound |
+| `check_icu_bed_sweep_protocol.R` | fast | 10 s | the R2E intensive care bed sweep's parameters, its responses and its published section agree |
 | `check_icu_gate_protocol.R` | fast | 7 s | the post-operative intensive care gate's parameters, its responses and its published table agree |
 | `check_icu_gate_switch.R` | fast | 120 s | the intensive care gate disable switch reproduces the pre-gate model |
 | `check_icu_time_conservation.R` | fast | 120 s | post-operative ICU time is conserved across routes |

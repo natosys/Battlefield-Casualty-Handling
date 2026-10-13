@@ -63,3 +63,4 @@ check_testthat.R,96
 check_time_series_figures.R,6
 check_surgical_roster.R,70
 check_surgical_sweep_protocol.R,10
+check_icu_bed_sweep_protocol.R,10

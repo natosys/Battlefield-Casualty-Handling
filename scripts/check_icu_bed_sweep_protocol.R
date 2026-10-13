@@ -298,9 +298,8 @@ for (p in ICU_BED_SWEEP_POOLS) {
            identical(as.character(flat$stability), "degenerate"),
          "%s: a flat queue has no shortfall and is classified degenerate", p)
 }
-report(inherits(try(icu_bed_stability(toy_series("short", function(d) d,
-                                                  ICU_BED_SWEEP_POOLS[1], n_days = 90L)),
-                    silent = TRUE), "try-error"),
+short <- toy_series("short", function(d) d, ICU_BED_SWEEP_POOLS[1], n_days = 90L)
+report(inherits(try(icu_bed_stability(short), silent = TRUE), "try-error"),
        "a campaign too short for the late-half fit is refused rather than classified")
 
 # ── 5. The setter and the staffing ratio ────────────────────────────────────

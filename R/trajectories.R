@@ -192,26 +192,27 @@ select_r2e_team <- function() {
   return(selected)
 }
 
-#' Selects the R2E surgical section best placed to take the next case
+#' Selects the surgical section best placed to take the next case
 #'
-#' @param team_id Index of the R2E team within env_data$elms$r2eheavy
-#' @return Integer index (1-based) of the chosen surgical section within that
-#'   team's "surg" sub-element list
+#' @param sections List of surgical sections, each a character vector of the
+#'   resource names of that section's members
+#' @return Integer index (1-based) of the chosen section within `sections`
 #'
-#' @details R2E fields more surgical sections than operating theatres, and
-#'   build_env() gives each section its own alternating day/night shift, so the
-#'   section that takes a case must be chosen per casualty rather than fixed
-#'   when the trajectory is built. Sections are scored on current load, the sum
-#'   of in-use and queued units across the section's member resources, which is
-#'   the section-level analogue of the "shortest-queue" policy used for bed
-#'   selection elsewhere in this file. On-shift sections (every member holding
-#'   non-zero capacity) are preferred outright: an off-shift section is chosen
-#'   only when no section is on shift, in which case the casualty queues until
-#'   the next shift opens. Ties are broken by random selection among the
-#'   equally-loaded candidates, matching select_r2e_team() above.
-select_r2e_surg_section <- function(team_id) {
-  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
-
+#' @details An echelon can field more surgical sections than operating
+#'   theatres, and build_env() gives each section its own alternating day/night
+#'   shift, so the section that takes a case must be chosen per casualty rather
+#'   than fixed when the trajectory is built. Sections are scored on current
+#'   load, the sum of in-use and queued units across the section's member
+#'   resources, which is the section-level analogue of the "shortest-queue"
+#'   policy used for bed selection elsewhere in this file. On-shift sections
+#'   (every member holding non-zero capacity) are preferred outright: an
+#'   off-shift section is chosen only when no section is on shift, in which
+#'   case the casualty queues until the next shift opens. Ties are broken by
+#'   random selection among the equally-loaded candidates, matching
+#'   select_r2e_team() above, and a single candidate is returned without
+#'   drawing, so an echelon fielding one section consumes no random number
+#'   here.
+select_surg_section <- function(sections) {
   section_load <- sapply(sections, function(members) {
     sum(sapply(members, function(res) {
       get_server_count(env, res) + get_queue_count(env, res)
@@ -227,6 +228,31 @@ select_r2e_surg_section <- function(team_id) {
 
   if (length(candidates) == 1) return(candidates)
   return(sample(candidates, 1))
+}
+
+#' Selects the R2E surgical section best placed to take the next case
+#'
+#' @param team_id Index of the R2E team within env_data$elms$r2eheavy
+#' @return Integer index (1-based) of the chosen surgical section within that
+#'   team's "surg" sub-element list
+#'
+#' @details R2E fields more surgical sections than operating theatres; the
+#'   choice is select_surg_section()'s.
+select_r2e_surg_section <- function(team_id) {
+  select_surg_section(env_data$elms$r2eheavy[[team_id]][["surg"]])
+}
+
+#' Selects the R2B surgical section best placed to take the next case
+#'
+#' @param team_id Index of the R2B team within env_data$elms$r2b
+#' @return Integer index (1-based) of the chosen surgical section within that
+#'   team's "surg" sub-element list
+#'
+#' @details Called only for a unit that fields more than one section; a unit
+#'   fielding one has nothing to choose between. The choice is
+#'   select_surg_section()'s.
+select_r2b_surg_section <- function(team_id) {
+  select_surg_section(env_data$elms$r2b[[team_id]][["surg"]])
 }
 
 # ── DOW survival functions ────────────────────────────────────────────────────
@@ -1169,24 +1195,60 @@ r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
     join(post_op)
 }
 
+#' Builds one forward operation at R2B on whichever section takes the case
+#'
+#' @param pre_open  Whether this copy is the held route (see r2b_surgery_path())
+#' @param team_id   Index of this R2B team within env_data$elms$r2b
+#' @param ot_beds   This R2B team's operating theatre beds
+#' @param surg_teams This R2B team's surgical sections
+#' @param post_op   The forward stabilisation trajectory joined at the end
+#' @return Simmer trajectory performing one forward operation
+#'
+#' @details A unit fielding one section gets r2b_surgery_path() on it directly,
+#'   which is the trajectory the model has always had. A unit fielding several
+#'   chooses among them per casualty, on the R2E arrangement.
+r2b_surgery_by_section <- function(pre_open, team_id, ot_beds, surg_teams, post_op) {
+  if (length(surg_teams) == 1L) {
+    return(r2b_surgery_path(pre_open, ot_beds, surg_teams[[1]], post_op))
+  }
+
+  # Branch structure: one arm per surgical section of this unit, each the
+  # same forward operation seizing that section alone. The decision criterion
+  # is select_r2b_surg_section(): an on-shift section is preferred, then the
+  # least loaded, ties broken at random.
+  trajectory("Surgery By Section") %>%
+    branch(
+      option = function() select_r2b_surg_section(team_id),
+      continue = TRUE,
+      lapply(seq_along(surg_teams), function(section_id) {
+        r2b_surgery_path(pre_open, ot_beds, surg_teams[[section_id]], post_op)
+      })
+    )
+}
+
 #' Builds the operating theatre availability check at R2B
 #'
+#' @param team_id   Index of this R2B team within env_data$elms$r2b
 #' @param ot_beds   This R2B team's operating theatre beds
-#' @param surg_team This R2B team's surgical section
+#' @param surg_teams This R2B team's surgical sections
 #' @param post_op   The forward stabilisation trajectory the operation ends in
 #' @return Simmer trajectory operating on the casualty forward, holding them
 #'   for a section about to reopen, or bypassing them to R2E.
 #'
 #' @details Joined directly when the pre-OT ICU gate clears immediately, and
 #'   again after the P2+ ICU-defer wait loop resolves.
-r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
+r2b_ot_check_path <- function(team_id, ot_beds, surg_teams, post_op) {
+  # The unit's sections taken together: the section is available when any of
+  # them is on shift, and a single section is the case this has always been.
+  surg_members <- unlist(surg_teams, use.names = FALSE)
+
   trajectory("R2B OT Check") %>%
     branch(
       option = function() {
         usage    <- sum(get_server_count(env, resources = ot_beds))
         cap      <- sum(get_capacity(env, resources = ot_beds))
         queue    <- sum(get_queue_count(env, resources = ot_beds))
-        team_cap <- sum(get_capacity(env, resources = surg_team))
+        team_cap <- sum(get_capacity(env, resources = surg_members))
         # A theatre is available when a bed is free and nobody is queued for
         # it; the section is available when its shift is open.
         bed_ok  <- !is.na(usage) && !is.na(cap) && usage < cap && queue == 0
@@ -1207,7 +1269,7 @@ r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
       continue = TRUE,
 
       # Sub-branch 1: theatre free and section on shift — operate now
-      r2b_surgery_path(FALSE, ot_beds, surg_team, post_op),
+      r2b_surgery_by_section(FALSE, team_id, ot_beds, surg_teams, post_op),
 
       # Sub-branch 2: OT busy, queued, or the section closed for longer than
       # the pre-open window — bypass to R2E. r2b_bypass_reason decomposes the
@@ -1218,7 +1280,7 @@ r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
       trajectory("OT Unavailable – Bypass to R2E") %>%
         set_attribute("r2b_bypassed", 1) %>%
         set_attribute("r2b_bypass_reason", function() {
-          team_cap <- sum(get_capacity(env, resources = surg_team))
+          team_cap <- sum(get_capacity(env, resources = surg_members))
           if (!is.na(team_cap) && team_cap <= 0) return(1)
           return(2)
         }) %>%
@@ -1236,7 +1298,7 @@ r2b_ot_check_path <- function(ot_beds, surg_team, post_op) {
       # forward stabilisation above, dow_prob_conditional() prices elapsed
       # time at the next checkpoint the casualty reaches, so the delay is
       # charged there rather than going unpriced.
-      r2b_surgery_path(TRUE, ot_beds, surg_team, post_op)
+      r2b_surgery_by_section(TRUE, team_id, ot_beds, surg_teams, post_op)
     )
 }
 
@@ -1660,11 +1722,11 @@ r2b_treat_wia <- function(team_id) {
   icu_beds        <- env_data$elms$r2b[[team_id]][["icu_bed"]]
   emergency_team  <- env_data$elms$r2b[[team_id]][["emerg"]][[1]]
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
-  surg_team       <- env_data$elms$r2b[[team_id]][["surg"]][[1]]
+  surg_teams      <- env_data$elms$r2b[[team_id]][["surg"]]
   icu_team        <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
 
   post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
-  ot_check       <- r2b_ot_check_path(ot_beds, surg_team, post_op)
+  ot_check       <- r2b_ot_check_path(team_id, ot_beds, surg_teams, post_op)
   wait_for_evac  <- r2b_wait_for_evac(icu_beds, icu_team, evacuation_team)
 
   trajectory("R2B Basic Flow") %>%

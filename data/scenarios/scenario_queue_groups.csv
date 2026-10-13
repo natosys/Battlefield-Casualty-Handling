@@ -11,3 +11,9 @@
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,1438.30450786919,1389.52024317645,1488.45301136119,1423.91880534025,1452.69021039814
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,556.080011920468,473.429897296473,648.726690302128,528.496666242068,583.663357598867
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,0.217464314736942,0.098532083579818,0.406068239996853,0.174620221197761,0.260308408276122
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","R2B OT",30,0,0,0,0,0
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","R2B Hold",30,31.030924079682,18.8953308368618,46.617172495629,26.6277505264709,35.434097632893
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","R2E OT",30,614.247437879318,420.509604148833,810.069281733447,558.607475242363,669.887400516274
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","R2E ICU",30,1453.18583080882,1408.75654230459,1507.64755299773,1437.30339783015,1469.06826378748
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","R2E Hold",30,591.339127989686,502.917921924098,653.526541338061,568.45045627745,614.227799701922
+"high_intensity_modern_care","High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model","Transport",30,0.271297910735502,0.0762660586699461,0.596929712690361,0.155337584659946,0.387258236811058

@@ -359,3 +359,183 @@
 "high_intensity",30,"R2E ICU",1389.23486754188
 "high_intensity",30,"R2E OT",454.883015335616
 "high_intensity",30,"Transport",0.246853768792267
+"high_intensity_modern_care",1,"R2B Hold",46.9639483908828
+"high_intensity_modern_care",1,"R2B OT",0
+"high_intensity_modern_care",1,"R2E Hold",579.223055985831
+"high_intensity_modern_care",1,"R2E ICU",1425.87387264497
+"high_intensity_modern_care",1,"R2E OT",578.681466520233
+"high_intensity_modern_care",1,"Transport",0.147845942085251
+"high_intensity_modern_care",2,"R2B Hold",32.3777429034902
+"high_intensity_modern_care",2,"R2B OT",0
+"high_intensity_modern_care",2,"R2E Hold",644.676958091299
+"high_intensity_modern_care",2,"R2E ICU",1479.04486081767
+"high_intensity_modern_care",2,"R2E OT",723.855134384736
+"high_intensity_modern_care",2,"Transport",0.198206847696525
+"high_intensity_modern_care",3,"R2B Hold",37.033561108351
+"high_intensity_modern_care",3,"R2B OT",0
+"high_intensity_modern_care",3,"R2E Hold",693.14472720971
+"high_intensity_modern_care",3,"R2E ICU",1417.76359624612
+"high_intensity_modern_care",3,"R2E OT",680.403424353419
+"high_intensity_modern_care",3,"Transport",0.193566181846278
+"high_intensity_modern_care",4,"R2B Hold",26.0358493435322
+"high_intensity_modern_care",4,"R2B OT",0
+"high_intensity_modern_care",4,"R2E Hold",600.938849338577
+"high_intensity_modern_care",4,"R2E ICU",1469.92608804614
+"high_intensity_modern_care",4,"R2E OT",560.477640314289
+"high_intensity_modern_care",4,"Transport",0.11964253096113
+"high_intensity_modern_care",5,"R2B Hold",31.3598562265026
+"high_intensity_modern_care",5,"R2B OT",0
+"high_intensity_modern_care",5,"R2E Hold",650.424198881555
+"high_intensity_modern_care",5,"R2E ICU",1433.41873594961
+"high_intensity_modern_care",5,"R2E OT",818.776873848379
+"high_intensity_modern_care",5,"Transport",1.44049579931783
+"high_intensity_modern_care",6,"R2B Hold",25.276448831447
+"high_intensity_modern_care",6,"R2B OT",0
+"high_intensity_modern_care",6,"R2E Hold",702.99380355877
+"high_intensity_modern_care",6,"R2E ICU",1477.81335380121
+"high_intensity_modern_care",6,"R2E OT",719.001848620211
+"high_intensity_modern_care",6,"Transport",0.118008150191478
+"high_intensity_modern_care",7,"R2B Hold",36.1699013621733
+"high_intensity_modern_care",7,"R2B OT",0
+"high_intensity_modern_care",7,"R2E Hold",636.521586496274
+"high_intensity_modern_care",7,"R2E ICU",1422.30203266884
+"high_intensity_modern_care",7,"R2E OT",620.004986523058
+"high_intensity_modern_care",7,"Transport",0.0858184040649755
+"high_intensity_modern_care",8,"R2B Hold",37.1681468768833
+"high_intensity_modern_care",8,"R2B OT",0
+"high_intensity_modern_care",8,"R2E Hold",607.461699848169
+"high_intensity_modern_care",8,"R2E ICU",1437.17567245076
+"high_intensity_modern_care",8,"R2E OT",570.096464370791
+"high_intensity_modern_care",8,"Transport",0.208883303994548
+"high_intensity_modern_care",9,"R2B Hold",42.7324019726668
+"high_intensity_modern_care",9,"R2B OT",0
+"high_intensity_modern_care",9,"R2E Hold",589.859801666188
+"high_intensity_modern_care",9,"R2E ICU",1423.65103298723
+"high_intensity_modern_care",9,"R2E OT",377.24873310278
+"high_intensity_modern_care",9,"Transport",0.105391759105087
+"high_intensity_modern_care",10,"R2B Hold",33.4321007825597
+"high_intensity_modern_care",10,"R2B OT",0
+"high_intensity_modern_care",10,"R2E Hold",634.18152740704
+"high_intensity_modern_care",10,"R2E ICU",1437.71913589775
+"high_intensity_modern_care",10,"R2E OT",714.965678237098
+"high_intensity_modern_care",10,"Transport",0.412818635501854
+"high_intensity_modern_care",11,"R2B Hold",30.5597557104372
+"high_intensity_modern_care",11,"R2B OT",0
+"high_intensity_modern_care",11,"R2E Hold",681.447623446618
+"high_intensity_modern_care",11,"R2E ICU",1395.11374869666
+"high_intensity_modern_care",11,"R2E OT",463.040960276507
+"high_intensity_modern_care",11,"Transport",0.258375381475225
+"high_intensity_modern_care",12,"R2B Hold",47.1412503413836
+"high_intensity_modern_care",12,"R2B OT",0
+"high_intensity_modern_care",12,"R2E Hold",631.091175875075
+"high_intensity_modern_care",12,"R2E ICU",1415.17191875953
+"high_intensity_modern_care",12,"R2E OT",653.76860750605
+"high_intensity_modern_care",12,"Transport",0.151553525656661
+"high_intensity_modern_care",13,"R2B Hold",13.5370642681166
+"high_intensity_modern_care",13,"R2B OT",0
+"high_intensity_modern_care",13,"R2E Hold",568.322617982394
+"high_intensity_modern_care",13,"R2E ICU",1448.1372837089
+"high_intensity_modern_care",13,"R2E OT",507.914088284637
+"high_intensity_modern_care",13,"Transport",0.0766571758130841
+"high_intensity_modern_care",14,"R2B Hold",15.0437589872204
+"high_intensity_modern_care",14,"R2B OT",0
+"high_intensity_modern_care",14,"R2E Hold",584.832149166494
+"high_intensity_modern_care",14,"R2E ICU",1479.40368272174
+"high_intensity_modern_care",14,"R2E OT",809.101771498454
+"high_intensity_modern_care",14,"Transport",0.305748723286049
+"high_intensity_modern_care",15,"R2B Hold",41.0805827010367
+"high_intensity_modern_care",15,"R2B OT",0
+"high_intensity_modern_care",15,"R2E Hold",549.569413981187
+"high_intensity_modern_care",15,"R2E ICU",1458.2557210761
+"high_intensity_modern_care",15,"R2E OT",627.737108921246
+"high_intensity_modern_care",15,"Transport",0.072746004381704
+"high_intensity_modern_care",16,"R2B Hold",24.9407238029924
+"high_intensity_modern_care",16,"R2B OT",0
+"high_intensity_modern_care",16,"R2E Hold",503.756849314766
+"high_intensity_modern_care",16,"R2E ICU",1479.99209028114
+"high_intensity_modern_care",16,"R2E OT",951.175866779464
+"high_intensity_modern_care",16,"Transport",0.0699462232521038
+"high_intensity_modern_care",17,"R2B Hold",63.9347578479643
+"high_intensity_modern_care",17,"R2B OT",0
+"high_intensity_modern_care",17,"R2E Hold",448.248152206037
+"high_intensity_modern_care",17,"R2E ICU",1430.83614147715
+"high_intensity_modern_care",17,"R2E OT",608.185288783474
+"high_intensity_modern_care",17,"Transport",0.214612224915247
+"high_intensity_modern_care",18,"R2B Hold",23.3279225630551
+"high_intensity_modern_care",18,"R2B OT",0
+"high_intensity_modern_care",18,"R2E Hold",603.756905762943
+"high_intensity_modern_care",18,"R2E ICU",1410.27240826103
+"high_intensity_modern_care",18,"R2E OT",592.83802397178
+"high_intensity_modern_care",18,"Transport",0.739296238098376
+"high_intensity_modern_care",19,"R2B Hold",28.1239244179898
+"high_intensity_modern_care",19,"R2B OT",0
+"high_intensity_modern_care",19,"R2E Hold",551.90840665632
+"high_intensity_modern_care",19,"R2E ICU",1491.46206169519
+"high_intensity_modern_care",19,"R2E OT",425.080336612344
+"high_intensity_modern_care",19,"Transport",0.311758682941117
+"high_intensity_modern_care",20,"R2B Hold",20.6402456367521
+"high_intensity_modern_care",20,"R2B OT",0
+"high_intensity_modern_care",20,"R2E Hold",551.848568122519
+"high_intensity_modern_care",20,"R2E ICU",1506.94991412012
+"high_intensity_modern_care",20,"R2E OT",962.055621950938
+"high_intensity_modern_care",20,"Transport",0.156019699218225
+"high_intensity_modern_care",21,"R2B Hold",22.9251790693419
+"high_intensity_modern_care",21,"R2B OT",0
+"high_intensity_modern_care",21,"R2E Hold",612.587940554557
+"high_intensity_modern_care",21,"R2E ICU",1448.66128997556
+"high_intensity_modern_care",21,"R2E OT",379.373011977231
+"high_intensity_modern_care",21,"Transport",0.116759760234873
+"high_intensity_modern_care",22,"R2B Hold",21.1026727216783
+"high_intensity_modern_care",22,"R2B OT",0
+"high_intensity_modern_care",22,"R2E Hold",567.506215703638
+"high_intensity_modern_care",22,"R2E ICU",1479.69464188543
+"high_intensity_modern_care",22,"R2E OT",370.983714041659
+"high_intensity_modern_care",22,"Transport",0.135945893049943
+"high_intensity_modern_care",23,"R2B Hold",39.9898025775975
+"high_intensity_modern_care",23,"R2B OT",0
+"high_intensity_modern_care",23,"R2E Hold",562.027770272192
+"high_intensity_modern_care",23,"R2E ICU",1454.68446994628
+"high_intensity_modern_care",23,"R2E OT",549.937425122395
+"high_intensity_modern_care",23,"Transport",0.129913113881329
+"high_intensity_modern_care",24,"R2B Hold",29.9258531172235
+"high_intensity_modern_care",24,"R2B OT",0
+"high_intensity_modern_care",24,"R2E Hold",468.097574911168
+"high_intensity_modern_care",24,"R2E ICU",1547.50147396561
+"high_intensity_modern_care",24,"R2E OT",604.921635275246
+"high_intensity_modern_care",24,"Transport",0.581111209867248
+"high_intensity_modern_care",25,"R2B Hold",7.84717957230306
+"high_intensity_modern_care",25,"R2B OT",0
+"high_intensity_modern_care",25,"R2E Hold",566.798550262976
+"high_intensity_modern_care",25,"R2E ICU",1513.92630289624
+"high_intensity_modern_care",25,"R2E OT",601.078615648611
+"high_intensity_modern_care",25,"Transport",0.0559127498963978
+"high_intensity_modern_care",26,"R2B Hold",46.5786418406008
+"high_intensity_modern_care",26,"R2B OT",0
+"high_intensity_modern_care",26,"R2E Hold",570.361837997748
+"high_intensity_modern_care",26,"R2E ICU",1469.71669863894
+"high_intensity_modern_care",26,"R2E OT",489.001747404327
+"high_intensity_modern_care",26,"Transport",0.241087591639
+"high_intensity_modern_care",27,"R2B Hold",27.1209790033034
+"high_intensity_modern_care",27,"R2B OT",0
+"high_intensity_modern_care",27,"R2E Hold",647.518637382777
+"high_intensity_modern_care",27,"R2E ICU",1363.98727782477
+"high_intensity_modern_care",27,"R2E OT",732.879216393216
+"high_intensity_modern_care",27,"Transport",1.06962604207519
+"high_intensity_modern_care",28,"R2B Hold",23.4297855574584
+"high_intensity_modern_care",28,"R2B OT",0
+"high_intensity_modern_care",28,"R2E Hold",495.367575408089
+"high_intensity_modern_care",28,"R2E ICU",1536.11035891611
+"high_intensity_modern_care",28,"R2E OT",523.120990487526
+"high_intensity_modern_care",28,"Transport",0.140932213354971
+"high_intensity_modern_care",29,"R2B Hold",35.8044015909151
+"high_intensity_modern_care",29,"R2B OT",0
+"high_intensity_modern_care",29,"R2E Hold",625.084551377151
+"high_intensity_modern_care",29,"R2E ICU",1383.94911853669
+"high_intensity_modern_care",29,"R2E OT",587.952644867334
+"high_intensity_modern_care",29,"Transport",0.194151383914902
+"high_intensity_modern_care",30,"R2B Hold",19.3232832645997
+"high_intensity_modern_care",30,"R2B OT",0
+"high_intensity_modern_care",30,"R2E Hold",610.615114822524
+"high_intensity_modern_care",30,"R2E ICU",1457.05993937107
+"high_intensity_modern_care",30,"R2E OT",623.764210302115
+"high_intensity_modern_care",30,"Transport",0.0861059303484486

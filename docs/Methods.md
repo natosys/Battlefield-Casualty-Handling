@@ -46,6 +46,7 @@ This document is the design record for the replicated experiments reported in th
   - [Evacuation Policy Sweep](#evacuation-policy-sweep)
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [High-Intensity Policy by Establishment Grid](#high-intensity-policy-by-establishment-grid)
+  - [Moderate-Intensity Policy by Establishment Grid](#moderate-intensity-policy-by-establishment-grid)
   - [High-Intensity Replications of the Lever Experiments](#high-intensity-replications-of-the-lever-experiments)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)

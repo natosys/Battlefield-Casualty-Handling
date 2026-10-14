@@ -2432,6 +2432,137 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
               "Gain per added bed"), rows)
 }
 
+#' Stem of the high-intensity sortie interval grid's evidence files
+POLICY_INTERVAL_GRID_STEM <- "interval_sweep_high_intensity"
+
+#' Interval between sorties of the interval grid's paired baseline arm, in days
+POLICY_INTERVAL_BASELINE_DAYS <- 7L
+
+#' Label of one cell of the sortie interval grid
+#'
+#' @param interval Interval between sorties, in days.
+#' @param policy Evacuation policy, in days.
+#' @param beds R2E holding beds.
+#' @return The cell label.
+interval_grid_label <- function(interval, policy, beds) {
+  sprintf("%d d interval, %d d policy, %d beds", interval, policy, beds)
+}
+
+#' Cells of the sortie interval grid in reading order
+#'
+#' @param d Frame carrying `sortie_interval`, `policy_days` and `hold_beds`.
+#' @return The distinct cells, ordered by interval, policy and establishment.
+interval_grid_keys <- function(d) {
+  keys <- unique(d[, c("sortie_interval", "policy_days", "hold_beds")])
+  keys[order(keys$sortie_interval, keys$policy_days, keys$hold_beds), ]
+}
+
+#' R2E queues and the stability count of the sortie interval grid
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @return The table lines: for each cell the closing-window R2E holding and
+#'   intensive care queues, and the replications of the campaign's thirty in
+#'   which both stayed below `RESULTS_QUEUE_THRESHOLD`.
+build_interval_grid <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
+  r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
+  keys <- interval_grid_keys(d)
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    k <- keys[i, ]
+    cell <- function(resp) {
+      x <- res_row(d, resp, sortie_interval = k$sortie_interval, policy_days = k$policy_days,
+                   hold_beds = k$hold_beds)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = 1L, big = TRUE, floor0 = TRUE)
+    }
+    x <- r[r$sortie_interval == k$sortie_interval & r$policy_days == k$policy_days &
+             r$hold_beds == k$hold_beds, ]
+    both <- x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
+    c(interval_grid_label(k$sortie_interval, k$policy_days, k$hold_beds),
+      cell("hold_mean_queue"), cell("icu_mean_queue"), sprintf("%d of %d", sum(both), nrow(x)))
+  })
+  res_table(c("Interval, policy and holding beds", "R2E hold mean queue", "R2E ICU mean queue",
+              "Both pools below threshold"), rows)
+}
+
+#' Evacuation wait by airlift channel across the sortie interval grid
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @return The table lines: for each cell the mean wait of the casualties who
+#'   boarded on the critical and the standard channel, and the casualties of each
+#'   channel still waiting at the close.
+build_interval_grid_wait <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
+  keys <- interval_grid_keys(d)
+  cols <- list(list("mean_wait_critical", 2L), list("mean_wait_standard", 2L),
+               list("queued_critical", 1L), list("queued_standard", 1L))
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    k <- keys[i, ]
+    cells <- vapply(cols, function(cl) {
+      x <- res_row(d, cl[[1]], sortie_interval = k$sortie_interval, policy_days = k$policy_days,
+                   hold_beds = k$hold_beds)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = cl[[2]], big = TRUE, floor0 = TRUE)
+    }, character(1))
+    c(interval_grid_label(k$sortie_interval, k$policy_days, k$hold_beds), cells)
+  })
+  res_table(c("Interval, policy and holding beds", "Mean wait, critical channel (days)",
+              "Mean wait, standard channel (days)", "Still waiting, critical channel",
+              "Still waiting, standard channel"), rows)
+}
+
+#' Outcomes across the sortie interval grid
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @return The table lines: for each cell returns to duty, died of wounds and the
+#'   Role 4 peak and closing mean beds.
+build_interval_grid_outcomes <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
+  keys <- interval_grid_keys(d)
+  cols <- list(list("total_rtd", 1L), list("total_dow", 1L), list("role4_peak", 1L),
+               list("role4_sustained", 1L))
+  rows <- lapply(seq_len(nrow(keys)), function(i) {
+    k <- keys[i, ]
+    cells <- vapply(cols, function(cl) {
+      x <- res_row(d, cl[[1]], sortie_interval = k$sortie_interval, policy_days = k$policy_days,
+                   hold_beds = k$hold_beds)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = cl[[2]], big = TRUE, floor0 = TRUE)
+    }, character(1))
+    c(interval_grid_label(k$sortie_interval, k$policy_days, k$hold_beds), cells)
+  })
+  res_table(c("Interval, policy and holding beds", "Returns to duty", "Died of wounds",
+              "Role 4 peak beds", "Role 4 closing mean beds"), rows)
+}
+
+#' Paired differences of the sortie interval grid against the shipped cell
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @return The table lines: for each cell other than the baseline, the paired
+#'   difference in returns to duty, died of wounds and Role 4 peak beds with its
+#'   95% interval.
+build_interval_grid_paired <- function(data_dir, stem) {
+  d <- res_read(paste0("policy/", stem, "_paired.csv"), data_dir)
+  arms <- unique(d$to)
+  parts <- regmatches(arms, regexec("^([0-9]+)s_([0-9]+)d_([0-9]+)b$", arms))
+  key <- do.call(rbind, lapply(parts, function(p) as.integer(p[2:4])))
+  arms <- arms[order(key[, 1], key[, 2], key[, 3])]
+  cols <- c("total_rtd", "total_dow", "role4_peak")
+  rows <- lapply(arms, function(a) {
+    cells <- vapply(cols, function(cl) {
+      x <- d[d$to == a & d$response == cl, ]
+      stopifnot(nrow(x) == 1L)
+      sprintf("%s [%s, %s]", res_num(x$difference, 1L, TRUE, TRUE),
+              res_num(x$ci_lower, 1L, TRUE, TRUE), res_num(x$ci_upper, 1L, TRUE, TRUE))
+    }, character(1))
+    p <- as.integer(regmatches(a, regexec("^([0-9]+)s_([0-9]+)d_([0-9]+)b$", a))[[1]][2:4])
+    c(interval_grid_label(p[1], p[2], p[3]), cells)
+  })
+  res_table(c("Interval, policy and holding beds", "Returns to duty", "Died of wounds",
+              "Role 4 peak beds"), rows)
+}
+
 #' Policy of the grid's paired baseline arm, in days
 POLICY_GRID_BASELINE_DAYS <- 21L
 
@@ -2495,6 +2626,14 @@ RESULTS_TABLES <- list(
   },
   policy_establishment_moderate_paired = function(dd) {
     build_policy_grid_paired(dd, POLICY_GRID_MODERATE_STEM)
+  },
+  interval_grid_high = function(dd) build_interval_grid(dd, POLICY_INTERVAL_GRID_STEM),
+  interval_grid_high_wait = function(dd) build_interval_grid_wait(dd, POLICY_INTERVAL_GRID_STEM),
+  interval_grid_high_outcomes = function(dd) {
+    build_interval_grid_outcomes(dd, POLICY_INTERVAL_GRID_STEM)
+  },
+  interval_grid_high_paired = function(dd) {
+    build_interval_grid_paired(dd, POLICY_INTERVAL_GRID_STEM)
   },
   policy_grid_largest_moderate = function(dd) {
     build_policy_grid_largest_stable(dd, POLICY_GRID_MODERATE_STEM)

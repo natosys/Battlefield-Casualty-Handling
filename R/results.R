@@ -2419,7 +2419,8 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
       sprintf("%s [%s, %s]", res_num(g$difference, 1L, TRUE, TRUE),
               res_num(g$ci_lower, 1L, TRUE, TRUE), res_num(g$ci_upper, 1L, TRUE, TRUE))
     }
-    per_bed <- if (b > base_beds && arm != sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)) {
+    is_baseline <- arm == sprintf("%dd_%db", POLICY_GRID_BASELINE_DAYS, base_beds)
+    per_bed <- if (b > base_beds && !is_baseline) {
       g <- p[p$to == arm & p$response == "total_rtd", ]
       res_num(g$difference / (b - base_beds), 1L, FALSE, TRUE)
     } else "not applicable"

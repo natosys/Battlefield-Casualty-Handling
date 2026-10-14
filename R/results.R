@@ -2317,7 +2317,8 @@ build_adequacy_sizing <- function(data_dir) {
       rows[[length(rows) + 1L]] <- c(
         case("R2E holding"), res_num(short, 2L),
         "not measured per bed", "not estimable from a per-bed throughput",
-        "Untested: the holding establishment by policy grid at this intensity awaits measurement"
+        adequacy_grid_text(data_dir, "establishment_sweep_high_intensity",
+                           "holding establishment by policy grid")
       )
     }
     if (verdict(adequacy_airlift_cell(data_dir, int)) == "Inadequate") {
@@ -2328,12 +2329,34 @@ build_adequacy_sizing <- function(data_dir) {
         res_num(per_stream, 2L),
         sprintf("%s extra sortie streams of one sortie per interval",
                 res_num(short / per_stream, 1L)),
-        "Untested: the sortie interval, policy and holding grid awaits measurement here"
+        adequacy_grid_text(data_dir, POLICY_INTERVAL_GRID_STEM,
+                           "sortie interval, policy and holding grid")
       )
     }
   }
   res_table(c("Case", "Shortfall per day", "Delivered per day", "Estimated uplift",
               "Sweep evidence"), rows)
+}
+
+#' Sweep evidence text for a cell the policy grids measure
+#'
+#' @param data_dir The data directory.
+#' @param stem Stem of the grid's evidence files under `data/policy/`.
+#' @param label Name of the grid in the text.
+#' @return The text: the grid's best cell by replications holding both R2E pools
+#'   below `RESULTS_QUEUE_THRESHOLD`, and the count of cells.
+adequacy_grid_text <- function(data_dir, stem, label) {
+  r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
+  cols <- intersect(c("sortie_interval", "policy_days", "hold_beds"), names(r))
+  cell <- do.call(paste, c(r[cols], sep = "/"))
+  both <- r$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & r$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
+  held <- tapply(both, cell, sum)
+  size <- tapply(both, cell, length)
+  best <- which.max(held)
+  verdict <- if (held[[best]] == size[[best]]) "a cell holds" else "no cell holds"
+  sprintf(paste("Measured: in the %s %s both pools in every replication;",
+                "the best of %d cells does so in %d of %d"),
+          label, verdict, length(held), held[[best]], size[[best]])
 }
 
 #' Evacuation policy trade: the outcome, stability and cost rows of the policy sweep
@@ -2470,6 +2493,10 @@ build_interval_grid <- function(data_dir, stem) {
   keys <- interval_grid_keys(d)
   rows <- lapply(seq_len(nrow(keys)), function(i) {
     k <- keys[i, ]
+    #' One response cell of the grid's current row
+    #'
+    #' @param resp Response key.
+    #' @return The cell text.
     cell <- function(resp) {
       x <- res_row(d, resp, sortie_interval = k$sortie_interval, policy_days = k$policy_days,
                    hold_beds = k$hold_beds)

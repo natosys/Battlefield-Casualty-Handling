@@ -67,13 +67,17 @@ POLICY_SORTIE_INTERVALS <- c(3L, 5L, 7L)
 #'   alongside `POLICY_BASELINE_HOLD_BEDS` and the shipped policy.
 POLICY_BASELINE_SORTIE_INTERVAL <- 7L
 
-#' Airlift route codes the evacuation wait is split by
+#' Airlift route code of the critical (intensive care) channel
 #'
-#' @details The values `ame_route` carries and `R/airlift.R` names
-#'   `AIRLIFT_ROUTE_CRITICAL` and `AIRLIFT_ROUTE_STANDARD`; held here so this
-#'   module does not depend on that one, and asserted equal by
-#'   `scripts/check_policy_sweep_protocol.R`.
+#' @details The value `ame_route` carries and `R/airlift.R` names
+#'   `AIRLIFT_ROUTE_CRITICAL`; held here so this module does not depend on that
+#'   one, and asserted equal by `scripts/check_policy_sweep_protocol.R`.
 POLICY_ROUTE_CRITICAL <- 1
+
+#' Airlift route code of the standard channel
+#'
+#' @details The value `ame_route` carries and `R/airlift.R` names
+#'   `AIRLIFT_ROUTE_STANDARD`, held here on the same terms as the critical code.
 POLICY_ROUTE_STANDARD <- 2
 
 #' Forward surgical saturation thresholds swept, in queued casualties

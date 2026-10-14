@@ -209,21 +209,23 @@ arm_path <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer
             sprintf("establishment_sweep_arm_%dd_%db%s.csv", policy_days, hold_beds, suffix))
 }
 
-#' Stem the run's outputs are written under
+#' Base of the stem the run's outputs are written under
 #'
-#' @details The establishment sweep writes its own files rather than adding rows
-#'   to the policy sweep's. The policy sweep at the shipped establishment is a
-#'   published result with a tracked evidence set and a regression check reading
-#'   it; a run that varies the establishment measures something else, and one
-#'   file carrying both would leave that check unable to tell which rows it was
-#'   asserting.
-OUTPUT_STEM <- paste0(if (SWEEPING_INTERVAL) {
+#' @details The establishment sweep and the interval sweep write their own files
+#'   rather than adding rows to the policy sweep's. The policy sweep at the
+#'   shipped establishment is a published result with a tracked evidence set and
+#'   a regression check reading it; a run that varies the establishment or the
+#'   interval measures something else, and one file carrying both would leave
+#'   that check unable to tell which rows it was asserting.
+STEM_BASE <- if (SWEEPING_INTERVAL) {
   "interval_sweep"
 } else if (SWEEPING_ESTABLISHMENT) {
   "establishment_sweep"
 } else {
   "policy_sweep"
-},
+}
+#' Stem the run's outputs are written under, with any tag and scenario suffix
+OUTPUT_STEM <- paste0(STEM_BASE,
                       if (is.null(opt$`output-tag`)) "" else paste0("_", opt$`output-tag`),
                       scenario_output_suffix(opt$scenario))
 

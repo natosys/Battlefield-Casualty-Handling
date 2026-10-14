@@ -647,6 +647,7 @@ intgrid_marker <- function(name) {
   sub("^<!-- INTGRID [^=]+=(.*) -->$", "\\1", m)
 }
 
+#' Stem of the tracked high-intensity sortie interval grid's evidence files
 INT_PREFIX <- file.path("data", "policy", "interval_sweep_high_intensity")
 int_intervals <- as.integer(strsplit(intgrid_marker("intervals"), ",")[[1]])
 int_policies <- as.integer(strsplit(intgrid_marker("policies"), ",")[[1]])

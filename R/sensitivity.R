@@ -2121,6 +2121,12 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 #'   scripts/check_screen_order.R asserts both.
 evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache_file,
                                   n_rep, n_days, max_cores, crn_seed, progress_dir) {
+  workers <- suppressWarnings(as.integer(Sys.getenv("BCH_POINT_WORKERS", "1")))
+  if (!is.na(workers) && workers > 1L) {
+    return(evaluate_sobol_design_parallel(sb_design, n_points, p_def, full_params,
+                                          cache_file, n_rep, n_days, crn_seed,
+                                          progress_dir, workers))
+  }
   t(vapply(seq_len(n_points), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one
     # long-lived process, hours of compute that a lost process discards
@@ -2170,6 +2176,68 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
     gc(full = TRUE)
     res
   }, numeric(3)))
+}
+
+#' Evaluate the uncached Sobol design points several at a time
+#'
+#' @param sb_design,n_points,p_def,full_params,cache_file See
+#'   `evaluate_sobol_design()`.
+#' @param n_rep,n_days Replications and days per design point.
+#' @param crn_seed Optional common random number seed, as for `eval_params()`.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @param workers Number of design points evaluated concurrently.
+#' @return The response matrix, one row per design point, in design order.
+#' @details The counterpart of `evaluate_morris_design_parallel()`, selected by
+#'   the same `BCH_POINT_WORKERS` variable: each point runs its replications
+#'   serially in one forked worker seeded from the point index, and the worker
+#'   appends its own row to the cache.
+evaluate_sobol_design_parallel <- function(sb_design, n_points, p_def, full_params,
+                                           cache_file, n_rep, n_days, crn_seed,
+                                           progress_dir, workers) {
+  Y <- matrix(NA_real_, n_points, length(SOBOL_RESPONSES),
+              dimnames = list(NULL, SOBOL_RESPONSES))
+  todo <- integer(0)
+  for (i in seq_len(n_points)) {
+    cached <- if (!is.null(cache_file) && file.exists(cache_file)) {
+      cache_lookup(cache_file, i, SOBOL_RESPONSES)
+    }
+    if (is.null(cached)) todo <- c(todo, i) else Y[i, ] <- cached
+  }
+  message(sprintf("  %d of %d points cached; evaluating %d with %d workers",
+                  n_points - length(todo), n_points, length(todo), workers))
+  res <- parallel::mclapply(todo, function(i) {
+    set.seed(2000003L + i)
+    message(sprintf("  Sobol point %d / %d", i, n_points))
+    row <- full_params
+    row[p_def$name] <- as.numeric(sb_design$X[i, ])
+    out <- tryCatch(
+      {
+        kpis <- eval_params(row, n_rep, n_days, max_cores = 1L,
+                            crn_seed = crn_seed, return_sd = TRUE)
+        r <- kpis[SOBOL_RESPONSES]
+        attr(r, "sd") <- attr(kpis, "sd")[SOBOL_RESPONSES]
+        r
+      },
+      error = function(e) {
+        warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
+        setNames(rep(NA_real_, length(SOBOL_RESPONSES)), SOBOL_RESPONSES)
+      }
+    )
+    if (!is.null(cache_file) && !all(is.na(out))) {
+      sdv <- attr(out, "sd")
+      row_out <- if (is.null(sdv)) out else
+        c(out, stats::setNames(as.numeric(sdv), paste0("sd_", names(out))))
+      cache_append(cache_file, i, row_out)
+    }
+    if (!is.null(progress_dir)) file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    out
+  }, mc.cores = workers, mc.preschedule = FALSE)
+  for (j in seq_along(todo)) {
+    if (is.numeric(res[[j]]) && length(res[[j]]) == ncol(Y)) {
+      Y[todo[j], ] <- as.numeric(res[[j]])
+    }
+  }
+  Y
 }
 
 #' Tell a Sobol object its responses, surviving a degenerate one

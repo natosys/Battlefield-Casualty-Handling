@@ -43,6 +43,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Evacuation Policy](#evacuation-policy)
   - [R2E Holding Establishment](#r2e-holding-establishment)
   - [High-Intensity Evacuation Policy and Holding Establishment](#high-intensity-evacuation-policy-and-holding-establishment)
+  - [Moderate-Intensity Evacuation Policy and Holding Establishment](#moderate-intensity-evacuation-policy-and-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
   - [R2E Intensive Care Bed Establishment](#r2e-intensive-care-bed-establishment)
@@ -597,6 +598,87 @@ The table counts the replications whose closing-window mean queue was below the 
 <!-- /GEN -->
 
 Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 30 days and 90 beds returns to duty differed by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Returns to duty|full -->+424.3 [+374.0, +474.6]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Role 4 peak beds|full -->−5.5 [−8.4, −2.7]<!-- /GEN -->.
+
+For each holding establishment the largest policy holding both pools below the threshold in every replication is given below; where none did, the cell reads as such.
+
+<!-- GEN policy_grid_largest_high -->
+| Holding beds | Largest policy holding both pools in every replication | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+|---|---|---|---|---|
+| 30 | none in the grid | not applicable | not applicable | not applicable |
+| 45 | none in the grid | not applicable | not applicable | not applicable |
+| 60 | none in the grid | not applicable | not applicable | not applicable |
+| 90 | none in the grid | not applicable | not applicable | not applicable |
+<!-- /GEN -->
+
+### Moderate-Intensity Evacuation Policy and Holding Establishment
+
+**Question.** What happens to the R2E pools, returns to duty and mortality under the shipped configuration when the evacuation policy is set across the 21 to 30 day gap and the R2E holding establishment across 30 to 60 beds together? `[default, evacuation policy 21 to 30 days, 30 to 60 holding beds · 360 d · 30 replications · pool totals, closing 90 d]`
+
+<!-- GEN policy_establishment_moderate -->
+| Policy and holding beds | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Died of wounds | Never evacuated by horizon | Role 4 peak beds |
+|---|---|---|---|---|---|---|
+| 21 d, 30 beds | 0.1 [0.0, 0.2] | 1.4 [0.6, 2.2] | 1,673.3 [1,647.0, 1,699.6] | 10.7 [9.3, 12.0] | 1.5 [0.9, 2.1] | 202.6 [193.6, 211.7] |
+| 21 d, 45 beds | 0.1 [0.0, 0.2] | 0.7 [0.5, 0.9] | 1,692.8 [1,662.3, 1,723.3] | 11.2 [9.6, 12.7] | 1.1 [0.5, 1.6] | 202.9 [193.8, 212.0] |
+| 21 d, 60 beds | 0.6 [0.0, 1.7] | 2.0 [0.0, 4.2] | 1,693.0 [1,665.1, 1,720.9] | 11.3 [10.1, 12.6] | 2.6 [0.3, 4.9] | 208.2 [201.5, 214.8] |
+| 24 d, 30 beds | 8.5 [5.2, 11.9] | 2.6 [1.8, 3.4] | 1,807.1 [1,783.1, 1,831.1] | 10.1 [8.7, 11.5] | 6.0 [3.7, 8.4] | 195.5 [187.5, 203.6] |
+| 24 d, 45 beds | 0.0 [0.0, 0.1] | 1.3 [0.6, 2.1] | 1,815.9 [1,785.5, 1,846.3] | 11.6 [10.1, 13.2] | 1.8 [0.9, 2.8] | 200.0 [190.2, 209.8] |
+| 24 d, 60 beds | 0.0 [0.0, 0.0] | 1.4 [0.6, 2.1] | 1,828.8 [1,792.2, 1,865.4] | 12.2 [10.9, 13.6] | 2.0 [1.1, 2.8] | 201.9 [193.4, 210.5] |
+| 27 d, 30 beds | 158.4 [129.0, 187.8] | 60.9 [45.3, 76.6] | 1,892.3 [1,872.5, 1,912.1] | 12.1 [11.1, 13.2] | 133.4 [109.0, 157.7] | 170.0 [160.8, 179.2] |
+| 27 d, 45 beds | 2.3 [0.8, 3.8] | 1.3 [0.9, 1.8] | 1,919.5 [1,883.8, 1,955.1] | 11.4 [10.2, 12.7] | 2.4 [0.9, 4.0] | 181.7 [175.2, 188.2] |
+| 27 d, 60 beds | 0.0 [0.0, 0.0] | 0.7 [0.6, 0.9] | 1,961.4 [1,932.4, 1,990.4] | 10.9 [9.6, 12.3] | 1.5 [0.5, 2.6] | 198.7 [191.1, 206.4] |
+| 30 d, 30 beds | 759.3 [706.3, 812.3] | 113.3 [103.0, 123.6] | 1,875.3 [1,855.2, 1,895.4] | 12.1 [10.7, 13.5] | 440.8 [417.8, 463.8] | 101.7 [96.6, 106.7] |
+| 30 d, 45 beds | 53.3 [39.0, 67.6] | 24.0 [12.5, 35.5] | 2,030.6 [2,001.0, 2,060.2] | 12.4 [11.2, 13.7] | 44.7 [25.9, 63.4] | 175.5 [168.5, 182.4] |
+| 30 d, 60 beds | 2.0 [0.9, 3.1] | 1.3 [0.8, 1.8] | 2,097.7 [2,068.9, 2,126.5] | 12.2 [10.8, 13.7] | 4.0 [1.1, 6.9] | 183.2 [175.2, 191.3] |
+<!-- /GEN -->
+
+At the shipped 21-day policy and 30 holding beds the closing-window R2E holding queue was <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E hold mean queue|full -->0.1 [0.0, 0.2]<!-- /GEN --> casualties and the R2E intensive care queue <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E ICU mean queue|full -->1.4 [0.6, 2.2]<!-- /GEN -->. At 30 days and 30 beds they were <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E hold mean queue|full -->759.3 [706.3, 812.3]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E ICU mean queue|full -->113.3 [103.0, 123.6]<!-- /GEN -->, and at 30 days and 60 beds <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E hold mean queue|full -->2.0 [0.9, 3.1]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E ICU mean queue|full -->1.3 [0.8, 1.8]<!-- /GEN -->. Returns to duty per campaign rose from <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|Returns to duty|full -->1,673.3 [1,647.0, 1,699.6]<!-- /GEN --> at the shipped setting to <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|Returns to duty|full -->2,097.7 [2,068.9, 2,126.5]<!-- /GEN --> at 30 days and 60 beds.
+
+<!-- GEN policy_establishment_moderate_stability -->
+| Policy and holding beds | Holding queue below threshold | ICU queue below threshold | Both below threshold |
+|---|---|---|---|
+| 21 d, 30 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 21 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 21 d, 60 beds | 30 of 30 | 29 of 30 | 29 of 30 |
+| 24 d, 30 beds | 27 of 30 | 30 of 30 | 27 of 30 |
+| 24 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 24 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 27 d, 30 beds | 1 of 30 | 4 of 30 | 1 of 30 |
+| 27 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 27 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| 30 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
+| 30 d, 45 beds | 3 of 30 | 17 of 30 | 3 of 30 |
+| 30 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+<!-- /GEN -->
+
+The table counts the replications whose closing-window mean queue was below the twenty-casualty threshold the strategic airlift collapse experiment classifies against. At 27 days the count below the threshold in both pools was <!-- GEN cell:policy_establishment_moderate_stability|27 d, 30 beds|Both below threshold|full -->1 of 30<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_establishment_moderate_stability|27 d, 45 beds|Both below threshold|full -->30 of 30<!-- /GEN --> at 45 and <!-- GEN cell:policy_establishment_moderate_stability|27 d, 60 beds|Both below threshold|full -->30 of 30<!-- /GEN --> at 60; at 30 days it was <!-- GEN cell:policy_establishment_moderate_stability|30 d, 30 beds|Both below threshold|full -->0 of 30<!-- /GEN -->, <!-- GEN cell:policy_establishment_moderate_stability|30 d, 45 beds|Both below threshold|full -->3 of 30<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_stability|30 d, 60 beds|Both below threshold|full -->30 of 30<!-- /GEN -->.
+
+<!-- GEN policy_establishment_moderate_paired -->
+| Policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds |
+|---|---|---|---|
+| 21 d, 45 beds | +19.5 [−21.1, +60.1] | +0.5 [−1.4, +2.4] | +0.2 [−12.4, +12.9] |
+| 21 d, 60 beds | +19.7 [−13.8, +53.1] | +0.7 [−1.3, +2.6] | +5.5 [−5.7, +16.7] |
+| 24 d, 30 beds | +133.8 [+91.1, +176.5] | −0.6 [−2.5, +1.4] | −7.1 [−18.6, +4.4] |
+| 24 d, 45 beds | +142.6 [+101.3, +183.9] | +1.0 [−1.0, +3.0] | −2.6 [−15.5, +10.3] |
+| 24 d, 60 beds | +155.5 [+109.7, +201.3] | +1.6 [−0.4, +3.6] | −0.7 [−12.3, +10.9] |
+| 27 d, 30 beds | +219.0 [+187.8, +250.2] | +1.5 [−0.1, +3.0] | −32.6 [−45.0, −20.2] |
+| 27 d, 45 beds | +246.2 [+200.4, +291.9] | +0.8 [−0.7, +2.2] | −21.0 [−32.6, −9.3] |
+| 27 d, 60 beds | +288.1 [+245.4, +330.8] | +0.3 [−1.6, +2.2] | −3.9 [−15.1, +7.3] |
+| 30 d, 30 beds | +202.0 [+166.9, +237.1] | +1.4 [−0.4, +3.3] | −101.0 [−110.3, −91.7] |
+| 30 d, 45 beds | +357.3 [+324.8, +389.8] | +1.8 [+0.1, +3.4] | −27.2 [−37.6, −16.7] |
+| 30 d, 60 beds | +424.4 [+383.9, +465.0] | +1.6 [−0.2, +3.3] | −19.4 [−33.7, −5.1] |
+<!-- /GEN -->
+
+Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 27 days and 45 beds returns to duty differed by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Returns to duty|full -->+246.2 [+200.4, +291.9]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Role 4 peak beds|full -->−21.0 [−32.6, −9.3]<!-- /GEN -->; at 30 days and 60 beds the differences were <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Returns to duty|full -->+424.4 [+383.9, +465.0]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Role 4 peak beds|full -->−19.4 [−33.7, −5.1]<!-- /GEN -->.
+
+<!-- GEN policy_grid_largest_moderate -->
+| Holding beds | Largest policy holding both pools in every replication | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+|---|---|---|---|---|
+| 30 | 21 d | 1,673.3 [1,647.0, 1,699.6] | 0 (the shipped setting) | not applicable |
+| 45 | 27 d | 1,919.5 [1,883.8, 1,955.1] | +246.2 [+200.4, +291.9] | +16.4 |
+| 60 | 30 d | 2,097.7 [2,068.9, 2,126.5] | +424.4 [+383.9, +465.0] | +14.1 |
+<!-- /GEN -->
+
+The largest policy at which both R2E pools stayed below the threshold in every replication was <!-- GEN cell:policy_grid_largest_moderate|30|Largest policy holding both pools in every replication|full -->21 d<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_grid_largest_moderate|45|Largest policy holding both pools in every replication|full -->27 d<!-- /GEN --> at 45 and <!-- GEN cell:policy_grid_largest_moderate|60|Largest policy holding both pools in every replication|full -->30 d<!-- /GEN --> at 60. The paired gain per added bed was <!-- GEN cell:policy_grid_largest_moderate|45|Gain per added bed|full -->+16.4<!-- /GEN --> returns to duty at 45 beds and <!-- GEN cell:policy_grid_largest_moderate|60|Gain per added bed|full -->+14.1<!-- /GEN --> at 60.
 
 ### Forward Surgical Saturation Release
 

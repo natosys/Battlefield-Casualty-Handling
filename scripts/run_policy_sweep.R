@@ -12,6 +12,8 @@
 #     --policies 15,21,30,45,60 --hold-beds 30,45,60,90 --refresh-baseline
 #   Rscript scripts/run_policy_sweep.R --policies 21,24,27,30 --hold-beds 30,45,60 \
 #     --output-tag moderate_grid --refresh-baseline
+#   Rscript scripts/run_policy_sweep.R --scenario high_intensity \
+#     --policies 21,30 --hold-beds 30,60 --sortie-intervals 3,5,7 --refresh-baseline
 #
 # Why this exists. The shipped evacuation policy of 21 days rests on a single
 # comparison against 30, run to test a mechanism rather than to find a value.
@@ -39,6 +41,12 @@
 # establishment sweep; the arm checkpoints are shared, since an arm is the same
 # measurement whichever grid asks for it.
 #
+# --sortie-intervals adds the interval between strategic sorties as a third axis.
+# A run sweeping it writes its own `interval_sweep*` files and arm checkpoints,
+# each arm carrying the interval it ran at, so it cannot overwrite the policy or
+# establishment sweeps; each cell is paired against the shipped interval, policy
+# and establishment.
+#
 # --refresh-baseline is the only way to write the tracked data/policy/ copy.
 
 source("R/environment.R")
@@ -64,6 +72,9 @@ option_list <- list(
               help = paste("Comma-separated R2E holding establishments to sweep.",
                            "Omitted, the shipped establishment is used and the",
                            "policy axis alone is swept [default: shipped]")),
+  make_option("--sortie-intervals", type = "character", default = NULL,
+              help = paste("Comma-separated intervals between strategic sorties in days",
+                           "to sweep alongside the other axes [default: shipped]")),
   make_option("--scenario", type = "character", default = "default",
               help = "Scenario profile to run under [default: %default]"),
   make_option("--output-tag", type = "character", default = NULL,
@@ -108,6 +119,19 @@ if (!all(is.na(establishments)) && any(establishments < 1L)) {
   stop("--hold-beds must be at least 1, found '", opt$`hold-beds`, "'", call. = FALSE)
 }
 
+intervals <- if (is.null(opt$`sortie-intervals`)) {
+  NA_integer_
+} else {
+  as.integer(trimws(strsplit(opt$`sortie-intervals`, ",")[[1]]))
+}
+if (!is.null(opt$`sortie-intervals`) && (any(is.na(intervals)) || any(intervals < 1L))) {
+  stop("--sortie-intervals must be whole numbers of days of at least 1, found '",
+       opt$`sortie-intervals`, "'", call. = FALSE)
+}
+
+#' Whether the sortie interval is being swept alongside the other axes
+SWEEPING_INTERVAL <- !all(is.na(intervals))
+
 #' Whether the establishment axis is being swept alongside the policy
 #'
 #' @details The two experiments are written to separate files. The policy sweep
@@ -133,28 +157,34 @@ json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 #' @param policy_days Evacuation policy to run at, in days.
 #' @param hold_beds R2E holding establishment to run at, or NA for the shipped
 #'   one.
-#' @return The arm's response rows, carrying the policy and the establishment.
+#' @param interval Interval between strategic sorties to run at, in days, or NA
+#'   for the shipped one.
+#' @return The arm's response rows, carrying the policy, the establishment and
+#'   the interval.
 #'
 #' @details The configuration globals are restored on exit, on the error path as
 #'   well as the success path, so an arm that fails part-way leaves the session
 #'   as it found it. The control seed is set once per arm, which is what pairs
 #'   the arms.
-measure_arm <- function(policy_days, hold_beds = NA_integer_) {
+measure_arm <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer_) {
   config_snapshot <- capture_config_globals()
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
   apply_policy_setting(json_data, opt$scenario, policy_days,
-                       hold_beds = if (is.na(hold_beds)) NULL else hold_beds)
+                       hold_beds = if (is.na(hold_beds)) NULL else hold_beds,
+                       sortie_interval_days = if (is.na(interval)) NULL else interval)
 
-  message(sprintf("Evacuation policy %d days%s: %d replications x %d days",
+  message(sprintf("Evacuation policy %d days%s%s: %d replications x %d days",
                   policy_days,
                   if (is.na(hold_beds)) "" else sprintf(", %d holding beds", hold_beds),
+                  if (is.na(interval)) "" else sprintf(", %d day sortie interval", interval),
                   opt$iterations, opt$days))
   set.seed(opt$seed)
   rows <- run_policy_measurement(policy_days, n_iterations = opt$iterations,
                                  n_days = opt$days, window_days = opt$window,
                                  max_cores = opt$`max-cores`)
   rows$hold_beds <- hold_beds
+  rows$sortie_interval <- interval
   rows
 }
 
@@ -162,9 +192,15 @@ measure_arm <- function(policy_days, hold_beds = NA_integer_) {
 #'
 #' @param policy_days Evacuation policy the arm ran at, in days.
 #' @param hold_beds Establishment the arm ran at, or NA for the shipped one.
+#' @param interval Sortie interval the arm ran at, or NA for the shipped one.
 #' @return The file path for that arm.
-arm_path <- function(policy_days, hold_beds = NA_integer_) {
+arm_path <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer_) {
   suffix <- scenario_output_suffix(opt$scenario)
+  if (!is.na(interval)) {
+    return(file.path(OUTPUT_DIR,
+                     sprintf("interval_sweep_arm_%ds_%dd_%db%s.csv", interval, policy_days,
+                             hold_beds, suffix)))
+  }
   if (is.na(hold_beds)) {
     return(file.path(OUTPUT_DIR,
                      sprintf("policy_sweep_arm_%dd%s.csv", policy_days, suffix)))
@@ -181,7 +217,13 @@ arm_path <- function(policy_days, hold_beds = NA_integer_) {
 #'   it; a run that varies the establishment measures something else, and one
 #'   file carrying both would leave that check unable to tell which rows it was
 #'   asserting.
-OUTPUT_STEM <- paste0(if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "policy_sweep",
+OUTPUT_STEM <- paste0(if (SWEEPING_INTERVAL) {
+  "interval_sweep"
+} else if (SWEEPING_ESTABLISHMENT) {
+  "establishment_sweep"
+} else {
+  "policy_sweep"
+},
                       if (is.null(opt$`output-tag`)) "" else paste0("_", opt$`output-tag`),
                       scenario_output_suffix(opt$scenario))
 
@@ -189,6 +231,7 @@ OUTPUT_STEM <- paste0(if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "po
 #'
 #' @param policy_days Evacuation policy to run at, in days.
 #' @param hold_beds Establishment to run at, or NA for the shipped one.
+#' @param interval Sortie interval to run at, or NA for the shipped one.
 #' @return The arm's response rows.
 #'
 #' @details Each arm is written as it completes and read back rather than re-run
@@ -198,10 +241,11 @@ OUTPUT_STEM <- paste0(if (SWEEPING_ESTABLISHMENT) "establishment_sweep" else "po
 #'   losing it to an interruption is a real cost; `scripts/screen_cache.sh`
 #'   exists for the same reason on the sensitivity screen. Delete the arm files
 #'   to force a fresh measurement.
-measure_or_resume <- function(policy_days, hold_beds = NA_integer_) {
-  path <- arm_path(policy_days, hold_beds)
-  label <- sprintf("Evacuation policy %d days%s", policy_days,
-                   if (is.na(hold_beds)) "" else sprintf(" at %d beds", hold_beds))
+measure_or_resume <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer_) {
+  path <- arm_path(policy_days, hold_beds, interval)
+  label <- sprintf("Evacuation policy %d days%s%s", policy_days,
+                   if (is.na(hold_beds)) "" else sprintf(" at %d beds", hold_beds),
+                   if (is.na(interval)) "" else sprintf(", %d day interval", interval))
   if (file.exists(path)) {
     rows <- read.csv(path, stringsAsFactors = FALSE)
     if (nrow(rows) == opt$iterations) {
@@ -211,7 +255,7 @@ measure_or_resume <- function(policy_days, hold_beds = NA_integer_) {
     message(sprintf("%s: discarding %d of %d checkpointed", label, nrow(rows),
                     opt$iterations))
   }
-  rows <- measure_arm(policy_days, hold_beds)
+  rows <- measure_arm(policy_days, hold_beds, interval)
   write.csv(rows, path, row.names = FALSE)
   rows
 }
@@ -223,18 +267,32 @@ measure_or_resume <- function(policy_days, hold_beds = NA_integer_) {
 # them, which is what a force structure review would ask for and is the
 # expensive shape.
 grid <- expand.grid(policy_days = policies, hold_beds = establishments,
-                    KEEP.OUT.ATTRS = FALSE)
+                    sortie_interval = intervals, KEEP.OUT.ATTRS = FALSE)
+
+if (SWEEPING_INTERVAL && !SWEEPING_ESTABLISHMENT) {
+  stop("--sortie-intervals needs --hold-beds, the interval grid being paired at an ",
+       "explicit establishment", call. = FALSE)
+}
 
 per_replication <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
-  measure_or_resume(grid$policy_days[i], grid$hold_beds[i])
+  measure_or_resume(grid$policy_days[i], grid$hold_beds[i], grid$sortie_interval[i])
 }))
 
+#' Rows of a frame belonging to one grid cell
+#'
+#' @param rows A frame carrying `policy_days`, `hold_beds` and `sortie_interval`.
+#' @param i Row of the grid.
+#' @return The rows of that cell; an axis that is not swept matches every row.
+cell_rows <- function(rows, i) {
+  rows[rows$policy_days == grid$policy_days[i] &
+         (is.na(grid$hold_beds[i]) | rows$hold_beds == grid$hold_beds[i]) &
+         (is.na(grid$sortie_interval[i]) | rows$sortie_interval == grid$sortie_interval[i]), ]
+}
+
 summary_rows <- do.call(rbind, lapply(seq_len(nrow(grid)), function(i) {
-  policy_days <- grid$policy_days[i]
-  hold_beds   <- grid$hold_beds[i]
-  arm <- per_replication[per_replication$policy_days == policy_days &
-                           (is.na(hold_beds) | per_replication$hold_beds == hold_beds), ]
-  cbind(data.frame(policy_days = policy_days, hold_beds = hold_beds),
+  arm <- cell_rows(per_replication, i)
+  cbind(data.frame(policy_days = grid$policy_days[i], hold_beds = grid$hold_beds[i],
+                   sortie_interval = grid$sortie_interval[i]),
         summarise_policy(arm))
 }))
 
@@ -264,6 +322,18 @@ BASELINE_POLICY <- 21L
 #'   shipped establishment, which is the configuration a planner holds today.
 CROSSED_GRID <- SWEEPING_ESTABLISHMENT && length(policies) > 1 && length(establishments) > 1
 
+#' Identifier of one arm in a crossed grid
+#'
+#' @param rows Frame carrying `policy_days`, `hold_beds` and, where swept,
+#'   `sortie_interval`.
+#' @return One identifier per row, `<days>d_<beds>b`, led by `<interval>s_` where
+#'   the sortie interval is swept.
+arm_id <- function(rows) {
+  id <- sprintf("%dd_%db", rows$policy_days, rows$hold_beds)
+  if (SWEEPING_INTERVAL) id <- sprintf("%ds_%s", rows$sortie_interval, id)
+  id
+}
+
 #' Pair every arm against the baseline arm and size the replications each needs
 #'
 #' @param rows Per-replication responses carrying an `arm` column.
@@ -286,8 +356,10 @@ pair_arms <- function(rows, baseline, others) {
 paired <- NULL
 if (CROSSED_GRID) {
   rows <- per_replication
-  rows$arm <- sprintf("%dd_%db", rows$policy_days, rows$hold_beds)
-  baseline_arm <- sprintf("%dd_%db", BASELINE_POLICY, POLICY_BASELINE_HOLD_BEDS)
+  rows$arm <- arm_id(rows)
+  baseline_arm <- arm_id(data.frame(policy_days = BASELINE_POLICY,
+                                    hold_beds = POLICY_BASELINE_HOLD_BEDS,
+                                    sortie_interval = POLICY_BASELINE_SORTIE_INTERVAL))
   if (baseline_arm %in% rows$arm) {
     paired <- pair_arms(rows, baseline_arm, setdiff(unique(rows$arm), baseline_arm))
   } else {
@@ -330,10 +402,8 @@ message(sprintf("Policy sweep responses, summary and paired differences written 
 #' @return Invisible NULL.
 print_row <- function(response, label, scale = 1, digits = 2) {
   cells <- vapply(seq_len(nrow(grid)), function(i) {
-    r <- summary_rows[summary_rows$policy_days == grid$policy_days[i] &
-                        (is.na(grid$hold_beds[i]) |
-                           summary_rows$hold_beds == grid$hold_beds[i]) &
-                        summary_rows$response == response, ]
+    r <- cell_rows(summary_rows, i)
+    r <- r[r$response == response, ]
     if (nrow(r) != 1 || is.na(r$mean)) return("n/a")
     sprintf("%.*f [%.*f, %.*f]", digits, scale * r$mean, digits,
             scale * r$ci_lower, digits, scale * r$ci_upper)
@@ -354,6 +424,9 @@ grid_labels <- vapply(seq_len(nrow(grid)), function(i) {
   if (SWEEPING_ESTABLISHMENT) {
     parts <- c(parts, sprintf("%d beds", grid$hold_beds[i]))
   }
+  if (SWEEPING_INTERVAL) {
+    parts <- c(parts, sprintf("%d d interval", grid$sortie_interval[i]))
+  }
   paste(parts, collapse = ", ")
 }, character(1))
 
@@ -369,6 +442,12 @@ print_row("total_rtd", "Returns to duty", 1, 1)
 print_row("total_dow", "Died of wounds", 1, 2)
 print_row("never_evacuated", "Never evacuated by horizon", 1, 1)
 print_row("mean_evac_wait_days", "Mean evacuation wait (d)", 1, 2)
+if (SWEEPING_INTERVAL) {
+  print_row("mean_wait_critical", "Mean wait, critical channel (d)", 1, 2)
+  print_row("mean_wait_standard", "Mean wait, standard channel (d)", 1, 2)
+  print_row("queued_critical", "Still waiting, critical channel", 1, 1)
+  print_row("queued_standard", "Still waiting, standard channel", 1, 1)
+}
 print_row("role4_sustained", "Role 4 sustained beds", 1, 1)
 print_row("role4_peak", "Role 4 peak beds", 1, 1)
 

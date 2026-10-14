@@ -43,6 +43,7 @@ The measurements record where queues form at each intensity and which responses 
   - [Evacuation Policy](#evacuation-policy)
   - [R2E Holding Establishment](#r2e-holding-establishment)
   - [High-Intensity Evacuation Policy and Holding Establishment](#high-intensity-evacuation-policy-and-holding-establishment)
+  - [High-Intensity Strategic Sortie Interval by Policy and Holding Establishment](#high-intensity-strategic-sortie-interval-by-policy-and-holding-establishment)
   - [Moderate-Intensity Evacuation Policy and Holding Establishment](#moderate-intensity-evacuation-policy-and-holding-establishment)
   - [Forward Surgical Saturation Release](#forward-surgical-saturation-release)
   - [Surgical Team Establishment](#surgical-team-establishment)
@@ -609,6 +610,85 @@ For each holding establishment the largest policy holding both pools below the t
 | 60 | none in the grid | not applicable | not applicable | not applicable |
 | 90 | none in the grid | not applicable | not applicable | not applicable |
 <!-- /GEN -->
+
+### High-Intensity Strategic Sortie Interval by Policy and Holding Establishment
+
+**Question.** Does a shorter interval between strategic sorties, together with a longer evacuation policy or more R2E holding beds, keep the R2E pools below the collapse threshold under the high-intensity profile? `[high_intensity, sortie interval 3 to 7 days, evacuation policy 21 and 30 days, 30 and 60 holding beds · 360 d · 30 replications · pool totals, closing 90 d]`
+
+<!-- GEN interval_grid_high -->
+| Interval, policy and holding beds | R2E hold mean queue | R2E ICU mean queue | Both pools below threshold |
+|---|---|---|---|
+| 3 d interval, 21 d policy, 30 beds | 1.7 [1.0, 2.3] | 519.6 [494.9, 544.3] | 0 of 30 |
+| 3 d interval, 21 d policy, 60 beds | 0.0 [0.0, 0.0] | 445.3 [426.3, 464.2] | 0 of 30 |
+| 3 d interval, 30 d policy, 30 beds | 2,302.7 [2,234.0, 2,371.3] | 990.4 [970.1, 1,010.7] | 0 of 30 |
+| 3 d interval, 30 d policy, 60 beds | 30.9 [21.7, 40.0] | 793.2 [746.2, 840.1] | 0 of 30 |
+| 5 d interval, 21 d policy, 30 beds | 43.2 [39.1, 47.2] | 1,195.4 [1,176.5, 1,214.4] | 0 of 30 |
+| 5 d interval, 21 d policy, 60 beds | 47.2 [40.6, 53.8] | 1,127.6 [1,101.7, 1,153.4] | 0 of 30 |
+| 5 d interval, 30 d policy, 30 beds | 2,345.4 [2,293.9, 2,396.9] | 988.2 [968.5, 1,007.8] | 0 of 30 |
+| 5 d interval, 30 d policy, 60 beds | 33.5 [27.7, 39.3] | 1,071.5 [1,038.9, 1,104.0] | 0 of 30 |
+| 7 d interval, 21 d policy, 30 beds | 556.1 [528.5, 583.7] | 1,438.3 [1,423.9, 1,452.7] | 0 of 30 |
+| 7 d interval, 21 d policy, 60 beds | 561.5 [531.3, 591.6] | 1,409.8 [1,392.7, 1,426.9] | 0 of 30 |
+| 7 d interval, 30 d policy, 30 beds | 2,346.4 [2,281.7, 2,411.0] | 1,002.3 [982.7, 1,022.0] | 0 of 30 |
+| 7 d interval, 30 d policy, 60 beds | 414.6 [397.1, 432.1] | 1,417.7 [1,400.6, 1,434.8] | 0 of 30 |
+<!-- /GEN -->
+
+The table counts the replications whose closing-window mean queue was below the twenty-casualty threshold in both R2E pools. At the shipped cell, the seven-day interval with the 21-day policy and 30 beds, the closing-window R2E holding queue was <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->556.1 [528.5, 583.7]<!-- /GEN --> casualties and the intensive care queue <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E ICU mean queue|full -->1,438.3 [1,423.9, 1,452.7]<!-- /GEN -->. At the three-day interval with the same policy and establishment they were <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->1.7 [1.0, 2.3]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E ICU mean queue|full -->519.6 [494.9, 544.3]<!-- /GEN -->, and with 60 beds <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E hold mean queue|full -->0.0 [0.0, 0.0]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E ICU mean queue|full -->445.3 [426.3, 464.2]<!-- /GEN -->. The count of replications below the threshold in both pools was <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|Both pools below threshold|full -->0 of 30<!-- /GEN --> in that cell and <!-- GEN cell:interval_grid_high|3 d interval, 30 d policy, 60 beds|Both pools below threshold|full -->0 of 30<!-- /GEN --> at the 30-day policy.
+
+<!-- GEN interval_grid_high_wait -->
+| Interval, policy and holding beds | Mean wait, critical channel (days) | Mean wait, standard channel (days) | Still waiting, critical channel | Still waiting, standard channel |
+|---|---|---|---|---|
+| 3 d interval, 21 d policy, 30 beds | 21.27 [20.39, 22.15] | 0.11 [0.08, 0.13] | 603.3 [576.5, 630.1] | 0.2 [0.0, 0.4] |
+| 3 d interval, 21 d policy, 60 beds | 19.10 [18.28, 19.93] | 0.02 [0.01, 0.02] | 516.9 [496.7, 537.1] | 0.1 [0.0, 0.2] |
+| 3 d interval, 30 d policy, 30 beds | 55.07 [52.55, 57.59] | 58.13 [55.74, 60.53] | 1,533.5 [1,514.1, 1,552.9] | 418.4 [403.6, 433.3] |
+| 3 d interval, 30 d policy, 60 beds | 24.10 [22.31, 25.89] | 0.98 [0.74, 1.23] | 951.7 [893.6, 1,009.8] | 7.3 [4.4, 10.1] |
+| 5 d interval, 21 d policy, 30 beds | 26.45 [25.67, 27.23] | 1.75 [1.66, 1.84] | 1,402.9 [1,382.4, 1,423.4] | 12.1 [9.4, 14.8] |
+| 5 d interval, 21 d policy, 60 beds | 26.26 [25.37, 27.14] | 1.40 [1.26, 1.53] | 1,361.1 [1,333.4, 1,388.9] | 14.7 [11.8, 17.6] |
+| 5 d interval, 30 d policy, 30 beds | 55.44 [52.99, 57.89] | 58.54 [56.62, 60.45] | 1,531.0 [1,506.8, 1,555.2] | 425.3 [410.9, 439.7] |
+| 5 d interval, 30 d policy, 60 beds | 28.67 [27.55, 29.80] | 1.56 [1.39, 1.73] | 1,250.2 [1,218.9, 1,281.6] | 8.1 [5.0, 11.2] |
+| 7 d interval, 21 d policy, 30 beds | 21.90 [21.49, 22.30] | 14.58 [13.89, 15.27] | 1,808.2 [1,790.3, 1,826.2] | 116.2 [111.1, 121.3] |
+| 7 d interval, 21 d policy, 60 beds | 19.71 [18.89, 20.54] | 11.66 [10.93, 12.38] | 1,790.3 [1,772.6, 1,808.1] | 123.5 [115.0, 132.1] |
+| 7 d interval, 30 d policy, 30 beds | 58.14 [55.82, 60.46] | 60.37 [57.86, 62.87] | 1,544.4 [1,523.9, 1,565.0] | 432.1 [418.2, 446.0] |
+| 7 d interval, 30 d policy, 60 beds | 18.31 [17.83, 18.80] | 11.37 [10.83, 11.92] | 1,742.1 [1,722.9, 1,761.2] | 65.5 [59.1, 71.8] |
+<!-- /GEN -->
+
+The mean wait is reported separately for the casualties who boarded on the critical (intensive care) channel and on the standard channel, with the casualties of each channel decided for evacuation who had not boarded at the close. At the three-day interval with the 21-day policy and 30 beds the mean wait was <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, critical channel (days)|full -->21.27 [20.39, 22.15]<!-- /GEN --> days on the critical channel against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->0.11 [0.08, 0.13]<!-- /GEN --> days on the standard channel, and <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, critical channel|full -->603.3 [576.5, 630.1]<!-- /GEN --> casualties were still waiting on the critical channel at the close against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, standard channel|full -->0.2 [0.0, 0.4]<!-- /GEN --> on the standard channel. At the shipped seven-day interval the standard channel waited <!-- GEN cell:interval_grid_high_wait|7 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->14.58 [13.89, 15.27]<!-- /GEN --> days.
+
+<!-- GEN interval_grid_high_outcomes -->
+| Interval, policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds | Role 4 closing mean beds |
+|---|---|---|---|---|
+| 3 d interval, 21 d policy, 30 beds | 2,861.8 [2,826.9, 2,896.7] | 288.1 [280.3, 296.0] | 341.0 [338.0, 344.0] | 233.7 [230.6, 236.8] |
+| 3 d interval, 21 d policy, 60 beds | 2,877.1 [2,842.4, 2,911.8] | 290.0 [281.5, 298.5] | 344.0 [339.9, 348.0] | 240.3 [237.6, 243.0] |
+| 3 d interval, 30 d policy, 30 beds | 2,993.7 [2,956.9, 3,030.4] | 295.4 [285.9, 304.9] | 133.6 [125.1, 142.1] | 62.4 [60.2, 64.7] |
+| 3 d interval, 30 d policy, 60 beds | 3,285.3 [3,250.6, 3,319.9] | 306.6 [298.1, 315.1] | 311.5 [305.3, 317.7] | 188.6 [181.6, 195.7] |
+| 5 d interval, 21 d policy, 30 beds | 2,849.5 [2,811.7, 2,887.3] | 287.2 [279.8, 294.6] | 276.5 [273.6, 279.5] | 186.9 [185.1, 188.6] |
+| 5 d interval, 21 d policy, 60 beds | 2,852.9 [2,815.5, 2,890.2] | 286.1 [278.4, 293.7] | 278.6 [275.9, 281.4] | 186.3 [184.4, 188.2] |
+| 5 d interval, 30 d policy, 30 beds | 2,995.9 [2,963.6, 3,028.2] | 296.4 [288.2, 304.7] | 134.2 [127.9, 140.5] | 60.7 [58.2, 63.3] |
+| 5 d interval, 30 d policy, 60 beds | 3,298.9 [3,269.2, 3,328.6] | 309.9 [301.1, 318.8] | 289.3 [282.3, 296.2] | 178.5 [174.6, 182.5] |
+| 7 d interval, 21 d policy, 30 beds | 2,840.0 [2,806.2, 2,873.9] | 277.6 [272.1, 283.1] | 215.8 [214.0, 217.5] | 143.1 [141.4, 144.9] |
+| 7 d interval, 21 d policy, 60 beds | 2,813.6 [2,776.1, 2,851.0] | 285.1 [276.8, 293.4] | 216.7 [214.4, 219.0] | 141.3 [139.6, 143.1] |
+| 7 d interval, 30 d policy, 30 beds | 3,004.3 [2,973.7, 3,034.9] | 292.0 [284.0, 300.0] | 121.7 [117.6, 125.8] | 61.8 [59.3, 64.3] |
+| 7 d interval, 30 d policy, 60 beds | 3,245.8 [3,208.7, 3,282.9] | 305.4 [297.0, 313.8] | 212.6 [209.6, 215.6] | 135.7 [133.8, 137.6] |
+<!-- /GEN -->
+
+Returns to duty per campaign were <!-- GEN cell:interval_grid_high_outcomes|7 d interval, 21 d policy, 30 beds|Returns to duty|full -->2,840.0 [2,806.2, 2,873.9]<!-- /GEN --> at the shipped cell and <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->3,285.3 [3,250.6, 3,319.9]<!-- /GEN --> at the three-day interval with the 30-day policy and 60 beds, where the Role 4 peak was <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Role 4 peak beds|full -->311.5 [305.3, 317.7]<!-- /GEN --> beds.
+
+<!-- GEN interval_grid_high_paired -->
+| Interval, policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds |
+|---|---|---|---|
+| 3 d interval, 21 d policy, 30 beds | +21.8 [−30.2, +73.8] | +10.5 [+0.2, +20.8] | +125.2 [+121.2, +129.3] |
+| 3 d interval, 21 d policy, 60 beds | +37.1 [−17.1, +91.2] | +12.4 [+1.2, +23.6] | +128.2 [+123.5, +132.9] |
+| 3 d interval, 30 d policy, 30 beds | +153.6 [+97.5, +209.7] | +17.8 [+6.9, +28.7] | −82.2 [−91.0, −73.3] |
+| 3 d interval, 30 d policy, 60 beds | +445.2 [+393.8, +496.6] | +29.0 [+18.0, +39.9] | +95.7 [+90.1, +101.4] |
+| 5 d interval, 21 d policy, 30 beds | +9.4 [−38.0, +56.9] | +9.6 [+1.3, +17.9] | +60.8 [+57.2, +64.3] |
+| 5 d interval, 21 d policy, 60 beds | +12.8 [−41.3, +67.0] | +8.5 [−1.9, +18.8] | +62.9 [+59.6, +66.1] |
+| 5 d interval, 30 d policy, 30 beds | +155.9 [+107.3, +204.4] | +18.8 [+9.1, +28.6] | −81.6 [−87.9, −75.3] |
+| 5 d interval, 30 d policy, 60 beds | +458.9 [+425.7, +492.1] | +32.3 [+21.6, +43.0] | +73.5 [+66.9, +80.1] |
+| 7 d interval, 21 d policy, 60 beds | −26.5 [−77.9, +25.0] | +7.5 [−1.7, +16.7] | +0.9 [−1.5, +3.3] |
+| 7 d interval, 30 d policy, 30 beds | +164.3 [+124.0, +204.5] | +14.4 [+3.7, +25.1] | −94.1 [−98.7, −89.4] |
+| 7 d interval, 30 d policy, 60 beds | +405.8 [+355.0, +456.5] | +27.8 [+18.1, +37.5] | −3.2 [−7.0, +0.6] |
+<!-- /GEN -->
+
+Each cell was paired by replication against the shipped cell. At the three-day interval with the 30-day policy and 60 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->+445.2 [+393.8, +496.6]<!-- /GEN --> and died of wounds by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Died of wounds|full -->+29.0 [+18.0, +39.9]<!-- /GEN -->; at the three-day interval with the 21-day policy and 30 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Returns to duty|full -->+21.8 [−30.2, +73.8]<!-- /GEN --> and the Role 4 peak by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Role 4 peak beds|full -->+125.2 [+121.2, +129.3]<!-- /GEN -->.
 
 ### Moderate-Intensity Evacuation Policy and Holding Establishment
 

@@ -632,6 +632,69 @@ if (file.exists(paste0(MOD_PREFIX, "_replications.csv"))) {
   report(FALSE, "the moderate-intensity grid's replications are tracked")
 }
 
+# ── 6e. The high-intensity sortie interval grid ─────────────────────────────
+
+cat("\n-- the high-intensity sortie interval grid's tracked evidence is the documented design --\n")
+
+#' Read one sortie interval grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "INTGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+intgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- INTGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- INTGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked high-intensity sortie interval grid's evidence files
+INT_PREFIX <- file.path("data", "policy", "interval_sweep_high_intensity")
+int_intervals <- as.integer(strsplit(intgrid_marker("intervals"), ",")[[1]])
+int_policies <- as.integer(strsplit(intgrid_marker("policies"), ",")[[1]])
+int_beds <- as.integer(strsplit(intgrid_marker("hold_beds"), ",")[[1]])
+report(setequal(int_intervals, POLICY_SORTIE_INTERVALS) &&
+         POLICY_BASELINE_SORTIE_INTERVAL %in% int_intervals &&
+         identical(intgrid_marker("baseline"),
+                   sprintf("%ds_%dd_%db", POLICY_BASELINE_SORTIE_INTERVAL, 21L,
+                           POLICY_BASELINE_HOLD_BEDS)) &&
+         identical(as.integer(intgrid_marker("replications")), POLICY_REPLICATIONS) &&
+         identical(as.integer(intgrid_marker("days")), POLICY_DAYS_HORIZON),
+       "the methods paper states the grid's intervals, baseline, replications and horizon")
+report(identical(POLICY_ROUTE_CRITICAL, 1) && identical(POLICY_ROUTE_STANDARD, 2),
+       "the route codes the wait is split by are the airlift pools' codes")
+if (file.exists(paste0(INT_PREFIX, "_replications.csv"))) {
+  int_reps <- read.csv(paste0(INT_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  int_sum <- read.csv(paste0(INT_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  int_paired <- read.csv(paste0(INT_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  counts <- table(paste(int_reps$sortie_interval, int_reps$policy_days, int_reps$hold_beds))
+  n_cells <- length(int_intervals) * length(int_policies) * length(int_beds)
+  report(length(counts) == n_cells && all(counts == POLICY_REPLICATIONS) &&
+           setequal(unique(int_reps$sortie_interval), int_intervals) &&
+           setequal(unique(int_reps$policy_days), int_policies) &&
+           setequal(unique(int_reps$hold_beds), int_beds),
+         "the tracked grid has the documented %d cells of %d replications each", n_cells,
+         POLICY_REPLICATIONS)
+  one <- int_reps[int_reps$sortie_interval == 3L & int_reps$policy_days == 30L &
+                    int_reps$hold_beds == 60L, ]
+  stated <- int_sum[int_sum$sortie_interval == 3L & int_sum$policy_days == 30L &
+                      int_sum$hold_beds == 60L & int_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  base <- sprintf("%ds_21d_%db", POLICY_BASELINE_SORTIE_INTERVAL, POLICY_BASELINE_HOLD_BEDS)
+  report(all(int_paired$from == base) && length(unique(int_paired$to)) == n_cells - 1L &&
+           !(base %in% int_paired$to),
+         "every other cell is paired against the baseline cell %s", base)
+  split_ok <- all(c("mean_wait_critical", "mean_wait_standard", "queued_critical",
+                    "queued_standard") %in% names(int_reps))
+  report(split_ok && all(int_reps$queued_critical + int_reps$queued_standard <=
+                           int_reps$never_evacuated),
+         "the channels' waiting casualties never exceed the casualties never evacuated")
+  report(!file.exists(file.path("data", "policy", "interval_sweep_replications.csv")),
+         "no interval grid file is written without its scenario suffix")
+} else {
+  report(FALSE, "the high-intensity sortie interval grid's replications are tracked")
+}
+
 # ── 7. A named scenario's evidence cannot overwrite the default's ──────────
 
 cat("\n-- a named scenario's output files carry its name --\n")

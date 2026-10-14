@@ -52,6 +52,34 @@ POLICY_BASELINE_HOLD_BEDS <- 30L
 #'   shipped establishment.
 POLICY_HOLD_BEDS <- c(30L, 45L, 60L, 90L)
 
+#' Intervals between strategic sorties swept, in days
+#'
+#' @details The interval is the airlift lever the high-intensity sweeps found
+#'   strongest, and the grid crossing it with the policy and the establishment
+#'   spans the shipped seven days and the two shorter intervals a planner could
+#'   realistically schedule. Seven days is the shipped interval and the baseline
+#'   the grid is paired against.
+POLICY_SORTIE_INTERVALS <- c(3L, 5L, 7L)
+
+#' Shipped interval between strategic sorties, in days
+#'
+#' @details The interval the crossed grid's paired differences are taken at,
+#'   alongside `POLICY_BASELINE_HOLD_BEDS` and the shipped policy.
+POLICY_BASELINE_SORTIE_INTERVAL <- 7L
+
+#' Airlift route code of the critical (intensive care) channel
+#'
+#' @details The value `ame_route` carries and `R/airlift.R` names
+#'   `AIRLIFT_ROUTE_CRITICAL`; held here so this module does not depend on that
+#'   one, and asserted equal by `scripts/check_policy_sweep_protocol.R`.
+POLICY_ROUTE_CRITICAL <- 1
+
+#' Airlift route code of the standard channel
+#'
+#' @details The value `ame_route` carries and `R/airlift.R` names
+#'   `AIRLIFT_ROUTE_STANDARD`, held here on the same terms as the critical code.
+POLICY_ROUTE_STANDARD <- 2
+
 #' Forward surgical saturation thresholds swept, in queued casualties
 #'
 #' @details The threshold is the number waiting to be operated on at R2E at or
@@ -264,6 +292,10 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
     } else {
       mean(boarded$ame_wait_minutes) / DAY_MIN
     },
+    mean_wait_critical = policy_route_wait(boarded, POLICY_ROUTE_CRITICAL),
+    mean_wait_standard = policy_route_wait(boarded, POLICY_ROUTE_STANDARD),
+    queued_critical    = policy_route_queued(decided, POLICY_ROUTE_CRITICAL),
+    queued_standard    = policy_route_queued(decided, POLICY_ROUTE_STANDARD),
     role4_sustained    = role4_sustained,
     role4_peak         = role4_peak,
     theatre_mean_queue = theatre_queue,
@@ -272,6 +304,29 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
     role4_operations   = if (nrow(demand) == 0) 0 else sum(demand$operations),
     role4_theatre_minutes = if (nrow(demand) == 0) 0 else sum(demand$theatre_minutes)
   )
+}
+
+#' Mean evacuation wait of the casualties who boarded on one airlift route
+#'
+#' @param boarded Casualties who boarded, carrying `ame_route` and
+#'   `ame_wait_minutes`.
+#' @param route Route code to select.
+#' @return The mean wait in days, or NA where nobody boarded on that route.
+policy_route_wait <- function(boarded, route) {
+  rows <- boarded[!is.na(boarded$ame_route) & boarded$ame_route == route, ]
+  if (nrow(rows) == 0) return(NA_real_)
+  mean(rows$ame_wait_minutes) / DAY_MIN
+}
+
+#' Casualties decided for evacuation on one airlift route who had not boarded
+#'
+#' @param decided Casualties the evacuation decision was taken for, carrying
+#'   `ame_route` and `ame_departure_time`.
+#' @param route Route code to select.
+#' @return The count still waiting at the close.
+policy_route_queued <- function(decided, route) {
+  sum(!is.na(decided$ame_route) & decided$ame_route == route &
+        is.na(decided$ame_departure_time))
 }
 
 #' Measure the policy response set across replications at one policy
@@ -337,6 +392,8 @@ run_policy_measurement <- function(policy_days, n_iterations = POLICY_REPLICATIO
 #'   profile's own value in place.
 #' @param saturation_threshold Forward surgical saturation threshold to set, in
 #'   queued casualties, or NULL to leave the profile's own value in place.
+#' @param sortie_interval_days Interval between strategic sorties to set, in
+#'   days, or NULL to leave the profile's own value in place.
 #' @return Invisibly, the described configuration that was applied.
 #'
 #' @details The overrides enter at different points, which is why this
@@ -349,7 +406,8 @@ run_policy_measurement <- function(policy_days, n_iterations = POLICY_REPLICATIO
 #'   count in `elms`, from which `build_environment()` constructs the resources
 #'   themselves, so it has to be set before that call rather than after.
 apply_policy_setting <- function(json_data, scenario, policy_days = NULL,
-                                 hold_beds = NULL, saturation_threshold = NULL) {
+                                 hold_beds = NULL, saturation_threshold = NULL,
+                                 sortie_interval_days = NULL) {
   resolved <- resolve_scenario(json_data, scenario)
   if (!is.null(hold_beds)) resolved <- set_hold_establishment(resolved, hold_beds)
 
@@ -363,6 +421,10 @@ apply_policy_setting <- function(json_data, scenario, policy_days = NULL,
   if (!is.null(saturation_threshold)) {
     described$vars$r2eheavy$second_surgery$saturation_queue_threshold <-
       saturation_threshold
+  }
+  # A variable as well, set where the policy is.
+  if (!is.null(sortie_interval_days)) {
+    described$vars$role4$ame$schedule_interval_days <- sortie_interval_days
   }
   assign("env_data", described, envir = globalenv())
   assign("day_min", DAY_MIN, envir = globalenv())

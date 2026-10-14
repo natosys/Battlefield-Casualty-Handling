@@ -47,6 +47,7 @@ This document is the design record for the replicated experiments reported in th
   - [R2E Holding Establishment Sweep](#r2e-holding-establishment-sweep)
   - [High-Intensity Policy by Establishment Grid](#high-intensity-policy-by-establishment-grid)
   - [Moderate-Intensity Policy by Establishment Grid](#moderate-intensity-policy-by-establishment-grid)
+  - [High-Intensity Sortie Interval by Policy and Establishment Grid](#high-intensity-sortie-interval-by-policy-and-establishment-grid)
   - [High-Intensity Replications of the Lever Experiments](#high-intensity-replications-of-the-lever-experiments)
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
@@ -606,6 +607,22 @@ Rscript scripts/run_policy_sweep.R --policies 21,24,27,30 --hold-beds 30,45,60 -
 ```
 
 The run uses the arrangement of the high-intensity grid above: each cell is one arm paired on one control seed, the paired difference of each cell is taken against the shipped 21-day policy at 30 beds within replication, and the stability counts are the replications whose closing 90-day mean queue is below twenty casualties in the holding pool, the intensive care pool and both. Its arm checkpoints are shared with the establishment sweep, since an arm at a given policy and establishment is one measurement whichever grid asks for it, so the three cells at 21 days are read back from the establishment sweep and the nine others are new. The `--output-tag` option gives the summary, replication and paired files their own stem (`establishment_sweep_moderate_grid`), which keeps the grid from overwriting the establishment sweep that a published table and a regression check read. The largest policy that holds both pools at an establishment is the greatest swept policy at which no replication of the cell exceeds the threshold in either pool, and the gain per added bed divides the paired gain in returns to duty at that cell by the beds added beyond the shipped 30. The tracked evidence set is `data/policy/`, in the `establishment_sweep_moderate_grid*` files.
+
+### High-Intensity Sortie Interval by Policy and Establishment Grid
+
+<!-- INTGRID intervals=3,5,7 -->
+<!-- INTGRID policies=21,30 -->
+<!-- INTGRID hold_beds=30,60 -->
+<!-- INTGRID baseline=7s_21d_30b -->
+<!-- INTGRID replications=30 -->
+<!-- INTGRID days=360 -->
+Thirty replications of 360 simulated days at each of the twelve cells of the cross product of three intervals between strategic sorties, two evacuation policies and two R2E holding establishments, at control seed 42 under the `high_intensity` profile. The grid of the evacuation policy and the establishment held the airlift at its shipped seven-day interval and found no cell that kept the R2E pools below the threshold; the interval sweep of the strategic airlift section varied the interval alone. This grid measures the three jointly. Invoked as:
+
+```
+Rscript scripts/run_policy_sweep.R --scenario high_intensity --policies 21,30 --hold-beds 30,60 --sortie-intervals 3,5,7 --refresh-baseline
+```
+
+The run uses the arrangement of the grids above: each cell is one arm paired on one control seed, and the paired difference of each cell is taken against the shipped cell, the seven-day interval with the 21-day policy at 30 beds, within replication. The `--sortie-intervals` option sets `role4.ame.schedule_interval_days` after the environment is built, as the airlift sweep does, and gives the grid its own `interval_sweep_high_intensity*` files and arm checkpoints, each arm carrying the interval it ran at; the seven-day cells are measured again rather than read from the establishment grid, so that every cell of this grid was reduced by one response set. The reduction adds the mean wait of the casualties who boarded on the critical and on the standard airlift channel (`ame_route`) and the casualties of each channel decided for evacuation who had not boarded by the close, so a residual wait is attributed to the channel that carries it. The stability count is the replications whose closing 90-day mean queue is below twenty casualties in both R2E pools. The tracked evidence set is `data/policy/`, in the `interval_sweep_high_intensity*` files.
 
 ### High-Intensity Replications of the Lever Experiments
 

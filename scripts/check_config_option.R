@@ -56,14 +56,15 @@ arg_value <- function(flag, default) {
 #' Days each live run simulates
 LIVE_DAYS <- as.integer(arg_value("--days", 2L))
 
-failures <- character(0)
+state <- new.env(parent = emptyenv())
+state$failures <- character(0)
 
 #' Record a failure
 #'
 #' @param ... sprintf() format string and its arguments
-#' @return Invisible NULL; called for its side effect on `failures`
+#' @return Invisible NULL; called for its side effect on the failure list
 fail <- function(...) {
-  failures <<- c(failures, sprintf(...))
+  state$failures <- c(state$failures, sprintf(...))
   invisible(NULL)
 }
 
@@ -118,15 +119,10 @@ empty_msg <- message_of(resolve_config_path(""))
 report(!is.na(empty_msg) && grepl("empty", empty_msg, fixed = TRUE),
        "an empty value is refused")
 
-alias_warned <- FALSE
-alias_path <- withCallingHandlers(
-  resolve_config_path(NULL, alias = copy_path),
-  warning = function(w) {
-    alias_warned <<- grepl("deprecated", conditionMessage(w), fixed = TRUE)
-    invokeRestart("muffleWarning")
-  }
-)
-report(identical(alias_path, copy_path) && alias_warned,
+alias_warning <- tryCatch(resolve_config_path(NULL, alias = copy_path),
+                          warning = function(w) conditionMessage(w))
+alias_path <- suppressWarnings(resolve_config_path(NULL, alias = copy_path))
+report(identical(alias_path, copy_path) && grepl("deprecated", alias_warning, fixed = TRUE),
        "--path still resolves, with a deprecation warning")
 
 conflict_msg <- message_of(resolve_config_path(copy_path, alias = SHIPPED_CONFIG))
@@ -171,13 +167,18 @@ report(is.list(read_config(SHIPPED_CONFIG)) && is.list(read_config(other_path)),
 
 cat("\n-- write_run_manifest --\n")
 
-#' SHA-256 of a file computed with openssl, independently of the function under test
+#' SHA-256 of a file computed with the system's tool, independently of the function under test
 #'
 #' @param path File to hash.
 #' @return The hash as a lower-case hex string.
 sha_independent <- function(path) {
-  bytes <- readBin(path, "raw", file.size(path))
-  paste0(unclass(openssl::sha256(bytes)), collapse = "")
+  tool <- Sys.which("sha256sum")
+  out <- if (nzchar(tool)) {
+    system2(tool, shQuote(path), stdout = TRUE)
+  } else {
+    system2(Sys.which("shasum"), c("-a", "256", shQuote(path)), stdout = TRUE)
+  }
+  strsplit(out[1], " ", fixed = TRUE)[[1]][1]
 }
 
 manifest_dir <- file.path(work_dir, "manifest")
@@ -267,9 +268,9 @@ report(!identical(refresh_run$status, 0L),
 # ── Result ──────────────────────────────────────────────────────────────────
 
 cat("\n")
-if (length(failures)) {
-  cat(sprintf("%d check(s) failed:\n", length(failures)))
-  for (f in failures) cat(" - ", f, "\n", sep = "")
+if (length(state$failures)) {
+  cat(sprintf("%d check(s) failed:\n", length(state$failures)))
+  for (f in state$failures) cat(" - ", f, "\n", sep = "")
   quit(status = 1)
 }
 

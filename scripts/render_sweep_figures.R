@@ -188,6 +188,14 @@ p_threshold <- render_hold_threshold_sweep_plot(
 )
 save_figure(p_threshold, "r2b_hold_threshold_sweep.png", 12, 16)
 
+# RENDERS: r2b_hold_threshold_sweep_high_intensity.png
+p_threshold_high <- render_hold_threshold_sweep_plot(
+  read_tracked("sweeps", "r2b_hold_threshold_sweep_high_intensity.csv"),
+  baseline_beds = shipped_beds("r2b", "hold"),
+  n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS
+)
+save_figure(p_threshold_high, "r2b_hold_threshold_sweep_high_intensity.png", 12, 16)
+
 surge_events <- read_tracked("casualty_surge", "casualty_surge_illustrative_events.csv")
 
 # RENDERS: casualty_surge_events.png

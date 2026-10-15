@@ -37,6 +37,14 @@
 #      calling one from a console, as the README's examples do, cannot replace a
 #      published figure with an exploratory one. Only the entry points'
 #      --refresh-baseline paths name images/, and they do so explicitly.
+#   6. Every tracked file in images/ has a producer: a `# RENDERS:` marker, the
+#      analysis pipeline that writes a seed-42 baseline plot (its file name is
+#      a literal in R/analysis.R), the warm-up diagnostic, or a hand-authored
+#      source the README documents. Every one of them also has a home: a
+#      reference from one of the four academic documents, or a place in the
+#      README's table of seed-42 baseline plots. A figure no document cites and
+#      no producer names is a figure that can silently describe a superseded
+#      model. The test is fault-injected with an image nothing accounts for.
 
 #' The results paper whose figures are checked
 RESULTS <- "docs/Results.md"
@@ -191,6 +199,84 @@ report(!any(resolves_to_tracked),
 for (nm in names(defaults)[resolves_to_tracked]) {
   report(FALSE, "%s defaults its image directory to the tracked images/", nm)
 }
+
+cat("\n-- every tracked image has a producer and a home --\n")
+
+#' The four academic documents whose references give an image a home
+DOCUMENTS <- c("README.md", RESULTS, "docs/Planning_Implications.md", "docs/Methods.md")
+#' Seed-42 single-run plots written by `run.R --refresh-baseline`, each named as a literal in the
+#' analysis pipeline and listed by name in the README's table of baseline plots
+BASELINE_PLOTS <- c("casualty_summary.png", "r1_queues.png", "r2b_bed_queues.png",
+                    "r2b_gantt.png", "r2b_handling.png", "r2b_hold_occupancy.png",
+                    "r2b_ot_bypass_reason.png", "r2eheavy_gantt.png",
+                    "r2eheavy_surgeries.png", "r2eheavy_bed_queue_3_teams.png",
+                    "r2e_icu_gating_impact.png", "ame_backlog.png",
+                    "ame_sortie_timeline.png", "force_regeneration.png",
+                    "waiting_time.png", "role4_census.png", "transport_capacity_margin.png")
+#' Hand-authored images with no code, each described in the README beside its caption
+HAND_AUTHORED <- c("tactical_diagram.png", "tactical_diagram.kmz", "tactical_diagram.milxlyz")
+#' Images the warm-up entry point writes, named as literals in the module it calls
+WARMUP_IMAGES <- "welch_plot_icu_queue.png"
+
+#' Tracked images that lack a producer or a home
+#'
+#' @param tracked Base names of every tracked file in images/.
+#' @param referenced Base names the four documents reference.
+#' @param declared Names and globs the render scripts declare.
+#' @param named_in Named list of source texts keyed `analysis`, `warmup` and `readme`,
+#'   each a single string.
+#' @return A list of `no_producer` and `no_home`, each a character vector.
+provenance_gaps <- function(tracked, referenced, declared, named_in) {
+  #' Whether a file name appears literally in a source text
+  #'
+  #' @param img Image base name.
+  #' @param text Source text to search.
+  #' @return TRUE when the name occurs in the text.
+  has_name <- function(img, text) grepl(img, text, fixed = TRUE)
+  producer <- vapply(tracked, function(img) {
+    is_declared(img, declared) ||
+      (img %in% BASELINE_PLOTS && has_name(img, named_in$analysis)) ||
+      (img %in% WARMUP_IMAGES && has_name(img, named_in$warmup)) ||
+      (img %in% HAND_AUTHORED && has_name(img, named_in$readme))
+  }, logical(1))
+  home <- vapply(tracked, function(img) {
+    listed <- img %in% c(BASELINE_PLOTS, HAND_AUTHORED) && has_name(img, named_in$readme)
+    img %in% referenced || listed
+  }, logical(1))
+  list(no_producer = tracked[!producer], no_home = tracked[!home])
+}
+
+#' Whole text of a file as one string
+#'
+#' @param path File to read.
+#' @return The file's lines joined by newlines.
+read_text <- function(path) paste(readLines(path, warn = FALSE), collapse = "\n")
+named_in <- list(analysis = read_text("R/analysis.R"), warmup = read_text("R/warmup.R"),
+                 readme = read_text("README.md"))
+tracked_images <- basename(system2("git", c("ls-files", "images"), stdout = TRUE))
+cited <- sort(unique(unlist(lapply(DOCUMENTS, referenced_images))))
+gaps <- provenance_gaps(tracked_images, cited, declared, named_in)
+report(length(tracked_images) > 0, "%d tracked images are inspected", length(tracked_images))
+for (img in gaps$no_producer) report(FALSE, "images/%s has no producer", img)
+for (img in gaps$no_home) {
+  report(FALSE, "images/%s is neither cited nor listed as baseline evidence", img)
+}
+report(!length(gaps$no_producer) && !length(gaps$no_home),
+       "every tracked image has a producer and a home")
+report(all(cited %in% tracked_images), "every image the four documents reference is tracked")
+
+cat("\n-- the test fails on an image nothing accounts for (fault injection) --\n")
+injected <- provenance_gaps(c(tracked_images, "orphan_figure.png"), cited, declared, named_in)
+report(identical(injected$no_producer, "orphan_figure.png") &&
+         identical(injected$no_home, "orphan_figure.png"),
+       "an undeclared, uncited image is reported as both producer-less and homeless")
+undeclared <- provenance_gaps(tracked_images, cited, setdiff(declared, "policy_sweep.png"),
+                              named_in)
+report("policy_sweep.png" %in% undeclared$no_producer,
+       "removing a render declaration leaves its image without a producer")
+unlisted <- provenance_gaps(tracked_images, setdiff(cited, "icu_gate.png"), declared, named_in)
+report("icu_gate.png" %in% unlisted$no_home,
+       "an image no document cites and the baseline table does not list has no home")
 
 cat("\n")
 if (length(state$failures)) {

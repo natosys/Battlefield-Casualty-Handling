@@ -208,6 +208,10 @@ The two readings answer different questions and both can be correct. `classify_s
 
 `scripts/render_long_horizon_warmup.R` renders the diagnostic from the tracked `data/long_horizon/long_horizon_series.csv.gz` alone, running no simulation of its own, and writes the tracked `images/welch_plot_long_horizon.png` and `data/long_horizon/long_horizon_welch_cma.csv` under `--refresh-baseline`. `scripts/check_long_horizon_warmup.R` asserts the cumulative-average arithmetic on a constructed series whose answer is computable by hand, that the tracked reduction reproduces from the tracked series rather than standing as a second and independent claim about it, and that every reading the companion paper states matches the tracked reduction.
 
+![Cumulative moving average of the mean R2E holding bed and intensive care queue against simulation day, at moderate and high casualty intensity](../images/welch_plot_long_horizon.png)
+
+The cumulative moving average of the two R2E bed pool queues over the sustained horizon, one panel per casualty intensity and one line per pool.
+
 ### The Checks That Defend These Properties
 
 Each property above is asserted by a regression check that runs on every pull request, so a change to the framework that broke one would fail the gate rather than silently altering every interval the project reports.

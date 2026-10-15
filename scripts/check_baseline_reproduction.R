@@ -118,6 +118,7 @@ status <- system2("Rscript",
                     "--seed", BASELINE_SEED,
                     "--days", BASELINE_DAYS,
                     "--iterations", BASELINE_ITERATIONS,
+                    "--config", "env_data.json",
                     "--output-dir", shQuote(run_dir)),
                   stdout = file.path(run_dir, "console.txt"),
                   stderr = file.path(run_dir, "console.txt"))

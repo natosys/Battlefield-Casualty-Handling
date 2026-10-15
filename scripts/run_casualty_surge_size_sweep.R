@@ -26,6 +26,8 @@ source("R/replication.R")
 source("R/scenario.R")
 source("R/analysis.R")
 source("R/casualty_surge.R")
+source("R/cli.R")
+source("R/run_manifest.R")
 
 suppressPackageStartupMessages(library(optparse))
 
@@ -40,11 +42,18 @@ option_list <- list(
               help = "Control seed [default: %default]"),
   make_option("--max-cores", type = "integer", default = NULL,
               help = "Cap on concurrent forks [default: the machine's cores]"),
+  make_option("--config", type = "character", default = NULL,
+              help = paste("Configuration file to run against, the shipped env_data.json",
+                           "or one saved from the Shiny console. Rejected under",
+                           "--refresh-baseline unless it is the shipped file",
+                           "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
               help = "Write the tracked data/casualty_surge/ size sweep files")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+refresh_requested <- isTRUE(opt$`refresh-baseline`)
+config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
 if (isTRUE(opt$`refresh-baseline`)) {
   opt$iterations <- CASUALTY_SURGE_SIZE_REPLICATIONS
@@ -62,12 +71,15 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 } else {
   file.path("outputs", "data", "casualty_surge")
 }
+
+# A run outside the tracked evidence set records what it ran (R/run_manifest.R).
+if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 dir.create(file.path(OUTPUT_DIR, "size_checkpoints"), recursive = TRUE, showWarnings = FALSE)
 
 #' Suffix every file of this run carries, so a named scenario is kept beside the default
 OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
 
-json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
+json_data <- read_config(config_path)
 
 #' Measure one size, resuming its checkpoint when present
 #'

@@ -44,6 +44,8 @@ source("R/policy_sweep.R")
 source("R/hold_window.R")
 source("R/long_horizon.R")
 source("R/surgical_team_sweep.R")
+source("R/cli.R")
+source("R/run_manifest.R")
 
 suppressPackageStartupMessages(library(optparse))
 
@@ -60,11 +62,18 @@ option_list <- list(
               help = "Control seed [default: %default]"),
   make_option("--max-cores", type = "integer", default = NULL,
               help = "Cap on concurrent forks [default: the machine's cores]"),
+  make_option("--config", type = "character", default = NULL,
+              help = paste("Configuration file to run against, the shipped env_data.json",
+                           "or one saved from the Shiny console. Rejected under",
+                           "--refresh-baseline unless it is the shipped file",
+                           "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
               help = "Write the tracked data/surgical_teams/ copy")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+refresh_requested <- isTRUE(opt$`refresh-baseline`)
+config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
 # A baseline refresh runs the documented protocol rather than whatever the
 # caller passed, on the convention scripts/run_scenarios.R establishes.
@@ -94,9 +103,12 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 } else {
   file.path("outputs", "data", "surgical_teams")
 }
+
+# A run outside the tracked evidence set records what it ran (R/run_manifest.R).
+if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
-json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
+json_data <- read_config(config_path)
 
 #' File stem of one arm's checkpoint
 #'

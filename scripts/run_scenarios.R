@@ -55,6 +55,9 @@ source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
 source("R/scenario_runner.R")
+source("R/scenario.R")
+source("R/cli.R")
+source("R/run_manifest.R")
 
 suppressPackageStartupMessages(library(optparse))
 
@@ -74,11 +77,18 @@ option_list <- list(
   make_option("--images-dir", type = "character", default = NULL,
               help = paste("Directory for the comparison plot [default:",
                            "outputs/images, or images under --refresh-baseline]")),
+  make_option("--config", type = "character", default = NULL,
+              help = paste("Configuration file to run against, the shipped env_data.json",
+                           "or one saved from the Shiny console. Rejected under",
+                           "--refresh-baseline unless it is the shipped file",
+                           "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
               help = "Write the tracked data/scenarios/ and images/ copies")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+refresh_requested <- isTRUE(opt$`refresh-baseline`)
+config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
 if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
   stop("--quick and --refresh-baseline are incompatible: a smoke test's three ",
@@ -112,6 +122,9 @@ output_dir <- if (isTRUE(opt$`refresh-baseline`)) {
   opt[["output-dir"]]
 }
 
+# A run outside the tracked evidence set records what it ran (R/run_manifest.R).
+if (!refresh_requested) write_run_manifest(output_dir, config_path, opt)
+
 images_dir <- if (!is.null(opt[["images-dir"]])) {
   opt[["images-dir"]]
 } else if (isTRUE(opt$`refresh-baseline`)) {
@@ -131,7 +144,8 @@ cmp <- compare_scenarios(
   n_iterations = opt$iterations,
   n_days       = opt$days,
   output_dir   = output_dir,
-  images_dir   = images_dir
+  images_dir   = images_dir,
+  path         = config_path
 )
 
 message("\nScenario comparison complete.")

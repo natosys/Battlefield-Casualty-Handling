@@ -42,6 +42,8 @@ source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
 source("R/scenario_runner.R")
+source("R/cli.R")
+source("R/run_manifest.R")
 
 suppressPackageStartupMessages(library(optparse))
 
@@ -62,8 +64,13 @@ option_list <- list(
               help = "Random seed [default: %default]"),
   make_option("--quick",           action = "store_true", default = FALSE,
               help = "Smoke test: 2 iterations, 3 days, a 2x2 grid"),
-  make_option("--path",            type = "character", default = "env_data.json",
-              help = "Path to env_data.json [default: %default]"),
+  make_option("--config",            type = "character", default = NULL,
+              help = paste("Configuration file to run against, the shipped env_data.json",
+                           "or one saved from the Shiny console. Rejected under",
+                           "--refresh-baseline unless it is the shipped file",
+                           "[default: env_data.json]")),
+  make_option("--path",            type = "character", default = NULL,
+              help = "Deprecated alias of --config"),
   make_option("--output-dir",      type = "character", default = "outputs",
               help = "Directory for CSV output [default: %default]"),
   make_option("--images-dir",      type = "character", default = NULL,
@@ -78,6 +85,8 @@ option_list <- list(
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+refresh_requested <- isTRUE(opt$`refresh-baseline`)
+config_path <- resolve_config_path(opt$config, opt$path, refresh_baseline = refresh_requested)
 
 if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
   stop("--quick and --refresh-baseline are incompatible: a smoke test's two ",
@@ -114,6 +123,9 @@ output_dir <- if (isTRUE(opt$`refresh-baseline`)) {
   opt[["output-dir"]]
 }
 
+# A run outside the tracked evidence set records what it ran (R/run_manifest.R).
+if (!refresh_requested) write_run_manifest(output_dir, config_path, opt)
+
 images_dir <- if (!is.null(opt[["images-dir"]])) {
   opt[["images-dir"]]
 } else if (isTRUE(opt$`refresh-baseline`)) {
@@ -141,7 +153,7 @@ message(sprintf("days=%d, seed=%d", opt$days, opt$seed))
 # counts around its sweep (mirrors run_morris()'s env_data_base pattern,
 # R/sensitivity.R), so they must already be set — same convention as
 # scripts/run_transport_sweep.R and scripts/run_icu_share_sweep.R.
-env_data <<- load_elms(opt$path)
+env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
@@ -154,7 +166,7 @@ sweep <- plot_r2b_hold_threshold_sweep(
   evac_threshold_min  = evac_threshold_min,
   n_days              = opt$days,
   n_rep               = opt$iterations,
-  path                = opt$path,
+  path                = config_path,
   output_dir          = output_dir,
   images_dir          = images_dir,
   max_cores           = opt$`max-cores`,

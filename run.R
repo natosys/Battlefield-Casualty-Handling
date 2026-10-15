@@ -36,6 +36,7 @@ source("R/replication.R")
 source("R/analysis.R")
 source("R/warmup.R")
 source("R/cli.R")
+source("R/run_manifest.R")
 source("R/results.R")
 
 # ── Main function ─────────────────────────────────────────────────────────────
@@ -89,6 +90,10 @@ print_analysis_plots <- function(results) {
 #'   tracked images/ is the only permitted destination.
 #' @param max_cores   Cap on the cores mclapply forks across in multi-run
 #'   mode (default NULL, leaving the option or detected core count in force).
+#' @param config      Configuration file to run against (default
+#'   "env_data.json"): the shipped file or one saved from the Shiny console.
+#'   Validated when it is read, and rejected under refresh_baseline unless it
+#'   is the shipped file.
 #' @return Invisibly returns the monitoring data list
 #'
 #' @details A scenario profile and a baseline refresh are mutually exclusive.
@@ -101,7 +106,7 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
                     warm_up_days = WARM_UP_DAYS,
                     refresh_baseline = FALSE,
                     scenario = "default", images_dir = NULL,
-                    max_cores = NULL) {
+                    max_cores = NULL, config = SHIPPED_CONFIG) {
   if (quick) {
     seed <- 42L; days <- 5L; iterations <- 5L
     message("Quick mode: iterations=5, days=5, seed=42")
@@ -147,11 +152,19 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   message(sprintf("Run configuration: iterations=%d, days=%d, seed=%d, scenario=%s",
                   iterations, days, seed, scenario))
 
-  env_data <<- load_scenario("env_data.json", scenario)
+  config <- resolve_config_path(config, refresh_baseline = refresh_baseline)
+  env_data <<- load_scenario(config, scenario)
   day_min  <<- DAY_MIN
   counts   <<- sapply(env_data$elms, length)
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  # A run outside the tracked baseline set records what it ran (R/run_manifest.R).
+  if (!refresh_baseline) {
+    write_run_manifest(output_dir, config,
+                       list(seed = seed, days = days, iterations = iterations,
+                            scenario = scenario, warm_up_days = warm_up_days,
+                            max_cores = max_cores))
+  }
   dir.create(dirname(log_path), showWarnings = FALSE, recursive = TRUE)
 
   if (iterations == 1L) {
@@ -255,6 +268,11 @@ if (!interactive()) {
                              "The two modes produce different artifact sets:",
                              "only single writes logs.txt and the arrival",
                              "diagnostics [default: inferred]")),
+    make_option("--config", type = "character", default = NULL,
+                help = paste("Configuration file to run against, the shipped env_data.json",
+                             "or one saved from the Shiny console. Rejected under",
+                             "--refresh-baseline unless it is the shipped file",
+                             "[default: env_data.json]")),
     make_option("--scenario", type = "character", default = "default",
                 help = paste("Scenario profile from env_data.json's scenarios",
                              "block, or 'default' for the base parameters",
@@ -298,5 +316,6 @@ if (!interactive()) {
           refresh_baseline = opt$`refresh-baseline`,
           scenario = opt$scenario,
           images_dir = opt$`images-dir`,
-          max_cores = opt$`max-cores`)
+          max_cores = opt$`max-cores`,
+          config = if (is.null(opt$config)) SHIPPED_CONFIG else opt$config)
 }

@@ -23,9 +23,9 @@ DAY_MIN <- 1440L
 # campaign in which nobody returned to duty has no `return_day` column at all,
 # and analysis code referring to one fails with an object-not-found error rather
 # than reading an empty result. The list is the model's, not the analysis
-# pipeline's, which is why it lives here; scripts/check_attribute_keys.R asserts
-# it against the set_attribute() calls in R/trajectories.R so the two cannot
-# drift.
+# pipeline's, which is why it lives here; scripts/check_absent_attribute_columns.R
+# asserts it against the set_attribute() calls in R/trajectories.R so the two
+# cannot drift.
 MODEL_ATTRIBUTE_KEYS <- c(
   "ame_departure_time", "ame_hold_end", "ame_hold_start", "ame_icu_hold",
   "ame_icu_hold_minutes",

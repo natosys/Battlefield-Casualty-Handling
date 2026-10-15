@@ -34,6 +34,21 @@
 #      fails here rather than leaving a role naming a file that is gone.
 #   5. Neither table names a path that does not exist, so a renamed or deleted
 #      file cannot leave a row behind pointing at nothing.
+#   6. The README names every scripts/run_*.R and scripts/render_*.R, so a
+#      reader of the system reference can find how a published result is
+#      reproduced. CLAUDE.md is a maintainer file and was the only place they
+#      were listed.
+#   7. The only R files at the repository root are the two entry points,
+#      run.R and app.R. A driver left there, named for the issues it served,
+#      appears in neither table and is invisible to the checks above.
+#   8. No tracked document, script or module names a scripts/ file that does
+#      not exist, apart from the action plan and the archive, which record
+#      files as they were. A script renamed or deleted cannot be left behind in
+#      a comment or a row.
+#
+# Rules 6 to 8 are asserted by functions that take their inputs as arguments,
+# so each is shown to fail on a constructed input rather than only to pass on
+# the repository as it stands.
 #
 # The file set comes from `git ls-files` rather than a filesystem glob, so an
 # untracked scratch file under scripts/ cannot fail the check. A row may name
@@ -178,6 +193,74 @@ assert_no_stale <- function(paths, table_name) {
 
 assert_no_stale(readme_paths, "the README's Codebase Structure table")
 assert_no_stale(claude_paths, "CLAUDE.md's Repository Structure table")
+
+# ── 6 to 8. README coverage, root-level files, dangling script names ───────
+
+cat("\n-- the README names every run and render script --\n")
+
+#' Entry points a text does not name
+#'
+#' @param files Paths that must appear, each as `scripts/<name>.R`.
+#' @param text The document text searched, as one string.
+#' @return The subset of `files` whose path does not occur in `text`.
+unnamed_in <- function(files, text) {
+  files[!vapply(files, function(f) grepl(f, text, fixed = TRUE), logical(1))]
+}
+
+#' Tracked R files at the repository root other than the two entry points
+#'
+#' @param tracked Tracked paths.
+#' @return The root-level `.R` paths that are neither `run.R` nor `app.R`.
+stray_root_scripts <- function(tracked) {
+  root <- grep("^[^/]+\\.R$", tracked, value = TRUE)
+  setdiff(root, c("run.R", "app.R"))
+}
+
+#' scripts/ paths a text names that are not among the tracked files
+#'
+#' @param text The text searched, as one string.
+#' @param tracked Tracked paths.
+#' @return Sorted unique `scripts/<name>.(R|sh|csv)` names in `text` that no
+#'   tracked path matches.
+dangling_script_names <- function(text, tracked) {
+  named <- regmatches(text, gregexpr("scripts/[A-Za-z0-9_]+\\.(R|sh|csv)", text))[[1]]
+  sort(setdiff(unique(named), tracked))
+}
+
+readme_text <- paste(readLines("README.md", warn = FALSE), collapse = "\n")
+run_render <- tracked_files("^scripts/(run|render)_[^/]+\\.R$")
+report(length(run_render) > 0, "the run and render scripts are found (%d)", length(run_render))
+absent <- unnamed_in(run_render, readme_text)
+report(length(absent) == 0, "the README names every scripts/run_*.R and scripts/render_*.R (%d)%s",
+       length(run_render),
+       if (length(absent)) sprintf("; absent: %s", paste(absent, collapse = ", ")) else "")
+
+report(identical(unnamed_in(run_render, sub(run_render[1], "", readme_text, fixed = TRUE)),
+                 run_render[1]),
+       "removing %s from the README text is reported (fault injection)", run_render[1])
+
+cat("\n-- the repository root holds only the two entry points --\n")
+all_tracked <- system2("git", "ls-files", stdout = TRUE)
+stray <- stray_root_scripts(all_tracked)
+report(length(stray) == 0, "no tracked R file at the root besides run.R and app.R%s",
+       if (length(stray)) sprintf("; found: %s", paste(stray, collapse = ", ")) else "")
+report(identical(stray_root_scripts(c(all_tracked, "run_adhoc_driver.R")), "run_adhoc_driver.R"),
+       "an added root-level driver is reported (fault injection)")
+
+cat("\n-- no document, script or module names a script that does not exist --\n")
+scanned <- grep(paste0("^(README\\.md|CLAUDE\\.md|docs/[^/]+\\.md|scripts/[^/]+\\.(R|sh)|",
+                       "R/[^/]+\\.R|\\.github/.+)$"), all_tracked, value = TRUE)
+scanned <- setdiff(scanned, "docs/BCH_Simulation_Action_Plan.md")
+dangling <- unlist(lapply(scanned, function(f) {
+  d <- dangling_script_names(paste(readLines(f, warn = FALSE), collapse = "\n"), all_tracked)
+  if (length(d)) paste0(f, " -> ", d) else character(0)
+}))
+report(length(dangling) == 0, "no scripts/ path named in %d tracked files is missing%s",
+       length(scanned),
+       if (length(dangling)) sprintf("; dangling: %s", paste(dangling, collapse = "; ")) else "")
+report(identical(dangling_script_names(paste0("see scripts/", "run_removed_sweep.R here"), all_tracked),
+                 paste0("scripts/", "run_removed_sweep.R")),
+       "a named script that does not exist is reported (fault injection)")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

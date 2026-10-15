@@ -4,7 +4,7 @@ A short guide to using the Battlefield Casualty Handling simulation console. Thi
 
 ## What This Tool Does
 
-This app runs a discrete event simulation of casualties moving through a deployed health system — from point of injury, through Role 1 (forward aid post) and Role 2 (battalion aid post / field hospital), to return-to-duty, strategic evacuation, or death. You configure the force size, health system, casualty rates, and evacuation chain; the simulation then generates casualties and routes them through that system, producing wait times, bed/transport utilisation, and outcome counts you can use to judge whether the configured system is adequate.
+This app runs a discrete event simulation of casualties moving through a deployed health system — from point of injury, through Role 1 (unit or regimental aid post and its treatment teams) and Role 2 (the forward surgical R2B and the R2E Heavy hospital), to return-to-duty, strategic evacuation, or death. You configure the force size, health system, casualty rates, and evacuation chain; the simulation then generates casualties and routes them through that system, producing wait times, bed/transport utilisation, and outcome counts you can use to judge whether the configured system is adequate.
 
 ## The Workflow: Configure → Run → Analyse
 
@@ -16,7 +16,7 @@ A **Casualty Intensity Profile** dropdown above the panels switches between the 
 
 ### 2. Run
 
-Set the **Simulation Duration** (days, up to 180 in the console; the project's published experiments run 360 days from the command line, see the README's [Running the simulation](../README.md#running-the-simulation)) and **Random Seed** (leave blank for a different draw each run), then choose a mode:
+Set the **Simulation Duration** (days, up to 180 in the console; the project's published experiments run 360 days from the command line, see the README's [Running the simulation](../README.md#running-the-simulation)) and **Random Seed** (ships as 42, so every run repeats the same draw; clear the field for a different draw each run), then choose a mode:
 
 - **Quick Run** — one replication, ready in well under a minute for a typical 30-day run. Good for a fast first look, or for tuning parameters interactively.
 - **Full Analysis** — runs many independent replications (slider, 10–1000) and reports mean values with 95% confidence intervals. Use this before drawing any conclusion you intend to act on — a single Quick Run reflects one random draw and can be misleading on its own.
@@ -25,14 +25,14 @@ Both run in the background so the app stays responsive; a progress indicator tra
 
 ### 3. Analyse
 
-Results appear as a set of tabs (see below). Full Analysis mode adds four KPI summary cards above the tabs (total casualties, DOW count, R2E ICU peak queue, R2B OT peak queue, each with a 95% CI) and shows every plot as a mean ± CI band rather than a single trace. Every plot and table has PNG/PDF/CSV download buttons, and a *Download All* button zips the raw per-casualty and per-resource monitoring data from the most recent run for offline analysis.
+Results appear as a set of tabs (see below). Full Analysis mode adds four KPI summary cards above the tabs (total casualties, DOW count, R2E ICU peak queue, R2B OT peak queue, each with a 95% CI) and shows every plot as a mean ± CI band rather than a single trace. Most plots have PNG, PDF and CSV download buttons, while some outputs (post-operative pathway, transport utilisation, dwell times, DOW and RTD by echelon, AME wait time) offer CSV only, and a *Download All* button zips the raw per-casualty and per-resource monitoring data from the most recent run for offline analysis.
 
 ### 4. (Optional) Sensitivity Screening
 
-The last Analyse tab, **Sensitivity Calibration**, is a separate activity from a normal Quick Run/Full Analysis cycle: instead of showing one configuration's results, it tells you which parameters are worth the effort of getting right in the first place. Run it when you want to prioritise where to spend limited data-gathering or expert-consultation effort, not as a routine step. It runs three things, each building on the last:
+The last Analyse tab, **Sensitivity Calibration**, is a separate activity from a normal Quick Run/Full Analysis cycle: instead of showing one configuration's results, it tells you which parameters are worth the effort of getting right in the first place. Run it when you want to prioritise where to spend limited data-gathering or expert-consultation effort, not as a routine step. It offers three runs:
 
-- **Run Sensitivity Screening** (Morris) — a quick ranking of every screened parameter by how much it moves the results, using a small number of runs per parameter. Good as a first pass across all 80 screened parameters.
-- **Run Sobol Decomposition** — a more expensive, more precise variance breakdown, pre-selecting the top 5 parameters Morris ranked highest. Use this to confirm Morris's ranking and see how much of a parameter's effect is independent versus dependent on other parameters.
+- **Run Sensitivity Screening** (Morris) — a ranking of every screened parameter by how much it moves the results. The defaults (20 trajectories, 5 replications per point) make this a long run, so use the panel's wall-clock guidance and a smaller trajectory count for a first look. Covers all 80 screened parameters.
+- **Run Sobol Decomposition** — a more expensive, more precise variance breakdown that builds on Morris, pre-selecting the top 5 parameters it ranked highest. Use this to confirm Morris's ranking and see how much of a parameter's effect is independent versus dependent on other parameters.
 - **Run Transport Fleet Sweep** — tests a range of PMV Ambulance/HX240M fleet sizes directly, independent of Morris/Sobol, to see how much margin the current fleet size carries.
 
 All three run in the background with a real progress counter and can take from a couple of minutes (a quick smoke-test setting) to several hours (the full default settings) depending on the trajectory/replication counts chosen — see the panel's own wall-clock guidance before running the larger settings.
@@ -45,7 +45,7 @@ Before exploring the full field set, these are the parameters most likely to cha
 |---|---|---|
 | Casualty Intensity Profile | Configure (top) | Switches the whole casualty-rate and DOW-ceiling basis (e.g. historical exemplar) in one action |
 | Simulation Duration (days) | Run | Longer runs reveal steady-state congestion that a short run may not show |
-| Random Seed | Run | Blank seed varies each run — use this to see how much outcomes vary by chance before trusting a single result |
+| Random Seed | Run | The field ships as 42 and repeats the same draw; clear it to vary each run, and use that to see how much outcomes vary by chance before trusting a single result |
 | Replication Count | Run | More replications narrow the 95% CI on Full Analysis output — 100 is a reasonable default; use more before a planning-grade report |
 | Team counts and bed capacity | Configure → Health System Architecture | Directly sets treatment capacity at each echelon — the most direct lever for relieving a queue you see in Analyse |
 | Transport fleet size | Configure → Medevac | Relieves a sustained transport queue (see the Transport tab) |

@@ -100,6 +100,7 @@ This tool supports iterative refinement and stakeholder engagement, offering a t
 - [Simulation Design](#simulation-design)
   - [Codebase Structure](#codebase-structure)
     - [Running the simulation](#running-the-simulation)
+    - [Reproducing the Published Results](#reproducing-the-published-results)
     - [Shiny Console Structure](#shiny-console-structure)
     - [Analysis Pipeline Structure](#analysis-pipeline-structure)
     - [Verification and Continuous Integration](#verification-and-continuous-integration)
@@ -1200,6 +1201,34 @@ The seed-42 baseline plots are single-run diagnostics of the verified campaign i
 
 Package versions are pinned via a committed `renv.lock`; see [Restoring dependencies](#restoring-dependencies) for the `renv::restore()` workflow.
 
+#### Reproducing the Published Results
+
+Every measurement of [docs/Results.md](docs/Results.md) comes from a tracked evidence set under `data/`, and each set is written by one run script. The replicated experiment scripts each take `--refresh-baseline`, the only way to write the tracked copy, and under it run the documented protocol rather than whichever arguments accompany it; the design of each experiment is in [docs/Methods.md](docs/Methods.md). Without the flag a script writes under `outputs/` and leaves the tracked set untouched. The mortality calibration writes its tracked file under `--write-csv`, and the sensitivity screens are long runs whose tracked caches are described in `data/sensitivity/README.md`.
+
+| Results section | Run script | Evidence set |
+|---|---|---|
+| Comparative Scenario Analysis | `scripts/run_scenarios.R` | `data/scenarios/` |
+| Queue Behaviour over the Campaign | `scripts/render_time_series_figures.R --run` | `data/time_series/` |
+| Sustained Operations | `scripts/run_long_horizon.R` | `data/long_horizon/` |
+| Treated-Cohort Mortality | `scripts/check_dow_calibration.R --write-csv` | `data/calibration/` |
+| R2B Pre-Open Hold Window | `scripts/run_hold_window.R` | `data/hold_window/` |
+| R2B Holding Capacity and Evacuation Threshold | `scripts/run_hold_threshold_sweep.R` | `data/sweeps/` |
+| Transport Fleet Size | `scripts/run_transport_sweep.R` | `data/sweeps/` |
+| Forward Holding of Post-Operative Intensive Care | `scripts/run_forward_hold_sweep.R` | `data/sweeps/` |
+| Post-Operative Intensive Care Gate | `scripts/run_icu_gate.R` | `data/icu_gate/` |
+| Evacuation policy and R2E holding establishment sections | `scripts/run_policy_sweep.R` | `data/policy/` |
+| Forward Surgical Saturation Release | `scripts/run_saturation_sweep.R` | `data/policy/` |
+| Surgical Team Establishment | `scripts/run_surgical_team_sweep.R` | `data/surgical_teams/` |
+| R2E Intensive Care Bed Establishment | `scripts/run_icu_bed_sweep.R` | `data/icu_beds/` |
+| National Support Base and Strategic Airlift | `scripts/run_airlift_sweep.R`, `scripts/run_airlift_collapse.R` | `data/airlift/` |
+| Role 4 Bed Demand | `scripts/run_role4_demand.R` | `data/role4_demand/` |
+| Casualty Surge Events | `scripts/run_casualty_surge.R` | `data/casualty_surge/` |
+| Casualty Surge Event Size | `scripts/run_casualty_surge_size_sweep.R` | `data/casualty_surge/` |
+| Sensitivity Screens | `scripts/run_sensitivity.R`, `scripts/run_sobol_decomposition.R` | `data/sensitivity/` |
+| Annex A, one seed-42 campaign | `run.R --iterations 1` | `data/`, `logs/` |
+
+The tables and quoted figures of the results and planning papers are not typed. `scripts/render_results_tables.R` regenerates them from the evidence sets, and `scripts/render_check_table.R` does the same for the per-check table of [docs/Continuous_Integration.md](docs/Continuous_Integration.md). The figures are drawn from the same evidence without running the model: `scripts/render_sweep_figures.R` for the sweep, comparison and surge figures, `scripts/render_paper_figures.R` for the three summary figures, `scripts/render_morris_plots.R` for the Morris plots, `scripts/render_dow_survival.R` for the survival function, and `scripts/render_long_horizon_warmup.R` for the sustained-horizon Welch diagnostic. The [table of `images/` by producer](#running-the-simulation) names each image's script, and `scripts/run_all_checks.R` asserts that the evidence sets, the documents and the figures agree.
+
 #### Shiny Console Structure
 
 `server()` in `app.R` is an orchestrator rather than a worker. It creates the reactive values its panels share, then hands each panel the values that panel uses: one function per Configure group, one per asynchronous run (Quick Run, Full Analysis, Morris screening, Sobol decomposition, the transport sweep), and one per Analyse tab. A reader tracing what a control does goes to the function named for the panel it sits on.
@@ -1677,7 +1706,12 @@ Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity,de
 
 # Smoke test: 3 reps, 5 days
 Rscript scripts/run_scenarios.R --quick
+
+# The published protocol: 30 reps x 360 days for each of its profiles, written to the tracked data/scenarios/
+Rscript scripts/run_scenarios.R --refresh-baseline
 ```
+
+`--refresh-baseline` is the only way to write the tracked `data/scenarios/` and `images/scenario_comparison.png`, and it runs the protocol `R/scenario_runner.R` holds rather than whichever arguments accompany it. The 10 x 30 default above is an exploratory run and writes under `outputs/` alone.
 
 ```r
 # RStudio console

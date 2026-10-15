@@ -18,7 +18,7 @@
 # a casualty whose expected convalescence exceeds a set duration rearward
 # rather than occupying a forward bed. This script sweeps the two jointly,
 # following the shape scripts/run_transport_sweep.R and
-# scripts/run_icu_share_sweep.R already use for a single-axis capacity sweep,
+# scripts/run_forward_hold_sweep.R already use for a single-axis capacity sweep,
 # and reports both the forward pool the levers act on and the two pools
 # (R2E holding, R2E intensive care) the transferred load lands on.
 #
@@ -152,7 +152,7 @@ message(sprintf("days=%d, seed=%d", opt$days, opt$seed))
 # plot_r2b_hold_threshold_sweep() saves/restores the global env_data/day_min/
 # counts around its sweep (mirrors run_morris()'s env_data_base pattern,
 # R/sensitivity.R), so they must already be set — same convention as
-# scripts/run_transport_sweep.R and scripts/run_icu_share_sweep.R.
+# scripts/run_transport_sweep.R and scripts/run_forward_hold_sweep.R.
 env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)

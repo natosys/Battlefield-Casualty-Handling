@@ -1625,7 +1625,7 @@ Three profiles ship in `env_data.json`, `moderate_intensity`, `high_intensity` a
 
 - `outputs/scenario_comparison_queues.csv`
 - `outputs/scenario_comparison_totals.csv`
-- `images/scenario_comparison.png`, mean queue by scenario, faceted across R2B OT, R2E OT, R2E ICU and Transport
+- `outputs/images/scenario_comparison.png`, mean queue by scenario, faceted across R2B OT, R2E OT, R2E ICU and Transport; the tracked `images/` copy is written by `scripts/run_scenarios.R --refresh-baseline` alone
 
 Each profile in a comparison runs under the same set of per-replication seeds, because `run_replications()` leaves the caller's random number stream where it found it (see [Multi-run Replication Framework](#multi-run-replication-framework)) and the entry point seeds that stream once. Two things follow. A profile measured on its own reproduces the row it takes in a comparison, at the same control seed, whichever position it occupies in the scenario list. And the profiles are compared on common random numbers, a standard variance reduction for comparing system configurations under a common source of randomness [[41]](#references): the profiles differ only in the parameters the overlay changes, so the difference between them is estimated more precisely than two independently seeded sets of replications would estimate it. Replications within a profile remain independent of one another, each taking its own seed, so each profile's own interval is unaffected by the pairing across profiles.
 

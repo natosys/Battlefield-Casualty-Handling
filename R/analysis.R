@@ -5081,7 +5081,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #' @param n_rep  Replications per fleet-size point, for CI bounds (default 5).
 #' @param path File path to env_data.json (default "env_data.json").
 #' @param output_dir Directory for CSV output (default "outputs").
-#' @param images_dir Directory for the saved plot (default "images").
+#' @param images_dir Directory for the saved plot (default `outputs/images`).
 #' @param progress_dir Optional directory path; when supplied, an empty
 #'   marker file ("point_<i>.done") is written to it as each sweep point
 #'   (one vehicle/qty combination) finishes evaluating, letting a caller on
@@ -5132,7 +5132,8 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
                                                           n_days = CAPACITY_SWEEP_DAYS,
                                                           n_rep = TRANSPORT_SWEEP_REPLICATIONS,
                                                           path = "env_data.json",
-                                                          output_dir = "outputs", images_dir = "images",
+                                                          output_dir = "outputs",
+                                                          images_dir = file.path("outputs", "images"),
                                                           progress_dir = NULL, max_cores = NULL) {
   caller <- "plot_transport_capacity_margin_by_fleet_size"
   validate_sweep_args(n_days, n_rep, path, progress_dir, caller)
@@ -5446,7 +5447,7 @@ measure_forward_hold_arm <- function(env_data_base, arm, n_rep, n_days, max_core
 #' @param n_rep Replications per arm, for CI bounds (default 10).
 #' @param path File path to env_data.json (default "env_data.json").
 #' @param output_dir Directory for CSV output (default "outputs").
-#' @param images_dir Directory for the saved plot (default "images").
+#' @param images_dir Directory for the saved plot (default `outputs/images`).
 #' @param progress_dir Optional directory path; when supplied, an empty
 #'   marker file ("point_<i>.done") is written to it as each arm
 #'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
@@ -5484,7 +5485,8 @@ plot_r2b_forward_hold_frontier <- function(arms = FORWARD_HOLD_SWEEP_ARMS,
                                            n_days = CAPACITY_SWEEP_DAYS,
                                            n_rep = FORWARD_HOLD_SWEEP_REPLICATIONS,
                                            path = "env_data.json",
-                                           output_dir = "outputs", images_dir = "images",
+                                           output_dir = "outputs",
+                                           images_dir = file.path("outputs", "images"),
                                            progress_dir = NULL, max_cores = NULL,
                                            scenario = "default", checkpoint_dir = NULL) {
   caller <- "plot_r2b_forward_hold_frontier"
@@ -5779,7 +5781,7 @@ cached_hold_threshold_point <- function(path, measure) {
 #' @param n_rep Replications per grid point, for CI bounds (default 10).
 #' @param path File path to env_data.json (default "env_data.json").
 #' @param output_dir Directory for CSV output (default "outputs").
-#' @param images_dir Directory for the saved plot (default "images").
+#' @param images_dir Directory for the saved plot (default `outputs/images`).
 #' @param progress_dir Optional directory path; when supplied, an empty
 #'   marker file ("point_<i>.done") is written to it as each grid point
 #'   finishes, mirroring plot_transport_capacity_margin_by_fleet_size().
@@ -5817,7 +5819,8 @@ plot_r2b_hold_threshold_sweep <- function(hold_beds = HOLD_THRESHOLD_SWEEP_BEDS,
                                           n_days = CAPACITY_SWEEP_DAYS,
                                           n_rep = HOLD_THRESHOLD_SWEEP_REPLICATIONS,
                                           path = "env_data.json",
-                                          output_dir = "outputs", images_dir = "images",
+                                          output_dir = "outputs",
+                                          images_dir = file.path("outputs", "images"),
                                           progress_dir = NULL, max_cores = NULL,
                                           scenario = "default", checkpoint_dir = NULL) {
   caller <- "plot_r2b_hold_threshold_sweep"

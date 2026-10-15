@@ -32,6 +32,11 @@
 #      loaded, and leaves the tracked images/ untouched.
 #   4. Each rendered image has the dimensions of its tracked copy, so a layout
 #      change reaches the tracked image rather than only the script.
+#   5. No library function defaults its image directory to the tracked
+#      images/: every `images_dir` default under R/ resolves under outputs/, so
+#      calling one from a console, as the README's examples do, cannot replace a
+#      published figure with an exploratory one. Only the entry points'
+#      --refresh-baseline paths name images/, and they do so explicitly.
 
 #' The results paper whose figures are checked
 RESULTS <- "docs/Results.md"
@@ -142,6 +147,50 @@ for (img in sweep_images) {
 }
 report(identical(unname(tools::md5sum(Sys.glob("images/*.png"))), tracked_before),
        "the tracked images/ are untouched by an ordinary render")
+
+cat("\n-- no library function defaults to the tracked images/ --\n")
+
+#' Default `images_dir` of every function in a source file that has one
+#'
+#' @param path Source file to parse.
+#' @return Named character vector of each such function's default, evaluated
+#'   with `output_dir` bound to "outputs" as it is at the default call.
+images_dir_defaults <- function(path) {
+  exprs <- parse(path, keep.source = FALSE)
+  found <- list()
+  for (e in exprs) {
+    is_def <- is.call(e) && identical(e[[1]], as.name("<-")) && is.call(e[[3]]) &&
+      identical(e[[3]][[1]], as.name("function"))
+    if (!is_def) next
+    fmls <- e[[3]][[2]]
+    if (!"images_dir" %in% names(fmls)) next
+    default_text <- paste(deparse(fmls[["images_dir"]]), collapse = "")
+    if (!nzchar(default_text)) next
+    resolved <- eval(parse(text = default_text), list(output_dir = "outputs"))
+    found[[as.character(e[[2]])]] <- resolved
+  }
+  unlist(found)
+}
+
+library_files <- c("R/analysis.R", "R/scenario_runner.R", "R/warmup.R", "R/sensitivity.R")
+defaults <- unlist(lapply(library_files, images_dir_defaults))
+tracked_dir <- normalizePath("images", mustWork = FALSE)
+resolves_to_tracked <- vapply(defaults, function(d) {
+  identical(normalizePath(d, mustWork = FALSE), tracked_dir)
+}, logical(1))
+expected <- c("plot_scenario_comparison", "compare_scenarios", "plot_welch",
+              "run_welch_analysis", "plot_long_horizon_welch",
+              "plot_transport_capacity_margin_by_fleet_size",
+              "plot_r2b_forward_hold_frontier", "plot_r2b_hold_threshold_sweep")
+report(all(expected %in% names(defaults)),
+       "the %d functions the README calls from a console are among those inspected",
+       length(expected))
+report(!any(resolves_to_tracked),
+       "no image directory default resolves to the tracked images/ (%d inspected)",
+       length(defaults))
+for (nm in names(defaults)[resolves_to_tracked]) {
+  report(FALSE, "%s defaults its image directory to the tracked images/", nm)
+}
 
 cat("\n")
 if (length(state$failures)) {

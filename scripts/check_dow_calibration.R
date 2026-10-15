@@ -73,6 +73,8 @@ suppressPackageStartupMessages({
 source("R/environment.R")
 source("R/trajectories.R")
 source("R/replication.R")
+source("R/scenario.R")
+source("R/dow_calibration.R")
 
 args  <- commandArgs(trailingOnly = TRUE)
 quick <- "--quick" %in% args
@@ -89,20 +91,15 @@ arg_value <- function(flag, default) {
 }
 
 # Each shipped configuration is checked against the historical anchor of the
-# campaign it models. "bound" is one-sided (only an overshoot fails); "point"
-# is two-sided, against TOLERANCE.
+# campaign it models, which R/dow_calibration.R holds beside the fitter that
+# searches for ceilings reproducing it. "bound" is one-sided (only an overshoot
+# fails); "point" is two-sided, against DOW_TOLERANCE.
 #
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
 #     care (Westphalen, 2018), an upper bound because the denominator is
 #     inexact. Applies to the default and its `moderate_intensity` alias.
 #   Okinawa: 3.4% of casualties who reached a hospital alive died there
 #     (Marble, 2025), a reported rate against a stated denominator.
-DOW_TARGETS <- list(
-  default            = list(rate = 0.0046, kind = "bound", label = "Ajax Bay"),
-  moderate_intensity = list(rate = 0.0046, kind = "bound", label = "Ajax Bay"),
-  high_intensity     = list(rate = 0.0340, kind = "point", label = "Okinawa")
-)
-TOLERANCE <- 0.02
 
 SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
                   names(DOW_TARGETS)
@@ -117,12 +114,13 @@ CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
 WRITE_CSV    <- if ("--write-csv" %in% args) arg_value("--write-csv", NULL) else NULL
 # Fixed control seeds so a run is reproducible and two runs of this check on
 # unchanged code agree exactly. Each seeds one independent measurement.
-CONTROL_SEEDS <- c(42L, 777L, 20260808L, 13L, 20261L)
+CONTROL_SEEDS <- DOW_CONTROL_SEEDS
 
 if (N_MEASURE > length(CONTROL_SEEDS)) {
   stop(sprintf("--measurements above %d needs more control seeds", length(CONTROL_SEEDS)))
 }
 failures <- character(0)
+json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 
 #' Record a failure
 #'
@@ -142,41 +140,15 @@ report <- function(ok, fmt, ...) {
 
 # ── Measurement ─────────────────────────────────────────────────────────────
 
-#' Treated-cohort DOW rate for one replication set
-#'
-#' @param mon Monitoring list from run_replications()
-#' @return Numeric vector of per-replication rates, in replication order
-treated_cohort_rates <- function(mon) {
-  treated <- mon$attributes %>%
-    filter(key %in% c("r2b_treated", "r2e_treated")) %>%
-    distinct(replication, name)
-  died <- mon$attributes %>%
-    filter(key == "dow", value == 1) %>%
-    distinct(replication, name)
-
-  vapply(sort(unique(mon$arrivals$replication)), function(r) {
-    cohort <- treated$name[treated$replication == r]
-    if (!length(cohort)) return(NA_real_)
-    sum(died$name[died$replication == r] %in% cohort) / length(cohort)
-  }, numeric(1))
-}
-
 #' One independent measurement of a scenario at a given control seed
 #'
-#' @param scenario Name of the scenario profile, or NULL for the base
-#'   configuration.
+#' @param scenario Name of the scenario profile.
 #' @param seed Control seed the replication set is drawn from.
-#' @return A numeric vector of one treated-cohort DOW rate per replication.
-#' @details Rebinds the configuration globals for the profile measured, which
-#'   the caller is expected to sequence rather than interleave.
+#' @return A numeric vector of one treated-cohort DOW rate per replication, with
+#'   replications in which no casualty reached a facility removed.
 run_measurement <- function(scenario, seed) {
-  json     <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
-  env_data <<- build_environment(resolve_scenario(json, scenario))
-  day_min  <<- DAY_MIN
-  counts   <<- sapply(env_data$elms, length)
-
-  set.seed(seed)
-  treated_cohort_rates(run_replications(N_REPS, CHECK_DAYS))
+  measure_treated_cohort(json_data, scenario, n_reps = N_REPS, n_days = CHECK_DAYS,
+                         seeds = seed)
 }
 
 # ── Checks ──────────────────────────────────────────────────────────────────
@@ -188,7 +160,7 @@ for (sc in SCENARIOS) {
   if (is.null(tgt)) stop(sprintf("no died-of-wounds target defined for scenario '%s'", sc))
   cat(sprintf("Target (%s): treated-cohort DOW rate %s %.2f%% (%s)\n", sc,
               if (tgt$kind == "bound") "at or below" else
-                sprintf("within %.0f pp of", 100 * TOLERANCE),
+                sprintf("within %.0f pp of", 100 * DOW_TOLERANCE),
               100 * tgt$rate, tgt$label))
 }
 cat("\n")
@@ -204,12 +176,12 @@ for (scenario in SCENARIOS) {
 
   for (k in seq_len(N_MEASURE)) {
     rates <- run_measurement(scenario, CONTROL_SEEDS[k])
-    if (all(is.na(rates))) {
+    if (!length(rates)) {
       fail("%s: no casualty reached a facility in measurement %d", scenario, k)
       next
     }
-    singles <- c(singles, mean(rates, na.rm = TRUE))
-    pooled  <- c(pooled, rates[!is.na(rates)])
+    singles <- c(singles, mean(rates))
+    pooled  <- c(pooled, rates)
   }
 
   if (!length(pooled)) next
@@ -253,14 +225,14 @@ for (scenario in SCENARIOS) {
     # calibrated to; the interval spanning the target is reported alongside
     # but is not the failure condition, since a wide interval would then
     # pass more easily than a narrow one.
-    ok <- abs(m - tgt$rate) <= TOLERANCE
+    ok <- abs(m - tgt$rate) <= DOW_TOLERANCE
     if (!ok) {
       fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) misses ",
                   "the %.2f%% %s target by more than %.0f pp"),
-           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label, 100 * TOLERANCE)
+           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label, 100 * DOW_TOLERANCE)
     }
     report(ok, "%s reproduces the %.2f%% %s target within %.0f pp (interval %s it)",
-           scenario, 100 * tgt$rate, tgt$label, 100 * TOLERANCE,
+           scenario, 100 * tgt$rate, tgt$label, 100 * DOW_TOLERANCE,
            if (lo <= tgt$rate && hi >= tgt$rate) "spans" else "does not span")
   }
 

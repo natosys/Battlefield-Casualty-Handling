@@ -253,7 +253,7 @@ provenance_gaps <- function(tracked, referenced, declared, named_in) {
 read_text <- function(path) paste(readLines(path, warn = FALSE), collapse = "\n")
 named_in <- list(analysis = read_text("R/analysis.R"), warmup = read_text("R/warmup.R"),
                  readme = read_text("README.md"))
-tracked_images <- basename(system2("git", c("ls-files", "images"), stdout = TRUE))
+tracked_images <- list.files("images", pattern = "\\.(png|kmz|milxlyz)$")
 cited <- sort(unique(unlist(lapply(DOCUMENTS, referenced_images))))
 gaps <- provenance_gaps(tracked_images, cited, declared, named_in)
 report(length(tracked_images) > 0, "%d tracked images are inspected", length(tracked_images))

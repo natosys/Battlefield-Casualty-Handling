@@ -10,6 +10,8 @@
 #   Rscript scripts/render_dow_survival.R --refresh-baseline  # to images/
 #   Rscript scripts/render_dow_survival.R --scenario high_intensity
 #
+# RENDERS: dow_survival_function.png
+#
 # Why this exists. `images/dow_survival_function.png` is the only figure in
 # README.md that no code in the repository produced: it was drawn once, by
 # hand, with the ceilings of the day written into it as literals. When Issue

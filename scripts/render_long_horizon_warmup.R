@@ -8,6 +8,8 @@
 #   Rscript scripts/render_long_horizon_warmup.R --refresh-baseline
 #   Rscript scripts/render_long_horizon_warmup.R
 #
+# RENDERS: welch_plot_long_horizon.png
+#
 # Why this exists. The warm-up classification in docs/Methods.md
 # is re-derived at the sustained-operations horizon by classifying each
 # response's 30-day block means (R/long_horizon.R's classify_stability()), not

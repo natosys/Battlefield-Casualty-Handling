@@ -34,6 +34,11 @@ option_list <- list(
   make_option("--images-dir", type = "character", default = NULL,
               help = paste("Directory for the Welch plot. Ignored under",
                            "--refresh-baseline [default: <output-dir>/images]")),
+  make_option("--config", type = "character", default = NULL,
+              help = paste("Configuration file to run against, the shipped env_data.json",
+                           "or one saved from the Shiny console. Rejected under",
+                           "--refresh-baseline unless it is the shipped file",
+                           "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
               help = paste("Write the tracked images/welch_plot_icu_queue.png.",
                            "Without it, no tracked file is written",
@@ -43,6 +48,7 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 source("R/cli.R")
+source("R/run_manifest.R")
 
 require_number_in_range(opt$reps, "--reps", 1)
 require_number_in_range(opt$days, "--days", 1)
@@ -50,6 +56,8 @@ require_number_in_range(opt$seed, "--seed", -.Machine$integer.max,
                         .Machine$integer.max)
 require_directory(opt[["output-dir"]], "--output-dir")
 require_directory(opt[["images-dir"]], "--images-dir")
+refresh_requested <- isTRUE(opt[["refresh-baseline"]])
+config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
 images_dir <- if (opt[["refresh-baseline"]]) {
   "images"
@@ -63,10 +71,14 @@ source("R/environment.R")
 source("R/trajectories.R")
 source("R/replication.R")
 source("R/warmup.R")
+source("R/scenario.R")
 
-env_data <<- load_elms("env_data.json")
+env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
+
+# A run outside the tracked evidence set records what it ran (R/run_manifest.R).
+if (!refresh_requested) write_run_manifest(opt[["output-dir"]], config_path, opt)
 
 message(sprintf("Welch configuration: reps=%d, days=%d, seed=%d",
                 opt$reps, opt$days, opt$seed))

@@ -39,6 +39,9 @@ source("R/trajectories.R")
 source("R/replication.R")
 source("R/analysis.R")
 source("R/sensitivity.R")
+source("R/scenario.R")
+source("R/cli.R")
+source("R/run_manifest.R")
 
 suppressPackageStartupMessages(library(optparse))
 
@@ -98,6 +101,10 @@ option_list <- list(
                 "ordinary run from scattering untracked files through the",
                 "tracked images/ directory (Issue #154's contract)."
               )),
+  make_option("--config",     type = "character", default = NULL,
+              help = paste("Configuration file the screen is centred on, the shipped",
+                           "env_data.json or one saved from the Shiny console",
+                           "[default: env_data.json]")),
   make_option("--cache-dir",  type = "character", default = NULL,
               help = paste(
                 "Directory for the design point cache. When supplied, each",
@@ -124,6 +131,7 @@ option_list <- list(
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
+config_path <- resolve_config_path(opt$config)
 
 if (opt$quick) {
   opt$r    <- 3L
@@ -139,9 +147,12 @@ message(sprintf(
 ))
 
 set.seed(opt$seed)
-env_data <<- load_elms("env_data.json")
+env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
+
+# Records what the screen ran (R/run_manifest.R).
+write_run_manifest(opt[["output-dir"]], config_path, opt)
 
 morris_result <- run_morris(
   n_days     = opt$days,

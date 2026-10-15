@@ -366,6 +366,7 @@ seconds.
 | `check_ci_apt_guards.R` | fast | 2 s | every CI system-library install carries the same stall guards |
 | `check_ci_check_table.R` | fast | 2 s | the CI guide's check table lists every check |
 | `check_composition_ilr.R` | fast | 8 s | Simplex invariant regression check |
+| `check_config_option.R` | fast | 75 s | every entry point runs against a named configuration |
 | `check_config_restore.R` | fast | 18 s | a failed sweep or screen restores the configuration |
 | `check_console_bindings.R` | fast | 20 s | no console panel reads another panel's local |
 | `check_convalescence_invariance.R` | fast | 49 s | convalescence follows the casualty, not the facility |

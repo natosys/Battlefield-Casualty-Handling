@@ -16,6 +16,7 @@ check_censored_interval_estimation.R,22
 check_ci_apt_guards.R,2
 check_ci_check_table.R,2
 check_composition_ilr.R,8
+check_config_option.R,75
 check_config_restore.R,18
 check_console_bindings.R,20
 check_convalescence_invariance.R,49
@@ -28,6 +29,7 @@ check_high_intensity_evidence.R,5
 check_hold_episode_reconstruction.R,43
 check_hold_window_protocol.R,7
 check_holding_occupancy_split.R,45
+check_icu_bed_sweep_protocol.R,10
 check_icu_gate_protocol.R,7
 check_icu_gate_switch.R,120
 check_icu_time_conservation.R,120
@@ -59,8 +61,7 @@ check_screen_order.R,159
 check_sensitivity_protocol.R,3
 check_structure_tables.R,5
 check_surge_event_size.R,10
-check_testthat.R,96
-check_time_series_figures.R,6
 check_surgical_roster.R,70
 check_surgical_sweep_protocol.R,10
-check_icu_bed_sweep_protocol.R,10
+check_testthat.R,96
+check_time_series_figures.R,6

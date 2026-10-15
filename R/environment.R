@@ -377,13 +377,32 @@ build_environment <- function(data) {
   ))
 }
 
+#' Read a configuration file and assert it has the structure the model requires
+#'
+#' @param path File path to a configuration, the shipped env_data.json or a
+#'   file saved from the Shiny console.
+#' @return The parsed configuration, in the raw form `resolve_scenario()` and
+#'   `build_environment()` take.
+#'
+#' @details The one place a command-line entry point reads a configuration, so
+#'   a malformed file fails before any simulation with a message naming the
+#'   file and the field at fault (`validate_env_data_json()`), and a file that
+#'   does not parse is named rather than surfacing as a parser error.
+read_config <- function(path) {
+  data <- tryCatch(fromJSON(path, simplifyVector = FALSE), error = function(e) {
+    stop(sprintf("read_config: %s is not valid JSON: %s", path, conditionMessage(e)),
+         call. = FALSE)
+  })
+  validate_env_data_json(data, path)
+  data
+}
+
 #' Loads and parses env_data.json into a structured environment list
 #'
 #' @param path File path to env_data.json
 #' @return Named list with elements: pops, elms, transports, vars
 load_elms <- function(path) {
-  json_data <- fromJSON(path, simplifyVector = FALSE)
-  build_environment(json_data)
+  build_environment(read_config(path))
 }
 
 #' Loads env_data.json and applies a named scenario profile overlay
@@ -402,7 +421,7 @@ load_elms <- function(path) {
 #'   overridden. See `resolve_scenario()` and `merge_scenario_vars()` in
 #'   R/scenario.R.
 load_scenario <- function(path, scenario = "default") {
-  json_data <- fromJSON(path, simplifyVector = FALSE)
+  json_data <- read_config(path)
   json_data <- resolve_scenario(json_data, scenario)
   build_environment(json_data)
 }

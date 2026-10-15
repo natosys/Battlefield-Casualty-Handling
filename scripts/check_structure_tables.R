@@ -114,9 +114,19 @@ table_paths <- function(path, heading) {
 #' @param pattern Regular expression the whole path must match.
 #' @return Character vector of tracked paths, sorted.
 #' @details Tracked rather than globbed, so an untracked scratch file cannot
-#'   fail the check.
+#'   fail the check. Where git cannot read the checkout, a filesystem listing
+#'   stands in rather than returning an empty set.
 tracked_files <- function(pattern) {
-  all_files <- system2("git", c("ls-files"), stdout = TRUE)
+  all_files <- suppressWarnings(
+    system2("git", c("-c", "safe.directory=*", "ls-files"), stdout = TRUE, stderr = FALSE)
+  )
+  if (length(all_files) == 0) {
+    # git refuses a checkout owned by another user, as in the CI container, and
+    # an empty file set would pass every coverage assertion vacuously.
+    skip <- "^(\\.git|outputs|renv|node_modules)/"
+    all_files <- grep(skip, list.files(".", recursive = TRUE, all.files = TRUE),
+                      value = TRUE, invert = TRUE)
+  }
   sort(grep(pattern, all_files, value = TRUE))
 }
 
@@ -240,7 +250,7 @@ report(identical(unnamed_in(run_render, sub(run_render[1], "", readme_text, fixe
        "removing %s from the README text is reported (fault injection)", run_render[1])
 
 cat("\n-- the repository root holds only the two entry points --\n")
-all_tracked <- system2("git", "ls-files", stdout = TRUE)
+all_tracked <- tracked_files(".")
 stray <- stray_root_scripts(all_tracked)
 report(length(stray) == 0, "no tracked R file at the root besides run.R and app.R%s",
        if (length(stray)) sprintf("; found: %s", paste(stray, collapse = ", ")) else "")

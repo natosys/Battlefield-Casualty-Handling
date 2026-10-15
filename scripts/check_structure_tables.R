@@ -258,8 +258,9 @@ dangling <- unlist(lapply(scanned, function(f) {
 report(length(dangling) == 0, "no scripts/ path named in %d tracked files is missing%s",
        length(scanned),
        if (length(dangling)) sprintf("; dangling: %s", paste(dangling, collapse = "; ")) else "")
-report(identical(dangling_script_names(paste0("see scripts/", "run_removed_sweep.R here"), all_tracked),
-                 paste0("scripts/", "run_removed_sweep.R")),
+removed_name <- paste0("scripts/", "run_removed_sweep.R")
+report(identical(dangling_script_names(paste("see", removed_name, "here"), all_tracked),
+                 removed_name),
        "a named script that does not exist is reported (fault injection)")
 
 # ── Result ──────────────────────────────────────────────────────────────────

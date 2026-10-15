@@ -480,13 +480,14 @@ scenario_short_label <- function(scenario) {
 #' @param queue_table Combined per-resource queue KPI table, as produced by
 #'   compare_scenarios() (columns include scenario, resource, mean_q,
 #'   p10_q, p90_q)
-#' @param images_dir Directory for the saved plot (default "images")
+#' @param images_dir Directory for the saved plot (default `outputs/images`)
 #' @return ggplot object (also saved to images_dir/scenario_comparison.png)
 #'
 #' @details Per-resource p10_q/p90_q are averaged across resources within a
 #'   group (consistent with extract_kpis()'s mean-of-resource-means
 #'   convention) rather than recomputed from pooled replication data.
-plot_scenario_comparison <- function(queue_table, images_dir = "images") {
+plot_scenario_comparison <- function(queue_table,
+                                     images_dir = file.path("outputs", "images")) {
   group_summary <- queue_table %>%
     mutate(
       group      = classify_resource_group(resource),
@@ -534,7 +535,7 @@ plot_scenario_comparison <- function(queue_table, images_dir = "images") {
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0)
 #' @param output_dir Directory for CSV outputs (default "outputs")
-#' @param images_dir Directory for the saved comparison plot (default "images")
+#' @param images_dir Directory for the saved comparison plot (default `outputs/images`)
 #' @return Named list: results (one run_scenario() output per scenario,
 #'   named by scenario), queue_table (combined per-resource KPI table with
 #'   scenario/scenario_label columns), totals_table (combined casualty/DOW
@@ -556,7 +557,8 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
                               n_iterations = 10, n_days = 30,
                               path = "env_data.json", ot_hours = NULL,
                               warm_up_days = 0,
-                              output_dir = "outputs", images_dir = "images") {
+                              output_dir = "outputs",
+                              images_dir = file.path("outputs", "images")) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 

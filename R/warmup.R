@@ -70,10 +70,10 @@ compute_welch_cma <- function(binned) {
 #' @param n_reps      Number of replications that contributed to the curve, for
 #'   the subtitle; the realised count rather than the requested one
 #' @param n_days      Total run length in days (for subtitle)
-#' @param images_dir  Output directory for the PNG (default "images")
+#' @param images_dir  Output directory for the PNG (default `outputs/images`)
 #' @return Invisibly returns the ggplot object
 plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
-                       images_dir = "images") {
+                       images_dir = file.path("outputs", "images")) {
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
   max_day <- ceiling(max(cma_df$bin_min, na.rm = TRUE) / DAY_MIN)
@@ -116,10 +116,11 @@ plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
 #' @param n_reps     Number of replications (default 10)
 #' @param n_days     Simulation duration in days (default 90)
 #' @param output_dir Output directory for CSV (default "outputs")
-#' @param images_dir Output directory for plots (default "images")
+#' @param images_dir Output directory for plots (default `outputs/images`)
 #' @return Invisibly returns list(cma, warm_up_days)
 run_welch_analysis <- function(n_reps = 10, n_days = 90,
-                               output_dir = "outputs", images_dir = "images") {
+                               output_dir = "outputs",
+                               images_dir = file.path("outputs", "images")) {
   message(sprintf("Welch warm-up analysis: %d reps × %d days", n_reps, n_days))
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -197,7 +198,7 @@ compute_long_horizon_cma <- function(series, subjects = LONG_HORIZON_CMA_SUBJECT
 #' @param n_reps Number of replications the series was reduced from, for the
 #'   subtitle.
 #' @param n_days Total run length in days, for the subtitle.
-#' @param images_dir Output directory for the PNG (default "images").
+#' @param images_dir Output directory for the PNG (default `outputs/images`).
 #' @return Invisibly returns the ggplot object.
 #'
 #' @details One panel per scenario, one line per bed pool, so a reader sees
@@ -207,7 +208,8 @@ compute_long_horizon_cma <- function(series, subjects = LONG_HORIZON_CMA_SUBJECT
 #'   neither pool's queue has a level for the CMA to approach at all, both
 #'   growing without bound over the same window (`R/long_horizon.R`'s
 #'   `classify_stability()` reports both as drifting).
-plot_long_horizon_welch <- function(cma_df, n_reps, n_days, images_dir = "images") {
+plot_long_horizon_welch <- function(cma_df, n_reps, n_days,
+                                    images_dir = file.path("outputs", "images")) {
   dir.create(images_dir, showWarnings = FALSE, recursive = TRUE)
 
   p <- ggplot(cma_df, aes(x = day, y = cma, colour = subject)) +

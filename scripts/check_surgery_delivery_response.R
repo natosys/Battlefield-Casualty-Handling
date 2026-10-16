@@ -179,10 +179,18 @@ report(is.finite(rate) && rate >= 0 && rate <= 1,
 # Independent recount from the raw attribute log, one row per replication and
 # casualty, without going through build_attributes_wide() or extract_kpis().
 attrs <- mon$attributes
+#' Casualties that have one attribute recorded, one row each
+#'
+#' @param key Attribute key to look for in the raw log.
+#' @return Data frame of the distinct replication and casualty name pairs.
 key_rows <- function(key) unique(attrs[attrs$key == key, c("replication", "name")])
 needs <- unique(attrs[attrs$key == "surgery" & attrs$value == 1, c("replication", "name")])
 ops   <- unique(rbind(key_rows("r2b_surgery_start"), key_rows("r2e_surgery_1_start")))
-tag   <- function(d) paste(d$replication, d$name)
+#' Identify each casualty by replication and name
+#'
+#' @param d Data frame with `replication` and `name` columns.
+#' @return Character vector, one identifier per row.
+tag <- function(d) paste(d$replication, d$name)
 recount <- if (nrow(needs) == 0) NA_real_ else mean(tag(needs) %in% tag(ops))
 report(isTRUE(all.equal(rate, recount, tolerance = 1e-9)) || (is.na(rate) && is.na(recount)),
        "the delivery rate (%.4f) equals a recount from the raw attribute log (%.4f, %d requiring surgery)",

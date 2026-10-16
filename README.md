@@ -792,7 +792,7 @@ Rscript scripts/calibrate_dow.R --scenario default
 Rscript scripts/calibrate_dow.R --config my_config.json --target 0.012 --days 30
 ```
 
-The fit is confirmed by `scripts/check_dow_calibration.R`, which measures the configuration at its own sizing and fails where a bound is overshot or a reported rate is missed by more than its tolerance. The search stops on the rate's tolerance rather than on an exact root, since a pooled rate carries sampling noise ([Methods](docs/Methods.md#replication-count-and-resolution)), and `scripts/check_dow_fitter.R` asserts that the search recovers a ceiling it is known to be able to find. How the shipped pairs reproduce under the search is recorded in [docs/Methods.md](docs/Methods.md#treated-cohort-mortality-at-the-sustained-horizon).
+The fit is confirmed by `scripts/check_dow_calibration.R`, which measures the configuration at its own sizing and fails where a bound is overshot or a reported rate is missed by more than its tolerance. The search stops on the rate's tolerance rather than on an exact root, since a pooled rate carries sampling noise ([Methods](docs/Methods.md#replication-count-and-resolution)), and `scripts/check_dow_fitter.R` asserts that the search recovers a ceiling it is known to be able to find. How the shipped pairs reproduce under the search is recorded in [docs/Methods.md](docs/Methods.md#died-of-wounds-ceiling-calibration).
 
 ### Multi-Echelon Check and Conditional Increment
 

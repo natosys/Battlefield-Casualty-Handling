@@ -1196,6 +1196,20 @@ compute_surgery_delivery <- function(surgery, r2b_start, r2e_start) {
   sum(needs & operated) / sum(needs)
 }
 
+#' Surgical delivery share of a design point's combined casualty frame
+#'
+#' @param combined Arrivals joined to the wide attributes, as
+#'   `prepare_kpi_frames()` returns it.
+#' @return The share `compute_surgery_delivery()` gives, NA where no casualty
+#'   required surgery.
+#' @details A casualty still in the system when the run closes appears twice in
+#'   the arrivals monitor, so the share is taken over one row per casualty.
+surgery_delivery_of <- function(combined) {
+  one_row <- combined[!duplicated(combined[c("name", "replication")]), ]
+  compute_surgery_delivery(as.numeric(one_row$surgery), as.numeric(one_row$r2b_surgery_start),
+                           as.numeric(one_row$r2e_surgery_1_start))
+}
+
 #' Every echelon load queue response
 #'
 #' @param safe_q Closure over the current design point's resource monitor,
@@ -1338,13 +1352,7 @@ extract_kpis <- function(mon) {
   # while intensive care was full or was still queued at the close of the run
   # is in the denominator and not the numerator, which a queue length cannot
   # register. NA when no casualty required surgery.
-  # A casualty still in the system when the run closes appears twice in the
-  # arrivals monitor, so the share is taken over one row per casualty.
-  one_row <- combined[!duplicated(combined[c("name", "replication")]), ]
-  surgery_delivery_rate <- compute_surgery_delivery(
-    as.numeric(one_row$surgery), as.numeric(one_row$r2b_surgery_start),
-    as.numeric(one_row$r2e_surgery_1_start)
-  )
+  surgery_delivery_rate <- surgery_delivery_of(combined)
 
   # ── Domain 5 / 6 — flow, disposition, combat power ─────────────────────
   returned  <- !is.na(a("return_day"))

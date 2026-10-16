@@ -81,16 +81,28 @@ test_that("triangular triples are detected only where all three fields exist", {
   expect_length(lone, 0)
 })
 
-test_that("the fork-count cap is at least one and never exceeds the core count", {
-  for (days in c(1, 30, 90)) {
-    cores <- detect_safe_cores(n_days = days)
-    expect_gte(cores, 1)
-    expect_lte(cores, parallel::detectCores())
+test_that("a typed configuration file name is reduced to a safe bare .json name", {
+  expect_identical(sanitise_config_filename("plan_a"), "plan_a.json")
+  expect_identical(sanitise_config_filename("plan_a.json"), "plan_a.json")
+  expect_identical(sanitise_config_filename("PLAN.JSON"), "PLAN.json")
+  # A directory part is dropped, and anything a shell would act on is replaced.
+  expect_identical(sanitise_config_filename("../../etc/plan"), "plan.json")
+  expect_identical(sanitise_config_filename("a b;rm -rf x"), "a_b_rm_-rf_x.json")
+  # Nothing usable falls back to the default rather than producing ".json".
+  for (bad in list("", "   ", "...", NULL, NA_character_, c("a", "b"))) {
+    expect_identical(sanitise_config_filename(bad), DEFAULT_CONFIG_FILENAME)
   }
 })
 
-test_that("a longer run is never given more concurrent forks than a shorter one", {
-  expect_lte(detect_safe_cores(n_days = 90), detect_safe_cores(n_days = 1))
+test_that("the displayed command runs the saved file at the published protocol", {
+  cmd <- full_protocol_command("plan_a", "7")
+  expect_identical(cmd, "Rscript run.R --config plan_a.json --seed 7 --iterations 30 --days 360")
+  # A blank or malformed seed falls back to the published seed, not to a draw
+  # the run could not be repeated from.
+  for (seed in list("", "abc", NULL, NA_character_)) {
+    expect_match(full_protocol_command("plan_a", seed), "--seed 42 ", fixed = TRUE)
+  }
+  expect_false(grepl("--scenario", cmd, fixed = TRUE))
 })
 
 test_that("each configuration preview renders a plot rather than erroring", {

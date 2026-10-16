@@ -40,21 +40,18 @@ test.describe('Configure', () => {
     await expectNoOutputErrors(page);
   });
 
-  test('a slider and its exact-value box stay in step', async ({ page }) => {
+  test('the Run tab hands replicated work to the command line', async ({ page }) => {
+    await page.locator('#config_filename').fill('plan_a');
+    await page.locator('#config_filename').blur();
     await openTab(page, 'Run');
     await waitForShinyIdle(page);
 
-    // n_reps is the one slider outside the accordion, so it needs no panel
-    // opened; the two-way sync it exercises is the same one every screened
-    // parameter in the Configure panel is wired with.
-    const box = page.locator('#n_reps_txt');
-    await expect(box).toBeVisible();
-    await box.fill('250');
-    await box.blur();
-    await waitForShinyIdle(page);
-
-    const slider = page.locator('#n_reps').first();
-    await expect(slider).toHaveValue(/250/);
+    await expect(page.locator('#full_protocol_command'))
+      .toContainText('Rscript run.R --config plan_a.json --seed 42 --iterations 30 --days 360');
+    // The console offers a single-replication check and nothing replicated.
+    await expect(page.locator('#run_quick')).toBeVisible();
+    await expect(page.locator('#run_full')).toHaveCount(0);
+    await expect(page.locator('#n_reps')).toHaveCount(0);
     await expectNoOutputErrors(page);
   });
 

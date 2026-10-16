@@ -16,7 +16,7 @@
 # The check exists because the mode column is read on two paths that an
 # ordinary run never touches: run_sobol() holds every parameter not selected
 # into the decomposition at its mode, at every one of the N x (p + 2) design
-# points, and the Shiny Sensitivity Calibration tab displays the column to a
+# points, and the Shiny Sensitivity Screening tab displays the column to a
 # planner under the heading `Baseline`. A drifted mode is therefore invisible
 # until it has already mis-anchored a variance decomposition. Three had drifted
 # when the check was written (Issue #186).

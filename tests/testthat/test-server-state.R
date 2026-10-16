@@ -19,7 +19,6 @@
 test_that("the run state machine starts idle with nothing computed", {
   shiny::testServer(server, {
     expect_identical(run_state(), "idle")
-    expect_identical(run_mode(), "quick")
     expect_null(run_error())
     expect_identical(progress_pct(), 0)
     expect_null(mon_data())
@@ -28,17 +27,12 @@ test_that("the run state machine starts idle with nothing computed", {
   })
 })
 
-test_that("every screening state machine starts idle with nothing computed", {
+test_that("the console holds no state for replicated or sensitivity runs", {
   shiny::testServer(server, {
-    expect_identical(morris_state(), "idle")
-    expect_identical(sobol_state(), "idle")
-    expect_identical(transport_sweep_state(), "idle")
-    expect_null(morris_results())
-    expect_null(sobol_results())
-    expect_null(transport_sweep_results())
-    expect_identical(morris_progress_done(), 0)
-    expect_identical(sobol_progress_done(), 0)
-    expect_identical(transport_sweep_progress_done(), 0)
+    for (gone in c("run_mode", "morris_state", "sobol_state", "transport_sweep_state",
+                   "rep_progress_done")) {
+      expect_false(exists(gone, inherits = FALSE), info = gone)
+    }
   })
 })
 
@@ -169,12 +163,22 @@ test_that("an invalid configuration stops Quick Run before a run starts", {
   })
 })
 
-test_that("an invalid configuration stops Full Analysis before a run starts", {
+test_that("the displayed command follows the file name and seed boxes", {
   shiny::testServer(server, {
-    session$setInputs(pop_combat = 0, n_days = 2, n_reps = 2, run_full = 1)
-    expect_identical(run_state(), "idle")
-    expect_null(pending_future())
-    expect_identical(rep_progress_done(), 0)
+    session$setInputs(config_filename = "plan_a", seed = "7")
+    expect_match(output$full_protocol_command_ui$html,
+                 "Rscript run.R --config plan_a.json --seed 7 --iterations 30 --days 360",
+                 fixed = TRUE)
+  })
+})
+
+test_that("Save Configuration downloads under the name the command refers to", {
+  shiny::testServer(server, {
+    session$setInputs(config_filename = "plan_a")
+    path <- output$download_json
+    expect_match(basename(path), "plan_a\\.json$")
+    saved <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+    expect_true("vars" %in% names(saved))
   })
 })
 

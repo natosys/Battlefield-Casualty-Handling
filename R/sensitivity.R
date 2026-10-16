@@ -2117,7 +2117,7 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
     # (Issue #15 follow-up).
     gc(full = TRUE)
     res
-  }, numeric(3)))
+  }, numeric(length(SOBOL_RESPONSES))))
 }
 
 #' Tell a Sobol object its responses, surviving a degenerate one

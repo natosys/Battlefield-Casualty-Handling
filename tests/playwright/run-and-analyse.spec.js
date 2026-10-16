@@ -31,7 +31,7 @@ const ANALYSE_TABS = [
   ['Force Regeneration', null],
   ['Strategic AME', null],
   ['Casualty Surge Events', null],
-  ['Sensitivity Calibration', null],
+  ['Sensitivity Screening', null],
 ];
 
 test.describe.configure({ mode: 'serial' });
@@ -70,9 +70,7 @@ test.describe('Quick Run and Analyse', () => {
     await waitForShinyIdle(page);
 
     // The placeholder the tab shows before a run is withdrawn, and the result
-    // tabs are in its place. The KPI summary cards are deliberately not
-    // asserted here: the app renders them for Full Analysis alone, since a
-    // single replication has no confidence interval to report.
+    // tabs are in its place.
     await expect(page.locator('.alert-info', { hasText: 'No results yet' })).toHaveCount(0);
     const analyse = activePanel(page);
     for (const [tabName] of ANALYSE_TABS) {

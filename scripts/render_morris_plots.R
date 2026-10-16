@@ -69,9 +69,25 @@ IMAGES <- if ("--refresh-baseline" %in% args) {
 #'
 #' @details A screen writes a plot for every response in `morris_kpis`; these are the
 #'   ones README.md embeds, and the ones --refresh-baseline is allowed to
-#'   overwrite.
+#'   overwrite. `system_ot_q` is no longer in `morris_kpis` but is in the
+#'   tracked 30-day screen, which was run before it was retired, so it stays
+#'   here until that screen is replaced by the 360-day re-run.
 TRACKED_RESPONSES <- c("system_ot_q", "r2b_ot_q", "r2e_ot_q", "r2e_icu_q",
                        "dow_count", "transport_q", "transport_util")
+
+#' Plain-English labels of responses the tracked screen carries and `morris_kpis` no longer does
+RETIRED_RESPONSE_LABELS <- c(system_ot_q = "System OT Queue (R2B + R2E)")
+
+#' Plain-English label of one response, current or retired
+#'
+#' @param kpi Response name.
+#' @return The label `morris_kpis` gives it, or the retired label where it has
+#'   none, stopping on a response neither knows.
+response_label <- function(kpi) {
+  label <- if (kpi %in% names(kpi_labels)) kpi_labels[[kpi]] else RETIRED_RESPONSE_LABELS[kpi]
+  if (is.null(label) || is.na(label)) stop(sprintf("no label is known for response %s", kpi))
+  unname(label)
+}
 
 RESPONSES <- {
   named <- arg_value("--responses")
@@ -179,7 +195,7 @@ for (kpi in RESPONSES) {
   }
   check_against_ranking(obj, kpi)
 
-  plot_title <- sprintf("Morris Screening — %s", kpi_labels[[kpi]])
+  plot_title <- sprintf("Morris Screening — %s", response_label(kpi))
   p <- tryCatch(
     if (degenerate) stop("degenerate response") else plot_morris_scatter(obj, plot_title),
     error = function(e) {

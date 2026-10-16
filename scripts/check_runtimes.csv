@@ -62,6 +62,7 @@ check_screen_order.R,159
 check_sensitivity_protocol.R,3
 check_structure_tables.R,5
 check_surge_event_size.R,10
+check_surgery_delivery_response.R,20
 check_surgical_roster.R,70
 check_surgical_sweep_protocol.R,10
 check_testthat.R,96

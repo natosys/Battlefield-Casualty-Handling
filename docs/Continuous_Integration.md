@@ -412,6 +412,7 @@ seconds.
 | `check_sensitivity_protocol.R` | fast | 3 s | the sensitivity screens' documented design is the design their tracked run metadata records |
 | `check_structure_tables.R` | fast | 5 s | the two structure tables list every module and script they claim to |
 | `check_surge_event_size.R` | fast | 10 s | a casualty surge event never exceeds the configured size, however close together events start |
+| `check_surgery_delivery_response.R` | fast | 20 s | the screens measure surgical delivery, and no duplicate theatre response remains |
 | `check_surgical_roster.R` | fast | 70 s | surgical sections share one shift and alternate |
 | `check_surgical_sweep_protocol.R` | fast | 10 s | the surgical team sweep's parameters, its responses and its published section agree |
 | `check_testthat.R` | fast | 96 s | the Shiny console's unit and testServer suites |

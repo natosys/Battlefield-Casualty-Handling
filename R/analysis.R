@@ -4980,8 +4980,7 @@ pool_rep_kpis <- function(mon, pattern, n_days, establishment,
 #' Build the fleet-size sweep ggplot from already-computed sweep results
 #'
 #' @param sweep_df Data frame as returned in the `data` element of
-#'   plot_transport_capacity_margin_by_fleet_size() (or, unchanged, by
-#'   scripts/shiny_worker.R's `transport_sweep` mode): one row per vehicle x
+#'   plot_transport_capacity_margin_by_fleet_size(): one row per vehicle x
 #'   fleet size, with vehicle/qty/mean_q/ci_lower_q/ci_upper_q/mean_util/
 #'   ci_lower_util/ci_upper_util columns.
 #' @param current_qty Named numeric vector, vehicle name -> current

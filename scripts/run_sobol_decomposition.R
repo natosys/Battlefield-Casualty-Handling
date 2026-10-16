@@ -15,8 +15,10 @@
 # the unresolved leading cluster of the Morris ranking of `system_ot_q` current
 # when it was run (ranks 1 to 7, widened by `mc_p1_balance`, the one
 # composition group that qualifies), at N = 800 and 8 replications per point,
-# over a 30-day horizon, with `transport_q` and `r2b_ot_q` dropped from the
-# response set (R/sensitivity.R, SOBOL_RESPONSES) and `transport_util` kept.
+# over a 30-day horizon. That run decomposed `system_ot_q` alongside
+# `r2e_ot_q` and `transport_util`; the response set it would now decompose
+# (R/sensitivity.R, SOBOL_RESPONSES) has retired `system_ot_q`, which equalled
+# `r2e_ot_q` at every design point.
 # The replication seed is left unpinned, the shipped default. This script is
 # the one place that design is written down as a command.
 #

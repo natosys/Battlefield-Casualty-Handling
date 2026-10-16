@@ -109,8 +109,17 @@ recovers <- function(fitter, shape, noise, target, truth) {
 
 cat("DOW ceiling fitter check\n\n-- the fitter recovers a known ceiling --\n")
 
+#' Rate the fitter is asked to reach in the recovery assertions, the Ajax Bay bound
 TARGET <- 0.0046
+#' Noise-free linear response of the rate to the ceiling, reaching the target at 0.0092
+#'
+#' @param p Priority 1 ceiling.
+#' @return The rate at that ceiling.
 linear <- function(p) 0.5 * p
+#' Noise-free convex response of the rate to the ceiling
+#'
+#' @param p Priority 1 ceiling.
+#' @return The rate at that ceiling.
 convex <- function(p) 40 * p^2
 report(recovers(fit_dow_ceiling, linear, 0, TARGET, truth = TARGET / 0.5),
        "a linear response is fitted to its root (%.4f)", TARGET / 0.5)
@@ -160,7 +169,7 @@ midpoint_fitter <- function(evaluate, target, lower, upper, ...) {
 }
 #' A fitter that returns the lower end of the bracket as though it had converged
 #'
-#' @inheritParams midpoint_fitter
+#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_ceiling()`.
 #' @return A result list of the same shape as `fit_dow_ceiling()`'s.
 lower_fitter <- function(evaluate, target, lower, upper, ...) {
   m <- evaluate(lower)
@@ -168,7 +177,7 @@ lower_fitter <- function(evaluate, target, lower, upper, ...) {
 }
 #' A fitter that searches the wrong side of the target
 #'
-#' @inheritParams midpoint_fitter
+#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_ceiling()`.
 #' @return The result of `fit_dow_ceiling()` run against a response of
 #'   opposite sign about the target.
 mirrored_fitter <- function(evaluate, target, lower, upper, ...) {
@@ -261,15 +270,17 @@ report(grepl(sprintf("`p1_p_max` = %s and `p2_p_max` = %s", base[["p1_p_max"]],
 cat("\n-- every scenario has a historical anchor --\n")
 
 scenarios <- c("default", names(config$scenarios))
-anchored <- scenarios %in% names(DOW_TARGETS)
-report(all(anchored | scenarios == "high_intensity_modern_care"),
+load_only <- "high_intensity_modern_care"
+unanchored <- setdiff(scenarios, c(names(DOW_TARGETS), load_only))
+report(length(unanchored) == 0,
        "every shipped scenario but the load-only profile has a historical anchor%s",
-       if (any(!anchored & scenarios != "high_intensity_modern_care")) {
-         paste0("; absent: ", paste(scenarios[!anchored & scenarios != "high_intensity_modern_care"],
-                                    collapse = ", "))
-       } else "")
-report(all(vapply(DOW_TARGETS, function(t) t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point"),
-                  logical(1))),
+       if (length(unanchored)) paste0("; absent: ", paste(unanchored, collapse = ", ")) else "")
+#' Whether one anchor is a proportion of a recognised kind
+#'
+#' @param t An entry of `DOW_TARGETS`.
+#' @return TRUE when its rate lies in (0, 1) and its kind is "bound" or "point".
+anchor_ok <- function(t) t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point")
+report(all(vapply(DOW_TARGETS, anchor_ok, logical(1))),
        "every anchor is a proportion of a recognised kind")
 
 # ── Result ──────────────────────────────────────────────────────────────────

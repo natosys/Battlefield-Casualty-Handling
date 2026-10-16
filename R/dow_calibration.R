@@ -170,9 +170,9 @@ fit_dow_ceiling <- function(evaluate, target, lower, upper,
   #' @return The named measurement `evaluate()` returned.
   measure <- function(p) {
     m <- evaluate(p)
-    state$rows[[length(state$rows) + 1L]] <- data.frame(
-      iteration = length(state$rows), p1_p_max = p, rate = m[["rate"]],
-      ci_lower = m[["ci_lower"]], ci_upper = m[["ci_upper"]])
+    row <- data.frame(iteration = length(state$rows), p1_p_max = p, rate = m[["rate"]],
+                      ci_lower = m[["ci_lower"]], ci_upper = m[["ci_upper"]])
+    state$rows[[length(state$rows) + 1L]] <- row
     m
   }
   #' Assemble the result from the trace

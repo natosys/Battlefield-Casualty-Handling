@@ -22,6 +22,7 @@ check_console_bindings.R,20
 check_convalescence_invariance.R,49
 check_definitive_repair_release.R,150
 check_dow_calibration.R,2702
+check_dow_fitter.R,6
 check_env_data_summary.R,6
 check_figure_provenance.R,20
 check_forward_hold_switch.R,60

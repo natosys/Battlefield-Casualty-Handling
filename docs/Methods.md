@@ -56,6 +56,7 @@ This document is the design record for the replicated experiments reported in th
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
   - [Treated-Cohort Mortality at the Sustained Horizon](#treated-cohort-mortality-at-the-sustained-horizon)
+  - [Died-of-Wounds Ceiling Calibration](#died-of-wounds-ceiling-calibration)
   - [Sensitivity Screens](#sensitivity-screens)
   - [The Results Document and the Seed-42 Verification](#the-results-document-and-the-seed-42-verification)
 - [Force Regeneration Under Reinforcement](#force-regeneration-under-reinforcement)
@@ -771,7 +772,20 @@ The comparison sorts casualties by origin rather than by a strict time window ar
 
 ### Treated-Cohort Mortality at the Sustained Horizon
 
-The died-of-wounds ceilings are fitted against historical anchors with `scripts/check_dow_calibration.R`, which runs at 30 days because the anchors describe a campaign of about that length; the check pools three independent measurements of 50 replications and fails where a configuration overshoots its anchor. The sustained-horizon measurement the results paper reports is the same procedure at 360 days, `Rscript scripts/check_dow_calibration.R --days 360 --reps 10 --write-csv data/calibration/dow_calibration.csv`, with three measurements of 10 replications per profile pooled to 30. Ten replications per measurement is enough because a 360-day campaign accumulates about twelve times the deaths of a 30-day one, so the per-replication rate is far less variable than at 30 days. The measurement is reported as a result and is not a pass condition, since the anchor does not describe a campaign of that length.
+The died-of-wounds ceilings are fitted against historical anchors with `scripts/calibrate_dow.R` (see [Died-of-Wounds Ceiling Calibration](#died-of-wounds-ceiling-calibration)) and confirmed with `scripts/check_dow_calibration.R`, which runs at 30 days because the anchors describe a campaign of about that length; the check pools three independent measurements of 50 replications and fails where a configuration overshoots its anchor. The sustained-horizon measurement the results paper reports is the same procedure at 360 days, `Rscript scripts/check_dow_calibration.R --days 360 --reps 10 --write-csv data/calibration/dow_calibration.csv`, with three measurements of 10 replications per profile pooled to 30. Ten replications per measurement is enough because a 360-day campaign accumulates about twelve times the deaths of a 30-day one, so the per-replication rate is far less variable than at 30 days. The measurement is reported as a result and is not a pass condition, since the anchor does not describe a campaign of that length.
+
+### Died-of-Wounds Ceiling Calibration
+
+The two ceilings, `p1_p_max` and `p2_p_max`, are the model's fitted mortality parameters: no dataset gives a per-minute survival curve, so they are searched for until the model's treated-cohort rate meets a historical target. `scripts/calibrate_dow.R` is that search. It measures the pooled treated-cohort rate at a trial Priority 1 ceiling, with the Priority 2 ceiling following at a fixed ratio so that the pair is one parameter, and finds the ceiling at which the rate meets the target by bracketing root search, false position with the Illinois modification, over a bracket of half to twice the configured ceiling. The measurement is the regression check's own (`R/dow_calibration.R`): three independent measurements of 50 replications over 30 days, the horizon the anchors describe, at control seeds held fixed across the search so that the pooled rate varies with the ceiling rather than with the draw. A pooled rate carries sampling noise ([Replication Count and Resolution](#replication-count-and-resolution)), so the search stops when the rate is within a stated tolerance of the target and reports the evaluated ceiling nearest it with the interval of the rate it achieved. `scripts/check_dow_fitter.R` asserts that the search recovers a ceiling it is known to be able to find, and that the assertion rejects a search that is deliberately wrong.
+
+Re-deriving the two shipped pairs with it gave the following. The Okinawa target is a reported rate against a stated denominator, so the search is asked to reach it; the Ajax Bay target is an upper bound, and the search is asked for the ceilings at which the rate equals the bound itself, which is the ceiling pair the shipped configuration would carry if it were fitted to the bound's value rather than held beneath it.
+
+| Profile | Target | Tolerance | Evaluations | Fitted pair | Rate at the fitted pair | Shipped pair | Rate at the shipped pair |
+|---|---|---|---|---|---|---|---|
+| `high_intensity` | 3.4% (Okinawa) | 0.2 pp | 3 | 0.0529 and 0.0427 | 3.404% (95% CI 3.289% to 3.519%) | 0.052 and 0.042 | not remeasured |
+| default and `moderate_intensity` | 0.46% bound (Ajax Bay) | 0.05 pp | 4 | 0.0111 and 0.0092 | 0.464% (95% CI 0.396% to 0.533%) | 0.0089 and 0.0074 | 0.334% (95% CI 0.275% to 0.394%) |
+
+The `high_intensity` pair reproduces: the search lands within 2% of the shipped ceilings, and the rate at the fitted pair meets the target to within its sampling interval. The default pair does not coincide with the fit to the bound. The shipped ceilings are about a fifth lower than the pair that brings the rate up to the bound, and the shipped configuration measures well beneath the bound, as the regression check expects of it, which agrees with the historical record because the anchor is an upper bound on an inexact denominator. The shipped values describe a configuration held beneath the bound; they are not the fit to its value. No shipped value was changed here: a change to the shipped calibration is made only through a discussed issue, and the difference is recorded as one.
 
 ### Sensitivity Screens
 

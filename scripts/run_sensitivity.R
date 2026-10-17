@@ -5,7 +5,9 @@
 ##############################################
 #
 # Terminal / Claude Code cloud:
-#   Rscript scripts/run_sensitivity.R                    # full Morris (r=20, reps=5)
+#   Rscript scripts/run_sensitivity.R                    # full Morris (r=20, reps=4, 360 days)
+#   Rscript scripts/run_sensitivity.R --point-workers 4 --cache-dir outputs/cache/morris_r20_d360
+#                                                        # the tracked 360-day screen, as run
 #   Rscript scripts/run_sensitivity.R --quick            # smoke test (r=3, reps=3, days=5)
 #   Rscript scripts/run_sensitivity.R --sobol            # Morris then Sobol on top 5
 #   Rscript scripts/run_sensitivity.R --r 5              # reduced-r full-coverage run (see below)
@@ -15,14 +17,15 @@
 #   mr <- run_morris(r=3, n_rep=3, n_days=5)            # smoke test
 #   run_sobol(mr$ranking$parameter[1:5])                 # Sobol on top 5
 #
-# morris_params (R/sensitivity.R) covers 65 parameters; r=20 at this
-# parameter count is r*(p+1) = 1,320 design points x 5 reps = 6,600
-# simulation runs, impractical outside a long-lived compute session. --r 5
-# was used for the Issue #112 re-run documented in the README (280 design
-# points x 5 reps = 1,400 runs, ~20s/run on 4 cores); scale --r up when a
-# longer session is available.
+# morris_params (R/sensitivity.R) covers 79 parameters; r=20 at this
+# parameter count is r*(p+1) = 1,600 design points x 4 reps = 6,400
+# simulation runs of 360 days, about 75 hours of wall clock on four cores at
+# --point-workers 4, so the screen needs scripts/supervise_screen.sh and a
+# cache directory to survive environment failures. The design is documented
+# in docs/Methods.md and asserted against the tracked metadata by
+# scripts/check_sensitivity_protocol.R.
 #
-# The last six of the 65 are the balance coordinates of the three
+# The last six parameters are the balance coordinates of the three
 # simplex-constrained composition groups (Issue #158). --sobol samples any
 # selected group's composition from a Dirichlet centred on its baseline
 # rather than drawing its coordinates independently; --no-dirichlet reverts
@@ -46,9 +49,9 @@ source("R/run_manifest.R")
 suppressPackageStartupMessages(library(optparse))
 
 option_list <- list(
-  make_option("--days",       type = "integer", default = 30L,
+  make_option("--days",       type = "integer", default = 360L,
               help = "Simulation days per evaluation [default: %default]"),
-  make_option("--reps",       type = "integer", default = 5L,
+  make_option("--reps",       type = "integer", default = 4L,
               help = "Replications per Morris evaluation point [default: %default]"),
   make_option("--r",          type = "integer", default = 20L,
               help = "Number of Morris trajectories [default: %default]"),
@@ -114,6 +117,13 @@ option_list <- list(
                 "compute on a long production sweep. Clear it whenever the seed,",
                 "r, the level count or the parameter bounds change [default: none]."
               )),
+  make_option("--point-workers", type = "integer", default = NULL,
+              help = paste(
+                "Design points evaluated at once, each running its replications",
+                "serially in a forked worker seeded from the point index. The",
+                "tracked 360-day screen ran at 4, and any count gives the same responses;",
+                "omitted, points run in turn and draw different seeds [default: none]"
+              )),
   make_option("--max-cores",  type = "integer", default = NULL,
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
@@ -132,6 +142,11 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list = option_list))
 config_path <- resolve_config_path(opt$config)
+if (!is.null(opt[["point-workers"]]) &&
+    (is.na(opt[["point-workers"]]) || opt[["point-workers"]] < 1L)) {
+  stop(sprintf("--point-workers must be a positive integer, got %s", opt[["point-workers"]]),
+       call. = FALSE)
+}
 
 if (opt$quick) {
   opt$r    <- 3L
@@ -141,8 +156,9 @@ if (opt$quick) {
 }
 
 message(sprintf(
-  "Sensitivity config: r=%d, reps=%d, days=%d, levels=%d, seed=%d, max_cores=%s",
+  "Sensitivity config: r=%d, reps=%d, days=%d, levels=%d, seed=%d, point_workers=%s, max_cores=%s",
   opt$r, opt$reps, opt$days, opt$levels, opt$seed,
+  if (is.null(opt[["point-workers"]])) "none" else opt[["point-workers"]],
   if (is.null(opt[["max-cores"]])) "all" else opt[["max-cores"]]
 ))
 
@@ -168,7 +184,8 @@ morris_result <- run_morris(
   # different things. Each gets its own subdirectory under --cache-dir.
   cache_dir  = if (is.null(opt[["cache-dir"]])) NULL
                else file.path(opt[["cache-dir"]], "morris"),
-  crn_seed   = opt[["crn-seed"]]
+  crn_seed   = opt[["crn-seed"]],
+  point_workers = opt[["point-workers"]]
 )
 
 # A design point at which *every* response is NA is a failed evaluation. A
@@ -233,7 +250,8 @@ if (opt$sobol) {
     cache_dir   = if (is.null(opt[["cache-dir"]])) NULL
                   else file.path(opt[["cache-dir"]], "sobol"),
     nboot       = opt$nboot,
-    crn_seed    = opt[["crn-seed"]]
+    crn_seed    = opt[["crn-seed"]],
+    point_workers = opt[["point-workers"]]
   )
 }
 

@@ -142,8 +142,9 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list = option_list))
 config_path <- resolve_config_path(opt$config)
-if (!is.null(opt[["point-workers"]]) &&
-    (is.na(opt[["point-workers"]]) || opt[["point-workers"]] < 1L)) {
+point_workers_bad <- !is.null(opt[["point-workers"]]) &&
+  (is.na(opt[["point-workers"]]) || opt[["point-workers"]] < 1L)
+if (point_workers_bad) {
   stop(sprintf("--point-workers must be a positive integer, got %s", opt[["point-workers"]]),
        call. = FALSE)
 }

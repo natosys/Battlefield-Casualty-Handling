@@ -1649,11 +1649,16 @@ evaluate_design_concurrently <- function(n_points, cols, cache_file, progress_di
 evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
                                    crn_seed, progress_dir, point_workers = NULL) {
   if (!is.null(point_workers)) {
-    return(evaluate_design_concurrently(
-      nrow(sa$X), morris_kpis$name, cache_file, progress_dir, point_workers,
-      MORRIS_POINT_SEED_BASE, "Point", function(i) {
-        eval_params(sa$X[i, ], n_rep, n_days, max_cores = 1L, crn_seed = crn_seed)
-      }))
+    #' Evaluate one Morris design point with its replications run in turn
+    #'
+    #' @param i Design point index.
+    #' @return The point's response vector.
+    eval_point <- function(i) {
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = 1L, crn_seed = crn_seed)
+    }
+    return(evaluate_design_concurrently(nrow(sa$X), morris_kpis$name, cache_file,
+                                        progress_dir, point_workers,
+                                        MORRIS_POINT_SEED_BASE, "Point", eval_point))
   }
   t(vapply(seq_len(nrow(sa$X)), function(i) {
     # A production screen is r * (p + 1) design points in one long-lived
@@ -2199,9 +2204,9 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
     out
   }
   if (!is.null(point_workers)) {
-    return(evaluate_design_concurrently(
-      n_points, SOBOL_RESPONSES, cache_file, progress_dir, point_workers,
-      SOBOL_POINT_SEED_BASE, "Sobol point", function(i) sobol_point(i, 1L)))
+    return(evaluate_design_concurrently(n_points, SOBOL_RESPONSES, cache_file,
+                                        progress_dir, point_workers, SOBOL_POINT_SEED_BASE,
+                                        "Sobol point", function(i) sobol_point(i, 1L)))
   }
   t(vapply(seq_len(n_points), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one

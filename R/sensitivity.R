@@ -1602,9 +1602,10 @@ evaluate_design_concurrently <- function(n_points, cols, cache_file, progress_di
   # untouched, but at one worker mclapply runs in this process, so the stream
   # is restored here and a decomposition's bootstrap starts from the same
   # position whatever the worker count.
-  had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
-  if (had_seed) saved_seed <- get(".Random.seed", envir = globalenv())
-  on.exit(if (had_seed) assign(".Random.seed", saved_seed, envir = globalenv()), add = TRUE)
+  seed_symbol <- ".Random.seed"
+  had_seed <- exists(seed_symbol, envir = globalenv(), inherits = FALSE)
+  if (had_seed) saved_seed <- get(seed_symbol, envir = globalenv())
+  on.exit(if (had_seed) assign(seed_symbol, saved_seed, envir = globalenv()), add = TRUE)
   res <- parallel::mclapply(todo, function(i) {
     set.seed(seed_base + i)
     message(sprintf("  %s %d / %d", label, i, n_points))

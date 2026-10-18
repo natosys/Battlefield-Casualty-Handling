@@ -9,7 +9,7 @@
 #   Rscript scripts/render_morris_plots.R                       # to outputs/images
 #   Rscript scripts/render_morris_plots.R --refresh-baseline    # to images/
 #   Rscript scripts/render_morris_plots.R \
-#     --screen data/sensitivity/morris_r20 --images outputs/images
+#     --screen data/sensitivity/morris_r20_d360 --images outputs/images
 #
 # Why this exists. `run_morris()` writes a screen's rankings and its scatter
 # plots in the same pass, so the two agree at the moment they are written and
@@ -54,7 +54,7 @@ arg_value <- function(flag, default = NULL) {
   args[i + 1]
 }
 
-SCREEN <- arg_value("--screen", "data/sensitivity/morris_r20")
+SCREEN <- arg_value("--screen", "data/sensitivity/morris_r20_d360")
 
 # The tracked plot directory is reachable only by explicit request, matching
 # the contract run_morris() and analyse_run() already carry: an ordinary run
@@ -68,11 +68,11 @@ IMAGES <- if ("--refresh-baseline" %in% args) {
 #' The seven responses the tracked baseline carries
 #'
 #' @details A screen writes a plot for every response in `morris_kpis`; these are the
-#'   ones README.md embeds, and the ones --refresh-baseline is allowed to
-#'   overwrite. `system_ot_q` is no longer in `morris_kpis` but is in the
-#'   tracked 30-day screen, which was run before it was retired, so it stays
-#'   here until that screen is replaced by the 360-day re-run.
-TRACKED_RESPONSES <- c("system_ot_q", "r2b_ot_q", "r2e_ot_q", "r2e_icu_q",
+#'   ones the results paper embeds, and the ones --refresh-baseline is allowed to
+#'   overwrite. The retired 30-day screen under data/sensitivity/morris_r20
+#'   was run over eighty parameters, one since retired, so it no longer
+#'   re-renders against the current parameter set.
+TRACKED_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "surgery_delivery_rate", "r2e_icu_q",
                        "dow_count", "transport_q", "transport_util")
 
 #' Plain-English labels of responses the tracked screen carries and `morris_kpis` no longer does

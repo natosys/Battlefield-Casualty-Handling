@@ -1550,6 +1550,88 @@ rank_response <- function(obj, kpi, Y) {
   ) %>% arrange(desc(mu_star))
 }
 
+#' Seed base of a Morris design point evaluated concurrently
+#'
+#' @details Point i of a concurrently evaluated Morris screen seeds its stream
+#'   with this base plus i. Changing it changes every response of the tracked
+#'   360-day screen, which was evaluated under it.
+MORRIS_POINT_SEED_BASE <- 1000003L
+
+#' Seed base of a Sobol design point evaluated concurrently
+#'
+#' @details As `MORRIS_POINT_SEED_BASE`, for the Sobol decomposition.
+SOBOL_POINT_SEED_BASE <- 2000003L
+
+#' Evaluate the uncached points of a design several at a time
+#'
+#' @param n_points Number of design points.
+#' @param cols Response names, in the order the caller indexes them by.
+#' @param cache_file Path to the point cache, or NULL for no caching.
+#' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @param workers Number of design points evaluated at once.
+#' @param seed_base Point i seeds its stream with `seed_base + i`.
+#' @param label Progress label, "Point" or "Sobol point".
+#' @param eval_point Function of a point index returning that point's named
+#'   responses, optionally carrying an `sd` attribute.
+#' @return The response matrix, one row per design point, one column per
+#'   response, in design order; NA where a point failed outright.
+#' @details At the 360-day horizon one replication in a point can run several
+#'   times longer than the rest, which leaves most cores idle while a point's
+#'   replications run in parallel. Here each point instead runs its
+#'   replications serially in one forked worker, and several points run at
+#'   once. A worker seeds its stream from the point index, so a point's
+#'   responses depend on the design and the index alone, not on which points
+#'   ran beside it or the order they finished in, and the screen reproduces
+#'   from its seed whatever the number of workers or the resumes it took. Each
+#'   worker appends its own row to the cache as it finishes, a single short
+#'   append, so an interrupted screen loses only the points in flight. One
+#'   worker gives the same responses as four, evaluated one point at a time.
+evaluate_design_concurrently <- function(n_points, cols, cache_file, progress_dir, workers,
+                                         seed_base, label, eval_point) {
+  Y <- matrix(NA_real_, n_points, length(cols), dimnames = list(NULL, cols))
+  todo <- integer(0)
+  for (i in seq_len(n_points)) {
+    cached <- if (!is.null(cache_file) && file.exists(cache_file)) {
+      cache_lookup(cache_file, i, cols)
+    }
+    if (is.null(cached)) todo <- c(todo, i) else Y[i, ] <- cached
+  }
+  message(sprintf("  %d of %d points cached; evaluating %d with %d workers",
+                  n_points - length(todo), n_points, length(todo), workers))
+  # A worker seeds its own stream. Forked workers leave the caller's stream
+  # untouched, but at one worker mclapply runs in this process, so the stream
+  # is restored here and a decomposition's bootstrap starts from the same
+  # position whatever the worker count.
+  seed_symbol <- ".Random.seed"
+  had_seed <- exists(seed_symbol, envir = globalenv(), inherits = FALSE)
+  if (had_seed) saved_seed <- get(seed_symbol, envir = globalenv())
+  on.exit(if (had_seed) assign(seed_symbol, saved_seed, envir = globalenv()), add = TRUE)
+  res <- parallel::mclapply(todo, function(i) {
+    set.seed(seed_base + i)
+    message(sprintf("  %s %d / %d", label, i, n_points))
+    out <- tryCatch(eval_point(i), error = function(e) {
+      warning(sprintf("Eval %d failed: %s", i, conditionMessage(e)))
+      setNames(rep(NA_real_, length(cols)), cols)
+    })
+    if (!is.null(cache_file) && !all(is.na(out))) {
+      sdv <- attr(out, "sd")
+      row_out <- if (is.null(sdv)) out else
+        c(out, stats::setNames(as.numeric(sdv), paste0("sd_", names(out))))
+      cache_append(cache_file, i, row_out)
+    }
+    if (!is.null(progress_dir)) {
+      file.create(file.path(progress_dir, sprintf("point_%d.done", i)))
+    }
+    out
+  }, mc.cores = workers, mc.preschedule = FALSE)
+  for (j in seq_along(todo)) {
+    if (is.numeric(res[[j]]) && length(res[[j]]) == ncol(Y)) {
+      Y[todo[j], ] <- as.numeric(res[[j]])
+    }
+  }
+  Y
+}
+
 #' Evaluate every Morris design point, resuming from the cache where present
 #'
 #' @param sa The Morris design object, whose `X` lists the points.
@@ -1557,6 +1639,8 @@ rank_response <- function(obj, kpi, Y) {
 #' @param n_rep,n_days Replications and days per design point.
 #' @param max_cores,crn_seed Passed through to the evaluator unchanged.
 #' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @param point_workers Design points evaluated at once by
+#'   `evaluate_design_concurrently()`, or NULL to evaluate them in turn.
 #' @return The response matrix, one row per design point, one column per
 #'   response, in the order the design lists its points.
 #' @details The order points are evaluated in is the order the design lists
@@ -1564,7 +1648,19 @@ rank_response <- function(obj, kpi, Y) {
 #'   recomputed. Both are what let an interrupted screen resume onto the same
 #'   design, and scripts/check_screen_order.R asserts them.
 evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
-                                   crn_seed, progress_dir) {
+                                   crn_seed, progress_dir, point_workers = NULL) {
+  if (!is.null(point_workers)) {
+    #' Evaluate one Morris design point with its replications run in turn
+    #'
+    #' @param i Design point index.
+    #' @return The point's response vector.
+    eval_point <- function(i) {
+      eval_params(sa$X[i, ], n_rep, n_days, max_cores = 1L, crn_seed = crn_seed)
+    }
+    return(evaluate_design_concurrently(nrow(sa$X), morris_kpis$name, cache_file,
+                                        progress_dir, point_workers,
+                                        MORRIS_POINT_SEED_BASE, "Point", eval_point))
+  }
   t(vapply(seq_len(nrow(sa$X)), function(i) {
     # A production screen is r * (p + 1) design points in one long-lived
     # process: at r = 20 over the current parameter set that is 1,320 points
@@ -1699,6 +1795,12 @@ rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
 #'   a design it does not belong to. A cache missing a response `morris_kpis`
 #'   now carries is archived automatically (see `cache_check_schema()`)
 #'   rather than resumed with that response silently unfilled.
+#' @param point_workers Design points evaluated at once, or NULL (default)
+#'   to evaluate them in turn with each point's replications in parallel.
+#'   Given, each point runs its replications serially in a worker seeded from
+#'   the point index (`evaluate_design_concurrently()`), so the responses
+#'   differ from a NULL screen's but repeat at any worker count; the tracked
+#'   360-day screen was evaluated this way at four workers.
 #' @param max_cores Optional integer cap on mclapply's mc.cores at each
 #'   design point, passed through to run_replications() via eval_params()
 #'   (see run_replications()'s own @param for why this matters for
@@ -1728,7 +1830,7 @@ rank_morris_responses <- function(sa, Y, kpi_labels, output_dir, images_dir) {
 run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
                        output_dir = "outputs", progress_dir = NULL, max_cores = NULL,
                        images_dir = file.path(output_dir, "images"), cache_dir = NULL,
-                       crn_seed = NULL) {
+                       crn_seed = NULL, point_workers = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(images_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -1764,7 +1866,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   cache_check_schema(cache_file, morris_kpis$name)
 
   Y <- evaluate_morris_design(sa, cache_file, n_rep, n_days, max_cores,
-                              crn_seed, progress_dir)
+                              crn_seed, progress_dir, point_workers = point_workers)
 
   env_data <<- env_data_base
 
@@ -1900,19 +2002,22 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 # design point index; the rest are that screen's responses, named as the screen
 # names them. Morris carries one column per entry in morris_kpis, Sobol the
 # two it decomposes, so the width is read from the file rather than assumed.
-#' The two responses run_sobol() decomposes, in the order it assembles them
+#' The responses run_sobol() decomposes, in the order it assembles them
 #'
 #' @details Named here because the point cache also carries a per-response
 #'   sd_ column, so the response set cannot be inferred from the file header
-#'   alone. The order is the order the decomposition indexes its columns by,
-#'   so reordering this vector misreads every cached response. `r2b_ot_q` and
+#'   alone. The order is the order the decomposition indexes its columns by
+#'   and tells them in, so reordering this vector misreads every cached
+#'   response and moves each bootstrap's starting stream position.
+#'   `surgery_delivery_rate` is decomposed beside the primary queue so that
+#'   the surgical delivery reading has its own indices. `r2b_ot_q` and
 #'   `transport_q` are excluded (Issue #228): `scripts/measure_noise_floor.R`
 #'   found the R2B theatre queue constant across the N=200 design and the
 #'   transport queue 89.1% replication noise, so neither carries a design
 #'   signal a larger sample would resolve. `transport_util` is retained
 #'   despite returning an out-of-range total-order index, a decision recorded
 #'   in `data/sensitivity/README.md` rather than silently dropped.
-SOBOL_RESPONSES <- c("r2e_ot_q", "transport_util")
+SOBOL_RESPONSES <- c("r2e_ot_q", "surgery_delivery_rate", "transport_util")
 
 
 #' Read one design point's cached response vector
@@ -2071,13 +2176,39 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 #' @param n_rep,n_days Replications and days per design point.
 #' @param max_cores,crn_seed Passed through to the evaluator unchanged.
 #' @param progress_dir Directory to drop per-point marker files into, or NULL.
+#' @param point_workers Design points evaluated at once by
+#'   `evaluate_design_concurrently()`, or NULL to evaluate them in turn.
 #' @return The response matrix, one row per design point, in design order.
 #' @details Points are evaluated in the order the design lists them and a
 #'   cached point is read back by its index, which is what lets an interrupted
 #'   decomposition resume onto the same design;
 #'   scripts/check_screen_order.R asserts both.
 evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache_file,
-                                  n_rep, n_days, max_cores, crn_seed, progress_dir) {
+                                  n_rep, n_days, max_cores, crn_seed, progress_dir,
+                                  point_workers = NULL) {
+  #' Evaluate one Sobol design point at the given core cap
+  #'
+  #' @param i Design point index.
+  #' @param cores Cap on mclapply's mc.cores within the point.
+  #' @return The point's responses in `SOBOL_RESPONSES` order, carrying the
+  #'   per-replication standard deviation of each as an `sd` attribute.
+  sobol_point <- function(i, cores) {
+    row <- full_params
+    row[p_def$name] <- as.numeric(sb_design$X[i, ])
+    kpis <- eval_params(row, n_rep, n_days, max_cores = cores,
+                        crn_seed = crn_seed, return_sd = TRUE)
+    # Subsetting by name keeps the response order and, unlike c(), lets the
+    # sd attribute be carried across, so the cache records the spread the
+    # point-noise report reads.
+    out <- kpis[SOBOL_RESPONSES]
+    attr(out, "sd") <- attr(kpis, "sd")[SOBOL_RESPONSES]
+    out
+  }
+  if (!is.null(point_workers)) {
+    return(evaluate_design_concurrently(n_points, SOBOL_RESPONSES, cache_file,
+                                        progress_dir, point_workers, SOBOL_POINT_SEED_BASE,
+                                        "Sobol point", function(i) sobol_point(i, 1L)))
+  }
   t(vapply(seq_len(n_points), function(i) {
     # A production decomposition is n_sobol * (p + 2) design points in one
     # long-lived process, hours of compute that a lost process discards
@@ -2095,18 +2226,11 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
       }
     }
     message(sprintf("  Sobol point %d / %d", i, n_points))
-    row <- full_params
-    row[p_def$name] <- as.numeric(sb_design$X[i, ])
     res <- tryCatch(
-      {
-        kpis <- eval_params(row, n_rep, n_days, max_cores = max_cores,
-                            crn_seed = crn_seed, return_sd = TRUE)
-        c(r2e_ot_q       = kpis[["r2e_ot_q"]],
-          transport_util = kpis[["transport_util"]])
-      },
+      sobol_point(i, max_cores),
       error = function(e) {
         warning(sprintf("Sobol eval %d failed: %s", i, conditionMessage(e)))
-        c(r2e_ot_q = NA_real_, transport_util = NA_real_)
+        setNames(rep(NA_real_, length(SOBOL_RESPONSES)), SOBOL_RESPONSES)
       }
     )
     if (!is.null(cache_file) && !all(is.na(res))) {
@@ -2255,23 +2379,21 @@ build_sobol_matrices <- function(p_def, n_sobol, dirichlet_groups) {
 
 #' Tell each response's Sobol object its values, and record which succeeded
 #'
-#' @param sb_r2e,sb_tutil The two untold Sobol objects.
+#' @param sb_objs The untold Sobol objects, one per response, named and
+#'   ordered as `SOBOL_RESPONSES`.
 #' @param y_all The response matrix, one column per response.
-#' @return A list of `sb_objs`, the two objects keyed by response, and
+#' @return A list of `sb_objs`, the objects keyed by response, and
 #'   `sobol_ok`, a flag per response saying whether indices were computed.
 #' @details A response whose values are degenerate leaves tell() unable to
 #'   compute indices; that object comes back NULL and is flagged rather than
-#'   discarding the others.
-tell_sobol_responses <- function(sb_r2e, sb_tutil, y_all) {
-  sb_r2e   <- tell_safe(sb_r2e,   y_all[, "r2e_ot_q"],       "r2e_ot_q")
-  sb_tutil <- tell_safe(sb_tutil, y_all[, "transport_util"], "transport_util")
-
-  sobol_ok <- c(
-    r2e_ot_q       = !is.null(sb_r2e),
-    transport_util = !is.null(sb_tutil)
-  )
-
-  sb_objs <- list(r2e_ot_q = sb_r2e, transport_util = sb_tutil)
+#'   discarding the others. The objects are told in `SOBOL_RESPONSES` order,
+#'   which fixes the stream position each bootstrap starts from.
+tell_sobol_responses <- function(sb_objs, y_all) {
+  for (nm in names(sb_objs)) {
+    told <- tell_safe(sb_objs[[nm]], y_all[, nm], nm)
+    if (is.null(told)) sb_objs[nm] <- list(NULL) else sb_objs[[nm]] <- told
+  }
+  sobol_ok <- vapply(sb_objs, Negate(is.null), logical(1))
   list(sb_objs = sb_objs, sobol_ok = sobol_ok)
 }
 
@@ -2310,15 +2432,17 @@ tell_sobol_responses <- function(sb_r2e, sb_tutil, y_all) {
 #' @param crn_seed Optional integer pinning the replication seed vector, so
 #'   every design point is evaluated against common random numbers. NULL
 #'   leaves the seeds to the ambient stream.
-#' @return Named list of sobol2007 objects: r2e_ot_q, transport_util
+#' @param point_workers Design points evaluated at once, or NULL (default)
+#'   to evaluate them in turn; see `evaluate_design_concurrently()`.
+#' @return Named list of sobol2007 objects, one per `SOBOL_RESPONSES` entry
 #'
 #' @details Applies sobol2007 (Saltelli et al. estimator) using a single design
-#'   pass shared across both KPIs, giving N*(p+2) total evaluations.
+#'   pass shared across the responses, giving N*(p+2) total evaluations.
 #'   Bootstrap CI uses nboot=100. Results written to output_dir as per-KPI CSVs.
 run_sobol <- function(top_params, n_days = 30, n_rep = 5,
                       n_sobol = 200, output_dir = "outputs", progress_dir = NULL,
                       max_cores = NULL, dirichlet = TRUE, cache_dir = NULL,
-                      nboot = 1000, crn_seed = NULL) {
+                      nboot = 1000, crn_seed = NULL, point_workers = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   # A composition group enters the decomposition whole or not at all.
@@ -2337,8 +2461,8 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   p_def   <- morris_params[p_idx, ]
   n_total <- n_sobol * (nrow(p_def) + 2L)
   message(sprintf(
-    "Sobol: n=%d, p=%d → %d evaluations × %d reps (r2e_ot_q, transport_util)",
-    n_sobol, nrow(p_def), n_total, n_rep
+    "Sobol: n=%d, p=%d → %d evaluations × %d reps (%s)",
+    n_sobol, nrow(p_def), n_total, n_rep, paste(SOBOL_RESPONSES, collapse = ", ")
   ))
 
   # See run_morris() for why the restore is registered here as well as run
@@ -2352,8 +2476,9 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   X1 <- base_matrices$X1
   X2 <- base_matrices$X2
 
-  sb_r2e   <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
-  sb_tutil <- sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  sb_untold <- lapply(setNames(SOBOL_RESPONSES, SOBOL_RESPONSES), function(nm) {
+    sobol2007(model = NULL, X1 = X1, X2 = X2, nboot = nboot)
+  })
 
   full_params <- setNames(morris_params$mode, morris_params$name)
 
@@ -2361,19 +2486,20 @@ run_sobol <- function(top_params, n_days = 30, n_rep = 5,
   cache_file <- if (!is.null(cache_dir)) file.path(cache_dir, "points.csv") else NULL
   cache_check_schema(cache_file, SOBOL_RESPONSES)
 
-  # Held in a local rather than read back off sb_r2e later: tell_safe()
-  # returns NULL for a response whose bootstrap fails, which would leave a
-  # later read off sb_r2e at NULL and the run metadata recording an empty
-  # design size.
-  n_points <- nrow(sb_r2e$X)
+  # Held in a local rather than read back off a Sobol object later:
+  # tell_safe() returns NULL for a response whose bootstrap fails, which would
+  # leave a later read at NULL and the run metadata recording an empty design
+  # size.
+  n_points <- nrow(sb_untold[[1]]$X)
 
-  Y_all <- evaluate_sobol_design(sb_r2e, n_points, p_def, full_params, cache_file,
-                                 n_rep, n_days, max_cores, crn_seed, progress_dir)
+  Y_all <- evaluate_sobol_design(sb_untold[[1]], n_points, p_def, full_params, cache_file,
+                                 n_rep, n_days, max_cores, crn_seed, progress_dir,
+                                 point_workers = point_workers)
 
   env_data <<- env_data_base
 
 
-  told     <- tell_sobol_responses(sb_r2e, sb_tutil, Y_all)
+  told     <- tell_sobol_responses(sb_untold, Y_all)
   sb_objs  <- told$sb_objs
   sobol_ok <- told$sobol_ok
   saved <- list()

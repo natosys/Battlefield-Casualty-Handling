@@ -1,7 +1,7 @@
 # Task-Role Allocation Matrix for Individual Resource Modelling
 ## Battlefield Casualty Handling Simulation — Issue 4 Supplement
 
-**Status:** Derived assumption set — requires SME validation before use in published analysis.
+**Status:** Derived assumption set — requires SME validation before use in published analysis. Issue 4 was retired as out of scope in October 2026, so this supplement is kept for the record and is not scheduled for implementation.
 **Prepared:** June 2026
 **Relates to:** Action Plan Issue 4 — Team-Block Resource Seizure
 

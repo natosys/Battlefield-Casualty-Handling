@@ -99,7 +99,7 @@ It is not a substitute for the options above. It requires the user to write R, i
 
 ## Recommended sequence
 
-Options 1, 2 and 3 are stages of one progression rather than alternatives, and the recommended order is Option 1, then Option 2, with Option 3 gated behind Further Development entry L31 and Action Plan Issue 4. Issue 4 rewrites the same trajectory internals that a pathway compiler would rewrite, so undertaking the two separately means undertaking the harder of them twice. Option 4 may be added at any point, independently of the others.
+Options 1, 2 and 3 are stages of one progression rather than alternatives, and the recommended order is Option 1, then Option 2, with Option 3 gated behind Further Development entry L31 and the individual resource modelling of Action Plan Issue 4, which has since been retired as out of scope. That work would rewrite the same trajectory internals that a pathway compiler would rewrite, so were it ever revived, undertaking the two separately would mean undertaking the harder of them twice. Option 4 may be added at any point, independently of the others.
 
 Two constraints carry over from the project's own precedent and apply to every stage.
 

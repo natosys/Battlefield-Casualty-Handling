@@ -119,15 +119,8 @@ empty_msg <- message_of(resolve_config_path(""))
 report(!is.na(empty_msg) && grepl("empty", empty_msg, fixed = TRUE),
        "an empty value is refused")
 
-alias_warning <- tryCatch(resolve_config_path(NULL, alias = copy_path),
-                          warning = function(w) conditionMessage(w))
-alias_path <- suppressWarnings(resolve_config_path(NULL, alias = copy_path))
-report(identical(alias_path, copy_path) && grepl("deprecated", alias_warning, fixed = TRUE),
-       "--path still resolves, with a deprecation warning")
-
-conflict_msg <- message_of(resolve_config_path(copy_path, alias = SHIPPED_CONFIG))
-report(!is.na(conflict_msg) && grepl("different files", conflict_msg, fixed = TRUE),
-       "--config and --path naming different files are refused")
+report(!"alias" %in% names(formals(resolve_config_path)),
+       "the retired --path alias is no longer accepted")
 
 refresh_other <- message_of(resolve_config_path(copy_path, refresh_baseline = TRUE))
 other_path <- file.path(work_dir, "other.json")

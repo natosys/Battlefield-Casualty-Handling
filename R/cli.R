@@ -144,8 +144,6 @@ SHIPPED_CONFIG <- "env_data.json"
 #' Resolve the configuration file a command-line entry point is to run against
 #'
 #' @param config Value of `--config`, or NULL where it was not given.
-#' @param alias Value of the deprecated `--path` switch, or NULL where the entry
-#'   point never had one or it was not given.
 #' @param refresh_baseline TRUE where the tracked evidence set is to be written.
 #' @param shipped Path of the shipped configuration.
 #' @return The path of the configuration file to load.
@@ -157,16 +155,9 @@ SHIPPED_CONFIG <- "env_data.json"
 #'   rejects any other file: the tracked evidence describes the shipped
 #'   configuration only, and a configuration whose bytes equal the shipped
 #'   file's is that configuration whatever it is called.
-resolve_config_path <- function(config = NULL, alias = NULL, refresh_baseline = FALSE,
+resolve_config_path <- function(config = NULL, refresh_baseline = FALSE,
                                 shipped = SHIPPED_CONFIG) {
-  if (!is.null(alias) && !is.null(config) && !identical(alias, config)) {
-    stop(sprintf("--config (%s) and --path (%s) name different files: --path is a",
-                 config, alias), " deprecated alias of --config, so pass one", call. = FALSE)
-  }
-  if (!is.null(alias) && is.null(config)) {
-    warning("--path is deprecated and will be removed: use --config", call. = FALSE)
-  }
-  path <- if (!is.null(config)) config else if (!is.null(alias)) alias else shipped
+  path <- if (!is.null(config)) config else shipped
 
   if (length(path) != 1L || !is.character(path) || is.na(path) || !nzchar(path)) {
     stop("--config must name a configuration file, and was empty", call. = FALSE)

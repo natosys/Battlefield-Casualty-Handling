@@ -14,7 +14,7 @@
 # `--refresh-baseline` run is held to the shipped configuration and the
 # documented protocol (R/cli.R), and a manifest carrying the commit would change
 # on every commit and so break the byte-for-byte reproduction
-# scripts/check_baseline_reproduction.R asserts; those sets are described by
+# tests/checks/check_baseline_reproduction.R asserts; those sets are described by
 # docs/Methods.md instead.
 #
 # Depends on R/scenario.R (resolve_scenario) and R/environment.R (read_config),

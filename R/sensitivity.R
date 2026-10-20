@@ -271,7 +271,7 @@ composition_coord_bounds <- function(g) {
 #'   were able to drift out of their own bounds and a third out of agreement
 #'   with `env_data.json` before Issue #186 found them. Two guards now hold
 #'   the column: the bounds assertion below, and
-#'   `scripts/check_morris_baseline.R`, which asserts agreement with
+#'   `tests/checks/check_morris_baseline.R`, which asserts agreement with
 #'   `env_data.json` itself.
 #'
 #' @details Sixty-four parameters (Issue #112 full-coverage audit, expanded
@@ -556,7 +556,7 @@ local({
 #' @format Named character vector — names are `morris_params$name`, values the
 #'   reason the comparison does not apply.
 #'
-#' @details Read by `scripts/check_morris_baseline.R`. Held here, and stated
+#' @details Read by `tests/checks/check_morris_baseline.R`. Held here, and stated
 #'   as an explicit list rather than left to the check's own omissions, so that
 #'   a parameter added to the screen without a corresponding entry fails the
 #'   check instead of quietly escaping it.
@@ -565,7 +565,7 @@ MORRIS_MODE_CHECK_EXCLUSIONS <- local({
   setNames(
     rep(paste("balance coordinate - writes a whole three-part composition rather",
               "than a scalar; agreement with env_data.json is asserted by",
-              "scripts/check_composition_ilr.R"), length(coords)),
+              "tests/checks/check_composition_ilr.R"), length(coords)),
     coords
   )
 })
@@ -1646,7 +1646,7 @@ evaluate_design_concurrently <- function(n_points, cols, cache_file, progress_di
 #' @details The order points are evaluated in is the order the design lists
 #'   them, and a cached point is read back by its index rather than
 #'   recomputed. Both are what let an interrupted screen resume onto the same
-#'   design, and scripts/check_screen_order.R asserts them.
+#'   design, and tests/checks/check_screen_order.R asserts them.
 evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
                                    crn_seed, progress_dir, point_workers = NULL) {
   if (!is.null(point_workers)) {
@@ -2182,7 +2182,7 @@ report_point_noise <- function(cache_file, responses, n_rep) {
 #' @details Points are evaluated in the order the design lists them and a
 #'   cached point is read back by its index, which is what lets an interrupted
 #'   decomposition resume onto the same design;
-#'   scripts/check_screen_order.R asserts both.
+#'   tests/checks/check_screen_order.R asserts both.
 evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache_file,
                                   n_rep, n_days, max_cores, crn_seed, progress_dir,
                                   point_workers = NULL) {

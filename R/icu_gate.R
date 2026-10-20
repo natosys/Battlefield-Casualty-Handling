@@ -13,7 +13,7 @@
 # gate existed, reconstructed as a configuration by setting both fields to
 # zero rather than as a historical code state, which is what makes the
 # comparison repeatable after a later model change
-# (`scripts/check_icu_gate_switch.R` asserts the mechanism).
+# (`tests/checks/check_icu_gate_switch.R` asserts the mechanism).
 #
 # Both arms run under one control seed, so replication $i$ of one is paired
 # with replication $i$ of the other, on the arrangement R/hold_window.R uses
@@ -200,7 +200,7 @@ run_icu_gate_measurement <- function(gate_enabled, n_iterations = ICU_GATE_REPLI
   #' @return The replication's one-row response frame, carrying its index.
   #'
   #' @details `run_once()` is wrapped in `capture.output()`, on the
-  #'   convention `scripts/check_icu_gate_switch.R` establishes, so the
+  #'   convention `tests/checks/check_icu_gate_switch.R` establishes, so the
   #'   per-casualty trace `assign_injury_attributes()` logs
   #'   (`R/trajectories.R`) does not serialise a hundred replications' worth
   #'   of console output through the fork's stdout pipe.

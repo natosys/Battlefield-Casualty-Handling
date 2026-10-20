@@ -9,7 +9,7 @@
 # measures what that hold buys and costs: casualties kept forward, diversions
 # it avoids, and what changes downstream at R2E, comparing the shipped
 # 60-minute window against a window of zero, which reproduces the
-# instant-diversion model exactly (scripts/check_pre_open_window.R asserts
+# instant-diversion model exactly (tests/checks/check_pre_open_window.R asserts
 # that reproduction; this module measures the populated comparison rather than
 # the mechanism).
 #
@@ -37,7 +37,7 @@ HOLD_WINDOW_SEED <- 42L
 #' Pre-open window values compared, in minutes
 #'
 #' @details Zero reproduces the instant-diversion model exactly
-#'   (`scripts/check_pre_open_window.R`); 60 is the shipped value
+#'   (`tests/checks/check_pre_open_window.R`); 60 is the shipped value
 #'   (`r2b.surgery.pre_open_window_min` in `env_data.json`).
 HOLD_WINDOW_ARMS <- c(0L, 60L)
 

@@ -486,7 +486,7 @@ resolve_ame_airframe <- function(role4_params) {
 # simulated minutes: the rate is redrawn once per simulated day, and arrivals
 # are placed within the day by thinning against a dominating rate. README
 # Casualty Generation derives both, and states the mean and variance the
-# construction delivers; scripts/check_arrival_rate_fidelity.R asserts them.
+# construction delivers; tests/checks/check_arrival_rate_fidelity.R asserts them.
 #
 # The reason to keep it that way, since a per-minute redraw is the easier code
 # to write: averaging a rate over 1,440 draws before it reaches a daily total
@@ -636,7 +636,7 @@ make_thinned_arrival_generator <- function(draw_daily_rate, force_global,
 #'   the stream realises the mean and the coefficient of variation its
 #'   configuration names, and editing `sd_daily` alone leaves the realised mean
 #'   alone. Both properties are asserted by
-#'   scripts/check_arrival_rate_fidelity.R, alongside the realised daily
+#'   tests/checks/check_arrival_rate_fidelity.R, alongside the realised daily
 #'   variance.
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
                                       force_bound, n_days) {

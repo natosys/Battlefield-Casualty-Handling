@@ -1,0 +1,721 @@
+#!/usr/bin/env Rscript
+##############################################################################
+## tests/checks/check_policy_sweep_protocol.R                               ##
+## Regression check — the evacuation policy sweep's parameters, its          ##
+## responses and its published table agree                                  ##
+##############################################################################
+#
+# Usage:
+#   Rscript tests/checks/check_policy_sweep_protocol.R
+#
+# Exits 0 when every check passes, 1 otherwise.
+#
+# Why this check exists. The shipped evacuation policy is a command decision the
+# model informs rather than sets, and the sweep behind it costs 150
+# replication-years, so nobody re-runs it to audit a change. Three things have
+# to be checked without running it. Its parameters must be the ones the
+# methods paper documents. Its responses must mean what the results paper says they mean,
+# which for the two that also exist in the analysis pipeline (returns to duty
+# and the in-theatre share) means agreeing with the pipeline rather than merely
+# being computed: a sweep whose in-theatre share used a different definition
+# from the one compared against the historical envelope would be comparing the
+# wrong quantity. And the tracked evidence set must carry the table the paper
+# prints.
+#
+# What this asserts:
+#
+#   1. Every sweep parameter in R/policy_sweep.R equals the value
+#      docs/Methods.md documents in a marker comment, and the
+#      shipped policy is one of the swept values.
+#   2. The swept range spans the doctrinal 15 to 60 day decision range.
+#   3. The reduction's returns to duty and in-theatre share agree with
+#      analyse_run()'s, measured on one run's monitors.
+#   4. The in-theatre share responds to the policy it is passed rather than to
+#      the global, so an arm's share is measured against its own policy.
+#   5. The closing-window pool state reads the window and not the campaign,
+#      asserted on a constructed monitor whose answer is computable by hand.
+#   6. The paired difference is taken within replication, and its replication
+#      sizing follows the methods paper's normal approximation.
+#   7. The tracked data/policy/ summary carries the documented policies and
+#      replication count, and matches the table docs/Results.md
+#      prints, row for row.
+#
+# Assertions 3 and 5 are what keep the rest from being circular: the others
+# would hold for any response set the code happened to produce.
+
+source("R/environment.R")
+source("R/trajectories.R")
+source("R/replication.R")
+source("R/scenario.R")
+source("R/analysis.R")
+source("R/policy_sweep.R")
+
+state <- new.env(parent = emptyenv())
+state$failures <- character(0)
+
+#' Record a failure, deferring the non-zero exit to the end of the run
+#'
+#' @param ... sprintf() format string and its arguments.
+#' @return Invisibly, the accumulated failure vector.
+fail <- function(...) state$failures <- c(state$failures, sprintf(...))
+
+#' Print one PASS or FAIL line, recording a failure
+#'
+#' @param ok TRUE when the assertion held.
+#' @param fmt sprintf() format string describing the assertion.
+#' @param ... Arguments to `fmt`.
+#' @return Invisible NULL.
+#'
+#' @details Anything other than TRUE is a failure, NA included. A quantity
+#'   compared here becomes NA when the code under test is wrong rather than when
+#'   the assertion is inapplicable, and `if (ok)` on an NA raises an error that
+#'   stops the run at the first such assertion instead of reporting it.
+report <- function(ok, fmt, ...) {
+  msg <- sprintf(fmt, ...)
+  passed <- isTRUE(ok)
+  cat(sprintf("[%s] %s\n", if (passed) "PASS" else "FAIL", msg))
+  if (!passed) fail("%s", msg)
+  invisible(NULL)
+}
+
+#' Companion paper the published table is read from
+PAPER_PATH <- file.path("docs", "Results.md")
+
+#' Methods paper the sweep's parameters are read from
+METHODS_PATH <- file.path("docs", "Methods.md")
+
+#' Tracked sweep summary the paper's table derives from
+SUMMARY_PATH <- file.path("data", "policy", "policy_sweep.csv")
+
+#' Tracked establishment sweep summary the paper's second table derives from
+ESTABLISHMENT_SUMMARY_PATH <- file.path("data", "policy", "establishment_sweep.csv")
+
+#' Tracked summary of the forward surgical saturation release sweep
+SATURATION_SUMMARY_PATH <- file.path("data", "policy", "saturation_sweep.csv")
+
+#' Campaign length the behavioural assertions run over, in days
+CHECK_DAYS <- 30L
+
+#' Control seed the behavioural assertions run under
+CHECK_SEED <- 42L
+
+#' Establishments the axis assertions are made at, in beds
+#'
+#' @details Larger than the shipped pool so that a setter which ignored its
+#'   argument would be caught, and not a multiple of it so that an off-by-a-
+#'   factor error is visible too.
+CHECK_SWEPT_BEDS <- c(45L, 90L)
+
+#' Tolerance on a comparison of two computed reals
+TOL <- 1e-8
+
+#' Tolerance on a figure the paper prints rounded to one decimal place
+PRINT_TOL <- 0.05
+
+# ── 1-2. The code's parameters are the ones the methods paper documents ─────────
+
+cat("\n-- the sweep's parameters match the methods paper --\n")
+
+methods_text <- paste(readLines(METHODS_PATH, warn = FALSE), collapse = "\n")
+
+#' Read one sweep parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "POLICY ".
+#' @return The marker's value as a character string, or NA where absent.
+#'
+#' @details The parameters are marked rather than parsed out of the prose,
+#'   because a check that guesses which number in a paragraph is the replication
+#'   count fails for reasons that have nothing to do with the sweep.
+policy_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- POLICY %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- POLICY [^=]+=(.*) -->$", "\\1", m)
+}
+
+for (param in list(list("days", POLICY_DAYS_HORIZON),
+                   list("replications", POLICY_REPLICATIONS),
+                   list("window_days", POLICY_WINDOW_DAYS))) {
+  stated <- suppressWarnings(as.numeric(policy_marker(param[[1]])))
+  report(!is.na(stated) && stated == param[[2]],
+         "the methods paper states %s = %s and the code holds %s",
+         param[[1]], format(stated), format(param[[2]]))
+}
+
+stated_policies <- policy_marker("policies")
+parsed <- if (is.na(stated_policies)) {
+  integer(0)
+} else {
+  suppressWarnings(as.integer(strsplit(stated_policies, ",")[[1]]))
+}
+report(length(parsed) == length(POLICY_DAYS) && !any(is.na(parsed)) &&
+         all(parsed == POLICY_DAYS),
+       "the methods paper states policies %s and the code holds %s",
+       paste(parsed, collapse = ","), paste(POLICY_DAYS, collapse = ","))
+
+json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
+shipped <- build_environment(json_data)$vars$r2eheavy$recovery$evacuation_policy_days
+report(shipped %in% POLICY_DAYS,
+       "the shipped policy (%s days) is one of the swept values", format(shipped))
+report(min(POLICY_DAYS) <= 15L && max(POLICY_DAYS) >= 60L,
+       "the sweep spans the doctrinal 15 to 60 day range (%d to %d)",
+       min(POLICY_DAYS), max(POLICY_DAYS))
+report(POLICY_WINDOW_DAYS < POLICY_DAYS_HORIZON,
+       "the closing window (%d days) is shorter than the horizon (%d days)",
+       POLICY_WINDOW_DAYS, POLICY_DAYS_HORIZON)
+
+# ── 5. The closing-window pool state reads the window it is given ────────────
+
+cat("\n-- the closing-window state reads the window, not the campaign --\n")
+
+# Two beds over a ten-day campaign. Bed 1 is held for days 1 to 5 and free
+# afterwards; bed 2 is free until day 8 and held from then to the end. Over a
+# closing window of four days (days 7 to 10) the pool therefore serves 0 beds
+# for two days and 1 bed for two days, so its occupancy is (2/4) / 2 = 0.25.
+# Over the whole campaign it would be higher, so a function reading the campaign
+# rather than the window disagrees here.
+constructed <- data.frame(
+  resource = c("b_x_1_t1", "b_x_1_t1", "b_x_2_t1", "b_x_2_t1"),
+  time     = c(0, 5, 0, 8) * DAY_MIN,
+  server   = c(1, 0, 0, 1),
+  queue    = c(0, 0, 0, 0),
+  capacity = c(1, 1, 1, 1),
+  stringsAsFactors = FALSE
+)
+state_10 <- policy_pool_state(constructed, "^b_x_[0-9]+_t[0-9]+$",
+                              n_days = 10, window_days = 4, establishment = 2)
+report(abs(state_10[["occupancy"]] - 0.25) < TOL,
+       "the closing window's occupancy is %.4f, expected 0.2500",
+       state_10[["occupancy"]])
+report(abs(state_10[["mean_queue"]]) < TOL,
+       "its mean queue is %.4f with nothing queued, expected 0",
+       state_10[["mean_queue"]])
+
+absent <- policy_pool_state(constructed, "^b_missing_", n_days = 10, window_days = 4,
+                            establishment = 0)
+report(is.na(absent[["occupancy"]]) && is.na(absent[["mean_queue"]]),
+       "a pool the monitor carries no row for reads as absent rather than zero")
+
+# The same two beds established as a pool of four, beds 3 and 4 never seized and
+# so absent from the monitor. Occupancy is the same served time over twice the
+# beds, (2/4) / 4 = 0.125; a denominator read off the monitor counts two beds
+# and reports 0.25, overstating occupancy wherever an establishment exceeds the
+# realised peak.
+constructed_elms <- list(x = list(list(x_bed = paste0("b_x_", 1:4, "_t1"),
+                                       crew  = "c_x_crew_1_t1")))
+report(pool_establishment(constructed_elms, "^b_x_[0-9]+_t[0-9]+$") == 4,
+       "the establishment counts the configured beds, idle ones included")
+state_idle <- policy_pool_state(
+  constructed, "^b_x_[0-9]+_t[0-9]+$", n_days = 10, window_days = 4,
+  establishment = pool_establishment(constructed_elms, "^b_x_[0-9]+_t[0-9]+$")
+)
+report(abs(state_idle[["occupancy"]] - 0.125) < TOL,
+       "an idle bed stays in the denominator: occupancy %.4f, expected 0.1250",
+       state_idle[["occupancy"]])
+
+# The capacity sweeps reduce the same pools through pool_rep_kpis(), so the
+# two must agree on the pool total, the closing window and the denominator.
+# Replication 1 is the pool above with bed 2 holding one queued casualty from
+# day 8; replication 2 is the same pool entirely idle. Over the closing four
+# days (days 7 to 10) the pool's mean queue is (1 casualty x 2 days) / 4 = 0.5
+# in replication 1 and 0 in replication 2, and occupancy is 0.125 and 0 against
+# an establishment of four.
+rep_monitor <- list(resources = rbind(
+  transform(constructed, replication = 1, queue = c(0, 0, 0, 1)),
+  data.frame(resource = "b_x_1_t1", time = 0, server = 0, queue = 0,
+             capacity = 1, replication = 2)
+))
+kpis <- pool_rep_kpis(rep_monitor, "^b_x_[0-9]+_t[0-9]+$", n_days = 10,
+                      establishment = 4, window_days = 4)
+report(nrow(kpis) == 2 && identical(as.numeric(kpis$replication), c(1, 2)),
+       "pool_rep_kpis returns one row per replication")
+report(abs(kpis$mean_util[1] - 0.125) < TOL && abs(kpis$mean_util[2]) < TOL,
+       "pool_rep_kpis occupancy divides by the establishment: %.4f and %.4f",
+       kpis$mean_util[1], kpis$mean_util[2])
+report(abs(kpis$mean_q[1] - 0.5) < TOL && abs(kpis$mean_q[2]) < TOL,
+       "pool_rep_kpis queue is the pool total over the closing window: %.4f and %.4f",
+       kpis$mean_q[1], kpis$mean_q[2])
+
+# ── 3-4. The responses agree with the analysis pipeline ──────────────────────
+
+cat("\n-- the reduction agrees with the analysis pipeline --\n")
+
+apply_policy_setting(json_data, "default", policy_days = NULL)
+env <- run_once(CHECK_DAYS, seed = CHECK_SEED, write_files = FALSE)
+shipped_policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+
+reduced <- reduce_policy_replication(env, CHECK_DAYS, shipped_policy,
+                                     seed = CHECK_SEED, window_days = CHECK_DAYS)
+
+arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
+attributes <- simmer::get_mon_attributes(env)
+wide <- build_attributes_wide(attributes, arrivals) %>%
+  dplyr::right_join(arrivals, by = c("name", "replication"),
+                    suffix = c("", "_arrival"))
+pipeline <- summarise_outcomes_by_echelon(arrivals, wide)
+
+report(reduced$total_rtd == pipeline$total_rtd,
+       "returns to duty agree with the pipeline (%d against %d)",
+       reduced$total_rtd, pipeline$total_rtd)
+report(reduced$total_dow == pipeline$total_dow,
+       "died of wounds agree with the pipeline (%d against %d)",
+       reduced$total_dow, pipeline$total_dow)
+report(!is.na(reduced$in_theatre_share) &&
+         abs(reduced$in_theatre_share - pipeline$in_theatre_share) < TOL,
+       "the in-theatre share agrees with the pipeline (%.6f against %.6f)",
+       reduced$in_theatre_share, pipeline$in_theatre_share)
+report(reduced$dispositions == pipeline$evacuation_policy_summary$decisions,
+       "the disposition count agrees with the pipeline (%d against %d)",
+       reduced$dispositions, pipeline$evacuation_policy_summary$decisions)
+
+# The share is a function of the policy the reduction is passed, not of the
+# global, so an arm measures its own policy. A longer policy retains at least as
+# many casualties, the comparison being on one campaign's drawn recoveries.
+longer <- reduce_policy_replication(env, CHECK_DAYS, shipped_policy + 20L,
+                                    seed = CHECK_SEED, window_days = CHECK_DAYS)
+report(!is.na(longer$in_theatre_share) &&
+         longer$in_theatre_share > reduced$in_theatre_share,
+       "a longer policy retains a larger share (%.4f against %.4f)",
+       longer$in_theatre_share, reduced$in_theatre_share)
+report(longer$total_rtd == reduced$total_rtd,
+       "the campaign itself is unchanged by the policy the reduction is told")
+
+# ── 6. The paired difference is within replication ───────────────────────────
+
+cat("\n-- the paired difference is taken within replication --\n")
+
+# Two arms over four replications, constructed so that the paired difference and
+# the difference of means disagree: every pair rises by exactly 2, while the
+# arms' spread is large enough that an unpaired interval would not exclude zero.
+# Two arms over five replications, constructed so that the paired difference and
+# the difference of means disagree: every pair rises by 2 or 3, a mean of 2.4,
+# while each arm's own spread is an order of magnitude larger, so an unpaired
+# interval on the same numbers would not exclude zero. The differences vary, so
+# the sizing helper has a standard deviation to work from.
+paired_rows <- data.frame(
+  replication = rep(1:5, 2),
+  policy_days = rep(c(21L, 30L), each = 5),
+  total_dow   = c(10, 40, 70, 100, 130, 12, 43, 72, 103, 132)
+)
+differences <- c(2, 3, 2, 3, 2)
+d <- policy_paired_difference(paired_rows, "total_dow", 21L, 30L)
+report(d$n_pairs == 5 && abs(d$difference - mean(differences)) < TOL,
+       "the paired difference is %.4f over %d pairs, expected %.1f over 5",
+       d$difference, d$n_pairs, mean(differences))
+report(!is.na(d$ci_lower) && d$ci_lower > 0,
+       "its interval excludes zero (lower bound %.4f) where an unpaired one would not",
+       d$ci_lower)
+arm_sd <- sd(paired_rows$total_dow[paired_rows$policy_days == 21L])
+report(arm_sd > 10 * sd(differences),
+       "each arm's own spread (sd %.1f) dwarfs the paired differences' (sd %.2f)",
+       arm_sd, sd(differences))
+
+# The normal approximation the methods paper uses, recomputed here rather than
+# taken from the function, so the assertion has an answer of its own.
+needed <- policy_replications_for(paired_rows, "total_dow", 21L, 30L, 1)
+expected_needed <- ceiling((qnorm(0.975) * sd(differences) / 1)^2)
+report(!is.na(needed) && needed == expected_needed,
+       "the count for a half-width of one is %s, expected %s",
+       format(needed), format(expected_needed))
+report(is.na(policy_replications_for(paired_rows, "total_dow", 21L, 30L, 0)),
+       "a non-positive half-width returns no count rather than an infinite one")
+
+# ── 6a. The establishment sweep's parameters match the methods paper ────────────
+
+cat("\n-- the establishment sweep's parameters match the methods paper --\n")
+
+#' Read one establishment parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "ESTABLISHMENT ".
+#' @return The marker's value as a character string, or NA where absent.
+establishment_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- ESTABLISHMENT %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- ESTABLISHMENT [^=]+=(.*) -->$", "\\1", m)
+}
+
+for (param in list(list("days", POLICY_DAYS_HORIZON),
+                   list("replications", POLICY_REPLICATIONS))) {
+  stated <- suppressWarnings(as.numeric(establishment_marker(param[[1]])))
+  report(!is.na(stated) && stated == param[[2]],
+         "the methods paper states the establishment sweep's %s = %s and the code holds %s",
+         param[[1]], format(stated), format(param[[2]]))
+}
+
+stated_beds <- establishment_marker("beds")
+parsed_beds <- if (is.na(stated_beds)) {
+  integer(0)
+} else {
+  suppressWarnings(as.integer(strsplit(stated_beds, ",")[[1]]))
+}
+report(length(parsed_beds) == length(POLICY_HOLD_BEDS) && !any(is.na(parsed_beds)) &&
+         all(parsed_beds == POLICY_HOLD_BEDS),
+       "the methods paper states establishments %s and the code holds %s",
+       paste(parsed_beds, collapse = ","), paste(POLICY_HOLD_BEDS, collapse = ","))
+
+# ── 6b. The establishment axis reaches the resources it claims to ────────────
+
+cat("\n-- the holding establishment is applied, or the attempt fails loudly --\n")
+
+resolved <- resolve_scenario(json_data, "default")
+shipped_beds <- NA_integer_
+for (elm in resolved$elms) {
+  if (!identical(elm$elm, "r2eheavy")) next
+  for (bed in elm$beds) if (identical(bed$name, "hold")) shipped_beds <- bed$qty
+}
+report(!is.na(shipped_beds),
+       "the shipped R2E holding establishment is readable from elms (%s beds)",
+       format(shipped_beds))
+
+# Every swept establishment must reach the built resources. A setter that
+# returned the configuration unchanged would leave a sweep measuring the shipped
+# establishment at every point and publishing the flat result as a frontier,
+# which is the failure this asserts against rather than a hypothetical: the
+# element carries its name under `elm` rather than `name`, and a first
+# implementation matching on `name` found nothing.
+for (beds in c(shipped_beds, CHECK_SWEPT_BEDS)) {
+  config_snapshot <- capture_config_globals()
+  apply_policy_setting(json_data, "default", policy_days = NULL, hold_beds = beds)
+  built <- length(grep("^b_r2eheavy_hold_[0-9]+_t[0-9]+$", unlist(env_data$elms)))
+  restore_config_globals(config_snapshot)
+  report(built == beds,
+         "an establishment of %d beds builds %d R2E holding resources", beds, built)
+}
+
+report(inherits(try(set_hold_establishment(resolved, 0), silent = TRUE), "try-error"),
+       "an establishment of zero beds is rejected rather than applied")
+report(inherits(try(set_hold_establishment(resolved, NA), silent = TRUE), "try-error"),
+       "a missing establishment is rejected rather than applied")
+
+# The guard that catches a configuration the setter cannot find. Stripping the
+# pool must fail rather than silently leave the establishment as it was.
+stripped <- resolved
+for (i in seq_along(stripped$elms)) {
+  if (!identical(stripped$elms[[i]]$elm, "r2eheavy")) next
+  stripped$elms[[i]]$beds <- Filter(function(b) !identical(b$name, "hold"),
+                                    stripped$elms[[i]]$beds)
+}
+report(inherits(try(set_hold_establishment(stripped, 45), silent = TRUE), "try-error"),
+       "a configuration with no holding pool fails rather than passing silently")
+
+# Both axes apply together, the policy after build_environment() and the
+# establishment before it.
+config_snapshot <- capture_config_globals()
+apply_policy_setting(json_data, "default", policy_days = 45L,
+                     hold_beds = CHECK_SWEPT_BEDS[1])
+applied_policy <- env_data$vars$r2eheavy$recovery$evacuation_policy_days
+applied_beds <- length(grep("^b_r2eheavy_hold_[0-9]+_t[0-9]+$", unlist(env_data$elms)))
+restore_config_globals(config_snapshot)
+report(applied_policy == 45L && applied_beds == CHECK_SWEPT_BEDS[1],
+       "policy and establishment apply together (%s days, %d beds)",
+       format(applied_policy), applied_beds)
+
+# ── 7. The tracked summaries are the tables the paper prints ────────────────
+
+cat("\n-- the tracked summaries match the published tables --\n")
+
+#' Extract one marked table from the paper as its pipe-delimited rows
+#'
+#' @param paper The paper's lines.
+#' @param marker The HTML comment marking the table, as it appears in the text.
+#' @return The table's rows including its header, or NULL where the marker does
+#'   not appear exactly once.
+paper_table <- function(paper, marker) {
+  at <- grep(marker, paper, fixed = TRUE)
+  if (length(at) != 1) {
+    report(FALSE, "the paper carries exactly one '%s' marker (found %d)",
+           marker, length(at))
+    return(NULL)
+  }
+  rows <- paper[at:length(paper)]
+  rows <- rows[seq_len(which(!grepl("^\\|", rows) & seq_along(rows) > 2)[1] - 1)]
+  rows[grepl("^\\|", rows)]
+}
+
+#' Check one published table against the summary it derives from
+#'
+#' @param summary_path Tracked summary CSV the table is published from.
+#' @param marker The HTML comment marking the table in the paper.
+#' @param key_col Column of the summary the table's columns vary over.
+#' @param key_values The swept values, in the order the table prints them.
+#' @param key_noun Plural unit the assertion messages name a swept value by.
+#' @param printed_rows Named list of label, response and print scale triples.
+#' @return Invisible NULL.
+#' @details The printed figure is compared against the summary's own mean, so a
+#'   table edited by hand, or a summary re-measured without the table being
+#'   re-rendered, fails rather than standing as a second and disagreeing copy.
+check_published_table <- function(summary_path, marker, key_col, key_values,
+                                  key_noun, printed_rows) {
+  if (!file.exists(summary_path)) {
+    report(FALSE, "the tracked sweep summary %s exists", summary_path)
+    return(invisible(NULL))
+  }
+  tracked <- read.csv(summary_path, stringsAsFactors = FALSE)
+
+  report(setequal(unique(tracked[[key_col]]), key_values),
+         "%s carries the %d documented arms in %s", summary_path,
+         length(key_values), key_noun)
+  report(all(tracked$n_reps[!is.na(tracked$mean)] == POLICY_REPLICATIONS),
+         "every measured response of %s carries %d replications", summary_path,
+         POLICY_REPLICATIONS)
+
+  rows <- paper_table(readLines(PAPER_PATH, warn = FALSE), marker)
+  if (is.null(rows)) return(invisible(NULL))
+
+  header <- trimws(strsplit(sub("^\\|", "", sub("\\|$", "", rows[1])), "\\|")[[1]])
+  swept <- suppressWarnings(as.integer(gsub("[^0-9]", "", header[-1])))
+  report(length(swept) == length(key_values) && all(swept == key_values),
+         "the table's columns are the swept arms in %s (%s)", key_noun,
+         paste(swept, collapse = ","))
+
+  for (spec in printed_rows) {
+    label <- spec[[1]]
+    row <- rows[grepl(paste0("^\\| ", label), rows)]
+    if (length(row) != 1) {
+      report(FALSE, "the paper prints one '%s' row under %s (found %d)",
+             label, marker, length(row))
+      next
+    }
+    cells <- trimws(strsplit(sub("^\\|", "", sub("\\|$", "", row)), "\\|")[[1]])[-1]
+    for (k in seq_along(key_values)) {
+      printed <- suppressWarnings(as.numeric(sub(" .*$", "", cells[k])))
+      arm <- tracked[tracked[[key_col]] == key_values[k] &
+                       tracked$response == spec[[2]], ]
+      ok <- nrow(arm) == 1 && !is.na(printed) &&
+        abs(printed - spec[[3]] * arm$mean) < PRINT_TOL
+      report(ok, "'%s' at %d %s prints %s against the data's %s",
+             label, key_values[k], key_noun, format(printed),
+             if (nrow(arm) == 1) format(round(spec[[3]] * arm$mean, 2)) else "no row")
+    }
+  }
+  invisible(NULL)
+}
+
+policy_rows <- list(list("R2E hold occupancy", "hold_occupancy", 100),
+                    list("Returns to duty", "total_rtd", 1),
+                    list("In-theatre share", "in_theatre_share", 100),
+                    list("Role 4 peak", "role4_peak", 1))
+
+establishment_rows <- list(
+  list("R2E hold occupancy", "hold_occupancy", 100),
+  list("R2E hold mean queue", "hold_mean_queue", 1),
+  list("Post-definitive ICU access", "post_definitive_icu_share", 100),
+  list("Returns to duty", "total_rtd", 1)
+)
+
+check_published_table(SUMMARY_PATH, "<!-- GEN policy -->", "policy_days",
+                      POLICY_DAYS, "days", policy_rows)
+
+check_published_table(ESTABLISHMENT_SUMMARY_PATH, "<!-- GEN establishment -->",
+                      "hold_beds", POLICY_HOLD_BEDS, "beds", establishment_rows)
+
+saturation_rows <- list(
+  list("Theatre mean queue", "theatre_mean_queue", 1),
+  list("Released with repair outstanding", "released_unrepaired", 1),
+  list("Role 4 operations owed", "role4_operations", 1),
+  list("Post-definitive ICU access", "post_definitive_icu_share", 100),
+  list("Died of wounds", "total_dow", 1),
+  list("Returns to duty", "total_rtd", 1)
+)
+
+check_published_table(SATURATION_SUMMARY_PATH, "<!-- GEN saturation -->",
+                      "saturation_threshold", POLICY_SATURATION_THRESHOLDS,
+                      "queued casualties", saturation_rows)
+
+# The establishment sweep ran one policy, the shipped one, so a summary
+# carrying another would mean the published frontier mixes two levers.
+if (file.exists(ESTABLISHMENT_SUMMARY_PATH)) {
+  estab <- read.csv(ESTABLISHMENT_SUMMARY_PATH, stringsAsFactors = FALSE)
+  shipped <- build_environment(resolve_scenario(json_data, "default"))
+  shipped_policy <- shipped$vars$r2eheavy$recovery$evacuation_policy_days
+  report(length(shipped_policy) == 1 && all(estab$policy_days == shipped_policy),
+         "every establishment arm ran at the shipped %s-day policy",
+         format(shipped_policy))
+}
+
+# ── 6c. The high-intensity grid's evidence set is the documented design ─────────
+
+cat("\n-- the high-intensity grid's tracked evidence is the documented design --\n")
+
+#' Read one high-intensity grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "HIGHGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+highgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- HIGHGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- HIGHGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked high-intensity grid's evidence files
+HIGH_PREFIX <- file.path("data", "policy", "establishment_sweep_high_intensity")
+report(identical(highgrid_marker("scenario"), "high_intensity"),
+       "the methods paper states the grid's scenario as high_intensity")
+if (file.exists(paste0(HIGH_PREFIX, "_replications.csv"))) {
+  high_reps <- read.csv(paste0(HIGH_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  high_sum <- read.csv(paste0(HIGH_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  high_paired <- read.csv(paste0(HIGH_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  cells <- unique(high_reps[, c("policy_days", "hold_beds")])
+  report(nrow(cells) == length(POLICY_DAYS) * length(POLICY_HOLD_BEDS) &&
+           all(table(paste(high_reps$policy_days, high_reps$hold_beds)) == POLICY_REPLICATIONS),
+         "the tracked grid has %d cells of %d replications each", nrow(cells),
+         POLICY_REPLICATIONS)
+  one <- high_reps[high_reps$policy_days == 30L & high_reps$hold_beds == 90L, ]
+  stated <- high_sum[high_sum$policy_days == 30L & high_sum$hold_beds == 90L &
+                       high_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  baseline <- highgrid_marker("baseline")
+  report(!is.na(baseline) && !(baseline %in% high_paired$to) &&
+           all(high_paired$from == baseline) &&
+           length(unique(high_paired$to)) == nrow(cells) - 1L,
+         "every other cell is paired against the baseline cell %s", baseline)
+} else {
+  report(FALSE, "the high-intensity grid's replications are tracked")
+}
+
+# ── 6d. The moderate-intensity grid's evidence set is the documented design ────
+
+cat("\n-- the moderate-intensity grid's tracked evidence is the documented design --\n")
+
+#' Read one moderate-intensity grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "MODGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+modgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- MODGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- MODGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked moderate-intensity grid's evidence files
+MOD_PREFIX <- file.path("data", "policy", "establishment_sweep_moderate_grid")
+mod_policies <- as.integer(strsplit(modgrid_marker("policies"), ",")[[1]])
+mod_beds <- as.integer(strsplit(modgrid_marker("hold_beds"), ",")[[1]])
+report(identical(modgrid_marker("output_tag"), "moderate_grid") &&
+         identical(modgrid_marker("baseline"), "21d_30b") &&
+         identical(as.integer(modgrid_marker("replications")), POLICY_REPLICATIONS) &&
+         identical(as.integer(modgrid_marker("days")), POLICY_DAYS_HORIZON),
+       "the methods paper states the grid's tag, baseline, replications and horizon")
+if (file.exists(paste0(MOD_PREFIX, "_replications.csv"))) {
+  mod_reps <- read.csv(paste0(MOD_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  mod_sum <- read.csv(paste0(MOD_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  mod_paired <- read.csv(paste0(MOD_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  counts <- table(paste(mod_reps$policy_days, mod_reps$hold_beds))
+  report(length(counts) == length(mod_policies) * length(mod_beds) &&
+           all(counts == POLICY_REPLICATIONS) &&
+           setequal(unique(mod_reps$policy_days), mod_policies) &&
+           setequal(unique(mod_reps$hold_beds), mod_beds),
+         "the tracked grid has the documented %d cells of %d replications each",
+         length(mod_policies) * length(mod_beds), POLICY_REPLICATIONS)
+  one <- mod_reps[mod_reps$policy_days == 27L & mod_reps$hold_beds == 45L, ]
+  stated <- mod_sum[mod_sum$policy_days == 27L & mod_sum$hold_beds == 45L &
+                      mod_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  report(all(mod_paired$from == "21d_30b") &&
+           length(unique(mod_paired$to)) == length(counts) - 1L &&
+           !("21d_30b" %in% mod_paired$to),
+         "every other cell is paired against the baseline cell 21d_30b")
+  est <- read.csv(file.path("data", "policy", "establishment_sweep_replications.csv"),
+                  stringsAsFactors = FALSE)
+  shared <- mod_reps[mod_reps$policy_days == 21L, ]
+  matched <- merge(shared, est, by = c("policy_days", "hold_beds", "total_rtd"))
+  report(!any(mod_reps$policy_days %in% c(24L, 27L) &
+                mod_reps$policy_days %in% est$policy_days) &&
+           !any(est$policy_days %in% c(24L, 27L)) && nrow(matched) >= nrow(shared),
+         "the 21-day cells are the establishment sweep's measurement and the sweep is untouched")
+} else {
+  report(FALSE, "the moderate-intensity grid's replications are tracked")
+}
+
+# ── 6e. The high-intensity sortie interval grid ─────────────────────────────
+
+cat("\n-- the high-intensity sortie interval grid's tracked evidence is the documented design --\n")
+
+#' Read one sortie interval grid parameter the methods paper states in a marker comment
+#'
+#' @param name Marker name, as it appears after "INTGRID ".
+#' @return The marker's value as a character string, or NA where absent.
+intgrid_marker <- function(name) {
+  m <- regmatches(methods_text,
+                  regexpr(sprintf("<!-- INTGRID %s=[^ ]+ -->", name), methods_text))
+  if (length(m) == 0) return(NA_character_)
+  sub("^<!-- INTGRID [^=]+=(.*) -->$", "\\1", m)
+}
+
+#' Stem of the tracked high-intensity sortie interval grid's evidence files
+INT_PREFIX <- file.path("data", "policy", "interval_sweep_high_intensity")
+int_intervals <- as.integer(strsplit(intgrid_marker("intervals"), ",")[[1]])
+int_policies <- as.integer(strsplit(intgrid_marker("policies"), ",")[[1]])
+int_beds <- as.integer(strsplit(intgrid_marker("hold_beds"), ",")[[1]])
+report(setequal(int_intervals, POLICY_SORTIE_INTERVALS) &&
+         POLICY_BASELINE_SORTIE_INTERVAL %in% int_intervals &&
+         identical(intgrid_marker("baseline"),
+                   sprintf("%ds_%dd_%db", POLICY_BASELINE_SORTIE_INTERVAL, 21L,
+                           POLICY_BASELINE_HOLD_BEDS)) &&
+         identical(as.integer(intgrid_marker("replications")), POLICY_REPLICATIONS) &&
+         identical(as.integer(intgrid_marker("days")), POLICY_DAYS_HORIZON),
+       "the methods paper states the grid's intervals, baseline, replications and horizon")
+report(identical(POLICY_ROUTE_CRITICAL, 1) && identical(POLICY_ROUTE_STANDARD, 2),
+       "the route codes the wait is split by are the airlift pools' codes")
+if (file.exists(paste0(INT_PREFIX, "_replications.csv"))) {
+  int_reps <- read.csv(paste0(INT_PREFIX, "_replications.csv"), stringsAsFactors = FALSE)
+  int_sum <- read.csv(paste0(INT_PREFIX, ".csv"), stringsAsFactors = FALSE)
+  int_paired <- read.csv(paste0(INT_PREFIX, "_paired.csv"), stringsAsFactors = FALSE)
+  counts <- table(paste(int_reps$sortie_interval, int_reps$policy_days, int_reps$hold_beds))
+  n_cells <- length(int_intervals) * length(int_policies) * length(int_beds)
+  report(length(counts) == n_cells && all(counts == POLICY_REPLICATIONS) &&
+           setequal(unique(int_reps$sortie_interval), int_intervals) &&
+           setequal(unique(int_reps$policy_days), int_policies) &&
+           setequal(unique(int_reps$hold_beds), int_beds),
+         "the tracked grid has the documented %d cells of %d replications each", n_cells,
+         POLICY_REPLICATIONS)
+  one <- int_reps[int_reps$sortie_interval == 3L & int_reps$policy_days == 30L &
+                    int_reps$hold_beds == 60L, ]
+  stated <- int_sum[int_sum$sortie_interval == 3L & int_sum$policy_days == 30L &
+                      int_sum$hold_beds == 60L & int_sum$response == "total_rtd", "mean"]
+  report(length(stated) == 1L && abs(stated - mean(one$total_rtd)) < 1e-9,
+         "the tracked summary mean is the mean of the tracked replications")
+  base <- sprintf("%ds_21d_%db", POLICY_BASELINE_SORTIE_INTERVAL, POLICY_BASELINE_HOLD_BEDS)
+  report(all(int_paired$from == base) && length(unique(int_paired$to)) == n_cells - 1L &&
+           !(base %in% int_paired$to),
+         "every other cell is paired against the baseline cell %s", base)
+  split_ok <- all(c("mean_wait_critical", "mean_wait_standard", "queued_critical",
+                    "queued_standard") %in% names(int_reps))
+  report(split_ok && all(int_reps$queued_critical + int_reps$queued_standard <=
+                           int_reps$never_evacuated),
+         "the channels' waiting casualties never exceed the casualties never evacuated")
+  report(!file.exists(file.path("data", "policy", "interval_sweep_replications.csv")),
+         "no interval grid file is written without its scenario suffix")
+} else {
+  report(FALSE, "the high-intensity sortie interval grid's replications are tracked")
+}
+
+# ── 7. A named scenario's evidence cannot overwrite the default's ──────────
+
+cat("\n-- a named scenario's output files carry its name --\n")
+
+report(identical(scenario_output_suffix("default"), "") &&
+         identical(scenario_output_suffix(NULL), ""),
+       "the shipped configuration's files carry no suffix, so the tracked set is unchanged")
+report(identical(scenario_output_suffix("high_intensity"), "_high_intensity"),
+       "a named scenario's files carry its name, on the transport sweep's convention")
+report(POLICY_BASELINE_HOLD_BEDS %in% POLICY_HOLD_BEDS,
+       "the crossed grid's baseline establishment (%d) is one the sweep covers",
+       POLICY_BASELINE_HOLD_BEDS)
+
+# ── Result ──────────────────────────────────────────────────────────────────
+
+cat("\n")
+if (length(state$failures)) {
+  cat(sprintf("%d check(s) failed:\n", length(state$failures)))
+  for (f in state$failures) cat(" - ", f, "\n", sep = "")
+  quit(status = 1)
+}
+
+cat("All policy sweep protocol checks passed.\n")
+quit(status = 0)

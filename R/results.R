@@ -2196,7 +2196,7 @@ INTEGRAL_HOLDERS <- c("R2B evacuation crews", "R2E evacuation sections")
 #'
 #' @details The criteria are the `ADEQUACY_*` constants above, stated in
 #'   docs/Methods.md and asserted equal to its marker comments by
-#'   scripts/check_planning_implications.R. Role 4 carries no verdict because the
+#'   tests/checks/check_planning_implications.R. Role 4 carries no verdict because the
 #'   model reports the demand placed on the national support base and assigns it no
 #'   capacity.
 build_adequacy_matrix <- function(data_dir) {

@@ -15,7 +15,7 @@
 # so neither the shipped values nor a recalibration to a new scenario could be
 # reproduced. This is that procedure. It measures the pooled treated-cohort
 # died-of-wounds rate (R/dow_calibration.R, the same measurement
-# scripts/check_dow_calibration.R asserts) at a trial Priority 1 ceiling, and
+# tests/checks/check_dow_calibration.R asserts) at a trial Priority 1 ceiling, and
 # searches for the ceiling at which the rate meets the target by bracketing
 # root search. The Priority 2 ceiling follows at a fixed ratio, the shipped
 # pair's own by default, so the two are fitted jointly as one parameter.
@@ -35,12 +35,12 @@
 # reviewed edit, and the shipped values change only through a discussed issue
 # (CLAUDE.md). With --write-csv it also records every evaluation. Confirm a fit
 # with the regression check, which measures at the check's own sizing:
-#   Rscript scripts/check_dow_calibration.R --scenario <name>
+#   Rscript tests/checks/check_dow_calibration.R --scenario <name>
 #
 # Each evaluation is --measurements x --reps replications over --days, at
 # control seeds fixed across evaluations. A search takes about five
 # evaluations, so the default sizing (3 x 50 replications over 30 days) is
-# roughly the cost of five runs of scripts/check_dow_calibration.R for one
+# roughly the cost of five runs of tests/checks/check_dow_calibration.R for one
 # profile. --quick is a wiring test and says so.
 
 suppressPackageStartupMessages({
@@ -161,7 +161,8 @@ cat(sprintf("  achieved treated-cohort rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) ag
             100 * fit$rate, 100 * fit$ci_lower, 100 * fit$ci_upper, 100 * target))
 cat(sprintf("  shipped for '%s': p1_p_max = %.4f, p2_p_max = %.4f\n", opt$scenario,
             shipped$p1_p_max, shipped$p2_p_max))
-cat(sprintf("Confirm with: Rscript scripts/check_dow_calibration.R --scenario %s\n", opt$scenario))
+cat(sprintf("Confirm with: Rscript tests/checks/check_dow_calibration.R --scenario %s\n",
+            opt$scenario))
 
 if (!is.null(opt$`write-csv`)) {
   dir.create(dirname(opt$`write-csv`), recursive = TRUE, showWarnings = FALSE)

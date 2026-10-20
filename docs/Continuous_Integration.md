@@ -20,10 +20,10 @@ rather than in the environment.
 | Job | Runs on | What it does | Typical cost |
 |---|---|---|---|
 | Classify the change | Every pull request | Compares the branch against its base and decides whether the change can move a model output, a lint count or the tracked baseline | Seconds |
-| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `scripts/run_all_checks.R --fast --jobs auto`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction, run several at a time | 7 min 27 s on the four-core runner, measured 27 August |
-| Seed-42 baseline reproduction | The same events | `scripts/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
+| Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `tests/checks/run_all_checks.R --fast --jobs auto`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction, run several at a time | 7 min 27 s on the four-core runner, measured 27 August |
+| Seed-42 baseline reproduction | The same events | `tests/checks/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
 | Shiny console browser suite | The same events | `npx playwright test`, which starts the console and drives it in a headless Chromium | Two to three minutes plus the restore and the toolchain install |
-| Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `scripts/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
+| Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `tests/checks/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
 
 The figures above are the check time alone. Restoring the project library
 costs a further minute or so on top, and less again once the cache keyed on the
@@ -94,19 +94,19 @@ running it before pushing is faster than waiting for the gate:
 
 ```bash
 # What the pull request is gated on, one check per core
-Rscript scripts/run_all_checks.R --fast --jobs auto
+Rscript tests/checks/run_all_checks.R --fast --jobs auto
 
 # The same thing one check at a time
-Rscript scripts/run_all_checks.R --fast
+Rscript tests/checks/run_all_checks.R --fast
 
 # One check, by name or by pattern
-Rscript scripts/run_all_checks.R --only check_icu_time_conservation
+Rscript tests/checks/run_all_checks.R --only check_icu_time_conservation
 
 # What the weekly job runs
-Rscript scripts/run_all_checks.R --slow
+Rscript tests/checks/run_all_checks.R --slow
 
 # Which checks are classified fast and which slow, without running any
-Rscript scripts/run_all_checks.R --list
+Rscript tests/checks/run_all_checks.R --list
 ```
 
 The runner writes each check's output to `outputs/checks/`, which is
@@ -150,14 +150,14 @@ arrangement of the same work. The longest single check,
 `check_measurement_reproducibility.R`, accounts for 6 min 11 s of the seven.
 
 Checks are dispatched longest first, from the runtimes recorded in
-`scripts/check_runtimes.csv`, because the suite cannot finish before its
+`tests/checks/check_runtimes.csv`, because the suite cannot finish before its
 longest check does and a long check started last strands the pool waiting on
 it. That file is a scheduling hint and nothing else: a missing or stale entry
 costs a little wall clock and cannot change a result. Refresh it from a full
 run's own measurements with
 
 ```bash
-Rscript scripts/run_all_checks.R --fast --refresh-runtimes
+Rscript tests/checks/run_all_checks.R --fast --refresh-runtimes
 ```
 
 which is the only way the tracked file is written. Refresh it from a serial
@@ -220,10 +220,10 @@ check reports the improvement and passes, and a maintainer tightens the ratchet
 by refreshing the baseline:
 
 ```bash
-Rscript scripts/check_lint.R --refresh-baseline
+Rscript tests/checks/check_lint.R --refresh-baseline
 ```
 
-That rewrites `scripts/lint_baseline.csv`, which is committed with the change
+That rewrites `tests/checks/lint_baseline.csv`, which is committed with the change
 that earned it. Refreshing the baseline is also the correct response to a rise
 that follows a deliberate `lintr` version change, since a new version can add
 or refine a linter; the version is pinned in `.devcontainer/Dockerfile` and in
@@ -243,14 +243,14 @@ without an `@param`, or a function without a `@return`. List the findings with
 their file, line and function name:
 
 ```bash
-Rscript scripts/check_roxygen.R --list
+Rscript tests/checks/check_roxygen.R --list
 ```
 
 Repair the new one rather than raising the baseline. As with lint, a pull
 request that removes findings passes and reports the improvement, and a
 maintainer tightens the ratchet with
-`Rscript scripts/check_roxygen.R --refresh-baseline`, committing
-`scripts/roxygen_baseline.csv` with the change that earned it.
+`Rscript tests/checks/check_roxygen.R --refresh-baseline`, committing
+`tests/checks/roxygen_baseline.csv` with the change that earned it.
 
 ### The seed-42 reproduction fails
 
@@ -330,19 +330,19 @@ so reaching the limit twice means the mirror is not merely slow.
 The step is duplicated in all four jobs that need system libraries, and the
 guards are applied inline in each rather than through a composite action,
 because `timeout-minutes` is not a step property a composite action supports.
-`scripts/check_ci_apt_guards.R` asserts that the four copies stay identical and
+`tests/checks/check_ci_apt_guards.R` asserts that the four copies stay identical and
 that each sets the retries and both transport timeouts before it runs
 `apt-get update`, so three jobs hardened and one missed fails the gate rather
 than waiting to be discovered by a wedge.
 
 ## The Checks
 
-Every regression check under `scripts/`, with its tier, its measured runtime and the
+Every regression check under `tests/checks/`, with its tier, its measured runtime and the
 summary it states about itself in its own banner. The table is generated by
 `scripts/render_check_table.R` from the checks, the runner's `SLOW_CHECKS` constant
-and `scripts/check_runtimes.csv`, and `scripts/check_ci_check_table.R` fails when it
+and `tests/checks/check_runtimes.csv`, and `tests/checks/check_ci_check_table.R` fails when it
 is stale, so a check cannot join the suite without appearing here. A runtime of "not
-yet measured" means `scripts/run_all_checks.R --refresh-runtimes` has not been run
+yet measured" means `tests/checks/run_all_checks.R --refresh-runtimes` has not been run
 since the check was added; the runner schedules such a check as if it cost thirty
 seconds.
 
@@ -421,13 +421,13 @@ seconds.
 
 ## Adding a check
 
-A new `scripts/check_*.R` is picked up by the runner automatically, and is
+A new `tests/checks/check_*.R` is picked up by the runner automatically, and is
 therefore gated from the moment it is committed, with no edit to the runner or
 to the workflow. It is classified fast unless it is named in the runner's
 `SLOW_CHECKS` constant, which is deliberate: a check nobody classified is one
 that runs on every pull request. Add a check to `SLOW_CHECKS` only on the
 evidence of a measured runtime, and record that measurement with
-`scripts/run_all_checks.R --refresh-runtimes`; `scripts/render_check_table.R
+`tests/checks/run_all_checks.R --refresh-runtimes`; `scripts/render_check_table.R
 --refresh-baseline` then adds the check to [The Checks](#the-checks).
 
 The shape a check follows, its exit contract, and its use of the `fail()` and

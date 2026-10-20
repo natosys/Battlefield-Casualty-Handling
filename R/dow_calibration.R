@@ -10,7 +10,7 @@
 # target (README, Parameter Calibration). This module holds the two halves of
 # that procedure so one measurement serves the regression check that asks
 # whether a configuration still agrees with its anchor
-# (scripts/check_dow_calibration.R) and the fitter that asks what ceilings
+# (tests/checks/check_dow_calibration.R) and the fitter that asks what ceilings
 # would make it agree (scripts/calibrate_dow.R).
 #
 #   1. The measurement. The treated cohort is the casualties who reached a

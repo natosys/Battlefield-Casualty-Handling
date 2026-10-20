@@ -7,7 +7,7 @@
 # tell a genuine regression from an environment difference, which for the
 # seed-42 reproduction is the whole question.
 #
-# The suite is split by cost, on the runtimes in scripts/check_runtimes.csv, tabulated in docs/Continuous_Integration.md.
+# The suite is split by cost, on the runtimes in tests/checks/check_runtimes.csv, tabulated in docs/Continuous_Integration.md.
 # The fast suite runs on every pull request, several checks at a time;
 # check_dow_calibration.R runs 450 replications and takes three quarters of an
 # hour, so it runs weekly and on demand instead.
@@ -118,7 +118,7 @@ jobs:
           # Retries recover a single bad response; the transport timeout bounds
           # a connection that goes silent; the step timeout above bounds the
           # whole thing well clear of the 7m39s worst case actually observed.
-          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # These four copies must stay identical: tests/checks/check_ci_apt_guards.R
           # asserts it.
           printf '%s\n' \
             'Acquire::Retries "5";' \
@@ -153,14 +153,14 @@ jobs:
       # suite costs and not what it concludes.
       - name: Run the fast suite
         if: needs.classify.outputs.code_changed == 'true'
-        run: Rscript scripts/run_all_checks.R --fast --jobs auto
+        run: Rscript tests/checks/run_all_checks.R --fast --jobs auto
 
       # A documentation-only change cannot move a model output or a lint count,
       # so only the checks that read the tracked documents are worth its time.
       - name: Run the document checks
         if: needs.classify.outputs.code_changed != 'true'
         run: >-
-          Rscript scripts/run_all_checks.R
+          Rscript tests/checks/run_all_checks.R
           --only 'check_(markdown|references|env_data_summary)'
 
       - name: Upload check logs
@@ -194,7 +194,7 @@ jobs:
           # Retries recover a single bad response; the transport timeout bounds
           # a connection that goes silent; the step timeout above bounds the
           # whole thing well clear of the 7m39s worst case actually observed.
-          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # These four copies must stay identical: tests/checks/check_ci_apt_guards.R
           # asserts it.
           printf '%s\n' \
             'Acquire::Retries "5";' \
@@ -221,7 +221,7 @@ jobs:
 
       - name: Reproduce the tracked seed-42 evidence set
         if: needs.classify.outputs.code_changed == 'true'
-        run: Rscript scripts/check_baseline_reproduction.R
+        run: Rscript tests/checks/check_baseline_reproduction.R
 
       # The job still runs and still reports, so a required status check on it
       # is satisfied on a documentation-only change rather than left pending.
@@ -261,7 +261,7 @@ jobs:
           # Retries recover a single bad response; the transport timeout bounds
           # a connection that goes silent; the step timeout above bounds the
           # whole thing well clear of the 7m39s worst case actually observed.
-          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # These four copies must stay identical: tests/checks/check_ci_apt_guards.R
           # asserts it.
           printf '%s\n' \
             'Acquire::Retries "5";' \
@@ -343,7 +343,7 @@ jobs:
           # Retries recover a single bad response; the transport timeout bounds
           # a connection that goes silent; the step timeout above bounds the
           # whole thing well clear of the 7m39s worst case actually observed.
-          # These four copies must stay identical: scripts/check_ci_apt_guards.R
+          # These four copies must stay identical: tests/checks/check_ci_apt_guards.R
           # asserts it.
           printf '%s\n' \
             'Acquire::Retries "5";' \
@@ -368,7 +368,7 @@ jobs:
         run: Rscript -e 'renv::restore(prompt = FALSE)'
 
       - name: Run the slow suite
-        run: Rscript scripts/run_all_checks.R --slow
+        run: Rscript tests/checks/run_all_checks.R --slow
 
       - name: Upload check logs
         if: always()

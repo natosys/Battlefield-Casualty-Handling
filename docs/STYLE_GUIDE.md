@@ -1,8 +1,8 @@
 # R Code Standard
 
 This document is the code standard for every R source file in the repository:
-the modules under `R/`, the scripts under `scripts/`, the test suite under
-`tests/`, and the two root entry points `app.R` and `run.R`. `CLAUDE.md`'s Code Standards section defers to it,
+the modules under `R/`, the entry points under `scripts/`, the regression
+checks and test suites under `tests/`, and the two root entry points `app.R` and `run.R`. `CLAUDE.md`'s Code Standards section defers to it,
 and a reviewer checking a pull request checks it against this document.
 
 It is written to be applied rather than admired. Every rule below is tagged
@@ -16,16 +16,16 @@ with how it is enforced:
 
 A rule that is none of the three is not a standard and does not belong here.
 
-The `[lint]` rules are enforced by `.lintr` and `scripts/check_lint.R`, which
+The `[lint]` rules are enforced by `.lintr` and `tests/checks/check_lint.R`, which
 run in the fast check suite and in continuous integration on every pull
 request. Because the existing code carries the findings recorded under
 [Current conformance](#current-conformance), the gate is a ratchet: the
-finding count per rule is compared against `scripts/lint_baseline.csv` and a
+finding count per rule is compared against `tests/checks/lint_baseline.csv` and a
 pull request fails only where a count has risen. A rule tagged `[review]` or
 `[preference]` is deliberately absent from `.lintr`, a linter enforcing
 something this document does not require being a second and undocumented
 standard. Two `[lint]` rules have no `lintr` linter, D1 and R9, and
-`scripts/check_lint.R` computes both itself.
+`tests/checks/check_lint.R` computes both itself.
 
 The standard documents conventions the codebase already follows wherever it has
 one. Where the codebase is inconsistent, the rule states the convention chosen
@@ -109,7 +109,7 @@ word separators, no camelCase.
 | Resources | `ot_beds`, `hold_beds`, `surg_team` | `<type>_<echelon>` where an echelon distinguishes them |
 | Trajectories | `trajectory("R2B Surgery, DCS Phase 1")` | Descriptive name in quotes, title case |
 | Module files | `R/trajectories.R`, `R/replication.R` | Plural noun naming the concern the module owns |
-| Check scripts | `scripts/check_icu_time_conservation.R` | `check_` plus the property asserted |
+| Check scripts | `tests/checks/check_icu_time_conservation.R` | `check_` plus the property asserted |
 | Runner scripts | `scripts/run_transport_sweep.R` | `run_` plus what is run |
 | Render scripts | `scripts/render_dow_survival.R` | `render_` plus the artifact produced |
 
@@ -135,7 +135,7 @@ The number is a proxy and is worth reading as one. What the rule defends is that
 a function be testable on its own, that a published figure be traceable to a
 named function rather than to a position inside a long one, and that what a
 function depends on be visible in its signature where a check can reason about
-it. `scripts/check_analysis_decomposition.R` and `scripts/check_console_bindings.R`
+it. `tests/checks/check_analysis_decomposition.R` and `tests/checks/check_console_bindings.R`
 exist only because there are boundaries for them to inspect. Length correlates
 with all of that and measures none of it, so two consequences follow. A short
 function that does several things is still wrong under D3, and passing D1 does
@@ -324,7 +324,7 @@ from 21% to 55% of non-blank lines by file. These rules record the habit that
 produced it so it does not depend on one author.
 
 **R1 `[review]` Every function has a roxygen header. Without exception.** This
-covers every function in `R/`, every function in `scripts/`, every function in
+covers every function in `R/`, `scripts/` and `tests/checks/`, every function in
 `app.R` and `run.R`, including a one-line helper, a `fail()` accumulator and a
 function defined inside another function. A function short enough that its
 header is longer than its body is still a function whose contract a reader
@@ -395,7 +395,7 @@ stating in one line what it holds:
 
 **R9 `[lint]` No emoji or symbol characters in R source,** in code, comments or
 strings, other than the box-drawing characters of a section rule (O3) and the
-banner (R8). This matches the rule `scripts/check_markdown.R` enforces on
+banner (R8). This matches the rule `tests/checks/check_markdown.R` enforces on
 document headings, and for the same reason: a symbol's treatment depends on the
 session locale.
 
@@ -431,7 +431,7 @@ both roxygen headers.
 
 ## Regression check scripts
 
-Every `scripts/check_*.R` script shares one shape, which this section sets
+Every `tests/checks/check_*.R` script shares one shape, which this section sets
 out.
 
 **K1 `[review]` Name the file `check_<property>.R`,** naming the property
@@ -473,7 +473,7 @@ status is the contract, and a traceback is not one.
 
 **K8 `[review]` Where a check can fail because it has lost sight of the model,
 that failure is accumulated and reported separately from a model defect.**
-`scripts/check_r2e_surgery_seizure.R` is the model: a pattern that matches
+`tests/checks/check_r2e_surgery_seizure.R` is the model: a pattern that matches
 nothing means the check can no longer read the model, which calls for a
 different response from the model being wrong, and reporting it as a model
 defect sends the next reader to the wrong place.
@@ -500,18 +500,18 @@ including `fail()`, `report()` and `arg_value()`.
 | F9 to F11 | Statement and spacing style | Partly, `infix_spaces_linter`, `commas_linter`, `semicolon_linter`, `spaces_inside_linter` |
 | N1 | snake_case | Yes, `object_name_linter` |
 | N2 to N4 | Naming table, output names, abbreviations | No, reviewer |
-| D1 | Function length 100 code lines | Yes, counted from the parse data by `scripts/check_lint.R`, over the lines carrying a non-comment token; `lintr` ships no linter for it |
+| D1 | Function length 100 code lines | Yes, counted from the parse data by `tests/checks/check_lint.R`, over the lines carrying a non-comment token; `lintr` ships no linter for it |
 | D2 to D6 | Function design | No, reviewer |
 | C1 to C5 | Constants and magic numbers | Partly: a `1440` literal is greppable, and outside `DAY_MIN`'s definition there are none left, so the rule now reads as a gate on zero rather than as a direction of travel; the rest is reviewer |
 | G1 to G3, G5 | Permitted `<<-` and restoration | No, reviewer |
 | G4 | No other global assignment | Yes, `assignment_linter(operator = "<-")`, which reports every `<<-`. The permitted sites of G1 to G3 are among the counts the ratchet holds, so a new `<<-` raises a count and is reviewed on its merits |
 | E1 to E7 | Error handling | No, reviewer |
 | O1 to O5 | File organisation | No, reviewer |
-| R1 | Roxygen on every function | Yes, `scripts/check_roxygen.R`, from the parse data. A function bound to a name is checked wherever it sits, including inside another function; an anonymous function has no name to document and is not counted |
-| R2 | Mandatory tags | Partly, `scripts/check_roxygen.R`: the header opening with a title, an `@param` per argument, no `@param` naming an argument the function does not take, and a `@return` are all checked; whether `@details` is warranted is not |
-| R3 | Roxygen on every file-scope constant | Partly, `scripts/check_roxygen.R`: the header's presence is checked, whether it states where the value comes from and what would break if it changed is not |
+| R1 | Roxygen on every function | Yes, `tests/checks/check_roxygen.R`, from the parse data. A function bound to a name is checked wherever it sits, including inside another function; an anonymous function has no name to document and is not counted |
+| R2 | Mandatory tags | Partly, `tests/checks/check_roxygen.R`: the header opening with a title, an `@param` per argument, no `@param` naming an argument the function does not take, and a `@return` are all checked; whether `@details` is warranted is not |
+| R3 | Roxygen on every file-scope constant | Partly, `tests/checks/check_roxygen.R`: the header's presence is checked, whether it states where the value comes from and what would break if it changed is not |
 | R4 to R8, R10 | Comment content and structure | No, reviewer |
-| R9 | No emoji in source | Yes, a codepoint scan in `scripts/check_lint.R`, covering arrows, enclosed alphanumerics, geometric shapes through dingbats, the symbols supplement and the emoji planes, and permitting the box drawing of O3 and R8 |
+| R9 | No emoji in source | Yes, a codepoint scan in `tests/checks/check_lint.R`, covering arrows, enclosed alphanumerics, geometric shapes through dingbats, the symbols supplement and the emoji planes, and permitting the box drawing of O3 and R8 |
 | S1 to S6 | Simmer conventions | No, reviewer |
 | K1, K2, K7 | Check script name, shebang, exit contract | Yes |
 | K3 to K6, K8 to K10 | Check script structure | Partly: presence of the `fail()` and `report()` helpers is greppable, their correct use is not |
@@ -520,8 +520,8 @@ including `fail()`, `report()` and `arg_value()`.
 
 This section records where the code stands against the standard. The
 finding counts per rule are not restated here: the two ratchets hold them,
-`scripts/lint_baseline.csv` for the rules `scripts/check_lint.R` measures and
-`scripts/roxygen_baseline.csv` for those `scripts/check_roxygen.R` measures,
+`tests/checks/lint_baseline.csv` for the rules `tests/checks/check_lint.R` measures and
+`tests/checks/roxygen_baseline.csv` for those `tests/checks/check_roxygen.R` measures,
 and both are gated per pull request.
 
 **Already uniform.** Assignment is `<-` everywhere, with no `=` statement
@@ -532,7 +532,7 @@ thousands of `TRUE` and `FALSE` (F6). Every file under `R/`, `scripts/` and
 the section rule (O3). Roxygen coverage is complete: every named function in
 the repository, at every nesting depth, carries a header opening with a title,
 an `@param` for each of its arguments and a `@return` (R1, R2), and
-`scripts/check_roxygen.R` holds that position at zero.
+`tests/checks/check_roxygen.R` holds that position at zero.
 
 **Where the code sits outside the standard.**
 
@@ -542,12 +542,12 @@ an `@param` for each of its arguments and a `@return` (R1, R2), and
 | D1 | Two functions exceed 100 lines of code, both orchestrators whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split: `analyse_run` and `analyse_replications`. `server` and `extract_kpis` stood here until the count was taken over code lines alone; both sit inside the limit on that measure, `extract_kpis` having had the two pieces that could be lifted out whole lifted out, `prepare_kpi_frames()` and `extract_role4_kpis()`, and what remains being one reduction per response domain over a shared set of frames, which would have to thread roughly twenty-five intermediate values back into the response assembly to divide further. The five simulation-logic functions that stood here have been split, one per pull request, each verified against the seed-42 byte-for-byte reproduction: `run_once` (147), `build_casualty_trajectory` (334), `r2b_treat_wia` (560), `r2e_treat_wia` (766) and `run_replications` (116). Trajectory construction consumes no random draws, the draws sitting inside the arguments simmer evaluates at run time, so lifting a builder out moves none of them; a phase appended to the chain (`trj %>% ...`) adds to the same trajectory object, and only `join()` copies, which the splits introduced nowhere the undivided bodies did not already do |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R3 | File-scope constants without a roxygen header remain. None is in the simulation modules, whose constants are documented; many are the `SRC_*` citation strings at the head of `R/app_params.R`, whose value is the provenance sentence itself, and run parameters in the check and analysis scripts |
-| K4 to K6, K8, K9 | `scripts/check_env_data_summary.R` and `scripts/check_markdown.R` rewrite the documents they check rather than asserting over the model, so neither carries the `fail()` and `report()` pair; K2, K3, K7 and K10 apply to them unchanged |
+| K4 to K6, K8, K9 | `tests/checks/check_env_data_summary.R` and `tests/checks/check_markdown.R` rewrite the documents they check rather than asserting over the model, so neither carries the `fail()` and `report()` pair; K2, K3, K7 and K10 apply to them unchanged |
 | G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |
 
 Each of these is tracked as its own GitHub issue. This document does not require any of them
 to be repaired; it establishes what "repaired" means.
 
 A count moves only when a maintainer refreshes the baseline with
-`Rscript scripts/check_lint.R --refresh-baseline`, which is how the ratchet
+`Rscript tests/checks/check_lint.R --refresh-baseline`, which is how the ratchet
 tightens after a pull request removes findings.

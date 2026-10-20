@@ -47,7 +47,7 @@ LONG_HORIZON_BLOCK_DAYS <- 30L
 
 #' Resource pools the protocol reports a queue and an occupancy for
 #'
-#' @details The same pools `TIME_SERIES_POOLS` (R/analysis.R) covers, plus the
+#' @details The same pools `TIME_SERIES_POOLS` (R/analysis_time_series.R) covers, plus the
 #'   two R2E clinical pools' upstream theatre. A pool is named here by the
 #'   regular expression matching its individual monitored beds; the patterns
 #'   anchor on the bed-index and team suffixes so that a pool cannot match

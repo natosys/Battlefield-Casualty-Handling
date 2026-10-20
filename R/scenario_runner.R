@@ -33,7 +33,7 @@ SCENARIO_DAYS <- 360L
 #' Closing window the comparison's queue responses are measured over, in days
 #'
 #' @details 90, the window every pool queue and occupancy response in this
-#'   project is measured over (`CAPACITY_SWEEP_WINDOW_DAYS` in `R/analysis.R`,
+#'   project is measured over (`CAPACITY_SWEEP_WINDOW_DAYS` in `R/analysis_sweeps.R`,
 #'   `POLICY_WINDOW_DAYS` in `R/policy_sweep.R`). A campaign shorter than the
 #'   window is measured over its whole length, so a 30-day campaign reads as
 #'   it always has and a longer one reads its settled closing state.

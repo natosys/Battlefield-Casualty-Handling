@@ -7,7 +7,7 @@
 # Usage:
 #   Rscript tests/checks/check_analysis_decomposition.R
 #
-# Exits 0 when every check passes, 1 otherwise. It parses `R/analysis.R` and
+# Exits 0 when every check passes, 1 otherwise. It parses the analysis modules and
 # runs no simulation, so it finishes in about a second.
 #
 # Why this check exists. The analysis pipeline is a sequence of stages, each a
@@ -26,7 +26,7 @@
 # of fault, because it can only compare the paths it happens to take. Reading
 # the binding structure finds all of them at once.
 #
-# What it asserts, for every function in `R/analysis.R` whose body ends in a
+# What it asserts, for every function in the analysis modules whose body ends in a
 # `list(...)` of bare names, which is the shape every decomposed stage has:
 #
 #   1. Each returned name is bound on every path through the function. A name
@@ -43,7 +43,7 @@
 # Both are properties of the source rather than of any particular run, which is
 # what lets one check cover every path at once.
 
-SOURCE  <- file.path("R", "analysis.R")
+SOURCE  <- c(file.path("R", "analysis.R"), Sys.glob(file.path("R", "analysis_*.R")))
 ENTRIES <- c("analyse_run", "analyse_replications")
 
 failures <- character(0)
@@ -136,14 +136,17 @@ top_level_functions <- function(exprs) {
   out
 }
 
-if (!file.exists(SOURCE)) {
-  cat(sprintf("[FAIL] %s does not exist.\n", SOURCE))
+if (length(SOURCE) < 2 || !all(file.exists(SOURCE))) {
+  cat(sprintf("[FAIL] the analysis modules were not found (%s).\n",
+              paste(SOURCE, collapse = ", ")))
   quit(status = 1)
 }
 
-exprs <- parse(SOURCE, keep.source = TRUE)
+# The pipeline's stages and their callers sit in different modules, so the
+# modules are read as one source.
+exprs <- do.call(c, lapply(SOURCE, parse, keep.source = TRUE))
 funcs <- top_level_functions(exprs)
-source_text <- readLines(SOURCE, warn = FALSE)
+source_text <- unlist(lapply(SOURCE, readLines, warn = FALSE))
 
 # ── 1. Every returned name is bound on every path ───────────────────────────
 

@@ -445,7 +445,8 @@ for (key in c("definitive_repair_outstanding", "reconstruction_required",
 
 cat("\n-- the boundary this report does not cross --\n")
 
-analysis_source <- readLines("R/analysis.R", warn = FALSE)
+analysis_source <- unlist(lapply(c("R/analysis.R", Sys.glob("R/analysis_*.R")), readLines,
+                                 warn = FALSE))
 for (absent in c("role4_theatre_capacity", "role4_theatre_shortfall", "role4_ot_queue")) {
   report(!any(grepl(absent, analysis_source, fixed = TRUE)),
          "the analysis module carries no '%s'", absent)

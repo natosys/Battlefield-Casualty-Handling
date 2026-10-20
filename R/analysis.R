@@ -4,7 +4,7 @@
 ##############################################
 #
 # Loads the packages and shared modules the analysis pipeline needs, then its
-# six parts, so that sourcing this one file defines every analysis function as
+# parts, so that sourcing this one file defines every analysis function as
 # before. Each part holds one domain; a change to a stage belongs in the part
 # that defines it.
 
@@ -25,6 +25,10 @@ source("R/figures.R")
 
 source("R/analysis_common.R")
 source("R/analysis_role4_ame.R")
+source("R/analysis_run_r1_r2b.R")
+source("R/analysis_run_r2e.R")
+source("R/analysis_run_flow.R")
+source("R/analysis_run_evacuation.R")
 source("R/analysis_single_run.R")
 source("R/analysis_replications.R")
 source("R/analysis_sweeps.R")

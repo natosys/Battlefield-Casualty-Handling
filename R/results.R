@@ -2491,9 +2491,6 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
 #' Stem of the high-intensity sortie interval grid's evidence files
 POLICY_INTERVAL_GRID_STEM <- "interval_sweep_high_intensity"
 
-#' Interval between sorties of the interval grid's paired baseline arm, in days
-POLICY_INTERVAL_BASELINE_DAYS <- 7L
-
 #' Label of one cell of the sortie interval grid
 #'
 #' @param interval Interval between sorties, in days.

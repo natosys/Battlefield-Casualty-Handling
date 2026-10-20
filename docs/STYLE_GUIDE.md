@@ -431,8 +431,8 @@ both roxygen headers.
 
 ## Regression check scripts
 
-The repository carries sixteen `scripts/check_*.R` scripts. Ten of them
-already share one shape; this section makes that shape the standard.
+Every `scripts/check_*.R` script shares one shape, which this section sets
+out.
 
 **K1 `[review]` Name the file `check_<property>.R`,** naming the property
 asserted rather than the code exercised.
@@ -485,39 +485,6 @@ and falls back to the default.
 **K10 `[review]` Every helper in the script carries a roxygen header (R1),**
 including `fail()`, `report()` and `arg_value()`.
 
-### Assessment of the existing scripts
-
-Conformance measured at the time of writing. Conforming the non-conforming
-scripts is separate work and is not required by this document.
-
-| Script | K2 shebang | K3 banner and usage | K5 and K6 helpers | K7 exit contract | K10 roxygen on helpers |
-|---|---|---|---|---|---|
-| `check_arrival_rate_fidelity.R` | Yes | Yes | Yes | Yes | 3 of 7 |
-| `check_composition_ilr.R` | Yes | Banner only | No | Exit 1 only | 0 of 2 |
-| `check_dow_calibration.R` | Yes | Yes | Yes | Yes | 2 of 5 |
-| `check_env_data_summary.R` | No | No | No | Exit 1 only | 0 of 7 |
-| `check_icu_time_conservation.R` | Yes | Yes | Yes | Yes | 1 of 4 |
-| `check_lever_realisation.R` | Yes | Yes | Yes | Yes | 4 of 8 |
-| `check_markdown.R` | No | No | No | Exit 1 only | 9 of 12 |
-| `check_casualty_surge_kia_split.R` | Yes | Yes | Yes | Yes | 2 of 5 |
-| `check_measurement_reproducibility.R` | Yes | Yes | Yes | Yes | 2 of 6 |
-| `check_morris_baseline.R` | Yes | Banner only | No | Exit 1 only | 1 of 6 |
-| `check_pre_open_window.R` | Yes | Yes | Yes | Yes | 1 of 4 |
-| `check_r2e_surgery_seizure.R` | Yes | Yes | Yes | Yes | 1 of 4 |
-| `check_references.R` | Yes | No | No | Exit 1 only | 4 of 4 |
-| `check_replication_independence.R` | Yes | Yes | Yes | Yes | 1 of 4 |
-| `check_scenario_labels.R` | Yes | Banner only | No | Exit 1 only | 2 of 3 |
-| `check_screen_cache.R` | Yes | Yes | Yes | Yes | 0 of 2 |
-
-Two of the sixteen, `check_env_data_summary.R` and `check_markdown.R`, are
-maintenance scripts that rewrite the documents they check rather than pure
-assertions over the model, which is why neither carries the `fail()` and
-`report()` pair. They are still `check_*.R` scripts run for their exit status,
-so K2, K3, K7 and K10 apply to them unchanged; only K4 to K6, K8 and K9 do not.
-
-The most common single gap is K10: only 33 of the 83 helper functions across
-the sixteen scripts carry a roxygen header, against 119 of 128 in `R/`.
-
 ## Enforcement summary
 
 | Rule | Subject | Machine-checkable |
@@ -551,9 +518,11 @@ the sixteen scripts carry a roxygen header, against 119 of 128 in `R/`.
 
 ## Current conformance
 
-Measured across the 21,129 lines of R in `R/`, `scripts/`, `app.R` and `run.R`.
-These figures are the starting point the standard is applied from, not a
-requirement of it.
+This section records where the code stands against the standard. The
+finding counts per rule are not restated here: the two ratchets hold them,
+`scripts/lint_baseline.csv` for the rules `scripts/check_lint.R` measures and
+`scripts/roxygen_baseline.csv` for those `scripts/check_roxygen.R` measures,
+and both are gated per pull request.
 
 **Already uniform.** Assignment is `<-` everywhere, with no `=` statement
 assignment anywhere in the codebase (F4). The magrittr pipe is used throughout
@@ -569,28 +538,16 @@ an `@param` for each of its arguments and a `@return` (R1, R2), and
 
 | Rule | Gap |
 |---|---|
-| F1 | 919 lines exceed 100 characters: 261 in `app.R`, 238 in `R/app_params.R`, 186 in `R/analysis.R`, 51 in `R/sensitivity.R`, the rest scattered across every file. The longest line is 974 characters |
+| F1 | Over-long lines remain across most files, concentrated in `app.R`, `R/app_params.R` and `R/analysis.R`; `lintr` measures a line in characters, so a comment carrying an em dash counts once |
 | D1 | Two functions exceed 100 lines of code, both orchestrators whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split: `analyse_run` and `analyse_replications`. `server` and `extract_kpis` stood here until the count was taken over code lines alone; both sit inside the limit on that measure, `extract_kpis` having had the two pieces that could be lifted out whole lifted out, `prepare_kpi_frames()` and `extract_role4_kpis()`, and what remains being one reduction per response domain over a shared set of frames, which would have to thread roughly twenty-five intermediate values back into the response assembly to divide further. The five simulation-logic functions that stood here have been split, one per pull request, each verified against the seed-42 byte-for-byte reproduction: `run_once` (147), `build_casualty_trajectory` (334), `r2b_treat_wia` (560), `r2e_treat_wia` (766) and `run_replications` (116). Trajectory construction consumes no random draws, the draws sitting inside the arguments simmer evaluates at run time, so lifting a builder out moves none of them; a phase appended to the chain (`trj %>% ...`) adds to the same trajectory object, and only `join()` copies, which the splits introduced nowhere the undivided bodies did not already do |
 | E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
-| R3 | 171 file-scope constants carry no roxygen header. None is in the simulation modules, whose constants are documented; 47 are the `SRC_*` citation strings at the head of `R/app_params.R`, whose value is the provenance sentence itself, and the remainder are run parameters in the check and analysis scripts. `scripts/check_roxygen.R` counts them and ratchets, so the figure can fall but not rise |
-| K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |
+| R3 | File-scope constants without a roxygen header remain. None is in the simulation modules, whose constants are documented; many are the `SRC_*` citation strings at the head of `R/app_params.R`, whose value is the provenance sentence itself, and run parameters in the check and analysis scripts |
+| K4 to K6, K8, K9 | `scripts/check_env_data_summary.R` and `scripts/check_markdown.R` rewrite the documents they check rather than asserting over the model, so neither carries the `fail()` and `report()` pair; K2, K3, K7 and K10 apply to them unchanged |
 | G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |
 
 Each of these is tracked as its own GitHub issue. This document does not require any of them
 to be repaired; it establishes what "repaired" means.
 
-Two ratchets hold these counts, and both are gated per pull request.
-`scripts/check_roxygen.R` holds the documentation rules above, tracked in
-`scripts/roxygen_baseline.csv`; the rest are the machine's own, taken by
-`scripts/check_lint.R` and tracked in `scripts/lint_baseline.csv`. The latter do not
-all agree with the figures above, which were measured for this document by
-scanning the source directly, and the difference is a matter of definition
-rather than of disagreement. F1 reads 725 rather than 919 because `lintr`
-measures a line in characters where the scan measured it in bytes, and a
-comment carrying an em dash is three bytes but one character. D1's count
-includes a function defined inside another in its own right, which a reading
-by eye would fold into its parent. R9 reads 130 findings, dominated by the arrow used in
-comments rather than by the emoji the rule was written for. A count moves only
-when a maintainer refreshes the baseline with
+A count moves only when a maintainer refreshes the baseline with
 `Rscript scripts/check_lint.R --refresh-baseline`, which is how the ratchet
 tightens after a pull request removes findings.

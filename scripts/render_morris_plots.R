@@ -73,16 +73,13 @@ IMAGES <- if ("--refresh-baseline" %in% args) {
 TRACKED_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "surgery_delivery_rate", "r2e_icu_q",
                        "dow_count", "transport_q", "transport_util")
 
-#' Plain-English labels of responses the tracked screen carries and `morris_kpis` no longer does
-RETIRED_RESPONSE_LABELS <- c(system_ot_q = "System OT Queue (R2B + R2E)")
-
-#' Plain-English label of one response, current or retired
+#' Plain-English label of one response
 #'
 #' @param kpi Response name.
-#' @return The label `morris_kpis` gives it, or the retired label where it has
-#'   none, stopping on a response neither knows.
+#' @return The label `morris_kpis` gives it, stopping on a response it does not
+#'   know.
 response_label <- function(kpi) {
-  label <- if (kpi %in% names(kpi_labels)) kpi_labels[[kpi]] else RETIRED_RESPONSE_LABELS[kpi]
+  label <- kpi_labels[[kpi]]
   if (is.null(label) || is.na(label)) stop(sprintf("no label is known for response %s", kpi))
   unname(label)
 }

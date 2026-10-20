@@ -219,7 +219,7 @@ in the global environment is configuration.
 names the simulation's execution model requires there,** which are `env`,
 `env_data`, `day_min` and `counts`, and only from an entry point: `run.R`,
 `R/replication.R`, `R/scenario_runner.R`, a `scripts/` entry point, or a
-sweep or screening driver in `R/analysis.R` or `R/sensitivity.R`. A trajectory
+sweep or screening driver in `R/analysis_sweeps.R` or `R/sensitivity.R`. A trajectory
 function, a plotting function or a helper does not write to them.
 
 **G3 `[review]` A function that mutates one of those four names and is expected
@@ -285,7 +285,7 @@ See [Regression check scripts](#regression-check-scripts).
 | Reading `env_data.json`, generating arrivals, building the simmer environment | `R/environment.R` |
 | Any `trajectory()` definition and its helpers | `R/trajectories.R` |
 | Running one replication, running many, aggregating across them | `R/replication.R` |
-| Computing a KPI, writing a CSV, producing a plot | `R/analysis.R` |
+| Computing a KPI, writing a CSV, producing a plot | The `R/analysis_*.R` part for its domain, loaded through `R/analysis.R` |
 | Morris screening, Sobol decomposition, and their design and response handling | `R/sensitivity.R` |
 | Welch warm-up analysis | `R/warmup.R` |
 | Scenario overlay resolution and merging | `R/scenario.R` |
@@ -538,9 +538,9 @@ an `@param` for each of its arguments and a `@return` (R1, R2), and
 
 | Rule | Gap |
 |---|---|
-| F1 | Over-long lines remain across most files, concentrated in `app.R`, `R/app_params.R` and `R/analysis.R`; `lintr` measures a line in characters, so a comment carrying an em dash counts once |
+| F1 | Over-long lines remain across most files, concentrated in `app.R`, `R/app_params.R` and the `R/analysis_*.R` modules; `lintr` measures a line in characters, so a comment carrying an em dash counts once |
 | D1 | Two functions exceed 100 lines of code, both orchestrators whose bodies are a sequence of named calls and which already have the properties D1 defends, recorded rather than split: `analyse_run` and `analyse_replications`. `server` and `extract_kpis` stood here until the count was taken over code lines alone; both sit inside the limit on that measure, `extract_kpis` having had the two pieces that could be lifted out whole lifted out, `prepare_kpi_frames()` and `extract_role4_kpis()`, and what remains being one reduction per response domain over a shared set of frames, which would have to thread roughly twenty-five intermediate values back into the response assembly to divide further. The five simulation-logic functions that stood here have been split, one per pull request, each verified against the seed-42 byte-for-byte reproduction: `run_once` (147), `build_casualty_trajectory` (334), `r2b_treat_wia` (560), `r2e_treat_wia` (766) and `run_replications` (116). Trajectory construction consumes no random draws, the draws sitting inside the arguments simmer evaluates at run time, so lifting a builder out moves none of them; a phase appended to the chain (`trj %>% ...`) adds to the same trajectory object, and only `join()` copies, which the splits introduced nowhere the undivided bodies did not already do |
-| E1, E4 | `R/analysis.R` validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
+| E1, E4 | The analysis pipeline validates the monitoring data and the arguments its four entry points receive, but its interior helpers assume well-formed input rather than checking it, which is the intended division and is recorded here because a helper called directly from a new caller is unchecked |
 | R3 | File-scope constants without a roxygen header remain. None is in the simulation modules, whose constants are documented; many are the `SRC_*` citation strings at the head of `R/app_params.R`, whose value is the provenance sentence itself, and run parameters in the check and analysis scripts |
 | K4 to K6, K8, K9 | `tests/checks/check_env_data_summary.R` and `tests/checks/check_markdown.R` predate the `fail()` and `report()` pair and stop at their first failure; each verifies the block it guards and rewrites it only under `--refresh-baseline` |
 | G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |

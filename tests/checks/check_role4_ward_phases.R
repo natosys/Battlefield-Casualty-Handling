@@ -418,7 +418,8 @@ cat("\n-- the national support base is not given a capacity --\n")
 # read as a statement about an echelon carrying no case mix, no transfer
 # options and no back-pressure. The absence is asserted rather than left to
 # convention, so it cannot be reintroduced without this failing.
-analysis_source <- readLines("R/analysis.R", warn = FALSE)
+analysis_source <- unlist(lapply(c("R/analysis.R", Sys.glob("R/analysis_*.R")), readLines,
+                                 warn = FALSE))
 for (absent in c("role4_capacity", "role4_capacity_shortfall",
                  "role4_established", "ROLE4_ESTABLISHMENT_CAPTION")) {
   report(!any(grepl(absent, analysis_source, fixed = TRUE)),

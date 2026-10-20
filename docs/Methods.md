@@ -449,7 +449,7 @@ None of the three capacity sweeps keeps the per-replication responses behind its
 
 30 replications of 360 simulated days per grid point at control seed 42, under the shipped default configuration with two overrides per point: R2B holding beds per unit set to 5 (shipped), 7 or 10, and `r2b.holding.evac_threshold` set to disabled (shipped, equivalent to 0), 1, 3, 5 or 7 days, the fifteen-point cross product of both axes. Each replication is drawn independently rather than paired, the same convention the two sweeps above it use.
 
-`plot_r2b_hold_threshold_sweep()` (`R/analysis.R`) sets the two axes differently, because they enter the model at different points. The bed count is an `elms` establishment, so `set_r2b_hold_beds()` edits the parsed configuration before `build_environment()` runs for that point, the same mechanism the transport fleet-size sweep above uses for its own `transports` counts. The evacuation threshold is a `vars` entry, so it is set on the already-built configuration directly, the same mechanism the forward holding frontier above uses for its own `vars` override. Run via:
+`plot_r2b_hold_threshold_sweep()` (`R/analysis_sweeps.R`) sets the two axes differently, because they enter the model at different points. The bed count is an `elms` establishment, so `set_r2b_hold_beds()` edits the parsed configuration before `build_environment()` runs for that point, the same mechanism the transport fleet-size sweep above uses for its own `transports` counts. The evacuation threshold is a `vars` entry, so it is set on the already-built configuration directly, the same mechanism the forward holding frontier above uses for its own `vars` override. Run via:
 
 ```
 Rscript scripts/run_hold_threshold_sweep.R --refresh-baseline
@@ -470,7 +470,7 @@ The flag is the only way to write this sweep's copy of the tracked `data/sweeps/
 
 30 replications of 360 simulated days per sweep point at control seed 42, with one override per point: the PMV Ambulance fleet swept across 1 to 5 vehicles and the HX2 40M fleet across 1 to 4, each with the other fleet held at its shipped establishment size, on the sustained-operations protocol. The design runs twice, once under the shipped default configuration and once under the `high_intensity` scenario profile, to establish whether the margin the first reports survives at the higher casualty rate.
 
-`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis.R`) resolves the named scenario against the parsed `env_data.json` (`resolve_scenario()`, `R/scenario.R`) before applying the per-point fleet-size override, rebuilds the environment via `build_environment()`, and runs the same replication engine the comparative scenario runner uses. Run via:
+`plot_transport_capacity_margin_by_fleet_size()` (`R/analysis_sweeps.R`) resolves the named scenario against the parsed `env_data.json` (`resolve_scenario()`, `R/scenario.R`) before applying the per-point fleet-size override, rebuilds the environment via `build_environment()`, and runs the same replication engine the comparative scenario runner uses. Run via:
 
 ```
 Rscript scripts/run_transport_sweep.R --refresh-baseline
@@ -768,7 +768,7 @@ The casualty count drawn for an event is its total, not the number of survivors.
 
 ---
 
-The comparison sorts casualties by origin rather than by a strict time window around each event (see the assumption note in `R/analysis.R`). The gap-based reconstruction the analysis pipeline applies to recover events from a single campaign has one known failure mode, reading two closely spaced events as one.
+The comparison sorts casualties by origin rather than by a strict time window around each event (see the assumption note in `summarise_casualty_surge_events()`, `R/analysis_single_run.R`). The gap-based reconstruction the analysis pipeline applies to recover events from a single campaign has one known failure mode, reading two closely spaced events as one.
 
 ### Treated-Cohort Mortality at the Sustained Horizon
 

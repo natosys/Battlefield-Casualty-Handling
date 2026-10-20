@@ -180,7 +180,8 @@ images_dir_defaults <- function(path) {
   unlist(found)
 }
 
-library_files <- c("R/analysis.R", "R/scenario_runner.R", "R/warmup.R", "R/sensitivity.R")
+library_files <- c("R/analysis.R", Sys.glob("R/analysis_*.R"), "R/scenario_runner.R",
+                   "R/warmup.R", "R/sensitivity.R")
 defaults <- unlist(lapply(library_files, images_dir_defaults))
 tracked_dir <- normalizePath("images", mustWork = FALSE)
 resolves_to_tracked <- vapply(defaults, function(d) {
@@ -251,7 +252,9 @@ provenance_gaps <- function(tracked, referenced, declared, named_in) {
 #' @param path File to read.
 #' @return The file's lines joined by newlines.
 read_text <- function(path) paste(readLines(path, warn = FALSE), collapse = "\n")
-named_in <- list(analysis = read_text("R/analysis.R"), warmup = read_text("R/warmup.R"),
+named_in <- list(analysis = paste(vapply(c("R/analysis.R", Sys.glob("R/analysis_*.R")),
+                                         read_text, character(1)), collapse = "\n"),
+                 warmup = read_text("R/warmup.R"),
                  readme = read_text("README.md"))
 tracked_images <- list.files("images", pattern = "\\.(png|kmz|milxlyz)$")
 cited <- sort(unique(unlist(lapply(DOCUMENTS, referenced_images))))

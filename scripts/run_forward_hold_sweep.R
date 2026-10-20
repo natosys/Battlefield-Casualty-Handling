@@ -13,7 +13,7 @@
 #
 # Each arm sets one forward holding rule at R2B (`r2b.post_op_icu`): a stability
 # window in minutes applied to both surgical pathways and the capacity trigger.
-# The arms are FORWARD_HOLD_SWEEP_ARMS in R/analysis.R.
+# The arms are FORWARD_HOLD_SWEEP_ARMS in R/analysis_sweeps.R.
 #
 # --refresh-baseline is the only way to write the tracked data/sweeps/ and the
 # tracked images/r2b_forward_hold_frontier.png. Without it every invocation

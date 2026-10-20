@@ -2331,7 +2331,7 @@ r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
 #'   disposition needs a per-casualty clinical duration to compare against the
 #'   policy rather than a fixed share of admissions. The draw is the shared base
 #'   convalescence distribution (r2eheavy$holding) scaled by a severity factor
-#'   keyed to the same four categories R/analysis.R::assign_role4_los() uses, so
+#'   keyed to the same four categories R/analysis_role4_ame.R::assign_role4_los() uses, so
 #'   a casualty's prognosis, its Role 4 ward and its evacuation route all follow
 #'   from one severity classification rather than from independent draws.
 draw_recovery_to_duty <- function() {
@@ -2807,7 +2807,7 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     set_attribute("r2e_evac", 1) %>%
     # evacuation_decision_day / treatment_received (Issue #23): captured
     # when the Strategic Evac disposition is decided. Feeds the Role 4
-    # ward/LoS category assignment (R/analysis.R::assign_role4_los())
+    # ward/LoS category assignment (R/analysis_role4_ame.R::assign_role4_los())
     # — see README Role 4 sub-section.
     set_attribute("evacuation_decision_day", function() floor(now(env) / DAY_MIN) + 1) %>%
     set_attribute("treatment_received", function() {
@@ -2827,7 +2827,7 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     # Both arms set ame_route (1 = critical, 2 = standard), which
     # R/analysis.R reads for the route-decomposed wait-time and backlog
     # outputs. The same population routed here is the one assigned the Role 4
-    # intensive care ward by assign_role4_los() (R/analysis.R), so the two
+    # intensive care ward by assign_role4_los() (R/analysis_role4_ame.R), so the two
     # must be changed together.
     branch(
       option = function() {
@@ -3105,7 +3105,7 @@ assign_injury_attributes <- function(trj) {
     debit_force_size() %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
     # injury_type (Issue #23): 1 = WIA, 2 = DNBI, 3 = KIA. Read downstream by
-    # the Role 4 census (R/analysis.R::assign_role4_los()) to route DNBI
+    # the Role 4 census (R/analysis_role4_ame.R::assign_role4_los()) to route DNBI
     # strategic evacuees to the P3/DNBI length-of-stay category regardless of
     # their triage priority — see README Role 4 sub-section.
     set_attribute("injury_type", function() {

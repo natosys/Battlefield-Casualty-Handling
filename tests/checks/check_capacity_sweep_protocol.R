@@ -27,7 +27,7 @@
 #
 # What this asserts:
 #
-#   1. Every protocol parameter in R/analysis.R equals the value
+#   1. Every protocol parameter in R/analysis_sweeps.R equals the value
 #      docs/Methods.md documents in a marker comment.
 #   2. Each tracked evidence set is that experiment: the documented swept
 #      values, and the response columns its published table prints.
@@ -96,14 +96,14 @@ PRINT_TOL <- 0.005
 
 cat("\n-- both protocols' parameters match the methods paper --\n")
 
-# R/analysis.R carries the protocol constants alongside five thousand lines of
-# pipeline that need simmer's monitoring shapes to be interesting. The
+# R/analysis_sweeps.R carries the protocol constants alongside the sweep
+# runners, which need simmer's monitoring shapes to be interesting. The
 # constants are read out of the source instead, so this check runs in seconds
 # and without the simulation's dependencies, which is what lets it sit in the
 # per-pull-request gate.
-analysis_source <- readLines(file.path("R", "analysis.R"), warn = FALSE)
+analysis_source <- readLines(file.path("R", "analysis_sweeps.R"), warn = FALSE)
 
-#' Read one protocol constant's value out of R/analysis.R
+#' Read one protocol constant's value out of R/analysis_sweeps.R
 #'
 #' @param name The constant's name.
 #' @return The constant's value, or NULL where it is absent or spans more than
@@ -520,7 +520,7 @@ cat("\n-- the tracked intervals are the Student t ones at 95% --\n")
 #' @param s Sample standard deviation across those replications.
 #' @return The 95% Student t half-width.
 #'
-#' @details Written out here rather than called from R/analysis.R, which cannot
+#' @details Written out here rather than called from R/analysis_sweeps.R, which cannot
 #'   be sourced without the simulation's dependencies. Asserting that the
 #'   tracked interval matches it is what stops assertion 3 checking a table
 #'   against a summary that computed its interval some other way.

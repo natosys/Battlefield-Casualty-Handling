@@ -6,7 +6,7 @@
 #
 #   Rscript tests/checks/run_all_checks.R [--fast | --slow | --all]
 #                                    [--only <pattern>] [--list]
-#                                    [--log-dir <path>] [--no-tree-check]
+#                                    [--log-dir <path>]
 #                                    [--jobs <n> | --jobs auto]
 #                                    [--refresh-runtimes]
 #
@@ -23,14 +23,6 @@
 # not named in SLOW_CHECKS is fast, so the default classification of a new
 # check is the one that gets it executed on every pull request.
 #
-# Two checks rewrite tracked documents in place rather than only inspecting
-# them, so exit status alone does not report their finding: they regenerate the
-# block or the table of contents and succeed, leaving the drift they found as a
-# modification in the working tree. For those the runner compares `git status`
-# before and after and treats a change as a failure, which is the signal a gate
-# needs. `--no-tree-check` disables the comparison for a working tree that is
-# already dirty for unrelated reasons.
-#
 # Check output is written to a per-check log file rather than to the console,
 # and only a failing check's tail is printed. Several checks emit roughly one
 # hundred `simmer` end-of-run warnings apiece, which would otherwise bury the
@@ -38,11 +30,7 @@
 #
 # `--jobs` runs several checks at once. Each check is a separate `Rscript`
 # process reading the repository and writing its own log and its own temporary
-# directory, so concurrency costs nothing in isolation; the two exceptions are
-# the checks that regenerate a tracked document, which are detected through a
-# repository-wide `git status` comparison that cannot attribute a change to one
-# of two concurrent writers, and so are run on their own before the pool
-# starts. Checks are dispatched longest first, from the runtimes recorded in
+# directory, so concurrency costs nothing in isolation. Checks are dispatched longest first, from the runtimes recorded in
 # tests/checks/check_runtimes.csv, because a suite whose longest check starts last
 # finishes no sooner than that check does. `--refresh-runtimes` rewrites those
 # recorded runtimes from the run's own measurements, which is the only way the
@@ -75,10 +63,6 @@ AUTO_JOBS_CAP     <- 8L
 # tests/checks/check_runtimes.csv. Add a check here only on the evidence of a measurement.
 SLOW_CHECKS <- c("check_dow_calibration.R")
 
-#' Checks that rewrite tracked files in place; see the banner above
-#'
-MUTATING_CHECKS <- c("check_env_data_summary.R", "check_markdown.R")
-
 #' Print a message to standard error without a call prefix
 #'
 #' @param ... Parts of the line, pasted together with no separator.
@@ -93,14 +77,14 @@ say <- function(...) {
 #'   `commandArgs(trailingOnly = TRUE)`.
 #' @return A list with elements `selection` ("fast", "slow" or "all"), `only`
 #'   (a regular expression or NA), `list_only` (logical), `log_dir`,
-#'   `tree_check` (logical), `jobs` (the string given to --jobs) and
+#'   `jobs` (the string given to --jobs) and
 #'   `refresh_runtimes` (logical).
 #' @details Fails with `stop()` on an unrecognised argument rather than
 #'   silently running the whole suite, so a mistyped flag in a workflow file
 #'   surfaces as a red job rather than as a forty-five minute one.
 parse_args <- function(args) {
   opts <- list(selection = "all", only = NA_character_, list_only = FALSE,
-               log_dir = DEFAULT_LOG_DIR, tree_check = TRUE, jobs = "1",
+               log_dir = DEFAULT_LOG_DIR, jobs = "1",
                refresh_runtimes = FALSE)
   i <- 1L
   while (i <= length(args)) {
@@ -113,8 +97,6 @@ parse_args <- function(args) {
       opts$selection <- "all"
     } else if (a == "--list") {
       opts$list_only <- TRUE
-    } else if (a == "--no-tree-check") {
-      opts$tree_check <- FALSE
     } else if (a == "--only") {
       if (i == length(args)) stop("--only requires a pattern argument")
       opts$only <- args[[i + 1L]]
@@ -254,21 +236,6 @@ order_by_cost <- function(checks, runtimes) {
   checks[order(-cost, checks)]
 }
 
-#' The tracked working tree state, as a single string
-#'
-#' @return A one-element character vector holding `git status --porcelain`
-#'   output, or NA when git is unavailable or the directory is not a
-#'   repository.
-tree_state <- function() {
-  args <- c("status", "--porcelain")
-  out <- suppressWarnings(tryCatch(
-    system2("git", args, stdout = TRUE, stderr = FALSE),
-    error = function(e) NULL
-  ))
-  if (is.null(out) || !is.null(attr(out, "status"))) return(NA_character_)
-  paste(out, collapse = "\n")
-}
-
 #' Format a duration in seconds as minutes and seconds
 #'
 #' @param secs Elapsed time in seconds.
@@ -300,8 +267,6 @@ print_log_tail <- function(log_path) {
 #'
 #' @param check File name of the check, relative to `tests/checks/`.
 #' @param log_dir Directory the check's output log is written to.
-#' @param tree_check Whether a working tree modification counts as a failure
-#'   for a check named in MUTATING_CHECKS.
 #' @param cores Cores the check may fork into, passed as MC_CORES, or NA to
 #'   leave the child at its own default.
 #' @return A list with elements `check`, `ok` (logical), `status` (the exit
@@ -310,10 +275,9 @@ print_log_tail <- function(log_path) {
 #' @details Output is captured to `log_dir` rather than inherited, so that the
 #'   suite's own PASS/FAIL lines stay readable; a failing check's tail is
 #'   printed by the caller.
-run_check <- function(check, log_dir, tree_check, cores = NA_integer_) {
+run_check <- function(check, log_dir, cores = NA_integer_) {
   path     <- file.path(CHECK_DIR, check)
   log_path <- file.path(log_dir, sub("[.]R$", ".log", check))
-  before   <- if (tree_check && check %in% MUTATING_CHECKS) tree_state() else NA_character_
   child    <- if (is.na(cores)) character(0) else sprintf("MC_CORES=%d", cores)
   started  <- Sys.time()
   status   <- system2("Rscript", shQuote(path), stdout = log_path, stderr = log_path,
@@ -322,13 +286,6 @@ run_check <- function(check, log_dir, tree_check, cores = NA_integer_) {
   note     <- ""
   ok       <- identical(as.integer(status), 0L)
   if (!ok) note <- sprintf("exit status %s", status)
-  if (ok && !is.na(before)) {
-    after <- tree_state()
-    if (!is.na(after) && !identical(before, after)) {
-      ok   <- FALSE
-      note <- "modified tracked files: the document it regenerates had drifted"
-    }
-  }
   list(check = check, ok = ok, status = status, seconds = seconds, note = note,
        log = log_path)
 }
@@ -349,12 +306,12 @@ report_result <- function(result) {
 #' Run checks one after another
 #'
 #' @param checks Character vector of check file names.
-#' @param opts Parsed options, for `log_dir` and `tree_check`.
+#' @param opts Parsed options, for `log_dir`.
 #' @param cores Cores each check may fork into, or NA for the child default.
 #' @return A list of `run_check()` results, in the order given.
 run_checks_serial <- function(checks, opts, cores) {
   lapply(checks, function(check) {
-    result <- run_check(check, opts$log_dir, opts$tree_check, cores)
+    result <- run_check(check, opts$log_dir, cores)
     report_result(result)
     result
   })
@@ -363,7 +320,7 @@ run_checks_serial <- function(checks, opts, cores) {
 #' Run checks concurrently, at most `jobs` of them at once
 #'
 #' @param checks Character vector of check file names, longest expected first.
-#' @param opts Parsed options, for `log_dir` and `tree_check`.
+#' @param opts Parsed options, for `log_dir`.
 #' @param jobs Number of checks to have in flight at once.
 #' @param cores Cores each check may fork into, or NA for the child default.
 #' @return A list of `run_check()` results, in the order the checks were given.
@@ -374,7 +331,7 @@ run_checks_serial <- function(checks, opts, cores) {
 #'   with the reason rather than dropped from the count.
 run_checks_parallel <- function(checks, opts, jobs, cores) {
   results <- parallel::mclapply(checks, function(check) {
-    result <- run_check(check, opts$log_dir, opts$tree_check, cores)
+    result <- run_check(check, opts$log_dir, cores)
     report_result(result)
     result
   }, mc.cores = jobs, mc.preschedule = FALSE)
@@ -445,18 +402,14 @@ say(sprintf("Running %d %s check(s)%s; output in %s",
             args$log_dir))
 say("")
 
-# The document-regenerating checks are recognised by a repository-wide git
-# comparison, which cannot say which of two concurrent writers touched a file,
-# so they are taken first and on their own. Everything else is dispatched
-# longest first: the suite cannot finish before its longest check does.
+# Checks are dispatched longest first: the suite cannot finish before its
+# longest check does.
 started  <- Sys.time()
-mutating <- intersect(checks, MUTATING_CHECKS)
-pooled   <- order_by_cost(setdiff(checks, mutating), read_runtimes())
-results  <- run_checks_serial(mutating, args, cores)
-if (jobs > 1L) {
-  results <- c(results, run_checks_parallel(pooled, args, jobs, cores))
+pooled   <- order_by_cost(checks, read_runtimes())
+results  <- if (jobs > 1L) {
+  run_checks_parallel(pooled, args, jobs, cores)
 } else {
-  results <- c(results, run_checks_serial(pooled, args, cores))
+  run_checks_serial(pooled, args, cores)
 }
 wall <- as.numeric(difftime(Sys.time(), started, units = "secs"))
 

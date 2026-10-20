@@ -31,7 +31,9 @@
 #      tests/checks/, rather than a row each: every check is listed, from its
 #      own banner, in the generated table of docs/Continuous_Integration.md,
 #      which tests/checks/check_ci_check_table.R holds complete.
-#   4. Every other scripts/*.R and scripts/*.sh entry point has a row in it.
+#   4. Every scripts/*.R and scripts/*.sh entry point has a row in the
+#      README's table, and CLAUDE.md's table has one row naming scripts/,
+#      for the reason rule 3 gives for the checks.
 #   4a. Every tracked docs/*.md has a row in it, so a
 #      document added, renamed or retired without updating the document roles
 #      fails here rather than leaving a role naming a file that is gone.
@@ -174,8 +176,10 @@ assert_covered(modules, readme_paths, "R/ module", "the README's Codebase Struct
 assert_covered(modules, claude_paths, "R/ module", "CLAUDE.md's Repository Structure table")
 report("tests/checks/" %in% claude_paths,
        "the regression checks have a row in CLAUDE.md's Repository Structure table")
-assert_covered(other_scripts, claude_paths, "other scripts/ entry point",
-               "CLAUDE.md's Repository Structure table")
+assert_covered(other_scripts, readme_paths, "scripts/ entry point",
+               "the README's Codebase Structure table")
+report("scripts/" %in% claude_paths,
+       "the scripts/ entry points have a row in CLAUDE.md's Repository Structure table")
 
 documents <- tracked_files("^docs/[^/]+\\.md$")
 assert_covered(documents, claude_paths, "docs/ document",
@@ -247,7 +251,7 @@ report(length(absent) == 0, "the README names every scripts/run_*.R and scripts/
        length(run_render),
        if (length(absent)) sprintf("; absent: %s", paste(absent, collapse = ", ")) else "")
 
-report(identical(unnamed_in(run_render, sub(run_render[1], "", readme_text, fixed = TRUE)),
+report(identical(unnamed_in(run_render, gsub(run_render[1], "", readme_text, fixed = TRUE)),
                  run_render[1]),
        "removing %s from the README text is reported (fault injection)", run_render[1])
 

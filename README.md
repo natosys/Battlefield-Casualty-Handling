@@ -160,6 +160,8 @@ This research looks to explore the performance of the deployed health system thr
 
 ## Literature Review
 
+<small>[Return to Top](#contents)</small>
+
 ### Methodology
 
 To inform the design and implementation of the battlefield casualty simulation, a structured literature review was conducted in two phases.
@@ -1087,34 +1089,28 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/run_forward_hold_sweep.R` | CLI entry point for the forward holding sweep (see [Post-Operative Stabilisation](#post-operative-stabilisation)) |
 | `scripts/run_surgical_team_sweep.R` | CLI entry point for the surgical team establishment sweep (see [Surgical Team Establishment](docs/Results.md#surgical-team-establishment)) |
 | `scripts/run_icu_bed_sweep.R` | CLI entry point for the R2E intensive care bed establishment sweep (see [R2E Intensive Care Bed Establishment](docs/Results.md#r2e-intensive-care-bed-establishment)) |
-| `tests/checks/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
-| `tests/checks/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, reproducing the anchor GitHub itself generates for each heading; rejects any heading containing emoji, and reports any anchor link pointing at no heading |
-| `tests/checks/check_references.R`     | Checks the reference list of this README and the two analysis documents: that every `[[n]]` in the text resolves to an entry and every entry is cited at least once, that the list is numbered from one in order of first appearance, that no two entries name the same URL, and that each entry carries a URL and a retrieval date; exits non-zero on failure |
-| `tests/checks/check_r2e_surgery_seizure.R` | Checks that every R2E surgery seizes a surgical section, by reading the built trajectory and by running the model; exits non-zero on failure |
-| `tests/checks/check_icu_time_conservation.R` | Checks that a casualty's post-operative ICU requirement is conserved across both surgical pathways and every configuration of the forward holding rule; exits non-zero on failure |
-| `tests/checks/check_forward_hold_switch.R` | Checks that the disabled forward holding rule reproduces the run of a configuration that never carried it; exits non-zero on failure |
-| `tests/checks/check_composition_ilr.R`  | Checks that each simplex-constrained composition survives the round trip through its balance coordinates, at every design point of a Morris design and at each corner of each coordinate box; exits non-zero on failure |
-| `tests/checks/check_morris_baseline.R`  | Checks that every screened parameter's baseline lies inside its own screening bounds and equals the value it holds in `env_data.json`, deriving the parameter-to-path mapping from `apply_params()` rather than restating it; exits non-zero on failure |
-| `tests/checks/check_dow_calibration.R`  | Checks each shipped configuration's treated-cohort died-of-wounds rate against the historical anchor of the campaign it models, the Ajax Bay bound for the two Falklands-calibrated configurations and the reported Okinawa rate for `high_intensity`, pooling independent measurements because one does not resolve a response this sparse; exits non-zero on failure |
-| `tests/checks/check_dow_fitter.R`       | Checks that the ceiling search recovers a known ceiling from a constructed response, that the same assertion rejects a fitter that returns the bracket's midpoint, its lower end or the wrong side of the target, and that the README's Parameter Calibration table states the shipped ceilings; needs no simulation and exits non-zero on failure |
-| `tests/checks/check_analysis_idempotence.R` | Checks that analysing one run's monitoring data twice gives one answer: that two `analyse_run()` calls return the same Role 4 census and write byte-identical outputs, that `analyse_replications()` does the same including the jittered casualty surge timeline, and that neither advances the caller's random number stream; exits non-zero on failure |
-| `tests/checks/check_replication_independence.R` | Checks that `run_once()` is a pure function of its seed and that `run_replications()` draws a distinct seed per replication, which together make the replications independent; exits non-zero on failure |
-| `tests/checks/check_measurement_reproducibility.R` | Checks that a multi-replication measurement is a function of its control seed alone: that it repeats at that seed, that it does not depend on what preceded it in the session, that `run_replications()` leaves the caller's generator kind and stream position alone, and that a replication reproduces from its seed whichever path dispatched it; exits non-zero on failure |
-| `tests/checks/check_scenario_labels.R`  | Checks that the comparative scenario plot renders in a C locale and byte-for-byte matches the same plot rendered under UTF-8, reaching the plotting stage from a synthetic queue table rather than from a full replication run; exits non-zero on failure |
-| `tests/checks/check_casualty_surge_kia_split.R` | Checks that a casualty surge event's casualty count is conserved across the wounded/killed split at every share, that the realised share tracks the configured one, that an event's killed reach mortuary handling without being triaged, and that the share reaches nothing while injection is disabled; exits non-zero on failure |
-| `tests/checks/check_pre_open_window.R`  | Checks the R2B pre-open hold window at its bounds: that a window of zero reproduces the instant-diversion model bit-for-bit, that `minutes_to_shift_open()` agrees with the roster at every minute of the day, and that every casualty held forward is operated on there rather than diverted anyway; exits non-zero on failure |
-| `tests/checks/check_console_bindings.R` | Checks that no console panel function reads a name another panel binds locally. Such a name parses and loads, and fails only when a user opens the panel that reads it, which no R-level test sees; also checks that no panel function is left uncalled. Exits non-zero on failure |
-| `tests/checks/check_analysis_decomposition.R` | Checks that every stage of the analysis pipeline binds what it returns: that no stage returns a name bound only inside a conditional, and that no stage returns a value nothing reads. Both are properties of the source rather than of any one run, so one check covers every path at once, which an artifact comparison cannot; exits non-zero on failure |
-| `tests/checks/check_screen_cache.R`     | Checks that a screen's design-point cache resumes what it recorded: that a complete row round-trips, that a partially-missing row reads as present with its gaps preserved while an all-missing row reads as absent and is retried, that an uncached point and a cache from a different screen both read as absent, and that a Sobol cache's per-response standard-deviation columns neither disturb a response lookup nor become unreadable; exits non-zero on failure |
-| `tests/checks/check_bed_queue_coverage.R` | Checks that each echelon's bed queue figure covers every bed type that echelon fields, that each panel label counts the beds in the pool it names, and that the panels share one vertical scale rather than each filling its own. The coverage assertion is made against a bed type no configuration ships, injected into the monitor, so it holds for a type added later rather than for today's establishment; exits non-zero on failure |
-| `tests/checks/check_hold_episode_reconstruction.R` | Checks that an R2B holding episode is bounded by the attribute its own exit route sets, there being three routes out of a holding bed and only one of them setting `return_day`, and cross-checks the reconstructed bed-days against the resource monitor, which counts the beds directly and owes nothing to the attributes; exits non-zero on failure |
-| `tests/checks/check_testthat.R`         | Runs the Shiny console's `testthat` suite under `tests/testthat`, which covers the console's reactive state machine through `shiny::testServer()` and its helpers directly; exits non-zero on any failing test |
+| `scripts/run_long_horizon.R` | CLI entry point for the sustained-operations horizon: every response's daily series and block means at each casualty intensity (see [Reproducing the Published Results](#reproducing-the-published-results)) |
+| `scripts/run_hold_window.R` | CLI entry point for the paired R2B pre-open hold window comparison |
+| `scripts/run_icu_gate.R` | CLI entry point for the paired post-operative intensive care gate comparison |
+| `scripts/run_hold_threshold_sweep.R` | CLI entry point for the joint R2B holding capacity and evacuation threshold sweep |
+| `scripts/run_policy_sweep.R` | CLI entry point for the evacuation policy, R2E holding establishment and sortie interval sweeps, each arm paired on one control seed |
+| `scripts/run_saturation_sweep.R` | CLI entry point for the forward surgical saturation release sweep |
+| `scripts/run_airlift_sweep.R` | CLI entry point for the strategic evacuation and Role 4 measurement and its sortie reliability and interval sweeps |
+| `scripts/run_airlift_collapse.R` | CLI entry point for the strategic airlift collapse experiment, classifying each 360-day replication as collapsed or not |
+| `scripts/run_role4_demand.R` | CLI entry point for the Role 4 bed demand experiment at both intensities and each sortie cancellation probability |
+| `scripts/run_casualty_surge.R` | CLI entry point for the casualty surge event stress test, and the illustrative run behind its timeline figure |
+| `scripts/run_casualty_surge_size_sweep.R` | CLI entry point for the casualty surge event size sweep |
+| `scripts/run_sobol_decomposition.R` | CLI entry point for the tracked 360-day Sobol decomposition, the one place its design is written down as a command |
+| `scripts/render_results_tables.R` | Regenerates every table and quoted figure of the results and planning papers from the tracked evidence sets |
+| `scripts/render_sweep_figures.R` | Renders every sweep, comparison and surge figure of the results paper from the tracked evidence, without simmer |
+| `scripts/render_paper_figures.R` | Renders the results paper's three summary figures from the tables it prints |
+| `scripts/render_time_series_figures.R` | Measures (`--run`) and renders the two campaign time series figures |
+| `scripts/render_long_horizon_warmup.R` | Renders the sustained-horizon Welch diagnostic from the tracked long-horizon series |
+| `scripts/render_check_table.R` | Regenerates the per-check table of [docs/Continuous_Integration.md](docs/Continuous_Integration.md) from each check's banner |
+| `tests/checks/` | The regression checks, one `check_*.R` per property asserted, each exiting non-zero when its assertions fail, with the suite runner `run_all_checks.R` and the runtime and ratchet baselines. Each check is listed, from its own banner, in the generated table of [docs/Continuous_Integration.md](docs/Continuous_Integration.md#the-checks); see [Verification and Continuous Integration](#verification-and-continuous-integration) |
 | `tests/testthat/`                  | The console's R test suite: helper unit tests, and `testServer` coverage of the run, screening and configuration reactives |
 | `tests/playwright/`                | The console's browser test suite, driving a running app in headless Chromium (see [docs/Continuous_Integration.md](docs/Continuous_Integration.md)) |
 | `package.json`, `package-lock.json`, `playwright.config.js` | The Node toolchain the browser suite needs, kept separate from `renv.lock` so that no browser automation package enters the R dependency set |
-| `tests/checks/run_all_checks.R`         | Runs the regression check suite: discovers every `tests/checks/check_*.R` by glob, reports a pass or fail line and a runtime for each, and exits non-zero if any fails. `--fast` omits the one check too slow for a per-pull-request gate, `--slow` runs that check alone, and `--list` prints the classification without running anything |
-| `tests/checks/check_lint.R`             | Runs `lintr` under the rules `.lintr` encodes, adds the two machine-checkable rules `lintr` ships no linter for (the function length limit and the ban on pictographic characters in source), and compares the finding count per rule against `tests/checks/lint_baseline.csv`; exits non-zero if any count has risen |
-| `tests/checks/check_baseline_reproduction.R` | Runs the model at seed 42 for 360 days and compares the console log, the arrival diagnostics and the verification measurements byte for byte against the tracked set under `data/seed42/`, the property every published figure rests on; exits non-zero on any difference |
 | `.lintr`, `tests/checks/lint_baseline.csv` | The lint configuration and the tracked per-rule finding counts it is ratcheted against (see [Verification and Continuous Integration](#verification-and-continuous-integration)) |
 | `.github/`                         | Pull request template and the GitHub Actions workflow that runs the fast suite, the lint ratchet, the seed-42 reproduction and the console's browser suite on every pull request against `main` (see [docs/Continuous_Integration.md](docs/Continuous_Integration.md)) |
 | `renv.lock`, `.Rprofile`, `renv/`  | Pinned package versions and the `renv` project library (see [Restoring dependencies](#restoring-dependencies)) |
@@ -2164,6 +2160,8 @@ Across multiple replications, peak Role 4 occupancy and the unconstrained sortie
 
 ## Model Outputs
 
+<small>[Return to Top](#contents)</small>
+
 The simulation produces a defined set of Key Performance Indicators (KPIs) organised by planner decision domain. Each KPI is selected against five criteria derived from military medical doctrine and discrete event simulation methodology [[40]](#references):
 
 - **C1 — Doctrinal Standard Compliance:** Variable measures compliance with a named standard in AJP-4.10 [[34]](#references).
@@ -2352,6 +2350,8 @@ The p90 carries no such horizon, being a point on the curve rather than an area 
 ---
 
 ## Further Development
+
+<small>[Return to Top](#contents)</small>
 
 This section records what the model does not represent, how much each gap matters, and what would close it. Entries carry a stable identifier so they can be cited from the analysis documents, issues and pull requests; identifiers are never reused, so gaps in the sequence are entries that have been closed and removed. Sequencing and status are tracked in the repository's GitHub issues, not here.
 

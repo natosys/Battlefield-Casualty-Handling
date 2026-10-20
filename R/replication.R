@@ -19,7 +19,7 @@ source("R/constants.R")
 #' @return The list returned by generate_casualty_surge_events(): the event
 #'   table and the wounded and killed arrival times and event ids.
 #'
-#' @details Casualty surge injection (Issue #9) is exogenous and pre-computed (a
+#' @details Casualty surge injection is exogenous and pre-computed (a
 #'   compound Poisson process, or in "scheduled" mode a planner-specified
 #'   day/probability list) rather than population-scaled the way the six
 #'   background streams are. The event stream is therefore drawn once, here,
@@ -55,7 +55,7 @@ init_casualty_surge_stream <- function(n_days, write_files, data_dir) {
 #' @return The environment, with the force-size and evacuation-wait globals and
 #'   the six casualty generators added.
 #'
-#' @details Force regeneration feedback loop (Issue #18): the six background
+#' @details Force regeneration feedback loop: the six background
 #'   casualty streams are live, force-size-reactive generator closures
 #'   (R/environment.R) rather than pre-computed at() vectors, reading the
 #'   effective_force_combat/effective_force_support globals added here. Those
@@ -71,11 +71,11 @@ init_casualty_surge_stream <- function(n_days, write_files, data_dir) {
 #'   casualty_surge_event_id attributes and to look up that event's own priority
 #'   split (scheduled mode only; NA pri_one for poisson-mode events falls back
 #'   to the shared env_data$vars$casualty_surge$priority split). An event's
-#'   immediate killed (Issue #149) are overlaid the same way on kia_cbt, with
+#'   immediate killed are overlaid the same way on kia_cbt, with
 #'   their own sink, so they take the mortuary pathway the background killed
 #'   stream already takes rather than the wounded trajectory.
 #'
-#'   Reinforcement can carry a pool above establishment strength (Issue #207),
+#'   Reinforcement can carry a pool above establishment strength,
 #'   and the thinning sampler's dominating rate has to bound the force size for
 #'   the whole run. Both pools' bounds are resolved once, here, so every stream
 #'   drawing on the same pool samples against the same bound. With reinforcement
@@ -124,7 +124,7 @@ add_casualty_generators <- function(env, casualty, casualty_surge, n_days) {
 #' @return The environment, with the reinforcement globals and generator added
 #'   where a demand cycle falls within the run, and unchanged otherwise.
 #'
-#' @details Reinforcement demand cycle (Issue #18 follow-up): only scheduled
+#' @details Reinforcement demand cycle: only scheduled
 #'   when demand_interval_days > 0, so the shipped disabled default consumes no
 #'   RNG draws and adds no generator at all, matching the casualty-surge
 #'   rate_per_day = 0 disable-path convention elsewhere in this file. First
@@ -132,14 +132,14 @@ add_casualty_generators <- function(env, casualty, casualty_surge, n_days) {
 #'   full strength, so an immediate submission would have zero demand.
 #'
 #'   A demand interval exceeding n_days (e.g. a long demand cycle screened
-#'   against a short smoke-test/Morris-screening run length, Issue #112) would
+#'   against a short smoke-test or Morris-screening run length) would
 #'   make the first scheduled demand day fall after the run ends — seq()'s
 #'   `from` would exceed its `to` with a positive `by`, throwing "wrong sign in
 #'   'by' argument". No demand cycle fitting within the run means no
 #'   reinforcement fires at all, which is the semantically correct behaviour
 #'   here, not an error.
 #'
-#'   reinf_*_pending (Issue #124) is the fill amount already committed to an
+#'   reinf_*_pending is the fill amount already committed to an
 #'   in-flight (submitted-but-not-yet-credited) reinforcement cycle for each
 #'   pool — see build_reinforcement_trajectory() (R/trajectories.R) for why this
 #'   is needed to keep overlapping cycles from independently re-claiming the
@@ -165,7 +165,7 @@ add_reinforcement_cycle <- function(env, n_days) {
 #' @return The environment, with both AME resources added, and the sortie
 #'   generator added where the configuration schedules a sortie within the run.
 #'
-#' @details Strategic AME resources (Issue #23 follow-up): two theatre-wide
+#' @details Strategic AME resources: two theatre-wide
 #'   resources seized only from the R2E Heavy Strategic Evac disposition
 #'   (R/trajectories.R) — "ame" (standard, Casualty Staging Unit-equivalent
 #'   Hold-bed evacuees) and "ame_critical" (CCATT/CCAST-supported, ICU-bed
@@ -211,7 +211,7 @@ add_strategic_evac <- function(env, n_days) {
 #' @param data_dir    Directory the arrival diagnostics are written to when
 #'   `write_files` is TRUE (default outputs/data, an ordinary run's location).
 #'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
-#'   refresh was explicitly requested (Issue #154).
+#'   refresh was explicitly requested.
 #' @param ot_hours    Hours per day the first OT shift is active. NULL (the
 #'   default) uses the value configured in env_data.json; an explicit value
 #'   overrides it for this replication only. Passed to build_env().
@@ -257,7 +257,7 @@ run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
 #'
 #' @details Paired with restore_rng_state(), which a caller registers through
 #'   on.exit() so that a measurement depends on the caller's control seed and
-#'   not on how many measurements preceded it in the session (Issue #208).
+#'   not on how many measurements preceded it in the session.
 #'   Restoring the kind alone would leave the seeds reproducible but the stream
 #'   advancing, so a scenario measured third in a comparison would still
 #'   disagree with the same scenario measured on its own.
@@ -325,12 +325,12 @@ dispatch_replications <- function(worker, n_iterations, max_cores) {
   # peak tree RSS ran 1,340 MB at 4 replications and 2,084 MB at 8 under
   # TRUE, against 884 MB and 796 MB under FALSE: growing against flat. A fork
   # that runs one job and exits returns its retention to the operating system,
-  # which is what holds the peak constant (Issue #312).
+  # which is what holds the peak constant.
   #
   # Blast radius. When a fork is OOM-killed mid-run, mclapply's own warning is
   # explicit that every job pre-assigned to that fork is lost, not just one.
   # One fork per job costs exactly one replication's result instead of an
-  # unpredictable batch of them (Issue #15 follow-up).
+  # unpredictable batch of them.
   #
   # The cost is more fork() calls, which is negligible against a replication
   # that takes seconds to minutes, and forks are still capped at `cores`
@@ -414,7 +414,7 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
     # what was dispatched: see MAX_REPLICATION_LOSS above for why a loss is a
     # suspected bias rather than a smaller sample. A caller that has raised the
     # threshold has accepted that on a run whose cost justifies it, and is
-    # warned so the count it publishes is the one that ran (Issue #320).
+    # warned so the count it publishes is the one that ran.
     if (n_failed > n_iterations * max_loss) {
       stop(sprintf(
         paste0("%s Replications lost this way are not a random subset of those dispatched, ",
@@ -455,7 +455,7 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
 #'   session (simmer + the tidyverse-adjacent packages this codebase loads);
 #'   forking one such session per core on an unconstrained core count
 #'   has been observed to exhaust a local dev container's memory and
-#'   crash it even at a modest replication count (Issue #15 follow-up).
+#'   crash it even at a modest replication count.
 #' @return Named list with elements: arrivals, attributes, resources, seeds,
 #'   n_replications (the count that actually contributed) and n_requested
 #'   (the count asked for). The two differ only when a worker was lost, and
@@ -470,7 +470,7 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
 #'   mclapply, falling back to lapply on Windows and at a single replication.
 #'
 #'   A measurement is a function of its control seed alone, and of nothing
-#'   else about the session it was taken in (Issue #208). The properties
+#'   else about the session it was taken in. The properties
 #'   below are what deliver that, and each is asserted by
 #'   tests/checks/check_measurement_reproducibility.R.
 #'
@@ -564,7 +564,7 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     # The count that actually contributed, which is what a published interval
     # is an interval over and what a figure's caption should name. It equals
     # n_iterations unless a worker was lost; where it does not, the difference
-    # is the whole of what a caller would otherwise misreport (Issue #320).
+    # is the whole of what a caller would otherwise misreport.
     n_replications = length(envs),
     n_requested    = n_iterations,
     # The seed each surviving replication ran under, in replication order.
@@ -597,8 +597,8 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
 #'   run_replications() for why the pairing was withdrawn.
 #'   A single replication has no dispersion to report, so sd_q and both CI
 #'   bounds are returned as NA rather than as the NaN that qt(0.975, df = 0)
-#'   would otherwise produce (Issue #154, which emits this table from the
-#'   single-run path as well as the multi-run one).
+#'   would otherwise produce, since this table is emitted from the
+#'   single-run path as well as the multi-run one.
 summarise_replications <- function(mon, warm_up_days = 0) {
   warm_up_min <- as.integer(warm_up_days) * DAY_MIN
 

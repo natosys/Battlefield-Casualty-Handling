@@ -61,7 +61,7 @@
 # The replication is the unit of analysis, which it is entitled to be because
 # run_replications() makes replications independent. It did not while they
 # were antithetically paired, and this check folded partners into pair means
-# to work around that; the pairing has since been withdrawn (Issue #189), so
+# to work around that; the pairing has since been withdrawn, so
 # the fold is gone and every replication counts once.
 
 suppressPackageStartupMessages({

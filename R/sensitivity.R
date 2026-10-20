@@ -22,7 +22,7 @@ source("R/censoring.R")
 #'   hues rather than shades of one colour, since the Capacity/Policy
 #'   distinction is the point of splitting them apart in the first place —
 #'   a shade difference reads as "still basically Design" at a glance,
-#'   which is exactly what Issue #112's second follow-up asked not to do.
+#'   which is exactly what a category legend must not do.
 MORRIS_CATEGORY_COLORS <- c(
   "Scenario / Casualty Context"        = "#E69F00",
   "Health System Design - Capacity"    = "#009E73",
@@ -45,7 +45,7 @@ MORRIS_CATEGORY_LABELS <- c(
 #' @details Base R's plot.morris() (the original implementation here) places
 #'   every parameter's label with text() at a fixed offset with no collision
 #'   avoidance — unreadable once the screen grew past roughly 15 parameters
-#'   and became a dense, illegible cluster at p = 55 (Issue #112 follow-up).
+#'   and became a dense, illegible cluster at p = 55.
 #'   ggrepel::geom_text_repel() displaces overlapping labels and draws a
 #'   thin leader line back to the point they belong to instead.
 #'
@@ -269,22 +269,20 @@ composition_coord_bounds <- function(g) {
 #'   displays the same column to a planner under the heading `Baseline`.
 #'   Neither use is exercised by an ordinary run, which is why two values
 #'   were able to drift out of their own bounds and a third out of agreement
-#'   with `env_data.json` before Issue #186 found them. Two guards now hold
+#'   with `env_data.json` unnoticed. Two guards now hold
 #'   the column: the bounds assertion below, and
 #'   `tests/checks/check_morris_baseline.R`, which asserts agreement with
 #'   `env_data.json` itself.
 #'
-#' @details Sixty-four parameters (Issue #112 full-coverage audit, expanded
-#'   from the original eleven, then reduced by a same-issue follow-up review
-#'   — see the exclusion note below — and grown since by the parameters
-#'   later issues introduced) span treatment durations (surgery,
+#' @details The screened parameters (a full-coverage audit of the
+#'   configuration, less the exclusions noted below) span treatment durations (surgery,
 #'   resuscitation, ICU, holding), DOW probability (both the full P1/P2
 #'   logistic curve and treatment-efficacy multipliers), evacuation transport
 #'   times, surgical/evacuation decision probabilities, the damage control
-#'   versus single-stage surgical pathway split (Issue #173),
+#'   versus single-stage surgical pathway split,
 #'   in-theatre recovery rate, OT shift availability, mass
-#'   casualty event rate/size (Issue #9), force regeneration reinforcement
-#'   timing (Issue #18), strategic AME sortie cadence (Issue #23), and
+#'   casualty event rate/size, force regeneration reinforcement
+#'   timing, strategic AME sortie cadence, and
 #'   casualty generation rates. The last six rows are the balance coordinates
 #'   of the three simplex-constrained composition groups, appended below from
 #'   `MORRIS_COMPOSITIONS` rather than written out here because their bounds
@@ -304,10 +302,10 @@ composition_coord_bounds <- function(g) {
 #'
 #'   `surg_mode` spans 57 to 133 minutes, Rule A around the shipped 95-minute
 #'   mode. The bounds were previously 90 to 150, derived against a 120-minute
-#'   mode that Issue #76 superseded, which left the baseline 0.083 of the way
+#'   mode the model no longer uses, which left the baseline 0.083 of the way
 #'   along its own range: every design point of the screen then ran a longer
 #'   operation than the model ships, biasing every theatre-mediated
-#'   parameter's rank rather than this row's alone (Issue #195). The lower
+#'   parameter's rank rather than this row's alone. The lower
 #'   endpoint was read against the source as well as derived from the rule:
 #'   57 minutes lies inside
 #'   the 41-to-210-minute operative-time range the mode's own source reports,
@@ -315,11 +313,10 @@ composition_coord_bounds <- function(g) {
 #'   `r2b.surgery`/`r2eheavy.surgery` min and max, so no design point can
 #'   produce the invalid triangular draw described in the two notes below.
 #'
-#'   `icu_defer_check_interval` (R2B/R2E OT-entry defer poll, Issue #43) and
-#'   `ame_dow_check_interval` (strategic-AME-wait DOW poll, Issue #23 third
-#'   follow-up) were screened in the initial Issue #112 pass but removed by
-#'   a same-issue follow-up review: both are `timeout()`+`rollback()`
-#'   polling-loop intervals — a numerical discretisation of what is
+#'   `icu_defer_check_interval` (R2B/R2E OT-entry defer poll) and
+#'   `ame_dow_check_interval` (strategic-AME-wait DOW poll) are not
+#'   screened: both are `timeout()`+`rollback()` polling-loop intervals — a numerical
+#'   discretisation of what is
 #'   conceptually continuous monitoring (ICU-bed availability, DOW risk
 #'   while queued), not a real standing order a health system issues about
 #'   "how often to check." Unlike `ame_schedule_interval_days` (a genuine
@@ -338,7 +335,7 @@ composition_coord_bounds <- function(g) {
 #'   which requires a <= c <= b; screening fill_mode_frac past 1.1 (with
 #'   fill_max_frac fixed at 1.1) produces an invalid triangular
 #'   distribution and rtriangle() silently returns NA — discovered via a
-#'   real Issue #112 re-run where every parameter's sigma_ee came out NA,
+#'   real screening run where every parameter's sigma_ee came out NA,
 #'   root-caused to this single out-of-envelope bound corrupting the
 #'   simulation state (and therefore every downstream KPI) for the
 #'   remainder of any OAT trajectory that perturbed this parameter above
@@ -402,9 +399,8 @@ morris_params <- data.frame(
     # ── Surgical pathway split ────────────────────────────────────────────
     "pri1_dcs_rate", "pri2_dcs_rate", "pri3_dcs_rate",
     # ── Role 4, R2E critical hold, casualty surge split and forward release
-    #    thresholds — added by the Issue #339 screening-coverage audit, which
-    #    found these thirteen numeric leaves screened by neither this table
-    #    nor the exclusion note below ─────────────────────────────────────
+    #    thresholds — thirteen numeric leaves a screening-coverage audit
+    #    found screened by neither this table nor the exclusion note below ─────────────────────────
     "reconstruction_share", "role4_return_interval_mode",
     "role4_post_reconstruction_return_rate",
     "role4_los_p1_surgical_mode", "role4_los_p1_nonsurgical_mode",
@@ -413,8 +409,8 @@ morris_params <- data.frame(
     "r2e_vent_share", "r2e_critical_hold_mode",
     "saturation_queue_threshold", "r2b_evac_threshold",
     "casualty_surge_kia_fraction",
-    # ── R2E establishment counts — added by Issue #410, closing the two
-    #    coverage gaps Issue #348 raised and left unclosed. Both are integers
+    # ── R2E establishment counts — the two establishment counts a coverage
+    #    audit found unscreened. Both are integers
     #    over a small range; the screen moves them continuously and
     #    apply_bed_establishment_params() rounds to the nearest whole bed,
     #    the discretisation decision #348 asked to have recorded ──────────
@@ -701,8 +697,7 @@ apply_routing_threshold_params <- function(ed, p) {
 }
 
 #' Apply the Role 4, R2E critical hold, casualty surge split and forward
-#' release threshold parameters added by the Issue #339 screening-coverage
-#' audit
+#' release threshold parameters
 #'
 #' @param ed Parsed configuration to apply the design point to.
 #' @param p Named design point, one value per screened parameter.
@@ -731,7 +726,7 @@ apply_role4_and_threshold_params <- function(ed, p) {
   ed
 }
 
-#' Apply the R2E establishment bed counts added by Issue #410
+#' Apply the screened R2E establishment bed counts
 #'
 #' @param ed Built environment (post `build_environment()`) to apply the
 #'   design point to.
@@ -795,13 +790,9 @@ apply_composition_params <- function(ed, p) {
 #' @param p   Named numeric vector — names must match morris_params$name.
 #' @return Modified env_data copy
 #'
-#' @details Issue #112 expanded this from eleven to fifty-five parameters,
-#'   then a same-issue follow-up review reduced it to fifty-three by
-#'   removing two polling-interval parameters from screening (see
-#'   morris_params's own comment). Later issues have grown it to sixty-four,
-#'   then Issue #339's screening-coverage audit added thirteen more (seventy-
-#'   seven scalars), and Issue #410 two more (seventy-nine), the last six of
-#'   the whole table being balance coordinates rather than direct writes:
+#' @details Seventy-nine parameters (see morris_params's own comment for what
+#'   is excluded and why), the last six of the whole table being balance
+#'   coordinates rather than direct writes:
 #'   each pair is back-transformed to a whole composition at the end of this
 #'   function.
 apply_params <- function(ed, p) {
@@ -828,7 +819,7 @@ apply_params <- function(ed, p) {
 #'
 #' @details Complements summarise_replications() (queue-based) with a
 #'   utilisation-based measure. Needed for resources such as pooled transport
-#'   assets that rarely queue under current baseline demand (Issue #6) but
+#'   assets that rarely queue under current baseline demand but
 #'   whose busy-time is still directly affected by duration parameters —
 #'   queue-based KPIs alone would show near-zero sensitivity in that case.
 compute_utilisation <- function(mon, pattern) {
@@ -872,7 +863,7 @@ compute_utilisation <- function(mon, pattern) {
 #'   aggregate rather than as a KPI in its own right: `transport_util`, which
 #'   applies Domain 3's utilisation reduction to the transport fleet, whose
 #'   queues stay near zero under baseline demand and would otherwise register
-#'   no sensitivity at all (Issue #6). It is marked as derived in the `domain`
+#'   no sensitivity at all. It is marked as derived in the `domain`
 #'   column.
 #'
 #'   `surgery_delivery_rate` measures surgical delivery directly: the share of
@@ -1695,7 +1686,7 @@ evaluate_morris_design <- function(sa, cache_file, n_rep, n_days, max_cores,
     # discarding a full monitoring dataset via eval_params()/run_replications()).
     # R's own garbage collector is lazy about returning memory to the OS
     # between iterations of a tight loop like this one; left unforced, that
-    # slow per-iteration accumulation was observed (Issue #15 follow-up) to
+    # slow per-iteration accumulation was observed to
     # grow a local dev container's memory usage steadily over the course of
     # a multi-hour run until it started swapping/thrashing rather than
     # failing cleanly. Forcing a full collection after every point trades a
@@ -1843,7 +1834,7 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
   # Restored on the way out as well as at the foot of the evaluation loop
   # below, so a screen that errors partway through leaves the session's
   # configuration as it found it rather than on the last design point
-  # evaluated (Issue #236).
+  # evaluated.
   config_snapshot <- capture_config_globals(c(CONFIG_GLOBALS, "env_data_base"))
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
@@ -1870,8 +1861,8 @@ run_morris <- function(n_days = 30, n_rep = 5, r = 20, levels = 4,
 
   env_data <<- env_data_base
 
-  # Persisted so a plotting-only change (e.g. Issue #112's follow-up fixing
-  # illegible overlapping labels at p=55) can re-render images/*.png from
+  # Persisted so a plotting-only change (such as one fixing illegible
+  # overlapping labels at p=55) can re-render images/*.png from
   # the same design + responses without re-running the full simulation
   # sweep — a 94-minute cost at r=5/p=55 in this project's development
   # environment (see the README's reduced-r note) that a labelling tweak
@@ -2011,7 +2002,7 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 #'   response and moves each bootstrap's starting stream position.
 #'   `surgery_delivery_rate` is decomposed beside the primary queue so that
 #'   the surgical delivery reading has its own indices. `r2b_ot_q` and
-#'   `transport_q` are excluded (Issue #228): a noise floor measurement
+#'   `transport_q` are excluded: a noise floor measurement
 #'   found the R2B theatre queue constant across the N=200 design and the
 #'   transport queue 89.1% replication noise, so neither carries a design
 #'   signal a larger sample would resolve. `transport_util` is retained
@@ -2067,7 +2058,7 @@ cache_append <- function(path, i, res) {
 #'   order `morris_kpis$name` or `SOBOL_RESPONSES` currently lists them.
 #' @return Invisibly TRUE if the cache was archived, FALSE otherwise.
 #'
-#' @details Closes the trap Issue #348 raised: a response added to
+#' @details Closes a trap: a response added to
 #'   `morris_kpis` (or `SOBOL_RESPONSES`) after a cache exists is invisible to
 #'   `cache_append()`, which writes a wider row under the file's original,
 #'   narrower header the moment the first design point re-evaluates. Every
@@ -2245,8 +2236,7 @@ evaluate_sobol_design <- function(sb_design, n_points, p_def, full_params, cache
     # See run_morris()'s identical gc() call for why: this loop runs
     # n_sobol * (p + 2) iterations (200 * 7 = 1400 at the defaults) in one
     # long-lived process — forcing a collection after every point keeps
-    # steady-state memory flat rather than creeping up across the run
-    # (Issue #15 follow-up).
+    # steady-state memory flat rather than creeping up across the run.
     gc(full = TRUE)
     res
   }, numeric(length(SOBOL_RESPONSES))))

@@ -33,8 +33,8 @@
 # ── Locale guard ──────────────────────────────────────────────────────────────
 # The scenario labels in env_data.json contain an em dash, and jsonlite flags
 # them UTF-8 regardless of the session's locale. A C locale cannot represent
-# that character natively, so any handling of these strings is locale-sensitive
-# (Issue #153). The code itself no longer depends on the locale, but a UTF-8
+# that character natively, so any handling of these strings is locale-sensitive.
+# The code itself no longer depends on the locale, but a UTF-8
 # LC_CTYPE keeps the written CSVs identical to a UTF-8 session's, so one is
 # requested here and its absence is reported at startup rather than after a
 # full run has completed.

@@ -22,7 +22,7 @@
 # returned a different Role 4 census from identical monitoring data. The
 # published figures were reproducible only because run.R happens to call
 # set.seed(), run_once() and analyse_run() in a fixed order, which is a
-# property of the calling sequence rather than of the seed (Issue #233).
+# property of the calling sequence rather than of the seed.
 #
 # What it asserts:
 #

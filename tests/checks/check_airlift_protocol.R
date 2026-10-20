@@ -16,8 +16,8 @@
 # and sweep summaries were read by no check at all, the collapse check covering
 # only the collapse files.
 #
-# The gap was not theoretical. The section drifted from its own evidence set
-# between PR #379 and PR #381 and nothing reported it, the worst of it printing
+# The gap was not theoretical. The section once drifted from its own evidence
+# set across two pull requests and nothing reported it, the worst of it printing
 # 26.96 casualties still waiting at high intensity against a tracked 108.28, a
 # fourfold understatement in a section whose thesis is that evacuation is bound
 # by when sorties arrive. Nobody re-runs 650 replications to audit a paragraph,

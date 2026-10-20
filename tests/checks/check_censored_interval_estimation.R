@@ -13,7 +13,7 @@
 #
 # Why this check exists. compute_treatment_interval_kpis() differenced a start
 # attribute against an end attribute and kept the casualties carrying both, so
-# a casualty still at the echelon when the run ended was dropped (Issue #331).
+# a casualty still at the echelon when the run ended was dropped.
 # That is right-censoring, and the dropped are not a random subset: they are
 # the ones still present, which is both the late arrivals and the long stayers.
 #

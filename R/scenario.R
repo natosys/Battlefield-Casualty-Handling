@@ -73,15 +73,15 @@ merge_scenario_vars <- function(base_vars, override_vars) {
 #'
 #' @param json_data Raw parsed JSON list (fromJSON(..., simplifyVector = FALSE))
 #' @param scenario Name of scenario profile to apply. "default" (or NULL)
-#'   returns json_data unchanged — this is the no-regression path guaranteed
-#'   by Issue #54's acceptance criteria.
+#'   returns json_data unchanged, so the default configuration runs exactly
+#'   as it would with no overlay mechanism at all.
 #' @return json_data with `vars` overlaid by the named scenario's overrides,
 #'   plus `active_scenario` / `active_scenario_label` metadata fields
 #'
 #' @details Only `vars` is overlaid. Structural configuration — `elms`
 #'   (resource/bed/team counts), `transports` (fleet sizes), and `pops`
 #'   (population counts) — is never scenario-specific and is left untouched,
-#'   consistent with the parameter classification in Issue #54.
+#'   since it describes the force rather than the casualty load.
 resolve_scenario <- function(json_data, scenario = "default") {
   if (is.null(scenario) || identical(scenario, "default")) return(json_data)
 

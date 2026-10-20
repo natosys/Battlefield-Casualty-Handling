@@ -13,7 +13,7 @@
 # Why this check exists. Option 3 of docs/Results.md prints eight
 # paired differences comparing the shipped 60-minute R2B pre-open window
 # against a window of zero, three of them established effects the section's
-# recommendation rests on. Until Issue #387 none of the twenty-four numbers
+# recommendation rests on. Once none of the twenty-four numbers
 # behind that table existed in a tracked file: the experiment's entry point
 # was run.R under a parameter override rather than a driver script, so there
 # was no command to give a --refresh-baseline flag to, and auditing one figure

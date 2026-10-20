@@ -21,7 +21,7 @@
 #'
 #' @details 360, the sustained-operations protocol `R/long_horizon.R`
 #'   establishes. All three sweeps (transport fleet size, forward holding,
-#'   R2B holding threshold) migrated together under Issue #405, from 30 days,
+#'   R2B holding threshold) share it, having moved together from 30 days,
 #'   so that a reader comparing their tables is comparing one horizon rather
 #'   than asking why they differ; the R2B holding threshold sweep's own
 #'   design record explains why the third is checked by no protocol script
@@ -43,7 +43,7 @@ CAPACITY_SWEEP_WINDOW_DAYS <- 90L
 #' Replications the published transport fleet-size sweep runs at, per point
 #'
 #' @details 30, the sustained-operations protocol's replication count,
-#'   migrated from 10 under Issue #405 alongside the horizon. The unpaired
+#'   adopted alongside the horizon. The unpaired
 #'   design carries no between-arm stream divergence to offset the longer
 #'   horizon's gain, and the queue response it is sized against is a
 #'   time-weighted mean rather than an accumulating count, so it behaves like
@@ -65,7 +65,7 @@ TRANSPORT_SWEEP_HX240M <- 1:4
 
 #' Replications the published forward holding frontier runs at, per point
 #'
-#' @details 30, migrated from 20 under Issue #405 to match the other two
+#' @details 30, set to match the other two
 #'   capacity sweeps' replication count at the shared sustained-operations
 #'   horizon, rather than because this sweep's own responses were found
 #'   under-resolved: it runs under the shipped default configuration, below
@@ -115,7 +115,7 @@ FORWARD_HOLD_SWEEP_ARMS <- data.frame(
 
 #' Replications the published R2B holding threshold sweep runs at, per point
 #'
-#' @details 30, migrated from 10 under Issue #405 to match the other two
+#' @details 30, set to match the other two
 #'   capacity sweeps at the shared sustained-operations horizon, for the same
 #'   reason `FORWARD_HOLD_SWEEP_REPLICATIONS`'s own migration states: this sweep
 #'   also runs under the shipped default configuration.
@@ -210,7 +210,7 @@ pool_rep_kpis <- function(mon, pattern, n_days, establishment,
 #'   mean line, and the dashed reference line.
 #'
 #' @details Factored out of plot_transport_capacity_margin_by_fleet_size() so
-#'   the Shiny app's Sensitivity Calibration panel (Issue #57 integration)
+#'   a caller other than the sweep itself
 #'   can render the identical plot from a worker-returned sweep_df without
 #'   duplicating the ggplot specification — app.R's transport_sweep_plot
 #'   renderPlot() calls this directly. Facet column labels use the same
@@ -314,8 +314,8 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   vehicle's `transports[[]]$qty` (the other vehicle type stays at its
 #'   current establishment qty), rebuilds via build_environment(), and runs
 #'   n_rep replications via run_replications() (R/replication.R) — the same
-#'   replication engine the comparative scenario runner (Issue #10,
-#'   R/scenario_runner.R) uses, reused here directly rather than duplicated.
+#'   replication engine the comparative scenario runner
+#'   (R/scenario_runner.R) uses, reused here directly rather than duplicated.
 #'   Fleet size is a structural (`elms`/`transports`) change, which
 #'   resolve_scenario()'s overlay mechanism does not cover (R/scenario.R),
 #'   so `scenario` is resolved once against the parsed JSON before the
@@ -330,7 +330,7 @@ render_transport_sweep_plot <- function(sweep_df, current_qty, n_rep = NULL, sce
 #'   utilisation CI bounds to [0, 1], consistent with the CI-clamping
 #'   convention used elsewhere in this file (e.g. p_r1_queues_ci,
 #'   p_utilisation_ci). The plot itself is built by render_transport_sweep_plot()
-#'   (shared with app.R's Shiny integration, Issue #57). The global
+#'   so that another caller can draw the same figure. The global
 #'   env_data/day_min/counts are restored to their pre-call values on
 #'   completion, consistent with run_morris()'s env_data_base restore
 #'   pattern (R/sensitivity.R). The restore is registered with on.exit() at
@@ -358,7 +358,7 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
   day_min_base  <- day_min
   counts_base   <- counts
   # Registered at the point of save, so the error path restores too; see the
-  # roxygen @details above (Issue #236).
+  # roxygen @details above.
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
   json_data_base <- resolve_scenario(jsonlite::fromJSON(path, simplifyVector = FALSE), scenario)

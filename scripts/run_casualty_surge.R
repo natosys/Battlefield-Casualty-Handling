@@ -13,7 +13,7 @@
 # replications of each of two arms, and until this script existed the
 # comparison had no driver: it was invoked as run.R under a parameter
 # override, so there was no command to give a --refresh-baseline flag to and
-# no tracked evidence set behind the printed figures (Issue #389). This is
+# no tracked evidence set behind the printed figures. This is
 # that driver, on the arrangement scripts/run_hold_window.R establishes for a
 # two-arm comparison whose arms are not paired on one control seed.
 #

@@ -26,7 +26,7 @@
 # tests/checks/check_sensitivity_protocol.R.
 #
 # The last six parameters are the balance coordinates of the three
-# simplex-constrained composition groups (Issue #158). --sobol samples any
+# simplex-constrained composition groups. --sobol samples any
 # selected group's composition from a Dirichlet centred on its baseline
 # rather than drawing its coordinates independently; --no-dirichlet reverts
 # to uniform coordinate draws.
@@ -224,7 +224,7 @@ if (length(partial) > 0) {
 # Where each composition group's coordinates landed in the primary ranking,
 # reported whether or not --sobol follows: the comparison against the two
 # Priority 1 conditional rates is the specific question the compositions were
-# brought into the screen to answer (Issue #158).
+# brought into the screen to answer.
 comp_rank <- match(unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords")),
                    morris_result$ranking$parameter)
 names(comp_rank) <- unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords"))

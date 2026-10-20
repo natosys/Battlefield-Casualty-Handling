@@ -26,7 +26,7 @@
 #'
 #' @details Same t-distribution construction used ad hoc elsewhere in this
 #'   file (daily_ci/force_regeneration_ci in analyse_replications()) —
-#'   factored out here (Issue #117) so the several new group-wise CI outputs
+#'   factored out here so the several new group-wise CI outputs
 #'   added by that issue share one implementation.
 ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
   out <- df %>%
@@ -466,7 +466,7 @@ summarise_r2b_pre_open_hold <- function(attributes_wide, combined, r2b_ot_bypass
   ))
 
   # Averaged per replication before plotting (matches the r2b_hold_daily
-  # convention, Issue #39) so multi-replication runs show mean bypasses per
+  # convention) so multi-replication runs show mean bypasses per
   # simulation day rather than a raw sum across replications, which would
   # scale with n_iterations and misrepresent a single run's daily pattern.
   r2b_bypass_reason_levels <- c("Team off-shift", "OT busy / queued")
@@ -1375,8 +1375,7 @@ compute_treatment_interval_kpis <- function(combined, window_min) {
 summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
   # KPI 5: DOW count and rate by echelon
   # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
-  # (post-operative, Issue #43), 5 = awaiting strategic AME (Issue #23
-  # third follow-up)
+  # (post-operative), 5 = awaiting strategic AME
   echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
   total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
   dow_by_echelon <- attributes_wide %>%
@@ -1413,8 +1412,8 @@ summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
     mutate(rtd_rate = rtd_count / nrow(arrivals_raw))
   stopifnot(sum(rtd_by_echelon$rtd_count) == total_rtd)
 
-  # KPI 6b: realised in-theatre share at the R2E evacuation-policy decision
-  # (Issue #156). The share is an output of the policy, not an input to it:
+  # KPI 6b: realised in-theatre share at the R2E evacuation-policy decision.
+  # The share is an output of the policy, not an input to it:
   # every casualty reaching R2E disposition draws recovery_to_duty_days and
   # is retained when that falls within recovery$evacuation_policy_days. It is
   # measured at the decision, not on completed returns to duty, because a
@@ -1496,9 +1495,9 @@ compute_ot_utilisation <- function(resources_raw) {
 #'   surgical pathway.
 summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy_summary,
                                               in_theatre_share, output_dir) {
-  # KPI 8: R2E OT-ICU gating post-operative pathway summary (Issue #43)
+  # KPI 8: R2E OT-ICU gating post-operative pathway summary
   # post_op_pathway: 1 = ICU (nominal), 2 = Post-Op Hold (ICU saturated, P1 override).
-  # postop_dow uses dow_echelon == 4, the post-operative checkpoint added by Issue #43,
+  # postop_dow uses dow_echelon == 4, the post-operative checkpoint,
   # kept distinct from the Phase 1 R2E arrival DOW checkpoint (dow_echelon == 3) so the
   # two pathways' realised post-operative mortality can be directly compared.
   pathway_labels <- c("1" = "icu", "2" = "hold")
@@ -1534,7 +1533,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
       sum(!is.na(attributes_wide$definitive_repair_outstanding) &
             attributes_wide$definitive_repair_outstanding == 1L, na.rm = TRUE)
   }
-  # KPI 8a: surgical pathway split (Issue #173)
+  # KPI 8a: surgical pathway split
   # dcs_pathway: 1 = staged damage control (abbreviated operation, stabilisation,
   # definitive repair), 0 = single-stage definitive procedure. Reported over
   # casualties who actually reached theatre, by priority, so the realised share
@@ -1613,8 +1612,8 @@ plot_role4_census <- function(combined, role4_daily_by_rep, n_reps_role4, n_sim_
   n_sim_days_role4  <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
   max_discharge_day <- max(role4_daily_by_rep$day, na.rm = TRUE)
   ward_levels       <- role4_ward_levels(role4_params)
-  # evacuation_day is only set on completed AME boarding (Issue #23
-  # follow-up); r2e_evac == 1 alone would also count casualties still
+  # evacuation_day is only set on completed AME boarding; r2e_evac == 1 alone would also count
+  # casualties still
   # queued awaiting a sortie at end of run, which have not reached Role 4.
   total_evacuated   <- sum(!is.na(combined$evacuation_day)) / n_reps_role4
 
@@ -1770,10 +1769,10 @@ summarise_ame_sortie_demand <- function(ame_capacity, role4_daily_by_rep, ame_by
 #' @param images_dir Directory path for saving PNG plots. Defaults to
 #'   `file.path(output_dir, "images")`, which is gitignored, so calling this
 #'   function cannot overwrite the tracked seed-42 baseline plots in `images/`
-#'   unless the caller names that directory explicitly (Issue #154). run.R
+#'   unless the caller names that directory explicitly. run.R
 #'   does so only under `--refresh-baseline`.
 #' @return Invisibly returns a named list. Nine elements are always-present
-#'   ggplot objects (Issue #14 — embeddable in a Shiny reactive context via
+#'   ggplot objects (embeddable in a Shiny reactive context via
 #'   e.g. renderPlot()): casualty_flow, r1_queues, r2b_treatment,
 #'   r2b_bed_queues, r2b_gantt, r2e_surgery, r2e_bed_queues, waiting_times,
 #'   r2e_gantt. Remaining elements are summary data frames, scalar KPIs, and
@@ -1836,7 +1835,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   p_r2b_bed_queues <- plot_r2b_bed_queues(resources, images_dir)
 
   # ── R2B hold bed occupancy by patient stream ─────────────────────────────
-  # Requires r2b_hold_start attribute (added in Issue #39 trajectory change).
+  # Requires the r2b_hold_start attribute the R2B holding trajectory sets.
   # Decomposes daily concurrent hold bed occupancy into disease DNBI, NBI, and
   # WIA streams. Verifies that battle_fatigue (dnbi_type == 1) never reaches
   # R2B hold beds.
@@ -1866,7 +1865,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # r2b_treated, since they are routed from R1 before ever arriving at R2B).
   # 1 = surgical team off-shift; 2 = OT bed busy or queued.
 
-  # R2B OT bypass reason decomposition (Issue #40)
+  # R2B OT bypass reason decomposition
   r2b_ot_bypass_reasons_out <- count_r2b_ot_bypass_reasons(attributes_wide)
   r2b_ot_bypass_busy_count <- r2b_ot_bypass_reasons_out$r2b_ot_bypass_busy_count
   r2b_ot_bypass_count <- r2b_ot_bypass_reasons_out$r2b_ot_bypass_count
@@ -1942,7 +1941,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # sustained queue > 0 indicates the fleet is a binding constraint.
 
 
-  # Transport fleet capacity margin (Issue #6)
+  # Transport fleet capacity margin
   transport_capacity_margin_out <- summarise_transport_capacity_margin(resources, resources_raw,
                                                                        output_dir, images_dir)
   p_transport_capacity_margin <- transport_capacity_margin_out$p_transport_capacity_margin
@@ -1998,7 +1997,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   #   was saturated, polling on a timer until a bed freed.
   # - Normal: ICU was available at the point of OT entry (gate had no effect).
 
-  # R2E OT-ICU gating impact — sub-optimal and delayed care (Issue #43)
+  # R2E OT-ICU gating impact — sub-optimal and delayed care
   r2e_icu_gating_out <- summarise_r2e_icu_gating(attributes_wide, combined, output_dir, images_dir)
   r2e_icu_gating_daily <- r2e_icu_gating_out$r2e_icu_gating_daily
   r2e_icu_gating_plot <- r2e_icu_gating_out$r2e_icu_gating_plot
@@ -2013,7 +2012,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # establishment strength means casualty production and RTD/reinforcement
   # regeneration are in balance; a declining line shows net depletion.
 
-  # Force regeneration — effective force size over time (Issue #18)
+  # Force regeneration — effective force size over time
   force_regeneration_out <- summarise_force_regeneration(attributes_raw, output_dir, images_dir)
   force_regeneration_daily <- force_regeneration_out$force_regeneration_daily
   force_regeneration_plot <- force_regeneration_out$force_regeneration_plot
@@ -2022,13 +2021,13 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # casualty_surge_event: 1 = casualty originated from a compound-Poisson
   # casualty surge injection event (R/environment.R::generate_casualty_surge_events()),
   # 0 = background lognormal generation. Both of the event's pathways carry
-  # the tag, the wounded and the immediately killed (Issue #149), so n_cas
+  # the tag, the wounded and the immediately killed, so n_cas
   # below is an event's total and n_wia/n_kia its two components.
   # Individual events are reconstructed by grouping tagged casualties on the
   # casualty_surge_event_id the generator assigned (reconstruct_surge_events()),
   # not by clustering arrival gaps, which merged events starting close together.
 
-  # KPI 9: Casualty surge event stress test analysis (Issue #9)
+  # KPI 9: Casualty surge event stress test analysis
   casualty_surge_events_out <- summarise_casualty_surge_events(combined, output_dir, images_dir)
   casualty_surge_dow_summary <- casualty_surge_events_out$casualty_surge_dow_summary
   casualty_surge_event_count <- casualty_surge_events_out$casualty_surge_event_count
@@ -2106,7 +2105,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # awaiting a sortie over time on each pool, from the resource monitor's
   # queue column.
 
-  # Strategic AME actual performance (Issue #23 follow-up)
+  # Strategic AME actual performance
   ame_performance_out <- summarise_ame_performance(attributes, combined, output_dir, images_dir)
   ame_backlog_data <- ame_performance_out$ame_backlog_data
   ame_backlog_plot <- ame_performance_out$ame_backlog_plot
@@ -2119,7 +2118,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   # evacuation decisions to have occurred yet, unlike the backlog output
   # above.
 
-  # Strategic AME sortie timeline (Issue #109)
+  # Strategic AME sortie timeline
   ame_sortie_timeline_out <- plot_ame_sortie_timeline(resources, n_sim_days_role4, output_dir,
                                                       images_dir)
   ame_sortie_data <- ame_sortie_timeline_out$ame_sortie_data
@@ -2130,7 +2129,7 @@ analyse_run <- function(mon, output_dir = "outputs", warm_up_days = 0,
   write.csv(ot_utilisation,  file.path(output_dir, "ot_utilisation.csv"),  row.names = FALSE)
 
   invisible(list(
-    # Named ggplot objects (Issue #14) — embeddable directly in a Shiny
+    # Named ggplot objects — embeddable directly in a Shiny
     # reactive context (e.g. renderPlot(results()$casualty_flow)) without
     # re-running the analysis pipeline. ggsave() above still writes the same
     # PNGs to images_dir for the CLI/report path.

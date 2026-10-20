@@ -19,7 +19,7 @@
 # the scenario runner -- therefore mutates those globals and is responsible
 # for putting them back. Four of the five restored them by an assignment at
 # the foot of the function, which the error path never reaches, and the fifth
-# never restored them at all (Issue #236). The consequence was silent and
+# never restored them at all. The consequence was silent and
 # serious: a sweep that failed partway through left the session on the swept
 # configuration, so a baseline run made next in the same session was computed
 # against the wrong parameters and reported as the baseline.

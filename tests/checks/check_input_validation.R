@@ -14,7 +14,7 @@
 # consumed its monitoring data frames by assuming column presence throughout,
 # so a malformed input surfaced as a subscript or dplyr error raised inside a
 # pipeline the caller never wrote, several hundred lines from the entry point
-# that accepted it (Issue #236). The same held of a hand-edited or uploaded
+# that accepted it. The same held of a hand-edited or uploaded
 # env_data.json reaching the Shiny console. Neither is a correctness defect in
 # the model, but a model meant for planners who are not its author has to say
 # what it found wrong, and a diagnosis that names the missing column or the
@@ -249,7 +249,7 @@ report(both_named, "every fault in a configuration is reported, not only the fir
 # validating it late is worse than validating it late elsewhere: a malformed
 # --days or --iterations used to be accepted, a full simulation run, and the
 # failure raised inside the analysis pipeline naming a monitoring data frame
-# the user never referred to (Issue #310).
+# the user never referred to.
 #
 # Each case below asserts both halves of that: the run is rejected, and the
 # message names the switch at fault. Rejection is asserted to happen before any

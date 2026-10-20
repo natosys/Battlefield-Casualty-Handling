@@ -12,10 +12,10 @@
 #
 # Why this check exists. Both sweeps inform a planning option the companion
 # paper states as a recommendation: three ambulances are sufficient, and
-# delivering post-operative intensive care forward is not. Until Issue #384
-# both wrote their results to the gitignored outputs/ alone, so the tables the
+# delivering post-operative intensive care forward is not. Both once wrote their results to the
+# gitignored outputs/ alone, so the tables the
 # recommendations rest on could be audited only by re-running ninety and one
-# hundred replications respectively. Issue #300 added a second transport
+# hundred replications respectively. A second transport
 # sweep under the high_intensity profile, checked against its own table by
 # the same steps rather than a third check, since it is the same design run
 # under a different scenario.

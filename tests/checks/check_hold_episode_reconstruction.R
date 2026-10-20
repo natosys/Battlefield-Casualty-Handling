@@ -13,7 +13,7 @@
 #
 # Why this check exists. summarise_r2b_hold_occupancy() reconstructed each
 # holding episode as r2b_hold_start to return_day, which is the right pair for
-# only one of the three ways a casualty leaves an R2B holding bed (Issue #327).
+# only one of the three ways a casualty leaves an R2B holding bed.
 #
 # A casualty sent on under the evacuation threshold releases the bed at once
 # and sets r2b_hold_served, the bed time actually served; their return_day is

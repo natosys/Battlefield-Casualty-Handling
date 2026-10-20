@@ -31,8 +31,8 @@
 # that look reasonable. The responses are simply attributed to the wrong
 # points, the cache resumes into them, and nothing reports it. That is the
 # failure this check exists to make loud, and it is the reason the two drivers
-# were left out of the decomposition in PR #267 rather than split by the
-# derive-the-interface method the rest of Issue #241 used: an interface for
+# were left out of the analysis decomposition rather than split by the
+# derive-the-interface method the rest of it used: an interface for
 # them has to preserve these properties deliberately, so they are asserted
 # first and the split verified against them.
 #

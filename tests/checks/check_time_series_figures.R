@@ -20,8 +20,8 @@
 # without the prose being rewritten would leave the paper asserting a
 # clearance share the evidence no longer supports, which is the same drift
 # that left the tracked Morris plots describing a different screen from the
-# tracked rankings (Issue #342's precedent, closed for that case by
-# scripts/render_morris_plots.R).
+# tracked rankings, closed for that case by
+# scripts/render_morris_plots.R.
 #
 # What this asserts:
 #

@@ -16,7 +16,7 @@
 # nothing afterwards holds them together. A screen re-run that lands its
 # rankings in the tracked evidence set without also landing its plots leaves
 # the two describing different screens, which is what happened between the
-# r = 5 screen of Issue #155 and the r = 20 screen that superseded it: the
+# r = 5 screen and the r = 20 screen that superseded it: the
 # tracked rankings moved to r = 20 and the tracked plots stayed at r = 5, so
 # every published plot disagreed with the table printed above it.
 #

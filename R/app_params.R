@@ -1,7 +1,7 @@
 ##############################################
 ## R/app_params.R                           ##
 ## Parameter registry for the Shiny         ##
-## configuration editor (Issue #14)         ##
+## configuration editor         ##
 ##############################################
 
 source("R/constants.R")
@@ -1045,7 +1045,7 @@ casualty_surge_fields <- function() {
               "Injection Window — Maximum", "Minutes over which a fired event's casualties arrive (triangular max). Applies to every event.",
               type = "integer", min = 1, max = DAY_MIN, step = 1, source = SRC_CASUALTY_SURGE)
   ))
-  # Immediate-killed share (Issue #149) — applies in both modes, as the
+  # Immediate-killed share — applies in both modes, as the
   # injection window does, so it takes its own subgroup and renders
   # unconditionally through app.R's default subgroup fallback rather than
   # joining the Poisson-gated priority split below.

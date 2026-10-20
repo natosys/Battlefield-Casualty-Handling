@@ -18,7 +18,7 @@
 # an object-not-found error on any run that produced none of it. A one-day
 # campaign ran to completion, wrote its KPI summary, printed "Simulation
 # complete" and then died in summarise_r2b_hold_occupancy() on `object
-# 'return_day' not found`, because nobody had finished recovering (Issue #316).
+# 'return_day' not found`, because nobody had finished recovering.
 #
 # Duration is a proxy for the trigger rather than the trigger itself. The
 # condition is that no casualty set the attribute, which a configuration can
@@ -45,8 +45,8 @@
 #      monitor carrying one of them.
 #   5. analyse_run() completes on monitoring data with no return_day, and
 #      still counts the casualties holding a bed, an episode with no recorded
-#      exit having run to the end of the window rather than not happened
-#      (Issue #327). Stripping r2b_hold_start instead, which is the attribute
+#      exit having run to the end of the window rather than not happened.
+#      Stripping r2b_hold_start instead, which is the attribute
 #      that opens the episode, is what leaves the summary with nothing to
 #      summarise, and that is the case returning the empty result.
 #   6. summarise_r2b_hold_occupancy() returns that same empty result when the

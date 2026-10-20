@@ -9,7 +9,7 @@
 # Sourced by R/analysis.R, which loads the packages and the shared modules
 # these functions use; source that file rather than this one alone.
 
-# ── Campaign time series (Issue #301) ────────────────────────────────────────
+# ── Campaign time series ────────────────────────────────────────
 # Every other figure in this pipeline collapses a campaign to a scalar, which
 # cannot distinguish a queue that recurs in peaks from one that never clears.
 # Those are different resourcing problems: the first is answered by surge

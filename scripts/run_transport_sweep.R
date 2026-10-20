@@ -18,8 +18,8 @@
 # evidence set docs/Results.md's fleet-size table is checked
 # against. The flag fixes the swept range, the replication count and the
 # horizon (30 replications of 360 days, the sustained-operations protocol
-# shared with the other two capacity sweeps, migrated from 10 x 30 under
-# Issue #405) and the seed rather than accepting whichever the caller passed,
+# shared with the other two capacity sweeps) and the seed rather than accepting whichever the
+# caller passed,
 # an evidence set measured at some other design not being the experiment
 # docs/Methods.md documents; --scenario still applies. It writes
 # its own transport_capacity_by_fleet_size.csv (or that name with

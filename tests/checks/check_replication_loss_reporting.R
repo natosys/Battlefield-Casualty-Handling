@@ -16,7 +16,7 @@
 # when a worker process was killed, and to publish the count it had asked for
 # while computing the metrics from the survivors, so a run that lost workers
 # reported a replication count it never achieved and every interval beside it
-# was read against that number (Issue #320).
+# was read against that number.
 #
 # Continuing at all is the part that needed the closer look. It is tempting to
 # say that losing a few of fifty costs precision and nothing else, but that
@@ -31,8 +31,8 @@
 # The failure is silent by construction. A killed worker leaves a NULL where an
 # environment should be, the warning scrolls past in a run that takes hours,
 # and nothing downstream re-reads it. It is also not rare: a 50-replication
-# died-of-wounds calibration lost 12 of its 50 to the host's memory limit
-# during Issue #312's work, and 50 replications is the count the shipped
+# died-of-wounds calibration once lost 12 of its 50 to the host's memory
+# limit, and 50 replications is the count the shipped
 # comparative scenario analysis uses.
 #
 # What it asserts:

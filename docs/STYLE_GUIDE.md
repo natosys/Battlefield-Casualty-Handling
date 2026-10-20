@@ -400,7 +400,7 @@ document headings, and for the same reason: a symbol's treatment depends on the
 session locale.
 
 **R10 `[review]` A comment that will date is not written.** "As of Issue #N" and
-"previously this did X" belong in `docs/BCH_Simulation_Action_Plan.md`. A
+"previously this did X" belong in the issue tracker and the commit history. A
 comment says how the code works now. The exception is a comment recording why a
 defect cannot recur, which necessarily refers to the defect.
 
@@ -576,8 +576,7 @@ an `@param` for each of its arguments and a `@return` (R1, R2), and
 | K3 to K10 | Six of the sixteen check scripts sit outside the common shape; see the assessment table above |
 | G4 | One `<<-` per check script, in its `fail()` accumulator, which G1 permits; these are counted rather than exempted, so adding a check script raises the count by one |
 
-Each of these is tracked as its own item in
-`docs/BCH_Simulation_Action_Plan.md`. This document does not require any of them
+Each of these is tracked as its own GitHub issue. This document does not require any of them
 to be repaired; it establishes what "repaired" means.
 
 Two ratchets hold these counts, and both are gated per pull request.

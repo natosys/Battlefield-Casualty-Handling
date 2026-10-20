@@ -29,7 +29,7 @@
 #   2. Every R/*.R module has a row in CLAUDE.md's Repository Structure table.
 #   3. Every scripts/check_*.R has a row in CLAUDE.md's table.
 #   4. Every other scripts/*.R and scripts/*.sh entry point has a row in it.
-#   4a. Every tracked docs/*.md and docs/archive/*.md has a row in it, so a
+#   4a. Every tracked docs/*.md has a row in it, so a
 #      document added, renamed or retired without updating the document roles
 #      fails here rather than leaving a role naming a file that is gone.
 #   5. Neither table names a path that does not exist, so a renamed or deleted
@@ -42,8 +42,7 @@
 #      run.R and app.R. A driver left there, named for the issues it served,
 #      appears in neither table and is invisible to the checks above.
 #   8. No tracked document, script or module names a scripts/ file that does
-#      not exist, apart from the action plan and the archive, which record
-#      files as they were. A script renamed or deleted cannot be left behind in
+#      not exist. A script renamed or deleted cannot be left behind in
 #      a comment or a row.
 #
 # Rules 6 to 8 are asserted by functions that take their inputs as arguments,
@@ -176,7 +175,7 @@ assert_covered(check_scripts, claude_paths, "regression check script",
 assert_covered(other_scripts, claude_paths, "other scripts/ entry point",
                "CLAUDE.md's Repository Structure table")
 
-documents <- tracked_files("^docs/(archive/)?[^/]+\\.md$")
+documents <- tracked_files("^docs/[^/]+\\.md$")
 assert_covered(documents, claude_paths, "docs/ document",
                "CLAUDE.md's Repository Structure table")
 
@@ -260,7 +259,6 @@ report(identical(stray_root_scripts(c(all_tracked, "run_adhoc_driver.R")), "run_
 cat("\n-- no document, script or module names a script that does not exist --\n")
 scanned <- grep(paste0("^(README\\.md|CLAUDE\\.md|docs/[^/]+\\.md|scripts/[^/]+\\.(R|sh)|",
                        "R/[^/]+\\.R|\\.github/.+)$"), all_tracked, value = TRUE)
-scanned <- setdiff(scanned, "docs/BCH_Simulation_Action_Plan.md")
 dangling <- unlist(lapply(scanned, function(f) {
   d <- dangling_script_names(paste(readLines(f, warn = FALSE), collapse = "\n"), all_tracked)
   if (length(d)) paste0(f, " -> ", d) else character(0)

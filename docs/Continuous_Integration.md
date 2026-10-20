@@ -60,7 +60,7 @@ documents, which is where a prose edit can actually break something: a moved
 heading, a stale anchor, a citation with no entry, an environment summary that
 no longer matches `env_data.json`.
 
-A post-merge chore pull request, which updates the action plan and little else,
+A documentation-only pull request, such as a post-merge chore,
 therefore reports in about a minute rather than in eleven.
 
 ## Reading a result on a pull request

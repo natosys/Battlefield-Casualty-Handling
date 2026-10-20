@@ -664,7 +664,7 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
 #'
 #' @details FORECAS (Blood, Zouris & Rotblatt, 1998) fits lognormal and
 #'   exponential distributions to different battle intensities/troop types.
-#'   Used for the high_intensity scenario profile (Issue #54), whose
+#'   Used for the high_intensity scenario profile, whose
 #'   higher-intensity casualty streams are exponential-distributed rather
 #'   than lognormal-distributed like the moderate_intensity/default streams.
 #'   An exponential's standard deviation equals its mean, so such a stream's
@@ -788,7 +788,7 @@ wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casual
 #'   (default outputs/data, an ordinary run's location). run_bch() passes a
 #'   run-scoped directory under outputs/ unless the caller has explicitly
 #'   asked to refresh the tracked baseline, so that an ordinary run cannot
-#'   overwrite tracked evidence (Issue #154).
+#'   overwrite tracked evidence.
 #' @return Invisibly NULL; called for its file-writing side effect
 #'
 #' @details The six background casualty streams' arrival times are not known
@@ -820,8 +820,8 @@ write_arrival_diagnostics <- function(env, data_dir = file.path("outputs", "data
 #' @details Event inter-arrival times are drawn from an
 #'   Exponential(rate_per_day) distribution via inverse-CDF. `rate_per_day = 0`
 #'   returns immediately with no RNG draws consumed, so the stream
-#'   downstream of this call is unaffected — the basis for Issue #9's
-#'   disable-path acceptance criterion.
+#'   downstream of this call is unaffected, so a disabled generator leaves
+#'   the background stream exactly as it would be without it.
 casualty_surge_event_starts_poisson <- function(n_days, event_params) {
   n_minutes    <- day_min * n_days
   rate_per_min <- event_params$rate_per_day / day_min
@@ -848,8 +848,7 @@ casualty_surge_event_starts_poisson <- function(n_days, event_params) {
 #'   `pri_three` (per-day casualty-count bounds and triage priority split),
 #'   all parallel arrays as read from env_data$vars$casualty_surge$schedule.
 #'   Any array empty or omitted defaults every day to the same value
-#'   (probability 1; min_cas/max_cas 20/60; priority 0.7/0.2/0.1 — the
-#'   Issue #9 Recommended Approach values), so a planner can specify only
+#'   (probability 1; min_cas/max_cas 20/60; priority 0.7/0.2/0.1), so a planner can specify only
 #'   `days` and accept sensible defaults for the rest.
 #' @return Data frame (one row per *fired* event, ascending by start time):
 #'   `start` (simulation minutes), `min_cas`, `max_cas`, `pri_one`,
@@ -980,7 +979,7 @@ casualty_surge_event_casualties <- function(event_start, event_params, n_minutes
 #' @param data_dir Directory the two diagnostic files are written to when
 #'   `write_file` is TRUE (default outputs/data, an ordinary run's location).
 #'   Threaded from run_once() so that only an explicit baseline refresh
-#'   writes to the tracked data/seed42/ (Issue #154).
+#'   writes to the tracked data/seed42/.
 #' @return Named list: `arrival_times` (sorted numeric vector of individual
 #'   wounded casualty arrival times, simulation minutes),
 #'   `casualty_event_id` (integer vector parallel to `arrival_times`,
@@ -1017,8 +1016,7 @@ casualty_surge_event_casualties <- function(event_start, event_params, n_minutes
 #'   stream already takes; the fraction is shared by both modes, as the
 #'   injection window is. An event schedule/rate that
 #'   produces zero events returns an empty arrival stream — background
-#'   lognormal generation is unaffected, satisfying Issue #9's
-#'   disable-path acceptance criterion (shipped default: "poisson" mode,
+#'   lognormal generation is unaffected (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
 generate_casualty_surge_events <- function(n_days, params, seed = NULL, write_file = TRUE,
                                            data_dir = file.path("outputs", "data")) {

@@ -18,7 +18,7 @@
 # Validating the shape once, here, turns a malformed input into a message
 # naming what is missing rather than a subscript or dplyr error raised deep
 # inside a summarise() the caller never wrote. Interior helpers are then
-# entitled to assume well-formed input (Issue #236).
+# entitled to assume well-formed input.
 
 # Columns each monitoring data frame must carry for the pipeline to run.
 # `replication` is required of all three even for a single run, which
@@ -274,7 +274,7 @@ with_preserved_rng <- function(expr) {
 #'   object-not-found error instead of reading an empty result, which is the
 #'   hazard this removes.
 #'
-#' @details Shared by analyse_run() and analyse_replications() (Issue #117) —
+#' @details Shared by analyse_run() and analyse_replications() —
 #'   grouping by (name, replication) rather than name alone already makes
 #'   this replication-aware, so the identical pivot serves both a
 #'   single-replication and a pooled multi-replication monitor.

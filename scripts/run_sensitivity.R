@@ -26,7 +26,7 @@
 # tests/checks/check_sensitivity_protocol.R.
 #
 # The last six parameters are the balance coordinates of the three
-# simplex-constrained composition groups (Issue #158). --sobol samples any
+# simplex-constrained composition groups. --sobol samples any
 # selected group's composition from a Dirichlet centred on its baseline
 # rather than drawing its coordinates independently; --no-dirichlet reverts
 # to uniform coordinate draws.
@@ -102,7 +102,7 @@ option_list <- list(
                 "refresh the tracked baseline plots, which is a deliberate act:",
                 "a screen writes one plot per response, so the default keeps an",
                 "ordinary run from scattering untracked files through the",
-                "tracked images/ directory (Issue #154's contract)."
+                "tracked images/ directory."
               )),
   make_option("--config",     type = "character", default = NULL,
               help = paste("Configuration file the screen is centred on, the shipped",
@@ -128,7 +128,7 @@ option_list <- list(
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
                 "OAT trajectory start can land on several elevated",
-                "casualty-generation-rate parameters simultaneously (Issue #112),",
+                "casualty-generation-rate parameters simultaneously,",
                 "producing a 30-day run with far more casualties/events than the",
                 "baseline; at full core parallelism this can exceed the",
                 "container's memory and get a worker OOM-killed (see",
@@ -224,7 +224,7 @@ if (length(partial) > 0) {
 # Where each composition group's coordinates landed in the primary ranking,
 # reported whether or not --sobol follows: the comparison against the two
 # Priority 1 conditional rates is the specific question the compositions were
-# brought into the screen to answer (Issue #158).
+# brought into the screen to answer.
 comp_rank <- match(unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords")),
                    morris_result$ranking$parameter)
 names(comp_rank) <- unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords"))

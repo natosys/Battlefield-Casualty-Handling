@@ -19,7 +19,7 @@
 # points, and the Shiny Sensitivity Screening tab displays the column to a
 # planner under the heading `Baseline`. A drifted mode is therefore invisible
 # until it has already mis-anchored a variance decomposition. Three had drifted
-# when the check was written (Issue #186).
+# when the check was written.
 #
 # The parameter-to-path mapping is derived from apply_params() rather than
 # restated here: each parameter is perturbed away from its mode in turn and the
@@ -63,7 +63,7 @@ check    <- function(ok, msg) {
 #'   There is no separate count field to read, so a bed pool's size is
 #'   flattened as that vector's length alongside the vars tree, under its
 #'   own namespace, instead of being invisible to this check's drift and
-#'   mode-mapping assertions (Issue #410).
+#'   mode-mapping assertions.
 flatten_vars <- function(ed) {
   out <- list()
   for (elm in names(ed$vars)) {

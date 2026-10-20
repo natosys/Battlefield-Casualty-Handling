@@ -22,8 +22,8 @@
 # pair and not the replication was the unit the design supplied while every
 # interval went on dividing by the replication count. The point estimates
 # survived that, the mean of paired observations being unbiased; the widths did
-# not. The pairing was withdrawn (Issue #189, README — Multi-run Replication
-# Framework) and this check is what keeps it withdrawn.
+# not. The pairing was withdrawn (README, Multi-run Replication Framework)
+# and this check is what keeps it withdrawn.
 #
 # What it asserts, and why structurally rather than statistically. Two
 # properties together make the replications independent, and each is checked
@@ -46,8 +46,7 @@
 # What these two properties do not establish is that a *measurement* is a
 # function of its control seed: replications can be perfectly independent of
 # one another within a measurement that does not reproduce. That is a separate
-# property with a separate check, tests/checks/check_measurement_reproducibility.R
-# (Issue #208).
+# property with a separate check, tests/checks/check_measurement_reproducibility.R.
 #
 # The --diagnostic mode measures the lag-1 rank correlation across replications
 # anyway, on an arrival-driven response and two treatment-driven ones, and

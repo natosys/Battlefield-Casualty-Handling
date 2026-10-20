@@ -360,8 +360,8 @@ check_alt_text <- function(file_path) {
 FURTHER_DEV_HEADING <- "^## Further Development$"
 # useBytes on every match against these three: ENTRY_HEADING carries a literal
 # em dash, and outside a UTF-8 locale R cannot translate the pattern at all, so
-# the check aborted before reading a single document rather than reporting
-# (Issue #262). Matching bytes sidesteps the translation; the lines themselves
+# the check aborted before reading a single document rather than reporting.
+# Matching bytes sidesteps the translation; the lines themselves
 # are UTF-8 from readLines() above, as they are where write_toc_block() applies
 # the same treatment for the same reason. The other two patterns are ASCII and
 # would match either way, but are matched the same way so that both sides of the
@@ -527,8 +527,8 @@ if (placeholder_images > 0) {
 
 # The scan table check reads the one pattern in this file that is not ASCII, so
 # it is the one whose result could depend on the session locale. Asserting that
-# it does not is what stops a future non-ASCII pattern reintroducing Issue #262
-# silently: the fault there was an abort before any document was read, which
+# it does not is what stops a future non-ASCII pattern reintroducing that
+# fault silently: it was an abort before any document was read, which
 # looks like an environment problem rather than a finding. Run in a subprocess
 # under a forced C locale, since Sys.setlocale() cannot reliably be undone
 # within a session.

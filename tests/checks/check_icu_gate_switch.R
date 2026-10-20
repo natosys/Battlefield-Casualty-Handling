@@ -14,8 +14,8 @@
 # Why this check exists. The published before-and-after comparison of the
 # post-operative intensive care gate compares the current model against a
 # configuration that no longer exists in the codebase, so it could not be
-# re-run and its intervals have been carried forward with a caveat instead
-# (Issue #296). `icu_gating.enabled` reconstructs the earlier arm as a
+# re-run and its intervals have been carried forward with a caveat instead.
+# `icu_gating.enabled` reconstructs the earlier arm as a
 # supported configuration rather than as a historical code state, and this
 # check is what keeps it faithful to what it claims to reproduce.
 #

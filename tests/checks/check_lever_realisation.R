@@ -370,7 +370,7 @@ for (pool in c("combat", "support")) {
 
 # ── Harness C: an undrawable distribution is rejected ───────────────────────
 # Check 7: rtriangle() returns NA rather than erroring when a <= c <= b is
-# violated, which is how the Issue #112 screening run lost every elementary
+# violated, which is how a screening run once lost every elementary
 # effect to an NA cascade. No bound is placed on how large the fractions may
 # be, over-delivery now being representable, so this is the only shape the
 # validator rejects.
@@ -540,7 +540,7 @@ report(ok, "none of the %d casualties holding at R2B were evacuated early, the t
 # accessor reads the other's field. They were named one character apart, with a
 # function called r2b_hold_threshold() reading evac_threshold while the Morris
 # parameter of that same name set hold_threshold, so this asserts the wiring
-# rather than trusting the names (Issue #333).
+# rather than trusting the names.
 cat("\n-- The two holding thresholds are wired to their own fields --\n")
 
 #' The env_data field an accessor reads, from its source

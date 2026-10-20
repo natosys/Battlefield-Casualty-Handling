@@ -11,13 +11,13 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. The comparative scenario analysis is the companion
-# paper's centrepiece, the experiment its opening finding rests on. Until Issue #384 it wrote its
-# results to the gitignored outputs/ alone, so no tracked file held the numbers
+# paper's centrepiece, the experiment its opening finding rests on. It once
+# wrote its results to the gitignored outputs/ alone, so no tracked file held the numbers
 # the paper printed and there was nothing a reader or a check could compare
 # them against. Auditing one figure meant re-running a hundred replications and
 # trusting that the environment reproduced.
 #
-# That is the arrangement Issue #382 measured the cost of elsewhere. The
+# That arrangement has shown its cost elsewhere. The
 # strategic evacuation section drifted from its own tracked evidence set for a
 # whole pull request cycle, printing a figure four times too small, and it
 # drifted despite having a tracked set to drift from. A section with no tracked

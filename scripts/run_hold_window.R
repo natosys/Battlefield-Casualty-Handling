@@ -13,7 +13,7 @@
 # window of zero, and until this script existed the comparison had no driver:
 # it was invoked as run.R under a parameter override, so there was no command
 # to give a --refresh-baseline flag to and no tracked evidence set behind the
-# printed figures (Issue #387). This is that driver, on the arrangement
+# printed figures. This is that driver, on the arrangement
 # scripts/run_policy_sweep.R establishes for a paired two-arm comparison.
 #
 # Both arms run under one control seed, so each draws the same per-replication

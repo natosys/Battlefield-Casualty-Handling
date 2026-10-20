@@ -12,7 +12,7 @@
 #
 # Why this check exists. Casualty Surge Events Degrade Care Without Revealing
 # New Constraints in docs/Results.md prints a four-row table from
-# replicated arms, and until Issue #389 none of the figures behind it existed
+# replicated arms, and once none of the figures behind it existed
 # in a tracked file: the experiment's entry point was run.R under a parameter
 # override rather than a driver script, so there was no command to give a
 # --refresh-baseline flag to and auditing one figure meant re-running the

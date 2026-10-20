@@ -10,8 +10,8 @@
 # Why this lives in its own file. Command-line arguments are input from
 # outside the program exactly as env_data.json is, and the style guide (E1,
 # E2) requires them validated before use, failing with a message that names
-# the field and the value found. Before Issue #310 they were not: `--days 0`
-# was accepted, a full simulation attempted, and the failure raised inside
+# the field and the value found. Left unchecked, `--days 0` would be
+# accepted, a full simulation attempted, and the failure raised inside
 # the analysis pipeline naming a monitoring data frame the user never
 # referred to. Keeping the rules here rather than inside an entry point's
 # `if (!interactive())` block is what lets them be tested in milliseconds
@@ -114,9 +114,9 @@ resolve_run_mode <- function(mode, iterations) {
 #'
 #' @details Two conditions protect the tracked set, and each names its own
 #'   reason rather than surfacing as arithmetic about the iteration count. A
-#'   multi-run refresh could only ever write part of the set (Issue #154); a
+#'   multi-run refresh could only ever write part of the set; a
 #'   refresh under a profile would leave the set describing a configuration
-#'   the repository does not ship (Issue #310).
+#'   the repository does not ship.
 validate_baseline_refresh <- function(refresh_baseline, iterations, scenario) {
   if (!isTRUE(refresh_baseline)) return(invisible(TRUE))
 

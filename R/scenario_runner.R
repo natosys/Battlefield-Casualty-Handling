@@ -1,6 +1,6 @@
 ##############################################
 ## R/scenario_runner.R                      ##
-## Comparative scenario runner (Issue #10)  ##
+## Comparative scenario runner  ##
 ##############################################
 #
 # Executes the multi-replication framework (R/replication.R) against a named
@@ -203,8 +203,8 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
   # The scenario's configuration is the caller's for the duration of this
   # call and no longer: everything derived from it (mon, queue_kpi, totals)
   # is computed before the function returns, so leaving the session on the
-  # last scenario run would only mislabel whatever the caller runs next
-  # (Issue #236). A caller that never set the globals gets them removed
+  # last scenario run would only mislabel whatever the caller runs next.
+  # A caller that never set the globals gets them removed
   # again rather than left behind.
   config_snapshot <- capture_config_globals()
   on.exit(restore_config_globals(config_snapshot), add = TRUE)
@@ -235,7 +235,7 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
     # Both counts, because they answer different questions: n_iterations is
     # what the design asked for and belongs in a description of the experiment,
     # n_replications is what contributed and belongs anywhere a result is
-    # labelled with its sample size (Issue #320).
+    # labelled with its sample size.
     n_replications = mon$n_replications,
     n_days       = n_days,
     mon          = mon,
@@ -467,7 +467,7 @@ summarise_scenario_transport_holders <- function(per_replication) {
 #'   env_data.json is flagged UTF-8 by jsonlite::fromJSON(), whereas a pattern
 #'   written as an R source literal carries the session's native encoding, so
 #'   under a C locale R cannot translate a non-ASCII pattern for matching and
-#'   sub() rejects it outright (Issue #153). Identifiers are ASCII, so this
+#'   sub() rejects it outright. Identifiers are ASCII, so this
 #'   derivation needs no such match and behaves identically in every locale.
 scenario_short_label <- function(scenario) {
   vapply(strsplit(gsub("_", " ", scenario), " ", fixed = TRUE), function(words) {
@@ -510,7 +510,7 @@ plot_scenario_comparison <- function(queue_table,
     # The em dash is written as a \u escape, not a literal: an escape yields a
     # UTF-8-flagged string in any locale, whereas a literal carries the
     # session's native encoding and the PNG device renders it as raw bytes
-    # under a C locale (Issue #153)
+    # under a C locale
     labs(title = "Comparative Scenario Analysis \u2014 Mean Queue by Resource Group",
          subtitle = "Error bars show mean of per-resource p10-p90 across replications",
          x = NULL, y = "Mean Queue Length", fill = "Scenario") +
@@ -526,7 +526,7 @@ plot_scenario_comparison <- function(queue_table,
 #'
 #' @param scenarios Character vector of scenario names to compare (default
 #'   c("moderate_intensity", "high_intensity") — the two profiles defined in
-#'   env_data.json by Issue #54; "default" can also be included)
+#'   env_data.json; "default" can also be included)
 #' @param n_iterations Replications per scenario (default 10)
 #' @param n_days Simulation duration per replication (default 30)
 #' @param path File path to env_data.json (default "env_data.json")

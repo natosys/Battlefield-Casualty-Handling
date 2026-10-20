@@ -13,7 +13,7 @@
 # intensive care utilisation and mortality, and until this script existed the
 # comparison had no driver: it was invoked as run.R under a parameter
 # override, so there was no command to give a --refresh-baseline flag to and
-# no tracked evidence set behind the printed figures (Issue #388). This is
+# no tracked evidence set behind the printed figures. This is
 # that driver, on the arrangement scripts/run_hold_window.R establishes for a
 # paired two-arm comparison; the two experiments are close enough in shape to
 # share that arrangement without sharing a runner module

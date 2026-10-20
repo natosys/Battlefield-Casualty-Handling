@@ -21,7 +21,7 @@
 #   run_bch(seed = 99, days = 10, iterations = 5)
 #   run_bch(refresh_baseline = TRUE)   # regenerate tracked baseline evidence
 #
-# Artifact policy (Issue #154). Every run writes its analysis artifacts to
+# Artifact policy. Every run writes its analysis artifacts to
 # output_dir ("outputs/", gitignored) and nothing else. The tracked seed-42
 # baseline evidence set, images/ and data/seed42/ (the console log, the
 # arrival diagnostics, the casualty surge event log and the verification
@@ -43,8 +43,8 @@ source("R/results.R")
 
 #' Print each analyse_run() plot to the active graphics device, in the same
 #' order the pipeline previously auto-printed them, for interactive/RStudio
-#' use. analyse_run() itself no longer calls print() (Issue #14 — it must be
-#' safe to call from a headless Shiny session), so the CLI path reproduces
+#' use. analyse_run() itself does not call print(), since it must be safe to
+#' call from a headless Shiny session, so the CLI path reproduces
 #' the original on-screen sequence here. Conditional plots are NULL when
 #' their trigger condition (e.g. zero R2B hold occupants) was not met.
 #'
@@ -81,7 +81,7 @@ print_analysis_plots <- function(results) {
 #'   arrival diagnostics describe one specific run's event stream and have no
 #'   multi-replication equivalent, so a multi-run refresh could only ever
 #'   produce a partial set, which is the failure mode this flag exists to
-#'   prevent (Issue #154).
+#'   prevent.
 #' @param scenario    Name of the scenario profile to apply (default
 #'   "default", the base parameters). Resolved by load_scenario(), which
 #'   overlays only the scenario-specific subset of `vars`.
@@ -98,8 +98,9 @@ print_analysis_plots <- function(results) {
 #'
 #' @details A scenario profile and a baseline refresh are mutually exclusive.
 #'   The tracked evidence set describes the shipped configuration, so letting a
-#'   profile write it would reintroduce by another route the drift Issue #154
-#'   closed: the set would no longer describe the configuration the repository
+#'   profile write it would reintroduce by another route the drift the
+#'   baseline refresh rule exists to prevent: the set would no longer describe the configuration
+#'   the repository
 #'   ships.
 run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
                     quick = FALSE, output_dir = "outputs",

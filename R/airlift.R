@@ -453,7 +453,7 @@ run_airlift_sweep <- function(field, values, scenario = "moderate_intensity",
   }))
 }
 
-# ── The airlift collapse experiment (Issue #312) ─────────────────────────────
+# ── The airlift collapse experiment ─────────────────────────────
 # The sweep above measures what the airlift schedule costs within a 30-day
 # campaign. This one asks a different question at a different horizon: whether a
 # campaign collapses altogether, which is a property of a whole year rather than

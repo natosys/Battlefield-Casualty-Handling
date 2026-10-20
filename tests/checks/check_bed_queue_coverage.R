@@ -18,7 +18,7 @@
 # two pools while omitting a third whose aggregate queue at seed 42 is larger
 # than one of them. plot_r2b_bed_queues() selected on a wildcard and derived
 # the type from the resource name, so the same pipeline plotted the two
-# echelons to different rules with nothing stating a reason (Issue #315).
+# echelons to different rules with nothing stating a reason.
 #
 # A figure omitting a series is invisible in a way a wrong number is not. The
 # reader sees pools queueing and has no way to know that another was left out,

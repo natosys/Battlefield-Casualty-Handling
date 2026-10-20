@@ -17,7 +17,7 @@
 # fired, 60 minutes for three of these jobs and 180 for the slow suite, and
 # reported a failure naming nothing useful. One run was observed wedged past
 # 25 minutes and had to be cancelled by hand, against a 7m39s worst case that
-# did complete (Issue #337).
+# did complete.
 #
 # The guards are applied inline in all four copies rather than factored into a
 # composite action, because `timeout-minutes` is not among the step properties

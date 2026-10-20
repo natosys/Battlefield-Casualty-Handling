@@ -14,12 +14,12 @@
 # codebase: CLAUDE.md's Repository Structure table, which says it covers the
 # repository as a whole, and README.md's Codebase Structure table, which is
 # what CLAUDE.md points a reader at for detail on each R/ module. Nothing
-# checked either claim and both had drifted (Issue #342).
+# checked either claim and both had drifted.
 #
 # A missing row breaks nothing that runs, which is why it survives: the only
 # thing that ever caught one was a reviewer noticing. R/cli.R had no row in
-# the README table from the day it was created, and PR #340 added two files
-# and gave neither a row, corrected by hand afterwards. A structural index
+# the README table from the day it was created, and one pull request added two
+# files and gave neither a row, corrected by hand afterwards. A structural index
 # that is silently incomplete is worse than none, because a reader who checks
 # it and finds nothing concludes the file does not exist.
 #

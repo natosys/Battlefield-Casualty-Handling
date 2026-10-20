@@ -19,9 +19,9 @@
 # Nothing in a run's output checks either promise, and a 30-day run is far too
 # short to separate a shortfall from ordinary variability. That is how the
 # generators came to be running roughly a fifth below their configured WIA and
-# KIA rates without it showing anywhere (Issue #203), and how they came to be
+# KIA rates without it showing anywhere, and how they came to be
 # running at roughly a quarter of the day-to-day variation of even a plain
-# Poisson process (Issue #206). Three properties are asserted here:
+# Poisson process. Three properties are asserted here:
 #
 #   1. Each shipped stream's realised long-run daily mean equals its configured
 #      mean_daily.
@@ -263,7 +263,7 @@ for (i in seq_along(streams)) {
 
 # ── 2. Each stream realises the daily variance its construction targets ─────
 #
-# The property Issue #206 exists to restore. Reported against the Poisson
+# The property the arrival process was rebuilt to restore. Reported against the Poisson
 # variance as well as the target, since Poisson is the floor any arrival
 # process should clear and the retired minute walk did not.
 

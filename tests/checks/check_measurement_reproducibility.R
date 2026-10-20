@@ -21,7 +21,7 @@
 # so the first call in a session drew its seeds under Mersenne-Twister and
 # every later call drew them under L'Ecuyer-CMRG. set.seed(777) gives a
 # different stream under each, so a measurement was a function of its position
-# in the session as well as of its seed (Issue #208). Measuring
+# in the session as well as of its seed. Measuring
 # moderate_intensity on its own returned a treated-cohort died-of-wounds rate
 # of 0.392%; measuring the same configuration at the same control seed with
 # three default measurements ahead of it returned 0.248%, a gap wider than the

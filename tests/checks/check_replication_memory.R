@@ -14,7 +14,7 @@
 # per-activity cost in simmer rather than in this project's code: a minimal
 # trajectory of nothing but timeouts retains a constant 6.0 R cons cells per
 # activity, linear from 250 to 8,000 activities, and the casualty trajectory
-# carries 12,612 of them (Issue #312).
+# carries 12,612 of them.
 #
 # That cost is survivable only if a forked worker runs one replication and
 # exits, returning its retention to the operating system. Under mclapply's

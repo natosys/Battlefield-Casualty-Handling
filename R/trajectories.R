@@ -47,7 +47,7 @@ release_resources <- function(trj, resources) {
 }
 
 #' Debits an entity's population pool (combat or support) from the
-#' effective force size at the moment they become a casualty (Issue #18)
+#' effective force size at the moment they become a casualty
 #'
 #' @param trj A simmer trajectory object
 #' @return Modified trajectory with the force-size debit appended
@@ -76,7 +76,7 @@ debit_force_size <- function(trj) {
 }
 
 #' Credits an entity's population pool (combat or support) back to the
-#' effective force size at the moment they return to duty (Issue #18)
+#' effective force size at the moment they return to duty
 #'
 #' @param trj A simmer trajectory object
 #' @return Modified trajectory with the force-size credit appended
@@ -646,7 +646,7 @@ r1_treat_kia <- function(team) {
 #' @details Uses HX240M transport asset with shortest-queue selection policy.
 #'   Applies triangular delay to simulate movement time and records start
 #'   time with attribute transport_start_time. Models the dead-head return
-#'   leg (Issue #6): after drop-off, the entity clones into a vehicle
+#'   leg: after drop-off, the entity clones into a vehicle
 #'   branch (unladen return timeout, then release — listed first so it
 #'   inherits the pre-clone seize record) and a casualty branch (no
 #'   further activity). The trailing synchronize(wait = FALSE) lets the
@@ -720,7 +720,7 @@ r1_treat_wia <- function(team) {
 #' @details Selects a PMV Ambulance asset using shortest-queue policy. Logs
 #'   transport start time via transport_start_time attribute. Applies
 #'   triangular distributed timeout to simulate transit duration. Models
-#'   the dead-head return leg (Issue #6): after drop-off, the entity
+#'   the dead-head return leg: after drop-off, the entity
 #'   clones into a vehicle branch (unladen return timeout, then release —
 #'   listed first so it inherits the pre-clone seize record) and a
 #'   casualty branch (no further activity). The trailing
@@ -780,8 +780,8 @@ r2b_treat_kia <- function(traj, team_id) {
 }
 
 #' Simulates Role 2B road-move transport of KIA casualties to the mortuary,
-#' modelled as collocated with Role 2E Heavy rather than Role 2B (Issue #73
-#' follow-up) — R2B has no organic mortuary asset of its own. Uses the
+#' modelled as collocated with Role 2E Heavy rather than Role 2B; R2B has no organic mortuary
+#' asset of its own. Uses the
 #' shared HX2 40M fleet with a dead-heading return leg, mirroring
 #' r1_transport_kia()'s pattern: after drop-off, the entity clones into a
 #' vehicle branch (unladen return timeout, then release) and a casualty
@@ -837,7 +837,7 @@ r2b_transport_kia <- function(traj, team_id) {
 
 #' Seizes an already-available R2B team evac resource, models the outbound
 #' transport draw, then a dead-heading return leg on that same resource
-#' before releasing it (Issue #73 follow-up). The casualty continues
+#' before releasing it. The casualty continues
 #' immediately via synchronize(wait = FALSE); the escort/vehicle clone
 #' returns to R2B independently and is discarded on arrival. Assumes
 #' `evacuation_team` is not yet seized — use r2b_evac_return_leg() directly
@@ -855,7 +855,7 @@ r2b_evac_leg <- function(traj, evacuation_team) {
 }
 
 #' Outbound transport draw plus dead-heading return leg for an R2B team's
-#' evac resource that the caller has already seized (Issue #73 follow-up).
+#' evac resource that the caller has already seized.
 #' Split out from r2b_evac_leg() for the wait_for_evac fallback path, which
 #' seizes `evacuation_team` earlier as its own availability gate.
 #'
@@ -1577,7 +1577,7 @@ r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
 #'   elapsed time on arrival here, so the journey between the two echelons is
 #'   priced at this checkpoint.
 r2b_dow_check <- function(trj, team_id) {
-  # Time-dependent logistic (Issue #5).
+  # Time-dependent logistic.
   # Disease DNBI (dnbi_type == 2) remain exempt — medical pathway, not trauma.
   # P3 casualties use a flat probability (minor wounds, not time-critical).
   trj %>%
@@ -1709,10 +1709,10 @@ r2b_evac_decision <- function(trj, evacuation_team, wait_for_evac) {
 #'   being reached by two routes.
 #'
 #'   R2B → R2E WIA movement seizes each R2B team's own `evac` resource, not the
-#'   shared PMVAmb fleet, a deliberate design (Issue #73): this leg represents
+#'   shared PMVAmb fleet, a deliberate design: this leg represents
 #'   an organic R2B unit asset, distinct from the brigade-pooled transport fleet
 #'   used for R1 → R2B. It does model a dead-heading return leg on that same
-#'   organic resource (Issue #73 follow-up): once the R2B team's evac asset
+#'   organic resource: once the R2B team's evac asset
 #'   drops a casualty at R2E, it is unavailable to its own team until it
 #'   completes the return trip.
 r2b_treat_wia <- function(team_id) {
@@ -1811,8 +1811,8 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 }
 
 #' Builds a per-R2E-team mortuary intake sub-trajectory for KIA casualties
-#' arriving by road from R2B (Issue #73 follow-up: the mortuary is modelled
-#' as collocated with R2E, not R2B). One small trajectory is built per R2E
+#' arriving by road from R2B (the mortuary is modelled as collocated with
+#' R2E, not R2B). One small trajectory is built per R2E
 #' team at model-graph-construction time — mirroring r2e_treat_wia()'s own
 #' team-selection pattern — and dispatched to at runtime via the "r2e"
 #' attribute set by r2b_transport_kia() before the branch(). evac_team is
@@ -2451,7 +2451,7 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
 #'   time on arrival here, so the journey to this echelon is priced at this
 #'   checkpoint. dow_echelon = 3 distinguishes it from the post-operative check.
 r2e_arrival_dow_check <- function(trj, team_id, evac_team) {
-  # Time-dependent logistic (Issue #5).
+  # Time-dependent logistic.
   # Disease DNBI (dnbi_type == 2) exempt — medical pathway, not trauma.
   # P3 casualties use a flat probability (minor wounds, not time-critical).
   trj %>%
@@ -2805,7 +2805,7 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     # "evacuation logistics wait" remain distinguishable.
     set_attribute("r2e_departure_time", function() now(env)) %>%
     set_attribute("r2e_evac", 1) %>%
-    # evacuation_decision_day / treatment_received (Issue #23): captured
+    # evacuation_decision_day / treatment_received: captured
     # when the Strategic Evac disposition is decided. Feeds the Role 4
     # ward/LoS category assignment (R/analysis_role4_ame.R::assign_role4_los())
     # — see README Role 4 sub-section.
@@ -3104,7 +3104,7 @@ assign_injury_attributes <- function(trj) {
     set_attribute("injury_time", function() now(env)) %>%
     debit_force_size() %>%
     set_attribute("last_dow_t",  function() now(env)) %>%
-    # injury_type (Issue #23): 1 = WIA, 2 = DNBI, 3 = KIA. Read downstream by
+    # injury_type: 1 = WIA, 2 = DNBI, 3 = KIA. Read downstream by
     # the Role 4 census (R/analysis_role4_ame.R::assign_role4_los()) to route DNBI
     # strategic evacuees to the P3/DNBI length-of-stay category regardless of
     # their triage priority — see README Role 4 sub-section.
@@ -3442,7 +3442,7 @@ r1_post_treatment_decision <- function() {
 #'   check at R1.
 r1_nbi_wia_standard_path <- function() {
   trajectory("NBI/WIA Standard Path") %>%
-    # DOW branch — time-dependent logistic (Issue #5)
+    # DOW branch — time-dependent logistic
     # Probability is a shifted logistic function of elapsed time since injury.
     # At R1, t_prev = 0 (first DOW check), so the conditional increment equals
     # the cumulative DOW probability adjusted for the non-zero p_base floor.
@@ -3578,7 +3578,7 @@ build_casualty_trajectory <- function() {
 #' @details Driven by its own generator in run_once() (R/replication.R),
 #'   scheduled every demand_interval_days (env_data$vars$force_regeneration$
 #'   reinforcement) — this is the one genuinely periodic/daily-cycle
-#'   mechanism in the Issue #18 force regeneration model (injury/RTD
+#'   mechanism in the force regeneration model (injury/RTD
 #'   crediting is continuous — see debit_force_size()/credit_rtd() above).
 #'
 #'   Demand is assessed at submission time (shortfall = initial - current
@@ -3647,7 +3647,7 @@ build_casualty_trajectory <- function() {
 #' @details rtriangle() requires a <= c <= b and returns NA rather than
 #'   erroring when that is violated, so an inverted configuration would
 #'   otherwise surface as a missing fill much later, or as the NA cascade
-#'   through every downstream KPI that the Issue #112 screening run hit. No
+#'   through every downstream KPI that a screening run once hit. No
 #'   bound is placed on how large the fractions may be: a fill fraction above 1
 #'   is a reinforcement package larger than the shortfall it was requested
 #'   against, which the model delivers in full.

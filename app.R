@@ -2,7 +2,7 @@
 ## app.R                                    ##
 ## Battlefield Casualty Handling Simulation ##
 ## Shiny app — Configure / Run / Analyse    ##
-## (Issue #14)                              ##
+##                              ##
 ##############################################
 #
 # Launch with:
@@ -121,7 +121,7 @@ detect_tri_triples <- function(registry) {
     mode_f <- registry[[which(ids == paste0(p, "_mode"))]]
     list(min_id = paste0(p, "_min"), mode_id = paste0(p, "_mode"), max_id = paste0(p, "_max"),
          # useBytes: the pattern is non-ASCII, so a locale-dependent match
-         # would break if the label ever moved into env_data.json (Issue #153)
+         # would break if the label ever moved into env_data.json
          label = sub(" — Most Likely \\(Mode\\)$", "", mode_f$label, useBytes = TRUE))
   }), prefixes)
 }
@@ -253,7 +253,7 @@ SPLIT_SLIDER_META <- list(
   mc_pri_split = list(colors = c("#c0392b", "#e08e2d", "#2a78d6"),
                        labels = c("P1", "P2", "P3"))
 )
-# One compositional-split slider per Scheduled Event Days row (Issue #9) —
+# One compositional-split slider per Scheduled Event Days row —
 # generated rather than hand-written since CASUALTY_SURGE_SCHEDULE_SLOTS
 # entries are all identical in colour/labels, just keyed by event index.
 SPLIT_SLIDER_META <- c(SPLIT_SLIDER_META, setNames(
@@ -359,7 +359,7 @@ split_slider_recolor_script <- function(meta_map) {
   tags$script(HTML(js))
 }
 
-#' Client-side "shrink-to-fit" scaling for Analyse-tab plots (Issue #121).
+#' Client-side "shrink-to-fit" scaling for Analyse-tab plots.
 #'
 #' Every Analyse-tab plot still renders server-side at its own natural,
 #' data-driven pixel height (e.g. the Gantt row-count height from Issue
@@ -373,7 +373,7 @@ split_slider_recolor_script <- function(meta_map) {
 #' `nav_panel`) makes the `<img>` inside track that height at `height:100%`
 #' with `width:auto`, so the browser itself scales the already-rendered,
 #' full-detail image down losslessly (as a photo, not a re-render) to fit —
-#' preserving every relative proportion, so Issue #111's row/label spacing
+#' preserving every relative proportion, so the computed row/label spacing
 #' cannot re-overlap as a side effect of shrinking — and centres it via
 #' `margin: 0 auto`, since its auto-computed display width will generally
 #' be narrower than the container once shrunk. An earlier version of this
@@ -492,7 +492,7 @@ inject_all_splits <- function(values) {
 }
 
 #' Fill in any registry field missing from `values` with its scenario-
-#' resolved default (Issue #77). A field is missing whenever its Configure
+#' resolved default. A field is missing whenever its Configure
 #' accordion panel has never been opened in this session — deferred
 #' rendering (see the group_ui_* renderUI loop in server()) means such a
 #' field's input never bound, so it is simply absent from `values`, not
@@ -589,7 +589,7 @@ MORRIS_LABELS <- c(
   pri2_dcs_rate = "Priority 2 Damage Control Rate",
   pri3_dcs_rate = "Priority 3 Damage Control Rate",
 
-  # ── R2E establishment bed counts (Issue #410) ────────────────────────────
+  # ── R2E establishment bed counts ────────────────────────────
   r2e_icu_beds  = "R2E Intensive Care Bed Count",
   r2e_hold_beds = "R2E Holding Bed Count",
 
@@ -791,7 +791,7 @@ field_input <- function(f, value, overridden_paths = NULL) {
     # Defensive widening: the current env_data.json baseline should always
     # be representable on the slider, even where a screened Morris range
     # (R/sensitivity.R) has drifted from the baseline after a later
-    # recalibration (Issue #75) — flagged as a data-consistency check
+    # recalibration — flagged as a data-consistency check
     # rather than silently clipping here.
     lo <- f$min; hi <- f$max
     if (!is.null(value) && !is.na(value)) {
@@ -1094,13 +1094,13 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'     sub-paths — i.e. every R2B→R2E movement, surgical or bypassed,
 #'     funnels through r2b_evac_leg()/r2b_evac_return_leg()), which seizes
 #'     each R2B team's own `evac` resource rather than the shared PMVAmb
-#'     fleet — a deliberate design (Issue #73): this leg represents an
+#'     fleet — a deliberate design: this leg represents an
 #'     organic R2B unit asset, distinct from the brigade-pooled fleet used
 #'     for R1 → R2B. The dead-heading return leg is modelled on that same
 #'     organic resource rather than a pooled vehicle.
 #'   - R2B → R2E, KIA/mortuary: r2b_transport_kia(), using the shared
 #'     HX2 40M fleet. The mortuary is modelled as collocated with R2E, not
-#'     R2B (Issue #73 follow-up) — R2B has no organic mortuary asset, so a
+#'     R2B; R2B has no organic mortuary asset, so a
 #'     KIA at R2B is transported by road to the R2E-collocated mortuary
 #'     rather than processed in place.
 #' KIA reaching R2E (whether they died there, or arrived by road from R1 or
@@ -1114,10 +1114,9 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #'   unmodified fresh draw from the same distribution.
 #' @param kia1_mode R1→R2B KIA transport mode (minutes).
 #' @param wia2_mode R2B→R2E WIA transport mode (minutes), applied to the
-#'   R2B team's own organic evac resource rather than a pooled vehicle
-#'   (Issue #73).
+#'   R2B team's own organic evac resource rather than a pooled vehicle.
 #' @param kia2_mode R2B→R2E KIA/mortuary road-move transport mode
-#'   (minutes), using the shared HX2 40M fleet (Issue #73 follow-up).
+#'   (minutes), using the shared HX2 40M fleet.
 #' @param mort2e_mode R2E collocated-mortuary local transport mode
 #'   (minutes) — no return leg, since no vehicle asset is used for this
 #'   final in-place movement.
@@ -1387,7 +1386,7 @@ render_generation_rates_subgroup <- function(sg, sg_fields, defaults, overridden
       !!!lapply(GEN_STREAM_ACTYS, function(acty) {
         mean_f <- Find(function(f) identical(f$id, paste0("gen_", acty, "_mean")), sg_fields)
         sd_f   <- Find(function(f) identical(f$id, paste0("gen_", acty, "_sd")),   sg_fields)
-        # useBytes: see detect_tri_triples() above (Issue #153)
+        # useBytes: see detect_tri_triples() above
         stream_label <- sub(" — Mean Daily Rate$", "", mean_f$label, useBytes = TRUE)
         dist <- if (is.null(gen_distributions)) "lognormal" else (gen_distributions[[acty]] %||% "lognormal")
         sd_input <- if (identical(dist, "exponential")) {
@@ -1792,7 +1791,7 @@ create_console_state <- function(input, session) {
   # Both boundaries where a configuration enters the app validate it before
   # anything reads it: a malformed file names its offending field here rather
   # than surfacing as a subscript error inside build_environment() once a run
-  # has already started (Issue #236). A malformed file on disk at startup is
+  # has already started. A malformed file on disk at startup is
   # unrecoverable within the session, so it stops; a malformed upload leaves
   # the loaded configuration in place and reports through the UI.
   startup_json <- fromJSON(DEFAULT_JSON, simplifyVector = FALSE)
@@ -1852,7 +1851,7 @@ wire_configure_panel <- function(input, output, session) {
   # field group in the registry (see TRI_TRIPLES/render_field_grid()),
   # reading straight from the three inputs so it redraws as any of them
   # is edited — the same pattern as the casualty-generation curves above.
-  # Left at Shiny's default suspendWhenHidden = TRUE (Issue #77): a curve
+  # Left at Shiny's default suspendWhenHidden = TRUE: a curve
   # only needs to render once its accordion panel is actually opened, and
   # forcing it eager was part of what made every page load pay the cost of
   # rendering all 19 of these regardless of which panel (if any) the user
@@ -2153,14 +2152,14 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shap
       input$r2e_team_count %||% 0, r2e_beds
     )
   })
-  # Left at the default suspendWhenHidden = TRUE (Issue #77): this lives in
+  # Left at the default suspendWhenHidden = TRUE: this lives in
   # the same accordion panel as the Health System Architecture fields it
   # illustrates, so there is nothing to show while that panel is collapsed.
 
   # Live medevac chain diagram at the top of the Medevac panel
   # (see medevac_diagram()) — reads the same transport mode inputs the
   # fields below it edit. All four legs carry an unmodified dead-heading
-  # return leg (Issue #74); R2E's own local mortuary transfer (mort2e_mode)
+  # return leg; R2E's own local mortuary transfer (mort2e_mode)
   # remains a marker, not a leg, since no vehicle asset is used for that
   # final in-place movement.
   output$medevac_diagram <- renderUI({
@@ -2204,7 +2203,7 @@ wire_configure_previews <- function(input, output, dow_shape, scenario_json) {
       if (is.null(dist)) dist <- "lognormal"
       render_gen_curve(mean_v, sd_v, dist)
     })
-    # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+    # Left at the default suspendWhenHidden = TRUE — same
     # reasoning as the triangular curve previews above.
   })
 
@@ -2221,7 +2220,7 @@ wire_configure_previews <- function(input, output, dow_shape, scenario_json) {
       shp   <- dow_shape()[[pr]]
       render_dow_curve(shp$p_base, p_max, shp$k, shp$t_mid)
     })
-    # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+    # Left at the default suspendWhenHidden = TRUE — same
     # reasoning as the triangular curve previews above.
   })
   invisible(NULL)
@@ -2300,7 +2299,7 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
 
   wire_configure_group_bodies(fields_by_group, input, output, dow_shape, gen_distributions,
                               scenario_json, scenario_overridden_paths)
-  # Left at the default suspendWhenHidden = TRUE (Issue #77) — same
+  # Left at the default suspendWhenHidden = TRUE — same
   # reasoning as force_design_diagram above, for the Medevac panel.
 
   # Live casualty-generation curve previews (Casualty Rates group). Read
@@ -2365,7 +2364,7 @@ build_config_validator <- function() {
       }
     }
 
-    # Casualty surge casualties-per-event min/max pairs (Issue #9) — the
+    # Casualty surge casualties-per-event min/max pairs — the
     # shared Poisson-mode pair and every Scheduled Event Days row, whether
     # or not that row is currently visible (a hidden row is always reset to
     # defaults, but validating it regardless costs nothing and stays
@@ -2659,8 +2658,8 @@ build_shrink_to_fit_helpers <- function(input, output) {
   #' "auto") — see shrink_to_fit_script()'s roxygen for why an explicit,
   #' un-auto-detected height is what makes the client-side shrinking safe.
   #' The modal always shows the plot at this same full natural size,
-  #' unscaled by any container CSS, making it the regression check for
-  #' Issue #111 remaining intact under this issue's shrinking.
+  #' unscaled by any container CSS, making it the regression check that the
+  #' computed row/label spacing survives the shrinking.
   #'
   #' @param plot_id Output id (matches shrink_to_fit_plot_ui()'s plot_id).
   #' @param title Modal dialog title.
@@ -3269,9 +3268,9 @@ register_analyse_plots <- function(analysis_results, tab_plot,
   new_shrink_to_fit_plot("plot_ame_sortie", "AME Sortie Timeline — Full Size",
                          function() tab_plot()$ame_sortie, function() 500)
   # These five plots are computed by both analyse_run() and
-  # analyse_replications() under the identical field name (Issue #117 —
-  # analyse_replications() now returns a mean +/- 95% CI ribbon/bar version
-  # rather than a single-run trace), so the plot itself renders unchanged
+  # analyse_replications() under the identical field name (the latter
+  # returning a mean +/- 95% CI ribbon/bar version rather than a single-run
+  # trace), so the plot itself renders unchanged
   # regardless of run_mode(); only the cards/tables surrounding it in the UI
   # differ by mode (scalar counts for Quick Run vs CI'd counts for Full
   # Analysis — see r2b_routing_cards/role4_summary_cards/etc. below).
@@ -3455,7 +3454,7 @@ wire_analyse_outputs <- function(analysis_results, mon_data, run_state, tab_plot
   shrink_to_fit_plot_ui <- shrink_to_fit_helpers_out$shrink_to_fit_plot_ui
 
   # KPI summary cards (Full Analysis only) — mean (95% CI) headline figures
-  # shown above the output tabs, per Issue #15's acceptance criteria.
+  # shown above the output tabs.
   wire_analyse_summary_outputs(mon_data, output)
 
   wire_analyse_body(analysis_results, run_state,
@@ -3809,7 +3808,7 @@ wire_calibration_outputs <- function(output) {
   # `Parameter` title specifically so this table doubles as the variable
   # name -> human-readable title lookup a planner needs when cross-
   # referencing a raw code seen in the CSV or plots back to what it means
-  # (Issue #112 third follow-up) — not just a slider-bounds reference.
+  # — not just a slider-bounds reference.
   output$calibration_table <- renderDT({
     datatable(calibration_df(), rownames = FALSE, options = list(dom = "t", pageLength = 20))
   })
@@ -3832,7 +3831,7 @@ wire_supplementary_outputs <- function(analysis_results, output) {
 
   wire_supplementary_plot_downloads(analysis_results, output)
 
-  # R2B routing diagnostics (Issue #39) — pre-transport and at-R2B-hold
+  # R2B routing diagnostics — pre-transport and at-R2B-hold
   # bypass/queue counts; independent, non-summing counts (see Annex A of
   # docs/Results.md).
   wire_r2b_and_theatre_outputs(analysis_results, output, count_value_card,
@@ -3943,8 +3942,8 @@ server <- function(input, output, session) {
 
   # tab_plot() previously combined Queue Depths' 3 panels and Quick Run's
   # Bed & Resource Utilisation's 4 panels into one patchwork image each; both
-  # are now split into individually shrink-to-fit plots (Issue #121 follow-
-  # up) so each panel can be shrunk against its own full viewport-height
+  # are split into individually shrink-to-fit plots so each panel can be shrunk against its own
+  # full viewport-height
   # budget, rather than every constituent plot in a combined image sharing
   # (and being squashed to fit) one. Only the three tabs that are still ever
   # a single combined/standalone plot remain here; every split-out panel is
@@ -3963,8 +3962,8 @@ server <- function(input, output, session) {
   # defaults to a size that fits the user's browser viewport without page
   # scrolling, while remaining fully readable on demand via an "Expand"
   # link. Each plot still renders server-side at its own natural, data-
-  # driven height (e.g. utilisation_panel_heights() above, unchanged from
-  # Issue #111) so row/label geometry is computed exactly as before; only
+  # driven height (e.g. utilisation_panel_heights() above) so row/label
+  # geometry is computed at full size; only
   # the *displayed* size is capped, client-side, by shrink_to_fit_script()
   # (see its roxygen for why this is done in JS rather than by feeding a
   # viewport height back into a reactive renderUI). chrome_px is a per-tab
@@ -3972,7 +3971,7 @@ server <- function(input, output, session) {
   # chrome that a plot's own container does not occupy; tabs with an
   # explanatory paragraph above the plot use the larger allowance.
 
-  # Shrink-to-fit plot sizing (Issue #121)
+  # Shrink-to-fit plot sizing
   analyse_outputs_out <- wire_analyse_outputs(analysis_results, mon_data, run_state, tab_plot,
                                               utilisation_panel_heights, input, output)
   ANALYSE_PLOT_CHROME_PX <- analyse_outputs_out$ANALYSE_PLOT_CHROME_PX
@@ -3993,27 +3992,11 @@ server <- function(input, output, session) {
   # on run_mode() to pick the correctly-shaped source field.
 
 
-  # Issue #117 — previously-uncovered analyse_run() outputs, plus their
+  # analyse_run() outputs no other tab shows, and the helpers they share
   supplementary_outputs_out <- wire_supplementary_outputs(analysis_results, output)
   calibration_df <- supplementary_outputs_out$calibration_df
   count_value_card <- supplementary_outputs_out$count_value_card
   small_dt <- supplementary_outputs_out$small_dt
-
-  # ── Sensitivity Screening — Morris (async via future + promises) ─────────
-
-
-  # Sensitivity Screening — Morris (async via future + promises)
-
-  # ── Sobol Decomposition (async via future + promises) ────────────────────
-
-
-  # Sobol Decomposition (async via future + promises)
-
-  # ── Transport Fleet Capacity Margin Sweep (async via future + promises,
-  # Issue #57) ───────────────────────────────────────────────────────────────
-
-
-  # Transport Fleet Capacity Margin Sweep (async via future + promises,
 }
 
 shinyApp(ui, server)

@@ -13,12 +13,11 @@
 # Artifact policy. Every run writes under --output-dir and --images-dir, both
 # of which default inside outputs/, so an exploratory run cannot overwrite a
 # tracked file. images/welch_plot_icu_queue.png is tracked, and
-# --refresh-baseline is the only way to write it, matching run.R's policy
-# (Issue #154).
+# --refresh-baseline is the only way to write it, matching run.R's policy.
 #
 # The measurement is a function of --seed alone: run_replications() draws each
 # replication's seed from the parent stream, so seeding here is what makes a
-# published warm-up figure reproducible from the command line (Issue #208).
+# published warm-up figure reproducible from the command line.
 
 suppressPackageStartupMessages(library(optparse))
 

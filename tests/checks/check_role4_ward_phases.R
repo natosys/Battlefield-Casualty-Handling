@@ -12,8 +12,8 @@
 # Why this check exists. A Role 4 casualty used to hold one ward for the whole
 # of a length of stay drawn at admission, so every Priority 1 surgical casualty
 # was counted in an intensive care bed for a stay of up to 45 days and the
-# reported intensive care demand was a ceiling rather than an estimate
-# (Issue #314). The stay can now be split, an intensive care phase followed by
+# reported intensive care demand was a ceiling rather than an estimate.
+# The stay can now be split, an intensive care phase followed by
 # a step-down ward, and the split is where a census can silently stop adding
 # up: a phase computed independently of the stay it divides can lose a day to
 # rounding, double-count the boundary, or leave a gap the census simply does

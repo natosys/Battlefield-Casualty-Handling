@@ -138,7 +138,7 @@ validate_role4_wards <- function(r4_params) {
 #'   the row-at-a-time draw (matches the per-entity draw pattern used
 #'   throughout R/trajectories.R).
 assign_role4_los <- function(arrivals_log, r4_los_params) {
-  # evacuation_day requires a completed AME boarding (Issue #23 follow-up)
+  # evacuation_day requires a completed AME boarding
   # — r2e_evac == 1 marks the disposition decision, but a casualty can still
   # be queued awaiting a scheduled sortie at the end of the run (see
   # ame_wait_minutes/evacuation_day left NA in that case). Only casualties
@@ -164,7 +164,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
   # The length-of-stay draw is the analysis pipeline's only RNG consumer, and
   # the pipeline is a report over monitoring data already produced: analysing
   # one run twice has to give one answer. Preserving the stream around the
-  # draw is what makes it do so (Issue #233); the draw itself is unmoved.
+  # draw is what makes it do so; the draw itself is unmoved.
   with_preserved_rng(
     role4_evac %>%
       mutate(
@@ -517,7 +517,7 @@ compute_role4_surgical_demand <- function(arrivals_log, r4_params) {
 }
 
 #' Computes daily Role 4 (national support base) bed occupancy by ward
-#' category (Issue #23)
+#' category
 #'
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
 #'   `combined`) — see assign_role4_los()
@@ -544,7 +544,7 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
 }
 
 #' Computes daily strategic AME (aeromedical evacuation) sortie demand under
-#' an unconstrained-baseline assumption (Issue #23)
+#' an unconstrained-baseline assumption
 #'
 #' @param arrivals_log Tidy arrivals+attributes data frame (analyse_run()'s
 #'   `combined`); must include r2e_evac, evacuation_decision_day, replication
@@ -562,7 +562,7 @@ compute_role4_census <- function(arrivals_log, r4_los_params) {
 #'
 #' @details Uses `evacuation_decision_day` (when the Strategic Evac
 #'   disposition was decided), not `evacuation_day` (when a casualty
-#'   actually boarded — Issue #23 follow-up, gated by the real scheduled
+#'   actually boarded, gated by the real scheduled
 #'   "ame" resource). This function models the *unconstrained* theoretical
 #'   demand a same-day sortie capacity would need to clear that day's
 #'   decisions; grouping by the constrained actual departure day would
@@ -594,7 +594,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 # monitor for events; only the *outcome* at each known time is read from it.
 
 #' Reconstructs the outcome of every scheduled strategic AME sortie
-#' opportunity (Issue #109) from the "ame"/"ame_critical" resource capacity
+#' opportunity from the "ame"/"ame_critical" resource capacity
 #' monitor
 #'
 #' @param resources Tidy resource monitor data frame (analyse_run()'s
@@ -708,7 +708,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #' Computes the strategic AME backlog (casualties simultaneously awaiting
 #' AME sortie capacity) over time, by pool, from per-casualty event
 #' timestamps rather than the `"ame"`/`"ame_critical"` resource monitor's
-#' `queue` column (Issue #109 bug fix — see `@details`)
+#' `queue` column (see `@details`)
 #'
 #' @param attributes_log Tidy long-format attribute monitor data frame
 #'   (`analyse_run()`'s `attributes`/`analyse_replications()`'s
@@ -809,7 +809,7 @@ compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN
     arrange(replication, pool, time)
 }
 
-#' Builds the strategic AME queue-depth (backlog) plot (Issue #109): number
+#' Builds the strategic AME queue-depth (backlog) plot: number
 #' of casualties simultaneously awaiting AME sortie capacity over time, by
 #' pool
 #'
@@ -818,7 +818,7 @@ compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN
 #'   casualty ever reached the Strategic Evac AME-wait stage)
 #'
 #' @details Y-axis scaling is data-driven per facet (`scales = "free_y"`,
-#'   Issue #110's convention) rather than a fixed range, since the two pools'
+#'   the pipeline's convention) rather than a fixed range, since the two pools'
 #'   backlogs differ by an order of magnitude in typical scenarios.
 plot_ame_queue <- function(backlog_data) {
   if (nrow(backlog_data) == 0) return(NULL)
@@ -842,7 +842,7 @@ plot_ame_queue <- function(backlog_data) {
     theme(panel.grid.minor = element_blank(), strip.text = element_text(face = "bold"))
 }
 
-#' Builds the strategic AME sortie timeline plot (Issue #109): each
+#' Builds the strategic AME sortie timeline plot: each
 #' scheduled sortie opportunity's outcome — flown or cancelled, and
 #' seats used against capacity — for both AME pools
 #'
@@ -865,8 +865,7 @@ plot_ame_queue <- function(backlog_data) {
 #'   ASSUMPTION — AME Capacity Banking), the coloured bar can exceed the
 #'   grey bar at a given sortie_day — that sortie's window drew on capacity
 #'   banked from an earlier, under-subscribed sortie, not solely its own
-#'   contribution. Y-axis scaling is data-driven per facet (Issue #110's
-#'   convention).
+#'   contribution. Y-axis scaling is data-driven per facet.
 plot_ame_sortie <- function(sortie_data, airframe_label = NULL) {
   if (nrow(sortie_data) == 0) return(NULL)
 

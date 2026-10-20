@@ -131,7 +131,7 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
   write.csv(cma_df, file.path(output_dir, "welch_cma.csv"), row.names = FALSE)
   # The realised count rather than the requested one: the curve is an average
   # over the replications that contributed, so that is the number its subtitle
-  # has to name (Issue #320).
+  # has to name.
   plot_welch(cma_df, WARM_UP_DAYS, n_reps = mon$n_replications, n_days = n_days,
              images_dir = images_dir)
 

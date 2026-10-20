@@ -74,7 +74,10 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 
 # A run outside the tracked evidence set records what it ran (R/run_manifest.R).
 if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
-dir.create(file.path(OUTPUT_DIR, "size_checkpoints"), recursive = TRUE, showWarnings = FALSE)
+dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
+
+#' Directory each size's checkpoint is written to and resumed from
+CHECKPOINT_DIR <- checkpoint_dir("casualty_surge_size", refresh_requested)
 
 #' Suffix every file of this run carries, so a named scenario is kept beside the default
 OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
@@ -86,8 +89,7 @@ json_data <- read_config(config_path)
 #' @param size Casualties per event; 0 is the no-event arm.
 #' @return The size's per-replication responses.
 measure_size <- function(size) {
-  checkpoint <- file.path(OUTPUT_DIR, "size_checkpoints",
-                          sprintf("size_%03d%s.csv", size, OUTPUT_SUFFIX))
+  checkpoint <- file.path(CHECKPOINT_DIR, sprintf("size_%03d%s.csv", size, OUTPUT_SUFFIX))
   if (file.exists(checkpoint)) {
     message(sprintf("Size %d: resuming %s", size, checkpoint))
     return(read.csv(checkpoint))

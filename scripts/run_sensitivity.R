@@ -23,7 +23,7 @@
 # --point-workers 4, so the screen needs scripts/supervise_screen.sh and a
 # cache directory to survive environment failures. The design is documented
 # in docs/Methods.md and asserted against the tracked metadata by
-# scripts/check_sensitivity_protocol.R.
+# tests/checks/check_sensitivity_protocol.R.
 #
 # The last six parameters are the balance coordinates of the three
 # simplex-constrained composition groups (Issue #158). --sobol samples any

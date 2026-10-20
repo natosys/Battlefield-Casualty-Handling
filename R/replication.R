@@ -209,7 +209,7 @@ add_strategic_evac <- function(env, n_days) {
 #' @param write_files Write arrival diagnostics to `data_dir` (TRUE for
 #'   single-run diagnostics; FALSE for parallel replication workers)
 #' @param data_dir    Directory the arrival diagnostics are written to when
-#'   `write_files` is TRUE (default "data", the tracked baseline location).
+#'   `write_files` is TRUE (default outputs/data, an ordinary run's location).
 #'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
 #'   refresh was explicitly requested (Issue #154).
 #' @param ot_hours    Hours per day the first OT shift is active. NULL (the
@@ -228,7 +228,7 @@ add_strategic_evac <- function(env, n_days) {
 #'   global, so what each one adds is visible in its signature. In forked
 #'   mclapply workers, <<- modifies only the fork's global state.
 run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
-                     data_dir = "data") {
+                     data_dir = file.path("outputs", "data")) {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")
@@ -472,7 +472,7 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
 #'   A measurement is a function of its control seed alone, and of nothing
 #'   else about the session it was taken in (Issue #208). The properties
 #'   below are what deliver that, and each is asserted by
-#'   scripts/check_measurement_reproducibility.R.
+#'   tests/checks/check_measurement_reproducibility.R.
 #'
 #'   The caller's generator kind and stream position are snapshotted on entry
 #'   and restored on exit (capture_rng_state(), restore_rng_state()), so this
@@ -517,7 +517,7 @@ drop_failed_replications <- function(envs, n_iterations, max_loss = MAX_REPLICAT
 #'   order set by event timing that the negated arrivals have already changed,
 #'   so partners have no corresponding draws to reflect. See README (Multi-run
 #'   Replication Framework) for the measurement and
-#'   scripts/check_replication_independence.R for the regression guard.
+#'   tests/checks/check_replication_independence.R for the regression guard.
 run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir = NULL,
                              max_cores = NULL) {
   message(sprintf("Running %d replications (%d days each)...", n_iterations, n_days))
@@ -572,7 +572,7 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
     # distinguishes one replication from another: distinct seeds here are what
     # makes the replications independent, and one seed appearing twice is what
     # a reintroduced pairing would look like.
-    # scripts/check_replication_independence.R asserts both properties.
+    # tests/checks/check_replication_independence.R asserts both properties.
     seeds      = rep_seeds[completed$valid]
   )
 }

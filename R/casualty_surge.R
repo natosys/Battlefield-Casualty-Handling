@@ -183,8 +183,8 @@ summarise_casualty_surge_counts <- function(rows) {
 #' @return One-row data frame of n, dow, rate, ci_lower and ci_upper.
 #'
 #' @details The rate is pooled across replications rather than averaged
-#'   per-replication, on the convention `scripts/check_dow_calibration.R` and
-#'   `scripts/check_airlift_collapse_protocol.R` both use for a count too rare
+#'   per-replication, on the convention `tests/checks/check_dow_calibration.R` and
+#'   `tests/checks/check_airlift_collapse_protocol.R` both use for a count too rare
 #'   to summarise one replication at a time: a died-of-wounds count of a
 #'   handful per 62-replication arm leaves most individual replications with
 #'   zero deaths, so a mean and standard deviation taken across replications

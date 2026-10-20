@@ -155,8 +155,7 @@ env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
-checkpoint_dir <- file.path(output_dir, "hold_threshold_checkpoints")
-dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
+arm_checkpoint_dir <- checkpoint_dir("hold_threshold", refresh_requested)
 
 set.seed(opt$seed)
 sweep <- plot_r2b_hold_threshold_sweep(
@@ -169,7 +168,7 @@ sweep <- plot_r2b_hold_threshold_sweep(
   images_dir          = images_dir,
   max_cores           = opt$`max-cores`,
   scenario            = opt$scenario,
-  checkpoint_dir      = checkpoint_dir
+  checkpoint_dir      = arm_checkpoint_dir
 )
 
 message("\nR2B holding threshold sweep complete.")

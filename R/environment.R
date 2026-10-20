@@ -486,7 +486,7 @@ resolve_ame_airframe <- function(role4_params) {
 # simulated minutes: the rate is redrawn once per simulated day, and arrivals
 # are placed within the day by thinning against a dominating rate. README
 # Casualty Generation derives both, and states the mean and variance the
-# construction delivers; scripts/check_arrival_rate_fidelity.R asserts them.
+# construction delivers; tests/checks/check_arrival_rate_fidelity.R asserts them.
 #
 # The reason to keep it that way, since a per-minute redraw is the easier code
 # to write: averaging a rate over 1,440 draws before it reaches a daily total
@@ -636,7 +636,7 @@ make_thinned_arrival_generator <- function(draw_daily_rate, force_global,
 #'   the stream realises the mean and the coefficient of variation its
 #'   configuration names, and editing `sd_daily` alone leaves the realised mean
 #'   alone. Both properties are asserted by
-#'   scripts/check_arrival_rate_fidelity.R, alongside the realised daily
+#'   tests/checks/check_arrival_rate_fidelity.R, alongside the realised daily
 #'   variance.
 make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
                                       force_bound, n_days) {
@@ -780,12 +780,12 @@ wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casual
   }
 }
 
-#' Reconstructs the data/arrivals_<type>.txt diagnostic files from a
+#' Reconstructs the data/seed42/arrivals_<type>.txt diagnostic files from a
 #' completed run's monitored arrivals
 #'
 #' @param env A simmer environment that has already been run() to completion
 #' @param data_dir Directory to write the arrivals_<type>.txt files into
-#'   (default "data", the tracked baseline location). run_bch() passes a
+#'   (default outputs/data, an ordinary run's location). run_bch() passes a
 #'   run-scoped directory under outputs/ unless the caller has explicitly
 #'   asked to refresh the tracked baseline, so that an ordinary run cannot
 #'   overwrite tracked evidence (Issue #154).
@@ -797,7 +797,7 @@ wrap_with_casualty_surge <- function(background_fn, casualty_surge_times, casual
 #'   get_mon_arrivals() after the run completes, filtered by each stream's
 #'   generator-name prefix. Casualty surge's diagnostic file is written by
 #'   generate_casualty_surge_events() instead, that stream being pre-computed.
-write_arrival_diagnostics <- function(env, data_dir = "data") {
+write_arrival_diagnostics <- function(env, data_dir = file.path("outputs", "data")) {
   dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
   arr <- get_mon_arrivals(env)
   streams <- c("wia_cbt", "kia_cbt", "dnbi_cbt", "wia_spt", "kia_spt", "dnbi_spt")
@@ -978,9 +978,9 @@ casualty_surge_event_casualties <- function(event_start, event_params, n_minutes
 #'   (default TRUE; set FALSE for parallel replication workers to avoid
 #'   file-write conflicts)
 #' @param data_dir Directory the two diagnostic files are written to when
-#'   `write_file` is TRUE (default "data", the tracked baseline location).
+#'   `write_file` is TRUE (default outputs/data, an ordinary run's location).
 #'   Threaded from run_once() so that only an explicit baseline refresh
-#'   writes to the tracked directory (Issue #154).
+#'   writes to the tracked data/seed42/ (Issue #154).
 #' @return Named list: `arrival_times` (sorted numeric vector of individual
 #'   wounded casualty arrival times, simulation minutes),
 #'   `casualty_event_id` (integer vector parallel to `arrival_times`,
@@ -1020,8 +1020,8 @@ casualty_surge_event_casualties <- function(event_start, event_params, n_minutes
 #'   lognormal generation is unaffected, satisfying Issue #9's
 #'   disable-path acceptance criterion (shipped default: "poisson" mode,
 #'   rate_per_day = 0).
-generate_casualty_surge_events <- function(n_days, params, seed = NULL,
-                                           write_file = TRUE, data_dir = "data") {
+generate_casualty_surge_events <- function(n_days, params, seed = NULL, write_file = TRUE,
+                                           data_dir = file.path("outputs", "data")) {
   if (!is.null(seed)) set.seed(seed)
   if (write_file) dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 

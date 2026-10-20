@@ -32,7 +32,7 @@
 # environment failures, taking SOBOL_N96_D360_COMPLETE, which the script
 # prints when the decomposition is finished, as its done marker. The design
 # is documented in docs/Methods.md and asserted against the tracked metadata
-# by scripts/check_sensitivity_protocol.R.
+# by tests/checks/check_sensitivity_protocol.R.
 
 source("R/environment.R")
 source("R/trajectories.R")

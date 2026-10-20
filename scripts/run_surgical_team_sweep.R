@@ -108,6 +108,9 @@ OUTPUT_DIR <- if (isTRUE(opt$`refresh-baseline`)) {
 if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Directory each arm's checkpoint, and each replication within it, is resumed from
+CHECKPOINT_DIR <- checkpoint_dir("surgical_team", refresh_requested)
+
 json_data <- read_config(config_path)
 
 #' File stem of one arm's checkpoint
@@ -136,8 +139,8 @@ measure_arm <- function(i) {
 
   message(sprintf("%s: %d replications x %d days", arm$arm, opt$iterations, opt$days))
   set.seed(opt$seed)
-  ckpt <- file.path("outputs", "checkpoints",
-                    basename(scenario_output_path(".", arm_stem(i), opt$scenario)))
+  ckpt <- sub("\\.csv$", "_replications",
+              scenario_output_path(CHECKPOINT_DIR, arm_stem(i), opt$scenario))
   dir.create(ckpt, recursive = TRUE, showWarnings = FALSE)
   out <- run_surgical_measurement(n_iterations = opt$iterations, n_days = opt$days,
                                   window_days = opt$window, max_cores = opt$`max-cores`,
@@ -153,9 +156,10 @@ measure_arm <- function(i) {
 #' @return A list of the arm's `rows` and `series`.
 #'
 #' @details Each arm is written as it completes and read back rather than re-run
-#'   on a later invocation. Delete the arm's files to force a fresh measurement.
+#'   on a later invocation. Delete the arm's files under CHECKPOINT_DIR to force a
+#'   fresh measurement.
 measure_or_resume <- function(i) {
-  rows_path <- scenario_output_path(OUTPUT_DIR, arm_stem(i), opt$scenario)
+  rows_path <- scenario_output_path(CHECKPOINT_DIR, arm_stem(i), opt$scenario)
   series_path <- sub("\\.csv$", "_series.csv.gz", rows_path)
   label <- SURGICAL_SWEEP_ARMS$arm[i]
   if (file.exists(rows_path) && file.exists(series_path)) {
@@ -176,6 +180,16 @@ measure_or_resume <- function(i) {
 }
 
 measured <- lapply(seq_len(nrow(SURGICAL_SWEEP_ARMS)), measure_or_resume)
+
+# Each arm's daily series is part of the evidence set, the queue classification
+# being recomputed from it by the protocol check; the responses are not written
+# per arm, the replications file carrying every arm's.
+for (i in seq_along(measured)) {
+  gz <- gzfile(sub("\\.csv$", "_series.csv.gz",
+                   scenario_output_path(OUTPUT_DIR, arm_stem(i), opt$scenario)), "w")
+  write.csv(measured[[i]]$series, gz, row.names = FALSE)
+  close(gz)
+}
 per_replication <- do.call(rbind, lapply(measured, `[[`, "rows"))
 series <- do.call(rbind, lapply(measured, `[[`, "series"))
 

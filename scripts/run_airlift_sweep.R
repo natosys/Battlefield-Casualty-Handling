@@ -150,7 +150,7 @@ if ("high" %in% arms) {
                             arm = "high", scenario = "high_intensity")
 }
 #' Directory the sweep points are checkpointed to as each completes
-CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "airlift_sweep_checkpoints")
+CHECKPOINT_DIR <- checkpoint_dir("airlift_sweep", refresh_requested)
 
 #' Measure one swept arm, one value at a time, resuming a value already measured
 #'
@@ -164,7 +164,6 @@ CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "airlift_sweep_checkpoints")
 #'   value at a time draws the same stream as measuring them together, the
 #'   control seed being set before each.
 measure_sweep_arm <- function(arm, field, values) {
-  dir.create(CHECKPOINT_DIR, recursive = TRUE, showWarnings = FALSE)
   rows <- lapply(values, function(v) {
     ckpt <- file.path(CHECKPOINT_DIR, sprintf("%s_%s_%dr_%dd%s.rds", arm, format(v),
                                               opt$iterations, opt$days, OUTPUT_SUFFIX))

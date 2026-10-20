@@ -71,7 +71,7 @@ POLICY_BASELINE_SORTIE_INTERVAL <- 7L
 #'
 #' @details The value `ame_route` carries and `R/airlift.R` names
 #'   `AIRLIFT_ROUTE_CRITICAL`; held here so this module does not depend on that
-#'   one, and asserted equal by `scripts/check_policy_sweep_protocol.R`.
+#'   one, and asserted equal by `tests/checks/check_policy_sweep_protocol.R`.
 POLICY_ROUTE_CRITICAL <- 1
 
 #' Airlift route code of the standard channel

@@ -178,3 +178,25 @@ resolve_config_path <- function(config = NULL, refresh_baseline = FALSE,
   }
   path
 }
+
+# ── Resume checkpoints ───────────────────────────────────────────────────────
+
+#' Directory a long sweep writes its resume checkpoints to
+#'
+#' @param experiment Name of the experiment, one subdirectory per sweep.
+#' @param refresh_baseline TRUE where the run is writing the tracked evidence set.
+#' @return The directory path, created if absent.
+#'
+#' @details Checkpoints sit under the gitignored `outputs/` whatever the run
+#'   writes, so a tracked evidence set holds measurements alone and a fresh
+#'   checkout of a changed model measures every arm rather than resuming one
+#'   measured under the model it replaced. A resume matches on the replication
+#'   count alone, so the directory must be emptied after a change to the model
+#'   or the configuration. A baseline refresh and an ordinary run keep separate
+#'   directories, so a refresh never resumes an exploratory arm.
+checkpoint_dir <- function(experiment, refresh_baseline = FALSE) {
+  path <- file.path("outputs", "checkpoints",
+                    if (isTRUE(refresh_baseline)) "baseline" else "run", experiment)
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  path
+}

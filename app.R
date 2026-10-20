@@ -23,9 +23,6 @@
 # Replicated runs and sensitivity screens are not offered here: a run in a
 # browser session records no configuration, seed or commit, and cannot reach
 # the protocol the published experiments use. run.R and scripts/run_*.R do.
-#
-# controller_legacy.R (the previous raw-JSON editor) is superseded by this
-# app and retained only for reference.
 
 suppressPackageStartupMessages({
   library(shiny)

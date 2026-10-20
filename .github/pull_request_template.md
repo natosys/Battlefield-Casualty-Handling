@@ -29,7 +29,7 @@ none of the headings.
 <!-- Which of the seed-42 baseline values in docs/Results.md Annex A this PR
      was checked against, and whether any moved. State the result of:
 
-       Rscript scripts/run_all_checks.R --fast
+       Rscript tests/checks/run_all_checks.R --fast
 
      and, where the change could affect the calibration, of the slow suite,
      which is dispatched from the Actions tab rather than run on a PR. See

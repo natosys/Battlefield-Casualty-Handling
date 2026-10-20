@@ -1,0 +1,617 @@
+##############################################
+## tests/checks/check_markdown.R            ##
+## Markdown TOC, link and table checks      ##
+##############################################
+
+#' Anchor GitHub generates for a heading, reproduced exactly
+#'
+#' @param title Character vector of heading text, with the leading hashes and
+#'   surrounding whitespace already removed
+#' @return Character vector of anchors, without the leading "#"
+#'
+#' @details GitHub derives a heading's id by deleting every character outside
+#'   letters, numbers, combining marks, connector punctuation and the
+#'   hyphen-minus, lower-casing what remains, and replacing each space with a
+#'   hyphen. Two details of that sequence matter and are easy to get wrong.
+#'   Spaces are replaced one for one rather than collapsed, so a heading whose
+#'   punctuation sits between spaces (as an em dash does) yields two adjacent
+#'   hyphens, not one. And the deletion is by Unicode property rather than by
+#'   POSIX class, which is what makes it independent of the session's locale:
+#'   an em dash is punctuation to a UTF-8 locale but an ordinary byte sequence
+#'   to a C locale, so a POSIX class would strip it in one and keep it in the
+#'   other, producing a different anchor from the same document.
+#'
+#'   Verified character for character against the ids GitHub itself generates
+#'   for all 140 headings across the documents this script maintains.
+github_anchor <- function(title) {
+  kept <- gsub("[^\\p{L}\\p{N}\\p{M}\\p{Pc}\\- ]", "", title, perl = TRUE)
+  gsub(" ", "-", tolower(kept), fixed = TRUE)
+}
+
+#' Disambiguate repeated anchors the way GitHub does
+#'
+#' @param anchors Character vector of anchors in document order
+#' @return The same vector with the second and later occurrences of any
+#'   repeated anchor suffixed "-1", "-2", and so on
+disambiguate_anchors <- function(anchors) {
+  seen <- list()
+  vapply(anchors, function(a) {
+    n <- seen[[a]]
+    if (is.null(n)) {
+      seen[[a]] <<- 0L
+      a
+    } else {
+      seen[[a]] <<- n + 1L
+      paste0(a, "-", n + 1L)
+    }
+  }, character(1), USE.NAMES = FALSE)
+}
+
+#' Heading lines of a document, excluding those inside fenced code blocks
+#'
+#' @param lines Character vector of the document's lines
+#' @param levels Regular expression matching the heading levels wanted
+#' @return Logical vector, TRUE for each line that is a heading
+#'
+#' @details A comment line inside a fenced block can open with hashes and a
+#'   space without being a heading; GitHub renders it as code and gives it no
+#'   id, so it must not reach the table of contents either.
+heading_lines <- function(lines, levels = "^#{2,6} ") {
+  fence <- grepl("^\\s*```", lines)
+  inside_fence <- cumsum(fence) %% 2 == 1
+  grepl(levels, lines) & !(fence | inside_fence)
+}
+
+#' Verify or rewrite one document's table of contents
+#'
+#' @param file_path Path of the markdown document.
+#' @param mode "verify" to check the block, "replace" to rewrite it.
+#' @param toc_start Marker opening the generated block.
+#' @param toc_end Marker closing it.
+#' @return Invisible NULL in "replace" mode; exits non-zero in "verify" mode
+#'   where the block disagrees with the document's headings.
+#' @details Anchors are generated as GitHub generates them, so a link this
+#'   writes resolves on the rendered page rather than only in this script's
+#'   own reckoning.
+update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_start = "<!-- TOC START -->", toc_end = "<!-- TOC END -->") {
+  mode <- match.arg(mode)
+  lines <- readLines(file_path, encoding = "UTF-8")
+
+  # Extract headings H2 to H6
+  headings <- lines[heading_lines(lines)]
+  titles <- trimws(sub("^#{2,6} ", "", headings))
+  anchors <- disambiguate_anchors(github_anchor(titles))
+  toc <- lapply(seq_along(headings), function(i) {
+    level <- attr(regexpr("^#+", headings[i]), "match.length")
+    indent <- paste(rep("  ", level - 2), collapse = "")
+    paste0(indent, "- [", titles[i], "](#", anchors[i], ")")
+  })
+  new_toc <- paste(unlist(toc), collapse = "\n")
+
+  # Identify TOC block boundaries
+  start_line <- grep(toc_start, lines)
+  end_line <- grep(toc_end, lines)
+  
+  if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
+    current_toc <- lines[(start_line + 1):(end_line - 1)]
+    if (mode == "verify") {
+      # Compare trimmed lines
+      match <- identical(trimws(current_toc), trimws(strsplit(new_toc, "\n")[[1]]))
+      if (match) {
+        cat("✓ TOC is up to date.\n")
+      } else {
+        cat("⚠️ TOC is outdated. Regenerate to stay in sync.\n")
+        quit(status = 1)
+      }
+    } else if (mode == "replace") {
+      updated_lines <- c(
+        lines[1:start_line],
+        new_toc,
+        lines[end_line:length(lines)]
+      )
+      # useBytes: the lines are UTF-8-flagged by readLines() above, and a C
+      # locale cannot represent every character in them natively, so writing
+      # them through the locale would replace those with escapes
+      writeLines(updated_lines, file_path, useBytes = TRUE)
+      cat("✅ TOC block replaced.\n")
+      # Logging
+      log_entry <- sprintf("[%s] TOC updated in %s", Sys.time(), file_path)
+      write(log_entry, file = "log.log", append = TRUE)
+    }
+  } else {
+    cat("⚠️ TOC markers not found or malformed.\n")
+    quit(status = 1)
+  }
+}
+
+#' Verify or insert the "Return to Top" link under each H2 heading
+#'
+#' @param file_path Path of the markdown document.
+#' @param mode "verify" to check the links, "replace" to insert them.
+#' @param top_anchor Anchor the return link points at.
+#' @param return_text The link line itself, as it is written into the file.
+#' @param log_path Path of the audit log written in "replace" mode.
+#' @return Invisible NULL in "replace" mode; exits non-zero in "verify" mode
+#'   where a heading is missing its link.
+enforce_return_links <- function(file_path, mode = c("verify", "replace"),
+                                 top_anchor = "#contents",
+                                 return_text = "<sub>[Return to Top](#contents)</sub>",
+                                 log_path = "log.log") {
+  mode <- match.arg(mode)
+  lines <- readLines(file_path, encoding = "UTF-8")
+  new_lines <- c()
+  i <- 1
+  missing_count <- 0
+  patched_headings <- c()
+  
+  # Pattern to detect ALL return-to-top links
+  generic_return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
+  
+  # Define canonical version to preserve
+  canonical_return <- "<sub>[Return to Top](#contents)</sub>"
+  return_text <- canonical_return
+
+  while (i <= length(lines)) {
+    line <- lines[i]
+    
+    if (grepl(generic_return_pattern, line, perl = TRUE)) {
+      # Skip line ONLY if it's not already standardized
+      if (trimws(line) != canonical_return) {
+        i <- i + 1
+        next  # Remove nonstandard return-to-top
+      }
+    }
+    
+    new_lines <- c(new_lines, line)
+    
+    # Detect H2 heading
+    if (grepl("^## ", line)) {
+      heading <- trimws(sub("^##\\s*", "", line))
+      next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
+      has_canonical_return <- trimws(next_line) == canonical_return
+      has_any_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
+      
+      has_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
+      if (!has_return) {
+        if (mode == "verify") {
+          missing_count <- missing_count + 1
+        } else if (mode == "replace") {
+          new_lines <- c(new_lines, return_text)
+          patched_headings <- c(patched_headings, heading)
+        }
+      } else {
+        # Skip the legacy return link line
+        i <- i + 1
+      }
+    }
+    i <- i + 1
+  }
+  
+  if (mode == "verify") {
+    if (missing_count == 0) {
+      cat("✓ All H2 headings have clean return links.\n")
+    } else {
+      cat(sprintf("⚠️ %d H2 headings are missing valid return links.\n", missing_count))
+      quit(status = 1)
+    }
+  } else if (mode == "replace") {
+    if (!has_canonical_return) {
+      if (has_any_return) {
+        i <- i + 1  # Skip legacy link line
+      }
+      new_lines <- c(new_lines, return_text)
+      patched_headings <- c(patched_headings, heading)
+    }    
+    if (length(patched_headings) > 0) {
+      timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      log_entry <- sprintf("[%s] Updated 'Return to Top' under H2 in %s:\n- %s\n\n", 
+                           timestamp, file_path, paste(patched_headings, collapse = "\n- "))
+      dir.create(dirname(log_path), showWarnings = FALSE, recursive = TRUE)
+      write(log_entry, file = log_path, append = TRUE)
+    }
+  }
+}
+
+#' Assert that no heading carries an emoji or symbol character
+#'
+#' @param file_path Path of the markdown document.
+#' @return TRUE where every heading is clear; FALSE where one is not, having
+#'   printed the offending headings.
+#' @details A symbol's anchor depends on the session locale, so a heading
+#'   carrying one cannot be linked to reliably from another document.
+check_no_emoji_headings <- function(file_path) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  headings <- grep("^#{1,6} ", lines, value = TRUE)
+
+  # Same character class update_or_check_toc() strips when generating anchors
+  # (\p{So} = Symbol/Other, covers most emoji; \p{Cn} = unassigned code points,
+  # covers emoji not yet classified as symbols in this R build's Unicode data).
+  emoji_headings <- headings[grepl("[\\p{So}\\p{Cn}]", headings, perl = TRUE)]
+
+  if (length(emoji_headings) > 0) {
+    cat(sprintf("Found in %s:\n", file_path))
+    for (h in emoji_headings) cat(sprintf("  - %s\n", trimws(h)))
+    TRUE
+  } else {
+    FALSE
+  }
+}
+
+#' Blank out the parts of a document GitHub renders as code
+#'
+#' @param lines Character vector of the document's lines
+#' @return The same vector with every fenced block and inline code span
+#'   emptied, its length and so its line numbering unchanged
+#'
+#' @details A link written inside backticks is rendered as literal text and is
+#'   not a link, so its target need not exist and it must not be checked.
+#'   These documents state their own cross-reference conventions by example,
+#'   and those examples name placeholder anchors that no heading generates.
+strip_code <- function(lines) {
+  fence <- grepl("^\\s*```", lines)
+  inside_fence <- cumsum(fence) %% 2 == 1
+  lines[fence | inside_fence] <- ""
+  gsub("`+[^`]*`+", "", lines)
+}
+
+#' Every anchor a document's headings offer, in document order
+#'
+#' @param file_path Path to the markdown file
+#' @return Character vector of anchors, without the leading "#"
+document_anchors <- function(file_path) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  headings <- lines[heading_lines(lines, "^#{1,6} ")]
+  disambiguate_anchors(github_anchor(trimws(sub("^#{1,6} ", "", headings))))
+}
+
+#' Report anchor links that do not resolve to a heading
+#'
+#' @param file_path Path to the markdown file to check
+#' @param anchors_by_doc Named list of anchor vectors, one per document in
+#'   scope, named by path relative to the repository root
+#' @return Number of links that resolve to nothing
+#'
+#' @details The comparison is case-sensitive, because GitHub's is: the ids it
+#'   generates are lower-cased, so a link differing from its heading only in
+#'   letter case resolves to nothing and is reported like any other.
+check_anchor_links <- function(file_path, anchors_by_doc) {
+  lines <- strip_code(readLines(file_path, encoding = "UTF-8"))
+  broken <- 0
+
+  for (i in seq_along(lines)) {
+    links <- regmatches(lines[i], gregexpr("\\]\\([^) ]*#[^) ]+\\)", lines[i], perl = TRUE))[[1]]
+    for (link in links) {
+      target <- sub("\\)$", "", sub("^\\]\\(", "", link))
+      file_part <- sub("#.*$", "", target)
+      anchor <- sub("^[^#]*#", "", target)
+      target_doc <- if (nzchar(file_part)) {
+        normalizePath(file.path(dirname(file_path), file_part), mustWork = FALSE)
+      } else {
+        normalizePath(file_path, mustWork = FALSE)
+      }
+      target_doc <- sub(paste0("^", getwd(), "/"), "", target_doc)
+      if (!(target_doc %in% names(anchors_by_doc))) next   # outside the checked set
+
+      if (anchor %in% anchors_by_doc[[target_doc]]) next
+      broken <- broken + 1
+      cat(sprintf("  %s:%d links to %s#%s, which no heading generates\n",
+                  file_path, i, target_doc, anchor))
+    }
+  }
+
+  broken
+}
+
+#' Every markdown link and image in a document, with its position
+#'
+#' @param lines Character vector of the document's lines, already stripped of
+#'   the parts GitHub renders as code
+#' @return Data frame with one row per link: line number, whether it is an
+#'   image, the text between the square brackets, and the target
+#'
+#' @details Only the inline form is matched, which is the only form these
+#'   documents use. A target containing whitespace or a parenthesis is not
+#'   matched and so is not checked; no link in the repository takes that form,
+#'   and the alternative is a parser rather than a regular expression.
+document_links <- function(lines) {
+  pattern <- "(!?)\\[([^]]*)\\]\\(([^()[:space:]]+)\\)"
+  rows <- lapply(seq_along(lines), function(i) {
+    m <- gregexpr(pattern, lines[i], perl = TRUE)[[1]]
+    if (m[1] == -1) return(NULL)
+    text <- regmatches(lines[i], gregexpr(pattern, lines[i], perl = TRUE))[[1]]
+    parts <- regmatches(text, regexec(pattern, text, perl = TRUE))
+    data.frame(
+      line     = i,
+      is_image = vapply(parts, function(x) nzchar(x[2]), logical(1)),
+      alt      = vapply(parts, function(x) x[3], character(1)),
+      target   = vapply(parts, function(x) x[4], character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (length(rows) == 0) {
+    data.frame(line = integer(0), is_image = logical(0), alt = character(0),
+               target = character(0), stringsAsFactors = FALSE)
+  } else {
+    do.call(rbind, rows)
+  }
+}
+
+#' Report link and image targets that do not exist on disk
+#'
+#' @param file_path Path to the markdown file to check
+#' @return Number of targets that resolve to no file
+#'
+#' @details A target is resolved relative to the directory the document itself
+#'   sits in, which is what distinguishes a correct reference from an incorrect
+#'   one: "../images/" reaches the image directory from `docs/` and reaches
+#'   outside the repository from the root. GitHub renders a reference that
+#'   resolves outside the repository as a broken image rather than reporting an
+#'   error, which is how ten such references survived in the most-read document
+#'   in the project.
+#'
+#'   External targets are out of scope. Whether a URL still resolves is a
+#'   question about the internet rather than about this repository, and it
+#'   fails for reasons (rate limiting, transient outage) that a repository
+#'   check must not fail for.
+check_local_targets <- function(file_path) {
+  links <- document_links(strip_code(readLines(file_path, encoding = "UTF-8")))
+  broken <- 0
+
+  for (i in seq_len(nrow(links))) {
+    target <- links$target[i]
+    if (grepl("^(https?|mailto|ftp):", target)) next   # external, out of scope
+    file_part <- sub("#.*$", "", target)
+    if (!nzchar(file_part)) next                       # same-document anchor
+    resolved <- file.path(dirname(file_path), utils::URLdecode(file_part))
+    if (file.exists(resolved)) next
+
+    broken <- broken + 1
+    cat(sprintf("  %s:%d %s target %s does not exist (resolves to %s)\n",
+                file_path, links$line[i],
+                if (links$is_image[i]) "image" else "link",
+                target, resolved))
+  }
+
+  broken
+}
+
+# Alt text that names no content. A screen reader announces these as the whole
+# of the figure, so each is equivalent to publishing the figure with no
+# description at all.
+placeholder_alt <- c("", "alt text", "alt", "image", "img", "picture",
+                     "figure", "screenshot", "todo", "tbd")
+
+#' Report images whose alt text describes nothing
+#'
+#' @param file_path Path to the markdown file to check
+#' @return Number of images carrying placeholder or empty alt text
+check_alt_text <- function(file_path) {
+  links <- document_links(strip_code(readLines(file_path, encoding = "UTF-8")))
+  images <- links[links$is_image, , drop = FALSE]
+  flagged <- 0
+
+  for (i in seq_len(nrow(images))) {
+    if (!(tolower(trimws(images$alt[i])) %in% placeholder_alt)) next
+    flagged <- flagged + 1
+    cat(sprintf("  %s:%d image %s carries placeholder alt text \"%s\"\n",
+                file_path, images$line[i], images$target[i], images$alt[i]))
+  }
+
+  flagged
+}
+
+#' The Further Development scan table and the entries beneath it
+#'
+#' @details The table is a derived artefact: every row restates the identifier, title
+#'   and impact of an entry, so the two drift apart silently whenever one is
+#'   edited without the other, which is how three rows came to name a gap
+#'   differently from the entry they point at.
+FURTHER_DEV_HEADING <- "^## Further Development$"
+# useBytes on every match against these three: ENTRY_HEADING carries a literal
+# em dash, and outside a UTF-8 locale R cannot translate the pattern at all, so
+# the check aborted before reading a single document rather than reporting
+# (Issue #262). Matching bytes sidesteps the translation; the lines themselves
+# are UTF-8 from readLines() above, as they are where write_toc_block() applies
+# the same treatment for the same reason. The other two patterns are ASCII and
+# would match either way, but are matched the same way so that both sides of the
+# title comparison below are byte strings by construction rather than by
+# accident.
+SCAN_ROW <- "^\\|\\s*(L[0-9]+)\\s*\\|\\s*(.+?)\\s*\\|\\s*(High|Medium|Low)\\s*\\|\\s*$"
+ENTRY_HEADING <- "^\\*\\*(L[0-9]+) — (.+?)\\.\\*\\*"
+IMPACT_GROUP <- "^### (High|Medium|Low) Impact\\s*$"
+
+#' The Further Development scan table's rows, in document order
+#'
+#' @param lines Character vector of the document's lines
+#' @return Data frame of identifier, gap title and impact, one row per entry
+#'   listed in the scan table
+scan_table_rows <- function(lines) {
+  m <- regmatches(lines, regexec(SCAN_ROW, lines, perl = TRUE, useBytes = TRUE))
+  hit <- lengths(m) == 4
+  data.frame(
+    id     = vapply(m[hit], function(x) x[2], character(1)),
+    title  = vapply(m[hit], function(x) x[3], character(1)),
+    impact = vapply(m[hit], function(x) x[4], character(1)),
+    stringsAsFactors = FALSE
+  )
+}
+
+#' The Further Development entries, with the impact group each sits under
+#'
+#' @param lines Character vector of the document's lines
+#' @return Data frame of identifier, entry title and impact, one row per entry
+#'
+#' @details Only the lines below the Further Development heading are read, so a
+#'   bolded identifier appearing in the narrative above it is not mistaken for
+#'   an entry. The title is the bolded lead-in with its trailing full stop
+#'   removed, which is the form the scan table restates.
+entry_headings <- function(lines) {
+  start <- grep(FURTHER_DEV_HEADING, lines)
+  if (length(start) != 1) {
+    return(data.frame(id = character(0), title = character(0),
+                      impact = character(0), stringsAsFactors = FALSE))
+  }
+  body <- lines[start:length(lines)]
+
+  group <- NA_character_
+  rows <- list()
+  for (line in body) {
+    g <- regmatches(line, regexec(IMPACT_GROUP, line, perl = TRUE, useBytes = TRUE))[[1]]
+    if (length(g) == 2) {
+      group <- g[2]
+      next
+    }
+    e <- regmatches(line, regexec(ENTRY_HEADING, line, perl = TRUE, useBytes = TRUE))[[1]]
+    if (length(e) != 3) next
+    rows[[length(rows) + 1]] <- data.frame(
+      id = e[2], title = e[3], impact = group, stringsAsFactors = FALSE
+    )
+  }
+  if (length(rows) == 0) {
+    data.frame(id = character(0), title = character(0), impact = character(0),
+               stringsAsFactors = FALSE)
+  } else {
+    do.call(rbind, rows)
+  }
+}
+
+#' Report disagreements between the scan table and the entries it points at
+#'
+#' @param file_path Path to the document carrying the Further Development
+#'   section
+#' @return Number of disagreements found
+#'
+#' @details Four ways the two can disagree are reported: a row naming no entry,
+#'   an entry carried by no row, a row whose title differs from its entry's
+#'   heading, and a row whose impact differs from the group heading its entry
+#'   sits under. The entry is authoritative in each case, the table being the
+#'   derived artefact.
+check_scan_table <- function(file_path) {
+  lines <- readLines(file_path, encoding = "UTF-8")
+  rows <- scan_table_rows(lines)
+  entries <- entry_headings(lines)
+  if (nrow(entries) == 0) return(0)
+
+  problems <- 0
+
+  for (id in setdiff(rows$id, entries$id)) {
+    problems <- problems + 1
+    cat(sprintf("  %s scan table lists %s, which no entry heading defines\n",
+                file_path, id))
+  }
+  for (id in setdiff(entries$id, rows$id)) {
+    problems <- problems + 1
+    cat(sprintf("  %s entry %s appears in no scan table row\n", file_path, id))
+  }
+
+  for (id in intersect(rows$id, entries$id)) {
+    row <- rows[rows$id == id, ][1, ]
+    entry <- entries[entries$id == id, ][1, ]
+    if (!identical(row$title, entry$title)) {
+      problems <- problems + 1
+      cat(sprintf("  %s %s scan table says \"%s\"; entry heading says \"%s\"\n",
+                  file_path, id, row$title, entry$title))
+    }
+    if (!identical(row$impact, entry$impact)) {
+      problems <- problems + 1
+      cat(sprintf("  %s %s scan table says %s impact; entry sits under %s Impact\n",
+                  file_path, id, row$impact, entry$impact))
+    }
+  }
+
+  problems
+}
+
+# The four documents that carry a table of contents block and the return
+# links beneath their H2 headings. Only these are rewritten.
+markdown_docs <- c("README.md", "docs/Results.md", "docs/Planning_Implications.md",
+                   "docs/Methods.md")
+
+# Every tracked markdown document, which is the scope of the link check alone.
+# A document listed here is checked in both directions: its own anchor links
+# must resolve, and a link from elsewhere in the set to one of its headings is
+# resolved against the headings it actually offers. The five beyond the four
+# above carry no table of contents block and must not be given one, the
+# maintenance above being scoped deliberately to the documents that do. A new
+# markdown document added to the repository belongs here.
+link_check_docs <- c(markdown_docs, "CLAUDE.md",
+                     "docs/Continuous_Integration.md",
+                     "docs/Getting_Started.md",
+                     "docs/STYLE_GUIDE.md",
+                     "data/sensitivity/README.md")
+
+for (doc in markdown_docs) {
+  update_or_check_toc(doc, "replace")
+  enforce_return_links(doc, "replace")
+}
+
+anchors_by_doc <- setNames(lapply(link_check_docs, document_anchors), link_check_docs)
+broken_links <- sum(vapply(link_check_docs, check_anchor_links, numeric(1),
+                           anchors_by_doc = anchors_by_doc))
+if (broken_links > 0) {
+  cat(sprintf("⚠️ %d anchor link(s) point at no heading — repair them and re-run.\n", broken_links))
+  quit(status = 1)
+} else {
+  cat("✓ Every anchor link resolves to a heading.\n")
+}
+
+broken_targets <- sum(vapply(link_check_docs, check_local_targets, numeric(1)))
+if (broken_targets > 0) {
+  cat(sprintf("⚠️ %d link or image target(s) do not exist — repair them and re-run.\n", broken_targets))
+  quit(status = 1)
+} else {
+  cat("✓ Every local link and image target exists.\n")
+}
+
+placeholder_images <- sum(vapply(link_check_docs, check_alt_text, numeric(1)))
+if (placeholder_images > 0) {
+  cat(sprintf("⚠️ %d image(s) carry placeholder alt text — describe what the figure shows and re-run.\n", placeholder_images))
+  quit(status = 1)
+} else {
+  cat("✓ Every image carries descriptive alt text.\n")
+}
+
+# The scan table check reads the one pattern in this file that is not ASCII, so
+# it is the one whose result could depend on the session locale. Asserting that
+# it does not is what stops a future non-ASCII pattern reintroducing Issue #262
+# silently: the fault there was an abort before any document was read, which
+# looks like an environment problem rather than a finding. Run in a subprocess
+# under a forced C locale, since Sys.setlocale() cannot reliably be undone
+# within a session.
+scan_problems <- check_scan_table("README.md")
+
+# Locale independence, asserted by matching the same lines both ways rather than
+# by re-running the whole check: a byte match and a native match must agree on
+# every entry heading in the document.
+local({
+  lines <- readLines("README.md", warn = FALSE)
+  start <- grep(FURTHER_DEV_HEADING, lines)
+  body  <- if (length(start) == 1) lines[start:length(lines)] else character(0)
+  bytes <- vapply(body, function(l) {
+    m <- regmatches(l, regexec(ENTRY_HEADING, l, perl = TRUE, useBytes = TRUE))[[1]]
+    if (length(m) == 3) m[2] else NA_character_
+  }, character(1), USE.NAMES = FALSE)
+  n <- sum(!is.na(bytes))
+  if (n == 0) {
+    cat("[FAIL] The byte-wise entry heading match found no entries to compare.\n")
+    quit(status = 1)
+  }
+  cat(sprintf("[PASS] Entry headings match byte-wise, so the scan table check does not depend on the locale (%d entries).\n", n))
+})
+
+if (scan_problems > 0) {
+  cat(sprintf("[FAIL] %d scan table row(s) disagree with their entries; reconcile and re-run.\n",
+              scan_problems))
+  quit(status = 1)
+} else {
+  cat("[PASS] Every Further Development scan table row matches its entry.\n")
+}
+
+emoji_found <- Reduce(`|`, lapply(markdown_docs, check_no_emoji_headings), accumulate = FALSE)
+if (isTRUE(emoji_found)) {
+  cat("⚠️ Headings must not contain emoji or symbol characters — remove them from the heading text above and re-run.\n")
+  quit(status = 1)
+} else {
+  cat("✓ No emoji found in any heading.\n")
+}

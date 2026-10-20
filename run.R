@@ -23,12 +23,12 @@
 #
 # Artifact policy (Issue #154). Every run writes its analysis artifacts to
 # output_dir ("outputs/", gitignored) and nothing else. The tracked seed-42
-# baseline evidence set — images/, logs/logs.txt, data/arrivals_*.txt and
-# data/casualty_surge_events.csv and data/seed42_verification.csv — is written
-# only when refresh_baseline is
-# TRUE, and then all of it is written together from the one run, so the set
-# can never describe a mixture of runs. See the README's "Running the
-# simulation" section for the full artifact table.
+# baseline evidence set, images/ and data/seed42/ (the console log, the
+# arrival diagnostics, the casualty surge event log and the verification
+# measurements), is written only when refresh_baseline is TRUE, and then all
+# of it is written together from the one run, so the set can never describe a
+# mixture of runs. See the README's "Running the simulation" section for the
+# full artifact table.
 
 source("R/environment.R")
 source("R/trajectories.R")
@@ -76,7 +76,7 @@ print_analysis_plots <- function(results) {
 #' @param warm_up_days Days to exclude from the start of the analysis window
 #'   (Welch warm-up period; default WARM_UP_DAYS constant from warmup.R)
 #' @param refresh_baseline Write this run's artifacts to the tracked baseline
-#'   locations (images/, logs/logs.txt, data/) instead of under output_dir
+#'   locations (images/, data/seed42/logs.txt, data/) instead of under output_dir
 #'   (default FALSE). Requires iterations == 1: the console log and the
 #'   arrival diagnostics describe one specific run's event stream and have no
 #'   multi-replication equivalent, so a multi-run refresh could only ever
@@ -113,10 +113,10 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   }
 
   # A baseline refresh must produce the complete evidence set or none of it.
-  # logs/logs.txt and data/arrivals_*.txt are records of one run's event
-  # stream; there is no multi-replication analogue, so refusing here is what
-  # keeps images/ from being refreshed against logs/ and data/ that describe
-  # a different run.
+  # data/seed42/logs.txt and data/seed42/arrivals_*.txt are records of one
+  # run's event stream; there is no multi-replication analogue, so refusing
+  # here is what keeps images/ from being refreshed against a data/seed42/
+  # that describes a different run.
   if (refresh_baseline && iterations != 1L) {
     stop("refresh_baseline = TRUE requires iterations = 1: the console log and ",
          "arrival diagnostics are single-run artifacts, so a multi-run refresh ",
@@ -142,11 +142,11 @@ run_bch <- function(seed = 42L, days = 30L, iterations = 1L,
   } else {
     images_dir
   }
-  data_dir   <- if (refresh_baseline) "data"   else file.path(output_dir, "data")
-  log_path   <- if (refresh_baseline) file.path("logs", "logs.txt") else file.path(output_dir, "logs.txt")
+  data_dir   <- if (refresh_baseline) file.path("data", "seed42") else file.path(output_dir, "data")
+  log_path   <- file.path(if (refresh_baseline) data_dir else output_dir, "logs.txt")
 
   if (refresh_baseline) {
-    message("Baseline refresh: writing tracked artifacts to images/, logs/logs.txt and data/")
+    message("Baseline refresh: writing tracked artifacts to images/ and data/seed42/")
   }
 
   message(sprintf("Run configuration: iterations=%d, days=%d, seed=%d, scenario=%s",
@@ -258,7 +258,7 @@ if (!interactive()) {
                              "[default: %default]")),
     make_option("--refresh-baseline", action = "store_true", default = FALSE,
                 help = paste("Regenerate the tracked seed-42 baseline evidence set",
-                             "(images/, logs/logs.txt, data/) from this run.",
+                             "(images/, data/seed42/) from this run.",
                              "Requires --mode single and the default scenario.",
                              "Without it, no tracked file is written",
                              "[default: %default]")),

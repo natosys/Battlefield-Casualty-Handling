@@ -13,7 +13,7 @@
 # measured across replications.
 #
 # The model gives the national support base no capacity, queue or shortfall
-# (scripts/check_role4_ward_phases.R asserts the absence), so what is reduced
+# (tests/checks/check_role4_ward_phases.R asserts the absence), so what is reduced
 # here is demand: the beds a campaign commits, never a shortfall against a
 # stated bed count. Each replication is reduced inside the forked worker that
 # produced it, on R/airlift.R's arrangement. Depends on R/replication.R,
@@ -141,7 +141,7 @@ role4_census_from_phases <- function(phases, wards, n_days) {
 #'
 #' @details The same census as compute_role4_census(), drawn from the same
 #'   stays: the total here equals that function's daily sum when both are drawn
-#'   under one seed, which scripts/check_role4_demand_protocol.R asserts.
+#'   under one seed, which tests/checks/check_role4_demand_protocol.R asserts.
 #'   Admissions cease at the horizon, so the census can only fall after it and
 #'   the peak cannot lie beyond it.
 role4_census_detail <- function(arrivals_log, r4_params, n_days) {
@@ -170,7 +170,7 @@ ROLE4_OPERATION_SOURCES <- c(repair = "Definitive repair", debridement = "Debrid
 #' @details Rebuilds the demand compute_role4_surgical_demand() reports from the
 #'   same two draws in the same order, so the operations here are that
 #'   function's own and merely carry the source it discards;
-#'   scripts/check_role4_demand_protocol.R asserts that they sum to its total.
+#'   tests/checks/check_role4_demand_protocol.R asserts that they sum to its total.
 #'   The minutes are the conserved definitive repairs alone, no open-access
 #'   source reporting how long a debridement or a flap takes.
 role4_operation_events <- function(arrivals_log, r4_params) {

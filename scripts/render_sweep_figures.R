@@ -18,14 +18,14 @@
 # that data and nothing else. This script reads each CSV and calls the plot
 # function its run script already used (R/analysis.R, R/scenario_runner.R) or
 # the one R/figures.R holds, and runs no simulation: it sources no module that
-# loads simmer, and scripts/check_figure_provenance.R asserts that.
+# loads simmer, and tests/checks/check_figure_provenance.R asserts that.
 #
 # --refresh-baseline is the only way to write the tracked images/ copies,
 # matching the contract every other render script carries: an ordinary run
 # writes under outputs/ and cannot disturb tracked evidence.
 #
 # Each figure below is declared with a `RENDERS:` marker naming the image it
-# writes; scripts/check_figure_provenance.R reads those markers to establish
+# writes; tests/checks/check_figure_provenance.R reads those markers to establish
 # that every image docs/Results.md references has a producer.
 
 suppressPackageStartupMessages({

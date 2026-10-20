@@ -37,7 +37,7 @@ CASUALTY_SURGE_JITTER_SEED <- 233L
 # The designs docs/Methods.md documents for the transport
 # fleet-size sweep and the forward holding frontier, held here so that the
 # entry points' baseline refreshes, the methods paper's marker comments and
-# scripts/check_capacity_sweep_protocol.R read one definition rather than
+# tests/checks/check_capacity_sweep_protocol.R read one definition rather than
 # three copies of it.
 
 #' Campaign length all three published capacity sweeps run over, in days
@@ -118,7 +118,7 @@ FORWARD_HOLD_SWEEP_TRIGGERS <- c(0, 0, 0, 0, 0, 1, 1)
 #' Forward holding arms the published frontier covers, as one data frame
 #'
 #' @details Assembled from the three vectors above, which stay single-line
-#'   literals so that `scripts/check_capacity_sweep_protocol.R` can read them
+#'   literals so that `tests/checks/check_capacity_sweep_protocol.R` can read them
 #'   out of this file without sourcing it.
 FORWARD_HOLD_SWEEP_ARMS <- data.frame(
   label   = FORWARD_HOLD_SWEEP_LABELS,
@@ -697,7 +697,7 @@ add_role4_icu_days <- function(assigned, r4_params) {
 #'   the step-down ward that carries the remainder. The remainder is taken as
 #'   the difference rather than drawn, so the phases sum to the drawn length of
 #'   stay exactly whatever the intensive care requirement comes to;
-#'   scripts/check_role4_ward_phases.R asserts that conservation. A stay owed
+#'   tests/checks/check_role4_ward_phases.R asserts that conservation. A stay owed
 #'   no intensive care, or owed all of it, yields the single phase the static
 #'   mapping produced.
 role4_ward_phases <- function(assigned, r4_params) {
@@ -862,7 +862,7 @@ role4_reconstruction_sequence <- function(assigned, r4_params) {
 #'
 #'   The operation is owed on the day of admission, ahead of the intensive care
 #'   that follows it, so it cannot fall after the step-down the ward phases
-#'   apply; scripts/check_role4_surgical_demand.R asserts that ordering.
+#'   apply; tests/checks/check_role4_surgical_demand.R asserts that ordering.
 #'
 #'   Two populations contribute. A casualty released with their definitive
 #'   repair outstanding carries that one operation rearward with the duration

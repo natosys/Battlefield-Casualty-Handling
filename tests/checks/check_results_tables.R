@@ -1,0 +1,326 @@
+#!/usr/bin/env Rscript
+##############################################################################
+## tests/checks/check_results_tables.R                                      ##
+## Regression check — docs/Results.md is what the tracked evidence says     ##
+##############################################################################
+#
+# Usage:
+#   Rscript tests/checks/check_results_tables.R
+#
+# Exits 0 when every assertion passes and 1 otherwise, so it can gate a pull
+# request.
+#
+# Why this check exists. docs/Results.md reports measurements and nothing else,
+# which is only worth saying if no figure in it can differ from the evidence it
+# reports. The measurements drifted from their prose in the documents that
+# preceded it because a table was guarded and the sentences around it were not,
+# so a figure re-run in one place stayed stale in another. In Results.md every
+# table and every quoted figure is a generated span, and this check asserts
+# three things about that arrangement: that re-rendering the document from the
+# tracked data reproduces it exactly, that the builders and the cell reader are
+# correct on inputs whose answers are computable by hand (so a document agreeing
+# with its builders is not two copies of one error), and that nothing in
+# Results.md states a figure outside a span or an interpretation the document
+# disclaims. It also asserts that the resolution table lists no comparison
+# whose interval excludes zero, such a comparison being resolved rather than
+# open. The protocol checks read the tables this document prints, so each
+# experiment's table is asserted against its tracked evidence there.
+
+invisible(Sys.setlocale("LC_CTYPE", "C.UTF-8"))
+
+source("R/results.R")
+
+#' The document under test
+RESULTS_PATH <- file.path("docs", "Results.md")
+
+#' Percentages a sentence may state without being a measured figure
+#'
+#' @details Design labels such as the swept cancellation probabilities and the
+#'   confidence level, which describe an experiment rather than report a result.
+ALLOWED_PERCENTAGES <- c("0%", "5%", "10%", "15%", "20%", "25%", "40%", "50%", "75%", "95%",
+                         "100%")
+
+failures <- character(0)
+
+#' Record a failure
+#'
+#' @param ... Arguments passed to `sprintf()` to build the message.
+#' @return The accumulated failures, invisibly; called for its side effect.
+fail <- function(...) {
+  assign("failures", c(failures, sprintf(...)), envir = globalenv())
+}
+
+#' Print one PASS or FAIL line and record a failure
+#'
+#' @param ok Whether the assertion held.
+#' @param fmt `sprintf()` format string describing the assertion.
+#' @param ... Values interpolated into `fmt`.
+#' @return The printed line, invisibly; called for its side effect.
+report <- function(ok, fmt, ...) {
+  msg <- sprintf(fmt, ...)
+  cat(sprintf("[%s] %s\n", if (ok) "PASS" else "FAIL", msg))
+  if (!ok) fail("%s", msg)
+}
+
+# ── 1. The document reproduces from the tracked evidence ────────────────────
+
+cat("-- docs/Results.md equals its own re-rendering --\n")
+
+text <- paste(readLines(RESULTS_PATH, encoding = "UTF-8", warn = FALSE), collapse = "\n")
+rendered <- render_results(text)
+report(identical(text, rendered),
+       "re-rendering %s from data/ reproduces it exactly", RESULTS_PATH)
+
+spans <- regmatches(text, gregexpr(RESULTS_SPAN_PATTERN, text, perl = TRUE))[[1]]
+names_used <- sub(RESULTS_SPAN_PATTERN, "\\1", spans, perl = TRUE)
+report(length(spans) > 0L, "the document carries generated spans (found %d)", length(spans))
+
+table_names <- setdiff(names(RESULTS_TABLES), PLANNING_ONLY_TABLES)
+tables_used <- names_used[!startsWith(names_used, "cell:")]
+report(all(table_names %in% tables_used),
+       "every registered table is printed in the document (missing: %s)",
+       paste(setdiff(table_names, tables_used), collapse = ", "))
+report(!any(grepl("\\?<!-- /GEN", text)), "no cell span is left holding its placeholder")
+
+# ── 2. The builders are correct on inputs computable by hand ────────────────
+
+cat("\n-- the builders and the cell reader are correct on hand-computed inputs --\n")
+
+report(identical(res_num(1234.5678, 2L, big = TRUE), "1,234.57"),
+       "res_num groups thousands and rounds: %s", res_num(1234.5678, 2L, big = TRUE))
+report(identical(res_num(-0.25, 1L), "−0.2") || identical(res_num(-0.25, 1L), "−0.3"),
+       "res_num prints a true minus sign: %s", res_num(-0.25, 1L))
+report(identical(res_num(3, 1L, plus = TRUE), "+3.0"), "res_num prints an explicit plus: %s",
+       res_num(3, 1L, plus = TRUE))
+report(identical(res_ci(0.5, -0.1, 0.9, 2L, floor0 = TRUE), "0.50 [0.00, 0.90]"),
+       "res_ci clamps a negative lower bound when asked: %s",
+       res_ci(0.5, -0.1, 0.9, 2L, floor0 = TRUE))
+report(identical(res_ci(0.123, 0.1, 0.2, 1L, scale = 100, unit = "%"), "12.3% [10.0%, 20.0%]"),
+       "res_ci scales to a percentage with its unit on every figure: %s",
+       res_ci(0.123, 0.1, 0.2, 1L, scale = 100, unit = "%"))
+
+toy <- res_table(c("Metric", "A", "B"), list(c("x", "1.5 [1.0, 2.0]", "7"), c("y", "3", "4")))
+report(identical(toy[2], "|---|---|---|"), "res_table writes the rule row: %s", toy[2])
+report(identical(res_cells(toy[3]), c("x", "1.5 [1.0, 2.0]", "7")),
+       "res_cells splits a row into its cells")
+
+toy_tables <- list(toy = function(dd) toy)
+report(identical(res_cell_value("toy|x|A|full", ".", toy_tables), "1.5 [1.0, 2.0]"),
+       "a cell reference returns the whole cell")
+report(identical(res_cell_value("toy|x|A|mean", ".", toy_tables), "1.5"),
+       "a cell reference returns the leading number")
+report(identical(res_cell_value("toy|x|A|ci", ".", toy_tables), "[1.0, 2.0]"),
+       "a cell reference returns the interval")
+report(inherits(try(res_cell_value("toy|x|C|full", ".", toy_tables), silent = TRUE), "try-error"),
+       "a cell reference to a missing column is an error rather than an empty string")
+report(inherits(try(res_cell_value("toy|z|A|full", ".", toy_tables), silent = TRUE), "try-error"),
+       "a cell reference to a missing row is an error rather than an empty string")
+doc <- "before <!-- GEN cell:toy|x|B|full -->old<!-- /GEN --> after"
+once <- render_results(doc, ".", toy_tables)
+report(identical(once, "before <!-- GEN cell:toy|x|B|full -->7<!-- /GEN --> after"),
+       "render_results replaces a span's content and leaves the text around it")
+report(identical(render_results(once, ".", toy_tables), once),
+       "rendering twice gives the same text as rendering once")
+
+# ── 3. The resolution and pathway tables are correct on inputs computable by hand ──
+
+cat("\n-- the resolution and pathway tables are correct on hand-computed inputs --\n")
+
+toy_dir <- file.path(tempdir(), "results_toy")
+for (d in c("hold_window", "icu_gate", "policy")) {
+  dir.create(file.path(toy_dir, d), recursive = TRUE, showWarnings = FALSE)
+}
+#' Write one paired-difference file whose every row carries the same known figures
+#'
+#' @param path Path under the toy data directory.
+#' @param keys Data frame of response, from and to, one row per paired comparison.
+#' @param extra Named list of further columns, such as the swept arm column.
+#' @return The path written, invisibly; called for its side effect.
+write_toy_paired <- function(path, keys, extra = NULL) {
+  d <- cbind(keys, n_pairs = 30L, difference = 0.5, ci_lower = -1, ci_upper = 2,
+             p_value = 0.4, reps_needed = 1234L)
+  if (!is.null(extra)) d <- cbind(d, extra)
+  write.csv(d, file.path(toy_dir, path), row.names = FALSE)
+}
+spec_files <- unique(vapply(RESOLUTION_ROWS, function(r) r[[1]], character(1)))
+for (path in spec_files) {
+  rows <- Filter(function(r) identical(r[[1]], path), RESOLUTION_ROWS)
+  write_toy_paired(path, data.frame(response = vapply(rows, function(r) r[[2]], character(1)),
+                                    from = vapply(rows, function(r) r[[4]], numeric(1)),
+                                    to = vapply(rows, function(r) r[[5]], numeric(1))))
+}
+resolution <- build_resolution(toy_dir)
+report(length(resolution) == length(RESOLUTION_ROWS) + 2L,
+       "the resolution table has one row per comparison (%d lines)", length(resolution))
+report(identical(res_cells(resolution[3]),
+                 c("Hold window, R2E first surgeries", "+0.50 [\u22121.00, +2.00]", "2.0",
+                   "1,234")),
+       "a resolution row prints the difference, the half-width and the replications: %s",
+       resolution[3])
+report(inherits(try(build_resolution(file.path(toy_dir, "missing")), silent = TRUE), "try-error"),
+       "a resolution table over absent evidence is an error rather than an empty table")
+
+hold <- read.csv(file.path(toy_dir, "hold_window", "hold_window_paired.csv"))
+hold[hold$response == "r2e_first_surgeries", c("ci_lower", "ci_upper")] <- c(0.1, 0.9)
+write.csv(hold, file.path(toy_dir, "hold_window", "hold_window_paired.csv"), row.names = FALSE)
+split_open <- build_resolution(toy_dir)
+split_shut <- build_resolved(toy_dir)
+report(length(split_open) == length(RESOLUTION_ROWS) + 1L &&
+         !any(grepl("R2E first surgeries", split_open, fixed = TRUE)),
+       "a comparison whose interval excludes zero leaves the resolution table")
+report(identical(split_shut[3], "| Hold window, R2E first surgeries | +0.50 [+0.10, +0.90] |") &&
+         length(split_shut) == 3L,
+       "and is printed in the resolved table alone: %s", split_shut[3])
+
+#' A document with one resolved comparison typed into its resolution table
+#'
+#' @param doc The document as one string.
+#' @return The document with a row whose interval excludes zero appended to the table.
+inject_resolved_row <- function(doc) {
+  row <- "| Injected | +1.00 [+0.10, +1.90] | 1.0 | 9 |"
+  sub("(<!-- GEN resolution -->\n(\\|[^\n]*\n)+)", paste0("\\1", row, "\n"), doc, perl = TRUE)
+}
+open_rows <- res_resolution_excluding_zero(text)
+report(length(open_rows) == 0L,
+       "every row of the resolution table has an interval spanning zero (excluding: %s)",
+       paste(open_rows, collapse = "; "))
+report(identical(res_resolution_excluding_zero(inject_resolved_row(text)), "Injected"),
+       "a row whose interval excludes zero, injected into the table, is caught")
+
+write.csv(data.frame(gate_enabled = c(1, 1, 0), icu_pathway_n = c(100, 300, 5),
+                     icu_pathway_dow = c(1, 1, 0), hold_pathway_n = c(1000, 3000, 7),
+                     hold_pathway_dow = c(2, 6, 0)),
+          file.path(toy_dir, "icu_gate", "icu_gate_replications.csv"), row.names = FALSE)
+pathways <- build_icu_gate_pathways(toy_dir)
+report(identical(res_cells(pathways[3]), c("Intensive care bed", "400", "2", "0.50%")),
+       "the intensive care pathway pools its counts over the enabled arm only: %s", pathways[3])
+report(identical(res_cells(pathways[4]), c("Holding bed", "4,000", "8", "0.20%")),
+       "the holding pathway pools its counts and rate over the enabled arm only: %s", pathways[4])
+
+# The shortfall per day and utilisation estimators, on inputs computable by hand: a
+# slope of 30 casualties per 30-day block is one a day, and the closing mean of a
+# series is taken over its last days within each replication.
+sf <- res_shortfall_per_day(30, 15, 45)
+report(isTRUE(all.equal(unname(sf), c(1, 0.5, 1.5))),
+       "a slope of 30 per 30-day block is 1 a day, with its interval scaled alike: %s",
+       paste(sf, collapse = ", "))
+report(isTRUE(all.equal(unname(res_shortfall_per_day(5, 5, 5, block_days = 10)), rep(0.5, 3))),
+       "the shortfall per day divides by the block length it is given")
+ti <- res_t_interval(c(1, 2, 3))
+report(isTRUE(all.equal(unname(ti), c(2, 2 - 4.302653 / sqrt(3), 2 + 4.302653 / sqrt(3)),
+                        tolerance = 1e-6)),
+       "the Student t interval of 1, 2, 3 is 2 plus or minus t(0.975, 2) / sqrt(3)")
+report(identical(unname(res_t_interval(c(4, 4))), c(4, 4, 4)),
+       "a sample with no spread has a degenerate interval at its mean")
+toy_series <- data.frame(day = rep(1:4, 2), value = c(1, 2, 3, 4, 10, 20, 30, 40),
+                         replication = rep(1:2, each = 4))
+report(isTRUE(all.equal(res_closing_means(toy_series, closing_days = 2), c(3.5, 35))),
+       "the closing mean is taken over the last days of each replication separately")
+
+dir.create(file.path(toy_dir, "long_horizon"), showWarnings = FALSE)
+dir.create(file.path(toy_dir, "scenarios"), showWarnings = FALSE)
+pools <- list(c("mean_queue", "R2E operating theatres"), c("mean_queue", "R2E holding beds"),
+              c("mean_queue", "R2E intensive care"), c("evac_backlog", "system"))
+write.csv(do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
+  do.call(rbind, lapply(pools, function(q) {
+    data.frame(series = q[1], subject = q[2], slope = 60, ci_lower = 30, ci_upper = 90,
+               scenario = p)
+  }))
+})), file.path(toy_dir, "long_horizon", "long_horizon_stability.csv"), row.names = FALSE)
+toy_pools <- c("R2E operating theatres", "R2E holding beds", "R2E intensive care")
+toy_grid <- expand.grid(p = SCENARIO_PROFILES, sub = toy_pools, stringsAsFactors = FALSE)
+occ <- do.call(rbind, Map(function(p, sub) {
+  data.frame(day = rep(1:3, 3), series = "occupancy", subject = sub,
+             value = rep(c(0.5, 0.6, 0.7), each = 3), replication = rep(1:3, each = 3),
+             scenario = p)
+}, toy_grid$p, toy_grid$sub))
+gz <- gzfile(file.path(toy_dir, "long_horizon", "long_horizon_series.csv.gz"), "w")
+write.csv(occ, gz, row.names = FALSE)
+close(gz)
+shortfall <- build_load_shortfall(toy_dir)
+cells <- res_cells(shortfall[3])
+report(identical(cells[2], "2.000 [1.000, 3.000]"),
+       "the shortfall cell prints the slope per day and its interval: %s", cells[2])
+report(startsWith(cells[3], "60.0% ["),
+       "utilisation is the mean of the per-replication closing means: %s", cells[3])
+report(identical(res_cells(shortfall[6])[3], "not applicable"),
+       "the evacuation backlog carries no utilisation")
+report(length(shortfall) == 6L, "the shortfall table has the four pools (%d lines)",
+       length(shortfall))
+
+write.csv(data.frame(scenario = rep(SCENARIO_PROFILES, each = 1), metric = "wia_count",
+                     mean = c(100, 350), ci_lower = c(90, 340), ci_upper = c(110, 360)),
+          file.path(toy_dir, "scenarios", "scenario_comparison_totals.csv"), row.names = FALSE)
+for (sfx in c("", "_high_intensity")) {
+  k <- if (nzchar(sfx)) 2 else 1
+  write.csv(data.frame(window_min = 60, r2b_surgeries = 100 * k, r2e_first_surgeries = 200 * k,
+                       replication = 1:3),
+            file.path(toy_dir, "hold_window", paste0("hold_window_replications", sfx, ".csv")),
+            row.names = FALSE)
+}
+write.csv(data.frame(policy_days = c(21, 21, 15), hold_beds = NA, dispositions = c(1000, 1000, 5),
+                     replication = 1:3),
+          file.path(toy_dir, "policy", "policy_sweep_replications.csv"), row.names = FALSE)
+write.csv(data.frame(policy_days = c(21, 21, 21, 60), hold_beds = c(30, 30, 90, 30),
+                     dispositions = c(2000, 2000, 7, 9), replication = c(1, 2, 1, 1)),
+          file.path(toy_dir, "policy", "establishment_sweep_high_intensity_replications.csv"),
+          row.names = FALSE)
+demand <- build_load_demand(toy_dir)
+report(identical(res_cells(demand[3])[4], "3.50\u00d7"),
+       "the wounded-in-action ratio is the ratio of the means: %s", res_cells(demand[3])[4])
+report(identical(res_cells(demand[4])[2:4], c("300.0 [300.0, 300.0]", "600.0 [600.0, 600.0]",
+                                              "2.00\u00d7")),
+       "the surgeries sum the two echelons per replication in the shipped-window arm: %s",
+       paste(res_cells(demand[4])[2:4], collapse = " / "))
+report(identical(res_cells(demand[5])[4], "2.00\u00d7") &&
+         identical(res_cells(demand[5])[2], "1,000.0 [1,000.0, 1,000.0]"),
+       "the dispositions are those of the shipped policy and establishment only: %s",
+       paste(res_cells(demand[5]), collapse = " / "))
+
+# The prose beside the shortfall table says every moderate-intensity shortfall interval
+# contains zero; that sentence is typed, so it is asserted against the table.
+real_short <- build_load_shortfall(RESULTS_DATA_DIR)
+moderate_cells <- vapply(real_short[-(1:2)], function(l) res_cells(l)[2], character(1))
+spans_zero <- vapply(moderate_cells, function(cell) {
+  b <- as.numeric(gsub("\u2212", "-", regmatches(cell, gregexpr("-?\u2212?[0-9.]+", cell))[[1]]))
+  length(b) == 3L && b[2] <= 0 && b[3] >= 0
+}, logical(1))
+report(all(spans_zero),
+       "every moderate-intensity shortfall interval contains zero, as the prose states: %s",
+       paste(moderate_cells, collapse = " / "))
+
+# ── 4. Nothing outside a span states a figure or an interpretation ──────────
+
+cat("\n-- the document states no figure outside a span and no recommendation --\n")
+
+prose <- gsub(RESULTS_SPAN_PATTERN, "", text, perl = TRUE)
+prose <- sub("(?s)\n## References.*$", "", prose, perl = TRUE)
+lines <- strsplit(prose, "\n", fixed = TRUE)[[1]]
+lines <- lines[!grepl("^(#|\\|)", lines)]
+lines <- gsub("`[^`]*`", "", lines)
+lines <- gsub("\\$[^$]*\\$", "", lines)
+lines <- gsub("\\([^)]*\\)", "", lines)
+words <- paste(lines, collapse = "\n")
+
+decimals <- regmatches(words, gregexpr("[0-9][0-9,]*\\.[0-9]+", words))[[1]]
+report(length(decimals) == 0L, "no decimal figure is typed outside a span (found: %s)",
+       paste(utils::head(decimals, 5), collapse = ", "))
+pcts <- regmatches(words, gregexpr("[0-9]+(\\.[0-9]+)?%", words))[[1]]
+stray <- setdiff(unique(pcts), ALLOWED_PERCENTAGES)
+report(length(stray) == 0L, "no measured percentage is typed outside a span (found: %s)",
+       paste(stray, collapse = ", "))
+
+neutral <- sub("It makes no recommendation", "", words, fixed = TRUE)
+advice <- regmatches(neutral, gregexpr("\\b(should|recommend[a-z]*|must|ought)\\b", neutral,
+                                       ignore.case = TRUE))[[1]]
+report(length(advice) == 0L, "the document carries no recommendation (found: %s)",
+       paste(unique(advice), collapse = ", "))
+report(!grepl("—", text), "the document uses no em dash")
+
+if (length(failures) > 0L) {
+  cat(sprintf("\n%d check(s) FAILED:\n", length(failures)))
+  for (f in failures) cat("  - ", f, "\n", sep = "")
+  quit(status = 1L)
+}
+cat("\nEvery result table and quoted figure agrees with the tracked evidence.\n")
+quit(status = 0L)

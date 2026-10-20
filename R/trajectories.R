@@ -14,7 +14,7 @@ source("R/constants.R")
 #' Name format for the per-section R2E surgical blocks
 #'
 #' Used by r2e_treat_wia() to name each seize-operate-release block it builds,
-#' one per surgical section, and by scripts/check_r2e_surgery_seizure.R to
+#' one per surgical section, and by tests/checks/check_r2e_surgery_seizure.R to
 #' locate those blocks in the printed trajectory. Holding the format in one
 #' place means renaming the blocks cannot leave the regression check searching
 #' for a label the model no longer uses. The single "%d" is the section index.
@@ -300,7 +300,7 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
 # post-definitive care (single-stage) is drawn at R2B only where the rule holds
 # it forward, and at R2E otherwise. A change here that draws a second time,
 # rather than dividing, breaks that property silently;
-# scripts/check_icu_time_conservation.R is what catches it.
+# tests/checks/check_icu_time_conservation.R is what catches it.
 
 #' Draws a casualty's whole stabilisation intensive care requirement, in minutes
 #'
@@ -315,7 +315,7 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
 #'   kept consistent with each other. Each echelon records the minutes it
 #'   served as an attribute (`r2b_post_op_min`, `r2e_post_op_min`) so the
 #'   invariant is observable in a run's output rather than merely asserted
-#'   here; scripts/check_icu_time_conservation.R checks it across all three
+#'   here; tests/checks/check_icu_time_conservation.R checks it across all three
 #'   routes a casualty requiring surgery can take.
 draw_stabilisation_icu <- function() {
   rtriangle(
@@ -565,7 +565,7 @@ r2e_stabilisation_minutes <- function() {
 # The property to preserve is that the R2B holding load the threshold removes
 # reappears at R2E as the same quantity, so any movement in total system load
 # is attributable to the routing and not to a second, unaccounted draw.
-# scripts/check_lever_realisation.R asserts it.
+# tests/checks/check_lever_realisation.R asserts it.
 
 #' The configured R2B holding evacuation threshold, in minutes
 #'

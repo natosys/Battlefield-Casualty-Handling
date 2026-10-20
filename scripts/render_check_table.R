@@ -13,9 +13,9 @@
 # suite and every check added since went unrecorded. The table is now generated
 # from the checks themselves: each row's name comes from the file glob the runner
 # uses, its tier from the runner's `SLOW_CHECKS`, its measured runtime from
-# `scripts/check_runtimes.csv` and its summary from the check's own banner, so a
+# `tests/checks/check_runtimes.csv` and its summary from the check's own banner, so a
 # check cannot be added without appearing in the guide, and
-# `scripts/check_ci_check_table.R` fails when the table is stale.
+# `tests/checks/check_ci_check_table.R` fails when the table is stale.
 #
 # --refresh-baseline is the only way to write the tracked guide, matching every
 # other render script in the project: an ordinary invocation writes under
@@ -28,16 +28,16 @@ TABLE_START <- "<!-- CHECK TABLE START -->"
 TABLE_END <- "<!-- CHECK TABLE END -->"
 
 #' Directory the checks live in
-CHECK_DIR <- "scripts"
+CHECK_DIR <- file.path("tests", "checks")
 
 #' Pattern the runner uses to discover a check
 CHECK_PATTERN <- "^check_.*[.]R$"
 
 #' The runner, whose `SLOW_CHECKS` constant classifies the slow tier
-RUNNER_PATH <- file.path("scripts", "run_all_checks.R")
+RUNNER_PATH <- file.path("tests", "checks", "run_all_checks.R")
 
 #' Measured runtime per check, in seconds
-RUNTIME_PATH <- file.path("scripts", "check_runtimes.csv")
+RUNTIME_PATH <- file.path("tests", "checks", "check_runtimes.csv")
 
 #' The tracked guide the table is written into
 GUIDE_PATH <- file.path("docs", "Continuous_Integration.md")
@@ -73,7 +73,7 @@ check_summary <- function(path) {
   if (!is.na(stop_at)) head_lines <- head_lines[seq_len(stop_at - 1L)]
   head_lines <- head_lines[!grepl("^#+$", head_lines)]
   head_lines <- trimws(sub("#+$", "", sub("^#+", "", head_lines)))
-  head_lines <- head_lines[nzchar(head_lines) & !grepl("^scripts/check_", head_lines)]
+  head_lines <- head_lines[nzchar(head_lines) & !grepl("^tests/checks/check_", head_lines)]
   # Stop at the first line that opens the usage block or a paragraph of prose.
   cut <- which(grepl("^(Usage|Why|Exits|Rscript)", head_lines))[1]
   if (!is.na(cut)) head_lines <- head_lines[seq_len(cut - 1L)]

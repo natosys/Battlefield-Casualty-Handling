@@ -97,8 +97,7 @@ dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 json_data <- read_config(config_path)
 
 #' Directory each arm's checkpoint is written to and resumed from
-CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "airlift_collapse_checkpoints")
-dir.create(CHECKPOINT_DIR, recursive = TRUE, showWarnings = FALSE)
+CHECKPOINT_DIR <- checkpoint_dir("airlift_collapse", refresh_requested)
 
 #' Measure one cancellation probability and return its per-replication response
 #'

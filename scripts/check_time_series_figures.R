@@ -87,7 +87,7 @@ TOL <- 1e-9
 
 cat("\n-- the tracked series covers every pool, stage and intensity --\n")
 
-queue     <- read.csv(file.path(SERIES_DIR, "queue_series.csv"), stringsAsFactors = FALSE)
+queue     <- read.csv(file.path(SERIES_DIR, "queue_series.csv.gz"), stringsAsFactors = FALSE)
 clearance <- read.csv(file.path(SERIES_DIR, "queue_clearance.csv"), stringsAsFactors = FALSE)
 degraded  <- read.csv(file.path(SERIES_DIR, "degraded_care_series.csv"),
                       stringsAsFactors = FALSE)

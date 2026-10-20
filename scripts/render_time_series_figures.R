@@ -126,7 +126,11 @@ IMAGES_DIR <- if (REFRESH) "images" else file.path("outputs", "images")
 TRACKED_SERIES_DIR <- file.path("data", "time_series")
 
 #' File holding the binned queue series, one row per pool, replication and bin
-QUEUE_CSV      <- "queue_series.csv"
+#'
+#' @details Compressed, as `data/long_horizon/long_horizon_series.csv.gz` is: the
+#'   series is an order of magnitude larger than the other two files and
+#'   read.csv() reads a gzip file transparently.
+QUEUE_CSV      <- "queue_series.csv.gz"
 
 #' File holding the clearance statistics, one row per pool and replication
 CLEARANCE_CSV  <- "queue_clearance.csv"
@@ -175,7 +179,7 @@ measure_series <- function(series_dir) {
     clearance = bind_rows(clearance),
     degraded  = bind_rows(degraded)
   )
-  write.csv(out$queue, file.path(series_dir, QUEUE_CSV), row.names = FALSE)
+  write.csv(out$queue, gzfile(file.path(series_dir, QUEUE_CSV)), row.names = FALSE)
   write.csv(out$clearance, file.path(series_dir, CLEARANCE_CSV), row.names = FALSE)
   write.csv(out$degraded, file.path(series_dir, DEGRADED_CSV), row.names = FALSE)
   message(sprintf("Series written to %s", series_dir))

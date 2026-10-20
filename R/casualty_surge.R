@@ -204,29 +204,6 @@ casualty_surge_dow_rate <- function(rows, n_col, dow_col) {
              ci_lower = test$conf.int[1], ci_upper = test$conf.int[2])
 }
 
-#' Replications per arm a pooled rate difference would need for a given
-#' half-width
-#'
-#' @param s1 Per-replication standard deviation of the response in arm 1.
-#' @param s2 Per-replication standard deviation of the response in arm 2.
-#' @param half_width Half-width wanted on the difference, in the response's
-#'   own units.
-#' @return The replication count required per arm, rounded up, or NA where
-#'   `half_width` is non-positive.
-#'
-#' @details Uses the normal approximation for the difference of two
-#'   independent means at equal replication counts,
-#'   $n = (1.96 \sqrt{s_1^2 + s_2^2} / h)^2$, the two-sample form of the
-#'   $n = (1.96 s / h)^2$ approximation `R/policy_sweep.R`'s
-#'   `policy_replications_for()` and `docs/Methods.md`'s
-#'   replication-count derivation both use for a paired one. The two arms here
-#'   are not paired (this module's header records why), so the two variances
-#'   add rather than being taken on one differenced sample.
-casualty_surge_replications_for <- function(s1, s2, half_width) {
-  if (half_width <= 0) return(NA_real_)
-  ceiling((qnorm(0.975) * sqrt(s1^2 + s2^2) / half_width)^2)
-}
-
 # ── Event size sweep ────────────────────────────────────────────────────────
 
 #' Fixed event sizes swept, in casualties per event

@@ -3106,7 +3106,8 @@ summarise_ame_sortie_demand <- function(ame_capacity, role4_daily_by_rep, ame_by
 #' Runs the full analysis and visualisation pipeline on monitoring data
 #'
 #' @param mon Named list with elements arrivals, attributes, resources as
-#'   returned by run_single()
+#'   extracted from a run with get_mon_arrivals(), get_mon_attributes() and
+#'   get_mon_resources()
 #' @param output_dir Directory path for saving CSV and plot outputs
 #'   (default: "outputs")
 #' @param warm_up_days Days to exclude from the start of the analysis window

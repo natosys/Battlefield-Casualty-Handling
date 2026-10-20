@@ -1345,31 +1345,29 @@ The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ i
 
 **Question.** Which of the 79 screened parameters most influence the R2E operating theatre queue and the share of casualties requiring surgery who are operated on, over a 360-day campaign, and how is that influence divided among the leading nine? `[default · 360 d · Morris r = 20 with 4 replications per point; Sobol N = 96 with 4 replications per point]`
 
-Each Morris table on the R2E operating theatre queue carries, for one release, the rank the same parameter held in the retired 30-day screen on the same response.
-
 <!-- GEN morris_top -->
-| Rank | Parameter | µ* | σ | 30-day rank |
-|---|---|---|---|---|
-| 1 | `casualty_surge_rate` | 48.62 | 96.75 | 1 |
-| 2 | `pri1_dcs_rate` | 18.57 | 45.22 | 4 |
-| 3 | `pri1_surg_prob` | 14.64 | 37.26 | 3 |
-| 4 | `wia_spt_mean` | 13.28 | 42.62 | 26 |
-| 5 | `r2e_dcs2_factor` | 13.27 | 33.85 | 73 |
-| 6 | `wia_cbt_mean` | 13.03 | 41.74 | 8 |
-| 7 | `triage_p1_balance` | 12.55 | 33.31 | 22 |
-| 8 | `casualty_surge_kia_fraction` | 12.23 | 38.95 | 6 |
-| 9 | `mc_p1_balance` | 12.15 | 34.89 | 5 |
-| 10 | `pri1_evac_prob` | 11.20 | 26.07 | 2 |
-| 11 | `casualty_surge_max_cas` | 9.97 | 32.20 | 7 |
-| 12 | `evacuation_policy_days` | 9.65 | 32.53 | 27 |
-| 13 | `r2e_hold_mode` | 9.29 | 25.69 | 17 |
-| 14 | `ot_hours` | 9.26 | 31.09 | 33 |
-| 15 | `fr_demand_interval_days` | 9.12 | 28.68 | 47 |
-| 16 | `p1_k` | 8.72 | 20.41 | 51 |
-| 17 | `role4_los_p2_mode` | 8.42 | 24.29 | 78 |
-| 18 | `p3_flat` | 8.37 | 22.35 | 71 |
-| 19 | `saturation_queue_threshold` | 8.31 | 29.04 | 11 |
-| 20 | `r2b_transport` | 8.05 | 23.83 | 40 |
+| Rank | Parameter | µ* | σ |
+|---|---|---|---|
+| 1 | `casualty_surge_rate` | 48.62 | 96.75 |
+| 2 | `pri1_dcs_rate` | 18.57 | 45.22 |
+| 3 | `pri1_surg_prob` | 14.64 | 37.26 |
+| 4 | `wia_spt_mean` | 13.28 | 42.62 |
+| 5 | `r2e_dcs2_factor` | 13.27 | 33.85 |
+| 6 | `wia_cbt_mean` | 13.03 | 41.74 |
+| 7 | `triage_p1_balance` | 12.55 | 33.31 |
+| 8 | `casualty_surge_kia_fraction` | 12.23 | 38.95 |
+| 9 | `mc_p1_balance` | 12.15 | 34.89 |
+| 10 | `pri1_evac_prob` | 11.20 | 26.07 |
+| 11 | `casualty_surge_max_cas` | 9.97 | 32.20 |
+| 12 | `evacuation_policy_days` | 9.65 | 32.53 |
+| 13 | `r2e_hold_mode` | 9.29 | 25.69 |
+| 14 | `ot_hours` | 9.26 | 31.09 |
+| 15 | `fr_demand_interval_days` | 9.12 | 28.68 |
+| 16 | `p1_k` | 8.72 | 20.41 |
+| 17 | `role4_los_p2_mode` | 8.42 | 24.29 |
+| 18 | `p3_flat` | 8.37 | 22.35 |
+| 19 | `saturation_queue_threshold` | 8.31 | 29.04 |
+| 20 | `r2b_transport` | 8.05 | 23.83 |
 <!-- /GEN -->
 
 The table lists the twenty parameters with the largest Morris $\mu^*$ on the R2E operating theatre queue, of 79 screened. <!-- GEN cell:morris_top|1|Parameter|full -->`casualty_surge_rate`<!-- /GEN --> ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->48.62<!-- /GEN -->, and <!-- GEN cell:morris_top|2|Parameter|full -->`pri1_dcs_rate`<!-- /GEN --> second at <!-- GEN cell:morris_top|2|µ*|full -->18.57<!-- /GEN -->. The parameters ranked third to seventh lay between $\mu^*$ = <!-- GEN cell:morris_top|3|µ*|full -->14.64<!-- /GEN --> and <!-- GEN cell:morris_top|7|µ*|full -->12.55<!-- /GEN -->.

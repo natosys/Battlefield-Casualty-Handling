@@ -537,9 +537,7 @@ markdown_docs <- c("README.md", "docs/Results.md", "docs/Planning_Implications.m
 # markdown document added to the repository belongs here.
 link_check_docs <- c(markdown_docs, "CLAUDE.md",
                      "docs/BCH_Simulation_Action_Plan.md",
-                     "docs/BCH_Task_Role_Allocation.md",
                      "docs/Getting_Started.md",
-                     "docs/archive/Project_Status_Review.md",
                      "docs/STYLE_GUIDE.md",
                      "data/sensitivity/README.md")
 

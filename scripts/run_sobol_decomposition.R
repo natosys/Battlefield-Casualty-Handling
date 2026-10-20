@@ -21,9 +21,7 @@
 # from its index (R/sensitivity.R, evaluate_design_concurrently()). N is the
 # largest the compute allowed, a 360-day point costing about a hundred times
 # a 30-day one; it is not sized from scripts/test_sobol_separation.R. It
-# decomposes every response in SOBOL_RESPONSES. The retired 30-day
-# decomposition (N = 800, 8 replications, eight coordinates) is recorded in
-# its own tracked metadata, data/sensitivity/sobol_n800/. The replication
+# decomposes every response in SOBOL_RESPONSES. The replication
 # seed is left unpinned, the shipped default. This script is the one place
 # the design is written down as a command.
 #

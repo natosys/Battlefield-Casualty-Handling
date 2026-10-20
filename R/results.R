@@ -1414,9 +1414,6 @@ res_resolution_excluding_zero <- function(text, span = "resolution") {
 #' Tracked directory of the 360-day Morris screen
 SENSITIVITY_MORRIS_DIR <- "sensitivity/morris_r20_d360"
 
-#' Tracked directory of the retired 30-day Morris screen, kept for one release
-SENSITIVITY_MORRIS_30D_DIR <- "sensitivity/morris_r20"
-
 #' Tracked directory of the 360-day Sobol decomposition
 SENSITIVITY_SOBOL_DIR <- "sensitivity/sobol_n96_d360"
 
@@ -1426,28 +1423,16 @@ SENSITIVITY_SOBOL_DIR <- "sensitivity/sobol_n96_d360"
 #' @param response The ranked response, naming the per-response ranking file.
 #' @param n Number of leading parameters to print.
 #' @param dp Decimal places of µ* and σ.
-#' @param prior Whether to add each parameter's rank in the retired 30-day
-#'   screen on the same response, read from its own tracked ranking.
 #' @return The table lines.
-build_morris_top <- function(data_dir, response = "r2e_ot_q", n = 20L, dp = 2L,
-                             prior = TRUE) {
+build_morris_top <- function(data_dir, response = "r2e_ot_q", n = 20L, dp = 2L) {
   rank_file <- sprintf("morris_ranking_%s.csv", response)
   d <- res_read(file.path(SENSITIVITY_MORRIS_DIR, rank_file), data_dir)
   d <- d[order(-d$mu_star), ][seq_len(n), ]
-  header <- c("Rank", "Parameter", "\u00b5*", "\u03c3")
-  if (prior) {
-    old <- res_read(file.path(SENSITIVITY_MORRIS_30D_DIR, rank_file), data_dir)
-    old <- old[order(-old$mu_star), ]
-    old_rank <- match(d$parameter, old$parameter)
-    header <- c(header, "30-day rank")
-  }
   rows <- lapply(seq_len(n), function(i) {
-    row <- c(as.character(i), sprintf("`%s`", d$parameter[i]), res_num(d$mu_star[i], dp),
-             res_num(d$sigma_ee[i], dp))
-    if (prior) row <- c(row, if (is.na(old_rank[i])) "not screened" else as.character(old_rank[i]))
-    row
+    c(as.character(i), sprintf("`%s`", d$parameter[i]), res_num(d$mu_star[i], dp),
+      res_num(d$sigma_ee[i], dp))
   })
-  res_table(header, rows)
+  res_table(c("Rank", "Parameter", "\u00b5*", "\u03c3"), rows)
 }
 
 #' Sobol decomposition of one response at the sustained horizon
@@ -2743,7 +2728,7 @@ RESULTS_TABLES <- list(
   resolved = build_resolved,
   morris_top = build_morris_top,
   morris_delivery = function(dd) {
-    build_morris_top(dd, "surgery_delivery_rate", n = 10L, dp = 3L, prior = FALSE)
+    build_morris_top(dd, "surgery_delivery_rate", n = 10L, dp = 3L)
   },
   sobol = build_sobol,
   sobol_separation = build_sobol_separation,

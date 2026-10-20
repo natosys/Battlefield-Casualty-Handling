@@ -2,6 +2,16 @@
 ## tests/checks/check_markdown.R            ##
 ## Markdown TOC, link and table checks      ##
 ##############################################
+#
+# Usage:
+#   Rscript tests/checks/check_markdown.R
+#   Rscript tests/checks/check_markdown.R --refresh-baseline
+#
+# Asserts that the tables of contents of the four academic documents match
+# their headings, that every H2 heading below a table of contents carries a
+# return link, and that every anchor link, local target and image alt text in
+# every tracked markdown document resolves; exits non-zero on the first that
+# does not. --refresh-baseline is the only way to rewrite a table of contents.
 
 #' Anchor GitHub generates for a heading, reproduced exactly
 #'
@@ -114,9 +124,6 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
       # them through the locale would replace those with escapes
       writeLines(updated_lines, file_path, useBytes = TRUE)
       cat("✅ TOC block replaced.\n")
-      # Logging
-      log_entry <- sprintf("[%s] TOC updated in %s", Sys.time(), file_path)
-      write(log_entry, file = "log.log", append = TRUE)
     }
   } else {
     cat("⚠️ TOC markers not found or malformed.\n")
@@ -124,92 +131,35 @@ update_or_check_toc <- function(file_path, mode = c("verify", "replace"), toc_st
   }
 }
 
-#' Verify or insert the "Return to Top" link under each H2 heading
+#' Verify the "Return to Top" link under each H2 heading
 #'
 #' @param file_path Path of the markdown document.
-#' @param mode "verify" to check the links, "replace" to insert them.
-#' @param top_anchor Anchor the return link points at.
-#' @param return_text The link line itself, as it is written into the file.
-#' @param log_path Path of the audit log written in "replace" mode.
-#' @return Invisible NULL in "replace" mode; exits non-zero in "verify" mode
-#'   where a heading is missing its link.
-enforce_return_links <- function(file_path, mode = c("verify", "replace"),
-                                 top_anchor = "#contents",
-                                 return_text = "<sub>[Return to Top](#contents)</sub>",
-                                 log_path = "log.log") {
-  mode <- match.arg(mode)
+#' @param toc_start Marker opening the table of contents; a heading above it,
+#'   such as an abstract, has no contents to return to and is not checked.
+#' @return Invisible NULL; exits non-zero where an H2 heading's first non-blank
+#'   line is not a return link.
+#' @details The link is a fixed line, so a missing one is added by hand rather
+#'   than generated; what the check defends is that none goes missing.
+enforce_return_links <- function(file_path, toc_start = "<!-- TOC START -->") {
   lines <- readLines(file_path, encoding = "UTF-8")
-  new_lines <- c()
-  i <- 1
-  missing_count <- 0
-  patched_headings <- c()
-  
-  # Pattern to detect ALL return-to-top links
-  generic_return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
-  
-  # Define canonical version to preserve
-  canonical_return <- "<sub>[Return to Top](#contents)</sub>"
-  return_text <- canonical_return
-
-  while (i <= length(lines)) {
-    line <- lines[i]
-    
-    if (grepl(generic_return_pattern, line, perl = TRUE)) {
-      # Skip line ONLY if it's not already standardized
-      if (trimws(line) != canonical_return) {
-        i <- i + 1
-        next  # Remove nonstandard return-to-top
-      }
-    }
-    
-    new_lines <- c(new_lines, line)
-    
-    # Detect H2 heading
-    if (grepl("^## ", line)) {
-      heading <- trimws(sub("^##\\s*", "", line))
-      next_line <- if (i + 1 <= length(lines)) lines[i + 1] else ""
-      has_canonical_return <- trimws(next_line) == canonical_return
-      has_any_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
-      
-      has_return <- grepl(generic_return_pattern, next_line, perl = TRUE)
-      if (!has_return) {
-        if (mode == "verify") {
-          missing_count <- missing_count + 1
-        } else if (mode == "replace") {
-          new_lines <- c(new_lines, return_text)
-          patched_headings <- c(patched_headings, heading)
-        }
-      } else {
-        # Skip the legacy return link line
-        i <- i + 1
-      }
-    }
-    i <- i + 1
+  return_pattern <- "(?i)(<sub>|<small>)?\\[return to top\\]\\(#.*?\\)(</sub>|</small>)?"
+  first_toc <- grep(toc_start, lines, fixed = TRUE)[1]
+  h2 <- which(heading_lines(lines) & grepl("^## ", lines))
+  h2 <- h2[is.na(first_toc) | h2 > first_toc]
+  first_text <- vapply(h2, function(i) {
+    rest <- lines[-seq_len(i)]
+    rest <- rest[nzchar(trimws(rest))]
+    if (length(rest)) rest[1] else ""
+  }, character(1))
+  missing <- lines[h2][!grepl(return_pattern, first_text, perl = TRUE)]
+  if (length(missing) == 0) {
+    cat("✓ All H2 headings have clean return links.\n")
+  } else {
+    cat(sprintf("⚠️ %s: %d H2 heading(s) missing a return link: %s\n", file_path,
+                length(missing), paste(missing, collapse = "; ")))
+    quit(status = 1)
   }
-  
-  if (mode == "verify") {
-    if (missing_count == 0) {
-      cat("✓ All H2 headings have clean return links.\n")
-    } else {
-      cat(sprintf("⚠️ %d H2 headings are missing valid return links.\n", missing_count))
-      quit(status = 1)
-    }
-  } else if (mode == "replace") {
-    if (!has_canonical_return) {
-      if (has_any_return) {
-        i <- i + 1  # Skip legacy link line
-      }
-      new_lines <- c(new_lines, return_text)
-      patched_headings <- c(patched_headings, heading)
-    }    
-    if (length(patched_headings) > 0) {
-      timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-      log_entry <- sprintf("[%s] Updated 'Return to Top' under H2 in %s:\n- %s\n\n", 
-                           timestamp, file_path, paste(patched_headings, collapse = "\n- "))
-      dir.create(dirname(log_path), showWarnings = FALSE, recursive = TRUE)
-      write(log_entry, file = log_path, append = TRUE)
-    }
-  }
+  invisible(NULL)
 }
 
 #' Assert that no heading carries an emoji or symbol character
@@ -541,9 +491,12 @@ link_check_docs <- c(markdown_docs, "CLAUDE.md",
                      "docs/STYLE_GUIDE.md",
                      "data/sensitivity/README.md")
 
+# A stale table of contents fails the check; --refresh-baseline rewrites it,
+# as every other generated block in the repository is rewritten.
+toc_mode <- if ("--refresh-baseline" %in% commandArgs(trailingOnly = TRUE)) "replace" else "verify"
 for (doc in markdown_docs) {
-  update_or_check_toc(doc, "replace")
-  enforce_return_links(doc, "replace")
+  update_or_check_toc(doc, toc_mode)
+  enforce_return_links(doc)
 }
 
 anchors_by_doc <- setNames(lapply(link_check_docs, document_anchors), link_check_docs)

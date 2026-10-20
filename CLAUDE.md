@@ -151,7 +151,7 @@ Without the flag, every run writes to `outputs/` alone and leaves all tracked ar
 
 **3. Regenerate the README environment summary (if `env_data.json` changed)**
 
-If the merged PR modified `env_data.json`, run `tests/checks/check_env_data_summary.R` to refresh the `<!-- ENV SUMMARY START/END -->` block inside `README.md` and include the updated `README.md` in the chore PR.
+If the merged PR modified `env_data.json`, run `tests/checks/check_env_data_summary.R --refresh-baseline` to refresh the `<!-- ENV SUMMARY START/END -->` block inside `README.md` and include the updated `README.md` in the chore PR.
 
 ---
 
@@ -304,7 +304,7 @@ All four are updated **as part of every PR that changes what they state**, not r
 | The PR changes | `README.md` | `docs/Results.md` | `docs/Planning_Implications.md` | `docs/Methods.md` |
 |---|---|---|---|---|
 | Trajectory logic, resource logic or a distribution | Simulation Design, the Mermaid diagram for the echelon, Further Development | Regenerate (a measurement may move) | Only if a lever's evidence label changes | Only if an experiment's design changes |
-| A shipped default in `env_data.json` | The parameter and the rationale for it; run `tests/checks/check_env_data_summary.R` | Regenerate | Only if a lever's evidence label changes | No |
+| A shipped default in `env_data.json` | The parameter and the rationale for it; run `tests/checks/check_env_data_summary.R --refresh-baseline` | Regenerate | Only if a lever's evidence label changes | No |
 | An evidence set is re-run, at any replication count | No | Regenerate with `scripts/render_results_tables.R --refresh-baseline`; add prose only where a new experiment needs its own section | Regenerates on its own; revisit the recommendations the new measurement bears on | The experiment's replication count or protocol line, if changed |
 | A new lever or experiment | Where the lever is configured | A new section and, where it has a table, a builder in `R/results.R` | A row in the lever table, with its evidence label | The experiment's design |
 | An experiment's design, seed, parameter overrides or invocation | The CLI summary, if it changed | No | No | The experiment's design section |

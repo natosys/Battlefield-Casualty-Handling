@@ -111,9 +111,7 @@ Rscript tests/checks/run_all_checks.R --list
 
 The runner writes each check's output to `outputs/checks/`, which is
 gitignored, and prints a summary line and a non-zero exit status if any check
-failed. Add `--no-tree-check` when the working tree is already dirty for
-unrelated reasons, which otherwise makes the two document-regenerating checks
-report a failure that is not theirs.
+failed.
 
 ## Running several checks at once
 
@@ -373,7 +371,7 @@ seconds.
 | `check_definitive_repair_release.R` | fast | 150 s | release to strategic evacuation with the definitive repair outstanding |
 | `check_dow_calibration.R` | slow | 2702 s | died-of-wounds rate against its campaign's anchor |
 | `check_dow_fitter.R` | fast | 6 s | the died-of-wounds ceiling fitter recovers a known ceiling, and the documented calibration table is the shipped one |
-| `check_env_data_summary.R` | fast | 6 s | README environment summary regeneration |
+| `check_env_data_summary.R` | fast | 6 s | README environment summary check |
 | `check_figure_provenance.R` | fast | 20 s | every figure of the results paper has a render-only producer that runs from tracked data alone |
 | `check_forward_hold_switch.R` | fast | 60 s | disabled forward holding is the model as it stood |
 | `check_high_intensity_evidence.R` | fast | 5 s | the high-intensity replications of the lever experiments are the documented design and sit beside the default sets |

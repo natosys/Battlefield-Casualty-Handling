@@ -1,7 +1,15 @@
 ##############################################
 ## tests/checks/check_env_data_summary.R    ##
-## README environment summary regeneration  ##
+## README environment summary check         ##
 ##############################################
+#
+# Usage:
+#   Rscript tests/checks/check_env_data_summary.R
+#   Rscript tests/checks/check_env_data_summary.R --refresh-baseline
+#
+# Asserts that the README's <!-- ENV SUMMARY --> block is the one env_data.json
+# generates, and exits non-zero where it is not. --refresh-baseline is the only
+# way to rewrite the block.
 
 library(jsonlite)
 library(purrr)
@@ -249,10 +257,14 @@ readme <- readLines("README.md")
 start_line <- grep("<!-- ENV SUMMARY START -->", readme)
 end_line   <- grep("<!-- ENV SUMMARY END -->", readme)
 
+refresh <- "--refresh-baseline" %in% commandArgs(trailingOnly = TRUE)
+
 if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
   existing_block <- readme[start_line:end_line]
-  
-  if (!identical(trimws(existing_block), trimws(expected_block))) {
+
+  if (identical(trimws(existing_block), trimws(expected_block))) {
+    cat("✓ Environment summary block is up to date.\n")
+  } else if (refresh) {
     updated_readme <- c(
       readme[1:(start_line - 1)],
       expected_block,
@@ -260,12 +272,13 @@ if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
     )
     writeLines(updated_readme, "README.md")
     cat("✅ Environment summary block updated in README.md\n")
-    
-    timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    log_entry <- sprintf("[%s] 📊 ENV SUMMARY block replaced in README.md\n", timestamp)
-    write(log_entry, file = "log.log", append = TRUE)
   } else {
-    cat("✓ Environment summary block is up to date.\n")
+    # A stale block fails rather than being repaired in passing, so a change
+    # to env_data.json that leaves the README describing the old values is
+    # reported by CI instead of being fixed only on whichever machine ran it.
+    cat(paste("⚠️ The README environment summary does not match env_data.json;",
+              "run with --refresh-baseline to regenerate it.\n"))
+    quit(status = 1)
   }
 } else {
   cat("⚠️ ENV SUMMARY START/END markers not found or malformed.\n")

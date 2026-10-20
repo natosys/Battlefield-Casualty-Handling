@@ -160,6 +160,8 @@ This research looks to explore the performance of the deployed health system thr
 
 ## Literature Review
 
+<small>[Return to Top](#contents)</small>
+
 ### Methodology
 
 To inform the design and implementation of the battlefield casualty simulation, a structured literature review was conducted in two phases.
@@ -1087,7 +1089,7 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `scripts/run_forward_hold_sweep.R` | CLI entry point for the forward holding sweep (see [Post-Operative Stabilisation](#post-operative-stabilisation)) |
 | `scripts/run_surgical_team_sweep.R` | CLI entry point for the surgical team establishment sweep (see [Surgical Team Establishment](docs/Results.md#surgical-team-establishment)) |
 | `scripts/run_icu_bed_sweep.R` | CLI entry point for the R2E intensive care bed establishment sweep (see [R2E Intensive Care Bed Establishment](docs/Results.md#r2e-intensive-care-bed-establishment)) |
-| `tests/checks/check_env_data_summary.R` | Regenerates the `<!-- ENV SUMMARY START/END -->` block within this README directly from `env_data.json` |
+| `tests/checks/check_env_data_summary.R` | Asserts that the `<!-- ENV SUMMARY START/END -->` block within this README is the one `env_data.json` generates, and regenerates it under `--refresh-baseline` |
 | `tests/checks/check_markdown.R`         | Maintains the table of contents and "Return to Top" links across this README and the two analysis documents, reproducing the anchor GitHub itself generates for each heading; rejects any heading containing emoji, and reports any anchor link pointing at no heading |
 | `tests/checks/check_references.R`     | Checks the reference list of this README and the two analysis documents: that every `[[n]]` in the text resolves to an entry and every entry is cited at least once, that the list is numbered from one in order of first appearance, that no two entries name the same URL, and that each entry carries a URL and a retrieval date; exits non-zero on failure |
 | `tests/checks/check_r2e_surgery_seizure.R` | Checks that every R2E surgery seizes a surgical section, by reading the built trajectory and by running the model; exits non-zero on failure |
@@ -2164,6 +2166,8 @@ Across multiple replications, peak Role 4 occupancy and the unconstrained sortie
 
 ## Model Outputs
 
+<small>[Return to Top](#contents)</small>
+
 The simulation produces a defined set of Key Performance Indicators (KPIs) organised by planner decision domain. Each KPI is selected against five criteria derived from military medical doctrine and discrete event simulation methodology [[40]](#references):
 
 - **C1 — Doctrinal Standard Compliance:** Variable measures compliance with a named standard in AJP-4.10 [[34]](#references).
@@ -2352,6 +2356,8 @@ The p90 carries no such horizon, being a point on the curve rather than an area 
 ---
 
 ## Further Development
+
+<small>[Return to Top](#contents)</small>
 
 This section records what the model does not represent, how much each gap matters, and what would close it. Entries carry a stable identifier so they can be cited from the analysis documents, issues and pull requests; identifiers are never reused, so gaps in the sequence are entries that have been closed and removed. Sequencing and status are tracked in the repository's GitHub issues, not here.
 

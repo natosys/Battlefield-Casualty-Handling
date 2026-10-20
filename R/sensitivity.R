@@ -2011,7 +2011,7 @@ write_screen_metadata <- function(output_dir, screen, fields) {
 #'   response and moves each bootstrap's starting stream position.
 #'   `surgery_delivery_rate` is decomposed beside the primary queue so that
 #'   the surgical delivery reading has its own indices. `r2b_ot_q` and
-#'   `transport_q` are excluded (Issue #228): `scripts/measure_noise_floor.R`
+#'   `transport_q` are excluded (Issue #228): a noise floor measurement
 #'   found the R2B theatre queue constant across the N=200 design and the
 #'   transport queue 89.1% replication noise, so neither carries a design
 #'   signal a larger sample would resolve. `transport_util` is retained

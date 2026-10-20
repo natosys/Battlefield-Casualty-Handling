@@ -62,8 +62,6 @@ option_list <- list(
                            "or one saved from the Shiny console. Rejected under",
                            "--refresh-baseline unless it is the shipped file",
                            "[default: env_data.json]")),
-  make_option("--path",       type = "character", default = NULL,
-              help = "Deprecated alias of --config"),
   make_option("--output-dir", type = "character", default = "outputs",
               help = "Directory for CSV output [default: %default]"),
   make_option("--images-dir", type = "character", default = NULL,
@@ -75,7 +73,7 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list = option_list))
 refresh_requested <- isTRUE(opt$`refresh-baseline`)
-config_path <- resolve_config_path(opt$config, opt$path, refresh_baseline = refresh_requested)
+config_path <- resolve_config_path(opt$config, refresh_baseline = refresh_requested)
 
 if (opt$quick && isTRUE(opt$`refresh-baseline`)) {
   stop("--quick and --refresh-baseline are incompatible: a smoke test's two ",

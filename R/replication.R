@@ -630,19 +630,3 @@ summarise_replications <- function(mon, warm_up_days = 0) {
     select(-half_w) %>%
     arrange(desc(mean_q))
 }
-
-# ── Backwards-compat shim ─────────────────────────────────────────────────────
-
-#' Single-run shim retained for backwards compatibility
-#'
-#' @param env A fully configured simmer environment (already has generators)
-#' @param n_days Number of simulation days to run
-#' @return Named list: arrivals, attributes, resources
-run_single <- function(env, n_days) {
-  env %>% run(until = n_days * day_min)
-  list(
-    arrivals   = get_mon_arrivals(env, ongoing = TRUE),
-    attributes = get_mon_attributes(env),
-    resources  = get_mon_resources(env)
-  )
-}

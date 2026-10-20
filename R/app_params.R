@@ -263,7 +263,7 @@ SRC_DOW_CEILING       <- "Validated against the Falklands War 1982 Ajax Bay trea
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
 SRC_OT_ROSTER         <- "Standing-order rostering assumption: a two-shift day splitting 24 hours evenly between successive surgical sections. No open-access source prescribes a deployed surgical shift length, so the 12-hour default is an informed estimate. See README Schedules and Rosters."
-SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited. See docs/BCH_Task_Role_Allocation.md for a proposed evidence-based staffing revision (not yet implemented)."
+SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited."
 SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the likely resuscitation steps (see README R2B/R2E Trajectory); constrained to complete within 90 minutes per the cited source there. Not independently cited as a single total."
 SRC_DCS_SURGERY       <- "First-look DCS operative-time data (median 96 min, range 41-210) reported for Sohn et al. (2018) within Zizzo et al.'s (2020) systematic review — see README R2B Trajectory for citations."
 SRC_ICU_STABILISATION <- "Each bound separately sourced: 6h lower from the WSES position paper's stated 6-72h range for return to theatre, 24h mode from the Western Trauma Association majority practice it reports, 36h upper from the Cochrane review's 'usually within 24 to 36 hours'. See README R2E Trajectory."

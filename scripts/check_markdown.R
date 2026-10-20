@@ -531,15 +531,13 @@ markdown_docs <- c("README.md", "docs/Results.md", "docs/Planning_Implications.m
 # Every tracked markdown document, which is the scope of the link check alone.
 # A document listed here is checked in both directions: its own anchor links
 # must resolve, and a link from elsewhere in the set to one of its headings is
-# resolved against the headings it actually offers. The seven beyond the four
+# resolved against the headings it actually offers. The five beyond the four
 # above carry no table of contents block and must not be given one, the
 # maintenance above being scoped deliberately to the documents that do. A new
 # markdown document added to the repository belongs here.
 link_check_docs <- c(markdown_docs, "CLAUDE.md",
-                     "docs/BCH_Simulation_Action_Plan.md",
-                     "docs/BCH_Task_Role_Allocation.md",
+                     "docs/Continuous_Integration.md",
                      "docs/Getting_Started.md",
-                     "docs/archive/Project_Status_Review.md",
                      "docs/STYLE_GUIDE.md",
                      "data/sensitivity/README.md")
 

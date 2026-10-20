@@ -69,9 +69,7 @@ IMAGES <- if ("--refresh-baseline" %in% args) {
 #'
 #' @details A screen writes a plot for every response in `morris_kpis`; these are the
 #'   ones the results paper embeds, and the ones --refresh-baseline is allowed to
-#'   overwrite. The retired 30-day screen under data/sensitivity/morris_r20
-#'   was run over eighty parameters, one since retired, so it no longer
-#'   re-renders against the current parameter set.
+#'   overwrite.
 TRACKED_RESPONSES <- c("r2b_ot_q", "r2e_ot_q", "surgery_delivery_rate", "r2e_icu_q",
                        "dow_count", "transport_q", "transport_util")
 

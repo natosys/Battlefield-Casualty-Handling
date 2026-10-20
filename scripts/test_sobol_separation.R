@@ -221,7 +221,7 @@ if (nrow(unmet)) {
   cat(sprintf("\nThe binding requirement is N ~ %s, %.1fx the current sample.\n",
               format(need, big.mark = ","), need / N))
   cat("A noise floor that is not negligible raises this further, since it caps\n")
-  cat("the difference a larger design can resolve; see scripts/measure_noise_floor.R.\n")
+  cat("the difference a larger design can resolve.\n")
 } else {
   cat("Every separation the reading requires already holds at this sample.\n")
 }

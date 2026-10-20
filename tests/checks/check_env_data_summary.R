@@ -263,7 +263,6 @@ if (length(start_line) == 1 && length(end_line) == 1 && start_line < end_line) {
     
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     log_entry <- sprintf("[%s] 📊 ENV SUMMARY block replaced in README.md\n", timestamp)
-    dir.create("logs", showWarnings = FALSE)
     write(log_entry, file = "log.log", append = TRUE)
   } else {
     cat("✓ Environment summary block is up to date.\n")

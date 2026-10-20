@@ -209,7 +209,7 @@ add_strategic_evac <- function(env, n_days) {
 #' @param write_files Write arrival diagnostics to `data_dir` (TRUE for
 #'   single-run diagnostics; FALSE for parallel replication workers)
 #' @param data_dir    Directory the arrival diagnostics are written to when
-#'   `write_files` is TRUE (default "data", the tracked baseline location).
+#'   `write_files` is TRUE (default outputs/data, an ordinary run's location).
 #'   run_bch() passes a run-scoped directory under outputs/ unless a baseline
 #'   refresh was explicitly requested (Issue #154).
 #' @param ot_hours    Hours per day the first OT shift is active. NULL (the
@@ -228,7 +228,7 @@ add_strategic_evac <- function(env, n_days) {
 #'   global, so what each one adds is visible in its signature. In forked
 #'   mclapply workers, <<- modifies only the fork's global state.
 run_once <- function(n_days, seed = NULL, write_files = FALSE, ot_hours = NULL,
-                     data_dir = "data") {
+                     data_dir = file.path("outputs", "data")) {
   if (!is.null(seed)) set.seed(seed)
 
   env <<- simmer("Battlefield Casualty Handling")

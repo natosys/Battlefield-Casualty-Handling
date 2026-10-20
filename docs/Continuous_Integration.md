@@ -39,8 +39,8 @@ base, and the other two narrow what they run accordingly.
 A change counts as reaching code when it touches `R/`, `scripts/`, `tests/`,
 `run.R`, `app.R`, `env_data.json`, `renv.lock`, `.Rprofile`, `.lintr`,
 `package.json`, `package-lock.json`, `playwright.config.js`, `.devcontainer/`
-or `.github/workflows/`, or the tracked baseline evidence under `data/`,
-`images/` or `logs/`. Anything else, which in practice means the markdown
+or `.github/workflows/`, or the tracked baseline evidence under `data/` or
+`images/`. Anything else, which in practice means the markdown
 documents, is a documentation-only change. A push to `main`, the weekly
 schedule and a manual dispatch are never narrowed: each wants the whole gate
 rather than a subset inferred from one diff.
@@ -265,7 +265,7 @@ random draws, the tracked baseline is now stale and is regenerated deliberately:
 Rscript run.R --seed 42 --days 360 --iterations 1 --refresh-baseline
 ```
 
-That rewrites `images/`, `logs/logs.txt` and the `data/` diagnostics, including `data/seed42_verification.csv`, together,
+That rewrites `images/`, `data/seed42/logs.txt` and the `data/` diagnostics, including `data/seed42/seed42_verification.csv`, together,
 and they are committed in one commit. Every published seed-42 figure in
 `CLAUDE.md`, `docs/Results.md` and `docs/Planning_Implications.md` then
 needs revisiting in the same pull request, which is the work the check exists to

@@ -1651,13 +1651,13 @@ build_dow_calibration <- function(data_dir) {
 #' One section of the seed-42 verification measurements as a table
 #'
 #' @param data_dir The data directory.
-#' @param section The section name in `seed42_verification.csv`.
+#' @param section The section name in `seed42/seed42_verification.csv`.
 #' @param labels Named character vector mapping each metric to its row label.
 #' @param dp Decimal places for the realised and configured columns, one value for
 #'   the table or a vector named by metric.
 #' @return The table lines.
 build_annex <- function(data_dir, section, labels, dp = 0L) {
-  d <- res_read("seed42_verification.csv", data_dir)
+  d <- res_read(file.path("seed42", "seed42_verification.csv"), data_dir)
   d <- d[d$section == section, ]
   rows <- lapply(names(labels), function(m) {
     x <- d[d$metric == m, ]

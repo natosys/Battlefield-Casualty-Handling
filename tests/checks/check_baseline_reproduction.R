@@ -8,8 +8,8 @@
 #
 # Runs the model at the seed, duration and replication count the tracked
 # baseline was produced at, then compares the run's console log and arrival
-# diagnostics byte for byte against the tracked files under `logs/` and
-# `data/`. Exits non-zero on any difference.
+# diagnostics byte for byte against the tracked files under `data/seed42/`.
+# Exits non-zero on any difference.
 #
 # This is the check that protects every published figure. `CLAUDE.md`'s Key
 # Parameters table, `docs/Results.md` Annex A and the seed-42 rows of
@@ -38,16 +38,16 @@ BASELINE_ITERATIONS <- 1L
 # output directory. images/ is excluded: a PNG carries a creation timestamp and
 # a device fingerprint, so it does not compare byte for byte across runs.
 TRACKED_FILES <- list(
-  c("logs/logs.txt",                  "logs.txt"),
-  c("data/arrivals_wia_cbt.txt",      "data/arrivals_wia_cbt.txt"),
-  c("data/arrivals_wia_spt.txt",      "data/arrivals_wia_spt.txt"),
-  c("data/arrivals_kia_cbt.txt",      "data/arrivals_kia_cbt.txt"),
-  c("data/arrivals_kia_spt.txt",      "data/arrivals_kia_spt.txt"),
-  c("data/arrivals_dnbi_cbt.txt",     "data/arrivals_dnbi_cbt.txt"),
-  c("data/arrivals_dnbi_spt.txt",     "data/arrivals_dnbi_spt.txt"),
-  c("data/arrivals_casualty_surge.txt", "data/arrivals_casualty_surge.txt"),
-  c("data/casualty_surge_events.csv",  "data/casualty_surge_events.csv"),
-  c("data/seed42_verification.csv",   "data/seed42_verification.csv")
+  c("data/seed42/logs.txt",                  "logs.txt"),
+  c("data/seed42/arrivals_wia_cbt.txt",      "data/arrivals_wia_cbt.txt"),
+  c("data/seed42/arrivals_wia_spt.txt",      "data/arrivals_wia_spt.txt"),
+  c("data/seed42/arrivals_kia_cbt.txt",      "data/arrivals_kia_cbt.txt"),
+  c("data/seed42/arrivals_kia_spt.txt",      "data/arrivals_kia_spt.txt"),
+  c("data/seed42/arrivals_dnbi_cbt.txt",     "data/arrivals_dnbi_cbt.txt"),
+  c("data/seed42/arrivals_dnbi_spt.txt",     "data/arrivals_dnbi_spt.txt"),
+  c("data/seed42/arrivals_casualty_surge.txt", "data/arrivals_casualty_surge.txt"),
+  c("data/seed42/casualty_surge_events.csv",  "data/casualty_surge_events.csv"),
+  c("data/seed42/seed42_verification.csv",   "data/seed42_verification.csv")
 )
 
 failures <- character(0)

@@ -84,14 +84,14 @@ jobs:
           echo "Files changed against origin/$BASE_REF:"
           echo "$changed" | sed 's/^/  /'
           # Every path whose change could move a model output, a lint count or
-          # the tracked baseline. data/, images/ and logs/ are here because they
+          # the tracked baseline. data/ and images/ are here because they
           # are the baseline evidence set the reproduction check compares
           # against, and .github/workflows/ because a change to the gate itself
           # is verified by running it in full. tests/, package.json,
           # package-lock.json and playwright.config.js are here because a change
           # to either test suite is verified by running it, exactly as a change
           # to a check script is.
-          if echo "$changed" | grep -Eq '^(R/|scripts/|tests/|data/|images/|logs/|run\.R|app\.R|env_data\.json|renv\.lock|\.Rprofile|\.lintr|package\.json|package-lock\.json|playwright\.config\.js|\.devcontainer/|\.github/workflows/)'; then
+          if echo "$changed" | grep -Eq '^(R/|scripts/|tests/|data/|images/|run\.R|app\.R|env_data\.json|renv\.lock|\.Rprofile|\.lintr|package\.json|package-lock\.json|playwright\.config\.js|\.devcontainer/|\.github/workflows/)'; then
             echo "code_changed=true" >> "$GITHUB_OUTPUT"
             echo "Change reaches code, configuration or the tracked baseline; running the full fast suite."
           else

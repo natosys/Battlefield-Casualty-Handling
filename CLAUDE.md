@@ -83,16 +83,16 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 
 ### Branch Rules
 
-- **All development happens on feature branches.** Never commit directly to `main`.
+- **All development happens on branches.** Never commit directly to `main`.
 - **Only the repository owner can merge to `main`.** Do not merge to `main` directly. Always open a PR and await owner merge.
 - **Always open a PR at the end of each issue.** Use the GitHub MCP tools (`mcp__github__create_pull_request`) to create the PR with a test plan in the description before handing over. Never ask the user to merge via git commands — they merge through GitHub.
-- Branch naming: `feature/issue-<number>-<short-description>` (e.g., `feature/issue-1-multi-run-replication`).
-- Each GitHub Issue corresponds to one feature branch and one PR.
+- Branch naming: `<type>/issue-<number>-<short-description>`, where the type is `feature` for new capability, `fix` for a defect and `chore` for maintenance or post-merge work (e.g., `feature/issue-1-multi-run-replication`, `chore/post-pr541-baseline`). Where the environment assigns a branch, as a hosted session does, that branch is used as given.
+- Each GitHub Issue corresponds to one branch and one PR.
 
 ### Sequence
 
 1. Raise a GitHub Issue describing the work (see Issue Format below).
-2. Create a feature branch from `main`.
+2. Create a branch from `main`, named as Branch Rules sets out.
 3. Implement the changes.
 4. Update the relevant document(s) — `README.md` and/or the `docs/` analysis documents — as part of the same PR (see Document Maintenance below).
 5. Open a PR against `main` with a test plan (see Test Plans below).
@@ -180,49 +180,21 @@ and its basis in literature. Include any key design decisions.>
 
 ## Issue Annotation System
 
-All GitHub Issues use a consistent annotation system to make phase, type, and sequencing visible in the issue list without opening each issue.
-
-### Title prefix format
-
-Every issue title opens with a prefix in square brackets:
-
-```
-[Ph.N] Title of issue
-[Ph.N · BUG] Title of bug issue
-[HOTFIX · Ph.N] Title of pre-phase bug fix
-```
-
-| Prefix | When to use |
-|---|---|
-| `[Ph.1]` through `[Ph.5]` | Standard feature or analysis work in the named phase |
-| `[Ph.N · BUG]` | A bug found within a phase that can wait for that phase |
-| `[HOTFIX · Ph.N]` | A bug that must ship before its phase begins — no dependencies |
-
-Do not include `READY` or `BLOCKED` in the title; those are maintained as labels (see below).
+Every issue carries labels that make its type, readiness and urgency visible in the issue list without opening it. The title carries no prefix: the project's five development phases are complete, and an issue raised now is filed by what it is rather than by a phase it does not belong to. Closed issues keep the `[Ph.N]` prefixes and `phase/*` labels they were raised with.
 
 ### Labels
 
-All labels are applied on the repository. Use them as follows when raising new issues:
+**Type labels**, one per issue: `bug` (defects in existing behaviour), `enhancement` (new capability or improvement).
 
-**Phase labels** — one per issue, matching the title prefix:
-`phase/1 · statistical-foundation`, `phase/2 · model-fidelity`, `phase/3 · structural-refactor`, `phase/4 · scenario-expansion`, `phase/5 · interface`
+**Status labels**, maintained as work progresses: `status: ready` (no blocking dependencies), `status: blocked` (has unresolved dependencies).
 
-**Type labels** — one per issue:
-`bug` (defects in existing behaviour), `enhancement` (new capability or improvement)
-
-**Status labels** — maintained as work progresses; update when dependencies are resolved:
-`status: ready` (no blocking dependencies), `status: blocked` (has unresolved dependencies)
-
-**Priority labels** — apply when the issue warrants it:
-`priority: critical` (bug that invalidates current output), `priority: high` (blocks multiple other issues)
+**Priority labels**, applied when the issue warrants it: `priority: critical` (a bug that invalidates current output), `priority: high` (blocks other issues).
 
 ### Raising new issues
 
-When a new issue is raised:
-1. Assign the correct `[Ph.N]` prefix to the title.
-2. Apply phase, type, status, and priority labels.
-3. Set `status: ready` if it can be started immediately; `status: blocked` if it depends on open issues.
-4. When a blocking issue merges, update the `status` label on all issues it unblocks.
+1. Apply a type label, a status label and, where warranted, a priority label.
+2. Set `status: ready` if it can be started immediately; `status: blocked` if it depends on open issues, naming them in the body.
+3. When a blocking issue merges, update the `status` label on every issue it unblocks.
 
 ---
 

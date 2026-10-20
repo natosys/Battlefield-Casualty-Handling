@@ -101,6 +101,9 @@ if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Directory each arm's checkpoint is written to and resumed from
+CHECKPOINT_DIR <- checkpoint_dir("saturation", refresh_requested)
+
 #' Suffix every file of this run carries, so a named scenario is kept beside the default
 OUTPUT_SUFFIX <- scenario_output_suffix(opt$scenario)
 
@@ -147,7 +150,7 @@ measure_arm <- function(threshold) {
 #' @param threshold Saturation threshold the arm ran at.
 #' @return The file path for that arm.
 arm_path <- function(threshold) {
-  file.path(OUTPUT_DIR,
+  file.path(CHECKPOINT_DIR,
             sprintf("saturation_sweep_arm_%dq%s.csv", threshold, OUTPUT_SUFFIX))
 }
 
@@ -160,7 +163,7 @@ arm_path <- function(threshold) {
 #'   on a later invocation, so an environment that reclaims its filesystem or a
 #'   host that stops the process costs the arm in flight rather than the whole
 #'   measurement, on the arrangement scripts/run_policy_sweep.R uses. Delete the
-#'   arm files to force a fresh measurement.
+#'   arm files under CHECKPOINT_DIR to force a fresh measurement.
 measure_or_resume <- function(threshold) {
   path <- arm_path(threshold)
   label <- sprintf("Saturation threshold %d", threshold)

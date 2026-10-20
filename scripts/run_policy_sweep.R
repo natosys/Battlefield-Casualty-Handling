@@ -162,6 +162,9 @@ if (!refresh_requested) write_run_manifest(OUTPUT_DIR, config_path, opt)
 
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
+#' Directory each arm's checkpoint is written to and resumed from, shared by every grid
+CHECKPOINT_DIR <- checkpoint_dir("policy", refresh_requested)
+
 json_data <- read_config(config_path)
 
 #' Measure one evacuation policy and return its per-replication responses
@@ -209,15 +212,15 @@ measure_arm <- function(policy_days, hold_beds = NA_integer_, interval = NA_inte
 arm_path <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer_) {
   suffix <- scenario_output_suffix(opt$scenario)
   if (!is.na(interval)) {
-    return(file.path(OUTPUT_DIR,
+    return(file.path(CHECKPOINT_DIR,
                      sprintf("interval_sweep_arm_%ds_%dd_%db%s.csv", interval, policy_days,
                              hold_beds, suffix)))
   }
   if (is.na(hold_beds)) {
-    return(file.path(OUTPUT_DIR,
+    return(file.path(CHECKPOINT_DIR,
                      sprintf("policy_sweep_arm_%dd%s.csv", policy_days, suffix)))
   }
-  file.path(OUTPUT_DIR,
+  file.path(CHECKPOINT_DIR,
             sprintf("establishment_sweep_arm_%dd_%db%s.csv", policy_days, hold_beds, suffix))
 }
 
@@ -254,7 +257,7 @@ OUTPUT_STEM <- paste0(STEM_BASE,
 #'   measurement. This experiment is 150 replication-years, long enough that
 #'   losing it to an interruption is a real cost; `scripts/screen_cache.sh`
 #'   exists for the same reason on the sensitivity screen. Delete the arm files
-#'   to force a fresh measurement.
+#'   under CHECKPOINT_DIR to force a fresh measurement.
 measure_or_resume <- function(policy_days, hold_beds = NA_integer_, interval = NA_integer_) {
   path <- arm_path(policy_days, hold_beds, interval)
   label <- sprintf("Evacuation policy %d days%s%s", policy_days,

@@ -137,7 +137,7 @@ env_data <<- load_elms(config_path)
 day_min  <<- DAY_MIN
 counts   <<- sapply(env_data$elms, length)
 
-checkpoint_dir <- file.path(output_dir, "forward_hold_checkpoints")
+arm_checkpoint_dir <- checkpoint_dir("forward_hold", refresh_requested)
 
 set.seed(opt$seed)
 sweep <- plot_r2b_forward_hold_frontier(
@@ -148,7 +148,7 @@ sweep <- plot_r2b_forward_hold_frontier(
   output_dir  = output_dir,
   images_dir  = images_dir,
   scenario    = opt$scenario,
-  checkpoint_dir = checkpoint_dir
+  checkpoint_dir = arm_checkpoint_dir
 )
 
 message("\nForward holding sweep complete.")

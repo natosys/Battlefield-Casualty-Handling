@@ -102,7 +102,7 @@ option_list <- list(
                 "refresh the tracked baseline plots, which is a deliberate act:",
                 "a screen writes one plot per response, so the default keeps an",
                 "ordinary run from scattering untracked files through the",
-                "tracked images/ directory (Issue #154's contract)."
+                "tracked images/ directory."
               )),
   make_option("--config",     type = "character", default = NULL,
               help = paste("Configuration file the screen is centred on, the shipped",
@@ -128,7 +128,7 @@ option_list <- list(
               help = paste(
                 "Cap mclapply's mc.cores per design-point evaluation. A random",
                 "OAT trajectory start can land on several elevated",
-                "casualty-generation-rate parameters simultaneously (Issue #112),",
+                "casualty-generation-rate parameters simultaneously,",
                 "producing a 30-day run with far more casualties/events than the",
                 "baseline; at full core parallelism this can exceed the",
                 "container's memory and get a worker OOM-killed (see",

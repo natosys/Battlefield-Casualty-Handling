@@ -1164,7 +1164,7 @@ summarise_ame_performance <- function(attributes, combined, output_dir, images_d
 
     overall <- ame_wait_time_summary %>% filter(route == "Overall")
     cat(sprintf(
-      "AME actual performance (Issue #23 follow-up): %d evacuated (mean wait %.1f days, p10-p90 %.1f-%.1f days), %d still awaiting AME at end of run\n",
+      "AME actual performance: %d evacuated (mean wait %.1f days, p10-p90 %.1f-%.1f days), %d still awaiting AME at end of run\n",
       overall$n_evacuated, overall$mean_wait_minutes / DAY_MIN,
       overall$p10_wait_minutes / DAY_MIN, overall$p90_wait_minutes / DAY_MIN,
       overall$n_awaiting
@@ -1563,7 +1563,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
       write.csv(surgical_pathway_summary,
                 file.path(output_dir, "surgical_pathway_summary.csv"), row.names = FALSE)
       cat(sprintf(
-        "Surgical pathway split (Issue #173): %d operated, %d damage control (%.1f%%), %d single-stage\n",
+        "Surgical pathway split: %d operated, %d damage control (%.1f%%), %d single-stage\n",
         nrow(operated), sum(operated$dcs_pathway == 1),
         100 * mean(operated$dcs_pathway == 1), sum(operated$dcs_pathway == 0)))
       print(surgical_pathway_summary)
@@ -1576,7 +1576,7 @@ summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy
               definitive_repair_outstanding_count))
   if (!is.na(evacuation_policy_summary$in_theatre_share)) {
     cat(sprintf(
-      "R2E evacuation policy (Issue #156): %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
+      "R2E evacuation policy: %d-day policy, %d dispositions, realised in-theatre share %.1f%%\n",
       evacuation_policy_summary$policy_days, evacuation_policy_summary$decisions,
       100 * evacuation_policy_summary$in_theatre_share))
   }
@@ -1712,7 +1712,7 @@ summarise_ame_sortie_demand <- function(ame_capacity, role4_daily_by_rep, ame_by
   write.csv(ame_demand_daily, file.path(output_dir, "ame_demand_daily.csv"), row.names = FALSE)
 
   cat(sprintf(
-    "Role 4 demand (Issue #23): %.0f reached Role 4 via AME, peak occupancy %.1f (day %d); unconstrained-baseline demand would need %d total AME sorties (capacity %d/sortie)\n",
+    "Role 4 demand: %.0f reached Role 4 via AME, peak occupancy %.1f (day %d); unconstrained-baseline demand would need %d total AME sorties (capacity %d/sortie)\n",
     role4_summary$total_evacuated, role4_summary$peak_occupancy, role4_summary$peak_day,
     ame_summary$total_sorties, ame_capacity
   ))

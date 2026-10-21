@@ -53,7 +53,7 @@ CASUALTY_SURGE_ARMS <- c(0, 0.2)
 #'   both arms); `n_event`/`dow_event` count those reading 1 (event origin,
 #'   necessarily empty in the background-only arm). `n_events` reconstructs
 #'   events as the distinct event ids the generator assigned to event-origin
-#'   casualties, the grouping `reconstruct_surge_events()` (`R/analysis_single_run.R`)
+#'   casualties, the grouping `reconstruct_surge_events()` (`R/analysis_run_flow.R`)
 #'   applies to the illustrative single run, so the two counts cannot drift
 #'   apart under one definition of what separates two events.
 reduce_casualty_surge_replication <- function(env, rate_per_day) {

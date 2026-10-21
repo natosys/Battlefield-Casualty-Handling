@@ -35,10 +35,14 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `R/environment.R` | Data import, arrival generation, and simmer environment construction |
 | `R/trajectories.R` | All simmer `trajectory()` definitions — R1, R2B, R2E, and core casualty flow |
 | `R/replication.R` | Multi-run replication framework (`run_once`, `run_replications`, `summarise_replications`) |
-| `R/analysis.R` | Analysis and visualisation pipeline loader: loads the packages and shared modules and sources the six `R/analysis_*.R` parts, so every caller sources this file alone |
-| `R/analysis_common.R` | Analysis input validation, `with_preserved_rng()` and `build_attributes_wide()`, the helpers the other analysis and experiment modules share |
+| `R/analysis.R` | Analysis and visualisation pipeline loader: loads the packages and shared modules and sources the `R/analysis_*.R` and `R/analysis_run_*.R` parts, so every caller sources this file alone |
+| `R/analysis_common.R` | Analysis input validation, `with_preserved_rng()`, `build_attributes_wide()` and `ci_by_group()`, the helpers the other analysis and experiment modules share |
 | `R/analysis_role4_ame.R` | Role 4 demand model and strategic aeromedical evacuation reconstruction, with their figures |
-| `R/analysis_single_run.R` | Single-run stages and `analyse_run()`, an orchestrator over named single-purpose functions, one per stage (data preparation, per-domain summary, plotting, writing); a change to one stage belongs in that stage's function |
+| `R/analysis_single_run.R` | `analyse_run()`, an orchestrator over named single-purpose functions, one per stage (data preparation, per-domain summary, plotting, writing), and `prepare_run_frames()`; a change to one stage belongs in that stage's function |
+| `R/analysis_run_r1_r2b.R` | Single-run stages for R1 and R2B queues, holding, routing and surgery |
+| `R/analysis_run_r2e.R` | Single-run stages for R2E surgery, beds, the post-operative intensive care gate and theatre utilisation |
+| `R/analysis_run_flow.R` | Single-run stages for the casualty stream as a whole: overview, waiting, transport, force regeneration, surge events, intervals and outcomes |
+| `R/analysis_run_evacuation.R` | Single-run stages for strategic airlift and the Role 4 census |
 | `R/analysis_replications.R` | Multi-replication stages and `analyse_replications()`, the orchestrator over them, on the same arrangement |
 | `R/analysis_sweeps.R` | The three capacity sweeps' protocol constants, measurements, runners and figures; `tests/checks/check_capacity_sweep_protocol.R` reads the constants out of this file |
 | `R/analysis_time_series.R` | Campaign time series reductions and their two figures |

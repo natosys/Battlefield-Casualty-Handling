@@ -768,7 +768,7 @@ The casualty count drawn for an event is its total, not the number of survivors.
 
 ---
 
-The comparison sorts casualties by origin rather than by a strict time window around each event (see the assumption note in `summarise_casualty_surge_events()`, `R/analysis_single_run.R`). The gap-based reconstruction the analysis pipeline applies to recover events from a single campaign has one known failure mode, reading two closely spaced events as one.
+The comparison sorts casualties by origin rather than by a strict time window around each event (see the assumption note in `summarise_casualty_surge_events()`, `R/analysis_run_flow.R`). The gap-based reconstruction the analysis pipeline applies to recover events from a single campaign has one known failure mode, reading two closely spaced events as one.
 
 ### Treated-Cohort Mortality at the Sustained Horizon
 

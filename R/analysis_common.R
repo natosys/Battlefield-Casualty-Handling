@@ -302,3 +302,34 @@ build_attributes_wide <- function(attributes, arrivals) {
 
   attributes_wide
 }
+
+#' Group-wise mean +/- 95% t-distribution CI across replications
+#'
+#' @param df Per-replication values, one row per (group_cols, replication)
+#'   combination — every combination that could occur should have an
+#'   explicit row (fill with 0 first) so a replication with zero occurrences
+#'   is counted as 0, not silently dropped from the mean (see
+#'   role4_census_daily's roxygen in analyse_run() for why this matters)
+#' @param group_cols Character vector of columns to group by (may be
+#'   length 0, for a single overall CI)
+#' @param value_col Column name (string) holding the per-replication value
+#' @param clamp_lower_zero Clamp `ci_lower` to 0 (default TRUE) — every KPI
+#'   this is currently used for is a non-negative count or rate
+#' @return `df` grouped by `group_cols`, collapsed to one row per group, with
+#'   columns n, mean, sd, ci_lower, ci_upper
+#'
+#' @details The t-distribution construction analyse_replications() also uses
+#'   ad hoc (daily_ci, force_regeneration_ci), factored out so the group-wise
+#'   CI outputs share one implementation.
+ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
+  out <- df %>%
+    { if (length(group_cols) > 0) group_by(., across(all_of(group_cols))) else . } %>%
+    summarise(n = n(), mean = mean(.data[[value_col]]), sd = sd(.data[[value_col]]), .groups = "drop") %>%
+    mutate(
+      sd       = ifelse(n < 2 | is.na(sd), 0, sd),
+      ci_lower = mean - qt(0.975, df = pmax(n - 1, 1)) * sd / sqrt(n),
+      ci_upper = mean + qt(0.975, df = pmax(n - 1, 1)) * sd / sqrt(n)
+    )
+  if (clamp_lower_zero) out$ci_lower <- pmax(out$ci_lower, 0)
+  out
+}

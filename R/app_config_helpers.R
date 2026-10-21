@@ -5,8 +5,7 @@
 #
 # Helpers the Configure panel draws on: the saved configuration's file name
 # and full-protocol command, the triangular field detection, the density
-# previews, the compositional split sliders and their scripts, and the
-# default-filling of a loaded configuration.
+# previews, the compositional split sliders and their scripts.
 #
 # Sourced by app.R after the packages and modules it loads; source that
 # file rather than this one alone.
@@ -277,101 +276,9 @@ split_slider_recolor_script <- function(meta_map) {
   tags$script(HTML(js))
 }
 
-#' Client-side "shrink-to-fit" scaling for Analyse-tab plots.
-#'
-#' Every Analyse-tab plot still renders server-side at its own natural,
-#' data-driven pixel height (e.g. the Gantt row-count height from Issue
-#' #111) via an explicit, non-"auto" `renderPlot(height = ...)` (see
-#' `new_shrink_to_fit_plot()`) — so the full-detail image is always
-#' generated at the same resolution regardless of how it is later
-#' displayed, and Shiny is never asked to auto-detect a size from (and so
-#' never re-renders in response to) the container's on-screen size. This
-#' script instead shrinks a `.bch-shrink-fit` container's CSS *height*
-#' only; a matching stylesheet rule (`bch_shrink_to_fit_css()`, in the same
-#' `nav_panel`) makes the `<img>` inside track that height at `height:100%`
-#' with `width:auto`, so the browser itself scales the already-rendered,
-#' full-detail image down losslessly (as a photo, not a re-render) to fit —
-#' preserving every relative proportion, so the computed row/label spacing
-#' cannot re-overlap as a side effect of shrinking — and centres it via
-#' `margin: 0 auto`, since its auto-computed display width will generally
-#' be narrower than the container once shrunk. An earlier version of this
-#' script tried two other approaches that were each dropped for a distinct
-#' failure mode: (1) leaving `renderPlot()` on "auto" sizing so Shiny's own
-#' redraw would fill a JS-shrunk container — this genuinely refits the
-#' image, but ggplot's fixed font sizes then take up a much larger fraction
-#' of a heavily-shrunk canvas, reintroducing label/row overlap; (2) a CSS
-#' `transform: scale()` on a full-size render — but Shiny's resize-sensing
-#' measures a container's on-screen (transformed) size, not its pre-
-#' transform layout size, so it would eventually re-render at the already-
-#' transformed (shrunk) size while the transform remained active,
-#' compounding into a progressively narrower, uncentred image. Deliberately
-#' done client-side (rather than by feeding a Shiny `input$window_height`
-#' back into a `renderUI`) so a window resize only restyles the existing
-#' DOM nodes — it does not tear down and rebuild the surrounding
-#' `navset_tab`, which would otherwise reset the user's selected tab on
-#' every resize. The "Expand" link next to each plot (wired server-side,
-#' see `new_shrink_to_fit_plot()`) opens the same plot at full natural size
-#' in a modal for users who find the shrunk version too dense.
-#'
-#' Each `.bch-shrink-fit` container is sized independently, against the
-#' *full* viewport height budget, not shared with any other plot on the
-#' page — even where several used-to-be-combined panels (e.g. Queue
-#' Depths' R1/R2B/R2E panels, split apart from one combined image so
-#' shrinking wouldn't squash them all into a single tiny image) are now
-#' stacked in the same tab. The page as a whole is free to scroll *between*
-#' plots in that case; what this script guarantees is that a user is never
-#' forced to scroll *within* a single plot to see the rest of it.
-#'
-#' @return A script tag installing the client-side shrinking.
-shrink_to_fit_script <- function() {
-  tags$script(HTML("
-(function() {
-  function applyShrink(el) {
-    var natural = parseFloat(el.getAttribute('data-natural-height'));
-    var chrome  = parseFloat(el.getAttribute('data-chrome-px')) || 260;
-    if (!natural || natural <= 0) return;
-    var avail  = Math.max(window.innerHeight - chrome, 200);
-    var factor = Math.min(1, avail / natural);
-    el.style.height = Math.round(natural * factor) + 'px';
-  }
-  function applyAll() {
-    document.querySelectorAll('.bch-shrink-fit').forEach(applyShrink);
-  }
-  $(document).on('shiny:connected', applyAll);
-  $(document).on('shiny:value', applyAll);
-  var resizeTimer;
-  window.addEventListener('resize', function() {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(applyAll, 150);
-  });
-})();
-"))
-}
-
-#' Stylesheet paired with shrink_to_fit_script(): makes every plot image
-#' inside a `.bch-shrink-fit` container track that container's (JS-managed)
-#' height while auto-computing and centring its width, rather than being
-#' stretched or left clinging to one edge. `!important` is needed since
-#' Shiny's `plotOutput()` sets the `<img>`'s own inline width/height styles
-#' directly, which would otherwise take precedence over a stylesheet rule.
-#'
-#' @return A style tag holding the paired stylesheet.
-bch_shrink_to_fit_css <- function() {
-  tags$style(HTML("
-.bch-shrink-fit { overflow: hidden; }
-.bch-shrink-fit img {
-  height: 100% !important;
-  width: auto !important;
-  max-width: 100%;
-  display: block;
-  margin: 0 auto;
-}
-"))
-}
-
 #' Merge a two-handle range-slider value into a values list as three
-#' underlying field values, matching the ids apply_registry_values()/
-#' validate_config() expect. Needed because the Configure panel replaces
+#' underlying field values, matching the ids apply_registry_values()
+#' expects. Needed because the Configure panel replaces
 #' three-way compositional splits (Triage Priority, DNBI Sub-Type) with a
 #' single slider each (see render_group_body()'s special cases) — the
 #' split sums to 1 by construction, so this is purely a representation
@@ -405,33 +312,6 @@ inject_all_splits <- function(values) {
   for (i in seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS)) {
     values <- inject_split(values, sprintf("mc_event_pri_split_%d", i),
                            sprintf(c("mc_sched_pri_one_%d", "mc_sched_pri_two_%d", "mc_sched_pri_three_%d"), i))
-  }
-  values
-}
-
-#' Fill in any registry field missing from `values` with its scenario-
-#' resolved default. A field is missing whenever its Configure
-#' accordion panel has never been opened in this session — deferred
-#' rendering (see the group_ui_* renderUI loop in server()) means such a
-#' field's input never bound, so it is simply absent from `values`, not
-#' present with a NULL/default value Shiny populated itself.
-#' apply_registry_values() already falls back to `json` (scenario_json())
-#' for any field missing from its own `values` argument, so current_json()
-#' — and everything built from it (Quick Run, Full Analysis, Morris,
-#' Sobol, Save Configuration) — is unaffected by deferred rendering.
-#' validate_config() runs on the flat `values` list *before* that merge,
-#' though, so it needs the same fallback applied explicitly here or it
-#' would see an absent field as an error-worthy NULL rather than a valid,
-#' merely-unedited default.
-#'
-#' @param values Named list from inject_all_splits(reactiveValuesToList(input))
-#' @param registry List of field specs from build_param_registry()
-#' @param json Parsed, scenario-resolved env_data.json (scenario_json())
-#' @return The values list with every absent field filled from its default
-fill_missing_defaults <- function(values, registry, json) {
-  defaults <- registry_defaults(registry, json)
-  for (id in names(defaults)) {
-    if (is.null(values[[id]])) values[[id]] <- defaults[[id]]
   }
   values
 }

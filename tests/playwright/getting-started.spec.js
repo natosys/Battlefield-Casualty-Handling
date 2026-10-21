@@ -1,5 +1,4 @@
-// The Getting Started tab, which is the app's own documentation and the one
-// panel that renders no simulation output. It is the cheapest possible check
+// The Getting Started tab, which is the app's own documentation. It is the cheapest possible check
 // that the app started, served its assets and rendered its navbar.
 
 const { test, expect } = require('@playwright/test');
@@ -20,17 +19,13 @@ test.describe('Getting Started', () => {
     await expectNoOutputErrors(page);
   });
 
-  test('offers every top-level tab', async ({ page }) => {
+  test('offers every top-level tab and no Analyse tab', async ({ page }) => {
     await page.goto('/');
-    for (const name of ['Getting Started', 'Configure', 'Run', 'Analyse']) {
+    for (const name of ['Getting Started', 'Configure', 'Run']) {
       await expect(page.locator('.navbar').getByRole('tab', { name, exact: true })).toBeVisible();
     }
+    await expect(page.locator('.navbar').getByRole('tab', { name: 'Analyse', exact: true }))
+      .toHaveCount(0);
   });
 
-  test('the Analyse tab says so before a run has produced anything', async ({ page }) => {
-    await page.goto('/');
-    await openTab(page, 'Analyse');
-    await expect(page.locator('.alert-info', { hasText: 'No results yet' })).toBeVisible();
-    await expectNoOutputErrors(page);
-  });
 });

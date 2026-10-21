@@ -157,7 +157,7 @@ force_bed_table <- function(r2b_teams, r2b_beds, r2e_teams, r2e_beds) {
 #' the Health System Architecture panel's own numbers as they're edited;
 #' it is not a simulated outcome
 #' — it cannot show queueing, wait times, or casualty outcomes under that
-#' configuration, only Quick Run can. The caption says as much, so the
+#' configuration, only a run can. The caption says as much, so the
 #' diagram isn't mistaken for one.
 #'
 #' @param r1_teams,r2b_teams,r2e_teams Team counts (numeric scalars).
@@ -169,7 +169,7 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
   tagList(
     h6(class = "text-muted mt-2", "Force Structure"),
     p(class = "text-muted", style = "font-size:11px;",
-      "Each node is one deployed team; lines show pooled routing to the next echelon, not fixed lanes. This is structural, not a simulated outcome — run Quick Run for actual queueing and casualty results."),
+      "Each node is one deployed team; lines show pooled routing to the next echelon, not fixed lanes. This is structural, not a simulated outcome; run the saved configuration from the command line for queueing and casualty results."),
     force_node_graph(r1_teams, r2b_teams, r2e_teams),
     p(class = "text-muted", style = "font-size:11px; margin-top:2px;",
       "R1 has no beds — treats and returns to duty, or transports to R2B."),
@@ -404,7 +404,8 @@ medevac_diagram <- function(wia1_mode, kia1_mode, wia2_mode, kia2_mode,
       "; ", tags$span(style = "color:#17a2b8; font-weight:600;", "teal = Standard AME (Hold bed)"),
       " — post-surgery Priority 1 boards critical, everyone else boards standard; both pools fill on the same sortie",
       " (the airframe and its capacity are editable in the Strategic AME group above).",
-      " Structural diagram only — run Quick Run for actual queueing and casualty results."),
+      " Structural diagram only; run the saved configuration from the command line",
+      " for queueing and casualty results."),
     evac_chain_diagram(wia1_mode, kia1_mode, wia2_mode, kia2_mode, mort2e_mode,
                         ame_critical, ame_standard, ame_airframe_label,
                         ame_schedule_interval, ame_failure_probability)

@@ -4,50 +4,26 @@
 ##############################################
 #
 # The console state, the Configure panel's wiring (scenario selection and
-# resolution, group bodies, previews, configuration transfer and
-# validation) and the Run panel's Quick Run, status and full-protocol
-# command.
+# resolution, group bodies, previews and configuration transfer) and the Run
+# panel's full-protocol command.
 #
 # Sourced by app.R after the packages and modules it loads; source that
 # file rather than this one alone.
 
-#' Create every reactive value the console's panels share
+#' Read and validate the configuration the console starts from
 #'
-#' @param input See analyse_run().
-#' @param session See analyse_run().
-#' @return A list of `analysis_results`, `mon_data`, `pending_future`, `progress_pct`,
-#'   `raw_env_data`, `run_error`, `run_state`, `startup_json`.
-create_console_state <- function(input, session) {
-  observeEvent(input$goto_getting_started, {
-    updateNavbarPage(session, "main_nav", selected = "Getting Started")
-  })
-
+#' @return A list of `raw_env_data`, the reactive holding the loaded
+#'   configuration, and `startup_json`, the configuration as read at startup.
+create_console_state <- function() {
   # Both boundaries where a configuration enters the app validate it before
   # anything reads it: a malformed file names its offending field here rather
-  # than surfacing as a subscript error inside build_environment() once a run
-  # has already started. A malformed file on disk at startup is
-  # unrecoverable within the session, so it stops; a malformed upload leaves
-  # the loaded configuration in place and reports through the UI.
+  # than surfacing as a subscript error further in. A malformed file on disk at
+  # startup is unrecoverable within the session, so it stops; a malformed
+  # upload leaves the loaded configuration in place and reports through the UI.
   startup_json <- fromJSON(DEFAULT_JSON, simplifyVector = FALSE)
   validate_env_data_json(startup_json, DEFAULT_JSON)
 
-  raw_env_data     <- reactiveVal(startup_json)
-  run_state        <- reactiveVal("idle")   # idle | running | done | error
-  run_error        <- reactiveVal(NULL)
-  progress_pct     <- reactiveVal(0)
-  mon_data         <- reactiveVal(NULL)
-  analysis_results <- reactiveVal(NULL)
-  pending_future   <- reactiveVal(NULL)
-  list(
-    analysis_results = analysis_results,
-    mon_data = mon_data,
-    pending_future = pending_future,
-    progress_pct = progress_pct,
-    raw_env_data = raw_env_data,
-    run_error = run_error,
-    run_state = run_state,
-    startup_json = startup_json
-  )
+  list(raw_env_data = reactiveVal(startup_json), startup_json = startup_json)
 }
 
 #' Wire the Configure panel's field synchronisation and previews
@@ -184,7 +160,7 @@ wire_scenario_dropdown <- function(raw_env_data, input, output, SCENARIO_DROPDOW
   })
 
   # The scenario-resolved view of the configuration: what the Configure
-  # panel's field defaults, Save Configuration, and Quick Run all consume.
+  # panel's field defaults and Save Configuration both consume.
   # raw_env_data() itself stays pristine (only changes on initial load or
   # Load Configuration) so switching profiles is always computed fresh
   # rather than compounding onto a previously-overlaid state.
@@ -316,7 +292,7 @@ wire_casualty_surge_rows <- function(raw_env_data, input, session) {
       # display:none does not clear its inputs' values, and every Scheduled
       # Event Days field is always rendered/bound (see CASUALTY_SURGE_
       # SCHEDULE_SLOTS' own comment), so a hidden-but-nonzero Day would
-      # otherwise keep firing silently in Quick Run / Save Configuration.
+      # otherwise be saved silently by Save Configuration.
       updateNumericInput(session, sprintf("mc_sched_day_%d", n),      value = 0)
       updateNumericInput(session, sprintf("mc_sched_prob_%d_txt", n), value = 1)
       updateSliderInput(session,  sprintf("mc_sched_prob_%d", n),     value = 1)
@@ -357,8 +333,8 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shap
     # for a never-opened panel's fields (never bound, so absent from
     # `input`) are supplied by apply_registry_values()'s existing fallback
     # to scenario_json() (see current_json()) — every field remains
-    # correctly capturable by Save Configuration/Quick Run/Full
-    # Analysis/Morris/Sobol regardless of which panels are open, exactly as
+    # correctly captured by Save Configuration regardless of which panels
+    # are open, exactly as
     # eager rendering was there to guarantee, just without needing every
     # field's input to actually exist in `input` to do it.
   })
@@ -556,202 +532,6 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
     scenario_overridden_paths = scenario_overridden_paths,
     shorten_scenario_label = shorten_scenario_label
   )
-}
-
-#' Build the validator a run's configuration must pass
-#'
-#' @return The validate_config object.
-build_config_validator <- function() {
-  #' Validate a Configure panel state before a run is dispatched
-  #'
-  #' @param values Named list of the panel's current input values.
-  #' @return A character vector of error messages, empty when the
-  #'   configuration is usable.
-  #' @details Every fault is collected rather than the first being returned,
-  #'   so a user correcting one does not then meet the next.
-  validate_config <- function(values) {
-    errors <- character(0)
-    req_pos <- list(pop_combat = "Combat force size", pop_support = "Support force size",
-                     r1_team_count = "Number of R1 teams", r2b_team_count = "Number of R2B teams",
-                     r2e_team_count = "Number of R2E teams")
-    for (id in names(req_pos)) {
-      v <- values[[id]]
-      if (is.null(v) || is.na(v) || v <= 0) {
-        errors <- c(errors, sprintf("%s must be greater than zero (got %s).", req_pos[[id]], format(v)))
-      }
-    }
-
-    tri_ids <- unique(sub("_(min|mode|max)$", "", grep("_(min|mode|max)$", names(values), value = TRUE)))
-    for (pfx in tri_ids) {
-      mn <- values[[paste0(pfx, "_min")]]; md <- values[[paste0(pfx, "_mode")]]; mx <- values[[paste0(pfx, "_max")]]
-      if (!any(vapply(list(mn, md, mx), is.null, logical(1))) && !(mn <= md && md <= mx)) {
-        errors <- c(errors, sprintf("%s: minimum must be ≤ most likely ≤ maximum (got %s / %s / %s).",
-                                     pfx, mn, md, mx))
-      }
-    }
-
-    for (veh in c("PMVAmb", "HX240M")) {
-      qty <- values[[paste0("transport_", veh, "_qty")]]
-      cap <- values[[paste0("transport_", veh, "_capacity")]]
-      if (!is.null(qty) && qty > 0 && (is.null(cap) || cap < 1)) {
-        errors <- c(errors, sprintf("%s: capacity per vehicle must be at least 1 when fleet size > 0.", veh))
-      }
-    }
-
-    # Casualty surge casualties-per-event min/max pairs — the
-    # shared Poisson-mode pair and every Scheduled Event Days row, whether
-    # or not that row is currently visible (a hidden row is always reset to
-    # defaults, but validating it regardless costs nothing and stays
-    # correct if that assumption ever changes).
-    mc_min_max_ids <- c(list(c("mc_min_cas", "mc_max_cas")),
-                        lapply(seq_len(CASUALTY_SURGE_SCHEDULE_SLOTS), function(i) {
-                          sprintf(c("mc_sched_min_cas_%d", "mc_sched_max_cas_%d"), i)
-                        }))
-    for (ids in mc_min_max_ids) {
-      mn <- values[[ids[1]]]; mx <- values[[ids[2]]]
-      if (!is.null(mn) && !is.null(mx) && mn > mx) {
-        errors <- c(errors, sprintf("%s: minimum casualties (%s) must be ≤ maximum casualties (%s).",
-                                     sub("_min_cas$|_min$", "", ids[1]), mn, mx))
-      }
-    }
-
-    # Triage priority split and DNBI sub-type split have no corresponding
-    # check here — pri_split and dnbi_split (two-handle range sliders, see
-    # render_group_body()) make summing to 1 a structural guarantee rather
-    # than something to validate after the fact.
-
-    errors
-  }
-  validate_config
-}
-
-#' Wire the Quick Run button to a single-replication run
-#'
-#' @param analysis_results See analyse_run().
-#' @param current_json See analyse_run().
-#' @param mon_data See analyse_run().
-#' @param pending_future See analyse_run().
-#' @param progress_pct See analyse_run().
-#' @param run_error See analyse_run().
-#' @param run_state See analyse_run().
-#' @param scenario_json See analyse_run().
-#' @param validate_config See analyse_run().
-#' @param input See analyse_run().
-#' @return Invisibly NULL; called for the files it writes.
-wire_quick_run <- function(analysis_results, current_json, mon_data, pending_future, progress_pct,
-                           run_error, run_state, scenario_json, validate_config, input) {
-  observeEvent(input$run_quick, {
-    values <- inject_all_splits(reactiveValuesToList(input))
-    values <- fill_missing_defaults(values, PARAM_REGISTRY, scenario_json())
-    errors <- validate_config(values)
-    if (length(errors) > 0) {
-      showModal(modalDialog(
-        title = "Configuration error",
-        tags$ul(lapply(errors, tags$li)),
-        easyClose = TRUE
-      ))
-      return(invisible(NULL))
-    }
-
-    seed_val <- suppressWarnings(as.integer(trimws(input$seed)))
-    seed_val <- if (length(seed_val) == 0 || is.na(seed_val)) NULL else seed_val
-    days_val     <- input$n_days
-    built_env    <- build_environment(current_json())
-    app_dir      <- APP_DIR
-
-    run_state("running")
-    run_error(NULL)
-    progress_pct(5)
-
-    fut <- future({
-      setwd(app_dir)
-      source("R/environment.R"); source("R/trajectories.R")
-      source("R/replication.R"); source("R/analysis.R")
-      # future's own multisession bootstrap attaches package:future in the
-      # worker; depending on exactly when that finishes relative to the
-      # library(simmer) calls above, simmer::run() can occasionally end up
-      # masked by future's own run() S3 generic (both packages export a
-      # generic named `run`). Force the correct binding explicitly rather
-      # than relying on attach-order timing.
-      assign("run", simmer::run, envir = .GlobalEnv)
-      env_data <<- built_env
-      day_min  <<- DAY_MIN
-      counts   <<- sapply(env_data$elms, length)
-
-      wrapped <- run_once(days_val, seed = seed_val, write_files = FALSE)
-      mon <- list(
-        arrivals   = get_mon_arrivals(list(wrapped),   ongoing = TRUE),
-        attributes = get_mon_attributes(list(wrapped)),
-        resources  = get_mon_resources(list(wrapped))
-      )
-
-      out_dir <- tempfile("bch_outputs_")
-      img_dir <- tempfile("bch_images_")
-      dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-      dir.create(img_dir, showWarnings = FALSE, recursive = TRUE)
-
-      results <- analyse_run(mon, output_dir = out_dir, images_dir = img_dir, warm_up_days = 0)
-      list(mon = mon, results = results)
-    }, seed = NULL)
-
-    prom <- fut %...>% (function(res) {
-      mon_data(res$mon)
-      analysis_results(res$results)
-      run_state("done")
-      progress_pct(100)
-    })
-    prom <- catch(prom, function(e) {
-      run_state("error")
-      run_error(conditionMessage(e))
-    })
-    pending_future(prom)
-    invisible(NULL)
-  })
-  invisible(NULL)
-}
-
-#' Wire the Quick Run progress ticker and run status message
-#'
-#' @param progress_pct See wire_quick_run().
-#' @param run_error See wire_quick_run().
-#' @param run_state See wire_quick_run().
-#' @param input See wire_quick_run().
-#' @param output See wire_quick_run().
-#' @param session See wire_quick_run().
-#' @return Invisibly NULL; called for the outputs it registers.
-#' @details The ticker is simulated, since the future runs in a separate process
-#'   and a single replication offers no finer progress than start and done: it
-#'   ticks toward 90% while the run is in flight and the completion handler
-#'   sets 100%.
-wire_run_status <- function(progress_pct, run_error, run_state, input, output, session) {
-  observe({
-    req(run_state() == "running")
-    invalidateLater(400, session)
-    isolate({
-      p <- progress_pct()
-      if (p < 90) progress_pct(min(90, p + 4))
-    })
-  })
-
-  output$run_status <- renderUI({
-    state <- run_state()
-    if (state == "idle") {
-      p(class = "text-muted", "No run yet. Configure parameters, then click Run Quick Run.")
-    } else if (state == "running") {
-      tagList(
-        p(sprintf("Running Quick Run (seed %s, %d days)...",
-                  if (trimws(input$seed) == "") "random" else trimws(input$seed), input$n_days)),
-        div(class = "progress",
-            div(class = "progress-bar progress-bar-striped progress-bar-animated",
-                role = "progressbar", style = sprintf("width: %d%%", progress_pct())))
-      )
-    } else if (state == "done") {
-      div(class = "alert alert-success", "Run complete \u2014 see the Analyse tab for results.")
-    } else {
-      div(class = "alert alert-danger", paste("Run failed:", run_error()))
-    }
-  })
-  invisible(NULL)
 }
 
 #' Wire the hand-off card that shows the full protocol command

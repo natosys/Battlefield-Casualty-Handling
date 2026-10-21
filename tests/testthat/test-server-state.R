@@ -8,29 +8,16 @@
 # These tests exist to be run before and after the decomposition of `server`
 # into per-tab modules, so that a refactor which changes what the app does
 # fails here rather than in a reviewer's browser. They assert observable
-# reactive state only (the reactiveVals the run/screening state machines
-# advance through, and the reactives derived from the loaded configuration),
-# never rendered markup, which is the Playwright suite's half of the split.
-#
-# Nothing here starts a simulation: the asynchronous run paths are entered
-# only along their rejection branches, where the configuration fails
-# validation and no future is created.
+# reactive state only (the reactives derived from the loaded configuration,
+# and the absence of any run state), never rendered markup, which is the
+# Playwright suite's half of the split. The console runs nothing, so nothing
+# here starts a simulation.
 
-test_that("the run state machine starts idle with nothing computed", {
+test_that("the console holds no state for any run", {
   shiny::testServer(server, {
-    expect_identical(run_state(), "idle")
-    expect_null(run_error())
-    expect_identical(progress_pct(), 0)
-    expect_null(mon_data())
-    expect_null(analysis_results())
-    expect_null(pending_future())
-  })
-})
-
-test_that("the console holds no state for replicated or sensitivity runs", {
-  shiny::testServer(server, {
-    for (gone in c("run_mode", "morris_state", "sobol_state", "transport_sweep_state",
-                   "rep_progress_done")) {
+    for (gone in c("run_state", "run_error", "progress_pct", "mon_data", "analysis_results",
+                   "pending_future", "run_mode", "morris_state", "sobol_state",
+                   "transport_sweep_state", "rep_progress_done")) {
       expect_false(exists(gone, inherits = FALSE), info = gone)
     }
   })
@@ -154,15 +141,6 @@ test_that("loading a malformed configuration leaves the loaded one in place", {
   })
 })
 
-test_that("an invalid configuration stops Quick Run before a run starts", {
-  shiny::testServer(server, {
-    session$setInputs(pop_combat = 0, n_days = 2, seed = "42", run_quick = 1)
-    expect_identical(run_state(), "idle")
-    expect_null(pending_future())
-    expect_null(analysis_results())
-  })
-})
-
 test_that("the displayed command follows the file name and seed boxes", {
   shiny::testServer(server, {
     session$setInputs(config_filename = "plan_a", seed = "7")
@@ -179,20 +157,5 @@ test_that("Save Configuration downloads under the name the command refers to", {
     expect_match(basename(path), "plan_a\\.json$")
     saved <- jsonlite::fromJSON(path, simplifyVector = FALSE)
     expect_true("vars" %in% names(saved))
-  })
-})
-
-test_that("the Analyse tab's derived reactives stay silent until a run completes", {
-  shiny::testServer(server, {
-    expect_error(tab_plot(), class = "shiny.silent.error")
-    expect_error(utilisation_panel_heights(), class = "shiny.silent.error")
-  })
-})
-
-test_that("the calibration table is available before any screening runs", {
-  shiny::testServer(server, {
-    df <- calibration_df()
-    expect_s3_class(df, "data.frame")
-    expect_gt(nrow(df), 0)
   })
 })

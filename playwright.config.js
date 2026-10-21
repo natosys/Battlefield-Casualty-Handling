@@ -29,15 +29,15 @@ module.exports = defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  // A Quick Run is a real simulation, not a stub; it dominates the suite's
-  // runtime and needs a timeout measured against it rather than against a
-  // page load.
-  timeout: 10 * 60 * 1000,
+  // The Configure panel renders its groups server-side on first open, which
+  // is slow on a modest runner, so a test is allowed minutes rather than the
+  // default thirty seconds.
+  timeout: 3 * 60 * 1000,
   expect: { timeout: 30 * 1000 },
   reporter: process.env.CI ? [['list'], ['github']] : [['list']],
   use: {
     // A locator that no longer matches should fail in seconds, not consume
-    // the whole test timeout the Quick Run needs.
+    // the whole test timeout.
     actionTimeout: 30 * 1000,
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
@@ -48,8 +48,7 @@ module.exports = defineConfig({
   ],
   webServer: {
     // tests/playwright/serve.R rather than an inline `R -e` expression; its
-    // banner records why, and the reason is that a Quick Run fails under the
-    // latter.
+    // banner records why.
     command: `Rscript tests/playwright/serve.R ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,

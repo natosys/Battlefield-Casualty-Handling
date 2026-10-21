@@ -51,20 +51,6 @@ test_that("every compositional split the panel offers is expanded", {
   }
 })
 
-test_that("an unopened panel's fields fall back to their scenario defaults", {
-  json     <- test_startup_json()
-  defaults <- registry_defaults(PARAM_REGISTRY, json)
-  filled   <- fill_missing_defaults(list(), PARAM_REGISTRY, json)
-  expect_setequal(names(filled), names(defaults))
-  expect_identical(filled, defaults)
-})
-
-test_that("a field the user has edited is not overwritten by its default", {
-  json  <- test_startup_json()
-  edited <- fill_missing_defaults(list(pop_combat = 1234), PARAM_REGISTRY, json)
-  expect_equal(edited$pop_combat, 1234)
-})
-
 test_that("triangular triples are detected only where all three fields exist", {
   expect_true(length(TRI_TRIPLES) > 0)
   ids <- vapply(PARAM_REGISTRY, function(f) f$id, character(1))

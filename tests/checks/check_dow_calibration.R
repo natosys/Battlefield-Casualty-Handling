@@ -20,7 +20,8 @@
 # Why this check exists: each configuration's mortality ceilings are
 # calibrated against a historical anchor, and for the default and its
 # `moderate_intensity` alias, which are the same configuration, that anchor is
-# the Ajax Bay Advanced Surgical Centre's three deaths among the "over 650" casualties who reached forward surgical care, a
+# the three deaths among the "over 650" casualties who passed through the Ajax
+# Bay field hospital and its forward stations at Teal Inlet and Fitzroy, a
 # rate of approximately 0.46% (README — Parameter Calibration). Nothing in an
 # ordinary run compares the model against it. The comparison was made by hand
 # at each recalibration, which is how the model came to be reported as

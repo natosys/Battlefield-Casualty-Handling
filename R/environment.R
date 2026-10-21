@@ -662,7 +662,7 @@ make_ln_arrival_generator <- function(mean_daily, sd_daily, force_global,
 #' @return A zero-argument function suitable for add_generator()'s
 #'   `distribution` argument (see make_ln_arrival_generator())
 #'
-#' @details FORECAS (Blood, Zouris & Rotblatt, 1998) fits lognormal and
+#' @details FORECAS (Blood, Zouris & Rotblatt, 1997) fits lognormal and
 #'   exponential distributions to different battle intensities/troop types.
 #'   Used for the high_intensity scenario profile, whose
 #'   higher-intensity casualty streams are exponential-distributed rather

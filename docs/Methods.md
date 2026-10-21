@@ -96,7 +96,7 @@ Independence follows from how a replication is built rather than being inferred 
 
 First, `run_once()` (`R/replication.R`) is a pure function of its seed: re-running a seed reproduces its output exactly, whether or not another run happens in between, so the seed is all that distinguishes two replications and no other channel connects them. Second, `run_replications()` draws a distinct seed for each replication, taking them in one call from the caller's control seed before any replication begins. Independent seeds into a pure function give independent replications, which is a deterministic argument rather than one a finite sample of correlations could support.
 
-Running replications in parallel preserves both facts. They are dispatched through `mclapply()` under `RNGkind("L'Ecuyer-CMRG")` with `mc.set.seed = TRUE`, which gives each worker its own substream of the MRG32k3a generator [[5]](#references). The substream spacing of $2^{76}$ [[6]](#references) makes overlap impossible at any simulation budget used here. Both dispatch paths, the parallel one and the serial fallback used at a single replication and on platforms without forking, run under the one generator, so a replication's output depends on its seed and not on the path or the core count that produced it.
+Running replications in parallel preserves both facts. They are dispatched through `mclapply()` under `RNGkind("L'Ecuyer-CMRG")` with `mc.set.seed = TRUE`, which gives each worker its own stream of the MRG32k3a generator [[5]](#references), the streams lying $2^{127}$ steps apart [[6]](#references). The replications do not rely on that spacing, because `run_once()` reseeds the generator with the replication's own seed and so replaces the worker's stream. Each replication starts from a point of the generator's period of about $2^{191}$ fixed by its seed alone, so overlap between two replications within a campaign is negligibly likely, though not excluded by construction as it would be for streams derived with `nextRNGStream()`. Both dispatch paths, the parallel one and the serial fallback used at a single replication and on platforms without forking, run under the one generator, so a replication's output depends on its seed and not on the path or the core count that produced it.
 
 The framework also captures the caller's generator kind and stream position on entry and restores both on exit. Without that, the first measurement taken in a session would draw its seeds under a different generator from the second, and a measurement would depend on what preceded it rather than on its control seed alone.
 
@@ -311,22 +311,22 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Comparative scenario analysis | `moderate_intensity`, `high_intensity`, `high_intensity_modern_care` | 360 d | 30 per profile | 3 profiles | each profile seeded afresh | pool queue, closing 90 d (whole campaign at 30 d); Student $t$ |
 | Campaign time series | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | pool queue in four-hour bins; median and interquartile band |
 | Sustained-operations horizon | the same two profiles | 360 d | 30 per profile | 2 profiles | each profile seeded afresh | daily series, 30-day block means; trend over the second half |
-| R2B pre-open hold window | default | 360 d | 30 per arm | 2 arms | one control seed, not one casualty stream | campaign counts; Student $t$, paired $t$ |
-| Post-operative intensive care gate | default | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy, closing 90 d; Student $t$, paired $t$ |
-| Forward holding frontier | default | 360 d | 30 per arm | 7 arms | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
-| R2B holding capacity and evacuation threshold | default | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
+| R2B pre-open hold window | default; `high_intensity` | 360 d | 30 per arm | 2 arms | one control seed, not one casualty stream | campaign counts; Student $t$, paired $t$ |
+| Post-operative intensive care gate | default; `high_intensity` | 360 d | 30 per arm | 2 arms | one control seed | counts and pool occupancy, closing 90 d; Student $t$, paired $t$ |
+| Forward holding frontier | default; `high_intensity` | 360 d | 30 per arm | 7 arms | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
+| R2B holding capacity and evacuation threshold | default; `high_intensity` | 360 d | 30 per point | 15 grid points | unpaired | pool queue and occupancy, closing 90 d; Student $t$ |
 | Transport fleet-size sweep | default; `high_intensity` | 360 d | 30 per point | 9 per configuration | unpaired | fleet pool queue and occupancy, closing 90 d; Student $t$ |
 | National support base demand and the airlift schedule | default and both profiles | 360 d | 30 per configuration | 13 configurations | one control seed per configuration | per-replication reductions; Student $t$ |
 | Role 4 bed demand | both profiles; moderate with six cancellation probabilities | 360 d | 30 per configuration | 8 configurations | one control seed per configuration | daily census, mean, peak and closing 90 d; Student $t$ |
-| Strategic airlift reliability | default | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
+| Strategic airlift reliability | default; `high_intensity` | 360 d | 30 per arm | 6 arms | one seed vector | collapse classification, closing 90 d; exact binomial |
 | Evacuation policy sweep | default | 360 d | 30 per arm | 5 policies | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | R2E holding establishment sweep | default, 21-day policy | 360 d | 30 per arm | 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | High-intensity policy by establishment grid | high intensity | 360 d | 30 per cell | 5 policies by 4 establishments | one seed vector | closing-window state and totals; Student $t$, paired $t$ against the shipped cell |
-| Forward surgical saturation release sweep | default | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
+| Forward surgical saturation release sweep | default; `high_intensity` | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Surgical team establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queue and campaign counts, daily queue classified; Student $t$, paired $t$ |
 | R2E intensive care bed establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
-| Casualty surge event stress test | default, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
+| Casualty surge event stress test | default and `high_intensity`, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
 | Morris elementary effects screen | default | 360 d | 4 per point | 1,600 points | unpinned, seeded per point | $\mu^*$ and $\sigma$ per response |
 | Sobol variance decomposition | default | 360 d | 4 per point | 1,056 points | unpinned, seeded per point | total-order index; bootstrap |
@@ -871,7 +871,7 @@ Four limitations are properties of the designs rather than of the model, and eac
 
 **Every design runs at one control seed.** A control seed determines the whole set of per-replication seeds, so a measurement at 50 replications is one draw from the distribution of 50-replication measurements. The 0.132 percentage point spread across control seeds recorded under [Replication Count and Resolution](#replication-count-and-resolution) is the size of that effect on the best determined response the model reports, and it is the reason the calibration check pools three independent measurements.
 
-**Most sweeps run the shipped default configuration only.** The transport fleet-size sweep is also run at `high_intensity`; the forward holding frontier, the pre-open hold window, the intensive care gate, the holding threshold sweep and the evacuation policy, establishment and saturation sweeps each use the default alone, so none establishes that its result survives at the higher casualty intensity. Re-running them is listed among the further development items of the companion paper [[1]](#references).
+**Few designs run the shipped default configuration alone.** Every lever sweep except the Role 4 cancellation arm is repeated under `high_intensity`, the evacuation policy and R2E holding establishment sweeps through the [policy by establishment grid](#high-intensity-policy-by-establishment-grid) that crosses them. That arm and the two sensitivity screens use the default alone, so none establishes that its result survives at the higher casualty intensity.
 
 **The sustained-horizon Sobol decomposition is too small to order its parameters.** At $N = 96$ the separation test establishes almost none of the orderings the decomposition would need, and the surgical delivery share returns indices outside the unit interval, so the variance decomposition at 360 days is reported as unresolved and the Morris ranking carries the reading; the design size each separation would need is reported with the indices (see [Sensitivity Screens](#sensitivity-screens)).
 
@@ -907,23 +907,23 @@ A reader who wants to reproduce a result in the companion paper has the replicat
 
 [5] Karl, A., Eubank, R., Milovanovic, J., Reiser, M., & Young, D. (2014). Using RngStreams for parallel random number generation in C++ and R. *Computational Statistics*, *29*(5), 1301–1320. Open-access preprint retrieved 26 Jun 26, from https://arxiv.org/abs/1403.7645
 
-[6] R Core Team. (2024). *RNGstreams: L'Ecuyer's RngStreams for parallel random number generation*. R Documentation, parallel package. Retrieved 26 Jun 26, from https://stat.ethz.ch/R-manual/R-patched/library/parallel/html/RngStream.html
+[6] R Core Team. (2024). *RNGstreams: Implementation of Pierre L'Ecuyer's RngStreams*. R documentation, package parallel. Retrieved 26 Jun 26, from https://stat.ethz.ch/R-manual/R-patched/library/parallel/html/RngStream.html
 
-[7] Rossetti, M. D. (2023). *Simulation Modeling using the Kotlin Simulation Library (KSL)*, §9.2: Variance Reduction Techniques. Retrieved 26 Jun 26, from https://rossetti.github.io/KSLBook/
+[7] Rossetti, M. D. (2023). *Simulation Modeling using the Kotlin Simulation Library (KSL)*, §9.2.2: Antithetic Variates (AV). Retrieved 26 Jun 26, from https://rossetti.github.io/KSLBook/09-Chapter9.html#antithetic-variates-av
 
-[8] Law, A. M. (2020). Statistical analysis of simulation output data: the practical state of the art. In *Proceedings of the 2020 Winter Simulation Conference* (pp. 1117–1127). INFORMS Simulation Society. Retrieved 27 Aug 26, from https://informs-sim.org/wsc20papers/134.pdf
+[8] Law, A. M. (2020). Statistical analysis of simulation output data: the practical state of the art. In K.-H. Bae et al. (Eds.), *Proceedings of the 2020 Winter Simulation Conference* (pp. 1117–1127). IEEE. Retrieved 27 Aug 26, from https://informs-sim.org/wsc20papers/134.pdf
 
-[9] Rossetti, M. D. *Simulation Modeling and Arena*, Chapter 5: Statistical Analysis for Infinite Horizon Simulation Models. Retrieved 27 Aug 26, from https://rossetti.github.io/RossettiArenaBook/05-Chapter5.html
+[9] Rossetti, M. D. (2021). *Simulation Modeling and Arena* (3rd and Open Text ed.), Chapter 5: Statistical Analysis for Infinite Horizon Simulation Models. Retrieved 27 Aug 26, from https://rossetti.github.io/RossettiArenaBook/05-Chapter5.html
 
-[10] Blood, C. G., Zouris, J. M., & Rotblatt, D. (1998). *Using the Ground Forces Casualty System (FORECAS) to Project Casualty Sustainment*. Retrieved 20 Jul 25, from https://ia803103.us.archive.org/18/items/DTIC_ADA339487/DTIC_ADA339487_text.pdf
+[10] Blood, C. G., Zouris, J. M., & Rotblatt, D. (1997). *Using the Ground Forces Casualty Forecasting System (FORECAS) to Project Casualty Sustainment* (NHRC Report No. 97-39). Naval Health Research Center. Retrieved 21 Oct 26, from https://archive.org/details/DTIC_ADA339487
 
-[11] Marble, S. (2025). Both joint and not: Medical support at Okinawa, 1945. *Joint Force Quarterly*, *117*(2), article 11. National Defense University Press. Retrieved 17 Aug 26, from https://digitalcommons.ndu.edu/joint-force-quarterly/vol117/iss2/11/
+[11] Marble, S. (2025). Both joint and not: Medical support at Okinawa, 1945. *Joint Force Quarterly*, *117*, 73–80. National Defense University Press. Retrieved 17 Aug 26, from https://digitalcommons.ndu.edu/joint-force-quarterly/vol117/iss2/11/
 
 [12] Lewis, P. A. W., & Shedler, G. S. (1979). Simulation of nonhomogeneous Poisson processes by thinning. *Naval Research Logistics Quarterly*, *26*(3), 403–413. Naval Postgraduate School Calhoun repository. Retrieved 13 Aug 26, from https://calhoun.nps.edu/handle/10945/63159
 
 [13] Morris, M. D. (1991). Factorial sampling plans for preliminary computational experiments. *Technometrics*, *33*(2), 161–174. Retrieved 11 Jul 26, from https://www.stat.cmu.edu/technometrics/90-00/vol-33-02/v3302161.pdf
 
-[14] Saltelli, A., Annoni, P., Azzini, I., Campolongo, F., Ratto, M., & Tarantola, S. (2010). Variance based sensitivity analysis of model output. Design and estimator for the total sensitivity index. *Computer Physics Communications*, *181*(2), 259–270. Retrieved 11 Jul 26, from https://www.andreasaltelli.eu/file/repository/PUBLISHED_PAPER.pdf
+[14] Puy, A., Becker, W., Lo Piano, S., & Saltelli, A. (2022). A comprehensive comparison of total-order estimators for global sensitivity analysis. *International Journal for Uncertainty Quantification*, *12*(2), 1–18. Retrieved 21 Oct 26, from https://arxiv.org/abs/2009.01147
 
 [15] Sargent, R. G. (2010). Verification and validation of simulation models. In *Proceedings of the 2010 Winter Simulation Conference* (pp. 166–183). IEEE. Retrieved 27 Aug 26, from https://www.informs-sim.org/wsc10papers/016.pdf
 

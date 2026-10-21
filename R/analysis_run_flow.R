@@ -450,7 +450,7 @@ summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
   # is retained when that falls within recovery$evacuation_policy_days. It is
   # measured at the decision, not on completed returns to duty, because a
   # retained casualty's convalescence routinely outlasts the run. Compared
-  # against the 7.6%-42.1% historical range in README Return to Duty.
+  # against the Vietnam War return-to-duty rates in README Return to Duty.
   # The attribute is absent entirely when no casualty reached R2E disposition
   # within the observation window, which a short or low-intensity run can
   # produce, so the column is guarded rather than assumed.

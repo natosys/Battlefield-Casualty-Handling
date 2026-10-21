@@ -1435,6 +1435,53 @@ build_morris_top <- function(data_dir, response = "r2e_ot_q", n = 20L, dp = 2L) 
   res_table(c("Rank", "Parameter", "\u00b5*", "\u03c3"), rows)
 }
 
+#' Screened parameters whose shipped value is an informed estimate
+#'
+#' @details The parameters README Further Development L37 records as informed
+#'   estimates needing verification, the ones whose re-anchoring would move
+#'   the seed-42 baseline. The two casualty surge
+#'   coordinates carry its triage split.
+MORRIS_ESTIMATE_PARAMETERS <- c(
+  "disease_surgery_pct",
+  "r1_wia_treat_mode", "short_resus_mode", "long_resus_mode",
+  "p1_k", "p1_t_mid", "p2_k", "p2_t_mid",
+  "r2e_vent_share", "r2e_critical_hold_mode", "post_definitive_icu_mode",
+  "role4_los_p1_surgical_mode", "role4_los_p1_nonsurgical_mode",
+  "role4_los_p2_mode", "role4_los_p3_dnbi_mode",
+  "role4_post_reconstruction_return_rate", "mc_p1_balance", "mc_p2_p3_balance"
+)
+
+#' Responses the informed-estimate ranks are read on, with their column labels
+MORRIS_ESTIMATE_RESPONSES <- c(
+  dow_count = "Died of wounds", r2e_ot_q = "R2E theatre queue",
+  r2e_icu_q = "R2E ICU queue", r2e_hold_q = "R2E holding queue",
+  time_to_surgery_mean = "Time to surgery", role4_mean_occupancy = "Role 4 occupancy"
+)
+
+#' Morris rank of each informed-estimate parameter on the main responses
+#'
+#' @param data_dir The data directory.
+#' @return The table lines: one row per parameter in
+#'   `MORRIS_ESTIMATE_PARAMETERS`, giving its rank by µ* among every screened
+#'   parameter on each response in `MORRIS_ESTIMATE_RESPONSES`.
+build_morris_estimates <- function(data_dir) {
+  ranks <- lapply(names(MORRIS_ESTIMATE_RESPONSES), function(response) {
+    rank_file <- sprintf("morris_ranking_%s.csv", response)
+    d <- res_read(file.path(SENSITIVITY_MORRIS_DIR, rank_file), data_dir)
+    d <- d[order(-d$mu_star), ]
+    stats::setNames(seq_len(nrow(d)), d$parameter)
+  })
+  missing <- setdiff(MORRIS_ESTIMATE_PARAMETERS, names(ranks[[1]]))
+  if (length(missing) > 0L) {
+    stop("MORRIS_ESTIMATE_PARAMETERS names an unscreened parameter: ",
+         paste(missing, collapse = ", "))
+  }
+  rows <- lapply(MORRIS_ESTIMATE_PARAMETERS, function(p) {
+    c(sprintf("`%s`", p), vapply(ranks, function(r) as.character(r[[p]]), character(1)))
+  })
+  res_table(c("Parameter", unname(MORRIS_ESTIMATE_RESPONSES)), rows)
+}
+
 #' Sobol decomposition of one response at the sustained horizon
 #'
 #' @param data_dir The data directory.
@@ -2727,6 +2774,7 @@ RESULTS_TABLES <- list(
   morris_delivery = function(dd) {
     build_morris_top(dd, "surgery_delivery_rate", n = 10L, dp = 3L)
   },
+  morris_estimates = build_morris_estimates,
   sobol = build_sobol,
   sobol_separation = build_sobol_separation,
   dow_calibration = build_dow_calibration,

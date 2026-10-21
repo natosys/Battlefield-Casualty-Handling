@@ -141,7 +141,7 @@ add_casualty_generators <- function(env, casualty, casualty_surge, n_days) {
 #'
 #'   reinf_*_pending is the fill amount already committed to an
 #'   in-flight (submitted-but-not-yet-credited) reinforcement cycle for each
-#'   pool — see build_reinforcement_trajectory() (R/trajectories.R) for why this
+#'   pool — see build_reinforcement_trajectory() (R/trajectories_schedules.R) for why this
 #'   is needed to keep overlapping cycles from independently re-claiming the
 #'   same shortfall.
 add_reinforcement_cycle <- function(env, n_days) {
@@ -171,7 +171,7 @@ add_reinforcement_cycle <- function(env, n_days) {
 #'   Hold-bed evacuees) and "ame_critical" (CCATT/CCAST-supported, ICU-bed
 #'   evacuees), both fed by the same sortie schedule (a CCATT/CCAST team
 #'   augments the standard crew rather than flying separately — see
-#'   build_ame_sortie_trajectory(), R/trajectories.R).
+#'   build_ame_sortie_trajectory(), R/trajectories_schedules.R).
 #'
 #'   Both start at zero capacity — they always exist (any casualty reaching
 #'   Strategic Evac unconditionally tries to seize one of them, so neither can

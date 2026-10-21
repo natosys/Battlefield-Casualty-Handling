@@ -33,10 +33,10 @@
 #
 # What it asserts:
 #
-#   1. Every attribute key set under a literal name in R/trajectories.R is in
+#   1. Every attribute key set under a literal name in R/trajectories*.R is in
 #      MODEL_ATTRIBUTE_KEYS.
 #   2. Every key in MODEL_ATTRIBUTE_KEYS is still set somewhere in
-#      R/trajectories.R, so a deleted attribute cannot linger in the list.
+#      R/trajectories*.R, so a deleted attribute cannot linger in the list.
 #   3. The two set_attribute() calls taking their key from a variable are
 #      accounted for, their names being passed in at the call sites. A third
 #      such call fails this assertion rather than passing unnoticed, since no
@@ -92,8 +92,9 @@ CHECK_DAYS <- as.integer(arg_value("--days", 3L))
 #' Seed for the end-to-end arm
 CHECK_SEED <- as.integer(arg_value("--seed", 42L))
 
-#' The model source the attribute keys are read from
-TRAJECTORY_SOURCE <- "R/trajectories.R"
+#' The model sources the attribute keys are read from, the trajectory loader
+#' and its parts
+TRAJECTORY_SOURCE <- Sys.glob("R/trajectories*.R")
 
 #' Attribute keys passed into r2e_surgery_block() rather than written inline
 #'
@@ -153,7 +154,7 @@ cat(sprintf("Absent attribute column check: %d-day run, seed %d\n\n",
 
 cat("-- MODEL_ATTRIBUTE_KEYS matches the model --\n")
 
-model_src   <- readLines(TRAJECTORY_SOURCE, warn = FALSE)
+model_src   <- unlist(lapply(TRAJECTORY_SOURCE, readLines, warn = FALSE))
 literal_set <- regmatches(
   model_src,
   gregexpr('set_attribute\\(\\s*"[a-z0-9_]+"', model_src)

@@ -204,7 +204,7 @@ validate_forward_hold_arms <- function(arms, caller) {
 #'
 #' @details A bed count is a whole number of at least one, an evacuation
 #'   threshold zero or a positive number of minutes (zero disabling it, per
-#'   `r2b_evac_threshold()`, R/trajectories.R), so either axis carrying a
+#'   `r2b_evac_threshold()`, R/trajectories_common.R), so either axis carrying a
 #'   negative or fractional value would sweep for hours before producing a
 #'   result no configuration could reach.
 validate_hold_threshold_sweep <- function(hold_beds, evac_threshold_min, caller) {

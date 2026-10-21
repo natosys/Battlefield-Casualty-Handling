@@ -202,7 +202,7 @@ run_icu_gate_measurement <- function(gate_enabled, n_iterations = ICU_GATE_REPLI
   #' @details `run_once()` is wrapped in `capture.output()`, on the
   #'   convention `tests/checks/check_icu_gate_switch.R` establishes, so the
   #'   per-casualty trace `assign_injury_attributes()` logs
-  #'   (`R/trajectories.R`) does not serialise a hundred replications' worth
+  #'   (`R/trajectories_casualty.R`) does not serialise a hundred replications' worth
   #'   of console output through the fork's stdout pipe.
   worker <- function(i) {
     env <- NULL

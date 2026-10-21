@@ -346,7 +346,7 @@ needs stated.
 
 **R3 `[review]` A file-scope constant carries a roxygen header** stating what
 it is, where its value comes from, and what would break if it changed.
-`R2E_SURGERY_SECTION_FMT` in `R/trajectories.R` is the model.
+`R2E_SURGERY_SECTION_FMT` in `R/trajectories_common.R` is the model.
 
 **R4 `[review]` Every `branch()` call is preceded by a comment block describing
 the branch structure and the decision criterion for each arm,** written as an

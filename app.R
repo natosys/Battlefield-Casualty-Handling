@@ -206,7 +206,7 @@ render_tri_curve <- function(mn, mode, mx) {
 #' Render a small live curve preview of the DOW survival function F(t) for
 #' one priority cohort
 #'
-#' @details Uses dow_prob() (R/trajectories.R) directly, so the curve shown
+#' @details Uses dow_prob() (R/trajectories_common.R) directly, so the curve shown
 #'   is the exact shifted-logistic function the simulation evaluates at
 #'   each DOW check — not an approximation. p_max is the live Configure
 #'   slider value for this priority; p_base, k, and t_mid are read from the
@@ -214,7 +214,7 @@ render_tri_curve <- function(mn, mode, mx) {
 #'   read-only fields alongside the curve), so the curve's ceiling moves as
 #'   the slider is dragged while its floor and shape track whichever
 #'   Casualty Intensity Profile is active.
-#' @param p_base,p_max,k,t_mid Parameters as for dow_prob() (R/trajectories.R).
+#' @param p_base,p_max,k,t_mid Parameters as for dow_prob() (R/trajectories_common.R).
 #' @param window_max Upper bound of the plotted time window in minutes; when
 #'   NULL (default), sized to comfortably show the curve reach its plateau.
 #' @return A ggplot of the survival function, blank where the parameters do
@@ -1123,7 +1123,7 @@ force_structure_diagram <- function(r1_teams, r2b_teams, r2b_beds, r2e_teams, r2
 #' @param ame_critical,ame_standard Critical (ICU-bed, CCATT/CCAST-supported)
 #'   and standard (Hold-bed, Casualty Staging Unit-equivalent) capacity per
 #'   successful sortie, taken from the selected airframe's fitted patient
-#'   capacity (build_ame_sortie_trajectory(), R/trajectories.R). Both pools
+#'   capacity (build_ame_sortie_trajectory(), R/trajectories_schedules.R). Both pools
 #'   fill on the same sortie.
 #' @param ame_airframe_label Name of the selected aircraft, shown so the
 #'   capacities above are attributable to a platform.

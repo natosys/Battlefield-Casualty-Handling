@@ -339,7 +339,7 @@ report(icu_nurses_per_bed(4L, 3L) == 3 && icu_nurses_per_bed(12L, 3L) == 1,
 
 cat("\n-- the intensive care section is not seized at R2E --\n")
 
-traj <- readLines("R/trajectories.R", warn = FALSE)
+traj <- readLines("R/trajectories_r2e.R", warn = FALSE)
 start <- grep("^r2e_treat_wia <- function", traj)
 body <- traj[start:(start + 40L)]
 uses <- grep("icu_team", body, value = TRUE)

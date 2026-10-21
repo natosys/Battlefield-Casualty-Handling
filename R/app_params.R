@@ -947,7 +947,7 @@ strategic_ame_fields <- function() {
   # airframe, filling the critical (CCATT/CCAST-supported, ICU-bed Priority
   # 1 surgical evacuees) and standard (Casualty Staging Unit-equivalent,
   # Hold-bed everyone else) pools together — see
-  # build_ame_sortie_trajectory(), R/trajectories.R. Each airframe's
+  # build_ame_sortie_trajectory(), R/trajectories_schedules.R. Each airframe's
   # capacity pair is editable in its own right, so switching the selector
   # switches aircraft without overwriting either aircraft's sourced
   # figures. See README Role 4 (National Support Base) Demand Modelling for

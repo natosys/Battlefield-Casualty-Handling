@@ -1087,6 +1087,12 @@ The codebase is organised into a modular layout under an `R/` directory, with a 
 | `R/sensitivity.R`                  | Morris EE screening (`run_morris`) and Sobol variance decomposition (`run_sobol`); holds the `morris_params` bounds table, `apply_params` for env_data override, and `eval_params` for single design-point evaluation |
 | `R/warmup.R`                       | Welch warm-up analysis: `compute_welch_cma`, `plot_welch`, `run_welch_analysis`, and the `WARM_UP_DAYS` constant |
 | `R/app_params.R`                   | Parameter registry for the Shiny Configure panel: plain-English labels, tooltips, and get/set accessors for every editable `env_data.json` field, keyed to Morris screening bounds where applicable |
+| `R/app_config_helpers.R`           | Configure panel helpers: the saved configuration's file name and full-protocol command, triangular field detection, the density previews and the compositional split sliders |
+| `R/app_ui_fields.R`                | The Configure panel's input widgets and cards, and the renderer for each parameter group's body |
+| `R/app_ui_diagrams.R`              | The force structure, bed table and evacuation chain diagrams drawn from the live configuration |
+| `R/app_server_configure.R`         | The console state and the Configure and Run panels' server functions: scenario selection and resolution, previews, configuration transfer and validation, the Quick Run and the full-protocol command |
+| `R/app_server_analyse.R`           | The Analyse panel's server functions: one per result tab, the plot registry and the image and data downloads |
+| `R/app_server_supplementary.R`     | The Analyse panel's supplementary cards: R2B and theatre, dwell times, outcomes, Role 4, casualty surge and calibration |
 | `R/scenario.R`                     | Scenario overlay mechanism: `resolve_scenario()` applies a named profile's overrides, and `merge_scenario_vars()` merges them variable by variable onto the base configuration. The profiles themselves are defined in `env_data.json`, not here |
 | `R/scenario_runner.R`              | Comparative scenario runner; `run_scenario()`/`compare_scenarios()` execute the multi-run replication framework under a named scenario profile |
 | `app.R`                            | Shiny console with Getting Started, Configure, Run, and Analyse tabs (see [Shiny Application](#shiny-application) below) |
@@ -1261,7 +1267,7 @@ The tables and quoted figures of the results and planning papers are not typed. 
 
 #### Shiny Console Structure
 
-`server()` in `app.R` is an orchestrator rather than a worker. It creates the reactive values its panels share, then hands each panel the values that panel uses: one function per Configure group, one for the Quick Run, and one per Analyse tab. A reader tracing what a control does goes to the function named for the panel it sits on.
+`server()` in `app.R` is an orchestrator rather than a worker. It creates the reactive values its panels share, then hands each panel the values that panel uses: one function per Configure group, one for the Quick Run, and one per Analyse tab. A reader tracing what a control does goes to the function named for the panel it sits on, in `R/app_server_configure.R`, `R/app_server_analyse.R` or `R/app_server_supplementary.R`.
 
 The panels are plain functions rather than Shiny modules, and the distinction matters. A module namespaces its inputs, so converting to one would rename every control the app owns and break the browser suite's selectors along with any bookmark a user has. A plain function called from `server()` runs in the same reactive domain, so observers and outputs register exactly as before, and every input identifier is unchanged. Each panel returns every name it binds, and `server()` rebinds them, so its environment holds what it held before the split; that is what keeps `shiny::testServer()` able to reach the reactive graph.
 

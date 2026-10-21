@@ -284,7 +284,7 @@ its own job against a console it starts.
 
 A `testthat` failure names the file, the line and the expectation, and reads
 like any other check: the console's behaviour has changed, and the fix is in
-`app.R` unless the expectation itself was wrong.
+`app.R` or its `R/app_*.R` parts unless the expectation itself was wrong.
 
 A Playwright failure is read from the report the job uploads as an artifact,
 which carries a screenshot of the page at the moment of the failure and a trace

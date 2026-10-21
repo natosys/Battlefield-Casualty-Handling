@@ -7,9 +7,10 @@
 # Usage:
 #   Rscript tests/checks/check_console_bindings.R
 #
-# Exits 0 when every check passes, 1 otherwise. It loads `app.R` into an
-# environment of its own and inspects the functions it defines; it starts no
-# server, opens no browser and runs no simulation, so it finishes in seconds.
+# Exits 0 when every check passes, 1 otherwise. It loads `app.R` and its
+# `R/app_*.R` parts into an environment of its own and inspects the functions
+# they define; it starts no server, opens no browser and runs no simulation,
+# so it finishes in seconds.
 #
 # Why this check exists. The Shiny console's server function was decomposed
 # into per-panel functions, and every panel now takes the values it reads as
@@ -27,19 +28,21 @@
 #
 # What it asserts:
 #
-#   1. No function defined by `app.R` has a free variable that some other
-#      function defined by `app.R` binds as a local. That is the signature of
+#   1. No function defined by the console (`app.R` and its `R/app_*.R` parts)
+#      has a free variable that some other console function binds as a local. That is the signature of
 #      a value that used to be in scope and no longer is. A name bound at file
 #      scope is fine, and so is a data-mask column: neither is another
 #      function's local.
 #
 #   2. Every panel function is reachable, in the sense of being called
-#      somewhere in `app.R` rather than left behind by an extraction.
+#      somewhere in the console source rather than left behind by an extraction.
 #
 # The check reasons about bindings rather than about behaviour, so it covers
 # every panel at once, including those no browser test opens.
 
-SOURCE <- "app.R"
+#' The console's own source: app.R and the parts it sources from R/, the shared
+#' parameter registry excepted
+SOURCE <- c("app.R", setdiff(Sys.glob("R/app_*.R"), "R/app_params.R"))
 
 failures <- character(0)
 
@@ -91,8 +94,8 @@ local_names <- function(f) {
   unique(setdiff(out, names(formals(f))))
 }
 
-if (!file.exists(SOURCE)) {
-  cat(sprintf("[FAIL] %s does not exist.\n", SOURCE))
+if (!all(file.exists(SOURCE))) {
+  cat(sprintf("[FAIL] %s does not exist.\n", paste(SOURCE[!file.exists(SOURCE)], collapse = ", ")))
   quit(status = 1)
 }
 
@@ -114,11 +117,13 @@ suppressPackageStartupMessages({
 })
 
 env <- new.env(parent = globalenv())
-suppressMessages(sys.source(SOURCE, envir = env, keep.source = TRUE))
+# app.R sources its parts into the global environment, so each part is read
+# again into env to bring every console function under the same inspection.
+for (s in SOURCE) suppressMessages(sys.source(s, envir = env, keep.source = TRUE))
 
 objs  <- ls(env, all.names = TRUE)
 fnames <- objs[vapply(objs, function(n) is.function(get(n, envir = env)), logical(1))]
-report(length(fnames) > 0, "%s defines %d function(s)", SOURCE, length(fnames))
+report(length(fnames) > 0, "the console source defines %d function(s)", length(fnames))
 
 locals_of <- lapply(setNames(fnames, fnames), function(n) local_names(get(n, envir = env)))
 
@@ -143,7 +148,7 @@ report(length(leaks) == 0, "no function reads another function's local%s",
 
 # ── 2. Every panel function is called somewhere ─────────────────────────────
 
-src <- paste(readLines(SOURCE, warn = FALSE), collapse = "\n")
+src <- paste(unlist(lapply(SOURCE, readLines, warn = FALSE)), collapse = "\n")
 panels <- grep("^(wire|build|create|register|analyse_tab|start)_", fnames, value = TRUE)
 orphans <- Filter(function(n) {
   length(gregexpr(sprintf("(?<![\\w.])%s\\(", n), src, perl = TRUE)[[1]]) < 2 &&

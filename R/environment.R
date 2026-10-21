@@ -218,6 +218,118 @@ validate_env_data_json <- function(data, source_label = "env_data.json") {
   invisible(TRUE)
 }
 
+#' Find the triangular distributions whose bounds are out of order
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector of fault messages, empty when every triple is
+#'   ordered.
+#' @details A triple is any activity carrying `<prefix>min`, `<prefix>mode`
+#'   and `<prefix>max` together, the prefix being empty or ending in an
+#'   underscore (`window_min`). An activity carrying only some of the three
+#'   is not a triangular distribution and is left alone.
+triangular_order_faults <- function(vars) {
+  faults <- character(0)
+  for (elm in vars) {
+    for (acty in elm$actys) {
+      vals <- setNames(lapply(acty$vals, `[[`, "val"),
+                       vapply(acty$vals, `[[`, character(1), "var"))
+      keys <- grep("^(.*_)?(min|mode|max)$", names(vals), value = TRUE)
+      for (prefix in unique(sub("(min|mode|max)$", "", keys))) {
+        triple <- vals[paste0(prefix, c("min", "mode", "max"))]
+        if (any(vapply(triple, is.null, logical(1)))) next
+        ordered <- all(vapply(triple, function(v) is.numeric(v) && length(v) == 1L,
+                              logical(1))) &&
+          triple[[1]] <= triple[[2]] && triple[[2]] <= triple[[3]]
+        if (!isTRUE(ordered)) {
+          faults <- c(faults, sprintf(
+            "vars[%s]$%s: %smin <= %smode <= %smax is required, found %s / %s / %s",
+            elm$elm, acty$acty, prefix, prefix, prefix,
+            format(triple[[1]]), format(triple[[2]]), format(triple[[3]])))
+        }
+      }
+    }
+  }
+  faults
+}
+
+#' Find the casualty surge events whose minimum casualties exceed the maximum
+#'
+#' @param vars The `vars` block of a parsed configuration.
+#' @return A character vector of fault messages, empty when every pair is
+#'   ordered.
+#' @details Covers the shared random-event pair and every scheduled event,
+#'   whose minima and maxima are parallel arrays.
+surge_size_faults <- function(vars) {
+  faults <- character(0)
+  surge <- Filter(function(e) identical(e$elm, "casualty_surge"), vars)
+  for (acty in unlist(lapply(surge, `[[`, "actys"), recursive = FALSE)) {
+    vals <- setNames(lapply(acty$vals, `[[`, "val"),
+                     vapply(acty$vals, `[[`, character(1), "var"))
+    mins <- unlist(vals$min_cas)
+    maxs <- unlist(vals$max_cas)
+    if (!is.numeric(mins) || !is.numeric(maxs)) next
+    for (i in seq_len(min(length(mins), length(maxs)))) {
+      if (mins[i] > maxs[i]) {
+        faults <- c(faults, sprintf(
+          "vars[casualty_surge]$%s: min_cas must not exceed max_cas, found %s > %s%s",
+          acty$acty, format(mins[i]), format(maxs[i]),
+          if (length(mins) > 1L) sprintf(" (event %d)", i) else ""))
+      }
+    }
+  }
+  faults
+}
+
+#' Assert that a parsed configuration carries values the model can run
+#'
+#' @param data Parsed JSON list that has passed `validate_env_data_json()`.
+#' @param source_label Label naming where the configuration came from, used in
+#'   the error message (default "env_data.json").
+#' @return TRUE, invisibly, if every value is usable; otherwise stops.
+#'
+#' @details The semantic half of the check `validate_env_data_json()` makes
+#'   structurally: every force population and every echelon's team count is
+#'   above zero, every transport fleet with vehicles carries at least one
+#'   casualty per vehicle, every triangular distribution is ordered, and no
+#'   casualty surge event's minimum exceeds its maximum. Each would otherwise
+#'   run, and produce an empty pool, a casualty who can never be moved or a
+#'   draw outside its stated range, rather than fail. Every fault is reported,
+#'   not just the first.
+validate_env_data_values <- function(data, source_label = "env_data.json") {
+  problems <- character(0)
+  for (pop in data$pops) {
+    if (pop$count <= 0) {
+      problems <- c(problems, sprintf("pops[%s]$count must be above zero, found %s",
+                                      pop$name, format(pop$count)))
+    }
+  }
+  for (elm in data$elms) {
+    if (elm$qty <= 0) {
+      problems <- c(problems, sprintf("elms[%s]$qty must be above zero, found %s",
+                                      elm$elm, format(elm$qty)))
+    }
+  }
+  for (veh in data$transports) {
+    capacity <- veh$capacity
+    usable <- is.numeric(capacity) && length(capacity) == 1L && !is.na(capacity) &&
+      capacity >= 1
+    if (veh$qty > 0 && !usable) {
+      problems <- c(problems, sprintf(
+        "transports[%s]$capacity must be at least 1 while the fleet has vehicles, found %s",
+        veh$name, if (is.null(capacity)) "nothing" else format(capacity)))
+    }
+  }
+  problems <- c(problems, triangular_order_faults(data$vars), surge_size_faults(data$vars))
+
+  if (length(problems) > 0) {
+    stop(sprintf("validate_env_data_values: %s carries values the model cannot run:\n  - %s",
+                 source_label, paste(problems, collapse = "\n  - ")),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
 #' Build the resource identifier tree for every deployed element
 #'
 #' @param data Parsed `env_data.json`.
@@ -387,13 +499,21 @@ build_environment <- function(data) {
 #' @details The one place a command-line entry point reads a configuration, so
 #'   a malformed file fails before any simulation with a message naming the
 #'   file and the field at fault (`validate_env_data_json()`), and a file that
-#'   does not parse is named rather than surfacing as a parser error.
+#'   does not parse is named rather than surfacing as a parser error. Its
+#'   values are checked under every scenario profile it defines as well as on
+#'   its own (`validate_env_data_values()`), since an overlay replaces values
+#'   and can reorder a distribution the base configuration had in order.
 read_config <- function(path) {
   data <- tryCatch(fromJSON(path, simplifyVector = FALSE), error = function(e) {
     stop(sprintf("read_config: %s is not valid JSON: %s", path, conditionMessage(e)),
          call. = FALSE)
   })
   validate_env_data_json(data, path)
+  validate_env_data_values(data, path)
+  for (scenario in names(data$scenarios)) {
+    validate_env_data_values(resolve_scenario(data, scenario),
+                             sprintf("%s under scenario '%s'", path, scenario))
+  }
   data
 }
 

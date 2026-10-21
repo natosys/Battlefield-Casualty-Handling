@@ -29,10 +29,13 @@
 # would satisfy an exit-status-only check while helping nobody.
 #
 # What it does not assert is that a configuration the validator accepts is
-# operationally sensible. The checks here are structural: the blocks and
-# fields the model indexes by are present and are of the type it indexes
-# them with. Whether a rate or a probability is plausible is a modelling
-# question, checked where that parameter is read.
+# operationally sensible. The checks here are structural, the blocks and
+# fields the model indexes by being present and of the type it indexes them
+# with, plus the few values the model cannot run at all: an empty population
+# or echelon, a fleet that can carry nobody, a disordered triangular
+# distribution or casualty surge size, under the base configuration and each
+# scenario profile. Whether a rate or a probability is plausible is a
+# modelling question, checked where that parameter is read.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -241,6 +244,83 @@ both_named <- is.character(faults_msg) &&
   grepl("elms[[1]]$qty",   faults_msg, fixed = TRUE)
 if (!both_named) fail("validate_env_data_json: reported only one of two faults")
 report(both_named, "every fault in a configuration is reported, not only the first")
+
+#' Set one variable of a parsed configuration's vars block
+#'
+#' @param data Parsed configuration.
+#' @param elm Element name (`vars[[i]]$elm`).
+#' @param acty Activity name within that element.
+#' @param var Variable name within that activity.
+#' @param val Value to assign.
+#' @return `data` with the variable replaced; stops if any name is absent, so
+#'   a renamed field cannot leave a case asserting nothing.
+set_var <- function(data, elm, acty, var, val) {
+  i <- match(elm, vapply(data$vars, `[[`, character(1), "elm"))
+  j <- match(acty, vapply(data$vars[[i]]$actys, `[[`, character(1), "acty"))
+  k <- match(var, vapply(data$vars[[i]]$actys[[j]]$vals, `[[`, character(1), "var"))
+  if (anyNA(c(i, j, k))) stop(sprintf("set_var: %s/%s/%s not found", elm, acty, var))
+  data$vars[[i]]$actys[[j]]$vals[[k]]$val <- val
+  data
+}
+
+assert_accepts("the tracked env_data.json carries values the model can run",
+               validate_env_data_values(json, JSON_PATH))
+
+assert_accepts("read_config() accepts the tracked env_data.json under every scenario",
+               read_config(JSON_PATH))
+
+zero_pop <- json
+zero_pop$pops[[1]]$count <- 0
+assert_rejects("a population of zero is named", "pops[combat]$count must be above zero",
+               validate_env_data_values(zero_pop, "edited.json"))
+
+zero_teams <- json
+zero_teams$elms[[1]]$qty <- 0
+assert_rejects("an echelon with no teams is named", "elms[r1]$qty must be above zero",
+               validate_env_data_values(zero_teams, "edited.json"))
+
+no_capacity <- json
+no_capacity$transports[[1]]$capacity <- 0
+assert_rejects("a fleet that can carry nobody is named", "transports[PMVAmb]$capacity",
+               validate_env_data_values(no_capacity, "edited.json"))
+
+idle_fleet <- no_capacity
+idle_fleet$transports[[1]]$qty <- 0
+assert_accepts("a fleet of no vehicles needs no capacity",
+               validate_env_data_values(idle_fleet, "edited.json"))
+
+assert_rejects("a disordered triangular distribution is named",
+               "vars[r1]$wia_treat: min <= mode <= max is required, found 99 / 20 / 30",
+               validate_env_data_values(set_var(json, "r1", "wia_treat", "min", 99),
+                                        "edited.json"))
+
+assert_rejects("a disordered prefixed triangular distribution is named",
+               "vars[casualty_surge]$event: window_min <= window_mode <= window_max",
+               validate_env_data_values(set_var(json, "casualty_surge", "event", "window_max", 1),
+                                        "edited.json"))
+
+assert_rejects("a casualty surge event smaller at its maximum than its minimum is named",
+               "vars[casualty_surge]$event: min_cas must not exceed max_cas",
+               validate_env_data_values(set_var(json, "casualty_surge", "event", "max_cas", 1),
+                                        "edited.json"))
+
+scheduled <- set_var(json, "casualty_surge", "schedule", "min_cas", list(30, 10))
+scheduled <- set_var(scheduled, "casualty_surge", "schedule", "max_cas", list(40, 5))
+assert_rejects("a scheduled casualty surge event's disordered size is named by its index",
+               "found 10 > 5 (event 2)",
+               validate_env_data_values(scheduled, "edited.json"))
+
+# A scenario overlay replaces values, so a base configuration in order can be
+# disordered under one of its profiles; read_config() checks each profile.
+overlaid <- json
+overlaid$scenarios$high_intensity$vars <- c(overlaid$scenarios$high_intensity$vars, list(
+  list(elm = "r1", actys = list(list(acty = "wia_treat",
+                                     vals = list(list(var = "min", val = 99)))))))
+overlaid_path <- tempfile(fileext = ".json")
+jsonlite::write_json(overlaid, overlaid_path, auto_unbox = TRUE, digits = NA)
+assert_rejects("a fault a scenario overlay introduces is named with the scenario",
+               "under scenario 'high_intensity'",
+               read_config(overlaid_path))
 
 # ── CLI entry points ────────────────────────────────────────────────────────
 #

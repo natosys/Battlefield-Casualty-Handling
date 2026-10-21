@@ -679,7 +679,7 @@ measure_forward_hold_arm <- function(env_data_base, arm, n_rep, n_days, max_core
 #'   mortality. Holding a casualty forward moves ICU load from an
 #'   intensivist-led facility to one without an intensivist, and
 #'   `r2b_icu_penalty` prices that difference into the DOW ceiling (see
-#'   r2b_post_op_stabilisation(), R/trajectories.R), so the two panels move
+#'   r2b_post_op_stabilisation(), R/trajectories_r2b.R), so the two panels move
 #'   in opposite directions and the frontier between them is the planner's
 #'   actual decision surface. Reporting the frontier is more useful than
 #'   choosing a single rule on the planner's behalf, which is why the

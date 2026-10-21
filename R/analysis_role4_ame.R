@@ -217,7 +217,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
 #'   R2E begins rather than starting a new one, so the days owed here are the
 #'   casualty's whole post-operative requirement less what theatre already
 #'   served. That is the contract draw_stabilisation_icu() already applies
-#'   across R2B and R2E (R/trajectories.R): one requirement, divided between
+#'   across R2B and R2E (R/trajectories_common.R): one requirement, divided between
 #'   the echelons that serve it, so the total cannot depend on the route.
 #'   post_definitive_min records the minutes theatre served and is set for
 #'   operated casualties alone, so an unoperated evacuee is owed nothing here
@@ -585,7 +585,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 }
 
 # ── Strategic AME queue depth and sortie timeline visualisation ───────────────
-# build_ame_sortie_trajectory() (R/trajectories.R) keeps no sortie log of its
+# build_ame_sortie_trajectory() (R/trajectories_schedules.R) keeps no sortie log of its
 # own — every outcome (flown or cancelled) has to be reconstructed from
 # the "ame"/"ame_critical" resource monitor. The schedule
 # itself is fully deterministic (fixed `at(seq(...))` times, R/replication.R),
@@ -615,7 +615,7 @@ compute_ame_demand <- function(arrivals_log, ame_capacity) {
 #'   backlog waiting at the exact instant this sortie fires — a first-pass
 #'   implementation used that instantaneous reading and, verified against a
 #'   real seed-42 run, was consistently zero: `r2e_ame_wait_and_board()`
-#'   (R/trajectories.R) lets a casualty seize freed capacity the moment it
+#'   (R/trajectories_r2e.R) lets a casualty seize freed capacity the moment it
 #'   arrives, with no queueing step, so a sortie's newly added (or
 #'   previously banked — see MODEL ASSUMPTION — AME Capacity Banking) seats
 #'   are typically claimed by arrivals in the days *following* the sortie,
@@ -727,7 +727,7 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #'
 #' @details A waiting casualty never registers in simmer's own queue
 #'   tracking for `"ame"`/`"ame_critical"`: `r2e_ame_wait_and_board()`
-#'   (R/trajectories.R) uses a manual `timeout()` + `rollback()` polling
+#'   (R/trajectories_r2e.R) uses a manual `timeout()` + `rollback()` polling
 #'   loop (`r2e_ame_dow_poll()`) rather than `select()`/`seize_selected()` or a
 #'   blocking `seize()`, calling `seize(resource_name, 1)` only once
 #'   capacity is already confirmed available — so the resource monitor's

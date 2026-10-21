@@ -316,7 +316,8 @@ report(all(is.na(num(released$return_echelon)) | num(released$return_echelon) !=
 
 cat("\n-- what the trigger counts --\n")
 
-queue_src <- paste(readLines("R/trajectories.R", warn = FALSE), collapse = "\n")
+queue_src <- paste(unlist(lapply(Sys.glob("R/trajectories*.R"), readLines, warn = FALSE)),
+                   collapse = "\n")
 report(grepl("waiting_for_room", queue_src, fixed = TRUE) &&
          grepl("waiting_for_staff", queue_src, fixed = TRUE),
        "the theatre queue sums the casualties waiting for a room and those waiting for a section")

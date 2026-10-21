@@ -21,7 +21,7 @@
 # running the model and inspecting the resource monitor.
 #
 # The structural half locates the surgical blocks by the name format
-# R2E_SURGERY_SECTION_FMT, which R/trajectories.R owns and this script reads,
+# R2E_SURGERY_SECTION_FMT, which R/trajectories_common.R owns and this script reads,
 # so renaming those blocks cannot leave the check searching for a label the
 # model no longer uses. A pattern that matches nothing is reported as a
 # check-integrity problem rather than a model defect, since the two call for
@@ -73,7 +73,7 @@ report <- function(ok, fmt, ...) {
 
 #' Regex matching a surgical section block header, derived from its name format
 #'
-#' The format is owned by R/trajectories.R, so the check follows a rename
+#' The format is owned by R/trajectories_common.R, so the check follows a rename
 #' rather than carrying its own copy of the label. Literal regex metacharacters
 #' in the format are escaped and the "%d" becomes a capturing group, so the
 #' section index can be read back off each matched header.
@@ -127,7 +127,7 @@ for (team_id in seq_along(env_data$elms$r2eheavy)) {
     broken(paste("team %d: this check could not locate any R2E surgical",
                  "section block matching /%s/ — the model may be sound and the",
                  "check unable to see it, so confirm the block names in",
-                 "R/trajectories.R before treating this as a model defect"),
+                 "R/trajectories_r2e.R before treating this as a model defect"),
            team_id, block_pattern)
     report(FALSE, "team %d: no block matched /%s/ — check integrity, not model",
            team_id, block_pattern)

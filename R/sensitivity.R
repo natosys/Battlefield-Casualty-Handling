@@ -340,7 +340,7 @@ composition_coord_bounds <- function(g) {
 #'   simulation state (and therefore every downstream KPI) for the
 #'   remainder of any OAT trajectory that perturbed this parameter above
 #'   1.1. See README Limitation L18 follow-up note for the incident.
-#'   `validate_fill_distribution()` (R/trajectories.R) raises this ordering
+#'   `validate_fill_distribution()` (R/trajectories_schedules.R) raises this ordering
 #'   violation as an error rather than leaving it to surface as an NA
 #'   cascade; the bound stays where it is,
 #'   an error being a worse outcome for a screening run than a bound that

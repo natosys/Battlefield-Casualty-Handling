@@ -126,7 +126,7 @@ POLICY_POOLS <- c(
 #'   then a surgical section, so a casualty waiting to be operated on is queued
 #'   on one or the other and counting either alone counts half the backlog.
 #'   These are the monitor's names for the two stages `r2e_theatre_queue()`
-#'   reads live inside the model (R/trajectories.R), so the swept response and
+#'   reads live inside the model (R/trajectories_r2e.R), so the swept response and
 #'   the decision the sweep varies measure the same quantity.
 POLICY_THEATRE_POOLS <- c(
   "^b_r2eheavy_ot_[0-9]+_t[0-9]+$",

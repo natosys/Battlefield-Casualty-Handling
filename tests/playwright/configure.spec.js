@@ -40,7 +40,7 @@ test.describe('Configure', () => {
     await expectNoOutputErrors(page);
   });
 
-  test('the Run tab hands replicated work to the command line', async ({ page }) => {
+  test('the Run tab hands every run to the command line', async ({ page }) => {
     await page.locator('#config_filename').fill('plan_a');
     await page.locator('#config_filename').blur();
     await openTab(page, 'Run');
@@ -48,8 +48,8 @@ test.describe('Configure', () => {
 
     await expect(page.locator('#full_protocol_command'))
       .toContainText('Rscript run.R --config plan_a.json --seed 42 --iterations 30 --days 360');
-    // The console offers a single-replication check and nothing replicated.
-    await expect(page.locator('#run_quick')).toBeVisible();
+    // The console runs nothing itself: no Quick Run and no replicated run.
+    await expect(page.locator('#run_quick')).toHaveCount(0);
     await expect(page.locator('#run_full')).toHaveCount(0);
     await expect(page.locator('#n_reps')).toHaveCount(0);
     await expectNoOutputErrors(page);

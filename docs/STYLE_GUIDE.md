@@ -291,7 +291,7 @@ See [Regression check scripts](#regression-check-scripts).
 | Scenario overlay resolution and merging | `R/scenario.R` |
 | Running the replication framework under a named scenario | `R/scenario_runner.R` |
 | The Shiny Configure panel's parameter registry | `R/app_params.R` |
-| Shiny UI and server logic | `app.R` |
+| Shiny UI and server logic | `app.R` and its `R/app_*.R` parts |
 | Command line parsing and orchestration for the main entry point | `run.R` |
 
 A function that fits none of these needs a new module and a note in the

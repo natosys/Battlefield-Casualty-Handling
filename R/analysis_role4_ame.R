@@ -856,8 +856,8 @@ plot_ame_queue <- function(backlog_data) {
 #' @details Values are averaged across replications at each scheduled
 #'   `sortie_day` (a fixed, schedule-determined x-axis shared by every
 #'   replication) before plotting — in single-run mode this mean is simply
-#'   the observed value, so the same code path serves both Quick Run and
-#'   Full Analysis without a branch. The grey bar is mean capacity added
+#'   the observed value, so the same code path serves a single run and a
+#'   replicated one without a branch. The grey bar is mean capacity added
 #'   (seats the sortie brought, 0 for a cancelled sortie); the coloured bar
 #'   is mean seats boarded before the next scheduled sortie (see
 #'   `compute_ame_sorties()`'s `seats_used` roxygen), coloured by the modal

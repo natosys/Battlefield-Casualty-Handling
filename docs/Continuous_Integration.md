@@ -284,15 +284,14 @@ its own job against a console it starts.
 
 A `testthat` failure names the file, the line and the expectation, and reads
 like any other check: the console's behaviour has changed, and the fix is in
-`app.R` unless the expectation itself was wrong.
+`app.R` or its `R/app_*.R` parts unless the expectation itself was wrong.
 
 A Playwright failure is read from the report the job uploads as an artifact,
 which carries a screenshot of the page at the moment of the failure and a trace
 of everything that led to it. Open the trace with
 `npx playwright show-trace <path>`. Two failures are worth telling apart before
-reaching for the app. A test that times out waiting for a Quick Run to finish
-may be reporting a slow runner rather than a broken console; the run itself is
-a real simulation. And a test that fails to find an element by its accessible
+reaching for the app. A test that times out waiting for a Configure group to
+render may be reporting a slow runner rather than a broken console. And a test that fails to find an element by its accessible
 name is reporting that the markup moved, which is a real change to the app but
 not necessarily a defect in it, so the expectation moves with it.
 

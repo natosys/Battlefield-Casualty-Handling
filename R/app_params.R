@@ -12,8 +12,7 @@ source("R/constants.R")
 # nested-list structure produced by build_environment() that the simulation
 # engine consumes. Editing the raw tree means Save Configuration can write
 # it back to env_data.json unchanged in shape; build_environment() converts
-# a (possibly edited, in-memory) copy to the engine's structure immediately
-# before each Quick Run.
+# a saved copy to the engine's structure when run.R loads it.
 #
 # Assumes morris_params (R/sensitivity.R) is already loaded in the calling
 # session, so Morris-screened fields can borrow their lower/upper bounds.
@@ -227,8 +226,8 @@ GRP_CASUALTY_SURGE <- "Casualty Surge"
 
 #' Maximum candidate event slots the Scheduled Event Days grid supports
 #'
-#' @details The registry is a fixed-size list, Save, Load, Quick Run and
-#'   validation all reading a static field set, so app.R's "+ Add Event" and
+#' @details The registry is a fixed-size list, Save and Load both reading a
+#'   static field set, so app.R's "+ Add Event" and
 #'   "Remove Last Event" controls reveal and hide rows up to this cap rather
 #'   than growing the registry. A slot whose Day field is 0 is unused, as
 #'   get_casualty_surge_schedule_slot() and generate_casualty_surge_events()

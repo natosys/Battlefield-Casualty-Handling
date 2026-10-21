@@ -7,13 +7,9 @@
 # Usage:
 #   Rscript tests/playwright/serve.R [port]
 #
-# Started by playwright.config.js's webServer, not by hand. It exists as a
-# script rather than as an inline `-e` expression because the console's Quick
-# Run dispatches its work to a `future` multisession worker, and a worker
-# started from a session whose own standard input is the expression pipe
-# `R -e` leaves behind fails on the first write back to its parent, surfacing
-# in the app as "Run failed: ignoring SIGPIPE signal". Run as a script under
-# Rscript, the same run completes.
+# Started by playwright.config.js's webServer, not by hand. It is a script
+# rather than an inline `-e` expression so the launch validates its port and
+# can be run by hand against the same app the suite uses.
 #
 # The port defaults to the one playwright.config.js uses, so running this by
 # hand and pointing the suite at it with BCH_APP_PORT is a working way to

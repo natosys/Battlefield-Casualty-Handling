@@ -3,7 +3,7 @@
 // Shiny renders every panel from the server, so almost every assertion here
 // has to wait for a round trip rather than for a page load. The waits below
 // are expressed against what the user would look at (a control being enabled,
-// a plot image having pixels) rather than against Shiny's internal busy flag,
+// a diagram having rendered) rather than against Shiny's internal busy flag,
 // which flickers between the several messages one interaction produces.
 
 const { expect } = require('@playwright/test');
@@ -11,9 +11,8 @@ const { expect } = require('@playwright/test');
 /**
  * Open one of the console's top-level tabs and wait for it to be shown.
  *
- * page_navbar() renders its panels as a tablist, and the Analyse panel holds a
- * second tablist of its own, so the lookup is scoped to the navbar rather than
- * matching by role across the whole page.
+ * page_navbar() renders its panels as a tablist, so the lookup is scoped to the
+ * navbar rather than matching by role across the whole page.
  *
  * @param {import('@playwright/test').Page} page
  * @param {string} name Tab label as it appears in the navbar.
@@ -31,22 +30,6 @@ async function openTab(page, name) {
  */
 function activePanel(page) {
   return page.locator('.tab-content > .tab-pane.active').first();
-}
-
-/**
- * One tab control inside a container, by its exact visible text.
- *
- * Bootstrap upgrades a nav from a plain list of links to a tablist once it has
- * initialised, so the same control reports a different accessible role before
- * and after. Matching the markup Shiny actually emits is stable across both.
- *
- * @param {import('@playwright/test').Locator} container
- * @param {string} name Exact tab label.
- * @returns {import('@playwright/test').Locator}
- */
-function tabControl(container, name) {
-  const exact = new RegExp(`^\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
-  return container.locator('a[data-bs-toggle="tab"]').filter({ hasText: exact }).first();
 }
 
 /**
@@ -89,26 +72,6 @@ async function openAccordionPanel(page, heading) {
 }
 
 /**
- * Assert that a plot output has rendered a non-empty image.
- *
- * Deliberately not a pixel comparison: this checks that the plot exists, that
- * Shiny attached an image to it, and that the image has real dimensions. A
- * ggplot that errored renders no image at all, which is the failure worth
- * catching; how it looks is out of scope for this suite.
- *
- * @param {import('@playwright/test').Page} page
- * @param {string} outputId Shiny output id of the plot.
- */
-async function expectPlotRendered(page, outputId) {
-  const image = page.locator(`#${outputId} img`);
-  await expect(image).toBeVisible({ timeout: 120000 });
-  const box = await image.boundingBox();
-  expect(box.width).toBeGreaterThan(50);
-  expect(box.height).toBeGreaterThan(50);
-  await expect(image).toHaveAttribute('src', /.+/);
-}
-
-/**
  * Assert that nothing on the page is reporting an R error.
  *
  * Shiny renders a failed output as .shiny-output-error, with the message in
@@ -125,9 +88,7 @@ async function expectNoOutputErrors(page) {
 module.exports = {
   openTab,
   activePanel,
-  tabControl,
   waitForShinyIdle,
   openAccordionPanel,
-  expectPlotRendered,
   expectNoOutputErrors,
 };

@@ -1438,8 +1438,8 @@ build_morris_top <- function(data_dir, response = "r2e_ot_q", n = 20L, dp = 2L) 
 #' Screened parameters whose shipped value is an informed estimate
 #'
 #' @details The parameters README Further Development L37 records as informed
-#'   estimates although a cited source bears on them, the ones whose
-#'   re-anchoring would move the seed-42 baseline. The two casualty surge
+#'   estimates needing verification, the ones whose re-anchoring would move
+#'   the seed-42 baseline. The two casualty surge
 #'   coordinates carry its triage split.
 MORRIS_ESTIMATE_PARAMETERS <- c(
   "disease_surgery_pct",

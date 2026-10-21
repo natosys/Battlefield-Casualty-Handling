@@ -1446,7 +1446,7 @@ The Sobol decomposition of nine coordinates on the R2E operating theatre queue g
 
 The table compares the leading total-order indices of the R2E operating theatre queue and the surgical delivery share, first against second and second against third, as a bootstrapped difference over the design, the probability that the first exceeds the second, and the Sobol sample size $N$ each comparison would need to separate at 95%.
 
-The parameters below are those whose shipped value the [system reference](../README.md#further-development) records as an informed estimate although a cited source bears on them (Further Development L37). The table gives the rank of each by $\mu^*$ among the 79 screened parameters on six responses of the same 360-day screen, so a rank groups a parameter by influence rather than placing it exactly, as for the tables above. The Role 4 parameters act after the simulation, so no in-theatre response in the table depends on them.
+The parameters below are those whose shipped value the [system reference](../README.md#further-development) records as an informed estimate needing verification (Further Development L37). The table gives the rank of each by $\mu^*$ among the 79 screened parameters on six responses of the same 360-day screen, so a rank groups a parameter by influence rather than placing it exactly, as for the tables above. The Role 4 parameters act after the simulation, so no in-theatre response in the table depends on them.
 
 <!-- GEN morris_estimates -->
 | Parameter | Died of wounds | R2E theatre queue | R2E ICU queue | R2E holding queue | Time to surgery | Role 4 occupancy |

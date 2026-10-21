@@ -43,12 +43,15 @@ source("R/analysis.R")
 source("R/sensitivity.R")
 source("R/warmup.R")
 source("R/app_params.R")
-source("R/app_config_helpers.R")
-source("R/app_ui_fields.R")
-source("R/app_ui_diagrams.R")
-source("R/app_server_configure.R")
-source("R/app_server_analyse.R")
-source("R/app_server_supplementary.R")
+# The console's parts are sourced into this file's own environment rather
+# than the global one: runApp() evaluates app.R in an environment of its own,
+# and the parts read the constants defined here (DEFAULT_JSON and others).
+source("R/app_config_helpers.R", local = TRUE)
+source("R/app_ui_fields.R", local = TRUE)
+source("R/app_ui_diagrams.R", local = TRUE)
+source("R/app_server_configure.R", local = TRUE)
+source("R/app_server_analyse.R", local = TRUE)
+source("R/app_server_supplementary.R", local = TRUE)
 
 # Quick Run calls run_once() directly with no inner forking, so a plain
 # multisession future is sufficient: the worker is a separate process and the

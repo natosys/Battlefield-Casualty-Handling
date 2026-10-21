@@ -1446,6 +1446,31 @@ The Sobol decomposition of nine coordinates on the R2E operating theatre queue g
 
 The table compares the leading total-order indices of the R2E operating theatre queue and the surgical delivery share, first against second and second against third, as a bootstrapped difference over the design, the probability that the first exceeds the second, and the Sobol sample size $N$ each comparison would need to separate at 95%.
 
+The parameters below are those whose shipped value the [system reference](../README.md#further-development) records as an informed estimate although a cited source bears on them (Further Development L37). The table gives the rank of each by $\mu^*$ among the 79 screened parameters on six responses of the same 360-day screen, so a rank groups a parameter by influence rather than placing it exactly, as for the tables above. The Role 4 parameters act after the simulation, so no in-theatre response in the table depends on them.
+
+<!-- GEN morris_estimates -->
+| Parameter | Died of wounds | R2E theatre queue | R2E ICU queue | R2E holding queue | Time to surgery | Role 4 occupancy |
+|---|---|---|---|---|---|---|
+| `disease_surgery_pct` | 11 | 37 | 23 | 66 | 39 | 65 |
+| `r1_wia_treat_mode` | 70 | 23 | 59 | 72 | 29 | 39 |
+| `short_resus_mode` | 45 | 44 | 25 | 56 | 58 | 67 |
+| `long_resus_mode` | 78 | 74 | 71 | 79 | 71 | 69 |
+| `p1_k` | 58 | 16 | 67 | 73 | 12 | 47 |
+| `p1_t_mid` | 33 | 48 | 72 | 70 | 27 | 28 |
+| `p2_k` | 39 | 76 | 40 | 32 | 33 | 16 |
+| `p2_t_mid` | 57 | 55 | 60 | 51 | 73 | 62 |
+| `r2e_vent_share` | 64 | 49 | 8 | 35 | 68 | 66 |
+| `r2e_critical_hold_mode` | 47 | 28 | 56 | 43 | 37 | 33 |
+| `post_definitive_icu_mode` | 52 | 60 | 37 | 36 | 79 | 25 |
+| `role4_los_p1_surgical_mode` | 76 | 40 | 58 | 53 | 32 | 21 |
+| `role4_los_p1_nonsurgical_mode` | 37 | 45 | 48 | 48 | 41 | 40 |
+| `role4_los_p2_mode` | 79 | 17 | 68 | 40 | 35 | 71 |
+| `role4_los_p3_dnbi_mode` | 73 | 53 | 65 | 46 | 61 | 41 |
+| `role4_post_reconstruction_return_rate` | 46 | 34 | 62 | 45 | 40 | 54 |
+| `mc_p1_balance` | 71 | 9 | 6 | 18 | 9 | 12 |
+| `mc_p2_p3_balance` | 62 | 47 | 47 | 41 | 55 | 17 |
+<!-- /GEN -->
+
 ---
 
 ## Annex A. Model Verification of One Seed-42 Campaign

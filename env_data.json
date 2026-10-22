@@ -963,7 +963,7 @@
           "acty": "los_p1_surgical",
           "vals": [
             { "var": "min",  "val": 10 },
-            { "var": "mode", "val": 21 },
+            { "var": "mode", "val": 28 },
             { "var": "max",  "val": 45 }
           ]
         },
@@ -987,7 +987,7 @@
           "acty": "los_p3_dnbi",
           "vals": [
             { "var": "min",  "val": 2 },
-            { "var": "mode", "val": 5 },
+            { "var": "mode", "val": 3 },
             { "var": "max",  "val": 14 }
           ]
         },

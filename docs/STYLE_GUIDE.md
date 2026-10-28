@@ -283,7 +283,7 @@ See [Regression check scripts](#regression-check-scripts).
 | Concern | File |
 |---|---|
 | Reading `env_data.json`, generating arrivals, building the simmer environment | `R/environment.R` |
-| Any `trajectory()` definition and its helpers | `R/trajectories.R` |
+| Any `trajectory()` definition and its helpers | The `R/trajectories_*.R` part for its echelon (`_casualty` for R1, `_r2b`, `_r2e`, `_schedules`), with helpers shared across echelons in `R/trajectories_common.R`, all loaded through `R/trajectories.R` |
 | Running one replication, running many, aggregating across them | `R/replication.R` |
 | Computing a KPI, writing a CSV, producing a plot | The `R/analysis_*.R` part for its domain, loaded through `R/analysis.R` |
 | Morris screening, Sobol decomposition, and their design and response handling | `R/sensitivity.R` |

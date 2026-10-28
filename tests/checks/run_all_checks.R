@@ -59,9 +59,17 @@ DEFAULT_COST_SECS <- 30
 # machine's, not the runner's, and each job holds a full R process open.
 AUTO_JOBS_CAP     <- 8L
 
-# Checks too slow for a per-pull-request gate, with the runtime measured in
-# tests/checks/check_runtimes.csv. Add a check here only on the evidence of a measurement.
-SLOW_CHECKS <- c("check_dow_calibration.R")
+# Checks kept off the per-pull-request gate. The first is too slow for it, with
+# the runtime measured in tests/checks/check_runtimes.csv; add a check on that
+# ground only on the evidence of a measurement. The rest check the retired
+# sensitivity screens' code and tracked caches: the screens are unsupported
+# tooling rather than evidence (docs/Methods.md, Sensitivity Screens), so a
+# change elsewhere should not fail the gate on them, but the code stays runnable
+# and the weekly schedule keeps it so. The vector stays a literal, because
+# scripts/render_check_table.R reads it out of this file's source.
+SLOW_CHECKS <- c("check_dow_calibration.R",
+                 "check_composition_ilr.R", "check_screen_cache.R", "check_screen_order.R",
+                 "check_sensitivity_protocol.R", "check_surgery_delivery_response.R")
 
 #' Print a message to standard error without a call prefix
 #'

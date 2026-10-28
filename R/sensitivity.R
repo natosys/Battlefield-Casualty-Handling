@@ -2,6 +2,15 @@
 ## R/sensitivity.R                          ##
 ## Morris EE screening + Sobol follow-up   ##
 ##############################################
+#
+# Unsupported tooling. The screens this module runs are not evidence for any
+# finding: docs/Methods.md (Sensitivity Screens) records why they were set
+# aside. Under --point-workers, which produced both tracked screens, each
+# design point is seeded from its own index (evaluate_design_concurrently()),
+# so the two points of an elementary effect share no random numbers and each
+# effect carries the full replication noise. A future screen needs common
+# random numbers, seeded by trajectory for Morris and by design row for Sobol.
+# The code is kept runnable and its checks run in the weekly slow suite.
 
 library(sensitivity)
 library(dplyr)
@@ -269,10 +278,9 @@ composition_coord_bounds <- function(g) {
 #'   displays the same column to a planner under the heading `Baseline`.
 #'   Neither use is exercised by an ordinary run, which is why two values
 #'   were able to drift out of their own bounds and a third out of agreement
-#'   with `env_data.json` unnoticed. Two guards now hold
-#'   the column: the bounds assertion below, and
-#'   `tests/checks/check_morris_baseline.R`, which asserts agreement with
-#'   `env_data.json` itself.
+#'   with `env_data.json` unnoticed. The bounds assertion below holds the
+#'   column; agreement with `env_data.json` is no longer checked, the
+#'   screens being unsupported tooling rather than evidence.
 #'
 #' @details The screened parameters (a full-coverage audit of the
 #'   configuration, less the exclusions noted below) span treatment durations (surgery,
@@ -1438,11 +1446,13 @@ eval_params <- function(params_row, n_rep, n_days, max_cores = NULL,
   p <- setNames(as.numeric(params_row), morris_params$name)
 
   env_data <<- apply_params(env_data_base, p)
-  # Common random numbers, stated explicitly rather than relied on. Design
-  # points already share their replication seeds without this, because
-  # run_replications() snapshots the caller's RNG stream position and restores
-  # it on exit (see its @details), so consecutive calls draw the same seed
-  # vector. That is a property of a function written for measurement
+  # Common random numbers, stated explicitly rather than relied on. Under
+  # sequential evaluation, design points share their replication seeds without
+  # this, because run_replications() snapshots the caller's RNG stream position
+  # and restores it on exit (see its @details), so consecutive calls draw the
+  # same seed vector. Under concurrent evaluation (--point-workers) they do
+  # not: evaluate_design_concurrently() seeds each point from its own index
+  # before calling this function, so points share no seeds. That is a property of a function written for measurement
   # reproducibility, not a guarantee this one asked for, and a screen that
   # depends on it should say so instead of inheriting it by side effect.
   # Setting crn_seed pins the behaviour here and keeps the screen correct if

@@ -4,6 +4,15 @@
 ## Morris EE sensitivity analysis runner   ##
 ##############################################
 #
+# Unsupported tooling. The screens this script runs are not evidence for any
+# finding: docs/Methods.md (Sensitivity Screens) records why they were set
+# aside. Under --point-workers, which produced both tracked screens, each
+# design point is seeded from its own index (evaluate_design_concurrently()),
+# so the two points of an elementary effect share no random numbers and each
+# effect carries the full replication noise. A future screen needs common
+# random numbers, seeded by trajectory for Morris and by design row for Sobol.
+# The code is kept runnable and its checks run in the weekly slow suite.
+#
 # Terminal / Claude Code cloud:
 #   Rscript scripts/run_sensitivity.R                    # full Morris (r=20, reps=4, 360 days)
 #   Rscript scripts/run_sensitivity.R --point-workers 4 --cache-dir outputs/cache/morris_r20_d360
@@ -74,10 +83,12 @@ option_list <- list(
               help = paste(
                 "Pin the seed before every design point's replications, so the",
                 "screen runs one noise realisation independent of whatever the",
-                "ambient stream had reached [default: unpinned]. Design points",
-                "already share a seed vector without this, run_replications()",
-                "restoring the caller's stream position, but which vector they",
-                "share is not fixed. Pinning is therefore not free: a pinned",
+                "ambient stream had reached [default: unpinned]. Evaluated",
+                "sequentially, design points already share a seed vector",
+                "without this, run_replications() restoring the caller's stream",
+                "position, but which vector they share is not fixed; under",
+                "--point-workers each point is seeded from its own index and",
+                "points share none. Pinning is therefore not free: a pinned",
                 "screen and an unpinned one return different responses, so a",
                 "cache from one must not be resumed by the other, and the",
                 "default is unpinned because that is what produced the",

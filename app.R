@@ -28,7 +28,6 @@ suppressPackageStartupMessages({
 
 source("R/environment.R")
 source("R/trajectories.R")
-source("R/sensitivity.R")
 source("R/app_params.R")
 # The console's parts are sourced into this file's own environment rather
 # than the global one: runApp() evaluates app.R in an environment of its own,
@@ -98,7 +97,7 @@ ui <- page_navbar(
     p(class = "text-muted",
       "Adjust simulation parameters below, grouped by operational concept. ",
       "Hover the ", tags$b("ⓘ"), " icon next to any field for an explanation. ",
-      "Sliders show the plausible range screened in the project's Morris sensitivity analysis."),
+      "Sliders span a plausible range for each parameter and widen to admit any loaded value."),
     fluidRow(
       column(4, uiOutput("scenario_selector_ui")),
       column(3, fileInput("upload_json", "Load Configuration (.json)", accept = ".json")),

@@ -6,11 +6,11 @@
 
 **Background**
 
-A discrete event simulation of an Australian brigade-sized force and its land-based trauma system produces measurements that planners can read without the model's own interpretation attached. This document reports those measurements and nothing else: every replicated experiment, the verification of one seed-42 campaign, and the sensitivity screens.
+A discrete event simulation of an Australian brigade-sized force and its land-based trauma system produces measurements that planners can read without the model's own interpretation attached. This document reports those measurements and nothing else: every replicated experiment and the verification of one seed-42 campaign, with a statement of why the sensitivity screens are not reported.
 
 **Methods**
 
-Each replicated experiment ran 30 independent replications of a 360-day campaign under the shipped configuration or a named variation, and measured queues and occupancy as whole-pool totals over each campaign's closing 90 days. The sensitivity screens ran over the same 360-day campaign. Intervals are 95% Student $t$ intervals about the mean of per-replication values unless a section states otherwise. The designs are in [Methods](Methods.md).
+Each replicated experiment ran 30 independent replications of a 360-day campaign under the shipped configuration or a named variation, and measured queues and occupancy as whole-pool totals over each campaign's closing 90 days. Intervals are 95% Student $t$ intervals about the mean of per-replication values unless a section states otherwise. The designs are in [Methods](Methods.md).
 
 **Results**
 
@@ -1343,133 +1343,7 @@ The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ i
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** Which of the 79 screened parameters most influence the R2E operating theatre queue and the share of casualties requiring surgery who are operated on, over a 360-day campaign, and how is that influence divided among the leading nine? `[default · 360 d · Morris r = 20 with 4 replications per point; Sobol N = 96 with 4 replications per point]`
-
-<!-- GEN morris_top -->
-| Rank | Parameter | µ* | σ |
-|---|---|---|---|
-| 1 | `casualty_surge_rate` | 48.62 | 96.75 |
-| 2 | `pri1_dcs_rate` | 18.57 | 45.22 |
-| 3 | `pri1_surg_prob` | 14.64 | 37.26 |
-| 4 | `wia_spt_mean` | 13.28 | 42.62 |
-| 5 | `r2e_dcs2_factor` | 13.27 | 33.85 |
-| 6 | `wia_cbt_mean` | 13.03 | 41.74 |
-| 7 | `triage_p1_balance` | 12.55 | 33.31 |
-| 8 | `casualty_surge_kia_fraction` | 12.23 | 38.95 |
-| 9 | `mc_p1_balance` | 12.15 | 34.89 |
-| 10 | `pri1_evac_prob` | 11.20 | 26.07 |
-| 11 | `casualty_surge_max_cas` | 9.97 | 32.20 |
-| 12 | `evacuation_policy_days` | 9.65 | 32.53 |
-| 13 | `r2e_hold_mode` | 9.29 | 25.69 |
-| 14 | `ot_hours` | 9.26 | 31.09 |
-| 15 | `fr_demand_interval_days` | 9.12 | 28.68 |
-| 16 | `p1_k` | 8.72 | 20.41 |
-| 17 | `role4_los_p2_mode` | 8.42 | 24.29 |
-| 18 | `p3_flat` | 8.37 | 22.35 |
-| 19 | `saturation_queue_threshold` | 8.31 | 29.04 |
-| 20 | `r2b_transport` | 8.05 | 23.83 |
-<!-- /GEN -->
-
-The table lists the twenty parameters with the largest Morris $\mu^*$ on the R2E operating theatre queue, of 79 screened. <!-- GEN cell:morris_top|1|Parameter|full -->`casualty_surge_rate`<!-- /GEN --> ranked first at $\mu^*$ = <!-- GEN cell:morris_top|1|µ*|full -->48.62<!-- /GEN -->, and <!-- GEN cell:morris_top|2|Parameter|full -->`pri1_dcs_rate`<!-- /GEN --> second at <!-- GEN cell:morris_top|2|µ*|full -->18.57<!-- /GEN -->. The parameters ranked third to seventh lay between $\mu^*$ = <!-- GEN cell:morris_top|3|µ*|full -->14.64<!-- /GEN --> and <!-- GEN cell:morris_top|7|µ*|full -->12.55<!-- /GEN -->.
-
-<!-- GEN morris_delivery -->
-| Rank | Parameter | µ* | σ |
-|---|---|---|---|
-| 1 | `pri1_evac_prob` | 0.188 | 0.042 |
-| 2 | `triage_p1_balance` | 0.099 | 0.049 |
-| 3 | `casualty_surge_rate` | 0.070 | 0.082 |
-| 4 | `mc_p1_balance` | 0.043 | 0.040 |
-| 5 | `pri3_other_surg_prob` | 0.042 | 0.024 |
-| 6 | `pri2_evac_prob` | 0.040 | 0.035 |
-| 7 | `evacuation_policy_days` | 0.039 | 0.050 |
-| 8 | `pri2_surg_prob` | 0.036 | 0.027 |
-| 9 | `ame_schedule_interval_days` | 0.031 | 0.066 |
-| 10 | `casualty_surge_max_cas` | 0.030 | 0.036 |
-<!-- /GEN -->
-
-The table lists the ten parameters with the largest Morris $\mu^*$ on the surgical delivery share, `surgery_delivery_rate`, the share of casualties requiring surgery who were operated on in theatre at either echelon. <!-- GEN cell:morris_delivery|1|Parameter|full -->`pri1_evac_prob`<!-- /GEN --> ranked first at $\mu^*$ = <!-- GEN cell:morris_delivery|1|µ*|full -->0.188<!-- /GEN -->, and <!-- GEN cell:morris_delivery|2|Parameter|full -->`triage_p1_balance`<!-- /GEN --> second at <!-- GEN cell:morris_delivery|2|µ*|full -->0.099<!-- /GEN -->.
-
-Scatter plots of the screen for seven responses follow. Each plots every screened parameter at its mean absolute elementary effect on the horizontal axis against the standard deviation of its elementary effects on the vertical axis, coloured by the parameter's category: scenario context, health system capacity or health system policy.
-
-![Placeholder panel for the Morris screening of the mean R2B operating theatre queue](../images/morris_r2b_ot_q.png)
-
-The response is degenerate, the forward theatre queue standing at zero at every design point, so no parameter produced an elementary effect and none is ranked.
-
-![Morris screening scatter plot of the mean R2E operating theatre queue](../images/morris_r2e_ot_q.png)
-
-Screening of the mean R2E operating theatre queue.
-
-![Morris screening scatter plot of the surgical delivery share](../images/morris_surgery_delivery_rate.png)
-
-Screening of the share of casualties requiring surgery who were operated on in theatre.
-
-![Morris screening scatter plot of the mean R2E intensive care queue](../images/morris_r2e_icu_q.png)
-
-Screening of the mean R2E intensive care queue.
-
-![Morris screening scatter plot of the total died-of-wounds count](../images/morris_dow_count.png)
-
-Screening of the total died-of-wounds count.
-
-![Morris screening scatter plot of the mean transport queue across the PMV Ambulance and HX240M fleets](../images/morris_transport_q.png)
-
-Screening of the mean transport queue across the PMV Ambulance and HX240M fleets.
-
-![Morris screening scatter plot of the mean transport utilisation across the PMV Ambulance and HX240M fleets](../images/morris_transport_util.png)
-
-Screening of the mean transport utilisation across the PMV Ambulance and HX240M fleets.
-
-<!-- GEN sobol -->
-| Rank | Parameter | Total-order index | First-order index |
-|---|---|---|---|
-| 1 | `casualty_surge_rate` | 0.78 [0.36, 1.72] | 0.63 [−1.22, 1.26] |
-| 2 | `pri1_surg_prob` | 0.57 [0.28, 0.90] | 0.14 [−0.36, 0.32] |
-| 3 | `pri1_evac_prob` | 0.25 [−0.25, 1.51] | 0.12 [−0.32, 0.27] |
-| 4 | `triage_p2_p3_balance` | 0.24 [0.08, 0.62] | −0.01 [−0.16, 0.10] |
-| 5 | `wia_spt_mean` | 0.24 [0.04, 0.67] | −0.00 [−0.21, 0.16] |
-| 6 | `wia_cbt_mean` | 0.08 [−0.38, 0.45] | −0.07 [−0.25, 0.21] |
-| 7 | `r2e_dcs2_factor` | 0.06 [−0.26, 0.66] | −0.03 [−0.15, 0.15] |
-| 8 | `pri1_dcs_rate` | −0.06 [−0.47, 0.55] | 0.04 [−0.27, 0.33] |
-| 9 | `triage_p1_balance` | −0.08 [−0.32, 0.35] | 0.05 [−0.16, 0.18] |
-<!-- /GEN -->
-
-The Sobol decomposition of nine coordinates on the R2E operating theatre queue gave <!-- GEN cell:sobol|1|Parameter|full -->`casualty_surge_rate`<!-- /GEN --> a total-order index of <!-- GEN cell:sobol|1|Total-order index|full -->0.78 [0.36, 1.72]<!-- /GEN -->, and <!-- GEN cell:sobol|2|Parameter|full -->`pri1_surg_prob`<!-- /GEN --> one of <!-- GEN cell:sobol|2|Total-order index|full -->0.57 [0.28, 0.90]<!-- /GEN -->.
-
-<!-- GEN sobol_separation -->
-| Response | Comparison | Difference in total-order index | P(first exceeds second) | N needed to separate |
-|---|---|---|---|---|
-| `r2e_ot_q` | `casualty_surge_rate` against `pri1_surg_prob` | 0.21 [−0.75, 0.71] | 0.713 | 1,256 |
-| `r2e_ot_q` | `pri1_surg_prob` against `pri1_evac_prob` | 0.33 [−0.19, 1.57] | 0.827 | 793 |
-| `surgery_delivery_rate` | `wia_cbt_mean` against `pri1_surg_prob` | 0.52 [−0.51, 1.53] | 0.855 | 369 |
-| `surgery_delivery_rate` | `pri1_surg_prob` against `r2e_dcs2_factor` | 0.18 [−0.67, 1.14] | 0.627 | 2,450 |
-<!-- /GEN -->
-
-The table compares the leading total-order indices of the R2E operating theatre queue and the surgical delivery share, first against second and second against third, as a bootstrapped difference over the design, the probability that the first exceeds the second, and the Sobol sample size $N$ each comparison would need to separate at 95%.
-
-The parameters below are those whose shipped value the [system reference](../README.md#further-development) records as an informed estimate needing verification (Further Development L37). The table gives the rank of each by $\mu^*$ among the 79 screened parameters on six responses of the same 360-day screen, so a rank groups a parameter by influence rather than placing it exactly, as for the tables above. The Role 4 parameters act after the simulation, so no in-theatre response in the table depends on them.
-
-<!-- GEN morris_estimates -->
-| Parameter | Died of wounds | R2E theatre queue | R2E ICU queue | R2E holding queue | Time to surgery | Role 4 occupancy |
-|---|---|---|---|---|---|---|
-| `disease_surgery_pct` | 11 | 37 | 23 | 66 | 39 | 65 |
-| `r1_wia_treat_mode` | 70 | 23 | 59 | 72 | 29 | 39 |
-| `short_resus_mode` | 45 | 44 | 25 | 56 | 58 | 67 |
-| `long_resus_mode` | 78 | 74 | 71 | 79 | 71 | 69 |
-| `p1_k` | 58 | 16 | 67 | 73 | 12 | 47 |
-| `p1_t_mid` | 33 | 48 | 72 | 70 | 27 | 28 |
-| `p2_k` | 39 | 76 | 40 | 32 | 33 | 16 |
-| `p2_t_mid` | 57 | 55 | 60 | 51 | 73 | 62 |
-| `r2e_vent_share` | 64 | 49 | 8 | 35 | 68 | 66 |
-| `r2e_critical_hold_mode` | 47 | 28 | 56 | 43 | 37 | 33 |
-| `post_definitive_icu_mode` | 52 | 60 | 37 | 36 | 79 | 25 |
-| `role4_los_p1_surgical_mode` | 76 | 40 | 58 | 53 | 32 | 21 |
-| `role4_los_p1_nonsurgical_mode` | 37 | 45 | 48 | 48 | 41 | 40 |
-| `role4_los_p2_mode` | 79 | 17 | 68 | 40 | 35 | 71 |
-| `role4_los_p3_dnbi_mode` | 73 | 53 | 65 | 46 | 61 | 41 |
-| `role4_post_reconstruction_return_rate` | 46 | 34 | 62 | 45 | 40 | 54 |
-| `mc_p1_balance` | 71 | 9 | 6 | 18 | 9 | 12 |
-| `mc_p2_p3_balance` | 62 | 47 | 47 | 41 | 55 | 17 |
-<!-- /GEN -->
+A Morris elementary effects screen and a Sobol variance decomposition were run at the sustained horizon, and neither is reported here as evidence. Parameters that cannot affect a response inside the simulation, among them the Role 4 length-of-stay modes, which are drawn after the run, ranked among the active parameters on the R2E operating theatre queue, so the screen did not separate most parameters from replication noise, and the decomposition did not establish the orderings it would need. Parameter influence is measured instead by the replicated sweeps reported above, each of which varies one lever across a range of settings. The design of both screens and the reason they were set aside are recorded in [Sensitivity Screens](Methods.md#sensitivity-screens), and the tracked caches remain under `data/sensitivity/` as their provenance.
 
 ---
 

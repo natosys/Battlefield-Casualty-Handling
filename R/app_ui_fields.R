@@ -190,12 +190,11 @@ field_input <- function(f, value, overridden_paths = NULL) {
   lbl <- field_label(f, overridden_paths)
   if (!is.null(f$choices)) {
     selectInput(f$id, lbl, choices = f$choices, selected = value)
-  } else if (isTRUE(f$morris) || isTRUE(f$slider)) {
+  } else if (isTRUE(f$ranged) || isTRUE(f$slider)) {
     # Defensive widening: the current env_data.json baseline should always
-    # be representable on the slider, even where a screened Morris range
-    # (R/sensitivity.R) has drifted from the baseline after a later
-    # recalibration — flagged as a data-consistency check
-    # rather than silently clipping here.
+    # be representable on the slider, even where a plausible range
+    # (CONSOLE_RANGES, R/app_params.R) no longer contains the baseline after
+    # a later recalibration, rather than silently clipping here.
     lo <- f$min; hi <- f$max
     if (!is.null(value) && !is.na(value)) {
       lo <- min(lo, value)
@@ -227,12 +226,12 @@ field_card <- function(f, value, overridden_paths = NULL) {
 
 #' Render a triangular field triple's min/mode/max as three small plain
 #' numeric inputs side by side, rather than three full-width rows — the
-#' mode field's own tooltip (still stating its Morris-screened range and
+#' mode field's own tooltip (still stating its plausible range and
 #' source, where applicable) is preserved via field_label(), just with a
 #' short "Min"/"Mode"/"Max" visible label instead of the field's full
 #' descriptive name, since that's already shown once in the card header.
 #' Always plain numericInput()s (never a slider, even for a
-#' Morris-screened mode field) so all three fit uniformly in one narrow
+#' mode field with a plausible range) so all three fit uniformly in one narrow
 #' row under the curve.
 #'
 #' @param min_f Field spec of the distribution's minimum.

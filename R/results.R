@@ -1411,115 +1411,6 @@ res_resolution_excluding_zero <- function(text, span = "resolution") {
   out
 }
 
-#' Tracked directory of the 360-day Morris screen
-SENSITIVITY_MORRIS_DIR <- "sensitivity/morris_r20_d360"
-
-#' Tracked directory of the 360-day Sobol decomposition
-SENSITIVITY_SOBOL_DIR <- "sensitivity/sobol_n96_d360"
-
-#' Morris elementary effects ranking, leading parameters
-#'
-#' @param data_dir The data directory.
-#' @param response The ranked response, naming the per-response ranking file.
-#' @param n Number of leading parameters to print.
-#' @param dp Decimal places of µ* and σ.
-#' @return The table lines.
-build_morris_top <- function(data_dir, response = "r2e_ot_q", n = 20L, dp = 2L) {
-  rank_file <- sprintf("morris_ranking_%s.csv", response)
-  d <- res_read(file.path(SENSITIVITY_MORRIS_DIR, rank_file), data_dir)
-  d <- d[order(-d$mu_star), ][seq_len(n), ]
-  rows <- lapply(seq_len(n), function(i) {
-    c(as.character(i), sprintf("`%s`", d$parameter[i]), res_num(d$mu_star[i], dp),
-      res_num(d$sigma_ee[i], dp))
-  })
-  res_table(c("Rank", "Parameter", "\u00b5*", "\u03c3"), rows)
-}
-
-#' Screened parameters whose shipped value is an informed estimate
-#'
-#' @details The parameters README Further Development L37 records as informed
-#'   estimates needing verification, the ones whose re-anchoring would move
-#'   the seed-42 baseline. The two casualty surge
-#'   coordinates carry its triage split.
-MORRIS_ESTIMATE_PARAMETERS <- c(
-  "disease_surgery_pct",
-  "r1_wia_treat_mode", "short_resus_mode", "long_resus_mode",
-  "p1_k", "p1_t_mid", "p2_k", "p2_t_mid",
-  "r2e_vent_share", "r2e_critical_hold_mode", "post_definitive_icu_mode",
-  "role4_los_p1_surgical_mode", "role4_los_p1_nonsurgical_mode",
-  "role4_los_p2_mode", "role4_los_p3_dnbi_mode",
-  "role4_post_reconstruction_return_rate", "mc_p1_balance", "mc_p2_p3_balance"
-)
-
-#' Responses the informed-estimate ranks are read on, with their column labels
-MORRIS_ESTIMATE_RESPONSES <- c(
-  dow_count = "Died of wounds", r2e_ot_q = "R2E theatre queue",
-  r2e_icu_q = "R2E ICU queue", r2e_hold_q = "R2E holding queue",
-  time_to_surgery_mean = "Time to surgery", role4_mean_occupancy = "Role 4 occupancy"
-)
-
-#' Morris rank of each informed-estimate parameter on the main responses
-#'
-#' @param data_dir The data directory.
-#' @return The table lines: one row per parameter in
-#'   `MORRIS_ESTIMATE_PARAMETERS`, giving its rank by µ* among every screened
-#'   parameter on each response in `MORRIS_ESTIMATE_RESPONSES`.
-build_morris_estimates <- function(data_dir) {
-  ranks <- lapply(names(MORRIS_ESTIMATE_RESPONSES), function(response) {
-    rank_file <- sprintf("morris_ranking_%s.csv", response)
-    d <- res_read(file.path(SENSITIVITY_MORRIS_DIR, rank_file), data_dir)
-    d <- d[order(-d$mu_star), ]
-    stats::setNames(seq_len(nrow(d)), d$parameter)
-  })
-  missing <- setdiff(MORRIS_ESTIMATE_PARAMETERS, names(ranks[[1]]))
-  if (length(missing) > 0L) {
-    stop("MORRIS_ESTIMATE_PARAMETERS names an unscreened parameter: ",
-         paste(missing, collapse = ", "))
-  }
-  rows <- lapply(MORRIS_ESTIMATE_PARAMETERS, function(p) {
-    c(sprintf("`%s`", p), vapply(ranks, function(r) as.character(r[[p]]), character(1)))
-  })
-  res_table(c("Parameter", unname(MORRIS_ESTIMATE_RESPONSES)), rows)
-}
-
-#' Sobol decomposition of one response at the sustained horizon
-#'
-#' @param data_dir The data directory.
-#' @param response The decomposed response, naming its index file.
-#' @return The table lines, ranked by total-order index.
-build_sobol <- function(data_dir, response = "r2e_ot_q") {
-  d <- res_read(file.path(SENSITIVITY_SOBOL_DIR, sprintf("sobol_%s.csv", response)), data_dir)
-  d <- d[order(-d$ST), ]
-  rows <- lapply(seq_len(nrow(d)), function(i) {
-    c(as.character(i), sprintf("`%s`", d$parameter[i]),
-      res_ci(d$ST[i], d$ST_lower[i], d$ST_upper[i], 2L),
-      res_ci(d$S1[i], d$S1_lower[i], d$S1_upper[i], 2L))
-  })
-  res_table(c("Rank", "Parameter", "Total-order index", "First-order index"), rows)
-}
-
-#' Separation of the leading total-order indices of the decomposition
-#'
-#' @param data_dir The data directory.
-#' @param responses Responses whose leading separations are printed.
-#' @return The table lines: for each response the first-against-second and
-#'   second-against-third comparisons, their bootstrapped difference and the
-#'   design size each would need to separate.
-build_sobol_separation <- function(data_dir,
-                                   responses = c("r2e_ot_q", "surgery_delivery_rate")) {
-  d <- res_read(file.path(SENSITIVITY_SOBOL_DIR, "sobol_separation.csv"), data_dir)
-  d <- d[d$response %in% responses & d$rank_a <= 2L & !grepl(" - zero$", d$comparison), ]
-  d <- d[order(match(d$response, responses), d$rank_a), ]
-  rows <- lapply(seq_len(nrow(d)), function(i) {
-    pair <- strsplit(d$comparison[i], " - ", fixed = TRUE)[[1]]
-    c(sprintf("`%s`", d$response[i]), sprintf("`%s` against `%s`", pair[1], pair[2]),
-      res_ci(d$difference[i], d$lower[i], d$upper[i], 2L), res_num(d$p_a_gt_b[i], 3L),
-      if (isTRUE(d$separated[i])) "separated" else res_num(d$n_for_separation[i], 0L, big = TRUE))
-  })
-  res_table(c("Response", "Comparison", "Difference in total-order index",
-              "P(first exceeds second)", "N needed to separate"), rows)
-}
-
 #' Value of a step function at given times
 #'
 #' @param t_ev Times at which the function changes, increasing.
@@ -2770,13 +2661,6 @@ RESULTS_TABLES <- list(
   policy_trade = build_policy_trade,
   resolution = build_resolution,
   resolved = build_resolved,
-  morris_top = build_morris_top,
-  morris_delivery = function(dd) {
-    build_morris_top(dd, "surgery_delivery_rate", n = 10L, dp = 3L)
-  },
-  morris_estimates = build_morris_estimates,
-  sobol = build_sobol,
-  sobol_separation = build_sobol_separation,
   dow_calibration = build_dow_calibration,
   annex_generation = function(dd) build_annex(dd, "generation", ANNEX_GENERATION),
   annex_triage = function(dd) build_annex(dd, "triage", ANNEX_TRIAGE),

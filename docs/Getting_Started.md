@@ -27,10 +27,6 @@ The **Run** tab shows the exact command for your configuration, at the replicati
 
 The run writes its outputs and a `run_manifest.json` (the configuration's hash, the command, the seed, the commit and the package versions) under `outputs/`. The README's [Model Outputs](../README.md#model-outputs) section describes each output, and [Reproducing the Published Results](../README.md#reproducing-the-published-results) maps each published experiment to its own script.
 
-### 4. (Optional) Sensitivity screening
-
-Screens run from a terminal with `scripts/run_sensitivity.R` (Morris, and Sobol with `--sobol`), because the default design takes hours. The Configure sliders already show the range each screened parameter was screened over. See the README's [Sensitivity Analysis](../README.md#sensitivity-analysis) section for the design and run time.
-
 ## Key Parameters Worth Adjusting First
 
 Before exploring the full field set, these are the parameters most likely to change your results materially:
@@ -42,7 +38,7 @@ Before exploring the full field set, these are the parameters most likely to cha
 | Team counts and bed capacity | Configure → Health System Architecture | Directly sets treatment capacity at each echelon, the most direct lever for relieving a queue a run reports |
 | Transport fleet size | Configure → Medevac | Relieves a sustained transport queue |
 
-Fields also used in the project's Morris sensitivity screening render as sliders bounded by the range they were screened over.
+Fields with a plausible range render as sliders bounded by that range, widened to admit any loaded value outside it.
 
 ## Where to Go for More Detail
 

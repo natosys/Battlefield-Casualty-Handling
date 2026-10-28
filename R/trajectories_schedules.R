@@ -39,10 +39,10 @@
 #'   below it gives a long left tail (severe under-fill is more probable
 #'   than a request being fully met), while max_frac only slightly above 1
 #'   models a single, non-overlapping fulfillment slightly overshooting its
-#'   own submission-time shortfall estimate. demand_interval_days <= 0 (the
-#'   shipped default) disables reinforcement entirely — no generator is
-#'   added in run_once() in that case, so no RNG draws are consumed,
-#'   reproducing a constant-force baseline exactly.
+#'   own submission-time shortfall estimate. Reinforcement ships enabled on
+#'   a 7-day demand cycle; demand_interval_days <= 0 disables it entirely —
+#'   no generator is added in run_once() in that case, so no RNG draws are
+#'   consumed, reproducing a constant-force baseline exactly.
 #'
 #'   A pool's global value only moves at credit time, so a
 #'   naive re-read of the live shortfall on every cycle would let

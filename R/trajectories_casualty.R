@@ -575,7 +575,7 @@ r1_wia_dnbi_path <- function() {
     # DNBI sub-type routing branch
     # Applies differentiated pathways based on dnbi_type attribute:
     # - dnbi_type == 1 (battle_fatigue) → R1 hold → RTD; no R2 routing, no DOW
-    # - dnbi_type == 2 (disease)        → evac decision (no DOW); surgery=0 forces R2B hold path
+    # - dnbi_type == 2 (disease)        → evac decision (no DOW); placed by R2B holding occupancy
     # - dnbi_type == 3 (nbi) or WIA     → standard DOW + evac logic
     branch(
       option = function() {
@@ -589,8 +589,9 @@ r1_wia_dnbi_path <- function() {
       # Branch 1: Battle fatigue — hold at R1, return to duty; no R2 routing
       r1_battle_fatigue_hold(),
 
-      # Branch 2: Disease — evacuation decision (no DOW, no surgery candidacy)
-      # surgery attribute is forced to 0 for disease; R2B routes them to hold path
+      # Branch 2: Disease — evacuation decision (no DOW check). A disease
+      # casualty carries the emergency surgical draw (disease_surgery_pct) and,
+      # if it needs surgery, takes the R2B surgical pathway; otherwise holding
       r1_disease_evac_decision(),
 
       # Branch 3: NBI or WIA — standard DOW + evac logic

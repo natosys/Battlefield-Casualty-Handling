@@ -950,8 +950,9 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
     #       the Phase 3 one
     #   3 - eligible, but the number of casualties waiting to be operated on
     #       has reached second_surgery$saturation_queue_threshold: released to strategic
-    #       evacuation with the definitive repair outstanding. Disabled at the
-    #       shipped threshold of zero, in which case this arm is unreachable.
+    #       evacuation with the definitive repair outstanding. In force at the
+    #       shipped threshold of 8; a threshold of zero disables it and makes
+    #       this arm unreachable.
     branch(
       option = function() {
         if (single_stage()) return(2)

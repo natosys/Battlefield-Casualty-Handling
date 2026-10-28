@@ -407,8 +407,9 @@ compute_treatment_interval_kpis <- function(combined, window_min) {
 summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
   # KPI 5: DOW count and rate by echelon
   # dow_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E (arrival), 4 = R2E
-  # (post-operative), 5 = awaiting strategic AME
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
+  # (post-operative), 5 = awaiting strategic AME, 6 = R2E (post-definitive)
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait",
+                      "6" = "r2e_post_definitive")
   total_dow <- sum(attributes_wide$dow == 1, na.rm = TRUE)
   dow_by_echelon <- attributes_wide %>%
     filter(dow == 1 & !is.na(dow_echelon)) %>%

@@ -790,8 +790,22 @@
             { "var": "r2e_resus_factor", "val": 0.9  },
             { "var": "r2e_dcs1_factor",  "val": 0.55 },
             { "var": "r2e_dcs2_factor",  "val": 0.8  },
-            { "var": "r2e_postop_hold_penalty", "val": 3.0 },
-            { "var": "r2b_icu_penalty",         "val": 1.31 }
+            { "var": "hold_bed_penalty", "val": 1.64 },
+            { "var": "r2b_icu_penalty",  "val": 1.31 }
+          ]
+        },
+        {
+          "acty": "post_op_hazard",
+          "vals": [
+            { "var": "p1_rate", "val": 0.0003 },
+            { "var": "p2_rate", "val": 0.00025 },
+            { "var": "p3_rate", "val": 0.000034 }
+          ]
+        },
+        {
+          "acty": "accrual",
+          "vals": [
+            { "var": "enabled", "val": 1 }
           ]
         }
       ]
@@ -1042,87 +1056,13 @@
     "moderate_intensity": {
       "label": "Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)",
       "source": "Payne (1983); Jolly (2018); Blood, Zouris & Rotblatt (1997) FORECAS Tables A.8 and A.10",
-      "notes": "Named for FORECAS's own battle-intensity framing (NONE/LOW/MODERATE/HEAVY/INTENSE) rather than a specific historical engagement, since FORECAS's casualty-rate model selects a distribution family by battle intensity, not by named conflict — Falklands is the moderate-intensity calibration exemplar this project has validated, per FORECAS's own text pairing lognormal-distributed WIA/KIA incidence with 'a moderate battle intensity scenario'. Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. The shipped base configuration is this calibration, including its Falklands-calibrated DOW ceilings and treatment-efficacy factors, so this profile overrides nothing and is kept as an explicit alias of the default. See README 'Scenario Profiles' section.",
+      "notes": "Named for FORECAS's own battle-intensity framing (NONE/LOW/MODERATE/HEAVY/INTENSE) rather than a specific historical engagement, since FORECAS's casualty-rate model selects a distribution family by battle intensity, not by named conflict — Falklands is the moderate-intensity calibration exemplar this project has validated, per FORECAS's own text pairing lognormal-distributed WIA/KIA incidence with 'a moderate battle intensity scenario'. Casualty generation rates (generators), priority distribution, DNBI composition, surgery/evacuation probabilities, and transport time distributions are NOT overridden here because the base env_data.json values are already Falklands-sourced (FORECAS Table A.8 combat WIA/KIA rates; FORECAS pp22-23 and Izaguirre et al. (2025) for DNBI composition) rather than generic or modern-era artifacts. The shipped base configuration is this calibration, and its died-of-wounds model is shared by both profiles, so this profile overrides nothing and is kept as an explicit alias of the default. See README 'Scenario Profiles' section.",
       "vars": []
     },
     "high_intensity": {
       "label": "High Intensity — Okinawa (peer-conflict, mass casualty production)",
-      "source": "Blood, Zouris & Rotblatt (1997), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated); Marble (2025), Joint Force Quarterly 117, for the Okinawa died-of-wounds calibration target; Holcomb et al. (2006) for the died-of-wounds definition and the World War II comparator",
-      "notes": "PARTIALLY CALIBRATED PROFILE: casualty generation and the died-of-wounds model are both sourced to Okinawa; the priority split, DNBI composition and transport times are not, and are inherited from base. Demonstrates that the scenario mechanism generalises beyond moderate_intensity, and that the underlying distribution family (not just its parameters) is itself scenario-specific per FORECAS's own methodology. Named for FORECAS's own battle-intensity framing rather than a specific historical engagement; Okinawa is the high-intensity calibration exemplar. FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, W ~ exponential(mean); FORECAS separately keeps its own 'SUPPORT' category (intra-divisional combat support: tank, artillery, light-armoured infantry, combat engineer) lognormal at all intensities, and reserves the fully lognormal, non-autocorrelated treatment for its distinct 'SERVICE SUPPORT' category (extra-divisional sustainment: FSSG, SRIG). This simulation models a single brigade (division and below); it has no extra-divisional 'service support' population, and this project's 'support' population group represents an organic brigade element exposed to the same battle risk as the 'combat' population, not FORECAS's rear-area service support troops. Both generators.wia_cbt/kia_cbt AND generators.wia_spt/kia_spt are therefore overridden with distribution=exponential, using Table A.7's Expon(6.86) (historical data mean 6.86, SD 6.65) and Table A.9's Expon(1.63) (historical mean 1.63, SD 1.73) — sd_daily is retained for reference but unused by generate_exp_arrivals(), a single-parameter distribution. The DOW ceiling and the treatment efficacy factors are overridden here on the same basis as moderate_intensity, so that the profile's mortality model belongs to the era its casualty rates are drawn from rather than to the Falklands/OIF-OEF pairing of the base configuration. The calibration target is the Okinawa-specific died-of-wounds rate of 3.4% among casualties who reached a hospital alive, reported for the US Army on Okinawa by Marble (2025) and measured on the same treated cohort the model reports (casualties reaching R2B or R2E). The treatment efficacy factors are informed estimates for 1945 Pacific-theatre surgical and resuscitative care, reasoned from the absence of TCCC, balanced damage control resuscitation and staged damage control surgery; the two within-era penalties (r2e_postop_hold_penalty, r2b_icu_penalty) are not era-specific and are inherited from base. With those factors the ceilings re-calibrate to p1_p_max=0.052 and p2_p_max=0.042. Priority distribution, DNBI composition and transport time distributions remain unsourced for Okinawa and are inherited from base — see README Further Development. A companion Vietnam-calibrated profile was considered but dropped: FORECAS's Appendix A has no standalone Vietnam combat-troop WIA/KIA distribution table (Table A.5 is Vietnam combat-troop DNBI only), so no genuinely FORECAS-sourced Vietnam WIA/KIA parameters exist in this document.",
-      "vars": [
-        {
-          "elm": "dow",
-          "actys": [
-            {
-              "acty": "params",
-              "vals": [
-                { "var": "p1_p_base", "val": 0.001 },
-                { "var": "p1_p_max",  "val": 0.052 },
-                { "var": "p1_k",      "val": 0.04  },
-                { "var": "p1_t_mid",  "val": 120   },
-                { "var": "p2_p_base", "val": 0.0005 },
-                { "var": "p2_p_max",  "val": 0.042 },
-                { "var": "p2_k",      "val": 0.025 },
-                { "var": "p2_t_mid",  "val": 180   },
-                { "var": "p3_flat",   "val": 0.001 }
-              ]
-            },
-            {
-              "acty": "treatment_efficacy",
-              "vals": [
-                { "var": "r1_tccc_factor",   "val": 1.0  },
-                { "var": "r2b_resus_factor", "val": 0.95 },
-                { "var": "r2b_dcs_factor",   "val": 0.70 },
-                { "var": "r2e_resus_factor", "val": 0.95 },
-                { "var": "r2e_dcs1_factor",  "val": 0.70 },
-                { "var": "r2e_dcs2_factor",  "val": 0.90 }
-              ]
-            }
-          ]
-        },
-        {
-          "elm": "generators",
-          "actys": [
-            {
-              "acty": "wia_cbt",
-              "vals": [
-                { "var": "mean_daily", "val": 6.86 },
-                { "var": "sd_daily", "val": 6.65 },
-                { "var": "distribution", "val": "exponential" }
-              ]
-            },
-            {
-              "acty": "kia_cbt",
-              "vals": [
-                { "var": "mean_daily", "val": 1.63 },
-                { "var": "sd_daily", "val": 1.73 },
-                { "var": "distribution", "val": "exponential" }
-              ]
-            },
-            {
-              "acty": "wia_spt",
-              "vals": [
-                { "var": "mean_daily", "val": 6.86 },
-                { "var": "sd_daily", "val": 6.65 },
-                { "var": "distribution", "val": "exponential" }
-              ]
-            },
-            {
-              "acty": "kia_spt",
-              "vals": [
-                { "var": "mean_daily", "val": 1.63 },
-                { "var": "sd_daily", "val": 1.73 },
-                { "var": "distribution", "val": "exponential" }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "high_intensity_modern_care": {
-      "label": "High Intensity, Modern Care — Okinawa casualty load under the shipped treatment model",
-      "source": "Blood, Zouris & Rotblatt (1997), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated), as for high_intensity; the died-of-wounds ceilings and treatment efficacy factors are those of the shipped moderate-intensity configuration (Falklands 1982 calibration paired with the shipped treatment efficacy factors), not Okinawa's",
-      "notes": "ISOLATING PROFILE, NOT A CALIBRATED ONE: high_intensity changes two things at once, the casualty generators (Okinawa) and the mortality model (the died-of-wounds ceilings and treatment efficacy factors, set to 1945-era care and calibrated to the Okinawa hospital died-of-wounds rate), so every comparison between moderate_intensity and high_intensity mixes a heavier load with an older standard of care. This profile overrides the casualty generators only, identically to high_intensity, and inherits the shipped died-of-wounds ceilings and treatment efficacy factors. The difference between high_intensity and high_intensity_modern_care therefore isolates the care era, and the difference between moderate_intensity and high_intensity_modern_care isolates the load. It is not calibrated to any historical died-of-wounds rate: the shipped ceilings were fitted to the Ajax Bay bound at the Falklands load and are applied here to a substantially heavier load, so its mortality is a load-only comparison and not a prediction of a modern peer-conflict rate. The priority split, DNBI composition and transport times are inherited from base, as for high_intensity.",
+      "source": "Blood, Zouris & Rotblatt (1997), FORECAS Table A.7 (combat troop WIA, exponentially-approximated) and Table A.9 (combat troop KIA, exponentially-approximated)",
+      "notes": "Overrides the four WIA and KIA generators and nothing else, so the two profiles differ in WIA and KIA generation alone and share one mortality model: a difference between them in died of wounds reflects load and degraded care rather than a different standard of care, and high-intensity mortality is a model output rather than a calibration target. Named for FORECAS's own battle-intensity framing rather than a specific historical engagement; Okinawa is the high-intensity casualty-rate exemplar. FORECAS reports that INFANTRY (direct combat) troop WIA and KIA incidence in high-intensity battles is best approximated by a single-parameter exponential distribution, W ~ exponential(mean); FORECAS separately keeps its own 'SUPPORT' category (intra-divisional combat support: tank, artillery, light-armoured infantry, combat engineer) lognormal at all intensities, and reserves the fully lognormal, non-autocorrelated treatment for its distinct 'SERVICE SUPPORT' category (extra-divisional sustainment: FSSG, SRIG). This simulation models a single brigade (division and below); it has no extra-divisional 'service support' population, and this project's 'support' population group represents an organic brigade element exposed to the same battle risk as the 'combat' population, not FORECAS's rear-area service support troops. Both generators.wia_cbt/kia_cbt AND generators.wia_spt/kia_spt are therefore overridden with distribution=exponential, using Table A.7's Expon(6.86) (historical data mean 6.86, SD 6.65) and Table A.9's Expon(1.63) (historical mean 1.63, SD 1.73) — sd_daily is retained for reference but unused by generate_exp_arrivals(), a single-parameter distribution. The priority split, DNBI composition and transport times are shared with the base configuration because no intensity-specific source was identified. See README 'Scenario Profiles'.",
       "vars": [
         {
           "elm": "generators",

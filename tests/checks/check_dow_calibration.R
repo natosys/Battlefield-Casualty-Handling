@@ -42,14 +42,17 @@
 #      is consistent with the historical record and passes, which is why
 #      the default passes at roughly 0.27%.
 #
-# high_intensity is checked against a different anchor, because it models a
-# different campaign under a different standard of care: the US Army on
-# Okinawa reported 3.4% of casualties who reached a hospital alive dying
-# there (Marble, 2025). That figure is a reported rate against a stated
-# denominator rather than a bound derived from an inexact one, so the test
-# is two-sided — the profile is calibrated to reproduce it, not merely to
-# stay under it — at the same plus or minus 2 percentage point tolerance
-# the profile was calibrated to.
+# high_intensity is not checked: it shares the default's mortality model and
+# differs from it in casualty generation alone, so its mortality is a model
+# output with no anchor of its own.
+#
+# Under the accrual mechanism the same runs also measure the share of the
+# treated cohort's expected deaths that the post-operative hazard causes, the
+# quantity the hazard rates are fitted to (DOW_LATE_SHARE_TARGET,
+# R/dow_calibration.R), and the check fails where it falls outside
+# DOW_LATE_SHARE_TOLERANCE of the target. The share is an expected count rather
+# than a count of deaths, so it carries no Bernoulli noise and needs no
+# interval.
 #
 # The check pools independent measurements rather than taking one. That
 # departure from this project's usual practice is deliberate, and is why the
@@ -100,8 +103,6 @@ arg_value <- function(flag, default) {
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
 #     care (Westphalen, 2018), an upper bound because the denominator is
 #     inexact. Applies to the default and its `moderate_intensity` alias.
-#   Okinawa: 3.4% of casualties who reached a hospital alive died there
-#     (Marble, 2025), a reported rate against a stated denominator.
 
 SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
                   names(DOW_TARGETS)
@@ -149,8 +150,8 @@ report <- function(ok, fmt, ...) {
 #' @return A numeric vector of one treated-cohort DOW rate per replication, with
 #'   replications in which no casualty reached a facility removed.
 run_measurement <- function(scenario, seed) {
-  measure_treated_cohort(json_data, scenario, n_reps = N_REPS, n_days = CHECK_DAYS,
-                         seeds = seed)
+  measure_dow_response(json_data, scenario, n_reps = N_REPS, n_days = CHECK_DAYS,
+                       seeds = seed)
 }
 
 # ── Checks ──────────────────────────────────────────────────────────────────
@@ -175,9 +176,14 @@ records <- list()
 for (scenario in SCENARIOS) {
   singles <- numeric(0)
   pooled  <- numeric(0)
+  early   <- 0
+  late    <- 0
 
   for (k in seq_len(N_MEASURE)) {
-    rates <- run_measurement(scenario, CONTROL_SEEDS[k])
+    m_k   <- run_measurement(scenario, CONTROL_SEEDS[k])
+    rates <- m_k$rates
+    early <- early + m_k$early
+    late  <- late + m_k$late
     if (!length(rates)) {
       fail("%s: no casualty reached a facility in measurement %d", scenario, k)
       next
@@ -198,11 +204,13 @@ for (scenario in SCENARIOS) {
   hi <- m + hw
 
   anchor <- DOW_TARGETS[[scenario]]
+  share  <- if (early + late > 0) late / (early + late) else NA_real_
   records[[scenario]] <- data.frame(scenario = scenario, days = CHECK_DAYS,
                                     measurements = length(singles), replications = n,
                                     rate = m, ci_lower = lo, ci_upper = hi,
                                     target = anchor$rate, anchor = anchor$label,
-                                    kind = anchor$kind, stringsAsFactors = FALSE)
+                                    kind = anchor$kind, hazard_share = share,
+                                    stringsAsFactors = FALSE)
 
   cat(sprintf("\n%s — %d replications\n", scenario, n))
   cat(sprintf("  individual measurements: %s\n",
@@ -236,6 +244,19 @@ for (scenario in SCENARIOS) {
     report(ok, "%s reproduces the %.2f%% %s target within %.0f pp (interval %s it)",
            scenario, 100 * tgt$rate, tgt$label, 100 * DOW_TOLERANCE,
            if (lo <= tgt$rate && hi >= tgt$rate) "spans" else "does not span")
+  }
+
+  # The hazard's share is checked where the configuration has a hazard to
+  # measure; under the legacy mechanism, or with every rate at zero, no check
+  # records expected deaths and the share is undefined.
+  if (!is.na(share) && late > 0) {
+    ok <- abs(share - DOW_LATE_SHARE_TARGET) <= DOW_LATE_SHARE_TOLERANCE
+    if (!ok) {
+      fail("%s: the post-operative hazard causes %.3f of expected deaths, outside %.2f of %.2f",
+           scenario, share, DOW_LATE_SHARE_TOLERANCE, DOW_LATE_SHARE_TARGET)
+    }
+    report(ok, "%s: the post-operative hazard causes %.3f of expected deaths (target %.2f +/- %.2f)",
+           scenario, share, DOW_LATE_SHARE_TARGET, DOW_LATE_SHARE_TOLERANCE)
   }
 
   # Not a failure, but the reason this check pools: if the individual

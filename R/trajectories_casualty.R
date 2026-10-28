@@ -511,6 +511,20 @@ r1_post_treatment_decision <- function() {
 #'   disease takes, and the only one of the three carrying a died-of-wounds
 #'   check at R1.
 r1_nbi_wia_standard_path <- function() {
+  died <- trajectory("Died of Wounds at Role 1") %>%
+    set_attribute("dow", 1) %>%
+    set_attribute("dow_echelon", 1) %>%
+    r1_mortuary_handling()
+
+  # Under the accrual mechanism the check settles the risk banked since injury;
+  # a Priority 3 casualty has none to settle here, their flat risk being
+  # charged at the first R2 arrival check.
+  if (dow_accrual_enabled()) {
+    return(trajectory("NBI/WIA Standard Path") %>%
+             dow_check(arrival = FALSE, cohort = FALSE, died = died,
+                       survived = r1_post_treatment_decision()))
+  }
+
   trajectory("NBI/WIA Standard Path") %>%
     # DOW branch — time-dependent logistic
     # Probability is a shifted logistic function of elapsed time since injury.
@@ -539,10 +553,7 @@ r1_nbi_wia_standard_path <- function() {
       continue = TRUE,
 
       # Path 1: Died of wounds — treated as KIA
-      trajectory("Died of Wounds at Role 1") %>%
-        set_attribute("dow", 1) %>%
-        set_attribute("dow_echelon", 1) %>%
-        r1_mortuary_handling(),
+      died,
 
       # Path 2: Continue to evacuation decision
       r1_post_treatment_decision()
@@ -566,11 +577,7 @@ r1_wia_dnbi_path <- function() {
       continue = TRUE,
       lapply(1:counts[["r1"]], r1_treat_wia)
     ) %>%
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * env_data$vars$dow$treatment_efficacy$r1_tccc_factor
-    }) %>%
+    apply_dow_factor(function() env_data$vars$dow$treatment_efficacy$r1_tccc_factor) %>%
 
     # DNBI sub-type routing branch
     # Applies differentiated pathways based on dnbi_type attribute:

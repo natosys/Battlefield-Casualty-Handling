@@ -418,7 +418,7 @@ render_dow_ceilings_subgroup <- function(sg, sg_fields, defaults, overridden_pat
   return(tagList(
     h6(class = "text-muted mt-2", sg),
     p(class = "text-muted small",
-      "The ceiling below is the only editable value; the curve shows the full survival function evaluated at each DOW check, using the fixed shape parameters (p_base, k, t_mid) shown alongside it."),
+      "The ceiling below is the only editable value; the curve shows the arrival-phase survival function, using the fixed shape parameters (p_base, k, t_mid) shown alongside it. The post-operative hazard is a separate, constant rate per day over recovery and the evacuation wait, fitted with the ceilings and shown read-only."),
     layout_column_wrap(
       width = "340px",
       !!!lapply(list(
@@ -441,10 +441,15 @@ render_dow_ceilings_subgroup <- function(sg, sg_fields, defaults, overridden_pat
             div(style = "flex:1; min-width:0;",
                 readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
                                  path = "dow.params", overridden_paths = overridden_paths))
-          )
+          ),
+          readonly_numeric("Post-Op Hazard (per day)", SRC_POST_OP_HAZARD, shp$hazard, digits = 6,
+                           path = "dow.post_op_hazard", overridden_paths = overridden_paths)
         )
       })
-    )
+    ),
+    readonly_numeric("Priority 3 Post-Op Hazard (per day)", SRC_POST_OP_HAZARD,
+                     if (is.null(dow_shape)) NULL else dow_shape$p3$hazard, digits = 6,
+                     path = "dow.post_op_hazard", overridden_paths = overridden_paths)
   ))
 }
 

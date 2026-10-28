@@ -35,12 +35,15 @@
 #   4. `pooled_rate_summary()` returns the interval a hand computation gives,
 #      clamped at zero.
 #   5. The Parameter Calibration table of the README states the ceilings the
-#      shipped configuration carries, and the ceilings the README gives for
-#      `high_intensity` are the ones that profile carries. A table showing the
-#      modern-care pairing as though it were shipped would have a reader
-#      configuring a ceiling more than twice the shipped one.
-#   6. Every scenario of `env_data.json` has a historical anchor, so the
-#      fitter and the regression check can each be run against it.
+#      shipped configuration carries. A table showing the modern-care pairing
+#      as though it were shipped would have a reader configuring a ceiling more
+#      than twice the shipped one.
+#   6. No scenario overrides the died-of-wounds model, the profiles sharing
+#      one by design, so the one anchor the default carries is the only
+#      calibration a profile can have; `high_intensity` carries none, its
+#      mortality being a model output.
+#   7. `fit_hazard_scale()` recovers a known scale on a share whose root is
+#      computable by hand.
 
 source("R/dow_calibration.R")
 
@@ -254,27 +257,30 @@ report(isTRUE(all.equal(table_ceiling("P2"), unname(base[["p2_p_max"]]))),
        "the table's Priority 2 ceiling (%s) is the shipped %s",
        format(table_ceiling("P2")), format(base[["p2_p_max"]]))
 
-high <- dow_ceilings(config$scenarios$high_intensity$vars)
 text <- paste(readme, collapse = "\n")
-report(!is.null(high) && grepl(sprintf("`p1_p_max` = %s and `p2_p_max` = %s", high[["p1_p_max"]],
-                                       high[["p2_p_max"]]), text, fixed = TRUE),
-       "the README states the ceilings `high_intensity` carries (%s and %s)",
-       format(high[["p1_p_max"]]), format(high[["p2_p_max"]]))
 report(grepl(sprintf("`p1_p_max` = %s and `p2_p_max` = %s", base[["p1_p_max"]],
                      base[["p2_p_max"]]), text, fixed = TRUE),
        "the README states the shipped base ceilings (%s and %s)",
        format(base[["p1_p_max"]]), format(base[["p2_p_max"]]))
 
-# ── Every scenario has an anchor ────────────────────────────────────────────
+# ── One mortality model, one anchor ─────────────────────────────────────────
 
-cat("\n-- every scenario has a historical anchor --\n")
+cat("\n-- the profiles share one mortality model --\n")
 
-scenarios <- c("default", names(config$scenarios))
-load_only <- "high_intensity_modern_care"
-unanchored <- setdiff(scenarios, c(names(DOW_TARGETS), load_only))
-report(length(unanchored) == 0,
-       "every shipped scenario but the load-only profile has a historical anchor%s",
-       if (length(unanchored)) paste0("; absent: ", paste(unanchored, collapse = ", ")) else "")
+#' Whether a scenario's overrides touch the died-of-wounds model
+#'
+#' @param sc One entry of the configuration's `scenarios` block.
+#' @return TRUE when the profile overrides an element named "dow".
+overrides_dow <- function(sc) {
+  any(vapply(sc$vars, function(e) identical(e$elm, "dow"), logical(1)))
+}
+overriding <- names(Filter(overrides_dow, config$scenarios))
+report(length(overriding) == 0,
+       "no scenario overrides the died-of-wounds model%s",
+       if (length(overriding)) paste0("; overriding: ", paste(overriding, collapse = ", ")) else "")
+report(setequal(names(DOW_TARGETS), c("default", "moderate_intensity")),
+       "the anchors are the default's and its alias's alone (%s)",
+       paste(names(DOW_TARGETS), collapse = ", "))
 #' Whether one anchor is a proportion of a recognised kind
 #'
 #' @param t An entry of `DOW_TARGETS`.
@@ -282,6 +288,21 @@ report(length(unanchored) == 0,
 anchor_ok <- function(t) t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point")
 report(all(vapply(DOW_TARGETS, anchor_ok, logical(1))),
        "every anchor is a proportion of a recognised kind")
+
+# ── The hazard scale search ────────────────────────────────────────────────
+
+cat("\n-- fit_hazard_scale() recovers a known scale --\n")
+
+# A share of the form L*s / (E + L*s), the hazard's expected deaths growing in
+# proportion to the scale against a fixed early count, has its root at
+# s = target * E / (L * (1 - target)): with E = 20, L = 2.5 and a target of
+# 0.2, s = 2.
+known_share <- function(s) 2.5 * s / (20 + 2.5 * s)
+hz <- fit_hazard_scale(known_share, 0.2, lower = 0.25, upper = 8, tol = 1e-4)
+report(isTRUE(hz$converged) && abs(hz$scale - 2) < 0.01,
+       "the search returns a scale of %.4f against the known 2", hz$scale)
+report("scale" %in% names(hz$trace) && is.null(hz$p1_p_max),
+       "the result names the fitted value a scale rather than a ceiling")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

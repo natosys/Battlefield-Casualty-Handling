@@ -258,7 +258,13 @@ SRC_DNBI_NBI_PCT      <- "FORECAS (Blood, Zouris & Rotblatt, 1997) empirical dat
 SRC_DISEASE_SURGERY   <- "Informed estimate; no open-access source reports the surgical share of disease DNBI in a deployed force. Needs verification — see README Further Development L37. High uncertainty."
 SRC_DCS_RATE          <- "Informed estimate keyed to triage priority, anchored on Harvin et al. (2019): 24% of 872 emergent laparotomies across six United States Level 1 trauma centres were damage control, with institutional rates of 16-34%. Uplifted for a more penetrating and blast-dominated combat population, and weighted towards Priority 1, damage control being indicated by physiological derangement rather than by injury site. High uncertainty — see README Core Trajectory — Surgical Pathway."
 SRC_EVAC_CANDIDACY    <-"ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
-SRC_DOW_CEILING       <- "Validated against the Falklands War 1982 Ajax Bay treated-cohort DOW rate of ~0.46% (3 deaths among over 650 casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy; Westphalen, 2018), pooled across three independent 50-replication Monte Carlo measurements because a single one does not resolve a response of roughly one death per replication; entangled with the OIF/OEF-era treatment efficacy factors below it. See README Died of Wounds."
+SRC_DOW_CEILING       <- "Fitted, not sourced: held beneath the Falklands War 1982 Ajax Bay treated-cohort DOW rate of ~0.46% (3 deaths among over 650 casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy; Westphalen, 2018), pooled across three independent 50-replication Monte Carlo measurements because a single one does not resolve a response of roughly one death per replication; entangled with the treatment efficacy factors and the post-operative hazard, so editing one breaks the calibration. See README Died of Wounds."
+#' Source note for the post-operative hazard rates
+SRC_POST_OP_HAZARD    <- "Fitted, not sourced, alongside the ceilings: the rates are scaled together, holding the ratios of the priorities' ceilings, until the hazard causes about a fifth of the treated cohort's expected deaths, the share of combat deaths within thirty days that fell after the first 24 hours (Shackelford et al., 2017). Read-only for that reason. See README Died of Wounds."
+#' Source note for the holding-bed multiplier
+SRC_HOLD_BED_PENALTY  <- "Gillies et al. (2017): after high-risk surgery, admission to intensive care after initial ward care rather than directly from theatre carried an adjusted odds ratio for 30-day mortality of 1.64 (1.37 to 1.96) in high-risk patients. Applied as a multiplier on the post-operative hazard over a stay in a holding bed instead of intensive care, at R2E or R2B, and to time spent waiting for a post-operative bed. See README Died of Wounds."
+#' Source note for the died-of-wounds mechanism switch
+SRC_DOW_ACCRUAL       <- "Model setting, not a parameter: 1 charges early risk at the ceiling in force at each moment and adds the post-operative hazard; 0 reproduces the earlier mechanism exactly, for comparison against it. See README Died of Wounds."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
 SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
 SRC_OT_ROSTER         <- "Standing-order rostering assumption: a two-shift day splitting 24 hours evenly between successive surgical sections. No open-access source prescribes a deployed surgical shift length, so the 12-hour default is an informed estimate. See README Schedules and Rosters."
@@ -291,7 +297,7 @@ SRC_R2B_CAPACITY      <- "Design parameter, not literature-derived: a casualty i
 SRC_R2B_FORWARD_CAP   <- "Command policy lever: the longest a single casualty may occupy one of R2B's scarce forward ICU beds before being moved on regardless of requirement outstanding. Ships at 24h, the deployed evacuation norm. Binds both the stability window and the capacity hold, so zero disables forward holding outright."
 SRC_POST_DEFINITIVE_ICU <- "Informed estimate. The mode is anchored on the Camp Bastion observation that coalition casualties are usually evacuated within 24 hours of deployed ICU admission, but that is a whole-cohort figure rather than a post-definitive-phase one, and no open-access source reports a post-definitive-repair ICU duration for a deployed facility. The spread around it is not sourced. High uncertainty — see README R2E Heavy Trajectory. The remainder of critical care occurs at Role 4."
 SRC_R2B_PRE_OPEN      <- "Informed estimate; no open-access source states how far ahead of a surgical section's shift a forward facility should hold a casualty rather than divert them. Anchored on the 60-minute time-to-surgical-care standard and on the 15 to 45 minute road move to R2E that is the alternative. High uncertainty — see README R2B Trajectory."
-SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). See README Died of Wounds — Treatment Efficacy Modifiers."
+SRC_R2B_ICU_PENALTY   <- "Yang, Du & Shao (2019) pooled ICU-mortality odds ratio of 1.31 (95% CI 1.09-1.59) for open-format ICUs (no resident intensivist holding responsibility) against closed, intensivist-led ICUs, matching the establishment difference between an R2B ICU section (two nurses, two medics) and an R2E one (one intensivist, four nurses). Applied as a multiplier on the post-operative hazard over a forward stay in an R2B ICU bed. See README Died of Wounds."
 SRC_FORCE_REGEN       <- "Planner-configured reinforcement demand/fulfillment model, part of the endogenous casualty generation / force regeneration feedback loop; not literature-derived — this project does not attempt to auto-balance the demand cycle or fill distribution against a scenario's observed attrition rate. See README Force Regeneration and the Endogenous Feedback Loop."
 SRC_EVAC_POLICY       <- "The theatre patient return policy of NATO AJP-4.10 (Edition C) para 1.55: the maximum time a patient may remain in theatre to recover and return to duty, set by the operational level commander. The doctrine prescribes no value; 21 days is a planning choice — see README R2E Heavy Trajectory."
 SRC_RECOVERY_TO_DUTY  <- "Base convalescence distribution retained from the earlier in-theatre recovery duration; the severity factors scaling it are informed estimates anchored to the Role 4 length-of-stay gradient already in the model, calibrated so the realised in-theatre share sits inside the 7.6%-42.1% range of Vietnam War return-to-duty rates by treatment location, of which only 42.1% is an in-theatre figure. High uncertainty — see README R2E Heavy Trajectory."
@@ -720,7 +726,10 @@ casualty_rate_fields <- function() {
               min = 0, max = 1, step = 0.001, range_name = "p1_p_max", source = SRC_DOW_CEILING),
     var_field("dow_p2_pmax", GRP_CASUALTY, "Died of Wounds Ceilings", "dow", "params", "p2_p_max",
               "Priority 2 DOW Ceiling", "Asymptotic maximum cumulative Died-of-Wounds probability for an untreated Priority 2 casualty (Falklands 1982 calibration).",
-              min = 0, max = 1, step = 0.001, range_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE)
+              min = 0, max = 1, step = 0.001, range_name = "p2_p_max", source = SRC_DOW_CEILING, slider = TRUE),
+    var_field("dow_accrual", GRP_CASUALTY, "Died of Wounds Mechanism", "dow", "accrual", "enabled",
+              "Accrual Mechanism (0 Legacy, 1 On)", "1 charges early died-of-wounds risk at the ceiling in force at each moment, so delay before treatment costs lives, and adds the post-operative hazard over recovery and the evacuation wait. 0 reproduces the earlier mechanism exactly, for comparison.",
+              type = "integer", min = 0, max = 1, step = 1, source = SRC_DOW_ACCRUAL)
   ))
 
   registry
@@ -879,7 +888,7 @@ r2b_fields <- function() {
               type = "integer", min = 0, max = 4320, step = 30, range_name = "r2b_forward_hold_max",
               source = SRC_R2B_FORWARD_CAP),
     var_field("r2b_icu_penalty", GRP_PROVISION, "R2B — Post-Operative Intensive Care", "dow", "treatment_efficacy", "r2b_icu_penalty",
-              "Forward ICU DOW Penalty (Multiplier)", "Multiplier applied to the DOW ceiling for stabilisation time spent in an R2B ICU bed, which has no intensivist, rather than an R2E one, which does.",
+              "Forward ICU DOW Penalty (Multiplier)", "Multiplier on the post-operative hazard for a forward stay in an R2B ICU bed, which has no intensivist, rather than an R2E one, which does. A forward stay in a holding bed takes the holding-bed multiplier alone.",
               min = 1, max = 6, step = 0.01, range_name = "r2b_icu_penalty",
               source = SRC_R2B_ICU_PENALTY)
   ))
@@ -982,7 +991,10 @@ r2e_fields <- function() {
           get = function(json) get_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval"),
           set = function(json, v) set_raw_var(json, "r2eheavy", "icu_gating", "defer_check_interval", v),
           type = "integer", min = 5, max = 180, step = 5,
-          source = SRC_ICU_GATING, path = "r2eheavy.icu_gating")
+          source = SRC_ICU_GATING, path = "r2eheavy.icu_gating"),
+    var_field("hold_bed_penalty", GRP_PROVISION, "R2E — ICU Gating", "dow", "treatment_efficacy", "hold_bed_penalty",
+              "Holding-Bed DOW Penalty (Multiplier)", "Multiplier on the post-operative hazard while an operated casualty recovers in a holding bed because intensive care is full, at R2E or R2B, and while they wait for a post-operative bed.",
+              min = 1, max = 6, step = 0.01, source = SRC_HOLD_BED_PENALTY)
   ))
   registry <- c(registry, tri_fields("r2e_kia_treat", GRP_PROVISION, "R2E — KIA Treatment", "r2eheavy", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R2E.", bound = c(0, 200)))
@@ -1044,7 +1056,7 @@ strategic_ame_fields <- function() {
               "C-27J — Standard Capacity per Sortie", "Stretcher patients the C-27J carries, mapped onto the standard (Casualty Staging Unit-equivalent, Hold-bed) pool.",
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
     var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
-              "DOW Poll Interval (minutes)", "How often a casualty queued for AME is re-assessed for died-of-wounds risk while waiting. A polling interval, not a standing-order lever.",
+              "DOW Poll Interval (minutes)", "How often a casualty queued for AME is re-assessed for died-of-wounds risk while waiting, under the legacy mechanism only; the accrual mechanism draws one death time from the post-operative hazard instead. A polling interval, not a standing-order lever.",
               type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
   ))
 

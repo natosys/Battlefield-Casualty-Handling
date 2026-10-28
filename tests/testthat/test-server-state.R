@@ -35,7 +35,7 @@ test_that("the scenario selector offers the profiles the configuration defines",
     expect_setequal(unname(choices), c("default", overlaid))
     expect_identical(
       names(choices),
-      c("Moderate Intensity", "High Intensity", "High Intensity, Modern Care")
+      c("Moderate Intensity", "High Intensity")
     )
     # Every option carries a label, and none of them is the bare identifier
     # padded out by the fallback in scenario_choices().

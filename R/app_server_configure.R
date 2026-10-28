@@ -95,13 +95,11 @@ build_scenario_labels <- function() {
   # The dropdown's own naming, overriding env_data.json's canonical scenario
   # labels for display only. The shipped default is the moderate-intensity
   # Falklands calibration; "high_intensity" overlays Okinawa casualty rates
-  # and its own died-of-wounds model; "high_intensity_modern_care" keeps those
-  # casualty rates under the shipped treatment model. A scenario id absent from this map
-  # falls back to its own env_data.json label.
+  # and nothing else, the two sharing one mortality model. A scenario id absent
+  # from this map falls back to its own env_data.json label.
   SCENARIO_DROPDOWN_LABELS <- c(
     default         = "Moderate Intensity",
-    high_intensity  = "High Intensity",
-    high_intensity_modern_care = "High Intensity, Modern Care"
+    high_intensity  = "High Intensity"
   )
   list(
     SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,
@@ -214,16 +212,21 @@ build_scenario_derivations <- function(scenario_json) {
   # read from the resolved scenario JSON — not user-editable, but displayed
   # read-only alongside the P1/P2 DOW curve cards (render_dow_curve()) and
   # used to draw them, so the curve's floor/shape track whichever Casualty
-  # Intensity Profile is active exactly as its ceiling (p_max) does.
+  # Intensity Profile is active exactly as its ceiling (p_max) does. The
+  # fitted post-operative hazard rates are displayed read-only beside them,
+  # Priority 3's under its own key, having no curve card.
   dow_shape <- reactive({
     sj <- scenario_json()
-    setNames(lapply(c("p1", "p2"), function(pr) {
+    shapes <- setNames(lapply(c("p1", "p2"), function(pr) {
       list(
         p_base = get_raw_var(sj, "dow", "params", paste0(pr, "_p_base")),
         k      = get_raw_var(sj, "dow", "params", paste0(pr, "_k")),
-        t_mid  = get_raw_var(sj, "dow", "params", paste0(pr, "_t_mid"))
+        t_mid  = get_raw_var(sj, "dow", "params", paste0(pr, "_t_mid")),
+        hazard = get_raw_var(sj, "dow", "post_op_hazard", paste0(pr, "_rate"))
       )
     }), c("p1", "p2"))
+    shapes$p3 <- list(hazard = get_raw_var(sj, "dow", "post_op_hazard", "p3_rate"))
+    shapes
   })
   list(
     dow_shape = dow_shape,

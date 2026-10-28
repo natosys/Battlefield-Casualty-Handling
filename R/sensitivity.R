@@ -554,26 +554,6 @@ local({
   }
 })
 
-#' Screened parameters whose `mode` cannot be compared against a single
-#' `env_data.json` value, with the reason for each
-#'
-#' @format Named character vector — names are `morris_params$name`, values the
-#'   reason the comparison does not apply.
-#'
-#' @details Read by `tests/checks/check_morris_baseline.R`. Held here, and stated
-#'   as an explicit list rather than left to the check's own omissions, so that
-#'   a parameter added to the screen without a corresponding entry fails the
-#'   check instead of quietly escaping it.
-MORRIS_MODE_CHECK_EXCLUSIONS <- local({
-  coords <- unlist(lapply(MORRIS_COMPOSITIONS, `[[`, "coords"), use.names = FALSE)
-  setNames(
-    rep(paste("balance coordinate - writes a whole three-part composition rather",
-              "than a scalar; agreement with env_data.json is asserted by",
-              "tests/checks/check_composition_ilr.R"), length(coords)),
-    coords
-  )
-})
-
 # ── Parameter application ─────────────────────────────────────────────────────
 
 #' Apply the surgery, resuscitation and died-of-wounds ceiling parameters

@@ -40,13 +40,13 @@ wire_configure_panel <- function(input, output, session) {
   # id here rather than inside the per-group renderUI blocks, since the
   # sync only needs to exist once regardless of how many times the UI
   # containing it is regenerated. Triangular mode fields are excluded even
-  # when Morris-screened (f$morris == TRUE): render_field_grid() always
+  # when they carry a plausible range (f$ranged == TRUE): render_field_grid() always
   # renders a detected triangular triple's min/mode/max as plain compact
   # inputs (tri_input_row()), never a slider, so there is no "<id>_txt"
   # companion for this sync to wire up.
   tri_mode_ids <- vapply(TRI_TRIPLES, `[[`, character(1), "mode_id")
   slider_field_ids <- vapply(
-    Filter(function(f) (isTRUE(f$morris) || isTRUE(f$slider)) && !(f$id %in% tri_mode_ids), PARAM_REGISTRY),
+    Filter(function(f) (isTRUE(f$ranged) || isTRUE(f$slider)) && !(f$id %in% tri_mode_ids), PARAM_REGISTRY),
     function(f) f$id, character(1)
   )
   lapply(slider_field_ids, function(id) wire_slider_text_sync(input, session, id))

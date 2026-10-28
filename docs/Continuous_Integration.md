@@ -23,7 +23,7 @@ rather than in the environment.
 | Fast suite and lint ratchet | Every pull request against `main`, and every push to `main` | `tests/checks/run_all_checks.R --fast --jobs auto`, which is every check except the calibration check, including the lint ratchet and the seed-42 reproduction, run several at a time | 7 min 27 s on the four-core runner, measured 27 August |
 | Seed-42 baseline reproduction | The same events | `tests/checks/check_baseline_reproduction.R` alone, so that the property every published figure rests on reports as its own status check rather than as a line inside another job's log | Thirty-five seconds plus the restore |
 | Shiny console browser suite | The same events | `npx playwright test`, which starts the console and drives it in a headless Chromium | Two to three minutes plus the restore and the toolchain install |
-| Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `tests/checks/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications | Forty-five minutes to an hour |
+| Slow suite | Weekly, at 02:00 UTC on Sunday, and on demand | `tests/checks/run_all_checks.R --slow`, which is `check_dow_calibration.R` and its 450 replications, and the checks of the retired sensitivity screens' code | Forty-five minutes to an hour |
 
 The figures above are the check time alone. Restoring the project library
 costs a further minute or so on top, and less again once the cache keyed on the
@@ -362,7 +362,7 @@ seconds.
 | `check_censored_interval_estimation.R` | fast | 22 s | an interval still open when the window closes is carried as the lower bound it is, not dropped |
 | `check_ci_apt_guards.R` | fast | 2 s | every CI system-library install carries the same stall guards |
 | `check_ci_check_table.R` | fast | 2 s | the CI guide's check table lists every check |
-| `check_composition_ilr.R` | fast | 8 s | Simplex invariant regression check |
+| `check_composition_ilr.R` | slow | 8 s | Simplex invariant regression check |
 | `check_config_option.R` | fast | 75 s | every entry point runs against a named configuration |
 | `check_config_restore.R` | fast | 18 s | a failed sweep or screen restores the configuration |
 | `check_console_bindings.R` | fast | 20 s | no console panel reads another panel's local |
@@ -388,7 +388,6 @@ seconds.
 | `check_long_horizon_warmup.R` | fast | 8 s | the sustained-horizon Welch diagnostic is correct and the tracked plot and CSV reproduce it |
 | `check_markdown.R` | fast | 6 s | Markdown TOC, link and table checks |
 | `check_measurement_reproducibility.R` | fast | 175 s | a measurement is a function of its control seed |
-| `check_morris_baseline.R` | fast | 8 s | Screened-parameter baseline agreement |
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |
 | `check_policy_sweep_protocol.R` | fast | 22 s | the evacuation policy sweep's parameters, its responses and its published table agree |
 | `check_pre_open_window.R` | fast | 39 s | the R2B pre-open hold window behaves at its bounds |
@@ -404,12 +403,12 @@ seconds.
 | `check_roxygen.R` | fast | 5 s | Roxygen ratchet against R1 and R2 |
 | `check_scenario_labels.R` | fast | 7 s | comparative scenario plotting is independent of the session's character locale Terminal / Claude Code cloud: |
 | `check_scenario_protocol.R` | fast | 8 s | the comparative scenario analysis's parameters, its responses and its published tables agree |
-| `check_screen_cache.R` | fast | 7 s | a screen's point cache resumes what it recorded |
-| `check_screen_order.R` | fast | 159 s | a screen evaluates its design in order, exactly once |
-| `check_sensitivity_protocol.R` | fast | 3 s | the sensitivity screens' documented design is the design their tracked run metadata records |
+| `check_screen_cache.R` | slow | 7 s | a screen's point cache resumes what it recorded |
+| `check_screen_order.R` | slow | 159 s | a screen evaluates its design in order, exactly once |
+| `check_sensitivity_protocol.R` | slow | 3 s | the sensitivity screens' documented design is the design their tracked run metadata records |
 | `check_structure_tables.R` | fast | 5 s | the two structure tables list every module and script they claim to |
 | `check_surge_event_size.R` | fast | 10 s | a casualty surge event never exceeds the configured size, however close together events start |
-| `check_surgery_delivery_response.R` | fast | 20 s | the screens measure surgical delivery, and no duplicate theatre response remains |
+| `check_surgery_delivery_response.R` | slow | 20 s | the screens measure surgical delivery, and no duplicate theatre response remains |
 | `check_surgical_roster.R` | fast | 70 s | surgical sections share one shift and alternate |
 | `check_surgical_sweep_protocol.R` | fast | 10 s | the surgical team sweep's parameters, its responses and its published section agree |
 | `check_testthat.R` | fast | 96 s | the Shiny console's unit and testServer suites |
@@ -423,7 +422,8 @@ therefore gated from the moment it is committed, with no edit to the runner or
 to the workflow. It is classified fast unless it is named in the runner's
 `SLOW_CHECKS` constant, which is deliberate: a check nobody classified is one
 that runs on every pull request. Add a check to `SLOW_CHECKS` only on the
-evidence of a measured runtime, and record that measurement with
+evidence of a measured runtime, the one other class kept off the gate being the
+checks of the retired sensitivity screens' code, and record that measurement with
 `tests/checks/run_all_checks.R --refresh-runtimes`; `scripts/render_check_table.R
 --refresh-baseline` then adds the check to [The Checks](#the-checks).
 

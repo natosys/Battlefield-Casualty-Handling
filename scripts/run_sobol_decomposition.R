@@ -5,6 +5,15 @@
 ## sobol_n96_d360/                                                          ##
 ##############################################################################
 #
+# Unsupported tooling. The screens this script runs are not evidence for any
+# finding: docs/Methods.md (Sensitivity Screens) records why they were set
+# aside. Under --point-workers, which produced both tracked screens, each
+# design point is seeded from its own index (evaluate_design_concurrently()),
+# so the two points of an elementary effect share no random numbers and each
+# effect carries the full replication noise. A future screen needs common
+# random numbers, seeded by trajectory for Morris and by design row for Sobol.
+# The code is kept runnable and its checks run in the weekly slow suite.
+#
 # Usage (from the repository root, so the relative sources and env_data.json
 # resolve):
 #   Rscript scripts/run_sobol_decomposition.R

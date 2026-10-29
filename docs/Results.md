@@ -1355,12 +1355,12 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_generation -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Combat wounded in action | 1,435 | 1,593 |
-| Support wounded in action | 682 | 796 |
-| Combat killed in action | 534 | 612 |
-| Support killed in action | 290 | 306 |
-| Combat disease and non-battle injury | 1,848 | 1,836 |
-| Support disease and non-battle injury | 424 | 423 |
+| Combat wounded in action | 1,704 | 1,593 |
+| Support wounded in action | 729 | 796 |
+| Combat killed in action | 515 | 612 |
+| Support killed in action | 316 | 306 |
+| Combat disease and non-battle injury | 1,840 | 1,836 |
+| Support disease and non-battle injury | 450 | 423 |
 <!-- /GEN -->
 
 **Triage.** The trauma split applies to wounded and non-battle injury casualties, and its expectation is the configured share of them. A disease casualty is Priority 1 at the configured medical emergency share, and otherwise Priority 2 if it needs emergency surgery and Priority 3 if not, so the expectations for disease are the medical emergency share of disease casualties and the disease surgical share of the rest; battle fatigue is Priority 3.
@@ -1368,14 +1368,14 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_triage -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Priority 1, wounded and non-battle injury | 1,613 | 1,630 |
-| Priority 2, wounded and non-battle injury | 519 | 501 |
-| Priority 3, wounded and non-battle injury | 375 | 376 |
-| Priority 1, disease (medical emergency) | 62 | 66 |
-| Priority 2, disease (emergency surgery) | 66 | 76 |
-| Priority 3, disease | 1,200 | not applicable |
-| Priority 3, battle fatigue | 554 | 554 |
-| Killed in action | 824 | not applicable |
+| Priority 1, wounded and non-battle injury | 1,801 | 1,828 |
+| Priority 2, wounded and non-battle injury | 577 | 563 |
+| Priority 3, wounded and non-battle injury | 435 | 422 |
+| Priority 1, disease (medical emergency) | 59 | 66 |
+| Priority 2, disease (emergency surgery) | 86 | 76 |
+| Priority 3, disease | 1,182 | not applicable |
+| Priority 3, battle fatigue | 583 | 583 |
+| Killed in action | 831 | not applicable |
 <!-- /GEN -->
 
 **Damage control.** The expectation is the configured damage control rate times the casualties operated on at that priority.
@@ -1383,10 +1383,10 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_damage_control -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Priority 1 operated | 1,451 | not applicable |
-| Priority 1 damage control | 818 | 798 |
-| Priority 2 operated | 176 | not applicable |
-| Priority 2 damage control | 42 | 35 |
+| Priority 1 operated | 1,619 | not applicable |
+| Priority 1 damage control | 901 | 890 |
+| Priority 2 operated | 561 | not applicable |
+| Priority 2 damage control | 126 | 112 |
 <!-- /GEN -->
 
 **Strategic evacuation.** A sortie carries the casualties queued on each seat pool when it departs, and the places nobody takes depart with it; the expectation of sorties flown is the scheduled sorties before the horizon times the probability that a sortie flies.
@@ -1394,13 +1394,13 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_evacuation -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Strategic evacuation decisions | 1,659 | not applicable |
-| Boarded | 1,348 | not applicable |
-| Still waiting at the close | 311 | not applicable |
-| Mean wait of the casualties boarded (days) | 29.99 | not applicable |
+| Strategic evacuation decisions | 2,454 | not applicable |
+| Boarded | 2,417 | not applicable |
+| Still waiting at the close | 37 | not applicable |
+| Mean wait of the casualties boarded (days) | 5.03 | not applicable |
 | Sorties flown | 51 | 51 |
-| Critical places departing empty per sortie (mean) | 18.5 | not applicable |
-| Standard places departing empty per sortie (mean) | 45.0 | not applicable |
+| Critical places departing empty per sortie (mean) | 5.2 | not applicable |
+| Standard places departing empty per sortie (mean) | 37.4 | not applicable |
 <!-- /GEN -->
 
 **Admission at Role 2.** Minor casualties are Priority 3 wounded and non-battle injury casualties and disease casualties below Priority 1, who share one convalescence factor; the expectation is the share of that factor's convalescence draws exceeding the theatre evacuation policy. A casualty returned to duty while queued is one whose convalescence or restoration elapsed before a holding bed came free.
@@ -1408,14 +1408,31 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_admission -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Minor casualties evacuated strategically (% of those with a disposition) | 11.6 | 9.3 |
-| Returned to duty while queued for a holding bed | 1,361 | not applicable |
-| Battle fatigue returned to duty from Role 2 | 552 | not applicable |
+| Minor casualties evacuated strategically (% of those with a disposition) | 11.2 | 9.3 |
+| Returned to duty while queued for a holding bed | 607 | not applicable |
+| Battle fatigue returned to duty from Role 2 | 579 | not applicable |
 <!-- /GEN -->
 
 **Placement at Role 2.** A casualty whose care calls for a bed takes the best one free when that care begins: the bed the care calls for, otherwise a holding bed, otherwise overflow, with no bed. A stabilisation is counted where a stay was served, and the overflow census is the time-weighted mean number of casualties cared for without a bed at each point over the campaign.
 
 <!-- GEN annex_placement -->
+| Measure | Realised | Configured expectation |
+|---|---|---|
+| R2B reception, straight to a resuscitation bed | 2,380 | not applicable |
+| R2B reception, waiting in a holding bed | 84 | not applicable |
+| R2B reception, waiting in overflow | 31 | not applicable |
+| R2E stabilisation in intensive care | 314 | not applicable |
+| R2E stabilisation in a holding bed | 42 | not applicable |
+| R2E stabilisation in overflow | 679 | not applicable |
+| R2E post-definitive care in intensive care | 714 | not applicable |
+| R2E post-definitive care in a holding bed | 93 | not applicable |
+| R2E post-definitive care in overflow | 1,360 | not applicable |
+| Evacuees staged in a holding bed | 198 | not applicable |
+| Evacuees staged in overflow | 2,251 | not applicable |
+| Mean overflow census, R2B reception | 0.01 | not applicable |
+| Mean overflow census, R2E post-operative stays | 5.86 | not applicable |
+| Mean overflow census, R2E pre-flight care | 0.63 | not applicable |
+| Mean overflow census, R2E staging | 29.99 | not applicable |
 <!-- /GEN -->
 
 **Surgical load.** Utilisation of open time is the time-weighted share of a section's rostered time during which its first surgeon was in use, and the queued share is the share of that open time with one or more casualties waiting for any role in the section.
@@ -1423,15 +1440,15 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 <!-- GEN annex_surgical_load -->
 | Measure | Realised | Configured expectation |
 |---|---|---|
-| Diverted from R2B, surgical team off shift | 1,101 | not applicable |
-| Diverted from R2B, theatre busy | 236 | not applicable |
-| R2B holding beds in use, both facilities (mean) | 7.95 | not applicable |
-| R2E section 1 utilisation of open time (%) | 19.2 | not applicable |
-| R2E section 2 utilisation of open time (%) | 40.1 | not applicable |
-| R2E section 3 utilisation of open time (%) | 18.8 | not applicable |
-| R2E section 1 queued share of open time (%) | 1.1 | not applicable |
-| R2E section 2 queued share of open time (%) | 15.0 | not applicable |
-| R2E section 3 queued share of open time (%) | 1.4 | not applicable |
+| Diverted from R2B, surgical team off shift | 1,277 | not applicable |
+| Diverted from R2B, theatre busy | 233 | not applicable |
+| R2B holding beds in use, both facilities (mean) | 7.97 | not applicable |
+| R2E section 1 utilisation of open time (%) | 27.1 | not applicable |
+| R2E section 2 utilisation of open time (%) | 54.9 | not applicable |
+| R2E section 3 utilisation of open time (%) | 27.1 | not applicable |
+| R2E section 1 queued share of open time (%) | 4.2 | not applicable |
+| R2E section 2 queued share of open time (%) | 23.9 | not applicable |
+| R2E section 3 queued share of open time (%) | 4.4 | not applicable |
 <!-- /GEN -->
 
 **Force regeneration.** The effective force is the combat or support pool at the day shown, under the shipped seven-day reinforcement cycle.
@@ -1440,11 +1457,11 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 | Measure | Realised | Configured expectation |
 |---|---|---|
 | Combat force, day 0 | 2,500 | not applicable |
-| Combat force, day 180 | 2,372 | not applicable |
-| Combat force, day 360 | 2,430 | not applicable |
+| Combat force, day 180 | 2,292 | not applicable |
+| Combat force, day 360 | 2,427 | not applicable |
 | Support force, day 0 | 1,250 | not applicable |
-| Support force, day 180 | 1,198 | not applicable |
-| Support force, day 360 | 1,212 | not applicable |
+| Support force, day 180 | 1,190 | not applicable |
+| Support force, day 360 | 1,197 | not applicable |
 <!-- /GEN -->
 
 The conservation of a casualty's intensive care requirement across the three post-operative routes is asserted by `tests/checks/check_icu_time_conservation.R` and the generation rates by `tests/checks/check_arrival_rate_fidelity.R`.

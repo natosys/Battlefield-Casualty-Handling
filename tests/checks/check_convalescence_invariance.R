@@ -107,7 +107,7 @@ env_data_base <- env_data
 KEYS <- c("recovery_to_duty_days", "r2b_hold_drawn", "r2b_hold_served", "r2b_hold_evac",
           "r2b_hold_ineligible", "r2b_hold_bypass", "r2b_surgery", "r2e_surgery",
           "priority", "injury_type", "dnbi_type", "evacuation_reason", "return_day",
-          "r2e_recovery_hold_start", "r2e_arrival_time")
+          "r2e_recovery_hold_start", "r2e_arrival_time", "r2b_hold_waited", "bed_waited")
 
 #' Reshapes a monitor's long attribute log into one row per arrival
 #'
@@ -172,7 +172,10 @@ for (arm in c("shipped", "threshold")) {
   held <- d %>% filter(!is.na(r2b_hold_drawn))
   assert(nrow(held) > 0, "%s arm: casualties entered R2B holding (%d)", arm, nrow(held))
   if (nrow(held)) {
-    gap <- abs(held$recovery_to_duty_days * DAY_MIN - held$r2b_hold_drawn)
+    # A casualty who queued for the bed convalesced while waiting, so the
+    # duration carried is what the draw left after the queue.
+    waited <- ifelse(is.na(held$r2b_hold_waited), 0, held$r2b_hold_waited)
+    gap <- abs(held$recovery_to_duty_days * DAY_MIN - held$r2b_hold_drawn - waited)
     assert(all(gap < 1e-6),
            paste("%s arm: the duration carried is the one drawn at R2B for all %d held",
                  "casualties (worst gap %.2e min)"),
@@ -188,11 +191,14 @@ assert(nrow(split) > 0,
              "the rest at R2E (%d)"),
        nrow(split))
 if (nrow(split)) {
+  # Time queued for a bed at either echelon is convalescence too.
   r2e_served <- split$return_day - split$r2e_recovery_hold_start
-  total_gap  <- abs(split$r2b_hold_served + r2e_served - split$recovery_to_duty_days * DAY_MIN)
+  queued     <- ifelse(is.na(split$r2b_hold_waited), 0, split$r2b_hold_waited) + split$bed_waited
+  total_gap  <- abs(split$r2b_hold_served + r2e_served + queued -
+                      split$recovery_to_duty_days * DAY_MIN)
   assert(all(total_gap < 1e-3),
-         paste("threshold arm: forward plus R2E bed time equals the one duration for all",
-               "%d split casualties (worst gap %.2e min)"),
+         paste("threshold arm: forward plus R2E bed and queue time equals the one duration",
+               "for all %d split casualties (worst gap %.2e min)"),
          nrow(split), max(total_gap))
 }
 

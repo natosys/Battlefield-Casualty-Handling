@@ -987,14 +987,18 @@ bed_minutes_left <- function() {
 #'   expectation of an early return, so the casualty takes no resuscitation, no
 #'   died-of-wounds check, no severity-scaled convalescence and no strategic
 #'   evacuation. The restoration is drawn on retention and runs while the
-#'   casualty queues for a bed (queue_for_bed()).
+#'   casualty queues for a bed (queue_for_bed()). The bed's start is recorded
+#'   under the attribute every other holding stay at that echelon uses, so the
+#'   occupancy reconstructed from attributes counts it.
 battle_fatigue_restoration <- function(hold_beds, echelon) {
+  bed_start <- if (echelon == 2) "r2b_hold_start" else "r2e_recovery_hold_start"
   trajectory("Battle Fatigue Restoration") %>%
     set_attribute("bf_restoration", echelon) %>%
     queue_for_bed(hold_beds, id = 5, budget = function() {
       r <- env_data$vars$r1$recovery
       rtriangle(n = 1, a = r$min, b = r$max, c = r$mode)
     }, echelon = echelon) %>%
+    set_attribute(bed_start, function() now(env)) %>%
     timeout(bed_minutes_left) %>%
     release_selected(id = 5) %>%
     set_attribute("return_day", function() now(env)) %>%

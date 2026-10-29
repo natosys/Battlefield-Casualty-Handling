@@ -79,11 +79,10 @@ The simulation is a discrete event model in which each casualty moves rearward t
 ```mermaid
 flowchart LR
   POI["Point of injury"] --> R1["R1 treatment team<br/>(3 teams)<br/>triage, resuscitation"]
-  R1 -->|"return to duty"| RTD["Return to duty"]
-  R1 -->|"needs surgery or holding"| R2B["R2B facility (2)<br/>1 theatre, 1 surgical team<br/>12-hour roster<br/>5 holding beds each"]
-  R1 -->|"R2B holding above 80% full"| R2E
+  R1 -->|"surgical: theatre idle<br/>otherwise: holding below 80% full"| R2B["R2B facility (2)<br/>1 theatre, 1 surgical team<br/>12-hour roster<br/>5 holding beds each"]
+  R1 -->|"no R2B facility qualifies"| R2E
   R2B -->|"team off shift or theatre busy"| R2E["R2E hospital (1)<br/>2 theatres, 3 surgical teams<br/>4 intensive care beds<br/>30 holding beds"]
-  R2B -->|"recovered"| RTD
+  R2B -->|"recovered"| RTD["Return to duty"]
   R2E -->|"recovered in theatre"| RTD
   R2E -->|"recovery exceeds evacuation policy"| AME["Strategic aeromedical<br/>evacuation"]
   AME --> R4["Role 4<br/>national support base"]

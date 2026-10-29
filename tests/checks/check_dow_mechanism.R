@@ -31,17 +31,19 @@
 #   5. Over a campaign forced onto every degraded route, every care state a
 #      casualty takes carries one of the configured multipliers, and none after
 #      surgery exceeds the holding-bed one.
-#   6. The legacy setting (`dow.care_state.enabled` = 0) reproduces the seed-42
-#      evidence set of the model before the care-state one, byte for byte, so
-#      the change can be measured against a supported configuration.
+#   6. The legacy setting (`dow.care_state.enabled` = 0) reproduces its
+#      recorded seed-42 output byte for byte, so the earlier mortality
+#      mechanism stays a supported configuration the care-state one can be
+#      measured against.
 #
 # Assertions 1 to 4 drive the model's helpers through a single casualty in a
 # minimal simmer environment, so their probabilities are exact rather than
 # estimated. Assertion 6 compares digests rather than files, the tracked set
-# having since been regenerated under the care-state model; LEGACY_DIGESTS are
-# those of the set as it stood when the switch was introduced. A later change
-# that alters the model outside the died-of-wounds mechanism changes the legacy
-# setting's output too, and is the one occasion for revising them.
+# being generated under the care-state model. LEGACY_DIGESTS are the legacy
+# setting's output under the present casualty routing: a change that alters the
+# model outside the died-of-wounds mechanism changes that output too, and is the
+# one occasion for revising them, as the evacuation of every casualty from R1
+# did.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -72,18 +74,18 @@ FORWARD_WINDOW <- 720L
 LEGACY_SEED <- 42L
 LEGACY_DAYS <- 360L
 
-#' SHA-256 of each file of the seed-42 set before the care-state model
+#' SHA-256 of each file of the legacy setting's seed-42 output
 LEGACY_DIGESTS <- c(
-  "logs.txt"                       = "3593d3e85df46ccf460a023ccc1b3ece190ec185226ca6b8ed6228361d4335c9",
+  "logs.txt"                         = "26c26610e5021834a61fa211c15199e67d1a0c33fa2b6681320d54a3fe885de6",
   "data/arrivals_casualty_surge.txt" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "data/arrivals_dnbi_cbt.txt"     = "2fe77f2693e2673855e113b39a02015a3abaf5f4b63dddd6177193d77c14e137",
-  "data/arrivals_dnbi_spt.txt"     = "6b69962bdf21d57db0c93dbe7ee0963ebbdb0498d22e4dad9e9481613b874837",
-  "data/arrivals_kia_cbt.txt"      = "d49b70dc1879e9730e04679227eaaf25221991d8c7b703161f6d96d146ad1e17",
-  "data/arrivals_kia_spt.txt"      = "927beaac5dc61c8d2772b43c60198ee77357f7ccbe972880edf947d0a832f22f",
-  "data/arrivals_wia_cbt.txt"      = "e9a4b4b30013e29e747f9a692fc1aa0523a90513d132094b667f90511dfb82d9",
-  "data/arrivals_wia_spt.txt"      = "dbda3044b27fb6bea937d08909bd3025658849bda11e109bcb2206c2c4049b05",
-  "data/casualty_surge_events.csv" = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
-  "data/seed42_verification.csv"   = "7d0357bb8f807382861d81d89e9554e71bcafe7f7fac7fc9b61e13ab43d7fc62"
+  "data/arrivals_dnbi_cbt.txt"       = "bec9a2cf9fa22c125f6bd94e99f5a1f2d8452dc68643f1add0842c5d92ba0612",
+  "data/arrivals_dnbi_spt.txt"       = "aa8cbc039f721847d47473d113468dcde19b4e435a50aa043adfeb8d58c2f313",
+  "data/arrivals_kia_cbt.txt"        = "5b0414d9b992fc7ce5ac01beb685bb81fb1f0f2e0ee84e2cdd5393c6e6d88af9",
+  "data/arrivals_kia_spt.txt"        = "783bf1ac925c80b88ec214e1eee49341222a7438457a964e921236c2cf811e08",
+  "data/arrivals_wia_cbt.txt"        = "4b9d58ad1bd122a02fec3c9f5a81c730318343cc77f59f7b22088c6d3ee8fda8",
+  "data/arrivals_wia_spt.txt"        = "1cac8219cacd254449fba6eea019a4ffbcbeb17b1441d78c967459268467a482",
+  "data/casualty_surge_events.csv"   = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
+  "data/seed42_verification.csv"     = "c05ed9bd8a447c1a9294ea01905a31c5dbb1abce4475578844982e17fad40e26"
 )
 
 state <- new.env(parent = emptyenv())

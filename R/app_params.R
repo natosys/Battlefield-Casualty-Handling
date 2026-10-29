@@ -256,8 +256,9 @@ SRC_DNBI_BF_PCT       <- "FORECAS (Blood, Zouris & Rotblatt, 1997) p.22 sets bat
 SRC_DNBI_DISEASE_PCT  <- "Residual estimate (100% minus the NBI and battle-fatigue shares); no direct empirical source identified. High uncertainty — see README DNBI Sub-Categorisation."
 SRC_DNBI_NBI_PCT      <- "FORECAS (Blood, Zouris & Rotblatt, 1997) empirical data, pp.22-23."
 SRC_DISEASE_SURGERY   <- "Informed estimate; no open-access source reports the surgical share of disease DNBI in a deployed force. Needs verification — see README Further Development L37. High uncertainty."
+SRC_DISEASE_P1        <- "Informed estimate anchored on a 2% to 6% range: cerebral malaria complicated 1.6% and pulmonary oedema under 1% of 2,600 Vietnam malaria cases, and 6.1% of disease and non-battle injury presentations at a US Role 3 in Iraq were admitted to intensive care, a figure that includes trauma. See README Casualty Priorities."
+SRC_RTD_P3_DNBI       <- "Informed estimate: 0.43 gives a mean convalescence of 13.3 days, matching the 13-day mean time lost per disease admission in 1943, and about 9% exceeding the 21-day policy, within the 3% to 10% evacuated from the Pacific theatres. See README R2E Heavy Trajectory."
 SRC_DCS_RATE          <- "Informed estimate keyed to triage priority, anchored on Harvin et al. (2019): 24% of 872 emergent laparotomies across six United States Level 1 trauma centres were damage control, with institutional rates of 16-34%. Uplifted for a more penetrating and blast-dominated combat population, and weighted towards Priority 1, damage control being indicated by physiological derangement rather than by injury site. High uncertainty — see README Core Trajectory — Surgical Pathway."
-SRC_EVAC_CANDIDACY    <-"ADF operational planning norms (not open-access), paired with the Priority 1/2/3 split. High uncertainty — see README Casualty Priorities."
 #' Source note for the died-of-wounds base rates
 SRC_DOW_RATES         <- "Fitted, not sourced: deaths per day of untreated injury, held beneath the Falklands War 1982 Ajax Bay treated-cohort DOW rate of ~0.46% (3 deaths among over 650 casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy; Westphalen, 2018), pooled across three independent 50-replication Monte Carlo measurements because a single one does not resolve a response of roughly one death per replication. The Priority 2 and 3 rates follow Priority 1 at fixed ratios. Read-only, since editing one breaks the calibration. See README Died of Wounds."
 #' Source note for the post-operative multiplier
@@ -267,11 +268,11 @@ SRC_HOLD_BED_PENALTY  <- "Gillies et al. (2017): after high-risk surgery, admiss
 #' Source note for the died-of-wounds mechanism switch
 SRC_DOW_ACCRUAL       <- "Model setting, not a parameter: 1 charges risk at the rate the casualty's current care sets; 0 reproduces the earlier logistic model exactly, for comparison against it. See README Died of Wounds."
 SRC_R1_WIA_TREAT      <- "README Core Trajectory (cited source for R1 treatment duration)."
-SRC_R1_RECOVERY       <- "Field estimates of minor injury convalescence — see README Core Trajectory. Not independently cited."
+SRC_BF_RESTORATION    <- "Informed estimate anchored on Canadian Armed Forces guidance that a member still unable to return to duty after 48 to 72 hours of rest and support is referred to a health care professional; the two-day mode sits in that window. See README Core Trajectory."
 SRC_OT_ROSTER         <- "Standing-order rostering assumption: a two-shift day splitting 24 hours evenly between successive surgical sections. No open-access source prescribes a deployed surgical shift length, so the 12-hour default is an informed estimate. See README Schedules and Rosters."
 SRC_ESTABLISHMENT     <- "Establishment/staffing planning assumption for a brigade-level ADF deployment; not independently cited."
 SRC_RESUS_TASK_TABLE  <- "Derived from a collated task-duration table for the likely resuscitation steps (see README R2B/R2E Trajectory); constrained to complete within 90 minutes, an informed bound (the cited series limits the damage control operation itself to 90 minutes). Not independently cited as a single total."
-SRC_DCS_SURGERY       <- "First-look DCS operative-time data (mean 96 min, range 41-210) for a perforated diverticulitis cohort, reported for Sohn et al. (2018) within Zizzo et al.'s (2020) systematic review — see README R2B Trajectory for citations."
+SRC_SURGERY_DURATION  <- "Informed estimate derived from the US Department of Defense Trauma Registry sample of Hall et al. (2023): the mode (72 min) is that of a lognormal with the mild-injury band's mean and SD (93.9, 41.3), the maximum (258 min) sets the mean to the registry's severity-weighted 123.6 min, and the minimum (41 min) is the shortest damage control operation in Zizzo et al. (2020). See README R2B Trajectory."
 SRC_ICU_STABILISATION <- "Each bound separately sourced: 6h lower from the WSES position paper's stated 6-72h range for return to theatre, 24h mode from the Western Trauma Association majority practice it reports, 36h upper from the Cochrane review's 'usually takes place within 24 to 36 hours' (Cirocchi et al., 2013). See README R2E Trajectory."
 SRC_TRANSPORT_GENERIC <- "Informed estimate of transport duration between echelons; not independently cited. See README Simulation Design for the triangular-distribution modelling rationale."
 SRC_HOLD_THRESHOLD    <- "Design threshold for the R2B hold-bed saturation routing policy; not literature-derived."
@@ -327,6 +328,7 @@ CONSOLE_RANGES <- local({
     "casualty_surge_max_cas",     40, 80,
     "casualty_surge_min_cas",     10, 30,
     "casualty_surge_rate",        0, 0.4,
+    "disease_p1_pct",             0.02, 0.06,
     "disease_surgery_pct",        0.03, 0.12,
     "evacuation_policy_days",     15, 60,
     "fr_demand_interval_days",    0, 14,
@@ -337,10 +339,8 @@ CONSOLE_RANGES <- local({
     "post_definitive_icu_mode",   720, 2880,
     "post_op_hold_mode",          380, 1200,
     "pri1_dcs_rate",              0.3, 0.8,
-    "pri1_evac_prob",             0.7, 0.99,
     "pri1_surg_prob",             0.7, 0.98,
     "pri2_dcs_rate",              0.08, 0.4,
-    "pri2_evac_prob",             0.65, 0.98,
     "pri2_surg_prob",             0.55, 0.95,
     "pri3_dcs_rate",              0, 0.2,
     "pri3_dnbi_surg_prob",        0.15, 0.55,
@@ -682,14 +682,17 @@ casualty_rate_fields <- function() {
               "Priority 3 (Delayed) Share", "Proportion of WIA triaged as Priority 3 at R1.",
               min = 0, max = 1, step = 0.01, source = SRC_PRIORITY_SPLIT),
     var_field("dnbi_bf_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "battle_fatigue_pct",
-              "Battle Fatigue Share of DNBI", "Proportion of DNBI casualties returned to duty at R1 without clinical treatment.",
+              "Battle Fatigue Share of DNBI", "Proportion of DNBI casualties held in a Role 2 holding bed for rest and replenishment, then returned to duty without clinical treatment.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_BF_PCT),
     var_field("dnbi_disease_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "disease_pct",
-              "Disease Share of DNBI", "Proportion of DNBI casualties routed to R2B holding for disease management.",
+              "Disease Share of DNBI", "Proportion of DNBI casualties admitted at Role 2 for disease management.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_DISEASE_PCT),
     var_field("dnbi_nbi_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "nbi_pct",
               "Non-Battle Injury Share of DNBI", "Proportion of DNBI casualties following the full WIA-equivalent clinical pathway.",
               min = 0, max = 1, step = 0.01, source = SRC_DNBI_NBI_PCT),
+    var_field("dnbi_disease_p1_pct", GRP_CASUALTY, "DNBI Sub-Type Split", "r1", "other", "disease_p1_pct",
+              "Disease Medical Emergency Share", "Proportion of disease casualties who are medical emergencies (Priority 1), such as septic shock, severe malaria or heat stroke. The rest are Priority 2 if they need emergency surgery and Priority 3 if not.",
+              min = 0, max = 1, step = 0.01, range_name = "disease_p1_pct", source = SRC_DISEASE_P1, slider = TRUE),
     var_field("surg_pri1", GRP_CASUALTY, "Surgical Candidacy", "r1", "other", "pri1_surgery",
               "Priority 1 Surgical Candidacy", "Proportion of Priority 1 WIA requiring surgery.",
               min = 0, max = 1, step = 0.01, range_name = "pri1_surg_prob", source = SRC_PRIORITY_SPLIT),
@@ -714,12 +717,6 @@ casualty_rate_fields <- function() {
     var_field("dcs_pri3", GRP_CASUALTY, "Surgical Pathway", "r1", "other", "pri3_dcs_rate",
               "Priority 3 Damage Control Rate", "Proportion of operated Priority 3 casualties whose operation is staged damage control rather than a single-stage definitive procedure.",
               min = 0, max = 1, step = 0.01, range_name = "pri3_dcs_rate", source = SRC_DCS_RATE, slider = TRUE),
-    var_field("evac_pri1", GRP_CASUALTY, "Strategic Evacuation Rates", "r1", "other", "pri1_evac",
-              "Priority 1 Strategic Evacuation Rate", "Proportion of treated Priority 1 casualties evacuated out of theatre.",
-              min = 0, max = 1, step = 0.01, range_name = "pri1_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),
-    var_field("evac_pri2", GRP_CASUALTY, "Strategic Evacuation Rates", "r1", "other", "pri2_evac",
-              "Priority 2 Strategic Evacuation Rate", "Proportion of treated Priority 2 casualties evacuated out of theatre.",
-              min = 0, max = 1, step = 0.01, range_name = "pri2_evac_prob", source = SRC_EVAC_CANDIDACY, slider = TRUE),
     var_field("dow_care_state", GRP_CASUALTY, "Died of Wounds Model", "dow", "care_state", "enabled",
               "Care-State Model (0 Legacy, 1 On)", "1 charges died-of-wounds risk as a rate per hour set by the care a casualty is receiving, so every hour of delay or degraded care costs lives. 0 reproduces the earlier logistic model exactly, for comparison.",
               type = "integer", min = 0, max = 1, step = 1, source = SRC_DOW_ACCRUAL)
@@ -764,9 +761,9 @@ r1_fields <- function() {
   registry <- c(registry, tri_fields("r1_kia_treat", GRP_PROVISION, "R1 — Treatment Durations", "r1", "kia_treat",
                                      "KIA Processing Time", "Time to process a KIA casualty at R1.", bound = c(0, 200)))
   registry <- c(registry, tri_fields("r1_recovery", GRP_PROVISION, "R1 — Treatment Durations", "r1", "recovery",
-                                     "Battle Fatigue Hold Duration", "Time a battle fatigue casualty spends in R1 hold before returning to duty.",
+                                     "Battle Fatigue Restoration Duration", "Time a battle fatigue casualty spends in a Role 2 holding bed for rest and replenishment before returning to duty.",
                                      range_mode_name = "r1_recovery_mode", bound = c(0, 20000),
-                                     source = SRC_R1_RECOVERY))
+                                     source = SRC_BF_RESTORATION))
 
   # ── Medevac: Transport Fleet ──────────────────────────────────────────────
   # Placed first so fleet-level totals (how many vehicles exist) precede the
@@ -828,7 +825,7 @@ r2b_fields <- function() {
   # ── Health Provision: R2B — Battalion Aid Post ────────────────────────────
   registry <- c(registry, tri_fields("r2b_surgery", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations", "r2b", "surgery",
                                      "Surgery Duration", "Time occupying an R2B operating theatre per case.",
-                                     range_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
+                                     range_mode_name = "surg_mode", bound = c(0, 400), source = SRC_SURGERY_DURATION))
   registry <- c(registry, list(
     var_field("r2b_pre_open_window", GRP_PROVISION, "R2B — Surgical & Resuscitation Durations",
               "r2b", "surgery", "pre_open_window_min",
@@ -931,7 +928,7 @@ r2e_fields <- function() {
   # ── Health Provision: R2E — Field Hospital ────────────────────────────────
   registry <- c(registry, tri_fields("r2e_surgery", GRP_PROVISION, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "surgery",
                                      "Surgery Duration", "Time occupying an R2E operating theatre per case.",
-                                     range_mode_name = "surg_mode", bound = c(0, 400), source = SRC_DCS_SURGERY))
+                                     range_mode_name = "surg_mode", bound = c(0, 400), source = SRC_SURGERY_DURATION))
   registry <- c(registry, tri_fields("r2e_short_resus", GRP_PROVISION, "R2E — Surgical & Resuscitation Durations", "r2eheavy", "short_resus",
                                      "Short Resuscitation Duration", "Time occupying an R2E resuscitation bay for a straightforward case.",
                                      range_mode_name = "short_resus_mode", bound = c(0, 200),
@@ -971,8 +968,8 @@ r2e_fields <- function() {
               "Recovery Factor — P2", "Multiplier applied to the base recovery-to-duty duration for a Priority 2 casualty.",
               min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
     var_field("r2e_rtd_p3_dnbi", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery_to_duty", "p3_dnbi",
-              "Recovery Factor — P3 / DNBI", "Multiplier applied to the base recovery-to-duty duration for a Priority 3 or DNBI casualty.",
-              min = 1, max = 12, step = 0.1, source = SRC_RECOVERY_TO_DUTY),
+              "Recovery Factor — P3 / Disease", "Multiplier applied to the base recovery-to-duty duration for a Priority 3 casualty and for a disease casualty below Priority 1.",
+              min = 0.1, max = 12, step = 0.01, source = SRC_RTD_P3_DNBI),
     var_field("r2e_ame_vent_share", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "critical_hold", "ventilated_share",
               "Ventilated Share — Critical AME Pool", "Proportion of critical-route evacuees needing an ICU bed for a bounded pre-flight period before staging in a holding bed.",
               min = 0, max = 1, step = 0.01, slider = TRUE, source = SRC_PRE_FLIGHT_ICU),

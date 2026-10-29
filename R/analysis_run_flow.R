@@ -419,9 +419,9 @@ summarise_outcomes_by_echelon <- function(arrivals_raw, attributes_wide) {
   stopifnot(sum(dow_by_echelon$dow_count) == total_dow)
 
   # KPI 6: RTD count and rate by echelon
-  # return_echelon encoding: 1 = R1, 2 = R2B, 3 = R2E
-  # battle_fatigue RTDs (dnbi_type == 1) are returned at R1 without clinical treatment;
-  # all other RTDs (WIA/NBI/disease recovery at R1, R2B/R2E hold-bed discharge) are clinical RTDs.
+  # return_echelon encoding: 2 = R2B, 3 = R2E; no casualty returns from R1
+  # battle_fatigue RTDs (dnbi_type == 1) are restored in a Role 2 holding bed
+  # without clinical treatment; every other RTD is a clinical RTD.
   bf_rtd <- sum(
     !is.na(attributes_wide$return_day) &
       !is.na(attributes_wide$dnbi_type) &

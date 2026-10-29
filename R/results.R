@@ -1494,11 +1494,23 @@ seed42_verification_rows <- function(mon, cfg, days) {
   }
   add("generation", "arrivals_total", length(arr_names))
   pri <- wide("priority")
+  pri <- pri[!is.na(pri)]
+  dtype <- wide("dnbi_type")[names(pri)]
+  # The trauma split applies to wounded and non-battle injury casualties alone;
+  # disease and battle fatigue follow their own rule.
+  trauma <- is.na(dtype) | dtype == 3
   share <- c(cfg$vars$r1$priority$one, cfg$vars$r1$priority$two, cfg$vars$r1$priority$three)
   for (k in 1:3) {
-    add("triage", paste0("priority_", k), sum(pri == k, na.rm = TRUE),
-        share[k] * sum(!is.na(pri)))
+    add("triage", paste0("priority_", k), sum(pri[trauma] == k), share[k] * sum(trauma))
   }
+  disease <- pri[!is.na(dtype) & dtype == 2]
+  add("triage", "disease_priority_1", sum(disease == 1),
+      cfg$vars$r1$other$disease_p1_pct * length(disease))
+  add("triage", "disease_priority_2", sum(disease == 2),
+      cfg$vars$r1$other$disease_surgery_pct * sum(disease != 1))
+  add("triage", "disease_priority_3", sum(disease == 3))
+  bf <- pri[!is.na(dtype) & dtype == 1]
+  add("triage", "battle_fatigue_priority_3", sum(bf == 3), length(bf))
   add("triage", "killed_in_action", sum(grepl("^kia_", arr_names)))
   surg <- unique(c(names(wide("r2b_surgery")[wide("r2b_surgery") == 1]),
                    names(wide("r2e_surgery")[wide("r2e_surgery") == 1])))
@@ -1510,6 +1522,27 @@ seed42_verification_rows <- function(mon, cfg, days) {
     add("damage_control", paste0("priority_", k, "_damage_control"),
         sum(dcs[ids] == 1, na.rm = TRUE), rate * length(ids))
   }
+  # Minor casualties, Priority 3 trauma and disease below Priority 1, share one
+  # convalescence factor, so the share of them drawing beyond the policy is
+  # the triangular base distribution's exceedance of the policy over it.
+  reason <- wide("evacuation_reason")
+  minor <- names(pri)[(!is.na(pri) & pri == 3 & trauma) |
+                        (!is.na(dtype) & dtype == 2 & !is.na(pri) & pri != 1)]
+  minor <- intersect(minor, names(reason))
+  # As doubles: the product of two spans in minutes overflows an integer.
+  base <- lapply(cfg$vars$r2eheavy$holding, as.numeric)
+  cut <- cfg$vars$r2eheavy$recovery$evacuation_policy_days * DAY_MIN /
+    cfg$vars$r2eheavy$recovery_to_duty$p3_dnbi
+  exceed <- if (cut <= base$mode) {
+    1 - (cut - base$min)^2 / ((base$max - base$min) * (base$mode - base$min))
+  } else {
+    max(0, base$max - cut)^2 / ((base$max - base$min) * (base$max - base$mode))
+  }
+  add("admission", "minor_strategic_evacuation_share",
+      100 * mean(reason[minor] != 0), 100 * exceed)
+  queued <- wide("rtd_while_queued")
+  add("admission", "returned_to_duty_while_queued", sum(queued == 1, na.rm = TRUE))
+  add("admission", "battle_fatigue_returned", sum(!is.na(wide("return_day")[names(bf)])))
   dec <- wide("evacuation_decision_day")
   add("evacuation", "decisions", sum(!is.na(dec)))
   add("evacuation", "boarded", sum(!is.na(wide("ame_departure_time"))))
@@ -1596,10 +1629,28 @@ ANNEX_GENERATION <- c(
 
 #' Row labels of the seed-42 triage table, by metric
 ANNEX_TRIAGE <- c(
-  priority_1 = "Priority 1",
-  priority_2 = "Priority 2",
-  priority_3 = "Priority 3",
+  priority_1 = "Priority 1, wounded and non-battle injury",
+  priority_2 = "Priority 2, wounded and non-battle injury",
+  priority_3 = "Priority 3, wounded and non-battle injury",
+  disease_priority_1 = "Priority 1, disease (medical emergency)",
+  disease_priority_2 = "Priority 2, disease (emergency surgery)",
+  disease_priority_3 = "Priority 3, disease",
+  battle_fatigue_priority_3 = "Priority 3, battle fatigue",
   killed_in_action = "Killed in action"
+)
+
+#' Row labels of the seed-42 Role 2 admission table, by metric
+ANNEX_ADMISSION <- c(
+  minor_strategic_evacuation_share =
+    "Minor casualties evacuated strategically (% of those with a disposition)",
+  returned_to_duty_while_queued = "Returned to duty while queued for a holding bed",
+  battle_fatigue_returned = "Battle fatigue returned to duty from Role 2"
+)
+
+#' Decimal places of the Role 2 admission table, by metric
+ANNEX_ADMISSION_DP <- c(
+  minor_strategic_evacuation_share = 1L, returned_to_duty_while_queued = 0L,
+  battle_fatigue_returned = 0L
 )
 
 #' Row labels of the seed-42 damage control table, by metric
@@ -2641,6 +2692,7 @@ RESULTS_TABLES <- list(
   annex_triage = function(dd) build_annex(dd, "triage", ANNEX_TRIAGE),
   annex_damage_control = function(dd) build_annex(dd, "damage_control", ANNEX_DAMAGE_CONTROL),
   annex_evacuation = function(dd) build_annex(dd, "evacuation", ANNEX_EVACUATION),
+  annex_admission = function(dd) build_annex(dd, "admission", ANNEX_ADMISSION, ANNEX_ADMISSION_DP),
   annex_surgical_load = function(dd) {
     build_annex(dd, "surgical_load", ANNEX_SURGICAL_LOAD, ANNEX_SURGICAL_LOAD_DP)
   },

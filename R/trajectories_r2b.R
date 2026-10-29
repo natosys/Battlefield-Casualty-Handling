@@ -172,29 +172,65 @@ r2b_evacuate_to_r2e <- function(trj, evacuation_team) {
 #' Builds the fallback wait for evacuation capacity at R2B
 #'
 #' @param icu_beds        This R2B team's intensive care beds
+#' @param hold_beds       This R2B team's holding beds
 #' @param icu_team        This R2B team's intensive care section
 #' @param evacuation_team This R2B team's own organic evacuation resource
-#' @return Simmer trajectory holding the casualty in an intensive care bed
-#'   until the evacuation asset is free, then moving them to R2E.
+#' @param overflow        This R2B team's evacuation-wait overflow resource
+#' @return Simmer trajectory placing the casualty while the evacuation asset is
+#'   committed, then moving them to R2E once it is free.
 #'
 #' @details Reached when the evacuation asset is already committed. The
-#'   casualty is held in an intensive care bed rather than queued unattended,
-#'   and the bed and section are released the moment the asset is in hand.
-#'   evac_wait_count counts the casualties this path serves.
-r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
-  trajectory("Wait in Hold Bed for Evac") %>%
+#'   casualty waits in the best placement free at that instant, never queued
+#'   for: an intensive care bed with the section, otherwise a holding bed,
+#'   otherwise overflow, with no bed (`r2b_evac_wait_bed` 1, 2 or 3). In every
+#'   arm the casualty boards as soon as the crew is free and then releases what
+#'   it holds, so departure is set by the vehicle rather than by bed turnover.
+#'   The intensive care arm is taken only where the section is free as well as a
+#'   bed, so the section, held while the casualty occupies the bed, can never
+#'   keep a waiter from its crew. `r2b_evac_wait_start` records when the wait
+#'   began, and evac_wait_count counts the casualties this path serves.
+r2b_wait_for_evac <- function(icu_beds, hold_beds, icu_team, evacuation_team, overflow) {
+  # Branches on the placement free at this instant:
+  # - 1 an intensive care bed and the section are both free -> wait in the bed
+  #     with the section seized
+  # - 2 otherwise a holding bed is free -> wait in it
+  # - 3 neither -> wait in overflow, with no bed
+  trajectory("Wait for Evac") %>%
+    set_attribute("r2b_evac_wait_start", function() now(env)) %>%
     set_global("evac_wait_count", function() {
       current <- get_global(env, "evac_wait_count")
       return(current + 1)
     }) %>%
-    simmer::select(icu_beds, policy = "shortest-queue", id = 3) %>%
-    seize_selected(id = 3) %>%
-    dow_placement(post_op_r2b_icu) %>%
-    seize_resources(icu_team) %>%
-    seize_resources(evacuation_team) %>%
-    release_resources(icu_team) %>%
-    release_selected(id = 3) %>%
-    dow_placement(post_op_outside_icu) %>%
+    branch(
+      option = function() {
+        if (beds_free(icu_beds) && team_free(icu_team)) return(1)
+        if (beds_free(hold_beds)) return(2)
+        3
+      },
+      continue = TRUE,
+      trajectory("Wait for Evac in Intensive Care") %>%
+        set_attribute("r2b_evac_wait_bed", 1) %>%
+        simmer::select(icu_beds, policy = "first-available", id = 3) %>%
+        seize_selected(id = 3) %>%
+        dow_placement(post_op_r2b_icu) %>%
+        seize_resources(icu_team) %>%
+        seize_resources(evacuation_team) %>%
+        release_resources(icu_team) %>%
+        release_selected(id = 3) %>%
+        dow_placement(post_op_outside_icu),
+      trajectory("Wait for Evac in a Holding Bed") %>%
+        set_attribute("r2b_evac_wait_bed", 2) %>%
+        simmer::select(hold_beds, policy = "first-available", id = 3) %>%
+        seize_selected(id = 3) %>%
+        seize_resources(evacuation_team) %>%
+        release_selected(id = 3),
+      trajectory("Wait for Evac in Overflow") %>%
+        set_attribute("r2b_evac_wait_bed", 3) %>%
+        simmer::select(overflow, id = 3) %>%
+        seize_selected(id = 3) %>%
+        seize_resources(evacuation_team) %>%
+        release_selected(id = 3)
+    ) %>%
     set_attribute("r2b_to_r2e", 1) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
     set_attribute("r2b_departure_time", function() now(env)) %>%
@@ -609,16 +645,19 @@ icu_gate_enabled <- function(echelon) {
 #' @details Mirrors the R2E pattern. Priority 1 casualties proceed
 #'   unconditionally; Priority 2+ casualties defer theatre entry while this
 #'   unit's intensive care is fully saturated, preserving headroom for those
-#'   already in it. How much work the gate does depends on
-#'   `r2b.post_op_icu.share`: at zero the two intensive care beds per team serve
-#'   only the wait-for-evacuation fallback and the gate is close to inert, while
-#'   at a non-zero share every casualty operated on here also recovers here, and
-#'   the gate becomes a real constraint on forward surgical throughput.
+#'   already in it. The gate applies only where the forward holding rule can
+#'   place this casualty in R2B intensive care after the operation, a stability
+#'   window above zero for its pathway or the capacity trigger in force
+#'   (forward_hold_enabled()). Otherwise the operation would use no R2B
+#'   intensive care at all, so rationing it against those beds would deny
+#'   forward surgery for no clinical reason; at the shipped rule, which holds
+#'   nobody forward, the gate is therefore off.
 r2b_surgery_gate <- function(icu_beds, ot_check) {
   trajectory("Needs Surgery") %>%
     branch(
       option = function() {
         if (!icu_gate_enabled("r2b")) return(1)   # gate disabled: pre-gate model
+        if (!forward_hold_enabled()) return(1)    # no forward stay to ration
         prio <- get_attribute(env, "priority")
         if (!is.na(prio) && prio == 1) return(1)  # P1 always proceeds
         usage  <- sum(get_server_count(env, resources = icu_beds))
@@ -1012,7 +1051,8 @@ r2b_resuscitation <- function(trj, emergency_team, signal) {
 r2b_evac_decision <- function(trj, evacuation_team, wait_for_evac) {
   # Branches based on evacuation team availability:
   # - evac available     → immediate transfer to R2E (r2b_to_r2e = 1)
-  # - evac not available → wait in ICU bed until evac is free
+  # - evac not available → wait, placed in the best bed free, until the crew is
+  #   free (r2b_wait_for_evac())
   trj %>%
     branch(
       option = function() {
@@ -1027,7 +1067,7 @@ r2b_evac_decision <- function(trj, evacuation_team, wait_for_evac) {
       trajectory("Immediate Evac") %>%
         r2b_evacuate_to_r2e(evacuation_team),
 
-      # Path 2: Immediate evacuation not possible — wait in ICU
+      # Path 2: Immediate evacuation not possible — wait for the crew
       join(wait_for_evac)
     )
 }
@@ -1078,7 +1118,8 @@ r2b_treat_wia <- function(team_id) {
 
   post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
   ot_check       <- r2b_ot_check_path(team_id, ot_beds, surg_teams, post_op)
-  wait_for_evac  <- r2b_wait_for_evac(icu_beds, icu_team, evacuation_team)
+  wait_for_evac  <- r2b_wait_for_evac(icu_beds, hold_beds, icu_team, evacuation_team,
+                                      overflow_resource("r2b", "evac_wait", team_id))
 
   trajectory("R2B Basic Flow") %>%
     set_attribute("r2b_treated", team_id) %>%

@@ -187,9 +187,9 @@ report(operated_on > 0 && operated_off > 0,
 # ── 4. The R2B gate's own switch is honoured ───────────────────────────────
 
 # Asserted at a non-zero forward stability window rather than at the shipped
-# one. At the shipped window of zero the R2B gate is close to inert, so
-# a run there passes whether or not its switch is read, and an earlier version
-# of this check did exactly that.
+# one. At the shipped window of zero the R2B gate does not apply at all
+# (r2b_surgery_gate()), so a run there passes whether or not its switch is
+# read, and an earlier version of this check did exactly that.
 
 cat("\n-- the R2B gate, at a window that makes it bite --\n")
 

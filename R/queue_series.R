@@ -24,6 +24,7 @@
 #'   row, and its census is zero rather than absent.
 OVERFLOW_POOLS <- c(
   "R2B reception overflow"      = "^overflow_r2b_reception_[0-9]+$",
+  "R2B evacuation wait overflow" = "^overflow_r2b_evac_wait_[0-9]+$",
   "R2E post-operative overflow" = "^overflow_r2e_post_op_[0-9]+$",
   "R2E pre-flight overflow"     = "^overflow_r2e_pre_flight_[0-9]+$",
   "R2E staging overflow"        = "^overflow_r2e_staging_[0-9]+$"
@@ -45,6 +46,7 @@ overflow_census_bin_means <- function(resources, pattern, edges) {
 #' Response column naming each overflow point's census in a per-replication row
 OVERFLOW_RESPONSES <- c(
   "R2B reception overflow"      = "overflow_r2b_reception",
+  "R2B evacuation wait overflow" = "overflow_r2b_evac_wait",
   "R2E post-operative overflow" = "overflow_r2e_post_op",
   "R2E pre-flight overflow"     = "overflow_r2e_pre_flight",
   "R2E staging overflow"        = "overflow_r2e_staging"

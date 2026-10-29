@@ -832,10 +832,10 @@ Each echelon's gate can be switched off through `icu_gating.enabled` (1 in both 
 
 | Fitted value | Shipped | Fitted to |
 | ------------ | ------- | --------- |
-| Priority 1 base rate, `p1_rate` | 0.0084 per day | The treated-cohort rate (below) |
-| Priority 2 base rate, `p2_rate` | 0.007 per day | Follows `p1_rate` at a fixed ratio |
-| Priority 3 base rate, `p3_rate` | 0.00094 per day | Follows `p1_rate` at a fixed ratio |
-| Post-operative multiplier, `post_op` | 0.05 | The post-operative share (below) |
+| Priority 1 base rate, `p1_rate` | 0.00583 per day | The treated-cohort rate (below) |
+| Priority 2 base rate, `p2_rate` | 0.00486 per day | Follows `p1_rate` at a fixed ratio |
+| Priority 3 base rate, `p3_rate` | 0.000652 per day | Follows `p1_rate` at a fixed ratio |
+| Post-operative multiplier, `post_op` | 0.0605 | The post-operative share (below) |
 
 The base rates and the post-operative multiplier are the model's fitted mortality parameters; every other value in the chapter is sourced or an informed estimate. No dataset gives a death rate per hour of untreated injury, so the Priority 1 base rate is searched for until the model's treated-cohort rate meets a historical target, the other two following at fixed ratios: Priority 2 at 0.83 of Priority 1 and Priority 3 at 0.11, the ratios of the ceilings the earlier model carried, kept as informed estimates of relative severity.
 

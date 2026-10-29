@@ -770,9 +770,9 @@
         {
           "acty": "rates",
           "vals": [
-            { "var": "p1_rate", "val": 0.0084 },
-            { "var": "p2_rate", "val": 0.007 },
-            { "var": "p3_rate", "val": 0.00094 }
+            { "var": "p1_rate", "val": 0.00583 },
+            { "var": "p2_rate", "val": 0.00486 },
+            { "var": "p3_rate", "val": 0.000652 }
           ]
         },
         {
@@ -780,7 +780,7 @@
           "vals": [
             { "var": "r1_treatment",     "val": 1.0 },
             { "var": "resuscitation",    "val": 0.9 },
-            { "var": "post_op",          "val": 0.05 },
+            { "var": "post_op",          "val": 0.0605 },
             { "var": "r2b_icu_penalty",  "val": 1.31 },
             { "var": "hold_bed_penalty", "val": 1.64 }
           ]

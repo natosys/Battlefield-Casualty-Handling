@@ -9,6 +9,7 @@
 #   Rscript scripts/calibrate_dow.R --scenario default
 #   Rscript scripts/calibrate_dow.R --scenario default --hold-legacy-rate
 #   Rscript scripts/calibrate_dow.R --config my_config.json --target 0.012 --days 30
+#   Rscript scripts/calibrate_dow.R --scenario default --cache fit_cache.csv
 #   Rscript scripts/calibrate_dow.R --quick          # wiring test only
 #
 # Why this exists. The care-state model has two groups of fitted values: the
@@ -102,6 +103,9 @@ option_list <- list(
               help = "Upper end of the Priority 1 base rate bracket [default: twice the configured]"),
   make_option("--max-iterations", type = "integer", default = 12L,
               help = "Cap on evaluations after the two bracket ends [default: %default]"),
+  make_option("--cache", type = "character", default = NULL,
+              help = paste("CSV of completed evaluations, read before measuring and appended",
+                           "after, so an interrupted search resumes where it stopped")),
   make_option("--write-csv", type = "character", default = NULL,
               help = "Write every evaluation of the search to this CSV file"),
   make_option("--quick", action = "store_true", default = FALSE,
@@ -149,11 +153,28 @@ seeds <- DOW_CONTROL_SEEDS[seq_len(opt$measurements)]
 #' @param care_state 1 or 0 to override the model, or NULL for the configured one.
 #' @return Named numeric of `rate`, `ci_lower`, `ci_upper` and `share`.
 evaluate <- function(p1, q, care_state = NULL) {
-  m <- measure_dow_response(json_data, opt$scenario, p1_rate = p1, post_op = q,
-                            care_state = care_state,
-                            n_reps = opt$reps, n_days = opt$days, seeds = seeds)
-  s <- pooled_rate_summary(m$rates)
-  share <- if (m$early + m$late > 0) m$late / (m$early + m$late) else 0
+  mode <- if (is.null(care_state)) -1 else care_state
+  key <- sprintf("%.10g|%.10g|%d|%d|%d|%d", p1, q, mode, opt$reps, opt$days, length(seeds))
+  cached <- if (!is.null(opt$cache) && file.exists(opt$cache)) {
+    read.csv(opt$cache, stringsAsFactors = FALSE)
+  } else NULL
+  hit <- if (is.null(cached)) integer(0) else which(cached$key == key)
+  if (length(hit)) {
+    s <- as.list(cached[hit[1], c("mean", "ci_lower", "ci_upper")])
+    share <- cached$share[hit[1]]
+  } else {
+    m <- measure_dow_response(json_data, opt$scenario, p1_rate = p1, post_op = q,
+                              care_state = care_state,
+                              n_reps = opt$reps, n_days = opt$days, seeds = seeds)
+    s <- pooled_rate_summary(m$rates)
+    share <- if (m$early + m$late > 0) m$late / (m$early + m$late) else 0
+    if (!is.null(opt$cache)) {
+      row <- data.frame(key = key, mean = s$mean, ci_lower = s$ci_lower,
+                        ci_upper = s$ci_upper, share = share)
+      write.table(row, opt$cache, sep = ",", row.names = FALSE,
+                  col.names = !file.exists(opt$cache), append = file.exists(opt$cache))
+    }
+  }
   cat(sprintf("  p1_rate = %.5f, post_op = %.5f: %.3f%%  95%% CI [%.3f%%, %.3f%%]; post-op share %.3f\n",
               p1, q, 100 * s$mean, 100 * s$ci_lower, 100 * s$ci_upper, share))
   c(rate = s$mean, ci_lower = s$ci_lower, ci_upper = s$ci_upper, share = share)

@@ -245,12 +245,14 @@ table_rows <- readme[start + seq_len(14L)]
 
 #' The shipped-value cell of one fitted value's row in the calibration table
 #'
-#' @param key The value's configuration key, set in backticks in its row.
+#' @param key The value's configuration key, set in backticks in its row's first cell.
 #' @return The number in that row's second cell, NA where the row is absent.
 table_value <- function(key) {
-  row <- grep(sprintf("`%s`", key), table_rows, value = TRUE, fixed = TRUE)
-  if (length(row) != 1L) return(NA_real_)
-  cell <- trimws(strsplit(row, "|", fixed = TRUE)[[1]][3])
+  cells <- strsplit(table_rows, "|", fixed = TRUE)
+  named <- vapply(cells, function(c) length(c) >= 3 && grepl(sprintf("`%s`", key), c[2],
+                                                            fixed = TRUE), logical(1))
+  if (sum(named) != 1L) return(NA_real_)
+  cell <- trimws(cells[[which(named)]][3])
   suppressWarnings(as.numeric(sub("^([0-9.]+).*$", "\\1", cell)))
 }
 for (key in names(base)) {

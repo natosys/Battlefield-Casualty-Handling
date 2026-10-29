@@ -33,7 +33,8 @@
 #
 # What it asserts:
 #
-#   1. Every attribute key set under a literal name in R/trajectories*.R is in
+#   1. Every attribute key set under a literal name in R/trajectories*.R, alone
+#      or in a literal vector of several, is in
 #      MODEL_ATTRIBUTE_KEYS.
 #   2. Every key in MODEL_ATTRIBUTE_KEYS is still set somewhere in
 #      R/trajectories*.R, so a deleted attribute cannot linger in the list.
@@ -159,7 +160,13 @@ literal_set <- regmatches(
   model_src,
   gregexpr('set_attribute\\(\\s*"[a-z0-9_]+"', model_src)
 )
-literal_keys <- sort(unique(gsub('.*"([a-z0-9_]+)"', "\\1", unlist(literal_set))))
+literal_keys <- gsub('.*"([a-z0-9_]+)"', "\\1", unlist(literal_set))
+# A call setting several keys at once names them in a literal vector, which
+# may run across lines, so it is read from the source as one text.
+src_text   <- paste(model_src, collapse = "\n")
+vector_set <- regmatches(src_text, gregexpr("set_attribute\\(\\s*c\\([^)]*\\)", src_text))[[1]]
+vector_keys <- gsub('"', "", unlist(regmatches(vector_set, gregexpr('"[a-z0-9_]+"', vector_set))))
+literal_keys <- sort(unique(c(literal_keys, vector_keys)))
 
 #' Name a few of a failing assertion's offenders without printing all of them
 #'
@@ -193,7 +200,7 @@ report(all(quoted_anywhere),
 
 all_set_calls  <- sum(vapply(gregexpr("set_attribute\\(", model_src),
                              function(m) sum(m > 0), numeric(1)))
-literal_calls  <- length(unlist(literal_set))
+literal_calls  <- length(unlist(literal_set)) + length(vector_set)
 report(all_set_calls - literal_calls == 2L,
        "the %d set_attribute() calls taking a variable key are the 2 accounted for",
        all_set_calls - literal_calls)

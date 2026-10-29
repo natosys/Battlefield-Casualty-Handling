@@ -1482,13 +1482,18 @@ ame_pool_sorties <- function(res, pool) {
 #'
 #' @details A sortie scheduled at the horizon itself never resolves, the run
 #'   ending at that instant, so the expected count of sorties flown takes the
-#'   scheduled sorties strictly before it.
+#'   scheduled sorties strictly before it, none when the interval is zero or
+#'   longer than the campaign.
 seed42_evacuation_rows <- function(wide, res, cfg, days) {
   dec <- wide("evacuation_decision_day")
   boarded <- sum(!is.na(wide("ame_departure_time")))
   wait <- wide("ame_wait_minutes")
   interval <- cfg$vars$role4$ame$schedule_interval_days
-  scheduled <- sum(seq(interval, days, by = interval) < days)
+  scheduled <- if (interval > 0 && interval <= days) {
+    sum(seq(interval, days, by = interval) < days)
+  } else {
+    0
+  }
   std <- ame_pool_sorties(res, "ame")
   crit <- ame_pool_sorties(res, "ame_critical")
   data.frame(

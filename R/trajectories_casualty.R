@@ -111,44 +111,51 @@ r1_treat_wia <- function(team) {
     release_all()
 }
 
+#' Minutes of one road move from R1 to the Role 2 facility selected for it
+#'
+#' @return One draw from the R1 to R2B leg (`r1.wia_transport`) and, for a
+#'   casualty bypassing R2B (attribute `r2b` not positive), a second from the
+#'   R2B to R2E leg (`r2b.wia_transport`).
+#'
+#' @details R2E lies behind the R2B facilities on the same evacuation axis
+#'   (README Scenario Context), so a casualty sent from R1 directly to R2E
+#'   travels both legs without stopping. Called once for the laden move and once
+#'   for the unladen return, each drawing afresh.
+r1_evacuation_leg_minutes <- function() {
+  #' One draw from a leg's triangular distribution
+  #'
+  #' @param v The leg's `min`, `max` and `mode`, in minutes.
+  #' @return Minutes.
+  leg <- function(v) rtriangle(n = 1, a = v$min, b = v$max, c = v$mode)
+  minutes <- leg(env_data$vars$r1$wia_transport)
+  if (get_attribute(env, "r2b") <= 0) minutes <- minutes + leg(env_data$vars$r2b$wia_transport)
+  minutes
+}
+
 #' Simulates Role 1 transport of WIA or DNBI casualties to Role 2 facilities
 #'
 #' @return Simmer trajectory modeling casualty movement from R1 to R2
 #'
 #' @details Selects a PMV Ambulance asset using shortest-queue policy. Logs
-#'   transport start time via transport_start_time attribute. Applies
-#'   triangular distributed timeout to simulate transit duration. Models
-#'   the dead-head return leg: after drop-off, the entity
-#'   clones into a vehicle branch (unladen return timeout, then release —
-#'   listed first so it inherits the pre-clone seize record) and a
-#'   casualty branch (no further activity). The trailing
-#'   synchronize(wait = FALSE) lets the casualty continue immediately
-#'   once it reaches that point, while the vehicle clone is discarded
-#'   when it later arrives there after completing its return leg.
+#'   transport start time via transport_start_time attribute. The move is one
+#'   leg to R2B or two to R2E (r1_evacuation_leg_minutes()), so the facility is
+#'   chosen before the casualty boards. Models the dead-head return leg: after
+#'   drop-off, the entity clones into a vehicle branch (unladen return timeout
+#'   over the same legs, then release — listed first so it inherits the
+#'   pre-clone seize record) and a casualty branch (no further activity). The
+#'   trailing synchronize(wait = FALSE) lets the casualty continue immediately
+#'   once it reaches that point, while the vehicle clone is discarded when it
+#'   later arrives there after completing its return leg.
 r1_transport_wia <- function() {
   trajectory("Transport WIA") %>%
     simmer::select(env_data$transports$PMVAmb, policy = "shortest-queue") %>%
     seize_selected() %>%
     set_attribute("transport_start_time", function() now(env)) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r1$wia_transport$min,
-        b = env_data$vars$r1$wia_transport$max,
-        c = env_data$vars$r1$wia_transport$mode
-      )
-    }) %>%
+    timeout(r1_evacuation_leg_minutes) %>%
     clone(
       n = 2,
       trajectory("Vehicle Return Leg") %>%
-        timeout(function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r1$wia_transport$min,
-            b = env_data$vars$r1$wia_transport$max,
-            c = env_data$vars$r1$wia_transport$mode
-          )
-        }) %>%
+        timeout(r1_evacuation_leg_minutes) %>%
         release_selected(),
       trajectory("Casualty Dropped Off")
     ) %>%
@@ -209,15 +216,20 @@ assign_injury_attributes <- function(trj) {
 #' @param trj Trajectory to append the assignments to
 #' @return The trajectory, with the clinical attributes assigned.
 #'
-#' @details Sets priority (WIA and DNBI only) by weighted draw, a
-#'   casualty-surge-tagged casualty drawing from its own event's priority split
-#'   in "scheduled" mode and from the shared blast-dominant split in "poisson"
-#'   mode; under the legacy mechanism, dow_ceiling, the priority's
-#'   died-of-wounds ceiling; dnbi_type
-#'   (1 = battle fatigue, 2 = disease, 3 = non-battle injury) for DNBI
-#'   casualties; the surgical requirement, which follows from priority and
-#'   dnbi_type; the damage control pathway; and the R1 team that treats the
-#'   casualty.
+#' @details Sets dnbi_type (1 = battle fatigue, 2 = disease, 3 = non-battle
+#'   injury) for DNBI casualties; priority, by the rule for the casualty's
+#'   kind (disease_priority() below); the surgical requirement, which follows
+#'   from priority and dnbi_type; under the legacy mechanism, dow_ceiling, the
+#'   priority's died-of-wounds ceiling; the damage control pathway; and the R1
+#'   team that treats the casualty.
+#'
+#'   A wounded or non-battle injury casualty draws priority from the trauma
+#'   split, a casualty-surge-tagged one from its own event's split in
+#'   "scheduled" mode and from the shared blast-dominant split in "poisson"
+#'   mode. Battle fatigue is Priority 3 without a draw. A disease casualty is
+#'   Priority 1 at the medical emergency share, and otherwise Priority 2 if it
+#'   needs emergency surgery and Priority 3 if not, so its priority is settled
+#'   only once its surgical requirement is known.
 assign_clinical_attributes <- function(trj) {
   #' Sets the legacy mechanism's starting ceiling
   #'
@@ -237,7 +249,26 @@ assign_clinical_attributes <- function(trj) {
   }
 
   trj %>%
+    set_attribute("dnbi_type", function() {
+      name <- get_name(env)
+      if (startsWith(name, "dnbi")) {
+        sample(1:3, 1, prob = c(
+          env_data$vars$r1$other$battle_fatigue_pct,
+          env_data$vars$r1$other$disease_pct,
+          env_data$vars$r1$other$nbi_pct
+        ))
+      } else {
+        NA_integer_
+      }
+    }) %>%
     set_attribute("priority", function() {
+      dtype <- get_attribute(env, "dnbi_type")
+      # Battle fatigue and disease follow their own rule rather than the trauma
+      # split: battle fatigue is Priority 3, and disease is Priority 1 at the
+      # medical emergency share, provisionally 3 otherwise until its surgical
+      # requirement is drawn below.
+      if (!is.na(dtype) && dtype == 1L) return(3)
+      if (!is.na(dtype) && dtype == 2L) return(if (runif(1) < disease_p1_share()) 1 else 3)
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
         if (get_attribute(env, "casualty_surge_event") == 1) {
           eid    <- get_attribute(env, "casualty_surge_event_id")
@@ -262,19 +293,6 @@ assign_clinical_attributes <- function(trj) {
         NA
       }
     }) %>%
-    legacy_dow_ceiling() %>%
-    set_attribute("dnbi_type", function() {
-      name <- get_name(env)
-      if (startsWith(name, "dnbi")) {
-        sample(1:3, 1, prob = c(
-          env_data$vars$r1$other$battle_fatigue_pct,
-          env_data$vars$r1$other$disease_pct,
-          env_data$vars$r1$other$nbi_pct
-        ))
-      } else {
-        NA_integer_
-      }
-    }) %>%
     set_attribute("surgery", function() {
       prio      <- get_attribute(env, "priority")
       dnbi_type <- get_attribute(env, "dnbi_type")
@@ -286,7 +304,8 @@ assign_clinical_attributes <- function(trj) {
       if (!is.na(dnbi_type) && dnbi_type == 1L) return(0)
 
       # Disease: small probability for emergency surgical conditions (appendicitis,
-      # cholecystitis, perforated ulcer); applied unconditionally across priorities
+      # cholecystitis, perforated ulcer), drawn whatever the medical emergency
+      # draw gave, so a medical emergency can also need surgery
       if (!is.na(dnbi_type) && dnbi_type == 2L) {
         return(as.numeric(runif(1) < env_data$vars$r1$other$disease_surgery_pct))
       }
@@ -301,37 +320,21 @@ assign_clinical_attributes <- function(trj) {
         return(as.numeric(runif(1) < env_data$vars$r1$other$pri3_other_surgery))
       }
     }) %>%
+    # A disease casualty below Priority 1 who needs emergency surgery is
+    # Priority 2, treatment within 6 to 12 hours; one who does not stays 3.
+    set_attribute("priority", function() {
+      prio  <- get_attribute(env, "priority")
+      dtype <- get_attribute(env, "dnbi_type")
+      if (is.na(dtype) || dtype != 2L || prio == 1) return(prio)
+      if (get_attribute(env, "surgery") == 1) 2 else 3
+    }) %>%
+    legacy_dow_ceiling() %>%
 
     # Staged damage control or a single-stage definitive procedure, decided
     # here rather than at either theatre so both echelons read one value; see
     # draw_dcs_pathway() above.
     set_attribute("dcs_pathway", draw_dcs_pathway) %>%
     set_attribute("team", function() sample(1:counts[["r1"]], 1))
-}
-
-#' Builds the R1 convalescence and return-to-duty pathway
-#'
-#' @param name Quoted trajectory name, which differs between the arms that use
-#'   this pathway and so appears in the model's structure under both.
-#' @return Simmer trajectory holding the casualty at R1 for a drawn
-#'   convalescence, then returning it to duty.
-#'
-#' @details Serves a casualty who is not evacuated forward: a triangular
-#'   convalescence, then return_day and return_echelon, then the credit back to
-#'   the casualty's own pool (`credit_rtd()`).
-r1_monitor_recovery <- function(name) {
-  trajectory(name) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r1$recovery$min,
-        b = env_data$vars$r1$recovery$max,
-        c = env_data$vars$r1$recovery$mode
-      )
-    }) %>%
-    set_attribute("return_day", function() now(env)) %>%
-    set_attribute("return_echelon", 1) %>%
-    credit_rtd()
 }
 
 #' Route a casualty to its R1 team's mortuary handling and onward transport
@@ -354,194 +357,110 @@ r1_mortuary_handling <- function(trj) {
     )
 }
 
-#' Builds the battle fatigue holding pathway at R1
+#' The share of disease casualties who are medical emergencies, Priority 1
 #'
-#' @return Simmer trajectory holding a battle fatigue casualty at R1 until
-#'   return to duty, then leaving the model.
-#'
-#' @details Battle fatigue is held forward and returned to duty without R2
-#'   routing and without a died-of-wounds check, so the casualty leaves the
-#'   trajectory rather than continuing to the evacuation decision.
-r1_battle_fatigue_hold <- function() {
-  trajectory("Battle Fatigue R1 Hold") %>%
-    set_attribute("dnbi_bf_hold", 1) %>%
-    timeout(function() {
-      rtriangle(
-        n = 1,
-        a = env_data$vars$r1$recovery$min,
-        b = env_data$vars$r1$recovery$max,
-        c = env_data$vars$r1$recovery$mode
-      )
-    }) %>%
-    set_attribute("return_day", function() now(env)) %>%
-    set_attribute("return_echelon", 1) %>%
-    credit_rtd() %>%
-    simmer::leave(1)
+#' @return `r1.other.disease_p1_pct`, validated as a probability.
+disease_p1_share <- function() {
+  share <- env_data$vars$r1$other$disease_p1_pct
+  if (is.null(share) || length(share) != 1L || !is.numeric(share) || is.na(share) ||
+      share < 0 || share > 1) {
+    stop(sprintf("r1.other.disease_p1_pct must be a probability, found %s",
+                 paste(format(share), collapse = ", ")), call. = FALSE)
+  }
+  share
 }
 
-#' Builds the disease evacuation decision at R1
+#' Selects the R2B team a casualty leaving R1 is sent to
 #'
-#' @return Simmer trajectory deciding whether a disease casualty is evacuated
-#'   to R2B, bypassed to R2E where no R2B holding capacity is available, or
-#'   held at R1 for convalescence.
+#' @return Index of the selected R2B team, or -1 to bypass R2B for R2E.
 #'
-#' @details A disease casualty faces no died-of-wounds check and carries no
-#'   surgical requirement, so its forward routing is a holding-bed placement:
-#'   `select_r2b_for_hold()` chooses the R2B team, and a casualty finding none
-#'   bypasses to R2E.
-r1_disease_evac_decision <- function() {
-  trajectory("Disease Evac Decision") %>%
-    branch(
-      option = function() {
-        prio <- get_attribute(env, "priority")
-        if (is.na(prio)) return(2)
-        if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_evac) return(1)
-        if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_evac) return(1)
-        return(2)
-      },
-      continue = TRUE,
-
-      trajectory("Disease Transport to R2B") %>%
-        set_attribute("r2b", function() select_r2b_for_hold(env)) %>%
-        join(r1_transport_wia()) %>%
-        # Branches on whether select_r2b_for_hold() found a holding bed:
-        # - If a team was selected, treat at that R2B team
-        # - If none had a bed, bypass R2B and continue to R2E
-        branch(
-          option = function() {
-            r2b <- get_attribute(env, "r2b")
-            if (r2b > 0) return(1) else return(2)
-          },
-          continue = TRUE,
-          trajectory("Disease To R2B") %>%
-            # Dispatch on attribute "r2b", the team selected above:
-            # - Routes to that team's treatment trajectory, one arm per team
-            branch(
-              option = function() get_attribute(env, "r2b"),
-              continue = TRUE,
-              lapply(1:counts[["r2b"]], r2b_treat_wia)
-            ),
-          trajectory("Disease Bypass R2B → R2E") %>%
-            set_attribute("r2b_bypassed", 1) %>%
-            # Dispatch on a uniformly drawn R2E team, no team having been
-            # selected forward:
-            # - Routes to that team's treatment trajectory, one arm per team
-            branch(
-              option = function() sample(1:counts[["r2eheavy"]], 1),
-              continue = TRUE,
-              lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
-            )
-        ),
-
-      r1_monitor_recovery("Disease Monitor Recovery")
-    )
+#' @details Which forward facility can receive a casualty depends on what the
+#'   casualty needs: a casualty requiring surgery needs a theatre, and goes to a
+#'   team whose theatre is idle (`select_available_r2b_team()`); every other
+#'   casualty needs a bed, and goes to a team whose holding beds are below the
+#'   holding threshold (`select_r2b_for_hold()`). The rule reads surgical need,
+#'   not casualty type, so a non-surgical casualty is not diverted rearward
+#'   because the forward theatres are busy.
+select_r2b_for_casualty <- function() {
+  needs_surg <- get_attribute(env, "surgery")
+  if (!is.na(needs_surg) && needs_surg == 1) return(select_available_r2b_team(env))
+  select_r2b_for_hold(env)
 }
 
-#' Builds the forward evacuation of a casualty leaving R1
+#' Builds the move of a casualty from R1 to the Role 2 facility selected for it
 #'
-#' @return Simmer trajectory transporting the casualty to a selected R2B team,
-#'   or bypassing R2B for R2E where no team is available.
+#' @param to_r2b Function of a team index returning the trajectory a casualty
+#'   takes at that R2B team.
+#' @param to_r2e Function of a team index returning the trajectory a casualty
+#'   takes at that R2E Heavy team.
+#' @return Simmer trajectory selecting the facility, moving the casualty there
+#'   and handing it to that facility's pathway.
 #'
-#' @details `select_available_r2b_team()` chooses the team before the road
-#'   move, so a casualty with no team available is tagged r2b_bypassed and
-#'   routed to a randomly selected R2E Heavy element instead.
-r1_forward_evacuation <- function() {
-  trajectory("Transport to R2b") %>%
-    set_attribute("r2b", function() select_available_r2b_team(env)) %>%
+#' @details The facility is chosen before the road move, so the move is one leg
+#'   to R2B or two to R2E (r1_evacuation_leg_minutes()). A casualty for whom no
+#'   R2B team qualifies is tagged r2b_bypassed and routed to a randomly selected
+#'   R2E Heavy element.
+r1_evacuate_to_r2 <- function(to_r2b, to_r2e) {
+  trajectory("Evacuate from R1") %>%
+    set_attribute("r2b", select_r2b_for_casualty) %>%
     join(r1_transport_wia()) %>%
-
-    # R2B availability branch
-    # - r2b > 0 → evacuate to selected R2B team
-    # - r2b <= 0 → bypass R2B, send directly to R2E
+    # Branches on the R2B team selected above:
+    # - a team was selected -> that team's pathway, one arm per team
+    # - none qualified      -> bypass R2B to a uniformly drawn R2E team
     branch(
-      option = function() {
-        r2b <- get_attribute(env, "r2b")
-        if (r2b > 0) return(1) else return(2)
-      },
+      option = function() if (get_attribute(env, "r2b") > 0) 1 else 2,
       continue = TRUE,
-
-      # Path 1: R2B treatment
       trajectory("To R2B") %>%
         branch(
           option = function() get_attribute(env, "r2b"),
           continue = TRUE,
-          lapply(1:counts[["r2b"]], r2b_treat_wia)
+          lapply(1:counts[["r2b"]], to_r2b)
         ),
-
-      # Path 2: Bypass R2B, route directly to R2E
       trajectory("Bypass R2B → To R2E") %>%
         set_attribute("r2b_bypassed", 1) %>%
         branch(
           option = function() sample(1:counts[["r2eheavy"]], 1),
           continue = TRUE,
-          lapply(1:counts[["r2eheavy"]], r2e_treat_wia)
+          lapply(1:counts[["r2eheavy"]], to_r2e)
         )
     )
 }
 
-#' Builds the post-treatment disposition of a casualty surviving R1
+#' Builds the standard R1 pathway for every casualty other than battle fatigue
 #'
-#' @return Simmer trajectory deciding between forward evacuation and
-#'   convalescence at R1.
+#' @return Simmer trajectory applying the died-of-wounds check at R1 and
+#'   evacuating every survivor to Role 2.
 #'
-#' @details The last died-of-wounds check time is stamped before the decision,
-#'   so the next check upstream measures from here. Priority 1 and 2 casualties
-#'   are evacuated at their configured rates; every other casualty convalesces
-#'   at R1.
-r1_post_treatment_decision <- function() {
-  trajectory("Post-Treatment Decision") %>%
-    set_attribute("last_dow_t", function() now(env)) %>%
-    # Evacuation decision branch
-    # - P1 with runif < pri1_evac → evacuate to next echelon
-    # - P2 with runif < pri2_evac → evacuate to next echelon
-    # - else                      → recover at R1
-    branch(
-      option = function() {
-        prio <- get_attribute(env, "priority")
-        if (is.na(prio)) return(2)
-        if (prio == 1 && runif(1) < env_data$vars$r1$other$pri1_evac) return(1)
-        if (prio == 2 && runif(1) < env_data$vars$r1$other$pri2_evac) return(1)
-        return(2)
-      },
-      continue = TRUE,
-
-      # Path 1: Evacuate to R2B or bypass to R2E
-      r1_forward_evacuation(),
-
-      # Path 2: Recover at R1
-      r1_monitor_recovery("Monitor Recovery")
-    )
-}
-
-#' Builds the standard R1 pathway for wounded and non-battle injury casualties
-#'
-#' @return Simmer trajectory applying the died-of-wounds check at R1 and, for
-#'   the survivors, the post-treatment disposition.
-#'
-#' @details This is the pathway every casualty other than battle fatigue and
-#'   disease takes, and the only one of the three carrying a died-of-wounds
-#'   check at R1.
-r1_nbi_wia_standard_path <- function() {
+#' @details The casualty streams are Role 2 admissions by construction
+#'   (README Casualty Generation), so every casualty who survives the check
+#'   leaves R1. A disease casualty faces no risk at the check: under the
+#'   care-state model its rate is zero (dow_exempt()), and the legacy branch
+#'   passes it without a draw.
+r1_standard_path <- function() {
   died <- trajectory("Died of Wounds at Role 1") %>%
     set_attribute("dow", 1) %>%
     set_attribute("dow_echelon", 1) %>%
     r1_mortuary_handling()
 
+  evacuate <- trajectory("Evacuate") %>%
+    set_attribute("last_dow_t", function() now(env)) %>%
+    join(r1_evacuate_to_r2(r2b_treat_wia, r2e_treat_wia))
+
   # Under the care-state model the check settles the risk accrued since injury.
   if (dow_care_state_enabled()) {
-    return(trajectory("NBI/WIA Standard Path") %>%
-             dow_check(cohort = FALSE, died = died,
-                       survived = r1_post_treatment_decision()))
+    return(trajectory("Standard Path") %>%
+             dow_check(cohort = FALSE, died = died, survived = evacuate))
   }
 
-  trajectory("NBI/WIA Standard Path") %>%
+  trajectory("Standard Path") %>%
     # DOW branch — time-dependent logistic
     # Probability is a shifted logistic function of elapsed time since injury.
     # At R1, t_prev = 0 (first DOW check), so the conditional increment equals
     # the cumulative DOW probability adjusted for the non-zero p_base floor.
-    # P3 casualties have no DOW check at R1 (minor wounds, not time-critical).
+    # P3 casualties and disease have no DOW check at R1.
     branch(
       option = function() {
+        if (dow_exempt()) return(2)
         prio   <- get_attribute(env, "priority")
         injury <- get_attribute(env, "injury_time")
         t_prev <- get_attribute(env, "last_dow_t") - injury
@@ -564,20 +483,23 @@ r1_nbi_wia_standard_path <- function() {
       # Path 1: Died of wounds — treated as KIA
       died,
 
-      # Path 2: Continue to evacuation decision
-      r1_post_treatment_decision()
+      # Path 2: Evacuate to Role 2
+      evacuate
     )
 }
 
 #' Builds the R1 pathway for wounded and disease or non-battle injury casualties
 #'
 #' @return Simmer trajectory treating the casualty at its R1 team, applying the
-#'   treatment effect on the died-of-wounds ceiling, and routing it by DNBI
-#'   sub-type.
+#'   treatment effect on the died-of-wounds ceiling, and evacuating it to Role 2
+#'   by the pathway its DNBI sub-type takes there.
 #'
 #' @details R1 treatment (`r1_treat_wia()`) moves the casualty to the R1
 #'   treatment multiplier before any check is made, which is what lets
-#'   treatment at R1 reduce mortality downstream.
+#'   treatment at R1 reduce mortality downstream. Every casualty then leaves
+#'   R1: battle fatigue for a restoration stay in a Role 2 holding bed, without
+#'   a died-of-wounds check, and every other casualty through the R1 check to
+#'   the Role 2 treatment pathway.
 r1_wia_dnbi_path <- function() {
   trajectory("WIA/DNBI Branch") %>%
     branch(
@@ -589,29 +511,22 @@ r1_wia_dnbi_path <- function() {
               function() LEGACY_DOW_EFFICACY$r1_tccc_factor, resuscitation = FALSE) %>%
 
     # DNBI sub-type routing branch
-    # Applies differentiated pathways based on dnbi_type attribute:
-    # - dnbi_type == 1 (battle_fatigue) → R1 hold → RTD; no R2 routing, no DOW
-    # - dnbi_type == 2 (disease)        → evac decision (no DOW); placed by R2B holding occupancy
-    # - dnbi_type == 3 (nbi) or WIA     → standard DOW + evac logic
+    # - dnbi_type == 1 (battle fatigue) -> Role 2 holding bed for restoration,
+    #   then return to duty; no died-of-wounds check, no strategic evacuation
+    # - otherwise (WIA, non-battle injury, disease) -> R1 died-of-wounds check,
+    #   then evacuation to the Role 2 treatment pathway
     branch(
       option = function() {
         dtype <- get_attribute(env, "dnbi_type")
-        if (!is.na(dtype) && dtype == 1L) return(1)  # battle fatigue
-        if (!is.na(dtype) && dtype == 2L) return(2)  # disease
-        return(3)                                      # nbi or WIA
+        if (!is.na(dtype) && dtype == 1L) return(1)
+        2
       },
       continue = TRUE,
-
-      # Branch 1: Battle fatigue — hold at R1, return to duty; no R2 routing
-      r1_battle_fatigue_hold(),
-
-      # Branch 2: Disease — evacuation decision (no DOW check). A disease
-      # casualty carries the emergency surgical draw (disease_surgery_pct) and,
-      # if it needs surgery, takes the R2B surgical pathway; otherwise holding
-      r1_disease_evac_decision(),
-
-      # Branch 3: NBI or WIA — standard DOW + evac logic
-      r1_nbi_wia_standard_path()
+      r1_evacuate_to_r2(
+        function(i) battle_fatigue_restoration(env_data$elms$r2b[[i]][["hold_bed"]], 2),
+        function(i) battle_fatigue_restoration(env_data$elms$r2eheavy[[i]][["hold_bed"]], 3)
+      ),
+      r1_standard_path()
     )
 }
 

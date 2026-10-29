@@ -106,7 +106,7 @@ env_data_base <- env_data
 #' Attribute keys the check reads from each casualty
 KEYS <- c("recovery_to_duty_days", "r2b_hold_drawn", "r2b_hold_served", "r2b_hold_evac",
           "r2b_hold_ineligible", "r2b_hold_bypass", "r2b_surgery", "r2e_surgery",
-          "priority", "injury_type", "evacuation_reason", "return_day",
+          "priority", "injury_type", "dnbi_type", "evacuation_reason", "return_day",
           "r2e_recovery_hold_start", "r2e_arrival_time")
 
 #' Reshapes a monitor's long attribute log into one row per arrival
@@ -142,7 +142,8 @@ run_arm <- function(threshold_min = NULL) {
     (!is.na(d$r2e_surgery) & d$r2e_surgery == 1)
   d$operated <- had
   d$severity <- dplyr::case_when(
-    !is.na(d$injury_type) & d$injury_type == 2 ~ "p3_dnbi",
+    !is.na(d$dnbi_type) & d$dnbi_type == 2 & !is.na(d$priority) & d$priority == 1 ~ "p2",
+    !is.na(d$dnbi_type) & d$dnbi_type == 2 ~ "p3_dnbi",
     !is.na(d$priority) & d$priority == 3 ~ "p3_dnbi",
     !is.na(d$priority) & d$priority == 1 & had ~ "p1_surgical",
     !is.na(d$priority) & d$priority == 1 ~ "p1_nonsurgical",

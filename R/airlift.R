@@ -157,10 +157,11 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
   }
   evacuation_bed_days <- stay_bed_days("ame_hold_start", staging_minutes)
 
-  # A retained casualty holds the bed for the recovery its disposition was
-  # decided on, which is drawn in days rather than minutes.
+  # A retained casualty holds the bed for what is left of its recovery once it
+  # reaches one, the time it queued having counted toward it; battle fatigue
+  # restored here records its bed time the same way.
   recovery_bed_days <- stay_bed_days("r2e_recovery_hold_start",
-                                     duration_of("recovery_to_duty_days", DAY_MIN))
+                                     duration_of("r2e_recovery_hold_min"))
   post_definitive_bed_days <- stay_bed_days("post_definitive_hold_start",
                                             duration_of("post_definitive_min"))
   post_op_hold_bed_days <- stay_bed_days("r2e_post_op_hold_start",

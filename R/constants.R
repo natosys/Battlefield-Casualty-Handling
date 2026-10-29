@@ -47,7 +47,7 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "r2b_surgery", "r2b_surgery_end", "r2b_surgery_start", "r2b_to_r2e", "r2b_treated",
   "r2b_treatment_start_time", "r2e", "r2e_arrival_time", "r2e_departure_time", "r2e_evac",
   "r2e_handling", "r2e_post_op_hold_min", "r2e_post_op_hold_start", "r2e_post_op_min",
-  "r2e_recovery_hold_start", "r2e_resus", "r2e_surgery", "r2e_surgery_1_end",
+  "r2e_recovery_hold_min", "r2e_recovery_hold_start", "r2e_resus", "r2e_surgery", "r2e_surgery_1_end",
   "r2e_surgery_1_start", "r2e_surgery_2_end", "r2e_surgery_2_start", "r2e_treated",
   "reconstruction_required", "recovery_to_duty_days", "reinf_combat_demand",
   "reinf_combat_fill", "reinf_support_demand",

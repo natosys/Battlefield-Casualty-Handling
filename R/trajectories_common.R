@@ -991,14 +991,20 @@ bed_minutes_left <- function() {
 #'   under the attribute every other holding stay at that echelon uses, so the
 #'   occupancy reconstructed from attributes counts it.
 battle_fatigue_restoration <- function(hold_beds, echelon) {
-  bed_start <- if (echelon == 2) "r2b_hold_start" else "r2e_recovery_hold_start"
+  bed_record <- if (echelon == 2) {
+    trajectory() %>% set_attribute("r2b_hold_start", function() now(env))
+  } else {
+    trajectory() %>%
+      set_attribute(c("r2e_recovery_hold_start", "r2e_recovery_hold_min"),
+                    function() c(now(env), bed_minutes_left()))
+  }
   trajectory("Battle Fatigue Restoration") %>%
     set_attribute("bf_restoration", echelon) %>%
     queue_for_bed(hold_beds, id = 5, budget = function() {
       r <- env_data$vars$r1$recovery
       rtriangle(n = 1, a = r$min, b = r$max, c = r$mode)
     }, echelon = echelon) %>%
-    set_attribute(bed_start, function() now(env)) %>%
+    join(bed_record) %>%
     timeout(bed_minutes_left) %>%
     release_selected(id = 5) %>%
     set_attribute("return_day", function() now(env)) %>%

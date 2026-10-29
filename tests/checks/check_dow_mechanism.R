@@ -85,7 +85,7 @@ LEGACY_DIGESTS <- c(
   "data/arrivals_wia_cbt.txt"        = "4b9d58ad1bd122a02fec3c9f5a81c730318343cc77f59f7b22088c6d3ee8fda8",
   "data/arrivals_wia_spt.txt"        = "1cac8219cacd254449fba6eea019a4ffbcbeb17b1441d78c967459268467a482",
   "data/casualty_surge_events.csv"   = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
-  "data/seed42_verification.csv"     = "c05ed9bd8a447c1a9294ea01905a31c5dbb1abce4475578844982e17fad40e26"
+  "data/seed42_verification.csv"     = "f1daac2aff575dcdff8c50695910d83eccd3c2178caaa611bb6ec778b9023522"
 )
 
 state <- new.env(parent = emptyenv())

@@ -1421,7 +1421,8 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
         # duration the disposition was decided on.
         queue_for_bed(hold_beds, id = 5, budget = r2e_convalescence_remaining_minutes,
                       echelon = 3) %>%
-        set_attribute("r2e_recovery_hold_start", function() now(env)) %>%
+        set_attribute(c("r2e_recovery_hold_start", "r2e_recovery_hold_min"),
+                      function() c(now(env), bed_minutes_left())) %>%
         timeout(bed_minutes_left) %>%
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%

@@ -1442,6 +1442,70 @@ res_section_queue_share <- function(resources, section, window_min) {
   sum(dur * (queued & open)) / sum(dur * open)
 }
 
+#' Places and boardings of every flown sortie on one airlift seat pool
+#'
+#' @param res The run's resource monitor.
+#' @param pool The seat pool's resource name, "ame" or "ame_critical".
+#' @return A data frame of `time`, `added` (places the sortie opened) and
+#'   `boarded` (casualties boarded on it), one row per sortie that opened the
+#'   pool.
+#'
+#' @details A sortie opens the pool, serves its queue and closes it in one
+#'   instant, so its rows share a timestamp: the places are the peak capacity at
+#'   that time less the capacity before it, and the boardings the server count
+#'   after it less the count before it. The base R reading of
+#'   `compute_ame_sorties()` (R/analysis_role4_ame.R), which needs dplyr.
+ame_pool_sorties <- function(res, pool) {
+  r <- res[res$resource == pool, ]
+  r <- r[order(r$time, seq_len(nrow(r))), ]
+  out <- lapply(unique(r$time), function(t) {
+    prior <- r[r$time < t, ]
+    cap0 <- if (nrow(prior) > 0) prior$capacity[nrow(prior)] else 0
+    srv0 <- if (nrow(prior) > 0) prior$server[nrow(prior)] else 0
+    at_t <- r[r$time == t, ]
+    added <- max(at_t$capacity) - cap0
+    if (added <= 0) return(NULL)
+    data.frame(time = t, added = added, boarded = at_t$server[nrow(at_t)] - srv0)
+  })
+  do.call(rbind, c(list(data.frame(time = numeric(0), added = numeric(0),
+                                   boarded = numeric(0))), out))
+}
+
+#' Strategic evacuation measurements of one seed-42 campaign
+#'
+#' @param wide Function returning the last value of one attribute for every
+#'   casualty, as `seed42_verification_rows()` builds it.
+#' @param res The run's resource monitor.
+#' @param cfg The parsed configuration the run used.
+#' @param days The campaign length in days.
+#' @return A data frame of `metric`, `value` and `configured`.
+#'
+#' @details A sortie scheduled at the horizon itself never resolves, the run
+#'   ending at that instant, so the expected count of sorties flown takes the
+#'   scheduled sorties strictly before it.
+seed42_evacuation_rows <- function(wide, res, cfg, days) {
+  dec <- wide("evacuation_decision_day")
+  boarded <- sum(!is.na(wide("ame_departure_time")))
+  wait <- wide("ame_wait_minutes")
+  interval <- cfg$vars$role4$ame$schedule_interval_days
+  scheduled <- sum(seq(interval, days, by = interval) < days)
+  std <- ame_pool_sorties(res, "ame")
+  crit <- ame_pool_sorties(res, "ame_critical")
+  data.frame(
+    metric = c("decisions", "boarded", "still_waiting_at_close", "mean_wait_days",
+               "p90_wait_days", "sorties_flown", "places_empty_critical",
+               "places_empty_standard"),
+    value = c(sum(!is.na(dec)), boarded, sum(!is.na(dec)) - boarded,
+              mean(wait, na.rm = TRUE) / DAY_MIN,
+              unname(quantile(wait, 0.9, na.rm = TRUE)) / DAY_MIN, nrow(std),
+              mean(crit$added - crit$boarded), mean(std$added - std$boarded)),
+    configured = c(rep(NA_real_, 5),
+                   scheduled * (1 - cfg$vars$role4$ame$failure_probability),
+                   NA_real_, NA_real_),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' Verification measurements of one seed-42 campaign
 #'
 #' @param mon The monitoring list of one run, with `arrivals` and `attributes`.
@@ -1543,14 +1607,10 @@ seed42_verification_rows <- function(mon, cfg, days) {
   queued <- wide("rtd_while_queued")
   add("admission", "returned_to_duty_while_queued", sum(queued == 1, na.rm = TRUE))
   add("admission", "battle_fatigue_returned", sum(!is.na(wide("return_day")[names(bf)])))
-  dec <- wide("evacuation_decision_day")
-  add("evacuation", "decisions", sum(!is.na(dec)))
-  add("evacuation", "boarded", sum(!is.na(wide("ame_departure_time"))))
-  boarded <- sum(!is.na(wide("ame_departure_time")))
-  add("evacuation", "still_waiting_at_close", sum(!is.na(dec)) - boarded)
-  wait <- wide("ame_wait_minutes")
-  add("evacuation", "mean_wait_days", mean(wait, na.rm = TRUE) / DAY_MIN)
-  add("evacuation", "p90_wait_days", unname(quantile(wait, 0.9, na.rm = TRUE)) / DAY_MIN)
+  evac <- seed42_evacuation_rows(wide, mon$resources, cfg, days)
+  for (i in seq_len(nrow(evac))) {
+    add("evacuation", evac$metric[i], evac$value[i], evac$configured[i])
+  }
   res <- mon$resources
   window <- days * DAY_MIN
   bypass <- wide("r2b_bypass_reason")
@@ -1665,8 +1725,17 @@ ANNEX_DAMAGE_CONTROL <- c(
 ANNEX_EVACUATION <- c(
   decisions = "Strategic evacuation decisions",
   boarded = "Boarded",
-  still_waiting_at_close = "Still waiting at the close"
+  still_waiting_at_close = "Still waiting at the close",
+  mean_wait_days = "Mean wait of the casualties boarded (days)",
+  sorties_flown = "Sorties flown",
+  places_empty_critical = "Critical places departing empty per sortie (mean)",
+  places_empty_standard = "Standard places departing empty per sortie (mean)"
 )
+
+#' Decimal places of each row of the seed-42 strategic evacuation table
+ANNEX_EVACUATION_DP <- c(decisions = 0L, boarded = 0L, still_waiting_at_close = 0L,
+                         mean_wait_days = 2L, sorties_flown = 0L,
+                         places_empty_critical = 1L, places_empty_standard = 1L)
 
 #' Row labels of the seed-42 surgical load table, by metric
 ANNEX_SURGICAL_LOAD <- c(
@@ -2691,7 +2760,8 @@ RESULTS_TABLES <- list(
   annex_generation = function(dd) build_annex(dd, "generation", ANNEX_GENERATION),
   annex_triage = function(dd) build_annex(dd, "triage", ANNEX_TRIAGE),
   annex_damage_control = function(dd) build_annex(dd, "damage_control", ANNEX_DAMAGE_CONTROL),
-  annex_evacuation = function(dd) build_annex(dd, "evacuation", ANNEX_EVACUATION),
+  annex_evacuation = function(dd) build_annex(dd, "evacuation", ANNEX_EVACUATION,
+                                               ANNEX_EVACUATION_DP),
   annex_admission = function(dd) build_annex(dd, "admission", ANNEX_ADMISSION, ANNEX_ADMISSION_DP),
   annex_surgical_load = function(dd) {
     build_annex(dd, "surgical_load", ANNEX_SURGICAL_LOAD, ANNEX_SURGICAL_LOAD_DP)

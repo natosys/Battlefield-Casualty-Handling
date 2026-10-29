@@ -227,28 +227,23 @@ build_reinforcement_trajectory <- function() {
 # changing the airframe changes both pools together.
 
 #' Builds the AME sortie trajectory: one firing = one scheduled sortie
-#' opportunity, which either flies — adding the configured airframe's
-#' critical and standard capacity to the "ame" (standard) and
-#' "ame_critical" (CCATT/CCAST-supported) resources — or is cancelled
-#' (weather, tasking, airframe availability, etc.) and adds nothing to
-#' either.
+#' opportunity, which either flies, boarding the evacuees waiting on the
+#' "ame" (standard) and "ame_critical" (CCATT/CCAST-supported) seat pools up
+#' to the configured airframe's places, or is cancelled (weather, tasking,
+#' airframe availability, etc.) and boards nobody.
 #'
 #' @return A simmer trajectory
 #'
 #' @details Driven by its own generator in run_once() (R/replication.R),
 #'   scheduled every schedule_interval_days
-#'   (env_data$vars$role4$ame$schedule_interval_days). Capacity is additive
-#'   (mod = "+"), never reset to an absolute value: casualties who seize
-#'   "ame"/"ame_critical" (r2e_treat_wia()'s Strategic Evac branch, below)
-#'   never release it, so a fixed/reset capacity value would permanently
-#'   cap total-ever-admitted at that value the first time the server count
-#'   catches up to it — the resource would never "reopen" for a later
-#'   sortie. Additive capacity avoids this, at the cost of a simplification
-#'   documented as MODEL ASSUMPTION — AME Capacity Banking in the README:
-#'   unclaimed capacity from an under-subscribed sortie is not lost, and
-#'   can be claimed by a later arrival even between scheduled sorties,
-#'   rather than being wasted the way a real aircraft's empty seats would
-#'   be once it departs.
+#'   (env_data$vars$role4$ame$schedule_interval_days). A boarded casualty
+#'   never releases its place, so a pool's server count is the number ever
+#'   boarded and only grows. A flying sortie opens boarding by setting each
+#'   pool's capacity to that count plus the airframe's places, which serves
+#'   the queue in arrival order at once, and closes it by setting the
+#'   capacity back to the count, so the places nobody took depart with the
+#'   aircraft and no casualty can board between sorties. An evacuee therefore
+#'   waits queued on its pool (r2e_ame_wait_and_board()) rather than polling it.
 build_ame_sortie_trajectory <- function() {
   airframe <- resolve_ame_airframe(env_data$vars$role4)
 
@@ -260,8 +255,12 @@ build_ame_sortie_trajectory <- function() {
       },
       continue = TRUE,
       trajectory("Sortie Flies") %>%
-        set_capacity("ame", value = airframe$standard_capacity, mod = "+") %>%
-        set_capacity("ame_critical", value = airframe$critical_capacity, mod = "+"),
+        set_capacity("ame", function() get_server_count(env, "ame") +
+                       airframe$standard_capacity) %>%
+        set_capacity("ame_critical", function() get_server_count(env, "ame_critical") +
+                       airframe$critical_capacity) %>%
+        set_capacity("ame", function() get_server_count(env, "ame")) %>%
+        set_capacity("ame_critical", function() get_server_count(env, "ame_critical")),
       trajectory("Sortie Cancelled")
     )
 }

@@ -230,7 +230,8 @@ print_arm <- function(arm, response) {
 cat("\nResponses by arm:\n")
 for (arm in unique(summary_rows$arm)) {
   for (response in c("boarded", "queued_at_end", "mean_wait_days", "p90_wait_days",
-                     "sorties_flown", "cancellation_rate", "role4_peak",
+                     "sorties_flown", "cancellation_rate", "places_empty_critical",
+                     "places_empty_standard", "role4_peak",
                      "role4_peak_after_end", "hold_evac_bed_days", "hold_evac_share",
                      "ventilated_hold_hours")) {
     print_arm(arm, response)

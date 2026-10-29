@@ -12,6 +12,62 @@
 # measure the same quantity by the same estimator rather than by two
 # implementations that can drift apart.
 
+#' Overflow points of care the analysis reports a census for
+#'
+#' @details One pattern per point of care, matching every team's overflow
+#'   resource (named by `OVERFLOW_RESOURCE_FMT`, R/constants.R). A casualty is
+#'   placed in overflow when neither the bed its care calls for nor a holding bed
+#'   is free, and overflow has no capacity to queue behind, so the quantity
+#'   reported for it is its census, the number of casualties in it, read from the
+#'   server count by the same estimator as a bed pool's queue
+#'   (pool_queue_steps()). An overflow point no casualty reached has no monitor
+#'   row, and its census is zero rather than absent.
+OVERFLOW_POOLS <- c(
+  "R2B reception overflow"      = "^overflow_r2b_reception_[0-9]+$",
+  "R2E post-operative overflow" = "^overflow_r2e_post_op_[0-9]+$",
+  "R2E pre-flight overflow"     = "^overflow_r2e_pre_flight_[0-9]+$",
+  "R2E staging overflow"        = "^overflow_r2e_staging_[0-9]+$"
+)
+
+#' Mean overflow census of one point of care over a series of bins
+#'
+#' @param resources Resource-monitor rows carrying resource, time and server.
+#' @param pattern One of `OVERFLOW_POOLS`.
+#' @param edges Bin edges in minutes.
+#' @return The time-weighted mean census in each bin, zero throughout where no
+#'   casualty reached the point.
+overflow_census_bin_means <- function(resources, pattern, edges) {
+  rows <- resources[grepl(pattern, resources$resource), ]
+  if (nrow(rows) == 0) return(rep(0, length(edges) - 1L))
+  step_bin_means(pool_queue_steps(rows$resource, rows$time, rows$server), edges)
+}
+
+#' Response column naming each overflow point's census in a per-replication row
+OVERFLOW_RESPONSES <- c(
+  "R2B reception overflow"      = "overflow_r2b_reception",
+  "R2E post-operative overflow" = "overflow_r2e_post_op",
+  "R2E pre-flight overflow"     = "overflow_r2e_pre_flight",
+  "R2E staging overflow"        = "overflow_r2e_staging"
+)
+
+#' Mean overflow census of every point of care over one window
+#'
+#' @param resources Resource-monitor rows for one replication, carrying
+#'   resource, time and server.
+#' @param from Start of the window in minutes.
+#' @param to End of the window in minutes.
+#' @return One-row data frame with one column per `OVERFLOW_RESPONSES` entry,
+#'   the time-weighted mean census over the window.
+#'
+#' @details The columns an experiment's per-replication row gains so that
+#'   every runner reports overflow by the same names and the same estimator.
+overflow_window_census <- function(resources, from, to) {
+  values <- vapply(names(OVERFLOW_POOLS), function(pool) {
+    overflow_census_bin_means(resources, OVERFLOW_POOLS[[pool]], c(from, to))
+  }, numeric(1))
+  as.data.frame(as.list(setNames(values, OVERFLOW_RESPONSES[names(OVERFLOW_POOLS)])))
+}
+
 #' Number of beds established in one resource pool
 #'
 #' @param elms A built configuration's resource identifiers, as

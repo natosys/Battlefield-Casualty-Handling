@@ -201,7 +201,9 @@ policy_theatre_queue <- function(resources, n_days, window_days) {
 #' @param policy_days Evacuation policy the replication ran under, in days.
 #' @param seed The replication's own seed.
 #' @param window_days Closing window the stability responses are measured over.
-#' @return One-row data frame of the response set.
+#' @return One-row data frame of the response set, ending in the overflow
+#'   census of each point of care over the closing window
+#'   (overflow_window_census(), R/queue_series.R).
 #'
 #' @details The national support base census is drawn under the replication's
 #'   own seed and the caller's stream is restored, that length of stay being
@@ -243,8 +245,8 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
   }
 
   # post_definitive_pathway is a simmer attribute and so is numeric, not a
-  # label: 1 is the intensive care bed and 2 the degraded holding-bed fallback
-  # (R/trajectories.R). Comparing it against a string silently matches nothing
+  # label: 1 is the intensive care bed, 2 a holding bed and 3 overflow
+  # (R/trajectories_r2e.R). Comparing it against a string silently matches nothing
   # and reports a share of zero at every policy.
   post_definitive <- wide[!is.na(wide$post_definitive_pathway), ]
   icu_access <- if (nrow(post_definitive) == 0) {
@@ -274,7 +276,10 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
     role4_sustained <- if (length(closing) > 0) mean(closing) else NA_real_
   }
 
-  data.frame(
+  overflow <- overflow_window_census(resources, (n_days - window_days) * DAY_MIN,
+                                     n_days * DAY_MIN)
+
+  cbind(data.frame(
     policy_days        = policy_days,
     hold_occupancy     = hold[["occupancy"]],
     hold_mean_queue    = hold[["mean_queue"]],
@@ -303,7 +308,7 @@ reduce_policy_replication <- function(env, n_days, policy_days, seed,
                                 wide$definitive_repair_outstanding == 1),
     role4_operations   = if (nrow(demand) == 0) 0 else sum(demand$operations),
     role4_theatre_minutes = if (nrow(demand) == 0) 0 else sum(demand$theatre_minutes)
-  )
+  ), overflow)
 }
 
 #' Mean evacuation wait of the casualties who boarded on one airlift route

@@ -189,6 +189,35 @@ pool_rep_kpis <- function(mon, pattern, n_days, establishment,
   do.call(rbind, unname(per_replication))
 }
 
+#' Overflow census of every point of care across replications, as interval columns
+#'
+#' @param mon Named list with a `resources` element as returned by
+#'   run_replications().
+#' @param n_days Campaign length in days.
+#' @param window_days Closing window to measure over, in days.
+#' @return One-row data frame carrying, for each `OVERFLOW_RESPONSES` entry,
+#'   its mean across replications and the 95% interval as `mean_<response>`,
+#'   `ci_lower_<response>` and `ci_upper_<response>`.
+#'
+#' @details The census of each replication is overflow_window_census()'s over
+#'   the same closing window the bed pools are measured over, so a sweep point
+#'   reports where its saturation spills as well as how full its beds are. A
+#'   replication in which no casualty reached a point contributes a zero.
+overflow_rep_census <- function(mon, n_days, window_days = CAPACITY_SWEEP_WINDOW_DAYS) {
+  from <- max(0, n_days - window_days) * DAY_MIN
+  reps <- sort(unique(mon$resources$replication))
+  per_rep <- do.call(rbind, lapply(reps, function(r) {
+    overflow_window_census(mon$resources[mon$resources$replication == r, ], from,
+                           n_days * DAY_MIN)
+  }))
+  out <- lapply(names(per_rep), function(col) {
+    st <- summarise_ci(per_rep[[col]])
+    setNames(data.frame(st$mean, pmax(st$ci_lower, 0), st$ci_upper),
+             paste0(c("mean_", "ci_lower_", "ci_upper_"), col))
+  })
+  do.call(cbind, out)
+}
+
 #' Build the fleet-size sweep ggplot from already-computed sweep results
 #'
 #' @param sweep_df Data frame as returned in the `data` element of
@@ -645,7 +674,8 @@ measure_forward_hold_arm <- function(env_data_base, arm, n_rep, n_days, max_core
     mean_dow              = dow[["mean"]],
     ci_lower_dow          = max(dow[["lower"]], 0),
     ci_upper_dow          = dow[["upper"]]
-  )
+  ) %>%
+    cbind(overflow_rep_census(mon, n_days))
 }
 
 #' Sweep the forward holding rule and report the resulting decision frontier
@@ -963,7 +993,8 @@ measure_hold_threshold_point <- function(json_data_base, beds, threshold, n_rep,
     mean_dow                = dow_stats$mean,
     ci_lower_dow            = pmax(dow_stats$ci_lower, 0),
     ci_upper_dow            = dow_stats$ci_upper
-  )
+  ) %>%
+    cbind(overflow_rep_census(mon, n_days))
 }
 
 #' Read a grid point's checkpoint, or measure it and write the checkpoint

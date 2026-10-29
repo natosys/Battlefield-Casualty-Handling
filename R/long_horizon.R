@@ -67,15 +67,23 @@ LONG_HORIZON_POOLS <- c(
 #' @param elms The built configuration's `elms`, from which each pool's
 #'   establishment is counted.
 #' @return Data frame of pool, day, mean_queue and occupancy, one row per pool
-#'   and day.
+#'   and day, followed by one row per overflow point of care and day.
 #'
 #' @details Both quantities are time-weighted means over the day rather than
 #'   samples at its boundary, and occupancy is the pool's total in-use server
 #'   count divided by its established bed count, so it reads as the fraction of
-#'   the establishment in use rather than as a count.
+#'   the establishment in use rather than as a count. For an overflow point
+#'   (`OVERFLOW_POOLS`, R/queue_series.R) `mean_queue` carries its census, the
+#'   saturation measure there being how many casualties are cared for without a
+#'   bed, and occupancy is NA, overflow having no establishment.
 reduce_pool_series <- function(resources, n_days, elms) {
   edges <- seq(0, n_days * DAY_MIN, by = DAY_MIN)
-  do.call(rbind, lapply(names(LONG_HORIZON_POOLS), function(pool) {
+  overflow <- do.call(rbind, lapply(names(OVERFLOW_POOLS), function(pool) {
+    data.frame(pool = pool, day = seq_len(n_days),
+               mean_queue = overflow_census_bin_means(resources, OVERFLOW_POOLS[[pool]], edges),
+               occupancy = NA_real_)
+  }))
+  beds <- do.call(rbind, lapply(names(LONG_HORIZON_POOLS), function(pool) {
     rows <- resources[grepl(LONG_HORIZON_POOLS[[pool]], resources$resource), ]
     if (nrow(rows) == 0) return(NULL)
     queue  <- pool_queue_steps(rows$resource, rows$time, rows$queue)
@@ -88,6 +96,7 @@ reduce_pool_series <- function(resources, n_days, elms) {
       occupancy  = step_bin_means(server, edges) / establishment
     )
   }))
+  rbind(beds, overflow)
 }
 
 #' Daily casualty, mortality and evacuation counts for one replication
@@ -182,7 +191,10 @@ reduce_long_replication <- function(env, n_days) {
                  value = df[[v]])
     }))
   }
-  rbind(long(pools, "pool"), long(flow, NULL))
+  # An overflow point has no establishment and so no occupancy; its NA rows are
+  # dropped rather than carried as values.
+  out <- rbind(long(pools, "pool"), long(flow, NULL))
+  out[!is.na(out$value), ]
 }
 
 #' Run a replicated campaign over a long horizon, reducing as it goes

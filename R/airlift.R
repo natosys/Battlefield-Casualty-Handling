@@ -75,11 +75,13 @@ AIRLIFT_ROUTE_STANDARD <- 2
 #' @details One pool of holding beds serves four unrelated demands, and each is
 #'   reconstructed from what the model recorded rather than inferred as the
 #'   remainder of the others. A casualty awaiting a sortie on either airlift
-#'   pool stages in a holding bed and releases it on boarding, a ventilated
-#'   casualty on the critical route reaching that bed only on step-down from
-#'   the intensive care its pre-flight period is served in. The three clinical
-#'   stays each record the instant the bed was seized and the duration to be
-#'   served, so each is bounded without reference to the others.
+#'   pool is staged in a holding bed when one is free and releases it on
+#'   boarding, recording `ame_hold_start` only when it holds one; a ventilated
+#'   casualty whose pre-flight care is placed in a holding bed takes it from the
+#'   start of that care. The three clinical stays (a stabilisation or
+#'   post-definitive stay placed in a holding bed, and retained convalescence)
+#'   each record the instant the bed was seized and the duration to be served,
+#'   so each is bounded without reference to the others.
 #'
 #'   Each stay is bounded by the attribute its own exit route sets. The staging
 #'   stay ends at `ame_hold_end`, which a casualty records both on boarding a
@@ -123,12 +125,9 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
     sum(pmax(served, 0)) / DAY_MIN
   }
 
-  # Both airlift routes stage in a holding bed, so the component is taken from
-  # the instant the staging bed was seized rather than from the route. A
-  # ventilated casualty on the critical route holds an intensive care bed for
-  # its pre-flight period and then steps down into a holding bed for the
-  # remainder of its wait, which is why the route alone does not decide whether
-  # a casualty appears here.
+  # Either airlift route can stage in a holding bed, so the component is taken
+  # from the instant the staging bed was seized rather than from the route; a
+  # casualty staged in overflow holds no bed and records no start.
   #' One duration column of the attribute monitor, in minutes
   #'
   #' @param col Attribute naming the duration to be served.
@@ -165,7 +164,7 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
   post_definitive_bed_days <- stay_bed_days("post_definitive_hold_start",
                                             duration_of("post_definitive_min"))
   post_op_hold_bed_days <- stay_bed_days("r2e_post_op_hold_start",
-                                         duration_of("r2e_post_op_hold_min"))
+                                         duration_of("r2e_post_op_min"))
 
   accounted <- evacuation_bed_days + recovery_bed_days +
     post_definitive_bed_days + post_op_hold_bed_days
@@ -192,7 +191,9 @@ holding_occupancy_split <- function(resources, wide, horizon_min) {
 #' @param n_days Campaign length in days.
 #' @param seed The replication's own seed, which the Role 4 census draw is
 #'   taken under.
-#' @return A one-row data frame of the responses the experiment reports.
+#' @return A one-row data frame of the responses the experiment reports, ending
+#'   in the overflow census of each point of care over the campaign
+#'   (overflow_window_census(), R/queue_series.R).
 #'
 #' @details Every response is a per-replication scalar, which is the unit of
 #'   analysis every interval in this project is taken over. A wait is summarised
@@ -328,7 +329,8 @@ reduce_airlift_replication <- function(env, n_days, seed) {
     } else {
       NA_real_
     }
-  )
+  ) %>%
+    cbind(overflow_window_census(resources, 0, horizon_min))
 }
 
 #' Enter a scenario's configuration with one role4.ame field overridden

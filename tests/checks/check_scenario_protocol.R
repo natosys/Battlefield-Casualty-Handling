@@ -289,7 +289,11 @@ if (!is.null(groups)) {
   report(all(groups$n_reps == held$replications),
          "every tracked queue-group row carries %s replications",
          format(held$replications))
-  report(setequal(unique(groups$group), SCENARIO_QUEUE_GROUPS),
+  # The overflow points are reported where the set carries them, a set measured
+  # before casualties were placed in overflow having none to report.
+  carried <- unique(groups$group)
+  report(all(SCENARIO_QUEUE_GROUPS %in% carried) &&
+           all(carried %in% c(SCENARIO_QUEUE_GROUPS, names(OVERFLOW_POOLS))),
          "the tracked queue summary carries the six groups the table prints")
 }
 

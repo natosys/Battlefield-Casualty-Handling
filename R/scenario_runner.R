@@ -407,7 +407,8 @@ classify_queue_group <- function(resource) {
 #' @param n_days Campaign length in days, which bounds the averaging window.
 #' @param window_days Closing window to average over, in days.
 #' @return Data frame of replication, group and mean_q: one row per group per
-#'   replication.
+#'   replication, the bed groups followed by the overflow points of care
+#'   (`OVERFLOW_POOLS`, R/queue_series.R), whose `mean_q` is their census.
 #'
 #' @details A pool's total queue is in none of the monitor's rows, each bed
 #'   being monitored separately, so it is recovered by pool_queue_steps()
@@ -416,7 +417,10 @@ classify_queue_group <- function(resource) {
 #'   the published queue table and the queue-over-time figure measure one
 #'   quantity rather than two that happen to agree. A group whose beds never
 #'   queued contributes a zero rather than dropping out, so the table describes
-#'   the full establishment rather than only its busy parts.
+#'   the full establishment rather than only its busy parts. Overflow has no
+#'   queue, a casualty placed there being cared for without a bed, so the
+#'   quantity reported for an overflow point is its census over the same
+#'   window, zero where no casualty reached it.
 scenario_queue_groups_by_replication <- function(mon, n_days,
                                                  window_days = SCENARIO_WINDOW_DAYS) {
   horizon <- n_days * DAY_MIN
@@ -428,7 +432,7 @@ scenario_queue_groups_by_replication <- function(mon, n_days,
   keys <- unique(rows[, c("replication", "group")])
   keys <- keys[order(keys$replication, keys$group), ]
 
-  bind_rows(lapply(seq_len(nrow(keys)), function(i) {
+  beds <- bind_rows(lapply(seq_len(nrow(keys)), function(i) {
     sub <- rows[rows$replication == keys$replication[i] & rows$group == keys$group[i], ]
     steps <- pool_queue_steps(sub$resource, sub$time, sub$queue)
     data.frame(
@@ -437,6 +441,19 @@ scenario_queue_groups_by_replication <- function(mon, n_days,
       mean_q      = step_bin_means(steps, c(from, horizon))
     )
   }))
+
+  monitored <- mon$resources[mon$resources$time <= horizon, ]
+  overflow <- bind_rows(lapply(sort(unique(mon$resources$replication)), function(r) {
+    sub <- monitored[monitored$replication == r, ]
+    data.frame(
+      replication = r,
+      group       = names(OVERFLOW_POOLS),
+      mean_q      = vapply(OVERFLOW_POOLS, function(pattern) {
+        overflow_census_bin_means(sub, pattern, c(from, horizon))
+      }, numeric(1), USE.NAMES = FALSE)
+    )
+  }))
+  bind_rows(beds, overflow)
 }
 
 #' Summarise each published resource group's queue across replications
@@ -444,14 +461,15 @@ scenario_queue_groups_by_replication <- function(mon, n_days,
 #' @param per_replication Data frame as returned by
 #'   scenario_queue_groups_by_replication().
 #' @return Data frame of group, n_reps, mean_q, p10_q, p90_q, ci_lower and
-#'   ci_upper, in SCENARIO_QUEUE_GROUPS order.
+#'   ci_upper, in SCENARIO_QUEUE_GROUPS order followed by the overflow points.
 #'
 #' @details The interval is the Student t one at 95%, matching every other
 #'   interval this project publishes (`docs/Methods.md`, Interval
 #'   Construction). A group measured in one replication alone carries an NA
 #'   interval rather than a zero-width one.
 summarise_scenario_queue_groups <- function(per_replication) {
-  groups <- SCENARIO_QUEUE_GROUPS[SCENARIO_QUEUE_GROUPS %in% per_replication$group]
+  ordered <- c(SCENARIO_QUEUE_GROUPS, names(OVERFLOW_POOLS))
+  groups <- ordered[ordered %in% per_replication$group]
   bind_rows(lapply(groups, function(g) {
     x <- per_replication$mean_q[per_replication$group == g]
     n <- length(x)

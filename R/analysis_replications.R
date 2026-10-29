@@ -486,7 +486,7 @@ plot_r2b_bypass_reason_ci <- function(attributes_wide, combined, n_reps, rep_ids
 summarise_post_op_pathway_ci <- function(attributes_wide, clamp_ci, rep_ids, output_dir) {
   post_op_pathway_ci  <- NULL
   if ("post_op_pathway" %in% names(attributes_wide) && any(!is.na(attributes_wide$post_op_pathway))) {
-    pathway_labels <- c("1" = "icu", "2" = "hold")
+    pathway_labels <- c("1" = "icu", "2" = "hold", "3" = "overflow")
     post_op_per_rep <- attributes_wide %>%
       filter(!is.na(post_op_pathway)) %>%
       mutate(
@@ -494,7 +494,8 @@ summarise_post_op_pathway_ci <- function(attributes_wide, clamp_ci, rep_ids, out
         postop_dow = as.integer(!is.na(dow_echelon) & dow_echelon == 4 & dow == 1)
       ) %>%
       count(replication, pathway, postop_dow, name = "n_cas") %>%
-      complete(replication = rep_ids, pathway = c("icu", "hold"), postop_dow = c(0L, 1L), fill = list(n_cas = 0L)) %>%
+      complete(replication = rep_ids, pathway = c("icu", "hold", "overflow"),
+               postop_dow = c(0L, 1L), fill = list(n_cas = 0L)) %>%
       group_by(replication, pathway) %>%
       summarise(total = sum(n_cas), died = sum(n_cas[postop_dow == 1]), .groups = "drop")
 

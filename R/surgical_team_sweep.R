@@ -158,7 +158,8 @@ apply_surgical_setting <- function(json_data, scenario, r2e_sections, r2b_sectio
 #' @param env Wrapped simmer environment for one replication.
 #' @param n_days Campaign length in days.
 #' @param window_days Closing window the queue and occupancy are measured over.
-#' @return A list of `row`, a one-row data frame of the scalar responses, and
+#' @return A list of `row`, a one-row data frame of the scalar responses ending
+#'   in the overflow census of each point of care over the closing window, and
 #'   `series`, the daily R2E theatre queue and occupancy in the long form
 #'   block_means() takes.
 #'
@@ -193,7 +194,8 @@ reduce_surgical_replication <- function(env, n_days,
                                   wide$definitive_repair_outstanding == 1),
       total_rtd = sum(!is.na(wide$return_day)),
       post_definitive_icu_share = icu_access
-    )
+    ),
+    overflow_window_census(resources, (n_days - window_days) * DAY_MIN, n_days * DAY_MIN)
   )
 
   pools <- reduce_pool_series(resources, n_days, env_data$elms)

@@ -362,13 +362,8 @@ leading_figure <- function(cell) {
 #' @param expected Numeric vector of the values the row's columns should print,
 #'   in the table's column order, already on the printed scale.
 #' @param digits Decimal places the paper prints the row to.
-#' @param columns The printed column of each expected value, after the label
-#'   column (default the first `length(expected)`). The table prints the
-#'   profile that separates the care era from the load after its ratio, so its
-#'   value is not in the column the order of the profiles would give.
 #' @return Invisible NULL.
-check_published_row <- function(marker, rows, label, expected, digits,
-                                columns = seq_along(expected)) {
+check_published_row <- function(marker, rows, label, expected, digits) {
   row <- rows[grepl(paste0("^\\| ", label), rows)]
   if (length(row) != 1) {
     report(FALSE, "the paper prints one '%s' row under %s (found %d)",
@@ -376,13 +371,12 @@ check_published_row <- function(marker, rows, label, expected, digits,
     return(invisible(NULL))
   }
   cells <- table_cells(row)
-  for (j in seq_along(expected)) {
-    k <- columns[j]
+  for (k in seq_along(expected)) {
     printed <- if (k <= length(cells)) leading_figure(cells[k]) else NA_real_
-    ok <- !is.na(printed) && !is.na(expected[j]) &&
-      abs(printed - round(expected[j], digits)) < PRINT_TOL
+    ok <- !is.na(printed) && !is.na(expected[k]) &&
+      abs(printed - round(expected[k], digits)) < PRINT_TOL
     report(ok, "'%s' in column %d of %s prints %s against the data's %s",
-           label, k, marker, format(printed), format(round(expected[j], digits)))
+           label, k, marker, format(printed), format(round(expected[k], digits)))
   }
   invisible(NULL)
 }
@@ -404,10 +398,9 @@ tracked_value <- function(data, key, value, scenario, column) {
 totals_rows <- paper_table("<!-- GEN scenario_totals -->")
 if (!is.null(totals_rows) && !is.null(totals)) {
   header <- table_cells(totals_rows[1])
-  # Two intensity columns and the ratio the paper computes from them, then the
-  # care-era profile and its own ratio against the moderate campaign.
-  report(length(header) == length(held_profiles) + 2,
-         "the totals table prints one column per profile and two ratios (found %d)",
+  # Two intensity columns and the ratio the paper computes from them.
+  report(length(header) == length(held_profiles) + 1,
+         "the totals table prints one column per profile and a ratio (found %d)",
          length(header))
 
   specs <- list(
@@ -421,15 +414,15 @@ if (!is.null(totals_rows) && !is.null(totals)) {
       spec[[3]] * tracked_value(totals, "metric", spec[[2]], s, "mean")
     }, numeric(1))
     check_published_row("<!-- GEN scenario_totals -->", totals_rows,
-                        spec[[1]], expected, spec[[4]], columns = c(1, 2, 4))
+                        spec[[1]], expected, spec[[4]])
   }
 }
 
 queue_rows <- paper_table("<!-- GEN scenario_queue -->")
 if (!is.null(queue_rows) && !is.null(groups)) {
   header <- table_cells(queue_rows[1])
-  report(length(header) == length(held_profiles) + 2,
-         "the queue table prints one column per profile and two ratios (found %d)",
+  report(length(header) == length(held_profiles) + 1,
+         "the queue table prints one column per profile and a ratio (found %d)",
          length(header))
 
   labels <- list(
@@ -445,7 +438,7 @@ if (!is.null(queue_rows) && !is.null(groups)) {
       tracked_value(groups, "group", spec[[2]], s, "mean_q")
     }, numeric(1))
     check_published_row("<!-- GEN scenario_queue -->", queue_rows,
-                        spec[[1]], expected, 3, columns = c(1, 2, 4))
+                        spec[[1]], expected, 3)
   }
 }
 

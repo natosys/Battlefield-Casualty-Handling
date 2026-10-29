@@ -90,7 +90,7 @@ build_run_manifest <- function(config_path, options = list(), command = NA_chara
     command = command,
     config_file = config_path,
     config_sha256 = config_sha256(config_path),
-    scenario = if (is.null(options$scenario)) "default" else options$scenario,
+    scenario = if (is.null(options[["scenario"]])) "default" else options[["scenario"]],
     seed = pick("seed"),
     iterations = pick("iterations"),
     days = pick("days"),

@@ -1350,9 +1350,12 @@ Rscript scripts/run_scenarios.R --quick
 
 # The published protocol: 30 reps x 360 days for each of its profiles, written to the tracked data/scenarios/
 Rscript scripts/run_scenarios.R --refresh-baseline
+
+# The same, saving each replication as it finishes so an interrupted run resumes
+Rscript scripts/run_scenarios.R --refresh-baseline --cache-dir .scenario_cache
 ```
 
-`--refresh-baseline` is the only way to write the tracked `data/scenarios/` and `images/scenario_comparison.png`, and it runs the protocol `R/scenario_runner.R` holds rather than whichever arguments accompany it. The 10 x 30 default above is an exploratory run and writes under `outputs/` alone.
+`--refresh-baseline` is the only way to write the tracked `data/scenarios/` and `images/scenario_comparison.png`, and it runs the protocol `R/scenario_runner.R` holds rather than whichever arguments accompany it. The 10 x 30 default above is an exploratory run and writes under `outputs/` alone. `--cache-dir` reduces each replication inside the worker that ran it and saves the reduction, reading back any already saved, so the outputs are those of an uninterrupted run byte for byte; the directory records the configuration's SHA-256 and the design, and a run under any other is refused.
 
 ```r
 # RStudio console

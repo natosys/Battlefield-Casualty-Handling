@@ -153,31 +153,55 @@ seeds <- DOW_CONTROL_SEEDS[seq_len(opt$measurements)]
 #' @param care_state 1 or 0 to override the model, or NULL for the configured one.
 #' @return Named numeric of `rate`, `ci_lower`, `ci_upper` and `share`.
 evaluate <- function(p1, q, care_state = NULL) {
+  rates <- numeric(0)
+  early <- 0
+  late <- 0
+  for (seed in seeds) {
+    m <- measure_one_seed(p1, q, care_state, seed)
+    rates <- c(rates, m$rates)
+    early <- early + m$early
+    late <- late + m$late
+  }
+  s <- pooled_rate_summary(rates)
+  share <- if (early + late > 0) late / (early + late) else 0
+  cat(sprintf("  p1_rate = %.5f, post_op = %.5f: %.3f%%  95%% CI [%.3f%%, %.3f%%]; post-op share %.3f\n",
+              p1, q, 100 * s$mean, 100 * s$ci_lower, 100 * s$ci_upper, share))
+  c(rate = s$mean, ci_lower = s$ci_lower, ci_upper = s$ci_upper, share = share)
+}
+
+#' One seed's measurement, read from the cache where it was taken before
+#'
+#' @param p1 Priority 1 base rate per day to measure at.
+#' @param q Post-operative multiplier to measure at.
+#' @param care_state 1 or 0 to override the model, or NULL for the configured one.
+#' @param seed The control seed of the measurement.
+#' @return A list of `rates`, `early` and `late`, as measure_dow_response() returns.
+#'
+#' @details Cached per seed rather than per evaluation, so an interruption costs
+#'   at most the one measurement in flight. A seed's measurement depends on
+#'   nothing but the values, the seed and the sizing, all in its key.
+measure_one_seed <- function(p1, q, care_state, seed) {
   mode <- if (is.null(care_state)) -1 else care_state
-  key <- sprintf("%.10g|%.10g|%d|%d|%d|%d", p1, q, mode, opt$reps, opt$days, length(seeds))
+  key <- sprintf("%.10g|%.10g|%d|%d|%d|%d", p1, q, mode, opt$reps, opt$days, seed)
   cached <- if (!is.null(opt$cache) && file.exists(opt$cache)) {
     read.csv(opt$cache, stringsAsFactors = FALSE)
   } else NULL
   hit <- if (is.null(cached)) integer(0) else which(cached$key == key)
   if (length(hit)) {
-    s <- as.list(cached[hit[1], c("mean", "ci_lower", "ci_upper")])
-    share <- cached$share[hit[1]]
-  } else {
-    m <- measure_dow_response(json_data, opt$scenario, p1_rate = p1, post_op = q,
-                              care_state = care_state,
-                              n_reps = opt$reps, n_days = opt$days, seeds = seeds)
-    s <- pooled_rate_summary(m$rates)
-    share <- if (m$early + m$late > 0) m$late / (m$early + m$late) else 0
-    if (!is.null(opt$cache)) {
-      row <- data.frame(key = key, mean = s$mean, ci_lower = s$ci_lower,
-                        ci_upper = s$ci_upper, share = share)
-      write.table(row, opt$cache, sep = ",", row.names = FALSE,
-                  col.names = !file.exists(opt$cache), append = file.exists(opt$cache))
-    }
+    row <- cached[hit[1], ]
+    return(list(rates = as.numeric(strsplit(row$rates, ";", fixed = TRUE)[[1]]),
+                early = row$early, late = row$late))
   }
-  cat(sprintf("  p1_rate = %.5f, post_op = %.5f: %.3f%%  95%% CI [%.3f%%, %.3f%%]; post-op share %.3f\n",
-              p1, q, 100 * s$mean, 100 * s$ci_lower, 100 * s$ci_upper, share))
-  c(rate = s$mean, ci_lower = s$ci_lower, ci_upper = s$ci_upper, share = share)
+  m <- measure_dow_response(json_data, opt$scenario, p1_rate = p1, post_op = q,
+                            care_state = care_state,
+                            n_reps = opt$reps, n_days = opt$days, seeds = seed)
+  if (!is.null(opt$cache)) {
+    row <- data.frame(key = key, rates = paste(format(m$rates, digits = 17), collapse = ";"),
+                      early = m$early, late = m$late)
+    write.table(row, opt$cache, sep = ",", row.names = FALSE,
+                col.names = !file.exists(opt$cache), append = file.exists(opt$cache))
+  }
+  m
 }
 
 anchor <- DOW_TARGETS[[opt$scenario]]

@@ -109,6 +109,21 @@ SCENARIO_TRANSPORT_HOLDERS <- data.frame(
 #'   report in the same mean (p10-p90), 95% CI format used throughout this
 #'   project's analysis.
 summarise_scenario_totals <- function(mon, warm_up_days = 0) {
+  summarise_scenario_rep_totals(scenario_totals_by_replication(mon, warm_up_days))
+}
+
+#' Casualty, WIA and DOW counts of each replication
+#'
+#' @param mon Named list with arrivals and attributes as returned by
+#'   run_replications()
+#' @param warm_up_days Days to exclude from the start of each replication
+#' @return Data frame of `replication`, `total_casualties`, `wia_count`,
+#'   `dow_count` and `dow_rate`
+#'
+#' @details The first half of summarise_scenario_totals(), separated so a
+#'   caller reducing one replication at a time can keep this frame and discard
+#'   the monitor.
+scenario_totals_by_replication <- function(mon, warm_up_days = 0) {
   warm_up_min <- as.integer(warm_up_days) * DAY_MIN
 
   arrivals <- mon$arrivals %>%
@@ -129,7 +144,7 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
     group_by(replication) %>%
     summarise(dow_count = n(), .groups = "drop")
 
-  rep_totals <- totals_by_rep %>%
+  totals_by_rep %>%
     left_join(wia_by_rep, by = "replication") %>%
     left_join(dow_by_rep, by = "replication") %>%
     mutate(
@@ -137,7 +152,14 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
       dow_count = ifelse(is.na(dow_count), 0, dow_count),
       dow_rate  = dow_count / wia_count
     )
+}
 
+#' Summarise per-replication totals across replications
+#'
+#' @param rep_totals Data frame from scenario_totals_by_replication(), any
+#'   number of replications bound together
+#' @return The summary summarise_scenario_totals() returns.
+summarise_scenario_rep_totals <- function(rep_totals) {
   #' Mean, deciles and 95% confidence interval of one metric
   #'
   #' @param x Numeric vector of the metric's per-replication values.
@@ -179,13 +201,17 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'   run_replications() -> build_env()
 #' @param warm_up_days Days to exclude from the start of each replication
 #'   (default 0 = no exclusion)
+#' @param cache_dir Directory each replication's reductions are saved to and
+#'   read back from, or NULL (the default) to run without one
 #' @return Named list: scenario (name), label (scenario's `label` field, or
 #'   "Default (base configuration)"), n_iterations (requested), n_replications
 #'   (realised, and the count any label should name), n_days, mon (raw
 #'   monitoring data), queue_kpi (summarise_replications() output),
 #'   totals (summarise_scenario_totals() output), transport_establishment
 #'   (scenario_transport_establishment() output, captured here because
-#'   env_data is restored on exit)
+#'   env_data is restored on exit). With a cache, mon is NULL and the list
+#'   carries queue_group_reps and transport_holder_reps instead, the
+#'   per-replication frames compare_scenarios() would otherwise derive from it.
 #'
 #' @details Sets env_data, day_min, and counts globally (<<-), consistent
 #'   with run.R and scripts/run_sensitivity.R, since run_once()/build_env()
@@ -197,7 +223,7 @@ summarise_scenario_totals <- function(mon, warm_up_days = 0) {
 #'   recover the scenario's `label` field for reporting.
 run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
                          path = "env_data.json", ot_hours = NULL,
-                         warm_up_days = 0) {
+                         warm_up_days = 0, cache_dir = NULL) {
   # The scenario's configuration is the caller's for the duration of this
   # call and no longer: everything derived from it (mon, queue_kpi, totals)
   # is computed before the function returns, so leaving the session on the
@@ -223,6 +249,25 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
   message(sprintf("Running scenario '%s' (%s): %d replications x %d days",
                   scenario, label, n_iterations, n_days))
 
+  if (!is.null(cache_dir)) {
+    establishment <- scenario_transport_establishment(env_data)
+    reduced <- run_replications_reduced(n_iterations, n_days, ot_hours, warm_up_days,
+                                        establishment, cache_dir)
+    holders <- bind_rows(lapply(reduced, `[[`, "holders"))
+    # Holder-major, as the frame derived from all replications' monitors is
+    holders <- holders[order(match(holders$holder, unique(holders$holder)),
+                             holders$replication), ]
+    return(list(
+      transport_establishment = establishment,
+      scenario = scenario, label = label, n_iterations = n_iterations,
+      n_replications = n_iterations, n_days = n_days, mon = NULL,
+      queue_kpi = summarise_queue_means(bind_rows(lapply(reduced, `[[`, "queue_means"))),
+      totals = summarise_scenario_rep_totals(bind_rows(lapply(reduced, `[[`, "totals"))),
+      queue_group_reps = bind_rows(lapply(reduced, `[[`, "groups")),
+      transport_holder_reps = holders
+    ))
+  }
+
   mon <- run_replications(n_iterations, n_days, ot_hours = ot_hours)
 
   list(
@@ -240,6 +285,73 @@ run_scenario <- function(scenario, n_iterations = 10, n_days = 30,
     queue_kpi    = summarise_replications(mon, warm_up_days = warm_up_days),
     totals       = summarise_scenario_totals(mon, warm_up_days = warm_up_days)
   )
+}
+
+#' Run replications, reducing and saving each one as it finishes
+#'
+#' @param n_iterations Number of replications.
+#' @param n_days Simulation duration in days.
+#' @param ot_hours As for run_replications().
+#' @param warm_up_days Days to exclude from the start of each replication.
+#' @param establishment The transport establishment, from
+#'   scenario_transport_establishment().
+#' @param cache_dir Directory each replication's reductions are saved to.
+#' @return List of one reduction per replication: `queue_means`, `totals`,
+#'   `groups` and `holders`, the per-replication frames the comparison
+#'   summarises.
+#'
+#' @details Each replication runs under the seed run_replications() would give
+#'   it, drawn from the caller's stream and with that stream restored after,
+#'   so a cached run measures the replications an uncached one would. A
+#'   replication already saved is read back rather than run, so a run
+#'   interrupted by the host resumes at the first replication it had not
+#'   finished, and the monitoring data, which a long campaign makes large, is
+#'   reduced inside the worker that produced it and never held for all
+#'   replications at once. A replication that fails stops the run, to be
+#'   resumed, rather than being dropped from the evidence.
+run_replications_reduced <- function(n_iterations, n_days, ot_hours, warm_up_days,
+                                     establishment, cache_dir) {
+  dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+  rng_state <- capture_rng_state()
+  on.exit(restore_rng_state(rng_state), add = TRUE)
+  rep_seeds <- sample.int(.Machine$integer.max, n_iterations)
+  RNGkind("L'Ecuyer-CMRG")
+
+  #' Run, reduce and save one replication, or read back its saved reduction
+  #'
+  #' @param i Index of the replication, into `rep_seeds`.
+  #' @return The replication's reduction.
+  worker <- function(i) {
+    path <- file.path(cache_dir, sprintf("rep_%03d.rds", i))
+    if (file.exists(path)) return(readRDS(path))
+    env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE, ot_hours = ot_hours)
+    mon <- lapply(list(arrivals = get_mon_arrivals(env, ongoing = TRUE),
+                       attributes = get_mon_attributes(env),
+                       resources = get_mon_resources(env)),
+                  function(d) {
+                    d$replication <- i
+                    d
+                  })
+    reduced <- list(
+      queue_means = replication_queue_means(mon, warm_up_days),
+      totals = scenario_totals_by_replication(mon, warm_up_days),
+      groups = scenario_queue_groups_by_replication(mon, n_days),
+      holders = scenario_transport_holders_by_replication(mon, n_days, establishment)
+    )
+    partial <- paste0(path, ".partial")
+    saveRDS(reduced, partial)
+    file.rename(partial, path)
+    reduced
+  }
+
+  out <- dispatch_replications(worker, n_iterations, NULL)
+  failed <- vapply(out, function(o) is.null(o) || inherits(o, "try-error"), logical(1))
+  if (any(failed)) {
+    stop(sprintf(paste("%d of %d replications did not complete; the %d that did are saved",
+                       "under %s, and running again resumes from them"),
+                 sum(failed), n_iterations, sum(!failed), cache_dir), call. = FALSE)
+  }
+  out
 }
 
 # ── Multi-scenario comparison ─────────────────────────────────────────────────
@@ -556,7 +668,8 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
                               path = "env_data.json", ot_hours = NULL,
                               warm_up_days = 0,
                               output_dir = "outputs",
-                              images_dir = file.path("outputs", "images")) {
+                              images_dir = file.path("outputs", "images"),
+                              cache_dir = NULL) {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(images_dir,  showWarnings = FALSE, recursive = TRUE)
 
@@ -566,7 +679,8 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
   results <- setNames(
     lapply(scenarios, function(s) {
       run_scenario(s, n_iterations = n_iterations, n_days = n_days, path = path,
-                  ot_hours = ot_hours, warm_up_days = warm_up_days)
+                  ot_hours = ot_hours, warm_up_days = warm_up_days,
+                  cache_dir = if (is.null(cache_dir)) NULL else file.path(cache_dir, s))
     }),
     scenarios
   )
@@ -584,8 +698,9 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
   # per-replication group series is carried alongside them rather than
   # reconstructed later from a table that no longer holds it.
   queue_group_replications <- bind_rows(lapply(results, function(r) {
-    cbind(scenario = r$scenario,
-          scenario_queue_groups_by_replication(r$mon, r$n_days))
+    per_rep <- if (is.null(r$mon)) r$queue_group_reps else
+      scenario_queue_groups_by_replication(r$mon, r$n_days)
+    cbind(scenario = r$scenario, per_rep)
   }))
 
   queue_group_table <- bind_rows(lapply(results, function(r) {
@@ -597,9 +712,10 @@ compare_scenarios <- function(scenarios = c("moderate_intensity", "high_intensit
   # The transport holders are reported on the same footing, per replication
   # and then reduced, so a holder's interval is formed across replications.
   transport_holder_replications <- bind_rows(lapply(results, function(r) {
-    cbind(scenario = r$scenario,
-          scenario_transport_holders_by_replication(r$mon, r$n_days,
-                                                    r$transport_establishment))
+    per_rep <- if (is.null(r$mon)) r$transport_holder_reps else
+      scenario_transport_holders_by_replication(r$mon, r$n_days,
+                                                r$transport_establishment)
+    cbind(scenario = r$scenario, per_rep)
   }))
 
   transport_holder_table <- bind_rows(lapply(results, function(r) {

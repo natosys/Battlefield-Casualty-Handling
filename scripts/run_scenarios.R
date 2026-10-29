@@ -10,6 +10,13 @@
 #   Rscript scripts/run_scenarios.R --scenarios moderate_intensity,high_intensity,default
 #   Rscript scripts/run_scenarios.R --iterations 30 --days 30
 #   Rscript scripts/run_scenarios.R --quick                  # smoke test (3 reps, 5 days)
+#   Rscript scripts/run_scenarios.R --refresh-baseline --cache-dir .scenario_cache
+#
+# --cache-dir saves each replication's reductions as it finishes and reads back
+# those already saved, so a run the host interrupts resumes rather than
+# restarts. The directory records the configuration file's SHA-256 and the
+# design it was filled under, and a run under any other is refused rather than
+# mixing replications of two experiments.
 #
 # --refresh-baseline is the only way to write the tracked data/scenarios/ and
 # the tracked images/scenario_comparison.png. Without it every invocation
@@ -83,7 +90,10 @@ option_list <- list(
                            "--refresh-baseline unless it is the shipped file",
                            "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
-              help = "Write the tracked data/scenarios/ and images/ copies")
+              help = "Write the tracked data/scenarios/ and images/ copies"),
+  make_option("--cache-dir", type = "character", default = NULL,
+              help = paste("Directory to save each replication to and resume from",
+                           "[default: none]"))
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
@@ -138,6 +148,24 @@ scenario_names <- trimws(strsplit(opt$scenarios, ",")[[1]])
 message(sprintf("Scenario comparison config: scenarios=%s, iterations=%d, days=%d, seed=%d",
                 paste(scenario_names, collapse = ", "), opt$iterations, opt$days, opt$seed))
 
+cache_dir <- opt[["cache-dir"]]
+if (!is.null(cache_dir)) {
+  cache_key <- c(config_sha256 = digest::digest(file = config_path, algo = "sha256"),
+                 scenarios = paste(scenario_names, collapse = ","),
+                 iterations = opt$iterations, days = opt$days, seed = opt$seed)
+  key_path <- file.path(cache_dir, "cache_key.csv")
+  if (file.exists(key_path)) {
+    found <- read.csv(key_path, colClasses = "character")
+    if (!identical(unname(unlist(found[1, names(cache_key)])), unname(cache_key))) {
+      stop(sprintf(paste("--cache-dir %s was filled under another configuration or design;",
+                         "remove it or name another directory"), cache_dir), call. = FALSE)
+    }
+  } else {
+    dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+    write.csv(as.data.frame(as.list(cache_key)), key_path, row.names = FALSE)
+  }
+}
+
 set.seed(opt$seed)
 cmp <- compare_scenarios(
   scenarios    = scenario_names,
@@ -145,7 +173,8 @@ cmp <- compare_scenarios(
   n_days       = opt$days,
   output_dir   = output_dir,
   images_dir   = images_dir,
-  path         = config_path
+  path         = config_path,
+  cache_dir    = cache_dir
 )
 
 message("\nScenario comparison complete.")

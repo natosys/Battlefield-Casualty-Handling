@@ -600,9 +600,21 @@ run_replications <- function(n_iterations, n_days, ot_hours = NULL, progress_dir
 #'   would otherwise produce, since this table is emitted from the
 #'   single-run path as well as the multi-run one.
 summarise_replications <- function(mon, warm_up_days = 0) {
-  warm_up_min <- as.integer(warm_up_days) * DAY_MIN
+  summarise_queue_means(replication_queue_means(mon, warm_up_days))
+}
 
-  rep_means <- mon$resources %>%
+#' Time-weighted mean and maximum queue of every resource, per replication
+#'
+#' @param mon Named list with 'resources' element as returned by run_replications()
+#' @param warm_up_days Days to exclude from the start of each replication
+#' @return Data frame of `replication`, `resource`, `rep_mean_q` and `rep_max_q`
+#'
+#' @details The first half of summarise_replications(), separated so a caller
+#'   reducing one replication at a time (compare_scenarios() with a cache) can
+#'   keep this frame and discard the monitor.
+replication_queue_means <- function(mon, warm_up_days = 0) {
+  warm_up_min <- as.integer(warm_up_days) * DAY_MIN
+  mon$resources %>%
     filter(time >= warm_up_min) %>%
     group_by(replication, resource) %>%
     arrange(time) %>%
@@ -612,7 +624,14 @@ summarise_replications <- function(mon, warm_up_days = 0) {
       rep_max_q  = max(queue, na.rm = TRUE),
       .groups    = "drop"
     )
+}
 
+#' Summarise per-replication queue means across replications
+#'
+#' @param rep_means Data frame from replication_queue_means(), any number of
+#'   replications bound together
+#' @return The summary summarise_replications() returns.
+summarise_queue_means <- function(rep_means) {
   rep_means %>%
     group_by(resource) %>%
     summarise(

@@ -141,15 +141,6 @@ res_sweep_table <- function(d, header, arms, rows) {
 #' The two scenario profiles the comparative tables compare
 SCENARIO_PROFILES <- c("moderate_intensity", "high_intensity")
 
-#' The profile that separates the care era from the casualty load
-#'
-#' @details Carries the high-intensity casualty generators under the shipped
-#'   treatment model. The three comparative tables print it after their ratio
-#'   column, so the two-profile columns they have always printed keep their
-#'   positions; the difference between it and `high_intensity` is the care era,
-#'   and the difference between it and `moderate_intensity` is the load.
-SCENARIO_CARE_PROFILE <- "high_intensity_modern_care"
-
 #' Comparative scenario totals table
 #'
 #' @param data_dir The data directory.
@@ -185,21 +176,13 @@ build_scenario_totals <- function(data_dir) {
     f <- function(v) if (v == 0) "0" else res_num(v, 1L, big = TRUE)
     sprintf("%s (p10–p90: %s–%s)", base, f(x$p10), f(x$p90))
   }
-  #' One totals cell of the profile that separates the care era from the load
-  #'
-  #' @param s One row of `spec`.
-  #' @return The cell text.
-  care_cell <- function(s) total_cell(s, SCENARIO_CARE_PROFILE)
   rows <- lapply(spec, function(s) {
     cells <- vapply(SCENARIO_PROFILES, function(p) total_cell(s, p), character(1))
     a <- pick(s[[2]], SCENARIO_PROFILES[1])$mean
     b <- pick(s[[2]], SCENARIO_PROFILES[2])$mean
-    m <- pick(s[[2]], SCENARIO_CARE_PROFILE)$mean
-    c(s[[1]], cells, sprintf("%.*f×", s[[6]], b / a), care_cell(s),
-      sprintf("%.*f×", s[[6]], m / a))
+    c(s[[1]], cells, sprintf("%.*f×", s[[6]], b / a))
   })
-  res_table(c("Metric", "Moderate intensity", "High intensity", "Ratio",
-              "High intensity, modern care", "Ratio, modern care"), rows)
+  res_table(c("Metric", "Moderate intensity", "High intensity", "Ratio"), rows)
 }
 
 #' Comparative scenario queue table
@@ -219,15 +202,10 @@ build_scenario_queue <- function(data_dir) {
     }, character(1))
     ratio <- if (x[[1]]$mean_q == 0) "not applicable" else
       sprintf("%.2f×", x[[2]]$mean_q / x[[1]]$mean_q)
-    m <- d[d$group == g[2] & d$scenario == SCENARIO_CARE_PROFILE, ]
-    care <- sprintf("%s [%s, %s]", res_num(m$mean_q, 3L, big = TRUE),
-                    res_num(m$ci_lower, 3L, big = TRUE), res_num(m$ci_upper, 3L, big = TRUE))
-    care_ratio <- if (x[[1]]$mean_q == 0) "not applicable" else
-      sprintf("%.2f×", m$mean_q / x[[1]]$mean_q)
-    c(g[1], cells, ratio, care, care_ratio)
+    c(g[1], cells, ratio)
   })
   res_table(c("Resource group", "Moderate intensity mean queue", "High intensity mean queue",
-              "Ratio", "High intensity, modern care mean queue", "Ratio, modern care"), rows)
+              "Ratio"), rows)
 }
 
 #' Sustained-horizon stability classification table
@@ -797,8 +775,7 @@ build_transport_holders <- function(data_dir) {
             100 * max(x$util_ci_lower, 0), 100 * min(x$util_ci_upper, 1))
   }
   rows <- lapply(unique(d$holder), function(h) {
-    x <- lapply(c(SCENARIO_PROFILES, SCENARIO_CARE_PROFILE),
-                function(p) d[d$holder == h & d$scenario == p, ])
+    x <- lapply(SCENARIO_PROFILES, function(p) d[d$holder == h & d$scenario == p, ])
     c(h, if (x[[1]]$kind == "shared") "Shared" else "Integral",
       unlist(lapply(x, function(r) {
         c(res_ci(r$q_mean, r$q_ci_lower, r$q_ci_upper, 3L, floor0 = TRUE), util(r))
@@ -806,8 +783,7 @@ build_transport_holders <- function(data_dir) {
   })
   res_table(c("Holder", "Asset", "Moderate intensity mean queue",
               "Moderate intensity utilisation", "High intensity mean queue",
-              "High intensity utilisation", "High intensity, modern care mean queue",
-              "High intensity, modern care utilisation"), rows)
+              "High intensity utilisation"), rows)
 }
 
 #' Forward holding frontier table
@@ -1573,17 +1549,16 @@ seed42_verification_rows <- function(mon, cfg, days) {
 #' @return The table lines.
 build_dow_calibration <- function(data_dir) {
   d <- res_read("calibration/dow_calibration.csv", data_dir)
-  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
-              high_intensity = "High intensity")
+  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity")
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
     kind <- if (x$kind == "bound") "at or below" else "reported"
     c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", kind, 100 * x$target, x$anchor),
       sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
-      as.character(x$replications))
+      sprintf("%.0f%%", 100 * x$hazard_share), as.character(x$replications))
   })
   res_table(c("Configuration", "Historical anchor", "Treated-cohort died-of-wounds rate",
-              "Replications"), rows)
+              "Post-operative share of risk", "Replications"), rows)
 }
 
 #' One section of the seed-42 verification measurements as a table

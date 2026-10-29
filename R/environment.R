@@ -1298,7 +1298,9 @@ minutes_to_shift_open <- function(t) {
 #'
 #' @details Schedules operating theatre shifts for surgical staff and beds.
 #' Counters r2e_surg_counter, r2e_ot_bed_counter, r2b_surg_counter, and
-#' r2b_ot_bed_counter alternate shift assignments across teams.
+#' r2b_ot_bed_counter alternate shift assignments across teams. Adds one
+#' unlimited overflow resource per point of care per team (`OVERFLOW_POINTS`,
+#' R/constants.R), the place a casualty is cared for when no bed is free.
 build_env <- function(env, env_data, ot_hours = NULL) {
   if (is.null(ot_hours)) ot_hours <- get_ot_hours(env_data)
   ot_break   <- as.integer(ot_hours * 60L)
@@ -1369,6 +1371,17 @@ build_env <- function(env, env_data, ot_hours = NULL) {
   for (transport_type in names(env_data$transports)) {
     for (res_name in env_data$transports[[transport_type]]) {
       env <- env %>% add_resource(res_name)
+    }
+  }
+
+  # Overflow takes every casualty it is given, so it has no capacity to queue
+  # behind; its server count is the census of casualties cared for without a bed.
+  elm_key <- c(r2b = "r2b", r2e = "r2eheavy")
+  for (echelon in names(OVERFLOW_POINTS)) {
+    for (team_id in seq_along(env_data$elms[[elm_key[[echelon]]]])) {
+      for (point in OVERFLOW_POINTS[[echelon]]) {
+        env <- env %>% add_resource(overflow_resource(echelon, point, team_id), capacity = Inf)
+      }
     }
   }
 

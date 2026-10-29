@@ -849,13 +849,13 @@ r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
 #'
 #' @details The conditional increment runs from the last check (at R1) to the
 #'   elapsed time on arrival here, so the journey between the two echelons is
-#'   priced at this checkpoint.
+#'   priced at this checkpoint. It is taken on arrival, before any bed is
+#'   seized.
 r2b_dow_check <- function(trj, team_id) {
   died <- trajectory("Died of Wounds") %>%
     set_attribute("dow", 1) %>%
     set_attribute("dow_echelon", 2) %>%
     r2b_treat_kia(team_id) %>%
-    release_selected(id = 1) %>%
     r2b_transport_kia(team_id) %>%
     simmer::leave(1)
 
@@ -897,24 +897,93 @@ r2b_dow_check <- function(trj, team_id) {
     )
 }
 
+#' Name of the signal an R2B team sends when one of its resuscitation beds frees
+#'
+#' @details One signal per team, formatted with the team index, so a casualty
+#'   waiting at one unit's reception is woken by that unit's beds alone.
+R2B_RESUS_FREE_SIGNAL_FMT <- "r2b_resus_free_%d"
+
+#' Builds reception at R2B for a casualty needing resuscitation
+#'
+#' @param resus_beds This R2B team's resuscitation beds
+#' @param hold_beds  This R2B team's holding beds
+#' @param overflow   This R2B team's reception overflow resource
+#' @param signal     The signal this team sends when a resuscitation bed frees
+#' @return Simmer trajectory ending with the casualty in a resuscitation bed,
+#'   selected into id 2.
+#'
+#' @details A casualty arriving to a free resuscitation bed is taken straight to
+#'   it. One arriving while every resuscitation bed is in use waits in a holding
+#'   bed if one is free and in overflow if not, and takes the first of the
+#'   unit's resuscitation beds to free rather than one chosen in advance: it
+#'   waits for the unit's signal (sent by r2b_resuscitation() on release) and,
+#'   woken, takes a bed if one is free and waits again if another casualty took
+#'   it first. The placement is recorded in r2b_reception_bed (1 resuscitation,
+#'   2 holding, 3 overflow) and the wait in r2b_reception_wait, in minutes. No
+#'   care-state multiplier attaches to the wait, the casualty not yet having
+#'   been resuscitated; it is priced by elapsed time.
+r2b_reception <- function(resus_beds, hold_beds, overflow, signal) {
+  force(signal)
+  # Waits for the signal until a resuscitation bed is free. Entered only when
+  # none is, and woken whenever one frees; rollback re-arms the wait when
+  # another casualty has taken the bed first.
+  await_bed <- trajectory("Await First Resuscitation Bed") %>%
+    trap(signal) %>%
+    wait() %>%
+    untrap(signal) %>%
+    rollback(target = 3, check = function() !beds_free(resus_beds))
+
+  take_bed <- trajectory("Take a Resuscitation Bed") %>%
+    simmer::select(resus_beds, policy = "first-available", id = 2) %>%
+    seize_selected(id = 2)
+
+  # Branches on the best placement free at this instant (placement_now()):
+  # - 1 a resuscitation bed is free -> straight to it
+  # - 2 none, but a holding bed is free -> wait in it for the first to free
+  # - 3 neither -> wait in overflow for the first to free
+  trajectory("R2B Reception") %>%
+    set_attribute("r2b_reception_wait", 0) %>%
+    branch(
+      option = function() placement_now(resus_beds, hold_beds),
+      continue = TRUE,
+      trajectory("Reception, Straight to Resuscitation") %>%
+        set_attribute("r2b_reception_bed", 1) %>%
+        join(take_bed),
+      trajectory("Reception, Waiting in a Holding Bed") %>%
+        set_attribute("r2b_reception_bed", 2) %>%
+        simmer::select(hold_beds, policy = "first-available", id = 1) %>%
+        seize_selected(id = 1) %>%
+        join(await_bed) %>%
+        join(take_bed) %>%
+        release_selected(id = 1),
+      trajectory("Reception, Waiting in Overflow") %>%
+        set_attribute("r2b_reception_bed", 3) %>%
+        simmer::select(overflow, id = 1) %>%
+        seize_selected(id = 1) %>%
+        join(await_bed) %>%
+        join(take_bed) %>%
+        release_selected(id = 1)
+    ) %>%
+    set_attribute("r2b_reception_wait", function() {
+      now(env) - get_attribute(env, "r2b_treatment_start_time")
+    })
+}
+
 #' Applies emergency resuscitation at R2B
 #'
 #' @param trj            Trajectory to append the resuscitation to
-#' @param resus_beds     This R2B team's resuscitation beds
 #' @param emergency_team This R2B team's emergency section
-#' @return The trajectory, with the transfer to a resuscitation bed, the
-#'   resuscitation itself and its effect on the died-of-wounds ceiling
-#'   appended.
+#' @param signal         The signal this team sends when a resuscitation bed
+#'   frees
+#' @return The trajectory, with the resuscitation itself, its effect on the
+#'   died-of-wounds risk and the release of the resuscitation bed appended.
 #'
-#' @details The holding bed seized on arrival is released once the
-#'   resuscitation bed is in hand, so a casualty never holds two beds except
-#'   across the transfer itself.
-r2b_resuscitation <- function(trj, resus_beds, emergency_team) {
+#' @details The casualty arrives here holding the resuscitation bed reception
+#'   gave them (r2b_reception(), id 2). Releasing it sends the unit's signal, so
+#'   a casualty waiting at reception takes it in the same instant.
+r2b_resuscitation <- function(trj, emergency_team, signal) {
+  force(signal)
   trj %>%
-    simmer::select(resus_beds, policy = "shortest-queue", id = 2) %>%
-    seize_selected(id = 2) %>%
-    release_selected(id = 1) %>%
-
     # Step 3: Emergency resuscitation
     seize_resources(emergency_team) %>%
     timeout(function() {
@@ -928,6 +997,7 @@ r2b_resuscitation <- function(trj, resus_beds, emergency_team) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
+    send(signal) %>%
     dow_treat(function() dow_multipliers()$resuscitation,
               function() LEGACY_DOW_EFFICACY$r2b_resus_factor, resuscitation = TRUE)
 }
@@ -968,10 +1038,10 @@ r2b_evac_decision <- function(trj, evacuation_team, wait_for_evac) {
 #' @return Simmer trajectory representing the entire WIA care pathway at R2B
 #'
 #' @details The body is the sequence of steps a casualty passes through, each a
-#'   named builder above: a holding bed on arrival and the died-of-wounds check
-#'   against the journey from R1 (r2b_dow_check()), resuscitation
-#'   (r2b_resuscitation()), the surgical decision, and the evacuation decision
-#'   (r2b_evac_decision()).
+#'   named builder above: the died-of-wounds check against the journey from R1
+#'   (r2b_dow_check()), reception and resuscitation for a casualty needing it
+#'   (r2b_reception(), r2b_resuscitation()), the surgical decision, and the
+#'   evacuation decision (r2b_evac_decision()).
 #'
 #'   A casualty requiring surgery passes the pre-theatre intensive care gate
 #'   (r2b_surgery_gate()) and then the theatre availability check
@@ -1003,6 +1073,9 @@ r2b_treat_wia <- function(team_id) {
   surg_teams      <- env_data$elms$r2b[[team_id]][["surg"]]
   icu_team        <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
 
+  overflow       <- overflow_resource("r2b", "reception", team_id)
+  resus_signal   <- sprintf(R2B_RESUS_FREE_SIGNAL_FMT, team_id)
+
   post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
   ot_check       <- r2b_ot_check_path(team_id, ot_beds, surg_teams, post_op)
   wait_for_evac  <- r2b_wait_for_evac(icu_beds, icu_team, evacuation_team)
@@ -1011,24 +1084,23 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("r2b_treated", team_id) %>%
     set_attribute("r2b_treatment_start_time", function() now(env)) %>%
 
-    # Step 1: Initial hold bed
-    simmer::select(hold_beds, policy = "shortest-queue", id = 1) %>%
-    seize_selected(id = 1) %>%
-
-    # Step 1.5: DOW check on arrival
+    # Step 1: DOW check on arrival
     r2b_dow_check(team_id) %>%
     set_attribute("last_dow_t", function() now(env)) %>%
 
-    # Steps 2 and 3: Resuscitation bed and emergency resuscitation
+    # Steps 2 and 3: Reception and emergency resuscitation
     # Branches on needs_resuscitation():
-    # - trauma, or disease that is Priority 1 or needs surgery -> resuscitated
-    # - any other disease -> arrival bed released, straight to the surgery
-    #   decision, which sends a non-surgical casualty to holding
+    # - trauma, or disease that is Priority 1 or needs surgery -> reception
+    #   places them (r2b_reception()), then resuscitation
+    # - any other disease -> straight to the surgery decision, which sends a
+    #   non-surgical casualty to holding
     branch(
       option = function() if (needs_resuscitation()) 1 else 2,
       continue = TRUE,
-      trajectory("R2B Resuscitation") %>% r2b_resuscitation(resus_beds, emergency_team),
-      trajectory("R2B No Resuscitation") %>% release_selected(id = 1)
+      trajectory("R2B Resuscitation") %>%
+        join(r2b_reception(resus_beds, hold_beds, overflow, resus_signal)) %>%
+        r2b_resuscitation(emergency_team, resus_signal),
+      trajectory("R2B No Resuscitation")
     ) %>%
 
     # Step 4: Surgery decision

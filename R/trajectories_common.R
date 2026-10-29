@@ -819,13 +819,13 @@ forward_stability_minutes <- function() {
 
 #' Whether R2E intensive care is saturated
 #'
-#' @return TRUE when every R2E intensive care bed is occupied; a casualty
-#'   waiting for one counts, so a pool with a queue is saturated
+#' @return TRUE when every R2E intensive care bed is occupied
 #'
 #' @details The capacity ground for holding a casualty forward: R2E cannot
-#'   take them yet. Occupancy plus queue is read against capacity across every
-#'   R2E team's beds, the transfer destination being whichever team the
-#'   casualty is sent to.
+#'   take them yet. Occupancy is read against capacity across every R2E team's
+#'   beds, the transfer destination being whichever team the casualty is sent
+#'   to. The queue is added for completeness, a casualty never queueing for an
+#'   R2E intensive care bed (placement_now()).
 r2e_icu_saturated <- function() {
   beds <- unlist(lapply(env_data$elms$r2eheavy, function(team) team[["icu_bed"]]))
   if (length(beds) == 0) return(FALSE)
@@ -1011,4 +1011,62 @@ battle_fatigue_restoration <- function(hold_beds, echelon) {
     set_attribute("return_echelon", echelon) %>%
     credit_rtd() %>%
     simmer::leave(1)
+}
+
+# ── Placement at the instant care is needed ───────────────────────────────────
+#
+# A casualty whose care calls for a bed takes the best one free at that moment
+# and keeps it for the stay: the bed the care calls for, otherwise a holding
+# bed, otherwise overflow (OVERFLOW_POINTS, R/constants.R). No casualty queues
+# for a particular bed, so a full unit changes where and how well care is
+# given, not when it begins.
+
+#' Whether any of a set of beds is free at this instant
+#'
+#' @param beds Resource names of the beds.
+#' @return TRUE when fewer of them are occupied than their combined capacity.
+beds_free <- function(beds) {
+  usage <- sum(get_server_count(env, resources = beds))
+  cap   <- sum(get_capacity(env, resources = beds))
+  !is.na(usage) && !is.na(cap) && usage < cap
+}
+
+#' The best placement free at this instant
+#'
+#' @param care_beds The beds the care calls for, intensive care after an
+#'   operation or resuscitation at R2B reception.
+#' @param hold_beds The unit's holding beds.
+#' @return 1 for a bed of the kind the care calls for, 2 for a holding bed, 3
+#'   for overflow.
+#'
+#' @details Read and acted on in the same instant, with no random draw, so the
+#'   bed it finds free is the bed the casualty takes.
+placement_now <- function(care_beds, hold_beds) {
+  if (beds_free(care_beds)) return(1)
+  if (beds_free(hold_beds)) return(2)
+  3
+}
+
+#' Records the moment a casualty enters overflow
+#'
+#' @param trj Trajectory to append to.
+#' @return The trajectory, with `overflow_since` stamped.
+overflow_enter <- function(trj) {
+  trj %>% set_attribute("overflow_since", function() now(env))
+}
+
+#' Adds the time since entering overflow to the casualty's R2E overflow minutes
+#'
+#' @param trj  Trajectory to append to.
+#' @param when Zero-argument function returning whether the casualty is
+#'   leaving overflow, for a release shared with a bed.
+#' @return The trajectory, with `r2e_overflow_min` brought up to date.
+overflow_leave <- function(trj, when = function() TRUE) {
+  force(when)
+  trj %>% set_attribute("r2e_overflow_min", function() {
+    so_far <- get_attribute(env, "r2e_overflow_min")
+    if (is.na(so_far)) so_far <- 0
+    if (!when()) return(so_far)
+    so_far + now(env) - get_attribute(env, "overflow_since")
+  })
 }

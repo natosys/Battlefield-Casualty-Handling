@@ -910,3 +910,105 @@ r2b_hold_minutes <- function() {
 r2b_hold_residual_minutes <- function() {
   max(0, get_attribute(env, "r2b_hold_drawn") - r2b_hold_minutes())
 }
+
+# ── Admission at Role 2 ───────────────────────────────────────────────────────
+
+#' Whether a casualty arriving at Role 2 is resuscitated
+#'
+#' @return TRUE for trauma (a wounded or non-battle injury casualty) and for a
+#'   disease casualty who is a medical emergency (Priority 1) or needs surgery;
+#'   FALSE for battle fatigue and for every other disease casualty.
+#'
+#' @details Resuscitation takes a resuscitation bed and the echelon's emergency
+#'   section, which a non-surgical illness or battle fatigue does not need in
+#'   practice; such a casualty goes straight to the holding disposition.
+needs_resuscitation <- function() {
+  dtype <- get_attribute(env, "dnbi_type")
+  if (is.na(dtype) || dtype == 3L) return(TRUE)
+  if (dtype == 1L) return(FALSE)
+  get_attribute(env, "priority") == 1 || get_attribute(env, "surgery") == 1
+}
+
+#' Builds the return to duty of a casualty whose convalescence ends in a queue
+#'
+#' @param echelon The echelon returning the casualty: 2 for R2B, 3 for R2E.
+#' @return Simmer trajectory recording the return without a bed and leaving.
+rtd_while_queued <- function(echelon) {
+  trajectory("Returned to Duty While Queued") %>%
+    set_attribute("rtd_while_queued", 1) %>%
+    set_attribute("return_day", function() now(env)) %>%
+    set_attribute("return_echelon", echelon) %>%
+    credit_rtd() %>%
+    simmer::leave(1)
+}
+
+#' Seizes a holding bed for a retained casualty whose recovery runs as it waits
+#'
+#' @param trj     Trajectory to append to
+#' @param beds    The holding beds to queue for
+#' @param id      Selection id the bed is seized under
+#' @param budget  Zero-argument function returning the minutes of convalescence
+#'   or restoration the casualty has left on being retained
+#' @param echelon The echelon retaining the casualty: 2 for R2B, 3 for R2E
+#' @return The trajectory, with the retention, the queue and the seizure
+#'   appended; `bed_waited` holds the minutes spent queueing.
+#'
+#' @details Recovery does not pause while a casualty waits for a bed, so the
+#'   clock starts at retention and time queued counts toward it. A casualty
+#'   whose recovery elapses in the queue reneges at that moment and returns to
+#'   duty without having occupied a bed (rtd_while_queued()); one who reaches a
+#'   bed serves only what is left (bed_minutes_left()). No random draw is added.
+queue_for_bed <- function(trj, beds, id, budget, echelon) {
+  force(budget)
+  trj %>%
+    set_attribute(c("bed_retained_t", "bed_budget"), function() c(now(env), budget())) %>%
+    renege_in(function() get_attribute(env, "bed_budget"), out = rtd_while_queued(echelon)) %>%
+    simmer::select(beds, policy = "shortest-queue", id = id) %>%
+    seize_selected(id = id) %>%
+    renege_abort() %>%
+    set_attribute("bed_waited", function() now(env) - get_attribute(env, "bed_retained_t"))
+}
+
+#' Minutes of recovery left once a queued casualty reaches a bed
+#'
+#' @return The budget set at retention less the time queued, floored at zero.
+bed_minutes_left <- function() {
+  max(0, get_attribute(env, "bed_budget") - get_attribute(env, "bed_waited"))
+}
+
+#' Builds the restoration of a battle fatigue casualty in a Role 2 holding bed
+#'
+#' @param hold_beds The holding beds of the receiving team
+#' @param echelon   The receiving echelon: 2 for R2B, 3 for R2E
+#' @return Simmer trajectory holding the casualty for the restoration duration
+#'   (`r1.recovery`), then returning them to duty and leaving the model.
+#'
+#' @details Battle fatigue is managed by rest and replenishment with the
+#'   expectation of an early return, so the casualty takes no resuscitation, no
+#'   died-of-wounds check, no severity-scaled convalescence and no strategic
+#'   evacuation. The restoration is drawn on retention and runs while the
+#'   casualty queues for a bed (queue_for_bed()). The bed's start is recorded
+#'   under the attribute every other holding stay at that echelon uses, so the
+#'   occupancy reconstructed from attributes counts it.
+battle_fatigue_restoration <- function(hold_beds, echelon) {
+  bed_record <- if (echelon == 2) {
+    trajectory() %>% set_attribute("r2b_hold_start", function() now(env))
+  } else {
+    trajectory() %>%
+      set_attribute(c("r2e_recovery_hold_start", "r2e_recovery_hold_min"),
+                    function() c(now(env), bed_minutes_left()))
+  }
+  trajectory("Battle Fatigue Restoration") %>%
+    set_attribute("bf_restoration", echelon) %>%
+    queue_for_bed(hold_beds, id = 5, budget = function() {
+      r <- env_data$vars$r1$recovery
+      rtriangle(n = 1, a = r$min, b = r$max, c = r$mode)
+    }, echelon = echelon) %>%
+    join(bed_record) %>%
+    timeout(bed_minutes_left) %>%
+    release_selected(id = 5) %>%
+    set_attribute("return_day", function() now(env)) %>%
+    set_attribute("return_echelon", echelon) %>%
+    credit_rtd() %>%
+    simmer::leave(1)
+}

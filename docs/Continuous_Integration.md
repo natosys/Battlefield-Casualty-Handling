@@ -392,6 +392,7 @@ seconds.
 | `check_planning_implications.R` | fast | 8 s | the planning paper quotes the results paper faithfully |
 | `check_policy_sweep_protocol.R` | fast | 22 s | the evacuation policy sweep's parameters, its responses and its published table agree |
 | `check_pre_open_window.R` | fast | 39 s | the R2B pre-open hold window behaves at its bounds |
+| `check_r1_evacuation.R` | fast | 60 s | every casualty leaves R1, and Role 2 receives each by what it needs |
 | `check_r2e_surgery_seizure.R` | fast | 16 s | R2E surgery seizes a surgical section |
 | `check_references.R` | fast | 5 s | Reference list structural checks Regression check for the reference lists of the four academic documents. The checks below are structural, not bibliographic: they assert the properties a reader relies on when following a citation, and they are the properties a hand renumber silently breaks. Whether a URL is open access is a judgement no script can make, so it stays a manual step at the point a reference is added; what the script can guarantee is that the same source is not listed twice, that every entry is reachable from the text and every |
 | `check_replication_independence.R` | fast | 68 s | replications are independent of one another |

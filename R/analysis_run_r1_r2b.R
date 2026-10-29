@@ -124,6 +124,7 @@ r2b_hold_episodes <- function(attributes_wide, window_min) {
     filter(!is.na(r2b_hold_start)) %>%
     mutate(
       stream = case_when(
+        !is.na(dnbi_type) & dnbi_type == 1L ~ "Battle fatigue",
         !is.na(dnbi_type) & dnbi_type == 2L ~ "Disease DNBI",
         !is.na(dnbi_type) & dnbi_type == 3L ~ "NBI",
         TRUE                                 ~ "WIA"
@@ -152,13 +153,6 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
   r2b_hold_daily          <- NULL
 
   if (any(!is.na(attributes_wide$r2b_hold_start))) {
-
-    # Verify: battle_fatigue must not appear in R2B hold
-    bf_in_hold <- attributes_wide %>%
-      filter(!is.na(r2b_hold_start) & !is.na(dnbi_type) & dnbi_type == 1L)
-    stopifnot(
-      "Battle fatigue (dnbi_type==1) must not occupy R2B hold beds" = nrow(bf_in_hold) == 0
-    )
 
     n_sim_days <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
     n_reps_hold <- max(1L, n_distinct(attributes_wide$replication))
@@ -190,7 +184,7 @@ summarise_r2b_hold_occupancy <- function(attributes_wide, combined, output_dir, 
       summarise(mean_occupancy = mean(occupancy), .groups = "drop") %>%
       complete(
         day       = seq_len(n_sim_days),
-        stream    = c("Disease DNBI", "NBI", "WIA"),
+        stream    = c("Battle fatigue", "Disease DNBI", "NBI", "WIA"),
         r2b_label = hold_capacity$r2b_label,
         fill      = list(mean_occupancy = 0)
       )

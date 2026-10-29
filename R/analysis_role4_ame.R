@@ -130,11 +130,13 @@ validate_role4_wards <- function(r4_params) {
 #'   los_category, ward, los_days, r4_admit_day, r4_discharge_day
 #'
 #' @details Length-of-stay category (MODEL ASSUMPTION — Role 4 Ward/LoS
-#'   Category Mapping, see README Role 4 sub-section): DNBI casualties (any
-#'   priority) and Priority 3 WIA share the p3_dnbi category and General
-#'   Ward; Priority 1 casualties split into ICU (if `treatment_received`) or
-#'   Surgical Ward (if not); Priority 2 casualties are assigned Surgical
-#'   Ward. rtriangle() (package `triangle`) only accepts scalar a/b/c, hence
+#'   Category Mapping, see README Role 4 sub-section): disease casualties (any
+#'   priority) and Priority 3 trauma share the p3_dnbi category and General
+#'   Ward; Priority 1 trauma splits into ICU (if `treatment_received`) or
+#'   Surgical Ward (if not); Priority 2 trauma is assigned Surgical Ward. A
+#'   non-battle injury is trauma and is categorised by priority, as a wounded
+#'   casualty is. A frame without `dnbi_type` falls back to treating every DNBI
+#'   casualty as disease. rtriangle() (package `triangle`) only accepts scalar a/b/c, hence
 #'   the row-at-a-time draw (matches the per-entity draw pattern used
 #'   throughout R/trajectories.R).
 assign_role4_los <- function(arrivals_log, r4_los_params) {
@@ -173,6 +175,11 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
         } else {
           FALSE
         },
+        disease = if ("dnbi_type" %in% names(.)) {
+          !is.na(dnbi_type) & dnbi_type == 2
+        } else {
+          !is.na(injury_type) & injury_type == 2
+        },
         los_category = case_when(
           # A casualty flown out with the definitive repair still to be
           # performed is the sickest arrival this echelon receives, whatever
@@ -183,7 +190,7 @@ assign_role4_los <- function(arrivals_log, r4_los_params) {
           # flight (R/trajectories.R), rather than the category their priority
           # alone would give them.
           outstanding_repair                                           ~ "p1_surgical",
-          !is.na(injury_type) & injury_type == 2                       ~ "p3_dnbi",
+          disease                                                      ~ "p3_dnbi",
           !is.na(priority) & priority == 3                             ~ "p3_dnbi",
           !is.na(priority) & priority == 1 &
             !is.na(treatment_received) & treatment_received == 1       ~ "p1_surgical",

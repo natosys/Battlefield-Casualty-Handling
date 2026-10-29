@@ -738,16 +738,20 @@ r2b_hold_bypass <- function(evacuation_team) {
 #'
 #' @details Reached when both this team's holding beds and R2E's are full and
 #'   the R2B holding queue is within its proportional cap; the casualty waits
-#'   here rather than being moved to an echelon with nothing free either.
+#'   here rather than being moved to an echelon with nothing free either. The
+#'   convalescence runs from retention (queue_for_bed()), so a casualty whose
+#'   convalescence elapses in the queue returns to duty without a bed, and one
+#'   who reaches a bed serves only what is left (`r2b_hold_drawn`), the time
+#'   queued being recorded as `r2b_hold_waited` for R2E to subtract too.
 r2b_hold_queue_recovery <- function(hold_beds, evacuation_team) {
   trajectory("R2B Hold Queue — R2E Full") %>%
     set_attribute("r2b_hold_queued", 1) %>%
-    simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
-    seize_selected(id = 5) %>%
-    set_attribute("r2b_hold_start", function() now(env)) %>%
-    set_attribute("r2b_hold_drawn", function() {
+    queue_for_bed(hold_beds, id = 5, budget = function() {
       get_attribute(env, "recovery_to_duty_days") * DAY_MIN
-    }) %>%
+    }, echelon = 2) %>%
+    set_attribute("r2b_hold_start", function() now(env)) %>%
+    set_attribute("r2b_hold_waited", function() get_attribute(env, "bed_waited")) %>%
+    set_attribute("r2b_hold_drawn", bed_minutes_left) %>%
     timeout(r2b_hold_minutes) %>%
     # Branches on the convalescence left after the evacuation threshold:
     # - If time remains, evacuate early and serve the remainder at R2E
@@ -1016,7 +1020,16 @@ r2b_treat_wia <- function(team_id) {
     set_attribute("last_dow_t", function() now(env)) %>%
 
     # Steps 2 and 3: Resuscitation bed and emergency resuscitation
-    r2b_resuscitation(resus_beds, emergency_team) %>%
+    # Branches on needs_resuscitation():
+    # - trauma, or disease that is Priority 1 or needs surgery -> resuscitated
+    # - any other disease -> arrival bed released, straight to the surgery
+    #   decision, which sends a non-surgical casualty to holding
+    branch(
+      option = function() if (needs_resuscitation()) 1 else 2,
+      continue = TRUE,
+      trajectory("R2B Resuscitation") %>% r2b_resuscitation(resus_beds, emergency_team),
+      trajectory("R2B No Resuscitation") %>% release_selected(id = 1)
+    ) %>%
 
     # Step 4: Surgery decision
     # Branches based on attribute "surgery":

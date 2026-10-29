@@ -736,7 +736,9 @@ r2e_ame_queue_and_board <- function(resource_name, bed_id, team_id, evac_team) {
 #'   convalescence distribution (r2eheavy$holding) scaled by a severity factor
 #'   keyed to the same four categories R/analysis_role4_ame.R::assign_role4_los() uses, so
 #'   a casualty's prognosis, its Role 4 ward and its evacuation route all follow
-#'   from one severity classification rather than from independent draws.
+#'   from one severity classification rather than from independent draws. The
+#'   one exception is a Priority 1 disease casualty, who convalesces on the
+#'   Priority 2 factor but keeps the disease ward category at Role 4.
 draw_recovery_to_duty <- function() {
   # A casualty's convalescence is drawn once, where their severity and
   # treatment are first known (R2B no-surgery path, or here), and every echelon
@@ -745,13 +747,17 @@ draw_recovery_to_duty <- function() {
   if (!is.na(drawn)) return(drawn)
 
   prio  <- get_attribute(env, "priority")
-  itype <- get_attribute(env, "injury_type")
+  dtype <- get_attribute(env, "dnbi_type")
   surg  <- get_attribute(env, "r2b_surgery")
   surg2 <- get_attribute(env, "r2e_surgery")
   had_surgery <- (!is.na(surg) && surg == 1) || (!is.na(surg2) && surg2 == 1)
   f <- env_data$vars$r2eheavy$recovery_to_duty
-  severity <- if (!is.na(itype) && itype == 2) {
-    f$p3_dnbi
+  # Disease keys on priority alone: a medical emergency convalesces as a
+  # Priority 2 casualty, and every other disease casualty, surgical included,
+  # as a minor one. A non-battle injury is trauma and takes the wounded
+  # factors below, by priority and surgery.
+  severity <- if (!is.na(dtype) && dtype == 2L) {
+    if (!is.na(prio) && prio == 1) f$p2 else f$p3_dnbi
   } else if (!is.na(prio) && prio == 3) {
     f$p3_dnbi
   } else if (!is.na(prio) && prio == 1 && had_surgery) {
@@ -1367,11 +1373,15 @@ draw_evacuation_reason <- function() {
 #' Minutes of the casualty's one convalescence still to serve at R2E
 #'
 #' @return The drawn `recovery_to_duty_days` less the bed time already served
-#'   forward at R2B (`r2b_hold_served`), floored at zero.
+#'   forward at R2B (`r2b_hold_served`) and the time spent queueing for that
+#'   bed (`r2b_hold_waited`), during which convalescence also ran; floored at
+#'   zero.
 r2e_convalescence_remaining_minutes <- function() {
   served <- get_attribute(env, "r2b_hold_served")
+  waited <- get_attribute(env, "r2b_hold_waited")
   if (is.na(served)) served <- 0
-  max(0, get_attribute(env, "recovery_to_duty_days") * DAY_MIN - served)
+  if (is.na(waited)) waited <- 0
+  max(0, get_attribute(env, "recovery_to_duty_days") * DAY_MIN - served - waited)
 }
 
 #' Applies the final disposition at R2E under the theatre evacuation policy
@@ -1406,13 +1416,14 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
       },
       continue = TRUE,
       trajectory("Recover at R2E") %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 5) %>%
-        seize_selected(id = 5) %>%
-        set_attribute("r2e_recovery_hold_start", function() now(env)) %>%
-        # The hold bed is held for the same duration the disposition was
-        # decided on, so a retained casualty's bed-days and the prognosis
-        # that retained them cannot disagree.
-        timeout(r2e_convalescence_remaining_minutes) %>%
+        # Convalescence runs from retention, while the casualty queues for a
+        # bed as well as in it, so bed time plus time queued equals the
+        # duration the disposition was decided on.
+        queue_for_bed(hold_beds, id = 5, budget = r2e_convalescence_remaining_minutes,
+                      echelon = 3) %>%
+        set_attribute(c("r2e_recovery_hold_start", "r2e_recovery_hold_min"),
+                      function() c(now(env), bed_minutes_left())) %>%
+        timeout(bed_minutes_left) %>%
         release_selected(id = 5) %>%
         set_attribute("r2e_departure_time", function() now(env)) %>%
         set_attribute("return_day", function() now(env)) %>%
@@ -1489,7 +1500,14 @@ r2e_treat_wia <- function(team_id) {
     r2e_arrival_dow_check(team_id, evac_team) %>%
 
     # Phase 2: Resuscitation
-    r2e_resuscitation(resus_beds, emergency_team) %>%
+      # Branches on needs_resuscitation(): trauma, and disease that is Priority 1
+    # or needs surgery, is resuscitated; any other disease is not.
+    branch(
+      option = function() if (needs_resuscitation()) 1 else 2,
+      continue = TRUE,
+      trajectory("R2E Resuscitation") %>% r2e_resuscitation(resus_beds, emergency_team),
+      trajectory("R2E No Resuscitation")
+    ) %>%
 
     # Phase 3: Surgical branch, gated on intensive care availability
     r2e_surgical_branch(icu_beds, icu_path, hold_path, defer_path, post_op_dow) %>%

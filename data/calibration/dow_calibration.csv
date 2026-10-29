@@ -1,4 +1,3 @@
-"scenario","days","measurements","replications","rate","ci_lower","ci_upper","target","anchor","kind"
-"default",360,3,30,0.00318614205923503,0.00283608874889824,0.00353619536957182,0.0046,"Ajax Bay","bound"
-"moderate_intensity",360,3,30,0.00318614205923503,0.00283608874889824,0.00353619536957182,0.0046,"Ajax Bay","bound"
-"high_intensity",360,3,30,0.0350370034250412,0.0343167842981639,0.0357572225519186,0.034,"Okinawa","point"
+"scenario","days","measurements","replications","rate","ci_lower","ci_upper","target","anchor","kind","hazard_share"
+"default",360,3,30,0.00471112772510933,0.00407066877538192,0.00535158667483674,0.0046,"Ajax Bay","bound",0.110254781936052
+"moderate_intensity",360,3,30,0.00471112772510933,0.00407066877538192,0.00535158667483674,0.0046,"Ajax Bay","bound",0.110254781936052

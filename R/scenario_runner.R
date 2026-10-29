@@ -646,6 +646,9 @@ plot_scenario_comparison <- function(queue_table,
 #'   (default 0)
 #' @param output_dir Directory for CSV outputs (default "outputs")
 #' @param images_dir Directory for the saved comparison plot (default `outputs/images`)
+#' @param cache_dir Directory each profile's replications are saved to and
+#'   resumed from, one subdirectory per profile, or NULL (the default) to run
+#'   without one
 #' @return Named list: results (one run_scenario() output per scenario,
 #'   named by scenario), queue_table (combined per-resource KPI table with
 #'   scenario/scenario_label columns), totals_table (combined casualty/DOW

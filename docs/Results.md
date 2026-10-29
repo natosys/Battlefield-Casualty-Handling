@@ -1413,6 +1413,11 @@ This annex records the measurements of one 360-day campaign at seed 42 that veri
 | Battle fatigue returned to duty from Role 2 | 552 | not applicable |
 <!-- /GEN -->
 
+**Placement at Role 2.** A casualty whose care calls for a bed takes the best one free when that care begins: the bed the care calls for, otherwise a holding bed, otherwise overflow, with no bed. A stabilisation is counted where a stay was served, and the overflow census is the time-weighted mean number of casualties cared for without a bed at each point over the campaign.
+
+<!-- GEN annex_placement -->
+<!-- /GEN -->
+
 **Surgical load.** Utilisation of open time is the time-weighted share of a section's rostered time during which its first surgeon was in use, and the queued share is the share of that open time with one or more casualties waiting for any role in the section.
 
 <!-- GEN annex_surgical_load -->

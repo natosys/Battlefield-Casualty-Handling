@@ -35,7 +35,7 @@ The codebase is organised into a modular layout under `R/`, with `run.R` as the 
 | `R/dow_examples.R` | The four worked Priority 1 casualties of the care-state died-of-wounds model, their timings and the closed-form risk each accrues, which `scripts/render_dow_care_states.R` and the console's preview both draw. Base R only and independent of every other module |
 | `R/environment.R` | Data import, arrival generation, and simmer environment construction |
 | `R/trajectories.R` | Trajectory loader: loads simmer, simmer.bricks, triangle and `R/constants.R` and sources the `R/trajectories_*.R` parts, so every caller sources this file alone |
-| `R/trajectories_common.R` | Helpers every echelon uses: resource seizure and release, force accounting, team and section selection, the care-state died-of-wounds model and the earlier model's frozen constants, the post-operative intensive care draws and the R2B holding threshold |
+| `R/trajectories_common.R` | Helpers every echelon uses: resource seizure and release, force accounting, team and section selection, the care-state died-of-wounds model and the earlier model's frozen constants, the post-operative intensive care draws, the R2B holding threshold, and admission at Role 2 (the resuscitation rule, convalescence while queued for a bed, battle fatigue restoration) |
 | `R/trajectories_casualty.R` | The R1 trajectories and `build_casualty_trajectory()`, the core casualty flow |
 | `R/trajectories_r2b.R` | The R2B trajectories and `r2b_treat_wia()` |
 | `R/trajectories_r2e.R` | The R2E Heavy trajectories and `r2e_treat_wia()` |

@@ -150,14 +150,15 @@ POPULATION_EXACT_SHARE <- 1
 #'   arithmetic. A thousandth of a bed-day is under two minutes of one bed.
 CLOSE_TOL <- 1e-3
 
-#' Priority 1 and 2 died-of-wounds ceilings every campaign here is run at
+#' Post-operative died-of-wounds multiplier every campaign here is run at
 #'
-#' @details Raised from the shipped 0.9% and 0.7% because a casualty dying in a
-#'   staging bed is a rare event at the shipped values, absent from a 30-day
-#'   campaign at most seeds. The assertions about that exit would otherwise
-#'   depend on the luck of the seed, and become vacuous on any change to the
-#'   random stream. The mechanism is unchanged; only its frequency is.
-CHECK_DOW_CEILING <- 0.6
+#' @details Raised from the shipped value because a casualty dying in a
+#'   staging bed is a rare event at it, absent from a 30-day campaign at most
+#'   seeds; the wait's death rate is the base rate times this multiplier. The
+#'   assertions about that exit would otherwise depend on the luck of the seed,
+#'   and become vacuous on any change to the random stream. The mechanism is
+#'   unchanged; only its frequency is.
+CHECK_POST_OP_MULTIPLIER <- 6
 
 #' Run one campaign and return its monitors and its split
 #'
@@ -174,8 +175,7 @@ measure <- function(failure_probability) {
   # Written to the global the model reads; a bare assignment here would bind a
   # local copy the run never sees.
   described <- get("env_data", envir = globalenv())
-  described$vars$dow$params$p1_p_max <- CHECK_DOW_CEILING
-  described$vars$dow$params$p2_p_max <- CHECK_DOW_CEILING
+  described$vars$dow$multipliers$post_op <- CHECK_POST_OP_MULTIPLIER
   assign("env_data", described, envir = globalenv())
 
   set.seed(CHECK_SEED)
@@ -212,7 +212,13 @@ for (arm in list(list("shipped reliability", shipped),
                                        s$post_definitive_bed_days +
                                        s$post_op_hold_bed_days)) < TOL,
          "%s: the reported sum is the four components (%.3f)", label, s$accounted_bed_days)
-  for (part in c("recovery_bed_days", "post_definitive_bed_days", "post_op_hold_bed_days")) {
+  # At a cancellation rate of 0.75 evacuation waiters can fill the whole
+  # holding pool, leaving no bed for a casualty retained to recover in theatre,
+  # so the recovery component may legitimately be empty in that arm alone; the
+  # two lower rates keep it non-vacuous.
+  parts <- c("recovery_bed_days", "post_definitive_bed_days", "post_op_hold_bed_days")
+  if (identical(arm[[2]], censoring)) parts <- setdiff(parts, "recovery_bed_days")
+  for (part in parts) {
     report(s[[part]] > 0,
            "%s: %s is positive (%.3f), so no component is vacuous",
            label, part, s[[part]])

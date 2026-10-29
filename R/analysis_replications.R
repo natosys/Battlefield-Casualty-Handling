@@ -238,7 +238,8 @@ build_replication_attributes <- function(arrivals, arrivals_raw, attributes_raw)
       population_source = str_extract(name, "(?<=_)[a-zA-Z]+")
     )
 
-  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait")
+  echelon_labels <- c("1" = "r1", "2" = "r2b", "3" = "r2e", "4" = "r2e_postop", "5" = "ame_wait",
+                      "6" = "r2e_post_definitive")
   rep_ids        <- unique(arrivals_raw$replication)
   list(
     attributes_wide = attributes_wide,

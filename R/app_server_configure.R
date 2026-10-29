@@ -95,13 +95,11 @@ build_scenario_labels <- function() {
   # The dropdown's own naming, overriding env_data.json's canonical scenario
   # labels for display only. The shipped default is the moderate-intensity
   # Falklands calibration; "high_intensity" overlays Okinawa casualty rates
-  # and its own died-of-wounds model; "high_intensity_modern_care" keeps those
-  # casualty rates under the shipped treatment model. A scenario id absent from this map
-  # falls back to its own env_data.json label.
+  # and nothing else, the two sharing one mortality model. A scenario id absent
+  # from this map falls back to its own env_data.json label.
   SCENARIO_DROPDOWN_LABELS <- c(
     default         = "Moderate Intensity",
-    high_intensity  = "High Intensity",
-    high_intensity_modern_care = "High Intensity, Modern Care"
+    high_intensity  = "High Intensity"
   )
   list(
     SCENARIO_DROPDOWN_LABELS = SCENARIO_DROPDOWN_LABELS,
@@ -201,7 +199,7 @@ wire_scenario_dropdown <- function(raw_env_data, input, output, SCENARIO_DROPDOW
 #' Derive the distribution families and died-of-wounds shape a profile implies
 #'
 #' @param scenario_json See wire_scenario_resolution().
-#' @return A list of `dow_shape`, `gen_distributions`.
+#' @return A list of `dow_model`, `gen_distributions`.
 build_scenario_derivations <- function(scenario_json) {
   gen_distributions <- reactive({
     setNames(vapply(GEN_STREAM_ACTYS, function(acty) {
@@ -210,23 +208,28 @@ build_scenario_derivations <- function(scenario_json) {
     }, character(1)), GEN_STREAM_ACTYS)
   })
 
-  # Fixed DOW logistic shape parameters (p_base, k, t_mid) per priority,
-  # read from the resolved scenario JSON — not user-editable, but displayed
-  # read-only alongside the P1/P2 DOW curve cards (render_dow_curve()) and
-  # used to draw them, so the curve's floor/shape track whichever Casualty
-  # Intensity Profile is active exactly as its ceiling (p_max) does.
-  dow_shape <- reactive({
+  # The fitted died-of-wounds values, read from the resolved scenario JSON:
+  # the three base rates and the post-operative multiplier, displayed
+  # read-only in the Died of Wounds Model subgroup, and the multipliers its
+  # worked casualty preview is drawn from.
+  dow_model <- reactive({
     sj <- scenario_json()
-    setNames(lapply(c("p1", "p2"), function(pr) {
-      list(
-        p_base = get_raw_var(sj, "dow", "params", paste0(pr, "_p_base")),
-        k      = get_raw_var(sj, "dow", "params", paste0(pr, "_k")),
-        t_mid  = get_raw_var(sj, "dow", "params", paste0(pr, "_t_mid"))
-      )
-    }), c("p1", "p2"))
+    #' One base rate of the resolved configuration
+    #'
+    #' @param k The rate's key in `dow.rates`.
+    #' @return Its value.
+    rate <- function(k) get_raw_var(sj, "dow", "rates", k)
+    #' One multiplier of the resolved configuration
+    #'
+    #' @param k The multiplier's key in `dow.multipliers`.
+    #' @return Its value.
+    mult <- function(k) get_raw_var(sj, "dow", "multipliers", k)
+    list(p1_rate = rate("p1_rate"), p2_rate = rate("p2_rate"), p3_rate = rate("p3_rate"),
+         post_op = mult("post_op"), resuscitation = mult("resuscitation"),
+         r1_treatment = mult("r1_treatment"))
   })
   list(
-    dow_shape = dow_shape,
+    dow_model = dow_model,
     gen_distributions = gen_distributions
   )
 }
@@ -238,7 +241,7 @@ build_scenario_derivations <- function(scenario_json) {
 #' @param output See wire_scenario_selector().
 #' @param SCENARIO_DROPDOWN_LABELS See wire_scenario_selector().
 #' @param shorten_scenario_label See wire_scenario_selector().
-#' @return A list of `current_scenario`, `dow_shape`, `gen_distributions`, `scenario_choices`,
+#' @return A list of `current_scenario`, `dow_model`, `gen_distributions`, `scenario_choices`,
 #'   `scenario_json`, `scenario_overridden_paths`.
 wire_scenario_resolution <- function(raw_env_data, input, output, SCENARIO_DROPDOWN_LABELS,
                                      shorten_scenario_label) {
@@ -254,11 +257,11 @@ wire_scenario_resolution <- function(raw_env_data, input, output, SCENARIO_DROPD
   # own renderPlot() uses below, shared here so the Std. Dev. field itself
   # (not just its curve) reflects which streams are currently exponential.
   scenario_derivations_out <- build_scenario_derivations(scenario_json)
-  dow_shape <- scenario_derivations_out$dow_shape
+  dow_model <- scenario_derivations_out$dow_model
   gen_distributions <- scenario_derivations_out$gen_distributions
   list(
     current_scenario = current_scenario,
-    dow_shape = dow_shape,
+    dow_model = dow_model,
     gen_distributions = gen_distributions,
     scenario_choices = scenario_choices,
     scenario_json = scenario_json,
@@ -311,12 +314,12 @@ wire_casualty_surge_rows <- function(raw_env_data, input, session) {
 #' @param fields_by_group See wire_scenario_selector().
 #' @param input See wire_scenario_selector().
 #' @param output See wire_scenario_selector().
-#' @param dow_shape See wire_scenario_selector().
+#' @param dow_model See wire_scenario_selector().
 #' @param gen_distributions See wire_scenario_selector().
 #' @param scenario_json See wire_scenario_selector().
 #' @param scenario_overridden_paths See wire_scenario_selector().
 #' @return Invisibly NULL; called for the outputs it registers.
-wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shape,
+wire_configure_group_bodies <- function(fields_by_group, input, output, dow_model,
                                         gen_distributions, scenario_json,
                                         scenario_overridden_paths) {
   lapply(names(fields_by_group), function(g) {
@@ -324,7 +327,7 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shap
     output[[output_id]] <- renderUI({
       defaults <- registry_defaults(fields_by_group[[g]], scenario_json())
       render_group_body(fields_by_group[[g]], defaults, scenario_overridden_paths(),
-                        gen_distributions(), dow_shape())
+                        gen_distributions(), dow_model())
     })
     # Left at Shiny's default suspendWhenHidden = TRUE: a panel other than
     # the initially-open one renders only once actually opened, rather
@@ -400,10 +403,10 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_shap
 #'
 #' @param input See wire_scenario_selector().
 #' @param output See wire_scenario_selector().
-#' @param dow_shape See wire_scenario_selector().
+#' @param dow_model See wire_scenario_selector().
 #' @param scenario_json See wire_scenario_selector().
 #' @return Invisibly NULL; called for the outputs it registers.
-wire_configure_previews <- function(input, output, dow_shape, scenario_json) {
+wire_configure_previews <- function(input, output, dow_model, scenario_json) {
   lapply(GEN_STREAM_ACTYS, function(acty) {
     output_id <- paste0("curve_", acty)
     output[[output_id]] <- renderPlot({
@@ -417,21 +420,15 @@ wire_configure_previews <- function(input, output, dow_shape, scenario_json) {
     # reasoning as the triangular curve previews above.
   })
 
-  # Live DOW survival-function curve previews (Casualty Rates group, Died
-  # of Wounds Ceilings subgroup). p_max is read live from the P1/P2
-  # Configure slider so the curve's ceiling redraws as it is dragged;
-  # p_base/k/t_mid come from dow_shape() (scenario-resolved, not
-  # user-editable), matching the same live/fixed split used for the
-  # casualty-generation curves above.
-  lapply(c("p1", "p2"), function(pr) {
-    output_id <- paste0("dow_curve_", pr)
-    output[[output_id]] <- renderPlot({
-      p_max <- input[[paste0("dow_", pr, "_pmax")]]
-      shp   <- dow_shape()[[pr]]
-      render_dow_curve(shp$p_base, p_max, shp$k, shp$t_mid)
-    })
-    # Left at the default suspendWhenHidden = TRUE — same
-    # reasoning as the triangular curve previews above.
+  # Live worked-casualty preview (Casualty Rates group, Died of Wounds Model
+  # subgroup). The fitted values come from dow_model() (scenario-resolved,
+  # read-only); the holding-bed and R2B intensive care penalties are read
+  # live from their Configure fields, so the chart redraws as they change.
+  output$dow_preview <- renderPlot({
+    m <- dow_model()
+    render_dow_preview(m$p1_rate, list(
+      r1_treatment = m$r1_treatment, resuscitation = m$resuscitation, post_op = m$post_op,
+      r2b_icu_penalty = input$r2b_icu_penalty, hold_bed_penalty = input$hold_bed_penalty))
   })
   invisible(NULL)
 }
@@ -474,7 +471,7 @@ wire_configuration_transfer <- function(raw_env_data, input, output, scenario_js
 #' @param input See analyse_run().
 #' @param output See analyse_run().
 #' @param session See analyse_run().
-#' @return A list of `current_json`, `current_scenario`, `dow_shape`, `gen_distributions`,
+#' @return A list of `current_json`, `current_scenario`, `dow_model`, `gen_distributions`,
 #'   `mc_event_count`, `scenario_choices`, `SCENARIO_DROPDOWN_LABELS`, `scenario_json`,
 #'   `scenario_overridden_paths`, `shorten_scenario_label`.
 wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output, session) {
@@ -486,7 +483,7 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
                                                       SCENARIO_DROPDOWN_LABELS,
                                                       shorten_scenario_label)
   current_scenario <- scenario_resolution_out$current_scenario
-  dow_shape <- scenario_resolution_out$dow_shape
+  dow_model <- scenario_resolution_out$dow_model
   gen_distributions <- scenario_resolution_out$gen_distributions
   scenario_choices <- scenario_resolution_out$scenario_choices
   scenario_json <- scenario_resolution_out$scenario_json
@@ -507,7 +504,7 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
   # render_group_body()'s "Scheduled Event Days" case).
   mc_event_count <- wire_casualty_surge_rows(raw_env_data, input, session)
 
-  wire_configure_group_bodies(fields_by_group, input, output, dow_shape, gen_distributions,
+  wire_configure_group_bodies(fields_by_group, input, output, dow_model, gen_distributions,
                               scenario_json, scenario_overridden_paths)
   # Left at the default suspendWhenHidden = TRUE — same
   # reasoning as force_design_diagram above, for the Medevac panel.
@@ -517,13 +514,13 @@ wire_scenario_selector <- function(fields_by_group, raw_env_data, input, output,
   # them; the distribution family comes from scenario_json() (not itself
   # user-editable — see README Scenario Profiles for why picking a family
   # independently of a sourced rate would be uncited guesswork).
-  wire_configure_previews(input, output, dow_shape, scenario_json)
+  wire_configure_previews(input, output, dow_model, scenario_json)
 
   current_json <- wire_configuration_transfer(raw_env_data, input, output, scenario_json)
   list(
     current_json = current_json,
     current_scenario = current_scenario,
-    dow_shape = dow_shape,
+    dow_model = dow_model,
     gen_distributions = gen_distributions,
     mc_event_count = mc_event_count,
     scenario_choices = scenario_choices,

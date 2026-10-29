@@ -201,9 +201,10 @@ report(isTRUE(r2e_second_surgery_threshold() == SHIPPED_THRESHOLD),
 
 # The shipped threshold is a saturation response, so it is asserted against a
 # saturated configuration. A 30-day campaign at the Falklands-modified rates
-# carries a mean theatre queue near one and never reaches eight, which is the
-# lever behaving as intended rather than failing to fire: the same threshold
-# releases 141 casualties per campaign-year over 360 days (data/policy/).
+# carries a mean theatre queue near one and reaches eight only at its peaks, so
+# the release fires there, but far less often than under saturation; whether a
+# given realisation's peaks reach eight at all depends on the seed, so the
+# assertion compares the two rather than requiring none.
 saturated_released <- released_count(wide_of(run_at(SHIPPED_THRESHOLD,
                                                     scenario = "high_intensity")))
 report(saturated_released > 0,
@@ -212,9 +213,10 @@ report(saturated_released > 0,
        saturated_released, CHECK_DAYS)
 
 unsaturated_released <- released_count(wide_of(run_at(SHIPPED_THRESHOLD)))
-report(unsaturated_released == 0,
-       paste("and does not fire in a 30-day campaign at the Falklands-modified",
-             "rates, whose theatre queue never reaches the threshold"))
+report(unsaturated_released < saturated_released / 2,
+       paste("and fires less than half as often in a 30-day campaign at the",
+             "Falklands-modified rates (%d casualties), whose theatre queue reaches",
+             "the threshold only at its peaks"), unsaturated_released)
 
 # ── 2. A malformed threshold is rejected, naming the field ─────────────────
 

@@ -111,7 +111,7 @@ word separators, no camelCase.
 | Module files | `R/trajectories.R`, `R/replication.R` | Plural noun naming the concern the module owns |
 | Check scripts | `tests/checks/check_icu_time_conservation.R` | `check_` plus the property asserted |
 | Runner scripts | `scripts/run_transport_sweep.R` | `run_` plus what is run |
-| Render scripts | `scripts/render_dow_survival.R` | `render_` plus the artifact produced |
+| Render scripts | `scripts/render_dow_care_states.R` | `render_` plus the artifact produced |
 
 **N3 `[review]` A name that appears in an output file, a plot label or a
 published table matches the name used in the code that produces it.** A reader

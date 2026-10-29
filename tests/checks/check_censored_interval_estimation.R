@@ -302,10 +302,21 @@ r2b_time   <- ifelse(r2b_closed,
                      r2b_ends[at_risk] - r2b_starts[at_risk],
                      window - r2b_starts[at_risk])
 lowest <- min(km_survival_curve(r2b_time, as.integer(r2b_closed))$s)
-report(lowest > 0.10 && is.na(kpis$r2b_dwell_time$p90_min),
-       paste("the R2B dwell curve falls only to %.3f, so its p90 is reported as NA",
-             "rather than as the %.0f min p90 of the stays that closed"),
-       lowest, quantile(r2b_time[r2b_closed], 0.90))
+report(is.na(kpis$r2b_dwell_time$p90_min) == (lowest > 0.10),
+       "the R2B dwell p90 is NA exactly when its curve stays above 0.10 (it falls to %.3f)",
+       lowest)
+
+# Whether the run's own R2B curve reaches its p90 depends on the realisation, so
+# the unreached case is also asserted on a cohort constructed to leave it
+# unreached: 80 stays closing within 80 minutes and 20 still open at the window,
+# each having run far longer than any that closed.
+built_start <- rep(0, 100)
+built_end   <- c(seq_len(80), rep(NA, 20))
+built       <- censored_interval_stats(built_start, built_end, window_min = 1000)
+report(is.na(built$p90_min),
+       paste("a cohort whose curve stops at 0.20 reports its p90 as NA rather than as",
+             "the %.0f min p90 of the stays that closed"),
+       quantile(built_end[1:80], 0.90))
 
 report(!is.na(kpis$r2e_dwell_time$p90_min),
        paste("the R2E dwell curve does reach its p90, reported at %.0f min, so an NA",

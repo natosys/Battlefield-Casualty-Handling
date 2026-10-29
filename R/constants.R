@@ -27,11 +27,13 @@ DAY_MIN <- 1440L
 # asserts it against the set_attribute() calls in R/trajectories.R so the two
 # cannot drift.
 MODEL_ATTRIBUTE_KEYS <- c(
-  "ame_departure_time", "ame_hold_end", "ame_hold_start", "ame_icu_hold",
+  "ame_death_time", "ame_departure_time", "ame_hold_end", "ame_hold_start", "ame_icu_hold",
   "ame_icu_hold_minutes",
   "ame_icu_hold_start", "ame_route", "ame_wait_minutes", "dcs_pathway",
   "definitive_repair_minutes", "definitive_repair_outstanding", "dnbi_bf_hold",
-  "dnbi_type", "dow", "dow_ceiling", "dow_echelon", "evacuation_day", "evacuation_decision_day",
+  "dnbi_type", "dow", "dow_care", "dow_ceiling", "dow_check_p", "dow_echelon",
+  "dow_expected_early", "dow_expected_late", "dow_mult", "dow_mult_t", "dow_phase",
+  "dow_risk_early", "dow_risk_late", "evacuation_day", "evacuation_decision_day",
   "evacuation_reason",
   "injury_time", "injury_type", "last_dow_t", "casualty_surge_event", "casualty_surge_event_id",
   "mortuary_treated", "post_definitive_hold_start", "post_definitive_min",

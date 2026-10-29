@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## tests/checks/check_dow_fitter.R                                          ##
-## Regression check — the died-of-wounds ceiling fitter recovers a known    ##
-## ceiling, and the documented calibration table is the shipped one         ##
+## Regression check — the died-of-wounds fitter recovers a known value,   ##
+## and the documented calibration table is the shipped one                  ##
 ##############################################################################
 #
 # Usage:
@@ -11,11 +11,12 @@
 # Exits 0 when every check passes, 1 otherwise. It needs neither simmer nor a
 # simulation, and runs in seconds.
 #
-# Why this check exists. scripts/calibrate_dow.R searches for the Priority 1
-# and Priority 2 ceilings that make the model's treated-cohort died-of-wounds
-# rate meet a target. The search is only worth trusting if it finds a ceiling
-# it is known to be able to find, and a fitter that returned the wrong
-# ceiling would look exactly like a successful calibration: a number, an
+# Why this check exists. scripts/calibrate_dow.R searches for the base rates
+# that make the model's treated-cohort died-of-wounds rate meet a target, and
+# the post-operative multiplier that makes the post-operative share meet its
+# own. The search is only worth trusting if it finds a value it is known to be
+# able to find, and a fitter that returned the wrong value would look exactly
+# like a successful calibration: a number, an
 # interval and an exit status of zero. So the search in R/dow_calibration.R is
 # given a response whose root is computable by hand and asked to recover it.
 # That assertion is then shown to reject fitters that are deliberately wrong,
@@ -25,7 +26,7 @@
 #
 #   1. On a linear response, a convex response and a response carrying
 #      deterministic noise of the size a pooled rate carries, the fitter returns
-#      the ceiling whose rate meets the target, within tolerance.
+#      the base rate whose rate meets the target, within tolerance.
 #   2. A bracket that does not contain the target is reported rather than
 #      searched, naming which end missed; a bracket end that meets the target is
 #      returned at once; and the iteration cap is respected.
@@ -34,13 +35,15 @@
 #      wrong side of the target.
 #   4. `pooled_rate_summary()` returns the interval a hand computation gives,
 #      clamped at zero.
-#   5. The Parameter Calibration table of the README states the ceilings the
-#      shipped configuration carries, and the ceilings the README gives for
-#      `high_intensity` are the ones that profile carries. A table showing the
-#      modern-care pairing as though it were shipped would have a reader
-#      configuring a ceiling more than twice the shipped one.
-#   6. Every scenario of `env_data.json` has a historical anchor, so the
-#      fitter and the regression check can each be run against it.
+#   5. The Calibration table of the README states the base rates and the
+#      post-operative multiplier the shipped configuration carries, so a refit
+#      cannot leave the document describing values the model no longer runs.
+#   6. No scenario overrides the died-of-wounds model, the profiles sharing
+#      one by design, so the one anchor the default carries is the only
+#      calibration a profile can have; `high_intensity` carries none, its
+#      mortality being a model output.
+#   7. `fit_post_op()` recovers a known multiplier on a share whose root is
+#      computable by hand.
 
 source("R/dow_calibration.R")
 
@@ -68,19 +71,19 @@ report <- function(ok, fmt, ...) {
 
 #' Tolerance on the rate the fitter is asked to meet
 RATE_TOL <- 1e-5
-#' Relative tolerance on the ceiling the fitter recovers
+#' Relative tolerance on the base rate the fitter recovers
 CEILING_REL_TOL <- 0.02
 #' README the calibration table is read from
 README <- "README.md"
-#' Configuration whose shipped ceilings the table is compared with
+#' Configuration whose shipped base rates the table is compared with
 CONFIG <- "env_data.json"
 
-#' A response of the pooled rate to the Priority 1 ceiling
+#' A response of the pooled rate to the Priority 1 base rate
 #'
-#' @param shape Function of the ceiling giving the noise-free rate.
+#' @param shape Function of the base rate giving the noise-free rate.
 #' @param noise Amplitude of deterministic noise added to it, standing for the
 #'   sampling variation of a pooled rate at a fixed set of control seeds.
-#' @return A function of the ceiling returning `rate`, `ci_lower` and `ci_upper`.
+#' @return A function of the base rate returning `rate`, `ci_lower` and `ci_upper`.
 make_response <- function(shape, noise = 0) {
   function(p) {
     r <- shape(p) + noise * sin(4000 * p)
@@ -88,70 +91,70 @@ make_response <- function(shape, noise = 0) {
   }
 }
 
-#' Whether a fitter recovers the ceiling at which a response meets a target
+#' Whether a fitter recovers the base rate at which a response meets a target
 #'
-#' @param fitter Function with the signature of `fit_dow_ceiling()`.
+#' @param fitter Function with the signature of `fit_dow_rate()`.
 #' @param shape Noise-free response function.
 #' @param noise Deterministic noise amplitude.
 #' @param target Rate to reach.
-#' @param truth Ceiling at which `shape` equals `target`.
-#' @return TRUE when the returned ceiling is within tolerance of `truth`, its
+#' @param truth Base rate at which `shape` equals `target`.
+#' @return TRUE when the returned base rate is within tolerance of `truth`, its
 #'   rate within tolerance of the target, and the fit is reported as converged.
 recovers <- function(fitter, shape, noise, target, truth) {
   fit <- fitter(make_response(shape, noise), target, lower = 0.5 * truth, upper = 2 * truth,
                 tol_rate = RATE_TOL + noise, tol_p = 1e-7, max_iter = 40L)
   isTRUE(fit$converged) &&
-    abs(fit$p1_p_max - truth) <= CEILING_REL_TOL * truth &&
+    abs(fit$p1_rate - truth) <= CEILING_REL_TOL * truth &&
     abs(fit$rate - target) <= RATE_TOL + noise + 1e-12
 }
 
-# ── The fitter recovers a known ceiling ─────────────────────────────────────
+# ── The fitter recovers a known base rate ─────────────────────────────────────
 
-cat("DOW ceiling fitter check\n\n-- the fitter recovers a known ceiling --\n")
+cat("DOW base rate fitter check\n\n-- the fitter recovers a known base rate --\n")
 
 #' Rate the fitter is asked to reach in the recovery assertions, the Ajax Bay bound
 TARGET <- 0.0046
-#' Noise-free linear response of the rate to the ceiling, reaching the target at 0.0092
+#' Noise-free linear response of the rate to the base rate, reaching the target at 0.0092
 #'
-#' @param p Priority 1 ceiling.
-#' @return The rate at that ceiling.
+#' @param p Priority 1 base rate.
+#' @return The rate at that base rate.
 linear <- function(p) 0.5 * p
-#' Noise-free convex response of the rate to the ceiling
+#' Noise-free convex response of the rate to the base rate
 #'
-#' @param p Priority 1 ceiling.
-#' @return The rate at that ceiling.
+#' @param p Priority 1 base rate.
+#' @return The rate at that base rate.
 convex <- function(p) 40 * p^2
-report(recovers(fit_dow_ceiling, linear, 0, TARGET, truth = TARGET / 0.5),
+report(recovers(fit_dow_rate, linear, 0, TARGET, truth = TARGET / 0.5),
        "a linear response is fitted to its root (%.4f)", TARGET / 0.5)
-report(recovers(fit_dow_ceiling, convex, 0, TARGET, truth = sqrt(TARGET / 40)),
+report(recovers(fit_dow_rate, convex, 0, TARGET, truth = sqrt(TARGET / 40)),
        "a convex response is fitted to its root (%.4f)", sqrt(TARGET / 40))
-report(recovers(fit_dow_ceiling, linear, 2e-5, TARGET, truth = TARGET / 0.5),
+report(recovers(fit_dow_rate, linear, 2e-5, TARGET, truth = TARGET / 0.5),
        "a linear response carrying deterministic noise is fitted within the noise")
 
 # ── Brackets, endpoints and the iteration cap ───────────────────────────────
 
 cat("\n-- brackets, endpoints and the iteration cap --\n")
 
-below <- fit_dow_ceiling(make_response(linear), target = 0.0001, lower = 0.005, upper = 0.02)
+below <- fit_dow_rate(make_response(linear), target = 0.0001, lower = 0.005, upper = 0.02)
 report(!below$converged && grepl("lower end", below$reason),
        "a target below the bracket is reported, naming the lower end")
-above <- fit_dow_ceiling(make_response(linear), target = 0.5, lower = 0.005, upper = 0.02)
+above <- fit_dow_rate(make_response(linear), target = 0.5, lower = 0.005, upper = 0.02)
 report(!above$converged && grepl("upper end", above$reason),
        "a target above the bracket is reported, naming the upper end")
 report(nrow(below$trace) <= 2L && nrow(above$trace) == 2L,
        "an unbracketed target costs the two bracket evaluations and no more")
 
-hit <- fit_dow_ceiling(make_response(linear), target = 0.5 * 0.005, lower = 0.005, upper = 0.02,
+hit <- fit_dow_rate(make_response(linear), target = 0.5 * 0.005, lower = 0.005, upper = 0.02,
                        tol_rate = 1e-9)
-report(hit$converged && nrow(hit$trace) == 1L && hit$p1_p_max == 0.005,
+report(hit$converged && nrow(hit$trace) == 1L && hit$p1_rate == 0.005,
        "a bracket end that meets the target is returned after one evaluation")
 
-capped <- fit_dow_ceiling(make_response(convex), target = TARGET, lower = 0.002, upper = 0.04,
+capped <- fit_dow_rate(make_response(convex), target = TARGET, lower = 0.002, upper = 0.04,
                           tol_rate = 1e-15, tol_p = 1e-15, max_iter = 3L)
 report(!capped$converged && nrow(capped$trace) <= 5L && grepl("cap", capped$reason),
        "the iteration cap is respected (%d evaluations at a cap of 3)", nrow(capped$trace))
 report(identical(capped$trace$iteration, seq_len(nrow(capped$trace)) - 1L) &&
-         capped$p1_p_max == capped$trace$p1_p_max[which.min(abs(capped$trace$rate - TARGET))],
+         capped$p1_rate == capped$trace$p1_rate[which.min(abs(capped$trace$rate - TARGET))],
        "the trace is in evaluation order and the result is its closest point")
 
 # ── The recovery assertion rejects fitters that are wrong ───────────────────
@@ -160,28 +163,28 @@ cat("\n-- the recovery assertion rejects a wrong fitter (fault injection) --\n")
 
 #' A fitter that ignores the response and returns the middle of the bracket
 #'
-#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_ceiling()`.
-#' @return A result list of the same shape as `fit_dow_ceiling()`'s.
+#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_rate()`.
+#' @return A result list of the same shape as `fit_dow_rate()`'s.
 midpoint_fitter <- function(evaluate, target, lower, upper, ...) {
   p <- (lower + upper) / 2
   m <- evaluate(p)
-  list(p1_p_max = p, rate = m[["rate"]], converged = TRUE)
+  list(p1_rate = p, rate = m[["rate"]], converged = TRUE)
 }
 #' A fitter that returns the lower end of the bracket as though it had converged
 #'
-#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_ceiling()`.
-#' @return A result list of the same shape as `fit_dow_ceiling()`'s.
+#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_rate()`.
+#' @return A result list of the same shape as `fit_dow_rate()`'s.
 lower_fitter <- function(evaluate, target, lower, upper, ...) {
   m <- evaluate(lower)
-  list(p1_p_max = lower, rate = m[["rate"]], converged = TRUE)
+  list(p1_rate = lower, rate = m[["rate"]], converged = TRUE)
 }
 #' A fitter that searches the wrong side of the target
 #'
-#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_ceiling()`.
-#' @return The result of `fit_dow_ceiling()` run against a response of
+#' @param evaluate,target,lower,upper,... Arguments of `fit_dow_rate()`.
+#' @return The result of `fit_dow_rate()` run against a response of
 #'   opposite sign about the target.
 mirrored_fitter <- function(evaluate, target, lower, upper, ...) {
-  fit_dow_ceiling(function(p) {
+  fit_dow_rate(function(p) {
     m <- evaluate(p)
     m[["rate"]] <- 2 * target - m[["rate"]]
     m
@@ -211,70 +214,71 @@ report(s$ci_lower == 0 && abs(s$ci_upper - (0.2 + hw)) < 1e-12,
 
 cat("\n-- the documented calibration is the shipped calibration --\n")
 
-#' Died-of-wounds ceilings of a configuration's variable list
+#' The fitted died-of-wounds values of a configuration's variable list
 #'
 #' @param vars A `vars` list of element entries, as in `env_data.json`.
-#' @return Named numeric of `p1_p_max` and `p2_p_max`, or NULL where the list
-#'   carries no `dow` element.
-dow_ceilings <- function(vars) {
+#' @return Named numeric of `p1_rate`, `p2_rate`, `p3_rate` and `post_op`, or
+#'   NULL where the list carries no `dow` element.
+dow_fitted <- function(vars) {
+  out <- c()
   for (entry in vars) {
     if (!identical(entry$elm, "dow")) next
     for (acty in entry$actys) {
-      if (!identical(acty$acty, "params")) next
       vals <- setNames(vapply(acty$vals, function(v) as.numeric(v$val), numeric(1)),
                        vapply(acty$vals, function(v) v$var, ""))
-      return(vals[c("p1_p_max", "p2_p_max")])
+      if (identical(acty$acty, "rates")) out <- c(out, vals[c("p1_rate", "p2_rate", "p3_rate")])
+      if (identical(acty$acty, "multipliers")) out <- c(out, vals["post_op"])
     }
   }
-  NULL
+  if (!length(out)) NULL else out
 }
 
 config <- jsonlite::fromJSON(CONFIG, simplifyVector = FALSE)
-base <- dow_ceilings(config$vars)
-report(!is.null(base) && all(!is.na(base)), "the base configuration carries both ceilings")
+base <- dow_fitted(config$vars)
+report(!is.null(base) && length(base) == 4L && all(!is.na(base)),
+       "the base configuration carries the three base rates and the post-operative multiplier")
 
 readme <- readLines(README, warn = FALSE)
-start <- grep("^### Parameter Calibration\\s*$", readme)
-report(length(start) == 1L, "the README has one Parameter Calibration section")
-table_rows <- readme[start + seq_len(8L)]
+start <- grep("^### Calibration\\s*$", readme)
+report(length(start) == 1L, "the README's Died of Wounds chapter has one Calibration section")
+table_rows <- readme[start + seq_len(14L)]
 
-#' The p_max cell of one priority's row in the calibration table
+#' The shipped-value cell of one fitted value's row in the calibration table
 #'
-#' @param label Text the row opens with, such as "P1".
-#' @return The numeric ceiling in that row's third cell, NA where the row is absent.
-table_ceiling <- function(label) {
-  row <- grep(paste0("^\\|\\s*", label, "\\b"), table_rows, value = TRUE)
-  if (length(row) != 1L) return(NA_real_)
-  as.numeric(trimws(strsplit(row, "|", fixed = TRUE)[[1]][4]))
+#' @param key The value's configuration key, set in backticks in its row's first cell.
+#' @return The number in that row's second cell, NA where the row is absent.
+table_value <- function(key) {
+  cells <- strsplit(table_rows, "|", fixed = TRUE)
+  named <- vapply(cells, function(c) length(c) >= 3 && grepl(sprintf("`%s`", key), c[2],
+                                                            fixed = TRUE), logical(1))
+  if (sum(named) != 1L) return(NA_real_)
+  cell <- trimws(cells[[which(named)]][3])
+  suppressWarnings(as.numeric(sub("^([0-9.]+).*$", "\\1", cell)))
 }
-report(isTRUE(all.equal(table_ceiling("P1"), unname(base[["p1_p_max"]]))),
-       "the table's Priority 1 ceiling (%s) is the shipped %s",
-       format(table_ceiling("P1")), format(base[["p1_p_max"]]))
-report(isTRUE(all.equal(table_ceiling("P2"), unname(base[["p2_p_max"]]))),
-       "the table's Priority 2 ceiling (%s) is the shipped %s",
-       format(table_ceiling("P2")), format(base[["p2_p_max"]]))
+for (key in names(base)) {
+  report(isTRUE(all.equal(table_value(key), unname(base[[key]]))),
+         "the table's `%s` (%s) is the shipped %s",
+         key, format(table_value(key)), format(base[[key]]))
+}
 
-high <- dow_ceilings(config$scenarios$high_intensity$vars)
-text <- paste(readme, collapse = "\n")
-report(!is.null(high) && grepl(sprintf("`p1_p_max` = %s and `p2_p_max` = %s", high[["p1_p_max"]],
-                                       high[["p2_p_max"]]), text, fixed = TRUE),
-       "the README states the ceilings `high_intensity` carries (%s and %s)",
-       format(high[["p1_p_max"]]), format(high[["p2_p_max"]]))
-report(grepl(sprintf("`p1_p_max` = %s and `p2_p_max` = %s", base[["p1_p_max"]],
-                     base[["p2_p_max"]]), text, fixed = TRUE),
-       "the README states the shipped base ceilings (%s and %s)",
-       format(base[["p1_p_max"]]), format(base[["p2_p_max"]]))
+# ── One mortality model, one anchor ─────────────────────────────────────────
 
-# ── Every scenario has an anchor ────────────────────────────────────────────
+cat("\n-- the profiles share one mortality model --\n")
 
-cat("\n-- every scenario has a historical anchor --\n")
-
-scenarios <- c("default", names(config$scenarios))
-load_only <- "high_intensity_modern_care"
-unanchored <- setdiff(scenarios, c(names(DOW_TARGETS), load_only))
-report(length(unanchored) == 0,
-       "every shipped scenario but the load-only profile has a historical anchor%s",
-       if (length(unanchored)) paste0("; absent: ", paste(unanchored, collapse = ", ")) else "")
+#' Whether a scenario's overrides touch the died-of-wounds model
+#'
+#' @param sc One entry of the configuration's `scenarios` block.
+#' @return TRUE when the profile overrides an element named "dow".
+overrides_dow <- function(sc) {
+  any(vapply(sc$vars, function(e) identical(e$elm, "dow"), logical(1)))
+}
+overriding <- names(Filter(overrides_dow, config$scenarios))
+report(length(overriding) == 0,
+       "no scenario overrides the died-of-wounds model%s",
+       if (length(overriding)) paste0("; overriding: ", paste(overriding, collapse = ", ")) else "")
+report(setequal(names(DOW_TARGETS), c("default", "moderate_intensity")),
+       "the anchors are the default's and its alias's alone (%s)",
+       paste(names(DOW_TARGETS), collapse = ", "))
 #' Whether one anchor is a proportion of a recognised kind
 #'
 #' @param t An entry of `DOW_TARGETS`.
@@ -282,6 +286,25 @@ report(length(unanchored) == 0,
 anchor_ok <- function(t) t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point")
 report(all(vapply(DOW_TARGETS, anchor_ok, logical(1))),
        "every anchor is a proportion of a recognised kind")
+
+# ── The post-operative multiplier search ───────────────────────────────────
+
+cat("\n-- fit_post_op() recovers a known multiplier --\n")
+
+# A share of the form L*s / (E + L*s), the post-operative expected deaths
+# growing in proportion to the multiplier against a fixed early count, has its root at
+# s = target * E / (L * (1 - target)): with E = 20, L = 2.5 and a target of
+# 0.2, s = 2.
+#' A post-operative share whose root is known
+#'
+#' @param s Multiplier to evaluate at.
+#' @return The share at `s`.
+known_share <- function(s) 2.5 * s / (20 + 2.5 * s)
+hz <- fit_post_op(known_share, 0.2, lower = 0.25, upper = 8, tol = 1e-4)
+report(isTRUE(hz$converged) && abs(hz$post_op - 2) < 0.01,
+       "the search returns a multiplier of %.4f against the known 2", hz$post_op)
+report("post_op" %in% names(hz$trace) && is.null(hz$p1_rate),
+       "the result names the fitted value the post-operative multiplier")
 
 # ── Result ──────────────────────────────────────────────────────────────────
 

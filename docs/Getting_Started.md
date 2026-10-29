@@ -10,7 +10,7 @@ The model is a discrete event simulation of casualties moving through a deployed
 
 ### 1. Configure
 
-Every editable parameter lives in one of six panels: **Force Size**, **Health System Architecture** (team counts, bed capacity), **Medevac** (transport times and fleet size), **Health Provision** (treatment/surgery/recovery durations and thresholds), **Casualty Rates** (arrival distributions, triage split, DOW ceilings), and **Casualty Surge** (surge event injection). Hover the ⓘ icon beside any field for a plain-English explanation and its evidence source.
+Every editable parameter lives in one of six panels: **Force Size**, **Health System Architecture** (team counts, bed capacity), **Medevac** (transport times and fleet size), **Health Provision** (treatment/surgery/recovery durations and thresholds), **Casualty Rates** (arrival distributions, triage split, the died-of-wounds model and its worked-casualty preview), and **Casualty Surge** (surge event injection). Hover the ⓘ icon beside any field for a plain-English explanation and its evidence source.
 
 A **Casualty Intensity Profile** dropdown above the panels switches between the shipped scenario profiles (Moderate Intensity, the shipped default, and High Intensity) without needing to edit fields by hand. *Load Configuration* re-imports a saved file. Nothing here writes to the app's on-disk configuration, so experimenting is always safe to undo: reload the page or re-upload a saved file.
 
@@ -33,7 +33,7 @@ Before exploring the full field set, these are the parameters most likely to cha
 
 | Parameter | Where | Why it matters |
 |---|---|---|
-| Casualty Intensity Profile | Configure (top) | Switches the whole casualty-rate and DOW-ceiling basis (e.g. historical exemplar) in one action |
+| Casualty Intensity Profile | Configure (top) | Switches the WIA and KIA casualty-rate basis (the historical exemplar) in one action; both profiles share one died-of-wounds model |
 | Random Seed | Run | Sets the seed in the displayed command; the replications draw their own seeds from it, so the same seed repeats the same campaign set |
 | Team counts and bed capacity | Configure → Health System Architecture | Directly sets treatment capacity at each echelon, the most direct lever for relieving a queue a run reports |
 | Transport fleet size | Configure → Medevac | Relieves a sustained transport queue |

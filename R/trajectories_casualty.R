@@ -212,12 +212,30 @@ assign_injury_attributes <- function(trj) {
 #' @details Sets priority (WIA and DNBI only) by weighted draw, a
 #'   casualty-surge-tagged casualty drawing from its own event's priority split
 #'   in "scheduled" mode and from the shared blast-dominant split in "poisson"
-#'   mode; dow_ceiling, the priority's died-of-wounds ceiling; dnbi_type
+#'   mode; under the legacy mechanism, dow_ceiling, the priority's
+#'   died-of-wounds ceiling; dnbi_type
 #'   (1 = battle fatigue, 2 = disease, 3 = non-battle injury) for DNBI
 #'   casualties; the surgical requirement, which follows from priority and
 #'   dnbi_type; the damage control pathway; and the R1 team that treats the
 #'   casualty.
 assign_clinical_attributes <- function(trj) {
+  #' Sets the legacy mechanism's starting ceiling
+  #'
+  #' @param trj Trajectory to append to.
+  #' @return The trajectory, unchanged under the care-state model, whose rate
+  #'   follows from priority and needs no per-casualty parameter.
+  legacy_dow_ceiling <- function(trj) {
+    if (dow_care_state_enabled()) return(trj)
+    trj %>% set_attribute("dow_ceiling", function() {
+      prio <- get_attribute(env, "priority")
+      dp   <- LEGACY_DOW_PARAMS
+      if (is.na(prio)) return(NA_real_)
+      if (prio == 1) dp$p1_p_max
+      else if (prio == 2) dp$p2_p_max
+      else dp$p3_flat
+    })
+  }
+
   trj %>%
     set_attribute("priority", function() {
       if (startsWith(get_name(env), "wia") || startsWith(get_name(env), "dnbi")) {
@@ -244,14 +262,7 @@ assign_clinical_attributes <- function(trj) {
         NA
       }
     }) %>%
-    set_attribute("dow_ceiling", function() {
-      prio <- get_attribute(env, "priority")
-      dp   <- env_data$vars$dow$params
-      if (is.na(prio)) return(NA_real_)
-      if (prio == 1) dp$p1_p_max
-      else if (prio == 2) dp$p2_p_max
-      else dp$p3_flat
-    }) %>%
+    legacy_dow_ceiling() %>%
     set_attribute("dnbi_type", function() {
       name <- get_name(env)
       if (startsWith(name, "dnbi")) {
@@ -511,6 +522,18 @@ r1_post_treatment_decision <- function() {
 #'   disease takes, and the only one of the three carrying a died-of-wounds
 #'   check at R1.
 r1_nbi_wia_standard_path <- function() {
+  died <- trajectory("Died of Wounds at Role 1") %>%
+    set_attribute("dow", 1) %>%
+    set_attribute("dow_echelon", 1) %>%
+    r1_mortuary_handling()
+
+  # Under the care-state model the check settles the risk accrued since injury.
+  if (dow_care_state_enabled()) {
+    return(trajectory("NBI/WIA Standard Path") %>%
+             dow_check(cohort = FALSE, died = died,
+                       survived = r1_post_treatment_decision()))
+  }
+
   trajectory("NBI/WIA Standard Path") %>%
     # DOW branch — time-dependent logistic
     # Probability is a shifted logistic function of elapsed time since injury.
@@ -523,7 +546,7 @@ r1_nbi_wia_standard_path <- function() {
         injury <- get_attribute(env, "injury_time")
         t_prev <- get_attribute(env, "last_dow_t") - injury
         t_now  <- now(env) - injury
-        dp      <- env_data$vars$dow$params
+        dp      <- LEGACY_DOW_PARAMS
         ceiling <- get_attribute(env, "dow_ceiling")
         if (prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev,
@@ -539,10 +562,7 @@ r1_nbi_wia_standard_path <- function() {
       continue = TRUE,
 
       # Path 1: Died of wounds — treated as KIA
-      trajectory("Died of Wounds at Role 1") %>%
-        set_attribute("dow", 1) %>%
-        set_attribute("dow_echelon", 1) %>%
-        r1_mortuary_handling(),
+      died,
 
       # Path 2: Continue to evacuation decision
       r1_post_treatment_decision()
@@ -555,10 +575,9 @@ r1_nbi_wia_standard_path <- function() {
 #'   treatment effect on the died-of-wounds ceiling, and routing it by DNBI
 #'   sub-type.
 #'
-#' @details R1 treatment (`r1_treat_wia()`) multiplies the casualty's
-#'   died-of-wounds ceiling by the tactical combat casualty care factor before
-#'   any check is made against it, which is what makes treatment at R1 reduce
-#'   mortality downstream.
+#' @details R1 treatment (`r1_treat_wia()`) moves the casualty to the R1
+#'   treatment multiplier before any check is made, which is what lets
+#'   treatment at R1 reduce mortality downstream.
 r1_wia_dnbi_path <- function() {
   trajectory("WIA/DNBI Branch") %>%
     branch(
@@ -566,11 +585,8 @@ r1_wia_dnbi_path <- function() {
       continue = TRUE,
       lapply(1:counts[["r1"]], r1_treat_wia)
     ) %>%
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * env_data$vars$dow$treatment_efficacy$r1_tccc_factor
-    }) %>%
+    dow_treat(function() dow_multipliers()$r1_treatment,
+              function() LEGACY_DOW_EFFICACY$r1_tccc_factor, resuscitation = FALSE) %>%
 
     # DNBI sub-type routing branch
     # Applies differentiated pathways based on dnbi_type attribute:

@@ -28,6 +28,7 @@ suppressPackageStartupMessages({
 
 source("R/environment.R")
 source("R/trajectories.R")
+source("R/dow_examples.R")
 source("R/app_params.R")
 # The console's parts are sourced into this file's own environment rather
 # than the global one: runApp() evaluates app.R in an environment of its own,
@@ -173,7 +174,7 @@ server <- function(input, output, session) {
   scenario_selector_out <- wire_scenario_selector(fields_by_group, raw_env_data, input, output,
                                                   session)
   current_scenario <- scenario_selector_out$current_scenario
-  dow_shape <- scenario_selector_out$dow_shape
+  dow_model <- scenario_selector_out$dow_model
   gen_distributions <- scenario_selector_out$gen_distributions
   mc_event_count <- scenario_selector_out$mc_event_count
   scenario_choices <- scenario_selector_out$scenario_choices

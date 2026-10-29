@@ -189,10 +189,12 @@ r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
     }) %>%
     simmer::select(icu_beds, policy = "shortest-queue", id = 3) %>%
     seize_selected(id = 3) %>%
+    dow_placement(post_op_r2b_icu) %>%
     seize_resources(icu_team) %>%
     seize_resources(evacuation_team) %>%
     release_resources(icu_team) %>%
     release_selected(id = 3) %>%
+    dow_placement(post_op_outside_icu) %>%
     set_attribute("r2b_to_r2e", 1) %>%
     set_attribute("r2e", function() select_r2e_team()) %>%
     set_attribute("r2b_departure_time", function() now(env)) %>%
@@ -231,18 +233,18 @@ r2b_wait_for_evac <- function(icu_beds, icu_team, evacuation_team) {
 #'   after transfer in the amount that remains; see
 #'   r2e_post_definitive_care().
 #'
-#'   Either forward path multiplies dow_ceiling by r2b_icu_penalty: an R2B ICU
-#'   section fields two nurses and two medics and no intensivist, against R2E's
-#'   intensivist-led section, and the penalty is the mortality cost of that
-#'   difference. Without it, forward holding would be free in the model and
-#'   any sweep of the rule would recommend its maximum as an artefact of
-#'   relieving the R2E queue at no cost. See README "Died of Wounds — Treatment
-#'   Efficacy Modifiers".
+#'   The forward stay carries a care-quality cost: an R2B ICU section fields
+#'   two nurses and two medics and no intensivist, against R2E's
+#'   intensivist-led section. Without it, forward holding would be free in the
+#'   model and any sweep of the rule would recommend its maximum as an artefact
+#'   of relieving the R2E queue at no cost. Under the care-state model the stay
+#'   is charged at the post-operative multiplier times r2b_icu_penalty in an
+#'   intensive care bed, and times hold_bed_penalty alone in a holding bed;
+#'   under the legacy mechanism the cost is a raised ceiling. See README "Died
+#'   of Wounds".
 #'
-#'   The stay lengthens the casualty's journey but opens no DOW checkpoint of
-#'   its own: dow_prob_conditional() prices elapsed time at the next checkpoint
-#'   the casualty reaches (the R2E arrival check), so the delay is charged
-#'   there, against the ceiling this trajectory has already raised.
+#'   The stay opens no DOW checkpoint of its own: what it accrues is settled at
+#'   the next checkpoint the casualty reaches, the R2E arrival check.
 r2b_post_op_stabilisation <- function(icu_beds, hold_beds) {
   forward_stay <- r2b_forward_stay(icu_beds, hold_beds)
 
@@ -323,20 +325,49 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
       simmer::select(if (res_id == 6) icu_beds else hold_beds,
                      policy = "shortest-queue", id = res_id) %>%
       seize_selected(id = res_id) %>%
+      dow_placement(if (res_id == 6) post_op_r2b_icu else post_op_outside_icu) %>%
       # Read back from the attribute rather than recomputed: the attribute now
       # counts the minutes served, so recomputing would see the headroom already
       # spent and shorten the stay below the minutes recorded for it.
       timeout(function() get_attribute(env, "r2b_post_op_min")) %>%
       join(capacity_hold) %>%
-      release_selected(id = res_id)
+      release_selected(id = res_id) %>%
+      dow_placement(post_op_outside_icu)
   }
+
+  # Under the legacy mechanism the forward placement raises the ceiling: the
+  # intensivist penalty on either bed, and the holding-bed penalty on top of it
+  # in a holding bed. Under the care-state model the placement instead sets the
+  # stay's multiplier, one per stay.
+  legacy <- !dow_care_state_enabled()
+  #' Raises the legacy ceiling by a factor, under the legacy mechanism alone
+  #'
+  #' @param trj Trajectory to append to.
+  #' @param factor Zero-argument function returning the factor.
+  #' @return The trajectory, unchanged under the care-state model.
+  penalise <- function(trj, factor) {
+    if (!legacy) return(trj)
+    trj %>% set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * factor()
+    })
+  }
+  #' The legacy intensivist penalty
+  #'
+  #' @return LEGACY_DOW_EFFICACY's r2b_icu_penalty.
+  icu_penalty  <- function() LEGACY_DOW_EFFICACY$r2b_icu_penalty
+  #' The legacy holding-bed penalty
+  #'
+  #' @return LEGACY_POSTOP_HOLD_PENALTY.
+  hold_penalty <- function() LEGACY_POSTOP_HOLD_PENALTY
 
   # Branches on whether the casualty is held forward, then on R2B ICU bed
   # availability, read at this instant rather than queued for:
   # - nothing to hold forward   -> no forward stay (r2b_post_op_pathway unset)
   # - ICU bed free              -> ICU bed (r2b_post_op_pathway = 1)
-  # - ICU saturated             -> holding bed for the same stay, at a further
-  #                               elevated dow_ceiling (r2b_post_op_pathway = 2),
+  # - ICU saturated             -> holding bed for the same stay, at the
+  #                               holding-bed care cost (r2b_post_op_pathway = 2),
   #                               mirroring the R2E post-op hold pathway
   trajectory("R2B Forward Stay") %>%
     branch(
@@ -350,11 +381,7 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
       continue = TRUE,
 
       trajectory("R2B Post-Op ICU") %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
-        }) %>%
+        penalise(icu_penalty) %>%
         set_attribute("r2b_post_op_pathway", 1) %>%
         join(stay(6)),
 
@@ -364,17 +391,9 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
       # either way: the bed changes what the stay is worth clinically, not how
       # long they need it for.
       trajectory("R2B Post-Op Hold — ICU Full") %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
-        }) %>%
+        penalise(icu_penalty) %>%
         set_attribute("r2b_post_op_pathway", 2) %>%
-        set_attribute("dow_ceiling", function() {
-          ceiling <- get_attribute(env, "dow_ceiling")
-          if (is.na(ceiling)) return(ceiling)
-          ceiling * env_data$vars$dow$treatment_efficacy$r2e_postop_hold_penalty
-        }) %>%
+        penalise(hold_penalty) %>%
         join(stay(7)),
 
       trajectory("No Forward Stay")
@@ -439,11 +458,9 @@ r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
     # earns r2b_dcs_factor; a single-stage casualty's is their definitive
     # repair and earns what the staged route earns on completing one at
     # R2E as well (definitive_efficacy(), top of this file).
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      te <- env_data$vars$dow$treatment_efficacy
-      ceiling * definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
+    dow_operated(function() {
+      te <- LEGACY_DOW_EFFICACY
+      definitive_efficacy(te$r2b_dcs_factor, te$r2e_dcs1_factor)()
     }) %>%
     join(post_op)
 }
@@ -830,6 +847,19 @@ r2b_no_surgery_path <- function(hold_beds, evacuation_team) {
 #'   elapsed time on arrival here, so the journey between the two echelons is
 #'   priced at this checkpoint.
 r2b_dow_check <- function(trj, team_id) {
+  died <- trajectory("Died of Wounds") %>%
+    set_attribute("dow", 1) %>%
+    set_attribute("dow_echelon", 2) %>%
+    r2b_treat_kia(team_id) %>%
+    release_selected(id = 1) %>%
+    r2b_transport_kia(team_id) %>%
+    simmer::leave(1)
+
+  if (dow_care_state_enabled()) {
+    return(trj %>% dow_check(cohort = TRUE, died = died,
+                             survived = trajectory("Continue R2B Treatment")))
+  }
+
   # Time-dependent logistic.
   # Disease DNBI (dnbi_type == 2) remain exempt — medical pathway, not trauma.
   # P3 casualties use a flat probability (minor wounds, not time-critical).
@@ -842,7 +872,7 @@ r2b_dow_check <- function(trj, team_id) {
         t_prev <- get_attribute(env, "last_dow_t") - injury
         t_now  <- now(env) - injury
         prio   <- get_attribute(env, "priority")
-        dp      <- env_data$vars$dow$params
+        dp      <- LEGACY_DOW_PARAMS
         ceiling <- get_attribute(env, "dow_ceiling")
         if (prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev,
@@ -858,13 +888,7 @@ r2b_dow_check <- function(trj, team_id) {
         return(2)
       },
       continue = TRUE,
-      trajectory("Died of Wounds") %>%
-        set_attribute("dow", 1) %>%
-        set_attribute("dow_echelon", 2) %>%
-        r2b_treat_kia(team_id) %>%
-        release_selected(id = 1) %>%
-        r2b_transport_kia(team_id) %>%
-        simmer::leave(1),
+      died,
       trajectory("Continue R2B Treatment")
     )
 }
@@ -900,11 +924,8 @@ r2b_resuscitation <- function(trj, resus_beds, emergency_team) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
-    set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * env_data$vars$dow$treatment_efficacy$r2b_resus_factor
-    })
+    dow_treat(function() dow_multipliers()$resuscitation,
+              function() LEGACY_DOW_EFFICACY$r2b_resus_factor, resuscitation = TRUE)
 }
 
 #' Builds the R2B evacuation decision

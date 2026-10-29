@@ -97,7 +97,7 @@ arg_value <- function(flag, default) {
 
 # Each shipped configuration is checked against the historical anchor of the
 # campaign it models, which R/dow_calibration.R holds beside the fitter that
-# searches for ceilings reproducing it. "bound" is one-sided (only an overshoot
+# searches for base rates reproducing it. "bound" is one-sided (only an overshoot
 # fails); "point" is two-sided, against DOW_TOLERANCE.
 #
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
@@ -109,6 +109,12 @@ SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") e
 N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
 N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
 CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
+#' Horizon the post-operative multiplier is fitted at, the one the share is gated at
+#'
+#' @details Over a longer campaign queues lengthen and the risk banked before
+#'   surgery grows, so the share falls; at any other horizon it is reported
+#'   rather than asserted, the target describing a campaign of this length.
+FIT_DAYS     <- 30L
 #' Where to write each scenario's pooled measurement as CSV, or NULL to write none
 #'
 #' @details The sustained-horizon measurement Results.md reports is tracked this
@@ -249,7 +255,11 @@ for (scenario in SCENARIOS) {
   # The hazard's share is checked where the configuration has a hazard to
   # measure; under the legacy mechanism, or with every rate at zero, no check
   # records expected deaths and the share is undefined.
-  if (!is.na(share) && late > 0) {
+  if (!is.na(share) && late > 0 && CHECK_DAYS != FIT_DAYS) {
+    cat(sprintf("  [note] %s: post-operative care carries %.3f of expected deaths at %d days;",
+                scenario, share, CHECK_DAYS),
+        sprintf("the %.2f target is asserted at %d days alone\n", DOW_LATE_SHARE_TARGET, FIT_DAYS))
+  } else if (!is.na(share) && late > 0) {
     ok <- abs(share - DOW_LATE_SHARE_TARGET) <= DOW_LATE_SHARE_TOLERANCE
     if (!ok) {
       fail("%s: the post-operative hazard causes %.3f of expected deaths, outside %.2f of %.2f",

@@ -231,6 +231,7 @@ legacy_hold_penalty <- function(trj) {
 #' @param overflow        This R2E team's post-operative overflow resource
 #' @param minutes_attr    Attribute holding the minutes to serve, set before
 #'   this trajectory is joined
+#' @param start_attr      Attribute recording when the stay began
 #' @param bed_attr        Attribute recording the placement: 1 intensive care,
 #'   2 holding bed, 3 overflow
 #' @param hold_start_attr Attribute recording when a holding bed was taken,
@@ -252,12 +253,13 @@ legacy_hold_penalty <- function(trj) {
 #'   withholding surgery. See README Further Development for basis,
 #'   uncertainty, and consequence.
 r2e_placed_stay <- function(label, icu_beds, hold_beds, overflow, minutes_attr,
-                            bed_attr, hold_start_attr) {
+                            start_attr, bed_attr, hold_start_attr) {
   # Branches on the best placement free at this instant (placement_now()):
   # - 1 an intensive care bed is free         -> intensive care
   # - 2 none, but a holding bed is free        -> holding bed
   # - 3 neither                                -> overflow, with no bed
   trajectory(label) %>%
+    set_attribute(start_attr, function() now(env)) %>%
     branch(
       option = function() placement_now(icu_beds, hold_beds),
       continue = TRUE,
@@ -315,8 +317,8 @@ r2e_placed_stay <- function(label, icu_beds, hold_beds, overflow, minutes_attr,
 #'   post_op_pathway records where it was served.
 r2e_stabilisation_recovery <- function(icu_beds, hold_beds, overflow, post_op_dow) {
   stay <- r2e_placed_stay("R2E Damage Control Stabilisation", icu_beds, hold_beds,
-                          overflow, "r2e_post_op_min", "post_op_pathway",
-                          "r2e_post_op_hold_start")
+                          overflow, "r2e_post_op_min", "r2e_post_op_start",
+                          "post_op_pathway", "r2e_post_op_hold_start")
   trajectory("R2E Stabilisation") %>%
     branch(
       # A casualty operated on at R2B took their stabilisation before this
@@ -357,8 +359,8 @@ r2e_stabilisation_recovery <- function(icu_beds, hold_beds, overflow, post_op_do
 #'   rather than queued for (r2e_placed_stay()).
 r2e_pre_surgery_stabilisation <- function(icu_beds, hold_beds, overflow) {
   stay <- r2e_placed_stay("R2E Pre-Definitive Stabilisation", icu_beds, hold_beds,
-                          overflow, "r2e_post_op_min", "post_op_pathway",
-                          "r2e_post_op_hold_start")
+                          overflow, "r2e_post_op_min", "r2e_post_op_start",
+                          "post_op_pathway", "r2e_post_op_hold_start")
   trajectory("R2E Pre-Definitive Stabilisation") %>%
     branch(
       option = function() {
@@ -454,8 +456,8 @@ r2e_post_definitive_minutes <- function() {
 r2e_post_definitive_care <- function(icu_beds, hold_beds, overflow, team_id, evac_team) {
   post_definitive_check <- r2e_post_definitive_dow_check(team_id, evac_team)
   stay <- r2e_placed_stay("R2E Post-Definitive Care", icu_beds, hold_beds, overflow,
-                          "post_definitive_min", "post_definitive_pathway",
-                          "post_definitive_hold_start")
+                          "post_definitive_min", "post_definitive_start",
+                          "post_definitive_pathway", "post_definitive_hold_start")
 
   # Branches on what the casualty owes this echelon:
   # - 1 an operation with post-definitive care still owed -> the placed stay
@@ -706,6 +708,7 @@ r2e_staging_placement <- function(hold_beds, overflow) {
   # - 1 free -> staged in it (r2e_stage_bed = 2)
   # - 2 none -> staged in overflow (r2e_stage_bed = 3)
   trajectory("Staged for Flight") %>%
+    set_attribute("ame_stage_start", function() now(env)) %>%
     branch(
       option = function() if (beds_free(hold_beds)) 1 else 2,
       continue = TRUE,
@@ -805,6 +808,7 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds, overflow, staging)
           trajectory("Pre-Flight in a Holding Bed") %>%
             set_attribute("r2e_preflight_bed", 2) %>%
             set_attribute("r2e_stage_bed", 2) %>%
+            set_attribute("ame_stage_start", function() now(env)) %>%
             simmer::select(hold_beds, policy = "first-available", id = 9) %>%
             seize_selected(id = 9) %>%
             set_attribute("ame_hold_start", function() now(env)) %>%

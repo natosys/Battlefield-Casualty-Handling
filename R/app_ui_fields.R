@@ -406,51 +406,47 @@ render_generation_rates_subgroup <- function(sg, sg_fields, defaults, overridden
   ))
 }
 
-#' Render the Died of Wounds Ceilings subgroup with its logistic curve previews
+#' Render the Died of Wounds Model subgroup with its worked casualty preview
 #'
 #' @param sg See render_group_body().
 #' @param sg_fields See render_group_body().
 #' @param defaults See render_group_body().
 #' @param overridden_paths See render_group_body().
-#' @param dow_shape See render_group_body().
+#' @param dow_model See render_group_body().
 #' @return A shiny tag or tag list for this subgroup.
-render_dow_ceilings_subgroup <- function(sg, sg_fields, defaults, overridden_paths, dow_shape) {
-  return(tagList(
+render_dow_model_subgroup <- function(sg, sg_fields, defaults, overridden_paths, dow_model) {
+  #' One read-only base rate, sized to share a row with the others
+  #'
+  #' @param label Label shown above the value.
+  #' @param value The rate, deaths per day of untreated injury.
+  #' @return A shiny tag holding the read-only field.
+  rate_box <- function(label, value) {
+    div(style = "flex:1; min-width:0;",
+        readonly_numeric(label, SRC_DOW_RATES, value, digits = 5,
+                         path = "dow.rates", overridden_paths = overridden_paths))
+  }
+  tagList(
     h6(class = "text-muted mt-2", sg),
     p(class = "text-muted small",
-      "The ceiling below is the only editable value; the curve shows the arrival-phase survival function, using the fixed shape parameters (p_base, k, t_mid) shown alongside it. The post-operative hazard is a separate, constant rate per day over recovery and the evacuation wait, fitted with the ceilings and shown read-only."),
-    layout_column_wrap(
-      width = "340px",
-      !!!lapply(list(
-        list(prio = "p1", id = "dow_p1_pmax", label = "Priority 1 (Urgent)"),
-        list(prio = "p2", id = "dow_p2_pmax", label = "Priority 2 (Priority)")
-      ), function(pr) {
-        pmax_f <- Find(function(f) identical(f$id, pr$id), sg_fields)
-        shp <- if (is.null(dow_shape)) NULL else dow_shape[[pr$prio]]
-        card(
-          card_header(pr$label),
-          plotOutput(paste0("dow_curve_", pr$prio), height = "110px"),
-          field_input(pmax_f, defaults[[pmax_f$id]], overridden_paths),
-          div(style = "display:flex; gap:6px; margin-top:4px;",
-            div(style = "flex:1; min-width:0;",
-                readonly_numeric("p_base", "Baseline (time-zero) DOW probability in the logistic curve.", shp$p_base, digits = 4,
-                                 path = "dow.params", overridden_paths = overridden_paths)),
-            div(style = "flex:1; min-width:0;",
-                readonly_numeric("k", "Logistic curve steepness constant.", shp$k, digits = 3,
-                                 path = "dow.params", overridden_paths = overridden_paths)),
-            div(style = "flex:1; min-width:0;",
-                readonly_numeric("t_mid", "Logistic curve's midpoint time, minutes.", shp$t_mid, digits = 0,
-                                 path = "dow.params", overridden_paths = overridden_paths))
-          ),
-          readonly_numeric("Post-Op Hazard (per day)", SRC_POST_OP_HAZARD, shp$hazard, digits = 6,
-                           path = "dow.post_op_hazard", overridden_paths = overridden_paths)
-        )
-      })
+      paste("Each casualty dies of wounds at a rate per day: their priority's base rate times the",
+            "multiplier of the care they are receiving, from 1 untreated down to the post-operative",
+            "multiplier in intensive care. The chart shows four worked Priority 1 casualties at the",
+            "current settings, and redraws as the R2B and holding-bed penalties are changed. The",
+            "base rates and the post-operative multiplier are fitted, and shown read-only.")),
+    card(
+      card_header("Worked Priority 1 casualties: chance of having died"),
+      plotOutput("dow_preview", height = "180px"),
+      div(style = "display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;",
+          rate_box("P1 Rate (per day)", dow_model$p1_rate),
+          rate_box("P2 Rate (per day)", dow_model$p2_rate),
+          rate_box("P3 Rate (per day)", dow_model$p3_rate),
+          div(style = "flex:1; min-width:0;",
+              readonly_numeric("Post-Op Multiplier", SRC_DOW_POST_OP, dow_model$post_op,
+                               digits = 4, path = "dow.multipliers",
+                               overridden_paths = overridden_paths)))
     ),
-    readonly_numeric("Priority 3 Post-Op Hazard (per day)", SRC_POST_OP_HAZARD,
-                     if (is.null(dow_shape)) NULL else dow_shape$p3$hazard, digits = 6,
-                     path = "dow.post_op_hazard", overridden_paths = overridden_paths)
-  ))
+    lapply(sg_fields, function(f) field_input(f, defaults[[f$id]], overridden_paths))
+  )
 }
 
 #' Render the Random Event Rate subgroup, shown in Poisson mode alone
@@ -606,11 +602,11 @@ render_casualty_surge_split_subgroup <- function(sg, sg_fields, defaults, overri
 #'   currently governs.
 #' @param fields List of the group's field specs.
 #' @param defaults Named list of current values, keyed by field id.
-#' @param dow_shape Named list of the resolved died-of-wounds logistic shape
-#'   parameters, used by the Died of Wounds subgroup's curve preview.
+#' @param dow_model Named list of the resolved died-of-wounds base rates and
+#'   multipliers, used by the Died of Wounds Model subgroup and its preview.
 #' @return A shiny tag list holding the group's subgroup accordions.
 render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_distributions = NULL,
-                              dow_shape = NULL) {
+                              dow_model = NULL) {
   subgroups <- vapply(fields, function(f) if (is.null(f$subgroup)) "" else f$subgroup, character(1))
 
   if (all(subgroups == "")) {
@@ -641,8 +637,8 @@ render_group_body <- function(fields, defaults, overridden_paths = NULL, gen_dis
                                               gen_distributions))
     }
 
-    if (identical(sg, "Died of Wounds Ceilings")) {
-      return(render_dow_ceilings_subgroup(sg, sg_fields, defaults, overridden_paths, dow_shape))
+    if (identical(sg, "Died of Wounds Model")) {
+      return(render_dow_model_subgroup(sg, sg_fields, defaults, overridden_paths, dow_model))
     }
 
     # Event Timing Mode (the mode dropdown itself) always renders via the

@@ -123,7 +123,7 @@ r2e_surgery_block <- function(section_id, select_id, start_attr, end_attr,
     set_attribute(end_attr, function() now(env)) %>%
     release_resources(surg_teams[[section_id]]) %>%
     release_selected(id = select_id) %>%
-    apply_dow_factor(efficacy)
+    dow_operated(efficacy)
 }
 
 #' Builds the shared post-operative died-of-wounds check at R2E
@@ -138,7 +138,7 @@ r2e_surgery_block <- function(section_id, select_id, start_attr, end_attr,
 #'   dow_echelon = 4 distinguishes this checkpoint from the Phase 1 R2E arrival
 #'   check (dow_echelon = 3).
 r2e_post_op_dow_check <- function(team_id, evac_team) {
-  if (dow_accrual_enabled()) {
+  if (dow_care_state_enabled()) {
     died <- trajectory("Died of Wounds — Post-Operative") %>%
       set_attribute("dow", 1) %>%
       set_attribute("dow_echelon", 4) %>%
@@ -146,7 +146,7 @@ r2e_post_op_dow_check <- function(team_id, evac_team) {
       r2e_transport_kia(team_id, evac_team) %>%
       simmer::leave(1)
     return(trajectory("R2E Post-Operative DOW Check") %>%
-             dow_check(arrival = FALSE, cohort = TRUE, died = died,
+             dow_check(cohort = TRUE, died = died,
                        survived = trajectory("Survived Post-Operative Recovery")))
   }
 
@@ -157,7 +157,7 @@ r2e_post_op_dow_check <- function(team_id, evac_team) {
         t_prev  <- get_attribute(env, "last_dow_t") - injury
         t_now   <- now(env) - injury
         prio    <- get_attribute(env, "priority")
-        dp      <- env_data$vars$dow$params
+        dp      <- LEGACY_DOW_PARAMS
         ceiling <- get_attribute(env, "dow_ceiling")
         if (!is.na(prio) && prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
@@ -188,13 +188,13 @@ r2e_post_op_dow_check <- function(team_id, evac_team) {
 #' @return Simmer trajectory settling the risk accrued over the episode, or an
 #'   empty trajectory where there is nothing for it to settle.
 #'
-#' @details Present under the accrual mechanism only, and only where a
-#'   post-operative hazard is configured: the episode's hazard is what the
-#'   check exists to settle, so a zero setting builds no check and consumes no
-#'   draw. dow_echelon = 6 distinguishes it from the post-operative check that
+#' @details Present under the care-state model only, and only where the
+#'   post-operative multiplier is positive: the episode's post-operative risk is
+#'   what the check exists to settle, so a zero setting builds no check and
+#'   consumes no draw. dow_echelon = 6 distinguishes it from the post-operative check that
 #'   follows stabilisation (dow_echelon = 4).
 r2e_post_definitive_dow_check <- function(team_id, evac_team) {
-  if (!dow_accrual_enabled() || !post_op_hazard_configured()) {
+  if (!dow_care_state_enabled() || dow_multipliers()$post_op <= 0) {
     return(trajectory("No Post-Definitive Check"))
   }
   died <- trajectory("Died of Wounds — Post-Definitive") %>%
@@ -204,7 +204,7 @@ r2e_post_definitive_dow_check <- function(team_id, evac_team) {
     r2e_transport_kia(team_id, evac_team) %>%
     simmer::leave(1)
   trajectory("R2E Post-Definitive DOW Check") %>%
-    dow_check(arrival = FALSE, cohort = TRUE, died = died,
+    dow_check(cohort = TRUE, died = died,
               survived = trajectory("Survived Post-Definitive Care"))
 }
 
@@ -212,10 +212,10 @@ r2e_post_definitive_dow_check <- function(team_id, evac_team) {
 #'
 #' @param trj Trajectory to append to
 #' @return The trajectory, with the ceiling raised by LEGACY_POSTOP_HOLD_PENALTY
-#'   under the legacy mechanism and unchanged under the accrual one, where the
-#'   holding bed instead sets the post-operative hazard's multiplier.
+#'   under the legacy mechanism and unchanged under the care-state model, where
+#'   the holding bed instead sets the post-operative multiplier.
 legacy_hold_penalty <- function(trj) {
-  if (dow_accrual_enabled()) return(trj)
+  if (dow_care_state_enabled()) return(trj)
   trj %>% set_attribute("dow_ceiling", function() {
     ceiling <- get_attribute(env, "dow_ceiling")
     if (is.na(ceiling)) return(ceiling)
@@ -258,13 +258,12 @@ r2e_stabilisation_recovery <- function(icu_beds, post_op_dow) {
       trajectory("R2E Damage Control Stabilisation Stay") %>%
         set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
         set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
-        mark_episode_entry() %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
-        mark_episode_bed() %>%
+        dow_placement(post_op_r2e_icu) %>%
         timeout(function() r2e_stabilisation_minutes()) %>%
         release_selected(id = 6) %>%
-        accrue_post_op_hazard(r2e_icu_multiplier),
+        dow_placement(post_op_outside_icu),
       trajectory("No Stabilisation Due at This Step")
     ) %>%
     join(post_op_dow)
@@ -292,13 +291,12 @@ r2e_pre_surgery_stabilisation <- function(icu_beds) {
       trajectory("R2E Pre-Definitive Stabilisation Stay") %>%
         set_attribute("post_op_pathway", 1) %>%
         set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
-        mark_episode_entry() %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
-        mark_episode_bed() %>%
+        dow_placement(post_op_r2e_icu) %>%
         timeout(function() r2e_stabilisation_minutes()) %>%
         release_selected(id = 6) %>%
-        accrue_post_op_hazard(r2e_icu_multiplier),
+        dow_placement(post_op_outside_icu),
       trajectory("No Stabilisation Outstanding")
     )
 }
@@ -316,9 +314,8 @@ r2e_pre_surgery_stabilisation <- function(icu_beds) {
 #'   (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
 #'   proceeds; recovery is in a holding bed instead of intensive care. The
 #'   reduced post-operative monitoring carries its cost as the holding-bed
-#'   multiplier on the post-operative hazard over the stay, or under the legacy
-#'   mechanism as a raised ceiling (legacy_hold_penalty()); see README "Died of
-#'   Wounds".
+#'   multiplier over the stay, or under the legacy mechanism as a raised ceiling
+#'   (legacy_hold_penalty()); see README "Died of Wounds".
 #'
 #'   MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
 #'   Priority 1 casualty even when no post-operative intensive care bed is
@@ -340,10 +337,9 @@ r2e_hold_recovery <- function(hold_beds, post_op_dow) {
       trajectory("R2E Damage Control Post-Op Hold") %>%
         set_attribute("post_op_pathway", 2) %>%
         legacy_hold_penalty() %>%
-        mark_episode_entry() %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
         seize_selected(id = 8) %>%
-        mark_episode_bed() %>%
+        dow_placement(post_op_outside_icu) %>%
         # The stay is drawn into an attribute and served from it, rather than
         # drawn at the timeout, so the bed time this arm consumes is recorded
         # rather than inferred; without it the holding pool's occupancy split
@@ -363,7 +359,7 @@ r2e_hold_recovery <- function(hold_beds, post_op_dow) {
         }) %>%
         timeout_from_attribute("r2e_post_op_hold_min") %>%
         release_selected(id = 8) %>%
-        accrue_post_op_hazard(hold_bed_multiplier),
+        dow_placement(post_op_outside_icu),
 
       trajectory("Single-Stage — No Stabilisation Phase to Degrade")
     ) %>%
@@ -394,8 +390,8 @@ r2e_ot_surgery <- function(team_id, ot_beds, surg_teams) {
         r2e_surgery_block(
           section_id, 4, "r2e_surgery_1_start", "r2e_surgery_1_end",
           definitive_efficacy(
-            env_data$vars$dow$treatment_efficacy$r2e_dcs1_factor,
-            env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+            LEGACY_DOW_EFFICACY$r2e_dcs1_factor,
+            LEGACY_DOW_EFFICACY$r2e_dcs2_factor
           ), TRUE, ot_beds, surg_teams
         )
       })
@@ -442,8 +438,8 @@ r2e_post_definitive_minutes <- function() {
 #'   It takes the same degraded-care fallback as the post-operative hold
 #'   pathway, for the same reason: a casualty who has already been operated on
 #'   cannot be made to wait indefinitely for a bed, so when intensive care is
-#'   saturated they recover in a holding bed, at the holding-bed multiplier on
-#'   the post-operative hazard. The pathway taken is recorded in
+#'   saturated they recover in a holding bed, at the holding-bed multiplier.
+#'   The pathway taken is recorded in
 #'   post_definitive_pathway (1 = ICU, 2 = hold). The episode ends in its own
 #'   died-of-wounds check (r2e_post_definitive_dow_check()).
 r2e_post_definitive_care <- function(icu_beds, hold_beds, team_id, evac_team) {
@@ -473,27 +469,25 @@ r2e_post_definitive_care <- function(icu_beds, hold_beds, team_id, evac_team) {
       trajectory("R2E Post-Definitive ICU") %>%
         set_attribute("post_definitive_pathway", 1) %>%
         set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
-        mark_episode_entry() %>%
         simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
         seize_selected(id = 6) %>%
-        mark_episode_bed() %>%
+        dow_placement(post_op_r2e_icu) %>%
         timeout(function() get_attribute(env, "post_definitive_min")) %>%
         release_selected(id = 6) %>%
-        accrue_post_op_hazard(r2e_icu_multiplier) %>%
+        dow_placement(post_op_outside_icu) %>%
         join(post_definitive_check),
 
       trajectory("R2E Post-Definitive Hold — ICU Full") %>%
         set_attribute("post_definitive_pathway", 2) %>%
         set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
         legacy_hold_penalty() %>%
-        mark_episode_entry() %>%
         simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
         seize_selected(id = 8) %>%
-        mark_episode_bed() %>%
+        dow_placement(post_op_outside_icu) %>%
         set_attribute("post_definitive_hold_start", function() now(env)) %>%
         timeout(function() get_attribute(env, "post_definitive_min")) %>%
         release_selected(id = 8) %>%
-        accrue_post_op_hazard(hold_bed_multiplier) %>%
+        dow_placement(post_op_outside_icu) %>%
         join(post_definitive_check),
 
       trajectory("No Operation, No Post-Definitive Care"),
@@ -568,7 +562,7 @@ r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
         t_prev  <- get_attribute(env, "last_dow_t") - injury
         t_now   <- now(env) - injury
         prio    <- get_attribute(env, "priority")
-        dp      <- env_data$vars$dow$params
+        dp      <- LEGACY_DOW_PARAMS
         ceiling <- get_attribute(env, "dow_ceiling")
         if (!is.na(prio) && prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
@@ -614,7 +608,7 @@ r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
 #' @return Simmer trajectory boarding the casualty, at once where the pool has
 #'   capacity and after the polled wait where it does not.
 r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
-  if (dow_accrual_enabled()) {
+  if (dow_care_state_enabled()) {
     return(r2e_ame_queue_and_board(resource_name, bed_id, team_id, evac_team))
   }
 
@@ -633,27 +627,33 @@ r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
     seize(resource_name, 1)
 }
 
-#' The post-operative hazard's expected deaths over the evacuation wait so far
+#' The expected deaths of the evacuation wait so far, added to the running total
 #'
-#' @return The running `dow_expected_late` total with the cumulative hazard of
-#'   the wait added, for a casualty carrying a death time; unchanged otherwise
+#' @return The running `dow_expected_late` total with the risk accrued over the
+#'   wait added, for a casualty carrying a death time; unchanged otherwise
 #'
-#' @details The wait's contribution to a cohort's expected deaths is its
-#'   cumulative hazard, the rate times the time at risk, which ends at boarding
+#' @details The wait's contribution to a cohort's expected deaths is the risk
+#'   it accrues, the rate times the time at risk, which ends at boarding
 #'   or at death, whichever comes first. See dow_settle_check() for how the
 #'   checks contribute.
 ame_wait_expected_late <- function() {
   late <- get_attribute(env, "dow_expected_late")
   if (is.na(late)) late <- 0
   if (is.na(get_attribute(env, "ame_death_time"))) return(late)
-  late + post_op_hazard_rate() * (now(env) - get_attribute(env, "r2e_departure_time"))
+  late + ame_wait_rate() * (now(env) - get_attribute(env, "r2e_departure_time"))
 }
+
+#' The death rate of an operated casualty awaiting airlift, per minute
+#'
+#' @return The base rate times the post-operative multiplier, the care of a
+#'   casualty staged for flight being taken as equal to intensive care's
+ame_wait_rate <- function() dow_base_rate() * dow_multipliers()$post_op
 
 #' Draws the moment an operated casualty would die awaiting evacuation
 #'
-#' @return An absolute simulation time drawn from the post-operative hazard
-#'   from the present, or NA for a casualty not operated on, one exempt from
-#'   died-of-wounds risk, or one whose priority carries no hazard (no random
+#' @return An absolute simulation time drawn at the wait's rate
+#'   (ame_wait_rate()) from the present, or NA for a casualty not operated on,
+#'   one exempt from died-of-wounds risk, or one whose rate is zero (no random
 #'   number is drawn for any of them)
 #'
 #' @details Drawn once, when the evacuation disposition is decided, so the wait
@@ -664,12 +664,12 @@ draw_ame_death_time <- function() {
   r2b_surg <- get_attribute(env, "r2b_surgery")
   r2e_surg <- get_attribute(env, "r2e_surgery")
   operated <- (!is.na(r2b_surg) && r2b_surg == 1) || (!is.na(r2e_surg) && r2e_surg == 1)
-  rate <- post_op_hazard_rate()
+  rate <- ame_wait_rate()
   if (!operated || rate <= 0) return(NA_real_)
   now(env) + stats::rexp(1, rate)
 }
 
-#' Builds the queued wait for an airlift seat under the accrual mechanism
+#' Builds the queued wait for an airlift seat under the care-state model
 #'
 #' @param resource_name Name of the aeromedical evacuation pool to board,
 #'   "ame" or "ame_critical"
@@ -861,8 +861,8 @@ r2e_arrival_dow_check <- function(trj, team_id, evac_team) {
     r2e_transport_kia(team_id, evac_team) %>%
     simmer::leave(1)
 
-  if (dow_accrual_enabled()) {
-    return(trj %>% dow_check(arrival = TRUE, cohort = TRUE, died = died,
+  if (dow_care_state_enabled()) {
+    return(trj %>% dow_check(cohort = TRUE, died = died,
                              survived = trajectory("Continue R2E Treatment")))
   }
 
@@ -878,7 +878,7 @@ r2e_arrival_dow_check <- function(trj, team_id, evac_team) {
         t_prev <- get_attribute(env, "last_dow_t") - injury
         t_now  <- now(env) - injury
         prio   <- get_attribute(env, "priority")
-        dp      <- env_data$vars$dow$params
+        dp      <- LEGACY_DOW_PARAMS
         ceiling <- get_attribute(env, "dow_ceiling")
         if (prio == 1) {
           p <- dow_prob_conditional(t_now, t_prev,
@@ -949,7 +949,8 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
           )
         }) %>%
         set_attribute("r2e_resus", 1) %>%
-        apply_dow_factor(function() env_data$vars$dow$treatment_efficacy$r2e_resus_factor) %>%
+        dow_treat(function() dow_multipliers()$resuscitation,
+                  function() LEGACY_DOW_EFFICACY$r2e_resus_factor, resuscitation = TRUE) %>%
         release_resources(emergency_team) %>%
         release_selected(id = 2)
     )
@@ -1141,7 +1142,7 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
             r2e_surgery_block(
               section_id, 7, "r2e_surgery_2_start", "r2e_surgery_2_end",
               local({
-                factor <- env_data$vars$dow$treatment_efficacy$r2e_dcs2_factor
+                factor <- LEGACY_DOW_EFFICACY$r2e_dcs2_factor
                 function() factor
               }), FALSE, ot_beds, surg_teams
             )
@@ -1203,10 +1204,14 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 #'   further acuity-based boarding priority beyond the critical/standard split
 #'   being modelled. See README Further Development.
 r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
-  # The death time is drawn under the accrual mechanism alone; the legacy
+  # The death time is drawn under the care-state model alone; the legacy
   # mechanism polls the wait instead (r2e_ame_dow_poll()).
+  #' Draws the evacuation wait's death time, under the care-state model alone
+  #'
+  #' @param trj Trajectory to append to.
+  #' @return The trajectory, unchanged under the legacy mechanism.
   draw_ame_death <- function(trj) {
-    if (!dow_accrual_enabled()) return(trj)
+    if (!dow_care_state_enabled()) return(trj)
     trj %>% set_attribute("ame_death_time", draw_ame_death_time)
   }
 
@@ -1383,6 +1388,9 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
   # recovery_to_duty_days is drawn first (draw_recovery_to_duty()), then the
   # reconstruction requirement and the evacuation reason it may decide.
   trj %>%
+    # Risk accrued as a rate ends here: convalescence carries none, and the
+    # evacuation wait's is a drawn death time (r2e_strategic_evac()).
+    dow_risk_ends() %>%
     set_attribute("recovery_to_duty_days", draw_recovery_to_duty) %>%
     set_attribute("reconstruction_required", draw_reconstruction_required) %>%
     set_attribute("evacuation_reason", draw_evacuation_reason) %>%

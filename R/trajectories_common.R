@@ -257,9 +257,57 @@ select_r2b_surg_section <- function(team_id) {
   select_surg_section(env_data$elms$r2b[[team_id]][["surg"]])
 }
 
-# ── DOW survival functions ────────────────────────────────────────────────────
+# ── Died of wounds: the care-state model ─────────────────────────────────────
+#
+# A casualty's risk of dying of wounds is a rate per hour, their priority's base
+# rate times the multiplier of the care they are receiving: untreated, treated
+# before surgery, after surgery outside intensive care, after surgery in
+# intensive care, or no further risk. What accrues is banked whenever the care
+# changes and settled at the model's checkpoints by one draw, so each hour is
+# charged at the multiplier in force during it and no care is credited
+# backwards. README Died of Wounds describes the model; this section is its
+# arithmetic.
+#
+# The risk banked before surgery and after it is kept apart, the second being
+# what the post-operative multiplier is calibrated against (R/dow_calibration.R).
+#
+# `dow.care_state.enabled` = 0 reproduces the model before this one, a shifted
+# logistic curve whose ceiling care reduced, byte for byte, so the change can be
+# measured against a supported configuration. That model's parameters are the
+# frozen constants below rather than configuration, since they exist only for
+# the reproduction. The switch is read when a trajectory is built, and under the
+# legacy setting every builder appends exactly the activities that model did.
+#
+# The banks are attributes, unset until first written: an unset state reads as
+# untreated since the moment of injury, which is why no activity initialises
+# them and why the legacy setting's stream is untouched.
 
-#' Time-dependent DOW probability (shifted logistic)
+#' Logistic curve and flat rate of the legacy mechanism
+#'
+#' @details The `dow.params` the configuration carried before the care-state
+#'   model replaced it, held for the legacy setting's reproduction alone.
+LEGACY_DOW_PARAMS <- list(
+  p1_p_base = 0.001,  p1_p_max = 0.0089, p1_k = 0.04,  p1_t_mid = 120,
+  p2_p_base = 0.0005, p2_p_max = 0.0074, p2_k = 0.025, p2_t_mid = 180,
+  p3_flat   = 0.001
+)
+
+#' Ceiling multipliers of the legacy mechanism
+#'
+#' @details The `dow.treatment_efficacy` factors the configuration carried
+#'   before the care-state model, with the two penalties that raised the
+#'   ceiling for degraded post-operative care, held for the legacy setting's
+#'   reproduction alone.
+LEGACY_DOW_EFFICACY <- list(
+  r1_tccc_factor = 1.0, r2b_resus_factor = 0.9, r2b_dcs_factor = 0.55,
+  r2e_resus_factor = 0.9, r2e_dcs1_factor = 0.55, r2e_dcs2_factor = 0.8,
+  r2b_icu_penalty = 1.31
+)
+
+#' Ceiling multiplier of the legacy mechanism for recovery in a holding bed
+LEGACY_POSTOP_HOLD_PENALTY <- 3.0
+
+#' Time-dependent DOW probability of the legacy mechanism (shifted logistic)
 #'
 #' @param t_elapsed Elapsed minutes since injury
 #' @param p_base    Minimum DOW probability at t = 0 (floor)
@@ -271,7 +319,7 @@ dow_prob <- function(t_elapsed, p_base, p_max, k, t_mid) {
   p_base + (p_max - p_base) / (1 + exp(-k * (t_elapsed - t_mid)))
 }
 
-#' Conditional DOW probability increment between two check points
+#' Conditional DOW probability increment of the legacy mechanism
 #'
 #' @param t_now  Elapsed minutes since injury at the current check
 #' @param t_prev Elapsed minutes since injury at the previous DOW check (0 = first check)
@@ -288,44 +336,16 @@ dow_prob_conditional <- function(t_now, t_prev, p_base, p_max, k, t_mid) {
   pmax(0, (f_now - f_prev) / (1 - f_prev))
 }
 
-# ── Died-of-wounds accrual ────────────────────────────────────────────────────
-#
-# Two mechanisms charge died-of-wounds risk, chosen by `dow.accrual.enabled`.
-# The accrual mechanism (1, shipped) charges the early, logistic risk at the
-# ceiling in force at each moment, banking what has accrued whenever care
-# changes the ceiling, and adds a constant post-operative hazard over each
-# post-operative intensive care episode and the evacuation wait of an operated
-# casualty. The legacy mechanism (0) is the model before it: risk is charged at
-# the ceiling in force at the check, the post-operative penalties raise the
-# ceiling, and Priority 3 is charged its flat rate at every check. README
-# Died of Wounds sets out both.
-#
-# The switch is read when a trajectory is built, and under the legacy setting
-# every builder below appends exactly the activities the model held before, so
-# that configuration reproduces the earlier model's random stream and outputs
-# byte for byte (tests/checks/check_dow_mechanism.R). Under the accrual setting
-# the banks are attributes, each unset until first written: an unset logistic
-# bank reads as full survival from the moment of injury, which is why no
-# activity initialises them.
-
-#' Ceiling multiplier the legacy mechanism applies to recovery in a holding bed
+#' Whether the care-state model charges died-of-wounds risk
 #'
-#' @details The value `dow.treatment_efficacy.r2e_postop_hold_penalty` carried
-#'   before the accrual mechanism replaced it. Held here rather than in the
-#'   configuration because it exists only so the legacy setting reproduces the
-#'   earlier model, and is not a parameter a planner should vary.
-LEGACY_POSTOP_HOLD_PENALTY <- 3.0
-
-#' Whether the accrual mechanism charges died-of-wounds risk
-#'
-#' @return TRUE under `dow.accrual.enabled` = 1, FALSE under 0
+#' @return TRUE under `dow.care_state.enabled` = 1, FALSE under 0
 #' @details Fails on an absent or malformed value rather than defaulting, on
 #'   the pattern of `icu_gate_enabled()`, so a configuration cannot silently
-#'   run the mechanism it did not name.
-dow_accrual_enabled <- function() {
-  value <- env_data$vars$dow$accrual$enabled
+#'   run the model it did not name.
+dow_care_state_enabled <- function() {
+  value <- env_data$vars$dow$care_state$enabled
   if (is.null(value) || length(value) != 1L || is.na(value) || !value %in% c(0, 1)) {
-    stop(sprintf("dow.accrual.enabled must be 0 or 1, found %s",
+    stop(sprintf("dow.care_state.enabled must be 0 or 1, found %s",
                  paste(format(value), collapse = ", ")), call. = FALSE)
   }
   value == 1
@@ -340,213 +360,217 @@ dow_exempt <- function() {
   !is.na(dtype) && dtype == 2L
 }
 
-#' Survival over an interval on this casualty's logistic curve
+#' This casualty's base died-of-wounds rate, per minute
 #'
-#' @param t_from Absolute simulation time the interval opens
-#' @param t_to   Absolute simulation time it closes
-#' @param ceiling The ceiling in force over the interval
-#' @return The probability of surviving the interval given survival to its
-#'   start; 1 for a casualty with no logistic curve (Priority 3 or no priority)
-dow_segment_survival <- function(t_from, t_to, ceiling) {
-  prio <- get_attribute(env, "priority")
-  if (is.na(prio) || prio > 2 || is.na(ceiling) || t_to <= t_from) return(1)
-  dp <- env_data$vars$dow$params
-  injury <- get_attribute(env, "injury_time")
-  shape <- if (prio == 1) c(dp$p1_p_base, dp$p1_k, dp$p1_t_mid)
-           else c(dp$p2_p_base, dp$p2_k, dp$p2_t_mid)
-  1 - dow_prob_conditional(t_to - injury, t_from - injury,
-                           shape[1], ceiling, shape[2], shape[3])
-}
-
-#' The logistic bank, brought up to the present at the current ceiling
-#'
-#' @return Named numeric: `s`, the survival accrued since the last check, and
-#'   `t`, the present, from which the next segment runs
-dow_bank_now <- function() {
-  s <- get_attribute(env, "dow_bank_s")
-  t <- get_attribute(env, "dow_bank_t")
-  if (is.na(s)) s <- 1
-  if (is.na(t)) t <- get_attribute(env, "injury_time")
-  c(s = s * dow_segment_survival(t, now(env), get_attribute(env, "dow_ceiling")),
-    t = now(env))
-}
-
-#' Applies a treatment effect to the died-of-wounds ceiling
-#'
-#' @param trj    Trajectory to append to
-#' @param factor Zero-argument function returning the multiplier
-#' @return The trajectory, with the ceiling change appended.
-#'
-#' @details Under the accrual mechanism the risk accrued since the last bank
-#'   point is banked at the outgoing ceiling before the new one takes effect,
-#'   so time spent before a treatment is charged at the rate in force before
-#'   it. Under the legacy mechanism the ceiling alone changes.
-apply_dow_factor <- function(trj, factor) {
-  force(factor)
-  if (!dow_accrual_enabled()) {
-    return(trj %>% set_attribute("dow_ceiling", function() {
-      ceiling <- get_attribute(env, "dow_ceiling")
-      if (is.na(ceiling)) return(ceiling)
-      ceiling * factor()
-    }))
-  }
-  trj %>% set_attribute(c("dow_bank_s", "dow_bank_t", "dow_ceiling"), function() {
-    bank <- dow_bank_now()
-    ceiling <- get_attribute(env, "dow_ceiling")
-    c(bank[["s"]], bank[["t"]], if (is.na(ceiling)) ceiling else ceiling * factor())
-  })
-}
-
-#' This casualty's post-operative hazard, per minute
-#'
-#' @return The priority's `dow.post_op_hazard` rate converted from per day to
-#'   per minute; 0 for an exempt casualty or one without a priority
-post_op_hazard_rate <- function() {
+#' @return The priority's `dow.rates` value converted from per day to per
+#'   minute; 0 for an exempt casualty or one without a priority
+dow_base_rate <- function() {
   prio <- get_attribute(env, "priority")
   if (is.na(prio) || dow_exempt()) return(0)
-  h <- env_data$vars$dow$post_op_hazard
-  rate <- if (prio == 1) h$p1_rate else if (prio == 2) h$p2_rate else h$p3_rate
+  r <- env_data$vars$dow$rates
+  rate <- if (prio == 1) r$p1_rate else if (prio == 2) r$p2_rate else r$p3_rate
   rate / day_min
 }
 
-#' Whether any priority carries a post-operative hazard
+#' The configured care-state multipliers
 #'
-#' @return TRUE when a `dow.post_op_hazard` rate is positive
-post_op_hazard_configured <- function() {
-  h <- env_data$vars$dow$post_op_hazard
-  any(c(h$p1_rate, h$p2_rate, h$p3_rate) > 0)
+#' @return The `dow.multipliers` block: `r1_treatment`, `resuscitation`,
+#'   `post_op`, `r2b_icu_penalty` and `hold_bed_penalty`
+dow_multipliers <- function() env_data$vars$dow$multipliers
+
+#' Multiplier after surgery outside intensive care
+#'
+#' @return The post-operative multiplier times the holding-bed penalty, the
+#'   care of a casualty in a holding bed, in transit or waiting for a bed
+post_op_outside_icu <- function() {
+  m <- dow_multipliers()
+  m$post_op * m$hold_bed_penalty
 }
 
-#' Marks the start of a post-operative episode, before its bed is sought
+#' Multiplier after surgery in an R2E intensive care bed
 #'
-#' @param trj Trajectory to append to
-#' @return The trajectory, stamped under the accrual mechanism and unchanged
-#'   under the legacy one.
-mark_episode_entry <- function(trj) {
-  if (!dow_accrual_enabled()) return(trj)
-  trj %>% set_attribute(c("dow_episode_entry", "dow_episode_bed"),
-                        function() c(now(env), NA_real_))
+#' @return The post-operative multiplier, the reference post-operative care
+post_op_r2e_icu <- function() dow_multipliers()$post_op
+
+#' Multiplier after surgery in an R2B intensive care bed, without an intensivist
+#'
+#' @return The post-operative multiplier times the R2B intensive care penalty
+post_op_r2b_icu <- function() {
+  m <- dow_multipliers()
+  m$post_op * m$r2b_icu_penalty
 }
 
-#' Marks the moment a post-operative episode's bed is in hand
+#' The risk banked since the last check, brought up to the present
 #'
-#' @param trj Trajectory to append to
-#' @return The trajectory, stamped under the accrual mechanism and unchanged
-#'   under the legacy one.
-mark_episode_bed <- function(trj) {
-  if (!dow_accrual_enabled()) return(trj)
-  trj %>% set_attribute("dow_episode_bed", function() now(env))
-}
-
-#' Accrues the post-operative hazard over an episode just ended
-#'
-#' @param trj        Trajectory to append to
-#' @param multiplier Zero-argument function returning the care-quality
-#'   multiplier of the bed the episode was served in
-#' @return The trajectory, with the hazard banked under the accrual mechanism
-#'   and unchanged under the legacy one.
-#'
-#' @details The episode runs from `dow_episode_entry` to the present. Time
-#'   before `dow_episode_bed`, spent waiting for the bed with none, takes the
-#'   holding-bed multiplier, the care a casualty without a bed receives being
-#'   no better than a holding bed's; the rest takes the bed's own multiplier.
-#'   One multiplier applies to each part, never a product of two.
-accrue_post_op_hazard <- function(trj, multiplier) {
-  force(multiplier)
-  if (!dow_accrual_enabled()) return(trj)
-  trj %>% set_attribute("dow_hazard_s", function() {
-    s <- get_attribute(env, "dow_hazard_s")
-    if (is.na(s)) s <- 1
-    entry <- get_attribute(env, "dow_episode_entry")
-    bed   <- get_attribute(env, "dow_episode_bed")
-    if (is.na(entry)) return(s)
-    if (is.na(bed)) bed <- entry
-    overflow <- env_data$vars$dow$treatment_efficacy$hold_bed_penalty
-    exposure <- overflow * (bed - entry) + multiplier() * (now(env) - bed)
-    s * exp(-post_op_hazard_rate() * exposure)
-  })
-}
-
-#' Care-quality multiplier of a holding bed in place of intensive care
-#'
-#' @return `dow.treatment_efficacy.hold_bed_penalty`
-hold_bed_multiplier <- function() env_data$vars$dow$treatment_efficacy$hold_bed_penalty
-
-#' Care-quality multiplier of intensive care served at R2B, without an
-#' intensivist
-#'
-#' @return `dow.treatment_efficacy.r2b_icu_penalty`
-r2b_icu_multiplier <- function() env_data$vars$dow$treatment_efficacy$r2b_icu_penalty
-
-#' Care-quality multiplier of intensive care served at R2E
-#'
-#' @return 1, the reference care every multiplier is stated against
-r2e_icu_multiplier <- function() 1
-
-#' Settles a died-of-wounds check under the accrual mechanism
-#'
-#' @param arrival Whether the check is an R2 arrival check, the only kind at
-#'   which a Priority 3 casualty's flat risk is charged
-#' @param cohort  Whether the check falls within the treated cohort, so that
-#'   its expected deaths are added to the casualty's running totals
-#' @return Numeric vector, in the order of the keys `dow_check()` sets: the
-#'   death probability, the reset banks, the running expected deaths split by
-#'   mechanism, and whether Priority 3 risk has been charged.
-#'
-#' @details The probability is one less the product of the logistic survival
-#'   banked since the last check, the segment since the last bank point, and
-#'   the post-operative hazard survival banked since the last check. Its split
-#'   between the two mechanisms is in proportion to their cumulative hazards;
-#'   summed over every check a cohort reaches, the totals are the cohort's
-#'   expected deaths from each, which is what the post-operative hazard is
-#'   calibrated against (README Died of Wounds, Post-Operative Hazard).
-dow_settle_check <- function(arrival, cohort) {
-  early <- get_attribute(env, "dow_expected_early")
-  late  <- get_attribute(env, "dow_expected_late")
-  done  <- get_attribute(env, "dow_p3_charged")
+#' @return Named numeric: `early`, the risk accrued before surgery, and `late`,
+#'   after it, each a cumulative hazard
+dow_banks_now <- function() {
+  early <- get_attribute(env, "dow_risk_early")
+  late  <- get_attribute(env, "dow_risk_late")
+  mult  <- get_attribute(env, "dow_mult")
+  since <- get_attribute(env, "dow_mult_t")
+  phase <- get_attribute(env, "dow_phase")
   if (is.na(early)) early <- 0
   if (is.na(late)) late <- 0
-  if (is.na(done)) done <- 0
-  if (dow_exempt()) return(c(0, 1, now(env), 1, early, late, done))
-
-  s_l <- dow_bank_now()[["s"]]
-  prio <- get_attribute(env, "priority")
-  if (!is.na(prio) && prio == 3 && arrival && done == 0) {
-    s_l <- s_l * (1 - get_attribute(env, "dow_ceiling"))
-    done <- 1
-  }
-  s_h <- get_attribute(env, "dow_hazard_s")
-  if (is.na(s_h)) s_h <- 1
-
-  p <- 1 - s_l * s_h
-  c_l <- -log(s_l)
-  c_h <- -log(s_h)
-  share_l <- if (c_l + c_h > 0) c_l / (c_l + c_h) else 0
-  if (cohort) {
-    early <- early + p * share_l
-    late  <- late + p * (1 - share_l)
-  }
-  c(p, 1, now(env), 1, early, late, done)
+  if (is.na(mult)) mult <- 1
+  if (is.na(since)) since <- get_attribute(env, "injury_time")
+  accrued <- dow_base_rate() * mult * (now(env) - since)
+  if (!is.na(phase) && phase == 1) late <- late + accrued else early <- early + accrued
+  c(early = early, late = late)
 }
 
-#' Appends a died-of-wounds check under the accrual mechanism
+#' Moves the casualty into a new care state
 #'
-#' @param trj     Trajectory to append to
-#' @param arrival Whether this is an R2 arrival check (see dow_settle_check())
-#' @param cohort  Whether the check falls within the treated cohort
-#' @param died    Trajectory a casualty who dies here takes; it sets the death
+#' @param trj   Trajectory to append to
+#' @param mult  Zero-argument function returning the new state's multiplier
+#' @param phase 0 for care before surgery, 1 for care after it
+#' @return The trajectory, with the transition appended under the care-state
+#'   model and unchanged under the legacy one.
+#'
+#' @details What the outgoing state accrued is banked first, so the new
+#'   multiplier applies only from this moment.
+set_dow_state <- function(trj, mult, phase) {
+  force(mult); force(phase)
+  if (!dow_care_state_enabled()) return(trj)
+  trj %>% set_attribute(
+    c("dow_risk_early", "dow_risk_late", "dow_mult", "dow_mult_t", "dow_phase"),
+    function() c(dow_banks_now(), mult(), now(env), phase))
+}
+
+#' Applies a treatment received before surgery
+#'
+#' @param trj           Trajectory to append to
+#' @param factor        Zero-argument function returning the care-state
+#'   multiplier the treatment earns
+#' @param legacy_factor Zero-argument function returning the ceiling factor the
+#'   legacy mechanism applies for the same treatment
+#' @param resuscitation Whether the treatment is a resuscitation, after which a
+#'   casualty who needs no surgery faces no further risk
+#' @return The trajectory, with the treatment's effect appended.
+#'
+#' @details The treatments a casualty receives before surgery compound, so the
+#'   pre-operative multiplier is their product, held in `dow_care`.
+dow_treat <- function(trj, factor, legacy_factor, resuscitation) {
+  force(factor); force(legacy_factor); force(resuscitation)
+  if (!dow_care_state_enabled()) {
+    return(trj %>% set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * legacy_factor()
+    }))
+  }
+  trj %>%
+    set_attribute("dow_care", function() {
+      care <- get_attribute(env, "dow_care")
+      (if (is.na(care)) 1 else care) * factor()
+    }) %>%
+    set_dow_state(function() {
+      surgical <- get_attribute(env, "surgery")
+      if (resuscitation && (is.na(surgical) || surgical != 1)) return(0)
+      get_attribute(env, "dow_care")
+    }, 0)
+}
+
+#' Applies the end of an operation
+#'
+#' @param trj           Trajectory to append to
+#' @param legacy_factor Zero-argument function returning the ceiling factor the
+#'   legacy mechanism applies for the operation
+#' @return The trajectory, with the casualty moved to post-operative care
+#'   outside intensive care, or the legacy ceiling reduced.
+dow_operated <- function(trj, legacy_factor) {
+  force(legacy_factor)
+  if (!dow_care_state_enabled()) {
+    return(trj %>% set_attribute("dow_ceiling", function() {
+      ceiling <- get_attribute(env, "dow_ceiling")
+      if (is.na(ceiling)) return(ceiling)
+      ceiling * legacy_factor()
+    }))
+  }
+  trj %>% set_dow_state(post_op_outside_icu, 1)
+}
+
+#' Places an operated casualty in a bed of a given post-operative care
+#'
+#' @param trj  Trajectory to append to
+#' @param mult Zero-argument function returning the bed's multiplier
+#' @return The trajectory, with the placement appended under the care-state
+#'   model and unchanged under the legacy one.
+#'
+#' @details Applies only after surgery. A casualty not yet operated on, or one
+#'   who needed no surgery, keeps the state they are in, so the same bed can be
+#'   used by either without its own branch.
+dow_placement <- function(trj, mult) {
+  force(mult)
+  if (!dow_care_state_enabled()) return(trj)
+  trj %>% set_attribute(
+    c("dow_risk_early", "dow_risk_late", "dow_mult", "dow_mult_t", "dow_phase"),
+    function() {
+      phase <- get_attribute(env, "dow_phase")
+      current <- get_attribute(env, "dow_mult")
+      post_op <- !is.na(phase) && phase == 1
+      new <- if (post_op) mult() else if (is.na(current)) 1 else current
+      c(dow_banks_now(), new, now(env), if (post_op) 1 else 0)
+    })
+}
+
+#' Ends a casualty's died-of-wounds risk
+#'
+#' @param trj Trajectory to append to
+#' @return The trajectory, with the casualty moved to a state of no risk under
+#'   the care-state model and unchanged under the legacy one.
+#'
+#' @details Reached on leaving post-operative care for convalescence or the
+#'   evacuation wait, whose own risk is a drawn death time rather than a rate
+#'   (draw_ame_death_time()).
+dow_risk_ends <- function(trj) set_dow_state(trj, function() 0, 1)
+
+#' Settles a died-of-wounds check under the care-state model
+#'
+#' @param cohort Whether the check falls within the treated cohort, so that its
+#'   expected deaths are added to the casualty's running totals
+#' @return Numeric vector, in the order of the keys `dow_check()` sets: the
+#'   death probability, the emptied banks, the state's restart time, and the
+#'   running expected deaths before and after surgery.
+#'
+#' @details The probability is one less the survival of the risk banked since
+#'   the last check, exp(-(early + late)). Its split between before and after
+#'   surgery is in proportion to the two banks; summed over every check a cohort
+#'   reaches, the totals are the cohort's expected deaths from each, which is
+#'   what the post-operative multiplier is calibrated against.
+dow_settle_check <- function(cohort) {
+  expected_early <- get_attribute(env, "dow_expected_early")
+  expected_late  <- get_attribute(env, "dow_expected_late")
+  if (is.na(expected_early)) expected_early <- 0
+  if (is.na(expected_late)) expected_late <- 0
+  banks <- dow_banks_now()
+  total <- banks[["early"]] + banks[["late"]]
+  p <- 1 - exp(-total)
+  if (cohort && total > 0) {
+    expected_early <- expected_early + p * banks[["early"]] / total
+    expected_late  <- expected_late + p * banks[["late"]] / total
+  }
+  c(p, 0, 0, now(env), expected_early, expected_late)
+}
+
+#' Appends a died-of-wounds check under the care-state model
+#'
+#' @param trj      Trajectory to append to
+#' @param cohort   Whether the check falls within the treated cohort
+#' @param died     Trajectory a casualty who dies here takes; it sets the death
 #'   attributes and disposes of the body
 #' @param survived Trajectory a survivor takes, empty by default
 #' @return The trajectory, with the settlement and the draw appended.
 #'
-#' @details The probability is settled into an attribute and the banks reset in
-#'   one activity before the draw, so the draw reads a number rather than
+#' @details The probability is settled into an attribute and the banks emptied
+#'   in one activity before the draw, so the draw reads a number rather than
 #'   recomputing it, and a casualty facing no risk consumes no random number.
-dow_check <- function(trj, arrival, cohort, died, survived = trajectory()) {
+#'   The care state carries on from the check unchanged.
+dow_check <- function(trj, cohort, died, survived = trajectory()) {
   trj %>%
-    set_attribute(c("dow_check_p", "dow_bank_s", "dow_bank_t", "dow_hazard_s",
-                    "dow_expected_early", "dow_expected_late", "dow_p3_charged"),
-                  function() dow_settle_check(arrival, cohort)) %>%
+    set_attribute(c("dow_check_p", "dow_risk_early", "dow_risk_late", "dow_mult_t",
+                    "dow_expected_early", "dow_expected_late"),
+                  function() dow_settle_check(cohort)) %>%
     # Branches on the settled probability:
     # - a draw beneath it -> died of wounds at this check
     # - otherwise, or no risk at all (no draw taken) -> survives

@@ -17,7 +17,7 @@
 # decision and removed it at ame_departure_time, which is the right pair for
 # only one of the two ways a casualty stops waiting.
 #
-# A casualty who dies during r2e_ame_dow_poll() leaves the queue without ever
+# A casualty who dies awaiting a sortie leaves the queue without ever
 # boarding and so sets no departure time. Removing casualties on the departure
 # alone left every such casualty in the backlog for the whole remainder of the
 # campaign, which is the same defect, in the same direction, that
@@ -103,20 +103,20 @@ CHECK_SEED <- 42L
 #' Scenario profile the real run uses
 CHECK_SCENARIO <- "moderate_intensity"
 
-#' Priority 1 and 2 died-of-wounds ceilings the real run is made at
+#' Post-operative died-of-wounds multiplier the real run is made at
 #'
-#' @details Raised from the shipped 0.9% and 0.7% because a casualty dying while
-#'   it waits for a sortie is a rare event at the shipped values: none occurs in
-#'   a 30-day campaign at most seeds, so the exit under test would be reached
-#'   only by the luck of the seed, and any change to the random stream would
-#'   silently make the assertion vacuous. The mechanism is unchanged; only its
-#'   frequency is.
-CHECK_DOW_CEILING <- 0.6
+#' @details Raised from the shipped value because a casualty dying while it
+#'   waits for a sortie is a rare event at it: none occurs in a 30-day campaign
+#'   at most seeds, the wait's death rate being the base rate times this
+#'   multiplier, so the exit under test would be reached only by the luck of
+#'   the seed, and any change to the random stream would silently make the
+#'   assertion vacuous. The mechanism is unchanged; only its frequency is.
+CHECK_POST_OP_MULTIPLIER <- 6
 
 #' Sortie cancellation probability the real run is made at
 #'
 #' @details High enough that sorties are lost and casualties wait long enough
-#'   to be polled for died-of-wounds risk, which is the only way the exit this
+#'   to be at risk of dying of wounds while they wait, which is the only way the exit this
 #'   check exists for is reached at all.
 CHECK_FAILURE <- 0.75
 
@@ -234,8 +234,7 @@ on.exit(restore_config_globals(config_snapshot), add = TRUE)
 
 json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 apply_airlift_setting(json_data, CHECK_SCENARIO, "failure_probability", CHECK_FAILURE)
-env_data$vars$dow$params$p1_p_max <- CHECK_DOW_CEILING
-env_data$vars$dow$params$p2_p_max <- CHECK_DOW_CEILING
+env_data$vars$dow$multipliers$post_op <- CHECK_POST_OP_MULTIPLIER
 
 cat(sprintf("Running seed %d for %d days at a cancellation rate of %.2f\n",
             CHECK_SEED, CHECK_DAYS, CHECK_FAILURE))

@@ -77,9 +77,10 @@ test_that("returning to the default profile restores the base configuration", {
 test_that("the resolved profile drives the derived configuration reactives", {
   shiny::testServer(server, {
     session$setInputs(scenario_select = "default")
-    default_shape <- dow_shape()
-    expect_setequal(names(default_shape), c("p1", "p2"))
-    expect_setequal(names(default_shape$p1), c("p_base", "k", "t_mid"))
+    default_model <- dow_model()
+    expect_setequal(names(default_model), c("p1_rate", "p2_rate", "p3_rate", "post_op",
+                                            "resuscitation", "r1_treatment"))
+    expect_true(all(vapply(default_model, is.numeric, logical(1))))
 
     families <- gen_distributions()
     expect_identical(names(families), GEN_STREAM_ACTYS)

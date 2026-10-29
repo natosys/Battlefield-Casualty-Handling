@@ -1,7 +1,8 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## scripts/calibrate_dow.R                                                  ##
-## CLI entry point — fit the died-of-wounds ceilings to a target rate       ##
+## CLI entry point — fit the died-of-wounds base rates and post-operative ##
+## multiplier to their targets                                              ##
 ##############################################################################
 #
 # Usage:
@@ -10,39 +11,38 @@
 #   Rscript scripts/calibrate_dow.R --config my_config.json --target 0.012 --days 30
 #   Rscript scripts/calibrate_dow.R --quick          # wiring test only
 #
-# Why this exists. The shipped ceilings (`p1_p_max`, `p2_p_max`) were reached by
-# an iterative Monte Carlo procedure that was never written down as a command,
-# so neither the shipped values nor a recalibration to a new scenario could be
-# reproduced. This is that procedure. It measures the pooled treated-cohort
-# died-of-wounds rate (R/dow_calibration.R, the same measurement
-# tests/checks/check_dow_calibration.R asserts) at a trial Priority 1 ceiling, and
-# searches for the ceiling at which the rate meets the target by bracketing
-# root search. The Priority 2 ceiling follows at a fixed ratio, the shipped
-# pair's own by default, so the two are fitted jointly as one parameter.
+# Why this exists. The care-state model has two groups of fitted values: the
+# base rates (`dow.rates`), a death rate per day of untreated injury for each
+# priority, and the post-operative multiplier (`dow.multipliers.post_op`). No
+# source gives either directly, so each is searched for until the model meets
+# a historical target. This is that procedure, written down so the shipped
+# values and a recalibration to a new scenario can both be reproduced. It
+# measures the pooled treated-cohort died-of-wounds rate (R/dow_calibration.R,
+# the same measurement tests/checks/check_dow_calibration.R asserts) and the
+# share of the cohort's expected deaths that accrue after surgery.
 #
-# Under the accrual mechanism (`dow.accrual.enabled` = 1) with a post-operative
-# hazard configured, the hazard rates are fitted too: a common scale on the
-# three, holding their ratios, searched until the hazard causes the target
-# share of the treated cohort's expected deaths (DOW_LATE_SHARE_TARGET,
-# R/dow_calibration.R). The share moves with the ceilings and the rate with the
-# hazard, so the two searches alternate for --rounds rounds, each starting from
-# the other's last fit. --hold-legacy-rate sets the rate target to the one the
-# configuration produces under the legacy mechanism at the same seeds and
-# horizon, which is how the shipped pair was refitted when the accrual
-# mechanism replaced it: held where the earlier model held it, beneath the
-# Ajax Bay bound, rather than raised to it.
+# Two searches alternate for --rounds rounds, each starting from the other's
+# last fit, since each target moves with both values. The post-operative
+# multiplier is searched until the post-operative share meets --late-share
+# (DOW_LATE_SHARE_TARGET by default). The Priority 1 base rate is searched until
+# the treated-cohort rate meets the target, the Priority 2 and 3 rates scaled
+# with it so their ratios hold, so the three are one parameter.
+# --hold-legacy-rate sets the rate target to the one the configuration produces
+# under the legacy mechanism at the same seeds and horizon, which is how the
+# shipped rates were fitted when the care-state model replaced it: held where
+# the earlier model held mortality, beneath the Ajax Bay bound, rather than
+# raised to it.
 #
 # What the target must be. The treated cohort, the casualties who reached a
 # surgical facility alive, not the whole wounded population: a rate over all
 # wounded understates mortality because casualties who died before reaching
 # care are outside a historical treated-cohort denominator by construction.
 # Everything else the model needs (force size, establishment, casualty
-# generation, triage split, treatment efficacy factors) is set from sources
-# beforehand, since the ceilings are entangled with the efficacy factors and
-# a changed factor invalidates a fitted ceiling (README, Calibrating to a New
-# Scenario).
+# generation, triage split, the sourced multipliers) is set from sources
+# beforehand, since the fitted values are entangled with them and a changed
+# input invalidates a fit (README, Calibrating to a New Scenario).
 #
-# It reports the fitted pair with the interval of the rate it achieved and
+# It reports the fitted values with the interval of the rate they achieved and
 # writes nothing to env_data.json: a fitted value enters a configuration by a
 # reviewed edit, and the shipped values change only through a discussed issue
 # (CLAUDE.md). With --write-csv it also records every evaluation. Confirm a fit
@@ -73,7 +73,7 @@ source("R/run_manifest.R")
 
 option_list <- list(
   make_option("--scenario", type = "character", default = "default",
-              help = "Scenario profile whose ceilings are fitted [default: %default]"),
+              help = "Scenario profile whose died-of-wounds model is fitted [default: %default]"),
   make_option("--config", type = "character", default = NULL,
               help = paste("Configuration file to fit, the shipped env_data.json or one",
                            "saved from the Shiny console [default: env_data.json]")),
@@ -84,10 +84,10 @@ option_list <- list(
               help = paste("Take the rate target from the configuration run under the legacy",
                            "mechanism at the same seeds and horizon")),
   make_option("--late-share", type = "double", default = DOW_LATE_SHARE_TARGET,
-              help = paste("Share of the treated cohort's expected deaths the post-operative",
-                           "hazard should cause [default: %default]")),
+              help = paste("Share of the treated cohort's expected deaths that should accrue",
+                           "after surgery [default: %default]")),
   make_option("--rounds", type = "integer", default = 2L,
-              help = "Alternations of the hazard and ceiling searches [default: %default]"),
+              help = "Alternations of the multiplier and base rate searches [default: %default]"),
   make_option("--tolerance", type = "double", default = 5e-4,
               help = "Stop when the measured rate is this close to the target [default: %default]"),
   make_option("--days", type = "integer", default = 30L,
@@ -97,11 +97,9 @@ option_list <- list(
   make_option("--measurements", type = "integer", default = 3L,
               help = "Independent measurements pooled per evaluation [default: %default]"),
   make_option("--lower", type = "double", default = NULL,
-              help = "Lower end of the Priority 1 ceiling bracket [default: half the configured]"),
+              help = "Lower end of the Priority 1 base rate bracket [default: a quarter of the configured]"),
   make_option("--upper", type = "double", default = NULL,
-              help = "Upper end of the Priority 1 ceiling bracket [default: twice the configured]"),
-  make_option("--ratio", type = "double", default = NULL,
-              help = "Priority 1 ceiling over Priority 2 [default: the configuration's own]"),
+              help = "Upper end of the Priority 1 base rate bracket [default: twice the configured]"),
   make_option("--max-iterations", type = "integer", default = 12L,
               help = "Cap on evaluations after the two bracket ends [default: %default]"),
   make_option("--write-csv", type = "character", default = NULL,
@@ -133,34 +131,31 @@ if (opt$`late-share` <= 0 || opt$`late-share` >= 1) {
 }
 
 resolved <- build_environment(resolve_scenario(json_data, opt$scenario))$vars$dow
-shipped <- resolved$params
-ratio <- if (!is.null(opt$ratio)) opt$ratio else shipped$p1_p_max / shipped$p2_p_max
-lower <- if (!is.null(opt$lower)) opt$lower else 0.5 * shipped$p1_p_max
-upper <- if (!is.null(opt$upper)) opt$upper else 2 * shipped$p1_p_max
+shipped <- resolved$rates
+lower <- if (!is.null(opt$lower)) opt$lower else 0.25 * shipped$p1_rate
+upper <- if (!is.null(opt$upper)) opt$upper else 2 * shipped$p1_rate
 if (!(lower > 0 && upper > lower)) {
   stop(sprintf("the bracket must satisfy 0 < lower < upper, found [%g, %g]", lower, upper),
        call. = FALSE)
 }
-hazard <- resolved$post_op_hazard
-fit_hazard <- isTRUE(resolved$accrual$enabled == 1) &&
-  any(c(hazard$p1_rate, hazard$p2_rate, hazard$p3_rate) > 0)
+fit_late <- isTRUE(resolved$care_state$enabled == 1) && resolved$multipliers$post_op > 0
 
 seeds <- DOW_CONTROL_SEEDS[seq_len(opt$measurements)]
 
-#' Measure the configuration at one ceiling and hazard scale
+#' Measure the configuration at one base rate and post-operative multiplier
 #'
-#' @param p1 Priority 1 ceiling to measure at.
-#' @param scale Common scale on the post-operative hazard rates.
-#' @param accrual 1 or 0 to override the mechanism, or NULL for the configured one.
+#' @param p1 Priority 1 base rate per day to measure at.
+#' @param q Post-operative multiplier to measure at.
+#' @param care_state 1 or 0 to override the model, or NULL for the configured one.
 #' @return Named numeric of `rate`, `ci_lower`, `ci_upper` and `share`.
-evaluate <- function(p1, scale, accrual = NULL) {
-  m <- measure_dow_response(json_data, opt$scenario, p1_p_max = p1, p1_over_p2 = ratio,
-                            hazard_scale = scale, accrual = accrual,
+evaluate <- function(p1, q, care_state = NULL) {
+  m <- measure_dow_response(json_data, opt$scenario, p1_rate = p1, post_op = q,
+                            care_state = care_state,
                             n_reps = opt$reps, n_days = opt$days, seeds = seeds)
   s <- pooled_rate_summary(m$rates)
   share <- if (m$early + m$late > 0) m$late / (m$early + m$late) else 0
-  cat(sprintf("  p1_p_max = %.5f, hazard scale %.3f: %.3f%%  95%% CI [%.3f%%, %.3f%%]; hazard share %.3f\n",
-              p1, scale, 100 * s$mean, 100 * s$ci_lower, 100 * s$ci_upper, share))
+  cat(sprintf("  p1_rate = %.5f, post_op = %.5f: %.3f%%  95%% CI [%.3f%%, %.3f%%]; post-op share %.3f\n",
+              p1, q, 100 * s$mean, 100 * s$ci_lower, 100 * s$ci_upper, share))
   c(rate = s$mean, ci_lower = s$ci_lower, ci_upper = s$ci_upper, share = share)
 }
 
@@ -173,8 +168,8 @@ if (isTRUE(opt$quick)) cat("QUICK MODE: too few replications to calibrate. Wirin
 target <- if (!is.null(opt$target)) {
   opt$target
 } else if (isTRUE(opt$`hold-legacy-rate`)) {
-  cat("\nMeasuring the legacy mechanism's rate at the configured ceilings\n")
-  evaluate(shipped$p1_p_max, 1, accrual = 0)[["rate"]]
+  cat("\nMeasuring the legacy mechanism's rate\n")
+  evaluate(shipped$p1_rate, resolved$multipliers$post_op, care_state = 0)[["rate"]]
 } else {
   anchor$rate
 }
@@ -191,48 +186,47 @@ cat(sprintf("  rate target: treated-cohort rate %.3f%%%s\n", 100 * target,
               sprintf(" (%s%s)", anchor$label,
                       if (anchor$kind == "bound") ", an upper bound" else "")
             } else ""))
-cat(sprintf("  bracket on p1_p_max: [%.5f, %.5f]; p1 over p2 held at %.4f\n", lower, upper, ratio))
-if (fit_hazard) cat(sprintf("  hazard share target: %.3f\n", opt$`late-share`))
+cat(sprintf("  bracket on p1_rate: [%.5f, %.5f]; Priority 2 and 3 rates held at their ratios to it\n",
+            lower, upper))
+if (fit_late) cat(sprintf("  post-operative share target: %.3f\n", opt$`late-share`))
 
-p1 <- shipped$p1_p_max
-scale <- 1
+p1 <- shipped$p1_rate
+q <- resolved$multipliers$post_op
 traces <- list()
 converged <- TRUE
-for (round in seq_len(if (fit_hazard) opt$rounds else 1L)) {
-  if (fit_hazard) {
-    cat(sprintf("\nRound %d: hazard scale at p1_p_max = %.5f\n", round, p1))
-    hfit <- fit_hazard_scale(function(s) evaluate(p1, s)[["share"]], opt$`late-share`,
-                             lower = 0.25 * scale, upper = 4 * scale,
-                             max_iter = opt$`max-iterations`)
-    cat(sprintf("  stopped: %s; scale %.3f\n", hfit$reason, hfit$scale))
-    converged <- converged && isTRUE(hfit$converged)
-    scale <- hfit$scale
-    traces[[length(traces) + 1L]] <- cbind(round = round, search = "hazard",
-                                           setNames(hfit$trace, c("iteration", "value", "rate",
+for (round in seq_len(if (fit_late) opt$rounds else 1L)) {
+  if (fit_late) {
+    cat(sprintf("\nRound %d: post-operative multiplier at p1_rate = %.5f\n", round, p1))
+    qfit <- fit_post_op(function(x) evaluate(p1, x)[["share"]], opt$`late-share`,
+                        lower = 0.25 * q, upper = 8 * q, max_iter = opt$`max-iterations`)
+    cat(sprintf("  stopped: %s; post_op %.5f\n", qfit$reason, qfit$post_op))
+    converged <- converged && isTRUE(qfit$converged)
+    q <- qfit$post_op
+    traces[[length(traces) + 1L]] <- cbind(round = round, search = "post_op",
+                                           setNames(qfit$trace, c("iteration", "value", "rate",
                                                                   "ci_lower", "ci_upper")))
   }
-  cat(sprintf("\nRound %d: ceiling at hazard scale %.3f\n", round, scale))
-  fit <- fit_dow_ceiling(function(p) evaluate(p, scale)[c("rate", "ci_lower", "ci_upper")],
-                         target, lower, upper, tol_rate = opt$tolerance,
-                         max_iter = opt$`max-iterations`)
-  cat(sprintf("  stopped: %s; p1_p_max %.5f\n", fit$reason, fit$p1_p_max))
+  cat(sprintf("\nRound %d: base rate at post_op = %.5f\n", round, q))
+  fit <- fit_dow_rate(function(p) evaluate(p, q)[c("rate", "ci_lower", "ci_upper")],
+                      target, lower, upper, tol_rate = opt$tolerance,
+                      max_iter = opt$`max-iterations`)
+  cat(sprintf("  stopped: %s; p1_rate %.5f\n", fit$reason, fit$p1_rate))
   converged <- converged && isTRUE(fit$converged)
-  p1 <- fit$p1_p_max
-  traces[[length(traces) + 1L]] <- cbind(round = round, search = "ceiling",
+  p1 <- fit$p1_rate
+  traces[[length(traces) + 1L]] <- cbind(round = round, search = "p1_rate",
                                          setNames(fit$trace, c("iteration", "value", "rate",
                                                                "ci_lower", "ci_upper")))
 }
 
+scale <- p1 / shipped$p1_rate
 cat("\n")
-cat(sprintf("Fitted p1_p_max = %.4f, p2_p_max = %.4f\n", p1, p1 / ratio))
+cat(sprintf("Fitted rates per day: p1_rate = %.5f, p2_rate = %.5f, p3_rate = %.5f\n",
+            p1, scale * shipped$p2_rate, scale * shipped$p3_rate))
+if (fit_late) cat(sprintf("Fitted post-operative multiplier: post_op = %.5f\n", q))
 cat(sprintf("  achieved treated-cohort rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) against %.3f%%\n",
             100 * fit$rate, 100 * fit$ci_lower, 100 * fit$ci_upper, 100 * target))
-if (fit_hazard) {
-  cat(sprintf("Fitted post-operative hazard per day: p1_rate = %.6f, p2_rate = %.6f, p3_rate = %.6f\n",
-              scale * hazard$p1_rate, scale * hazard$p2_rate, scale * hazard$p3_rate))
-}
-cat(sprintf("  shipped for '%s': p1_p_max = %.4f, p2_p_max = %.4f\n", opt$scenario,
-            shipped$p1_p_max, shipped$p2_p_max))
+cat(sprintf("  shipped for '%s': p1_rate = %.5f, post_op = %.5f\n", opt$scenario,
+            shipped$p1_rate, resolved$multipliers$post_op))
 cat(sprintf("Confirm with: Rscript tests/checks/check_dow_calibration.R --scenario %s\n",
             opt$scenario))
 fit$trace <- do.call(rbind, traces)

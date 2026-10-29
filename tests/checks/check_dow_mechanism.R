@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 ##############################################################################
 ## tests/checks/check_dow_mechanism.R                                       ##
-## Regression check — the died-of-wounds accrual mechanism's properties,    ##
+## Regression check — the care-state died-of-wounds model's properties,   ##
 ## and the legacy setting's reproduction of the earlier model               ##
 ##############################################################################
 #
@@ -11,36 +11,34 @@
 #
 # Exits 0 when every check passes, 1 otherwise.
 #
-# Why this check exists. The accrual mechanism (`dow.accrual.enabled` = 1) was
-# introduced to make died-of-wounds risk respond to delayed and degraded care,
-# which the earlier mechanism did not: it credited care retroactively, ended
-# risk within hours of injury, and raised the ceiling for degraded care above
-# the untreated one. Each of those defects is silent in an ordinary run, since
-# a model with any of them still reports a plausible death count, so each
-# property the mechanism exists to provide is asserted here:
+# Why this check exists. The care-state model (`dow.care_state.enabled` = 1)
+# replaced a logistic curve that credited care retroactively, ended risk within
+# hours of injury, and raised the ceiling for degraded care above the untreated
+# one. Each of those defects is silent in an ordinary run, since a model with
+# any of them still reports a plausible death count, so each property the
+# care-state model exists to provide is asserted here:
 #
-#   1. Delay before surgery raises the death probability, the risk accrued
-#      before an operation being charged at the ceiling in force before it.
+#   1. Delay before surgery raises the death probability, every hour waited
+#      being charged at the multiplier in force during it.
 #   2. For a Priority 1 casualty, recovery in intensive care carries less risk
 #      than recovery in a holding bed, which carries less than no treatment at
 #      all, at R2E and on the R2B forward stay.
-#   3. A post-operative episode carries one care-quality multiplier, never a
-#      product of two; an R2B forward holding-bed stay carries the holding-bed
-#      multiplier alone.
-#   4. A Priority 3 casualty's flat risk is charged once, at the first R2
-#      arrival check, and never while awaiting airlift; a disease casualty
-#      faces no risk at any check.
-#   5. Over a campaign forced onto every degraded route, no casualty's ceiling
-#      ever rises, and every banked hazard implies one of the configured
-#      multipliers.
-#   6. The legacy setting (`dow.accrual.enabled` = 0) reproduces the seed-42
-#      evidence set of the model before the accrual mechanism, byte for byte,
-#      so the change can be measured against a supported configuration.
+#   3. A post-operative stay carries one multiplier, never a product of two:
+#      an R2B forward holding-bed stay carries the holding-bed penalty alone.
+#   4. A Priority 3 casualty is charged its own rate and nothing else, and is
+#      at no risk awaiting airlift unless operated on; a disease casualty faces
+#      no risk at any check.
+#   5. Over a campaign forced onto every degraded route, every care state a
+#      casualty takes carries one of the configured multipliers, and none after
+#      surgery exceeds the holding-bed one.
+#   6. The legacy setting (`dow.care_state.enabled` = 0) reproduces the seed-42
+#      evidence set of the model before the care-state one, byte for byte, so
+#      the change can be measured against a supported configuration.
 #
-# Assertions 1 to 4 drive the mechanism's helpers through a single casualty in
-# a minimal simmer environment, so their probabilities are exact rather than
+# Assertions 1 to 4 drive the model's helpers through a single casualty in a
+# minimal simmer environment, so their probabilities are exact rather than
 # estimated. Assertion 6 compares digests rather than files, the tracked set
-# having since been regenerated under the accrual mechanism; LEGACY_DIGESTS are
+# having since been regenerated under the care-state model; LEGACY_DIGESTS are
 # those of the set as it stood when the switch was introduced. A later change
 # that alters the model outside the died-of-wounds mechanism changes the legacy
 # setting's output too, and is the one occasion for revising them.
@@ -74,7 +72,7 @@ FORWARD_WINDOW <- 720L
 LEGACY_SEED <- 42L
 LEGACY_DAYS <- 360L
 
-#' SHA-256 of each file of the seed-42 set before the accrual mechanism
+#' SHA-256 of each file of the seed-42 set before the care-state model
 LEGACY_DIGESTS <- c(
   "logs.txt"                       = "3593d3e85df46ccf460a023ccc1b3ece190ec185226ca6b8ed6228361d4335c9",
   "data/arrivals_casualty_surge.txt" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -113,23 +111,24 @@ report <- function(ok, fmt, ...) {
 json_data <- read_config("env_data.json")
 shipped <- build_environment(resolve_scenario(json_data, "default"))
 day_min <- DAY_MIN
-te <- shipped$vars$dow$treatment_efficacy
-dp <- shipped$vars$dow$params
+mult <- shipped$vars$dow$multipliers
+rates <- shipped$vars$dow$rates
 
 # ── The single-casualty harness ─────────────────────────────────────────────
 
-#' Run one casualty through a sequence of mechanism steps
+#' Run one casualty through a sequence of model steps
 #'
 #' @param attrs Named numeric of the casualty's starting attributes; priority,
-#'   dow_ceiling and dnbi_type at least.
+#'   surgery and dnbi_type at least.
 #' @param steps Function of a trajectory returning it with the steps appended,
-#'   built under the accrual mechanism.
+#'   built under the care-state model.
 #' @param seed Seed set before the run, so a death draw cannot vary between runs.
 #' @return The attribute monitor of the run.
 run_casualty <- function(attrs, steps, seed = 1L) {
-  env_data <<- shipped
-  env_data$vars$dow$accrual$enabled <<- 1
-  env <<- simmer()
+  config <- shipped
+  config$vars$dow$care_state$enabled <- 1
+  assign("env_data", config, envir = globalenv())
+  assign("env", simmer(), envir = globalenv())
   trj <- trajectory() %>%
     set_attribute(c("injury_time", names(attrs)), function() c(now(env), attrs)) %>%
     steps()
@@ -141,27 +140,36 @@ run_casualty <- function(attrs, steps, seed = 1L) {
 #' A died-of-wounds check that records its probability and lets the casualty on
 #'
 #' @param trj Trajectory to append to.
-#' @param arrival,cohort As for dow_check().
+#' @param cohort As for dow_check().
 #' @return The trajectory, with the check appended.
-check_at <- function(trj, arrival = FALSE, cohort = TRUE) {
-  dow_check(trj, arrival = arrival, cohort = cohort, died = trajectory(),
-            survived = trajectory())
+check_at <- function(trj, cohort = TRUE) {
+  dow_check(trj, cohort = cohort, died = trajectory(), survived = trajectory())
 }
 
-#' A post-operative episode of a given length in a bed of a given multiplier
+#' R1 treatment, as the casualty pathway applies it
 #'
 #' @param trj Trajectory to append to.
-#' @param queue Minutes spent waiting for the bed.
+#' @return The trajectory, with the R1 treatment multiplier applied.
+r1_treatment <- function(trj) {
+  dow_treat(trj, function() mult$r1_treatment, function() 1, resuscitation = FALSE)
+}
+
+#' Resuscitation, as both R2 echelons apply it
+#'
+#' @param trj Trajectory to append to.
+#' @return The trajectory, with the resuscitation multiplier applied.
+resuscitation <- function(trj) {
+  dow_treat(trj, function() mult$resuscitation, function() 1, resuscitation = TRUE)
+}
+
+#' A post-operative stay in a bed of one placement
+#'
+#' @param trj Trajectory to append to.
+#' @param placement Zero-argument function returning the bed's multiplier.
 #' @param stay Minutes in the bed.
-#' @param multiplier Zero-argument function returning the bed's multiplier.
-#' @return The trajectory, with the episode and its hazard appended.
-episode <- function(trj, queue, stay, multiplier) {
-  trj %>%
-    mark_episode_entry() %>%
-    timeout(queue) %>%
-    mark_episode_bed() %>%
-    timeout(stay) %>%
-    accrue_post_op_hazard(multiplier)
+#' @return The trajectory, with the stay appended.
+stay_in <- function(trj, placement, stay) {
+  trj %>% dow_placement(placement) %>% timeout(stay) %>% dow_placement(post_op_outside_icu)
 }
 
 #' The death probability over every check a monitored casualty passed
@@ -179,7 +187,7 @@ total_risk <- function(mon) {
 #' @return Numeric vector of `dow_check_p` values.
 check_probs <- function(mon) mon$value[mon$key == "dow_check_p"]
 
-p1 <- c(priority = 1, dow_ceiling = dp$p1_p_max, dnbi_type = NA)
+p1 <- c(priority = 1, surgery = 1, dnbi_type = NA)
 
 # ── 1. Delay before surgery ─────────────────────────────────────────────────
 
@@ -192,111 +200,115 @@ cat("-- delay before surgery raises the risk --\n")
 operated_at <- function(surgery_at) {
   total_risk(run_casualty(p1, function(trj) {
     trj %>%
-      timeout(20) %>% check_at(cohort = FALSE) %>%
-      timeout(40) %>% apply_dow_factor(function() te$r2e_resus_factor) %>%
-      timeout(surgery_at - 60) %>% apply_dow_factor(function() te$r2e_dcs1_factor) %>%
-      timeout(900 - surgery_at) %>% check_at()
+      timeout(20) %>% r1_treatment() %>% check_at(cohort = FALSE) %>%
+      timeout(30) %>% check_at() %>%
+      timeout(45) %>% resuscitation() %>%
+      timeout(surgery_at - 95) %>% dow_operated(function() 1) %>%
+      stay_in(post_op_r2e_icu, 1440) %>% check_at()
   }))
 }
-early_op <- operated_at(90)
-late_op  <- operated_at(300)
+early_op <- operated_at(180)
+late_op  <- operated_at(720)
 report(late_op > early_op,
-       "an operation ending 300 minutes after injury carries more risk (%.5f) than one at 90 (%.5f)",
+       "an operation ending 12 hours after injury carries more risk (%.5f) than one at 3 (%.5f)",
        late_op, early_op)
 
 # ── 2. Intensive care < holding bed < no treatment ──────────────────────────
 
 cat("\n-- intensive care, then a holding bed, then no treatment --\n")
 
-#' A Priority 1 path through R2E with its recovery in a bed of one multiplier
+#' A Priority 1 path through R2E with its recovery in a bed of one placement
 #'
-#' @param multiplier Zero-argument function returning the recovery bed's
+#' @param placement Zero-argument function returning the recovery bed's
 #'   multiplier, or NULL for a casualty who is neither treated nor operated on.
 #' @return The path's total death probability.
-r2e_path <- function(multiplier) {
-  treated <- !is.null(multiplier)
+r2e_path <- function(placement) {
+  treated <- !is.null(placement)
   total_risk(run_casualty(p1, function(trj) {
     trj <- trj %>% timeout(20) %>% check_at(cohort = FALSE) %>%
-      timeout(100) %>% check_at(arrival = TRUE) %>% timeout(45)
-    if (treated) trj <- trj %>% apply_dow_factor(function() te$r2e_resus_factor)
-    trj <- trj %>% timeout(95)
-    if (treated) trj <- trj %>% apply_dow_factor(function() te$r2e_dcs1_factor)
-    trj <- if (treated) episode(trj, 0, 1440, multiplier) else timeout(trj, 1440)
+      timeout(30) %>% check_at() %>% timeout(45)
+    if (treated) trj <- trj %>% resuscitation()
+    trj <- trj %>% timeout(180)
+    if (treated) trj <- trj %>% dow_operated(function() 1) %>% stay_in(placement, 1440)
+    else trj <- trj %>% timeout(1440)
     trj <- trj %>% check_at() %>% timeout(120)
-    if (treated) trj <- trj %>% apply_dow_factor(function() te$r2e_dcs2_factor)
-    trj <- if (treated) episode(trj, 0, 1440, multiplier) else timeout(trj, 1440)
+    if (treated) trj <- trj %>% stay_in(placement, 1440) else trj <- trj %>% timeout(1440)
     trj %>% check_at()
   }))
 }
-icu_r2e  <- r2e_path(r2e_icu_multiplier)
-hold_r2e <- r2e_path(hold_bed_multiplier)
+icu_r2e  <- r2e_path(post_op_r2e_icu)
+hold_r2e <- r2e_path(post_op_outside_icu)
 none     <- r2e_path(NULL)
 report(icu_r2e < hold_r2e && hold_r2e < none,
        "at R2E: intensive care %.5f < holding bed %.5f < no treatment %.5f",
        icu_r2e, hold_r2e, none)
 
-#' A Priority 1 path operated on at R2B and held forward in a bed of one multiplier
+#' A Priority 1 path operated on at R2B and held forward in a bed of one placement
 #'
-#' @param multiplier Zero-argument function returning the forward bed's multiplier.
+#' @param placement Zero-argument function returning the forward bed's multiplier.
 #' @return The path's total death probability.
-r2b_path <- function(multiplier) {
+r2b_path <- function(placement) {
   total_risk(run_casualty(p1, function(trj) {
     trj %>% timeout(20) %>% check_at(cohort = FALSE) %>%
-      timeout(40) %>% check_at(arrival = TRUE) %>%
-      timeout(45) %>% apply_dow_factor(function() te$r2b_resus_factor) %>%
-      timeout(95) %>% apply_dow_factor(function() te$r2b_dcs_factor) %>%
-      episode(0, FORWARD_WINDOW, multiplier) %>%
-      timeout(30) %>% check_at(arrival = TRUE)
+      timeout(30) %>% check_at() %>%
+      timeout(45) %>% resuscitation() %>%
+      timeout(180) %>% dow_operated(function() 1) %>%
+      stay_in(placement, FORWARD_WINDOW) %>%
+      timeout(30) %>% check_at() %>%
+      timeout(2880 - FORWARD_WINDOW) %>% check_at()
   }))
 }
-icu_r2b  <- r2b_path(r2b_icu_multiplier)
-hold_r2b <- r2b_path(hold_bed_multiplier)
-report(icu_r2b < hold_r2b && hold_r2b < none,
+icu_r2b  <- r2b_path(post_op_r2b_icu)
+hold_r2b <- r2b_path(post_op_outside_icu)
+none_r2b <- total_risk(run_casualty(p1, function(trj) {
+  trj %>% timeout(20) %>% check_at(cohort = FALSE) %>% timeout(30) %>% check_at() %>%
+    timeout(225 + FORWARD_WINDOW + 30) %>% check_at() %>%
+    timeout(2880 - FORWARD_WINDOW) %>% check_at()
+}))
+report(icu_r2b < hold_r2b && hold_r2b < none_r2b,
        "on the R2B forward stay: intensive care %.5f < holding bed %.5f < no treatment %.5f",
-       icu_r2b, hold_r2b, none)
+       icu_r2b, hold_r2b, none_r2b)
 
-# ── 3. One multiplier per episode ───────────────────────────────────────────
+# ── 3. One multiplier per stay ──────────────────────────────────────────────
 
-cat("\n-- one care-quality multiplier per episode --\n")
+cat("\n-- one multiplier per post-operative stay --\n")
 
-rate <- shipped$vars$dow$post_op_hazard$p1_rate / DAY_MIN
-#' The hazard survival banked by one episode
+rate <- rates$p1_rate / DAY_MIN
+#' The risk banked after surgery by one forward stay
 #'
-#' @param multiplier Zero-argument function returning the bed's multiplier.
-#' @param queue Minutes spent waiting for the bed.
-#' @param stay Minutes in the bed.
-#' @return The `dow_hazard_s` the episode leaves.
-banked <- function(multiplier, queue, stay) {
-  mon <- run_casualty(p1, function(trj) episode(trj, queue, stay, multiplier))
-  tail(mon$value[mon$key == "dow_hazard_s"], 1)
+#' @param placement Zero-argument function returning the bed's multiplier.
+#' @return The `dow_risk_late` the stay leaves.
+banked <- function(placement) {
+  mon <- run_casualty(p1, function(trj) {
+    trj %>% dow_operated(function() 1) %>% stay_in(placement, FORWARD_WINDOW)
+  })
+  tail(mon$value[mon$key == "dow_risk_late"], 1)
 }
-hold_bank <- banked(hold_bed_multiplier, 60, FORWARD_WINDOW)
-report(isTRUE(all.equal(hold_bank, exp(-rate * te$hold_bed_penalty * (60 + FORWARD_WINDOW)))),
-       "a forward holding-bed stay carries the holding-bed multiplier alone (%.4f), not %.4f",
-       te$hold_bed_penalty, te$hold_bed_penalty * te$r2b_icu_penalty)
-icu_bank <- banked(r2b_icu_multiplier, 60, FORWARD_WINDOW)
-report(isTRUE(all.equal(icu_bank, exp(-rate * (te$hold_bed_penalty * 60 +
-                                                  te$r2b_icu_penalty * FORWARD_WINDOW)))),
-       "a forward intensive care stay takes %.2f in the bed and %.2f only while waiting for it",
-       te$r2b_icu_penalty, te$hold_bed_penalty)
+hold_bank <- banked(post_op_outside_icu)
+report(isTRUE(all.equal(hold_bank, rate * mult$post_op * mult$hold_bed_penalty * FORWARD_WINDOW)),
+       "a forward holding-bed stay carries the holding-bed penalty alone (%.2f), not %.4f",
+       mult$hold_bed_penalty, mult$hold_bed_penalty * mult$r2b_icu_penalty)
+icu_bank <- banked(post_op_r2b_icu)
+report(isTRUE(all.equal(icu_bank, rate * mult$post_op * mult$r2b_icu_penalty * FORWARD_WINDOW)),
+       "a forward intensive care stay carries the R2B intensive care penalty alone (%.2f)",
+       mult$r2b_icu_penalty)
 
-# ── 4. Priority 3 once; disease never ───────────────────────────────────────
+# ── 4. Priority 3 at its own rate; disease never ────────────────────────────
 
-cat("\n-- Priority 3 risk is charged once; disease faces none --\n")
+cat("\n-- Priority 3 is charged its rate alone; disease faces no risk --\n")
 
-p3 <- c(priority = 3, dow_ceiling = dp$p3_flat, dnbi_type = NA)
+p3 <- c(priority = 3, surgery = 0, dnbi_type = NA)
 p3_probs <- check_probs(run_casualty(p3, function(trj) {
-  trj %>% timeout(20) %>% check_at(cohort = FALSE) %>%
-    timeout(40) %>% check_at(arrival = TRUE) %>%
-    timeout(60) %>% check_at(arrival = TRUE) %>%
+  trj %>% timeout(60) %>% check_at() %>% resuscitation() %>%
     timeout(600) %>% check_at()
 }))
-report(isTRUE(all.equal(p3_probs, c(0, dp$p3_flat, 0, 0))),
-       "a Priority 3 casualty is charged %s at R1, R2B, R2E and the post-operative check",
-       paste(format(p3_probs, digits = 3), collapse = ", "))
+expected_p3 <- 1 - exp(-rates$p3_rate / DAY_MIN * 60)
+report(isTRUE(all.equal(p3_probs, c(expected_p3, 0))),
+       "an unoperated Priority 3 casualty is charged %.6f by its first check and nothing after resuscitation",
+       expected_p3)
 
 env_data <- shipped
-env_data$vars$dow$accrual$enabled <- 1
+env_data$vars$dow$care_state$enabled <- 1
 env <- simmer()
 probe <- trajectory() %>%
   set_attribute(c("priority", "r2e_surgery"), function() c(3, as.numeric(now(env) > 0))) %>%
@@ -305,12 +317,12 @@ env %>% add_generator("p3_wait", probe, at(0, 1), mon = 2) %>% run() %>% invisib
 deaths <- get_mon_attributes(env) %>% filter(key == "ame_death_time")
 report(is.na(deaths$value[deaths$name == "p3_wait0"]) &&
          !is.na(deaths$value[deaths$name == "p3_wait1"]),
-       "awaiting airlift, an unoperated Priority 3 casualty faces no risk and an operated one the hazard alone")
+       "awaiting airlift, an unoperated Priority 3 casualty faces no risk and an operated one does")
 
-disease <- c(priority = 1, dow_ceiling = dp$p1_p_max, dnbi_type = 2)
+disease <- c(priority = 1, surgery = 1, dnbi_type = 2)
 disease_probs <- check_probs(run_casualty(disease, function(trj) {
-  trj %>% timeout(60) %>% check_at(arrival = TRUE) %>%
-    episode(0, 1440, hold_bed_multiplier) %>% check_at()
+  trj %>% timeout(60) %>% check_at() %>% dow_operated(function() 1) %>%
+    stay_in(post_op_outside_icu, 1440) %>% check_at()
 }))
 report(all(disease_probs == 0),
        "a disease casualty faces no risk at any check (%s)",
@@ -338,53 +350,23 @@ report(nrow(routes) == 3,
        "the campaign reaches all three holding-bed routes (%s)",
        paste(routes$key, collapse = ", "))
 
-rises <- attrs %>%
-  filter(key == "dow_ceiling") %>%
-  arrange(replication, name, time) %>%
-  group_by(replication, name) %>%
-  summarise(rose = any(diff(value) > 1e-15, na.rm = TRUE), .groups = "drop")
-report(nrow(rises) > 0 && !any(rises$rose),
-       "no casualty's ceiling rises (%d casualties, %d with a rise)",
-       nrow(rises), sum(rises$rose))
-
-# Each banked hazard is checked against the multipliers it could imply: the
-# exposure an update records, less the holding-bed charge for any wait, over
-# the time in the bed, must be one of the configured multipliers.
-rates <- shipped$vars$dow$post_op_hazard
-hazard_rows <- attrs %>%
-  filter(key %in% c("dow_hazard_s", "dow_episode_entry", "dow_episode_bed", "priority")) %>%
-  arrange(replication, name, time)
-#' The multipliers one casualty's banked hazards imply
-#'
-#' @param rows Attribute rows of one casualty, in time order.
-#' @return Numeric vector of implied multipliers, one per episode.
-implied <- function(rows) {
-  prio <- rows$value[rows$key == "priority"][1]
-  r <- c(rates$p1_rate, rates$p2_rate, rates$p3_rate)[prio] / DAY_MIN
-  s <- rows[rows$key == "dow_hazard_s", ]
-  out <- numeric(0)
-  prev <- 1
-  for (i in seq_len(nrow(s))) {
-    if (s$value[i] == 1) {
-      prev <- 1
-      next
-    }
-    entry <- tail(rows$value[rows$key == "dow_episode_entry" & rows$time <= s$time[i]], 1)
-    bed <- tail(rows$value[rows$key == "dow_episode_bed" & rows$time <= s$time[i]], 1)
-    exposure <- -log(s$value[i] / prev) / r
-    out <- c(out, (exposure - te$hold_bed_penalty * (bed - entry)) / (s$time[i] - bed))
-    prev <- s$value[i]
-  }
-  out
-}
-multipliers <- unlist(lapply(split(hazard_rows, list(hazard_rows$replication, hazard_rows$name),
-                                   drop = TRUE), implied))
-multipliers <- multipliers[is.finite(multipliers)]
-allowed <- c(1, te$r2b_icu_penalty, te$hold_bed_penalty)
-off <- multipliers[vapply(multipliers, function(m) min(abs(m - allowed)) > 1e-6, logical(1))]
-report(length(multipliers) > 0 && length(off) == 0,
-       "every banked hazard implies a configured multiplier (%d episodes, %d otherwise)",
-       length(multipliers), length(off))
+allowed <- c(0, 1, mult$r1_treatment, mult$r1_treatment * mult$resuscitation,
+             mult$post_op, mult$post_op * mult$r2b_icu_penalty,
+             mult$post_op * mult$hold_bed_penalty)
+taken <- unique(attrs$value[attrs$key == "dow_mult"])
+off <- taken[vapply(taken, function(m) min(abs(m - allowed)) > 1e-12, logical(1))]
+report(length(taken) > 0 && length(off) == 0,
+       "every care state taken carries a configured multiplier (%d distinct, %d otherwise)",
+       length(taken), length(off))
+after <- attrs %>%
+  filter(key %in% c("dow_mult", "dow_phase")) %>%
+  group_by(replication, name, time) %>%
+  filter(any(key == "dow_phase" & value == 1)) %>%
+  ungroup() %>%
+  filter(key == "dow_mult")
+report(nrow(after) > 0 && all(after$value <= mult$post_op * mult$hold_bed_penalty + 1e-12),
+       "no state after surgery exceeds the holding-bed multiplier (%d post-operative states)",
+       nrow(after))
 
 # ── 6. The legacy setting reproduces the earlier model ──────────────────────
 
@@ -400,7 +382,7 @@ if (SKIP_REPRODUCTION) {
   for (i in seq_along(legacy$vars)) {
     if (!identical(legacy$vars[[i]]$elm, "dow")) next
     for (j in seq_along(legacy$vars[[i]]$actys)) {
-      if (identical(legacy$vars[[i]]$actys[[j]]$acty, "accrual")) {
+      if (identical(legacy$vars[[i]]$actys[[j]]$acty, "care_state")) {
         legacy$vars[[i]]$actys[[j]]$vals[[1]]$val <- 0
       }
     }
@@ -429,5 +411,5 @@ if (length(state$failures)) {
   for (f in state$failures) cat(sprintf("  - %s\n", f))
   quit(status = 1)
 }
-cat("All died-of-wounds mechanism checks passed.\n")
+cat("All died-of-wounds model checks passed.\n")
 quit(status = 0)

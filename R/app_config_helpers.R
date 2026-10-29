@@ -143,41 +143,39 @@ render_tri_curve <- function(mn, mode, mx) {
           plot.margin = margin(2, 4, 2, 4))
 }
 
-#' Render a small live curve preview of the DOW survival function F(t) for
-#' one priority cohort
+#' Render a small live preview of the worked died-of-wounds casualties
 #'
-#' @details Uses dow_prob() (R/trajectories_common.R) directly, so the curve shown
-#'   is the exact shifted-logistic function the simulation evaluates at
-#'   each DOW check — not an approximation. p_max is the live Configure
-#'   slider value for this priority; p_base, k, and t_mid are read from the
-#'   resolved scenario JSON and are not user-editable in this app (see the
-#'   read-only fields alongside the curve), so the curve's ceiling moves as
-#'   the slider is dragged while its floor and shape track whichever
-#'   Casualty Intensity Profile is active.
-#' @param p_base,p_max,k,t_mid Parameters as for dow_prob() (R/trajectories_common.R).
-#' @param window_max Upper bound of the plotted time window in minutes; when
-#'   NULL (default), sized to comfortably show the curve reach its plateau.
-#' @return A ggplot of the survival function, blank where the parameters do
-#'   not describe a rising logistic.
-render_dow_curve <- function(p_base, p_max, k, t_mid, window_max = NULL) {
-  invalid <- is.null(p_base) || is.null(p_max) || is.null(k) || is.null(t_mid) ||
-    any(is.na(c(p_base, p_max, k, t_mid))) || p_max <= p_base || k <= 0
-  if (invalid) return(ggplot() + theme_void())
-  if (is.null(window_max)) window_max <- t_mid + 6 / k
-  x <- seq(0, window_max, length.out = 200)
-  y <- dow_prob(x, p_base, p_max, k, t_mid)
-  ggplot(data.frame(x = x, y = y), aes(x, y)) +
-    geom_area(fill = "#c0392b", alpha = 0.15) +
-    geom_line(color = "#c0392b", linewidth = 0.9) +
-    geom_hline(yintercept = p_max, linetype = "dashed", color = "#888888", linewidth = 0.5) +
-    geom_vline(xintercept = t_mid, linetype = "dotted", color = "#888888", linewidth = 0.5) +
-    scale_y_continuous(limits = c(0, max(p_max * 1.1, 1e-3)), labels = scales::percent) +
-    labs(x = NULL, y = NULL, subtitle = "DOW probability F(t) vs. minutes since injury") +
+#' @details Draws the four Priority 1 casualties of R/dow_examples.R, whose
+#'   care follows fixed timings, as the chance each has died by every point of
+#'   their first ten days. The curves are the closed-form risk of the
+#'   care-state model rather than a run, so they move as soon as a multiplier
+#'   is changed.
+#' @param p1_rate The Priority 1 base rate, deaths per day of untreated injury.
+#' @param multipliers The `dow.multipliers` values, the two penalties live from
+#'   the Configure fields.
+#' @return A ggplot of the four curves on a logarithmic scale, blank where a
+#'   value is missing.
+render_dow_preview <- function(p1_rate, multipliers) {
+  if (is.null(p1_rate) || any(vapply(multipliers, function(v) is.null(v) || is.na(v),
+                                     logical(1)))) {
+    return(ggplot() + theme_void())
+  }
+  hours <- seq(1, 240, by = 1)
+  paths <- dow_example_paths(multipliers)
+  df <- do.call(rbind, lapply(names(paths), function(n) {
+    data.frame(day = hours / 24, risk = dow_example_risk(paths[[n]], p1_rate, hours),
+               casualty = n)
+  }))
+  df$casualty <- factor(df$casualty, levels = names(paths))
+  ggplot(df, aes(day, risk, colour = casualty)) +
+    geom_line(linewidth = 0.8) +
+    scale_y_log10(labels = scales::label_percent(accuracy = 0.01)) +
+    scale_colour_manual(values = c("#0f7c6a", "#a88412", "#c46a12", "#b3261e")) +
+    labs(x = "days since injury", y = NULL, colour = NULL) +
     theme_minimal(base_size = 9) +
-    theme(axis.text.y = element_text(size = 6), axis.ticks.y = element_blank(),
-          panel.grid.minor = element_blank(),
-          plot.subtitle = element_text(size = 8, color = "#888888"),
-          plot.margin = margin(2, 4, 2, 4))
+    theme(legend.position = "bottom", legend.text = element_text(size = 7),
+          panel.grid.minor = element_blank(), plot.margin = margin(2, 4, 2, 4)) +
+    guides(colour = guide_legend(nrow = 2))
 }
 
 #' Recolour a two-handle ion.rangeSlider's track to show all three

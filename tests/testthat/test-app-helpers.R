@@ -95,7 +95,9 @@ test_that("each configuration preview renders a plot rather than erroring", {
   expect_s3_class(render_gen_curve(10, 4, "lognormal"), "ggplot")
   expect_s3_class(render_gen_curve(10, 4, "exponential"), "ggplot")
   expect_s3_class(render_tri_curve(10, 20, 40), "ggplot")
-  expect_s3_class(render_dow_curve(0.001, 0.02, 0.5, 240), "ggplot")
+  expect_s3_class(render_dow_preview(0.01, list(r1_treatment = 1, resuscitation = 0.9,
+                                                post_op = 0.05, r2b_icu_penalty = 1.31,
+                                                hold_bed_penalty = 1.64)), "ggplot")
 })
 
 test_that("a degenerate triangular preview does not error", {

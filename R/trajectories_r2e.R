@@ -225,17 +225,12 @@ legacy_hold_penalty <- function(trj) {
 
 #' Builds one post-operative stay, placed in the best bed free when it begins
 #'
-#' @param label           Name of the stay, used in its trajectory names
-#' @param icu_beds        This R2E team's intensive care beds
-#' @param hold_beds       This R2E team's holding beds
-#' @param overflow        This R2E team's post-operative overflow resource
-#' @param minutes_attr    Attribute holding the minutes to serve, set before
-#'   this trajectory is joined
-#' @param start_attr      Attribute recording when the stay began
-#' @param bed_attr        Attribute recording the placement: 1 intensive care,
-#'   2 holding bed, 3 overflow
-#' @param hold_start_attr Attribute recording when a holding bed was taken,
-#'   which the holding occupancy split reads (R/airlift.R)
+#' @param label     Name of the stay, used in its trajectory names
+#' @param stay      "stabilisation" or "post_definitive", which selects the
+#'   attributes the stay reads and records
+#' @param icu_beds  This R2E team's intensive care beds
+#' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's post-operative overflow resource
 #' @return Simmer trajectory serving the stay and leaving the casualty in
 #'   post-operative care outside intensive care when it ends.
 #'
@@ -247,40 +242,68 @@ legacy_hold_penalty <- function(trj) {
 #'   overflow being at best holding-standard care, or under the legacy mechanism
 #'   the raised ceiling (legacy_hold_penalty()).
 #'
+#'   A stabilisation serves `r2e_post_op_min` and records `r2e_post_op_start`,
+#'   `post_op_pathway` and, in a holding bed, `r2e_post_op_hold_start`; a
+#'   post-definitive stay serves `post_definitive_min` and records
+#'   `post_definitive_start`, `post_definitive_pathway` and
+#'   `post_definitive_hold_start`. The holding start is what the holding
+#'   occupancy split reads (R/airlift.R).
+#'
 #'   MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
 #'   Priority 1 casualty even when no post-operative intensive care bed is
 #'   available, accepting elevated post-operative mortality risk rather than
 #'   withholding surgery. See README Further Development for basis,
 #'   uncertainty, and consequence.
-r2e_placed_stay <- function(label, icu_beds, hold_beds, overflow, minutes_attr,
-                            start_attr, bed_attr, hold_start_attr) {
+r2e_placed_stay <- function(label, stay, icu_beds, hold_beds, overflow) {
+  stabilisation <- identical(stay, "stabilisation")
+  minutes_attr <- if (stabilisation) "r2e_post_op_min" else "post_definitive_min"
+  #' Records the placement taken
+  #'
+  #' @param bed 1 intensive care, 2 holding bed, 3 overflow.
+  #' @return A trajectory setting this stay's placement attribute.
+  record_bed <- function(bed) {
+    force(bed)
+    if (stabilisation) return(trajectory() %>% set_attribute("post_op_pathway", bed))
+    trajectory() %>% set_attribute("post_definitive_pathway", bed)
+  }
+  record_start <- if (stabilisation) {
+    trajectory() %>% set_attribute("r2e_post_op_start", function() now(env))
+  } else {
+    trajectory() %>% set_attribute("post_definitive_start", function() now(env))
+  }
+  record_hold <- if (stabilisation) {
+    trajectory() %>% set_attribute("r2e_post_op_hold_start", function() now(env))
+  } else {
+    trajectory() %>% set_attribute("post_definitive_hold_start", function() now(env))
+  }
+
   # Branches on the best placement free at this instant (placement_now()):
   # - 1 an intensive care bed is free         -> intensive care
   # - 2 none, but a holding bed is free        -> holding bed
   # - 3 neither                                -> overflow, with no bed
   trajectory(label) %>%
-    set_attribute(start_attr, function() now(env)) %>%
+    join(record_start) %>%
     branch(
       option = function() placement_now(icu_beds, hold_beds),
       continue = TRUE,
       trajectory(paste(label, "in Intensive Care")) %>%
-        set_attribute(bed_attr, 1) %>%
+        join(record_bed(1)) %>%
         simmer::select(icu_beds, policy = "first-available", id = 6) %>%
         seize_selected(id = 6) %>%
         dow_placement(post_op_r2e_icu) %>%
         timeout_from_attribute(minutes_attr) %>%
         release_selected(id = 6),
       trajectory(paste(label, "in a Holding Bed")) %>%
-        set_attribute(bed_attr, 2) %>%
+        join(record_bed(2)) %>%
         legacy_hold_penalty() %>%
         simmer::select(hold_beds, policy = "first-available", id = 8) %>%
         seize_selected(id = 8) %>%
-        set_attribute(hold_start_attr, function() now(env)) %>%
+        join(record_hold) %>%
         dow_placement(post_op_outside_icu) %>%
         timeout_from_attribute(minutes_attr) %>%
         release_selected(id = 8),
       trajectory(paste(label, "in Overflow")) %>%
-        set_attribute(bed_attr, 3) %>%
+        join(record_bed(3)) %>%
         legacy_hold_penalty() %>%
         seize(overflow, 1) %>%
         overflow_enter() %>%
@@ -316,9 +339,8 @@ r2e_placed_stay <- function(label, icu_beds, hold_beds, overflow, minutes_attr,
 #'   stay is placed when the operation ends (r2e_placed_stay()), and
 #'   post_op_pathway records where it was served.
 r2e_stabilisation_recovery <- function(icu_beds, hold_beds, overflow, post_op_dow) {
-  stay <- r2e_placed_stay("R2E Damage Control Stabilisation", icu_beds, hold_beds,
-                          overflow, "r2e_post_op_min", "r2e_post_op_start",
-                          "post_op_pathway", "r2e_post_op_hold_start")
+  stay <- r2e_placed_stay("R2E Damage Control Stabilisation", "stabilisation",
+                          icu_beds, hold_beds, overflow)
   trajectory("R2E Stabilisation") %>%
     branch(
       # A casualty operated on at R2B took their stabilisation before this
@@ -358,9 +380,8 @@ r2e_stabilisation_recovery <- function(icu_beds, hold_beds, overflow, post_op_do
 #'   the repair whatever the state of intensive care, the stay being placed
 #'   rather than queued for (r2e_placed_stay()).
 r2e_pre_surgery_stabilisation <- function(icu_beds, hold_beds, overflow) {
-  stay <- r2e_placed_stay("R2E Pre-Definitive Stabilisation", icu_beds, hold_beds,
-                          overflow, "r2e_post_op_min", "r2e_post_op_start",
-                          "post_op_pathway", "r2e_post_op_hold_start")
+  stay <- r2e_placed_stay("R2E Pre-Definitive Stabilisation", "stabilisation",
+                          icu_beds, hold_beds, overflow)
   trajectory("R2E Pre-Definitive Stabilisation") %>%
     branch(
       option = function() {
@@ -455,9 +476,8 @@ r2e_post_definitive_minutes <- function() {
 #'   died-of-wounds check (r2e_post_definitive_dow_check()).
 r2e_post_definitive_care <- function(icu_beds, hold_beds, overflow, team_id, evac_team) {
   post_definitive_check <- r2e_post_definitive_dow_check(team_id, evac_team)
-  stay <- r2e_placed_stay("R2E Post-Definitive Care", icu_beds, hold_beds, overflow,
-                          "post_definitive_min", "post_definitive_start",
-                          "post_definitive_pathway", "post_definitive_hold_start")
+  stay <- r2e_placed_stay("R2E Post-Definitive Care", "post_definitive",
+                          icu_beds, hold_beds, overflow)
 
   # Branches on what the casualty owes this echelon:
   # - 1 an operation with post-definitive care still owed -> the placed stay

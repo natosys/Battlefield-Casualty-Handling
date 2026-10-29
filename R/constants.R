@@ -8,28 +8,32 @@
 # an entry point sources the set it needs, and a regression check often sources
 # only one. Sourcing this file more than once is harmless.
 
-# Minutes in a simulated day. This is the single definition of the quantity.
-# The `day_min` global that the execution model carries (see CLAUDE.md's Code
-# Standards) is assigned from it by every entry point; use that global inside
-# the model and the analysis pipeline, and this constant where no entry point
-# has run yet, or in a parameter default, which cannot name a global of its own
-# name without resolving to the parameter itself.
+#' Minutes in a simulated day
+#'
+#' @details This is the single definition of the quantity. The `day_min` global
+#'   that the execution model carries (see CLAUDE.md's Code Standards) is
+#'   assigned from it by every entry point; use that global inside the model and
+#'   the analysis pipeline, and this constant where no entry point has run yet,
+#'   or in a parameter default, which cannot name a global of its own name
+#'   without resolving to the parameter itself.
 DAY_MIN <- 1440L
 
-# Every per-casualty attribute key the model can set. `build_attributes_wide()`
-# (R/analysis.R) guarantees one column per key, all-NA where no casualty set it,
-# so that the pivot of the attributes monitor has the same shape whatever a run
-# happened to produce. Without that guarantee the shape depends on the run: a
-# campaign in which nobody returned to duty has no `return_day` column at all,
-# and analysis code referring to one fails with an object-not-found error rather
-# than reading an empty result. The list is the model's, not the analysis
-# pipeline's, which is why it lives here; tests/checks/check_absent_attribute_columns.R
-# asserts it against the set_attribute() calls in R/trajectories.R so the two
-# cannot drift.
+#' Every per-casualty attribute key the model can set
+#'
+#' @details `build_attributes_wide()` (R/analysis.R) guarantees one column per
+#'   key, all-NA where no casualty set it, so that the pivot of the attributes monitor has
+#'   the same shape whatever a run happened to produce. Without that guarantee
+#'   the shape depends on the run: a campaign in which nobody returned to duty
+#'   has no `return_day` column at all, and analysis code referring to one fails
+#'   with an object-not-found error rather than reading an empty result. The list
+#'   is the model's, not the analysis pipeline's, which is why it lives here;
+#'   tests/checks/check_absent_attribute_columns.R asserts it against the
+#'   set_attribute() calls in R/trajectories.R so the two cannot drift.
 MODEL_ATTRIBUTE_KEYS <- c(
   "ame_death_time", "ame_departure_time", "ame_hold_end", "ame_hold_start", "ame_icu_hold",
   "ame_icu_hold_minutes",
-  "ame_icu_hold_start", "ame_preflight_min", "ame_route", "ame_stage_start", "ame_wait_minutes", "bed_budget", "bed_retained_t",
+  "ame_icu_hold_start", "ame_preflight_min", "ame_route", "ame_stage_start",
+  "ame_wait_minutes", "bed_budget", "bed_retained_t",
   "bed_waited", "bf_restoration", "dcs_pathway",
   "definitive_repair_minutes", "definitive_repair_outstanding",
   "dnbi_type", "dow", "dow_care", "dow_ceiling", "dow_check_p", "dow_echelon",
@@ -62,18 +66,21 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "treatment_start_time"
 )
 
-# Overflow: where a casualty is cared for when neither the bed its care calls
-# for nor a holding bed is free. Each point of care where the model places a
-# casualty rather than queueing it for a bed has its own unlimited resource per
-# team, so the resource monitor's server count for it is the overflow census at
-# that point and no casualty ever queues there. The points are named by echelon
-# (the configuration's r2b and r2eheavy elements, written r2b and r2e here).
+#' Points of care where a casualty is placed in overflow when no bed is free
+#'
+#' @details Overflow is where a casualty is cared for when neither the bed its
+#'   care calls for nor a holding bed is free. Each point of care where the model
+#'   places a casualty rather than queueing it for a bed has its own unlimited
+#'   resource per team, so the resource monitor's server count for it is the
+#'   overflow census at that point and no casualty ever queues there. The points
+#'   are named by echelon (the configuration's r2b and r2eheavy elements, written
+#'   r2b and r2e here).
 OVERFLOW_POINTS <- list(
   r2b = "reception",
   r2e = c("post_op", "pre_flight", "staging")
 )
 
-# Name of one overflow resource: echelon, point of care, team index.
+#' Name format of one overflow resource: echelon, point of care, team index
 OVERFLOW_RESOURCE_FMT <- "overflow_%s_%s_%d"
 
 #' Name of the overflow resource at one point of care of one team

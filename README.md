@@ -1837,7 +1837,7 @@ The simulation produces a defined set of Key Performance Indicators (KPIs) organ
 - **Computation:** `pmin(r2b_surgery_start, r2e_surgery_1_start, na.rm = TRUE) - start_time`; exclude KIA and DOW cases where death preceded any surgery; report mean, p10, p90.
 - **Limitation:** Measured from R1 arrival, not point of injury. The POI-to-R1 component (evacuation from point of wounding to R1) is outside the model's scope and must be added separately to compare against the doctrinal 2-hour standard.
 
-**R2B Dwell Time.** Time (minutes) a casualty spends at R2B from treatment start (`r2b_treatment_start_time`) to departure towards R2E (`r2b_departure_time`).
+**R2B Dwell Time.** Time (minutes) a casualty spends at R2B from treatment start (`r2b_treatment_start_time`) to departure towards R2E (`r2b_departure_time`), or to return to duty from an R2B holding bed (`return_day` where `return_echelon` is 2).
 
 - **Doctrinal basis:** AJP-4.10 [[33]](#references) prescribes no R2B (Role 2 Basic) dwell limit; the nearest standard is the (+2) element of its timeline, further stabilising care within 2 hours of tactical evacuation after damage control surgery (para 3.20). Extended dwell indicates holding capacity pressure.
 - **Criteria:** C1, C3, C4
@@ -1966,7 +1966,7 @@ The p90 carries no such horizon, being a point on the curve rather than an area 
 | Total DOW count                          | Mortality             | `dow`                                                                         | C1, C2, C5 | `sum(dow == 1)`                                                                     |
 | DOW rate by echelon                      | Mortality             | `dow`, `dow_echelon`                                                          | C1–C3, C5  | `dow_by_echelon`                                                                    |
 | Time to first surgery                    | Time-to-care          | `r2b_surgery_start`, `r2e_surgery_1_start`, `start_time`                      | C1–C3, C5  | `time_to_first_surgery`                                                             |
-| R2B dwell time                           | Time-to-care          | `r2b_treatment_start_time`, `r2b_departure_time`                              | C1, C3, C4 | `r2b_dwell_time`                                                                    |
+| R2B dwell time                           | Time-to-care          | `r2b_treatment_start_time`, `r2b_departure_time`, `return_day`                | C1, C3, C4 | `r2b_dwell_time`                                                                    |
 | R2B→R2E transit                          | Time-to-care          | `r2b_departure_time`, `r2e_arrival_time`                                      | C1, C3     | `r2b_r2e_transit_time`                                                              |
 | R2E dwell time                           | Time-to-care          | `r2e_arrival_time`, `r2e_departure_time`                                      | C1, C3, C4 | `r2e_dwell_time`                                                                    |
 | OT utilisation                           | Surgical              | resource monitor                                                              | C3, C4     | `ot_utilisation`                                                                    |

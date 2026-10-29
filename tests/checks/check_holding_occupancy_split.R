@@ -349,17 +349,23 @@ report(abs(backlog$split$evacuation_bed_days - (critical_only + standard_only)) 
        "the component is both routes together (%.3f = %.3f critical + %.3f standard)",
        backlog$split$evacuation_bed_days, critical_only, standard_only)
 
-# A ventilated critical casualty's holding stay is shorter than its whole wait,
-# the pre-flight period being served in an intensive care bed. This is what
-# makes the component smaller than the wait rather than equal to it.
+# A ventilated critical casualty whose pre-flight care is served in intensive
+# care or overflow reaches a holding bed only on stepping down, so its holding
+# stay is shorter than its whole wait; one whose pre-flight care is placed in a
+# holding bed takes it at the decision and keeps it. This is what makes the
+# component smaller than the wait rather than equal to it.
 vent <- backlog$wide[!is.na(backlog$wide$ame_icu_hold) & backlog$wide$ame_icu_hold == 1 &
                        !is.na(backlog$wide$ame_hold_start) &
-                       !is.na(backlog$wide$r2e_departure_time), ]
+                       !is.na(backlog$wide$r2e_departure_time) &
+                       !is.na(backlog$wide$r2e_preflight_bed) &
+                       backlog$wide$r2e_preflight_bed != 2, ]
 report(nrow(vent) > 0,
-       "the run carries ventilated pre-flight holds, so this is not vacuous (%d)", nrow(vent))
+       "the run carries ventilated pre-flight care outside a holding bed, so this is not vacuous (%d)",
+       nrow(vent))
 if (nrow(vent) > 0) {
   report(all(vent$ame_hold_start > vent$r2e_departure_time),
-         "every ventilated casualty reaches its staging bed after the decision, not at it")
+         paste("every ventilated casualty cared for outside a holding bed before flight",
+               "reaches its staging bed after the decision, not at it"))
 }
 
 cat("\n-- the evacuation component agrees with a casualty-by-casualty recount --\n")

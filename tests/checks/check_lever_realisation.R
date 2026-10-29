@@ -398,7 +398,8 @@ cat(sprintf("\n-- R2B holding evacuation threshold (%d days, seed %d, threshold 
             HOLD_DAYS, CHECK_SEED, HOLD_THRESHOLD))
 
 hold_keys <- c("r2b_hold_drawn", "r2b_hold_evac", "r2b_hold_served",
-               "r2b_hold_residual", "recovery_to_duty_days", "return_echelon")
+               "r2b_hold_residual", "r2b_hold_waited", "recovery_to_duty_days",
+               "return_echelon")
 
 ed <- env_data_base
 ed$vars$r2b$holding$evac_threshold <- HOLD_THRESHOLD
@@ -457,10 +458,14 @@ if (nrow(evacuated) == 0) {
   # Check 10: the casualty's one draw survives the move. R2E reads the
   # convalescence drawn at R2B rather than drawing its own, so the duration it
   # holds is the whole of the draw, of which the residual is the part left to
-  # serve.
+  # serve. A casualty that queued for its bed convalesced while it queued, so
+  # the bed served what was left (`r2b_hold_drawn`) and the time queued
+  # (`r2b_hold_waited`) makes up the rest of the draw.
   reached <- evacuated %>% filter(!is.na(recovery_to_duty_days))
   if (nrow(reached)) {
-    gap <- abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_drawn)
+    waited <- if ("r2b_hold_waited" %in% names(reached)) reached$r2b_hold_waited else 0
+    waited[is.na(waited)] <- 0
+    gap <- abs(reached$recovery_to_duty_days * DAY_MIN - reached$r2b_hold_drawn - waited)
     ok <- max(gap) < 1e-6
     if (!ok) {
       fail(paste("%d evacuated casualties drew a fresh R2E recovery duration instead of",

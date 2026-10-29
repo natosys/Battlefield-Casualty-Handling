@@ -333,3 +333,22 @@ ci_by_group <- function(df, group_cols, value_col, clamp_lower_zero = TRUE) {
   if (clamp_lower_zero) out$ci_lower <- pmax(out$ci_lower, 0)
   out
 }
+
+#' The instant each casualty left R2B, for the R2B dwell interval
+#'
+#' @param combined One row per casualty, carrying `r2b_departure_time`,
+#'   `return_day` and `return_echelon`.
+#' @return Numeric vector of minutes: the departure towards R2E, or the return
+#'   to duty from R2B, NA for a casualty still there.
+#'
+#' @details A casualty returned to duty from an R2B holding bed never departs
+#'   towards R2E, and reading the departure alone would carry every such
+#'   casualty as still at R2B when the run ends, a censored stay that never
+#'   closes.
+r2b_leave_time <- function(combined) {
+  departed <- suppressWarnings(as.numeric(combined$r2b_departure_time))
+  returned <- suppressWarnings(as.numeric(combined$return_day))
+  echelon  <- suppressWarnings(as.numeric(combined$return_echelon))
+  ifelse(!is.na(departed), departed,
+         ifelse(!is.na(echelon) & echelon == 2, returned, NA_real_))
+}

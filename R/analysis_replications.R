@@ -628,7 +628,8 @@ summarise_treatment_intervals_ci <- function(clamp_ci, combined) {
     clamp_ci(ci_mean(per_rep$mean_val[is.finite(per_rep$mean_val)]))
   }
 
-  r2b_dwell_time_ci <- censored_per_rep_ci("r2b_treatment_start_time", "r2b_departure_time")
+  combined$r2b_leave_time <- r2b_leave_time(combined)
+  r2b_dwell_time_ci <- censored_per_rep_ci("r2b_treatment_start_time", "r2b_leave_time")
   r2b_r2e_transit_time_ci <- censored_per_rep_ci("r2b_departure_time", "r2e_arrival_time")
   r2e_dwell_time_ci <- censored_per_rep_ci("r2e_arrival_time", "r2e_departure_time")
 

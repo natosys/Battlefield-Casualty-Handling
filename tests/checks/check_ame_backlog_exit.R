@@ -247,8 +247,10 @@ arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
 wide <- build_attributes_wide(attributes, arrivals) %>%
   dplyr::right_join(arrivals, by = c("name", "replication"), suffix = c("", "_arrival"))
 
+# Staged in a holding bed or in overflow alike: ame_stage_start is set either
+# way, ame_hold_start only for a bed.
 died <- wide[!is.na(wide$dow_echelon) & wide$dow_echelon == 5 &
-               !is.na(wide$ame_hold_start), ]
+               !is.na(wide$ame_stage_start), ]
 report(nrow(died) > 0,
        "the run carries a casualty who died awaiting a sortie, so this is not vacuous (%d)",
        nrow(died))
@@ -260,8 +262,8 @@ report(nrow(run_backlog) > 0, "the run produced a backlog series (%d events)",
        nrow(run_backlog))
 
 # The two reconstructions differ by the casualties that died, and by nothing
-# else: every other casualty releases its bed at the instant it boards, so the
-# release and the departure are the same event for them.
+# else: every other casualty releases its staging placement at the instant it
+# boards, so the release and the departure are the same event for them.
 close <- CHECK_DAYS * DAY_MIN
 corrected <- run_backlog %>%
   group_by(pool) %>%

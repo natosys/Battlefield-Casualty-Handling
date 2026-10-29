@@ -1518,7 +1518,7 @@ A theatre alone is not enough: by default R2B fields one surgical section per te
 
 Holding is not free, and the model shows why. R2B has one theatre per team, and a held casualty occupies it for the wait and then for the operation, so each hold displaces the cases arriving behind it. Whether that trade favours holding is a question for the parameter sweep rather than for the default, and the [results paper](docs/Results.md#r2b-pre-open-hold-window) reports what it costs and returns at the shipped value. Setting the window to zero restores the instant diversion exactly, which `tests/checks/check_pre_open_window.R` asserts along with the properties of the hold itself.
 
-What the operation was determines what follows it. For a casualty on the damage control pathway the forward procedure is the abbreviated one, so a stabilisation phase follows and the definitive repair waits at R2E. For a single-stage casualty the forward procedure is their definitive repair: no stabilisation phase follows, and they need no further operation, so they move on to R2E for post-definitive intensive care. Whether either casualty is first held forward at R2B for part of that intensive care is decided for them individually when the operation ends (see [Post-Operative Stabilisation](#post-operative-stabilisation)). Casualties evacuated to R2E take 15 to 45 minutes to move, most often 30. If the unit's evacuation crew is out, the casualty waits for it in the best placement free at that moment, never queued for (`r2b_wait_for_evac()`, recorded as `r2b_evac_wait_bed`): an intensive care bed with the intensive care section if both are free, otherwise a holding bed, otherwise overflow, with no bed. In every case the casualty boards as soon as the crew returns and then releases what it holds, so the vehicle alone sets the departure; a casualty awaiting onward movement is staged where a bed is free [[33]](#references), and nobody waits for an intensive care bed solely in order to wait for an ambulance.
+What the operation was determines what follows it. For a casualty on the damage control pathway the forward procedure is the abbreviated one, so a stabilisation phase follows and the definitive repair waits at R2E. For a single-stage casualty the forward procedure is their definitive repair: no stabilisation phase follows, and they need no further operation, so they move on to R2E for post-definitive intensive care. Whether either casualty is first held forward at R2B for part of that intensive care is decided for them individually when the operation ends (see [Post-Operative Stabilisation](#post-operative-stabilisation)). Casualties evacuated to R2E take 15 to 45 minutes to move, most often 30. If the unit's evacuation crew is out, the casualty waits for it in the best placement free at that moment, never queued for (`r2b_wait_for_evac()`, recorded as `r2b_evac_wait_bed`): an intensive care bed if one is free, otherwise a holding bed, otherwise overflow, with no bed. The bed is taken alone, as every intensive care stay in the model is: the unit's intensive care section of two nurses and two medics staffs both of its beds rather than being held by one casualty. In every case the casualty boards as soon as the crew returns and then releases what it holds, so the vehicle alone sets the departure; a casualty awaiting onward movement is staged where a bed is free [[33]](#references), and nobody waits for an intensive care bed solely in order to wait for an ambulance.
 
 #### Post-Operative Stabilisation
 
@@ -1593,14 +1593,14 @@ flowchart TD
     T --> U["Transfer to R2E"]
     U --> V["Release Evac Team"]
     V --> Z
-    O -- No --> W{"ICU Bed and<br>ICU Section Free?"}
-    W -- Yes --> W1["Seize ICU Bed <br> Seize ICU Section"]
+    O -- No --> W{"ICU Bed Free?"}
+    W -- Yes --> W1["Seize ICU Bed"]
     W -- "No, hold bed free" --> W2["Seize Hold Bed"]
     W -- "No, none free" --> W3["Overflow"]
     W1 --> X["Wait for Evac Team<br>(seize on its return)"]
     W2 --> X
     W3 --> X
-    X --> Y["Release Bed, Section<br>or Overflow"]
+    X --> Y["Release Bed<br>or Overflow"]
     Y --> T
 ```
 

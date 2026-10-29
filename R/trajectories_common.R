@@ -1031,16 +1031,6 @@ beds_free <- function(beds) {
   !is.na(usage) && !is.na(cap) && usage < cap
 }
 
-#' Whether every member of a team is free at this instant
-#'
-#' @param members Resource names of the team's members, seized together.
-#' @return TRUE when each member has a free server.
-team_free <- function(members) {
-  usage <- get_server_count(env, resources = members)
-  cap   <- get_capacity(env, resources = members)
-  length(members) > 0 && all(!is.na(usage) & !is.na(cap) & usage < cap)
-}
-
 #' The best placement free at this instant
 #'
 #' @param care_beds The beds the care calls for, intensive care after an

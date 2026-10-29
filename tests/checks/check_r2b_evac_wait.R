@@ -12,8 +12,8 @@
 # Exits 0 when every check passes, 1 otherwise.
 #
 # Why this check exists. A casualty at R2B whose evacuation crew is out waits
-# for it in the best placement free at that instant: an intensive care bed with
-# the section, otherwise a holding bed, otherwise overflow (r2b_wait_for_evac(),
+# for it in the best placement free at that instant: an intensive care bed,
+# otherwise a holding bed, otherwise overflow (r2b_wait_for_evac(),
 # R/trajectories_r2b.R). The model this replaced queued the casualty for an
 # intensive care bed and then the section before it could board, so departure
 # was gated by bed turnover rather than by the vehicle, and waiters who took
@@ -28,7 +28,8 @@
 # What it asserts:
 #
 #   1. Under a forced shortage of the evacuation crew, no casualty queues for an
-#      R2B intensive care bed or for a member of the intensive care section.
+#      R2B intensive care bed, and no waiter seizes the intensive care section,
+#      which staffs both of the unit's beds rather than one casualty's.
 #   2. Every waiter boards as soon as the crew is free: across each wait the
 #      unit's crew is committed throughout, so the vehicle alone sets departure.
 #   3. Each placement arm is reached: intensive care, holding bed and overflow.
@@ -147,8 +148,9 @@ w <- short$wide
 
 report(max(res$queue[grepl("^b_r2b_icu_", res$resource)]) == 0,
        "nobody queues for an R2B intensive care bed")
-report(max(res$queue[grepl("^c_r2b_icu_", res$resource)]) == 0,
-       "nobody queues for a member of an R2B intensive care section")
+section <- res[grepl("^c_r2b_icu_", res$resource), ]
+report(nrow(section) == 0 || max(section$server) == 0,
+       "no waiter seizes the R2B intensive care section, which staffs both beds")
 
 waiters <- w[!is.na(w$r2b_evac_wait_start) & !is.na(w$r2b_departure_time), ]
 violations <- 0L

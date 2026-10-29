@@ -173,7 +173,6 @@ r2b_evacuate_to_r2e <- function(trj, evacuation_team) {
 #'
 #' @param icu_beds        This R2B team's intensive care beds
 #' @param hold_beds       This R2B team's holding beds
-#' @param icu_team        This R2B team's intensive care section
 #' @param evacuation_team This R2B team's own organic evacuation resource
 #' @param overflow        This R2B team's evacuation-wait overflow resource
 #' @return Simmer trajectory placing the casualty while the evacuation asset is
@@ -181,18 +180,18 @@ r2b_evacuate_to_r2e <- function(trj, evacuation_team) {
 #'
 #' @details Reached when the evacuation asset is already committed. The
 #'   casualty waits in the best placement free at that instant, never queued
-#'   for: an intensive care bed with the section, otherwise a holding bed,
-#'   otherwise overflow, with no bed (`r2b_evac_wait_bed` 1, 2 or 3). In every
-#'   arm the casualty boards as soon as the crew is free and then releases what
-#'   it holds, so departure is set by the vehicle rather than by bed turnover.
-#'   The intensive care arm is taken only where the section is free as well as a
-#'   bed, so the section, held while the casualty occupies the bed, can never
-#'   keep a waiter from its crew. `r2b_evac_wait_start` records when the wait
-#'   began, and evac_wait_count counts the casualties this path serves.
-r2b_wait_for_evac <- function(icu_beds, hold_beds, icu_team, evacuation_team, overflow) {
-  # Branches on the placement free at this instant:
-  # - 1 an intensive care bed and the section are both free -> wait in the bed
-  #     with the section seized
+#'   for: an intensive care bed, otherwise a holding bed, otherwise overflow,
+#'   with no bed (`r2b_evac_wait_bed` 1, 2 or 3). In every arm the casualty
+#'   boards as soon as the crew is free and then releases what it holds, so
+#'   departure is set by the vehicle rather than by bed turnover. The bed is
+#'   seized alone, as every intensive care stay in the model is: the unit's
+#'   intensive care section staffs both of its beds, splitting its time between
+#'   them, rather than being taken by one casualty. `r2b_evac_wait_start`
+#'   records when the wait began, and evac_wait_count counts the casualties
+#'   this path serves.
+r2b_wait_for_evac <- function(icu_beds, hold_beds, evacuation_team, overflow) {
+  # Branches on the best placement free at this instant (placement_now()):
+  # - 1 an intensive care bed is free -> wait in it
   # - 2 otherwise a holding bed is free -> wait in it
   # - 3 neither -> wait in overflow, with no bed
   trajectory("Wait for Evac") %>%
@@ -202,20 +201,14 @@ r2b_wait_for_evac <- function(icu_beds, hold_beds, icu_team, evacuation_team, ov
       return(current + 1)
     }) %>%
     branch(
-      option = function() {
-        if (beds_free(icu_beds) && team_free(icu_team)) return(1)
-        if (beds_free(hold_beds)) return(2)
-        3
-      },
+      option = function() placement_now(icu_beds, hold_beds),
       continue = TRUE,
       trajectory("Wait for Evac in Intensive Care") %>%
         set_attribute("r2b_evac_wait_bed", 1) %>%
         simmer::select(icu_beds, policy = "first-available", id = 3) %>%
         seize_selected(id = 3) %>%
         dow_placement(post_op_r2b_icu) %>%
-        seize_resources(icu_team) %>%
         seize_resources(evacuation_team) %>%
-        release_resources(icu_team) %>%
         release_selected(id = 3) %>%
         dow_placement(post_op_outside_icu),
       trajectory("Wait for Evac in a Holding Bed") %>%
@@ -1111,14 +1104,13 @@ r2b_treat_wia <- function(team_id) {
   emergency_team  <- env_data$elms$r2b[[team_id]][["emerg"]][[1]]
   evacuation_team <- env_data$elms$r2b[[team_id]][["evac"]][[1]]
   surg_teams      <- env_data$elms$r2b[[team_id]][["surg"]]
-  icu_team        <- env_data$elms$r2b[[team_id]][["icu"]][[1]]
 
   overflow       <- overflow_resource("r2b", "reception", team_id)
   resus_signal   <- sprintf(R2B_RESUS_FREE_SIGNAL_FMT, team_id)
 
   post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
   ot_check       <- r2b_ot_check_path(team_id, ot_beds, surg_teams, post_op)
-  wait_for_evac  <- r2b_wait_for_evac(icu_beds, hold_beds, icu_team, evacuation_team,
+  wait_for_evac  <- r2b_wait_for_evac(icu_beds, hold_beds, evacuation_team,
                                       overflow_resource("r2b", "evac_wait", team_id))
 
   trajectory("R2B Basic Flow") %>%

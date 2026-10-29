@@ -13,8 +13,8 @@
 # Why this check exists. compute_ame_backlog() reconstructs how many casualties
 # are simultaneously awaiting a strategic evacuation sortie, the resource
 # monitor's own queue column counting only the casualties already queued on a
-# seat, not those still waiting for the staging bed that admits them to it (see
-# that function's roxygen). It added a casualty at the evacuation
+# seat, not those still in the pre-flight care that precedes it (see that
+# function's roxygen). It added a casualty at the evacuation
 # decision and removed it at ame_departure_time, which is the right pair for
 # only one of the two ways a casualty stops waiting.
 #
@@ -38,8 +38,8 @@
 #      Without this the first assertion would pass for a reconstruction that
 #      never had the defect and for one that still does, since both agree on
 #      the two exits that set a departure time.
-#   3. A casualty still queued for the staging bed it would wait in, which sets
-#      neither attribute, is carried as waiting rather than dropped.
+#   3. A casualty still in the pre-flight care that precedes the seat queue,
+#      which sets neither attribute, is carried as waiting rather than dropped.
 #   3b. The level carried to the window's close is the one in force after every
 #      event of the campaign's last instant, not after the first of them. A
 #      sortie that clears the queue it has just received leaves an arrival and

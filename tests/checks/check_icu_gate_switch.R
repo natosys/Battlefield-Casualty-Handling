@@ -22,16 +22,15 @@
 # Faithful means two separable things, and only the first is a property of one
 # run.
 #
-#   1. With the gate disabled, nothing is diverted or deferred by intensive
-#      care being full. No casualty sets `surgery_deferred`, and no operated
-#      casualty takes the degraded holding-bed recovery that a Priority 1
-#      casualty takes when a bed is not free. Every operated casualty reaches
-#      an intensive care bed, queueing for one rather than going without.
+#   1. With the gate disabled, nothing is deferred by intensive care being
+#      full: no casualty sets `surgery_deferred`. Recovery is placed when the
+#      operation ends in either configuration (placement_now()), so where a
+#      casualty recovers is not the gate's to decide and is not asserted here.
 #
-#   2. With the gate enabled, which is what ships, both of those pathways are
-#      reachable. An assertion that they are empty when disabled means nothing
-#      unless they are non-empty when enabled, so the check would otherwise
-#      pass against a model that had lost the gate entirely.
+#   2. With the gate enabled, which is what ships, the deferral is reachable.
+#      An assertion that it is empty when disabled means nothing unless it is
+#      non-empty when enabled, so the check would otherwise pass against a
+#      model that had lost the gate entirely.
 #
 # The shipped value is asserted to be the enabled one, so the comparison's
 # baseline arm is the model as published rather than whatever the field was
@@ -137,18 +136,6 @@ measure_gate <- function(enabled, r2b_window = NULL) {
                         get_mon_arrivals(list(wrapped), ongoing = TRUE))
 }
 
-#' Count casualties whose recovery took the degraded holding-bed pathway
-#'
-#' @param wide One row per casualty, attributes pivoted to columns.
-#' @return The count.
-#' @details `post_op_pathway` records which recovery an operated casualty
-#'   took, 1 for the intensive care bed and 2 for the degraded holding bed a
-#'   Priority 1 casualty is diverted to when no intensive care bed is free.
-hold_diversions <- function(wide) {
-  if (!"post_op_pathway" %in% names(wide)) return(NA_integer_)
-  sum(as.numeric(wide$post_op_pathway) == 2, na.rm = TRUE)
-}
-
 #' Count casualties whose theatre entry was deferred
 #'
 #' @param wide One row per casualty, attributes pivoted to columns.
@@ -182,12 +169,10 @@ operated_off <- sum(!is.na(as.numeric(off$r2e_surgery_1_start)))
 
 report(deferrals(off) == 0,
        "no casualty is deferred with the gate disabled (%d operated at R2E)", operated_off)
-report(hold_diversions(off) == 0,
-       "no operated casualty takes the degraded holding-bed recovery with the gate disabled")
 
 # ── 3. Enabled, both pathways are reachable ────────────────────────────────
 
-cat("\n-- gate enabled: the pathways assertion 2 asserts empty are reachable --\n")
+cat("\n-- gate enabled: the deferral assertion 2 asserts empty is reachable --\n")
 
 on <- measure_gate(1)
 operated_on <- sum(!is.na(as.numeric(on$r2e_surgery_1_start)))
@@ -195,11 +180,6 @@ operated_on <- sum(!is.na(as.numeric(on$r2e_surgery_1_start)))
 report(deferrals(on) > 0,
        "the gate defers %d casualties when in force, so the deferral assertion is not vacuous",
        deferrals(on))
-report(!is.na(hold_diversions(on)) && !is.na(hold_diversions(off)),
-       "post_op_pathway is recorded in both runs, so the diversion assertion reads a real column")
-report(isTRUE(hold_diversions(on) > 0),
-       "the gate diverts %s operated casualties to the degraded holding-bed recovery when in force",
-       format(hold_diversions(on)))
 report(operated_on > 0 && operated_off > 0,
        "both configurations operate on casualties (%d enabled, %d disabled)",
        operated_on, operated_off)

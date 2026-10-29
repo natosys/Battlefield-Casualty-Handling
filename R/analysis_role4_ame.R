@@ -721,9 +721,9 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #'
 #' @details The backlog is reconstructed from per-casualty timestamps rather
 #'   than read from the `"ame"`/`"ame_critical"` monitor's `queue` column,
-#'   because the wait begins at the disposition, before a standard-route
-#'   casualty has obtained the holding bed it stages in and joined the seat
-#'   queue, and the monitor's queue counts only the second part. The
+#'   because the wait begins at the disposition, before a ventilated
+#'   casualty's pre-flight care has ended and it has joined the seat queue, and
+#'   the monitor's queue counts only the second part. The
 #'   reconstruction takes `r2e_departure_time` (when the Strategic Evac
 #'   disposition is decided and the AME wait begins — a `+1` backlog event,
 #'   one per pool via `ame_route`) and `ame_hold_end` (when the casualty stops
@@ -735,9 +735,9 @@ compute_ame_sorties <- function(resources, role4_params, n_days, day_min = DAY_M
 #'   death time falls before a sortie reaches it sets no departure time, and
 #'   taking the departure as the only exit would leave it in the backlog for
 #'   the rest of the campaign. `ame_hold_end` is set on both routes out of
-#'   the wait, so the two exits are counted alike. A casualty still queued for
-#'   the staging bed it waits in has neither attribute and is correctly
-#'   carried as waiting.
+#'   the wait, so the two exits are counted alike. A casualty still in
+#'   pre-flight care has neither attribute and is correctly carried as
+#'   waiting.
 compute_ame_backlog <- function(attributes_log, n_days = NULL, day_min = DAY_MIN) {
   route_labels <- c("1" = "Critical (ICU, CCATT/CCAST)", "2" = "Standard (Hold, CSU)")
   pool_levels  <- unname(route_labels)
@@ -822,7 +822,7 @@ plot_ame_queue <- function(backlog_data) {
               scales = "free_y") +
     labs(
       title    = "Strategic AME Backlog Over Time",
-      subtitle = "Casualties awaiting AME sortie capacity (occupying an R2E ICU or Hold bed) by route",
+      subtitle = "Casualties awaiting AME sortie capacity (in pre-flight care or staged) by route",
       x = "Simulation Day", y = "Casualties Awaiting AME"
     ) +
     theme_minimal(base_size = 13) +

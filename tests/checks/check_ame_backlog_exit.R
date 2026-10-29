@@ -12,8 +12,9 @@
 #
 # Why this check exists. compute_ame_backlog() reconstructs how many casualties
 # are simultaneously awaiting a strategic evacuation sortie, the resource
-# monitor's own queue column being structurally zero for the two airlift pools
-# (see that function's roxygen for why). It added a casualty at the evacuation
+# monitor's own queue column counting only the casualties already queued on a
+# seat, not those still waiting for the staging bed that admits them to it (see
+# that function's roxygen). It added a casualty at the evacuation
 # decision and removed it at ame_departure_time, which is the right pair for
 # only one of the two ways a casualty stops waiting.
 #

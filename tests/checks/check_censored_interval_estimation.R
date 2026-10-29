@@ -27,7 +27,8 @@
 #
 #   1. The estimator degenerates: with nothing censored, the restricted mean
 #      equals the arithmetic mean exactly. This is what makes it safe to apply
-#      to an interval that does not censor at the shipped configuration.
+#      to an interval that rarely censors, such as the R2B to R2E transit, which
+#      is held to that identity whenever no move is open at the close.
 #   2. It recovers a known answer. Real stays from the run are re-censored at
 #      an earlier calendar window, where their true durations are known, and
 #      the estimate is required to come nearer the truth than the completed-
@@ -39,7 +40,7 @@
 #      dwells at the shipped configuration, so the check is not vacuous.
 #   5. A quantile the curve does not reach is reported as NA rather than as
 #      the same quantile of the casualties who finished, who are a different
-#      and shorter-staying population.
+#      and shorter-staying population, and one it does reach is located.
 #   6. One definition of the observation window serves every reconstruction
 #      that needs one.
 
@@ -257,17 +258,28 @@ for (nm in names(INTERVALS)) {
          nm, k$mean_min, naive)
 }
 
-report(kpis$r2b_r2e_transit_time$n_censored == 0 &&
-         !is.na(kpis$r2b_r2e_transit_time$censored_share),
-       "the transit interval reports a censored share of zero rather than reporting none")
-
-report(isTRUE(all.equal(kpis$r2b_r2e_transit_time$mean_min,
-                        completed_case_mean(combined$r2b_departure_time,
-                                            combined$r2e_arrival_time,
-                                            INTERVAL_RESTRICTION_MIN))),
-       paste("the uncensored transit mean is unchanged at %.5f min, the estimator",
-             "degenerating on real data"),
-       kpis$r2b_r2e_transit_time$mean_min)
+# Whether a casualty is in transit when the window closes depends on the
+# realisation, so the real interval is held to whichever case it presents: with
+# nothing censored, a share of zero and the arithmetic mean; otherwise a share
+# that counts its censored moves and a mean no shorter than the completed-case one.
+transit <- kpis$r2b_r2e_transit_time
+transit_naive <- completed_case_mean(combined$r2b_departure_time, combined$r2e_arrival_time,
+                                     INTERVAL_RESTRICTION_MIN)
+if (isTRUE(transit$n_censored == 0)) {
+  report(!is.na(transit$censored_share) && transit$censored_share == 0,
+         "the transit interval reports a censored share of zero rather than reporting none")
+  report(isTRUE(all.equal(transit$mean_min, transit_naive)),
+         paste("the uncensored transit mean is unchanged at %.5f min, the estimator",
+               "degenerating on real data"),
+         transit$mean_min)
+} else {
+  report(isTRUE(all.equal(transit$censored_share, transit$n_censored / transit$n)),
+         "the transit interval reports its %d censored moves as a share of its cohort",
+         transit$n_censored)
+  report(transit$mean_min >= transit_naive,
+         "the transit mean %.2f min is at least the completed-case %.2f it replaces",
+         transit$mean_min, transit_naive)
+}
 
 #' Largest share of a dwell mean the flat tail beyond the last completion may carry
 #'
@@ -318,10 +330,26 @@ report(is.na(built$p90_min),
              "the %.0f min p90 of the stays that closed"),
        quantile(built_end[1:80], 0.90))
 
-report(!is.na(kpis$r2e_dwell_time$p90_min),
-       paste("the R2E dwell curve does reach its p90, reported at %.0f min, so an NA",
+r2e_starts <- as.numeric(combined[[INTERVALS$R2E[1]]])
+r2e_ends   <- as.numeric(combined[[INTERVALS$R2E[2]]])
+r2e_risk   <- !is.na(r2e_starts)
+r2e_closed <- !is.na(r2e_ends[r2e_risk])
+r2e_time   <- ifelse(r2e_closed, r2e_ends[r2e_risk] - r2e_starts[r2e_risk],
+                     window - r2e_starts[r2e_risk])
+r2e_lowest <- min(km_survival_curve(r2e_time, as.integer(r2e_closed))$s)
+report(is.na(kpis$r2e_dwell_time$p90_min) == (r2e_lowest > 0.10),
+       "the R2E dwell p90 is NA exactly when its curve stays above 0.10 (it falls to %.3f)",
+       r2e_lowest)
+
+# The reached case on a constructed cohort, so a quantile the curve does reach
+# is located whatever the run: 95 stays closing within 95 minutes and 5 still
+# open, the curve falling to 0.05.
+reached <- censored_interval_stats(rep(0, 100), c(seq_len(95), rep(NA, 5)),
+                                   window_min = 1000)
+report(isTRUE(all.equal(reached$p90_min, 90)),
+       paste("a cohort whose curve falls past 0.10 reports its p90 at %s min, so an NA",
              "marks a quantile the run cannot locate rather than one it does not look for"),
-       kpis$r2e_dwell_time$p90_min)
+       format(reached$p90_min))
 
 # ── 6. One definition of the observation window ────────────────────────────
 

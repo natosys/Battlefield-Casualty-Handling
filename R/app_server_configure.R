@@ -381,8 +381,7 @@ wire_configure_group_bodies <- function(fields_by_group, input, output, dow_mode
     # user having to re-run anything.
     airframe <- input$ame_airframe %||% "c17a"
     airframe_labels <- c(c17a  = "C-17A Globemaster III",
-                         c130j = "C-130J-30 Hercules",
-                         c27j  = "C-27J Spartan")
+                         c130j = "C-130J-30 Hercules")
     medevac_diagram(
       wia1_mode = input$r1_wia_transport_mode  %||% 0,
       kia1_mode = input$r1_kia_transport_mode  %||% 0,

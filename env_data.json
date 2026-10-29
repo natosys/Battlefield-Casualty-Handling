@@ -989,7 +989,6 @@
           "vals": [
             { "var": "schedule_interval_days", "val": 7 },
             { "var": "failure_probability",    "val": 0 },
-            { "var": "dow_check_interval",     "val": 1440 },
             { "var": "airframe",               "val": "c17a" }
           ]
         },
@@ -1007,14 +1006,6 @@
             { "var": "label",             "val": "C-130J-30 Hercules" },
             { "var": "critical_capacity", "val": 0 },
             { "var": "standard_capacity", "val": 97 }
-          ]
-        },
-        {
-          "acty": "airframe_c27j",
-          "vals": [
-            { "var": "label",             "val": "C-27J Spartan" },
-            { "var": "critical_capacity", "val": 0 },
-            { "var": "standard_capacity", "val": 21 }
           ]
         }
       ]

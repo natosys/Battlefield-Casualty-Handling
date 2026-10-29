@@ -309,7 +309,7 @@ SRC_CASUALTY_SURGE     <- "Informed by the compound Poisson construction Fischer
 SRC_CASUALTY_SURGE_KIA <- "No open-access source tabulates event-level killed-to-wounded ratios for a comparable LSCO campaign, so the default is an informed engineering estimate: the killed share implied by this model's own combat casualty stream means (0.68 KIA against 1.77 WIA per 1,000 per day). See README Casualty Generation — Casualty Surge Event Injection."
 SRC_CASUALTY_SURGE_PRI <- "Informed engineering estimate reflecting a blast-dominant injury pattern (~70% blast/fragmentation share in contemporary LSCO); no open-access source gives triage priority proportions for blast casualties. Needs verification — see README Further Development L37."
 SRC_AME_SCHEDULE      <- "AJP-4.10(C) establishes strategic AME, Casualty Staging Unit (CSU) patient holding, and CCATT/CCAST critical-care augmentation as planning functions but does not prescribe a specific sortie cadence or failure rate — informed estimate. See README Role 4 (National Support Base) Demand Modelling."
-SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an AME-configured C-17A carries 54 ambulatory and 36 high dependency stretcher patients; the C-130J and C-27J carry 97 and 21 stretcher patients respectively. See README Role 4 (National Support Base) Demand Modelling."
+SRC_AME_AIRFRAME      <- "Royal Australian Air Force, Aeromedical evacuation: an AME-configured C-17A carries 54 ambulatory and 36 high dependency stretcher patients; the C-130J carries 97 stretcher patients. See README Role 4 (National Support Base) Demand Modelling."
 
 # ── Plausible ranges for slider fields ────────────────────────────────────
 
@@ -1019,14 +1019,13 @@ strategic_ame_fields <- function() {
               "Sortie Interval (days)", "Days between scheduled strategic AME sorties. 0, or a value longer than the run, means AME never opens.",
               type = "integer", min = 1, max = 30, step = 1, range_name = "ame_schedule_interval_days", source = SRC_AME_SCHEDULE),
     var_field("ame_failure_probability", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "failure_probability",
-              "Sortie Cancellation Probability", "Probability a scheduled sortie is cancelled (weather, tasking, airframe availability) and carries zero capacity.",
+              "Sortie Cancellation Probability", "Probability a scheduled sortie is cancelled (weather, tasking, airframe availability) and boards nobody; its waiters are carried by later sorties.",
               min = 0, max = 1, step = 0.01, range_name = "ame_failure_probability", source = SRC_AME_SCHEDULE, slider = TRUE),
     var_field("ame_airframe", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "airframe",
-              "Airframe", "Aircraft flown on each successful sortie. Its capacity pair below sets how many casualties board.",
+              "Airframe", "Aircraft flown on each successful sortie. Its capacity pair below sets how many waiting casualties board; places not taken depart empty.",
               source = SRC_AME_AIRFRAME,
               choices = c("C-17A Globemaster III" = "c17a",
-                          "C-130J-30 Hercules"    = "c130j",
-                          "C-27J Spartan"         = "c27j")),
+                          "C-130J-30 Hercules"    = "c130j")),
     var_field("ame_c17a_critical", GRP_LOGISTICS, "Strategic AME", "role4", "airframe_c17a", "critical_capacity",
               "C-17A — Critical Capacity per Sortie", "High dependency stretcher patients the AME-configured C-17A carries, mapped onto the critical (CCATT/CCAST-supported, ICU-bed Priority 1 surgical) pool.",
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
@@ -1038,16 +1037,7 @@ strategic_ame_fields <- function() {
               type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
     var_field("ame_c130j_standard", GRP_LOGISTICS, "Strategic AME", "role4", "airframe_c130j", "standard_capacity",
               "C-130J — Standard Capacity per Sortie", "Stretcher patients the C-130J carries, mapped onto the standard (Casualty Staging Unit-equivalent, Hold-bed) pool.",
-              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
-    var_field("ame_c27j_critical", GRP_LOGISTICS, "Strategic AME", "role4", "airframe_c27j", "critical_capacity",
-              "C-27J — Critical Capacity per Sortie", "Critical-pool capacity for the C-27J. Zero as shipped, for the same reason as the C-130J.",
-              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
-    var_field("ame_c27j_standard", GRP_LOGISTICS, "Strategic AME", "role4", "airframe_c27j", "standard_capacity",
-              "C-27J — Standard Capacity per Sortie", "Stretcher patients the C-27J carries, mapped onto the standard (Casualty Staging Unit-equivalent, Hold-bed) pool.",
-              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME),
-    var_field("ame_dow_check_interval", GRP_LOGISTICS, "Strategic AME", "role4", "ame", "dow_check_interval",
-              "DOW Poll Interval (minutes)", "How often a casualty queued for AME is re-assessed for died-of-wounds risk while waiting, under the legacy model only; the care-state model draws one death time from the post-operative rate instead. A polling interval, not a standing-order lever.",
-              type = "integer", min = 60, max = 10080, step = 60, source = SRC_AME_SCHEDULE)
+              type = "integer", min = 0, max = 200, step = 1, source = SRC_AME_AIRFRAME)
   ))
 
   registry

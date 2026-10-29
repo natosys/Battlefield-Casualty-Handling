@@ -577,7 +577,7 @@ resolve_ame_airframe <- function(role4_params) {
   if (is.null(block)) {
     available <- sub("^airframe_", "", grep("^airframe_", names(role4_params), value = TRUE))
     stop(sprintf(
-      "resolve_ame_airframe: unknown airframe '%s'. Available airframes: %s",
+      "role4.ame.airframe names an unknown airframe '%s'. Available airframes: %s",
       id,
       if (length(available) == 0) "(none defined)" else paste(available, collapse = ", ")
     ))

@@ -76,16 +76,16 @@ LEGACY_DAYS <- 360L
 
 #' SHA-256 of each file of the legacy setting's seed-42 output
 LEGACY_DIGESTS <- c(
-  "logs.txt"                         = "26c26610e5021834a61fa211c15199e67d1a0c33fa2b6681320d54a3fe885de6",
+  "logs.txt"                         = "cef4dadbb57926ed317c9a1d160a748a29040e0d7ea36eebe6a15956c73d97f1",
   "data/arrivals_casualty_surge.txt" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "data/arrivals_dnbi_cbt.txt"       = "bec9a2cf9fa22c125f6bd94e99f5a1f2d8452dc68643f1add0842c5d92ba0612",
-  "data/arrivals_dnbi_spt.txt"       = "aa8cbc039f721847d47473d113468dcde19b4e435a50aa043adfeb8d58c2f313",
-  "data/arrivals_kia_cbt.txt"        = "5b0414d9b992fc7ce5ac01beb685bb81fb1f0f2e0ee84e2cdd5393c6e6d88af9",
-  "data/arrivals_kia_spt.txt"        = "783bf1ac925c80b88ec214e1eee49341222a7438457a964e921236c2cf811e08",
-  "data/arrivals_wia_cbt.txt"        = "4b9d58ad1bd122a02fec3c9f5a81c730318343cc77f59f7b22088c6d3ee8fda8",
-  "data/arrivals_wia_spt.txt"        = "1cac8219cacd254449fba6eea019a4ffbcbeb17b1441d78c967459268467a482",
+  "data/arrivals_dnbi_cbt.txt"       = "3803d35f44c7c91f09643f0fde6ec02da4ccd3928ad5f418254b1ba73d01be68",
+  "data/arrivals_dnbi_spt.txt"       = "7e3260a64719e65b5b5b791977bdcb751f45bdf23387f1f623b5af957e9f78b9",
+  "data/arrivals_kia_cbt.txt"        = "af7d36b782982de056b2d38d426a57f76e8f3659b3c9237432060760c98f4404",
+  "data/arrivals_kia_spt.txt"        = "0fbc5593f05f40a44ec8693b83be515829e3f546d2975e06f57b470c29e8f276",
+  "data/arrivals_wia_cbt.txt"        = "4d3042a2eaccf719fdf4e998108294278ff178c23a9bc98ab2faf4421dd70f42",
+  "data/arrivals_wia_spt.txt"        = "44b69898d152f5a2bac4c8750f7e96a373ad818184c20f058ee1d1c541e63892",
   "data/casualty_surge_events.csv"   = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
-  "data/seed42_verification.csv"     = "f1daac2aff575dcdff8c50695910d83eccd3c2178caaa611bb6ec778b9023522"
+  "data/seed42_verification.csv"     = "0fb4a15659ad89cac2cb043e58d8675c48f2c7e5411024955434593e339befe9"
 )
 
 state <- new.env(parent = emptyenv())

@@ -271,6 +271,16 @@ reduce_airlift_replication <- function(env, n_days, seed) {
   } else {
     sum(tapply(sorties$outcome, sorties$sortie_day, function(o) all(o == "Flown")))
   }
+  #' Mean places a flown sortie carried away empty on one pool
+  #'
+  #' @param pool_prefix Leading word of the pool label, "Critical" or "Standard".
+  #' @return The mean over flown sorties, or NA where none flew.
+  places_empty <- function(pool_prefix) {
+    rows <- sorties[sorties$outcome == "Flown" & startsWith(as.character(sorties$pool),
+                                                            pool_prefix), ]
+    if (nrow(rows) == 0) return(NA_real_)
+    mean(rows$places_empty)
+  }
 
   census <- with_preserved_rng({
     set.seed(seed)
@@ -300,6 +310,8 @@ reduce_airlift_replication <- function(env, n_days, seed) {
     sorties_scheduled    = scheduled,
     sorties_flown        = flown,
     cancellation_rate    = if (scheduled > 0) (scheduled - flown) / scheduled else NA_real_,
+    places_empty_critical = places_empty("Critical"),
+    places_empty_standard = places_empty("Standard"),
     role4_peak           = peak_occupancy,
     role4_peak_day       = peak_day,
     role4_peak_after_end = if (is.na(peak_day)) NA else peak_day - n_days,

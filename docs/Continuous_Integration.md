@@ -350,6 +350,7 @@ seconds.
 | `check_airlift_collapse_protocol.R` | fast | 5 s | the airlift collapse experiment's parameters, its classifier and its published table agree |
 | `check_airlift_protocol.R` | fast | 2 s | the strategic evacuation experiment's parameters, its interval construction and its published tables agree |
 | `check_ame_backlog_exit.R` | fast | 23 s | the strategic evacuation backlog is bounded by the attribute its own exit route sets |
+| `check_ame_boarding.R` | fast | 63 s | evacuees board a strategic sortie only when it departs, and places nobody takes depart with it |
 | `check_analysis_decomposition.R` | fast | 6 s | every analysis stage binds what it returns |
 | `check_analysis_idempotence.R` | fast | 74 s | the analysis pipeline is idempotent and RNG-neutral |
 | `check_arrival_rate_fidelity.R` | fast | 12 s | each stream realises the daily mean and variance it is configured for |

@@ -522,82 +522,6 @@ r2e_surgery_defer_path <- function(icu_beds, icu_path) {
     join(icu_path)
 }
 
-#' Builds the died-of-wounds poll a casualty faces while awaiting evacuation
-#'
-#' @param resource_name Name of the aeromedical evacuation pool being queued
-#'   for, "ame" or "ame_critical"
-#' @param bed_id        simmer selection id of the bed the casualty is staged in,
-#'   released, and the release recorded in ame_hold_end, if they die during the
-#'   wait
-#' @param team_id       Integer index of the Role 2E Heavy team
-#' @param evac_team     This R2E team's evacuation section
-#' @return Simmer trajectory polling the casualty's risk on an interval until
-#'   evacuation capacity is available.
-#'
-#' @details Mirrors r2e_post_op_dow_check()'s conditional-increment roll (the
-#'   same dow_prob_conditional() formula, the same priority-based parameters and
-#'   dow_ceiling), but polled on an interval (role4.ame.dow_check_interval)
-#'   while queued rather than checked once at a fixed transition point. The
-#'   evacuation wait itself is unbounded, and unlike every earlier checkpoint
-#'   (each of which precedes a further step that would otherwise price in
-#'   delay-accrued risk), this is the last checkpoint in the casualty's journey:
-#'   without this poll, a casualty who reached strategic evacuation faced zero
-#'   further mortality risk regardless of how long the wait was. See README
-#'   Died of Wounds — AME Wait Checkpoint.
-#'
-#'   Availability is checked by the caller immediately on entry, so boarding
-#'   proceeds with no artificial minimum wait when capacity is already free,
-#'   matching a plain seize()'s fast path exactly. Only if unavailable does the
-#'   casualty enter this loop: wait dow_check_interval minutes, roll, then (if
-#'   surviving) re-check availability through rollback()'s `check` and loop
-#'   again if still unavailable, the same timeout-then-rollback polling pattern
-#'   the R2E theatre gate uses for deferral. dow_echelon = 5 distinguishes this
-#'   checkpoint from the post-operative check (dow_echelon = 4).
-r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
-  trajectory("Awaiting AME — DOW Poll") %>%
-    timeout(function() env_data$vars$role4$ame$dow_check_interval, tag = "ame_dow_poll_start") %>%
-    branch(
-      option = function() {
-        injury  <- get_attribute(env, "injury_time")
-        t_prev  <- get_attribute(env, "last_dow_t") - injury
-        t_now   <- now(env) - injury
-        prio    <- get_attribute(env, "priority")
-        dp      <- LEGACY_DOW_PARAMS
-        ceiling <- get_attribute(env, "dow_ceiling")
-        if (!is.na(prio) && prio == 1) {
-          p <- dow_prob_conditional(t_now, t_prev, dp$p1_p_base, ceiling, dp$p1_k, dp$p1_t_mid)
-        } else if (!is.na(prio) && prio == 2) {
-          p <- dow_prob_conditional(t_now, t_prev, dp$p2_p_base, ceiling, dp$p2_k, dp$p2_t_mid)
-        } else {
-          p <- dp$p3_flat
-        }
-        if (runif(1) < p) return(1)
-        return(2)
-      },
-      continue = TRUE,
-      trajectory("Died of Wounds — Awaiting AME") %>%
-        set_attribute("dow", 1) %>%
-        set_attribute("dow_echelon", 5) %>%
-        release_selected(id = bed_id) %>%
-        # The staging bed ends here as well as at boarding, and this is the
-        # only route out of it that sets no departure time. Recording the
-        # release on the casualty rather than inferring it from the departure
-        # is what keeps the holding pool's occupancy split from charging this
-        # casualty's bed to the window's close.
-        set_attribute("ame_hold_end", function() now(env)) %>%
-        r2e_treat_kia(team_id, evac_team) %>%
-        r2e_transport_kia(team_id, evac_team) %>%
-        simmer::leave(1),
-      trajectory("Survived Poll Interval")
-    ) %>%
-    set_attribute("last_dow_t", function() now(env)) %>%
-    rollback(target = "ame_dow_poll_start", check = function() {
-      usage <- get_server_count(env, resource_name)
-      cap   <- get_capacity(env, resource_name)
-      !(!is.na(usage) && !is.na(cap) && usage < cap)
-    })
-}
-
 #' Builds the wait for aeromedical evacuation capacity and the boarding itself
 #'
 #' @param resource_name Name of the aeromedical evacuation pool to board,
@@ -605,26 +529,21 @@ r2e_ame_dow_poll <- function(resource_name, bed_id, team_id, evac_team) {
 #' @param bed_id        simmer selection id of the bed the casualty is staged in
 #' @param team_id       Integer index of the Role 2E Heavy team
 #' @param evac_team     This R2E team's evacuation section
-#' @return Simmer trajectory boarding the casualty, at once where the pool has
-#'   capacity and after the polled wait where it does not.
+#' @return Simmer trajectory queueing the casualty on the pool until a sortie
+#'   boards them.
+#'
+#' @details A pool has capacity only at the instant a sortie boards it
+#'   (build_ame_sortie_trajectory()), so the casualty waits queued on it and
+#'   boards the first sortie with a place free, in arrival order. Under the
+#'   legacy mechanism the wait carries no died-of-wounds risk: its daily poll
+#'   could not be kept, a polling casualty missing every sortie, and its
+#'   increments were near zero for Priority 1 and 2, whose curve has risen
+#'   fully within hours of injury.
 r2e_ame_wait_and_board <- function(resource_name, bed_id, team_id, evac_team) {
   if (dow_care_state_enabled()) {
     return(r2e_ame_queue_and_board(resource_name, bed_id, team_id, evac_team))
   }
-
-  trajectory("Awaiting AME") %>%
-    branch(
-      option = function() {
-        usage <- get_server_count(env, resource_name)
-        cap   <- get_capacity(env, resource_name)
-        if (!is.na(usage) && !is.na(cap) && usage < cap) return(2)
-        return(1)
-      },
-      continue = TRUE,
-      r2e_ame_dow_poll(resource_name, bed_id, team_id, evac_team),
-      trajectory("Available Immediately")
-    ) %>%
-    seize(resource_name, 1)
+  trajectory("Awaiting AME") %>% seize(resource_name, 1)
 }
 
 #' The expected deaths of the evacuation wait so far, added to the running total
@@ -1210,8 +1129,8 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 #'   further acuity-based boarding priority beyond the critical/standard split
 #'   being modelled. See README Further Development.
 r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
-  # The death time is drawn under the care-state model alone; the legacy
-  # mechanism polls the wait instead (r2e_ame_dow_poll()).
+  # The death time is drawn under the care-state model alone; under the legacy
+  # mechanism the wait carries no risk (r2e_ame_wait_and_board()).
   #' Draws the evacuation wait's death time, under the care-state model alone
   #'
   #' @param trj Trajectory to append to.

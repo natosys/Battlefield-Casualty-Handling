@@ -4,8 +4,8 @@
 ##############################################
 #
 # The input widgets and cards the Configure panel is built from, and the
-# renderers for each parameter group's body, its splits, rates, ceilings
-# and casualty surge events.
+# renderers for each parameter group's body, its splits, rates, the
+# died-of-wounds model and casualty surge events.
 #
 # Sourced by app.R after the packages and modules it loads; source that
 # file rather than this one alone.
@@ -40,7 +40,7 @@ field_label <- function(f, overridden_paths = NULL) {
 #' Render a small, visually inert numeric display — a real `<input
 #' disabled>` element styled to match the surrounding form controls, not an
 #' editable Shiny widget (no `input$id` is ever registered for it). Used
-#' for constants shown for context (e.g. the DOW logistic shape parameters)
+#' for constants shown for context (e.g. the fitted died-of-wounds base rates)
 #' that are not exposed as editable Configure fields.
 #'
 #' @param label,tooltip_text Short label and hover tooltip

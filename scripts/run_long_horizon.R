@@ -152,6 +152,7 @@ print_blocks <- function(series_name, subject_name) {
 
 cat("\nBlock means (one column per 30-day block):\n")
 for (pool in names(LONG_HORIZON_POOLS)) print_blocks("mean_queue", pool)
+for (pool in names(OVERFLOW_POOLS)) print_blocks("mean_queue", pool)
 for (pool in names(LONG_HORIZON_POOLS)) print_blocks("occupancy", pool)
 for (s in c("arrivals", "dow", "evac_backlog")) print_blocks(s, "system")
 

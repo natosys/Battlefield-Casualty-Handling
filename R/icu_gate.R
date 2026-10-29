@@ -61,9 +61,9 @@ ICU_GATE_ICU_POOL <- "^b_r2eheavy_icu_[0-9]+_t[0-9]+$"
 #' Attribute value recording the intensive care pathway
 #'
 #' @details `post_op_pathway` is a simmer attribute and therefore numeric: 1
-#'   is the intensive care bed and 2 the degraded holding-bed fallback, as
-#'   `R/trajectories.R` sets them at the stabilisation stage between a damage
-#'   control casualty's two operations.
+#'   is the intensive care bed, 2 a holding bed and 3 overflow, as
+#'   `R/trajectories_r2e.R` sets them at the stabilisation stage of a damage
+#'   control casualty.
 ICU_GATE_PATHWAY_ICU  <- 1
 
 #' Attribute value recording the degraded holding-bed pathway
@@ -71,6 +71,12 @@ ICU_GATE_PATHWAY_ICU  <- 1
 #' @details The counterpart to `ICU_GATE_PATHWAY_ICU` above, on the same
 #'   `post_op_pathway` attribute.
 ICU_GATE_PATHWAY_HOLD <- 2
+
+#' Attribute value recording the overflow pathway
+#'
+#' @details Taken when neither an intensive care nor a holding bed is free, on
+#'   the same `post_op_pathway` attribute.
+ICU_GATE_PATHWAY_OVERFLOW <- 3
 
 #' `dow_echelon` value recording a post-operative death
 #'
@@ -111,7 +117,9 @@ icu_gate_occupancy <- function(resources, n_days, establishment,
 #' @param env Wrapped simmer environment for one replication.
 #' @param n_days Campaign length in days.
 #' @param gate_enabled Gate state the replication ran under (0 or 1).
-#' @return One-row data frame of the response set.
+#' @return One-row data frame of the response set, the stabilisation
+#'   pathway's counts and post-operative deaths divided by where the stay was
+#'   served: intensive care, a holding bed or overflow.
 #'
 #' @details The pathway counts are carried as raw numerators and
 #'   denominators rather than as a per-replication rate, because most
@@ -136,6 +144,7 @@ reduce_icu_gate_replication <- function(env, n_days, gate_enabled) {
     pathway$dow_echelon == ICU_GATE_DOW_ECHELON_POSTOP & pathway$dow == 1
   icu_rows  <- pathway$post_op_pathway == ICU_GATE_PATHWAY_ICU
   hold_rows <- pathway$post_op_pathway == ICU_GATE_PATHWAY_HOLD
+  overflow_rows <- pathway$post_op_pathway == ICU_GATE_PATHWAY_OVERFLOW
 
   data.frame(
     gate_enabled     = gate_enabled,
@@ -145,7 +154,9 @@ reduce_icu_gate_replication <- function(env, n_days, gate_enabled) {
     icu_pathway_n    = sum(icu_rows),
     icu_pathway_dow  = sum(postop_dow[icu_rows]),
     hold_pathway_n   = sum(hold_rows),
-    hold_pathway_dow = sum(postop_dow[hold_rows])
+    hold_pathway_dow = sum(postop_dow[hold_rows]),
+    overflow_pathway_n   = sum(overflow_rows),
+    overflow_pathway_dow = sum(postop_dow[overflow_rows])
   )
 }
 

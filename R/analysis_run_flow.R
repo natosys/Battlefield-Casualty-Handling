@@ -373,9 +373,10 @@ compute_treatment_interval_kpis <- function(combined, window_min) {
     ) %>%
     mutate(n_no_surgery_time = no_surgery_time)
 
-  # KPI 2: R2B dwell time (minutes) — treatment start to departure
+  # KPI 2: R2B dwell time (minutes) — treatment start to departure towards R2E
+  # or return to duty from R2B
   r2b_dwell_time <- censored_interval_stats(
-    combined$r2b_treatment_start_time, combined$r2b_departure_time, window_min
+    combined$r2b_treatment_start_time, r2b_leave_time(combined), window_min
   )
 
   # KPI 3: R2B → R2E transit time (minutes)

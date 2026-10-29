@@ -154,11 +154,15 @@ scratch <- tempfile("censoring-check-")
 dir.create(scratch, recursive = TRUE)
 frames   <- prepare_run_frames(mon, 0, scratch)
 combined <- frames$combined
+combined$r2b_leave_time <- r2b_leave_time(combined)
 window   <- observation_window_min(combined)
 
 #' The two dwell intervals, by the attribute pair that bounds each
+#'
+#' @details An R2B stay ends at the departure towards R2E or at a return to duty
+#'   from R2B (r2b_leave_time()), as the KPI reads it.
 INTERVALS <- list(
-  R2B = c("r2b_treatment_start_time", "r2b_departure_time"),
+  R2B = c("r2b_treatment_start_time", "r2b_leave_time"),
   R2E = c("r2e_arrival_time",         "r2e_departure_time")
 )
 

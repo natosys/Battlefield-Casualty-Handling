@@ -428,23 +428,6 @@
           ]
         },
         {
-          "acty": "post_op_hold",
-          "vals": [
-            {
-              "var": "min",
-              "val": 360
-            },
-            {
-              "var": "max",
-              "val": 1440
-            },
-            {
-              "var": "mode",
-              "val": 600
-            }
-          ]
-        },
-        {
           "acty": "second_surgery",
           "vals": [
             {

@@ -192,14 +192,14 @@ summarise_r2e_icu_gating <- function(attributes_wide, combined, output_dir, imag
       mutate(
         care_category = case_when(
           !is.na(surgery_deferred) & surgery_deferred == 1 ~ "Delayed (ICU Wait)",
-          post_op_pathway == 2                              ~ "Sub-Optimal (Hold Bed Override)",
+          post_op_pathway >= 2                              ~ "Sub-Optimal (Holding Bed or Overflow)",
           TRUE                                               ~ "Normal (ICU Access)"
         ),
         day = floor(as.numeric(r2e_surgery_1_start) / DAY_MIN) + 1
       )
 
     n_sim_days_icu <- ceiling(max(combined$start_time, na.rm = TRUE) / DAY_MIN)
-    care_levels <- c("Normal (ICU Access)", "Sub-Optimal (Hold Bed Override)", "Delayed (ICU Wait)")
+    care_levels <- c("Normal (ICU Access)", "Sub-Optimal (Holding Bed or Overflow)", "Delayed (ICU Wait)")
 
     r2e_icu_gating_daily <- icu_gating_patients %>%
       count(day, care_category, name = "n") %>%
@@ -210,7 +210,7 @@ summarise_r2e_icu_gating <- function(attributes_wide, combined, output_dir, imag
       ) %>%
       mutate(care_category = factor(care_category, levels = care_levels))
 
-    n_suboptimal  <- sum(icu_gating_patients$care_category == "Sub-Optimal (Hold Bed Override)")
+    n_suboptimal  <- sum(icu_gating_patients$care_category == "Sub-Optimal (Holding Bed or Overflow)")
     n_delayed     <- sum(icu_gating_patients$care_category == "Delayed (ICU Wait)")
     n_total_gated <- nrow(icu_gating_patients)
     n_max_daily   <- r2e_icu_gating_daily %>% group_by(day) %>% summarise(t = sum(n), .groups = "drop") %>% pull(t) %>% max()
@@ -219,7 +219,7 @@ summarise_r2e_icu_gating <- function(attributes_wide, combined, output_dir, imag
       geom_bar(stat = "identity", position = "stack") +
       scale_fill_manual(values = c(
         "Normal (ICU Access)"             = "#4C956C",
-        "Sub-Optimal (Hold Bed Override)" = "#D62828",
+        "Sub-Optimal (Holding Bed or Overflow)" = "#D62828",
         "Delayed (ICU Wait)"              = "#F4A259"
       )) +
       annotate("text", x = 1, y = n_max_daily + 0.5,
@@ -290,17 +290,18 @@ compute_ot_utilisation <- function(resources_raw) {
 #' @param output_dir See analyse_run().
 #' @return A list of `post_op_pathway_summary`, `surgery_deferred_count`,
 #'   `definitive_repair_outstanding_count`, `surgical_pathway_summary`.
-#' @details Splits both the post-operative destination, an intensive care bed or the
-#'   degraded holding-bed fallback, and the damage control against single-stage
+#' @details Splits both the post-operative destination, an intensive care bed,
+#'   a holding bed or overflow, and the damage control against single-stage
 #'   surgical pathway.
 summarise_post_operative_pathways <- function(attributes_wide, evacuation_policy_summary,
                                               in_theatre_share, output_dir) {
   # KPI 8: R2E OT-ICU gating post-operative pathway summary
-  # post_op_pathway: 1 = ICU (nominal), 2 = Post-Op Hold (ICU saturated, P1 override).
+  # post_op_pathway: 1 = ICU (nominal), 2 = holding bed, 3 = overflow, where the
+  # stabilisation was placed when it began.
   # postop_dow uses dow_echelon == 4, the post-operative checkpoint,
   # kept distinct from the Phase 1 R2E arrival DOW checkpoint (dow_echelon == 3) so the
   # two pathways' realised post-operative mortality can be directly compared.
-  pathway_labels <- c("1" = "icu", "2" = "hold")
+  pathway_labels <- c("1" = "icu", "2" = "hold", "3" = "overflow")
   post_op_pathway_summary <- NULL
   surgery_deferred_count  <- 0L
   definitive_repair_outstanding_count <- 0L

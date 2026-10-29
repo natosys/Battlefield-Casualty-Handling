@@ -13,8 +13,8 @@
 # Why this check exists. compute_ame_backlog() reconstructs how many casualties
 # are simultaneously awaiting a strategic evacuation sortie, the resource
 # monitor's own queue column counting only the casualties already queued on a
-# seat, not those still waiting for the staging bed that admits them to it (see
-# that function's roxygen). It added a casualty at the evacuation
+# seat, not those still in the pre-flight care that precedes it (see that
+# function's roxygen). It added a casualty at the evacuation
 # decision and removed it at ame_departure_time, which is the right pair for
 # only one of the two ways a casualty stops waiting.
 #
@@ -38,8 +38,8 @@
 #      Without this the first assertion would pass for a reconstruction that
 #      never had the defect and for one that still does, since both agree on
 #      the two exits that set a departure time.
-#   3. A casualty still queued for the staging bed it would wait in, which sets
-#      neither attribute, is carried as waiting rather than dropped.
+#   3. A casualty still in the pre-flight care that precedes the seat queue,
+#      which sets neither attribute, is carried as waiting rather than dropped.
 #   3b. The level carried to the window's close is the one in force after every
 #      event of the campaign's last instant, not after the first of them. A
 #      sortie that clears the queue it has just received leaves an arrival and
@@ -247,8 +247,10 @@ arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
 wide <- build_attributes_wide(attributes, arrivals) %>%
   dplyr::right_join(arrivals, by = c("name", "replication"), suffix = c("", "_arrival"))
 
+# Staged in a holding bed or in overflow alike: ame_stage_start is set either
+# way, ame_hold_start only for a bed.
 died <- wide[!is.na(wide$dow_echelon) & wide$dow_echelon == 5 &
-               !is.na(wide$ame_hold_start), ]
+               !is.na(wide$ame_stage_start), ]
 report(nrow(died) > 0,
        "the run carries a casualty who died awaiting a sortie, so this is not vacuous (%d)",
        nrow(died))
@@ -260,8 +262,8 @@ report(nrow(run_backlog) > 0, "the run produced a backlog series (%d events)",
        nrow(run_backlog))
 
 # The two reconstructions differ by the casualties that died, and by nothing
-# else: every other casualty releases its bed at the instant it boards, so the
-# release and the departure are the same event for them.
+# else: every other casualty releases its staging placement at the instant it
+# boards, so the release and the departure are the same event for them.
 close <- CHECK_DAYS * DAY_MIN
 corrected <- run_backlog %>%
   group_by(pool) %>%

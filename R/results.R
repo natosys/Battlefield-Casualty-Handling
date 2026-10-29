@@ -1511,6 +1511,69 @@ seed42_evacuation_rows <- function(wide, res, cfg, days) {
   )
 }
 
+#' Mean census of the overflow resources matching one pattern over a campaign
+#'
+#' @param res The run's resource monitor.
+#' @param pattern Regular expression matching the overflow resources.
+#' @param horizon End of the campaign, in minutes.
+#' @return The time-weighted mean number of casualties in them, zero where none
+#'   was used.
+#'
+#' @details Each resource's server count is a step function between its rows,
+#'   integrated to the horizon; the base R form of overflow_window_census()
+#'   (R/queue_series.R).
+overflow_mean_census <- function(res, pattern, horizon) {
+  r <- res[grepl(pattern, res$resource) & res$time <= horizon, ]
+  area <- 0
+  for (name in unique(r$resource)) {
+    x <- r[r$resource == name, ]
+    x <- x[order(x$time, seq_len(nrow(x))), ]
+    area <- area + sum(x$server * diff(c(x$time, horizon)))
+  }
+  area / horizon
+}
+
+#' Placement and overflow measurements of one seed-42 campaign
+#'
+#' @param wide Function returning the last value of one attribute for every
+#'   casualty, as `seed42_verification_rows()` builds it.
+#' @param res The run's resource monitor.
+#' @param days The campaign length in days.
+#' @return A data frame of `metric` and `value`: the casualties placed at each
+#'   point of care by where they were placed, then the mean overflow census of
+#'   each point.
+seed42_placement_rows <- function(wide, res, days) {
+  #' Casualties whose attribute takes one value
+  #'
+  #' @param key Attribute key.
+  #' @param val Value counted.
+  #' @return The count.
+  n_at <- function(key, val) sum(wide(key) == val, na.rm = TRUE)
+  stays <- wide("post_op_pathway")[names(wide("r2e_post_op_start"))]
+  counts <- c(
+    reception_resuscitation = n_at("r2b_reception_bed", 1),
+    reception_holding = n_at("r2b_reception_bed", 2),
+    reception_overflow = n_at("r2b_reception_bed", 3),
+    stabilisation_icu = sum(stays == 1, na.rm = TRUE),
+    stabilisation_holding = sum(stays == 2, na.rm = TRUE),
+    stabilisation_overflow = sum(stays == 3, na.rm = TRUE),
+    post_definitive_icu = n_at("post_definitive_pathway", 1),
+    post_definitive_holding = n_at("post_definitive_pathway", 2),
+    post_definitive_overflow = n_at("post_definitive_pathway", 3),
+    staging_holding = n_at("r2e_stage_bed", 2),
+    staging_overflow = n_at("r2e_stage_bed", 3)
+  )
+  horizon <- days * DAY_MIN
+  census <- c(
+    census_reception = overflow_mean_census(res, "^overflow_r2b_reception_", horizon),
+    census_post_op = overflow_mean_census(res, "^overflow_r2e_post_op_", horizon),
+    census_pre_flight = overflow_mean_census(res, "^overflow_r2e_pre_flight_", horizon),
+    census_staging = overflow_mean_census(res, "^overflow_r2e_staging_", horizon)
+  )
+  data.frame(metric = c(names(counts), names(census)),
+             value = c(unname(counts), unname(census)), stringsAsFactors = FALSE)
+}
+
 #' Verification measurements of one seed-42 campaign
 #'
 #' @param mon The monitoring list of one run, with `arrivals` and `attributes`.
@@ -1612,6 +1675,8 @@ seed42_verification_rows <- function(mon, cfg, days) {
   queued <- wide("rtd_while_queued")
   add("admission", "returned_to_duty_while_queued", sum(queued == 1, na.rm = TRUE))
   add("admission", "battle_fatigue_returned", sum(!is.na(wide("return_day")[names(bf)])))
+  placed <- seed42_placement_rows(wide, mon$resources, days)
+  for (i in seq_len(nrow(placed))) add("placement", placed$metric[i], placed$value[i])
   evac <- seed42_evacuation_rows(wide, mon$resources, cfg, days)
   for (i in seq_len(nrow(evac))) {
     add("evacuation", evac$metric[i], evac$value[i], evac$configured[i])
@@ -1716,6 +1781,31 @@ ANNEX_ADMISSION <- c(
 ANNEX_ADMISSION_DP <- c(
   minor_strategic_evacuation_share = 1L, returned_to_duty_while_queued = 0L,
   battle_fatigue_returned = 0L
+)
+
+#' Row labels of the seed-42 placement table, by metric
+ANNEX_PLACEMENT <- c(
+  reception_resuscitation = "R2B reception, straight to a resuscitation bed",
+  reception_holding = "R2B reception, waiting in a holding bed",
+  reception_overflow = "R2B reception, waiting in overflow",
+  stabilisation_icu = "R2E stabilisation in intensive care",
+  stabilisation_holding = "R2E stabilisation in a holding bed",
+  stabilisation_overflow = "R2E stabilisation in overflow",
+  post_definitive_icu = "R2E post-definitive care in intensive care",
+  post_definitive_holding = "R2E post-definitive care in a holding bed",
+  post_definitive_overflow = "R2E post-definitive care in overflow",
+  staging_holding = "Evacuees staged in a holding bed",
+  staging_overflow = "Evacuees staged in overflow",
+  census_reception = "Mean overflow census, R2B reception",
+  census_post_op = "Mean overflow census, R2E post-operative stays",
+  census_pre_flight = "Mean overflow census, R2E pre-flight care",
+  census_staging = "Mean overflow census, R2E staging"
+)
+
+#' Decimal places of the seed-42 placement table, by metric
+ANNEX_PLACEMENT_DP <- c(
+  setNames(rep(0L, 11), names(ANNEX_PLACEMENT)[1:11]),
+  setNames(rep(2L, 4), names(ANNEX_PLACEMENT)[12:15])
 )
 
 #' Row labels of the seed-42 damage control table, by metric
@@ -2768,6 +2858,7 @@ RESULTS_TABLES <- list(
   annex_evacuation = function(dd) build_annex(dd, "evacuation", ANNEX_EVACUATION,
                                                ANNEX_EVACUATION_DP),
   annex_admission = function(dd) build_annex(dd, "admission", ANNEX_ADMISSION, ANNEX_ADMISSION_DP),
+  annex_placement = function(dd) build_annex(dd, "placement", ANNEX_PLACEMENT, ANNEX_PLACEMENT_DP),
   annex_surgical_load = function(dd) {
     build_annex(dd, "surgical_load", ANNEX_SURGICAL_LOAD, ANNEX_SURGICAL_LOAD_DP)
   },

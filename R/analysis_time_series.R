@@ -46,8 +46,9 @@ TIME_SERIES_BIN_MIN <- 240L
 #' The two post-operative decisions whose degraded share is tracked over time
 #'
 #' @details Each names an attribute recording which pathway a casualty took,
-#'   1 being the intensive care bed the pathway is designed around and 2 the
-#'   degraded holding-bed fallback taken when no intensive care bed is free.
+#'   1 being the intensive care bed the pathway is designed around, 2 a holding
+#'   bed taken when no intensive care bed is free and 3 overflow when no holding
+#'   bed is free either; 2 and 3 are both degraded care.
 #'   Both are reported because they degrade independently: stabilisation sits
 #'   between a damage control casualty's two operations, post-definitive care
 #'   after the last one.
@@ -127,10 +128,10 @@ pool_clearance_series <- function(resources_raw, horizon_min, pools = TIME_SERIE
 #'   cumulative_rate.
 #'
 #' @details A casualty's pathway is read at the last instant the attribute was
-#'   set, which is the decision that stands; the surrounding trajectories set
-#'   the intensive care value once on entry and again inside the branch that
-#'   takes it, so an earlier row can restate a decision but never contradicts
-#'   the final one. `daily_rate` is NA on a day no casualty reached the
+#'   set, which is the decision that stands; the placement sets it inside the
+#'   branch that places the stay, and a later step with no stay of its own
+#'   keeps the value already set, so an earlier row can restate a decision but
+#'   never contradicts the final one. `daily_rate` is NA on a day no casualty reached the
 #'   decision, which leaves a gap in the figure rather than drawing a rate of
 #'   zero that no casualty supports; `cumulative_rate` carries the last value
 #'   forward across such a day, being a running total rather than a daily one.
@@ -146,7 +147,7 @@ pathway_degraded_series <- function(attributes_raw, horizon_min, stages = PATHWA
       slice_tail(n = 1) %>%
       ungroup() %>%
       mutate(day = pmin(floor(time / DAY_MIN) + 1L, n_days),
-             degraded = as.integer(value == 2))
+             degraded = as.integer(value >= 2))
     decisions %>%
       count(replication, day, wt = degraded, name = "n_degraded") %>%
       full_join(count(decisions, replication, day, name = "n_decisions"),

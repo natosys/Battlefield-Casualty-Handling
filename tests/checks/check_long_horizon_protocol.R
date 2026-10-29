@@ -158,8 +158,11 @@ if (!file.exists(series_path) || !file.exists(blocks_path)) {
   report(length(unique(series$replication)) == LONG_HORIZON_REPLICATIONS,
          "the tracked series carries %d replications (found %d)",
          LONG_HORIZON_REPLICATIONS, length(unique(series$replication)))
-  report(setequal(unique(series$subject),
-                  c(names(LONG_HORIZON_POOLS), "system")),
+  # The overflow points are reported where the set carries them, a set measured
+  # before casualties were placed in overflow having none to report.
+  subjects <- unique(series$subject)
+  report(all(c(names(LONG_HORIZON_POOLS), "system") %in% subjects) &&
+           all(subjects %in% c(names(LONG_HORIZON_POOLS), names(OVERFLOW_POOLS), "system")),
          "the tracked series carries every pool the protocol names, and the system")
   report(setequal(unique(series$series),
                   c("mean_queue", "occupancy", "arrivals", "dow", "evac_backlog")),
@@ -210,6 +213,19 @@ for (pool in names(LONG_HORIZON_POOLS)) {
   from_monitor <- monitor_mean_queue(LONG_HORIZON_POOLS[[pool]])
   report(!is.na(from_monitor) && abs(from_series - from_monitor) < TOL,
          "%s: the mean of the daily queues equals the monitor's run mean (%.6f)",
+         pool, from_monitor)
+}
+
+for (pool in names(OVERFLOW_POOLS)) {
+  from_series <- mean(reduced$value[reduced$series == "mean_queue" &
+                                      reduced$subject == pool])
+  rows <- resources[grepl(OVERFLOW_POOLS[[pool]], resources$resource), ]
+  from_monitor <- if (nrow(rows) == 0) 0 else {
+    step_bin_means(pool_queue_steps(rows$resource, rows$time, rows$server),
+                   c(0, CHECK_DAYS * DAY_MIN))
+  }
+  report(isTRUE(abs(from_series - from_monitor) < TOL),
+         "%s: the mean of the daily censuses equals the monitor's run mean (%.6f)",
          pool, from_monitor)
 }
 

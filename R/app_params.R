@@ -291,7 +291,6 @@ SRC_EVAC_THRESHOLD    <- paste(
   "so any setting is an informed estimate. See README R2B Trajectory."
 )
 SRC_ICU_GATING        <- "Design parameter for OT-ICU gating; not literature-derived."
-SRC_POST_OP_HOLD      <- "Informed estimate; no open-access source quantifies a ward-vs-ICU post-operative recovery duration for this patient population. See README Limitations (L11)."
 #' Source note for the forward stability windows
 SRC_R2B_STABILITY     <- "Informed estimate; no open-access source states how long a casualty operated on at a forward surgical facility is held before they are fit to transfer. A command policy lever, set per surgical pathway: damage control casualties are the more physiologically deranged and a single-stage casualty the less. Ships at zero (nobody held forward on stability grounds). High uncertainty. See README R2B Trajectory, Post-Operative Intensive Care."
 #' Source note for the forward capacity hold
@@ -337,7 +336,6 @@ CONSOLE_RANGES <- local({
     "long_resus_mode",            25, 70,
     "ot_hours",                   8, 16,
     "post_definitive_icu_mode",   720, 2880,
-    "post_op_hold_mode",          380, 1200,
     "pri1_dcs_rate",              0.3, 0.8,
     "pri1_surg_prob",             0.7, 0.98,
     "pri2_dcs_rate",              0.08, 0.4,
@@ -947,12 +945,8 @@ r2e_fields <- function() {
                                      range_mode_name = "r2e_hold_mode", bound = c(0, 40000),
                                      source = SRC_RECOVERY_TO_DUTY))
   registry <- c(registry, tri_fields("r2e_critical_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "critical_hold",
-                                     "Pre-Flight Critical Care Duration", "Time a ventilated critical-route evacuee occupies an R2E ICU bed before stepping down to a holding bed to await its sortie.",
+                                     "Pre-Flight Critical Care Duration", "Time a ventilated critical-route evacuee receives pre-flight critical care, in an R2E ICU bed if one is free, before stepping down to staging to await its sortie.",
                                      bound = c(0, 4320), source = SRC_PRE_FLIGHT_ICU))
-  registry <- c(registry, tri_fields("r2e_post_op_hold", GRP_PROVISION, "R2E — ICU & Holding Durations", "r2eheavy", "post_op_hold",
-                                     "Post-Op Holding-Bed Duration", "Time in a holding bed for a Priority 1 casualty recovering outside ICU due to ICU saturation.",
-                                     range_mode_name = "post_op_hold_mode", bound = c(0, 3000),
-                                     source = SRC_POST_OP_HOLD))
   registry <- c(registry, list(
     var_field("r2e_evacuation_policy_days", GRP_PROVISION, "R2E — Recovery & Evacuation", "r2eheavy", "recovery", "evacuation_policy_days",
               "Theatre Evacuation Policy", "Days. A casualty expected back on duty within this many days is retained in theatre; everyone else is strategically evacuated.",

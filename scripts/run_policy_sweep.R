@@ -453,6 +453,9 @@ print_row("hold_occupancy", "R2E hold occupancy (%)", 100, 1)
 print_row("hold_mean_queue", "R2E hold mean queue", 1, 2)
 print_row("icu_occupancy", "R2E ICU occupancy (%)", 100, 1)
 print_row("icu_mean_queue", "R2E ICU mean queue", 1, 2)
+for (pool in names(OVERFLOW_RESPONSES)) {
+  print_row(OVERFLOW_RESPONSES[[pool]], paste(pool, "census"), 1, 2)
+}
 print_row("post_definitive_icu_share", "Post-definitive ICU access (%)", 100, 1)
 print_row("in_theatre_share", "In-theatre share (%)", 100, 1)
 print_row("total_rtd", "Returns to duty", 1, 1)

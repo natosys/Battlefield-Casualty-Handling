@@ -179,6 +179,12 @@ window_mon <- list(resources = data.frame(
 ))
 whole <- scenario_queue_groups_by_replication(window_mon, n_days = 10, window_days = 90)
 closing <- scenario_queue_groups_by_replication(window_mon, n_days = 10, window_days = 4)
+# The overflow points no casualty reached in this pool report a zero census.
+report(all(whole$mean_q[whole$group %in% names(OVERFLOW_POOLS)] == 0) &&
+         setequal(whole$group, c("R2B Hold", names(OVERFLOW_POOLS))),
+       "an overflow point no casualty reached reports a census of zero rather than dropping out")
+whole <- whole[whole$group == "R2B Hold", ]
+closing <- closing[closing$group == "R2B Hold", ]
 report(abs(whole$mean_q - 0.2) < 1e-9,
        "a campaign shorter than the window is averaged whole: %.4f, expected 0.2000",
        whole$mean_q)
@@ -289,7 +295,11 @@ if (!is.null(groups)) {
   report(all(groups$n_reps == held$replications),
          "every tracked queue-group row carries %s replications",
          format(held$replications))
-  report(setequal(unique(groups$group), SCENARIO_QUEUE_GROUPS),
+  # The overflow points are reported where the set carries them, a set measured
+  # before casualties were placed in overflow having none to report.
+  carried <- unique(groups$group)
+  report(all(SCENARIO_QUEUE_GROUPS %in% carried) &&
+           all(carried %in% c(SCENARIO_QUEUE_GROUPS, names(OVERFLOW_POOLS))),
          "the tracked queue summary carries the six groups the table prints")
 }
 

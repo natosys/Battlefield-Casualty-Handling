@@ -72,8 +72,14 @@ ICU_BED_SWEEP_ARMS <- data.frame(
 #' Arm the paired differences are measured against
 ICU_BED_SWEEP_BASELINE_ARM <- icu_bed_arm_label(ICU_BED_SWEEP_BASELINE)
 
-#' Pools whose daily queue is classified
-ICU_BED_SWEEP_POOLS <- c("R2E intensive care", "R2E holding beds")
+#' Pools whose daily queue, or overflow census, is classified
+#'
+#' @details The two bed pools and the two overflow points their saturation
+#'   spills into, the post-operative stays and the evacuees staged for flight
+#'   (`OVERFLOW_POOLS`, R/queue_series.R). For an overflow point the classified
+#'   series is its census.
+ICU_BED_SWEEP_POOLS <- c("R2E intensive care", "R2E holding beds",
+                         "R2E post-operative overflow", "R2E staging overflow")
 
 #' Nurses an R2E intensive care section fields, for the staffing ratio reported
 #'
@@ -177,8 +183,8 @@ icu_nurses_per_bed <- function(icu_beds, sections) {
 #'
 #' @details The scalar responses are reduce_policy_replication()'s, run under
 #'   the evacuation policy in force. The post-operative degraded share is the
-#'   share of casualties whose post-operative stay was taken in a holding bed
-#'   (`post_op_pathway` 2); the critical wait is the strategic evacuation wait
+#'   share of casualties whose post-operative stay was taken in a holding bed or
+#'   overflow (`post_op_pathway` 2 or 3); the critical wait is the strategic evacuation wait
 #'   of the critical route; the theatre deferrals are `surgery_deferred`, as
 #'   reduce_hold_window_replication() reads them.
 reduce_icu_bed_replication <- function(env, n_days, seed,
@@ -195,7 +201,7 @@ reduce_icu_bed_replication <- function(env, n_days, seed,
                       suffix = c("", "_arrival"))
 
   post_op <- wide[!is.na(wide$post_op_pathway), ]
-  degraded <- if (nrow(post_op) == 0) NA_real_ else mean(post_op$post_op_pathway == 2)
+  degraded <- if (nrow(post_op) == 0) NA_real_ else mean(post_op$post_op_pathway >= 2)
 
   decided <- wide[!is.na(wide$r2e_evac) & wide$r2e_evac == 1, ]
   critical <- decided[!is.na(decided$ame_departure_time) & !is.na(decided$ame_route) &
@@ -227,7 +233,8 @@ reduce_icu_bed_replication <- function(env, n_days, seed,
                  value = rows$occupancy)
     )
   }))
-  list(row = row, series = series)
+  # An overflow point has no establishment and so no occupancy row.
+  list(row = row, series = series[!is.na(series$value), ])
 }
 
 #' Measure the intensive care establishment's responses across replications
@@ -296,9 +303,12 @@ run_icu_bed_measurement <- function(n_iterations = ICU_BED_SWEEP_REPLICATIONS,
 #'
 #' @details The classification is surgical_stability()'s, so the verdict is the
 #'   one the sustained-operations section reaches and the shortfall per day is
-#'   read from the same late-half slope.
+#'   read from the same late-half slope. A pool the series does not carry is
+#'   not classified, so a set measured before the overflow points existed is
+#'   classified on the pools it has.
 icu_bed_stability <- function(series, block_days = LONG_HORIZON_BLOCK_DAYS) {
-  do.call(rbind, lapply(ICU_BED_SWEEP_POOLS, function(p) {
+  pools <- ICU_BED_SWEEP_POOLS[ICU_BED_SWEEP_POOLS %in% series$subject]
+  do.call(rbind, lapply(pools, function(p) {
     st <- surgical_stability(series, block_days, pool = p)
     st$pool <- p
     st

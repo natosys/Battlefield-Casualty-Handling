@@ -223,9 +223,103 @@ legacy_hold_penalty <- function(trj) {
   })
 }
 
+#' Builds one post-operative stay, placed in the best bed free when it begins
+#'
+#' @param label     Name of the stay, used in its trajectory names
+#' @param stay      "stabilisation" or "post_definitive", which selects the
+#'   attributes the stay reads and records
+#' @param icu_beds  This R2E team's intensive care beds
+#' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's post-operative overflow resource
+#' @return Simmer trajectory serving the stay and leaving the casualty in
+#'   post-operative care outside intensive care when it ends.
+#'
+#' @details The placement is read when the stay begins and kept for the whole of
+#'   it (placement_now()), and the full drawn requirement is served whichever bed
+#'   it falls in, so a full intensive care unit changes where and how well the
+#'   care is given rather than how long it lasts or when it starts. A holding bed
+#'   and overflow both carry the holding-bed multiplier (post_op_outside_icu()),
+#'   overflow being at best holding-standard care, or under the legacy mechanism
+#'   the raised ceiling (legacy_hold_penalty()).
+#'
+#'   A stabilisation serves `r2e_post_op_min` and records `r2e_post_op_start`,
+#'   `post_op_pathway` and, in a holding bed, `r2e_post_op_hold_start`; a
+#'   post-definitive stay serves `post_definitive_min` and records
+#'   `post_definitive_start`, `post_definitive_pathway` and
+#'   `post_definitive_hold_start`. The holding start is what the holding
+#'   occupancy split reads (R/airlift.R).
+#'
+#'   MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
+#'   Priority 1 casualty even when no post-operative intensive care bed is
+#'   available, accepting elevated post-operative mortality risk rather than
+#'   withholding surgery. See README Further Development for basis,
+#'   uncertainty, and consequence.
+r2e_placed_stay <- function(label, stay, icu_beds, hold_beds, overflow) {
+  stabilisation <- identical(stay, "stabilisation")
+  minutes_attr <- if (stabilisation) "r2e_post_op_min" else "post_definitive_min"
+  #' Records the placement taken
+  #'
+  #' @param bed 1 intensive care, 2 holding bed, 3 overflow.
+  #' @return A trajectory setting this stay's placement attribute.
+  record_bed <- function(bed) {
+    force(bed)
+    if (stabilisation) return(trajectory() %>% set_attribute("post_op_pathway", bed))
+    trajectory() %>% set_attribute("post_definitive_pathway", bed)
+  }
+  record_start <- if (stabilisation) {
+    trajectory() %>% set_attribute("r2e_post_op_start", function() now(env))
+  } else {
+    trajectory() %>% set_attribute("post_definitive_start", function() now(env))
+  }
+  record_hold <- if (stabilisation) {
+    trajectory() %>% set_attribute("r2e_post_op_hold_start", function() now(env))
+  } else {
+    trajectory() %>% set_attribute("post_definitive_hold_start", function() now(env))
+  }
+
+  # Branches on the best placement free at this instant (placement_now()):
+  # - 1 an intensive care bed is free         -> intensive care
+  # - 2 none, but a holding bed is free        -> holding bed
+  # - 3 neither                                -> overflow, with no bed
+  trajectory(label) %>%
+    join(record_start) %>%
+    branch(
+      option = function() placement_now(icu_beds, hold_beds),
+      continue = TRUE,
+      trajectory(paste(label, "in Intensive Care")) %>%
+        join(record_bed(1)) %>%
+        simmer::select(icu_beds, policy = "first-available", id = 6) %>%
+        seize_selected(id = 6) %>%
+        dow_placement(post_op_r2e_icu) %>%
+        timeout_from_attribute(minutes_attr) %>%
+        release_selected(id = 6),
+      trajectory(paste(label, "in a Holding Bed")) %>%
+        join(record_bed(2)) %>%
+        legacy_hold_penalty() %>%
+        simmer::select(hold_beds, policy = "first-available", id = 8) %>%
+        seize_selected(id = 8) %>%
+        join(record_hold) %>%
+        dow_placement(post_op_outside_icu) %>%
+        timeout_from_attribute(minutes_attr) %>%
+        release_selected(id = 8),
+      trajectory(paste(label, "in Overflow")) %>%
+        join(record_bed(3)) %>%
+        legacy_hold_penalty() %>%
+        seize(overflow, 1) %>%
+        overflow_enter() %>%
+        dow_placement(post_op_outside_icu) %>%
+        timeout_from_attribute(minutes_attr) %>%
+        release(overflow, 1) %>%
+        overflow_leave()
+    ) %>%
+    dow_placement(post_op_outside_icu)
+}
+
 #' Builds the stabilisation phase served between two operations at R2E
 #'
 #' @param icu_beds    This R2E team's intensive care beds
+#' @param hold_beds   This R2E team's holding beds
+#' @param overflow    This R2E team's post-operative overflow resource
 #' @param post_op_dow The post-operative died-of-wounds check this phase ends in
 #' @return Simmer trajectory serving whatever stabilisation the forward echelon
 #'   did not, then applying the post-operative check.
@@ -241,10 +335,13 @@ legacy_hold_penalty <- function(trj) {
 #'   on one.
 #'
 #'   A single-stage casualty has no interval between two operations and so no
-#'   stabilisation phase; they pass straight to the post-operative check.
-r2e_stabilisation_recovery <- function(icu_beds, post_op_dow) {
+#'   stabilisation phase; they pass straight to the post-operative check. The
+#'   stay is placed when the operation ends (r2e_placed_stay()), and
+#'   post_op_pathway records where it was served.
+r2e_stabilisation_recovery <- function(icu_beds, hold_beds, overflow, post_op_dow) {
+  stay <- r2e_placed_stay("R2E Damage Control Stabilisation", "stabilisation",
+                          icu_beds, hold_beds, overflow)
   trajectory("R2E Stabilisation") %>%
-    set_attribute("post_op_pathway", 1) %>%
     branch(
       # A casualty operated on at R2B took their stabilisation before this
       # procedure, and must not momentarily occupy a bed to repeat it.
@@ -258,26 +355,33 @@ r2e_stabilisation_recovery <- function(icu_beds, post_op_dow) {
       trajectory("R2E Damage Control Stabilisation Stay") %>%
         set_attribute("stabilisation_total", function() draw_stabilisation_icu()) %>%
         set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-        seize_selected(id = 6) %>%
-        dow_placement(post_op_r2e_icu) %>%
-        timeout(function() r2e_stabilisation_minutes()) %>%
-        release_selected(id = 6) %>%
-        dow_placement(post_op_outside_icu),
-      trajectory("No Stabilisation Due at This Step")
+        join(stay),
+      # The nominal pathway is recorded where no stay is due here, unless a
+      # stabilisation served before the repair has already recorded its bed.
+      trajectory("No Stabilisation Due at This Step") %>%
+        set_attribute("post_op_pathway", function() {
+          served <- get_attribute(env, "post_op_pathway")
+          if (is.na(served)) 1 else served
+        })
     ) %>%
     join(post_op_dow)
 }
 
 #' Builds the stabilisation outstanding before a definitive repair at R2E
 #'
-#' @param icu_beds This R2E team's intensive care beds
+#' @param icu_beds  This R2E team's intensive care beds
+#' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's post-operative overflow resource
 #' @return Simmer trajectory serving the remaining stabilisation of a casualty
 #'   operated on at R2B, before their definitive repair here.
 #'
 #' @details Nothing is due when the forward echelon served the whole
-#'   requirement, which is what a forward share of one produces.
-r2e_pre_surgery_stabilisation <- function(icu_beds) {
+#'   requirement, which is what a forward share of one produces. Served before
+#'   the repair whatever the state of intensive care, the stay being placed
+#'   rather than queued for (r2e_placed_stay()).
+r2e_pre_surgery_stabilisation <- function(icu_beds, hold_beds, overflow) {
+  stay <- r2e_placed_stay("R2E Pre-Definitive Stabilisation", "stabilisation",
+                          icu_beds, hold_beds, overflow)
   trajectory("R2E Pre-Definitive Stabilisation") %>%
     branch(
       option = function() {
@@ -289,81 +393,10 @@ r2e_pre_surgery_stabilisation <- function(icu_beds) {
       },
       continue = TRUE,
       trajectory("R2E Pre-Definitive Stabilisation Stay") %>%
-        set_attribute("post_op_pathway", 1) %>%
         set_attribute("r2e_post_op_min", function() r2e_stabilisation_minutes()) %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-        seize_selected(id = 6) %>%
-        dow_placement(post_op_r2e_icu) %>%
-        timeout(function() r2e_stabilisation_minutes()) %>%
-        release_selected(id = 6) %>%
-        dow_placement(post_op_outside_icu),
+        join(stay),
       trajectory("No Stabilisation Outstanding")
     )
-}
-
-#' Builds the degraded post-operative holding pathway at R2E
-#'
-#' @param hold_beds   This R2E team's holding beds
-#' @param post_op_dow The post-operative died-of-wounds check this pathway ends
-#'   in
-#' @return Simmer trajectory recovering the casualty in a holding bed at an
-#'   elevated died-of-wounds ceiling, then applying the post-operative check.
-#'
-#' @details Reached when intensive care is full and the casualty's priority is
-#'   within the P1 override threshold
-#'   (env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max). Surgery
-#'   proceeds; recovery is in a holding bed instead of intensive care. The
-#'   reduced post-operative monitoring carries its cost as the holding-bed
-#'   multiplier over the stay, or under the legacy mechanism as a raised ceiling
-#'   (legacy_hold_penalty()); see README "Died of Wounds".
-#'
-#'   MODEL ASSUMPTION — P1 SURGERY WITHOUT ICU: a surgeon operates on a
-#'   Priority 1 casualty even when no post-operative intensive care bed is
-#'   available, accepting elevated post-operative mortality risk rather than
-#'   withholding surgery (which would expose a Priority 1 casualty who has not
-#'   undergone surgery to near-certain death of wounds). See README Further
-#'   Development for basis, uncertainty, and consequence.
-#'
-#'   This is the degraded form of the stabilisation phase, so it applies only to
-#'   the damage control pathway. A single-stage casualty has no stabilisation
-#'   phase to degrade; their post-operative intensive care is the
-#'   post-definitive episode, which carries its own holding-bed fallback.
-r2e_hold_recovery <- function(hold_beds, post_op_dow) {
-  trajectory("R2E Post-Op Hold Recovery") %>%
-    branch(
-      option = function() if (single_stage()) 2 else 1,
-      continue = TRUE,
-
-      trajectory("R2E Damage Control Post-Op Hold") %>%
-        set_attribute("post_op_pathway", 2) %>%
-        legacy_hold_penalty() %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
-        seize_selected(id = 8) %>%
-        dow_placement(post_op_outside_icu) %>%
-        # The stay is drawn into an attribute and served from it, rather than
-        # drawn at the timeout, so the bed time this arm consumes is recorded
-        # rather than inferred; without it the holding pool's occupancy split
-        # can only reach this arm as a residual, which absorbs every error in
-        # the other components. The draw sits after the seize, where the
-        # timeout used to take it, rather than before: a casualty can wait for
-        # a bed, and drawing before that wait would move this draw ahead of
-        # every arrival drawn during it and so shift the arrival stream.
-        set_attribute("r2e_post_op_hold_start", function() now(env)) %>%
-        set_attribute("r2e_post_op_hold_min", function() {
-          rtriangle(
-            n = 1,
-            a = env_data$vars$r2eheavy$post_op_hold$min,
-            b = env_data$vars$r2eheavy$post_op_hold$max,
-            c = env_data$vars$r2eheavy$post_op_hold$mode
-          )
-        }) %>%
-        timeout_from_attribute("r2e_post_op_hold_min") %>%
-        release_selected(id = 8) %>%
-        dow_placement(post_op_outside_icu),
-
-      trajectory("Single-Stage — No Stabilisation Phase to Degrade")
-    ) %>%
-    join(post_op_dow)
 }
 
 #' Builds the operation itself at R2E, from theatre seizure to closure
@@ -374,9 +407,8 @@ r2e_hold_recovery <- function(hold_beds, post_op_dow) {
 #' @return Simmer trajectory performing one operation at whichever section is
 #'   selected on entry.
 #'
-#' @details Recovery (intensive care against post-operative hold) is decided
-#'   upstream at the pre-theatre gate and joined on afterwards, so this portion
-#'   is identical for both paths.
+#' @details Recovery is placed when the operation ends (r2e_placed_stay()) and
+#'   joined on afterwards, so this portion is the same on every route.
 r2e_ot_surgery <- function(team_id, ot_beds, surg_teams) {
   # Branch structure: one sub-trajectory per R2E surgical section, selected on
   # entry by select_r2e_surg_section(). Every branch performs the same
@@ -418,10 +450,11 @@ r2e_post_definitive_minutes <- function() {
 #'
 #' @param icu_beds  This R2E team's intensive care beds
 #' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's post-operative overflow resource
 #' @param team_id   Integer index of the Role 2E Heavy team
 #' @param evac_team This R2E team's evacuation section
 #' @return Simmer trajectory serving the episode that follows the definitive
-#'   repair, in an intensive care bed or, where none is free, a holding bed.
+#'   repair, placed in the best bed free when it begins.
 #'
 #' @details Joined after Phase 4 for every casualty who had an operation, on
 #'   either route. This is the episode that follows the definitive repair,
@@ -435,63 +468,43 @@ r2e_post_definitive_minutes <- function() {
 #'   stops the forward-holding lever from emptying out post-definitive care as
 #'   the share rises.
 #'
-#'   It takes the same degraded-care fallback as the post-operative hold
-#'   pathway, for the same reason: a casualty who has already been operated on
-#'   cannot be made to wait indefinitely for a bed, so when intensive care is
-#'   saturated they recover in a holding bed, at the holding-bed multiplier.
-#'   The pathway taken is recorded in
-#'   post_definitive_pathway (1 = ICU, 2 = hold). The episode ends in its own
+#'   The episode is placed like every post-operative stay (r2e_placed_stay()):
+#'   intensive care if a bed is free, otherwise a holding bed, otherwise
+#'   overflow. The placement is recorded in post_definitive_pathway (1 = ICU,
+#'   2 = hold, 3 = overflow). The requirement is read before the placement, which
+#'   draws no random number of its own. The episode ends in its own
 #'   died-of-wounds check (r2e_post_definitive_dow_check()).
-r2e_post_definitive_care <- function(icu_beds, hold_beds, team_id, evac_team) {
+r2e_post_definitive_care <- function(icu_beds, hold_beds, overflow, team_id, evac_team) {
   post_definitive_check <- r2e_post_definitive_dow_check(team_id, evac_team)
+  stay <- r2e_placed_stay("R2E Post-Definitive Care", "post_definitive",
+                          icu_beds, hold_beds, overflow)
 
+  # Branches on what the casualty owes this echelon:
+  # - 1 an operation with post-definitive care still owed -> the placed stay
+  # - 2 no operation, or released with the repair outstanding -> nothing
+  # - 3 operated, the care served in full at R2B -> nothing, recorded as zero
   trajectory("R2E Post-Definitive Care") %>%
     branch(
       option = function() {
         had_surgery <- get_attribute(env, "surgery")
-        if (is.na(had_surgery) || had_surgery != 1) return(3)
+        if (is.na(had_surgery) || had_surgery != 1) return(2)
         # A casualty released with the definitive repair outstanding has no
         # post-definitive episode to serve: the episode this trajectory models
         # follows a repair that has not happened.
         outstanding <- get_attribute(env, "definitive_repair_outstanding")
-        if (!is.na(outstanding) && outstanding == 1) return(3)
+        if (!is.na(outstanding) && outstanding == 1) return(2)
         # Served in full at R2B: nothing remains for this echelon. The
         # attribute is set to zero so the casualty still reads as operated.
         owed <- get_attribute(env, "post_definitive_total") - forward_served()
-        if (!is.na(owed) && owed <= 0) return(4)
-        usage <- sum(get_server_count(env, resources = icu_beds))
-        cap   <- sum(get_capacity(env, resources = icu_beds))
-        if (!is.na(usage) && !is.na(cap) && usage < cap) return(1)
-        return(2)
+        if (!is.na(owed) && owed <= 0) return(3)
+        return(1)
       },
       continue = TRUE,
-
-      trajectory("R2E Post-Definitive ICU") %>%
-        set_attribute("post_definitive_pathway", 1) %>%
+      trajectory("R2E Post-Definitive Stay") %>%
         set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 6) %>%
-        seize_selected(id = 6) %>%
-        dow_placement(post_op_r2e_icu) %>%
-        timeout(function() get_attribute(env, "post_definitive_min")) %>%
-        release_selected(id = 6) %>%
-        dow_placement(post_op_outside_icu) %>%
+        join(stay) %>%
         join(post_definitive_check),
-
-      trajectory("R2E Post-Definitive Hold — ICU Full") %>%
-        set_attribute("post_definitive_pathway", 2) %>%
-        set_attribute("post_definitive_min", function() r2e_post_definitive_minutes()) %>%
-        legacy_hold_penalty() %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 8) %>%
-        seize_selected(id = 8) %>%
-        dow_placement(post_op_outside_icu) %>%
-        set_attribute("post_definitive_hold_start", function() now(env)) %>%
-        timeout(function() get_attribute(env, "post_definitive_min")) %>%
-        release_selected(id = 8) %>%
-        dow_placement(post_op_outside_icu) %>%
-        join(post_definitive_check),
-
       trajectory("No Operation, No Post-Definitive Care"),
-
       trajectory("Post-Definitive Care Served Forward in Full") %>%
         set_attribute("post_definitive_min", 0)
     )
@@ -612,6 +625,7 @@ r2e_ame_queue_and_board <- function(resource_name, bed_id, team_id, evac_team) {
     set_attribute("dow", 1) %>%
     set_attribute("dow_echelon", 5) %>%
     release_selected(id = bed_id) %>%
+    overflow_leave(staged_in_overflow) %>%
     set_attribute("ame_hold_end", function() now(env)) %>%
     r2e_treat_kia(team_id, evac_team) %>%
     r2e_transport_kia(team_id, evac_team) %>%
@@ -697,30 +711,79 @@ draw_recovery_to_duty <- function() {
   (base * severity) / DAY_MIN
 }
 
+#' Builds the staging of an evacuee for flight
+#'
+#' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's staging overflow resource
+#' @return Simmer trajectory staging the casualty in a holding bed if one is
+#'   free and in overflow otherwise, selected into id 9 either way.
+#'
+#' @details Either placement is selected into the same id, so boarding a sortie
+#'   and death while waiting each release it with one call whichever it was.
+#'   Staging is never queued for, so no evacuee is kept from a place on a sortie
+#'   for want of a bed. ame_hold_start is recorded only for a holding bed, the
+#'   holding occupancy split (R/airlift.R) reading it as bed time.
+r2e_staging_placement <- function(hold_beds, overflow) {
+  # Branches on whether a holding bed is free at this instant:
+  # - 1 free -> staged in it (r2e_stage_bed = 2)
+  # - 2 none -> staged in overflow (r2e_stage_bed = 3)
+  trajectory("Staged for Flight") %>%
+    set_attribute("ame_stage_start", function() now(env)) %>%
+    branch(
+      option = function() if (beds_free(hold_beds)) 1 else 2,
+      continue = TRUE,
+      trajectory("Staged in a Holding Bed") %>%
+        set_attribute("r2e_stage_bed", 2) %>%
+        simmer::select(hold_beds, policy = "first-available", id = 9) %>%
+        seize_selected(id = 9) %>%
+        set_attribute("ame_hold_start", function() now(env)),
+      trajectory("Staged in Overflow") %>%
+        set_attribute("r2e_stage_bed", 3) %>%
+        simmer::select(overflow, id = 9) %>%
+        seize_selected(id = 9) %>%
+        overflow_enter()
+    )
+}
+
+#' Whether the evacuee is staged in overflow
+#'
+#' @return TRUE when `r2e_stage_bed` records overflow.
+staged_in_overflow <- function() {
+  bed <- get_attribute(env, "r2e_stage_bed")
+  !is.na(bed) && bed == 3
+}
+
 #' Builds the pre-flight care of a casualty awaiting a critical-care sortie
 #'
 #' @param icu_beds  This R2E team's intensive care beds
 #' @param hold_beds This R2E team's holding beds
+#' @param overflow  This R2E team's pre-flight overflow resource
+#' @param staging   The staging placement built by r2e_staging_placement()
 #' @return Simmer trajectory staging the casualty for flight, through a bounded
-#'   period of intensive care for the ventilated share and directly in a holding
-#'   bed for the rest.
+#'   period of pre-flight care for the ventilated share and directly for the
+#'   rest.
 #'
 #' @details A ventilated casualty awaiting a critical-care sortie genuinely
 #'   needs intensive-care-level care, but a deployed intensive care study at
 #'   Camp Bastion records that coalition soldiers "are usually evacuated within
 #'   24 h of admission" [[56]], so that need is bounded rather than lasting the
 #'   whole evacuation wait. A configurable share of the critical pool
-#'   (critical_hold$ventilated_share) holds an intensive care bed for a
-#'   critical_hold-distributed period and then steps down to a Casualty Staging
-#'   Unit hold bed; the rest stage in a hold bed immediately.
+#'   (critical_hold$ventilated_share) receives a critical_hold-distributed
+#'   period of pre-flight care and then steps down to staging; the rest are
+#'   staged immediately.
 #'
-#'   The step-down seizes the hold bed before releasing the intensive care bed,
-#'   so a casualty is never discharged from intensive care to nowhere. The cost
-#'   is that a full hold pool blocks the intensive care bed for as long as the
-#'   casualty queues, which ame_icu_hold_minutes measures. This is bed-blocking,
-#'   not deadlock: no trajectory in the model holds a hold bed while waiting on
-#'   intensive care, so the two acquisition orders cannot form a cycle.
-r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
+#'   The pre-flight care is placed like a post-operative stay: intensive care if
+#'   a bed is free, otherwise a holding bed, otherwise overflow
+#'   (r2e_preflight_bed). A casualty in a holding bed stays in it for staging.
+#'   One in intensive care or overflow steps down to staging when the period
+#'   ends, a holding bed if free and overflow if not, taken before the
+#'   intensive care bed is released and never waited for, so a full holding pool
+#'   cannot block intensive care.
+r2e_critical_pre_flight_care <- function(icu_beds, hold_beds, overflow, staging) {
+  # Branches on whether the casualty is ventilated:
+  # - 1 the definitive repair is outstanding, or the casualty is drawn into the
+  #     ventilated share -> pre-flight care, then staging
+  # - 2 otherwise -> staged at once
   trajectory("Pre-Flight Critical Care") %>%
     branch(
       option = function() {
@@ -734,12 +797,9 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
         return(2)
       },
       continue = TRUE,
-      trajectory("Ventilated — ICU Pending Flight") %>%
+      trajectory("Ventilated — Pre-Flight Care") %>%
         set_attribute("ame_icu_hold", 1) %>%
-        simmer::select(icu_beds, policy = "shortest-queue", id = 10) %>%
-        seize_selected(id = 10) %>%
-        set_attribute("ame_icu_hold_start", function() now(env)) %>%
-        timeout(function() {
+        set_attribute("ame_preflight_min", function() {
           rtriangle(
             n = 1,
             a = env_data$vars$r2eheavy$critical_hold$min,
@@ -747,23 +807,44 @@ r2e_critical_pre_flight_care <- function(icu_beds, hold_beds) {
             c = env_data$vars$r2eheavy$critical_hold$mode
           )
         }) %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
-        seize_selected(id = 9) %>%
-        set_attribute("ame_hold_start", function() now(env)) %>%
-        release_selected(id = 10) %>%
-        # Realised ICU occupancy pending evacuation. Exceeds the drawn
-        # pre-flight period whenever the holding pool is full at step-down,
-        # since the casualty is not moved out of ICU until a holding bed
-        # exists for it; that gap is the measure of bed-blocking pushed back
-        # into ICU by the strategic evacuation backlog.
-        set_attribute("ame_icu_hold_minutes", function() {
-          now(env) - get_attribute(env, "ame_icu_hold_start")
-        }),
+        # Branches on the best placement free at this instant (placement_now()):
+        # - 1 intensive care, stepping down to staging when the period ends
+        # - 2 a holding bed, kept for staging
+        # - 3 overflow, stepping down to staging when the period ends
+        branch(
+          option = function() placement_now(icu_beds, hold_beds),
+          continue = TRUE,
+          trajectory("Pre-Flight in Intensive Care") %>%
+            set_attribute("r2e_preflight_bed", 1) %>%
+            simmer::select(icu_beds, policy = "first-available", id = 10) %>%
+            seize_selected(id = 10) %>%
+            set_attribute("ame_icu_hold_start", function() now(env)) %>%
+            timeout_from_attribute("ame_preflight_min") %>%
+            join(staging) %>%
+            release_selected(id = 10) %>%
+            set_attribute("ame_icu_hold_minutes", function() {
+              now(env) - get_attribute(env, "ame_icu_hold_start")
+            }),
+          trajectory("Pre-Flight in a Holding Bed") %>%
+            set_attribute("r2e_preflight_bed", 2) %>%
+            set_attribute("r2e_stage_bed", 2) %>%
+            set_attribute("ame_stage_start", function() now(env)) %>%
+            simmer::select(hold_beds, policy = "first-available", id = 9) %>%
+            seize_selected(id = 9) %>%
+            set_attribute("ame_hold_start", function() now(env)) %>%
+            timeout_from_attribute("ame_preflight_min"),
+          trajectory("Pre-Flight in Overflow") %>%
+            set_attribute("r2e_preflight_bed", 3) %>%
+            seize(overflow, 1) %>%
+            overflow_enter() %>%
+            timeout_from_attribute("ame_preflight_min") %>%
+            release(overflow, 1) %>%
+            overflow_leave() %>%
+            join(staging)
+        ),
       trajectory("Stable — Staged for Flight") %>%
         set_attribute("ame_icu_hold", 0) %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
-        seize_selected(id = 9) %>%
-        set_attribute("ame_hold_start", function() now(env))
+        join(staging)
     )
 }
 
@@ -885,28 +966,24 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
 #'
 #' @param trj         Trajectory to append the branch to
 #' @param icu_beds    This R2E team's intensive care beds
-#' @param icu_path    The nominal pathway, taken when a bed is free
-#' @param hold_path   The degraded pathway, taken by a Priority 1 casualty when
-#'   none is
+#' @param icu_path    The surgical pathway, taken when a bed is free and by a
+#'   Priority 1 casualty when none is
 #' @param defer_path  The deferred pathway, taken by a Priority 2+ casualty when
 #'   none is
 #' @param post_op_dow The post-operative check, applied on its own to a casualty
 #'   whose definitive repair was performed forward
 #' @return The trajectory, with the surgical branch appended.
-r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
-                                post_op_dow) {
+r2e_surgical_branch <- function(trj, icu_beds, icu_path, defer_path, post_op_dow) {
   trj %>%
     # Branches based on attribute "surgery":
     # - surgery == 1 → check this team's ICU bed availability before OT entry:
-    #     - ICU available                                     → r2e_surgery_icu_path
-    #         (unchanged short/full ICU recovery logic, then post-op DOW check)
-    #     - ICU full, priority <= icu_gating$p1_bypass_priority_max (P1)
-    #                                                          → r2e_surgery_hold_path
-    #         (surgery proceeds; recovery in a holding bed with elevated
-    #         dow_ceiling, then post-op DOW check)
-    #     - ICU full, priority above threshold (P2+)           → r2e_surgery_defer_path
+    #     - ICU available, or ICU full and priority <=
+    #       icu_gating$p1_bypass_priority_max (P1)            → icu_path
+    #         (any stabilisation owed, the operation and the stabilisation
+    #         after it, each placed in the best bed free when it begins)
+    #     - ICU full, priority above threshold (P2+)           → defer_path
     #         (OT entry deferred; polls ICU availability on a timer, then
-    #         proceeds as the ICU-available path)
+    #         proceeds as icu_path)
     # - surgery == 1 but the definitive repair was already performed forward
     #   (single-stage casualty operated on at R2B) → no theatre here; the
     #   post-operative DOW checkpoint alone, so the checkpoint is not skipped
@@ -915,29 +992,23 @@ r2e_surgical_branch <- function(trj, icu_beds, icu_path, hold_path, defer_path,
     branch(
       option = function() {
         needs_surg <- get_attribute(env, "surgery")
-        if (is.na(needs_surg) || needs_surg != 1) return(4)
+        if (is.na(needs_surg) || needs_surg != 1) return(3)
 
         prior <- get_attribute(env, "r2b_surgery")
-        if (single_stage() && !is.na(prior) && prior == 1) return(5)
+        if (single_stage() && !is.na(prior) && prior == 1) return(4)
 
-        # Gate disabled: the pre-gate model, in which every operated casualty
-        # takes the intensive care pathway and queues for a bed rather than
-        # being diverted or deferred by one being full.
+        # Gate disabled: the pre-gate model, in which no operation is deferred
+        # for want of an intensive care bed.
         if (!icu_gate_enabled("r2eheavy")) return(1)
-
-        usage  <- sum(get_server_count(env, resources = icu_beds))
-        cap    <- sum(get_capacity(env, resources = icu_beds))
-        icu_ok <- !is.na(usage) && !is.na(cap) && usage < cap
-        if (icu_ok) return(1)
+        if (beds_free(icu_beds)) return(1)
 
         prio      <- get_attribute(env, "priority")
         threshold <- env_data$vars$r2eheavy$icu_gating$p1_bypass_priority_max
-        if (!is.na(prio) && prio <= threshold) return(2)
-        return(3)
+        if (!is.na(prio) && prio <= threshold) return(1)
+        return(2)
       },
       continue = TRUE,
       icu_path,
-      hold_path,
       defer_path,
       trajectory("No Surgery Needed"),
       trajectory("Definitive Repair Already Performed at R2B") %>%
@@ -1099,7 +1170,7 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 
 #' Builds the strategic evacuation disposition at R2E
 #'
-#' @param hold_beds     This R2E team's holding beds
+#' @param staging       The staging placement built by r2e_staging_placement()
 #' @param critical_care The pre-flight critical care trajectory built by
 #'   r2e_critical_pre_flight_care()
 #' @param team_id       Integer index of the Role 2E Heavy team
@@ -1113,22 +1184,23 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
 #'   (ame_departure_time, ame_wait_minutes) so clinical dwell and evacuation
 #'   logistics wait remain distinguishable.
 #'
-#'   Both routes stage in a hold bed, the critical/standard split being a
+#'   Both routes stage in a holding bed if one is free and in overflow if not
+#'   (r2e_staging_placement()), the critical/standard split being a
 #'   distinction in airlift seat rather than in bed type; ame_route records it
 #'   (1 = critical, 2 = standard) for the route-decomposed outputs. See README
 #'   Role 4 (National Support Base) Demand Modelling for which casualty each
 #'   pool is for and the doctrine that decides it.
 #'
-#'   ame_hold_end records when the staging bed was released, which boarding and
-#'   death while waiting both reach and only boarding sets a departure time for,
-#'   so the bed time a staged casualty consumed can be recovered whichever way
-#'   it left the pool.
+#'   ame_hold_end records when the staging placement was released, which
+#'   boarding and death while waiting both reach and only boarding sets a
+#'   departure time for, so the bed time a staged casualty consumed can be
+#'   recovered whichever way it left the pool.
 #'
 #'   The pool seat is never released: a boarded casualty permanently consumes
 #'   that sortie's capacity, and casualties board strictly in decision order, no
 #'   further acuity-based boarding priority beyond the critical/standard split
 #'   being modelled. See README Further Development.
-r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
+r2e_strategic_evac <- function(staging, critical_care, team_id, evac_team) {
   # The death time is drawn under the care-state model alone; under the legacy
   # mechanism the wait carries no risk (r2e_ame_wait_and_board()).
   #' Draws the evacuation wait's death time, under the care-state model alone
@@ -1166,9 +1238,9 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
     # Branches on which airlift seat the casualty waits for, deciding on
     # priority and whether an operation was performed:
     # - If Priority 1 and operated on, or the definitive repair is still
-    #   outstanding, wait on the smaller "ame_critical" pool, holding an
-    #   intensive care bed already seized upstream
-    # - Otherwise seize a hold bed and wait on the standard "ame" pool
+    #   outstanding, wait on the smaller "ame_critical" pool after any
+    #   pre-flight care (r2e_critical_pre_flight_care())
+    # - Otherwise be staged and wait on the standard "ame" pool
     # Both arms set ame_route (1 = critical, 2 = standard), which
     # R/analysis.R reads for the route-decomposed wait-time and backlog
     # outputs. The same population routed here is the one assigned the Role 4
@@ -1198,14 +1270,13 @@ r2e_strategic_evac <- function(hold_beds, critical_care, team_id, evac_team) {
         # critical/standard split itself is modelled; see README
         # Further Development.
         join(r2e_ame_wait_and_board("ame_critical", 9, team_id, evac_team)),
-      trajectory("Await Standard AME — Hold Bed") %>%
+      trajectory("Await Standard AME") %>%
         set_attribute("ame_route", 2) %>%
-        simmer::select(hold_beds, policy = "shortest-queue", id = 9) %>%
-        seize_selected(id = 9) %>%
-        set_attribute("ame_hold_start", function() now(env)) %>%
+        join(staging) %>%
         join(r2e_ame_wait_and_board("ame", 9, team_id, evac_team))
     ) %>%
     release_selected(id = 9) %>%
+    overflow_leave(staged_in_overflow) %>%
     set_attribute("ame_hold_end", function() now(env)) %>%
     set_attribute("ame_departure_time", function() now(env)) %>%
     set_attribute("evacuation_day", function() floor(now(env) / DAY_MIN) + 1) %>%
@@ -1307,13 +1378,14 @@ r2e_convalescence_remaining_minutes <- function() {
 #'
 #' @param trj           Trajectory to append the disposition to
 #' @param hold_beds     This R2E team's holding beds
+#' @param staging       The staging placement built by r2e_staging_placement()
 #' @param critical_care The pre-flight critical care trajectory reached by a
 #'   Priority 1 surgical evacuee
 #' @param team_id       Integer index of the Role 2E Heavy team
 #' @param evac_team     This R2E team's evacuation section
 #' @return The trajectory, with the recovery-to-duty draw and the disposition
 #'   branch appended.
-r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
+r2e_disposition <- function(trj, hold_beds, staging, critical_care, team_id, evac_team) {
   # recovery_to_duty_days is drawn first (draw_recovery_to_duty()), then the
   # reconstruction requirement and the evacuation reason it may decide.
   trj %>%
@@ -1348,7 +1420,7 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
         set_attribute("return_day", function() now(env)) %>%
         set_attribute("return_echelon", 3) %>%
         credit_rtd(),
-      r2e_strategic_evac(hold_beds, critical_care, team_id, evac_team)
+      r2e_strategic_evac(staging, critical_care, team_id, evac_team)
     )
 }
 
@@ -1371,11 +1443,11 @@ r2e_disposition <- function(trj, hold_beds, critical_care, team_id, evac_team) {
 #'   built here and passed down rather than rebuilt at each use, so the model
 #'   holds one object where it held one before.
 #'
-#'   The three surgical pathways are compositions of those sub-trajectories: the
+#'   The two surgical pathways are compositions of those sub-trajectories: the
 #'   nominal one takes any outstanding stabilisation, the operation and the
-#'   stabilisation phase between the two operations; the degraded one takes the
-#'   operation and the post-operative hold; and the deferred one waits for
-#'   intensive care headroom and then takes the nominal one.
+#'   stabilisation phase between the two operations, each stay placed in the
+#'   best bed free when it begins; the deferred one waits for intensive care
+#'   headroom and then takes the nominal one.
 #'
 #'   The builders take the resources they use rather than reading this team's
 #'   establishment themselves, so what each one touches is visible in its
@@ -1391,22 +1463,25 @@ r2e_treat_wia <- function(team_id) {
   evac_team      <- select_subteam("r2eheavy", team_id, "evac")
   icu_team       <- select_subteam("r2eheavy", team_id, "icu")
 
-  post_op_dow     <- r2e_post_op_dow_check(team_id, evac_team)
-  stab_recovery   <- r2e_stabilisation_recovery(icu_beds, post_op_dow)
-  pre_stab        <- r2e_pre_surgery_stabilisation(icu_beds)
-  hold_recovery   <- r2e_hold_recovery(hold_beds, post_op_dow)
-  ot_surgery      <- r2e_ot_surgery(team_id, ot_beds, surg_teams)
-  post_definitive <- r2e_post_definitive_care(icu_beds, hold_beds, team_id, evac_team)
-  critical_care   <- r2e_critical_pre_flight_care(icu_beds, hold_beds)
+  overflow_post_op    <- overflow_resource("r2e", "post_op", team_id)
+  overflow_pre_flight <- overflow_resource("r2e", "pre_flight", team_id)
+  overflow_staging    <- overflow_resource("r2e", "staging", team_id)
 
-  icu_path <- trajectory("R2E Surgery — ICU Available") %>%
+  post_op_dow     <- r2e_post_op_dow_check(team_id, evac_team)
+  stab_recovery   <- r2e_stabilisation_recovery(icu_beds, hold_beds, overflow_post_op,
+                                                post_op_dow)
+  pre_stab        <- r2e_pre_surgery_stabilisation(icu_beds, hold_beds, overflow_post_op)
+  ot_surgery      <- r2e_ot_surgery(team_id, ot_beds, surg_teams)
+  post_definitive <- r2e_post_definitive_care(icu_beds, hold_beds, overflow_post_op,
+                                              team_id, evac_team)
+  staging         <- r2e_staging_placement(hold_beds, overflow_staging)
+  critical_care   <- r2e_critical_pre_flight_care(icu_beds, hold_beds, overflow_pre_flight,
+                                                  staging)
+
+  icu_path <- trajectory("R2E Surgery") %>%
     join(pre_stab) %>%
     join(ot_surgery) %>%
     join(stab_recovery)
-
-  hold_path <- trajectory("R2E Surgery — ICU Full, P1 to Post-Op Hold") %>%
-    join(ot_surgery) %>%
-    join(hold_recovery)
 
   defer_path <- r2e_surgery_defer_path(icu_beds, icu_path)
 
@@ -1429,7 +1504,7 @@ r2e_treat_wia <- function(team_id) {
     ) %>%
 
     # Phase 3: Surgical branch, gated on intensive care availability
-    r2e_surgical_branch(icu_beds, icu_path, hold_path, defer_path, post_op_dow) %>%
+    r2e_surgical_branch(icu_beds, icu_path, defer_path, post_op_dow) %>%
 
     # Phase 4: Second surgery, for a damage control casualty whose abbreviated
     # operation was the Phase 3 one here
@@ -1442,5 +1517,5 @@ r2e_treat_wia <- function(team_id) {
     join(post_definitive) %>%
 
     # Phase 5: Final disposition — theatre evacuation policy
-    r2e_disposition(hold_beds, critical_care, team_id, evac_team)
+    r2e_disposition(hold_beds, staging, critical_care, team_id, evac_team)
 }

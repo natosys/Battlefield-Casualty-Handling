@@ -154,6 +154,12 @@ is1 <- function(x) !is.na(x) & x == 1
 #' @return Logical vector.
 is_type <- function(x, type) !is.na(x) & x == type
 
+#' Minutes before the close within which a casualty may still be on its way to Role 2
+#'
+#' @details Six hours, longer than R1 treatment and the two-leg move to R2E
+#'   together, so a casualty outside it that has not reached Role 2 never will.
+IN_FLIGHT_MIN <- 6 * 60
+
 cat(sprintf("R1 evacuation check: %d-day campaigns, seed %d\n\n", CHECK_DAYS, CHECK_SEED))
 d <- campaign()
 casualties <- d %>% filter(grepl("^(wia|dnbi)", name))
@@ -168,9 +174,16 @@ report(!any(!is.na(casualties$return_echelon) & casualties$return_echelon == 1),
        sum(!is.na(casualties$return_day)))
 surgical <- casualties %>% filter(is1(surgery), is.na(dow_echelon) | dow_echelon != 1)
 reached <- !is.na(surgical$r2b_treated) | !is.na(surgical$r2e_treated)
-report(nrow(surgical) > 0 && all(reached),
-       "every casualty requiring surgery who survives R1 reaches Role 2 (%d of %d)",
-       sum(reached), nrow(surgical))
+# A casualty injured or moved in the campaign's last hours may still be at R1
+# or on the road when the run ends, and has not had time to reach Role 2.
+last_hours <- CHECK_DAYS * DAY_MIN - IN_FLIGHT_MIN
+in_flight <- !reached & (surgical$injury_time > last_hours |
+                           (!is.na(surgical$first_transport) &
+                              surgical$first_transport > last_hours))
+report(nrow(surgical) > 0 && all(reached | in_flight),
+       paste("every casualty requiring surgery who survives R1 reaches Role 2",
+             "(%d of %d, %d still at R1 or on the road at the close)"),
+       sum(reached), nrow(surgical), sum(in_flight))
 
 # ── 2. Priority of disease and battle fatigue ───────────────────────────────
 

@@ -17,17 +17,16 @@
 # few hours on four cores; --quick finishes in about a minute but is a wiring
 # test, not a calibration test, and says so in its output.
 #
-# Why this check exists: each configuration's mortality ceilings are
-# calibrated against a historical anchor, and for the default and its
-# `moderate_intensity` alias, which are the same configuration, that anchor is
-# the three deaths among the "over 650" casualties who passed through the Ajax
-# Bay field hospital and its forward stations at Teal Inlet and Fitzroy, a
-# rate of approximately 0.46% (README — Parameter Calibration). Nothing in an
-# ordinary run compares the model against it. The comparison was made by hand
-# at each recalibration, which is how the model came to be reported as
-# overshooting the bound by roughly a third when it was not.
+# Why this check exists: the died-of-wounds base rates are fitted to a
+# historical anchor, and for the default and its `moderate_intensity` alias,
+# which are the same configuration, that anchor is the three deaths among the
+# "over 650" casualties who passed through the Ajax Bay field hospital and its
+# forward stations at Teal Inlet and Fitzroy, a rate of approximately 0.46%
+# (README — Calibration). Nothing in an ordinary run compares the model against
+# it, so a change to routing or resources can move the fitted configuration off
+# its anchor without anything failing.
 #
-# Two properties of the target govern what this check asserts.
+# Three properties of the anchors govern what this check asserts.
 #
 #   1. The denominator is the treated cohort — casualties who reached a
 #      surgical facility alive — not all wounded. The model's matching cohort
@@ -36,15 +35,15 @@
 #      facility's trajectory and therefore before that facility's own DOW
 #      check, so a casualty who dies there is inside their own denominator.
 #
-#   2. The rate is an upper bound, not a point estimate, because "over 650"
-#      is inexact. The failure condition is therefore one-sided: the model
-#      overshooting the bound. A configuration sitting comfortably below it
-#      is consistent with the historical record and passes, which is why
-#      the default passes at roughly 0.27%.
+#   2. The default is fitted to Ajax Bay, so the pooled interval must contain
+#      0.46%. The figure is strictly an upper bound, "over 650" being inexact,
+#      and is used as the campaign's value because it is the one treated-cohort
+#      figure from the campaign and era of care the default models.
 #
-# high_intensity is not checked: it shares the default's mortality model and
-# differs from it in casualty generation alone, so its mortality is a model
-# output with no anchor of its own.
+#   3. high_intensity shares the default's mortality model and is not fitted:
+#      its rate is a model output, bounded from above by Okinawa's 3.4%, a 1945
+#      rate that 1982-era care is taken not to exceed. Only an overshoot fails,
+#      and it is measured over Okinawa's 82 days rather than the default's 30.
 #
 # Under the accrual mechanism the same runs also measure the share of the
 # treated cohort's expected deaths that the post-operative hazard causes, the
@@ -97,18 +96,21 @@ arg_value <- function(flag, default) {
 
 # Each shipped configuration is checked against the historical anchor of the
 # campaign it models, which R/dow_calibration.R holds beside the fitter that
-# searches for base rates reproducing it. "bound" is one-sided (only an overshoot
-# fails); "point" is two-sided, against DOW_TOLERANCE.
+# searches for base rates reproducing it. "point" is fitted, so the interval
+# must contain the anchor; "bound" is one-sided, so only an overshoot fails.
 #
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
-#     care (Westphalen, 2018), an upper bound because the denominator is
-#     inexact. Applies to the default and its `moderate_intensity` alias.
+#     care (Westphalen, 2018). Fitted; the default and its alias, 30 days.
+#   Okinawa: 3.4% of casualties reaching a hospital alive (Marble, 2025). An
+#     upper bound on high_intensity, 82 days.
 
 SCENARIOS    <- if ("--scenario" %in% args) arg_value("--scenario", "default") else
                   names(DOW_TARGETS)
 N_MEASURE    <- as.integer(arg_value("--measurements", if (quick) 2L else 3L))
 N_REPS       <- as.integer(arg_value("--reps",         if (quick) 10L else 50L))
-CHECK_DAYS   <- as.integer(arg_value("--days",         if (quick) 10L else 30L))
+#' Horizon given on the command line, or NULL to measure each anchor at its own
+DAYS_ARG     <- if ("--days" %in% args) as.integer(arg_value("--days", NULL)) else
+                  if (quick) 10L else NULL
 #' Horizon the post-operative multiplier is fitted at, the one the share is gated at
 #'
 #' @details Over a longer campaign queues lengthen and the risk banked before
@@ -156,20 +158,27 @@ report <- function(ok, fmt, ...) {
 #' @return A numeric vector of one treated-cohort DOW rate per replication, with
 #'   replications in which no casualty reached a facility removed.
 run_measurement <- function(scenario, seed) {
-  measure_dow_response(json_data, scenario, n_reps = N_REPS, n_days = CHECK_DAYS,
+  measure_dow_response(json_data, scenario, n_reps = N_REPS, n_days = check_days(scenario),
                        seeds = seed)
+}
+
+#' Campaign length a scenario is measured over
+#'
+#' @param scenario Name of the scenario profile.
+#' @return The --days given, or else the length of the campaign its anchor describes.
+check_days <- function(scenario) {
+  if (!is.null(DAYS_ARG)) DAYS_ARG else DOW_TARGETS[[scenario]]$days
 }
 
 # ── Checks ──────────────────────────────────────────────────────────────────
 
-cat(sprintf("DOW calibration check: %d measurement(s) x %d replications x %d days per scenario\n",
-            N_MEASURE, N_REPS, CHECK_DAYS))
+cat(sprintf("DOW calibration check: %d measurement(s) x %d replications per scenario\n",
+            N_MEASURE, N_REPS))
 for (sc in SCENARIOS) {
   tgt <- DOW_TARGETS[[sc]]
   if (is.null(tgt)) stop(sprintf("no died-of-wounds target defined for scenario '%s'", sc))
-  cat(sprintf("Target (%s): treated-cohort DOW rate %s %.2f%% (%s)\n", sc,
-              if (tgt$kind == "bound") "at or below" else
-                sprintf("within %.0f pp of", 100 * DOW_TOLERANCE),
+  cat(sprintf("Target (%s, %d days): treated-cohort DOW rate %s %.2f%% (%s)\n", sc,
+              check_days(sc), if (tgt$kind == "bound") "at or below" else "fitted to",
               100 * tgt$rate, tgt$label))
 }
 cat("\n")
@@ -211,7 +220,7 @@ for (scenario in SCENARIOS) {
 
   anchor <- DOW_TARGETS[[scenario]]
   share  <- if (early + late > 0) late / (early + late) else NA_real_
-  records[[scenario]] <- data.frame(scenario = scenario, days = CHECK_DAYS,
+  records[[scenario]] <- data.frame(scenario = scenario, days = check_days(scenario),
                                     measurements = length(singles), replications = n,
                                     rate = m, ci_lower = lo, ci_upper = hi,
                                     target = anchor$rate, anchor = anchor$label,
@@ -235,29 +244,28 @@ for (scenario in SCENARIOS) {
     }
     report(ok, "%s does not overshoot the %.2f%% treated-cohort bound (%s)",
            scenario, 100 * tgt$rate, tgt$label)
+  } else if (check_days(scenario) != tgt$days) {
+    cat(sprintf("  [note] %s: the %.2f%% %s anchor describes %d days and is not asserted at %d\n",
+                scenario, 100 * tgt$rate, tgt$label, tgt$days, check_days(scenario)))
   } else {
-    # A reported rate is a point estimate, so the model has to reach it as
-    # well as stay under it. The tolerance is the one the profile was
-    # calibrated to; the interval spanning the target is reported alongside
-    # but is not the failure condition, since a wide interval would then
-    # pass more easily than a narrow one.
-    ok <- abs(m - tgt$rate) <= DOW_TOLERANCE
+    # The configuration is fitted to this anchor, so a measurement whose
+    # interval excludes it means the fit no longer holds.
+    ok <- lo <= tgt$rate && hi >= tgt$rate
     if (!ok) {
-      fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) misses ",
-                  "the %.2f%% %s target by more than %.0f pp"),
-           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label, 100 * DOW_TOLERANCE)
+      fail(paste0("%s: treated-cohort DOW rate %.3f%% (95%% CI [%.3f%%, %.3f%%]) excludes ",
+                  "the %.2f%% %s anchor it is fitted to"),
+           scenario, 100 * m, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label)
     }
-    report(ok, "%s reproduces the %.2f%% %s target within %.0f pp (interval %s it)",
-           scenario, 100 * tgt$rate, tgt$label, 100 * DOW_TOLERANCE,
-           if (lo <= tgt$rate && hi >= tgt$rate) "spans" else "does not span")
+    report(ok, "%s: the interval [%.3f%%, %.3f%%] contains the %.2f%% %s anchor",
+           scenario, 100 * lo, 100 * hi, 100 * tgt$rate, tgt$label)
   }
 
   # The hazard's share is checked where the configuration has a hazard to
   # measure; under the legacy mechanism, or with every rate at zero, no check
   # records expected deaths and the share is undefined.
-  if (!is.na(share) && late > 0 && CHECK_DAYS != FIT_DAYS) {
+  if (!is.na(share) && late > 0 && (check_days(scenario) != FIT_DAYS || tgt$kind != "point")) {
     cat(sprintf("  [note] %s: post-operative care carries %.3f of expected deaths at %d days;",
-                scenario, share, CHECK_DAYS),
+                scenario, share, check_days(scenario)),
         sprintf("the %.2f target is asserted at %d days alone\n", DOW_LATE_SHARE_TARGET, FIT_DAYS))
   } else if (!is.na(share) && late > 0) {
     ok <- abs(share - DOW_LATE_SHARE_TARGET) <= DOW_LATE_SHARE_TOLERANCE

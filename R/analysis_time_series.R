@@ -19,21 +19,32 @@
 # analyse_replications(), the figures they produce being paper figures rather
 # than per-run diagnostics.
 
-#' Resource pools the campaign queue series covers
+#' Resource pools and overflow points the campaign queue series covers
 #'
 #' @details Each entry maps a panel label to a regular expression matching the
-#'   individual monitored beds of one pool. The pools are the four that carry a
-#'   queue at either casualty intensity; a pool whose queue is zero throughout
-#'   would contribute an empty panel. The patterns anchor on the bed-index and
+#'   individual monitored resources of one pool. The pools are those that carry
+#'   a queue, or for an overflow point a census, at either casualty intensity;
+#'   a pool whose queue is zero throughout would contribute an empty panel, which
+#'   is why R2E intensive care, which nobody queues for, is absent and its
+#'   saturation shows as the post-operative overflow census. The patterns anchor on the bed-index and
 #'   team suffixes so that a pool cannot accidentally match another whose name
 #'   it is a prefix of. The order is the order a casualty meets the pools, and
 #'   is the order the figure's panels are drawn in.
 TIME_SERIES_POOLS <- c(
-  "R2B holding beds"       = "^b_r2b_hold_[0-9]+_t[0-9]+$",
-  "R2E operating theatres" = "^b_r2eheavy_ot_[0-9]+_t[0-9]+$",
-  "R2E intensive care"     = "^b_r2eheavy_icu_[0-9]+_t[0-9]+$",
-  "R2E holding beds"       = "^b_r2eheavy_hold_[0-9]+_t[0-9]+$"
+  "R2B reception overflow"      = OVERFLOW_POOLS[["R2B reception overflow"]],
+  "R2B holding beds"            = "^b_r2b_hold_[0-9]+_t[0-9]+$",
+  "R2E operating theatres"      = "^b_r2eheavy_ot_[0-9]+_t[0-9]+$",
+  "R2E post-operative overflow" = OVERFLOW_POOLS[["R2E post-operative overflow"]],
+  "R2E holding beds"            = "^b_r2eheavy_hold_[0-9]+_t[0-9]+$",
+  "R2E staging overflow"        = OVERFLOW_POOLS[["R2E staging overflow"]]
 )
+
+#' The monitor column a pool's series is read from
+#'
+#' @param pool A panel label.
+#' @return "server" for an overflow point, whose occupants are its census, and
+#'   "queue" for a bed pool.
+series_column <- function(pool) if (pool %in% names(OVERFLOW_POOLS)) "server" else "queue"
 
 #' Width of the bins the queue series is averaged over, in minutes
 #'
@@ -80,7 +91,7 @@ pool_queue_series <- function(resources_raw, horizon_min, pools = TIME_SERIES_PO
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
       rows  <- members %>% filter(replication == rep_id)
-      steps <- pool_queue_steps(rows$resource, rows$time, rows$queue)
+      steps <- pool_queue_steps(rows$resource, rows$time, rows[[series_column(pool)]])
       data.frame(
         pool          = pool,
         replication   = rep_id,
@@ -105,7 +116,7 @@ pool_clearance_series <- function(resources_raw, horizon_min, pools = TIME_SERIE
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
       rows  <- members %>% filter(replication == rep_id)
-      steps <- pool_queue_steps(rows$resource, rows$time, rows$queue)
+      steps <- pool_queue_steps(rows$resource, rows$time, rows[[series_column(pool)]])
       stats <- step_clearance_stats(steps, horizon_min)
       data.frame(
         pool               = pool,
@@ -218,11 +229,12 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
 
   subtitle <- sprintf(paste(
     "%d replications per intensity; line is the median across replications, band the",
-    "interquartile range.\nEach point is the time-weighted mean queue over a %d-hour bin."
+    "interquartile range.\nEach point is the time-weighted mean queue, or for an overflow",
+    "point the mean census of casualties without a bed, over a %d-hour bin."
   ), n_reps, TIME_SERIES_BIN_MIN %/% 60L)
 
   labels <- clearance %>%
-    mutate(label = sprintf("%s: queue empty %.0f%% of the campaign",
+    mutate(label = sprintf("%s: empty %.0f%% of the campaign",
                            intensity, 100 * median_zero_share)) %>%
     group_by(pool) %>%
     summarise(label = paste(label, collapse = "\n"), .groups = "drop")
@@ -237,9 +249,9 @@ plot_queue_series <- function(queue_ci, clearance, n_reps) {
     scale_fill_manual(values = TIME_SERIES_INTENSITY_COLOURS) +
     expand_limits(y = 0) +
     labs(
-      title = "Queue Length Over the Campaign, by Resource Pool and Casualty Intensity",
+      title = "Queue and Overflow Over the Campaign, by Pool and Casualty Intensity",
       subtitle = subtitle,
-      x = "Campaign day", y = "Casualties queued for the pool",
+      x = "Campaign day", y = "Casualties queued, or in overflow",
       colour = NULL, fill = NULL
     ) +
     theme_minimal(base_size = 12) +

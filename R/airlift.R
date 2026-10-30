@@ -499,18 +499,23 @@ AIRLIFT_COLLAPSE_DAYS <- 360L
 #'   whole year would mix it with the months before.
 AIRLIFT_COLLAPSE_WINDOW_DAYS <- 90L
 
-#' Mean R2E holding queue at or above which a campaign counts as collapsed
+#' Mean R2E staging overflow census at or above which a campaign counts as collapsed
 #'
 #' @details Twenty casualties. A threshold classifier is used rather than a mean
-#'   because the per-replication values are bimodal rather than spread: the
-#'   published measurement puts the highest clear run at 17.9 and the lowest
-#'   collapsed run at 84, so any threshold inside that gap returns the same
-#'   count and this value is not a tuning choice. Reporting a mean over a
+#'   because the per-replication values are bimodal rather than spread, so any
+#'   threshold inside the gap between the clear and the collapsed campaigns
+#'   returns the same count and this value is not a tuning choice; the tracked
+#'   measurement is checked to place it inside that gap
+#'   (tests/checks/check_airlift_collapse_protocol.R). Reporting a mean over a
 #'   bimodal population would describe no campaign in it.
 AIRLIFT_COLLAPSE_THRESHOLD <- 20
 
-#' Subject name the long-horizon series carries the R2E holding queue under
-AIRLIFT_COLLAPSE_SUBJECT <- "R2E holding beds"
+#' Subject name the long-horizon series carries the R2E staging overflow census under
+#'
+#' @details A casualty awaiting a flight who finds no holding bed free waits in
+#'   staging overflow rather than queueing for a bed, so a failing airlift shows
+#'   as this census and not as the holding queue, which counts convalescents.
+AIRLIFT_COLLAPSE_SUBJECT <- "R2E staging overflow"
 
 #' Reduce a long-horizon series to one collapse response per replication
 #'

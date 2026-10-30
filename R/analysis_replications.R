@@ -42,7 +42,7 @@ CASUALTY_SURGE_JITTER_SEED <- 233L
 #'   for the ribbon).
 #'
 #' @details Step-interpolates each resource's queue trace onto a shared grid
-#'   of time bins (mirrors bin_icu_queue(), R/warmup.R), then computes a
+#'   of time bins (mirrors bin_post_op_overflow(), R/warmup.R), then computes a
 #'   t-distribution 95% CI across replications at each bin. sd is coerced to
 #'   0 when only one replication contributes to a bin (n < 2), so the CI
 #'   collapses to the mean rather than propagating NA.

@@ -47,7 +47,8 @@ ICU_GATE_ARMS <- c(0L, 1L)
 #' Response columns the published table reports, in its printed order
 ICU_GATE_RESPONSES <- c(
   "icu_occupancy", "total_dow", "total_casualties",
-  "icu_pathway_n", "icu_pathway_dow", "hold_pathway_n", "hold_pathway_dow"
+  "icu_pathway_n", "icu_pathway_dow", "hold_pathway_n", "hold_pathway_dow",
+  "overflow_pathway_n", "overflow_pathway_dow"
 )
 
 #' Resource-name pattern of the R2E intensive care pool

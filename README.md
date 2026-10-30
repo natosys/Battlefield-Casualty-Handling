@@ -1180,7 +1180,7 @@ Not every file in `images/` belongs to the baseline set. `--refresh-baseline` re
 | Replicated-experiment figures | Sweep, comparison, surge, airlift, Role 4 and long-horizon figures of [docs/Results.md](docs/Results.md), including the `_high_intensity` copies | `scripts/render_sweep_figures.R --refresh-baseline`, from the tracked evidence under `data/` |
 | Campaign time series | `queue_length_over_time.png`, `degraded_care_rate_over_time.png` | `scripts/render_time_series_figures.R --refresh-baseline` |
 | Paper summary figures | `paper_*.png` | `scripts/render_paper_figures.R --refresh-baseline`, parsed from the results paper's own tables |
-| Warm-up diagnostics | `welch_plot_icu_queue.png`, `welch_plot_long_horizon.png` | `scripts/run_warmup.R --refresh-baseline`; `scripts/render_long_horizon_warmup.R --refresh-baseline` |
+| Warm-up diagnostics | `welch_plot_post_op_overflow.png`, `welch_plot_long_horizon.png` | `scripts/run_warmup.R --refresh-baseline`; `scripts/render_long_horizon_warmup.R --refresh-baseline` |
 | Died-of-wounds model | `dow_care_states.png` | `scripts/render_dow_care_states.R --refresh-baseline`, from `env_data.json` |
 | Hand-authored | `tactical_diagram.png`, `.kmz`, `.milxlyz` | No code; see the note beside the diagram in [Scenario Context](#scenario-context) |
 

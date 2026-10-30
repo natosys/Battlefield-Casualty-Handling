@@ -217,7 +217,7 @@ BASELINE_PLOTS <- c("casualty_summary.png", "r1_queues.png", "r2b_bed_queues.png
 #' Hand-authored images with no code, each described in the README beside its caption
 HAND_AUTHORED <- c("tactical_diagram.png", "tactical_diagram.kmz", "tactical_diagram.milxlyz")
 #' Images the warm-up entry point writes, named as literals in the module it calls
-WARMUP_IMAGES <- "welch_plot_icu_queue.png"
+WARMUP_IMAGES <- "welch_plot_post_op_overflow.png"
 
 #' Tracked images that lack a producer or a home
 #'

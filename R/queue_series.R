@@ -70,6 +70,29 @@ overflow_window_census <- function(resources, from, to) {
   as.data.frame(as.list(setNames(values, OVERFLOW_RESPONSES[names(OVERFLOW_POOLS)])))
 }
 
+#' Resources whose queue is a pool's backlog, where that differs from its beds
+#'
+#' @details A casualty waiting to be operated on at R2E queues on its team's
+#'   section pool for the first surgical section free, and then, rarely, on the
+#'   theatre pool (seize_first_free_section() and r2e_surgery_block(),
+#'   R/trajectories_r2e.R), never on a theatre bed, so the theatres' backlog is
+#'   read from those pools while their occupancy is read from the beds. An R2B
+#'   unit fielding several sections queues the same way; one fielding a single
+#'   section queues, rarely, on its theatre bed.
+POOL_QUEUE_PATTERNS <- c(
+  "R2E operating theatres" = "^pool_r2eheavy_(surg|ot)_[0-9]+$",
+  "R2B operating theatres" = "^(b_r2b_ot_[0-9]+_t[0-9]+|pool_r2b_(surg|ot)_[0-9]+)$"
+)
+
+#' The resources whose queue is one pool's backlog
+#'
+#' @param pool The pool's label.
+#' @param default The pattern matching the pool's beds.
+#' @return The pattern to read the pool's queue from.
+pool_queue_pattern <- function(pool, default) {
+  if (pool %in% names(POOL_QUEUE_PATTERNS)) POOL_QUEUE_PATTERNS[[pool]] else default
+}
+
 #' Number of beds established in one resource pool
 #'
 #' @param elms A built configuration's resource identifiers, as

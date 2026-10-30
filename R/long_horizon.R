@@ -86,7 +86,10 @@ reduce_pool_series <- function(resources, n_days, elms) {
   beds <- do.call(rbind, lapply(names(LONG_HORIZON_POOLS), function(pool) {
     rows <- resources[grepl(LONG_HORIZON_POOLS[[pool]], resources$resource), ]
     if (nrow(rows) == 0) return(NULL)
-    queue  <- pool_queue_steps(rows$resource, rows$time, rows$queue)
+    # The backlog may sit on resources other than the beds (pool_queue_pattern()).
+    waiting <- resources[grepl(pool_queue_pattern(pool, LONG_HORIZON_POOLS[[pool]]),
+                               resources$resource), ]
+    queue  <- pool_queue_steps(waiting$resource, waiting$time, waiting$queue)
     server <- pool_queue_steps(rows$resource, rows$time, rows$server)
     establishment <- pool_establishment(elms, LONG_HORIZON_POOLS[[pool]])
     data.frame(

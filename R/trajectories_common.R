@@ -139,6 +139,26 @@ first_free_section <- function(sections) {
   if (any(free)) which(free)[1] else NA_integer_
 }
 
+#' The free section next in turn after the one a team's pool last admitted to
+#'
+#' @param team A team's sections and pool, as team_sections() returns them.
+#' @return The index of the first free section counting on from the last one
+#'   taken, or NA where none is free.
+#'
+#' @details Taking the lowest-indexed free section would give the first section
+#'   nearly every case whenever several are free. Rotating the turn spreads the
+#'   work across the sections, as a duty roster does, and draws no random
+#'   number. The last section taken is held in a global named after the pool.
+next_free_section <- function(team) {
+  free <- free_sections(team$sections)
+  if (!any(free)) return(NA_integer_)
+  last <- get_global(env, paste0(team$pool, "_last"))
+  if (is.na(last)) last <- 0
+  n <- length(free)
+  order <- (seq_len(n) + last - 1) %% n + 1
+  order[free[order]][1]
+}
+
 #' Sets a team's pool to admit as many casualties as it has free sections
 #'
 #' @param trj  Trajectory to append to.
@@ -165,8 +185,8 @@ sync_section_pool <- function(trj, team) {
 #'   capacity is reset to that count whenever a section is taken or released
 #'   (sync_section_pool()) and, for a rostered section, whenever the roster
 #'   changes (add_roster_sync(), R/environment.R). A casualty admitted takes the
-#'   lowest-indexed free section, drawing no random number, hands its token
-#'   back at once and resets the count, so the pool's queue is the casualties
+#'   free section next in turn (next_free_section()), drawing no random number,
+#'   hands its token back at once and resets the count, so the pool's queue is the casualties
 #'   waiting for a section and an operation overrunning a shift change holds no
 #'   token. One admitted in the instant a section went off shift finds none free
 #'   and queues again. One casualty holds at most one section at a time, so one
@@ -187,7 +207,8 @@ seize_first_free_section <- function(trj, team, arm_fmt = "Section %d") {
         sync_section_pool(team)
     ) %>%
     rollback(target = 2, check = function() is.na(first_free_section(team$sections))) %>%
-    set_attribute("section_held", function() first_free_section(team$sections)) %>%
+    set_attribute("section_held", function() next_free_section(team)) %>%
+    set_global(paste0(team$pool, "_last"), function() get_attribute(env, "section_held")) %>%
     # Branches on the section recorded above, one arm per section of the team,
     # each seizing that section's members.
     branch(

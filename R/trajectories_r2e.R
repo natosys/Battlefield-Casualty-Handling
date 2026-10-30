@@ -920,6 +920,7 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
     # - r2b_resus == 1 → short resus (prior resus at R2B)
     # - else           → full resus, sets r2e_resus = 1
     seize_first_free_section(emergency_team) %>%
+    set_attribute("r2e_emerg_section", function() get_attribute(env, "section_held")) %>%
     branch(
       option = function() {
         attr <- get_attribute(env, "r2b_resus")

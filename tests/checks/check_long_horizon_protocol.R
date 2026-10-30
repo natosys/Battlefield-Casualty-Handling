@@ -210,7 +210,8 @@ monitor_mean_queue <- function(pattern) {
 for (pool in names(LONG_HORIZON_POOLS)) {
   from_series <- mean(reduced$value[reduced$series == "mean_queue" &
                                       reduced$subject == pool])
-  from_monitor <- monitor_mean_queue(LONG_HORIZON_POOLS[[pool]])
+  # A theatre backlog queues on its section and theatre pools, not on the beds.
+  from_monitor <- monitor_mean_queue(pool_queue_pattern(pool, LONG_HORIZON_POOLS[[pool]]))
   report(!is.na(from_monitor) && abs(from_series - from_monitor) < TOL,
          "%s: the mean of the daily queues equals the monitor's run mean (%.6f)",
          pool, from_monitor)

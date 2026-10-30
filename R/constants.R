@@ -44,7 +44,8 @@ MODEL_ATTRIBUTE_KEYS <- c(
   "mortuary_treated", "overflow_since", "post_definitive_hold_start",
   "post_definitive_start", "post_definitive_min",
   "post_definitive_pathway", "post_definitive_total", "post_op_pathway", "priority", "r1_treated", "r2b",
-  "r2b_bypass_reason", "r2b_bypass_time", "r2b_bypassed", "r2b_departure_time", "r2b_hold_bypass",
+  "r2b_bypass_reason", "r2b_bypass_time", "r2b_bypassed", "r2b_departure_time",
+  "r2b_evac_wait_bed", "r2b_evac_wait_start", "r2b_hold_bypass",
   "r2b_hold_drawn", "r2b_hold_evac", "r2b_hold_ineligible", "r2b_hold_queued",
   "r2b_hold_residual", "r2b_hold_served", "r2b_hold_waited",
   "r2b_hold_start", "r2b_post_op_min", "r2b_post_op_pathway", "r2b_pre_open_start",
@@ -76,7 +77,7 @@ MODEL_ATTRIBUTE_KEYS <- c(
 #'   are named by echelon (the configuration's r2b and r2eheavy elements, written
 #'   r2b and r2e here).
 OVERFLOW_POINTS <- list(
-  r2b = "reception",
+  r2b = c("reception", "evac_wait"),
   r2e = c("post_op", "pre_flight", "staging")
 )
 

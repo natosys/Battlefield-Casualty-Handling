@@ -837,7 +837,7 @@ The R2E surgical trajectory performs a pre-OT ICU availability check before seiz
 
 The post-definitive care that follows the definitive repair is placed in the same way, recorded separately as `post_definitive_pathway`. This is where the model's intensive care constraint shows most clearly, because the same four beds also serve the stabilisation episode.
 
-R2B has the same pre-OT ICU check with the same rule: Priority 1 proceeds unconditionally, and Priority 2+ defers theatre entry while that unit's intensive care is saturated. What the check constrains depends on the forward holding rule (see [Post-Operative Stabilisation](#post-operative-stabilisation)): while the rule holds nobody forward, as shipped, the two beds per team hold only casualties waiting on an evacuation asset, and the deferral fires rarely, while under a stability window or the capacity trigger the same beds also carry post-operative recovery and the check becomes a real limit on how many casualties R2B can operate on at once.
+R2B has the same pre-OT ICU check with the same rule, Priority 1 proceeding unconditionally and Priority 2+ deferring theatre entry while that unit's intensive care is saturated, but it applies only where the forward holding rule can place the casualty in R2B intensive care after the operation: a stability window above zero for its pathway, or the capacity trigger in force (`forward_hold_enabled()`; see [Post-Operative Stabilisation](#post-operative-stabilisation)). Otherwise an R2B operation uses no R2B intensive care, and rationing it against those beds would deny forward surgery for no clinical reason. At the shipped rule, which holds nobody forward, the R2B check is therefore off and the two beds per team serve only casualties waiting for an evacuation vehicle; under a stability window or the capacity trigger the same beds carry post-operative recovery and the check limits how many casualties R2B can operate on at once.
 
 Each echelon's gate can be switched off through `icu_gating.enabled` (1 in both shipped echelons). Setting it to 0 reproduces the model before the gate existed: theatre entry no longer depends on a free intensive care bed, so no operation is deferred, and recovery is placed when the operation ends as it is with the gate in force. The switch exists so that the gate's effect can be measured against a supported configuration rather than an earlier code state. Priority 1 casualties are always committed to surgery, even when no post-operative ICU bed is available, accepting the higher post-operative rate in preference to withholding surgery; the clinical trade-off is described in [[27]](#references), and the post-operative ICU pathway against which a placement outside intensive care is a departure is set out in [[28]](#references).
 
@@ -1510,7 +1510,7 @@ Casualties not needing surgery draw their convalescence once, on arrival, from t
 
 An optional evacuation threshold, `r2b.holding.evac_threshold`, caps how long one casualty may occupy a forward bed. A casualty whose drawn convalescence exceeds it is moved to R2E part-way through it and serves the remainder there, the draw being the one taken on arrival and not a fresh one. Because the convalescence is the same at either echelon, the threshold settles where the time is served without changing how much of it there is; that is what makes the R2E load it produces attributable to the routing decision alone. The parameter ships at zero, which disables it, so the branch is unreachable at the shipped configuration and the whole drawn duration is served forward; `tests/checks/check_lever_realisation.R` asserts the conservation and the shipped setting, and `tests/checks/check_convalescence_invariance.R` asserts that the duration a casualty carries is the one drawn, the same at either echelon, and responds to severity and treatment. It is distinct from `r2b.holding.hold_threshold`, described under [Core Trajectory](#core-trajectory): that one is an occupancy fraction deciding whether a casualty is sent to an R2B unit at all, and this one a duration deciding how long they may stay once there.
 
-Surgical candidacy is assessed next, behind an ICU availability gate. Priority 1 casualties proceed regardless of ICU status; Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. How much work the gate does depends on the forward ICU share described below: at the shipped share of zero the two ICU beds per team serve only the evacuation-wait fallback and the gate is close to inert, while at a non-zero share every casualty operated on here also recovers here, and the gate becomes a real constraint on forward surgical throughput.
+Surgical candidacy is assessed next. Where the forward holding rule described below can hold the casualty in R2B intensive care after the operation, an ICU availability gate applies first: Priority 1 casualties proceed regardless of ICU status, and Priority 2 and below defer entry to the operating theatre while every ICU bed is occupied, polling on a timer and holding no resource in the meantime. Where it cannot, which is every casualty at the shipped rule, the gate does not apply, the operation using no R2B intensive care to ration (see [Post-Operative Intensive Care Gate](#post-operative-intensive-care-gate)).
 
 Once the gate clears, operating theatre availability decides the route. If a theatre is free, the casualty is operated on over 41 to 258 minutes, most often 72, an informed estimate with a stated basis for each point. A US Department of Defense Trauma Registry sample, timing each operation from anaesthesia start to stop, reports mean Role 2 operative time by injury severity band, with no significant difference between Role 2 and Role 3 [[23]](#references). The mode is the most likely duration in its commonest band, mild injury (57.5% of operated casualties, mean 93.9 minutes, SD 41.3), taken as the mode of a lognormal with that mean and SD; the maximum is set so that the distribution's mean, 123.6 minutes, equals the registry's mean weighted by its operated-casualty mix, so the model carries the registry's total theatre load; and the minimum is the shortest damage control operation in a systematic review [[21]](#references). The mode lies below the sub-90-minute operative target that damage control technique aims for [[24]](#references), and the upper tail represents operations that overrun it. A single triangular cannot reproduce the spread of four severity bands, so its standard deviation (47.9 minutes) and its share of operations over 210 minutes (about 6%) fall short of the registry's, about 74 minutes and 11% (Further Development, L26). The same distribution serves both surgical pathways at both echelons, since no open-access source separates single-stage from abbreviated operative times for this population. If no theatre is free, the casualty is evacuated to R2E instead.
 
@@ -1518,7 +1518,7 @@ A theatre alone is not enough: by default R2B fields one surgical section per te
 
 Holding is not free, and the model shows why. R2B has one theatre per team, and a held casualty occupies it for the wait and then for the operation, so each hold displaces the cases arriving behind it. Whether that trade favours holding is a question for the parameter sweep rather than for the default, and the [results paper](docs/Results.md#r2b-pre-open-hold-window) reports what it costs and returns at the shipped value. Setting the window to zero restores the instant diversion exactly, which `tests/checks/check_pre_open_window.R` asserts along with the properties of the hold itself.
 
-What the operation was determines what follows it. For a casualty on the damage control pathway the forward procedure is the abbreviated one, so a stabilisation phase follows and the definitive repair waits at R2E. For a single-stage casualty the forward procedure is their definitive repair: no stabilisation phase follows, and they need no further operation, so they move on to R2E for post-definitive intensive care. Whether either casualty is first held forward at R2B for part of that intensive care is decided for them individually when the operation ends (see [Post-Operative Stabilisation](#post-operative-stabilisation)). Casualties evacuated to R2E take 15 to 45 minutes to move, most often 30; if no evacuation asset is free, they hold an ICU bed until one becomes available.
+What the operation was determines what follows it. For a casualty on the damage control pathway the forward procedure is the abbreviated one, so a stabilisation phase follows and the definitive repair waits at R2E. For a single-stage casualty the forward procedure is their definitive repair: no stabilisation phase follows, and they need no further operation, so they move on to R2E for post-definitive intensive care. Whether either casualty is first held forward at R2B for part of that intensive care is decided for them individually when the operation ends (see [Post-Operative Stabilisation](#post-operative-stabilisation)). Casualties evacuated to R2E take 15 to 45 minutes to move, most often 30. If the unit's evacuation crew is out, the casualty waits for it in the best placement free at that moment, never queued for (`r2b_wait_for_evac()`, recorded as `r2b_evac_wait_bed`): an intensive care bed if one is free, otherwise a holding bed, otherwise overflow, with no bed. The bed is taken alone, as every intensive care stay in the model is: the unit's intensive care section of two nurses and two medics staffs both of its beds rather than being held by one casualty. In every case the casualty boards as soon as the crew returns and then releases what it holds, so the vehicle alone sets the departure; a casualty awaiting onward movement is staged where a bed is free [[33]](#references), and nobody waits for an intensive care bed solely in order to wait for an ambulance.
 
 #### Post-Operative Stabilisation
 
@@ -1550,8 +1550,8 @@ flowchart TD
     G --> H["Resus"]
     H --> I["Release Resources"]
     I --> J{"Surgery?"}
-    J -- Yes --> K0{"ICU Full and<br>Priority 2+?"}
-    K0 -- "No (P1, or ICU free)" --> K{"OT Free and<br>a Surg Section On Shift?"}
+    J -- Yes --> K0{"Forward Hold Possible,<br>ICU Full and Priority 2+?"}
+    K0 -- "No (no forward hold, P1,<br>or ICU free)" --> K{"OT Free and<br>a Surg Section On Shift?"}
     K0 -- Yes --> KD["Defer: Poll ICU on Timer"]
     KD --> K0
     K -- "Both available" --> L["Seize OT & Surg Section<br>(on shift, least loaded)"]
@@ -1593,9 +1593,14 @@ flowchart TD
     T --> U["Transfer to R2E"]
     U --> V["Release Evac Team"]
     V --> Z
-    O -- No --> W["Seize ICU"]
-    W --> X["Wait for Evac"]
-    X --> Y["Release ICU"]
+    O -- No --> W{"ICU Bed Free?"}
+    W -- Yes --> W1["Seize ICU Bed"]
+    W -- "No, hold bed free" --> W2["Seize Hold Bed"]
+    W -- "No, none free" --> W3["Overflow"]
+    W1 --> X["Wait for Evac Team<br>(seize on its return)"]
+    W2 --> X
+    W3 --> X
+    X --> Y["Release Bed<br>or Overflow"]
     Y --> T
 ```
 

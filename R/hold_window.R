@@ -57,9 +57,9 @@ HOLD_WINDOW_RESPONSES <- c(
 #'   single arrival either does or does not carry, so none needs its own
 #'   estimator. `r2e_theatre_deferred` counts `surgery_deferred`, which is set
 #'   at both R2B's and R2E's intensive care gate (`R/trajectories.R`); the R2B
-#'   gate is close to inert at the shipped forward intensive care share of
-#'   zero, so the count is read as R2E's, matching how `R/analysis.R` reports
-#'   it in the single-run pathway summary.
+#'   gate does not apply at the shipped forward holding rule, which holds nobody
+#'   forward (r2b_surgery_gate()), so the count is R2E's, matching how
+#'   `R/analysis.R` reports it in the single-run pathway summary.
 reduce_hold_window_replication <- function(env, window_min) {
   arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
   attributes <- simmer::get_mon_attributes(env)

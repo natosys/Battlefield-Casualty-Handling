@@ -1554,6 +1554,9 @@ seed42_placement_rows <- function(wide, res, days) {
     reception_resuscitation = n_at("r2b_reception_bed", 1),
     reception_holding = n_at("r2b_reception_bed", 2),
     reception_overflow = n_at("r2b_reception_bed", 3),
+    evac_wait_icu = n_at("r2b_evac_wait_bed", 1),
+    evac_wait_holding = n_at("r2b_evac_wait_bed", 2),
+    evac_wait_overflow = n_at("r2b_evac_wait_bed", 3),
     stabilisation_icu = sum(stays == 1, na.rm = TRUE),
     stabilisation_holding = sum(stays == 2, na.rm = TRUE),
     stabilisation_overflow = sum(stays == 3, na.rm = TRUE),
@@ -1566,6 +1569,7 @@ seed42_placement_rows <- function(wide, res, days) {
   horizon <- days * DAY_MIN
   census <- c(
     census_reception = overflow_mean_census(res, "^overflow_r2b_reception_", horizon),
+    census_evac_wait = overflow_mean_census(res, "^overflow_r2b_evac_wait_", horizon),
     census_post_op = overflow_mean_census(res, "^overflow_r2e_post_op_", horizon),
     census_pre_flight = overflow_mean_census(res, "^overflow_r2e_pre_flight_", horizon),
     census_staging = overflow_mean_census(res, "^overflow_r2e_staging_", horizon)
@@ -1788,6 +1792,9 @@ ANNEX_PLACEMENT <- c(
   reception_resuscitation = "R2B reception, straight to a resuscitation bed",
   reception_holding = "R2B reception, waiting in a holding bed",
   reception_overflow = "R2B reception, waiting in overflow",
+  evac_wait_icu = "R2B wait for the evacuation vehicle in intensive care",
+  evac_wait_holding = "R2B wait for the evacuation vehicle in a holding bed",
+  evac_wait_overflow = "R2B wait for the evacuation vehicle in overflow",
   stabilisation_icu = "R2E stabilisation in intensive care",
   stabilisation_holding = "R2E stabilisation in a holding bed",
   stabilisation_overflow = "R2E stabilisation in overflow",
@@ -1797,16 +1804,15 @@ ANNEX_PLACEMENT <- c(
   staging_holding = "Evacuees staged in a holding bed",
   staging_overflow = "Evacuees staged in overflow",
   census_reception = "Mean overflow census, R2B reception",
+  census_evac_wait = "Mean overflow census, R2B wait for the evacuation vehicle",
   census_post_op = "Mean overflow census, R2E post-operative stays",
   census_pre_flight = "Mean overflow census, R2E pre-flight care",
   census_staging = "Mean overflow census, R2E staging"
 )
 
 #' Decimal places of the seed-42 placement table, by metric
-ANNEX_PLACEMENT_DP <- c(
-  setNames(rep(0L, 11), names(ANNEX_PLACEMENT)[1:11]),
-  setNames(rep(2L, 4), names(ANNEX_PLACEMENT)[12:15])
-)
+ANNEX_PLACEMENT_DP <- setNames(ifelse(startsWith(names(ANNEX_PLACEMENT), "census_"), 2L, 0L),
+                               names(ANNEX_PLACEMENT))
 
 #' Row labels of the seed-42 damage control table, by metric
 ANNEX_DAMAGE_CONTROL <- c(

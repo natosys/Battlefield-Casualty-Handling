@@ -778,14 +778,20 @@ The died-of-wounds base rates and post-operative multiplier are fitted with `scr
 
 The care-state model (README [Died of Wounds](../README.md#died-of-wounds)) has two groups of fitted values: the base rates, a death rate per day of untreated injury for each priority, and the post-operative multiplier. No dataset gives either, so each is searched for until the model meets a target. `scripts/calibrate_dow.R` is that search. It alternates two bracketing root searches, false position with the Illinois modification: the post-operative multiplier until the share of the treated cohort's expected deaths that accrue after surgery meets 20%, and the Priority 1 base rate, the Priority 2 and 3 rates following at fixed ratios, until the pooled treated-cohort rate meets its target. Each moves both responses a little, so the searches alternate for two rounds, each starting from the other's last fit. The measurement is the regression check's own (`R/dow_calibration.R`): three independent measurements of 50 replications over 30 days, the horizon the Ajax Bay anchor describes, at control seeds held fixed across the search so that each response varies with the values rather than with the draw. The post-operative share is an expected count, each check's death probability divided between the risk banked before and after surgery and summed over the cohort, so it carries no Bernoulli noise; the treated-cohort rate carries sampling noise ([Replication Count and Resolution](#replication-count-and-resolution)), so its search stops when the rate is within a stated tolerance of the target. `tests/checks/check_dow_fitter.R` asserts that each search recovers a value it is known to be able to find, and that the assertion rejects a search that is deliberately wrong.
 
-The rate target was the treated-cohort rate of the model the care-state one replaced, measured under the legacy setting (`dow.care_state.enabled` = 0) at the same seeds and horizon: 0.334% (95% interval 0.275% to 0.394%). That rate sits beneath the Ajax Bay bound of 0.46%, as the earlier model was held, rather than at it, so the change of model moves where mortality falls in a casualty's journey without moving how much of it the shipped configuration carries. The searches gave the following.
+The rate target was the treated-cohort rate of the model the care-state one replaced, measured under the legacy setting (`dow.care_state.enabled` = 0) at the same seeds and horizon: 0.334% (95% interval 0.275% to 0.394%). That rate sits beneath the Ajax Bay bound of 0.46%, as the earlier model was held, rather than at it, so the change of model moves where mortality falls in a casualty's journey without moving how much of it the shipped configuration carries. The fit was repeated against the same target once every change to the model's routing and resources had been made, starting from the previously fitted values, with the Priority 1 base rate bracketed between 0.0117 and 0.030 per day because the default bracket, a quarter to twice the starting rate, did not contain the target:
+
+```
+Rscript scripts/calibrate_dow.R --scenario default --target 0.00334 --rounds 2 --lower 0.0117 --upper 0.03
+```
+
+The searches gave the following.
 
 | Round | Search | Evaluations | Result | Treated-cohort rate | Post-operative share |
 |---|---|---|---|---|---|
-| 1 | Post-operative multiplier, base rate 0.0084 per day | 6 | 0.0612 | 0.521% [0.429%, 0.613%] | 20.3% |
-| 1 | Priority 1 base rate, multiplier 0.0612 | 3 | 0.00568 per day | 0.360% [0.285%, 0.434%] | 20.6% |
-| 2 | Post-operative multiplier, base rate 0.00568 per day | 6 | 0.0605 | 0.340% [0.270%, 0.409%] | 20.5% |
-| 2 | Priority 1 base rate, multiplier 0.0605 | 3 | 0.00583 per day | 0.353% [0.282%, 0.423%] | 19.9% |
+| 1 | Post-operative multiplier, base rate 0.00583 per day | 4 | 0.01736 | 0.097% [0.069%, 0.125%] | 20.2% |
+| 1 | Priority 1 base rate, multiplier 0.01736 | 3 | 0.01764 per day | 0.323% [0.267%, 0.380%] | 22.2% |
+| 2 | Post-operative multiplier, base rate 0.01764 per day | 6 | 0.01536 | 0.327% [0.272%, 0.382%] | 20.2% |
+| 2 | Priority 1 base rate, multiplier 0.01536 | 3 | 0.01846 per day | 0.327% [0.273%, 0.382%] | 20.3% |
 
 The shipped values are those of the final round. `high_intensity` carries no fit of its own: it shares the default's mortality model and differs from it in casualty generation alone, so its mortality is a model output, and the Okinawa target the earlier model's `high_intensity` profile was fitted to is retired.
 

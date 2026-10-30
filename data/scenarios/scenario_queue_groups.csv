@@ -1,13 +1,23 @@
 "scenario","scenario_label","group","n_reps","mean_q","p10_q","p90_q","ci_lower","ci_upper"
 "moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B OT",30,0,0,0,0,0
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,3.83606459709247,0.50510446110623,6.55145978413307,2.85782661510599,4.81430257907894
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,2.34533099485137,0.64392799897496,4.18598943955922,1.73997418620446,2.95068780349828
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E ICU",30,0.845735892846079,0.320112622095857,1.48264480895555,0.617155852356248,1.07431593333591
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,0.277796412958963,0,0.653744917789536,-0.059067957020165,0.614660782938091
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.0201548526297003,0.00204520823267358,0.0412291690147229,0.00958843967455457,0.030721265584846
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B Hold",30,0.0553337798292152,0,0.171409351868841,0.0299712527840984,0.0806963068743319
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E OT",30,0.515221526224331,0.152884423037438,1.06646592181611,0.338154229674859,0.692288822773802
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E ICU",30,0,0,0,0,0
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E Hold",30,22.7150877677731,18.8913120128838,27.5088658817825,21.2240605509047,24.2061149846414
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","Transport",30,0.147094472952896,0.02725502166967,0.342946021247277,0.0848110923811222,0.20937785352467
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B reception overflow",30,0.0233315916234501,0.000190496541734858,0.0732488209485466,0.00407365472281496,0.0425895285240852
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2B evacuation wait overflow",30,0.0122049387800185,0,0.0377312392400696,0.00211408972203885,0.0222957878379982
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E post-operative overflow",30,5.24670441634368,3.99463491328455,6.62881666507363,4.82165272022294,5.67175611246442
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E pre-flight overflow",30,0.433024301898092,0.182590143183258,0.691147151704142,0.347998621831351,0.518049981964834
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","R2E staging overflow",30,26.1914327467956,16.5906402580609,45.1528230734568,21.9981401292671,30.3847253643241
 "high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B OT",30,0,0,0,0,0
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,35.9488191307665,17.3991786799559,52.9281688870907,29.9825954206712,41.9150428408618
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,652.704548660341,492.966325228103,854.231330792701,599.802094523294,705.607002797388
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,1279.70184138381,1216.23072286283,1369.33366292251,1258.37970404446,1301.02397872316
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,331.131877872161,255.001993485737,412.181733501496,306.074323571445,356.189432172878
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,0.236510631715462,0.0650855663737211,0.463944996255272,0.153221317594726,0.319799945836198
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B Hold",30,0.357026327103836,0.0852193783365451,0.605543872184422,0.278676335713435,0.435376318494238
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E OT",30,56.7944976669631,24.6398012627521,86.6613311108585,42.9537328574494,70.6352624764769
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E ICU",30,0,0,0,0,0
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E Hold",30,55.3984914909845,48.8024162722108,61.9846564040306,53.4661882184794,57.3307947634897
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","Transport",30,1.91939290388807,1.08523987214846,3.15096615422421,1.54353510068888,2.29525070708726
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B reception overflow",30,0.249289966505121,0.131763600977893,0.40867194904682,0.210110223180853,0.288469709829389
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2B evacuation wait overflow",30,0.136887623237221,0.0456914580449288,0.246907168921776,0.105124588140936,0.168650658333505
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E post-operative overflow",30,20.1584382045405,19.7818375687321,20.8955635443115,19.9563184111191,20.3605579979619
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E pre-flight overflow",30,5.74126490851456,5.19769519798636,6.21538624648866,5.59021684708679,5.89231296994233
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","R2E staging overflow",30,2534.57324439882,2460.05884313965,2612.86437104273,2506.9067206418,2562.23976815583

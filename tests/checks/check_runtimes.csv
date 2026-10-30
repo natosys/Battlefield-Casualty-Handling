@@ -68,6 +68,7 @@ check_structure_tables.R,5
 check_surge_event_size.R,10
 check_surgery_delivery_response.R,20
 check_surgical_roster.R,70
+check_surgical_section_choice.R,51
 check_surgical_sweep_protocol.R,10
 check_testthat.R,96
 check_time_series_figures.R,6

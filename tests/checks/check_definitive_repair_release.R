@@ -44,12 +44,11 @@
 #      intensive care demand and overstate holding availability at the exact
 #      moment theatre is saturated.
 #
-#   4. The trigger measures the whole theatre queue. Theatre entry seizes a room
-#      and then a section, so a casualty waiting for theatre is queued on one or
-#      the other; counting sections alone would see only those already holding a
-#      room, which the establishment caps at two, making any larger threshold
-#      unreachable. The count is asserted against a monitor-independent recount
-#      taken directly from the resources it sums.
+#   4. The trigger measures the whole theatre queue. Theatre entry waits on the
+#      team's section pool and then on its theatre pool, so a casualty waiting
+#      for theatre is queued on one or the other; counting one pool alone would
+#      miss the casualties queued on the other. The count is asserted against a
+#      monitor-independent recount taken directly from the resources it sums.
 #
 # What this check deliberately does not assert is that the release improves or
 # worsens any outcome. Enabling it changes which activities consume random
@@ -102,11 +101,11 @@ CHECK_THRESHOLD <- 1
 
 #' The shipped threshold, which the release is checked to fire at
 #'
-#' @details Eight queued casualties, set from the mean closing-window theatre
-#'   queue an unrelieved 360-day campaign carries (data/policy/). Restated here
+#' @details Two queued casualties, the smallest backlog at or above the mean
+#'   closing-window theatre queue an unrelieved 360-day campaign carries. Restated here
 #'   so that a change to the default is caught by this check rather than only by
 #'   a measurement nobody re-runs.
-SHIPPED_THRESHOLD <- 8
+SHIPPED_THRESHOLD <- 2
 
 state <- new.env(parent = emptyenv())
 state$failures <- character(0)
@@ -201,10 +200,10 @@ report(isTRUE(r2e_second_surgery_threshold() == SHIPPED_THRESHOLD),
 
 # The shipped threshold is a saturation response, so it is asserted against a
 # saturated configuration. A 30-day campaign at the Falklands-modified rates
-# carries a mean theatre queue near one and reaches eight only at its peaks, so
-# the release fires there, but far less often than under saturation; whether a
-# given realisation's peaks reach eight at all depends on the seed, so the
-# assertion compares the two rather than requiring none.
+# carries a mean theatre queue below one and reaches two only at its peaks, so
+# the release fires there, but far less often than under saturation; how often
+# a given realisation's peaks reach two depends on the seed, so the assertion
+# compares the two rather than requiring none.
 saturated_released <- released_count(wide_of(run_at(SHIPPED_THRESHOLD,
                                                     scenario = "high_intensity")))
 report(saturated_released > 0,
@@ -320,9 +319,9 @@ cat("\n-- what the trigger counts --\n")
 
 queue_src <- paste(unlist(lapply(Sys.glob("R/trajectories*.R"), readLines, warn = FALSE)),
                    collapse = "\n")
-report(grepl("waiting_for_room", queue_src, fixed = TRUE) &&
-         grepl("waiting_for_staff", queue_src, fixed = TRUE),
-       "the theatre queue sums the casualties waiting for a room and those waiting for a section")
+report(grepl('section_pool("r2eheavy", "surg", team_id)', queue_src, fixed = TRUE) &&
+         grepl('section_pool("r2eheavy", "ot", team_id)', queue_src, fixed = TRUE),
+       "the theatre queue sums the casualties waiting for a section and those waiting for a room")
 
 # The count is exercised against a live environment rather than read off the
 # source, so a helper that named both halves and summed only one would fail.
@@ -332,16 +331,10 @@ install_config(ed)
 set.seed(CHECK_SEED)
 invisible(capture.output(probe <- run_once(n_days = 2L, seed = CHECK_SEED)))
 assign("env", probe, envir = globalenv())
-ot_probe  <- env_data$elms$r2eheavy[[1]][["ot_bed"]]
-sec_probe <- env_data$elms$r2eheavy[[1]][["surg"]]
-recount <- sum(sapply(ot_probe, function(b) get_queue_count(probe, b))) +
-  sum(sapply(sec_probe, function(m) sum(sapply(m, function(r) get_queue_count(probe, r)))))
+recount <- get_queue_count(probe, "pool_r2eheavy_surg_1") +
+  get_queue_count(probe, "pool_r2eheavy_ot_1")
 report(identical(as.numeric(r2e_theatre_queue(1)), as.numeric(recount)),
        "the theatre queue agrees with an independent recount over the same resources")
-report(length(sec_probe) > length(ot_probe),
-       paste("the establishment fields more sections (%d) than theatre beds (%d),",
-             "so a section-only count would cap the measurable queue"),
-       length(sec_probe), length(ot_probe))
 
 # ── 7. The attribute is registered ─────────────────────────────────────────
 

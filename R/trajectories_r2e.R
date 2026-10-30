@@ -124,7 +124,7 @@ r2e_surgery_block <- function(select_id, start_attr, end_attr, efficacy, set_fla
     set_attribute(end_attr, function() now(env)) %>%
     release_selected(id = select_id) %>%
     release(ot_pool, 1) %>%
-    release_held_section(surg, paste(R2E_SURGERY_SECTION_FMT, "Released")) %>%
+    release_held_section(surg, R2E_SURGERY_RELEASE_FMT) %>%
     dow_operated(efficacy)
 }
 

@@ -20,12 +20,16 @@
 # structurally, by reading the built trajectory, and behaviourally, by
 # running the model and inspecting the resource monitor.
 #
-# The structural half locates the surgical blocks by the name format
-# R2E_SURGERY_SECTION_FMT, which R/trajectories_common.R owns and this script reads,
-# so renaming those blocks cannot leave the check searching for a label the
-# model no longer uses. A pattern that matches nothing is reported as a
-# check-integrity problem rather than a model defect, since the two call for
-# entirely different responses.
+# The structural half locates the surgical blocks by the name formats
+# R2E_SURGERY_SECTION_FMT and R2E_SURGERY_RELEASE_FMT, which
+# R/trajectories_common.R owns and this script reads, so renaming those arms
+# cannot leave the check searching for a label the model no longer uses. A
+# casualty takes the first section free in one arm per section and releases
+# it in another (seize_first_free_section(), release_held_section()), so each
+# seize arm must seize a section, each release arm must release one, and each
+# operation's start must fall between the two. A pattern that matches nothing
+# is reported as a check-integrity problem rather than a model defect, since
+# the two call for entirely different responses.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -82,7 +86,7 @@ report <- function(ok, fmt, ...) {
 #' @return Regex with one capturing group over the section index
 section_header_pattern <- function(fmt) {
   escaped <- gsub("([][{}()*+?.\\\\^$|])", "\\\\\\1", fmt)
-  paste0("trajectory: ", sub("%d", "([0-9]+)", escaped, fixed = TRUE))
+  paste0("trajectory: ", sub("%d", "([0-9]+)", escaped, fixed = TRUE), ",")
 }
 
 # ── Setup ───────────────────────────────────────────────────────────────────
@@ -101,13 +105,57 @@ counts   <<- sapply(env_data$elms, length)
 
 cat("\n-- Structural: R2E surgery blocks seize a surgical section --\n")
 
-block_pattern <- section_header_pattern(R2E_SURGERY_SECTION_FMT)
+seize_pattern   <- section_header_pattern(R2E_SURGERY_SECTION_FMT)
+release_pattern <- section_header_pattern(R2E_SURGERY_RELEASE_FMT)
 
-if (!grepl("%d", R2E_SURGERY_SECTION_FMT, fixed = TRUE)) {
-  broken(paste("R2E_SURGERY_SECTION_FMT ('%s') carries no '%%d' section index,",
-               "so section coverage cannot be read back from the block names"),
-         R2E_SURGERY_SECTION_FMT)
-  report(FALSE, "section name format carries no section index")
+for (fmt in c(R2E_SURGERY_SECTION_FMT, R2E_SURGERY_RELEASE_FMT)) {
+  if (!grepl("%d", fmt, fixed = TRUE)) {
+    broken(paste("section arm name format '%s' carries no '%%d' section index,",
+                 "so section coverage cannot be read back from the arm names"), fmt)
+    report(FALSE, "section arm name format '%s' carries no section index", fmt)
+  }
+}
+
+#' The listing lines of one named arm, from its header to the next header
+#'
+#' @param listing The verbose printed trajectory, one line per element.
+#' @param start Index of the arm's header line.
+#' @param header_lines Indices of every trajectory header line.
+#' @return The arm's lines.
+arm_lines <- function(listing, start, header_lines) {
+  following <- header_lines[header_lines > start]
+  listing[start:(if (length(following)) following[1] - 1 else length(listing))]
+}
+
+#' Assert that one kind of section arm covers every section evenly
+#'
+#' @param team_id Integer index of the Role 2E Heavy team.
+#' @param starts Header line indices of the arms found.
+#' @param pattern The arms' header regex, its one group the section index.
+#' @param listing The verbose printed trajectory.
+#' @param n_sections Configured surgical sections of the team.
+#' @param kind "seize" or "release", for the message.
+#' @return Invisible NULL; records a failure where coverage is uneven.
+#'
+#' @details Each section's arm is built from the same call sites, so every
+#'   section appears the same number of times. A branch dropped or a section
+#'   left uncovered shrinks what the per-arm assertions examine, which would
+#'   otherwise pass silently on less.
+check_coverage <- function(team_id, starts, pattern, listing, n_sections, kind) {
+  found_ids   <- as.integer(sub(paste0(".*", pattern, ".*"), "\\1", listing[starts]))
+  per_section <- table(factor(found_ids, levels = seq_len(n_sections)))
+  ok <- all(per_section > 0) && length(unique(as.integer(per_section))) == 1 &&
+    !any(found_ids > n_sections)
+  if (!ok) {
+    fail(paste("team %d: %d %s arms do not cover the %d configured",
+               "surgical sections evenly (arms per section: %s)"),
+         team_id, length(starts), kind, n_sections,
+         paste(sprintf("%d:%d", seq_len(n_sections), as.integer(per_section)),
+               collapse = ", "))
+  }
+  report(ok, "team %d: %d %s arms cover all %d surgical sections at %g site(s) each",
+         team_id, length(starts), kind, n_sections, length(starts) / n_sections)
+  invisible(NULL)
 }
 
 for (team_id in seq_along(env_data$elms$r2eheavy)) {
@@ -118,79 +166,57 @@ for (team_id in seq_along(env_data$elms$r2eheavy)) {
   surg_names <- unlist(env_data$elms$r2eheavy[[team_id]][["surg"]])
   surg_pattern <- paste0("resource: (", paste(surg_names, collapse = "|"), ")")
 
-  # Each surgery block is a named fork; the activities belonging to it run
-  # from its header line to the next trajectory header.
-  block_starts <- grep(block_pattern, listing)
-  header_lines <- grep("trajectory:", listing)
+  seize_starts   <- grep(seize_pattern, listing)
+  release_starts <- grep(release_pattern, listing)
+  header_lines   <- grep("trajectory:", listing)
 
-  if (length(block_starts) == 0) {
-    broken(paste("team %d: this check could not locate any R2E surgical",
-                 "section block matching /%s/ — the model may be sound and the",
-                 "check unable to see it, so confirm the block names in",
+  if (length(seize_starts) == 0 || length(release_starts) == 0) {
+    broken(paste("team %d: this check could not locate the R2E surgical section",
+                 "arms matching /%s/ and /%s/ — the model may be sound and the",
+                 "check unable to see it, so confirm the arm names in",
                  "R/trajectories_r2e.R before treating this as a model defect"),
-           team_id, block_pattern)
-    report(FALSE, "team %d: no block matched /%s/ — check integrity, not model",
-           team_id, block_pattern)
+           team_id, seize_pattern, release_pattern)
+    report(FALSE, "team %d: no arms matched /%s/ or /%s/ — check integrity, not model",
+           team_id, seize_pattern, release_pattern)
     next
   }
 
-  # Coverage: every configured section must appear, and appear the same number
-  # of times as every other, since each is built from the same call sites. A
-  # branch dropped or a section left uncovered shrinks what the per-block
-  # assertions below examine, which would otherwise pass silently on less.
-  n_sections   <- length(env_data$elms$r2eheavy[[team_id]][["surg"]])
-  found_ids    <- as.integer(sub(paste0(".*", block_pattern, ".*"), "\\1",
-                                 listing[block_starts]))
-  per_section  <- table(factor(found_ids, levels = seq_len(n_sections)))
-  n_sites      <- length(block_starts) / n_sections
+  n_sections <- length(env_data$elms$r2eheavy[[team_id]][["surg"]])
+  check_coverage(team_id, seize_starts, seize_pattern, listing, n_sections, "seize")
+  check_coverage(team_id, release_starts, release_pattern, listing, n_sections, "release")
 
-  ok <- all(per_section > 0) && length(unique(as.integer(per_section))) == 1 &&
-    !any(found_ids > n_sections)
-  if (!ok) {
-    fail(paste("team %d: %d surgery blocks do not cover the %d configured",
-               "surgical sections evenly (blocks per section: %s)"),
-         team_id, length(block_starts), n_sections,
-         paste(sprintf("%d:%d", seq_len(n_sections), as.integer(per_section)),
-               collapse = ", "))
-  }
-  report(ok, "team %d: %d surgery blocks cover all %d surgical sections at %g site(s) each",
-         team_id, length(block_starts), n_sections, n_sites)
-
-  for (start in block_starts) {
-    following <- header_lines[header_lines > start]
-    end   <- if (length(following)) following[1] - 1 else length(listing)
-    block <- listing[start:end]
-
-    seizes   <- grepl("Activity: Seize",   block) & grepl(surg_pattern, block)
-    releases <- grepl("Activity: Release", block) & grepl(surg_pattern, block)
-
+  for (start in c(seize_starts, release_starts)) {
+    arm <- arm_lines(listing, start, header_lines)
+    is_seize <- start %in% seize_starts
+    hits <- grepl(if (is_seize) "Activity: Seize" else "Activity: Release", arm) &
+      grepl(surg_pattern, arm)
     label <- trimws(sub(".*trajectory: ", "", listing[start]))
-
-    ok <- any(seizes) && any(releases)
+    ok <- any(hits)
     if (!ok) {
-      fail(paste("team %d, %s: surgery block seizes no surgical section",
-                 "(seize: %s, release: %s)"),
-           team_id, label, any(seizes), any(releases))
+      fail("team %d, %s: arm %s no surgical section", team_id, label,
+           if (is_seize) "seizes" else "releases")
     }
-    report(ok, "team %d, %s: %d surgical seizes, %d releases",
-           team_id, label, sum(seizes), sum(releases))
+    report(ok, "team %d, %s: %d surgical %s", team_id, label, sum(hits),
+           if (is_seize) "seizes" else "releases")
   }
 
-  # Both surgery branches, the Phase 3 first procedure and the Phase 4 second,
-  # must be covered. Each records its own start attribute, so requiring both
-  # inside surgery blocks catches a branch that was left unconverted.
+  # Both procedures, the Phase 3 first and the Phase 4 second, must start while
+  # a section is held: each start attribute must fall after a seize arm and
+  # before the release arm that follows it, so a branch left unconverted fails.
+  arm_starts <- sort(c(seize_starts, release_starts))
   for (attr_name in c("r2e_surgery_1_start", "r2e_surgery_2_start")) {
-    covered <- FALSE
-    for (start in block_starts) {
-      following <- header_lines[header_lines > start]
-      end <- if (length(following)) following[1] - 1 else length(listing)
-      if (any(grepl(attr_name, listing[start:end], fixed = TRUE))) covered <- TRUE
-    }
+    at <- grep(attr_name, listing, fixed = TRUE)
+    covered <- length(at) > 0 && all(vapply(at, function(i) {
+      before <- arm_starts[arm_starts < i]
+      after  <- arm_starts[arm_starts > i]
+      length(before) > 0 && length(after) > 0 &&
+        max(before) %in% seize_starts && min(after) %in% release_starts
+    }, logical(1)))
     if (!covered) {
-      fail("team %d: %s does not occur inside a surgical-seizure block",
+      fail("team %d: %s does not fall between a section seize and its release",
            team_id, attr_name)
     }
-    report(covered, "team %d: %s sits inside a surgical-seizure block",
+    report(covered, "team %d: %s falls between a section seize and its release",
            team_id, attr_name)
   }
 }

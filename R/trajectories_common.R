@@ -13,14 +13,20 @@
 
 # ── Shared trajectory names ───────────────────────────────────────────────────
 
-#' Name format for the per-section R2E surgical blocks
+#' Name format for the per-section R2E surgical seize arms
 #'
-#' Used by r2e_treat_wia() to name each seize-operate-release block it builds,
-#' one per surgical section, and by tests/checks/check_r2e_surgery_seizure.R to
-#' locate those blocks in the printed trajectory. Holding the format in one
-#' place means renaming the blocks cannot leave the regression check searching
-#' for a label the model no longer uses. The single "%d" is the section index.
+#' Used by r2e_surgery_block() to name the arm seizing each surgical section,
+#' one per section, and by tests/checks/check_r2e_surgery_seizure.R to locate
+#' those arms in the printed trajectory. Holding the format in one place means
+#' renaming the arms cannot leave the regression check searching for a label
+#' the model no longer uses. The single "%d" is the section index.
 R2E_SURGERY_SECTION_FMT <- "R2E Surgery — Section %d"
+
+#' Name format for the per-section R2E surgical release arms
+#'
+#' The counterpart of R2E_SURGERY_SECTION_FMT for the arm releasing each
+#' section at the end of the operation.
+R2E_SURGERY_RELEASE_FMT <- paste(R2E_SURGERY_SECTION_FMT, "Released")
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 

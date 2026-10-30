@@ -83,6 +83,8 @@ json_data <- jsonlite::fromJSON("env_data.json", simplifyVector = FALSE)
 section_capacities <- function(echelon, at_min) {
   e <- simmer::simmer("roster check")
   e <- build_env(e, env_data)
+  # The roster sync generator reads the section members through the env global.
+  env <<- e
   e <- simmer::run(e, until = at_min)
   lapply(env_data$elms[[echelon]], function(team) {
     lapply(team[["surg"]], function(members) {

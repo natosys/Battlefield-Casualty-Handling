@@ -103,21 +103,124 @@ credit_rtd <- function(trj) {
     })
 }
 
-#' Randomly selects one subteam of the specified type from the given team
+#' One team's sections of one type and the pool that admits a casualty to them
 #'
-#' @param elm_type Element type (e.g. "r1", "r2b", "r2eheavy")
-#' @param team_id Index of the team within the element type
-#' @param subteam_type String identifying the subteam type (e.g. "surg", "evac")
-#' @return Name of a randomly selected subteam as a character string
-select_subteam <- function(elm_type, team_id, subteam_type) {
-  subteams <- env_data$elms[[elm_type]][[team_id]][[subteam_type]]
-
-  if (is.null(subteams) || length(subteams) == 0) {
-    stop(sprintf("No subteams of type '%s' found for %s team %d", subteam_type, elm_type, team_id))
+#' @param elm_type Element type, "r2b" or "r2eheavy"
+#' @param team_id  Index of the team within the element type
+#' @param type     Sub-element type, "surg", "emerg" or "evac"
+#' @return A list of `sections`, each a character vector of the members a
+#'   casualty seizes together, and `pool`, the name of the team's pool for them.
+team_sections <- function(elm_type, team_id, type) {
+  sections <- env_data$elms[[elm_type]][[team_id]][[type]]
+  if (is.null(sections) || length(sections) == 0) {
+    stop(sprintf("No sections of type '%s' found for %s team %d", type, elm_type, team_id),
+         call. = FALSE)
   }
+  list(sections = sections, pool = section_pool(elm_type, type, team_id))
+}
 
-  index <- sample(seq_along(subteams), 1)
-  return(subteams[[index]])
+#' Which of a team's sections have every member on shift and free at this instant
+#'
+#' @param sections List of sections, each a character vector of member names.
+#' @return Logical vector, one element per section.
+free_sections <- function(sections) {
+  vapply(sections, function(members) {
+    cap <- get_capacity(env, resources = members)
+    all(cap > 0 & get_server_count(env, resources = members) < cap)
+  }, logical(1))
+}
+
+#' The first section whose every member is on shift and free at this instant
+#'
+#' @param sections List of sections, each a character vector of member names.
+#' @return The index of the first such section, or NA where none is.
+first_free_section <- function(sections) {
+  free <- free_sections(sections)
+  if (any(free)) which(free)[1] else NA_integer_
+}
+
+#' Sets a team's pool to admit as many casualties as it has free sections
+#'
+#' @param trj  Trajectory to append to.
+#' @param team A team's sections and pool, as team_sections() returns them.
+#' @return The trajectory, with the pool's capacity set to the number of the
+#'   team's sections on shift and free.
+sync_section_pool <- function(trj, team) {
+  force(team)
+  trj %>% set_capacity(team$pool, function() sum(free_sections(team$sections)))
+}
+
+#' Seizes the first section of a team to come free, chosen when it is free
+#'
+#' @param trj     Trajectory to append to.
+#' @param team    A team's sections and pool, as team_sections() returns them.
+#' @param arm_fmt Name format of each section's seize arm, its one "%d" the
+#'   section index, so a check can find each section's seize.
+#' @return The trajectory, holding every member of one section, whose index is
+#'   recorded in `section_held`.
+#'
+#' @details The casualty queues on the team's pool in arrival order, so it takes
+#'   the first section to come free rather than one chosen in advance. The pool
+#'   admits as many casualties as the team has sections on shift and free: its
+#'   capacity is reset to that count whenever a section is taken or released
+#'   (sync_section_pool()) and, for a rostered section, whenever the roster
+#'   changes (add_roster_sync(), R/environment.R). A casualty admitted takes the
+#'   lowest-indexed free section, drawing no random number, hands its token
+#'   back at once and resets the count, so the pool's queue is the casualties
+#'   waiting for a section and an operation overrunning a shift change holds no
+#'   token. One admitted in the instant a section went off shift finds none free
+#'   and queues again. One casualty holds at most one section at a time, so one
+#'   attribute records it for the release.
+seize_first_free_section <- function(trj, team, arm_fmt = "Section %d") {
+  force(team); force(arm_fmt)
+  trj %>%
+    seize(team$pool, 1) %>%
+    # Branches on whether a section is still free for the casualty admitted:
+    # - none (one went off shift in the instant of admission) -> hand the token
+    #   back and queue again (the rollback below)
+    # - one is (option 0) -> continue
+    branch(
+      option = function() if (is.na(first_free_section(team$sections))) 1 else 0,
+      continue = TRUE,
+      trajectory("No Section Free on Admission") %>%
+        release(team$pool, 1) %>%
+        sync_section_pool(team)
+    ) %>%
+    rollback(target = 2, check = function() is.na(first_free_section(team$sections))) %>%
+    set_attribute("section_held", function() first_free_section(team$sections)) %>%
+    # Branches on the section recorded above, one arm per section of the team,
+    # each seizing that section's members.
+    branch(
+      option = function() get_attribute(env, "section_held"),
+      continue = TRUE,
+      lapply(seq_along(team$sections), function(i) {
+        trajectory(sprintf(arm_fmt, i)) %>% seize_resources(team$sections[[i]])
+      })
+    ) %>%
+    release(team$pool, 1) %>%
+    sync_section_pool(team)
+}
+
+#' Releases the section seize_first_free_section() took
+#'
+#' @param trj     Trajectory to append to.
+#' @param team    The same team argument the seize was given.
+#' @param arm_fmt Name format of each section's release arm, its one "%d" the
+#'   section index.
+#' @return The trajectory, with the section's members released and the pool
+#'   reset to the team's free sections.
+release_held_section <- function(trj, team, arm_fmt = "Section %d Released") {
+  force(team); force(arm_fmt)
+  trj %>%
+    # Branches on the section recorded at the seize, releasing its members.
+    branch(
+      option = function() get_attribute(env, "section_held"),
+      continue = TRUE,
+      lapply(seq_along(team$sections), function(i) {
+        trajectory(sprintf(arm_fmt, i)) %>% release_resources(team$sections[[i]])
+      })
+    ) %>%
+    sync_section_pool(team)
 }
 
 #' Selects a randomly ordered R2B team with at least one free OT bed
@@ -192,69 +295,6 @@ select_r2e_team <- function() {
   }
 
   return(selected)
-}
-
-#' Selects the surgical section best placed to take the next case
-#'
-#' @param sections List of surgical sections, each a character vector of the
-#'   resource names of that section's members
-#' @return Integer index (1-based) of the chosen section within `sections`
-#'
-#' @details An echelon can field more surgical sections than operating
-#'   theatres, and build_env() gives each section its own alternating day/night
-#'   shift, so the section that takes a case must be chosen per casualty rather
-#'   than fixed when the trajectory is built. Sections are scored on current
-#'   load, the sum of in-use and queued units across the section's member
-#'   resources, which is the section-level analogue of the "shortest-queue"
-#'   policy used for bed selection elsewhere in this file. On-shift sections
-#'   (every member holding non-zero capacity) are preferred outright: an
-#'   off-shift section is chosen only when no section is on shift, in which
-#'   case the casualty queues until the next shift opens. Ties are broken by
-#'   random selection among the equally-loaded candidates, matching
-#'   select_r2e_team() above, and a single candidate is returned without
-#'   drawing, so an echelon fielding one section consumes no random number
-#'   here.
-select_surg_section <- function(sections) {
-  section_load <- sapply(sections, function(members) {
-    sum(sapply(members, function(res) {
-      get_server_count(env, res) + get_queue_count(env, res)
-    }))
-  })
-
-  on_shift <- sapply(sections, function(members) {
-    all(sapply(members, function(res) get_capacity(env, res) > 0))
-  })
-
-  eligible   <- if (any(on_shift)) which(on_shift) else seq_along(sections)
-  candidates <- eligible[section_load[eligible] == min(section_load[eligible])]
-
-  if (length(candidates) == 1) return(candidates)
-  return(sample(candidates, 1))
-}
-
-#' Selects the R2E surgical section best placed to take the next case
-#'
-#' @param team_id Index of the R2E team within env_data$elms$r2eheavy
-#' @return Integer index (1-based) of the chosen surgical section within that
-#'   team's "surg" sub-element list
-#'
-#' @details R2E fields more surgical sections than operating theatres; the
-#'   choice is select_surg_section()'s.
-select_r2e_surg_section <- function(team_id) {
-  select_surg_section(env_data$elms$r2eheavy[[team_id]][["surg"]])
-}
-
-#' Selects the R2B surgical section best placed to take the next case
-#'
-#' @param team_id Index of the R2B team within env_data$elms$r2b
-#' @return Integer index (1-based) of the chosen surgical section within that
-#'   team's "surg" sub-element list
-#'
-#' @details Called only for a unit that fields more than one section; a unit
-#'   fielding one has nothing to choose between. The choice is
-#'   select_surg_section()'s.
-select_r2b_surg_section <- function(team_id) {
-  select_surg_section(env_data$elms$r2b[[team_id]][["surg"]])
 }
 
 # ── Died of wounds: the care-state model ─────────────────────────────────────

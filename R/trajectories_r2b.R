@@ -434,16 +434,24 @@ r2b_forward_stay <- function(icu_beds, hold_beds) {
 #' @param pre_open  Whether this copy is the held route, reached by a casualty
 #'   waiting for a section about to reopen rather than one finding it open
 #' @param ot_beds   This R2B team's operating theatre beds
-#' @param surg_team This R2B team's surgical section
+#' @param surg_team This R2B team's surgical section, the members seized
+#'   together, for a unit fielding one; NULL where `surg` is given instead
 #' @param post_op   The forward stabilisation trajectory built by
 #'   r2b_post_op_stabilisation(), joined at the end of the operation
+#' @param surg      This R2B team's surgical sections as team_sections()
+#'   returns them, for a unit fielding several; NULL for a unit fielding one
 #' @return Simmer trajectory performing one forward operation
 #'
 #' @details Built rather than written once because it is reached by two routes,
 #'   a casualty whose theatre and section are both free on arrival and one held
 #'   briefly for a section about to reopen, and only the second records how long
 #'   it waited.
-r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
+#'
+#'   A unit fielding several sections takes the first of them free
+#'   (seize_first_free_section()) rather than one chosen in advance. On the held
+#'   route the casualty is received into the theatre first, which is what the
+#'   hold means, and then takes the first section to come on shift.
+r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op, surg = NULL) {
   force(pre_open)
 
   trj <- trajectory("Surgery Path")
@@ -454,10 +462,23 @@ r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
       set_attribute("r2b_pre_open_start", function() now(env))
   }
 
-  trj <- trj %>%
+  #' Releases the section this operation took
+  #'
+  #' @param t Trajectory to append to.
+  #' @return The trajectory, with the section's members released.
+  release_section <- function(t) {
+    if (is.null(surg)) release_resources(t, surg_team) else release_held_section(t, surg)
+  }
+  take_theatre <- trajectory() %>%
     simmer::select(ot_beds, policy = "shortest-queue", id = 4) %>%
-    seize_selected(id = 4) %>%
-    seize_resources(surg_team)
+    seize_selected(id = 4)
+  trj <- if (is.null(surg)) {
+    trj %>% join(take_theatre) %>% seize_resources(surg_team)
+  } else if (pre_open) {
+    trj %>% join(take_theatre) %>% seize_first_free_section(surg)
+  } else {
+    trj %>% seize_first_free_section(surg) %>% join(take_theatre)
+  }
 
   # Realised hold, recorded once both theatre and section are in hand. It
   # can exceed the window the casualty was admitted on, the section
@@ -481,7 +502,7 @@ r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
     }) %>%
     set_attribute("r2b_surgery", 1) %>%
     set_attribute("r2b_surgery_end", function() now(env)) %>%
-    release_resources(surg_team) %>%
+    release_section() %>%
     release_selected(id = 4) %>%
     # A damage control casualty's forward operation is abbreviated and
     # earns r2b_dcs_factor; a single-stage casualty's is their definitive
@@ -505,24 +526,13 @@ r2b_surgery_path <- function(pre_open, ot_beds, surg_team, post_op) {
 #'
 #' @details A unit fielding one section gets r2b_surgery_path() on it directly,
 #'   which is the trajectory the model has always had. A unit fielding several
-#'   chooses among them per casualty, on the R2E arrangement.
+#'   takes the first of them free, on the R2E arrangement.
 r2b_surgery_by_section <- function(pre_open, team_id, ot_beds, surg_teams, post_op) {
   if (length(surg_teams) == 1L) {
     return(r2b_surgery_path(pre_open, ot_beds, surg_teams[[1]], post_op))
   }
-
-  # Branch structure: one arm per surgical section of this unit, each the
-  # same forward operation seizing that section alone. The decision criterion
-  # is select_r2b_surg_section(): an on-shift section is preferred, then the
-  # least loaded, ties broken at random.
-  trajectory("Surgery By Section") %>%
-    branch(
-      option = function() select_r2b_surg_section(team_id),
-      continue = TRUE,
-      lapply(seq_along(surg_teams), function(section_id) {
-        r2b_surgery_path(pre_open, ot_beds, surg_teams[[section_id]], post_op)
-      })
-    )
+  r2b_surgery_path(pre_open, ot_beds, NULL, post_op,
+                   surg = team_sections("r2b", team_id, "surg"))
 }
 
 #' Builds the operating theatre availability check at R2B

@@ -16,11 +16,12 @@
 #'
 #' @param traj Simmer trajectory object to append treatment steps to
 #' @param team_id Integer index of the Role 2E Heavy team
-#' @param evac_team Character vector of evacuation resource names
+#' @param evac_team This R2E team's evacuation sections, as team_sections()
+#'   returns them; the first to come free processes the casualty
 #' @return Modified trajectory with mortuary prep sequence appended
 r2e_treat_kia <- function(traj, team_id, evac_team) {
   traj %>%
-    seize_resources(evac_team) %>%
+    seize_first_free_section(evac_team) %>%
     timeout(function() {
       rtriangle(
         n = 1,
@@ -29,18 +30,19 @@ r2e_treat_kia <- function(traj, team_id, evac_team) {
         c = env_data$vars$r2eheavy$kia_treat$mode
       )
     }) %>%
-    release_resources(evac_team)
+    release_held_section(evac_team)
 }
 
 #' Simulates transport of KIA casualty to mortuary at R2E
 #'
 #' @param traj Simmer trajectory object to append movement steps to
 #' @param team_id Integer index of the Role 2E Heavy team
-#' @param evac_team Evacuation team resources for the selected R2E team
+#' @param evac_team This R2E team's evacuation sections, as team_sections()
+#'   returns them; the first to come free makes the move
 #' @return Modified trajectory with transport sequence and mortuary_treated flag
 r2e_transport_kia <- function(traj, team_id, evac_team) {
   traj %>%
-    seize_resources(evac_team) %>%
+    seize_first_free_section(evac_team) %>%
     timeout(function() {
       rtriangle(
         n = 1,
@@ -50,7 +52,7 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
       )
     }) %>%
     set_attribute("mortuary_treated", 1) %>%
-    release_resources(evac_team)
+    release_held_section(evac_team)
 }
 
 #' Builds a per-R2E-team mortuary intake sub-trajectory for KIA casualties
@@ -58,14 +60,13 @@ r2e_transport_kia <- function(traj, team_id, evac_team) {
 #' R2E, not R2B). One small trajectory is built per R2E
 #' team at model-graph-construction time — mirroring r2e_treat_wia()'s own
 #' team-selection pattern — and dispatched to at runtime via the "r2e"
-#' attribute set by r2b_transport_kia() before the branch(). evac_team is
-#' resolved once per team here, at build time, matching how r2e_treat_wia()
-#' resolves its own evac_team.
+#' attribute set by r2b_transport_kia() before the branch(). The evacuation
+#' section is the first of the team's to come free, chosen per casualty.
 #'
 #' @param team_id Integer index of the Role 2E Heavy team
 #' @return Simmer trajectory appending that team's KIA mortuary intake
 r2e_mortuary_intake <- function(team_id) {
-  evac_team <- select_subteam("r2eheavy", team_id, "evac")
+  evac_team <- team_sections("r2eheavy", team_id, "evac")
   trajectory("R2E Mortuary Intake") %>%
     r2e_treat_kia(team_id, evac_team) %>%
     r2e_transport_kia(team_id, evac_team)
@@ -73,9 +74,8 @@ r2e_mortuary_intake <- function(team_id) {
 
 # ── R2E Heavy WIA pathway builders ────────────────────────────────────────────
 
-#' Builds one operation at an R2E surgical section
+#' Builds one operation at R2E, from the first surgical section free
 #'
-#' @param section_id Index of the surgical section within surg_teams
 #' @param select_id  simmer selection id used for the OT bed in this block
 #' @param start_attr Attribute name recording incision time
 #' @param end_attr   Attribute name recording closure time
@@ -84,29 +84,30 @@ r2e_mortuary_intake <- function(team_id) {
 #'   casualty's surgical pathway
 #' @param set_flag   Whether to set the r2e_surgery marker attribute
 #' @param ot_beds    This R2E team's operating theatre beds
-#' @param surg_teams This R2E team's surgical sections
+#' @param surg       This R2E team's surgical sections, as team_sections()
+#'   returns them
+#' @param ot_pool    This R2E team's theatre pool
 #' @return A simmer trajectory performing one operation
 #'
-#' @details Surgical sections are seized per casualty, not fixed at build time
-#'   as the emergency, evacuation and intensive care sections are, because R2E
-#'   fields three of them against two operating theatres and each carries its
-#'   own shift. One block is built per section; the caller branches over them on
-#'   select_r2e_surg_section().
-#'
-#'   Seizure order is bed then team, released team then bed, matching
-#'   r2b_ot_check_path() so the two echelons cannot deadlock against each
-#'   other's ordering. A section already mid-procedure when its shift closes
-#'   retains the resources it holds until release, so a shift change cannot
-#'   interrupt an operation in progress.
-r2e_surgery_block <- function(section_id, select_id, start_attr, end_attr,
-                              efficacy, set_flag, ot_beds, surg_teams) {
-  force(section_id); force(select_id); force(start_attr)
-  force(end_attr);   force(efficacy);  force(set_flag)
+#' @details The casualty waits for the first of its unit's sections to be on
+#'   shift and free (seize_first_free_section()) and only then takes a theatre:
+#'   any free theatre, or the first to free where none is, which happens only
+#'   while an operation overruns a shift change, on-shift sections never
+#'   outnumbering theatres. No casualty is bound to a section or a theatre
+#'   before it can use both, so no theatre stands held for a section that is off
+#'   shift or busy. Released theatre then section. A section already
+#'   mid-procedure when its shift closes keeps what it holds until release, so a
+#'   shift change cannot interrupt an operation in progress.
+r2e_surgery_block <- function(select_id, start_attr, end_attr, efficacy, set_flag,
+                              ot_beds, surg, ot_pool) {
+  force(select_id); force(start_attr); force(end_attr)
+  force(efficacy);  force(set_flag)
 
-  trj <- trajectory(sprintf(R2E_SURGERY_SECTION_FMT, section_id)) %>%
-    simmer::select(ot_beds, policy = "shortest-queue", id = select_id) %>%
-    seize_selected(id = select_id) %>%
-    seize_resources(surg_teams[[section_id]])
+  trj <- trajectory("R2E Surgery") %>%
+    seize_first_free_section(surg, R2E_SURGERY_SECTION_FMT) %>%
+    seize(ot_pool, 1) %>%
+    simmer::select(ot_beds, policy = "first-available", id = select_id) %>%
+    seize_selected(id = select_id)
 
   if (set_flag) trj <- trj %>% set_attribute("r2e_surgery", 1)
 
@@ -121,8 +122,9 @@ r2e_surgery_block <- function(section_id, select_id, start_attr, end_attr,
       )
     }) %>%
     set_attribute(end_attr, function() now(env)) %>%
-    release_resources(surg_teams[[section_id]]) %>%
     release_selected(id = select_id) %>%
+    release(ot_pool, 1) %>%
+    release_held_section(surg, R2E_SURGERY_RELEASE_FMT) %>%
     dow_operated(efficacy)
 }
 
@@ -401,33 +403,23 @@ r2e_pre_surgery_stabilisation <- function(icu_beds, hold_beds, overflow) {
 
 #' Builds the operation itself at R2E, from theatre seizure to closure
 #'
-#' @param team_id    Integer index of the Role 2E Heavy team
-#' @param ot_beds    This R2E team's operating theatre beds
-#' @param surg_teams This R2E team's surgical sections
-#' @return Simmer trajectory performing one operation at whichever section is
-#'   selected on entry.
+#' @param ot_beds This R2E team's operating theatre beds
+#' @param surg    This R2E team's surgical sections, as team_sections() returns
+#'   them
+#' @param ot_pool This R2E team's theatre pool
+#' @return Simmer trajectory performing one operation on the first section
+#'   free.
 #'
 #' @details Recovery is placed when the operation ends (r2e_placed_stay()) and
 #'   joined on afterwards, so this portion is the same on every route.
-r2e_ot_surgery <- function(team_id, ot_beds, surg_teams) {
-  # Branch structure: one sub-trajectory per R2E surgical section, selected on
-  # entry by select_r2e_surg_section(). Every branch performs the same
-  # procedure and differs only in which section's resources it seizes, so the
-  # choice affects contention and shift availability, not clinical outcome.
-  trajectory("R2E OT — Surgery") %>%
-    branch(
-      option = function() select_r2e_surg_section(team_id),
-      continue = TRUE,
-      lapply(seq_along(surg_teams), function(section_id) {
-        r2e_surgery_block(
-          section_id, 4, "r2e_surgery_1_start", "r2e_surgery_1_end",
-          definitive_efficacy(
-            LEGACY_DOW_EFFICACY$r2e_dcs1_factor,
-            LEGACY_DOW_EFFICACY$r2e_dcs2_factor
-          ), TRUE, ot_beds, surg_teams
-        )
-      })
-    )
+r2e_ot_surgery <- function(ot_beds, surg, ot_pool) {
+  r2e_surgery_block(
+    4, "r2e_surgery_1_start", "r2e_surgery_1_end",
+    definitive_efficacy(
+      LEGACY_DOW_EFFICACY$r2e_dcs1_factor,
+      LEGACY_DOW_EFFICACY$r2e_dcs2_factor
+    ), TRUE, ot_beds, surg, ot_pool
+  )
 }
 
 #' Minutes of post-definitive intensive care still to be served at R2E
@@ -910,7 +902,8 @@ r2e_arrival_dow_check <- function(trj, team_id, evac_team) {
 #'
 #' @param trj            Trajectory to append the resuscitation to
 #' @param resus_beds     This R2E team's resuscitation beds
-#' @param emergency_team This R2E team's emergency section
+#' @param emergency_team This R2E team's emergency sections, as team_sections()
+#'   returns them; the first to come free resuscitates the casualty
 #' @return The trajectory, with the resuscitation bed seizure and the
 #'   resuscitation itself appended.
 #'
@@ -926,7 +919,8 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
     # Branches based on "r2b_resus":
     # - r2b_resus == 1 → short resus (prior resus at R2B)
     # - else           → full resus, sets r2e_resus = 1
-    seize_resources(emergency_team) %>%
+    seize_first_free_section(emergency_team) %>%
+    set_attribute("r2e_emerg_section", function() get_attribute(env, "section_held")) %>%
     branch(
       option = function() {
         attr <- get_attribute(env, "r2b_resus")
@@ -943,7 +937,7 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
             c = env_data$vars$r2eheavy$short_resus$mode
           )
         }) %>%
-        release_resources(emergency_team) %>%
+        release_held_section(emergency_team) %>%
         release_selected(id = 2),
       trajectory() %>%
         timeout(function() {
@@ -957,7 +951,7 @@ r2e_resuscitation <- function(trj, resus_beds, emergency_team) {
         set_attribute("r2e_resus", 1) %>%
         dow_treat(function() dow_multipliers()$resuscitation,
                   function() LEGACY_DOW_EFFICACY$r2e_resus_factor, resuscitation = TRUE) %>%
-        release_resources(emergency_team) %>%
+        release_held_section(emergency_team) %>%
         release_selected(id = 2)
     )
 }
@@ -1041,28 +1035,19 @@ r2e_second_surgery_threshold <- function() {
   as.numeric(thresh)
 }
 
-#' Whether this R2E team's surgical sections are saturated
+#' The number of casualties waiting to be operated on at one R2E team
 #'
 #' @param team_id Integer index of the Role 2E Heavy team
-#' @return The number of casualties waiting to be operated on at this team.
+#' @return The casualties queued for a surgical section or for a theatre.
 #'
-#' @details Theatre entry is a two-stage seizure, the operating theatre bed and
-#'   then the surgical section, so a casualty waiting for theatre is queued on
-#'   one or the other and counting either alone counts half the backlog. A
-#'   casualty queued for a room has not reached a section, and one holding a
-#'   room while its section is off shift is no longer queued for a room; the sum
-#'   counts each casualty exactly once, simmer blocking an arrival on one
-#'   resource at a time. Counting sections alone would also cap the measurable
-#'   queue at the number of theatre beds, which is two, making any larger
-#'   threshold unreachable.
+#' @details A casualty ready for theatre waits first for the first section to
+#'   come free and then, rarely, for a theatre (r2e_surgery_block()), each on
+#'   its team's pool, so the backlog is the two pools' queues together. simmer
+#'   blocks an arrival on one resource at a time, so each casualty is counted
+#'   once, and this is the backlog a surgical team would recognise.
 r2e_theatre_queue <- function(team_id) {
-  ot_beds  <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
-  sections <- env_data$elms$r2eheavy[[team_id]][["surg"]]
-  waiting_for_room <- sum(sapply(ot_beds, function(bed) get_queue_count(env, bed)))
-  waiting_for_staff <- sum(sapply(sections, function(members) {
-    sum(sapply(members, function(res) get_queue_count(env, res)))
-  }))
-  waiting_for_room + waiting_for_staff
+  get_queue_count(env, section_pool("r2eheavy", "surg", team_id)) +
+    get_queue_count(env, section_pool("r2eheavy", "ot", team_id))
 }
 
 #' Whether this R2E team's theatre is saturated
@@ -1084,12 +1069,14 @@ r2e_surgery_saturated <- function(team_id, thresh) {
 
 #' Applies the second operation of the damage control pathway at R2E
 #'
-#' @param trj        Trajectory to append the branch to
-#' @param team_id    Integer index of the Role 2E Heavy team
-#' @param ot_beds    This R2E team's operating theatre beds
-#' @param surg_teams This R2E team's surgical sections
+#' @param trj     Trajectory to append the branch to
+#' @param team_id Integer index of the Role 2E Heavy team
+#' @param ot_beds This R2E team's operating theatre beds
+#' @param surg    This R2E team's surgical sections, as team_sections() returns
+#'   them
+#' @param ot_pool This R2E team's theatre pool
 #' @return The trajectory, with the second-operation branch appended.
-r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
+r2e_second_surgery <- function(trj, team_id, ot_beds, surg, ot_pool) {
   # Read and validated here, at trajectory build, so a malformed threshold is a
   # named configuration error rather than an error raised mid-campaign.
   saturation_threshold <- r2e_second_surgery_threshold()
@@ -1126,24 +1113,17 @@ r2e_second_surgery <- function(trj, team_id, ot_beds, surg_teams) {
         return(2)
       },
       continue = TRUE,
-      # Second procedure. Re-selects a surgical section rather than reusing the
-      # one that performed the first: the two operations are separated by ICU
-      # or post-operative hold recovery, over which the shift will usually have
-      # turned over.
+      # Second procedure, on the first section free when the casualty is due
+      # back, the stabilisation between the operations usually spanning a shift
+      # change.
       trajectory("Second Surgery Before Disposition") %>%
-        branch(
-          option = function() select_r2e_surg_section(team_id),
-          continue = TRUE,
-          lapply(seq_along(surg_teams), function(section_id) {
-            r2e_surgery_block(
-              section_id, 7, "r2e_surgery_2_start", "r2e_surgery_2_end",
-              local({
-                factor <- LEGACY_DOW_EFFICACY$r2e_dcs2_factor
-                function() factor
-              }), FALSE, ot_beds, surg_teams
-            )
-          })
-        ),
+        join(r2e_surgery_block(
+          7, "r2e_surgery_2_start", "r2e_surgery_2_end",
+          local({
+            factor <- LEGACY_DOW_EFFICACY$r2e_dcs2_factor
+            function() factor
+          }), FALSE, ot_beds, surg, ot_pool
+        )),
       trajectory("No Second Surgery Needed"),
       # Released to strategic evacuation with the definitive repair outstanding.
       # The abbreviated operation and its recovery have already been served
@@ -1457,11 +1437,13 @@ r2e_treat_wia <- function(team_id) {
   resus_beds      <- env_data$elms$r2eheavy[[team_id]][["resus_bed"]]
   ot_beds         <- env_data$elms$r2eheavy[[team_id]][["ot_bed"]]
   icu_beds        <- env_data$elms$r2eheavy[[team_id]][["icu_bed"]]
-  surg_teams      <- env_data$elms$r2eheavy[[team_id]][["surg"]]
+  surg            <- team_sections("r2eheavy", team_id, "surg")
+  ot_pool         <- section_pool("r2eheavy", "ot", team_id)
 
-  emergency_team <- select_subteam("r2eheavy", team_id, "emerg")
-  evac_team      <- select_subteam("r2eheavy", team_id, "evac")
-  icu_team       <- select_subteam("r2eheavy", team_id, "icu")
+  # The emergency and evacuation sections are taken per casualty, first free,
+  # rather than fixed when this route is built.
+  emergency_team <- team_sections("r2eheavy", team_id, "emerg")
+  evac_team      <- team_sections("r2eheavy", team_id, "evac")
 
   overflow_post_op    <- overflow_resource("r2e", "post_op", team_id)
   overflow_pre_flight <- overflow_resource("r2e", "pre_flight", team_id)
@@ -1471,7 +1453,7 @@ r2e_treat_wia <- function(team_id) {
   stab_recovery   <- r2e_stabilisation_recovery(icu_beds, hold_beds, overflow_post_op,
                                                 post_op_dow)
   pre_stab        <- r2e_pre_surgery_stabilisation(icu_beds, hold_beds, overflow_post_op)
-  ot_surgery      <- r2e_ot_surgery(team_id, ot_beds, surg_teams)
+  ot_surgery      <- r2e_ot_surgery(ot_beds, surg, ot_pool)
   post_definitive <- r2e_post_definitive_care(icu_beds, hold_beds, overflow_post_op,
                                               team_id, evac_team)
   staging         <- r2e_staging_placement(hold_beds, overflow_staging)
@@ -1508,7 +1490,7 @@ r2e_treat_wia <- function(team_id) {
 
     # Phase 4: Second surgery, for a damage control casualty whose abbreviated
     # operation was the Phase 3 one here
-    r2e_second_surgery(team_id, ot_beds, surg_teams) %>%
+    r2e_second_surgery(team_id, ot_beds, surg, ot_pool) %>%
 
     # Post-definitive intensive care, after whichever operation was this
     # casualty's definitive repair — the Phase 4 procedure for a casualty

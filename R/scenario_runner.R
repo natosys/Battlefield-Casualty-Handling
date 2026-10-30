@@ -368,8 +368,8 @@ run_replications_reduced <- function(n_iterations, n_days, ot_hours, warm_up_day
 #'   stay consistent.
 classify_resource_group <- function(resource) {
   dplyr::case_when(
-    grepl("^b_r2b_ot_",         resource) ~ "R2B OT",
-    grepl("^b_r2eheavy_ot_",    resource) ~ "R2E OT",
+    grepl("^(b_r2b_ot_|pool_r2b_(surg|ot)_)",           resource) ~ "R2B OT",
+    grepl("^(b_r2eheavy_ot_|pool_r2eheavy_(surg|ot)_)", resource) ~ "R2E OT",
     grepl("^b_r2eheavy_icu_",   resource) ~ "R2E ICU",
     grepl("^t_(PMVAmb|HX240M)_", resource) ~ "Transport",
     TRUE ~ NA_character_
@@ -390,9 +390,9 @@ classify_resource_group <- function(resource) {
 #'   rather than one being widened and silently changing the figure.
 classify_queue_group <- function(resource) {
   dplyr::case_when(
-    grepl("^b_r2b_ot_",          resource) ~ "R2B OT",
+    grepl("^(b_r2b_ot_|pool_r2b_(surg|ot)_)",           resource) ~ "R2B OT",
     grepl("^b_r2b_hold_",        resource) ~ "R2B Hold",
-    grepl("^b_r2eheavy_ot_",     resource) ~ "R2E OT",
+    grepl("^(b_r2eheavy_ot_|pool_r2eheavy_(surg|ot)_)", resource) ~ "R2E OT",
     grepl("^b_r2eheavy_icu_",    resource) ~ "R2E ICU",
     grepl("^b_r2eheavy_hold_",   resource) ~ "R2E Hold",
     grepl("^t_(PMVAmb|HX240M)_", resource) ~ "Transport",

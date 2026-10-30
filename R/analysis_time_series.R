@@ -76,7 +76,7 @@ pool_queue_series <- function(resources_raw, horizon_min, pools = TIME_SERIES_PO
   if (edges[length(edges)] < horizon_min) edges <- c(edges, horizon_min)
 
   bind_rows(lapply(names(pools), function(pool) {
-    members <- resources_raw %>% filter(grepl(pools[[pool]], resource))
+    members <- resources_raw %>% filter(grepl(pool_queue_pattern(pool, pools[[pool]]), resource))
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
       rows  <- members %>% filter(replication == rep_id)
@@ -101,7 +101,7 @@ pool_queue_series <- function(resources_raw, horizon_min, pools = TIME_SERIES_PO
 #' @return Data frame of pool, replication, zero_share and longest_busy_days.
 pool_clearance_series <- function(resources_raw, horizon_min, pools = TIME_SERIES_POOLS) {
   bind_rows(lapply(names(pools), function(pool) {
-    members <- resources_raw %>% filter(grepl(pools[[pool]], resource))
+    members <- resources_raw %>% filter(grepl(pool_queue_pattern(pool, pools[[pool]]), resource))
     if (nrow(members) == 0) return(NULL)
     bind_rows(lapply(sort(unique(members$replication)), function(rep_id) {
       rows  <- members %>% filter(replication == rep_id)

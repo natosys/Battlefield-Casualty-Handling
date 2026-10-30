@@ -122,15 +122,15 @@ POLICY_POOLS <- c(
 
 #' Resource-name patterns of the forward theatre the saturation release acts on
 #'
-#' @details Theatre entry is a two-stage seizure, an operating theatre bed and
-#'   then a surgical section, so a casualty waiting to be operated on is queued
-#'   on one or the other and counting either alone counts half the backlog.
-#'   These are the monitor's names for the two stages `r2e_theatre_queue()`
-#'   reads live inside the model (R/trajectories_r2e.R), so the swept response and
-#'   the decision the sweep varies measure the same quantity.
+#' @details A casualty waiting to be operated on queues on its team's section
+#'   pool for the first surgical section free and then, rarely, on the theatre
+#'   pool, so counting either alone misses part of the backlog. These are the
+#'   monitor's names for the two pools `r2e_theatre_queue()` reads live inside
+#'   the model (R/trajectories_r2e.R), so the swept response and the decision the
+#'   sweep varies measure the same quantity.
 POLICY_THEATRE_POOLS <- c(
-  "^b_r2eheavy_ot_[0-9]+_t[0-9]+$",
-  "^c_r2eheavy_surg_[0-9]+_.*_t[0-9]+$"
+  "^pool_r2eheavy_surg_[0-9]+$",
+  "^pool_r2eheavy_ot_[0-9]+$"
 )
 
 #' Attribute value recording the post-definitive intensive care pathway

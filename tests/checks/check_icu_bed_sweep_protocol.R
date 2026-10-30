@@ -343,9 +343,11 @@ traj <- readLines("R/trajectories_r2e.R", warn = FALSE)
 start <- grep("^r2e_treat_wia <- function", traj)
 body <- traj[start:(start + 40L)]
 uses <- grep("icu_team", body, value = TRUE)
-report(length(start) == 1L && length(uses) == 1L && grepl("<-", uses[1]),
-       paste("icu_team appears once in r2e_treat_wia(), at its definition, and is passed",
-             "to no stay (%d occurrences)"), length(uses))
+icu_sections <- grep('"icu"', body, value = TRUE, fixed = TRUE)
+report(length(start) == 1L && length(uses) == 0L && length(icu_sections) == 0L,
+       paste("r2e_treat_wia() selects no intensive care section and passes none to a",
+             "stay (%d icu_team occurrences, %d icu section lookups)"),
+       length(uses), length(icu_sections))
 
 if (length(state$failures) > 0L) {
   cat(sprintf("\n%d check(s) FAILED:\n", length(state$failures)))

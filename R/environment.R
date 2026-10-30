@@ -1284,6 +1284,49 @@ minutes_to_shift_open <- function(t) {
   if (m < brk) brk - m else DAY_MIN - m
 }
 
+#' Adds the generator resetting every surgical pool when the roster changes
+#'
+#' @param env      The simmer environment under construction
+#' @param env_data The built configuration, whose surgical sections the pools
+#'   admit to
+#' @param ot_break Minute of the day the second shift begins
+#' @return The environment, with one unmonitored generator firing just after
+#'   each shift change.
+#'
+#' @details A section pool admits as many casualties as the team has sections
+#'   on shift and free (seize_first_free_section(), R/trajectories_common.R),
+#'   and a shift change alters that count with no seizure or release to reset
+#'   it. The generator fires a millionth of a minute after each change, so the
+#'   members' scheduled capacities have already moved when the count is read.
+add_roster_sync <- function(env, env_data, ot_break) {
+  sync <- trajectory("Roster Change")
+  for (elm_type in c("r2b", "r2eheavy")) {
+    for (team_id in seq_along(env_data$elms[[elm_type]])) {
+      sync <- sync %>% sync_section_pool(team_sections(elm_type, team_id, "surg"))
+    }
+  }
+  # Gaps between shift changes, alternating from the first change of the day.
+  gaps <- c(ot_break, DAY_MIN - ot_break)
+  gaps <- gaps[gaps > 0]
+  state <- new.env()
+  state$i <- 0L
+  #' The gap to the next shift change, the first offset by the sync delay
+  #'
+  #' @return Minutes until the next firing.
+  next_gap <- function() {
+    state$i <- state$i + 1L
+    gap <- gaps[(state$i - 1L) %% length(gaps) + 1L]
+    if (state$i == 1L) gap + ROSTER_SYNC_DELAY_MIN else gap
+  }
+  env %>% add_generator("roster_sync", sync, next_gap, mon = 0)
+}
+
+#' Delay after a shift change at which the surgical pools are reset, in minutes
+#'
+#' @details Long enough that the members' scheduled capacity change at the same
+#'   instant has been applied, short enough to be no delay at all clinically.
+ROSTER_SYNC_DELAY_MIN <- 1e-6
+
 #' Initializes the simmer environment by adding all resources from env_data
 #'
 #' @param env A simmer environment object
@@ -1318,9 +1361,14 @@ build_env <- function(env, env_data, ot_hours = NULL) {
 
   r2e_surg_counter   <- 1
   r2b_surg_counter   <- 1
+  # The shift each surgical section was given, per echelon and team, so each
+  # team's section pool can carry the number of its sections on shift.
+  surg_shifts <- list(r2b = list(), r2eheavy = list())
 
   for (elm_type in names(env_data$elms)) {
+    team_index <- 0L
     for (team in env_data$elms[[elm_type]]) {
+      team_index <- team_index + 1L
       if (is.character(team)) {
         for (res_name in team) {
           env <- env %>% add_resource(res_name)
@@ -1335,14 +1383,15 @@ build_env <- function(env, env_data, ot_hours = NULL) {
 
             for (res_name in section) {
               if (section_name == "surg") {
+                counter <- if (elm_type == "r2b") r2b_surg_counter else r2e_surg_counter
+                shift <- if (counter %% 2 == 1) 1L else 2L
+                team_shift <- if (shift == 1L) ot_shift_1 else ot_shift_2
+                env <- env %>% add_resource(res_name, team_shift)
+                surg_shifts[[elm_type]][[team_index]] <-
+                  c(surg_shifts[[elm_type]][team_index][[1]], shift)
                 if (elm_type == "r2b") {
-                  team_shift <- if (r2b_surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
-                  env <- env %>% add_resource(res_name, team_shift)
                   r2b_surg_counter <- r2b_surg_counter + 1
-
-                } else if (elm_type == "r2eheavy") {
-                  team_shift <- if (r2e_surg_counter %% 2 == 1) ot_shift_1 else ot_shift_2
-                  env <- env %>% add_resource(res_name, team_shift)
+                } else {
                   r2e_surg_counter <- r2e_surg_counter + 1
                 }
 
@@ -1373,6 +1422,30 @@ build_env <- function(env, env_data, ot_hours = NULL) {
       env <- env %>% add_resource(res_name)
     }
   }
+
+  # Section and theatre pools, so a casualty queues for the first section or
+  # theatre to free rather than for one chosen in advance
+  # (seize_first_free_section(), R/trajectories_common.R). A section pool
+  # admits as many casualties as the team has sections on shift and free, all
+  # of them free at the start and the day shift's on shift; the theatre pool
+  # holds one token per theatre.
+  for (elm_type in c("r2b", "r2eheavy")) {
+    for (team_id in seq_along(env_data$elms[[elm_type]])) {
+      team <- env_data$elms[[elm_type]][[team_id]]
+      shifts <- surg_shifts[[elm_type]][team_id][[1]]
+      on_at_start <- if (ot_break > 0) sum(shifts == 1L) else sum(shifts == 2L)
+      env <- env %>%
+        add_resource(section_pool(elm_type, "surg", team_id), on_at_start) %>%
+        add_resource(section_pool(elm_type, "ot", team_id), length(team[["ot_bed"]]))
+      if (elm_type == "r2eheavy") {
+        env <- env %>%
+          add_resource(section_pool(elm_type, "emerg", team_id), length(team[["emerg"]])) %>%
+          add_resource(section_pool(elm_type, "evac", team_id), length(team[["evac"]]))
+      }
+    }
+  }
+
+  env <- add_roster_sync(env, env_data, ot_break)
 
   # Overflow takes every casualty it is given, so it has no capacity to queue
   # behind; its server count is the census of casualties cared for without a bed.

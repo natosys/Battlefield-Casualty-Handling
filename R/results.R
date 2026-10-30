@@ -1418,22 +1418,27 @@ res_resource_stats <- function(resources, name, window_min) {
        mean_in_use = sum(x$server * dt) / window_min)
 }
 
-#' Share of a surgical section's open time with a queue for any of its staff
+#' Share of a surgical section's open time with casualties waiting for a section
 #'
 #' @param resources The resource monitor.
 #' @param section The R2E surgical section number.
 #' @param window_min The campaign length in minutes.
 #' @return The share of the time the section was rostered open during which
-#'   one or more casualties queued for any role in it.
+#'   one or more casualties waited for the first surgical section free.
+#'
+#' @details A casualty waits on its team's section pool rather than on any one
+#'   section (seize_first_free_section(), R/trajectories_common.R), so the queue
+#'   is the R2E section pools' and the section's own roster sets the time it is
+#'   measured over.
 res_section_queue_share <- function(resources, section, window_min) {
   r <- resources[resources$time <= window_min, ]
-  mine <- r[grepl(sprintf("^c_r2eheavy_surg_%d_", section), r$resource), ]
-  mine <- mine[order(mine$resource, mine$time), ]
-  mine$dq <- ave(mine$queue, mine$resource, FUN = function(q) q - c(0, head(q, -1)))
-  ev <- aggregate(dq ~ time, mine, sum)
+  pools <- r[grepl("^pool_r2eheavy_surg_[0-9]+$", r$resource), ]
+  pools <- pools[order(pools$resource, pools$time), ]
+  pools$dq <- ave(pools$queue, pools$resource, FUN = function(q) q - c(0, head(q, -1)))
+  ev <- aggregate(dq ~ time, pools, sum)
   ev <- ev[order(ev$time), ]
   ev$q <- cumsum(ev$dq)
-  anchor <- mine[grepl("surgeon_1_", mine$resource), ]
+  anchor <- r[grepl(sprintf("^c_r2eheavy_surg_%d_surgeon_1_", section), r$resource), ]
   anchor <- anchor[order(anchor$time), ]
   tt <- sort(unique(c(ev$time, anchor$time, 0)))
   dur <- diff(c(tt, window_min))
@@ -1846,9 +1851,9 @@ ANNEX_SURGICAL_LOAD <- c(
   r2e_section_1_utilisation_of_open_time = "R2E section 1 utilisation of open time (%)",
   r2e_section_2_utilisation_of_open_time = "R2E section 2 utilisation of open time (%)",
   r2e_section_3_utilisation_of_open_time = "R2E section 3 utilisation of open time (%)",
-  r2e_section_1_queued_share_of_open_time = "R2E section 1 queued share of open time (%)",
-  r2e_section_2_queued_share_of_open_time = "R2E section 2 queued share of open time (%)",
-  r2e_section_3_queued_share_of_open_time = "R2E section 3 queued share of open time (%)"
+  r2e_section_1_queued_share_of_open_time = "R2E section 1 open time with casualties waiting for a section (%)",
+  r2e_section_2_queued_share_of_open_time = "R2E section 2 open time with casualties waiting for a section (%)",
+  r2e_section_3_queued_share_of_open_time = "R2E section 3 open time with casualties waiting for a section (%)"
 )
 
 #' Decimal places of each metric of the seed-42 surgical load table

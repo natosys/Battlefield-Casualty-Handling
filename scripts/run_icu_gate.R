@@ -135,7 +135,8 @@ summary_rows <- do.call(rbind, lapply(ICU_GATE_ARMS, function(gate_enabled) {
 #'   is made at.
 PAIRED_HALF_WIDTHS <- c(icu_occupancy = 0.02, total_dow = 0.5, total_casualties = 5,
                         icu_pathway_n = 5, icu_pathway_dow = 0.5,
-                        hold_pathway_n = 5, hold_pathway_dow = 0.5)
+                        hold_pathway_n = 5, hold_pathway_dow = 0.5,
+                        overflow_pathway_n = 5, overflow_pathway_dow = 0.5)
 
 paired <- do.call(rbind, lapply(ICU_GATE_RESPONSES, function(response) {
   row <- icu_gate_paired_difference(per_replication, response,

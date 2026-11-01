@@ -12,9 +12,9 @@
 #
 # Why this check exists. The strategic airlift reliability sweep is the longest
 # experiment in the project, at 180 replication-years, and its response is a
-# classification rather than a mean: a campaign is counted as collapsed where
-# its R2E staging overflow census is still rising over the second half of the
-# year. Nobody re-runs it to audit a change, so three things have to be checked
+# classification rather than a mean: an airlift route is counted as collapsed
+# in a campaign where the backlog of casualties awaiting a place on it is
+# still rising over the second half of the year. Nobody re-runs it to audit a change, so three things have to be checked
 # without running it. Its parameters must be the ones the methods paper documents,
 # or the paper describes an experiment the code does not perform. Its classifier
 # must be correct on inputs whose answers are computable by hand, since a
@@ -28,10 +28,11 @@
 #   1. Every protocol parameter in R/airlift.R equals the value
 #      docs/Methods.md documents in a marker comment.
 #   2. collapse_response() averages each replication's closing window, and
-#      nothing before it, as the descriptive closing census.
-#   3. It classifies a census still rising over the late half as collapsed,
-#      and a settled, falling or constant one as clear.
-#   4. The level does not decide: a settled census above a rising one is clear
+#      nothing before it, as the descriptive closing backlog, and divides a
+#      route's demand by the places flown for its utilisation.
+#   3. It classifies a backlog still rising over the late half as collapsed,
+#      and a settled, falling or constant one as clear, route by route.
+#   4. The level does not decide: a settled backlog above a rising one is clear
 #      while the rising one is collapsed.
 #   5. summarise_collapse() returns the Clopper-Pearson interval, which on a
 #      zero-count arm has a positive upper bound where a normal interval has
@@ -142,9 +143,8 @@ report(length(parsed) == length(AIRLIFT_COLLAPSE_PROBABILITIES) &&
        paste(format(parsed), collapse = ","),
        paste(format(AIRLIFT_COLLAPSE_PROBABILITIES), collapse = ","))
 
-report(identical(AIRLIFT_COLLAPSE_SUBJECT, "R2E staging overflow"),
-       "the classified subject is the R2E staging overflow census, found '%s'",
-       AIRLIFT_COLLAPSE_SUBJECT)
+report(identical(unname(AIRLIFT_COLLAPSE_ROUTES), c(AIRLIFT_ROUTE_CRITICAL, AIRLIFT_ROUTE_STANDARD)),
+       "both airlift routes are classified, critical then standard")
 report(AIRLIFT_COLLAPSE_WINDOW_DAYS < AIRLIFT_COLLAPSE_DAYS,
        "the closing window (%d days) is shorter than the horizon (%d days)",
        AIRLIFT_COLLAPSE_WINDOW_DAYS, AIRLIFT_COLLAPSE_DAYS)
@@ -153,21 +153,27 @@ report(AIRLIFT_COLLAPSE_WINDOW_DAYS < AIRLIFT_COLLAPSE_DAYS,
 
 cat("\n-- the classifier is right on a constructed series --\n")
 
-#' Build the classified pool's daily series from one value per 30-day block
+#' Build one route's daily series from one backlog value per 30-day block
 #'
-#' @param blocks Matrix of block values, replications in rows and blocks in
-#'   columns; every day of a block carries its block's value.
-#' @return A data frame of replication, day and value, as the experiment
-#'   retains the series.
-make_series <- function(blocks) {
-  n_reps <- nrow(blocks)
+#' @param blocks Matrix of block backlog values, replications in rows and
+#'   blocks in columns; every day of a block carries its block's value.
+#' @param route Route label the rows carry.
+#' @param decisions_per_day Casualties assigned to the route each day.
+#' @param places_day_one Places opened on day 1, the only sortie.
+#' @return A data frame of replication, day, series, subject and value, as
+#'   reduce_route_backlog() returns them.
+make_series <- function(blocks, route = "Critical airlift", decisions_per_day = 1,
+                        places_day_one = 720) {
   per_day <- blocks[, rep(seq_len(ncol(blocks)), each = LONG_HORIZON_BLOCK_DAYS), drop = FALSE]
   n_days <- ncol(per_day)
-  data.frame(
-    replication = rep(seq_len(n_reps), each = n_days),
-    day         = rep(seq_len(n_days), times = n_reps),
-    value       = as.numeric(t(per_day))
-  )
+  do.call(rbind, lapply(seq_len(nrow(blocks)), function(r) {
+    data.frame(replication = r,
+               day = rep(seq_len(n_days), 3),
+               series = rep(c("backlog", "decisions", "places_opened"), each = n_days),
+               subject = route,
+               value = c(per_day[r, ], rep(decisions_per_day, n_days),
+                         c(places_day_one, rep(0, n_days - 1))))
+  }))
 }
 
 # Four replications over twelve 30-day blocks (360 days). The late half is
@@ -177,12 +183,16 @@ make_series <- function(blocks) {
 #   rep 2: 3 x block +/- 0.5 from block 6           -> rising, collapsed
 #   rep 3: 60 - 3 x block +/- 0.5 from block 6      -> falling, clear
 #   rep 4: zero throughout                          -> constant, clear
-# The closing window of 90 days is blocks 10 to 12, so the closing census is
+# The closing window of 90 days is blocks 10 to 12, so the closing backlog is
 # the mean of those three block values:
 #   rep 1: (50.5 + 49.5 + 50.5) / 3 = 50.1667
 #   rep 2: (30.5 + 32.5 + 36.5) / 3 = 33.1667
 #   rep 3: (30.5 + 26.5 + 24.5) / 3 = 27.1667
 #   rep 4: 0
+# Each replication assigns one casualty a day (360) against 720 places, so the
+# utilisation is 0.5. A standard route is added with every replication's
+# backlog rising and 360 casualties against 240 places, a utilisation of 1.5,
+# so that each route is classified on its own rows alone.
 late <- 6:12
 wobble <- ifelse(late %% 2 == 0, 0.5, -0.5)
 constructed <- rbind(
@@ -191,17 +201,22 @@ constructed <- rbind(
   c(60, 60, 60, 60, 60, 60 - 3 * late + wobble),
   rep(0, 12)
 )
+rising <- matrix(rep(c(0, 0, 0, 0, 0, 3 * late + wobble), 4), nrow = 4, byrow = TRUE)
 expected_closing <- c(150.5, 99.5, 81.5, 0) / 3
 expected_collapsed <- c(FALSE, TRUE, FALSE, FALSE)
 expected_stability <- c("converged", "drifting", "drifting", "degenerate")
 
-response <- collapse_response(make_series(constructed), n_days = 360, window_days = 90)
+both <- rbind(make_series(constructed),
+              make_series(rising, route = "Standard airlift", places_day_one = 240))
+all_routes <- collapse_response(both, n_days = 360, window_days = 90)
+response <- all_routes[all_routes$route == "Critical airlift", ]
+standard <- all_routes[all_routes$route == "Standard airlift", ]
 
 report(nrow(response) == 4 && identical(as.integer(response$replication), 1:4),
-       "one row per replication, in replication order (%d rows)", nrow(response))
-report(all(abs(response$closing_queue - expected_closing) < TOL),
-       "the closing censuses are %s, expected %s",
-       paste(format(response$closing_queue), collapse = ", "),
+       "one critical row per replication, in replication order (%d rows)", nrow(response))
+report(all(abs(response$closing_backlog - expected_closing) < TOL),
+       "the closing backlogs are %s, expected %s",
+       paste(format(response$closing_backlog), collapse = ", "),
        paste(format(expected_closing), collapse = ", "))
 report(identical(as.character(response$stability), expected_stability),
        "the late-half verdicts are %s, expected %s",
@@ -211,20 +226,25 @@ report(identical(as.logical(response$collapsed), expected_collapsed),
        paste(response$collapsed, collapse = ", "),
        paste(expected_collapsed, collapse = ", "))
 report(abs(response$slope_per_day[2] - 3 / LONG_HORIZON_BLOCK_DAYS) < 0.01,
-       "the rising census climbs %.4f casualties per day, expected %.4f",
+       "the rising backlog climbs %.4f casualties per day, expected %.4f",
        response$slope_per_day[2], 3 / LONG_HORIZON_BLOCK_DAYS)
+report(all(abs(response$utilisation - 0.5) < TOL),
+       "the critical utilisation is 360 casualties over 720 places, 0.5")
+report(nrow(standard) == 4 && all(standard$collapsed) &&
+         all(abs(standard$utilisation - 1.5) < TOL),
+       "the standard route is classified on its own rows: all collapsed at utilisation 1.5")
 
 # Replication 1 closes higher than replication 2, so a classifier reading the
 # level rather than the trend would call it the collapsed one; and replication
 # 3 is drifting, but downward, so a classifier ignoring the slope's sign would
 # call it collapsed too.
-report(response$closing_queue[1] > response$closing_queue[2] &&
+report(response$closing_backlog[1] > response$closing_backlog[2] &&
          !isTRUE(response$collapsed[1]) && isTRUE(response$collapsed[2]),
-       "a settled census above a rising one is clear while the rising one collapses")
+       "a settled backlog above a rising one is clear while the rising one collapses")
 report(!isTRUE(response$collapsed[3]),
-       "a census falling over the late half is clear")
+       "a backlog falling over the late half is clear")
 
-absent <- collapse_response(make_series(constructed)[0, ], n_days = 360)
+absent <- collapse_response(both[0, ], n_days = 360)
 report(nrow(absent) == 0, "an empty series returns no responses")
 
 # ── 5. The interval is Clopper-Pearson ───────────────────────────────────────
@@ -235,17 +255,20 @@ summary_of <- summarise_collapse(response)
 report(summary_of$n_reps == 4 && summary_of$n_collapsed == 1,
        "1 of 4 constructed replications collapses (%d of %d)",
        summary_of$n_collapsed, summary_of$n_reps)
-report(abs(summary_of$median_queue - 181 / 6) < TOL,
-       "the median closing census is %.4f, expected %.4f", summary_of$median_queue, 181 / 6)
-report(abs(summary_of$worst_queue - 150.5 / 3) < TOL,
-       "the worst closing census is %.4f, expected %.4f", summary_of$worst_queue, 150.5 / 3)
+report(abs(summary_of$median_backlog - 181 / 6) < TOL,
+       "the median closing backlog is %.4f, expected %.4f", summary_of$median_backlog, 181 / 6)
+report(abs(summary_of$worst_backlog - 150.5 / 3) < TOL,
+       "the worst closing backlog is %.4f, expected %.4f", summary_of$worst_backlog, 150.5 / 3)
+report(summary_of$n_over_capacity == 0 && abs(summary_of$mean_utilisation - 0.5) < TOL,
+       "no constructed campaign is over capacity, mean utilisation %.2f",
+       summary_of$mean_utilisation)
 report(abs(summary_of$ci_lower - qbeta(0.025, 1, 4)) < TOL &&
          abs(summary_of$ci_upper - qbeta(0.975, 2, 3)) < TOL,
        "the interval is [%.4f, %.4f], the exact binomial one for 1 of 4",
        summary_of$ci_lower, summary_of$ci_upper)
 
-zero_arm <- data.frame(replication = 1:30, closing_queue = rep(0.5, 30),
-                       collapsed = rep(FALSE, 30))
+zero_arm <- data.frame(replication = 1:30, closing_backlog = rep(0.5, 30),
+                       utilisation = rep(0.5, 30), collapsed = rep(FALSE, 30))
 zero_summary <- summarise_collapse(zero_arm)
 report(zero_summary$rate == 0 && zero_summary$ci_lower == 0,
        "a zero-count arm reports a rate and lower bound of zero")
@@ -253,8 +276,8 @@ report(zero_summary$ci_upper > 0.1 && zero_summary$ci_upper < 0.13,
        "its upper bound is %.4f, positive where a normal interval is zero-width",
        zero_summary$ci_upper)
 
-full_arm <- data.frame(replication = 1:30, closing_queue = rep(90, 30),
-                       collapsed = rep(TRUE, 30))
+full_arm <- data.frame(replication = 1:30, closing_backlog = rep(90, 30),
+                       utilisation = rep(1.2, 30), collapsed = rep(TRUE, 30))
 report(summarise_collapse(full_arm)$ci_upper == 1,
        "an all-collapsed arm reports an upper bound of one")
 
@@ -319,9 +342,9 @@ if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
   tracked_response <- read.csv(RESPONSE_PATH, stringsAsFactors = FALSE)
 
   expected_rows <- length(AIRLIFT_COLLAPSE_PROBABILITIES) *
-    AIRLIFT_COLLAPSE_REPLICATIONS * AIRLIFT_COLLAPSE_DAYS
+    AIRLIFT_COLLAPSE_REPLICATIONS * AIRLIFT_COLLAPSE_DAYS * 3L * length(AIRLIFT_COLLAPSE_ROUTES)
   report(nrow(tracked_series) == expected_rows,
-         "the series carries one row per arm, replication and day (%d of %d)",
+         "the series carries three quantities per arm, route, replication and day (%d of %d)",
          nrow(tracked_series), expected_rows)
   report(all(sort(unique(tracked_series$day)) == seq_len(AIRLIFT_COLLAPSE_DAYS)),
          "every day from 1 to %d is present", AIRLIFT_COLLAPSE_DAYS)
@@ -335,13 +358,15 @@ if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
     out
   }))
 
-  keys <- c("probability", "replication")
+  keys <- c("probability", "replication", "route")
   merged <- merge(tracked_response, recomputed, by = keys, suffixes = c("_pub", "_new"))
   report(nrow(merged) == nrow(tracked_response),
          "every tracked response has a recomputed counterpart (%d of %d)",
          nrow(merged), nrow(tracked_response))
-  report(nrow(merged) > 0 && max(abs(merged$closing_queue_pub - merged$closing_queue_new)) < TOL,
-         "every closing census is reproduced from the series")
+  report(nrow(merged) > 0 &&
+           max(abs(merged$closing_backlog_pub - merged$closing_backlog_new)) < TOL &&
+           max(abs(merged$utilisation_pub - merged$utilisation_new)) < TOL,
+         "every closing backlog and utilisation is reproduced from the series")
   report(nrow(merged) > 0 &&
            identical(as.logical(merged$collapsed_pub), as.logical(merged$collapsed_new)),
          "every classification is reproduced from the series")

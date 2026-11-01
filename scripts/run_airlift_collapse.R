@@ -16,8 +16,9 @@
 # replicated campaign but sweeps nothing; scripts/run_airlift_sweep.R sweeps
 # sortie cancellation but at a 30-day horizon, reporting means rather than this
 # experiment's response. This script is the two together, plus the response
-# itself: whether a campaign collapses, meaning its R2E staging overflow census
-# is still rising over the second half of the year.
+# itself: whether each airlift route collapses, meaning the backlog of
+# casualties awaiting a place on it is still rising over the second half of
+# the year, with the route's utilisation beside it.
 #
 # Each campaign is classified from its own retained daily series, so a resumed
 # arm is classified by the current rule rather than the one in force when it
@@ -99,10 +100,11 @@ json_data <- read_config(config_path)
 #' Directory each arm's checkpoint is written to and resumed from
 CHECKPOINT_DIR <- checkpoint_dir("airlift_collapse", refresh_requested)
 
-#' Measure one cancellation probability and return its classified pool's daily series
+#' Measure one cancellation probability and return its route series
 #'
 #' @param probability Sortie cancellation probability to run at.
-#' @return A list holding the arm's daily staging census as `series`, carrying the probability.
+#' @return A list holding the arm's daily route series as `series`, carrying the
+#'   probability.
 #'
 #' @details The configuration globals are restored on exit, on the error path as
 #'   well as the success path, so an arm that fails part-way leaves the session
@@ -117,17 +119,13 @@ measure_arm <- function(probability) {
   message(sprintf("Cancellation probability %s: %d replications x %d days",
                   format(probability), opt$iterations, opt$days))
   set.seed(opt$seed)
+  # The route series are retained so that a statement about how a campaign's
+  # opening relates to its outcome is recomputable from the tracked evidence
+  # set rather than only from a run nobody repeats.
   series <- run_long_horizon(n_iterations = opt$iterations, n_days = opt$days,
-                             max_cores = opt$`max-cores`)
-
-  # The classified pool's own daily series is retained so that a statement about
-  # how a campaign's opening relates to its outcome is recomputable from the
-  # tracked evidence set rather than only from a run nobody repeats.
-  subject <- series[series$series == "mean_queue" &
-                      series$subject == AIRLIFT_COLLAPSE_SUBJECT,
-                    c("replication", "day", "value")]
-  subject$probability <- probability
-  list(series = subject)
+                             max_cores = opt$`max-cores`, reduce = reduce_route_backlog)
+  series$probability <- probability
+  list(series = series)
 }
 
 #' Measure one cancellation probability, or read it back where already measured
@@ -140,7 +138,7 @@ measure_arm <- function(probability) {
 #'   is never reused. The experiment is six 360-day arms of 30 replications,
 #'   long enough that an interruption should cost the arm in flight and no more.
 measure_or_resume <- function(probability) {
-  stem <- sprintf("airlift_collapse_arm_%s_%dr_%dd", format(probability), opt$iterations,
+  stem <- sprintf("airlift_collapse_routes_arm_%s_%dr_%dd", format(probability), opt$iterations,
                   opt$days)
   path <- scenario_output_path(CHECKPOINT_DIR, stem, opt$scenario, ".rds")
   if (file.exists(path)) {
@@ -161,8 +159,11 @@ per_replication <- do.call(rbind, lapply(arms, function(arm) {
 daily_series <- do.call(rbind, lapply(arms, `[[`, "series"))
 
 summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
-  arm <- per_replication[per_replication$probability == probability, ]
-  cbind(data.frame(probability = probability), summarise_collapse(arm))
+  do.call(rbind, lapply(names(AIRLIFT_COLLAPSE_ROUTES), function(route) {
+    arm <- per_replication[per_replication$probability == probability &
+                             per_replication$route == route, ]
+    cbind(data.frame(probability = probability, route = route), summarise_collapse(arm))
+  }))
 }))
 
 write.csv(per_replication,
@@ -176,12 +177,13 @@ series_path <-
 write.csv(daily_series, gzfile(series_path), row.names = FALSE)
 message(sprintf("Collapse responses, summary and daily series written to %s", OUTPUT_DIR))
 
-cat("\n| Sortie cancellation | Campaigns collapsed | Rate | 95% CI |",
-    "Median closing census | Worst closing census |\n")
-cat("|---|---|---|---|---|---|\n")
+cat("\n| Sortie cancellation | Route | Campaigns collapsed | 95% CI |",
+    "Mean utilisation | Over capacity | Median closing backlog |\n")
+cat("|---|---|---|---|---|---|---|\n")
 for (i in seq_len(nrow(summary_rows))) {
   r <- summary_rows[i, ]
-  cat(sprintf("| %.0f%% | %d of %d | %.1f%% | [%.1f%%, %.1f%%] | %.2f | %.1f |\n",
-              100 * r$probability, r$n_collapsed, r$n_reps, 100 * r$rate,
-              100 * r$ci_lower, 100 * r$ci_upper, r$median_queue, r$worst_queue))
+  cat(sprintf("| %.0f%% | %s | %d of %d | [%.1f%%, %.1f%%] | %.2f | %d | %.1f |\n",
+              100 * r$probability, r$route, r$n_collapsed, r$n_reps,
+              100 * r$ci_lower, 100 * r$ci_upper, r$mean_utilisation,
+              r$n_over_capacity, r$median_backlog))
 }

@@ -205,6 +205,9 @@ reduce_long_replication <- function(env, n_days) {
 #' @param n_iterations Replications to run (default LONG_HORIZON_REPLICATIONS).
 #' @param n_days Campaign length in days (default LONG_HORIZON_DAYS).
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
+#' @param reduce Function of a finished environment and the campaign length
+#'   returning that replication's series in long form (default
+#'   reduce_long_replication()).
 #' @return Data frame of replication, day, series, subject and value.
 #'
 #' @details Each replication's monitoring data is reduced inside the forked
@@ -215,7 +218,8 @@ reduce_long_replication <- function(env, n_days) {
 #'   caller's stream is restored on exit, so a long run at a control seed is
 #'   reproducible on the same terms as every other measurement in this project.
 run_long_horizon <- function(n_iterations = LONG_HORIZON_REPLICATIONS,
-                             n_days = LONG_HORIZON_DAYS, max_cores = NULL) {
+                             n_days = LONG_HORIZON_DAYS, max_cores = NULL,
+                             reduce = reduce_long_replication) {
   message(sprintf("Running %d replications over %d days, reducing as they finish...",
                   n_iterations, n_days))
 
@@ -231,7 +235,7 @@ run_long_horizon <- function(n_iterations = LONG_HORIZON_REPLICATIONS,
   #' @return The replication's reduced series, carrying its index.
   worker <- function(i) {
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
-    out <- reduce_long_replication(env, n_days)
+    out <- reduce(env, n_days)
     out$replication <- i
     out
   }

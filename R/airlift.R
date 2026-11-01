@@ -494,77 +494,158 @@ AIRLIFT_COLLAPSE_DAYS <- 360L
 
 #' Length of the closing window the collapse response is measured over, in days
 #'
-#' @details Ninety days. The closing census describes where each campaign
+#' @details Ninety days. The closing backlog describes where each campaign
 #'   ended up, which the classification by trend does not report; a window at
 #'   the end measures that, while a mean over the whole year would mix it with
 #'   the months before.
 AIRLIFT_COLLAPSE_WINDOW_DAYS <- 90L
 
-#' Subject name the long-horizon series carries the R2E staging overflow census under
+#' Airlift routes the collapse experiment classifies, by the subject label
+#' each carries in the series
 #'
-#' @details A casualty awaiting a flight who finds no holding bed free waits in
-#'   staging overflow rather than queueing for a bed, so a failing airlift shows
-#'   as this census and not as the holding queue, which counts convalescents.
-AIRLIFT_COLLAPSE_SUBJECT <- "R2E staging overflow"
+#' @details The two seat pools fill independently, a critical casualty being
+#'   unable to take a standard place, so a route whose places run out
+#'   collapses while the other keeps up. Classifying them together would let
+#'   the larger and slacker standard route dilute the critical one.
+AIRLIFT_COLLAPSE_ROUTES <- c("Critical airlift" = AIRLIFT_ROUTE_CRITICAL,
+                             "Standard airlift" = AIRLIFT_ROUTE_STANDARD)
 
-#' Reduce each replication's staging census to one collapse classification
+#' Leading word of each route's pool label in compute_ame_sorties()
+AIRLIFT_COLLAPSE_POOL_PREFIX <- c("Critical airlift" = "Critical",
+                                  "Standard airlift" = "Standard")
+
+#' Reduce one finished replication to each airlift route's daily series
 #'
-#' @param series The classified pool's daily series, with columns
-#'   `replication`, `day` and `value`, as the experiment retains it.
+#' @param env Wrapped simmer environment as returned by run_once().
 #' @param n_days Campaign length in days.
-#' @param window_days Length of the closing window the descriptive closing
-#'   census is averaged over (default AIRLIFT_COLLAPSE_WINDOW_DAYS).
-#' @param block_days Block length the trend is fitted over (default
-#'   LONG_HORIZON_BLOCK_DAYS).
-#' @return Data frame of replication, closing_queue, slope_per_day, stability
-#'   and collapsed.
+#' @return Data frame of day, series, subject and value in long form: for each
+#'   route (subject), `backlog`, the casualties awaiting a place on it at the
+#'   end of the day; `decisions`, the casualties assigned to it that day; and
+#'   `places_opened`, the places its flown sorties opened that day.
 #'
-#' @details A campaign is collapsed when its census is still rising over the
-#'   second half of the campaign: classify_stability() (R/long_horizon.R), the
-#'   rule the sustained-operations protocol applies to every pool, is applied to
-#'   the replication's own block means, and a drifting census with a positive
-#'   slope is collapsed. A level threshold cannot make this distinction, because
-#'   casualties wait in staging between weekly sorties whether or not the
-#'   airlift keeps up, so the census of a campaign that keeps up is spread
-#'   continuously from a few casualties to tens and has no gap a threshold
-#'   could sit in. What separates a campaign that clears each sortie's demand
-#'   from one that leaves more behind at every sortie is whether the census
-#'   keeps growing, not how high it stands. The closing census is retained as a
-#'   description of where each campaign ended. The window is the last
-#'   `window_days` days inclusive, so a 90-day window of a 360-day run covers
-#'   days 271 to 360.
-collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
-                              block_days = LONG_HORIZON_BLOCK_DAYS) {
-  if (nrow(series) == 0) {
-    return(data.frame(replication = integer(0), closing_queue = numeric(0),
-                      slope_per_day = numeric(0), stability = character(0),
-                      collapsed = logical(0)))
+#' @details A casualty joins a route's backlog when the evacuation decision is
+#'   made and leaves it on boarding or on dying, whether while queued for a
+#'   place or before being staged, so the backlog counts the living who are
+#'   still owed a seat. It is a level at the end of the day, as the system
+#'   backlog of reduce_flow_series() is. A sortie scheduled at the horizon is
+#'   dropped, its outcome being censored by the window (see
+#'   reduce_airlift_replication()).
+reduce_route_backlog <- function(env, n_days) {
+  attributes <- simmer::get_mon_attributes(env)
+  resources  <- simmer::get_mon_resources(env)
+  ends <- seq_len(n_days) * DAY_MIN
+
+  #' One attribute's value and setting time per casualty
+  #'
+  #' @param key Attribute key.
+  #' @param use "value" or "time".
+  #' @return Named numeric vector keyed by casualty, the last setting kept.
+  attr_of <- function(key, use) {
+    rows <- attributes[attributes$key == key, ]
+    if (key == "dow") rows <- rows[rows$value == 1, ]
+    rows <- rows[!duplicated(rows$name, fromLast = TRUE), ]
+    stats::setNames(rows[[use]], rows$name)
   }
-  do.call(rbind, lapply(split(series, series$replication), function(d) {
-    d$series <- "mean_queue"
-    d$subject <- AIRLIFT_COLLAPSE_SUBJECT
-    st <- classify_stability(block_means(d, block_days))
-    data.frame(
-      replication   = d$replication[1],
-      closing_queue = mean(d$value[d$day > n_days - window_days]),
-      slope_per_day = st$slope / block_days,
-      stability     = st$stability,
-      collapsed     = st$stability == "drifting" && st$slope > 0
-    )
+  decided <- attr_of("r2e_evac", "time")
+  route   <- attr_of("ame_route", "value")
+  left    <- attr_of("ame_hold_end", "value")
+  died    <- attr_of("dow", "time")
+  who     <- intersect(names(decided), names(route))
+  exit_at <- pmin(ifelse(is.na(left[who]), Inf, left[who]),
+                  ifelse(is.na(died[who]), Inf, died[who]))
+
+  sorties <- compute_ame_sorties(resources, env_data$vars$role4, n_days)
+  sorties <- sorties[sorties$sortie_day < n_days & sorties$outcome == "Flown", ]
+
+  do.call(rbind, lapply(names(AIRLIFT_COLLAPSE_ROUTES), function(label) {
+    on_route <- who[route[who] == AIRLIFT_COLLAPSE_ROUTES[[label]]]
+    t_in  <- decided[on_route]
+    t_out <- exit_at[match(on_route, who)]
+    backlog <- vapply(ends, function(e) sum(t_in <= e & t_out > e), numeric(1))
+    days_in <- floor(t_in / DAY_MIN) + 1
+    decisions <- tabulate(days_in[days_in <= n_days], nbins = n_days)
+    pool <- sorties[startsWith(as.character(sorties$pool),
+                               AIRLIFT_COLLAPSE_POOL_PREFIX[[label]]), ]
+    places <- numeric(n_days)
+    if (nrow(pool) > 0) {
+      by_day <- tapply(pool$capacity_added, pool$sortie_day, sum)
+      places[as.integer(names(by_day))] <- by_day
+    }
+    data.frame(day = rep(seq_len(n_days), 3),
+               series = rep(c("backlog", "decisions", "places_opened"), each = n_days),
+               subject = label,
+               value = c(backlog, decisions, places))
   }))
 }
 
-#' Summarise one arm's collapse responses as the published table reports them
+#' Reduce each replication's route series to one collapse classification
 #'
-#' @param response Collapse responses as returned by collapse_response().
+#' @param series Route series as reduce_route_backlog() returns them, carrying
+#'   `replication`.
+#' @param n_days Campaign length in days.
+#' @param window_days Length of the closing window the descriptive closing
+#'   backlog is averaged over (default AIRLIFT_COLLAPSE_WINDOW_DAYS).
+#' @param block_days Block length the trend is fitted over (default
+#'   LONG_HORIZON_BLOCK_DAYS).
+#' @return Data frame of replication, route, closing_backlog, slope_per_day,
+#'   stability, utilisation and collapsed, one row per replication and route.
+#'
+#' @details A route is collapsed in a campaign when its backlog is still rising
+#'   over the second half of the campaign: classify_stability()
+#'   (R/long_horizon.R), the rule the sustained-operations protocol applies to
+#'   every pool, is applied to the replication's own block means of that
+#'   route's backlog, and a drifting backlog with a positive slope is
+#'   collapsed. A level threshold cannot make this distinction, because
+#'   casualties wait between weekly sorties whether or not the airlift keeps
+#'   up. `utilisation` is the route's demand over the campaign divided by the
+#'   places its flown sorties opened, the quantity whose reaching one makes a
+#'   queue unable to settle; it is reported beside the classification rather
+#'   than replacing it, being an average that a run of cancellations late in
+#'   a campaign can leave below one while the backlog is still climbing.
+collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
+                              block_days = LONG_HORIZON_BLOCK_DAYS) {
+  empty <- data.frame(replication = integer(0), route = character(0),
+                      closing_backlog = numeric(0), slope_per_day = numeric(0),
+                      stability = character(0), utilisation = numeric(0),
+                      collapsed = logical(0))
+  if (nrow(series) == 0) return(empty)
+  parts <- split(series, list(series$replication, series$subject), drop = TRUE)
+  out <- do.call(rbind, lapply(parts, function(d) {
+    backlog <- d[d$series == "backlog", ]
+    if (nrow(backlog) == 0) return(NULL)
+    st <- classify_stability(block_means(backlog, block_days))
+    places <- sum(d$value[d$series == "places_opened"])
+    data.frame(
+      replication     = d$replication[1],
+      route           = d$subject[1],
+      closing_backlog = mean(backlog$value[backlog$day > n_days - window_days]),
+      slope_per_day   = st$slope / block_days,
+      stability       = st$stability,
+      utilisation     = if (places > 0) sum(d$value[d$series == "decisions"]) / places else NA_real_,
+      collapsed       = st$stability == "drifting" && st$slope > 0
+    )
+  }))
+  if (is.null(out)) return(empty)
+  out <- out[order(out$route, out$replication), ]
+  rownames(out) <- NULL
+  out
+}
+
+#' Summarise one arm and route's collapse responses as the published table
+#' reports them
+#'
+#' @param response Collapse responses of one route, as returned by
+#'   collapse_response().
 #' @return A one-row data frame of n_reps, n_collapsed, rate, ci_lower,
-#'   ci_upper, median_queue and worst_queue.
+#'   ci_upper, median_backlog, worst_backlog, mean_utilisation and
+#'   n_over_capacity.
 #'
 #' @details The interval is the Clopper-Pearson exact binomial interval rather
 #'   than a normal approximation, the response being a proportion measured on
 #'   thirty campaigns of which several arms have zero successes; a normal
 #'   interval on a zero count has zero width, which would report a rate of zero
-#'   as exactly known.
+#'   as exactly known. `n_over_capacity` counts the campaigns whose demand met
+#'   or exceeded the places flown.
 summarise_collapse <- function(response) {
   n <- nrow(response)
   k <- sum(response$collapsed)
@@ -573,12 +654,14 @@ summarise_collapse <- function(response) {
       if (k == n) 1 else qbeta(0.975, k + 1, n - k))
   }
   data.frame(
-    n_reps       = n,
-    n_collapsed  = k,
-    rate         = if (n > 0) k / n else NA_real_,
-    ci_lower     = ci[1],
-    ci_upper     = ci[2],
-    median_queue = if (n > 0) median(response$closing_queue) else NA_real_,
-    worst_queue  = if (n > 0) max(response$closing_queue) else NA_real_
+    n_reps           = n,
+    n_collapsed      = k,
+    rate             = if (n > 0) k / n else NA_real_,
+    ci_lower         = ci[1],
+    ci_upper         = ci[2],
+    median_backlog   = if (n > 0) median(response$closing_backlog) else NA_real_,
+    worst_backlog    = if (n > 0) max(response$closing_backlog) else NA_real_,
+    mean_utilisation = if (n > 0) mean(response$utilisation) else NA_real_,
+    n_over_capacity  = sum(response$utilisation >= 1, na.rm = TRUE)
   )
 }

@@ -16,13 +16,13 @@
 # replicated campaign but sweeps nothing; scripts/run_airlift_sweep.R sweeps
 # sortie cancellation but at a 30-day horizon, reporting means rather than this
 # experiment's response. This script is the two together, plus the response
-# itself: whether a campaign collapses, measured as the mean R2E holding queue
-# over its closing 90 days against a threshold of twenty casualties.
+# itself: whether a campaign collapses, meaning its R2E staging overflow census
+# is still rising over the second half of the year.
 #
-# The response is a classification rather than a mean because the
-# per-replication values are bimodal rather than spread, so a mean over them
-# would describe no campaign in the population. See R/airlift.R for the
-# threshold's basis and docs/Methods.md for the design.
+# Each campaign is classified from its own retained daily series, so a resumed
+# arm is classified by the current rule rather than the one in force when it
+# was measured. See R/airlift.R for the rule's basis and docs/Methods.md for the
+# design.
 #
 # --refresh-baseline is the only way to write the tracked data/airlift/ copy.
 
@@ -99,10 +99,10 @@ json_data <- read_config(config_path)
 #' Directory each arm's checkpoint is written to and resumed from
 CHECKPOINT_DIR <- checkpoint_dir("airlift_collapse", refresh_requested)
 
-#' Measure one cancellation probability and return its per-replication response
+#' Measure one cancellation probability and return its classified pool's daily series
 #'
 #' @param probability Sortie cancellation probability to run at.
-#' @return The arm's collapse responses, carrying the probability.
+#' @return A list holding the arm's daily staging census as `series`, carrying the probability.
 #'
 #' @details The configuration globals are restored on exit, on the error path as
 #'   well as the success path, so an arm that fails part-way leaves the session
@@ -119,8 +119,6 @@ measure_arm <- function(probability) {
   set.seed(opt$seed)
   series <- run_long_horizon(n_iterations = opt$iterations, n_days = opt$days,
                              max_cores = opt$`max-cores`)
-  response <- collapse_response(series, opt$days, window_days = opt$window)
-  response$probability <- probability
 
   # The classified pool's own daily series is retained so that a statement about
   # how a campaign's opening relates to its outcome is recomputable from the
@@ -129,13 +127,13 @@ measure_arm <- function(probability) {
                       series$subject == AIRLIFT_COLLAPSE_SUBJECT,
                     c("replication", "day", "value")]
   subject$probability <- probability
-  list(response = response, series = subject)
+  list(series = subject)
 }
 
 #' Measure one cancellation probability, or read it back where already measured
 #'
 #' @param probability Sortie cancellation probability to run at.
-#' @return The arm's responses and daily series, as `measure_arm()` returns them.
+#' @return The arm's daily series, as `measure_arm()` returns it.
 #'
 #' @details Each arm is written as it completes, named for its probability,
 #'   replications, days and scenario so that a checkpoint from another protocol
@@ -155,7 +153,11 @@ measure_or_resume <- function(probability) {
 }
 
 arms <- lapply(probabilities, measure_or_resume)
-per_replication <- do.call(rbind, lapply(arms, `[[`, "response"))
+per_replication <- do.call(rbind, lapply(arms, function(arm) {
+  response <- collapse_response(arm$series, opt$days, window_days = opt$window)
+  response$probability <- arm$series$probability[1]
+  response
+}))
 daily_series <- do.call(rbind, lapply(arms, `[[`, "series"))
 
 summary_rows <- do.call(rbind, lapply(probabilities, function(probability) {
@@ -175,7 +177,7 @@ write.csv(daily_series, gzfile(series_path), row.names = FALSE)
 message(sprintf("Collapse responses, summary and daily series written to %s", OUTPUT_DIR))
 
 cat("\n| Sortie cancellation | Campaigns collapsed | Rate | 95% CI |",
-    "Median holding queue | Worst holding queue |\n")
+    "Median closing census | Worst closing census |\n")
 cat("|---|---|---|---|---|---|\n")
 for (i in seq_len(nrow(summary_rows))) {
   r <- summary_rows[i, ]

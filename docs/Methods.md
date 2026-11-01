@@ -513,7 +513,6 @@ Each stay is bounded by the attribute its own exit route sets, which is what mak
 <!-- COLLAPSE days=360 -->
 <!-- COLLAPSE replications=30 -->
 <!-- COLLAPSE window_days=90 -->
-<!-- COLLAPSE threshold=20 -->
 <!-- COLLAPSE probabilities=0,0.05,0.1,0.15,0.2,0.25 -->
 30 replications of 360 simulated days per arm at control seed 42, under the shipped default configuration with one override per arm: `role4.ame.failure_probability` at 0, 0.05, 0.10, 0.15, 0.20 and 0.25. The six arms draw from one seed vector, so replication $k$ of every arm runs the same parent stream and the arms are paired.
 

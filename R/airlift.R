@@ -16,6 +16,7 @@
 # (compute_role4_census, compute_ame_sorties); source those before this file.
 
 source("R/constants.R")
+source("R/long_horizon.R")
 
 #' Replications the Role 4 and strategic evacuation measurement runs at
 #'
@@ -493,22 +494,11 @@ AIRLIFT_COLLAPSE_DAYS <- 360L
 
 #' Length of the closing window the collapse response is measured over, in days
 #'
-#' @details Ninety days. Collapse is a state a campaign reaches and does not
-#'   leave, so the response is where the campaign ended up rather than anything
-#'   about its path, and a window at the end measures that while a mean over the
-#'   whole year would mix it with the months before.
+#' @details Ninety days. The closing census describes where each campaign
+#'   ended up, which the classification by trend does not report; a window at
+#'   the end measures that, while a mean over the whole year would mix it with
+#'   the months before.
 AIRLIFT_COLLAPSE_WINDOW_DAYS <- 90L
-
-#' Mean R2E staging overflow census at or above which a campaign counts as collapsed
-#'
-#' @details Twenty casualties. A threshold classifier is used rather than a mean
-#'   because the per-replication values are bimodal rather than spread, so any
-#'   threshold inside the gap between the clear and the collapsed campaigns
-#'   returns the same count and this value is not a tuning choice; the tracked
-#'   measurement is checked to place it inside that gap
-#'   (tests/checks/check_airlift_collapse_protocol.R). Reporting a mean over a
-#'   bimodal population would describe no campaign in it.
-AIRLIFT_COLLAPSE_THRESHOLD <- 20
 
 #' Subject name the long-horizon series carries the R2E staging overflow census under
 #'
@@ -517,33 +507,51 @@ AIRLIFT_COLLAPSE_THRESHOLD <- 20
 #'   as this census and not as the holding queue, which counts convalescents.
 AIRLIFT_COLLAPSE_SUBJECT <- "R2E staging overflow"
 
-#' Reduce a long-horizon series to one collapse response per replication
+#' Reduce each replication's staging census to one collapse classification
 #'
-#' @param series Long-horizon series as returned by run_long_horizon().
+#' @param series The classified pool's daily series, with columns
+#'   `replication`, `day` and `value`, as the experiment retains it.
 #' @param n_days Campaign length in days.
-#' @param window_days Length of the closing window (default
-#'   AIRLIFT_COLLAPSE_WINDOW_DAYS).
-#' @param threshold Mean queue at or above which a campaign is collapsed
-#'   (default AIRLIFT_COLLAPSE_THRESHOLD).
-#' @return Data frame of replication, closing_queue and collapsed.
+#' @param window_days Length of the closing window the descriptive closing
+#'   census is averaged over (default AIRLIFT_COLLAPSE_WINDOW_DAYS).
+#' @param block_days Block length the trend is fitted over (default
+#'   LONG_HORIZON_BLOCK_DAYS).
+#' @return Data frame of replication, closing_queue, slope_per_day, stability
+#'   and collapsed.
 #'
-#' @details The window is the last `window_days` days of the campaign
-#'   inclusive, so a 90-day window of a 360-day run covers days 271 to 360.
+#' @details A campaign is collapsed when its census is still rising over the
+#'   second half of the campaign: classify_stability() (R/long_horizon.R), the
+#'   rule the sustained-operations protocol applies to every pool, is applied to
+#'   the replication's own block means, and a drifting census with a positive
+#'   slope is collapsed. A level threshold cannot make this distinction, because
+#'   casualties wait in staging between weekly sorties whether or not the
+#'   airlift keeps up, so the census of a campaign that keeps up is spread
+#'   continuously from a few casualties to tens and has no gap a threshold
+#'   could sit in. What separates a campaign that clears each sortie's demand
+#'   from one that leaves more behind at every sortie is whether the census
+#'   keeps growing, not how high it stands. The closing census is retained as a
+#'   description of where each campaign ended. The window is the last
+#'   `window_days` days inclusive, so a 90-day window of a 360-day run covers
+#'   days 271 to 360.
 collapse_response <- function(series, n_days, window_days = AIRLIFT_COLLAPSE_WINDOW_DAYS,
-                              threshold = AIRLIFT_COLLAPSE_THRESHOLD) {
-  rows <- series[series$series == "mean_queue" &
-                   series$subject == AIRLIFT_COLLAPSE_SUBJECT &
-                   series$day > n_days - window_days, ]
-  if (nrow(rows) == 0) {
+                              block_days = LONG_HORIZON_BLOCK_DAYS) {
+  if (nrow(series) == 0) {
     return(data.frame(replication = integer(0), closing_queue = numeric(0),
+                      slope_per_day = numeric(0), stability = character(0),
                       collapsed = logical(0)))
   }
-  closing <- tapply(rows$value, rows$replication, mean)
-  data.frame(
-    replication    = as.integer(names(closing)),
-    closing_queue  = as.numeric(closing),
-    collapsed      = as.numeric(closing) >= threshold
-  )
+  do.call(rbind, lapply(split(series, series$replication), function(d) {
+    d$series <- "mean_queue"
+    d$subject <- AIRLIFT_COLLAPSE_SUBJECT
+    st <- classify_stability(block_means(d, block_days))
+    data.frame(
+      replication   = d$replication[1],
+      closing_queue = mean(d$value[d$day > n_days - window_days]),
+      slope_per_day = st$slope / block_days,
+      stability     = st$stability,
+      collapsed     = st$stability == "drifting" && st$slope > 0
+    )
+  }))
 }
 
 #' Summarise one arm's collapse responses as the published table reports them

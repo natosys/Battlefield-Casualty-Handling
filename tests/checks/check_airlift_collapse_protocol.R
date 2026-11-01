@@ -13,13 +13,13 @@
 # Why this check exists. The strategic airlift reliability sweep is the longest
 # experiment in the project, at 180 replication-years, and its response is a
 # classification rather than a mean: a campaign is counted as collapsed where
-# its R2E holding queue over the closing 90 days averages twenty casualties or
-# more. Nobody re-runs it to audit a change, so three things have to be checked
+# its R2E staging overflow census is still rising over the second half of the
+# year. Nobody re-runs it to audit a change, so three things have to be checked
 # without running it. Its parameters must be the ones the methods paper documents,
 # or the paper describes an experiment the code does not perform. Its classifier
 # must be correct on inputs whose answers are computable by hand, since a
 # classifier tested only against the experiment's own output would agree with
-# any threshold or window it happened to apply. And the tracked evidence set
+# any rule it happened to apply. And the tracked evidence set
 # must carry the table the companion paper prints, since the paper's cliff at
 # 15% is read straight off it.
 #
@@ -27,11 +27,12 @@
 #
 #   1. Every protocol parameter in R/airlift.R equals the value
 #      docs/Methods.md documents in a marker comment.
-#   2. collapse_response() selects the closing window, and nothing before it.
-#   3. It averages each replication over that window's days rather than
-#      sampling one of them, and classifies at an inclusive threshold.
-#   4. It reads its own subject and series, ignoring the other pools and
-#      responses the same long-horizon series carries.
+#   2. collapse_response() averages each replication's closing window, and
+#      nothing before it, as the descriptive closing census.
+#   3. It classifies a census still rising over the late half as collapsed,
+#      and a settled, falling or constant one as clear.
+#   4. The level does not decide: a settled census above a rising one is clear
+#      while the rising one is collapsed.
 #   5. summarise_collapse() returns the Clopper-Pearson interval, which on a
 #      zero-count arm has a positive upper bound where a normal interval has
 #      zero width.
@@ -121,8 +122,7 @@ collapse_marker <- function(name) {
 
 for (param in list(list("days", AIRLIFT_COLLAPSE_DAYS),
                    list("replications", AIRLIFT_COLLAPSE_REPLICATIONS),
-                   list("window_days", AIRLIFT_COLLAPSE_WINDOW_DAYS),
-                   list("threshold", AIRLIFT_COLLAPSE_THRESHOLD))) {
+                   list("window_days", AIRLIFT_COLLAPSE_WINDOW_DAYS))) {
   stated <- suppressWarnings(as.numeric(collapse_marker(param[[1]])))
   report(!is.na(stated) && stated == param[[2]],
          "the methods paper states %s = %s and the code holds %s",
@@ -142,8 +142,8 @@ report(length(parsed) == length(AIRLIFT_COLLAPSE_PROBABILITIES) &&
        paste(format(parsed), collapse = ","),
        paste(format(AIRLIFT_COLLAPSE_PROBABILITIES), collapse = ","))
 
-report(identical(AIRLIFT_COLLAPSE_SUBJECT, "R2E holding beds"),
-       "the classified subject is the R2E holding pool, found '%s'",
+report(identical(AIRLIFT_COLLAPSE_SUBJECT, "R2E staging overflow"),
+       "the classified subject is the R2E staging overflow census, found '%s'",
        AIRLIFT_COLLAPSE_SUBJECT)
 report(AIRLIFT_COLLAPSE_WINDOW_DAYS < AIRLIFT_COLLAPSE_DAYS,
        "the closing window (%d days) is shorter than the horizon (%d days)",
@@ -153,101 +153,95 @@ report(AIRLIFT_COLLAPSE_WINDOW_DAYS < AIRLIFT_COLLAPSE_DAYS,
 
 cat("\n-- the classifier is right on a constructed series --\n")
 
-#' Build a long-horizon series carrying one value per replication-day
+#' Build the classified pool's daily series from one value per 30-day block
 #'
-#' @param values Matrix of values, replications in rows and days in columns.
-#' @param subject Subject label the rows carry.
-#' @param series Series label the rows carry.
-#' @return A data frame shaped as run_long_horizon() returns.
-make_series <- function(values, subject = AIRLIFT_COLLAPSE_SUBJECT,
-                        series = "mean_queue") {
-  n_reps <- nrow(values)
-  n_days <- ncol(values)
+#' @param blocks Matrix of block values, replications in rows and blocks in
+#'   columns; every day of a block carries its block's value.
+#' @return A data frame of replication, day and value, as the experiment
+#'   retains the series.
+make_series <- function(blocks) {
+  n_reps <- nrow(blocks)
+  per_day <- blocks[, rep(seq_len(ncol(blocks)), each = LONG_HORIZON_BLOCK_DAYS), drop = FALSE]
+  n_days <- ncol(per_day)
   data.frame(
     replication = rep(seq_len(n_reps), each = n_days),
     day         = rep(seq_len(n_days), times = n_reps),
-    series      = series,
-    subject     = subject,
-    value       = as.numeric(t(values)),
-    stringsAsFactors = FALSE
+    value       = as.numeric(t(per_day))
   )
 }
 
-# Four replications over ten days. The closing window of four days is days 7 to
-# 10, so each replication's response is the mean of its last four values:
-#   rep 1: 100, 100, 100, 0, 0, 0, 10, 10, 10, 10 -> 10.0, clear
-#   rep 2:   0,   0,   0, 0, 0, 0, 19, 20, 21, 20 -> 20.0, collapsed (inclusive)
-#   rep 3:   0,   0,   0, 0, 0, 0,  0,  0,  0, 79 -> 19.75, clear
-#   rep 4:   0,   0,   0, 0, 0, 0, 40, 40, 40, 40 -> 40.0, collapsed
+# Four replications over twelve 30-day blocks (360 days). The late half is
+# blocks 6 to 12, and each late block carries an alternating half-casualty
+# perturbation (+0.5 on even blocks, -0.5 on odd) so that no fit is exact:
+#   rep 1: ramps to 50 by block 5, then 50 +/- 0.5 -> settled, clear
+#   rep 2: 3 x block +/- 0.5 from block 6           -> rising, collapsed
+#   rep 3: 60 - 3 x block +/- 0.5 from block 6      -> falling, clear
+#   rep 4: zero throughout                          -> constant, clear
+# The closing window of 90 days is blocks 10 to 12, so the closing census is
+# the mean of those three block values:
+#   rep 1: (50.5 + 49.5 + 50.5) / 3 = 50.1667
+#   rep 2: (30.5 + 32.5 + 36.5) / 3 = 33.1667
+#   rep 3: (30.5 + 26.5 + 24.5) / 3 = 27.1667
+#   rep 4: 0
+late <- 6:12
+wobble <- ifelse(late %% 2 == 0, 0.5, -0.5)
 constructed <- rbind(
-  c(100, 100, 100, 0, 0, 0, 10, 10, 10, 10),
-  c(0, 0, 0, 0, 0, 0, 19, 20, 21, 20),
-  c(0, 0, 0, 0, 0, 0, 0, 0, 0, 79),
-  c(0, 0, 0, 0, 0, 0, 40, 40, 40, 40)
+  c(10, 20, 30, 40, 50, 50 + wobble),
+  c(0, 0, 0, 0, 0, 3 * late + wobble),
+  c(60, 60, 60, 60, 60, 60 - 3 * late + wobble),
+  rep(0, 12)
 )
-expected_closing <- c(10, 20, 19.75, 40)
-expected_collapsed <- c(FALSE, TRUE, FALSE, TRUE)
+expected_closing <- c(150.5, 99.5, 81.5, 0) / 3
+expected_collapsed <- c(FALSE, TRUE, FALSE, FALSE)
+expected_stability <- c("converged", "drifting", "drifting", "degenerate")
 
-response <- collapse_response(make_series(constructed), n_days = 10,
-                              window_days = 4, threshold = 20)
+response <- collapse_response(make_series(constructed), n_days = 360, window_days = 90)
 
-report(nrow(response) == 4 && identical(response$replication, 1:4),
+report(nrow(response) == 4 && identical(as.integer(response$replication), 1:4),
        "one row per replication, in replication order (%d rows)", nrow(response))
 report(all(abs(response$closing_queue - expected_closing) < TOL),
-       "the closing means are %s, expected %s",
+       "the closing censuses are %s, expected %s",
        paste(format(response$closing_queue), collapse = ", "),
        paste(format(expected_closing), collapse = ", "))
+report(identical(as.character(response$stability), expected_stability),
+       "the late-half verdicts are %s, expected %s",
+       paste(response$stability, collapse = ", "), paste(expected_stability, collapse = ", "))
 report(identical(as.logical(response$collapsed), expected_collapsed),
        "the classification is %s, expected %s",
        paste(response$collapsed, collapse = ", "),
        paste(expected_collapsed, collapse = ", "))
+report(abs(response$slope_per_day[2] - 3 / LONG_HORIZON_BLOCK_DAYS) < 0.01,
+       "the rising census climbs %.4f casualties per day, expected %.4f",
+       response$slope_per_day[2], 3 / LONG_HORIZON_BLOCK_DAYS)
 
-# Replication 1 carries its largest values before the window and replication 3
-# carries a single value inside it that exceeds the threshold four-fold. Both
-# are clear, so a classifier reading the whole campaign or the window's worst
-# day rather than its mean would disagree here.
-report(!isTRUE(response$collapsed[1]),
-       "a replication whose peak precedes the window is clear (mean %.2f)",
-       response$closing_queue[1])
+# Replication 1 closes higher than replication 2, so a classifier reading the
+# level rather than the trend would call it the collapsed one; and replication
+# 3 is drifting, but downward, so a classifier ignoring the slope's sign would
+# call it collapsed too.
+report(response$closing_queue[1] > response$closing_queue[2] &&
+         !isTRUE(response$collapsed[1]) && isTRUE(response$collapsed[2]),
+       "a settled census above a rising one is clear while the rising one collapses")
 report(!isTRUE(response$collapsed[3]),
-       "a replication averaging below the threshold over the window is clear")
-report(abs(response$closing_queue[3] - 19.75) < TOL,
-       "its single day of 79 averages to %.2f rather than being taken alone",
-       response$closing_queue[3])
+       "a census falling over the late half is clear")
 
-# The same series with the other pools and responses a long-horizon run carries
-# interleaved. The classifier must return the same answer.
-noise <- rbind(
-  make_series(constructed * 3, subject = "R2E intensive care beds"),
-  make_series(constructed * 5, series = "arrivals"),
-  make_series(constructed)
-)
-noisy_response <- collapse_response(noise, n_days = 10, window_days = 4,
-                                    threshold = 20)
-report(isTRUE(all.equal(noisy_response, response)),
-       "the answer is unchanged by other pools and responses in the series")
-
-absent_subject <- make_series(constructed, subject = "R2B holding beds")
-absent <- collapse_response(absent_subject, n_days = 10, window_days = 4,
-                            threshold = 20)
-report(nrow(absent) == 0,
-       "a series carrying no rows for the subject returns no responses")
+absent <- collapse_response(make_series(constructed)[0, ], n_days = 360)
+report(nrow(absent) == 0, "an empty series returns no responses")
 
 # ── 5. The interval is Clopper-Pearson ───────────────────────────────────────
 
 cat("\n-- the interval is the exact binomial one --\n")
 
 summary_of <- summarise_collapse(response)
-report(summary_of$n_reps == 4 && summary_of$n_collapsed == 2,
-       "2 of 4 constructed replications collapse (%d of %d)",
+report(summary_of$n_reps == 4 && summary_of$n_collapsed == 1,
+       "1 of 4 constructed replications collapses (%d of %d)",
        summary_of$n_collapsed, summary_of$n_reps)
-report(abs(summary_of$median_queue - 19.875) < TOL,
-       "the median closing queue is %.3f, expected 19.875", summary_of$median_queue)
-report(abs(summary_of$worst_queue - 40) < TOL,
-       "the worst closing queue is %.1f, expected 40", summary_of$worst_queue)
-report(abs(summary_of$ci_lower - qbeta(0.025, 2, 3)) < TOL &&
-         abs(summary_of$ci_upper - qbeta(0.975, 3, 2)) < TOL,
-       "the interval is [%.4f, %.4f], the exact binomial one for 2 of 4",
+report(abs(summary_of$median_queue - 181 / 6) < TOL,
+       "the median closing census is %.4f, expected %.4f", summary_of$median_queue, 181 / 6)
+report(abs(summary_of$worst_queue - 150.5 / 3) < TOL,
+       "the worst closing census is %.4f, expected %.4f", summary_of$worst_queue, 150.5 / 3)
+report(abs(summary_of$ci_lower - qbeta(0.025, 1, 4)) < TOL &&
+         abs(summary_of$ci_upper - qbeta(0.975, 2, 3)) < TOL,
+       "the interval is [%.4f, %.4f], the exact binomial one for 1 of 4",
        summary_of$ci_lower, summary_of$ci_upper)
 
 zero_arm <- data.frame(replication = 1:30, closing_queue = rep(0.5, 30),
@@ -332,14 +326,10 @@ if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
   report(all(sort(unique(tracked_series$day)) == seq_len(AIRLIFT_COLLAPSE_DAYS)),
          "every day from 1 to %d is present", AIRLIFT_COLLAPSE_DAYS)
 
-  # The series carries the classified pool alone, so it is given the labels
-  # collapse_response() selects on and reclassified. Reproducing the tracked
-  # responses from it is what makes the published table auditable without
-  # re-running 180 replication-years.
+  # Reproducing the tracked responses from the series is what makes the
+  # published table auditable without re-running 180 replication-years.
   recomputed <- do.call(rbind, lapply(AIRLIFT_COLLAPSE_PROBABILITIES, function(probability) {
     arm <- tracked_series[abs(tracked_series$probability - probability) < TOL, ]
-    arm$series <- "mean_queue"
-    arm$subject <- AIRLIFT_COLLAPSE_SUBJECT
     out <- collapse_response(arm, AIRLIFT_COLLAPSE_DAYS)
     out$probability <- probability
     out
@@ -351,7 +341,7 @@ if (!file.exists(SERIES_PATH) || !file.exists(RESPONSE_PATH)) {
          "every tracked response has a recomputed counterpart (%d of %d)",
          nrow(merged), nrow(tracked_response))
   report(nrow(merged) > 0 && max(abs(merged$closing_queue_pub - merged$closing_queue_new)) < TOL,
-         "every closing queue is reproduced from the series")
+         "every closing census is reproduced from the series")
   report(nrow(merged) > 0 &&
            identical(as.logical(merged$collapsed_pub), as.logical(merged$collapsed_new)),
          "every classification is reproduced from the series")

@@ -1721,11 +1721,13 @@ seed42_verification_rows <- function(mon, cfg, days) {
 #' @return The table lines.
 build_dow_calibration <- function(data_dir) {
   d <- res_read("calibration/dow_calibration.csv", data_dir)
-  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity")
+  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
+              high_intensity = "High intensity")
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
-    kind <- if (x$kind == "bound") "at or below" else "reported"
-    c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", kind, 100 * x$target, x$anchor),
+    kind <- if (x$kind == "bound") "at or below" else "fitted to"
+    c(labels[[x$scenario]], sprintf("%s %.2f%% (%s, %d days)", kind, 100 * x$target, x$anchor,
+                                    as.integer(x$anchor_days)),
       sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
       sprintf("%.0f%%", 100 * x$hazard_share), as.character(x$replications))
   })

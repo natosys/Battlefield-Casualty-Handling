@@ -226,6 +226,7 @@ for (scenario in SCENARIOS) {
                                     measurements = length(singles), replications = n,
                                     rate = m, ci_lower = lo, ci_upper = hi,
                                     target = anchor$rate, anchor = anchor$label,
+                                    anchor_days = anchor$days,
                                     kind = anchor$kind, hazard_share = share,
                                     stringsAsFactors = FALSE)
 

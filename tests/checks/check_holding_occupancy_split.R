@@ -182,6 +182,10 @@ measure <- function(failure_probability) {
   env <- run_once(CHECK_DAYS, seed = CHECK_SEED)
 
   arrivals   <- simmer::get_mon_arrivals(env, ongoing = TRUE)
+  # A casualty still inside a timeout when the run ends is reported twice under
+  # ongoing = TRUE, which would charge its stay to the pool twice; the split
+  # assumes one row per casualty, as reduce_airlift_replication() ensures.
+  arrivals   <- arrivals[!duplicated(arrivals[, c("name", "replication")]), ]
   attributes <- simmer::get_mon_attributes(env)
   resources  <- simmer::get_mon_resources(env)
   wide <- build_attributes_wide(attributes, arrivals) %>%

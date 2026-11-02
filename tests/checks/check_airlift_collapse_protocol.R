@@ -38,8 +38,8 @@
 #      zero-count arm has a positive upper bound where a normal interval has
 #      zero width.
 #   6. The tracked data/airlift/ collapse summary carries the documented
-#      probabilities and replication count, and matches the table
-#      docs/Results.md prints, row for row.
+#      probabilities for both routes and the replication count, and matches the
+#      table docs/Results.md prints, row for row.
 #   7. The tracked per-replication classification is reproduced by reclassifying
 #      the tracked daily series, so the published table is auditable without
 #      re-running 180 replication-years.
@@ -290,9 +290,11 @@ if (!file.exists(SUMMARY_PATH)) {
 } else {
   tracked <- read.csv(SUMMARY_PATH, stringsAsFactors = FALSE)
 
-  report(nrow(tracked) == length(AIRLIFT_COLLAPSE_PROBABILITIES) &&
-           all(abs(tracked$probability - AIRLIFT_COLLAPSE_PROBABILITIES) < TOL),
-         "the tracked summary carries the %d documented probabilities",
+  n_arms <- length(AIRLIFT_COLLAPSE_PROBABILITIES) * length(AIRLIFT_COLLAPSE_ROUTES)
+  report(nrow(tracked) == n_arms &&
+           setequal(round(tracked$probability, 6), round(AIRLIFT_COLLAPSE_PROBABILITIES, 6)) &&
+           setequal(tracked$route, names(AIRLIFT_COLLAPSE_ROUTES)),
+         "the tracked summary carries the %d documented probabilities for both routes",
          length(AIRLIFT_COLLAPSE_PROBABILITIES))
   report(all(tracked$n_reps == AIRLIFT_COLLAPSE_REPLICATIONS),
          "every arm carries %d replications", AIRLIFT_COLLAPSE_REPLICATIONS)
@@ -302,7 +304,7 @@ if (!file.exists(SUMMARY_PATH)) {
   # by tests/checks/check_high_intensity_evidence.R against its own tracked files.
   high_start <- grep("^\\*\\*High-intensity profile\\.\\*\\* The same classification", paper)
   if (length(high_start) == 1L) paper <- paper[seq_len(high_start - 1L)]
-  pattern <- "^\\| ([0-9]+)% ?[^|]*\\| ([0-9]+) of ([0-9]+) \\|"
+  pattern <- "^\\| (Critical|Standard), ([0-9]+)% \\| ([0-9]+) of ([0-9]+) \\|"
   rows <- paper[grepl(pattern, paper)]
   report(length(rows) == nrow(tracked),
          "the paper prints %d collapse rows against %d tracked arms",
@@ -310,24 +312,25 @@ if (!file.exists(SUMMARY_PATH)) {
 
   for (row in rows) {
     fields <- trimws(strsplit(sub("^\\|", "", sub("\\|$", "", row)), "\\|")[[1]])
-    probability <- as.numeric(sub("%.*$", "", fields[1])) / 100
-    arm <- tracked[abs(tracked$probability - probability) < TOL, ]
+    route <- paste(sub(",.*$", "", fields[1]), "airlift")
+    probability <- as.numeric(sub("^.*, ([0-9]+)%$", "\\1", fields[1])) / 100
+    arm <- tracked[abs(tracked$probability - probability) < TOL & tracked$route == route, ]
     if (nrow(arm) != 1) {
-      report(FALSE, "the paper's %s row has one tracked arm (found %d)",
-             fields[1], nrow(arm))
+      report(FALSE, "the paper's %s row has one tracked arm (found %d)", fields[1], nrow(arm))
       next
     }
-    counts <- as.numeric(regmatches(fields[2],
-                                    gregexpr("[0-9]+", fields[2]))[[1]])
-    median_queue <- as.numeric(fields[4])
-    worst_queue <- as.numeric(fields[5])
+    counts <- as.numeric(regmatches(fields[2], gregexpr("[0-9]+", fields[2]))[[1]])
+    utilisation <- as.numeric(fields[4])
+    median_backlog <- as.numeric(gsub(",", "", fields[6]))
+    worst_backlog <- as.numeric(gsub(",", "", fields[7]))
     report(counts[1] == arm$n_collapsed && counts[2] == arm$n_reps,
            "the paper's %s row states %d of %d and the data holds %d of %d",
            fields[1], counts[1], counts[2], arm$n_collapsed, arm$n_reps)
-    report(abs(median_queue - arm$median_queue) < PRINT_TOL &&
-             abs(worst_queue - arm$worst_queue) < PRINT_TOL,
-           "its median %.2f and worst %.2f match the data's %.2f and %.2f",
-           median_queue, worst_queue, arm$median_queue, arm$worst_queue)
+    report(abs(utilisation - arm$mean_utilisation) < PRINT_TOL &&
+             abs(median_backlog - arm$median_backlog) < 0.06 &&
+             abs(worst_backlog - arm$worst_backlog) < 0.06,
+           "its utilisation %.2f and backlogs %.1f and %.1f match the data",
+           utilisation, median_backlog, worst_backlog)
   }
 }
 

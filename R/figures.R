@@ -352,21 +352,23 @@ plot_airlift_sweeps <- function(summary_df, shipped, profile = "") {
 #' Strategic airlift collapse figure
 #'
 #' @param collapse_df Tracked `data/airlift/airlift_collapse.csv`.
-#' @return ggplot object of the share of campaigns collapsing against the
-#'   sortie cancellation probability, with exact binomial 95% intervals.
+#' @return ggplot object of the share of campaigns in which each airlift route
+#'   collapsed against the sortie cancellation probability, one line per route,
+#'   with exact binomial 95% intervals.
 plot_airlift_collapse <- function(collapse_df) {
-  ggplot(collapse_df, aes(x = probability, y = rate * 100)) +
-    geom_ribbon(aes(ymin = ci_lower * 100, ymax = ci_upper * 100),
-                fill = FIGURE_INTERVAL_FILL, alpha = 0.3) +
-    geom_line(color = FIGURE_MEAN_COLOUR, linewidth = 1) +
-    geom_point(color = FIGURE_MEAN_COLOUR, size = 2) +
-    labs(title = "Campaigns Collapsing under Sortie Cancellation",
-         subtitle = sprintf(paste("A campaign collapses where its closing R2E holding queue",
-                                  "averages 20 or more; %d replications per point;",
+  ggplot(collapse_df, aes(x = probability, y = rate * 100, colour = route, fill = route)) +
+    geom_ribbon(aes(ymin = ci_lower * 100, ymax = ci_upper * 100), alpha = 0.15,
+                colour = NA) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    labs(title = "Airlift Routes Collapsing under Sortie Cancellation",
+         subtitle = sprintf(paste("A route collapses where its backlog is still rising over",
+                                  "the second half of the campaign; %d replications per point;",
                                   "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
-         x = "Sortie cancellation probability", y = "Campaigns collapsing (%)") +
+         x = "Sortie cancellation probability", y = "Campaigns collapsing (%)",
+         colour = NULL, fill = NULL) +
     theme_minimal(base_size = 13) +
-    theme(panel.grid.minor = element_blank())
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 }
 
 #' Sustained operations block means figure

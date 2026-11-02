@@ -1051,7 +1051,7 @@ The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|
 
 The panels of the figure above under the high-intensity profile, with the shipped value of each sweep marked by a dashed line.
 
-**Collapse classification.** A campaign was classified as collapsed where its R2E holding queue over the closing 90 days averaged twenty casualties or more. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
+**Collapse classification.** Each airlift route was classified separately, the critical and standard seat pools filling independently. A route was classified as collapsed in a campaign where the backlog of casualties awaiting a place on it was still rising over the second half of the campaign, by the late-half trend rule of [Classifying Stability](Methods.md#classifying-stability); a casualty left the backlog on boarding or on dying. Utilisation is the route's demand over the campaign divided by the places its flown sorties opened. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
 
 <!-- GEN airlift_collapse -->
 | Sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Median closing-window queue | Worst closing-window queue |
@@ -1066,9 +1066,9 @@ The panels of the figure above under the high-intensity profile, with the shippe
 
 ![Line plot of the share of campaigns collapsing against sortie cancellation probability](../images/airlift_collapse.png)
 
-The share of campaigns classified as collapsed against sortie cancellation probability, with exact binomial 95% confidence intervals.
+The share of campaigns in which each route was classified as collapsed against sortie cancellation probability, with exact binomial 95% confidence intervals.
 
-No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|full -->0%<!-- /GEN --> or 5% cancellation. <!-- GEN cell:airlift_collapse|10%|Collapsed|full -->2 of 30<!-- /GEN --> collapsed at 10% cancellation, <!-- GEN cell:airlift_collapse|15%|Collapsed|full -->4 of 30<!-- /GEN --> at 15%, <!-- GEN cell:airlift_collapse|20%|Collapsed|full -->11 of 30<!-- /GEN --> at 20% and <!-- GEN cell:airlift_collapse|25%|Collapsed|full -->22 of 30<!-- /GEN --> at 25%.
+The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Collapsed|full --><!-- /GEN --> campaigns with no cancellation, <!-- GEN cell:airlift_collapse|Critical, 15%|Collapsed|full --><!-- /GEN --> at 15% and <!-- GEN cell:airlift_collapse|Critical, 25%|Collapsed|full --><!-- /GEN --> at 25%, its mean utilisation rising from <!-- GEN cell:airlift_collapse|Critical, 0%|Mean utilisation|full --><!-- /GEN --> to <!-- GEN cell:airlift_collapse|Critical, 25%|Mean utilisation|full --><!-- /GEN -->. Demand met or exceeded the critical places flown in <!-- GEN cell:airlift_collapse|Critical, 15%|Demand at or above places flown|full --><!-- /GEN --> campaigns at 15% cancellation. The standard route collapsed in <!-- GEN cell:airlift_collapse|Standard, 25%|Collapsed|full --><!-- /GEN --> campaigns at 25%, at a mean utilisation of <!-- GEN cell:airlift_collapse|Standard, 25%|Mean utilisation|full --><!-- /GEN -->.
 
 **High-intensity profile.** The same classification under `high_intensity` `[high_intensity, sortie cancellation 0 to 25% · 360 d · 30 replications per arm · exact binomial interval]`:
 
@@ -1083,7 +1083,7 @@ No campaign collapsed at <!-- GEN cell:airlift_collapse|0%|Sortie cancellation|f
 | 25% | 30 of 30 | 100.0% [88.4%, 100.0%] | 1,305.04 | 1,704.42 |
 <!-- /GEN -->
 
-<!-- GEN cell:airlift_collapse_high|0%|Collapsed|full -->30 of 30<!-- /GEN --> campaigns were classified as collapsed with no sortie cancellation, and <!-- GEN cell:airlift_collapse_high|25%|Collapsed|full -->30 of 30<!-- /GEN --> at 25% cancellation. The median closing-window queue was <!-- GEN cell:airlift_collapse_high|0%|Median closing-window queue|full -->551.62<!-- /GEN --> at 0% and <!-- GEN cell:airlift_collapse_high|25%|Median closing-window queue|full -->1,305.04<!-- /GEN --> at 25%.
+Under `high_intensity` the critical route collapsed in <!-- GEN cell:airlift_collapse_high|Critical, 0%|Collapsed|full --><!-- /GEN --> campaigns with no cancellation, at a mean utilisation of <!-- GEN cell:airlift_collapse_high|Critical, 0%|Mean utilisation|full --><!-- /GEN -->, and the standard route in <!-- GEN cell:airlift_collapse_high|Standard, 0%|Collapsed|full --><!-- /GEN -->, at <!-- GEN cell:airlift_collapse_high|Standard, 0%|Mean utilisation|full --><!-- /GEN -->.
 
 ---
 

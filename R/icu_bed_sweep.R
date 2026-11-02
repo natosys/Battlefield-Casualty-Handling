@@ -90,7 +90,7 @@ ICU_BED_SWEEP_NURSES_PER_SECTION <- 4L
 
 #' Responses the paired comparison against the shipped establishment reports
 ICU_BED_SWEEP_PAIRED_RESPONSES <- c(
-  "icu_mean_queue", "hold_mean_queue", "icu_occupancy", "post_definitive_icu_share",
+  "overflow_r2e_post_op", "hold_mean_queue", "icu_occupancy", "post_definitive_icu_share",
   "postop_degraded_share", "r2e_theatre_deferred", "total_dow", "total_rtd",
   "mean_evac_wait_critical", "role4_peak", "role4_sustained"
 )
@@ -98,11 +98,12 @@ ICU_BED_SWEEP_PAIRED_RESPONSES <- c(
 #' Half-width each paired response is sized against, in its own units
 #'
 #' @details The smallest difference that would change a planning decision, as
-#'   the other experiments choose it: one casualty in a queue, a percentage
+#'   the other experiments choose it: one casualty in a queue or overflow
+#'   census, a percentage
 #'   point on a share or occupancy, ten casualties in a count, one death, ten
 #'   returns to duty, one day of wait and five patients of Role 4 census.
 ICU_BED_SWEEP_HALF_WIDTHS <- c(
-  icu_mean_queue = 1, hold_mean_queue = 1, icu_occupancy = 0.01,
+  overflow_r2e_post_op = 1, hold_mean_queue = 1, icu_occupancy = 0.01,
   post_definitive_icu_share = 0.01, postop_degraded_share = 0.01,
   r2e_theatre_deferred = 10, total_dow = 1, total_rtd = 10,
   mean_evac_wait_critical = 1, role4_peak = 5, role4_sustained = 5

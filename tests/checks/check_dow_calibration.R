@@ -98,6 +98,8 @@ arg_value <- function(flag, default) {
 # campaign it models, which R/dow_calibration.R holds beside the fitter that
 # searches for base rates reproducing it. "point" is fitted, so the interval
 # must contain the anchor; "bound" is one-sided, so only an overshoot fails.
+# Each is asserted at the length of the campaign it describes and noted at any
+# other, the rate growing with the horizon.
 #
 #   Ajax Bay: 3 deaths among "over 650" casualties reaching forward surgical
 #     care (Westphalen, 2018). Fitted; the default and its alias, 30 days.
@@ -233,7 +235,12 @@ for (scenario in SCENARIOS) {
   cat(sprintf("  pooled: %.3f%%  95%% CI [%.3f%%, %.3f%%]\n", 100 * m, 100 * lo, 100 * hi))
 
   tgt <- DOW_TARGETS[[scenario]]
-  if (tgt$kind == "bound") {
+  if (check_days(scenario) != tgt$days) {
+    # An anchor describes a campaign of its own length, and the rate grows with
+    # the horizon, so it is asserted at that length alone.
+    cat(sprintf("  [note] %s: the %.2f%% %s anchor describes %d days and is not asserted at %d\n",
+                scenario, 100 * tgt$rate, tgt$label, tgt$days, check_days(scenario)))
+  } else if (tgt$kind == "bound") {
     # The bound is one-sided. A model below it agrees with the record; only a
     # model whose whole interval clears it is overshooting.
     ok <- lo <= tgt$rate
@@ -244,9 +251,6 @@ for (scenario in SCENARIOS) {
     }
     report(ok, "%s does not overshoot the %.2f%% treated-cohort bound (%s)",
            scenario, 100 * tgt$rate, tgt$label)
-  } else if (check_days(scenario) != tgt$days) {
-    cat(sprintf("  [note] %s: the %.2f%% %s anchor describes %d days and is not asserted at %d\n",
-                scenario, 100 * tgt$rate, tgt$label, tgt$days, check_days(scenario)))
   } else {
     # The configuration is fitted to this anchor, so a measurement whose
     # interval excludes it means the fit no longer holds.

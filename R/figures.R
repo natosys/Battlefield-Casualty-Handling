@@ -33,10 +33,10 @@ FIGURE_SHIPPED_COLOUR <- "firebrick"
 #'   percentages, as the tables of docs/Results.md print them.
 POLICY_PANELS <- data.frame(
   response = c("total_rtd", "total_dow", "in_theatre_share", "hold_mean_queue",
-               "icu_mean_queue", "role4_peak", "hold_occupancy", "icu_occupancy",
+               "overflow_r2e_post_op", "role4_peak", "hold_occupancy", "icu_occupancy",
                "post_definitive_icu_share", "mean_evac_wait_days"),
   label    = c("Returns to duty", "Died of wounds", "In-theatre share (%)",
-               "R2E hold mean queue", "R2E ICU mean queue", "Role 4 peak beds",
+               "R2E hold mean queue", "R2E post-operative overflow", "Role 4 peak beds",
                "R2E hold occupancy (%)", "R2E ICU occupancy (%)",
                "Post-definitive ICU access (%)", "Mean evacuation wait (d)"),
   scale    = c(1, 1, 100, 1, 1, 1, 100, 100, 100, 1),
@@ -212,10 +212,10 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
 #'
 #' @details `scale` turns a share into percentage points.
 ICU_BED_PANELS <- data.frame(
-  response = c("icu_mean_queue", "icu_occupancy", "hold_mean_queue",
+  response = c("overflow_r2e_post_op", "icu_occupancy", "hold_mean_queue",
                "postop_degraded_share", "post_definitive_icu_share", "total_dow",
                "total_rtd", "mean_evac_wait_critical"),
-  label    = c("R2E ICU mean queue", "R2E ICU occupancy (%)", "R2E holding mean queue",
+  label    = c("R2E post-operative overflow", "R2E ICU occupancy (%)", "R2E holding mean queue",
                "Post-operative care in a holding bed (%)",
                "Post-definitive ICU access (%)", "Died of wounds", "Returns to duty",
                "Critical-route evacuation wait (days)"),

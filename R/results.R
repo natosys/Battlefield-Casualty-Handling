@@ -207,8 +207,8 @@ build_scenario_queue <- function(data_dir) {
       sprintf("%.2f×", x[[2]]$mean_q / x[[1]]$mean_q)
     c(g[1], cells, ratio)
   })
-  res_table(c("Resource group", "Moderate intensity mean queue or census",
-              "High intensity mean queue or census", "Ratio"), rows)
+  res_table(c("Resource group", "Moderate intensity mean queue", "High intensity mean queue",
+              "Ratio"), rows)
 }
 
 #' Sustained-horizon stability classification table
@@ -318,28 +318,34 @@ res_closing_means <- function(series, closing_days = LOAD_CLOSING_DAYS) {
 #'   that the stability classification fits, divided by the block length, with the
 #'   slope's own 95% interval. Utilisation is the occupancy averaged over the
 #'   closing 90 days within each replication, summarised by a Student t interval
-#'   across replications. The strategic evacuation backlog is a count of
-#'   casualties awaiting a sortie and has no bed establishment, so it carries no
-#'   utilisation.
+#'   across replications. The strategic evacuation backlog and the overflow
+#'   censuses count casualties without a bed and have no establishment, so they
+#'   carry no utilisation; the intensive care beds carry a utilisation and no
+#'   shortfall, a casualty finding none free being placed in overflow rather
+#'   than queued.
 build_load_shortfall <- function(data_dir) {
   st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
   series <- res_read("long_horizon/long_horizon_series.csv.gz", data_dir)
   spec <- list(
     list("R2E operating theatres", "mean_queue", "R2E operating theatres", TRUE),
     list("R2E holding beds", "mean_queue", "R2E holding beds", TRUE),
+    list("R2E intensive care", NA, "R2E intensive care", TRUE),
     list("R2E post-operative overflow", "mean_queue", "R2E post-operative overflow", FALSE),
     list("R2E staging overflow", "mean_queue", "R2E staging overflow", FALSE),
     list("Strategic evacuation backlog", "evac_backlog", "system", FALSE)
   )
   rows <- lapply(spec, function(s) {
     cells <- unlist(lapply(SCENARIO_PROFILES, function(p) {
-      r <- st[st$scenario == p & st$series == s[[2]] & st$subject == s[[3]], ]
-      if (nrow(r) != 1L) {
-        stop(sprintf("expected one stability row for %s %s under %s, found %d", s[[2]], s[[3]],
-                     p, nrow(r)), call. = FALSE)
+      short <- if (is.na(s[[2]])) "no queue forms" else {
+        r <- st[st$scenario == p & st$series == s[[2]] & st$subject == s[[3]], ]
+        if (nrow(r) != 1L) {
+          stop(sprintf("expected one stability row for %s %s under %s, found %d", s[[2]], s[[3]],
+                       p, nrow(r)), call. = FALSE)
+        }
+        f <- res_shortfall_per_day(r$slope, r$ci_lower, r$ci_upper)
+        f[abs(f) < 0.0005] <- 0
+        res_ci(f[["mean"]], f[["lower"]], f[["upper"]], dp = 3L)
       }
-      f <- res_shortfall_per_day(r$slope, r$ci_lower, r$ci_upper)
-      f[abs(f) < 0.0005] <- 0
       use <- if (s[[4]]) {
         o <- series[series$scenario == p & series$series == "occupancy" &
                       series$subject == s[[3]], ]
@@ -348,7 +354,7 @@ build_load_shortfall <- function(data_dir) {
         u <- res_t_interval(res_closing_means(o))
         res_ci(u[["mean"]], u[["lower"]], min(u[["upper"]], 1), dp = 1L, scale = 100, unit = "%")
       } else "not applicable"
-      c(res_ci(f[["mean"]], f[["lower"]], f[["upper"]], dp = 3L), use)
+      c(short, use)
     }))
     c(s[[1]], cells)
   })
@@ -1002,6 +1008,16 @@ build_casualty_surge <- function(data_dir, suffix = "") {
   res_table(c("Metric", "No events injected", "Events injected"), rows)
 }
 
+#' Peak responses of the casualty surge event size table, by column label
+#'
+#' @details Each is the index of its pool in `TIME_SERIES_POOLS`
+#'   (R/analysis_time_series.R), the order `peak_queue_<n>` is written in by
+#'   reduce_casualty_surge_size_replication(); an overflow point's peak is its
+#'   census.
+SURGE_SIZE_PEAKS <- c("Peak R2B holding queue" = 2L, "Peak R2E theatre queue" = 3L,
+                      "Peak R2E post-operative overflow census" = 4L,
+                      "Peak R2E holding queue" = 5L, "Peak R2E staging overflow census" = 6L)
+
 #' Casualty surge event size sweep table
 #'
 #' @param data_dir The data directory.
@@ -1037,12 +1053,10 @@ build_casualty_surge_size <- function(data_dir, suffix = "") {
       res_num(d$mean_events[k], 1L),
       pct(d$dow_event_rate[k], d$dow_event_lower[k], d$dow_event_upper[k]),
       pct(d$dow_ordinary_rate[k], d$dow_ordinary_lower[k], d$dow_ordinary_upper[k]),
-      peak(1L, k), peak(2L, k), peak(3L, k), peak(4L, k))
+      vapply(names(SURGE_SIZE_PEAKS), function(p) peak(SURGE_SIZE_PEAKS[[p]], k), character(1)))
   })
   res_table(c("Event size", "Events/run", "Died of wounds, event casualties",
-              "Died of wounds, ordinary casualties", "Peak R2B holding queue",
-              "Peak R2E theatre queue", "Peak R2E intensive care queue",
-              "Peak R2E holding queue"), rows)
+              "Died of wounds, ordinary casualties", names(SURGE_SIZE_PEAKS)), rows)
 }
 
 #' Defaults for one cell of a strategic evacuation table
@@ -1143,7 +1157,8 @@ build_airlift <- function(data_dir, which, suffix = "") {
 #' @return The table lines.
 build_queue_clearance <- function(data_dir) {
   d <- res_read("time_series/queue_clearance.csv", data_dir)
-  pools <- c("R2B holding beds", "R2E operating theatres", "R2E intensive care", "R2E holding beds")
+  pools <- c("R2B reception overflow", "R2B holding beds", "R2E operating theatres",
+             "R2E post-operative overflow", "R2E holding beds", "R2E staging overflow")
   #' One stage and intensity row of the degraded care table
   #'
   #' @param pool The resource pool.

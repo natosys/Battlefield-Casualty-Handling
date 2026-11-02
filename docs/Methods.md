@@ -156,9 +156,9 @@ No warm-up period is discarded from any observation window. Discarding one remov
 
 That classification is supported rather than assumed. The Welch graphical diagnostic, run over ten 90-day replications, shows the behaviour a terminating model is expected to show, and `scripts/run_warmup.R` re-runs it on demand.
 
-![Welch plot of the R2E intensive care queue cumulative moving average across 90 days](../images/welch_plot_icu_queue.png)
+![Welch plot of the R2E post-operative overflow census cumulative moving average](../images/welch_plot_post_op_overflow.png)
 
-The cross-replication cumulative moving average of the R2E intensive care queue keeps moving to the end of the run rather than settling onto a level, which is the behaviour of a terminating simulation. It is also re-derived at the sustained-operations horizon, twelve times the experiments' own, by two diagnostics defined under [Classifying Stability](#classifying-stability) and [The Welch Diagnostic at Length](#the-welch-diagnostic-at-length), whose results the companion paper reports.
+The cross-replication cumulative moving average of the R2E post-operative overflow census, the casualties cared for after surgery without an intensive care or holding bed, keeps moving to the end of the run rather than settling onto a level, which is the behaviour of a terminating simulation. It is also re-derived at the sustained-operations horizon, twelve times the experiments' own, by two diagnostics defined under [Classifying Stability](#classifying-stability) and [The Welch Diagnostic at Length](#the-welch-diagnostic-at-length), whose results the companion paper reports.
 
 ---
 
@@ -205,15 +205,15 @@ The same fit supplies the rate at which a drifting pool falls behind. A queue wh
 
 ### The Welch Diagnostic at Length
 
-The block classification answers the warm-up question the protocol was written to answer, but with an estimator the original 90-day diagnostic did not use: a block mean, which forgets the opening transient once it has passed. The cumulative moving average Welch's procedure is usually read from never forgets it, carrying every early day for the whole length of the series, so the two estimators can disagree in a response's favour and neither substitutes for the other. `compute_long_horizon_cma()` (`R/warmup.R`) computes the second estimator directly from the tracked daily series, at the horizon and replication count the protocol documents, for the two R2E bed pools the block classification finds closest to the boundary at moderate intensity: intensive care and holding.
+The block classification answers the warm-up question the protocol was written to answer, but with an estimator the original 90-day diagnostic did not use: a block mean, which forgets the opening transient once it has passed. The cumulative moving average Welch's procedure is usually read from never forgets it, carrying every early day for the whole length of the series, so the two estimators can disagree in a response's favour and neither substitutes for the other. `compute_long_horizon_cma()` (`R/warmup.R`) computes the second estimator directly from the tracked daily series, at the horizon and replication count the protocol documents, for the two R2E responses the block classification finds closest to the boundary at moderate intensity: the post-operative overflow census and the holding queue.
 
 The two readings answer different questions and both can be correct. `classify_stability()` asks whether the late blocks have stopped moving relative to their own spread, while the cumulative average answers a slower question, how far the whole run's history still pulls its own average away from the level the response has reached. The sustained-horizon warm-up classification rests on both rather than on the block reading alone.
 
 `scripts/render_long_horizon_warmup.R` renders the diagnostic from the tracked `data/long_horizon/long_horizon_series.csv.gz` alone, running no simulation of its own, and writes the tracked `images/welch_plot_long_horizon.png` and `data/long_horizon/long_horizon_welch_cma.csv` under `--refresh-baseline`. `tests/checks/check_long_horizon_warmup.R` asserts the cumulative-average arithmetic on a constructed series whose answer is computable by hand, that the tracked reduction reproduces from the tracked series rather than standing as a second and independent claim about it, and that every reading the companion paper states matches the tracked reduction.
 
-![Cumulative moving average of the mean R2E holding bed and intensive care queue against simulation day, at moderate and high casualty intensity](../images/welch_plot_long_horizon.png)
+![Cumulative moving average of the mean R2E holding bed queue and post-operative overflow census against simulation day, at moderate and high casualty intensity](../images/welch_plot_long_horizon.png)
 
-The cumulative moving average of the two R2E bed pool queues over the sustained horizon, one panel per casualty intensity and one line per pool.
+The cumulative moving average of the R2E holding queue and post-operative overflow census over the sustained horizon, one panel per casualty intensity and one line per response.
 
 ### The Checks That Defend These Properties
 

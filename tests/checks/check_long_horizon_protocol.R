@@ -347,8 +347,10 @@ if (!all(file.exists(stability_path, blocks_path))) {
   table_rows <- list(
     list("R2E operating theatre queue", "mean_queue", "R2E operating theatres"),
     list("R2E holding bed queue", "mean_queue", "R2E holding beds"),
-    list("R2E intensive care queue", "mean_queue", "R2E intensive care"),
+    list("R2E post-operative overflow census", "mean_queue", "R2E post-operative overflow"),
+    list("R2E staging overflow census", "mean_queue", "R2E staging overflow"),
     list("Strategic evacuation backlog", "evac_backlog", "system"),
+    list("R2B reception overflow census", "mean_queue", "R2B reception overflow"),
     list("R2B holding bed queue", "mean_queue", "R2B holding beds"),
     list("Casualty arrivals per day", "arrivals", "system"),
     list("Deaths of wounds per day", "dow", "system")
@@ -381,20 +383,19 @@ if (!all(file.exists(stability_path, blocks_path))) {
 
   # The figures the section's prose states, each read from the tracked set.
   conv <- stability[stability$stability == "converged", ]
-  report(nrow(conv) == 20 && max(conv$settles_by_block) == 12 &&
-           sum(conv$settles_by_block <= 2) == 14,
-         "20 responses converge, all settle by block 12 and 14 by block 2 (found %d, %d, %d)",
+  report(nrow(conv) == 28 && max(conv$settles_by_block) == 12 &&
+           sum(conv$settles_by_block <= 2) == 16,
+         "28 responses converge, all settle by block 12 and 16 by block 2 (found %d, %d, %d)",
          nrow(conv), max(conv$settles_by_block), sum(conv$settles_by_block <= 2))
 
   mod <- stability[stability$scenario == "moderate_intensity" &
                      stability$series %in% c("mean_queue", "evac_backlog") &
-                     stability$subject %in% c("R2E holding beds", "R2E intensive care",
+                     stability$subject %in% c("R2E holding beds", "R2E post-operative overflow",
                                               "system"), ]
-  caveat <- mod[order(-mod$drift_per_block), ][1:3, ]
-  report(all(round(100 * caveat$drift_per_block, 1) %in% c(12.5, 8.5, -4.2)) &&
-           all(caveat$ci_lower < 0 & caveat$ci_upper > 0),
-         paste("the three moderate-intensity responses converging on a spanning interval",
-               "carry +12.5, +8.5 and -4.2%%/block"))
+  report(nrow(mod) == 3 && all(mod$stability == "converged") &&
+           all(mod$ci_lower < 0 & mod$ci_upper > 0),
+         paste("the moderate-intensity R2E holding queue, post-operative overflow census and",
+               "evacuation backlog converge on late slopes whose intervals span zero"))
 
   #' Mean casualty arrivals per day in one block of one scenario
   #'

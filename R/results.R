@@ -894,16 +894,19 @@ res_pool_growing <- function(x, stem) {
   ci[["lower"]] > 0 && ci[["mean"]] * LOAD_BLOCK_DAYS / level >= RES_DRIFT_THRESHOLD
 }
 
-#' Whether a cell held both R2E pools
+#' Whether a cell held the R2E pools
 #'
 #' @param x Per-replication policy responses of one cell.
-#' @return TRUE where neither the holding queue nor the post-operative overflow
-#'   census is still growing across the cell (res_pool_growing()).
+#' @return TRUE where none of the holding queue, the post-operative overflow
+#'   census and the staging overflow census is still growing across the cell
+#'   (res_pool_growing()).
 #'
 #' @details A pool holds when its late-half trend is not rising, the rule the
 #'   sustained-operations protocol applies to every pool; a level threshold has
 #'   no gap behind it in these measures, which are spread continuously.
-res_cell_holds <- function(x) !res_pool_growing(x, "hold") && !res_pool_growing(x, "post_op")
+res_cell_holds <- function(x) {
+  !any(vapply(names(RES_TREND_LEVELS), function(stem) res_pool_growing(x, stem), logical(1)))
+}
 
 #' Evacuation policy by R2E holding establishment grid
 #'
@@ -938,7 +941,7 @@ build_policy_grid <- function(data_dir, stem) {
 #'   the campaign's thirty in which the holding queue, the post-operative
 #'   overflow census, both, and the staging overflow census were not still
 #'   growing over the second half of the campaign, and whether the cell as a
-#'   whole holds both pools (res_cell_holds()).
+#'   whole holds the R2E pools (res_cell_holds()).
 build_policy_grid_stability <- function(data_dir, stem) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   keys <- unique(r[, c("policy_days", "hold_beds")])
@@ -951,11 +954,11 @@ build_policy_grid_stability <- function(data_dir, stem) {
     c(sprintf("%d d, %d beds", keys$policy_days[i], keys$hold_beds[i]),
       sprintf("%d of %d", sum(hold), nrow(x)), sprintf("%d of %d", sum(post_op), nrow(x)),
       sprintf("%d of %d", sum(hold & post_op), nrow(x)), sprintf("%d of %d", sum(staging), nrow(x)),
-      if (res_cell_holds(x)) "both hold" else "at least one growing")
+      if (res_cell_holds(x)) "all hold" else "at least one growing")
   })
   res_table(c("Policy and holding beds", "Holding queue not growing",
               "Post-operative overflow not growing", "Both not growing",
-              "Staging overflow not growing", "Pools across the cell"), rows)
+              "Staging overflow not growing", "R2E pools across the cell"), rows)
 }
 
 #' Paired differences against the shipped policy and establishment, by grid cell
@@ -2589,14 +2592,14 @@ build_adequacy_sizing <- function(data_dir) {
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @param label Name of the grid in the text.
-#' @return The text: how many of the grid's cells hold both R2E pools
+#' @return The text: how many of the grid's cells hold the R2E pools
 #'   (res_cell_holds()).
 adequacy_grid_text <- function(data_dir, stem, label) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   cols <- intersect(c("sortie_interval", "policy_days", "hold_beds"), names(r))
   cell <- do.call(paste, c(r[cols], sep = "/"))
   holds <- vapply(split(r, cell), res_cell_holds, logical(1))
-  sprintf("Measured: in the %s %d of %d cells hold both pools", label, sum(holds),
+  sprintf("Measured: in the %s %d of %d cells hold the R2E pools", label, sum(holds),
           length(holds))
 }
 
@@ -2645,17 +2648,17 @@ build_policy_establishment_high_paired <- function(data_dir) {
 #' Stem of the moderate-intensity grid's evidence files
 POLICY_GRID_MODERATE_STEM <- "establishment_sweep_moderate_grid"
 
-#' Largest policy that holds both R2E pools, by establishment
+#' Largest policy that holds the R2E pools, by establishment
 #'
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each establishment, the largest swept policy at
-#'   which neither R2E pool was still growing across the cell
+#'   which no R2E pool was still growing across the cell
 #'   (res_cell_holds()), the returns to duty at that
 #'   policy, the paired gain over the shipped policy and establishment and the gain
 #'   per bed added beyond the shipped establishment.
 #'
-#' @details A policy is stable at an establishment when neither pool is still
+#' @details A policy is stable at an establishment when no R2E pool is still
 #'   growing across the cell's replications; the largest stable policy is the
 #'   greatest swept value for which that holds, so a stable value beyond an
 #'   unstable one is not skipped to.
@@ -2690,7 +2693,7 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
     c(as.character(b), sprintf("%d d", best),
       res_ci(rtd$mean, rtd$ci_lower, rtd$ci_upper, dp = 1L, big = TRUE), gain, per_bed)
   })
-  res_table(c("Holding beds", "Largest policy holding both pools",
+  res_table(c("Holding beds", "Largest policy holding the R2E pools",
               "Returns to duty there", "Paired gain over 21 d and 30 beds",
               "Gain per added bed"), rows)
 }
@@ -2722,8 +2725,8 @@ interval_grid_keys <- function(d) {
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each cell the closing-window R2E holding queue
-#'   and post-operative overflow census, and whether the cell holds both pools
-#'   (res_cell_holds()).
+#'   and post-operative overflow census, and whether the cell holds the R2E
+#'   pools (res_cell_holds()).
 build_interval_grid <- function(data_dir, stem) {
   d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
@@ -2743,7 +2746,7 @@ build_interval_grid <- function(data_dir, stem) {
              r$hold_beds == k$hold_beds, ]
     c(interval_grid_label(k$sortie_interval, k$policy_days, k$hold_beds),
       cell("hold_mean_queue"), cell("overflow_r2e_post_op"),
-      if (res_cell_holds(x)) "both hold" else "at least one growing")
+      if (res_cell_holds(x)) "all hold" else "at least one growing")
   })
   res_table(c("Interval, policy and holding beds", "R2E hold mean queue",
               "R2E post-operative overflow census", "Pools"), rows)

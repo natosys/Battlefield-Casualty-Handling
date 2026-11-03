@@ -362,9 +362,9 @@ plot_airlift_collapse <- function(collapse_df) {
     geom_line(linewidth = 1) +
     geom_point(size = 2) +
     labs(title = "Airlift Routes Collapsing under Sortie Cancellation",
-         subtitle = sprintf(paste("A route collapses where its backlog is still rising over",
-                                  "the second half of the campaign; %d replications per point;",
-                                  "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
+         subtitle = sprintf(paste0("A route collapses where its backlog is still rising over the ",
+                                   "second half of the campaign\n%d replications per point; ",
+                                   "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
          x = "Sortie cancellation probability", y = "Campaigns collapsing (%)",
          colour = NULL, fill = NULL) +
     theme_minimal(base_size = 13) +

@@ -14,7 +14,7 @@ Each replicated experiment ran 30 independent replications of a 360-day campaign
 
 **Results**
 
-At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,277.8<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,448.5<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->2.345<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->652.705<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->0%<!-- /GEN --> of the campaign and was still growing at day 360, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->64%<!-- /GEN -->. Over the closing 90 days the national support base carried a mean census of <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|mean -->143.65<!-- /GEN --> beds at moderate intensity and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|mean -->189.57<!-- /GEN --> at high. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.471% [0.407%, 0.535%]<!-- /GEN --> at 360 days.
+At moderate casualty intensity a campaign produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,350.9<!-- /GEN --> casualties and at high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,356.9<!-- /GEN -->. Over the closing 90 days the mean R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->0.515<!-- /GEN --> casualties at moderate intensity and <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->56.794<!-- /GEN --> at high. At high intensity that queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->7%<!-- /GEN --> of the campaign and was still growing at day 360, while at moderate intensity it stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->85%<!-- /GEN -->. Over the closing 90 days the national support base carried a mean census of <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|mean -->144.43<!-- /GEN --> beds at moderate intensity and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|mean -->221.51<!-- /GEN --> at high. The treated-cohort died-of-wounds rate of the shipped default configuration was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.554% [0.468%, 0.640%]<!-- /GEN --> at 360 days.
 
 **Conclusion**
 
@@ -81,27 +81,29 @@ Every table and every quoted figure is regenerated from the tracked evidence und
 <!-- GEN scenario_totals -->
 | Metric | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Total casualties/run | 5,277.8 [5,191.9, 5,363.6] (p10–p90: 5,019.3–5,565.2) | 12,448.5 [12,335.5, 12,561.4] (p10–p90: 12,150.8–12,801.7) | 2.36× |
-| Wounded in action/run | 2,255.8 [2,186.1, 2,325.5] (p10–p90: 2,029.2–2,493.6) | 8,398.7 [8,301.7, 8,495.8] (p10–p90: 8,118.7–8,728.4) | 3.72× |
-| Died of wounds/run | 15.50 [13.16, 17.84] (p10–p90: 8.9–24.5) | 560.23 [527.56, 592.91] (p10–p90: 454.1–670.1) | 36.1× |
-| Died of wounds, as share of wounded | 0.68% [0.59%, 0.77%] | 6.66% [6.31%, 7.00%] | 9.83× |
+| Total casualties/run | 5,350.9 [5,287.1, 5,414.8] (p10–p90: 5,177.2–5,549.5) | 12,356.9 [12,252.4, 12,461.3] (p10–p90: 11,980.1–12,695.8) | 2.31× |
+| Wounded in action/run | 2,283.8 [2,227.5, 2,340.2] (p10–p90: 2,095.7–2,474.0) | 8,291.4 [8,202.9, 8,380.0] (p10–p90: 8,014.7–8,601.6) | 3.63× |
+| Died of wounds/run | 20.17 [17.72, 22.61] (p10–p90: 13.7–26.3) | 509.33 [464.71, 553.96] (p10–p90: 392.2–635.9) | 25.3× |
+| Died of wounds, as share of wounded | 0.88% [0.78%, 0.97%] | 6.12% [5.64%, 6.60%] | 6.98× |
 <!-- /GEN -->
 
 ![Four panels of total casualties, wounded in action, deaths of wounds and deaths as a share of wounded at the two casualty intensities](../images/paper_casualty_totals.png)
 
 Each panel plots the moderate and high casualty intensities as a point with a narrow 95% confidence interval bar and a wide band for the 10th-to-90th-percentile spread across campaigns. The bar shows how precisely the average is known and the band shows how much one campaign varies.
 
-Moderate intensity produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,277.8<!-- /GEN --> casualties per run (95% interval <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|ci -->[5,191.9, 5,363.6]<!-- /GEN -->) and high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,448.5<!-- /GEN --> (<!-- GEN cell:scenario_totals|Total casualties/run|High intensity|ci -->[12,335.5, 12,561.4]<!-- /GEN -->), a ratio of <!-- GEN cell:scenario_totals|Total casualties/run|Ratio|full -->2.36×<!-- /GEN -->. Wounded in action rose by <!-- GEN cell:scenario_totals|Wounded in action/run|Ratio|full -->3.72×<!-- /GEN -->, died of wounds per run by <!-- GEN cell:scenario_totals|Died of wounds/run|Ratio|full -->36.1×<!-- /GEN --> and died of wounds as a share of wounded by <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Ratio|full -->9.83×<!-- /GEN -->, from <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Moderate intensity|mean -->0.68%<!-- /GEN --> to <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|High intensity|mean -->6.66%<!-- /GEN -->.
+Moderate intensity produced <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|mean -->5,350.9<!-- /GEN --> casualties per run (95% interval <!-- GEN cell:scenario_totals|Total casualties/run|Moderate intensity|ci -->[5,287.1, 5,414.8]<!-- /GEN -->) and high intensity <!-- GEN cell:scenario_totals|Total casualties/run|High intensity|mean -->12,356.9<!-- /GEN --> (<!-- GEN cell:scenario_totals|Total casualties/run|High intensity|ci -->[12,252.4, 12,461.3]<!-- /GEN -->), a ratio of <!-- GEN cell:scenario_totals|Total casualties/run|Ratio|full -->2.31×<!-- /GEN -->. Wounded in action rose by <!-- GEN cell:scenario_totals|Wounded in action/run|Ratio|full -->3.63×<!-- /GEN -->, died of wounds per run by <!-- GEN cell:scenario_totals|Died of wounds/run|Ratio|full -->25.3×<!-- /GEN --> and died of wounds as a share of wounded by <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Ratio|full -->6.98×<!-- /GEN -->, from <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|Moderate intensity|mean -->0.88%<!-- /GEN --> to <!-- GEN cell:scenario_totals|Died of wounds, as share of wounded|High intensity|mean -->6.12%<!-- /GEN -->.
 
 <!-- GEN scenario_queue -->
 | Resource group | Moderate intensity mean queue | High intensity mean queue | Ratio |
 |---|---|---|---|
 | R2B operating theatre | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | not applicable |
-| R2B holding beds | 3.836 [2.858, 4.814] | 35.949 [29.983, 41.915] | 9.37× |
-| R2E operating theatre | 2.345 [1.740, 2.951] | 652.705 [599.802, 705.607] | 278.30× |
-| R2E intensive care | 0.846 [0.617, 1.074] | 1,279.702 [1,258.380, 1,301.024] | 1513.12× |
-| R2E holding beds | 0.278 [−0.059, 0.615] | 331.132 [306.074, 356.189] | 1191.99× |
-| Ambulance and truck fleets | 0.020 [0.010, 0.031] | 0.237 [0.153, 0.320] | 11.73× |
+| R2B holding beds | 0.055 [0.030, 0.081] | 0.357 [0.279, 0.435] | 6.45× |
+| R2B reception overflow census | 0.023 [0.004, 0.043] | 0.249 [0.210, 0.288] | 10.68× |
+| R2E operating theatre | 0.515 [0.338, 0.692] | 56.794 [42.954, 70.635] | 110.23× |
+| R2E holding beds | 22.715 [21.224, 24.206] | 55.398 [53.466, 57.331] | 2.44× |
+| R2E post-operative overflow census | 5.247 [4.822, 5.672] | 20.158 [19.956, 20.361] | 3.84× |
+| R2E staging overflow census | 26.191 [21.998, 30.385] | 2,534.573 [2,506.907, 2,562.240] | 96.77× |
+| Ambulance and truck fleets | 0.147 [0.085, 0.209] | 1.919 [1.544, 2.295] | 13.05× |
 <!-- /GEN -->
 
 ![Horizontal plot of queue growth factor on a logarithmic scale for five resource groups with a dashed reference line at the growth in casualty volume](../images/paper_queue_growth.png)
@@ -112,7 +114,7 @@ Queue growth factor from moderate to high intensity on a logarithmic scale, with
 
 Mean queue length by resource group at each casualty intensity. Each panel has its own vertical scale, and the error bars show the spread across campaigns rather than a confidence interval.
 
-The R2B operating theatre queue was zero at both intensities. At moderate intensity the R2E holding beds carried a mean queue of <!-- GEN cell:scenario_queue|R2E holding beds|Moderate intensity mean queue|mean --><!-- /GEN --> casualties (<!-- GEN cell:scenario_queue|R2E holding beds|Moderate intensity mean queue|ci --><!-- /GEN -->), against <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean --><!-- /GEN --> at the R2E operating theatres (<!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|ci --><!-- /GEN -->); a mean of <!-- GEN cell:scenario_queue|R2E post-operative overflow census|Moderate intensity mean queue|mean --><!-- /GEN --> operated casualties were cared for in post-operative overflow and <!-- GEN cell:scenario_queue|R2E staging overflow census|Moderate intensity mean queue|mean --><!-- /GEN --> awaited a flight in staging overflow. At high intensity the R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean --><!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|ci --><!-- /GEN -->), the R2E holding queue <!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|mean --><!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|ci --><!-- /GEN -->), the post-operative overflow census <!-- GEN cell:scenario_queue|R2E post-operative overflow census|High intensity mean queue|mean --><!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E post-operative overflow census|High intensity mean queue|ci --><!-- /GEN -->) and the staging overflow census <!-- GEN cell:scenario_queue|R2E staging overflow census|High intensity mean queue|mean --><!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E staging overflow census|High intensity mean queue|ci --><!-- /GEN -->); the ratios to moderate intensity were <!-- GEN cell:scenario_queue|R2E operating theatre|Ratio|full --><!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E holding beds|Ratio|full --><!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E post-operative overflow census|Ratio|full --><!-- /GEN --> and <!-- GEN cell:scenario_queue|R2E staging overflow census|Ratio|full --><!-- /GEN -->. The ambulance and truck fleets queued <!-- GEN cell:scenario_queue|Ambulance and truck fleets|Moderate intensity mean queue|mean --><!-- /GEN --> and <!-- GEN cell:scenario_queue|Ambulance and truck fleets|High intensity mean queue|mean --><!-- /GEN --> casualties at the two intensities. An overflow census counts casualties cared for without a bed rather than casualties waiting for one, a casualty finding no intensive care or holding bed being placed in overflow instead of queued, so the intensive care pool carries no queue. The high-intensity theatre and staging figures are means over a window in which those quantities were still growing, as the sections that follow record, so they describe the closing 90 days and not a level.
+The R2B operating theatre queue was zero at both intensities. At moderate intensity the R2E holding beds carried a mean queue of <!-- GEN cell:scenario_queue|R2E holding beds|Moderate intensity mean queue|mean -->22.715<!-- /GEN --> casualties (<!-- GEN cell:scenario_queue|R2E holding beds|Moderate intensity mean queue|ci -->[21.224, 24.206]<!-- /GEN -->), against <!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|mean -->0.515<!-- /GEN --> at the R2E operating theatres (<!-- GEN cell:scenario_queue|R2E operating theatre|Moderate intensity mean queue|ci -->[0.338, 0.692]<!-- /GEN -->); a mean of <!-- GEN cell:scenario_queue|R2E post-operative overflow census|Moderate intensity mean queue|mean -->5.247<!-- /GEN --> operated casualties were cared for in post-operative overflow and <!-- GEN cell:scenario_queue|R2E staging overflow census|Moderate intensity mean queue|mean -->26.191<!-- /GEN --> awaited a flight in staging overflow. At high intensity the R2E operating theatre queue was <!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|mean -->56.794<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E operating theatre|High intensity mean queue|ci -->[42.954, 70.635]<!-- /GEN -->), the R2E holding queue <!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|mean -->55.398<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E holding beds|High intensity mean queue|ci -->[53.466, 57.331]<!-- /GEN -->), the post-operative overflow census <!-- GEN cell:scenario_queue|R2E post-operative overflow census|High intensity mean queue|mean -->20.158<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E post-operative overflow census|High intensity mean queue|ci -->[19.956, 20.361]<!-- /GEN -->) and the staging overflow census <!-- GEN cell:scenario_queue|R2E staging overflow census|High intensity mean queue|mean -->2,534.573<!-- /GEN --> (<!-- GEN cell:scenario_queue|R2E staging overflow census|High intensity mean queue|ci -->[2,506.907, 2,562.240]<!-- /GEN -->); the ratios to moderate intensity were <!-- GEN cell:scenario_queue|R2E operating theatre|Ratio|full -->110.23×<!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E holding beds|Ratio|full -->2.44×<!-- /GEN -->, <!-- GEN cell:scenario_queue|R2E post-operative overflow census|Ratio|full -->3.84×<!-- /GEN --> and <!-- GEN cell:scenario_queue|R2E staging overflow census|Ratio|full -->96.77×<!-- /GEN -->. The ambulance and truck fleets queued <!-- GEN cell:scenario_queue|Ambulance and truck fleets|Moderate intensity mean queue|mean -->0.147<!-- /GEN --> and <!-- GEN cell:scenario_queue|Ambulance and truck fleets|High intensity mean queue|mean -->1.919<!-- /GEN --> casualties at the two intensities. An overflow census counts casualties cared for without a bed rather than casualties waiting for one, a casualty finding no intensive care or holding bed being placed in overflow instead of queued, so the intensive care pool carries no queue. The high-intensity theatre and staging figures are means over a window in which those quantities were still growing, as the sections that follow record, so they describe the closing 90 days and not a level.
 
 ---
 
@@ -125,32 +127,34 @@ The R2B operating theatre queue was zero at both intensities. At moderate intens
 <!-- GEN queue_clearance -->
 | Resource pool | Moderate: queue empty | Moderate: longest run above zero (days) | High: queue empty | High: longest run above zero (days) |
 |---|---|---|---|---|
-| R2B holding beds | 46% | 45.1 (38.8–50.3) | 5% | 208.0 (155.9–335.9) |
-| R2E operating theatres | 64% | 13.1 (11.2–15.5) | 0% | 356.7 (345.4–358.9) |
-| R2E intensive care | 63% | 13.2 (8.5–20.4) | 0% | 357.9 (355.7–358.6) |
-| R2E holding beds | 93% | 19.3 (3.8–24.0) | 1% | 357.2 (356.9–357.7) |
+| R2B reception overflow | 99% | 0.8 (0.5–1.5) | 91% | 1.8 (1.5–2.1) |
+| R2B holding beds | 95% | 8.3 (5.5–12.2) | 73% | 15.1 (14.4–20.4) |
+| R2E operating theatres | 85% | 4.7 (3.1–5.9) | 7% | 113.7 (77.2–131.4) |
+| R2E post-operative overflow | 14% | 25.6 (23.0–29.8) | 1% | 357.7 (357.4–358.4) |
+| R2E holding beds | 1% | 355.9 (354.0–356.7) | 1% | 357.6 (357.4–358.1) |
+| R2E staging overflow | 5% | 59.3 (48.8–90.4) | 1% | 357.9 (357.4–358.3) |
 <!-- /GEN -->
 
 ![Four stacked panels of queue length against campaign day, one per resource pool, at the two casualty intensities](../images/queue_length_over_time.png)
 
 Queue length against campaign day for each pool, as the median across replications with an interquartile band, at each casualty intensity. Each panel is annotated with the share of the campaign the queue stood empty.
 
-The table reports, for each pool and intensity, the median across replications of the share of the campaign the pool's queue or overflow census stood empty and of the longest unbroken spell it did not, with the interquartile range of the spell in parentheses. At high intensity the R2E operating theatre queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full --><!-- /GEN --> of the campaign, with a median longest spell above zero of <!-- GEN cell:queue_clearance|R2E operating theatres|High: longest run above zero (days)|full --><!-- /GEN --> days, and the R2E holding queue and both R2E overflow censuses stood empty for <!-- GEN cell:queue_clearance|R2E staging overflow|High: queue empty|full --><!-- /GEN --> or less. At moderate intensity the theatre queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full --><!-- /GEN --> of the campaign with a median longest spell of <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: longest run above zero (days)|full --><!-- /GEN --> days, while the R2E holding queue stood empty for <!-- GEN cell:queue_clearance|R2E holding beds|Moderate: queue empty|full --><!-- /GEN -->.
+The table reports, for each pool and intensity, the median across replications of the share of the campaign the pool's queue or overflow census stood empty and of the longest unbroken spell it did not, with the interquartile range of the spell in parentheses. At high intensity the R2E operating theatre queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|High: queue empty|full -->7%<!-- /GEN --> of the campaign, with a median longest spell above zero of <!-- GEN cell:queue_clearance|R2E operating theatres|High: longest run above zero (days)|full -->113.7 (77.2–131.4)<!-- /GEN --> days, and the R2E holding queue and both R2E overflow censuses stood empty for <!-- GEN cell:queue_clearance|R2E staging overflow|High: queue empty|full -->1%<!-- /GEN --> or less. At moderate intensity the theatre queue stood empty for <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: queue empty|full -->85%<!-- /GEN --> of the campaign with a median longest spell of <!-- GEN cell:queue_clearance|R2E operating theatres|Moderate: longest run above zero (days)|full -->4.7 (3.1–5.9)<!-- /GEN --> days, while the R2E holding queue stood empty for <!-- GEN cell:queue_clearance|R2E holding beds|Moderate: queue empty|full -->1%<!-- /GEN -->.
 
 <!-- GEN degraded_care -->
 | Intensity and stage | First day the median daily rate reaches 100% | First ten days | Last ten days | Whole campaign |
 |---|---|---|---|---|
-| Moderate intensity: Stabilisation | not reached | 47.4% | 49.2% | 50.6% |
-| Moderate intensity: Post-definitive care | not reached | 61.6% | 68.9% | 68.3% |
-| High intensity: Stabilisation | 7 | 71.5% | 100.0% | 99.2% |
-| High intensity: Post-definitive care | 3 | 92.0% | 100.0% | 99.8% |
+| Moderate intensity: Stabilisation | not reached | 34.8% | 34.6% | 36.7% |
+| Moderate intensity: Post-definitive care | not reached | 59.7% | 65.8% | 64.6% |
+| High intensity: Stabilisation | not reached | 41.1% | 44.6% | 43.4% |
+| High intensity: Post-definitive care | not reached | 85.9% | 89.3% | 89.0% |
 <!-- /GEN -->
 
 ![Two stacked panels of the share of casualties recovering in a holding bed against campaign day](../images/degraded_care_rate_over_time.png)
 
 The share of casualties taking the holding-bed recovery against campaign day, stabilisation above and post-definitive care below, as a daily rate inside an interquartile band and as a running cumulative rate.
 
-The degraded post-operative care rate is the share of casualties who took the holding-bed recovery in place of an intensive care bed at the point the decision was taken. At high intensity the median daily rate for post-definitive care first reached 100% on day <!-- GEN cell:degraded_care|High intensity: Post-definitive care|First day the median daily rate reaches 100%|full -->3<!-- /GEN --> and for stabilisation on day <!-- GEN cell:degraded_care|High intensity: Stabilisation|First day the median daily rate reaches 100%|full -->7<!-- /GEN -->; over the whole campaign <!-- GEN cell:degraded_care|High intensity: Post-definitive care|Whole campaign|full -->99.8%<!-- /GEN --> of post-definitive care and <!-- GEN cell:degraded_care|High intensity: Stabilisation|Whole campaign|full -->99.2%<!-- /GEN --> of stabilisation took the holding bed. At moderate intensity the whole-campaign rates were <!-- GEN cell:degraded_care|Moderate intensity: Post-definitive care|Whole campaign|full -->68.3%<!-- /GEN --> and <!-- GEN cell:degraded_care|Moderate intensity: Stabilisation|Whole campaign|full -->50.6%<!-- /GEN -->, and the median daily rate did not reach 100%.
+The degraded post-operative care rate is the share of casualties who took the holding-bed recovery in place of an intensive care bed at the point the decision was taken. At high intensity the median daily rate for post-definitive care first reached 100% on day <!-- GEN cell:degraded_care|High intensity: Post-definitive care|First day the median daily rate reaches 100%|full -->not reached<!-- /GEN --> and for stabilisation on day <!-- GEN cell:degraded_care|High intensity: Stabilisation|First day the median daily rate reaches 100%|full -->not reached<!-- /GEN -->; over the whole campaign <!-- GEN cell:degraded_care|High intensity: Post-definitive care|Whole campaign|full -->89.0%<!-- /GEN --> of post-definitive care and <!-- GEN cell:degraded_care|High intensity: Stabilisation|Whole campaign|full -->43.4%<!-- /GEN --> of stabilisation took the holding bed. At moderate intensity the whole-campaign rates were <!-- GEN cell:degraded_care|Moderate intensity: Post-definitive care|Whole campaign|full -->64.6%<!-- /GEN --> and <!-- GEN cell:degraded_care|Moderate intensity: Stabilisation|Whole campaign|full -->36.7%<!-- /GEN -->, and the median daily rate did not reach 100%.
 
 ---
 
@@ -165,20 +169,22 @@ Each response was reduced to twelve consecutive 30-day block means and classifie
 <!-- GEN long_horizon_stability -->
 | Response | Moderate intensity | High intensity |
 |---|---|---|
-| R2E operating theatre queue | converged at 3.27 | **drifting, +11.7%/block**, 36.9 to 573.6 |
-| R2E holding bed queue | converged at 0.09 | **drifting, +9.3%/block**, 48.6 to 595.9 |
-| R2E intensive care queue | converged at 1.05 | **drifting, +13.0%/block**, 32.5 to 1,590.1 |
-| Strategic evacuation backlog | converged at 1.89 | **drifting, +12.4%/block**, 68.8 to 1,850.7 |
-| R2B holding bed queue | converged at 4.73 | converged at 32.6 |
-| Casualty arrivals per day | converged at 15.0 | converged at 34.6 |
-| Deaths of wounds per day | converged at 0.03 | converged at 0.77 |
+| R2E operating theatre queue | converged at 0.60 | **drifting, +4.5%/block**, 17.2 to 60.7 |
+| R2E holding bed queue | converged at 23.1 | converged at 53.7 |
+| R2E post-operative overflow census | converged at 5.44 | converged at 20.1 |
+| R2E staging overflow census | converged at 29.5 | **drifting, +11.4%/block**, 116.8 to 2,770.7 |
+| Strategic evacuation backlog | converged at 39.0 | **drifting, +11.9%/block**, 136.0 to 2,969.0 |
+| R2B reception overflow census | converged at 0.02 | converged at 0.26 |
+| R2B holding bed queue | converged at 0.06 | converged at 0.37 |
+| Casualty arrivals per day | converged at 14.8 | converged at 34.4 |
+| Deaths of wounds per day | converged at 0.06 | **drifting, +6.7%/block**, 0.4 to 2.1 |
 <!-- /GEN -->
 
 ![Panels of 30-day block means against campaign day for every response at the moderate and high casualty intensities](../images/long_horizon_blocks.png)
 
 Block means of every queue, occupancy, arrival, evacuation backlog and mortality response over the campaign at the two casualty intensities, each panel headed by its stability classification at each intensity.
 
-Four responses at high intensity were classified as drifting: the R2E operating theatre queue (<!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full --><!-- /GEN -->), the R2E staging overflow census (<!-- GEN cell:long_horizon_stability|R2E staging overflow census|High intensity|full --><!-- /GEN -->), the strategic evacuation backlog (<!-- GEN cell:long_horizon_stability|Strategic evacuation backlog|High intensity|full --><!-- /GEN -->) and the deaths of wounds per day (<!-- GEN cell:long_horizon_stability|Deaths of wounds per day|High intensity|full --><!-- /GEN -->). The R2E holding bed queue at high intensity was classified as converged, at <!-- GEN cell:long_horizon_stability|R2E holding bed queue|High intensity|full --><!-- /GEN -->, and the post-operative overflow census <!-- GEN cell:long_horizon_stability|R2E post-operative overflow census|High intensity|full --><!-- /GEN -->. No response at moderate intensity was classified as drifting; the R2E operating theatre queue was <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|Moderate intensity|full --><!-- /GEN -->, the R2E holding bed queue <!-- GEN cell:long_horizon_stability|R2E holding bed queue|Moderate intensity|full --><!-- /GEN --> and the staging overflow census <!-- GEN cell:long_horizon_stability|R2E staging overflow census|Moderate intensity|full --><!-- /GEN -->.
+Four responses at high intensity were classified as drifting: the R2E operating theatre queue (<!-- GEN cell:long_horizon_stability|R2E operating theatre queue|High intensity|full -->**drifting, +4.5%/block**, 17.2 to 60.7<!-- /GEN -->), the R2E staging overflow census (<!-- GEN cell:long_horizon_stability|R2E staging overflow census|High intensity|full -->**drifting, +11.4%/block**, 116.8 to 2,770.7<!-- /GEN -->), the strategic evacuation backlog (<!-- GEN cell:long_horizon_stability|Strategic evacuation backlog|High intensity|full -->**drifting, +11.9%/block**, 136.0 to 2,969.0<!-- /GEN -->) and the deaths of wounds per day (<!-- GEN cell:long_horizon_stability|Deaths of wounds per day|High intensity|full -->**drifting, +6.7%/block**, 0.4 to 2.1<!-- /GEN -->). The R2E holding bed queue at high intensity was classified as converged, at <!-- GEN cell:long_horizon_stability|R2E holding bed queue|High intensity|full -->converged at 53.7<!-- /GEN -->, and the post-operative overflow census <!-- GEN cell:long_horizon_stability|R2E post-operative overflow census|High intensity|full -->converged at 20.1<!-- /GEN -->. No response at moderate intensity was classified as drifting; the R2E operating theatre queue was <!-- GEN cell:long_horizon_stability|R2E operating theatre queue|Moderate intensity|full -->converged at 0.60<!-- /GEN -->, the R2E holding bed queue <!-- GEN cell:long_horizon_stability|R2E holding bed queue|Moderate intensity|full -->converged at 23.1<!-- /GEN --> and the staging overflow census <!-- GEN cell:long_horizon_stability|R2E staging overflow census|Moderate intensity|full -->converged at 29.5<!-- /GEN -->.
 
 ### Demand, Utilisation and Shortfall per Day
 
@@ -187,23 +193,25 @@ Four responses at high intensity were classified as drifting: the R2E operating 
 <!-- GEN load_demand -->
 | Demand measure | Moderate intensity | High intensity | Ratio |
 |---|---|---|---|
-| Wounded in action/run | 2,255.8 [2,186.1, 2,325.5] | 8,398.7 [8,301.7, 8,495.8] | 3.72× |
-| R2B and R2E first surgeries/run | 2,291.8 [2,242.9, 2,340.6] | 5,115.8 [5,082.0, 5,149.6] | 2.23× |
-| Post-definitive recovery dispositions/run | 3,149.6 [3,097.3, 3,202.0] | 5,674.4 [5,640.6, 5,708.3] | 1.80× |
+| Wounded in action/run | 2,283.8 [2,227.5, 2,340.2] | 8,291.4 [8,202.9, 8,380.0] | 3.63× |
+| R2B and R2E first surgeries/run | 2,623.9 [2,574.5, 2,673.3] | 7,945.0 [7,873.6, 8,016.4] | 3.03× |
+| Post-definitive recovery dispositions/run | 3,901.1 [3,842.6, 3,959.5] | 9,431.3 [9,364.3, 9,498.3] | 2.42× |
 <!-- /GEN -->
 
-The wounded in action rose <!-- GEN cell:load_demand|Wounded in action/run|Ratio|full -->3.72×<!-- /GEN -->, the first surgeries at R2B and R2E <!-- GEN cell:load_demand|R2B and R2E first surgeries/run|Ratio|full -->2.23×<!-- /GEN --> and the post-definitive recovery dispositions <!-- GEN cell:load_demand|Post-definitive recovery dispositions/run|Ratio|full -->1.80×<!-- /GEN --> from moderate to high intensity. The surgeries and dispositions are per-campaign counts from the shipped configuration's arms of the [R2B pre-open hold window](#r2b-pre-open-hold-window) and [evacuation policy](#evacuation-policy) experiments, and the total casualties are in the [comparative scenario analysis](#comparative-scenario-analysis).
+The wounded in action rose <!-- GEN cell:load_demand|Wounded in action/run|Ratio|full -->3.63×<!-- /GEN -->, the first surgeries at R2B and R2E <!-- GEN cell:load_demand|R2B and R2E first surgeries/run|Ratio|full -->3.03×<!-- /GEN --> and the post-definitive recovery dispositions <!-- GEN cell:load_demand|Post-definitive recovery dispositions/run|Ratio|full -->2.42×<!-- /GEN --> from moderate to high intensity. The surgeries and dispositions are per-campaign counts from the shipped configuration's arms of the [R2B pre-open hold window](#r2b-pre-open-hold-window) and [evacuation policy](#evacuation-policy) experiments, and the total casualties are in the [comparative scenario analysis](#comparative-scenario-analysis).
 
 <!-- GEN load_shortfall -->
 | Pool | Moderate: shortfall per day | Moderate: utilisation | High: shortfall per day | High: utilisation |
 |---|---|---|---|---|
-| R2E operating theatres | 0.016 [−0.005, 0.037] | 49.8% [45.9%, 53.8%] | 1.629 [1.505, 1.753] | 100.0% [100.0%, 100.0%] |
-| R2E holding beds | 0.000 [−0.001, 0.001] | 44.8% [42.6%, 46.9%] | 1.459 [1.408, 1.511] | 100.0% [100.0%, 100.0%] |
-| R2E intensive care | 0.004 [−0.003, 0.012] | 87.8% [86.8%, 88.9%] | 4.954 [4.905, 5.002] | 100.0% [100.0%, 100.0%] |
-| Strategic evacuation backlog | 0.005 [−0.004, 0.014] | not applicable | 5.550 [5.499, 5.601] | not applicable |
+| R2E operating theatres | 0.000 [−0.004, 0.005] | 26.5% [25.1%, 27.9%] | 0.079 [0.061, 0.097] | 76.6% [76.0%, 77.2%] |
+| R2E holding beds | −0.002 [−0.019, 0.016] | 99.4% [99.2%, 99.5%] | 0.015 [−0.015, 0.044] | 100.0% [100.0%, 100.0%] |
+| R2E intensive care | no queue forms | 86.4% [85.6%, 87.2%] | no queue forms | 97.6% [97.6%, 97.7%] |
+| R2E post-operative overflow | −0.001 [−0.008, 0.007] | not applicable | 0.001 [−0.002, 0.004] | not applicable |
+| R2E staging overflow | −0.029 [−0.061, 0.002] | not applicable | 7.861 [7.814, 7.908] | not applicable |
+| Strategic evacuation backlog | −0.020 [−0.052, 0.013] | not applicable | 8.639 [8.558, 8.719] | not applicable |
 <!-- /GEN -->
 
-The shortfall per day is the slope of the 30-day block means over the late half of the campaign, the fit the stability classification uses, divided by the 30 days of a block; the estimator is defined in [Methods](Methods.md#classifying-stability). At moderate intensity every shortfall interval contains zero. At high intensity the R2E theatre queue grew by <!-- GEN cell:load_shortfall|R2E operating theatres|High: shortfall per day|full --><!-- /GEN --> casualties a day, the staging overflow census by <!-- GEN cell:load_shortfall|R2E staging overflow|High: shortfall per day|full --><!-- /GEN --> and the strategic evacuation backlog by <!-- GEN cell:load_shortfall|Strategic evacuation backlog|High: shortfall per day|full --><!-- /GEN -->, while the intervals of the holding bed queue (<!-- GEN cell:load_shortfall|R2E holding beds|High: shortfall per day|full --><!-- /GEN -->) and the post-operative overflow census (<!-- GEN cell:load_shortfall|R2E post-operative overflow|High: shortfall per day|full --><!-- /GEN -->) contain zero. Over the closing 90 days the R2E theatres were in use <!-- GEN cell:load_shortfall|R2E operating theatres|Moderate: utilisation|full --><!-- /GEN --> of the time at moderate intensity and <!-- GEN cell:load_shortfall|R2E operating theatres|High: utilisation|full --><!-- /GEN --> at high, the holding beds <!-- GEN cell:load_shortfall|R2E holding beds|Moderate: utilisation|full --><!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E holding beds|High: utilisation|full --><!-- /GEN -->, and the intensive care beds <!-- GEN cell:load_shortfall|R2E intensive care|Moderate: utilisation|full --><!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E intensive care|High: utilisation|full --><!-- /GEN -->. The strategic evacuation backlog and the overflow censuses count casualties without a bed and have no establishment, so they carry no utilisation, and the intensive care beds carry no shortfall, no queue forming for them.
+The shortfall per day is the slope of the 30-day block means over the late half of the campaign, the fit the stability classification uses, divided by the 30 days of a block; the estimator is defined in [Methods](Methods.md#classifying-stability). At moderate intensity every shortfall interval contains zero. At high intensity the R2E theatre queue grew by <!-- GEN cell:load_shortfall|R2E operating theatres|High: shortfall per day|full -->0.079 [0.061, 0.097]<!-- /GEN --> casualties a day, the staging overflow census by <!-- GEN cell:load_shortfall|R2E staging overflow|High: shortfall per day|full -->7.861 [7.814, 7.908]<!-- /GEN --> and the strategic evacuation backlog by <!-- GEN cell:load_shortfall|Strategic evacuation backlog|High: shortfall per day|full -->8.639 [8.558, 8.719]<!-- /GEN -->, while the intervals of the holding bed queue (<!-- GEN cell:load_shortfall|R2E holding beds|High: shortfall per day|full -->0.015 [−0.015, 0.044]<!-- /GEN -->) and the post-operative overflow census (<!-- GEN cell:load_shortfall|R2E post-operative overflow|High: shortfall per day|full -->0.001 [−0.002, 0.004]<!-- /GEN -->) contain zero. Over the closing 90 days the R2E theatres were in use <!-- GEN cell:load_shortfall|R2E operating theatres|Moderate: utilisation|full -->26.5% [25.1%, 27.9%]<!-- /GEN --> of the time at moderate intensity and <!-- GEN cell:load_shortfall|R2E operating theatres|High: utilisation|full -->76.6% [76.0%, 77.2%]<!-- /GEN --> at high, the holding beds <!-- GEN cell:load_shortfall|R2E holding beds|Moderate: utilisation|full -->99.4% [99.2%, 99.5%]<!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E holding beds|High: utilisation|full -->100.0% [100.0%, 100.0%]<!-- /GEN -->, and the intensive care beds <!-- GEN cell:load_shortfall|R2E intensive care|Moderate: utilisation|full -->86.4% [85.6%, 87.2%]<!-- /GEN --> and <!-- GEN cell:load_shortfall|R2E intensive care|High: utilisation|full -->97.6% [97.6%, 97.7%]<!-- /GEN -->. The strategic evacuation backlog and the overflow censuses count casualties without a bed and have no establishment, so they carry no utilisation, and the intensive care beds carry no shortfall, no queue forming for them.
 
 ---
 
@@ -211,16 +219,17 @@ The shortfall per day is the slope of the 30-day block means over the late half 
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** What fraction of casualties who reach an R2B or R2E facility die of wounds, measured against the historical anchor of the campaign each configuration models? `[default and moderate_intensity · 360 d · 3 measurements of 10 replications · pooled, Student t]`
+**Question.** What fraction of casualties who reach an R2B or R2E facility die of wounds, measured against the historical anchor of the campaign each configuration models? `[default, moderate_intensity and high_intensity · 360 d · 3 measurements of 10 replications · pooled, Student t]`
 
 <!-- GEN dow_calibration -->
 | Configuration | Historical anchor | Treated-cohort died-of-wounds rate | Post-operative share of risk | Replications |
 |---|---|---|---|---|
-| Shipped default | at or below, 0.46% (Ajax Bay) | 0.471% [0.407%, 0.535%] | 11% | 30 |
-| Moderate intensity | at or below, 0.46% (Ajax Bay) | 0.471% [0.407%, 0.535%] | 11% | 30 |
+| Shipped default | fitted to 0.46% (Ajax Bay, 30 days) | 0.554% [0.468%, 0.640%] | 25% | 30 |
+| Moderate intensity | fitted to 0.46% (Ajax Bay, 30 days) | 0.557% [0.470%, 0.643%] | 24% | 30 |
+| High intensity | at or below 3.40% (Okinawa, 82 days) | 5.437% [5.024%, 5.850%] | 20% | 30 |
 <!-- /GEN -->
 
-The anchor is the three deaths of wounds among over 650 combat casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy [[2]](#references), an upper bound for the two Falklands-calibrated configurations. The shipped default's pooled rate over 360-day campaigns was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.471% [0.407%, 0.535%]<!-- /GEN --> and moderate intensity's <!-- GEN cell:dow_calibration|Moderate intensity|Treated-cohort died-of-wounds rate|full -->0.471% [0.407%, 0.535%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|Shipped default|Post-operative share of risk|full -->11%<!-- /GEN --> of the shipped default's expected deaths. High intensity shares the mortality model and carries no anchor of its own, so its deaths of wounds are a model output, reported in [Comparative Scenario Analysis](#comparative-scenario-analysis). The calibration check `tests/checks/check_dow_calibration.R` runs at 30 days, the horizon at which the base rates and the post-operative multiplier were fitted.
+The Falklands anchor is the three deaths of wounds among over 650 combat casualties treated by the Ajax Bay field hospital and its forward stations at Teal Inlet and Fitzroy [[2]](#references), a 30-day campaign, to which the two Falklands-calibrated configurations are fitted. The Okinawa anchor is the 3.4% of casualties reaching a hospital alive who died of wounds over the 82 days of that campaign [[3]](#references), an upper bound for the high-intensity profile, which is not fitted. Each anchor describes a campaign of its own length, and the measurement here is over 360 days. The shipped default's pooled rate was <!-- GEN cell:dow_calibration|Shipped default|Treated-cohort died-of-wounds rate|full -->0.554% [0.468%, 0.640%]<!-- /GEN --> and moderate intensity's <!-- GEN cell:dow_calibration|Moderate intensity|Treated-cohort died-of-wounds rate|full -->0.557% [0.470%, 0.643%]<!-- /GEN -->, with post-operative care carrying <!-- GEN cell:dow_calibration|Shipped default|Post-operative share of risk|full -->25%<!-- /GEN --> of the shipped default's expected deaths; high intensity's was <!-- GEN cell:dow_calibration|High intensity|Treated-cohort died-of-wounds rate|full -->5.437% [5.024%, 5.850%]<!-- /GEN -->. The calibration check `tests/checks/check_dow_calibration.R` asserts each anchor at the length of the campaign it describes, 30 days for the Falklands configurations and 82 for high intensity.
 
 ---
 
@@ -237,90 +246,90 @@ Each subsection varies one setting of the shipped configuration and reports the 
 <!-- GEN hold_window -->
 | Measure | Window 0 | Window 60 min | Difference |
 | --- | --- | --- | --- |
-| Casualties held at R2B | 0.00 | 88.87 | +88.87 [+85.42, +92.31] |
-| R2B surgeries | 664.63 | 718.30 | +53.67 [+31.17, +76.16] |
-| Diverted, team off shift | 1061.73 | 997.73 | −64.00 [−105.06, −22.94] |
-| Diverted, theatre busy | 187.67 | 201.60 | +13.93 [−4.25, +32.11] |
-| R2E first surgeries | 1584.37 | 1573.47 | −10.90 [−72.35, +50.55] |
-| R2E theatre entry deferred | 223.13 | 220.23 | −2.90 [−20.63, +14.83] |
-| Died of wounds per run | 10.73 | 10.67 | −0.07 [−2.25, +2.11] |
-| Total casualties | 5423.97 | 5402.87 | −21.10 [−161.67, +119.47] |
+| Casualties held at R2B | 0.00 | 107.07 | +107.07 [+104.04, +110.09] |
+| R2B surgeries | 771.60 | 822.87 | +51.27 [+31.92, +70.62] |
+| Diverted, team off shift | 1287.20 | 1193.50 | −93.70 [−131.51, −55.89] |
+| Diverted, theatre busy | 220.33 | 231.43 | +11.10 [−8.72, +30.92] |
+| R2E first surgeries | 1842.07 | 1801.07 | −41.00 [−105.33, +23.33] |
+| R2E theatre entry deferred | 384.07 | 368.57 | −15.50 [−34.50, +3.50] |
+| Died of wounds per run | 22.83 | 20.37 | −2.47 [−6.47, +1.53] |
+| Total casualties | 5345.60 | 5359.40 | +13.80 [−99.85, +127.45] |
 <!-- /GEN -->
 
 ![Forest plot of the paired difference in each of eight measures with its confidence interval](../images/paper_hold_window_effects.png)
 
 The paired difference per campaign for each of the eight measures with its 95% confidence interval against a vertical line at zero.
 
-A 60-minute window held <!-- GEN cell:hold_window|Casualties held at R2B|Window 60 min|full -->88.87<!-- /GEN --> casualties per campaign at R2B against none with a zero window. R2B surgeries differed by <!-- GEN cell:hold_window|R2B surgeries|Difference|full -->+53.67 [+31.17, +76.16]<!-- /GEN --> and diversions for an off-shift section by <!-- GEN cell:hold_window|Diverted, team off shift|Difference|full -->−64.00 [−105.06, −22.94]<!-- /GEN -->. The differences in diversions for a busy theatre were <!-- GEN cell:hold_window|Diverted, theatre busy|Difference|full -->+13.93 [−4.25, +32.11]<!-- /GEN -->, in R2E first surgeries <!-- GEN cell:hold_window|R2E first surgeries|Difference|full -->−10.90 [−72.35, +50.55]<!-- /GEN -->, in R2E theatre entry deferrals <!-- GEN cell:hold_window|R2E theatre entry deferred|Difference|full -->−2.90 [−20.63, +14.83]<!-- /GEN -->, in died of wounds <!-- GEN cell:hold_window|Died of wounds per run|Difference|full -->−0.07 [−2.25, +2.11]<!-- /GEN --> and in total casualties <!-- GEN cell:hold_window|Total casualties|Difference|full -->−21.10 [−161.67, +119.47]<!-- /GEN -->.
+A 60-minute window held <!-- GEN cell:hold_window|Casualties held at R2B|Window 60 min|full -->107.07<!-- /GEN --> casualties per campaign at R2B against none with a zero window. R2B surgeries differed by <!-- GEN cell:hold_window|R2B surgeries|Difference|full -->+51.27 [+31.92, +70.62]<!-- /GEN --> and diversions for an off-shift section by <!-- GEN cell:hold_window|Diverted, team off shift|Difference|full -->−93.70 [−131.51, −55.89]<!-- /GEN -->. The differences in diversions for a busy theatre were <!-- GEN cell:hold_window|Diverted, theatre busy|Difference|full -->+11.10 [−8.72, +30.92]<!-- /GEN -->, in R2E first surgeries <!-- GEN cell:hold_window|R2E first surgeries|Difference|full -->−41.00 [−105.33, +23.33]<!-- /GEN -->, in R2E theatre entry deferrals <!-- GEN cell:hold_window|R2E theatre entry deferred|Difference|full -->−15.50 [−34.50, +3.50]<!-- /GEN -->, in died of wounds <!-- GEN cell:hold_window|Died of wounds per run|Difference|full -->−2.47 [−6.47, +1.53]<!-- /GEN --> and in total casualties <!-- GEN cell:hold_window|Total casualties|Difference|full -->+13.80 [−99.85, +127.45]<!-- /GEN -->.
 
 **High-intensity profile.** The same comparison under `high_intensity` `[high_intensity, hold window 0 and 60 min · 360 d · 30 replications · campaign totals, paired differences]`:
 
 <!-- GEN hold_window_high -->
 | Measure | Window 0 | Window 60 min | Difference |
 | --- | --- | --- | --- |
-| Casualties held at R2B | 0.00 | 267.87 | +267.87 [+261.86, +273.87] |
-| R2B surgeries | 1507.87 | 1579.80 | +71.93 [+47.82, +96.05] |
-| Diverted, team off shift | 3402.13 | 3161.63 | −240.50 [−297.69, −183.31] |
-| Diverted, theatre busy | 1053.10 | 1106.73 | +53.63 [+11.61, +95.66] |
-| R2E first surgeries | 3533.23 | 3535.97 | +2.73 [−31.91, +37.38] |
-| R2E theatre entry deferred | 1027.93 | 1013.50 | −14.43 [−38.01, +9.14] |
-| Died of wounds per run | 278.70 | 277.60 | −1.10 [−11.59, +9.39] |
-| Total casualties | 12423.60 | 12409.50 | −14.10 [−165.18, +136.98] |
+| Casualties held at R2B | 0.00 | 338.47 | +338.47 [+334.36, +342.57] |
+| R2B surgeries | 1745.00 | 1791.73 | +46.73 [+23.82, +69.65] |
+| Diverted, team off shift | 4168.83 | 3830.60 | −338.23 [−399.33, −277.14] |
+| Diverted, theatre busy | 1340.40 | 1358.57 | +18.17 [−23.49, +59.83] |
+| R2E first surgeries | 6213.73 | 6153.27 | −60.47 [−147.11, +26.17] |
+| R2E theatre entry deferred | 1629.47 | 1600.87 | −28.60 [−67.25, +10.05] |
+| Died of wounds per run | 649.37 | 509.33 | −140.03 [−232.70, −47.37] |
+| Total casualties | 12463.60 | 12356.87 | −106.73 [−256.08, +42.62] |
 <!-- /GEN -->
 
-The 60-minute window held <!-- GEN cell:hold_window_high|Casualties held at R2B|Window 60 min|full -->267.87<!-- /GEN --> casualties forward and changed diversions for a team off shift by <!-- GEN cell:hold_window_high|Diverted, team off shift|Difference|full -->−240.50 [−297.69, −183.31]<!-- /GEN -->.
+The 60-minute window held <!-- GEN cell:hold_window_high|Casualties held at R2B|Window 60 min|full -->338.47<!-- /GEN --> casualties forward and changed diversions for a team off shift by <!-- GEN cell:hold_window_high|Diverted, team off shift|Difference|full -->−338.23 [−399.33, −277.14]<!-- /GEN -->.
 
 ### R2B Holding Capacity and Evacuation Threshold
 
 **Question.** How do the R2B holding queue and the pools behind it respond to the R2B holding bed establishment and to the threshold at which convalescent casualties are evacuated early? `[default, 5 to 10 holding beds per unit crossed with a 0 to 7 day threshold · 360 d · 30 replications · pool totals, closing 90 d]`
 
 <!-- GEN hold_threshold_beds -->
-| R2B holding beds per unit | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Deaths of wounds |
-|---|---|---|---|---|---|---|
-| 5 (shipped) | 4.84 [3.57, 6.11] | 66.6% [65.1, 68.0] | 0.078 [0.000, 0.190] | 1.355 [0.554, 2.156] | 1673 [1647, 1700] | 10.7 [9.3, 12.0] |
-| 7 | 2.09 [1.38, 2.80] | 61.6% [59.4, 63.9] | 0.009 [0.000, 0.021] | 0.700 [0.543, 0.856] | 1660 [1629, 1692] | 10.8 [9.6, 12.0] |
-| 10 | 0.32 [0.10, 0.53] | 46.9% [44.8, 49.0] | 0.000 [0.000, 0.000] | 0.886 [0.576, 1.196] | 1670 [1648, 1692] | 9.5 [8.6, 10.5] |
+| R2B holding beds per unit | R2B hold mean queue | R2B hold utilisation | R2B reception overflow census | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Deaths of wounds |
+|---|---|---|---|---|---|---|---|
+| 5 (shipped) | 0.06 [0.03, 0.08] | 79.4% [79.1, 79.8] | 0.023 [0.004, 0.043] | 22.872 [21.384, 24.359] | 5.26 [4.84, 5.68] | 2050 [2024, 2075] | 20.4 [17.9, 22.9] |
+| 7 | 0.12 [0.07, 0.16] | 83.7% [83.4, 83.9] | 0.047 [0.000, 0.096] | 20.666 [19.594, 21.738] | 5.27 [4.85, 5.69] | 2054 [2025, 2084] | 20.3 [17.8, 22.7] |
+| 10 | 0.07 [0.01, 0.12] | 77.9% [77.6, 78.2] | 0.022 [0.010, 0.034] | 19.338 [18.025, 20.651] | 5.77 [5.45, 6.10] | 2068 [2041, 2096] | 24.5 [18.1, 30.8] |
 <!-- /GEN -->
 
-With the threshold disabled, raising the establishment from five to ten holding beds per unit moved the R2B holding queue from <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2B hold mean queue|full -->4.84 [3.57, 6.11]<!-- /GEN --> to <!-- GEN cell:hold_threshold_beds|10|R2B hold mean queue|full -->0.32 [0.10, 0.53]<!-- /GEN --> and R2B holding utilisation from <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2B hold utilisation|full -->66.6% [65.1, 68.0]<!-- /GEN --> to <!-- GEN cell:hold_threshold_beds|10|R2B hold utilisation|full -->46.9% [44.8, 49.0]<!-- /GEN -->. The R2E holding queue was <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2E hold mean queue|full -->0.078 [0.000, 0.190]<!-- /GEN --> at five beds and <!-- GEN cell:hold_threshold_beds|10|R2E hold mean queue|full -->0.000 [0.000, 0.000]<!-- /GEN --> at ten, and the R2E post-operative overflow census <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2E post-operative overflow census|full -->1.355 [0.554, 2.156]<!-- /GEN --> and <!-- GEN cell:hold_threshold_beds|10|R2E post-operative overflow census|full -->0.886 [0.576, 1.196]<!-- /GEN --> Returns to duty were <!-- GEN cell:hold_threshold_beds|5 (shipped)|Returns to duty|full -->1673 [1647, 1700]<!-- /GEN --> at five beds and <!-- GEN cell:hold_threshold_beds|10|Returns to duty|full -->1670 [1648, 1692]<!-- /GEN --> at ten, and deaths of wounds <!-- GEN cell:hold_threshold_beds|5 (shipped)|Deaths of wounds|full -->10.7 [9.3, 12.0]<!-- /GEN --> and <!-- GEN cell:hold_threshold_beds|10|Deaths of wounds|full -->9.5 [8.6, 10.5]<!-- /GEN -->.
+With the threshold disabled, raising the establishment from five to ten holding beds per unit moved the R2B holding queue from <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2B hold mean queue|full -->0.06 [0.03, 0.08]<!-- /GEN --> to <!-- GEN cell:hold_threshold_beds|10|R2B hold mean queue|full -->0.07 [0.01, 0.12]<!-- /GEN --> and R2B holding utilisation from <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2B hold utilisation|full -->79.4% [79.1, 79.8]<!-- /GEN --> to <!-- GEN cell:hold_threshold_beds|10|R2B hold utilisation|full -->77.9% [77.6, 78.2]<!-- /GEN -->. The R2E holding queue was <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2E hold mean queue|full -->22.872 [21.384, 24.359]<!-- /GEN --> at five beds and <!-- GEN cell:hold_threshold_beds|10|R2E hold mean queue|full -->19.338 [18.025, 20.651]<!-- /GEN --> at ten, and the R2E post-operative overflow census <!-- GEN cell:hold_threshold_beds|5 (shipped)|R2E post-operative overflow census|full -->5.26 [4.84, 5.68]<!-- /GEN --> and <!-- GEN cell:hold_threshold_beds|10|R2E post-operative overflow census|full -->5.77 [5.45, 6.10]<!-- /GEN --> Returns to duty were <!-- GEN cell:hold_threshold_beds|5 (shipped)|Returns to duty|full -->2050 [2024, 2075]<!-- /GEN --> at five beds and <!-- GEN cell:hold_threshold_beds|10|Returns to duty|full -->2068 [2041, 2096]<!-- /GEN --> at ten, and deaths of wounds <!-- GEN cell:hold_threshold_beds|5 (shipped)|Deaths of wounds|full -->20.4 [17.9, 22.9]<!-- /GEN --> and <!-- GEN cell:hold_threshold_beds|10|Deaths of wounds|full -->24.5 [18.1, 30.8]<!-- /GEN -->.
 
 <!-- GEN hold_threshold_threshold -->
-| Evacuation threshold | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Deaths of wounds |
-|---|---|---|---|---|---|---|
-| Disabled (shipped) | 4.84 [3.57, 6.11] | 66.6% [65.1, 68.0] | 0.078 [0.000, 0.190] | 1.355 [0.554, 2.156] | 1673 [1647, 1700] | 10.7 [9.3, 12.0] |
-| 1 day | 0.01 [0.00, 0.04] | 7.1% [6.7, 7.5] | 1.655 [0.829, 2.481] | 1.274 [0.773, 1.775] | 1666 [1646, 1687] | 10.8 [9.3, 12.3] |
-| 3 days | 0.04 [0.00, 0.09] | 20.4% [19.1, 21.6] | 1.047 [0.489, 1.606] | 1.099 [0.533, 1.666] | 1671 [1643, 1699] | 10.4 [9.2, 11.5] |
-| 5 days (mode) | 0.15 [0.06, 0.25] | 31.0% [29.5, 32.6] | 1.018 [0.361, 1.675] | 2.051 [0.000, 4.558] | 1669 [1637, 1701] | 10.1 [8.8, 11.3] |
-| 7 days | 0.49 [0.33, 0.66] | 43.0% [40.9, 45.1] | 0.219 [0.041, 0.396] | 0.662 [0.528, 0.795] | 1684 [1667, 1701] | 10.4 [9.2, 11.6] |
+| Evacuation threshold | R2B hold mean queue | R2B hold utilisation | R2B reception overflow census | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Deaths of wounds |
+|---|---|---|---|---|---|---|---|
+| Disabled (shipped) | 0.06 [0.03, 0.08] | 79.4% [79.1, 79.8] | 0.023 [0.004, 0.043] | 22.872 [21.384, 24.359] | 5.26 [4.84, 5.68] | 2050 [2024, 2075] | 20.4 [17.9, 22.9] |
+| 1 day | 0.03 [0.02, 0.03] | 52.7% [51.4, 54.1] | 0.054 [0.012, 0.095] | 23.672 [22.471, 24.873] | 5.56 [5.25, 5.87] | 2033 [2001, 2064] | 20.8 [18.4, 23.2] |
+| 3 days | 0.05 [0.03, 0.07] | 69.3% [68.7, 70.0] | 0.087 [0.000, 0.191] | 23.709 [22.435, 24.984] | 5.60 [5.19, 6.01] | 2046 [2018, 2073] | 23.0 [18.4, 27.7] |
+| 5 days (mode) | 0.07 [0.05, 0.10] | 74.5% [74.0, 75.0] | 0.055 [0.019, 0.092] | 24.325 [22.961, 25.689] | 5.63 [5.22, 6.04] | 2035 [2005, 2065] | 24.9 [17.9, 32.0] |
+| 7 days | 0.08 [0.06, 0.10] | 76.3% [75.8, 76.8] | 0.014 [0.005, 0.023] | 22.652 [21.324, 23.980] | 5.33 [4.96, 5.70] | 2043 [2011, 2075] | 20.6 [18.3, 22.9] |
 <!-- /GEN -->
 
 ![Eight panels of R2B and R2E queue and utilisation, returns to duty and died of wounds against the evacuation threshold](../images/r2b_hold_threshold_sweep.png)
 
 R2B and R2E queue and utilisation, returns to duty and died of wounds against the evacuation threshold in days, one line per swept bed count, with a 95% confidence ribbon.
 
-With five beds per unit, a one-day threshold moved the R2B holding queue to <!-- GEN cell:hold_threshold_threshold|1 day|R2B hold mean queue|full -->0.01 [0.00, 0.04]<!-- /GEN --> and the R2E holding queue to <!-- GEN cell:hold_threshold_threshold|1 day|R2E hold mean queue|full -->1.655 [0.829, 2.481]<!-- /GEN -->, and the R2E post-operative overflow census to <!-- GEN cell:hold_threshold_threshold|1 day|R2E post-operative overflow census|full -->1.274 [0.773, 1.775]<!-- /GEN -->. A three-day threshold gave <!-- GEN cell:hold_threshold_threshold|3 days|R2B hold mean queue|full -->0.04 [0.00, 0.09]<!-- /GEN -->, <!-- GEN cell:hold_threshold_threshold|3 days|R2E hold mean queue|full -->1.047 [0.489, 1.606]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|3 days|R2E post-operative overflow census|full -->1.099 [0.533, 1.666]<!-- /GEN --> on the same three responses. At five and seven days the R2B holding queue was <!-- GEN cell:hold_threshold_threshold|5 days (mode)|R2B hold mean queue|full -->0.15 [0.06, 0.25]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|7 days|R2B hold mean queue|full -->0.49 [0.33, 0.66]<!-- /GEN -->. Returns to duty were <!-- GEN cell:hold_threshold_threshold|Disabled (shipped)|Returns to duty|full -->1673 [1647, 1700]<!-- /GEN --> with the threshold disabled and <!-- GEN cell:hold_threshold_threshold|1 day|Returns to duty|full -->1666 [1646, 1687]<!-- /GEN --> at one day, and deaths of wounds <!-- GEN cell:hold_threshold_threshold|Disabled (shipped)|Deaths of wounds|full -->10.7 [9.3, 12.0]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|1 day|Deaths of wounds|full -->10.8 [9.3, 12.3]<!-- /GEN -->. The full grid, including returns to duty and deaths of wounds at every point, is in `data/sweeps/r2b_hold_threshold_sweep.csv`.
+With five beds per unit, a one-day threshold moved the R2B holding queue to <!-- GEN cell:hold_threshold_threshold|1 day|R2B hold mean queue|full -->0.03 [0.02, 0.03]<!-- /GEN --> and the R2E holding queue to <!-- GEN cell:hold_threshold_threshold|1 day|R2E hold mean queue|full -->23.672 [22.471, 24.873]<!-- /GEN -->, and the R2E post-operative overflow census to <!-- GEN cell:hold_threshold_threshold|1 day|R2E post-operative overflow census|full -->5.56 [5.25, 5.87]<!-- /GEN -->. A three-day threshold gave <!-- GEN cell:hold_threshold_threshold|3 days|R2B hold mean queue|full -->0.05 [0.03, 0.07]<!-- /GEN -->, <!-- GEN cell:hold_threshold_threshold|3 days|R2E hold mean queue|full -->23.709 [22.435, 24.984]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|3 days|R2E post-operative overflow census|full -->5.60 [5.19, 6.01]<!-- /GEN --> on the same three responses. At five and seven days the R2B holding queue was <!-- GEN cell:hold_threshold_threshold|5 days (mode)|R2B hold mean queue|full -->0.07 [0.05, 0.10]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|7 days|R2B hold mean queue|full -->0.08 [0.06, 0.10]<!-- /GEN -->. Returns to duty were <!-- GEN cell:hold_threshold_threshold|Disabled (shipped)|Returns to duty|full -->2050 [2024, 2075]<!-- /GEN --> with the threshold disabled and <!-- GEN cell:hold_threshold_threshold|1 day|Returns to duty|full -->2033 [2001, 2064]<!-- /GEN --> at one day, and deaths of wounds <!-- GEN cell:hold_threshold_threshold|Disabled (shipped)|Deaths of wounds|full -->20.4 [17.9, 22.9]<!-- /GEN --> and <!-- GEN cell:hold_threshold_threshold|1 day|Deaths of wounds|full -->20.8 [18.4, 23.2]<!-- /GEN -->. The full grid, including returns to duty and deaths of wounds at every point, is in `data/sweeps/r2b_hold_threshold_sweep.csv`.
 
 **High-intensity profile.** The same grid under `high_intensity` `[high_intensity, 5 to 10 beds per unit and 0 to 7 days · 360 d · 30 replications · pool totals, closing 90 d]`:
 
 <!-- GEN hold_threshold_beds_high -->
-| R2B holding beds per unit | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Deaths of wounds |
-|---|---|---|---|---|---|---|
-| 5 (shipped) | 30.58 [25.22, 35.95] | 70.6% [68.8, 72.5] | 556.080 [528.497, 583.663] | 1438.305 [1423.919, 1452.690] | 2840 [2806, 2874] | 277.6 [272.1, 283.1] |
-| 7 | 17.54 [13.94, 21.13] | 68.1% [66.7, 69.5] | 561.599 [538.761, 584.437] | 1429.201 [1411.988, 1446.413] | 2845 [2810, 2879] | 275.9 [269.6, 282.2] |
-| 10 | 2.87 [2.26, 3.48] | 54.2% [52.2, 56.1] | 592.399 [570.560, 614.238] | 1432.174 [1416.337, 1448.010] | 2814 [2786, 2842] | 268.8 [263.0, 274.6] |
+| R2B holding beds per unit | R2B hold mean queue | R2B hold utilisation | R2B reception overflow census | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Deaths of wounds |
+|---|---|---|---|---|---|---|---|
+| 5 (shipped) | 0.36 [0.28, 0.43] | 81.8% [81.3, 82.2] | 0.251 [0.212, 0.289] | 54.952 [53.023, 56.881] | 20.17 [19.97, 20.38] | 2859 [2826, 2892] | 506.2 [461.5, 550.8] |
+| 7 | 0.50 [0.42, 0.57] | 85.8% [85.6, 86.0] | 0.316 [0.262, 0.371] | 51.644 [50.036, 53.252] | 19.74 [19.44, 20.05] | 2845 [2812, 2878] | 607.5 [524.4, 690.6] |
+| 10 | 0.36 [0.26, 0.46] | 80.3% [80.0, 80.6] | 0.267 [0.209, 0.326] | 49.064 [47.341, 50.787] | 19.86 [19.62, 20.10] | 2852 [2819, 2886] | 567.1 [497.0, 637.2] |
 <!-- /GEN -->
 
 <!-- GEN hold_threshold_threshold_high -->
-| Evacuation threshold | R2B hold mean queue | R2B hold utilisation | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Deaths of wounds |
-|---|---|---|---|---|---|---|
-| Disabled (shipped) | 30.58 [25.22, 35.95] | 70.6% [68.8, 72.5] | 556.080 [528.497, 583.663] | 1438.305 [1423.919, 1452.690] | 2840 [2806, 2874] | 277.6 [272.1, 283.1] |
-| 1 day | 0.13 [0.10, 0.16] | 11.0% [10.6, 11.5] | 615.346 [583.381, 647.312] | 1431.386 [1414.086, 1448.685] | 2828 [2800, 2855] | 274.1 [265.0, 283.2] |
-| 3 days | 0.42 [0.33, 0.51] | 23.8% [22.5, 25.1] | 610.999 [588.441, 633.558] | 1434.711 [1420.608, 1448.815] | 2794 [2761, 2827] | 276.3 [271.2, 281.5] |
-| 5 days (mode) | 1.20 [0.98, 1.41] | 38.5% [37.0, 40.1] | 610.545 [592.845, 628.246] | 1436.273 [1419.741, 1452.804] | 2826 [2791, 2861] | 270.2 [262.0, 278.3] |
-| 7 days | 4.01 [3.26, 4.76] | 50.5% [48.9, 52.0] | 632.854 [608.255, 657.453] | 1427.024 [1410.788, 1443.259] | 2846 [2812, 2880] | 277.1 [269.7, 284.4] |
+| Evacuation threshold | R2B hold mean queue | R2B hold utilisation | R2B reception overflow census | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Deaths of wounds |
+|---|---|---|---|---|---|---|---|
+| Disabled (shipped) | 0.36 [0.28, 0.43] | 81.8% [81.3, 82.2] | 0.251 [0.212, 0.289] | 54.952 [53.023, 56.881] | 20.17 [19.97, 20.38] | 2859 [2826, 2892] | 506.2 [461.5, 550.8] |
+| 1 day | 0.14 [0.12, 0.16] | 60.1% [59.2, 61.0] | 0.323 [0.272, 0.375] | 57.961 [56.178, 59.745] | 19.73 [19.53, 19.93] | 2847 [2821, 2874] | 587.6 [500.7, 674.4] |
+| 3 days | 0.22 [0.19, 0.25] | 74.0% [73.3, 74.6] | 0.326 [0.264, 0.387] | 55.848 [54.232, 57.464] | 19.68 [19.34, 20.02] | 2871 [2839, 2903] | 624.1 [514.9, 733.2] |
+| 5 days (mode) | 0.26 [0.22, 0.29] | 77.4% [76.9, 77.9] | 0.332 [0.261, 0.403] | 54.519 [52.539, 56.499] | 19.97 [19.72, 20.21] | 2869 [2837, 2901] | 573.9 [512.5, 635.2] |
+| 7 days | 0.29 [0.23, 0.34] | 79.3% [79.0, 79.7] | 0.345 [0.271, 0.419] | 54.004 [51.825, 56.182] | 19.71 [19.43, 19.99] | 2852 [2827, 2878] | 592.3 [520.5, 664.1] |
 <!-- /GEN -->
 
-At 10 holding beds per unit the R2B holding queue was <!-- GEN cell:hold_threshold_beds_high|10|R2B hold mean queue|full -->2.87 [2.26, 3.48]<!-- /GEN --> against <!-- GEN cell:hold_threshold_beds_high|5 (shipped)|R2B hold mean queue|full -->30.58 [25.22, 35.95]<!-- /GEN --> at the shipped five. A one-day evacuation threshold left the R2E holding queue at <!-- GEN cell:hold_threshold_threshold_high|1 day|R2E hold mean queue|full -->615.346 [583.381, 647.312]<!-- /GEN --> against <!-- GEN cell:hold_threshold_threshold_high|Disabled (shipped)|R2E hold mean queue|full -->556.080 [528.497, 583.663]<!-- /GEN --> with the threshold disabled.
+At 10 holding beds per unit the R2B holding queue was <!-- GEN cell:hold_threshold_beds_high|10|R2B hold mean queue|full -->0.36 [0.26, 0.46]<!-- /GEN --> against <!-- GEN cell:hold_threshold_beds_high|5 (shipped)|R2B hold mean queue|full -->0.36 [0.28, 0.43]<!-- /GEN --> at the shipped five. A one-day evacuation threshold left the R2E holding queue at <!-- GEN cell:hold_threshold_threshold_high|1 day|R2E hold mean queue|full -->57.961 [56.178, 59.745]<!-- /GEN --> against <!-- GEN cell:hold_threshold_threshold_high|Disabled (shipped)|R2E hold mean queue|full -->54.952 [53.023, 56.881]<!-- /GEN --> with the threshold disabled.
 
 ![Eight panels of R2B and R2E queue and utilisation, returns to duty and died of wounds against the evacuation threshold at high intensity](../images/r2b_hold_threshold_sweep_high_intensity.png)
 
@@ -335,11 +344,11 @@ The first table is the shipped moderate-intensity configuration and the second t
 <!-- GEN transport -->
 | Fleet size | Ambulance mean queue | Truck mean queue |
 |---|---|---|
-| 1 | 1.2509 [0.4597, 2.0422] | 0.1133 [0.0055, 0.2210] |
-| 2 | 0.1427 [0.0342, 0.2513] | 0.0369 [0.0000, 0.0816] |
-| 3 (current ambulance) | 0.4278 [0.0000, 1.1927] | 0.0011 [0.0005, 0.0018] |
-| 4 (current truck) | 0.0511 [0.0000, 0.1204] | 0.0001 [0.0000, 0.0002] |
-| 5 | 0.0067 [0.0000, 0.0166] | not swept |
+| 1 | 7.6600 [4.1208, 11.1993] | 0.0599 [0.0330, 0.0868] |
+| 2 | 1.1869 [0.7669, 1.6069] | 0.0055 [0.0020, 0.0089] |
+| 3 (current ambulance) | 0.1471 [0.0849, 0.2093] | 0.0154 [0.0000, 0.0369] |
+| 4 (current truck) | 0.1214 [0.0000, 0.2904] | 0.0006 [0.0000, 0.0014] |
+| 5 | 0.0200 [0.0098, 0.0302] | not swept |
 <!-- /GEN -->
 
 ![Four panels of mean queue and utilisation against fleet size for the ambulance and truck fleets](../images/transport_capacity_margin_by_fleet_size.png)
@@ -349,18 +358,18 @@ Mean queue and mean utilisation against fleet size for the ambulance and truck f
 <!-- GEN transport_high -->
 | Fleet size | Ambulance mean queue | Truck mean queue |
 |---|---|---|
-| 1 | 46.7132 [37.7039, 55.7225] | 0.1202 [0.1006, 0.1398] |
-| 2 | 1.1259 [0.8840, 1.3678] | 0.0090 [0.0075, 0.0104] |
-| 3 (current ambulance) | 0.2188 [0.1604, 0.2771] | 0.0013 [0.0009, 0.0018] |
-| 4 (current truck) | 0.0644 [0.0366, 0.0921] | 0.0002 [0.0001, 0.0004] |
-| 5 | 0.0122 [0.0088, 0.0155] | not swept |
+| 1 | 2080.6801 [1946.9363, 2214.4240] | 0.1164 [0.0914, 0.1413] |
+| 2 | 9.8669 [8.2616, 11.4722] | 0.0067 [0.0055, 0.0078] |
+| 3 (current ambulance) | 1.9345 [1.5620, 2.3070] | 0.0010 [0.0007, 0.0013] |
+| 4 (current truck) | 0.7159 [0.5711, 0.8607] | 0.0001 [0.0000, 0.0002] |
+| 5 | 0.2132 [0.1261, 0.3004] | not swept |
 <!-- /GEN -->
 
 ![Four panels of mean queue and utilisation against fleet size under the high intensity profile](../images/transport_capacity_margin_by_fleet_size_high_intensity.png)
 
 The same measures under the `high_intensity` profile, each with a 95% confidence ribbon and a dashed vertical line at the current establishment size.
 
-Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->1.2509<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[0.4597, 2.0422]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->0.1427<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.4278<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->46.7132<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->1.1259<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->0.2188<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0002<!-- /GEN -->.
+Under the shipped configuration a single ambulance queued <!-- GEN cell:transport|1|Ambulance mean queue|mean -->7.6600<!-- /GEN --> casualties (interval <!-- GEN cell:transport|1|Ambulance mean queue|ci -->[4.1208, 11.1993]<!-- /GEN -->), two queued <!-- GEN cell:transport|2|Ambulance mean queue|mean -->1.1869<!-- /GEN --> and the shipped three <!-- GEN cell:transport|3 (current ambulance)|Ambulance mean queue|mean -->0.1471<!-- /GEN -->. Under the high-intensity profile the corresponding ambulance queues were <!-- GEN cell:transport_high|1|Ambulance mean queue|mean -->2080.6801<!-- /GEN -->, <!-- GEN cell:transport_high|2|Ambulance mean queue|mean -->9.8669<!-- /GEN --> and <!-- GEN cell:transport_high|3 (current ambulance)|Ambulance mean queue|mean -->1.9345<!-- /GEN -->, and the shipped four trucks queued <!-- GEN cell:transport_high|4 (current truck)|Truck mean queue|mean -->0.0001<!-- /GEN -->.
 
 #### Utilisation of Shared Fleets and Integral Evacuation Elements
 
@@ -371,55 +380,55 @@ Utilisation is the time-weighted share of the established units in use over the 
 <!-- GEN transport_holders -->
 | Holder | Asset | Moderate intensity mean queue | Moderate intensity utilisation | High intensity mean queue | High intensity utilisation |
 |---|---|---|---|---|---|
-| PMV Ambulance fleet | Shared | 0.019 [0.008, 0.029] | 12.1% [11.6%, 12.5%] | 0.236 [0.153, 0.320] | 30.9% [30.1%, 31.7%] |
-| HX2 40M fleet | Shared | 0.002 [0.000, 0.003] | 2.6% [2.4%, 2.8%] | 0.000 [0.000, 0.000] | 6.0% [5.8%, 6.2%] |
-| R2B evacuation crews | Integral | 0.048 [0.040, 0.056] | 15.2% [14.6%, 15.8%] | 0.457 [0.416, 0.498] | 41.6% [40.6%, 42.6%] |
-| R2E evacuation sections | Integral | 0.000 [0.000, 0.000] | 0.0% [0.0%, 0.0%] | 0.001 [0.001, 0.001] | 1.3% [1.2%, 1.3%] |
+| PMV Ambulance fleet | Shared | 0.146 [0.084, 0.209] | 23.8% [23.1%, 24.6%] | 1.919 [1.543, 2.295] | 51.9% [50.9%, 53.0%] |
+| HX2 40M fleet | Shared | 0.001 [0.000, 0.001] | 2.6% [2.5%, 2.8%] | 0.000 [0.000, 0.000] | 5.8% [5.6%, 5.9%] |
+| R2B evacuation crews | Integral | 0.052 [0.030, 0.073] | 13.1% [12.4%, 13.8%] | 0.611 [0.546, 0.676] | 42.2% [41.3%, 43.0%] |
+| R2E evacuation sections | Integral | 0.000 [0.000, 0.000] | 0.0% [0.0%, 0.0%] | 0.000 [0.000, 0.000] | 1.0% [0.9%, 1.1%] |
 <!-- /GEN -->
 
-At moderate intensity the R2B evacuation crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|Moderate intensity utilisation|mean -->15.2%<!-- /GEN --> of the window and the ambulance fleet for <!-- GEN cell:transport_holders|PMV Ambulance fleet|Moderate intensity utilisation|mean -->12.1%<!-- /GEN -->. At high intensity the crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|mean -->41.6%<!-- /GEN --> (interval <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|ci -->[40.6%, 42.6%]<!-- /GEN -->) and queued <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity mean queue|mean -->0.457<!-- /GEN --> casualties, the ambulance fleet was in use for <!-- GEN cell:transport_holders|PMV Ambulance fleet|High intensity utilisation|mean -->30.9%<!-- /GEN --> and the truck fleet for <!-- GEN cell:transport_holders|HX2 40M fleet|High intensity utilisation|mean -->6.0%<!-- /GEN -->. The R2E evacuation sections were in use for <!-- GEN cell:transport_holders|R2E evacuation sections|High intensity utilisation|mean -->1.3%<!-- /GEN --> at high intensity.
+At moderate intensity the R2B evacuation crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|Moderate intensity utilisation|mean -->13.1%<!-- /GEN --> of the window and the ambulance fleet for <!-- GEN cell:transport_holders|PMV Ambulance fleet|Moderate intensity utilisation|mean -->23.8%<!-- /GEN -->. At high intensity the crews were in use for <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|mean -->42.2%<!-- /GEN --> (interval <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity utilisation|ci -->[41.3%, 43.0%]<!-- /GEN -->) and queued <!-- GEN cell:transport_holders|R2B evacuation crews|High intensity mean queue|mean -->0.611<!-- /GEN --> casualties, the ambulance fleet was in use for <!-- GEN cell:transport_holders|PMV Ambulance fleet|High intensity utilisation|mean -->51.9%<!-- /GEN --> and the truck fleet for <!-- GEN cell:transport_holders|HX2 40M fleet|High intensity utilisation|mean -->5.8%<!-- /GEN -->. The R2E evacuation sections were in use for <!-- GEN cell:transport_holders|R2E evacuation sections|High intensity utilisation|mean -->1.0%<!-- /GEN --> at high intensity.
 
 ### Forward Holding of Post-Operative Intensive Care
 
 **Question.** What changes when a casualty operated on at R2B is held there for part of their post-operative intensive care, for a stability window or while R2E intensive care is saturated? `[default, seven forward holding arms · 360 d · 30 replications · pool totals, closing 90 d]`
 
 <!-- GEN forward_hold -->
-| Forward holding rule | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
+| Forward holding rule | R2E post-operative overflow census | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
 |---|---|---|---|---|---|
-| Off (current) | 1.355 [0.554, 2.156] | 1.6% | 87.8% | 31.7 [30.6, 32.8] | 10.67 [9.33, 12.00] |
-| 120 min | 2.305 [0.000, 4.787] | 5.3% | 87.6% | 32.7 [30.9, 34.5] | 11.83 [10.44, 13.23] |
-| 240 min | 0.911 [0.674, 1.149] | 9.3% | 86.7% | 34.4 [32.8, 36.0] | 11.40 [10.01, 12.79] |
-| 480 min | 0.803 [0.368, 1.239] | 17.1% | 85.7% | 36.1 [34.6, 37.7] | 11.07 [9.83, 12.30] |
-| 1,440 min | 1.020 [0.436, 1.603] | 36.8% | 82.9% | 41.4 [39.7, 43.1] | 12.23 [10.59, 13.87] |
-| Capacity only | 0.953 [0.468, 1.437] | 16.8% | 88.4% | 37.0 [35.6, 38.3] | 12.40 [11.02, 13.78] |
-| 240 min + capacity | 0.666 [0.546, 0.786] | 22.8% | 87.4% | 37.8 [36.2, 39.5] | 12.53 [11.41, 13.66] |
+| Off (current) | 5.26 [4.84, 5.68] | 0.9% | 86.3% | 35.5 [34.8, 36.1] | 20.37 [17.86, 22.88] |
+| 120 min | 5.23 [4.82, 5.63] | 5.8% | 85.3% | 35.6 [34.9, 36.2] | 22.13 [19.32, 24.94] |
+| 240 min | 5.18 [4.82, 5.53] | 10.6% | 86.1% | 36.3 [35.5, 37.1] | 22.83 [18.56, 27.11] |
+| 480 min | 4.95 [4.62, 5.29] | 19.5% | 85.3% | 36.7 [36.0, 37.5] | 22.03 [19.39, 24.68] |
+| 1,440 min | 4.09 [3.71, 4.47] | 44.1% | 82.7% | 41.6 [40.8, 42.4] | 26.00 [19.78, 32.22] |
+| Capacity only | 5.33 [4.96, 5.70] | 11.4% | 88.1% | 36.8 [36.1, 37.5] | 20.97 [18.09, 23.84] |
+| 240 min + capacity | 4.65 [4.32, 4.97] | 19.4% | 86.9% | 39.1 [38.2, 40.0] | 21.43 [17.56, 25.30] |
 <!-- /GEN -->
 
 ![Five stacked panels against the forward holding rule](../images/r2b_forward_hold_frontier.png)
 
 R2E post-operative overflow census, R2B and R2E intensive care utilisation, the share of post-definitive care delivered in intensive care and the died-of-wounds count under each forward holding arm, each with a 95% confidence ribbon. The windows apply to damage control and single-stage casualties alike.
 
-The R2E post-operative overflow census was <!-- GEN cell:forward_hold|Off (current)|R2E post-operative overflow census|full -->1.355 [0.554, 2.156]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|240 min|R2E post-operative overflow census|full -->0.911 [0.674, 1.149]<!-- /GEN --> with a 240-minute window. R2B intensive care utilisation rose from <!-- GEN cell:forward_hold|Off (current)|R2B ICU utilisation|full -->1.6%<!-- /GEN --> with no forward holding to <!-- GEN cell:forward_hold|1,440 min|R2B ICU utilisation|full -->36.8%<!-- /GEN --> at a 1,440-minute window while R2E intensive care utilisation moved from <!-- GEN cell:forward_hold|Off (current)|R2E ICU utilisation|full -->87.8%<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|R2E ICU utilisation|full -->82.9%<!-- /GEN -->. Post-definitive care in an intensive care bed rose from <!-- GEN cell:forward_hold|Off (current)|Post-definitive care in ICU|full -->31.7 [30.6, 32.8]<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|Post-definitive care in ICU|full -->41.4 [39.7, 43.1]<!-- /GEN -->, and died of wounds per run was <!-- GEN cell:forward_hold|Off (current)|Died of wounds per run|full -->10.67 [9.33, 12.00]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|1,440 min|Died of wounds per run|full -->12.23 [10.59, 13.87]<!-- /GEN --> at 1,440 minutes. Holding on capacity grounds alone gave a post-operative overflow census of <!-- GEN cell:forward_hold|Capacity only|R2E post-operative overflow census|full -->0.953 [0.468, 1.437]<!-- /GEN -->, and a 240-minute window with the capacity trigger gave <!-- GEN cell:forward_hold|240 min + capacity|R2E post-operative overflow census|full -->0.666 [0.546, 0.786]<!-- /GEN -->.
+The R2E post-operative overflow census was <!-- GEN cell:forward_hold|Off (current)|R2E post-operative overflow census|full -->5.26 [4.84, 5.68]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|240 min|R2E post-operative overflow census|full -->5.18 [4.82, 5.53]<!-- /GEN --> with a 240-minute window. R2B intensive care utilisation rose from <!-- GEN cell:forward_hold|Off (current)|R2B ICU utilisation|full -->0.9%<!-- /GEN --> with no forward holding to <!-- GEN cell:forward_hold|1,440 min|R2B ICU utilisation|full -->44.1%<!-- /GEN --> at a 1,440-minute window while R2E intensive care utilisation moved from <!-- GEN cell:forward_hold|Off (current)|R2E ICU utilisation|full -->86.3%<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|R2E ICU utilisation|full -->82.7%<!-- /GEN -->. Post-definitive care in an intensive care bed rose from <!-- GEN cell:forward_hold|Off (current)|Post-definitive care in ICU|full -->35.5 [34.8, 36.1]<!-- /GEN --> to <!-- GEN cell:forward_hold|1,440 min|Post-definitive care in ICU|full -->41.6 [40.8, 42.4]<!-- /GEN -->, and died of wounds per run was <!-- GEN cell:forward_hold|Off (current)|Died of wounds per run|full -->20.37 [17.86, 22.88]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold|1,440 min|Died of wounds per run|full -->26.00 [19.78, 32.22]<!-- /GEN --> at 1,440 minutes. Holding on capacity grounds alone gave a post-operative overflow census of <!-- GEN cell:forward_hold|Capacity only|R2E post-operative overflow census|full -->5.33 [4.96, 5.70]<!-- /GEN -->, and a 240-minute window with the capacity trigger gave <!-- GEN cell:forward_hold|240 min + capacity|R2E post-operative overflow census|full -->4.65 [4.32, 4.97]<!-- /GEN -->.
 
 **High-intensity profile.** The same seven arms under `high_intensity` `[high_intensity, seven forward holding arms · 360 d · 30 replications · pool totals, closing 90 d]`:
 
 <!-- GEN forward_hold_high -->
-| Forward holding rule | R2E ICU mean queue | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
+| Forward holding rule | R2E post-operative overflow census | R2B ICU utilisation | R2E ICU utilisation | Post-definitive care in ICU | Died of wounds per run |
 |---|---|---|---|---|---|
-| Off (current) | 1438.305 [1423.919, 1452.690] | 12.3% | 100.0% | 0.2 [0.2, 0.3] | 277.60 [272.10, 283.10] |
-| 120 min | 1441.629 [1424.180, 1459.078] | 20.1% | 100.0% | 0.3 [0.2, 0.3] | 300.87 [293.39, 308.34] |
-| 240 min | 1462.552 [1445.361, 1479.743] | 28.9% | 100.0% | 0.2 [0.2, 0.3] | 304.67 [297.44, 311.89] |
-| 480 min | 1441.944 [1419.803, 1464.085] | 39.8% | 100.0% | 0.2 [0.2, 0.3] | 309.50 [302.08, 316.92] |
-| 1,440 min | 1421.368 [1405.829, 1436.906] | 65.2% | 100.0% | 0.3 [0.2, 0.4] | 333.40 [325.77, 341.03] |
-| Capacity only | 1431.916 [1412.631, 1451.201] | 64.4% | 100.0% | 0.3 [0.2, 0.4] | 337.57 [329.95, 345.19] |
-| 240 min + capacity | 1426.679 [1413.398, 1439.960] | 65.1% | 100.0% | 0.3 [0.2, 0.4] | 328.20 [320.71, 335.69] |
+| Off (current) | 20.16 [19.96, 20.36] | 9.8% | 97.6% | 11.0 [10.9, 11.2] | 509.33 [464.71, 553.96] |
+| 120 min | 19.31 [18.96, 19.65] | 19.6% | 97.4% | 11.4 [11.2, 11.5] | 576.27 [495.55, 656.98] |
+| 240 min | 19.02 [18.79, 19.26] | 29.8% | 97.5% | 11.4 [11.2, 11.6] | 597.77 [520.75, 674.78] |
+| 480 min | 18.32 [18.12, 18.52] | 44.7% | 97.4% | 11.6 [11.4, 11.8] | 584.80 [524.45, 645.15] |
+| 1,440 min | 15.45 [15.18, 15.73] | 72.3% | 97.0% | 13.2 [13.0, 13.5] | 644.13 [548.22, 740.05] |
+| Capacity only | 18.48 [18.25, 18.71] | 41.7% | 97.6% | 12.2 [12.1, 12.3] | 632.43 [544.42, 720.45] |
+| 240 min + capacity | 17.56 [17.35, 17.78] | 52.6% | 97.5% | 12.9 [12.7, 13.1] | 583.27 [520.23, 646.30] |
 <!-- /GEN -->
 
 ![Five stacked panels against the forward holding rule at high intensity](../images/r2b_forward_hold_frontier_high_intensity.png)
 
 The panels of the figure above under the high-intensity profile.
 
-The R2E post-operative overflow census was <!-- GEN cell:forward_hold_high|Off (current)|R2E post-operative overflow census|full -->1438.305 [1423.919, 1452.690]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|240 min|R2E post-operative overflow census|full -->1462.552 [1445.361, 1479.743]<!-- /GEN --> with a 240-minute window. R2E intensive care utilisation was <!-- GEN cell:forward_hold_high|Off (current)|R2E ICU utilisation|full -->100.0%<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|1,440 min|R2E ICU utilisation|full -->100.0%<!-- /GEN --> at a 1,440-minute window, while R2B intensive care utilisation rose from <!-- GEN cell:forward_hold_high|Off (current)|R2B ICU utilisation|full -->12.3%<!-- /GEN --> to <!-- GEN cell:forward_hold_high|1,440 min|R2B ICU utilisation|full -->65.2%<!-- /GEN -->. Died of wounds per run was <!-- GEN cell:forward_hold_high|Off (current)|Died of wounds per run|full -->277.60 [272.10, 283.10]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|Capacity only|Died of wounds per run|full -->337.57 [329.95, 345.19]<!-- /GEN --> on the capacity trigger alone.
+The R2E post-operative overflow census was <!-- GEN cell:forward_hold_high|Off (current)|R2E post-operative overflow census|full -->20.16 [19.96, 20.36]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|240 min|R2E post-operative overflow census|full -->19.02 [18.79, 19.26]<!-- /GEN --> with a 240-minute window. R2E intensive care utilisation was <!-- GEN cell:forward_hold_high|Off (current)|R2E ICU utilisation|full -->97.6%<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|1,440 min|R2E ICU utilisation|full -->97.0%<!-- /GEN --> at a 1,440-minute window, while R2B intensive care utilisation rose from <!-- GEN cell:forward_hold_high|Off (current)|R2B ICU utilisation|full -->9.8%<!-- /GEN --> to <!-- GEN cell:forward_hold_high|1,440 min|R2B ICU utilisation|full -->72.3%<!-- /GEN -->. Died of wounds per run was <!-- GEN cell:forward_hold_high|Off (current)|Died of wounds per run|full -->509.33 [464.71, 553.96]<!-- /GEN --> with no forward holding and <!-- GEN cell:forward_hold_high|Capacity only|Died of wounds per run|full -->632.43 [544.42, 720.45]<!-- /GEN --> on the capacity trigger alone.
 
 ### Post-Operative Intensive Care Gate
 
@@ -428,44 +437,44 @@ The R2E post-operative overflow census was <!-- GEN cell:forward_hold_high|Off (
 <!-- GEN icu_gate -->
 | Measure | Without the rule | With the rule | Paired difference |
 |---|---|---|---|
-| R2E ICU utilisation (%) | 93.0 [91.8, 94.2] | 87.8 [86.8, 88.9] | −5.1 [−6.7, −3.5] |
-| Died of wounds per run | 10.57 [9.67, 11.46] | 10.67 [9.33, 12.00] | +0.10 [−1.71, +1.91] |
-| Total casualties | 5,350.7 [5,290.0, 5,411.3] | 5,402.9 [5,315.9, 5,489.8] | +52.2 [−65.2, +169.6] |
+| R2E ICU utilisation (%) | 85.6 [84.8, 86.4] | 86.4 [85.6, 87.2] | +0.8 [−0.2, +1.8] |
+| Died of wounds per run | 20.13 [17.47, 22.79] | 20.73 [17.94, 23.52] | +0.60 [−2.67, +3.87] |
+| Total casualties | 5,351.3 [5,290.5, 5,412.1] | 5,362.3 [5,296.2, 5,428.3] | +11.0 [−67.8, +89.7] |
 <!-- /GEN -->
 
 ![Four panels comparing the post-operative intensive care gate disabled and enabled](../images/icu_gate.png)
 
 Intensive care occupancy, deaths of wounds and the casualties taking each post-operative pathway with the gate disabled and enabled, each point with its 95% confidence interval.
 
-R2E intensive care utilisation was <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Without the rule|full -->93.0 [91.8, 94.2]<!-- /GEN --> without the rule and <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|With the rule|full -->87.8 [86.8, 88.9]<!-- /GEN --> with it, a paired difference of <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Paired difference|full -->−5.1 [−6.7, −3.5]<!-- /GEN --> percentage points. Died of wounds per run were <!-- GEN cell:icu_gate|Died of wounds per run|Without the rule|full -->10.57 [9.67, 11.46]<!-- /GEN --> and <!-- GEN cell:icu_gate|Died of wounds per run|With the rule|full -->10.67 [9.33, 12.00]<!-- /GEN -->, a paired difference of <!-- GEN cell:icu_gate|Died of wounds per run|Paired difference|full -->+0.10 [−1.71, +1.91]<!-- /GEN -->.
+R2E intensive care utilisation was <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Without the rule|full -->85.6 [84.8, 86.4]<!-- /GEN --> without the rule and <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|With the rule|full -->86.4 [85.6, 87.2]<!-- /GEN --> with it, a paired difference of <!-- GEN cell:icu_gate|R2E ICU utilisation (%)|Paired difference|full -->+0.8 [−0.2, +1.8]<!-- /GEN --> percentage points. Died of wounds per run were <!-- GEN cell:icu_gate|Died of wounds per run|Without the rule|full -->20.13 [17.47, 22.79]<!-- /GEN --> and <!-- GEN cell:icu_gate|Died of wounds per run|With the rule|full -->20.73 [17.94, 23.52]<!-- /GEN -->, a paired difference of <!-- GEN cell:icu_gate|Died of wounds per run|Paired difference|full -->+0.60 [−2.67, +3.87]<!-- /GEN -->.
 
 <!-- GEN icu_gate_pathways -->
 | Recovery pathway | Casualty-replications | Died of wounds | Rate |
 |---|---|---|---|
-| Intensive care bed | 18,455 | 15 | 0.08% |
-| Holding bed | 18,731 | 34 | 0.18% |
+| Intensive care bed | 34,316 | 170 | 0.50% |
+| Holding bed | 1,319 | 8 | 0.61% |
 <!-- /GEN -->
 
-Where the rule was in force, casualties recovering in a holding bed died of wounds at <!-- GEN cell:icu_gate_pathways|Holding bed|Rate|full -->0.18%<!-- /GEN --> and those recovering in an intensive care bed at <!-- GEN cell:icu_gate_pathways|Intensive care bed|Rate|full -->0.08%<!-- /GEN -->, pooled over the replications of that arm.
+Where the rule was in force, casualties recovering in a holding bed died of wounds at <!-- GEN cell:icu_gate_pathways|Holding bed|Rate|full -->0.61%<!-- /GEN --> and those recovering in an intensive care bed at <!-- GEN cell:icu_gate_pathways|Intensive care bed|Rate|full -->0.50%<!-- /GEN -->, pooled over the replications of that arm.
 
 **High-intensity profile.** The same comparison under `high_intensity` `[high_intensity, gate disabled and enabled · 360 d · 30 replications · campaign totals, paired differences]`:
 
 <!-- GEN icu_gate_high -->
 | Measure | Without the rule | With the rule | Paired difference |
 |---|---|---|---|
-| R2E ICU utilisation (%) | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | +0.0 [+0.0, +0.0] |
-| Died of wounds per run | 263.93 [254.97, 272.90] | 277.60 [272.10, 283.10] | +13.67 [+3.72, +23.62] |
-| Total casualties | 12,447.5 [12,307.7, 12,587.2] | 12,409.5 [12,291.1, 12,527.9] | −38.0 [−248.0, +172.1] |
+| R2E ICU utilisation (%) | 97.4 [97.3, 97.6] | 97.6 [97.5, 97.7] | +0.2 [+0.0, +0.4] |
+| Died of wounds per run | 561.63 [487.33, 635.94] | 509.33 [464.71, 553.96] | −52.30 [−139.07, +34.47] |
+| Total casualties | 12,311.3 [12,178.6, 12,444.0] | 12,356.9 [12,252.4, 12,461.3] | +45.6 [−147.9, +239.0] |
 <!-- /GEN -->
 
 <!-- GEN icu_gate_pathways_high -->
 | Recovery pathway | Casualty-replications | Died of wounds | Rate |
 |---|---|---|---|
-| Intensive care bed | 565 | 5 | 0.88% |
-| Holding bed | 65,786 | 854 | 1.30% |
+| Intensive care bed | 104,827 | 4,759 | 4.54% |
+| Holding bed | 364 | 4 | 1.10% |
 <!-- /GEN -->
 
-The paired difference in deaths of wounds per run with the rule in force was <!-- GEN cell:icu_gate_high|Died of wounds per run|Paired difference|full -->+13.67 [+3.72, +23.62]<!-- /GEN -->. Casualties recovering in a holding bed died of wounds at <!-- GEN cell:icu_gate_pathways_high|Holding bed|Rate|full -->1.30%<!-- /GEN --> and those recovering in an intensive care bed at <!-- GEN cell:icu_gate_pathways_high|Intensive care bed|Rate|full -->0.88%<!-- /GEN -->.
+The paired difference in deaths of wounds per run with the rule in force was <!-- GEN cell:icu_gate_high|Died of wounds per run|Paired difference|full -->−52.30 [−139.07, +34.47]<!-- /GEN -->. Casualties recovering in a holding bed died of wounds at <!-- GEN cell:icu_gate_pathways_high|Holding bed|Rate|full -->1.10%<!-- /GEN --> and those recovering in an intensive care bed at <!-- GEN cell:icu_gate_pathways_high|Intensive care bed|Rate|full -->4.54%<!-- /GEN -->.
 
 ### Evacuation Policy
 
@@ -474,24 +483,25 @@ The paired difference in deaths of wounds per run with the rule in force was <!-
 <!-- GEN policy -->
 | Response | 15 d | 21 d (shipped) | 30 d | 45 d | 60 d |
 |---|---|---|---|---|---|
-| R2E hold occupancy (%) | 20.3 [19.0, 21.6] | 44.8 [42.6, 46.9] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
-| R2E hold mean queue | 0.00 [0.00, 0.00] | 0.08 [0.00, 0.19] | 759.26 [706.25, 812.27] | 1833.35 [1776.97, 1889.73] | 1965.53 [1927.78, 2003.28] |
-| R2E ICU occupancy (%) | 86.9 [85.7, 88.0] | 87.8 [86.8, 88.9] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
-| R2E ICU mean queue | 0.82 [0.62, 1.01] | 1.35 [0.55, 2.16] | 113.29 [102.97, 123.62] | 44.09 [35.73, 52.44] | 24.23 [20.48, 27.98] |
-| Post-definitive ICU access (%) | 33.5 [31.7, 35.3] | 31.7 [30.6, 32.8] | 3.4 [2.8, 4.0] | 4.5 [3.8, 5.2] | 6.0 [4.8, 7.2] |
-| In-theatre share (%) | 5.2 [5.0, 5.4] | 12.2 [11.9, 12.5] | 29.8 [29.2, 30.4] | 66.7 [65.9, 67.6] | 87.1 [86.4, 87.7] |
-| Returns to duty | 1476.0 [1452.3, 1499.8] | 1673.3 [1647.0, 1699.6] | 1875.3 [1855.2, 1895.4] | 1814.4 [1788.8, 1840.0] | 1724.5 [1698.2, 1750.8] |
-| Died of wounds | 9.87 [8.47, 11.26] | 10.67 [9.33, 12.00] | 12.10 [10.73, 13.47] | 11.83 [10.64, 13.03] | 13.43 [11.91, 14.96] |
-| Never evacuated by horizon | 2.9 [1.4, 4.5] | 1.5 [0.9, 2.1] | 440.8 [417.8, 463.8] | 367.8 [348.7, 387.0] | 157.9 [147.4, 168.4] |
-| Mean evacuation wait (d) | 0.39 [0.24, 0.55] | 0.33 [0.28, 0.38] | 34.62 [32.17, 37.06] | 95.56 [91.73, 99.40] | 98.69 [92.01, 105.37] |
-| Role 4 peak beds | 205.2 [197.2, 213.2] | 211.0 [201.5, 220.5] | 105.5 [100.2, 110.8] | 30.3 [26.9, 33.7] | 15.4 [12.5, 18.2] |
+| R2E hold occupancy (%) | 95.9 [95.3, 96.4] | 99.4 [99.2, 99.5] | 99.9 [99.9, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
+| R2E hold mean queue | 9.03 [8.30, 9.75] | 22.80 [21.32, 24.28] | 41.87 [39.50, 44.25] | 81.51 [77.83, 85.18] | 144.20 [138.67, 149.73] |
+| R2E ICU occupancy (%) | 86.6 [86.0, 87.2] | 86.4 [85.6, 87.2] | 87.3 [86.4, 88.2] | 86.5 [85.7, 87.2] | 86.8 [85.9, 87.6] |
+| R2E post-operative overflow census | 4.70 [4.37, 5.03] | 5.30 [4.87, 5.73] | 6.05 [5.63, 6.48] | 5.91 [5.58, 6.23] | 6.01 [5.69, 6.34] |
+| R2E staging overflow census | 26.6 [22.5, 30.8] | 27.4 [22.8, 31.9] | 29.8 [24.7, 34.8] | 21.5 [18.2, 24.9] | 14.9 [13.1, 16.6] |
+| Post-definitive ICU access (%) | 35.3 [34.6, 36.1] | 35.4 [34.7, 36.1] | 35.4 [34.6, 36.1] | 35.5 [34.7, 36.3] | 35.7 [35.0, 36.4] |
+| In-theatre share (%) | 27.1 [26.7, 27.5] | 40.4 [39.8, 40.9] | 48.5 [47.8, 49.1] | 59.4 [58.8, 60.0] | 71.2 [70.8, 71.6] |
+| Returns to duty | 1575.0 [1548.5, 1601.5] | 2049.6 [2024.4, 2074.7] | 2346.7 [2307.6, 2385.8] | 2688.1 [2649.8, 2726.3] | 3039.0 [2989.5, 3088.6] |
+| Died of wounds | 22.00 [19.14, 24.86] | 20.73 [17.94, 23.52] | 20.47 [18.10, 22.83] | 19.93 [17.02, 22.85] | 19.70 [16.91, 22.49] |
+| Never evacuated by horizon | 45.0 [33.4, 56.7] | 33.3 [25.4, 41.1] | 33.2 [24.2, 42.1] | 23.8 [17.9, 29.8] | 16.7 [12.4, 21.0] |
+| Mean evacuation wait (d) | 4.86 [4.53, 5.19] | 5.04 [4.50, 5.58] | 5.05 [4.67, 5.43] | 4.61 [4.30, 4.93] | 4.18 [4.06, 4.30] |
+| Role 4 peak beds | 228.5 [222.9, 234.1] | 211.2 [207.6, 214.7] | 197.5 [193.1, 201.9] | 178.3 [174.3, 182.3] | 153.1 [148.9, 157.2] |
 <!-- /GEN -->
 
 ![Six panels of returns to duty, deaths of wounds, in-theatre share and R2E queues against evacuation policy days](../images/policy_sweep.png)
 
 Six responses against the evacuation policy in days, each with its 95% confidence interval and the shipped policy marked by a dashed line.
 
-At the shipped 21-day policy the R2E holding queue was <!-- GEN cell:policy|R2E hold mean queue|21 d (shipped)|full -->0.08 [0.00, 0.19]<!-- /GEN --> and its occupancy <!-- GEN cell:policy|R2E hold occupancy (%)|21 d (shipped)|full -->44.8 [42.6, 46.9]<!-- /GEN -->. At 30 days the holding occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|30 d|full -->100.0 [100.0, 100.0]<!-- /GEN --> and the queue <!-- GEN cell:policy|R2E hold mean queue|30 d|full -->759.26 [706.25, 812.27]<!-- /GEN -->; at 45 and 60 days the occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|45 d|full -->100.0 [100.0, 100.0]<!-- /GEN --> and <!-- GEN cell:policy|R2E hold occupancy (%)|60 d|full -->100.0 [100.0, 100.0]<!-- /GEN -->. Returns to duty per campaign were <!-- GEN cell:policy|Returns to duty|15 d|full -->1476.0 [1452.3, 1499.8]<!-- /GEN --> at 15 days, <!-- GEN cell:policy|Returns to duty|21 d (shipped)|full -->1673.3 [1647.0, 1699.6]<!-- /GEN --> at 21, <!-- GEN cell:policy|Returns to duty|30 d|full -->1875.3 [1855.2, 1895.4]<!-- /GEN --> at 30, <!-- GEN cell:policy|Returns to duty|45 d|full -->1814.4 [1788.8, 1840.0]<!-- /GEN --> at 45 and <!-- GEN cell:policy|Returns to duty|60 d|full -->1724.5 [1698.2, 1750.8]<!-- /GEN --> at 60. Died of wounds were <!-- GEN cell:policy|Died of wounds|15 d|full -->9.87 [8.47, 11.26]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|21 d (shipped)|full -->10.67 [9.33, 12.00]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|30 d|full -->12.10 [10.73, 13.47]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|45 d|full -->11.83 [10.64, 13.03]<!-- /GEN --> and <!-- GEN cell:policy|Died of wounds|60 d|full -->13.43 [11.91, 14.96]<!-- /GEN --> across the five policies. The realised in-theatre share was <!-- GEN cell:policy|In-theatre share (%)|15 d|full -->5.2 [5.0, 5.4]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|21 d (shipped)|full -->12.2 [11.9, 12.5]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|30 d|full -->29.8 [29.2, 30.4]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|45 d|full -->66.7 [65.9, 67.6]<!-- /GEN --> and <!-- GEN cell:policy|In-theatre share (%)|60 d|full -->87.1 [86.4, 87.7]<!-- /GEN --> percent. Paired differences against the shipped policy are in `data/policy/policy_sweep_paired.csv`.
+At the shipped 21-day policy the R2E holding queue was <!-- GEN cell:policy|R2E hold mean queue|21 d (shipped)|full -->22.80 [21.32, 24.28]<!-- /GEN --> and its occupancy <!-- GEN cell:policy|R2E hold occupancy (%)|21 d (shipped)|full -->99.4 [99.2, 99.5]<!-- /GEN -->. At 30 days the holding occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|30 d|full -->99.9 [99.9, 100.0]<!-- /GEN --> and the queue <!-- GEN cell:policy|R2E hold mean queue|30 d|full -->41.87 [39.50, 44.25]<!-- /GEN -->; at 45 and 60 days the occupancy was <!-- GEN cell:policy|R2E hold occupancy (%)|45 d|full -->100.0 [100.0, 100.0]<!-- /GEN --> and <!-- GEN cell:policy|R2E hold occupancy (%)|60 d|full -->100.0 [100.0, 100.0]<!-- /GEN -->. Returns to duty per campaign were <!-- GEN cell:policy|Returns to duty|15 d|full -->1575.0 [1548.5, 1601.5]<!-- /GEN --> at 15 days, <!-- GEN cell:policy|Returns to duty|21 d (shipped)|full -->2049.6 [2024.4, 2074.7]<!-- /GEN --> at 21, <!-- GEN cell:policy|Returns to duty|30 d|full -->2346.7 [2307.6, 2385.8]<!-- /GEN --> at 30, <!-- GEN cell:policy|Returns to duty|45 d|full -->2688.1 [2649.8, 2726.3]<!-- /GEN --> at 45 and <!-- GEN cell:policy|Returns to duty|60 d|full -->3039.0 [2989.5, 3088.6]<!-- /GEN --> at 60. Died of wounds were <!-- GEN cell:policy|Died of wounds|15 d|full -->22.00 [19.14, 24.86]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|21 d (shipped)|full -->20.73 [17.94, 23.52]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|30 d|full -->20.47 [18.10, 22.83]<!-- /GEN -->, <!-- GEN cell:policy|Died of wounds|45 d|full -->19.93 [17.02, 22.85]<!-- /GEN --> and <!-- GEN cell:policy|Died of wounds|60 d|full -->19.70 [16.91, 22.49]<!-- /GEN --> across the five policies. The realised in-theatre share was <!-- GEN cell:policy|In-theatre share (%)|15 d|full -->27.1 [26.7, 27.5]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|21 d (shipped)|full -->40.4 [39.8, 40.9]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|30 d|full -->48.5 [47.8, 49.1]<!-- /GEN -->, <!-- GEN cell:policy|In-theatre share (%)|45 d|full -->59.4 [58.8, 60.0]<!-- /GEN --> and <!-- GEN cell:policy|In-theatre share (%)|60 d|full -->71.2 [70.8, 71.6]<!-- /GEN --> percent. Paired differences against the shipped policy are in `data/policy/policy_sweep_paired.csv`.
 
 ### R2E Holding Establishment
 
@@ -500,111 +510,112 @@ At the shipped 21-day policy the R2E holding queue was <!-- GEN cell:policy|R2E 
 <!-- GEN establishment -->
 | Response | 30 beds (shipped) | 45 beds | 60 beds | 90 beds |
 |---|---|---|---|---|
-| R2E hold occupancy (%) | 44.8 [42.6, 46.9] | 29.7 [27.6, 31.7] | 24.1 [19.8, 28.3] | 14.6 [13.8, 15.4] |
-| R2E hold mean queue | 0.08 [0.00, 0.19] | 0.07 [0.00, 0.20] | 0.56 [0.00, 1.70] | 0.00 [0.00, 0.00] |
-| R2E ICU mean queue | 1.35 [0.55, 2.16] | 0.73 [0.52, 0.93] | 1.98 [0.00, 4.16] | 0.87 [0.62, 1.11] |
-| Post-definitive ICU access (%) | 31.7 [30.6, 32.8] | 32.1 [30.0, 34.1] | 31.0 [28.7, 33.2] | 32.0 [30.8, 33.3] |
-| In-theatre share (%) | 12.2 [11.9, 12.5] | 12.2 [11.9, 12.4] | 12.1 [11.9, 12.3] | 12.1 [11.8, 12.3] |
-| Returns to duty | 1673.3 [1647.0, 1699.6] | 1692.8 [1662.3, 1723.3] | 1693.0 [1665.1, 1720.9] | 1685.8 [1655.3, 1716.3] |
-| Died of wounds | 10.7 [9.3, 12.0] | 11.2 [9.6, 12.7] | 11.3 [10.1, 12.6] | 11.0 [9.9, 12.1] |
-| Never evacuated by horizon | 1.5 [0.9, 2.1] | 1.1 [0.5, 1.6] | 2.6 [0.3, 4.9] | 1.6 [0.7, 2.5] |
-| Role 4 peak beds | 211.0 [201.5, 220.5] | 209.8 [200.8, 218.9] | 215.9 [208.6, 223.2] | 214.7 [207.2, 222.3] |
+| R2E hold occupancy (%) | 99.4 [99.2, 99.5] | 97.0 [96.5, 97.6] | 94.1 [93.2, 94.9] | 82.7 [80.5, 84.9] |
+| R2E hold mean queue | 22.80 [21.32, 24.28] | 17.24 [16.05, 18.43] | 13.48 [12.13, 14.82] | 5.58 [4.26, 6.91] |
+| R2E post-operative overflow census | 5.30 [4.87, 5.73] | 4.59 [4.12, 5.07] | 4.01 [3.53, 4.49] | 1.89 [1.44, 2.34] |
+| R2E staging overflow census | 27.4 [22.8, 31.9] | 25.0 [16.2, 33.7] | 23.3 [14.8, 31.8] | 8.4 [5.3, 11.6] |
+| Post-definitive ICU access (%) | 35.4 [34.7, 36.1] | 35.8 [35.0, 36.6] | 35.5 [34.8, 36.2] | 35.4 [34.8, 36.1] |
+| In-theatre share (%) | 40.4 [39.8, 40.9] | 40.4 [39.9, 40.9] | 39.7 [39.2, 40.2] | 40.4 [40.0, 40.9] |
+| Returns to duty | 2049.6 [2024.4, 2074.7] | 2043.1 [2013.9, 2072.4] | 2017.4 [1991.9, 2042.8] | 2069.1 [2045.6, 2092.5] |
+| Died of wounds | 20.7 [17.9, 23.5] | 21.4 [18.2, 24.6] | 23.3 [19.8, 26.8] | 22.0 [17.5, 26.4] |
+| Never evacuated by horizon | 33.3 [25.4, 41.1] | 40.2 [25.5, 54.9] | 40.6 [30.4, 50.9] | 36.5 [29.0, 44.0] |
+| Role 4 peak beds | 211.2 [207.6, 214.7] | 207.9 [203.4, 212.5] | 211.3 [206.7, 215.9] | 211.2 [206.3, 216.0] |
 <!-- /GEN -->
 
 ![Six panels of campaign responses against R2E holding beds](../images/establishment_sweep.png)
 
 The same six responses against the R2E holding bed establishment at the shipped evacuation policy, with the shipped establishment marked by a dashed line.
 
-Holding occupancy was <!-- GEN cell:establishment|R2E hold occupancy (%)|30 beds (shipped)|full -->44.8 [42.6, 46.9]<!-- /GEN --> at the shipped 30 beds, <!-- GEN cell:establishment|R2E hold occupancy (%)|45 beds|full -->29.7 [27.6, 31.7]<!-- /GEN --> at 45, <!-- GEN cell:establishment|R2E hold occupancy (%)|60 beds|full -->24.1 [19.8, 28.3]<!-- /GEN --> at 60 and <!-- GEN cell:establishment|R2E hold occupancy (%)|90 beds|full -->14.6 [13.8, 15.4]<!-- /GEN --> at 90 percent. The R2E holding queue was <!-- GEN cell:establishment|R2E hold mean queue|30 beds (shipped)|full -->0.08 [0.00, 0.19]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|R2E hold mean queue|45 beds|full -->0.07 [0.00, 0.20]<!-- /GEN --> at 45. Returns to duty per campaign were <!-- GEN cell:establishment|Returns to duty|30 beds (shipped)|full -->1673.3 [1647.0, 1699.6]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|Returns to duty|90 beds|full -->1685.8 [1655.3, 1716.3]<!-- /GEN --> at 90, and died of wounds <!-- GEN cell:establishment|Died of wounds|30 beds (shipped)|full -->10.7 [9.3, 12.0]<!-- /GEN --> and <!-- GEN cell:establishment|Died of wounds|90 beds|full -->11.0 [9.9, 12.1]<!-- /GEN -->.
+Holding occupancy was <!-- GEN cell:establishment|R2E hold occupancy (%)|30 beds (shipped)|full -->99.4 [99.2, 99.5]<!-- /GEN --> at the shipped 30 beds, <!-- GEN cell:establishment|R2E hold occupancy (%)|45 beds|full -->97.0 [96.5, 97.6]<!-- /GEN --> at 45, <!-- GEN cell:establishment|R2E hold occupancy (%)|60 beds|full -->94.1 [93.2, 94.9]<!-- /GEN --> at 60 and <!-- GEN cell:establishment|R2E hold occupancy (%)|90 beds|full -->82.7 [80.5, 84.9]<!-- /GEN --> at 90 percent. The R2E holding queue was <!-- GEN cell:establishment|R2E hold mean queue|30 beds (shipped)|full -->22.80 [21.32, 24.28]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|R2E hold mean queue|45 beds|full -->17.24 [16.05, 18.43]<!-- /GEN --> at 45. Returns to duty per campaign were <!-- GEN cell:establishment|Returns to duty|30 beds (shipped)|full -->2049.6 [2024.4, 2074.7]<!-- /GEN --> at 30 beds and <!-- GEN cell:establishment|Returns to duty|90 beds|full -->2069.1 [2045.6, 2092.5]<!-- /GEN --> at 90, and died of wounds <!-- GEN cell:establishment|Died of wounds|30 beds (shipped)|full -->20.7 [17.9, 23.5]<!-- /GEN --> and <!-- GEN cell:establishment|Died of wounds|90 beds|full -->22.0 [17.5, 26.4]<!-- /GEN -->.
 
 ### High-Intensity Evacuation Policy and Holding Establishment
 
 **Question.** What happens to the R2E pools, returns to duty and mortality under the high-intensity profile when the evacuation policy and the R2E holding establishment are set across their ranges together? `[high_intensity, evacuation policy 15 to 60 days, 30 to 90 holding beds · 360 d · 30 replications · pool totals, closing 90 d]`
 
 <!-- GEN policy_establishment_high -->
-| Policy and holding beds | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Died of wounds | Never evacuated by horizon | Role 4 peak beds |
+| Policy and holding beds | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Died of wounds | Never evacuated by horizon | Role 4 peak beds |
 |---|---|---|---|---|---|---|
-| 15 d, 30 beds | 630.1 [607.1, 653.2] | 1,447.9 [1,433.7, 1,462.1] | 2,651.3 [2,617.8, 2,684.9] | 271.7 [263.4, 280.0] | 1,998.1 [1,978.7, 2,017.6] | 233.2 [230.8, 235.6] |
-| 15 d, 45 beds | 644.2 [619.2, 669.1] | 1,421.3 [1,404.8, 1,437.9] | 2,653.9 [2,620.7, 2,687.0] | 278.6 [270.9, 286.2] | 1,975.7 [1,953.8, 1,997.6] | 235.8 [233.7, 237.9] |
-| 15 d, 60 beds | 629.9 [601.5, 658.3] | 1,409.4 [1,389.4, 1,429.4] | 2,632.0 [2,602.0, 2,662.0] | 274.2 [267.7, 280.8] | 1,952.0 [1,931.4, 1,972.5] | 232.9 [230.7, 235.2] |
-| 15 d, 90 beds | 631.9 [599.7, 664.0] | 1,376.5 [1,355.0, 1,398.0] | 2,633.5 [2,604.3, 2,662.6] | 274.0 [266.2, 281.8] | 1,936.0 [1,914.4, 1,957.7] | 231.2 [229.2, 233.2] |
-| 21 d, 30 beds | 556.1 [528.5, 583.7] | 1,438.3 [1,423.9, 1,452.7] | 2,840.0 [2,806.2, 2,873.9] | 277.6 [272.1, 283.1] | 1,924.4 [1,904.1, 1,944.8] | 226.3 [224.7, 227.8] |
-| 21 d, 45 beds | 549.2 [524.6, 573.9] | 1,429.5 [1,406.7, 1,452.3] | 2,857.5 [2,819.4, 2,895.5] | 286.3 [279.8, 292.9] | 1,923.0 [1,897.1, 1,948.9] | 231.9 [229.1, 234.7] |
-| 21 d, 60 beds | 561.5 [531.3, 591.6] | 1,409.8 [1,392.7, 1,426.9] | 2,813.6 [2,776.1, 2,851.0] | 285.1 [276.8, 293.4] | 1,913.9 [1,897.1, 1,930.6] | 227.1 [224.9, 229.3] |
-| 21 d, 90 beds | 531.2 [501.0, 561.4] | 1,414.3 [1,391.9, 1,436.8] | 2,857.8 [2,825.5, 2,890.1] | 287.1 [280.5, 293.7] | 1,925.2 [1,903.7, 1,946.8] | 228.4 [226.2, 230.6] |
-| 30 d, 30 beds | 2,346.4 [2,281.7, 2,411.0] | 1,002.3 [982.7, 1,022.0] | 3,004.3 [2,973.7, 3,034.9] | 292.0 [284.0, 300.0] | 1,976.5 [1,954.6, 1,998.5] | 125.7 [120.7, 130.7] |
-| 30 d, 45 beds | 856.9 [779.6, 934.2] | 1,369.3 [1,347.0, 1,391.6] | 3,187.0 [3,154.1, 3,220.0] | 295.2 [287.7, 302.6] | 1,920.4 [1,890.7, 1,950.1] | 215.2 [206.9, 223.5] |
-| 30 d, 60 beds | 414.6 [397.1, 432.1] | 1,417.7 [1,400.6, 1,434.8] | 3,245.8 [3,208.7, 3,282.9] | 305.4 [297.0, 313.8] | 1,807.5 [1,788.1, 1,827.0] | 223.0 [220.1, 225.9] |
-| 30 d, 90 beds | 381.9 [352.2, 411.6] | 1,401.5 [1,372.2, 1,430.8] | 3,264.3 [3,230.5, 3,298.2] | 304.7 [297.2, 312.2] | 1,809.2 [1,780.0, 1,838.3] | 221.3 [219.2, 223.4] |
-| 45 d, 30 beds | 3,997.3 [3,957.3, 4,037.2] | 386.7 [370.8, 402.7] | 2,930.6 [2,890.2, 2,970.9] | 308.0 [298.9, 317.1] | 1,123.9 [1,101.0, 1,146.8] | 46.8 [43.1, 50.5] |
-| 45 d, 45 beds | 3,454.5 [3,404.0, 3,505.1] | 596.9 [583.0, 610.8] | 3,090.7 [3,058.0, 3,123.4] | 305.2 [297.0, 313.4] | 1,364.6 [1,341.8, 1,387.3] | 63.2 [56.7, 69.7] |
-| 45 d, 60 beds | 2,897.1 [2,854.2, 2,940.0] | 772.6 [755.5, 789.7] | 3,240.3 [3,203.8, 3,276.7] | 303.0 [295.4, 310.5] | 1,531.3 [1,508.1, 1,554.6] | 76.6 [71.4, 81.8] |
-| 45 d, 90 beds | 1,833.2 [1,778.7, 1,887.7] | 1,079.0 [1,060.0, 1,098.0] | 3,559.0 [3,520.3, 3,597.7] | 307.0 [298.4, 315.6] | 1,722.0 [1,703.0, 1,740.9] | 129.9 [123.6, 136.2] |
-| 60 d, 30 beds | 4,341.8 [4,294.8, 4,388.8] | 228.1 [216.6, 239.7] | 2,878.1 [2,850.6, 2,905.5] | 309.8 [301.2, 318.4] | 608.2 [589.0, 627.5] | 21.7 [19.0, 24.4] |
-| 60 d, 45 beds | 3,953.3 [3,914.8, 3,991.8] | 375.7 [362.2, 389.1] | 3,014.0 [2,990.6, 3,037.3] | 309.6 [303.3, 315.9] | 809.6 [793.5, 825.7] | 33.5 [29.5, 37.6] |
-| 60 d, 60 beds | 3,653.9 [3,611.0, 3,696.7] | 487.2 [474.4, 500.0] | 3,149.0 [3,113.3, 3,184.8] | 307.8 [301.6, 314.0] | 967.1 [949.0, 985.2] | 39.9 [35.7, 44.1] |
-| 60 d, 90 beds | 3,019.2 [2,976.9, 3,061.6] | 679.7 [661.7, 697.6] | 3,414.5 [3,380.0, 3,449.1] | 307.6 [300.0, 315.2] | 1,186.7 [1,165.1, 1,208.3] | 59.6 [54.3, 65.0] |
+| 15 d, 30 beds | 30.4 [29.5, 31.3] | 19.8 [19.5, 20.0] | 2,064.7 [2,039.8, 2,089.6] | 623.9 [555.1, 692.8] | 3,216.5 [3,159.7, 3,273.3] | 287.4 [286.0, 288.8] |
+| 15 d, 45 beds | 31.4 [30.3, 32.4] | 19.7 [19.5, 20.0] | 2,072.5 [2,042.4, 2,102.6] | 609.2 [541.6, 676.7] | 3,213.8 [3,156.3, 3,271.4] | 287.7 [286.5, 288.8] |
+| 15 d, 60 beds | 32.5 [31.4, 33.6] | 19.8 [19.5, 20.1] | 2,063.2 [2,030.5, 2,095.9] | 562.3 [495.0, 629.6] | 3,204.6 [3,144.8, 3,264.4] | 287.5 [286.1, 288.8] |
+| 15 d, 90 beds | 31.4 [30.4, 32.3] | 19.5 [19.2, 19.8] | 2,069.9 [2,046.6, 2,093.2] | 514.2 [474.8, 553.7] | 3,193.1 [3,140.4, 3,245.9] | 288.1 [286.6, 289.6] |
+| 21 d, 30 beds | 55.4 [53.5, 57.3] | 20.2 [20.0, 20.4] | 2,864.3 [2,832.8, 2,895.8] | 509.3 [464.7, 554.0] | 3,083.1 [3,051.3, 3,114.9] | 281.3 [279.1, 283.5] |
+| 21 d, 45 beds | 54.9 [53.0, 56.9] | 19.9 [19.6, 20.1] | 2,865.9 [2,830.0, 2,901.8] | 603.7 [540.6, 666.7] | 3,052.5 [3,009.1, 3,095.9] | 281.6 [279.5, 283.7] |
+| 21 d, 60 beds | 56.1 [54.6, 57.7] | 19.8 [19.6, 20.0] | 2,845.0 [2,809.7, 2,880.4] | 601.0 [526.8, 675.2] | 3,032.2 [2,982.5, 3,081.9] | 282.1 [279.9, 284.3] |
+| 21 d, 90 beds | 55.4 [53.3, 57.5] | 19.6 [19.3, 19.9] | 2,819.8 [2,781.5, 2,858.1] | 621.8 [525.5, 718.2] | 3,008.7 [2,947.1, 3,070.2] | 279.8 [277.7, 281.8] |
+| 30 d, 30 beds | 93.5 [90.7, 96.2] | 19.9 [19.7, 20.2] | 3,413.5 [3,375.2, 3,451.8] | 603.1 [531.5, 674.7] | 2,901.5 [2,856.7, 2,946.4] | 260.0 [257.9, 262.1] |
+| 30 d, 45 beds | 79.1 [76.6, 81.6] | 19.8 [19.6, 20.1] | 3,427.5 [3,393.7, 3,461.2] | 627.3 [551.9, 702.7] | 2,934.8 [2,891.8, 2,977.7] | 263.6 [260.2, 266.9] |
+| 30 d, 60 beds | 76.1 [74.1, 78.1] | 19.6 [19.4, 19.9] | 3,461.5 [3,422.0, 3,501.1] | 605.8 [517.8, 693.9] | 2,918.4 [2,866.3, 2,970.4] | 261.8 [259.7, 263.9] |
+| 30 d, 90 beds | 78.5 [76.7, 80.2] | 19.7 [19.4, 20.0] | 3,403.0 [3,361.3, 3,444.7] | 534.2 [475.8, 592.7] | 2,907.7 [2,863.1, 2,952.4] | 261.2 [259.2, 263.1] |
+| 45 d, 30 beds | 191.9 [188.7, 195.2] | 20.1 [19.8, 20.3] | 4,276.0 [4,235.8, 4,316.2] | 586.1 [505.1, 667.2] | 2,672.5 [2,627.1, 2,717.9] | 227.1 [224.8, 229.4] |
+| 45 d, 45 beds | 175.4 [172.3, 178.4] | 19.8 [19.5, 20.0] | 4,263.9 [4,228.7, 4,299.1] | 709.9 [598.4, 821.5] | 2,631.7 [2,575.8, 2,687.6] | 225.4 [223.8, 227.1] |
+| 45 d, 60 beds | 163.2 [159.5, 166.8] | 20.0 [19.6, 20.3] | 4,282.9 [4,245.8, 4,320.0] | 526.8 [467.5, 586.1] | 2,690.3 [2,650.3, 2,730.3] | 225.5 [223.7, 227.3] |
+| 45 d, 90 beds | 133.8 [130.3, 137.3] | 20.1 [19.8, 20.3] | 4,282.8 [4,235.2, 4,330.5] | 640.1 [551.3, 728.9] | 2,669.4 [2,621.6, 2,717.1] | 227.5 [225.6, 229.4] |
+| 60 d, 30 beds | 327.9 [323.3, 332.4] | 20.0 [19.8, 20.2] | 5,063.9 [5,024.9, 5,102.9] | 583.9 [485.8, 682.1] | 2,263.3 [2,206.2, 2,320.4] | 195.8 [194.2, 197.4] |
+| 60 d, 45 beds | 308.9 [302.0, 315.9] | 19.7 [19.4, 20.1] | 5,110.0 [5,055.0, 5,165.0] | 751.6 [637.6, 865.6] | 2,242.7 [2,183.8, 2,301.5] | 197.9 [196.4, 199.4] |
+| 60 d, 60 beds | 291.3 [285.6, 297.0] | 19.4 [19.1, 19.7] | 5,102.3 [5,062.1, 5,142.6] | 698.4 [592.6, 804.1] | 2,174.9 [2,115.9, 2,233.9] | 195.9 [194.5, 197.4] |
+| 60 d, 90 beds | 269.8 [264.2, 275.3] | 20.0 [19.7, 20.2] | 5,139.9 [5,105.4, 5,174.5] | 611.3 [546.1, 676.4] | 2,304.2 [2,259.0, 2,349.3] | 196.5 [195.3, 197.7] |
 <!-- /GEN -->
 
-At the shipped 21-day policy and 30 holding beds the closing-window R2E holding queue was <!-- GEN cell:policy_establishment_high|21 d, 30 beds|R2E hold mean queue|full -->556.1 [528.5, 583.7]<!-- /GEN --> casualties and the R2E intensive care queue <!-- GEN cell:policy_establishment_high|21 d, 30 beds|R2E ICU mean queue|full -->1,438.3 [1,423.9, 1,452.7]<!-- /GEN -->. The lowest holding queue of the grid was <!-- GEN cell:policy_establishment_high|30 d, 90 beds|R2E hold mean queue|full -->381.9 [352.2, 411.6]<!-- /GEN --> at 30 days and 90 beds, and the lowest intensive care queue was <!-- GEN cell:policy_establishment_high|60 d, 30 beds|R2E ICU mean queue|full -->228.1 [216.6, 239.7]<!-- /GEN --> at 60 days and 30 beds, where the holding queue was <!-- GEN cell:policy_establishment_high|60 d, 30 beds|R2E hold mean queue|full -->4,341.8 [4,294.8, 4,388.8]<!-- /GEN -->.
+At the shipped 21-day policy and 30 holding beds the closing-window R2E holding queue was <!-- GEN cell:policy_establishment_high|21 d, 30 beds|R2E hold mean queue|full -->55.4 [53.5, 57.3]<!-- /GEN --> casualties and the post-operative overflow census <!-- GEN cell:policy_establishment_high|21 d, 30 beds|R2E post-operative overflow census|full -->20.2 [20.0, 20.4]<!-- /GEN -->. The holding queue was <!-- GEN cell:policy_establishment_high|15 d, 30 beds|R2E hold mean queue|full -->30.4 [29.5, 31.3]<!-- /GEN --> at 15 days and 30 beds and <!-- GEN cell:policy_establishment_high|60 d, 30 beds|R2E hold mean queue|full -->327.9 [323.3, 332.4]<!-- /GEN --> at 60 days and 30 beds, and <!-- GEN cell:policy_establishment_high|60 d, 90 beds|R2E hold mean queue|full -->269.8 [264.2, 275.3]<!-- /GEN --> at 60 days and 90 beds. The post-operative overflow census lay between <!-- GEN cell:policy_establishment_high|60 d, 60 beds|R2E post-operative overflow census|full -->19.4 [19.1, 19.7]<!-- /GEN --> at 60 days and 60 beds and <!-- GEN cell:policy_establishment_high|21 d, 30 beds|R2E post-operative overflow census|full -->20.2 [20.0, 20.4]<!-- /GEN --> at the shipped setting.
 
 <!-- GEN policy_establishment_high_stability -->
-| Policy and holding beds | Holding queue below threshold | ICU queue below threshold | Both below threshold |
-|---|---|---|---|
-| 15 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 15 d, 45 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 15 d, 60 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 15 d, 90 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 21 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 21 d, 45 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 21 d, 60 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 21 d, 90 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 30 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 30 d, 45 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 30 d, 60 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 30 d, 90 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 45 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 45 d, 45 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 45 d, 60 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 45 d, 90 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 60 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 60 d, 45 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 60 d, 60 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 60 d, 90 beds | 0 of 30 | 0 of 30 | 0 of 30 |
+| Policy and holding beds | Holding queue not growing | Post-operative overflow not growing | Both not growing | Staging overflow not growing | R2E pools across the cell |
+|---|---|---|---|---|---|
+| 15 d, 30 beds | 28 of 30 | 28 of 30 | 26 of 30 | 0 of 30 | at least one growing |
+| 15 d, 45 beds | 28 of 30 | 30 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 15 d, 60 beds | 25 of 30 | 28 of 30 | 24 of 30 | 0 of 30 | at least one growing |
+| 15 d, 90 beds | 29 of 30 | 29 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 21 d, 30 beds | 29 of 30 | 29 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 21 d, 45 beds | 27 of 30 | 30 of 30 | 27 of 30 | 0 of 30 | at least one growing |
+| 21 d, 60 beds | 28 of 30 | 28 of 30 | 27 of 30 | 0 of 30 | at least one growing |
+| 21 d, 90 beds | 27 of 30 | 29 of 30 | 26 of 30 | 0 of 30 | at least one growing |
+| 30 d, 30 beds | 29 of 30 | 29 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 30 d, 45 beds | 29 of 30 | 29 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 30 d, 60 beds | 29 of 30 | 30 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 30 d, 90 beds | 28 of 30 | 30 of 30 | 28 of 30 | 0 of 30 | at least one growing |
+| 45 d, 30 beds | 29 of 30 | 30 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 45 d, 45 beds | 30 of 30 | 29 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 45 d, 60 beds | 30 of 30 | 29 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 45 d, 90 beds | 30 of 30 | 29 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 60 d, 30 beds | 26 of 30 | 29 of 30 | 26 of 30 | 0 of 30 | at least one growing |
+| 60 d, 45 beds | 28 of 30 | 27 of 30 | 26 of 30 | 0 of 30 | at least one growing |
+| 60 d, 60 beds | 29 of 30 | 30 of 30 | 29 of 30 | 0 of 30 | at least one growing |
+| 60 d, 90 beds | 28 of 30 | 29 of 30 | 28 of 30 | 0 of 30 | at least one growing |
 <!-- /GEN -->
 
-The table counts the replications whose closing-window mean queue was below the twenty-casualty threshold the strategic airlift collapse experiment classifies against. At 30 days and 90 beds, the cell with the lowest holding queue, the count of replications below the threshold in both pools was <!-- GEN cell:policy_establishment_high_stability|30 d, 90 beds|Both below threshold|full -->0 of 30<!-- /GEN -->.
+The table counts, for each cell, the replications in which each R2E pool was not still rising over the second half of the campaign, and classifies the cell as a whole: a pool is growing across the cell where the mean of its replications' late-half slopes is positive with a 95% interval excluding zero and a drift of at least one percent of its level per 30-day block, the rule of [Classifying Stability](Methods.md#classifying-stability), and the cell holds where no pool is growing. The staging overflow census was not growing in <!-- GEN cell:policy_establishment_high_stability|21 d, 30 beds|Staging overflow not growing|full -->0 of 30<!-- /GEN --> replications at the shipped cell and in <!-- GEN cell:policy_establishment_high_stability|60 d, 90 beds|Staging overflow not growing|full -->0 of 30<!-- /GEN --> at 60 days and 90 beds, and the shipped cell was classified <!-- GEN cell:policy_establishment_high_stability|21 d, 30 beds|R2E pools across the cell|full -->at least one growing<!-- /GEN -->.
 
 <!-- GEN policy_establishment_high_paired -->
 | Policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds |
 |---|---|---|---|
-| 15 d, 30 beds | −188.7 [−241.5, −135.9] | −5.9 [−16.0, +4.2] | +7.0 [+3.8, +10.1] |
-| 15 d, 45 beds | −186.2 [−231.5, −140.9] | +1.0 [−7.9, +9.8] | +9.5 [+7.0, +12.0] |
-| 15 d, 60 beds | −208.1 [−249.2, −166.9] | −3.4 [−12.3, +5.6] | +6.7 [+4.1, +9.3] |
-| 15 d, 90 beds | −206.6 [−250.7, −162.5] | −3.6 [−13.4, +6.3] | +4.9 [+2.4, +7.5] |
-| 21 d, 45 beds | +17.4 [−36.3, +71.1] | +8.7 [−0.3, +17.8] | +5.6 [+2.7, +8.5] |
-| 21 d, 60 beds | −26.5 [−77.9, +25.0] | +7.5 [−1.7, +16.7] | +0.8 [−1.8, +3.4] |
-| 21 d, 90 beds | +17.8 [−34.0, +69.5] | +9.5 [+0.6, +18.4] | +2.1 [−1.0, +5.2] |
-| 30 d, 30 beds | +164.3 [+124.0, +204.5] | +14.4 [+3.7, +25.1] | −100.6 [−105.9, −95.2] |
-| 30 d, 45 beds | +347.0 [+291.6, +402.4] | +17.6 [+8.7, +26.4] | −11.1 [−19.5, −2.7] |
-| 30 d, 60 beds | +405.8 [+355.0, +456.5] | +27.8 [+18.1, +37.5] | −3.3 [−7.0, +0.4] |
-| 30 d, 90 beds | +424.3 [+374.0, +474.6] | +27.1 [+17.6, +36.6] | −5.0 [−7.6, −2.3] |
-| 45 d, 30 beds | +90.5 [+35.5, +145.6] | +30.4 [+18.9, +41.8] | −179.5 [−183.8, −175.1] |
-| 45 d, 45 beds | +250.7 [+203.3, +298.0] | +27.6 [+17.2, +38.0] | −163.1 [−169.9, −156.2] |
-| 45 d, 60 beds | +400.2 [+347.2, +453.3] | +25.4 [+16.0, +34.8] | −149.6 [−155.3, −144.0] |
-| 45 d, 90 beds | +718.9 [+680.4, +757.5] | +29.4 [+18.4, +40.3] | −96.4 [−103.0, −89.7] |
-| 60 d, 30 beds | +38.0 [−7.1, +83.1] | +32.2 [+21.2, +43.3] | −204.6 [−208.2, −201.0] |
-| 60 d, 45 beds | +173.9 [+130.1, +217.8] | +32.0 [+24.2, +39.8] | −192.7 [−197.5, −188.0] |
-| 60 d, 60 beds | +309.0 [+262.8, +355.2] | +30.2 [+22.3, +38.1] | −186.4 [−191.4, −181.3] |
-| 60 d, 90 beds | +574.5 [+520.3, +628.7] | +30.0 [+19.7, +40.3] | −166.6 [−172.5, −160.7] |
+| 15 d, 30 beds | −799.6 [−838.1, −761.1] | +114.6 [+38.5, +190.7] | +6.1 [+3.8, +8.4] |
+| 15 d, 45 beds | −791.8 [−837.0, −746.7] | +99.8 [+22.5, +177.2] | +6.4 [+3.9, +8.9] |
+| 15 d, 60 beds | −801.1 [−846.8, −755.3] | +53.0 [−38.0, +143.9] | +6.2 [+3.8, +8.5] |
+| 15 d, 90 beds | −794.4 [−831.5, −757.4] | +4.9 [−49.8, +59.6] | +6.8 [+4.2, +9.4] |
+| 21 d, 45 beds | +1.6 [−47.1, +50.3] | +94.3 [+28.0, +160.7] | +0.3 [−2.9, +3.5] |
+| 21 d, 60 beds | −19.3 [−59.5, +21.0] | +91.6 [+6.6, +176.7] | +0.8 [−1.9, +3.5] |
+| 21 d, 90 beds | −44.5 [−96.2, +7.2] | +112.5 [−6.8, +231.8] | −1.5 [−4.4, +1.3] |
+| 30 d, 30 beds | +549.2 [+505.2, +593.1] | +93.8 [+9.3, +178.2] | −21.3 [−24.1, −18.5] |
+| 30 d, 45 beds | +563.2 [+518.8, +607.6] | +118.0 [+33.3, +202.6] | −17.7 [−21.8, −13.6] |
+| 30 d, 60 beds | +597.2 [+552.4, +642.0] | +96.5 [+1.8, +191.2] | −19.5 [−22.9, −16.1] |
+| 30 d, 90 beds | +538.7 [+490.1, +587.4] | +24.9 [−49.0, +98.8] | −20.1 [−23.2, −17.1] |
+| 45 d, 30 beds | +1,411.7 [+1,355.8, +1,467.7] | +76.8 [−7.5, +161.1] | −54.2 [−57.1, −51.3] |
+| 45 d, 45 beds | +1,399.6 [+1,355.9, +1,443.3] | +200.6 [+81.6, +319.6] | −55.9 [−58.7, −53.0] |
+| 45 d, 60 beds | +1,418.6 [+1,369.4, +1,467.8] | +17.5 [−54.8, +89.8] | −55.8 [−59.2, −52.5] |
+| 45 d, 90 beds | +1,418.5 [+1,357.9, +1,479.2] | +130.7 [+23.4, +238.1] | −53.8 [−56.7, −50.9] |
+| 60 d, 30 beds | +2,199.6 [+2,156.3, +2,242.8] | +74.6 [−33.6, +182.8] | −85.5 [−88.0, −83.0] |
+| 60 d, 45 beds | +2,245.7 [+2,190.2, +2,301.2] | +242.3 [+121.7, +362.8] | −83.4 [−86.2, −80.6] |
+| 60 d, 60 beds | +2,238.0 [+2,189.6, +2,286.5] | +189.0 [+83.7, +294.3] | −85.4 [−87.8, −83.0] |
+| 60 d, 90 beds | +2,275.6 [+2,229.9, +2,321.3] | +101.9 [+17.7, +186.1] | −84.8 [−87.3, −82.3] |
 <!-- /GEN -->
 
-Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 30 days and 90 beds returns to duty differed by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Returns to duty|full -->+424.3 [+374.0, +474.6]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Role 4 peak beds|full -->−5.0 [−7.6, −2.3]<!-- /GEN -->.
+Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 30 days and 90 beds returns to duty differed by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Returns to duty|full -->+538.7 [+490.1, +587.4]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_high_paired|30 d, 90 beds|Role 4 peak beds|full -->−20.1 [−23.2, −17.1]<!-- /GEN -->.
 
-For each holding establishment the largest policy holding both pools below the threshold in every replication is given below; where none did, the cell reads as such.
+For each holding establishment the largest policy at which the cell held the R2E pools, by the rule of the preceding table, is given below; where none did, the cell reads as such.
 
 <!-- GEN policy_grid_largest_high -->
-| Holding beds | Largest policy holding both pools in every replication | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
 |---|---|---|---|---|
 | 30 | none in the grid | not applicable | not applicable | not applicable |
 | 45 | none in the grid | not applicable | not applicable | not applicable |
@@ -617,185 +628,185 @@ For each holding establishment the largest policy holding both pools below the t
 **Question.** Does a shorter interval between strategic sorties, together with a longer evacuation policy or more R2E holding beds, keep the R2E pools below the collapse threshold under the high-intensity profile? `[high_intensity, sortie interval 3 to 7 days, evacuation policy 21 and 30 days, 30 and 60 holding beds · 360 d · 30 replications · pool totals, closing 90 d]`
 
 <!-- GEN interval_grid_high -->
-| Interval, policy and holding beds | R2E hold mean queue | R2E ICU mean queue | Both pools below threshold |
+| Interval, policy and holding beds | R2E hold mean queue | R2E post-operative overflow census | Pools |
 |---|---|---|---|
-| 3 d interval, 21 d policy, 30 beds | 1.7 [1.0, 2.3] | 519.6 [494.9, 544.3] | 0 of 30 |
-| 3 d interval, 21 d policy, 60 beds | 0.0 [0.0, 0.0] | 445.3 [426.3, 464.2] | 0 of 30 |
-| 3 d interval, 30 d policy, 30 beds | 2,302.7 [2,234.0, 2,371.3] | 990.4 [970.1, 1,010.7] | 0 of 30 |
-| 3 d interval, 30 d policy, 60 beds | 30.9 [21.7, 40.0] | 793.2 [746.2, 840.1] | 0 of 30 |
-| 5 d interval, 21 d policy, 30 beds | 43.2 [39.1, 47.2] | 1,195.4 [1,176.5, 1,214.4] | 0 of 30 |
-| 5 d interval, 21 d policy, 60 beds | 47.2 [40.6, 53.8] | 1,127.6 [1,101.7, 1,153.4] | 0 of 30 |
-| 5 d interval, 30 d policy, 30 beds | 2,345.4 [2,293.9, 2,396.9] | 988.2 [968.5, 1,007.8] | 0 of 30 |
-| 5 d interval, 30 d policy, 60 beds | 33.5 [27.7, 39.3] | 1,071.5 [1,038.9, 1,104.0] | 0 of 30 |
-| 7 d interval, 21 d policy, 30 beds | 556.1 [528.5, 583.7] | 1,438.3 [1,423.9, 1,452.7] | 0 of 30 |
-| 7 d interval, 21 d policy, 60 beds | 561.5 [531.3, 591.6] | 1,409.8 [1,392.7, 1,426.9] | 0 of 30 |
-| 7 d interval, 30 d policy, 30 beds | 2,346.4 [2,281.7, 2,411.0] | 1,002.3 [982.7, 1,022.0] | 0 of 30 |
-| 7 d interval, 30 d policy, 60 beds | 414.6 [397.1, 432.1] | 1,417.7 [1,400.6, 1,434.8] | 0 of 30 |
+| 3 d interval, 21 d policy, 30 beds | 50.6 [48.8, 52.3] | 19.8 [19.6, 20.1] | at least one growing |
+| 3 d interval, 21 d policy, 60 beds | 41.3 [39.8, 42.8] | 19.0 [18.6, 19.5] | at least one growing |
+| 3 d interval, 30 d policy, 30 beds | 93.5 [91.0, 95.9] | 19.7 [19.4, 20.0] | at least one growing |
+| 3 d interval, 30 d policy, 60 beds | 68.1 [66.0, 70.2] | 19.9 [19.6, 20.1] | at least one growing |
+| 5 d interval, 21 d policy, 30 beds | 53.6 [51.7, 55.6] | 19.8 [19.6, 20.1] | at least one growing |
+| 5 d interval, 21 d policy, 60 beds | 53.2 [51.7, 54.8] | 19.7 [19.4, 20.0] | at least one growing |
+| 5 d interval, 30 d policy, 30 beds | 93.2 [90.7, 95.8] | 19.9 [19.6, 20.2] | at least one growing |
+| 5 d interval, 30 d policy, 60 beds | 77.4 [74.7, 80.1] | 19.7 [19.5, 20.0] | at least one growing |
+| 7 d interval, 21 d policy, 30 beds | 55.0 [53.0, 56.9] | 20.2 [20.0, 20.4] | at least one growing |
+| 7 d interval, 21 d policy, 60 beds | 56.1 [54.6, 57.7] | 19.8 [19.6, 20.0] | at least one growing |
+| 7 d interval, 30 d policy, 30 beds | 93.6 [90.8, 96.3] | 19.9 [19.7, 20.2] | at least one growing |
+| 7 d interval, 30 d policy, 60 beds | 76.4 [74.2, 78.6] | 19.6 [19.4, 19.9] | at least one growing |
 <!-- /GEN -->
 
-The table counts the replications whose closing-window mean queue was below the twenty-casualty threshold in both R2E pools. At the shipped cell, the seven-day interval with the 21-day policy and 30 beds, the closing-window R2E holding queue was <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->556.1 [528.5, 583.7]<!-- /GEN --> casualties and the intensive care queue <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E ICU mean queue|full -->1,438.3 [1,423.9, 1,452.7]<!-- /GEN -->. At the three-day interval with the same policy and establishment they were <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->1.7 [1.0, 2.3]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E ICU mean queue|full -->519.6 [494.9, 544.3]<!-- /GEN -->, and with 60 beds <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E hold mean queue|full -->0.0 [0.0, 0.0]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E ICU mean queue|full -->445.3 [426.3, 464.2]<!-- /GEN -->. The count of replications below the threshold in both pools was <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|Both pools below threshold|full -->0 of 30<!-- /GEN --> in that cell and <!-- GEN cell:interval_grid_high|3 d interval, 30 d policy, 60 beds|Both pools below threshold|full -->0 of 30<!-- /GEN --> at the 30-day policy.
+The last column classifies each cell by the rule of the preceding grid. At the shipped cell, the seven-day interval with the 21-day policy and 30 beds, the closing-window R2E holding queue was <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->55.0 [53.0, 56.9]<!-- /GEN --> casualties and the post-operative overflow census <!-- GEN cell:interval_grid_high|7 d interval, 21 d policy, 30 beds|R2E post-operative overflow census|full -->20.2 [20.0, 20.4]<!-- /GEN -->. At the three-day interval with the same policy and establishment they were <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E hold mean queue|full -->50.6 [48.8, 52.3]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 30 beds|R2E post-operative overflow census|full -->19.8 [19.6, 20.1]<!-- /GEN -->, and with 60 beds <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E hold mean queue|full -->41.3 [39.8, 42.8]<!-- /GEN --> and <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|R2E post-operative overflow census|full -->19.0 [18.6, 19.5]<!-- /GEN -->. The three-day, 21-day, 60-bed cell was classified <!-- GEN cell:interval_grid_high|3 d interval, 21 d policy, 60 beds|Pools|full -->at least one growing<!-- /GEN -->, as was the three-day, 30-day, 60-bed cell (<!-- GEN cell:interval_grid_high|3 d interval, 30 d policy, 60 beds|Pools|full -->at least one growing<!-- /GEN -->).
 
 <!-- GEN interval_grid_high_wait -->
 | Interval, policy and holding beds | Mean wait, critical channel (days) | Mean wait, standard channel (days) | Still waiting, critical channel | Still waiting, standard channel |
 |---|---|---|---|---|
-| 3 d interval, 21 d policy, 30 beds | 21.27 [20.39, 22.15] | 0.11 [0.08, 0.13] | 603.3 [576.5, 630.1] | 0.2 [0.0, 0.4] |
-| 3 d interval, 21 d policy, 60 beds | 19.10 [18.28, 19.93] | 0.02 [0.01, 0.02] | 516.9 [496.7, 537.1] | 0.1 [0.0, 0.2] |
-| 3 d interval, 30 d policy, 30 beds | 55.07 [52.55, 57.59] | 58.13 [55.74, 60.53] | 1,533.5 [1,514.1, 1,552.9] | 418.4 [403.6, 433.3] |
-| 3 d interval, 30 d policy, 60 beds | 24.10 [22.31, 25.89] | 0.98 [0.74, 1.23] | 951.7 [893.6, 1,009.8] | 7.3 [4.4, 10.1] |
-| 5 d interval, 21 d policy, 30 beds | 26.45 [25.67, 27.23] | 1.75 [1.66, 1.84] | 1,402.9 [1,382.4, 1,423.4] | 12.1 [9.4, 14.8] |
-| 5 d interval, 21 d policy, 60 beds | 26.26 [25.37, 27.14] | 1.40 [1.26, 1.53] | 1,361.1 [1,333.4, 1,388.9] | 14.7 [11.8, 17.6] |
-| 5 d interval, 30 d policy, 30 beds | 55.44 [52.99, 57.89] | 58.54 [56.62, 60.45] | 1,531.0 [1,506.8, 1,555.2] | 425.3 [410.9, 439.7] |
-| 5 d interval, 30 d policy, 60 beds | 28.67 [27.55, 29.80] | 1.56 [1.39, 1.73] | 1,250.2 [1,218.9, 1,281.6] | 8.1 [5.0, 11.2] |
-| 7 d interval, 21 d policy, 30 beds | 21.90 [21.49, 22.30] | 14.58 [13.89, 15.27] | 1,808.2 [1,790.3, 1,826.2] | 116.2 [111.1, 121.3] |
-| 7 d interval, 21 d policy, 60 beds | 19.71 [18.89, 20.54] | 11.66 [10.93, 12.38] | 1,790.3 [1,772.6, 1,808.1] | 123.5 [115.0, 132.1] |
-| 7 d interval, 30 d policy, 30 beds | 58.14 [55.82, 60.46] | 60.37 [57.86, 62.87] | 1,544.4 [1,523.9, 1,565.0] | 432.1 [418.2, 446.0] |
-| 7 d interval, 30 d policy, 60 beds | 18.31 [17.83, 18.80] | 11.37 [10.83, 11.92] | 1,742.1 [1,722.9, 1,761.2] | 65.5 [59.1, 71.8] |
+| 3 d interval, 21 d policy, 30 beds | 22.45 [20.78, 24.13] | 1.50 [1.49, 1.51] | 631.0 [587.6, 674.4] | 17.5 [15.7, 19.3] |
+| 3 d interval, 21 d policy, 60 beds | 20.58 [18.81, 22.36] | 1.50 [1.49, 1.51] | 547.2 [477.4, 617.0] | 17.3 [15.2, 19.4] |
+| 3 d interval, 30 d policy, 30 beds | 20.22 [18.71, 21.73] | 1.50 [1.49, 1.51] | 514.0 [460.7, 567.3] | 12.4 [11.1, 13.7] |
+| 3 d interval, 30 d policy, 60 beds | 20.54 [18.95, 22.14] | 1.49 [1.49, 1.50] | 567.2 [524.9, 609.4] | 14.8 [13.3, 16.3] |
+| 5 d interval, 21 d policy, 30 beds | 82.84 [81.48, 84.20] | 2.52 [2.51, 2.54] | 2,326.1 [2,281.2, 2,370.9] | 28.1 [25.6, 30.5] |
+| 5 d interval, 21 d policy, 60 beds | 82.47 [81.09, 83.84] | 2.49 [2.48, 2.51] | 2,290.9 [2,236.0, 2,345.7] | 30.8 [28.2, 33.4] |
+| 5 d interval, 30 d policy, 30 beds | 80.13 [78.94, 81.32] | 2.49 [2.47, 2.51] | 2,203.1 [2,148.0, 2,258.2] | 22.6 [20.0, 25.2] |
+| 5 d interval, 30 d policy, 60 beds | 80.75 [79.55, 81.96] | 2.49 [2.47, 2.50] | 2,223.4 [2,173.2, 2,273.7] | 22.9 [20.5, 25.3] |
+| 7 d interval, 21 d policy, 30 beds | 109.52 [108.04, 111.00] | 3.54 [3.52, 3.56] | 3,065.9 [3,034.2, 3,097.7] | 18.8 [16.8, 20.8] |
+| 7 d interval, 21 d policy, 60 beds | 109.16 [107.93, 110.38] | 3.56 [3.54, 3.58] | 3,013.3 [2,963.7, 3,062.9] | 18.9 [17.2, 20.6] |
+| 7 d interval, 30 d policy, 30 beds | 107.40 [106.35, 108.45] | 3.50 [3.47, 3.52] | 2,885.2 [2,839.8, 2,930.6] | 14.7 [13.0, 16.4] |
+| 7 d interval, 30 d policy, 60 beds | 108.28 [107.04, 109.52] | 3.49 [3.47, 3.51] | 2,904.3 [2,851.9, 2,956.7] | 13.3 [11.6, 15.0] |
 <!-- /GEN -->
 
-The mean wait is reported separately for the casualties who boarded on the critical (intensive care) channel and on the standard channel, with the casualties of each channel decided for evacuation who had not boarded at the close. At the three-day interval with the 21-day policy and 30 beds the mean wait was <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, critical channel (days)|full -->21.27 [20.39, 22.15]<!-- /GEN --> days on the critical channel against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->0.11 [0.08, 0.13]<!-- /GEN --> days on the standard channel, and <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, critical channel|full -->603.3 [576.5, 630.1]<!-- /GEN --> casualties were still waiting on the critical channel at the close against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, standard channel|full -->0.2 [0.0, 0.4]<!-- /GEN --> on the standard channel. At the shipped seven-day interval the standard channel waited <!-- GEN cell:interval_grid_high_wait|7 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->14.58 [13.89, 15.27]<!-- /GEN --> days.
+The mean wait is reported separately for the casualties who boarded on the critical (intensive care) channel and on the standard channel, with the casualties of each channel decided for evacuation who had not boarded at the close. At the three-day interval with the 21-day policy and 30 beds the mean wait was <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, critical channel (days)|full -->22.45 [20.78, 24.13]<!-- /GEN --> days on the critical channel against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->1.50 [1.49, 1.51]<!-- /GEN --> days on the standard channel, and <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, critical channel|full -->631.0 [587.6, 674.4]<!-- /GEN --> casualties were still waiting on the critical channel at the close against <!-- GEN cell:interval_grid_high_wait|3 d interval, 21 d policy, 30 beds|Still waiting, standard channel|full -->17.5 [15.7, 19.3]<!-- /GEN --> on the standard channel. At the shipped seven-day interval the standard channel waited <!-- GEN cell:interval_grid_high_wait|7 d interval, 21 d policy, 30 beds|Mean wait, standard channel (days)|full -->3.54 [3.52, 3.56]<!-- /GEN --> days.
 
 <!-- GEN interval_grid_high_outcomes -->
 | Interval, policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds | Role 4 closing mean beds |
 |---|---|---|---|---|
-| 3 d interval, 21 d policy, 30 beds | 2,861.8 [2,826.9, 2,896.7] | 288.1 [280.3, 296.0] | 360.9 [357.9, 363.8] | 250.8 [247.5, 254.2] |
-| 3 d interval, 21 d policy, 60 beds | 2,877.1 [2,842.4, 2,911.8] | 290.0 [281.5, 298.5] | 365.1 [360.8, 369.4] | 257.7 [255.0, 260.5] |
-| 3 d interval, 30 d policy, 30 beds | 2,993.7 [2,956.9, 3,030.4] | 295.4 [285.9, 304.9] | 137.0 [128.0, 146.0] | 65.5 [63.1, 67.9] |
-| 3 d interval, 30 d policy, 60 beds | 3,285.3 [3,250.6, 3,319.9] | 306.6 [298.1, 315.1] | 331.2 [324.7, 337.8] | 202.3 [194.7, 209.9] |
-| 5 d interval, 21 d policy, 30 beds | 2,849.5 [2,811.7, 2,887.3] | 287.2 [279.8, 294.6] | 292.3 [289.4, 295.1] | 199.2 [197.5, 201.0] |
-| 5 d interval, 21 d policy, 60 beds | 2,852.9 [2,815.5, 2,890.2] | 286.1 [278.4, 293.7] | 293.0 [289.9, 296.1] | 198.9 [197.1, 200.7] |
-| 5 d interval, 30 d policy, 30 beds | 2,995.9 [2,963.6, 3,028.2] | 296.4 [288.2, 304.7] | 137.0 [130.1, 144.0] | 63.9 [61.2, 66.6] |
-| 5 d interval, 30 d policy, 60 beds | 3,298.9 [3,269.2, 3,328.6] | 309.9 [301.1, 318.8] | 306.3 [299.0, 313.7] | 191.7 [187.4, 195.9] |
-| 7 d interval, 21 d policy, 30 beds | 2,840.0 [2,806.2, 2,873.9] | 277.6 [272.1, 283.1] | 226.3 [224.7, 227.8] | 151.9 [150.2, 153.5] |
-| 7 d interval, 21 d policy, 60 beds | 2,813.6 [2,776.1, 2,851.0] | 285.1 [276.8, 293.4] | 227.1 [224.9, 229.3] | 150.0 [148.3, 151.7] |
-| 7 d interval, 30 d policy, 30 beds | 3,004.3 [2,973.7, 3,034.9] | 292.0 [284.0, 300.0] | 125.7 [120.7, 130.7] | 65.0 [62.3, 67.6] |
-| 7 d interval, 30 d policy, 60 beds | 3,245.8 [3,208.7, 3,282.9] | 305.4 [297.0, 313.8] | 223.0 [220.1, 225.9] | 144.8 [142.8, 146.8] |
+| 3 d interval, 21 d policy, 30 beds | 2,828.2 [2,796.0, 2,860.5] | 436.2 [376.4, 496.0] | 465.4 [462.9, 467.9] | 328.8 [326.7, 331.0] |
+| 3 d interval, 21 d policy, 60 beds | 2,824.5 [2,798.9, 2,850.1] | 532.9 [405.7, 660.0] | 465.6 [463.1, 468.1] | 327.4 [324.8, 330.1] |
+| 3 d interval, 30 d policy, 30 beds | 3,464.5 [3,427.8, 3,501.1] | 497.6 [405.9, 589.2] | 446.0 [443.6, 448.3] | 316.1 [314.4, 317.8] |
+| 3 d interval, 30 d policy, 60 beds | 3,406.0 [3,369.5, 3,442.5] | 380.9 [335.4, 426.3] | 447.3 [444.7, 449.9] | 319.2 [317.2, 321.2] |
+| 5 d interval, 21 d policy, 30 beds | 2,864.3 [2,833.3, 2,895.3] | 590.7 [502.9, 678.5] | 338.0 [335.0, 340.9] | 222.3 [220.0, 224.7] |
+| 5 d interval, 21 d policy, 60 beds | 2,853.6 [2,822.4, 2,884.7] | 578.6 [491.3, 665.8] | 334.4 [332.1, 336.7] | 220.8 [219.0, 222.7] |
+| 5 d interval, 30 d policy, 30 beds | 3,404.6 [3,370.4, 3,438.9] | 544.7 [462.8, 626.6] | 317.7 [314.8, 320.6] | 209.9 [207.8, 211.9] |
+| 5 d interval, 30 d policy, 60 beds | 3,424.1 [3,387.4, 3,460.8] | 535.2 [458.2, 612.2] | 314.7 [312.6, 316.8] | 209.9 [208.3, 211.5] |
+| 7 d interval, 21 d policy, 30 beds | 2,859.0 [2,825.7, 2,892.4] | 506.2 [461.5, 550.8] | 281.3 [279.1, 283.5] | 176.1 [174.4, 177.7] |
+| 7 d interval, 21 d policy, 60 beds | 2,845.0 [2,809.7, 2,880.4] | 601.0 [526.8, 675.2] | 282.1 [279.9, 284.3] | 176.0 [174.5, 177.5] |
+| 7 d interval, 30 d policy, 30 beds | 3,414.1 [3,375.9, 3,452.3] | 602.1 [530.2, 674.0] | 260.0 [257.8, 262.1] | 164.7 [163.1, 166.3] |
+| 7 d interval, 30 d policy, 60 beds | 3,461.6 [3,422.0, 3,501.2] | 609.7 [521.4, 697.9] | 262.0 [260.0, 264.1] | 164.5 [163.1, 165.9] |
 <!-- /GEN -->
 
-Returns to duty per campaign were <!-- GEN cell:interval_grid_high_outcomes|7 d interval, 21 d policy, 30 beds|Returns to duty|full -->2,840.0 [2,806.2, 2,873.9]<!-- /GEN --> at the shipped cell and <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->3,285.3 [3,250.6, 3,319.9]<!-- /GEN --> at the three-day interval with the 30-day policy and 60 beds, where the Role 4 peak was <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Role 4 peak beds|full -->331.2 [324.7, 337.8]<!-- /GEN --> beds.
+Returns to duty per campaign were <!-- GEN cell:interval_grid_high_outcomes|7 d interval, 21 d policy, 30 beds|Returns to duty|full -->2,859.0 [2,825.7, 2,892.4]<!-- /GEN --> at the shipped cell and <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->3,406.0 [3,369.5, 3,442.5]<!-- /GEN --> at the three-day interval with the 30-day policy and 60 beds, where the Role 4 peak was <!-- GEN cell:interval_grid_high_outcomes|3 d interval, 30 d policy, 60 beds|Role 4 peak beds|full -->447.3 [444.7, 449.9]<!-- /GEN --> beds.
 
 <!-- GEN interval_grid_high_paired -->
 | Interval, policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds |
 |---|---|---|---|
-| 3 d interval, 21 d policy, 30 beds | +21.8 [−30.2, +73.8] | +10.5 [+0.2, +20.8] | +134.6 [+130.7, +138.5] |
-| 3 d interval, 21 d policy, 60 beds | +37.1 [−17.1, +91.2] | +12.4 [+1.2, +23.6] | +138.8 [+134.2, +143.5] |
-| 3 d interval, 30 d policy, 30 beds | +153.6 [+97.5, +209.7] | +17.8 [+6.9, +28.7] | −89.3 [−98.5, −80.1] |
-| 3 d interval, 30 d policy, 60 beds | +445.2 [+393.8, +496.6] | +29.0 [+18.0, +39.9] | +105.0 [+98.7, +111.3] |
-| 5 d interval, 21 d policy, 30 beds | +9.4 [−38.0, +56.9] | +9.6 [+1.3, +17.9] | +66.0 [+62.5, +69.5] |
-| 5 d interval, 21 d policy, 60 beds | +12.8 [−41.3, +67.0] | +8.5 [−1.9, +18.8] | +66.7 [+63.5, +70.0] |
-| 5 d interval, 30 d policy, 30 beds | +155.9 [+107.3, +204.4] | +18.8 [+9.1, +28.6] | −89.2 [−96.0, −82.4] |
-| 5 d interval, 30 d policy, 60 beds | +458.9 [+425.7, +492.1] | +32.3 [+21.6, +43.0] | +80.1 [+72.7, +87.4] |
-| 7 d interval, 21 d policy, 60 beds | −26.5 [−77.9, +25.0] | +7.5 [−1.7, +16.7] | +0.8 [−1.8, +3.4] |
-| 7 d interval, 30 d policy, 30 beds | +164.3 [+124.0, +204.5] | +14.4 [+3.7, +25.1] | −100.6 [−105.9, −95.2] |
-| 7 d interval, 30 d policy, 60 beds | +405.8 [+355.0, +456.5] | +27.8 [+18.1, +37.5] | −3.3 [−7.0, +0.4] |
+| 3 d interval, 21 d policy, 30 beds | −30.8 [−74.0, +12.4] | −70.0 [−140.3, +0.4] | +184.1 [+181.2, +187.0] |
+| 3 d interval, 21 d policy, 60 beds | −34.6 [−73.3, +4.2] | +26.7 [−114.6, +168.0] | +184.3 [+180.6, +187.9] |
+| 3 d interval, 30 d policy, 30 beds | +605.4 [+551.9, +658.9] | −8.6 [−99.9, +82.7] | +164.7 [+160.9, +168.4] |
+| 3 d interval, 30 d policy, 60 beds | +547.0 [+494.5, +599.5] | −125.3 [−184.6, −66.0] | +166.0 [+162.8, +169.1] |
+| 5 d interval, 21 d policy, 30 beds | +5.2 [−45.9, +56.4] | +84.5 [−22.7, +191.7] | +56.7 [+53.3, +60.0] |
+| 5 d interval, 21 d policy, 60 beds | −5.5 [−42.4, +31.5] | +72.4 [−31.5, +176.3] | +53.1 [+50.2, +56.1] |
+| 5 d interval, 30 d policy, 30 beds | +545.6 [+493.3, +597.9] | +38.5 [−57.3, +134.3] | +36.4 [+32.8, +40.0] |
+| 5 d interval, 30 d policy, 60 beds | +565.0 [+510.2, +619.9] | +29.1 [−60.4, +118.6] | +33.4 [+30.4, +36.4] |
+| 7 d interval, 21 d policy, 60 beds | −14.0 [−53.4, +25.4] | +94.8 [+10.8, +178.8] | +0.8 [−1.9, +3.5] |
+| 7 d interval, 30 d policy, 30 beds | +555.1 [+509.9, +600.2] | +95.9 [+11.1, +180.8] | −21.3 [−24.1, −18.6] |
+| 7 d interval, 30 d policy, 60 beds | +602.5 [+553.7, +651.3] | +103.5 [+5.2, +201.8] | −19.3 [−22.6, −16.0] |
 <!-- /GEN -->
 
-Each cell was paired by replication against the shipped cell. At the three-day interval with the 30-day policy and 60 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->+445.2 [+393.8, +496.6]<!-- /GEN --> and died of wounds by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Died of wounds|full -->+29.0 [+18.0, +39.9]<!-- /GEN -->; at the three-day interval with the 21-day policy and 30 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Returns to duty|full -->+21.8 [−30.2, +73.8]<!-- /GEN --> and the Role 4 peak by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Role 4 peak beds|full -->+134.6 [+130.7, +138.5]<!-- /GEN -->.
+Each cell was paired by replication against the shipped cell. At the three-day interval with the 30-day policy and 60 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Returns to duty|full -->+547.0 [+494.5, +599.5]<!-- /GEN --> and died of wounds by <!-- GEN cell:interval_grid_high_paired|3 d interval, 30 d policy, 60 beds|Died of wounds|full -->−125.3 [−184.6, −66.0]<!-- /GEN -->; at the three-day interval with the 21-day policy and 30 beds returns to duty differed by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Returns to duty|full -->−30.8 [−74.0, +12.4]<!-- /GEN --> and the Role 4 peak by <!-- GEN cell:interval_grid_high_paired|3 d interval, 21 d policy, 30 beds|Role 4 peak beds|full -->+184.1 [+181.2, +187.0]<!-- /GEN -->.
 
 ### Moderate-Intensity Evacuation Policy and Holding Establishment
 
 **Question.** What happens to the R2E pools, returns to duty and mortality under the shipped configuration when the evacuation policy is set across the 21 to 30 day gap and the R2E holding establishment across 30 to 60 beds together? `[default, evacuation policy 21 to 30 days, 30 to 60 holding beds · 360 d · 30 replications · pool totals, closing 90 d]`
 
 <!-- GEN policy_establishment_moderate -->
-| Policy and holding beds | R2E hold mean queue | R2E ICU mean queue | Returns to duty | Died of wounds | Never evacuated by horizon | Role 4 peak beds |
+| Policy and holding beds | R2E hold mean queue | R2E post-operative overflow census | Returns to duty | Died of wounds | Never evacuated by horizon | Role 4 peak beds |
 |---|---|---|---|---|---|---|
-| 21 d, 30 beds | 0.1 [0.0, 0.2] | 1.4 [0.6, 2.2] | 1,673.3 [1,647.0, 1,699.6] | 10.7 [9.3, 12.0] | 1.5 [0.9, 2.1] | 211.0 [201.5, 220.5] |
-| 21 d, 45 beds | 0.1 [0.0, 0.2] | 0.7 [0.5, 0.9] | 1,692.8 [1,662.3, 1,723.3] | 11.2 [9.6, 12.7] | 1.1 [0.5, 1.6] | 209.8 [200.8, 218.9] |
-| 21 d, 60 beds | 0.6 [0.0, 1.7] | 2.0 [0.0, 4.2] | 1,693.0 [1,665.1, 1,720.9] | 11.3 [10.1, 12.6] | 2.6 [0.3, 4.9] | 215.9 [208.6, 223.2] |
-| 24 d, 30 beds | 8.5 [5.2, 11.9] | 2.6 [1.8, 3.4] | 1,807.1 [1,783.1, 1,831.1] | 10.1 [8.7, 11.5] | 6.0 [3.7, 8.4] | 203.0 [194.3, 211.8] |
-| 24 d, 45 beds | 0.0 [0.0, 0.1] | 1.3 [0.6, 2.1] | 1,815.9 [1,785.5, 1,846.3] | 11.6 [10.1, 13.2] | 1.8 [0.9, 2.8] | 207.3 [196.9, 217.7] |
-| 24 d, 60 beds | 0.0 [0.0, 0.0] | 1.4 [0.6, 2.1] | 1,828.8 [1,792.2, 1,865.4] | 12.2 [10.9, 13.6] | 2.0 [1.1, 2.8] | 210.8 [201.6, 219.9] |
-| 27 d, 30 beds | 158.4 [129.0, 187.8] | 60.9 [45.3, 76.6] | 1,892.3 [1,872.5, 1,912.1] | 12.1 [11.1, 13.2] | 133.4 [109.0, 157.7] | 177.5 [167.6, 187.4] |
-| 27 d, 45 beds | 2.3 [0.8, 3.8] | 1.3 [0.9, 1.8] | 1,919.5 [1,883.8, 1,955.1] | 11.4 [10.2, 12.7] | 2.4 [0.9, 4.0] | 189.9 [182.7, 197.0] |
-| 27 d, 60 beds | 0.0 [0.0, 0.0] | 0.7 [0.6, 0.9] | 1,961.4 [1,932.4, 1,990.4] | 10.9 [9.6, 12.3] | 1.5 [0.5, 2.6] | 208.7 [200.1, 217.3] |
-| 30 d, 30 beds | 759.3 [706.3, 812.3] | 113.3 [103.0, 123.6] | 1,875.3 [1,855.2, 1,895.4] | 12.1 [10.7, 13.5] | 440.8 [417.8, 463.8] | 105.5 [100.2, 110.8] |
-| 30 d, 45 beds | 53.3 [39.0, 67.6] | 24.0 [12.5, 35.5] | 2,030.6 [2,001.0, 2,060.2] | 12.4 [11.2, 13.7] | 44.7 [25.9, 63.4] | 182.8 [175.6, 190.1] |
-| 30 d, 60 beds | 2.0 [0.9, 3.1] | 1.3 [0.8, 1.8] | 2,097.7 [2,068.9, 2,126.5] | 12.2 [10.8, 13.7] | 4.0 [1.1, 6.9] | 191.5 [182.8, 200.1] |
+| 21 d, 30 beds | 22.8 [21.3, 24.3] | 5.3 [4.9, 5.7] | 2,049.6 [2,024.4, 2,074.7] | 20.7 [17.9, 23.5] | 33.3 [25.4, 41.1] | 211.2 [207.6, 214.7] |
+| 21 d, 45 beds | 17.2 [16.1, 18.4] | 4.6 [4.1, 5.1] | 2,043.1 [2,013.9, 2,072.4] | 21.4 [18.2, 24.6] | 40.2 [25.5, 54.9] | 207.9 [203.4, 212.5] |
+| 21 d, 60 beds | 13.5 [12.1, 14.8] | 4.0 [3.5, 4.5] | 2,017.4 [1,991.9, 2,042.8] | 23.3 [19.8, 26.8] | 40.6 [30.4, 50.9] | 211.3 [206.7, 215.9] |
+| 24 d, 30 beds | 30.0 [28.0, 32.0] | 5.5 [5.2, 5.8] | 2,175.8 [2,147.5, 2,204.1] | 18.3 [16.4, 20.3] | 29.9 [22.4, 37.3] | 199.8 [196.9, 202.8] |
+| 24 d, 45 beds | 22.9 [21.1, 24.7] | 4.9 [4.4, 5.3] | 2,189.4 [2,156.7, 2,222.0] | 18.4 [16.1, 20.7] | 28.9 [21.3, 36.6] | 200.4 [196.1, 204.8] |
+| 24 d, 60 beds | 19.5 [17.9, 21.2] | 4.5 [4.1, 5.0] | 2,203.9 [2,172.6, 2,235.2] | 23.3 [19.9, 26.7] | 37.1 [28.2, 46.0] | 206.5 [202.3, 210.7] |
+| 27 d, 30 beds | 36.2 [34.1, 38.3] | 5.5 [5.1, 5.9] | 2,262.7 [2,232.8, 2,292.6] | 18.8 [15.8, 21.7] | 26.4 [21.1, 31.7] | 196.9 [192.7, 201.2] |
+| 27 d, 45 beds | 26.7 [25.0, 28.4] | 5.0 [4.6, 5.3] | 2,277.2 [2,243.6, 2,310.8] | 20.0 [17.7, 22.2] | 24.3 [20.0, 28.6] | 198.5 [194.6, 202.4] |
+| 27 d, 60 beds | 21.1 [19.4, 22.8] | 4.3 [3.9, 4.7] | 2,264.3 [2,231.2, 2,297.4] | 20.8 [18.7, 22.9] | 33.8 [23.9, 43.7] | 199.1 [195.0, 203.2] |
+| 30 d, 30 beds | 42.0 [39.6, 44.3] | 6.0 [5.6, 6.4] | 2,348.0 [2,308.6, 2,387.3] | 20.0 [17.6, 22.3] | 32.8 [23.9, 41.8] | 197.2 [192.8, 201.6] |
+| 30 d, 45 beds | 32.4 [30.5, 34.2] | 5.8 [5.3, 6.3] | 2,345.0 [2,308.3, 2,381.7] | 21.7 [17.1, 26.4] | 42.2 [30.2, 54.2] | 197.5 [192.7, 202.3] |
+| 30 d, 60 beds | 23.9 [22.3, 25.5] | 4.4 [4.0, 4.7] | 2,331.6 [2,307.3, 2,355.8] | 22.0 [16.2, 27.9] | 28.3 [21.4, 35.2] | 195.6 [191.6, 199.6] |
 <!-- /GEN -->
 
-At the shipped 21-day policy and 30 holding beds the closing-window R2E holding queue was <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E hold mean queue|full -->0.1 [0.0, 0.2]<!-- /GEN --> casualties and the R2E intensive care queue <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E ICU mean queue|full -->1.4 [0.6, 2.2]<!-- /GEN -->. At 30 days and 30 beds they were <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E hold mean queue|full -->759.3 [706.3, 812.3]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E ICU mean queue|full -->113.3 [103.0, 123.6]<!-- /GEN -->, and at 30 days and 60 beds <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E hold mean queue|full -->2.0 [0.9, 3.1]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E ICU mean queue|full -->1.3 [0.8, 1.8]<!-- /GEN -->. Returns to duty per campaign rose from <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|Returns to duty|full -->1,673.3 [1,647.0, 1,699.6]<!-- /GEN --> at the shipped setting to <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|Returns to duty|full -->2,097.7 [2,068.9, 2,126.5]<!-- /GEN --> at 30 days and 60 beds.
+At the shipped 21-day policy and 30 holding beds the closing-window R2E holding queue was <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E hold mean queue|full -->22.8 [21.3, 24.3]<!-- /GEN --> casualties and the post-operative overflow census <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|R2E post-operative overflow census|full -->5.3 [4.9, 5.7]<!-- /GEN -->. At 30 days and 30 beds they were <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E hold mean queue|full -->42.0 [39.6, 44.3]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 30 beds|R2E post-operative overflow census|full -->6.0 [5.6, 6.4]<!-- /GEN -->, and at 30 days and 60 beds <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E hold mean queue|full -->23.9 [22.3, 25.5]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|R2E post-operative overflow census|full -->4.4 [4.0, 4.7]<!-- /GEN -->. Returns to duty per campaign rose from <!-- GEN cell:policy_establishment_moderate|21 d, 30 beds|Returns to duty|full -->2,049.6 [2,024.4, 2,074.7]<!-- /GEN --> at the shipped setting to <!-- GEN cell:policy_establishment_moderate|30 d, 60 beds|Returns to duty|full -->2,331.6 [2,307.3, 2,355.8]<!-- /GEN --> at 30 days and 60 beds.
 
 <!-- GEN policy_establishment_moderate_stability -->
-| Policy and holding beds | Holding queue below threshold | ICU queue below threshold | Both below threshold |
-|---|---|---|---|
-| 21 d, 30 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 21 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 21 d, 60 beds | 30 of 30 | 29 of 30 | 29 of 30 |
-| 24 d, 30 beds | 27 of 30 | 30 of 30 | 27 of 30 |
-| 24 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 24 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 27 d, 30 beds | 1 of 30 | 4 of 30 | 1 of 30 |
-| 27 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 27 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
-| 30 d, 30 beds | 0 of 30 | 0 of 30 | 0 of 30 |
-| 30 d, 45 beds | 3 of 30 | 17 of 30 | 3 of 30 |
-| 30 d, 60 beds | 30 of 30 | 30 of 30 | 30 of 30 |
+| Policy and holding beds | Holding queue not growing | Post-operative overflow not growing | Both not growing | Staging overflow not growing | R2E pools across the cell |
+|---|---|---|---|---|---|
+| 21 d, 30 beds | 28 of 30 | 30 of 30 | 28 of 30 | 28 of 30 | all hold |
+| 21 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 | 29 of 30 | all hold |
+| 21 d, 60 beds | 28 of 30 | 27 of 30 | 27 of 30 | 26 of 30 | all hold |
+| 24 d, 30 beds | 28 of 30 | 30 of 30 | 28 of 30 | 28 of 30 | all hold |
+| 24 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 | all hold |
+| 24 d, 60 beds | 27 of 30 | 28 of 30 | 26 of 30 | 26 of 30 | all hold |
+| 27 d, 30 beds | 28 of 30 | 29 of 30 | 27 of 30 | 29 of 30 | all hold |
+| 27 d, 45 beds | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 | all hold |
+| 27 d, 60 beds | 26 of 30 | 29 of 30 | 26 of 30 | 27 of 30 | all hold |
+| 30 d, 30 beds | 28 of 30 | 27 of 30 | 27 of 30 | 27 of 30 | all hold |
+| 30 d, 45 beds | 30 of 30 | 28 of 30 | 28 of 30 | 23 of 30 | all hold |
+| 30 d, 60 beds | 29 of 30 | 30 of 30 | 29 of 30 | 29 of 30 | all hold |
 <!-- /GEN -->
 
-The table counts the replications whose closing-window mean queue was below the twenty-casualty threshold the strategic airlift collapse experiment classifies against. At 27 days the count below the threshold in both pools was <!-- GEN cell:policy_establishment_moderate_stability|27 d, 30 beds|Both below threshold|full -->1 of 30<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_establishment_moderate_stability|27 d, 45 beds|Both below threshold|full -->30 of 30<!-- /GEN --> at 45 and <!-- GEN cell:policy_establishment_moderate_stability|27 d, 60 beds|Both below threshold|full -->30 of 30<!-- /GEN --> at 60; at 30 days it was <!-- GEN cell:policy_establishment_moderate_stability|30 d, 30 beds|Both below threshold|full -->0 of 30<!-- /GEN -->, <!-- GEN cell:policy_establishment_moderate_stability|30 d, 45 beds|Both below threshold|full -->3 of 30<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_stability|30 d, 60 beds|Both below threshold|full -->30 of 30<!-- /GEN -->.
+The table counts and classifies as the high-intensity grid's does. At 27 days the replications with neither the holding queue nor the post-operative overflow growing numbered <!-- GEN cell:policy_establishment_moderate_stability|27 d, 30 beds|Both not growing|full -->27 of 30<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_establishment_moderate_stability|27 d, 45 beds|Both not growing|full -->30 of 30<!-- /GEN --> at 45 and <!-- GEN cell:policy_establishment_moderate_stability|27 d, 60 beds|Both not growing|full -->26 of 30<!-- /GEN --> at 60; at 30 days they numbered <!-- GEN cell:policy_establishment_moderate_stability|30 d, 30 beds|Both not growing|full -->27 of 30<!-- /GEN -->, <!-- GEN cell:policy_establishment_moderate_stability|30 d, 45 beds|Both not growing|full -->28 of 30<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_stability|30 d, 60 beds|Both not growing|full -->29 of 30<!-- /GEN -->. The 30-day, 30-bed cell was classified <!-- GEN cell:policy_establishment_moderate_stability|30 d, 30 beds|R2E pools across the cell|full -->all hold<!-- /GEN -->.
 
 <!-- GEN policy_establishment_moderate_paired -->
 | Policy and holding beds | Returns to duty | Died of wounds | Role 4 peak beds |
 |---|---|---|---|
-| 21 d, 45 beds | +19.5 [−21.1, +60.1] | +0.5 [−1.4, +2.4] | −1.2 [−14.2, +11.8] |
-| 21 d, 60 beds | +19.7 [−13.8, +53.1] | +0.7 [−1.3, +2.6] | +4.8 [−6.9, +16.6] |
-| 24 d, 30 beds | +133.8 [+91.1, +176.5] | −0.6 [−2.5, +1.4] | −8.0 [−20.5, +4.5] |
-| 24 d, 45 beds | +142.6 [+101.3, +183.9] | +1.0 [−1.0, +3.0] | −3.7 [−17.5, +10.0] |
-| 24 d, 60 beds | +155.5 [+109.7, +201.3] | +1.6 [−0.4, +3.6] | −0.3 [−12.9, +12.4] |
-| 27 d, 30 beds | +219.0 [+187.8, +250.2] | +1.5 [−0.1, +3.0] | −33.6 [−46.6, −20.5] |
-| 27 d, 45 beds | +246.2 [+200.4, +291.9] | +0.8 [−0.7, +2.2] | −21.2 [−33.3, −9.0] |
-| 27 d, 60 beds | +288.1 [+245.4, +330.8] | +0.3 [−1.6, +2.2] | −2.3 [−14.5, +9.9] |
-| 30 d, 30 beds | +202.0 [+166.9, +237.1] | +1.4 [−0.4, +3.3] | −105.5 [−115.2, −95.8] |
-| 30 d, 45 beds | +357.3 [+324.8, +389.8] | +1.8 [+0.1, +3.4] | −28.2 [−39.0, −17.4] |
-| 30 d, 60 beds | +424.4 [+383.9, +465.0] | +1.6 [−0.2, +3.3] | −19.6 [−34.8, −4.4] |
+| 21 d, 45 beds | −6.4 [−42.0, +29.1] | +0.7 [−3.5, +4.8] | −3.2 [−8.6, +2.1] |
+| 21 d, 60 beds | −32.2 [−71.9, +7.5] | +2.6 [−1.4, +6.6] | +0.1 [−6.0, +6.3] |
+| 24 d, 30 beds | +126.2 [+88.5, +164.0] | −2.4 [−5.7, +0.9] | −11.3 [−16.4, −6.3] |
+| 24 d, 45 beds | +139.8 [+94.8, +184.8] | −2.3 [−5.9, +1.2] | −10.7 [−16.1, −5.3] |
+| 24 d, 60 beds | +154.3 [+113.8, +194.9] | +2.5 [−2.0, +7.1] | −4.7 [−10.4, +1.0] |
+| 27 d, 30 beds | +213.2 [+168.5, +257.8] | −2.0 [−6.5, +2.6] | −14.2 [−19.2, −9.3] |
+| 27 d, 45 beds | +227.6 [+181.9, +273.3] | −0.8 [−4.2, +2.7] | −12.6 [−18.9, −6.3] |
+| 27 d, 60 beds | +214.7 [+170.4, +259.0] | +0.1 [−3.3, +3.4] | −12.1 [−17.6, −6.5] |
+| 30 d, 30 beds | +298.4 [+247.1, +349.7] | −0.8 [−4.1, +2.6] | −14.0 [−19.8, −8.1] |
+| 30 d, 45 beds | +295.4 [+247.6, +343.3] | +1.0 [−4.1, +6.1] | −13.7 [−19.6, −7.8] |
+| 30 d, 60 beds | +282.0 [+247.6, +316.4] | +1.3 [−5.4, +8.0] | −15.6 [−21.3, −9.8] |
 <!-- /GEN -->
 
-Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 27 days and 45 beds returns to duty differed by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Returns to duty|full -->+246.2 [+200.4, +291.9]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Role 4 peak beds|full -->−21.2 [−33.3, −9.0]<!-- /GEN -->; at 30 days and 60 beds the differences were <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Returns to duty|full -->+424.4 [+383.9, +465.0]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Role 4 peak beds|full -->−19.6 [−34.8, −4.4]<!-- /GEN -->.
+Each cell was paired by replication against the shipped 21-day policy at 30 holding beds. At 27 days and 45 beds returns to duty differed by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Returns to duty|full -->+227.6 [+181.9, +273.3]<!-- /GEN --> and Role 4 peak beds by <!-- GEN cell:policy_establishment_moderate_paired|27 d, 45 beds|Role 4 peak beds|full -->−12.6 [−18.9, −6.3]<!-- /GEN -->; at 30 days and 60 beds the differences were <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Returns to duty|full -->+282.0 [+247.6, +316.4]<!-- /GEN --> and <!-- GEN cell:policy_establishment_moderate_paired|30 d, 60 beds|Role 4 peak beds|full -->−15.6 [−21.3, −9.8]<!-- /GEN -->.
 
 <!-- GEN policy_grid_largest_moderate -->
-| Holding beds | Largest policy holding both pools in every replication | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
+| Holding beds | Largest policy holding the R2E pools | Returns to duty there | Paired gain over 21 d and 30 beds | Gain per added bed |
 |---|---|---|---|---|
-| 30 | 21 d | 1,673.3 [1,647.0, 1,699.6] | 0 (the shipped setting) | not applicable |
-| 45 | 27 d | 1,919.5 [1,883.8, 1,955.1] | +246.2 [+200.4, +291.9] | +16.4 |
-| 60 | 30 d | 2,097.7 [2,068.9, 2,126.5] | +424.4 [+383.9, +465.0] | +14.1 |
+| 30 | 30 d | 2,348.0 [2,308.6, 2,387.3] | +298.4 [+247.1, +349.7] | not applicable |
+| 45 | 30 d | 2,345.0 [2,308.3, 2,381.7] | +295.4 [+247.6, +343.3] | +19.7 |
+| 60 | 30 d | 2,331.6 [2,307.3, 2,355.8] | +282.0 [+247.6, +316.4] | +9.4 |
 <!-- /GEN -->
 
-The largest policy at which both R2E pools stayed below the threshold in every replication was <!-- GEN cell:policy_grid_largest_moderate|30|Largest policy holding both pools in every replication|full -->21 d<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_grid_largest_moderate|45|Largest policy holding both pools in every replication|full -->27 d<!-- /GEN --> at 45 and <!-- GEN cell:policy_grid_largest_moderate|60|Largest policy holding both pools in every replication|full -->30 d<!-- /GEN --> at 60. The paired gain per added bed was <!-- GEN cell:policy_grid_largest_moderate|45|Gain per added bed|full -->+16.4<!-- /GEN --> returns to duty at 45 beds and <!-- GEN cell:policy_grid_largest_moderate|60|Gain per added bed|full -->+14.1<!-- /GEN --> at 60.
+The largest policy at which the cell held the R2E pools was <!-- GEN cell:policy_grid_largest_moderate|30|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 30 beds, <!-- GEN cell:policy_grid_largest_moderate|45|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 45 and <!-- GEN cell:policy_grid_largest_moderate|60|Largest policy holding the R2E pools|full -->30 d<!-- /GEN --> at 60. The paired gain per added bed was <!-- GEN cell:policy_grid_largest_moderate|45|Gain per added bed|full -->+19.7<!-- /GEN --> returns to duty at 45 beds and <!-- GEN cell:policy_grid_largest_moderate|60|Gain per added bed|full -->+9.4<!-- /GEN --> at 60.
 
 ### Forward Surgical Saturation Release
 
 **Question.** What changes when casualties are released to strategic evacuation with the definitive repair outstanding once the R2E theatre queue reaches a threshold? `[default, threshold 0 to 24 casualties · 360 d · 30 replications · paired, closing 90 d]`
 
 <!-- GEN saturation -->
-| Response | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
+| Response | 0 (disabled) | 1 | 2 (shipped) | 3 | 5 | 8 | 12 | 16 | 24 |
 |---|---|---|---|---|---|---|---|---|---|
-| Theatre mean queue | 8.32 [5.23, 11.42] | 2.28 [1.40, 3.16] | 2.30 [1.34, 3.26] | 2.62 [1.14, 4.09] | 4.84 [1.09, 8.60] | 4.92 [1.93, 7.91] | 2.77 [2.09, 3.44] | 3.66 [2.79, 4.53] | 6.90 [3.71, 10.08] |
-| Released with repair outstanding | 0.0 [0.0, 0.0] | 296.0 [272.0, 319.9] | 228.5 [206.6, 250.5] | 216.0 [193.6, 238.4] | 175.8 [156.8, 194.8] | 146.0 [125.8, 166.3] | 93.0 [77.0, 108.9] | 77.7 [61.1, 94.3] | 55.8 [40.2, 71.5] |
-| Role 4 operations owed | 932.6 [899.3, 966.0] | 1299.9 [1235.6, 1364.3] | 1182.3 [1132.1, 1232.5] | 1209.1 [1151.5, 1266.8] | 1111.1 [1059.5, 1162.7] | 1142.0 [1089.3, 1194.7] | 1026.2 [979.1, 1073.4] | 1037.2 [991.0, 1083.3] | 997.1 [958.1, 1036.1] |
-| Post-definitive ICU access (%) | 34.8 [33.8, 35.7] | 28.8 [27.2, 30.3] | 30.4 [28.0, 32.8] | 30.9 [29.6, 32.2] | 31.8 [30.3, 33.3] | 31.7 [30.6, 32.8] | 33.2 [31.7, 34.8] | 32.6 [31.4, 33.9] | 33.5 [32.2, 34.8] |
-| Died of wounds | 10.7 [9.5, 11.9] | 11.2 [9.6, 12.8] | 10.6 [9.1, 12.1] | 11.0 [9.5, 12.4] | 11.8 [10.5, 13.1] | 10.7 [9.3, 12.0] | 10.9 [9.7, 12.0] | 12.1 [10.7, 13.5] | 10.5 [9.3, 11.7] |
-| Returns to duty | 1670.9 [1646.1, 1695.8] | 1670.5 [1644.8, 1696.3] | 1672.7 [1644.1, 1701.2] | 1668.2 [1641.7, 1694.6] | 1674.5 [1650.2, 1698.8] | 1673.3 [1647.0, 1699.6] | 1664.1 [1637.7, 1690.6] | 1697.7 [1671.2, 1724.2] | 1674.8 [1645.4, 1704.2] |
+| Theatre mean queue | 1.93 [0.79, 3.07] | 0.70 [0.39, 1.01] | 0.53 [0.35, 0.71] | 0.65 [0.49, 0.81] | 0.87 [0.49, 1.25] | 0.90 [0.67, 1.13] | 0.99 [0.55, 1.43] | 0.89 [0.63, 1.15] | 0.93 [0.68, 1.17] |
+| Released with repair outstanding | 0.0 [0.0, 0.0] | 173.0 [153.9, 192.0] | 129.3 [113.1, 145.5] | 99.9 [85.9, 113.8] | 97.8 [82.1, 113.5] | 71.6 [60.1, 83.1] | 47.3 [34.9, 59.6] | 47.2 [35.6, 58.8] | 25.8 [16.3, 35.2] |
+| Role 4 operations owed | 1063.4 [1031.9, 1094.8] | 1255.3 [1198.8, 1311.8] | 1207.4 [1162.0, 1252.9] | 1164.4 [1113.7, 1215.0] | 1173.7 [1130.1, 1217.2] | 1148.2 [1107.5, 1188.9] | 1126.0 [1097.2, 1154.7] | 1139.1 [1096.7, 1181.4] | 1104.7 [1072.0, 1137.3] |
+| Post-definitive ICU access (%) | 34.4 [33.6, 35.2] | 35.7 [34.8, 36.6] | 35.4 [34.7, 36.1] | 35.9 [35.2, 36.7] | 34.8 [34.1, 35.5] | 34.7 [34.0, 35.4] | 35.3 [34.7, 35.9] | 34.4 [33.8, 34.9] | 34.6 [33.8, 35.4] |
+| Died of wounds | 21.9 [18.6, 25.2] | 22.7 [18.8, 26.6] | 20.7 [17.9, 23.5] | 19.0 [16.9, 21.1] | 23.0 [19.6, 26.3] | 21.4 [19.0, 23.8] | 22.0 [19.4, 24.6] | 22.6 [19.7, 25.5] | 23.6 [20.5, 26.8] |
+| Returns to duty | 2037.3 [2000.8, 2073.8] | 2022.7 [1997.4, 2048.1] | 2049.6 [2024.4, 2074.7] | 2049.7 [2026.7, 2072.7] | 2047.7 [2012.7, 2082.6] | 2040.9 [2005.9, 2075.8] | 2042.3 [2013.1, 2071.6] | 2052.5 [2026.2, 2078.7] | 2066.8 [2028.6, 2105.0] |
 <!-- /GEN -->
 
 ![Six panels of campaign responses against the forward surgical saturation release threshold](../images/saturation_sweep.png)
 
 The same six responses against the R2E theatre queue length at which a casualty is released, with the shipped threshold marked by a dashed line.
 
-With the release disabled the closing-window theatre queue was <!-- GEN cell:saturation|Theatre mean queue|0 (disabled)|full -->8.32 [5.23, 11.42]<!-- /GEN --> casualties and no casualty was released with the repair outstanding. At the shipped threshold of two the queue was <!-- GEN cell:saturation|Theatre mean queue|2 (shipped)|full -->4.92 [1.93, 7.91]<!-- /GEN --> and <!-- GEN cell:saturation|Released with repair outstanding|2 (shipped)|full -->146.0 [125.8, 166.3]<!-- /GEN --> casualties per campaign were released with the repair outstanding, with <!-- GEN cell:saturation|Role 4 operations owed|2 (shipped)|full -->1142.0 [1089.3, 1194.7]<!-- /GEN --> operations owed at the national support base against <!-- GEN cell:saturation|Role 4 operations owed|0 (disabled)|full -->932.6 [899.3, 966.0]<!-- /GEN --> with the release disabled. Returns to duty and died of wounds per campaign were <!-- GEN cell:saturation|Returns to duty|2 (shipped)|full -->1673.3 [1647.0, 1699.6]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|2 (shipped)|full -->10.7 [9.3, 12.0]<!-- /GEN --> at the shipped threshold and <!-- GEN cell:saturation|Returns to duty|0 (disabled)|full -->1670.9 [1646.1, 1695.8]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|0 (disabled)|full -->10.7 [9.5, 11.9]<!-- /GEN --> with the release disabled.
+With the release disabled the closing-window theatre queue was <!-- GEN cell:saturation|Theatre mean queue|0 (disabled)|full -->1.93 [0.79, 3.07]<!-- /GEN --> casualties and no casualty was released with the repair outstanding. At the shipped threshold of two the queue was <!-- GEN cell:saturation|Theatre mean queue|2 (shipped)|full -->0.53 [0.35, 0.71]<!-- /GEN --> and <!-- GEN cell:saturation|Released with repair outstanding|2 (shipped)|full -->129.3 [113.1, 145.5]<!-- /GEN --> casualties per campaign were released with the repair outstanding, with <!-- GEN cell:saturation|Role 4 operations owed|2 (shipped)|full -->1207.4 [1162.0, 1252.9]<!-- /GEN --> operations owed at the national support base against <!-- GEN cell:saturation|Role 4 operations owed|0 (disabled)|full -->1063.4 [1031.9, 1094.8]<!-- /GEN --> with the release disabled. Returns to duty and died of wounds per campaign were <!-- GEN cell:saturation|Returns to duty|2 (shipped)|full -->2049.6 [2024.4, 2074.7]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|2 (shipped)|full -->20.7 [17.9, 23.5]<!-- /GEN --> at the shipped threshold and <!-- GEN cell:saturation|Returns to duty|0 (disabled)|full -->2037.3 [2000.8, 2073.8]<!-- /GEN --> and <!-- GEN cell:saturation|Died of wounds|0 (disabled)|full -->21.9 [18.6, 25.2]<!-- /GEN --> with the release disabled.
 
 **High-intensity profile.** The same sweep under `high_intensity` `[high_intensity, threshold 0 to 24 casualties · 360 d · 30 replications · paired, closing 90 d]`:
 
 <!-- GEN saturation_high -->
-| Response | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
+| Response | 0 (disabled) | 1 | 2 (shipped) | 3 | 5 | 8 | 12 | 16 | 24 |
 |---|---|---|---|---|---|---|---|---|---|
-| Theatre mean queue | 1520.25 [1457.70, 1582.80] | 453.01 [400.63, 505.39] | 510.15 [450.73, 569.57] | 528.74 [467.04, 590.43] | 538.97 [472.52, 605.42] | 520.60 [466.00, 575.20] | 517.56 [459.20, 575.92] | 549.12 [482.09, 616.16] | 555.52 [492.13, 618.92] |
-| Released with repair outstanding | 0.0 [0.0, 0.0] | 1463.9 [1448.3, 1479.5] | 1459.1 [1440.5, 1477.8] | 1454.4 [1439.6, 1469.1] | 1465.0 [1452.5, 1477.5] | 1466.2 [1452.0, 1480.4] | 1460.7 [1446.9, 1474.5] | 1474.9 [1462.8, 1487.0] | 1464.2 [1447.8, 1480.5] |
-| Role 4 operations owed | 1296.4 [1271.7, 1321.1] | 1401.5 [1377.1, 1425.9] | 1407.7 [1379.6, 1435.8] | 1392.1 [1364.3, 1420.0] | 1388.9 [1367.2, 1410.5] | 1395.6 [1369.9, 1421.3] | 1401.4 [1378.7, 1424.2] | 1384.0 [1361.7, 1406.3] | 1373.6 [1348.6, 1398.6] |
-| Post-definitive ICU access (%) | 1.0 [0.8, 1.1] | 0.2 [0.1, 0.2] | 0.2 [0.1, 0.2] | 0.2 [0.1, 0.3] | 0.2 [0.2, 0.3] | 0.2 [0.2, 0.3] | 0.3 [0.2, 0.3] | 0.3 [0.2, 0.4] | 0.3 [0.3, 0.4] |
-| Died of wounds | 269.1 [261.7, 276.5] | 275.6 [269.5, 281.7] | 279.4 [272.8, 286.0] | 282.6 [274.9, 290.2] | 276.5 [268.2, 284.8] | 277.6 [272.1, 283.1] | 284.4 [278.3, 290.5] | 286.4 [279.7, 293.1] | 279.5 [274.5, 284.5] |
-| Returns to duty | 2806.2 [2770.4, 2842.1] | 2797.5 [2767.8, 2827.2] | 2830.3 [2797.8, 2862.8] | 2830.7 [2790.6, 2870.8] | 2831.9 [2794.4, 2869.4] | 2840.0 [2806.2, 2873.9] | 2845.8 [2811.2, 2880.4] | 2855.7 [2817.0, 2894.4] | 2850.3 [2813.2, 2887.3] |
+| Theatre mean queue | 937.46 [875.99, 998.94] | 79.21 [50.81, 107.61] | 56.79 [42.95, 70.64] | 99.99 [68.27, 131.71] | 84.72 [54.62, 114.82] | 78.20 [54.96, 101.43] | 88.88 [69.03, 108.74] | 80.90 [61.97, 99.82] | 98.38 [65.53, 131.23] |
+| Released with repair outstanding | 0.0 [0.0, 0.0] | 2019.1 [1984.6, 2053.6] | 2004.2 [1966.7, 2041.7] | 1970.9 [1926.3, 2015.6] | 1914.1 [1854.5, 1973.6] | 1922.3 [1870.2, 1974.3] | 1911.6 [1861.2, 1962.0] | 1868.6 [1810.6, 1926.7] | 1800.7 [1737.5, 1864.0] |
+| Role 4 operations owed | 1331.6 [1311.4, 1351.8] | 2065.1 [2037.6, 2092.6] | 2023.2 [1994.3, 2052.0] | 2045.1 [2019.3, 2070.9] | 2046.3 [2003.6, 2089.0] | 2021.4 [1994.8, 2048.0] | 2029.8 [1991.5, 2068.0] | 1998.9 [1964.4, 2033.4] | 2001.0 [1966.3, 2035.7] |
+| Post-definitive ICU access (%) | 15.8 [15.7, 16.0] | 11.2 [11.0, 11.4] | 11.0 [10.9, 11.2] | 11.1 [10.9, 11.2] | 11.2 [11.0, 11.5] | 11.2 [11.0, 11.4] | 11.2 [11.0, 11.3] | 11.2 [10.9, 11.4] | 11.4 [11.2, 11.6] |
+| Died of wounds | 1748.8 [1679.6, 1818.0] | 529.6 [476.7, 582.4] | 509.3 [464.7, 554.0] | 585.8 [523.6, 647.9] | 581.0 [496.9, 665.1] | 609.9 [532.4, 687.5] | 671.1 [602.0, 740.2] | 646.4 [581.0, 711.8] | 748.0 [669.7, 826.3] |
+| Returns to duty | 2777.5 [2755.4, 2799.7] | 2836.3 [2801.4, 2871.3] | 2864.3 [2832.8, 2895.8] | 2878.3 [2836.3, 2920.4] | 2871.6 [2838.6, 2904.7] | 2863.7 [2827.7, 2899.7] | 2907.1 [2876.9, 2937.3] | 2861.0 [2825.9, 2896.2] | 2842.3 [2808.1, 2876.5] |
 <!-- /GEN -->
 
-The R2E theatre mean queue was <!-- GEN cell:saturation_high|Theatre mean queue|0 (disabled)|full -->1520.25 [1457.70, 1582.80]<!-- /GEN --> with the release disabled and <!-- GEN cell:saturation_high|Theatre mean queue|2 (shipped)|full -->520.60 [466.00, 575.20]<!-- /GEN --> at the shipped threshold of two.
+The R2E theatre mean queue was <!-- GEN cell:saturation_high|Theatre mean queue|0 (disabled)|full -->937.46 [875.99, 998.94]<!-- /GEN --> with the release disabled and <!-- GEN cell:saturation_high|Theatre mean queue|2 (shipped)|full -->56.79 [42.95, 70.64]<!-- /GEN --> at the shipped threshold of two.
 
 
 ### Surgical Team Establishment
@@ -807,18 +818,18 @@ Each arm is a count of surgical sections: three, four or six at R2E, and one or 
 <!-- GEN surgical_team -->
 | Response | R2E 3, R2B 1 (shipped) | R2E 4, R2B 1 | R2E 6, R2B 1 | R2E 3, R2B 2 | R2E 4, R2B 2 |
 |---|---|---|---|---|---|
-| R2E theatre mean queue | 4.92 [1.93, 7.91] | 2.39 [1.33, 3.44] | 1.66 [1.23, 2.10] | 2.04 [0.89, 3.19] | 1.39 [0.71, 2.06] |
-| R2E theatre queue, late-half classification | converged at 3.27 | converged at 2.00 | converged at 1.51 | converged at 1.72 | converged at 0.96 |
-| R2E theatre queue shortfall per day | 0.016 [−0.005, 0.037] | 0.002 [−0.003, 0.007] | −0.001 [−0.008, 0.006] | −0.003 [−0.018, 0.011] | 0.003 [−0.003, 0.008] |
-| Diverted, team off shift | 997.7 [972.0, 1023.4] | 984.8 [963.9, 1005.7] | 983.5 [957.9, 1009.1] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
-| Diverted, theatre busy | 201.6 [188.0, 215.2] | 193.2 [181.7, 204.6] | 205.2 [189.8, 220.5] | 414.1 [392.0, 436.2] | 408.4 [385.6, 431.3] |
-| R2B surgeries | 718.3 [705.3, 731.3] | 714.5 [704.6, 724.4] | 712.7 [698.2, 727.2] | 1351.3 [1327.7, 1375.0] | 1334.9 [1311.1, 1358.6] |
-| R2E first surgeries | 1573.5 [1535.9, 1611.0] | 1548.3 [1515.5, 1581.1] | 1554.4 [1518.5, 1590.3] | 1213.0 [1168.6, 1257.3] | 1203.8 [1159.9, 1247.6] |
-| R2E theatre entry deferred | 220.2 [209.1, 231.4] | 208.0 [198.0, 218.0] | 213.6 [196.8, 230.4] | 133.7 [124.3, 143.1] | 129.7 [120.2, 139.3] |
-| Released with repair outstanding | 146.0 [125.8, 166.3] | 107.9 [89.9, 125.8] | 96.3 [80.1, 112.4] | 71.1 [57.4, 84.8] | 55.6 [44.0, 67.2] |
-| Died of wounds | 10.67 [9.33, 12.00] | 11.27 [9.89, 12.65] | 11.10 [9.85, 12.35] | 8.40 [7.33, 9.47] | 8.17 [7.24, 9.10] |
-| Returns to duty | 1673.3 [1647.0, 1699.6] | 1666.7 [1640.9, 1692.4] | 1679.4 [1655.3, 1703.4] | 1675.4 [1647.5, 1703.2] | 1657.8 [1632.9, 1682.6] |
-| Post-definitive ICU access (%) | 31.7 [30.6, 32.8] | 32.5 [31.3, 33.7] | 31.6 [29.0, 34.3] | 32.0 [30.5, 33.6] | 31.9 [30.1, 33.8] |
+| R2E theatre mean queue | 0.53 [0.35, 0.71] | 0.27 [0.18, 0.35] | 0.27 [0.17, 0.38] | 0.58 [0.29, 0.86] | 0.21 [0.14, 0.27] |
+| R2E theatre queue, late-half classification | converged at 0.60 | converged at 0.33 | converged at 0.32 | converged at 0.46 | converged at 0.25 |
+| R2E theatre queue shortfall per day | 0.000 [−0.004, 0.005] | 0.000 [−0.003, 0.003] | −0.001 [−0.005, 0.003] | 0.002 [−0.002, 0.006] | 0.000 [−0.002, 0.001] |
+| Diverted, team off shift | 1198.4 [1172.5, 1224.4] | 1214.4 [1177.0, 1251.9] | 1184.3 [1165.3, 1203.3] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| Diverted, theatre busy | 233.0 [217.7, 248.2] | 247.4 [228.4, 266.4] | 234.4 [223.0, 245.8] | 497.2 [467.0, 527.5] | 518.2 [493.3, 543.2] |
+| R2B surgeries | 824.8 [811.6, 837.9] | 830.1 [814.5, 845.8] | 820.8 [810.9, 830.6] | 1563.1 [1536.7, 1589.6] | 1580.9 [1558.8, 1602.9] |
+| R2E first surgeries | 1807.4 [1762.1, 1852.8] | 1837.1 [1775.6, 1898.6] | 1798.8 [1764.9, 1832.7] | 1368.2 [1316.6, 1419.8] | 1397.3 [1351.8, 1442.8] |
+| R2E theatre entry deferred | 368.8 [358.3, 379.2] | 376.1 [357.6, 394.7] | 365.7 [354.7, 376.6] | 226.5 [212.1, 240.9] | 235.9 [221.6, 250.2] |
+| Released with repair outstanding | 129.3 [113.1, 145.5] | 92.2 [75.0, 109.5] | 78.8 [68.1, 89.5] | 68.7 [55.1, 82.3] | 52.8 [39.9, 65.7] |
+| Died of wounds | 20.73 [17.94, 23.52] | 23.30 [13.59, 33.01] | 18.80 [16.30, 21.30] | 18.17 [15.50, 20.83] | 17.17 [14.57, 19.76] |
+| Returns to duty | 2049.6 [2024.4, 2074.7] | 2039.0 [2012.2, 2065.8] | 2052.3 [2025.4, 2079.1] | 2067.6 [2029.3, 2105.8] | 2056.9 [2024.1, 2089.7] |
+| Post-definitive ICU access (%) | 35.4 [34.7, 36.1] | 34.8 [34.0, 35.7] | 35.3 [34.8, 35.9] | 34.4 [33.4, 35.3] | 33.5 [32.7, 34.2] |
 <!-- /GEN -->
 
 The paired differences against the shipped establishment are in the next table, each taken within replication.
@@ -826,21 +837,21 @@ The paired differences against the shipped establishment are in the next table, 
 <!-- GEN surgical_team_paired -->
 | Paired difference against the shipped establishment | R2E 4, R2B 1 | R2E 6, R2B 1 | R2E 3, R2B 2 | R2E 4, R2B 2 |
 |---|---|---|---|---|
-| R2E theatre mean queue | −2.54 [−4.83, −0.24] | −3.26 [−6.34, −0.18] | −2.88 [−5.85, +0.08] | −3.53 [−6.61, −0.46] |
-| Diverted, team off shift | −12.9 [−47.3, +21.4] | −14.2 [−52.3, +23.9] | −997.7 [−1023.4, −972.0] | −997.7 [−1023.4, −972.0] |
-| Diverted, theatre busy | −8.4 [−23.2, +6.4] | +3.6 [−18.4, +25.5] | +212.5 [+188.4, +236.5] | +206.8 [+178.5, +235.2] |
-| R2B surgeries | −3.8 [−20.8, +13.1] | −5.6 [−26.4, +15.2] | +633.0 [+608.6, +657.5] | +616.6 [+587.3, +645.8] |
-| R2E first surgeries | −25.2 [−77.0, +26.7] | −19.1 [−73.8, +35.6] | −360.5 [−407.4, −313.6] | −369.7 [−429.1, −310.3] |
-| R2E theatre entry deferred | −12.3 [−26.3, +1.8] | −6.6 [−28.7, +15.4] | −86.5 [−101.0, −72.0] | −90.5 [−105.9, −75.1] |
-| Released with repair outstanding | −38.2 [−63.1, −13.3] | −49.8 [−77.8, −21.7] | −74.9 [−96.8, −53.0] | −90.4 [−113.9, −66.9] |
-| Died of wounds | +0.60 [−1.00, +2.20] | +0.43 [−1.06, +1.93] | −2.27 [−4.04, −0.49] | −2.50 [−4.16, −0.84] |
-| Returns to duty | −6.6 [−35.7, +22.4] | +6.1 [−29.6, +41.8] | +2.1 [−34.8, +39.0] | −15.5 [−45.6, +14.6] |
-| Post-definitive ICU access (%) | +0.8 [−0.7, +2.3] | −0.1 [−3.1, +2.9] | +0.3 [−1.5, +2.1] | +0.2 [−1.9, +2.4] |
+| R2E theatre mean queue | −0.26 [−0.48, −0.05] | −0.26 [−0.46, −0.05] | +0.05 [−0.29, +0.38] | −0.32 [−0.49, −0.16] |
+| Diverted, team off shift | +16.0 [−27.4, +59.4] | −14.1 [−44.3, +16.1] | −1198.4 [−1224.4, −1172.5] | −1198.4 [−1224.4, −1172.5] |
+| Diverted, theatre busy | +14.4 [−8.6, +37.4] | +1.4 [−13.8, +16.6] | +264.3 [+232.1, +296.5] | +285.3 [+257.1, +313.4] |
+| R2B surgeries | +5.4 [−12.9, +23.7] | −4.0 [−19.9, +11.9] | +738.4 [+708.3, +768.4] | +756.1 [+730.1, +782.1] |
+| R2E first surgeries | +29.7 [−42.2, +101.6] | −8.6 [−59.1, +41.9] | −439.2 [−503.1, −375.4] | −410.1 [−473.5, −346.7] |
+| R2E theatre entry deferred | +7.4 [−13.1, +27.8] | −3.1 [−17.9, +11.7] | −142.3 [−160.4, −124.1] | −132.9 [−149.9, −115.8] |
+| Released with repair outstanding | −37.0 [−60.0, −14.0] | −50.5 [−68.4, −32.6] | −60.6 [−79.9, −41.2] | −76.5 [−96.2, −56.8] |
+| Died of wounds | +2.57 [−7.19, +12.33] | −1.93 [−6.06, +2.20] | −2.57 [−6.34, +1.21] | −3.57 [−7.43, +0.30] |
+| Returns to duty | −10.6 [−41.5, +20.3] | +2.7 [−33.7, +39.1] | +18.0 [−26.9, +62.9] | +7.3 [−27.8, +42.4] |
+| Post-definitive ICU access (%) | −0.6 [−1.6, +0.4] | −0.0 [−0.8, +0.8] | −1.0 [−2.2, +0.1] | −1.9 [−3.0, −0.9] |
 <!-- /GEN -->
 
-At the shipped establishment the R2E theatre queue averaged <!-- GEN cell:surgical_team|R2E theatre mean queue|R2E 3, R2B 1 (shipped)|full -->4.92 [1.93, 7.91]<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 3, R2B 1 (shipped)|full -->converged at 3.27<!-- /GEN -->. A fourth R2E section changed it by <!-- GEN cell:surgical_team_paired|R2E theatre mean queue|R2E 4, R2B 1|full -->−2.54 [−4.83, −0.24]<!-- /GEN --> and a sixth by <!-- GEN cell:surgical_team_paired|R2E theatre mean queue|R2E 6, R2B 1|full -->−3.26 [−6.34, −0.18]<!-- /GEN -->, with the queue classified <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 4, R2B 1|full -->converged at 2.00<!-- /GEN --> and <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 6, R2B 1|full -->converged at 1.51<!-- /GEN -->. The paired differences in deaths of wounds for the fourth and sixth R2E sections were <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 4, R2B 1|full -->+0.60 [−1.00, +2.20]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 6, R2B 1|full -->+0.43 [−1.06, +1.93]<!-- /GEN -->, and in returns to duty <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 4, R2B 1|full -->−6.6 [−35.7, +22.4]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 6, R2B 1|full -->+6.1 [−29.6, +41.8]<!-- /GEN -->.
+At the shipped establishment the R2E theatre queue averaged <!-- GEN cell:surgical_team|R2E theatre mean queue|R2E 3, R2B 1 (shipped)|full -->0.53 [0.35, 0.71]<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 3, R2B 1 (shipped)|full -->converged at 0.60<!-- /GEN -->. A fourth R2E section changed it by <!-- GEN cell:surgical_team_paired|R2E theatre mean queue|R2E 4, R2B 1|full -->−0.26 [−0.48, −0.05]<!-- /GEN --> and a sixth by <!-- GEN cell:surgical_team_paired|R2E theatre mean queue|R2E 6, R2B 1|full -->−0.26 [−0.46, −0.05]<!-- /GEN -->, with the queue classified <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 4, R2B 1|full -->converged at 0.33<!-- /GEN --> and <!-- GEN cell:surgical_team|R2E theatre queue, late-half classification|R2E 6, R2B 1|full -->converged at 0.32<!-- /GEN -->. The paired differences in deaths of wounds for the fourth and sixth R2E sections were <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 4, R2B 1|full -->+2.57 [−7.19, +12.33]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 6, R2B 1|full -->−1.93 [−6.06, +2.20]<!-- /GEN -->, and in returns to duty <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 4, R2B 1|full -->−10.6 [−41.5, +20.3]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 6, R2B 1|full -->+2.7 [−33.7, +39.1]<!-- /GEN -->.
 
-A second R2B section removed the cases diverted for a closed section, which fell from <!-- GEN cell:surgical_team|Diverted, team off shift|R2E 3, R2B 1 (shipped)|full -->997.7 [972.0, 1023.4]<!-- /GEN --> to <!-- GEN cell:surgical_team|Diverted, team off shift|R2E 3, R2B 2|full -->0.0 [0.0, 0.0]<!-- /GEN -->, and raised those diverted for a busy theatre by <!-- GEN cell:surgical_team_paired|Diverted, theatre busy|R2E 3, R2B 2|full -->+212.5 [+188.4, +236.5]<!-- /GEN -->. R2B surgeries rose by <!-- GEN cell:surgical_team_paired|R2B surgeries|R2E 3, R2B 2|full -->+633.0 [+608.6, +657.5]<!-- /GEN -->, R2E first surgeries fell by <!-- GEN cell:surgical_team_paired|R2E first surgeries|R2E 3, R2B 2|full -->−360.5 [−407.4, −313.6]<!-- /GEN --> and the casualties released with the repair outstanding fell by <!-- GEN cell:surgical_team_paired|Released with repair outstanding|R2E 3, R2B 2|full -->−74.9 [−96.8, −53.0]<!-- /GEN -->. Deaths of wounds differed by <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 3, R2B 2|full -->−2.27 [−4.04, −0.49]<!-- /GEN --> per campaign, and returns to duty by <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 3, R2B 2|full -->+2.1 [−34.8, +39.0]<!-- /GEN -->. With both levers together the differences in deaths of wounds and in returns to duty were <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 4, R2B 2|full -->−2.50 [−4.16, −0.84]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 4, R2B 2|full -->−15.5 [−45.6, +14.6]<!-- /GEN -->.
+A second R2B section removed the cases diverted for a closed section, which fell from <!-- GEN cell:surgical_team|Diverted, team off shift|R2E 3, R2B 1 (shipped)|full -->1198.4 [1172.5, 1224.4]<!-- /GEN --> to <!-- GEN cell:surgical_team|Diverted, team off shift|R2E 3, R2B 2|full -->0.0 [0.0, 0.0]<!-- /GEN -->, and raised those diverted for a busy theatre by <!-- GEN cell:surgical_team_paired|Diverted, theatre busy|R2E 3, R2B 2|full -->+264.3 [+232.1, +296.5]<!-- /GEN -->. R2B surgeries rose by <!-- GEN cell:surgical_team_paired|R2B surgeries|R2E 3, R2B 2|full -->+738.4 [+708.3, +768.4]<!-- /GEN -->, R2E first surgeries fell by <!-- GEN cell:surgical_team_paired|R2E first surgeries|R2E 3, R2B 2|full -->−439.2 [−503.1, −375.4]<!-- /GEN --> and the casualties released with the repair outstanding fell by <!-- GEN cell:surgical_team_paired|Released with repair outstanding|R2E 3, R2B 2|full -->−60.6 [−79.9, −41.2]<!-- /GEN -->. Deaths of wounds differed by <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 3, R2B 2|full -->−2.57 [−6.34, +1.21]<!-- /GEN --> per campaign, and returns to duty by <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 3, R2B 2|full -->+18.0 [−26.9, +62.9]<!-- /GEN -->. With both levers together the differences in deaths of wounds and in returns to duty were <!-- GEN cell:surgical_team_paired|Died of wounds|R2E 4, R2B 2|full -->−3.57 [−7.43, +0.30]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired|Returns to duty|R2E 4, R2B 2|full -->+7.3 [−27.8, +42.4]<!-- /GEN -->.
 
 
 At high intensity the same five arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
@@ -848,36 +859,36 @@ At high intensity the same five arms were run under the `high_intensity` profile
 <!-- GEN surgical_team_high -->
 | Response | R2E 3, R2B 1 (shipped) | R2E 4, R2B 1 | R2E 6, R2B 1 | R2E 3, R2B 2 | R2E 4, R2B 2 |
 |---|---|---|---|---|---|
-| R2E theatre mean queue | 520.60 [466.00, 575.20] | 321.64 [272.58, 370.70] | 115.07 [91.39, 138.76] | 216.10 [170.43, 261.78] | 109.97 [88.32, 131.62] |
-| R2E theatre queue, late-half classification | **drifting, +11.7%/block**, 36.9 to 573.6 | **drifting, +9.1%/block**, 34.9 to 355.3 | **drifting, +5.9%/block**, 22.2 to 122.6 | **drifting, +10.5%/block**, 25.5 to 239.2 | **drifting, +3.4%/block**, 25.2 to 107.9 |
-| R2E theatre queue shortfall per day | 1.629 [1.505, 1.753] | 0.820 [0.670, 0.970] | 0.201 [0.165, 0.238] | 0.609 [0.407, 0.811] | 0.115 [0.034, 0.195] |
-| Diverted, team off shift | 3161.6 [3108.8, 3214.5] | 3201.2 [3152.1, 3250.4] | 3178.1 [3132.9, 3223.3] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
-| Diverted, theatre busy | 1106.7 [1080.6, 1132.9] | 1122.6 [1087.6, 1157.7] | 1116.6 [1094.7, 1138.4] | 2134.0 [2093.1, 2174.9] | 2171.5 [2137.4, 2205.6] |
-| R2B surgeries | 1579.8 [1561.9, 1597.7] | 1602.9 [1587.5, 1618.2] | 1587.5 [1569.0, 1605.9] | 2938.4 [2910.5, 2966.3] | 2950.4 [2926.2, 2974.6] |
-| R2E first surgeries | 3536.0 [3510.8, 3561.1] | 3822.3 [3789.4, 3855.2] | 4017.3 [3977.0, 4057.5] | 3427.7 [3401.5, 3454.0] | 3612.7 [3575.7, 3649.7] |
-| R2E theatre entry deferred | 1013.5 [991.8, 1035.2] | 1014.2 [992.4, 1035.9] | 1021.5 [1004.6, 1038.5] | 794.8 [777.7, 811.9] | 817.4 [803.3, 831.4] |
-| Released with repair outstanding | 1466.2 [1452.0, 1480.4] | 1531.4 [1508.4, 1554.4] | 1514.1 [1475.1, 1553.0] | 970.7 [951.6, 989.8] | 970.8 [937.1, 1004.6] |
-| Died of wounds | 277.60 [272.10, 283.10] | 290.97 [284.80, 297.14] | 283.03 [275.85, 290.22] | 259.07 [251.41, 266.73] | 261.87 [255.36, 268.37] |
-| Returns to duty | 2840.0 [2806.2, 2873.9] | 2824.3 [2792.6, 2856.1] | 2834.4 [2799.5, 2869.3] | 2842.8 [2800.9, 2884.8] | 2859.0 [2831.0, 2886.9] |
-| Post-definitive ICU access (%) | 0.2 [0.2, 0.3] | 0.2 [0.2, 0.3] | 0.2 [0.1, 0.3] | 0.2 [0.1, 0.2] | 0.2 [0.1, 0.2] |
+| R2E theatre mean queue | 56.79 [42.95, 70.64] | 8.91 [7.84, 9.98] | 10.51 [7.91, 13.11] | 21.44 [15.27, 27.62] | 4.78 [3.87, 5.68] |
+| R2E theatre queue, late-half classification | **drifting, +4.3%/block**, 17.4 to 60.5 | converged at 8.97 | converged at 10.2 | converged at 21.0 | converged at 4.93 |
+| R2E theatre queue shortfall per day | 0.074 [0.050, 0.099] | −0.001 [−0.028, 0.025] | 0.009 [−0.011, 0.030] | 0.001 [−0.029, 0.031] | −0.002 [−0.008, 0.004] |
+| Diverted, team off shift | 3830.6 [3794.8, 3866.4] | 3839.1 [3794.0, 3884.1] | 3868.2 [3821.6, 3914.7] | 0.0 [0.0, 0.0] | 0.0 [0.0, 0.0] |
+| Diverted, theatre busy | 1358.6 [1326.8, 1390.3] | 1388.7 [1358.0, 1419.5] | 1413.2 [1374.6, 1451.8] | 2585.8 [2534.7, 2637.0] | 2564.9 [2513.6, 2616.2] |
+| R2B surgeries | 1791.7 [1779.3, 1804.2] | 1799.7 [1783.1, 1816.3] | 1811.9 [1793.2, 1830.7] | 3287.5 [3259.6, 3315.5] | 3286.4 [3260.4, 3312.5] |
+| R2E first surgeries | 6153.3 [6090.4, 6216.1] | 6251.6 [6172.5, 6330.7] | 6316.7 [6224.0, 6409.4] | 5454.2 [5367.2, 5541.2] | 5418.8 [5324.2, 5513.5] |
+| R2E theatre entry deferred | 1600.9 [1577.9, 1623.8] | 1602.2 [1576.0, 1628.5] | 1621.9 [1593.6, 1650.3] | 1275.0 [1249.0, 1301.0] | 1269.5 [1241.2, 1297.9] |
+| Released with repair outstanding | 2004.2 [1966.7, 2041.7] | 1574.7 [1522.8, 1626.5] | 1619.0 [1561.7, 1676.4] | 1385.8 [1336.8, 1434.9] | 985.5 [936.2, 1034.8] |
+| Died of wounds | 509.33 [464.71, 553.96] | 318.67 [305.17, 332.16] | 326.53 [307.26, 345.80] | 362.50 [343.66, 381.34] | 283.17 [274.19, 292.14] |
+| Returns to duty | 2864.3 [2832.8, 2895.8] | 2906.4 [2871.1, 2941.7] | 2909.5 [2874.0, 2945.0] | 2898.8 [2861.6, 2936.0] | 2914.2 [2876.6, 2951.8] |
+| Post-definitive ICU access (%) | 11.0 [10.9, 11.2] | 11.4 [11.2, 11.5] | 11.3 [11.1, 11.5] | 10.7 [10.5, 10.8] | 10.9 [10.8, 11.1] |
 <!-- /GEN -->
 
 <!-- GEN surgical_team_paired_high -->
 | Paired difference against the shipped establishment | R2E 4, R2B 1 | R2E 6, R2B 1 | R2E 3, R2B 2 | R2E 4, R2B 2 |
 |---|---|---|---|---|
-| R2E theatre mean queue | −198.96 [−270.85, −127.06] | −405.52 [−464.06, −346.98] | −304.49 [−376.27, −232.72] | −410.63 [−467.10, −354.16] |
-| Diverted, team off shift | +39.6 [−40.0, +119.2] | +16.5 [−57.5, +90.4] | −3161.6 [−3214.5, −3108.8] | −3161.6 [−3214.5, −3108.8] |
-| Diverted, theatre busy | +15.9 [−29.1, +60.9] | +9.8 [−26.1, +45.7] | +1027.3 [+977.9, +1076.6] | +1064.8 [+1020.2, +1109.3] |
-| R2B surgeries | +23.1 [−2.5, +48.6] | +7.7 [−21.0, +36.3] | +1358.6 [+1326.4, +1390.9] | +1370.6 [+1337.3, +1403.8] |
-| R2E first surgeries | +286.3 [+245.2, +327.4] | +481.3 [+430.4, +532.2] | −108.2 [−138.8, −77.6] | +76.7 [+32.7, +120.8] |
-| R2E theatre entry deferred | +0.7 [−30.3, +31.6] | +8.0 [−21.1, +37.2] | −218.7 [−248.7, −188.7] | −196.1 [−221.4, −170.8] |
-| Released with repair outstanding | +65.2 [+38.1, +92.3] | +47.9 [+11.1, +84.7] | −495.5 [−522.2, −468.8] | −495.4 [−532.4, −458.4] |
-| Died of wounds | +13.37 [+4.09, +22.65] | +5.43 [−4.08, +14.95] | −18.53 [−27.90, −9.17] | −15.73 [−24.95, −6.52] |
-| Returns to duty | −15.7 [−52.9, +21.5] | −5.7 [−51.6, +40.3] | +2.8 [−53.8, +59.4] | +18.9 [−27.9, +65.8] |
-| Post-definitive ICU access (%) | +0.0 [−0.1, +0.1] | −0.0 [−0.1, +0.0] | −0.0 [−0.1, +0.0] | −0.0 [−0.1, +0.0] |
+| R2E theatre mean queue | −47.89 [−61.78, −34.00] | −46.29 [−60.68, −31.89] | −35.35 [−49.68, −21.01] | −52.02 [−66.03, −38.01] |
+| Diverted, team off shift | +8.5 [−42.9, +59.8] | +37.6 [−15.4, +90.5] | −3830.6 [−3866.4, −3794.8] | −3830.6 [−3866.4, −3794.8] |
+| Diverted, theatre busy | +30.2 [−10.6, +71.0] | +54.6 [−1.0, +110.3] | +1227.3 [+1172.1, +1282.4] | +1206.4 [+1146.4, +1266.4] |
+| R2B surgeries | +8.0 [−13.4, +29.4] | +20.2 [−2.8, +43.2] | +1495.8 [+1462.4, +1529.2] | +1494.7 [+1466.0, +1523.4] |
+| R2E first surgeries | +98.4 [+17.0, +179.7] | +163.4 [+46.4, +280.5] | −699.1 [−792.1, −606.0] | −734.4 [−834.5, −634.4] |
+| R2E theatre entry deferred | +1.4 [−30.9, +33.7] | +21.1 [−14.8, +56.9] | −325.8 [−360.4, −291.2] | −331.3 [−365.5, −297.2] |
+| Released with repair outstanding | −429.6 [−486.0, −373.2] | −385.2 [−451.0, −319.4] | −618.4 [−668.6, −568.2] | −1018.7 [−1068.7, −968.8] |
+| Died of wounds | −190.67 [−232.21, −149.13] | −182.80 [−233.49, −132.11] | −146.83 [−189.01, −104.66] | −226.17 [−270.43, −181.90] |
+| Returns to duty | +42.1 [−1.0, +85.3] | +45.2 [+1.1, +89.3] | +34.5 [−19.8, +88.8] | +49.9 [+3.5, +96.3] |
+| Post-definitive ICU access (%) | +0.3 [+0.1, +0.6] | +0.2 [−0.0, +0.5] | −0.4 [−0.6, −0.1] | −0.1 [−0.3, +0.2] |
 <!-- /GEN -->
 
-At the shipped establishment the high-intensity R2E theatre queue averaged <!-- GEN cell:surgical_team_high|R2E theatre mean queue|R2E 3, R2B 1 (shipped)|full -->520.60 [466.00, 575.20]<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 3, R2B 1 (shipped)|full -->**drifting, +11.7%/block**, 36.9 to 573.6<!-- /GEN -->, a shortfall of <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 3, R2B 1 (shipped)|full -->1.629 [1.505, 1.753]<!-- /GEN --> casualties per day. A fourth R2E section gave <!-- GEN cell:surgical_team_high|R2E theatre mean queue|R2E 4, R2B 1|full -->321.64 [272.58, 370.70]<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 4, R2B 1|full -->**drifting, +9.1%/block**, 34.9 to 355.3<!-- /GEN -->, with a shortfall of <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 4, R2B 1|full -->0.820 [0.670, 0.970]<!-- /GEN --> per day; a sixth gave <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 6, R2B 1|full -->**drifting, +5.9%/block**, 22.2 to 122.6<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 6, R2B 1|full -->0.201 [0.165, 0.238]<!-- /GEN --> per day. A second R2B section alone gave <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 3, R2B 2|full -->**drifting, +10.5%/block**, 25.5 to 239.2<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 3, R2B 2|full -->0.609 [0.407, 0.811]<!-- /GEN --> per day, and both levers together <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 4, R2B 2|full -->**drifting, +3.4%/block**, 25.2 to 107.9<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 4, R2B 2|full -->0.115 [0.034, 0.195]<!-- /GEN --> per day. The paired difference in deaths of wounds was <!-- GEN cell:surgical_team_paired_high|Died of wounds|R2E 4, R2B 1|full -->+13.37 [+4.09, +22.65]<!-- /GEN --> for the fourth R2E section and <!-- GEN cell:surgical_team_paired_high|Died of wounds|R2E 4, R2B 2|full -->−15.73 [−24.95, −6.52]<!-- /GEN --> for both levers, and in returns to duty <!-- GEN cell:surgical_team_paired_high|Returns to duty|R2E 4, R2B 1|full -->−15.7 [−52.9, +21.5]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired_high|Returns to duty|R2E 4, R2B 2|full -->+18.9 [−27.9, +65.8]<!-- /GEN -->.
+At the shipped establishment the high-intensity R2E theatre queue averaged <!-- GEN cell:surgical_team_high|R2E theatre mean queue|R2E 3, R2B 1 (shipped)|full -->56.79 [42.95, 70.64]<!-- /GEN --> over the closing 90 days and was classified <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 3, R2B 1 (shipped)|full -->**drifting, +4.3%/block**, 17.4 to 60.5<!-- /GEN -->, a shortfall of <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 3, R2B 1 (shipped)|full -->0.074 [0.050, 0.099]<!-- /GEN --> casualties per day. A fourth R2E section gave <!-- GEN cell:surgical_team_high|R2E theatre mean queue|R2E 4, R2B 1|full -->8.91 [7.84, 9.98]<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 4, R2B 1|full -->converged at 8.97<!-- /GEN -->, with a shortfall of <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 4, R2B 1|full -->−0.001 [−0.028, 0.025]<!-- /GEN --> per day; a sixth gave <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 6, R2B 1|full -->converged at 10.2<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 6, R2B 1|full -->0.009 [−0.011, 0.030]<!-- /GEN --> per day. A second R2B section alone gave <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 3, R2B 2|full -->converged at 21.0<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 3, R2B 2|full -->0.001 [−0.029, 0.031]<!-- /GEN --> per day, and both levers together <!-- GEN cell:surgical_team_high|R2E theatre queue, late-half classification|R2E 4, R2B 2|full -->converged at 4.93<!-- /GEN --> and <!-- GEN cell:surgical_team_high|R2E theatre queue shortfall per day|R2E 4, R2B 2|full -->−0.002 [−0.008, 0.004]<!-- /GEN --> per day. The paired difference in deaths of wounds was <!-- GEN cell:surgical_team_paired_high|Died of wounds|R2E 4, R2B 1|full -->−190.67 [−232.21, −149.13]<!-- /GEN --> for the fourth R2E section and <!-- GEN cell:surgical_team_paired_high|Died of wounds|R2E 4, R2B 2|full -->−226.17 [−270.43, −181.90]<!-- /GEN --> for both levers, and in returns to duty <!-- GEN cell:surgical_team_paired_high|Returns to duty|R2E 4, R2B 1|full -->+42.1 [−1.0, +85.3]<!-- /GEN --> and <!-- GEN cell:surgical_team_paired_high|Returns to duty|R2E 4, R2B 2|full -->+49.9 [+3.5, +96.3]<!-- /GEN -->.
 
 ![Two columns of panels of campaign responses against the surgical section establishment at moderate and high intensity](../images/surgical_team_sweep.png)
 
@@ -894,41 +905,41 @@ Each arm is a bed count for the R2E intensive care pool: four (shipped), six, ei
 | Response | 4 beds (shipped) | 6 beds | 8 beds | 12 beds | 16 beds |
 |---|---|---|---|---|---|
 | Nurses per ICU bed at three sections | 3.00 | 2.00 | 1.50 | 1.00 | 0.75 |
-| R2E ICU mean queue | 1.35 [0.55, 2.16] | 0.47 [0.35, 0.59] | 0.34 [0.28, 0.40] | 0.13 [0.10, 0.17] | 0.90 [0.00, 2.65] |
-| R2E ICU queue, late-half classification | converged at 1.05 | converged at 0.53 | converged at 0.41 | converged at 0.17 | **drifting, -27.0%/block**, 0.2 to 1.0 |
-| R2E ICU queue shortfall per day | 0.004 [−0.003, 0.012] | 0.000 [−0.003, 0.002] | −0.002 [−0.004, 0.000] | −0.001 [−0.002, 0.001] | −0.016 [−0.027, −0.006] |
-| R2E ICU occupancy (%) | 87.8 [86.8, 88.9] | 80.1 [78.5, 81.6] | 74.7 [73.1, 76.2] | 62.1 [59.8, 64.5] | 52.9 [49.1, 56.7] |
-| R2E holding mean queue | 0.08 [0.00, 0.19] | 0.07 [0.01, 0.13] | 0.01 [0.00, 0.03] | 0.01 [0.00, 0.02] | 5.34 [0.00, 16.27] |
-| R2E holding queue, late-half classification | converged at 0.09 | converged at 0.12 | converged at 0.27 | converged at 0.07 | converged at 5.21 |
-| R2E holding queue shortfall per day | 0.000 [−0.001, 0.001] | −0.001 [−0.004, 0.001] | −0.006 [−0.014, 0.002] | −0.002 [−0.004, 0.001] | −0.007 [−0.030, 0.016] |
-| Replications with an R2E pool queue of 20 or more | 0 of 30 | 0 of 30 | 0 of 30 | 0 of 30 | 1 of 30 |
-| Post-operative care in a holding bed (%) | 50.2 [49.1, 51.4] | 35.9 [34.5, 37.3] | 25.3 [23.7, 26.8] | 11.2 [10.2, 12.3] | 5.5 [2.1, 8.8] |
-| Post-definitive ICU access (%) | 31.7 [30.6, 32.8] | 51.0 [49.2, 52.8] | 65.9 [64.1, 67.7] | 85.6 [84.1, 87.1] | 92.7 [87.6, 97.8] |
-| R2E theatre entry deferred | 220.2 [209.1, 231.4] | 162.1 [151.8, 172.4] | 125.5 [115.7, 135.3] | 68.4 [60.4, 76.3] | 37.3 [17.6, 57.0] |
-| Died of wounds | 10.67 [9.33, 12.00] | 10.77 [9.41, 12.13] | 10.07 [8.83, 11.31] | 10.33 [9.24, 11.43] | 10.60 [9.39, 11.81] |
-| Returns to duty | 1673.3 [1647.0, 1699.6] | 1669.9 [1644.6, 1695.1] | 1672.0 [1643.1, 1700.9] | 1676.1 [1647.6, 1704.7] | 1677.9 [1650.9, 1704.9] |
-| Critical-route evacuation wait (days) | 0.54 [0.47, 0.62] | 0.54 [0.40, 0.69] | 0.53 [0.31, 0.76] | 0.56 [0.37, 0.75] | 1.07 [0.03, 2.10] |
-| Role 4 peak census | 211.0 [201.5, 220.5] | 209.7 [199.1, 220.3] | 216.8 [207.0, 226.6] | 220.2 [209.4, 230.9] | 209.5 [199.5, 219.5] |
-| Role 4 closing mean census | 114.9 [109.3, 120.4] | 110.0 [104.3, 115.8] | 108.6 [104.8, 112.4] | 110.4 [103.6, 117.3] | 109.4 [104.8, 114.0] |
+| R2E post-operative overflow census | 5.30 [4.87, 5.73] | 4.12 [3.68, 4.56] | 3.36 [3.09, 3.63] | 2.00 [1.63, 2.37] | 0.93 [0.76, 1.09] |
+| R2E post-operative overflow, late-half classification | converged at 5.44 | converged at 4.19 | converged at 3.30 | converged at 1.97 | converged at 1.03 |
+| R2E post-operative overflow growth per day | −0.001 [−0.008, 0.007] | −0.002 [−0.005, 0.001] | 0.001 [−0.005, 0.006] | 0.000 [−0.002, 0.003] | −0.001 [−0.003, 0.001] |
+| R2E ICU occupancy (%) | 86.4 [85.6, 87.2] | 81.0 [80.0, 82.1] | 75.8 [74.7, 76.9] | 65.7 [63.8, 67.6] | 54.2 [52.8, 55.5] |
+| R2E holding mean queue | 22.80 [21.32, 24.28] | 23.40 [21.99, 24.82] | 24.42 [23.25, 25.60] | 23.93 [22.53, 25.34] | 22.46 [21.15, 23.76] |
+| R2E holding queue, late-half classification | converged at 23.1 | converged at 23.5 | converged at 23.7 | converged at 23.8 | converged at 23.1 |
+| R2E holding queue shortfall per day | −0.002 [−0.019, 0.016] | −0.004 [−0.015, 0.007] | 0.011 [−0.004, 0.027] | −0.003 [−0.019, 0.013] | −0.014 [−0.029, 0.000] |
+| R2E staging overflow, late-half classification | converged at 29.5 | **drifting, -5.2%/block**, 18.5 to 25.0 | converged at 29.9 | converged at 34.9 | **drifting, -6.6%/block**, 16.2 to 26.4 |
+| Post-operative care in a holding bed (%) | 36.7 [36.3, 37.1] | 29.1 [28.5, 29.7] | 23.0 [22.3, 23.7] | 13.8 [13.2, 14.3] | 7.8 [7.0, 8.5] |
+| Post-definitive ICU access (%) | 35.4 [34.7, 36.1] | 50.5 [49.6, 51.4] | 62.5 [61.5, 63.4] | 78.7 [77.7, 79.7] | 88.8 [87.8, 89.8] |
+| R2E theatre entry deferred | 368.8 [358.3, 379.2] | 299.1 [284.1, 314.1] | 233.8 [221.9, 245.7] | 150.2 [139.7, 160.7] | 77.8 [68.2, 87.4] |
+| Died of wounds | 20.73 [17.94, 23.52] | 20.40 [18.06, 22.74] | 17.97 [15.80, 20.14] | 21.27 [18.85, 23.68] | 20.37 [18.03, 22.70] |
+| Returns to duty | 2049.6 [2024.4, 2074.7] | 2066.2 [2035.1, 2097.3] | 2051.1 [2012.2, 2090.1] | 2039.9 [2012.5, 2067.3] | 2015.4 [1982.6, 2048.3] |
+| Critical-route evacuation wait (days) | 5.85 [5.05, 6.64] | 5.68 [5.16, 6.20] | 5.74 [5.21, 6.27] | 6.36 [5.53, 7.18] | 6.12 [5.20, 7.03] |
+| Role 4 peak census | 211.2 [207.6, 214.7] | 211.7 [206.8, 216.6] | 207.9 [203.3, 212.5] | 216.4 [212.4, 220.4] | 207.8 [203.3, 212.3] |
+| Role 4 closing mean census | 116.9 [112.1, 121.6] | 115.1 [109.7, 120.6] | 119.5 [115.2, 123.7] | 119.7 [114.0, 125.5] | 116.9 [112.7, 121.1] |
 <!-- /GEN -->
 
 <!-- GEN icu_bed_paired -->
 | Paired difference against the shipped establishment | 6 beds | 8 beds | 12 beds | 16 beds |
 |---|---|---|---|---|
-| R2E ICU mean queue | −0.89 [−1.69, −0.09] | −1.02 [−1.83, −0.20] | −1.22 [−2.02, −0.42] | −0.45 [−2.42, +1.51] |
-| R2E ICU occupancy (%) | −7.8 [−9.7, −5.8] | −13.2 [−15.2, −11.2] | −25.7 [−28.4, −23.1] | −34.9 [−38.9, −31.0] |
-| R2E holding mean queue | −0.01 [−0.13, +0.11] | −0.07 [−0.18, +0.04] | −0.07 [−0.18, +0.04] | +5.27 [−5.67, +16.20] |
-| Post-operative care in a holding bed (%) | −14.4 [−16.1, −12.7] | −25.0 [−26.8, −23.1] | −39.0 [−40.4, −37.6] | −44.8 [−48.1, −41.4] |
-| Post-definitive ICU access (%) | +19.3 [+17.3, +21.3] | +34.2 [+32.0, +36.3] | +53.9 [+52.3, +55.5] | +61.0 [+56.2, +65.8] |
-| R2E theatre entry deferred | −58.2 [−73.0, −43.3] | −94.7 [−109.8, −79.7] | −151.9 [−164.5, −139.2] | −182.9 [−202.9, −163.0] |
-| Died of wounds | +0.10 [−1.75, +1.95] | −0.60 [−2.47, +1.27] | −0.33 [−1.95, +1.28] | −0.07 [−1.78, +1.64] |
-| Returns to duty | −3.4 [−36.0, +29.2] | −1.3 [−41.0, +38.3] | +2.8 [−30.0, +35.7] | +4.6 [−29.9, +39.1] |
-| Critical-route evacuation wait (days) | +0.00 [−0.14, +0.14] | −0.01 [−0.25, +0.23] | +0.02 [−0.16, +0.20] | +0.52 [−0.49, +1.53] |
-| Role 4 peak census | −1.3 [−17.1, +14.5] | +5.8 [−6.1, +17.6] | +9.1 [−3.9, +22.2] | −1.6 [−14.5, +11.3] |
-| Role 4 closing mean census | −4.8 [−13.3, +3.6] | −6.3 [−12.4, −0.2] | −4.4 [−13.0, +4.2] | −5.5 [−12.4, +1.4] |
+| R2E post-operative overflow census | −1.18 [−1.85, −0.52] | −1.94 [−2.45, −1.43] | −3.30 [−3.92, −2.68] | −4.38 [−4.86, −3.90] |
+| R2E ICU occupancy (%) | −5.4 [−6.9, −3.8] | −10.6 [−12.0, −9.2] | −20.7 [−22.7, −18.7] | −32.2 [−33.7, −30.7] |
+| R2E holding mean queue | +0.61 [−1.61, +2.83] | +1.63 [−0.22, +3.47] | +1.13 [−1.30, +3.57] | −0.34 [−2.38, +1.70] |
+| Post-operative care in a holding bed (%) | −7.6 [−8.3, −6.9] | −13.7 [−14.5, −12.9] | −22.9 [−23.7, −22.2] | −28.9 [−29.8, −28.1] |
+| Post-definitive ICU access (%) | +15.1 [+14.0, +16.2] | +27.1 [+25.8, +28.3] | +43.3 [+41.9, +44.8] | +53.4 [+52.2, +54.7] |
+| R2E theatre entry deferred | −69.7 [−89.7, −49.7] | −135.0 [−149.9, −120.1] | −218.6 [−235.7, −201.5] | −291.0 [−304.9, −277.1] |
+| Died of wounds | −0.33 [−4.02, +3.35] | −2.77 [−6.00, +0.47] | +0.53 [−3.43, +4.50] | −0.37 [−4.11, +3.38] |
+| Returns to duty | +16.6 [−22.2, +55.4] | +1.6 [−38.3, +41.4] | −9.7 [−51.6, +32.3] | −34.1 [−78.7, +10.5] |
+| Critical-route evacuation wait (days) | −0.16 [−1.08, +0.75] | −0.10 [−0.97, +0.77] | +0.51 [−0.69, +1.71] | +0.27 [−1.03, +1.58] |
+| Role 4 peak census | +0.5 [−5.5, +6.6] | −3.3 [−8.1, +1.5] | +5.3 [−0.7, +11.3] | −3.4 [−10.2, +3.4] |
+| Role 4 closing mean census | −1.8 [−9.7, +6.1] | +2.6 [−4.3, +9.5] | +2.9 [−4.5, +10.2] | +0.0 [−6.1, +6.2] |
 <!-- /GEN -->
 
-At the shipped establishment the R2E post-operative overflow census over the closing 90 days averaged <!-- GEN cell:icu_bed|R2E post-operative overflow census|4 beds (shipped)|full --><!-- /GEN --> and was classified <!-- GEN cell:icu_bed|R2E post-operative overflow, late-half classification|4 beds (shipped)|full --><!-- /GEN -->, with <!-- GEN cell:icu_bed|R2E ICU occupancy (%)|4 beds (shipped)|full --><!-- /GEN --> percent occupancy of the intensive care beds; <!-- GEN cell:icu_bed|Post-operative care in a holding bed (%)|4 beds (shipped)|full --><!-- /GEN --> percent of post-operative care was taken in a holding bed and <!-- GEN cell:icu_bed|Post-definitive ICU access (%)|4 beds (shipped)|full --><!-- /GEN --> percent of post-definitive care in an intensive care bed. At sixteen beds the census averaged <!-- GEN cell:icu_bed|R2E post-operative overflow census|16 beds|full --><!-- /GEN -->. Twelve beds changed the share of post-operative care taken in a holding bed by <!-- GEN cell:icu_bed_paired|Post-operative care in a holding bed (%)|12 beds|full --><!-- /GEN --> percentage points and the post-definitive access by <!-- GEN cell:icu_bed_paired|Post-definitive ICU access (%)|12 beds|full --><!-- /GEN --> percentage points. The paired differences in deaths of wounds at six, eight, twelve and sixteen beds were <!-- GEN cell:icu_bed_paired|Died of wounds|6 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|8 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|12 beds|full --><!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Died of wounds|16 beds|full --><!-- /GEN -->, and in returns to duty <!-- GEN cell:icu_bed_paired|Returns to duty|6 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|8 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|12 beds|full --><!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Returns to duty|16 beds|full --><!-- /GEN -->. The R2E holding queue was classified <!-- GEN cell:icu_bed|R2E holding queue, late-half classification|4 beds (shipped)|full --><!-- /GEN --> at the shipped establishment and <!-- GEN cell:icu_bed|R2E holding queue, late-half classification|16 beds|full --><!-- /GEN --> at sixteen beds.
+At the shipped establishment the R2E post-operative overflow census over the closing 90 days averaged <!-- GEN cell:icu_bed|R2E post-operative overflow census|4 beds (shipped)|full -->5.30 [4.87, 5.73]<!-- /GEN --> and was classified <!-- GEN cell:icu_bed|R2E post-operative overflow, late-half classification|4 beds (shipped)|full -->converged at 5.44<!-- /GEN -->, with <!-- GEN cell:icu_bed|R2E ICU occupancy (%)|4 beds (shipped)|full -->86.4 [85.6, 87.2]<!-- /GEN --> percent occupancy of the intensive care beds; <!-- GEN cell:icu_bed|Post-operative care in a holding bed (%)|4 beds (shipped)|full -->36.7 [36.3, 37.1]<!-- /GEN --> percent of post-operative care was taken in a holding bed and <!-- GEN cell:icu_bed|Post-definitive ICU access (%)|4 beds (shipped)|full -->35.4 [34.7, 36.1]<!-- /GEN --> percent of post-definitive care in an intensive care bed. At sixteen beds the census averaged <!-- GEN cell:icu_bed|R2E post-operative overflow census|16 beds|full -->0.93 [0.76, 1.09]<!-- /GEN -->. Twelve beds changed the share of post-operative care taken in a holding bed by <!-- GEN cell:icu_bed_paired|Post-operative care in a holding bed (%)|12 beds|full -->−22.9 [−23.7, −22.2]<!-- /GEN --> percentage points and the post-definitive access by <!-- GEN cell:icu_bed_paired|Post-definitive ICU access (%)|12 beds|full -->+43.3 [+41.9, +44.8]<!-- /GEN --> percentage points. The paired differences in deaths of wounds at six, eight, twelve and sixteen beds were <!-- GEN cell:icu_bed_paired|Died of wounds|6 beds|full -->−0.33 [−4.02, +3.35]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|8 beds|full -->−2.77 [−6.00, +0.47]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Died of wounds|12 beds|full -->+0.53 [−3.43, +4.50]<!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Died of wounds|16 beds|full -->−0.37 [−4.11, +3.38]<!-- /GEN -->, and in returns to duty <!-- GEN cell:icu_bed_paired|Returns to duty|6 beds|full -->+16.6 [−22.2, +55.4]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|8 beds|full -->+1.6 [−38.3, +41.4]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired|Returns to duty|12 beds|full -->−9.7 [−51.6, +32.3]<!-- /GEN --> and <!-- GEN cell:icu_bed_paired|Returns to duty|16 beds|full -->−34.1 [−78.7, +10.5]<!-- /GEN -->. The R2E holding queue was classified <!-- GEN cell:icu_bed|R2E holding queue, late-half classification|4 beds (shipped)|full -->converged at 23.1<!-- /GEN --> at the shipped establishment and <!-- GEN cell:icu_bed|R2E holding queue, late-half classification|16 beds|full -->converged at 23.1<!-- /GEN --> at sixteen beds.
 
 At high intensity the same five arms were run under the `high_intensity` profile (30 replications, 360 days, seed 42).
 
@@ -936,41 +947,41 @@ At high intensity the same five arms were run under the `high_intensity` profile
 | Response | 4 beds (shipped) | 6 beds | 8 beds | 12 beds | 16 beds |
 |---|---|---|---|---|---|
 | Nurses per ICU bed at three sections | 3.00 | 2.00 | 1.50 | 1.00 | 0.75 |
-| R2E ICU mean queue | 1438.30 [1423.92, 1452.69] | 1378.59 [1365.04, 1392.15] | 1329.59 [1311.45, 1347.73] | 1272.33 [1252.52, 1292.13] | 1210.12 [1193.38, 1226.86] |
-| R2E ICU queue, late-half classification | **drifting, +13.0%/block**, 32.5 to 1,590.1 | **drifting, +13.5%/block**, 26.5 to 1,529.2 | **drifting, +13.7%/block**, 19.9 to 1,477.6 | **drifting, +14.2%/block**, 13.2 to 1,413.2 | **drifting, +14.7%/block**, 9.9 to 1,349.4 |
-| R2E ICU queue shortfall per day | 4.954 [4.905, 5.002] | 4.875 [4.808, 4.941] | 4.775 [4.694, 4.856] | 4.678 [4.629, 4.726] | 4.589 [4.533, 4.645] |
-| R2E ICU occupancy (%) | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] | 100.0 [100.0, 100.0] |
-| R2E holding mean queue | 556.08 [528.50, 583.66] | 639.45 [615.32, 663.59] | 711.27 [692.81, 729.72] | 796.56 [776.83, 816.29] | 853.16 [830.12, 876.20] |
-| R2E holding queue, late-half classification | **drifting, +9.3%/block**, 48.6 to 595.9 | **drifting, +8.8%/block**, 51.1 to 684.1 | **drifting, +9.0%/block**, 56.8 to 759.6 | **drifting, +8.7%/block**, 62.6 to 850.3 | **drifting, +8.2%/block**, 67.0 to 909.1 |
-| R2E holding queue shortfall per day | 1.459 [1.408, 1.511] | 1.601 [1.498, 1.704] | 1.813 [1.694, 1.932] | 1.974 [1.907, 2.040] | 2.013 [1.870, 2.155] |
-| Replications with an R2E pool queue of 20 or more | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 | 30 of 30 |
-| Post-operative care in a holding bed (%) | 99.1 [99.0, 99.3] | 98.6 [98.4, 98.7] | 97.8 [97.6, 98.1] | 96.1 [95.8, 96.5] | 93.8 [93.3, 94.4] |
-| Post-definitive ICU access (%) | 0.2 [0.2, 0.3] | 0.4 [0.3, 0.5] | 0.7 [0.6, 0.8] | 1.5 [1.2, 1.7] | 2.4 [2.1, 2.8] |
-| R2E theatre entry deferred | 1013.5 [991.8, 1035.2] | 1019.8 [997.6, 1042.0] | 1014.0 [995.1, 1032.9] | 1006.1 [987.1, 1025.1] | 1015.3 [995.0, 1035.5] |
-| Died of wounds | 277.60 [272.10, 283.10] | 282.93 [275.34, 290.53] | 287.17 [281.47, 292.86] | 283.77 [276.05, 291.49] | 285.10 [278.08, 292.12] |
-| Returns to duty | 2840.0 [2806.2, 2873.9] | 2841.6 [2811.9, 2871.2] | 2834.4 [2800.0, 2868.8] | 2824.0 [2797.2, 2850.9] | 2832.7 [2799.4, 2866.1] |
-| Critical-route evacuation wait (days) | 21.90 [21.49, 22.30] | 25.25 [24.89, 25.61] | 27.97 [27.64, 28.29] | 32.07 [31.72, 32.41] | 34.95 [34.51, 35.39] |
-| Role 4 peak census | 226.3 [224.7, 227.8] | 226.8 [224.8, 228.8] | 229.7 [226.9, 232.4] | 227.9 [225.7, 230.1] | 228.2 [226.0, 230.4] |
-| Role 4 closing mean census | 151.9 [150.2, 153.5] | 152.8 [151.3, 154.3] | 151.8 [150.3, 153.3] | 152.1 [150.6, 153.5] | 151.5 [149.9, 153.1] |
+| R2E post-operative overflow census | 20.16 [19.96, 20.36] | 18.32 [18.03, 18.62] | 17.27 [17.01, 17.54] | 14.64 [14.40, 14.89] | 12.02 [11.75, 12.29] |
+| R2E post-operative overflow, late-half classification | converged at 20.1 | converged at 18.4 | converged at 17.2 | converged at 14.6 | converged at 11.9 |
+| R2E post-operative overflow growth per day | 0.001 [−0.002, 0.004] | −0.001 [−0.004, 0.002] | 0.002 [0.000, 0.004] | −0.001 [−0.003, 0.002] | 0.002 [−0.001, 0.005] |
+| R2E ICU occupancy (%) | 97.6 [97.5, 97.7] | 97.3 [97.2, 97.4] | 97.0 [96.9, 97.2] | 96.5 [96.4, 96.7] | 95.6 [95.3, 95.9] |
+| R2E holding mean queue | 55.40 [53.47, 57.33] | 52.99 [51.48, 54.51] | 54.22 [52.36, 56.08] | 53.32 [51.28, 55.36] | 54.60 [52.84, 56.36] |
+| R2E holding queue, late-half classification | converged at 54.1 | converged at 53.9 | converged at 53.4 | converged at 53.7 | converged at 53.6 |
+| R2E holding queue shortfall per day | 0.016 [−0.014, 0.047] | −0.014 [−0.032, 0.005] | 0.016 [−0.005, 0.037] | −0.002 [−0.020, 0.015] | 0.012 [−0.006, 0.029] |
+| R2E staging overflow, late-half classification | **drifting, +11.4%/block**, 116.9 to 2,768.7 | **drifting, +11.1%/block**, 124.3 to 2,746.2 | **drifting, +11.2%/block**, 122.5 to 2,736.3 | **drifting, +11.1%/block**, 122.9 to 2,769.3 | **drifting, +11.3%/block**, 119.3 to 2,747.0 |
+| Post-operative care in a holding bed (%) | 43.3 [43.1, 43.5] | 40.5 [40.3, 40.8] | 37.7 [37.4, 37.9] | 32.1 [31.9, 32.3] | 26.1 [25.8, 26.3] |
+| Post-definitive ICU access (%) | 11.0 [10.9, 11.2] | 17.2 [16.9, 17.4] | 23.1 [22.8, 23.4] | 34.9 [34.5, 35.3] | 47.3 [46.9, 47.7] |
+| R2E theatre entry deferred | 1600.9 [1577.9, 1623.8] | 1530.9 [1503.2, 1558.5] | 1433.6 [1406.7, 1460.5] | 1266.9 [1243.4, 1290.5] | 1055.5 [1031.5, 1079.4] |
+| Died of wounds | 509.33 [464.71, 553.96] | 601.43 [527.16, 675.70] | 587.93 [519.80, 656.06] | 602.10 [532.93, 671.27] | 562.67 [498.14, 627.19] |
+| Returns to duty | 2864.3 [2832.8, 2895.8] | 2857.5 [2822.1, 2893.0] | 2849.7 [2813.9, 2885.5] | 2839.7 [2804.3, 2875.2] | 2859.8 [2830.1, 2889.4] |
+| Critical-route evacuation wait (days) | 109.60 [108.15, 111.04] | 111.43 [110.52, 112.33] | 110.83 [109.91, 111.76] | 111.17 [110.08, 112.25] | 110.27 [109.26, 111.29] |
+| Role 4 peak census | 281.2 [279.0, 283.3] | 281.1 [278.8, 283.5] | 281.4 [278.8, 284.1] | 282.6 [280.1, 285.1] | 282.2 [279.7, 284.7] |
+| Role 4 closing mean census | 176.2 [174.6, 177.9] | 176.6 [174.7, 178.6] | 175.8 [174.1, 177.5] | 175.9 [174.6, 177.1] | 176.4 [175.3, 177.5] |
 <!-- /GEN -->
 
 <!-- GEN icu_bed_paired_high -->
 | Paired difference against the shipped establishment | 6 beds | 8 beds | 12 beds | 16 beds |
 |---|---|---|---|---|
-| R2E ICU mean queue | −59.71 [−80.72, −38.71] | −108.72 [−132.27, −85.16] | −165.98 [−186.02, −145.94] | −228.18 [−248.00, −208.36] |
-| R2E ICU occupancy (%) | −0.0 [−0.0, +0.0] | +0.0 [+0.0, +0.0] | +0.0 [−0.0, +0.0] | +0.0 [+0.0, +0.0] |
-| R2E holding mean queue | +83.37 [+48.04, +118.71] | +155.19 [+120.10, +190.27] | +240.48 [+213.82, +267.15] | +297.08 [+265.14, +329.02] |
-| Post-operative care in a holding bed (%) | −0.6 [−0.8, −0.4] | −1.3 [−1.6, −1.1] | −3.0 [−3.4, −2.6] | −5.3 [−5.9, −4.7] |
-| Post-definitive ICU access (%) | +0.2 [+0.1, +0.3] | +0.5 [+0.4, +0.6] | +1.2 [+1.0, +1.4] | +2.2 [+1.8, +2.6] |
-| R2E theatre entry deferred | +6.3 [−24.5, +37.1] | +0.5 [−21.4, +22.4] | −7.4 [−35.2, +20.4] | +1.8 [−29.9, +33.4] |
-| Died of wounds | +5.33 [−5.12, +15.79] | +9.57 [+1.43, +17.70] | +6.17 [−5.16, +17.49] | +7.50 [−1.92, +16.92] |
-| Returns to duty | +1.5 [−46.3, +49.4] | −5.7 [−49.6, +38.3] | −16.0 [−58.1, +26.1] | −7.3 [−55.9, +41.3] |
-| Critical-route evacuation wait (days) | +3.36 [+2.86, +3.85] | +6.07 [+5.52, +6.62] | +10.17 [+9.64, +10.69] | +13.05 [+12.53, +13.57] |
-| Role 4 peak census | +0.6 [−1.5, +2.7] | +3.4 [+0.4, +6.4] | +1.6 [−1.4, +4.6] | +1.9 [−0.8, +4.7] |
-| Role 4 closing mean census | +0.9 [−1.1, +2.9] | −0.0 [−2.2, +2.1] | +0.2 [−1.8, +2.2] | −0.4 [−2.5, +1.8] |
+| R2E post-operative overflow census | −1.83 [−2.26, −1.41] | −2.88 [−3.19, −2.58] | −5.51 [−5.88, −5.15] | −8.13 [−8.49, −7.77] |
+| R2E ICU occupancy (%) | −0.4 [−0.5, −0.2] | −0.6 [−0.8, −0.4] | −1.1 [−1.3, −0.9] | −2.0 [−2.3, −1.8] |
+| R2E holding mean queue | −2.40 [−5.07, +0.26] | −1.18 [−4.35, +1.99] | −2.08 [−4.66, +0.51] | −0.80 [−3.58, +1.98] |
+| Post-operative care in a holding bed (%) | −2.7 [−3.0, −2.5] | −5.6 [−6.0, −5.3] | −11.2 [−11.5, −10.9] | −17.2 [−17.6, −16.9] |
+| Post-definitive ICU access (%) | +6.1 [+5.7, +6.5] | +12.1 [+11.7, +12.5] | +23.9 [+23.4, +24.3] | +36.3 [+35.8, +36.8] |
+| R2E theatre entry deferred | −70.0 [−106.2, −33.8] | −167.2 [−204.3, −130.1] | −333.9 [−368.7, −299.2] | −545.4 [−577.9, −512.9] |
+| Died of wounds | +92.10 [+7.00, +177.20] | +78.60 [−3.96, +161.16] | +92.77 [+19.32, +166.22] | +53.33 [−30.93, +137.59] |
+| Returns to duty | −6.8 [−57.0, +43.4] | −14.6 [−72.9, +43.6] | −24.6 [−71.8, +22.6] | −4.5 [−47.5, +38.5] |
+| Critical-route evacuation wait (days) | +1.83 [+0.22, +3.44] | +1.23 [−0.34, +2.81] | +1.57 [−0.33, +3.47] | +0.67 [−0.98, +2.33] |
+| Role 4 peak census | −0.0 [−3.0, +2.9] | +0.3 [−3.3, +3.9] | +1.4 [−1.7, +4.6] | +1.0 [−2.8, +4.9] |
+| Role 4 closing mean census | +0.4 [−2.4, +3.2] | −0.4 [−2.7, +1.8] | −0.3 [−2.4, +1.8] | +0.2 [−1.9, +2.2] |
 <!-- /GEN -->
 
-At the shipped establishment the high-intensity post-operative overflow census averaged <!-- GEN cell:icu_bed_high|R2E post-operative overflow census|4 beds (shipped)|full --><!-- /GEN --> and was classified <!-- GEN cell:icu_bed_high|R2E post-operative overflow, late-half classification|4 beds (shipped)|full --><!-- /GEN -->, with <!-- GEN cell:icu_bed_high|R2E ICU occupancy (%)|4 beds (shipped)|full --><!-- /GEN --> percent occupancy. At sixteen beds, four times the shipped establishment, the census averaged <!-- GEN cell:icu_bed_high|R2E post-operative overflow census|16 beds|full --><!-- /GEN --> and was classified <!-- GEN cell:icu_bed_high|R2E post-operative overflow, late-half classification|16 beds|full --><!-- /GEN -->, and post-definitive intensive care access changed by <!-- GEN cell:icu_bed_paired_high|Post-definitive ICU access (%)|16 beds|full --><!-- /GEN --> percentage points. The R2E holding queue was classified <!-- GEN cell:icu_bed_high|R2E holding queue, late-half classification|4 beds (shipped)|full --><!-- /GEN --> at the shipped establishment and <!-- GEN cell:icu_bed_high|R2E holding queue, late-half classification|16 beds|full --><!-- /GEN --> at sixteen, and the staging overflow census <!-- GEN cell:icu_bed_high|R2E staging overflow, late-half classification|4 beds (shipped)|full --><!-- /GEN --> and <!-- GEN cell:icu_bed_high|R2E staging overflow, late-half classification|16 beds|full --><!-- /GEN -->. The mean evacuation wait of the critical route was <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|4 beds (shipped)|full --><!-- /GEN --> days at the shipped establishment and <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|16 beds|full --><!-- /GEN --> days at sixteen beds. The paired differences in deaths of wounds at six, eight, twelve and sixteen beds were <!-- GEN cell:icu_bed_paired_high|Died of wounds|6 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired_high|Died of wounds|8 beds|full --><!-- /GEN -->, <!-- GEN cell:icu_bed_paired_high|Died of wounds|12 beds|full --><!-- /GEN --> and <!-- GEN cell:icu_bed_paired_high|Died of wounds|16 beds|full --><!-- /GEN -->, and in returns to duty at sixteen beds <!-- GEN cell:icu_bed_paired_high|Returns to duty|16 beds|full --><!-- /GEN -->.
+At the shipped establishment the high-intensity post-operative overflow census averaged <!-- GEN cell:icu_bed_high|R2E post-operative overflow census|4 beds (shipped)|full -->20.16 [19.96, 20.36]<!-- /GEN --> and was classified <!-- GEN cell:icu_bed_high|R2E post-operative overflow, late-half classification|4 beds (shipped)|full -->converged at 20.1<!-- /GEN -->, with <!-- GEN cell:icu_bed_high|R2E ICU occupancy (%)|4 beds (shipped)|full -->97.6 [97.5, 97.7]<!-- /GEN --> percent occupancy. At sixteen beds, four times the shipped establishment, the census averaged <!-- GEN cell:icu_bed_high|R2E post-operative overflow census|16 beds|full -->12.02 [11.75, 12.29]<!-- /GEN --> and was classified <!-- GEN cell:icu_bed_high|R2E post-operative overflow, late-half classification|16 beds|full -->converged at 11.9<!-- /GEN -->, and post-definitive intensive care access changed by <!-- GEN cell:icu_bed_paired_high|Post-definitive ICU access (%)|16 beds|full -->+36.3 [+35.8, +36.8]<!-- /GEN --> percentage points. The R2E holding queue was classified <!-- GEN cell:icu_bed_high|R2E holding queue, late-half classification|4 beds (shipped)|full -->converged at 54.1<!-- /GEN --> at the shipped establishment and <!-- GEN cell:icu_bed_high|R2E holding queue, late-half classification|16 beds|full -->converged at 53.6<!-- /GEN --> at sixteen, and the staging overflow census <!-- GEN cell:icu_bed_high|R2E staging overflow, late-half classification|4 beds (shipped)|full -->**drifting, +11.4%/block**, 116.9 to 2,768.7<!-- /GEN --> and <!-- GEN cell:icu_bed_high|R2E staging overflow, late-half classification|16 beds|full -->**drifting, +11.3%/block**, 119.3 to 2,747.0<!-- /GEN -->. The mean evacuation wait of the critical route was <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|4 beds (shipped)|full -->109.60 [108.15, 111.04]<!-- /GEN --> days at the shipped establishment and <!-- GEN cell:icu_bed_high|Critical-route evacuation wait (days)|16 beds|full -->110.27 [109.26, 111.29]<!-- /GEN --> days at sixteen beds. The paired differences in deaths of wounds at six, eight, twelve and sixteen beds were <!-- GEN cell:icu_bed_paired_high|Died of wounds|6 beds|full -->+92.10 [+7.00, +177.20]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired_high|Died of wounds|8 beds|full -->+78.60 [−3.96, +161.16]<!-- /GEN -->, <!-- GEN cell:icu_bed_paired_high|Died of wounds|12 beds|full -->+92.77 [+19.32, +166.22]<!-- /GEN --> and <!-- GEN cell:icu_bed_paired_high|Died of wounds|16 beds|full -->+53.33 [−30.93, +137.59]<!-- /GEN -->, and in returns to duty at sixteen beds <!-- GEN cell:icu_bed_paired_high|Returns to duty|16 beds|full -->−4.5 [−47.5, +38.5]<!-- /GEN -->.
 
 ![Two columns of panels of campaign responses against the R2E intensive care bed count at moderate and high intensity](../images/icu_bed_sweep.png)
 
@@ -987,41 +998,41 @@ The R2E post-operative overflow census, intensive care occupancy, holding queue,
 <!-- GEN airlift_baseline -->
 | Response at the shipped schedule | Moderate intensity | High intensity |
 |---|---|---|
-| Casualties boarded | 2786.90 [2735.91, 2837.89] | 3366.73 [3344.71, 3388.76] |
-| Still waiting at the close | 1.50 [0.89, 2.11] | 1924.43 [1904.07, 1944.80] |
-| Mean wait (days) | 0.33 [0.28, 0.38] | 18.57 [18.04, 19.10] |
-| Share of R2E holding beds held by the evacuation wait | 4% [3%, 5%] | 38% [37%, 39%] |
-| Role 4 peak occupancy (concurrent patients) | 211.03 [201.53, 220.54] | 226.27 [224.71, 227.82] |
-| Days the peak falls before the campaign ends | 134.20 [97.84, 170.56] | 169.47 [133.45, 205.48] |
+| Casualties boarded | 2307.80 [2256.82, 2358.78] | 3907.33 [3885.61, 3929.06] |
+| Still waiting at the close | 33.23 [25.41, 41.06] | 3083.07 [3051.26, 3114.88] |
+| Mean wait (days) | 5.04 [4.50, 5.58] | 53.37 [52.79, 53.94] |
+| Share of R2E holding beds held by the evacuation wait | 10% [10%, 11%] | 8% [7%, 9%] |
+| Role 4 peak occupancy (concurrent patients) | 211.17 [207.59, 214.75] | 281.17 [279.01, 283.33] |
+| Days the peak falls before the campaign ends | 149.00 [112.79, 185.21] | 175.37 [138.44, 212.30] |
 <!-- /GEN -->
 
-At the shipped schedule <!-- GEN cell:airlift_baseline|Casualties boarded|Moderate intensity|mean -->2786.90<!-- /GEN --> casualties boarded at moderate intensity and <!-- GEN cell:airlift_baseline|Casualties boarded|High intensity|mean -->3366.73<!-- /GEN --> at high, with <!-- GEN cell:airlift_baseline|Still waiting at the close|Moderate intensity|mean -->1.50<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Still waiting at the close|High intensity|mean -->1924.43<!-- /GEN --> still waiting at the close and mean waits of <!-- GEN cell:airlift_baseline|Mean wait (days)|Moderate intensity|mean -->0.33<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Mean wait (days)|High intensity|mean -->18.57<!-- /GEN --> days. The evacuation wait held <!-- GEN cell:airlift_baseline|Share of R2E holding beds held by the evacuation wait|Moderate intensity|full -->4% [3%, 5%]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Share of R2E holding beds held by the evacuation wait|High intensity|full -->38% [37%, 39%]<!-- /GEN --> of the R2E holding beds. Role 4 peak occupancy was <!-- GEN cell:airlift_baseline|Role 4 peak occupancy (concurrent patients)|Moderate intensity|full -->211.03 [201.53, 220.54]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Role 4 peak occupancy (concurrent patients)|High intensity|full -->226.27 [224.71, 227.82]<!-- /GEN --> concurrent patients, and the peak fell <!-- GEN cell:airlift_baseline|Days the peak falls before the campaign ends|Moderate intensity|full -->134.20 [97.84, 170.56]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Days the peak falls before the campaign ends|High intensity|full -->169.47 [133.45, 205.48]<!-- /GEN --> days before the campaign ended.
+At the shipped schedule <!-- GEN cell:airlift_baseline|Casualties boarded|Moderate intensity|mean -->2307.80<!-- /GEN --> casualties boarded at moderate intensity and <!-- GEN cell:airlift_baseline|Casualties boarded|High intensity|mean -->3907.33<!-- /GEN --> at high, with <!-- GEN cell:airlift_baseline|Still waiting at the close|Moderate intensity|mean -->33.23<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Still waiting at the close|High intensity|mean -->3083.07<!-- /GEN --> still waiting at the close and mean waits of <!-- GEN cell:airlift_baseline|Mean wait (days)|Moderate intensity|mean -->5.04<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Mean wait (days)|High intensity|mean -->53.37<!-- /GEN --> days. The evacuation wait held <!-- GEN cell:airlift_baseline|Share of R2E holding beds held by the evacuation wait|Moderate intensity|full -->10% [10%, 11%]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Share of R2E holding beds held by the evacuation wait|High intensity|full -->8% [7%, 9%]<!-- /GEN --> of the R2E holding beds. Role 4 peak occupancy was <!-- GEN cell:airlift_baseline|Role 4 peak occupancy (concurrent patients)|Moderate intensity|full -->211.17 [207.59, 214.75]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Role 4 peak occupancy (concurrent patients)|High intensity|full -->281.17 [279.01, 283.33]<!-- /GEN --> concurrent patients, and the peak fell <!-- GEN cell:airlift_baseline|Days the peak falls before the campaign ends|Moderate intensity|full -->149.00 [112.79, 185.21]<!-- /GEN --> and <!-- GEN cell:airlift_baseline|Days the peak falls before the campaign ends|High intensity|full -->175.37 [138.44, 212.30]<!-- /GEN --> days before the campaign ended.
 
 <!-- GEN airlift_interval -->
 | Response by interval between sorties | 3 days | 5 days | 7 days (shipped) | 10 days | 14 days |
 |---|---|---|---|---|---|
 | Sorties flown | 119.00 | 71.00 | 51.00 | 35.00 | 25.00 |
-| Mean wait (days) | 0.23 [0.20, 0.26] | 0.24 [0.21, 0.27] | 0.33 [0.28, 0.38] | 9.30 [7.77, 10.83] | 26.84 [25.42, 28.25] |
-| Share of R2E holding beds held by the evacuation wait | 0% [0%, 1%] | 2% [1%, 2%] | 4% [3%, 5%] | 53% [49%, 57%] | 64% [64%, 65%] |
-| Ventilated pre-flight intensive care hold (hours) | 24.15 [23.91, 24.39] | 24.40 [24.14, 24.66] | 25.17 [24.50, 25.83] | 135.73 [117.75, 153.72] | 423.31 [395.55, 451.07] |
+| Mean wait (days) | 1.66 [1.65, 1.68] | 2.92 [2.78, 3.05] | 5.04 [4.50, 5.58] | 20.88 [18.82, 22.93] | 42.48 [40.91, 44.04] |
+| Share of R2E holding beds held by the evacuation wait | 6% [5%, 6%] | 8% [7%, 9%] | 10% [10%, 11%] | 22% [21%, 24%] | 35% [33%, 36%] |
+| Ventilated pre-flight intensive care hold (hours) | 24.07 [23.95, 24.19] | 23.87 [23.73, 24.02] | 24.05 [23.88, 24.22] | 23.93 [23.79, 24.07] | 24.01 [23.85, 24.18] |
 <!-- /GEN -->
 
-Shortening the interval between sorties below the shipped seven days left the mean wait at <!-- GEN cell:airlift_interval|Mean wait (days)|3 days|mean -->0.23<!-- /GEN --> days at three days and <!-- GEN cell:airlift_interval|Mean wait (days)|5 days|mean -->0.24<!-- /GEN --> at five against <!-- GEN cell:airlift_interval|Mean wait (days)|7 days (shipped)|mean -->0.33<!-- /GEN --> at seven. Lengthening it gave <!-- GEN cell:airlift_interval|Mean wait (days)|10 days|full -->9.30 [7.77, 10.83]<!-- /GEN --> days at ten days with <!-- GEN cell:airlift_interval|Sorties flown|10 days|full -->35.00<!-- /GEN --> sorties flown and <!-- GEN cell:airlift_interval|Mean wait (days)|14 days|full -->26.84 [25.42, 28.25]<!-- /GEN --> days at fourteen with <!-- GEN cell:airlift_interval|Sorties flown|14 days|full -->25.00<!-- /GEN -->.
+Shortening the interval between sorties below the shipped seven days left the mean wait at <!-- GEN cell:airlift_interval|Mean wait (days)|3 days|mean -->1.66<!-- /GEN --> days at three days and <!-- GEN cell:airlift_interval|Mean wait (days)|5 days|mean -->2.92<!-- /GEN --> at five against <!-- GEN cell:airlift_interval|Mean wait (days)|7 days (shipped)|mean -->5.04<!-- /GEN --> at seven. Lengthening it gave <!-- GEN cell:airlift_interval|Mean wait (days)|10 days|full -->20.88 [18.82, 22.93]<!-- /GEN --> days at ten days with <!-- GEN cell:airlift_interval|Sorties flown|10 days|full -->35.00<!-- /GEN --> sorties flown and <!-- GEN cell:airlift_interval|Mean wait (days)|14 days|full -->42.48 [40.91, 44.04]<!-- /GEN --> days at fourteen with <!-- GEN cell:airlift_interval|Sorties flown|14 days|full -->25.00<!-- /GEN -->.
 
 <!-- GEN airlift_reliability -->
 | Response by configured cancellation probability | 0% | 5% | 10% | 15% | 25% | 40% |
 |---|---|---|---|---|---|---|
-| Sorties flown | 51.00 | 48.40 | 45.03 | 43.80 | 37.87 | 31.43 |
-| Realised cancellation rate | 0% | 5% | 12% | 14% | 26% | 38% |
-| Mean wait (days) | 0.33 [0.28, 0.38] | 0.83 [0.22, 1.44] | 1.46 [0.36, 2.56] | 2.30 [0.85, 3.76] | 7.78 [5.43, 10.14] | 15.81 [12.91, 18.70] |
-| Share of R2E holding beds held by the evacuation wait | 4% [3%, 5%] | 8% [4%, 12%] | 13% [8%, 19%] | 20% [13%, 26%] | 43% [36%, 50%] | 57% [54%, 60%] |
+| Sorties flown | 51.00 | 48.60 | 46.47 | 43.00 | 38.77 | 29.50 |
+| Realised cancellation rate | 0% | 5% | 9% | 16% | 24% | 42% |
+| Mean wait (days) | 4.90 [4.47, 5.32] | 6.30 [5.42, 7.18] | 8.26 [6.66, 9.85] | 12.31 [10.20, 14.43] | 18.88 [15.80, 21.95] | 38.24 [33.85, 42.63] |
+| Share of R2E holding beds held by the evacuation wait | 10% [10%, 11%] | 12% [11%, 13%] | 14% [12%, 15%] | 17% [15%, 18%] | 21% [18%, 23%] | 31% [29%, 33%] |
 <!-- /GEN -->
 
 ![Eight panels of strategic evacuation responses against sortie cancellation probability and the interval between sorties](../images/airlift_sweeps.png)
 
 Wait for a sortie, casualties still waiting at the horizon, Role 4 peak beds and the share of holding bed-days spent awaiting a sortie against sortie cancellation probability and the interval between sorties, with the shipped value of each marked by a dashed line.
 
-The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|mean -->0.33<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability|Mean wait (days)|10%|mean -->1.46<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability|Mean wait (days)|25%|mean -->7.78<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability|Mean wait (days)|40%|mean -->15.81<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability|Sorties flown|0%|full -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability|Sorties flown|40%|full -->31.43<!-- /GEN -->.
+The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|mean -->4.90<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability|Mean wait (days)|10%|mean -->8.26<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability|Mean wait (days)|25%|mean -->18.88<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability|Mean wait (days)|40%|mean -->38.24<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability|Sorties flown|0%|full -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability|Sorties flown|40%|full -->29.50<!-- /GEN -->.
 
 **High-intensity profile.** The same two sweeps under `high_intensity` `[high_intensity, interval 3 to 14 days and cancellation 0 to 40% · 360 d · 30 replications · campaign means]`:
 
@@ -1029,23 +1040,23 @@ The mean wait rose from <!-- GEN cell:airlift_reliability|Mean wait (days)|0%|me
 | Response by interval between sorties | 3 days | 5 days | 7 days (shipped) | 10 days | 14 days |
 |---|---|---|---|---|---|
 | Sorties flown | 119.00 | 71.00 | 51.00 | 35.00 | 25.00 |
-| Mean wait (days) | 14.27 [13.69, 14.85] | 16.76 [16.29, 17.22] | 18.57 [18.04, 19.10] | 39.03 [38.32, 39.75] | 59.32 [58.47, 60.17] |
-| Share of R2E holding beds held by the evacuation wait | 1% [0%, 1%] | 31% [29%, 32%] | 38% [37%, 39%] | 50% [49%, 51%] | 58% [57%, 59%] |
-| Ventilated pre-flight intensive care hold (hours) | 25.46 [25.07, 25.85] | 62.08 [60.21, 63.95] | 269.45 [257.03, 281.87] | 559.98 [540.34, 579.63] | 850.45 [823.13, 877.76] |
+| Mean wait (days) | 15.57 [14.45, 16.68] | 46.65 [45.95, 47.35] | 53.33 [52.74, 53.93] | 63.01 [61.66, 64.36] | 97.22 [95.63, 98.81] |
+| Share of R2E holding beds held by the evacuation wait | 3% [2%, 3%] | 6% [5%, 7%] | 8% [7%, 9%] | 10% [9%, 11%] | 10% [9%, 11%] |
+| Ventilated pre-flight intensive care hold (hours) | 23.94 [23.86, 24.02] | 24.01 [23.93, 24.10] | 24.02 [23.93, 24.11] | 23.95 [23.87, 24.03] | 23.98 [23.91, 24.06] |
 <!-- /GEN -->
 
-At the shipped seven-day interval the mean wait was <!-- GEN cell:airlift_interval_high|Mean wait (days)|7 days (shipped)|mean -->18.57<!-- /GEN --> days. Shortening the interval to five days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|5 days|mean -->16.76<!-- /GEN --> days and to three days <!-- GEN cell:airlift_interval_high|Mean wait (days)|3 days|mean -->14.27<!-- /GEN --> days with <!-- GEN cell:airlift_interval_high|Sorties flown|3 days|mean -->119.00<!-- /GEN --> sorties flown, while lengthening it to ten and fourteen days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|10 days|mean -->39.03<!-- /GEN --> and <!-- GEN cell:airlift_interval_high|Mean wait (days)|14 days|mean -->59.32<!-- /GEN --> days.
+At the shipped seven-day interval the mean wait was <!-- GEN cell:airlift_interval_high|Mean wait (days)|7 days (shipped)|mean -->53.33<!-- /GEN --> days. Shortening the interval to five days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|5 days|mean -->46.65<!-- /GEN --> days and to three days <!-- GEN cell:airlift_interval_high|Mean wait (days)|3 days|mean -->15.57<!-- /GEN --> days with <!-- GEN cell:airlift_interval_high|Sorties flown|3 days|mean -->119.00<!-- /GEN --> sorties flown, while lengthening it to ten and fourteen days gave <!-- GEN cell:airlift_interval_high|Mean wait (days)|10 days|mean -->63.01<!-- /GEN --> and <!-- GEN cell:airlift_interval_high|Mean wait (days)|14 days|mean -->97.22<!-- /GEN --> days.
 
 <!-- GEN airlift_reliability_high -->
 | Response by configured cancellation probability | 0% | 5% | 10% | 15% | 25% | 40% |
 |---|---|---|---|---|---|---|
-| Sorties flown | 51.00 | 48.53 | 45.37 | 43.07 | 38.07 | 30.43 |
-| Realised cancellation rate | 0% | 5% | 11% | 16% | 25% | 40% |
-| Mean wait (days) | 18.57 [18.04, 19.10] | 21.24 [20.08, 22.40] | 25.58 [24.13, 27.02] | 28.90 [27.20, 30.59] | 35.78 [33.21, 38.36] | 48.09 [45.11, 51.06] |
-| Share of R2E holding beds held by the evacuation wait | 38% [37%, 39%] | 40% [39%, 41%] | 42% [41%, 43%] | 44% [43%, 45%] | 48% [46%, 49%] | 53% [52%, 55%] |
+| Sorties flown | 51.00 | 48.53 | 45.27 | 43.07 | 37.57 | 30.73 |
+| Realised cancellation rate | 0% | 5% | 11% | 16% | 26% | 40% |
+| Mean wait (days) | 53.37 [52.79, 53.94] | 54.22 [53.56, 54.88] | 55.89 [54.87, 56.92] | 56.95 [54.99, 58.92] | 65.01 [61.47, 68.55] | 80.87 [75.32, 86.42] |
+| Share of R2E holding beds held by the evacuation wait | 8% [7%, 9%] | 8% [7%, 10%] | 8% [7%, 10%] | 8% [7%, 10%] | 10% [9%, 12%] | 10% [8%, 11%] |
 <!-- /GEN -->
 
-The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|0%|mean -->18.57<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability_high|Mean wait (days)|10%|mean -->25.58<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability_high|Mean wait (days)|25%|mean -->35.78<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability_high|Mean wait (days)|40%|mean -->48.09<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability_high|Sorties flown|0%|mean -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability_high|Sorties flown|40%|mean -->30.43<!-- /GEN -->.
+The mean wait rose from <!-- GEN cell:airlift_reliability_high|Mean wait (days)|0%|mean -->53.37<!-- /GEN --> days with no cancellation to <!-- GEN cell:airlift_reliability_high|Mean wait (days)|10%|mean -->55.89<!-- /GEN --> at 10%, <!-- GEN cell:airlift_reliability_high|Mean wait (days)|25%|mean -->65.01<!-- /GEN --> at 25% and <!-- GEN cell:airlift_reliability_high|Mean wait (days)|40%|mean -->80.87<!-- /GEN --> at 40%, as the sorties flown fell from <!-- GEN cell:airlift_reliability_high|Sorties flown|0%|mean -->51.00<!-- /GEN --> to <!-- GEN cell:airlift_reliability_high|Sorties flown|40%|mean -->30.73<!-- /GEN -->.
 
 ![Eight panels of strategic evacuation responses against sortie cancellation probability and the interval between sorties at high intensity](../images/airlift_sweeps_high_intensity.png)
 
@@ -1054,36 +1065,48 @@ The panels of the figure above under the high-intensity profile, with the shippe
 **Collapse classification.** Each airlift route was classified separately, the critical and standard seat pools filling independently. A route was classified as collapsed in a campaign where the backlog of casualties awaiting a place on it was still rising over the second half of the campaign, by the late-half trend rule of [Classifying Stability](Methods.md#classifying-stability); a casualty left the backlog on boarding or on dying. Utilisation is the route's demand over the campaign divided by the places its flown sorties opened. `[default, sortie cancellation 0 to 25% · 360 d · 30 replications · exact binomial]`
 
 <!-- GEN airlift_collapse -->
-| Sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Median closing-window queue | Worst closing-window queue |
-|---|---|---|---|---|
-| 0% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.00 | 1.48 |
-| 5% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.00 | 8.32 |
-| 10% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.00 | 32.50 |
-| 15% | 4 of 30 | 13.3% [3.8%, 30.7%] | 0.00 | 86.28 |
-| 20% | 11 of 30 | 36.7% [19.9%, 56.1%] | 12.61 | 297.37 |
-| 25% | 22 of 30 | 73.3% [54.1%, 87.7%] | 64.90 | 346.99 |
+| Route and sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Mean utilisation | Demand at or above places flown | Median closing backlog | Worst closing backlog |
+|---|---|---|---|---|---|---|
+| Critical, 0% | 3 of 30 | 10.0% [2.1%, 26.5%] | 0.83 | 0 of 30 | 16.8 | 46.1 |
+| Critical, 5% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.87 | 0 of 30 | 22.8 | 101.2 |
+| Critical, 10% | 3 of 30 | 10.0% [2.1%, 26.5%] | 0.91 | 2 of 30 | 27.2 | 219.1 |
+| Critical, 15% | 10 of 30 | 33.3% [17.3%, 52.8%] | 1.01 | 15 of 30 | 82.8 | 363.4 |
+| Critical, 20% | 13 of 30 | 43.3% [25.5%, 62.6%] | 1.07 | 26 of 30 | 115.2 | 379.0 |
+| Critical, 25% | 16 of 30 | 53.3% [34.3%, 71.7%] | 1.13 | 26 of 30 | 152.9 | 439.2 |
+| Standard, 0% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.30 | 0 of 30 | 6.5 | 8.5 |
+| Standard, 5% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.31 | 0 of 30 | 7.2 | 9.6 |
+| Standard, 10% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.33 | 0 of 30 | 7.5 | 14.1 |
+| Standard, 15% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.36 | 0 of 30 | 10.1 | 20.7 |
+| Standard, 20% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.38 | 0 of 30 | 11.0 | 35.3 |
+| Standard, 25% | 0 of 30 | 0.0% [0.0%, 11.6%] | 0.40 | 0 of 30 | 12.8 | 46.4 |
 <!-- /GEN -->
 
 ![Line plot of the share of campaigns collapsing against sortie cancellation probability](../images/airlift_collapse.png)
 
 The share of campaigns in which each route was classified as collapsed against sortie cancellation probability, with exact binomial 95% confidence intervals.
 
-The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Collapsed|full --><!-- /GEN --> campaigns with no cancellation, <!-- GEN cell:airlift_collapse|Critical, 15%|Collapsed|full --><!-- /GEN --> at 15% and <!-- GEN cell:airlift_collapse|Critical, 25%|Collapsed|full --><!-- /GEN --> at 25%, its mean utilisation rising from <!-- GEN cell:airlift_collapse|Critical, 0%|Mean utilisation|full --><!-- /GEN --> to <!-- GEN cell:airlift_collapse|Critical, 25%|Mean utilisation|full --><!-- /GEN -->. Demand met or exceeded the critical places flown in <!-- GEN cell:airlift_collapse|Critical, 15%|Demand at or above places flown|full --><!-- /GEN --> campaigns at 15% cancellation. The standard route collapsed in <!-- GEN cell:airlift_collapse|Standard, 25%|Collapsed|full --><!-- /GEN --> campaigns at 25%, at a mean utilisation of <!-- GEN cell:airlift_collapse|Standard, 25%|Mean utilisation|full --><!-- /GEN -->.
+The critical route collapsed in <!-- GEN cell:airlift_collapse|Critical, 0%|Collapsed|full -->3 of 30<!-- /GEN --> campaigns with no cancellation, <!-- GEN cell:airlift_collapse|Critical, 15%|Collapsed|full -->10 of 30<!-- /GEN --> at 15% and <!-- GEN cell:airlift_collapse|Critical, 25%|Collapsed|full -->16 of 30<!-- /GEN --> at 25%, its mean utilisation rising from <!-- GEN cell:airlift_collapse|Critical, 0%|Mean utilisation|full -->0.83<!-- /GEN --> to <!-- GEN cell:airlift_collapse|Critical, 25%|Mean utilisation|full -->1.13<!-- /GEN -->. Demand met or exceeded the critical places flown in <!-- GEN cell:airlift_collapse|Critical, 15%|Demand at or above places flown|full -->15 of 30<!-- /GEN --> campaigns at 15% cancellation. The standard route collapsed in <!-- GEN cell:airlift_collapse|Standard, 25%|Collapsed|full -->0 of 30<!-- /GEN --> campaigns at 25%, at a mean utilisation of <!-- GEN cell:airlift_collapse|Standard, 25%|Mean utilisation|full -->0.40<!-- /GEN -->.
 
 **High-intensity profile.** The same classification under `high_intensity` `[high_intensity, sortie cancellation 0 to 25% · 360 d · 30 replications per arm · exact binomial interval]`:
 
 <!-- GEN airlift_collapse_high -->
-| Sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Median closing-window queue | Worst closing-window queue |
-|---|---|---|---|---|
-| 0% | 30 of 30 | 100.0% [88.4%, 100.0%] | 551.62 | 755.85 |
-| 5% | 30 of 30 | 100.0% [88.4%, 100.0%] | 712.58 | 898.64 |
-| 10% | 30 of 30 | 100.0% [88.4%, 100.0%] | 898.07 | 1,196.43 |
-| 15% | 30 of 30 | 100.0% [88.4%, 100.0%] | 977.76 | 1,221.08 |
-| 20% | 30 of 30 | 100.0% [88.4%, 100.0%] | 1,176.61 | 1,549.80 |
-| 25% | 30 of 30 | 100.0% [88.4%, 100.0%] | 1,305.04 | 1,704.42 |
+| Route and sortie cancellation | Collapsed | Collapse rate (exact 95% interval) | Mean utilisation | Demand at or above places flown | Median closing backlog | Worst closing backlog |
+|---|---|---|---|---|---|---|
+| Critical, 0% | 30 of 30 | 100.0% [88.4%, 100.0%] | 2.67 | 30 of 30 | 2,528.7 | 2,646.9 |
+| Critical, 5% | 30 of 30 | 100.0% [88.4%, 100.0%] | 2.78 | 30 of 30 | 2,569.5 | 2,755.6 |
+| Critical, 10% | 30 of 30 | 100.0% [88.4%, 100.0%] | 3.00 | 30 of 30 | 2,735.6 | 3,009.2 |
+| Critical, 15% | 30 of 30 | 100.0% [88.4%, 100.0%] | 3.14 | 30 of 30 | 2,777.6 | 2,986.7 |
+| Critical, 20% | 30 of 30 | 100.0% [88.4%, 100.0%] | 3.30 | 30 of 30 | 2,796.7 | 3,052.4 |
+| Critical, 25% | 30 of 30 | 100.0% [88.4%, 100.0%] | 3.60 | 30 of 30 | 2,886.1 | 3,208.9 |
+| Standard, 0% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.76 | 0 of 30 | 17.5 | 22.0 |
+| Standard, 5% | 1 of 30 | 3.3% [0.1%, 17.2%] | 0.80 | 0 of 30 | 19.9 | 49.8 |
+| Standard, 10% | 2 of 30 | 6.7% [0.8%, 22.1%] | 0.86 | 0 of 30 | 31.8 | 121.3 |
+| Standard, 15% | 5 of 30 | 16.7% [5.6%, 34.7%] | 0.90 | 1 of 30 | 40.3 | 198.7 |
+| Standard, 20% | 11 of 30 | 36.7% [19.9%, 56.1%] | 0.95 | 5 of 30 | 76.1 | 187.4 |
+| Standard, 25% | 11 of 30 | 36.7% [19.9%, 56.1%] | 1.03 | 14 of 30 | 143.4 | 473.0 |
 <!-- /GEN -->
 
-Under `high_intensity` the critical route collapsed in <!-- GEN cell:airlift_collapse_high|Critical, 0%|Collapsed|full --><!-- /GEN --> campaigns with no cancellation, at a mean utilisation of <!-- GEN cell:airlift_collapse_high|Critical, 0%|Mean utilisation|full --><!-- /GEN -->, and the standard route in <!-- GEN cell:airlift_collapse_high|Standard, 0%|Collapsed|full --><!-- /GEN -->, at <!-- GEN cell:airlift_collapse_high|Standard, 0%|Mean utilisation|full --><!-- /GEN -->.
+Under `high_intensity` the critical route collapsed in <!-- GEN cell:airlift_collapse_high|Critical, 0%|Collapsed|full -->30 of 30<!-- /GEN --> campaigns with no cancellation, at a mean utilisation of <!-- GEN cell:airlift_collapse_high|Critical, 0%|Mean utilisation|full -->2.67<!-- /GEN -->, and the standard route in <!-- GEN cell:airlift_collapse_high|Standard, 0%|Collapsed|full -->1 of 30<!-- /GEN -->, at <!-- GEN cell:airlift_collapse_high|Standard, 0%|Mean utilisation|full -->0.76<!-- /GEN -->.
 
 ---
 
@@ -1098,18 +1121,18 @@ The model gives the national support base no capacity, queue or shortfall, so ev
 <!-- GEN role4_census_ward -->
 | Census by ward phase | Moderate intensity | High intensity |
 |---|---|---|
-| Total, mean beds | 133.66 [130.43, 136.89] | 180.61 [179.73, 181.50] |
-| Total, peak beds | 211.03 [201.53, 220.54] | 226.27 [224.71, 227.82] |
-| Total, closing 90-day mean beds | 143.65 [136.93, 150.37] | 189.57 [187.86, 191.28] |
-| Intensive care phase, mean beds | 28.90 [28.00, 29.81] | 39.33 [39.09, 39.56] |
-| Intensive care phase, peak beds | 64.30 [61.30, 67.30] | 61.93 [61.28, 62.58] |
-| Intensive care phase, closing 90-day mean beds | 30.77 [28.65, 32.89] | 40.03 [39.66, 40.41] |
-| Step-down ward phase, mean beds | 104.76 [102.41, 107.11] | 141.29 [140.44, 142.13] |
-| Step-down ward phase, peak beds | 167.13 [159.99, 174.28] | 177.03 [174.84, 179.23] |
-| Step-down ward phase, closing 90-day mean beds | 112.88 [108.18, 117.58] | 149.54 [147.89, 151.19] |
+| Total, mean beds | 138.84 [135.44, 142.25] | 210.72 [209.81, 211.64] |
+| Total, peak beds | 211.43 [207.67, 215.20] | 281.17 [279.01, 283.33] |
+| Total, closing 90-day mean beds | 144.43 [138.39, 150.48] | 221.51 [220.06, 222.95] |
+| Intensive care phase, mean beds | 33.53 [32.60, 34.46] | 42.76 [42.54, 42.97] |
+| Intensive care phase, peak beds | 63.97 [63.22, 64.71] | 67.20 [66.51, 67.89] |
+| Intensive care phase, closing 90-day mean beds | 33.88 [32.32, 35.43] | 43.93 [43.55, 44.32] |
+| Step-down ward phase, mean beds | 105.31 [102.80, 107.82] | 167.97 [167.08, 168.85] |
+| Step-down ward phase, peak beds | 155.60 [152.25, 158.95] | 224.30 [221.93, 226.67] |
+| Step-down ward phase, closing 90-day mean beds | 110.56 [105.97, 115.15] | 177.57 [176.06, 179.09] |
 <!-- /GEN -->
 
-At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->133.66 [130.43, 136.89]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->211.03 [201.53, 220.54]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->143.65 [136.93, 150.37]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->180.61 [179.73, 181.50]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->226.27 [224.71, 227.82]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->189.57 [187.86, 191.28]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->104.76<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->133.66<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->141.29<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->180.61<!-- /GEN --> at high, and the intensive care phase the remainder.
+At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->138.84 [135.44, 142.25]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->211.43 [207.67, 215.20]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->144.43 [138.39, 150.48]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.72 [209.81, 211.64]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.17 [279.01, 283.33]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->221.51 [220.06, 222.95]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->105.31<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->138.84<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->167.97<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.72<!-- /GEN --> at high, and the intensive care phase the remainder.
 
 ![Daily Role 4 census over a 360-day campaign at each casualty intensity, divided by ward phase and by origin](../images/role4_demand_census.png)
 
@@ -1118,37 +1141,37 @@ The mean daily census across replications with its 95% interval, at each casualt
 <!-- GEN role4_census_origin -->
 | Census by origin | Moderate intensity | High intensity |
 |---|---|---|
-| Total, mean beds | 133.66 [130.43, 136.89] | 180.61 [179.73, 181.50] |
-| Total, peak beds | 211.03 [201.53, 220.54] | 226.27 [224.71, 227.82] |
-| Total, closing 90-day mean beds | 143.65 [136.93, 150.37] | 189.57 [187.86, 191.28] |
-| Battle injury, mean beds | 94.45 [91.70, 97.19] | 139.31 [138.35, 140.26] |
-| Battle injury, peak beds | 155.57 [147.92, 163.22] | 179.80 [177.63, 181.97] |
-| Battle injury, closing 90-day mean beds | 102.62 [96.59, 108.64] | 146.29 [144.44, 148.14] |
-| Disease and non-battle injury, mean beds | 18.65 [18.28, 19.03] | 13.98 [13.65, 14.32] |
-| Disease and non-battle injury, peak beds | 39.83 [37.88, 41.78] | 28.50 [27.46, 29.54] |
-| Disease and non-battle injury, closing 90-day mean beds | 18.67 [17.98, 19.35] | 13.95 [13.36, 14.55] |
-| Reconstruction cohort, mean beds | 20.57 [19.86, 21.27] | 27.32 [26.82, 27.83] |
-| Reconstruction cohort, peak beds | 37.30 [35.32, 39.28] | 41.87 [40.64, 43.09] |
-| Reconstruction cohort, closing 90-day mean beds | 22.36 [21.23, 23.50] | 29.33 [28.47, 30.19] |
+| Total, mean beds | 138.84 [135.44, 142.25] | 210.72 [209.81, 211.64] |
+| Total, peak beds | 211.43 [207.67, 215.20] | 281.17 [279.01, 283.33] |
+| Total, closing 90-day mean beds | 144.43 [138.39, 150.48] | 221.51 [220.06, 222.95] |
+| Battle injury, mean beds | 97.29 [94.46, 100.12] | 173.67 [172.62, 174.71] |
+| Battle injury, peak beds | 157.90 [153.69, 162.11] | 237.53 [235.17, 239.90] |
+| Battle injury, closing 90-day mean beds | 100.64 [95.48, 105.81] | 182.93 [180.97, 184.89] |
+| Disease and non-battle injury, mean beds | 18.80 [18.31, 19.30] | 10.76 [10.45, 11.06] |
+| Disease and non-battle injury, peak beds | 36.27 [35.00, 37.53] | 23.40 [22.62, 24.18] |
+| Disease and non-battle injury, closing 90-day mean beds | 19.49 [18.61, 20.37] | 11.16 [10.42, 11.90] |
+| Reconstruction cohort, mean beds | 22.75 [22.14, 23.36] | 26.30 [25.92, 26.68] |
+| Reconstruction cohort, peak beds | 38.57 [37.22, 39.91] | 41.27 [40.22, 42.31] |
+| Reconstruction cohort, closing 90-day mean beds | 24.31 [22.99, 25.62] | 27.42 [26.37, 28.46] |
 <!-- /GEN -->
 
-Battle injury accounted for <!-- GEN cell:role4_census_origin|Battle injury, mean beds|Moderate intensity|mean -->94.45<!-- /GEN --> of the mean beds at moderate intensity and <!-- GEN cell:role4_census_origin|Battle injury, mean beds|High intensity|mean -->139.31<!-- /GEN --> at high. Disease and non-battle injury accounted for <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|Moderate intensity|mean -->18.65<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|High intensity|mean -->13.98<!-- /GEN -->, and the reconstruction cohort for <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|Moderate intensity|mean -->20.57<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|High intensity|mean -->27.32<!-- /GEN -->.
+Battle injury accounted for <!-- GEN cell:role4_census_origin|Battle injury, mean beds|Moderate intensity|mean -->97.29<!-- /GEN --> of the mean beds at moderate intensity and <!-- GEN cell:role4_census_origin|Battle injury, mean beds|High intensity|mean -->173.67<!-- /GEN --> at high. Disease and non-battle injury accounted for <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|Moderate intensity|mean -->18.80<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|High intensity|mean -->10.76<!-- /GEN -->, and the reconstruction cohort for <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|Moderate intensity|mean -->22.75<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|High intensity|mean -->26.30<!-- /GEN -->.
 
 <!-- GEN role4_operations -->
 | Demand owed alongside the census | Moderate intensity | High intensity |
 |---|---|---|
-| Operations owed within the 360 days | 1,124 [1,074, 1,174] | 1,374 [1,348, 1,399] |
-| Definitive repairs owed within the 360 days | 145 [125, 166] | 99 [94, 104] |
-| Debridements owed within the 360 days | 673 [645, 700] | 906 [886, 926] |
-| Reconstructions owed within the 360 days | 306 [297, 315] | 368 [363, 374] |
-| Operations owed after day 360 | 18 [13, 22] | 22 [19, 24] |
-| Operations owed by casualties admitted during the campaign | 1,142 [1,089, 1,195] | 1,396 [1,370, 1,421] |
-| Operations owed on the busiest day | 11.27 [10.64, 11.89] | 13.53 [13.03, 14.04] |
-| Closing 90-day mean operations owed per day | 3.37 [3.05, 3.68] | 3.77 [3.63, 3.92] |
-| Theatre minutes owed for definitive repairs | 16,793 [14,494, 19,093] | 11,400 [10,827, 11,973] |
+| Operations owed within the 360 days | 1,187 [1,142, 1,231] | 1,998 [1,971, 2,025] |
+| Definitive repairs owed within the 360 days | 126 [110, 141] | 732 [719, 746] |
+| Debridements owed within the 360 days | 766 [740, 792] | 924 [905, 943] |
+| Reconstructions owed within the 360 days | 295 [287, 303] | 342 [337, 346] |
+| Operations owed after day 360 | 20 [17, 22] | 26 [22, 29] |
+| Operations owed by casualties admitted during the campaign | 1,207 [1,162, 1,252] | 2,024 [1,995, 2,053] |
+| Operations owed on the busiest day | 20.90 [19.57, 22.23] | 27.20 [26.44, 27.96] |
+| Closing 90-day mean operations owed per day | 3.40 [3.19, 3.60] | 5.82 [5.67, 5.97] |
+| Theatre minutes owed for definitive repairs | 15,546 [13,682, 17,409] | 90,775 [89,116, 92,433] |
 <!-- /GEN -->
 
-The operations owed alongside the census were counted three ways. <!-- GEN cell:role4_operations|Operations owed within the 360 days|Moderate intensity|mean -->1,124<!-- /GEN --> fell inside the campaign at moderate intensity and <!-- GEN cell:role4_operations|Operations owed within the 360 days|High intensity|mean -->1,374<!-- /GEN --> at high, a further <!-- GEN cell:role4_operations|Operations owed after day 360|Moderate intensity|mean -->18<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed after day 360|High intensity|mean -->22<!-- /GEN --> fell after the campaign ended, in the reconstruction sequences of casualties admitted late, and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|Moderate intensity|mean -->1,142<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|High intensity|mean -->1,396<!-- /GEN --> were owed in all, the figure the other sections report as operations owed. By source, the operations inside the campaign were <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|Moderate intensity|mean -->145<!-- /GEN --> definitive repairs, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|Moderate intensity|mean -->673<!-- /GEN --> debridements and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|Moderate intensity|mean -->306<!-- /GEN --> reconstructions at moderate intensity, and <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|High intensity|mean -->99<!-- /GEN -->, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|High intensity|mean -->906<!-- /GEN --> and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|High intensity|mean -->368<!-- /GEN --> at high. The busiest day owed <!-- GEN cell:role4_operations|Operations owed on the busiest day|Moderate intensity|mean -->11.27<!-- /GEN --> operations at moderate intensity and <!-- GEN cell:role4_operations|Operations owed on the busiest day|High intensity|mean -->13.53<!-- /GEN --> at high. The theatre minutes cover the definitive repairs only, no source reporting the time a debridement or a flap takes.
+The operations owed alongside the census were counted three ways. <!-- GEN cell:role4_operations|Operations owed within the 360 days|Moderate intensity|mean -->1,187<!-- /GEN --> fell inside the campaign at moderate intensity and <!-- GEN cell:role4_operations|Operations owed within the 360 days|High intensity|mean -->1,998<!-- /GEN --> at high, a further <!-- GEN cell:role4_operations|Operations owed after day 360|Moderate intensity|mean -->20<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed after day 360|High intensity|mean -->26<!-- /GEN --> fell after the campaign ended, in the reconstruction sequences of casualties admitted late, and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|Moderate intensity|mean -->1,207<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|High intensity|mean -->2,024<!-- /GEN --> were owed in all, the figure the other sections report as operations owed. By source, the operations inside the campaign were <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|Moderate intensity|mean -->126<!-- /GEN --> definitive repairs, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|Moderate intensity|mean -->766<!-- /GEN --> debridements and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|Moderate intensity|mean -->295<!-- /GEN --> reconstructions at moderate intensity, and <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|High intensity|mean -->732<!-- /GEN -->, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|High intensity|mean -->924<!-- /GEN --> and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|High intensity|mean -->342<!-- /GEN --> at high. The busiest day owed <!-- GEN cell:role4_operations|Operations owed on the busiest day|Moderate intensity|mean -->20.90<!-- /GEN --> operations at moderate intensity and <!-- GEN cell:role4_operations|Operations owed on the busiest day|High intensity|mean -->27.20<!-- /GEN --> at high. The theatre minutes cover the definitive repairs only, no source reporting the time a debridement or a flap takes.
 
 ![Mean operations owed per day at Role 4 over each week of a 360-day campaign at each casualty intensity, by source and in all](../images/role4_demand_operations.png)
 
@@ -1157,66 +1180,66 @@ The mean operations owed per day over each week of the campaign, with the 95% in
 <!-- GEN role4_stability -->
 | Census | Moderate intensity classification | Moderate intensity settles by block | Moderate intensity late mean beds | High intensity classification | High intensity settles by block | High intensity late mean beds |
 |---|---|---|---|---|---|---|
-| Total | converged | 2 | 140.65 | converged | 5 | 189.23 |
-| Intensive care phase | converged | 2 | 29.76 | converged | 2 | 40.14 |
-| Step-down ward phase | converged | 2 | 110.89 | converged | 5 | 149.09 |
-| Battle injury | converged | 2 | 100.10 | converged | 5 | 146.27 |
-| Disease and non-battle injury | converged | 2 | 18.80 | converged | 2 | 14.25 |
-| Reconstruction cohort | converged | 2 | 21.75 | converged | 2 | 28.70 |
+| Total | converged | 2 | 146.31 | converged | 4 | 220.71 |
+| Intensive care phase | converged | 6 | 34.37 | converged | 2 | 43.89 |
+| Step-down ward phase | converged | 3 | 111.94 | converged | 5 | 176.82 |
+| Battle injury | drifting | none | 102.43 | converged | 4 | 182.20 |
+| Disease and non-battle injury | converged | 3 | 19.70 | converged | 5 | 11.13 |
+| Reconstruction cohort | converged | 2 | 24.18 | converged | 2 | 27.38 |
 <!-- /GEN -->
 
 <!-- GEN role4_cma -->
 | Cumulative moving average of the mean total census (beds) | Moderate intensity | High intensity |
 |---|---|---|
-| Day 30 | 68.14 | 91.32 |
-| Day 90 | 115.59 | 155.42 |
-| Day 180 | 127.34 | 171.97 |
-| Day 360 | 133.66 | 180.61 |
+| Day 30 | 56.18 | 103.33 |
+| Day 90 | 115.29 | 179.51 |
+| Day 180 | 132.21 | 200.73 |
+| Day 360 | 138.84 | 210.72 |
 <!-- /GEN -->
 
-The 30-day block means of the total census were classified <!-- GEN cell:role4_stability|Total|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity, settling by block <!-- GEN cell:role4_stability|Total|Moderate intensity settles by block|full -->2<!-- /GEN -->, and <!-- GEN cell:role4_stability|Total|High intensity classification|full -->converged<!-- /GEN --> at high, settling by block <!-- GEN cell:role4_stability|Total|High intensity settles by block|full -->5<!-- /GEN -->. The reconstruction cohort was classified <!-- GEN cell:role4_stability|Reconstruction cohort|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity and <!-- GEN cell:role4_stability|Reconstruction cohort|High intensity classification|full -->converged<!-- /GEN --> at high. The cumulative moving average of the mean total census was <!-- GEN cell:role4_cma|Day 90|Moderate intensity|full -->115.59<!-- /GEN --> beds at day 90 and <!-- GEN cell:role4_cma|Day 360|Moderate intensity|full -->133.66<!-- /GEN --> at day 360 at moderate intensity, and <!-- GEN cell:role4_cma|Day 90|High intensity|full -->155.42<!-- /GEN --> and <!-- GEN cell:role4_cma|Day 360|High intensity|full -->180.61<!-- /GEN --> at high.
+The 30-day block means of the total census were classified <!-- GEN cell:role4_stability|Total|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity, settling by block <!-- GEN cell:role4_stability|Total|Moderate intensity settles by block|full -->2<!-- /GEN -->, and <!-- GEN cell:role4_stability|Total|High intensity classification|full -->converged<!-- /GEN --> at high, settling by block <!-- GEN cell:role4_stability|Total|High intensity settles by block|full -->4<!-- /GEN -->. The reconstruction cohort was classified <!-- GEN cell:role4_stability|Reconstruction cohort|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity and <!-- GEN cell:role4_stability|Reconstruction cohort|High intensity classification|full -->converged<!-- /GEN --> at high. The cumulative moving average of the mean total census was <!-- GEN cell:role4_cma|Day 90|Moderate intensity|full -->115.29<!-- /GEN --> beds at day 90 and <!-- GEN cell:role4_cma|Day 360|Moderate intensity|full -->138.84<!-- /GEN --> at day 360 at moderate intensity, and <!-- GEN cell:role4_cma|Day 90|High intensity|full -->179.51<!-- /GEN --> and <!-- GEN cell:role4_cma|Day 360|High intensity|full -->210.72<!-- /GEN --> at high.
 
 **Response to the forward levers.** The three sweeps below carry the Role 4 peak, the closing 90-day mean and the operations owed by the casualties admitted in their own evidence sets, and are read from them without a further run; the sortie cancellation sweep was measured for this section, the strategic airlift evidence set carrying the peak alone. Each table's shipped column is the configuration of the census tables above at moderate intensity.
 
 <!-- GEN role4_levers_policy -->
 | Response | 15 d | 21 d (shipped) | 30 d | 45 d | 60 d |
 |---|---|---|---|---|---|
-| Role 4 peak beds | 205.2 [197.2, 213.2] | 211.0 [201.5, 220.5] | 105.5 [100.2, 110.8] | 30.3 [26.9, 33.7] | 15.4 [12.5, 18.2] |
-| Role 4 closing 90-day mean beds | 111.2 [106.4, 116.0] | 114.9 [109.3, 120.4] | 53.5 [50.5, 56.5] | 8.5 [7.6, 9.4] | 2.8 [2.4, 3.1] |
-| Role 4 operations owed | 1048 [997, 1099] | 1142 [1089, 1195] | 503 [472, 534] | 92 [81, 103] | 48 [42, 55] |
+| Role 4 peak beds | 228.5 [222.9, 234.1] | 211.2 [207.6, 214.7] | 197.5 [193.1, 201.9] | 178.3 [174.3, 182.3] | 153.1 [148.9, 157.2] |
+| Role 4 closing 90-day mean beds | 125.1 [121.0, 129.2] | 116.9 [112.1, 121.6] | 111.7 [106.5, 116.9] | 96.7 [92.5, 101.0] | 80.2 [76.9, 83.5] |
+| Role 4 operations owed | 1222 [1169, 1275] | 1207 [1162, 1253] | 1235 [1186, 1284] | 1217 [1167, 1266] | 1218 [1175, 1261] |
 <!-- /GEN -->
 
-The closing mean was <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|15 d|mean -->111.2<!-- /GEN --> beds at 15 days, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|21 d (shipped)|mean -->114.9<!-- /GEN --> at the shipped 21 days, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|30 d|mean -->53.5<!-- /GEN --> at 30, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|45 d|mean -->8.5<!-- /GEN --> at 45 and <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|60 d|mean -->2.8<!-- /GEN --> at 60. The peak was <!-- GEN cell:role4_levers_policy|Role 4 peak beds|21 d (shipped)|mean -->211.0<!-- /GEN --> at 21 days and <!-- GEN cell:role4_levers_policy|Role 4 peak beds|30 d|mean -->105.5<!-- /GEN -->, <!-- GEN cell:role4_levers_policy|Role 4 peak beds|45 d|mean -->30.3<!-- /GEN --> and <!-- GEN cell:role4_levers_policy|Role 4 peak beds|60 d|mean -->15.4<!-- /GEN --> at 30, 45 and 60. The operations owed were <!-- GEN cell:role4_levers_policy|Role 4 operations owed|21 d (shipped)|mean -->1142<!-- /GEN --> at 21 days and <!-- GEN cell:role4_levers_policy|Role 4 operations owed|60 d|mean -->48<!-- /GEN --> at 60.
+The closing mean was <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|15 d|mean -->125.1<!-- /GEN --> beds at 15 days, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|21 d (shipped)|mean -->116.9<!-- /GEN --> at the shipped 21 days, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|30 d|mean -->111.7<!-- /GEN --> at 30, <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|45 d|mean -->96.7<!-- /GEN --> at 45 and <!-- GEN cell:role4_levers_policy|Role 4 closing 90-day mean beds|60 d|mean -->80.2<!-- /GEN --> at 60. The peak was <!-- GEN cell:role4_levers_policy|Role 4 peak beds|21 d (shipped)|mean -->211.2<!-- /GEN --> at 21 days and <!-- GEN cell:role4_levers_policy|Role 4 peak beds|30 d|mean -->197.5<!-- /GEN -->, <!-- GEN cell:role4_levers_policy|Role 4 peak beds|45 d|mean -->178.3<!-- /GEN --> and <!-- GEN cell:role4_levers_policy|Role 4 peak beds|60 d|mean -->153.1<!-- /GEN --> at 30, 45 and 60. The operations owed were <!-- GEN cell:role4_levers_policy|Role 4 operations owed|21 d (shipped)|mean -->1207<!-- /GEN --> at 21 days and <!-- GEN cell:role4_levers_policy|Role 4 operations owed|60 d|mean -->1218<!-- /GEN --> at 60.
 
 <!-- GEN role4_levers_establishment -->
 | Response | 30 beds (shipped) | 45 beds | 60 beds | 90 beds |
 |---|---|---|---|---|
-| Role 4 peak beds | 211.0 [201.5, 220.5] | 209.8 [200.8, 218.9] | 215.9 [208.6, 223.2] | 214.7 [207.2, 222.3] |
-| Role 4 closing 90-day mean beds | 114.9 [109.3, 120.4] | 107.4 [102.3, 112.5] | 112.2 [106.9, 117.5] | 111.3 [106.8, 115.8] |
-| Role 4 operations owed | 1142 [1089, 1195] | 1104 [1051, 1157] | 1139 [1086, 1193] | 1124 [1078, 1170] |
+| Role 4 peak beds | 211.2 [207.6, 214.7] | 207.9 [203.4, 212.5] | 211.3 [206.7, 215.9] | 211.2 [206.3, 216.0] |
+| Role 4 closing 90-day mean beds | 116.9 [112.1, 121.6] | 117.7 [113.3, 122.2] | 122.0 [118.3, 125.8] | 117.6 [112.6, 122.6] |
+| Role 4 operations owed | 1207 [1162, 1253] | 1183 [1134, 1233] | 1223 [1175, 1271] | 1201 [1140, 1262] |
 <!-- /GEN -->
 
-The closing mean was <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|30 beds (shipped)|mean -->114.9<!-- /GEN --> beds at the shipped 30 R2E holding beds and <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|45 beds|mean -->107.4<!-- /GEN -->, <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|60 beds|mean -->112.2<!-- /GEN --> and <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|90 beds|mean -->111.3<!-- /GEN --> at 45, 60 and 90; the four intervals overlap. The peak was <!-- GEN cell:role4_levers_establishment|Role 4 peak beds|30 beds (shipped)|mean -->211.0<!-- /GEN --> at 30 beds and <!-- GEN cell:role4_levers_establishment|Role 4 peak beds|90 beds|mean -->214.7<!-- /GEN --> at 90.
+The closing mean was <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|30 beds (shipped)|mean -->116.9<!-- /GEN --> beds at the shipped 30 R2E holding beds and <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|45 beds|mean -->117.7<!-- /GEN -->, <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|60 beds|mean -->122.0<!-- /GEN --> and <!-- GEN cell:role4_levers_establishment|Role 4 closing 90-day mean beds|90 beds|mean -->117.6<!-- /GEN --> at 45, 60 and 90; the four intervals overlap. The peak was <!-- GEN cell:role4_levers_establishment|Role 4 peak beds|30 beds (shipped)|mean -->211.2<!-- /GEN --> at 30 beds and <!-- GEN cell:role4_levers_establishment|Role 4 peak beds|90 beds|mean -->211.2<!-- /GEN --> at 90.
 
 <!-- GEN role4_levers_saturation -->
-| Response | 0 (disabled) | 1 | 2 | 3 | 5 | 8 (shipped) | 12 | 16 | 24 |
+| Response | 0 (disabled) | 1 | 2 (shipped) | 3 | 5 | 8 | 12 | 16 | 24 |
 |---|---|---|---|---|---|---|---|---|---|
-| Role 4 peak beds | 199.6 [193.0, 206.2] | 215.1 [207.8, 222.3] | 206.3 [197.5, 215.1] | 208.3 [199.3, 217.3] | 208.0 [200.4, 215.6] | 211.0 [201.5, 220.5] | 201.7 [192.8, 210.6] | 206.8 [198.3, 215.3] | 213.8 [203.4, 224.1] |
-| Role 4 closing 90-day mean beds | 111.3 [105.8, 116.7] | 112.6 [106.5, 118.8] | 110.4 [105.6, 115.2] | 112.4 [106.6, 118.1] | 111.2 [105.4, 116.9] | 114.9 [109.3, 120.4] | 106.2 [101.9, 110.5] | 108.5 [103.6, 113.3] | 111.4 [104.7, 118.1] |
-| Role 4 operations owed | 933 [899, 966] | 1300 [1236, 1364] | 1182 [1132, 1232] | 1209 [1151, 1267] | 1111 [1059, 1163] | 1142 [1089, 1195] | 1026 [979, 1073] | 1037 [991, 1083] | 997 [958, 1036] |
+| Role 4 peak beds | 211.3 [206.2, 216.5] | 208.6 [203.1, 214.0] | 211.2 [207.6, 214.7] | 209.6 [205.0, 214.2] | 214.9 [210.6, 219.2] | 211.2 [206.0, 216.4] | 209.6 [204.4, 214.8] | 211.6 [206.4, 216.7] | 214.1 [209.6, 218.7] |
+| Role 4 closing 90-day mean beds | 120.5 [115.6, 125.3] | 117.2 [111.9, 122.5] | 116.9 [112.1, 121.6] | 116.5 [112.2, 120.9] | 120.5 [115.6, 125.4] | 119.7 [114.3, 125.1] | 115.7 [111.2, 120.2] | 118.0 [113.2, 122.9] | 116.9 [112.4, 121.3] |
+| Role 4 operations owed | 1063 [1032, 1095] | 1255 [1199, 1312] | 1207 [1162, 1253] | 1164 [1114, 1215] | 1174 [1130, 1217] | 1148 [1108, 1189] | 1126 [1097, 1155] | 1139 [1097, 1181] | 1105 [1072, 1137] |
 <!-- /GEN -->
 
-The closing mean was <!-- GEN cell:role4_levers_saturation|Role 4 closing 90-day mean beds|0 (disabled)|mean -->111.3<!-- /GEN --> beds with the release disabled and <!-- GEN cell:role4_levers_saturation|Role 4 closing 90-day mean beds|2 (shipped)|mean -->114.9<!-- /GEN --> at the shipped threshold of 2, and ranged across the nine thresholds without a monotone course. The operations owed were <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|0 (disabled)|mean -->933<!-- /GEN --> with the release disabled, <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|1|mean -->1300<!-- /GEN --> at a threshold of 1, <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|2 (shipped)|mean -->1142<!-- /GEN --> at 2 and <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|24|mean -->997<!-- /GEN --> at 24.
+The closing mean was <!-- GEN cell:role4_levers_saturation|Role 4 closing 90-day mean beds|0 (disabled)|mean -->120.5<!-- /GEN --> beds with the release disabled and <!-- GEN cell:role4_levers_saturation|Role 4 closing 90-day mean beds|2 (shipped)|mean -->116.9<!-- /GEN --> at the shipped threshold of 2, and ranged across the nine thresholds without a monotone course. The operations owed were <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|0 (disabled)|mean -->1063<!-- /GEN --> with the release disabled, <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|1|mean -->1255<!-- /GEN --> at a threshold of 1, <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|2 (shipped)|mean -->1207<!-- /GEN --> at 2 and <!-- GEN cell:role4_levers_saturation|Role 4 operations owed|24|mean -->1105<!-- /GEN --> at 24.
 
 <!-- GEN role4_levers_cancellation -->
 | Response | 0% (shipped) | 5% | 10% | 15% | 25% | 40% |
 |---|---|---|---|---|---|---|
-| Role 4 peak beds | 211.0 [201.5, 220.5] | 210.7 [201.8, 219.7] | 197.0 [188.8, 205.1] | 198.6 [193.6, 203.6] | 195.5 [188.8, 202.2] | 182.8 [179.3, 186.4] |
-| Role 4 closing 90-day mean beds | 143.6 [136.9, 150.4] | 142.8 [135.1, 150.5] | 135.3 [129.0, 141.6] | 139.0 [134.3, 143.8] | 125.0 [118.0, 132.1] | 105.4 [98.6, 112.1] |
-| Role 4 operations owed | 1142 [1089, 1195] | 1129 [1071, 1187] | 1080 [1031, 1129] | 1093 [1051, 1134] | 986 [941, 1030] | 790 [756, 824] |
+| Role 4 peak beds | 211.2 [207.6, 214.7] | 211.5 [207.5, 215.4] | 210.9 [207.1, 214.7] | 212.8 [207.8, 217.8] | 211.0 [206.2, 215.7] | 201.1 [196.0, 206.2] |
+| Role 4 closing 90-day mean beds | 144.4 [138.4, 150.5] | 147.1 [140.6, 153.6] | 144.6 [138.7, 150.5] | 144.1 [138.6, 149.5] | 135.1 [129.1, 141.1] | 115.0 [108.2, 121.9] |
+| Role 4 operations owed | 1207 [1162, 1253] | 1202 [1159, 1244] | 1185 [1140, 1229] | 1176 [1139, 1212] | 1094 [1052, 1136] | 830 [784, 875] |
 <!-- /GEN -->
 
-The closing mean was <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|0% (shipped)|mean -->143.6<!-- /GEN --> beds with no sortie cancelled and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|10%|mean -->135.3<!-- /GEN -->, <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|25%|mean -->125.0<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|40%|mean -->105.4<!-- /GEN --> at cancellation probabilities of 10%, 25% and 40%. The peak was <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|0% (shipped)|mean -->211.0<!-- /GEN --> with no cancellation and <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|40%|mean -->182.8<!-- /GEN --> at 40%, and the operations owed were <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|0% (shipped)|mean -->1142<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|40%|mean -->790<!-- /GEN -->.
+The closing mean was <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|0% (shipped)|mean -->144.4<!-- /GEN --> beds with no sortie cancelled and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|10%|mean -->144.6<!-- /GEN -->, <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|25%|mean -->135.1<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|40%|mean -->115.0<!-- /GEN --> at cancellation probabilities of 10%, 25% and 40%. The peak was <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|0% (shipped)|mean -->211.2<!-- /GEN --> with no cancellation and <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|40%|mean -->201.1<!-- /GEN --> at 40%, and the operations owed were <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|0% (shipped)|mean -->1207<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|40%|mean -->830<!-- /GEN -->.
 
 ![Role 4 peak beds, closing 90-day mean beds and operations owed against the evacuation policy, R2E holding establishment, saturation release threshold and sortie cancellation probability](../images/role4_demand_levers.png)
 
@@ -1233,30 +1256,30 @@ The Role 4 peak beds (upper row), closing 90-day mean beds (middle row) and oper
 <!-- GEN casualty_surge -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 5402.9 | 8160.5 |
-| Average events/run | 0 | 72.47 (range 59–91) |
-| Died-of-wounds rate, ordinary casualties | 0.20% [0.18%, 0.22%] | 0.21% [0.19%, 0.23%] |
-| Died-of-wounds rate, event casualties | not applicable | 0.43% [0.39%, 0.48%] |
+| Average total casualties/run | 5362.3 | 8157.7 |
+| Average events/run | 0 | 75.20 (range 58–88) |
+| Died-of-wounds rate, ordinary casualties | 0.39% [0.36%, 0.42%] | 1.14% [1.09%, 1.20%] |
+| Died-of-wounds rate, event casualties | not applicable | 2.41% [2.31%, 2.52%] |
 <!-- /GEN -->
 
 ![Stem plot of casualty surge events reconstructed from one campaign](../images/casualty_surge_events.png)
 
 Casualty surge events reconstructed from one seed-42 campaign, each drawn as a vertical line at its simulation day with a point at its casualty count.
 
-Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->72.47 (range 59–91)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5402.9<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8160.5<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->0.43% [0.39%, 0.48%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.20% [0.18%, 0.22%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->0.21% [0.19%, 0.23%]<!-- /GEN --> with it.
+Events added <!-- GEN cell:casualty_surge|Average events/run|Events injected|full -->75.20 (range 58–88)<!-- /GEN --> events per campaign and raised the mean campaign total from <!-- GEN cell:casualty_surge|Average total casualties/run|No events injected|full -->5362.3<!-- /GEN --> to <!-- GEN cell:casualty_surge|Average total casualties/run|Events injected|full -->8157.7<!-- /GEN --> casualties. The died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge|Died-of-wounds rate, event casualties|Events injected|full -->2.41% [2.31%, 2.52%]<!-- /GEN -->. Among ordinary casualties it was <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|No events injected|full -->0.39% [0.36%, 0.42%]<!-- /GEN --> without injection and <!-- GEN cell:casualty_surge|Died-of-wounds rate, ordinary casualties|Events injected|full -->1.14% [1.09%, 1.20%]<!-- /GEN --> with it.
 
 **High-intensity profile.** The same stress test under `high_intensity` `[high_intensity, 0 and 0.2 events per day · 360 d · 30 replications · campaign totals]`:
 
 <!-- GEN casualty_surge_high -->
 | Metric | No events injected | Events injected |
 |---|---|---|
-| Average total casualties/run | 12409.5 | 14972.2 |
-| Average events/run | 0 | 72.47 (range 59–91) |
-| Died-of-wounds rate, ordinary casualties | 2.24% [2.19%, 2.29%] | 2.28% [2.23%, 2.33%] |
-| Died-of-wounds rate, event casualties | not applicable | 2.87% [2.76%, 2.98%] |
+| Average total casualties/run | 12351.9 | 15079.9 |
+| Average events/run | 0 | 75.20 (range 58–88) |
+| Died-of-wounds rate, ordinary casualties | 4.10% [4.03%, 4.16%] | 14.60% [14.48%, 14.71%] |
+| Died-of-wounds rate, event casualties | not applicable | 16.66% [16.42%, 16.91%] |
 <!-- /GEN -->
 
-Event casualties died of wounds at <!-- GEN cell:casualty_surge_high|Died-of-wounds rate, event casualties|Events injected|full -->2.87% [2.76%, 2.98%]<!-- /GEN --> against <!-- GEN cell:casualty_surge_high|Died-of-wounds rate, ordinary casualties|Events injected|full -->2.28% [2.23%, 2.33%]<!-- /GEN --> for ordinary casualties in the same arm.
+Event casualties died of wounds at <!-- GEN cell:casualty_surge_high|Died-of-wounds rate, event casualties|Events injected|full -->16.66% [16.42%, 16.91%]<!-- /GEN --> against <!-- GEN cell:casualty_surge_high|Died-of-wounds rate, ordinary casualties|Events injected|full -->14.60% [14.48%, 14.71%]<!-- /GEN --> for ordinary casualties in the same arm.
 
 ---
 
@@ -1267,40 +1290,40 @@ Event casualties died of wounds at <!-- GEN cell:casualty_surge_high|Died-of-wou
 **Question.** At what size do casualty surge events begin to degrade care? `[default, every event fixed at one size · 0.2 events per day · 360 d · 30 replications per size · independent seeds, pooled exact binomial and Student t]`
 
 <!-- GEN casualty_surge_size -->
-| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E intensive care queue | Peak R2E holding queue |
-|---|---|---|---|---|---|---|---|
-| None | 0.0 | not applicable | 0.20% [0.18%, 0.22%] | 48.7 ± 9.2 | 44.1 ± 11.9 | 14.4 ± 3.1 | 19.9 ± 5.0 |
-| 10 | 72.5 | 0.32% [0.25%, 0.40%] | 0.20% [0.18%, 0.23%] | 50.2 ± 8.0 | 47.2 ± 9.2 | 33.4 ± 12.8 | 54.6 ± 12.4 |
-| 20 | 72.5 | 0.43% [0.37%, 0.49%] | 0.21% [0.19%, 0.24%] | 59.5 ± 7.0 | 44.3 ± 4.2 | 143.6 ± 25.4 | 126.7 ± 10.0 |
-| 40 | 72.5 | 0.45% [0.40%, 0.49%] | 0.21% [0.19%, 0.24%] | 90.8 ± 12.2 | 77.2 ± 10.5 | 654.3 ± 49.3 | 240.9 ± 15.5 |
-| 60 | 72.5 | 0.44% [0.41%, 0.48%] | 0.22% [0.20%, 0.24%] | 125.0 ± 16.6 | 142.4 ± 14.8 | 1110.0 ± 57.6 | 366.3 ± 25.7 |
-| 90 | 72.5 | 0.47% [0.44%, 0.50%] | 0.22% [0.20%, 0.24%] | 151.3 ± 17.5 | 416.9 ± 63.0 | 1584.6 ± 47.3 | 503.3 ± 32.7 |
-| 120 | 72.5 | 0.46% [0.43%, 0.48%] | 0.24% [0.21%, 0.26%] | 194.5 ± 23.4 | 1051.6 ± 120.2 | 1665.4 ± 35.5 | 660.0 ± 34.4 |
-| 180 | 72.5 | 0.48% [0.46%, 0.51%] | 0.25% [0.22%, 0.27%] | 251.1 ± 33.4 | 2556.0 ± 178.4 | 1739.7 ± 27.5 | 898.7 ± 43.6 |
+| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E post-operative overflow census | Peak R2E holding queue | Peak R2E staging overflow census |
+|---|---|---|---|---|---|---|---|---|
+| None | 0.0 | not applicable | 0.39% [0.36%, 0.42%] | 1.8 ± 0.4 | 29.9 ± 4.4 | 27.4 ± 0.9 | 56.8 ± 2.7 | 115.3 ± 9.7 |
+| 10 | 75.2 | 0.76% [0.65%, 0.88%] | 0.44% [0.41%, 0.47%] | 2.0 ± 0.4 | 29.4 ± 4.4 | 27.4 ± 0.7 | 59.8 ± 3.0 | 163.4 ± 18.9 |
+| 20 | 75.2 | 1.41% [1.30%, 1.52%] | 0.74% [0.70%, 0.78%] | 2.7 ± 0.4 | 40.0 ± 7.6 | 28.1 ± 0.6 | 70.3 ± 4.4 | 387.5 ± 40.9 |
+| 40 | 75.2 | 2.37% [2.27%, 2.47%] | 1.11% [1.06%, 1.17%] | 3.1 ± 0.5 | 57.0 ± 7.6 | 30.6 ± 0.6 | 73.8 ± 4.2 | 951.7 ± 57.3 |
+| 60 | 75.2 | 3.73% [3.63%, 3.83%] | 1.61% [1.55%, 1.68%] | 3.5 ± 0.4 | 104.8 ± 11.9 | 31.3 ± 0.5 | 77.2 ± 4.0 | 1587.4 ± 80.7 |
+| 90 | 75.2 | 6.55% [6.45%, 6.66%] | 3.01% [2.93%, 3.10%] | 5.3 ± 0.6 | 249.7 ± 28.5 | 32.0 ± 0.5 | 80.2 ± 3.5 | 2319.6 ± 89.4 |
+| 120 | 75.2 | 12.82% [12.69%, 12.94%] | 6.52% [6.39%, 6.64%] | 5.8 ± 0.8 | 574.6 ± 74.0 | 32.0 ± 0.5 | 82.2 ± 3.6 | 2410.0 ± 77.9 |
+| 180 | 75.2 | 21.34% [21.21%, 21.47%] | 11.47% [11.31%, 11.64%] | 8.0 ± 0.7 | 2114.4 ± 197.9 | 31.0 ± 0.4 | 85.5 ± 3.0 | 1553.5 ± 97.6 |
 <!-- /GEN -->
 
 ![Line plot of the died-of-wounds rate of event and ordinary casualties against casualty surge event size](../images/casualty_surge_size_sweep.png)
 
 The died-of-wounds rate of event and ordinary casualties against the number of casualties per event, with pooled exact binomial 95% confidence intervals.
 
-Peak queues are the largest four-hour mean queue, or census for an overflow point, of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.32% [0.25%, 0.40%]<!-- /GEN --> and the peak R2E post-operative overflow census <!-- GEN cell:casualty_surge_size|10|Peak R2E post-operative overflow census|full -->33.4 ± 12.8<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E post-operative overflow census|full -->14.4 ± 3.1<!-- /GEN --> with no events injected. At 20 casualties per event the intensive care queue peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E post-operative overflow census|full -->143.6 ± 25.4<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E post-operative overflow census|full -->654.3 ± 49.3<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->44.1 ± 11.9<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->142.4 ± 14.8<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->416.9 ± 63.0<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2556.0 ± 178.4<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->0.44% [0.41%, 0.48%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->0.48% [0.46%, 0.51%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.20% [0.18%, 0.22%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->0.25% [0.22%, 0.27%]<!-- /GEN --> at 180.
+Peak queues are the largest four-hour mean queue, or census for an overflow point, of each pool over the campaign, with a 95% half-width across replications. With every event fixed at 10 casualties, the died-of-wounds rate among event casualties was <!-- GEN cell:casualty_surge_size|10|Died of wounds, event casualties|full -->0.76% [0.65%, 0.88%]<!-- /GEN --> and the peak R2E post-operative overflow census <!-- GEN cell:casualty_surge_size|10|Peak R2E post-operative overflow census|full -->27.4 ± 0.7<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size|None|Peak R2E post-operative overflow census|full -->27.4 ± 0.9<!-- /GEN --> with no events injected. At 20 casualties per event the post-operative overflow census peaked at <!-- GEN cell:casualty_surge_size|20|Peak R2E post-operative overflow census|full -->28.1 ± 0.6<!-- /GEN -->, and at 40 at <!-- GEN cell:casualty_surge_size|40|Peak R2E post-operative overflow census|full -->30.6 ± 0.6<!-- /GEN -->. The R2E theatre queue peaked at <!-- GEN cell:casualty_surge_size|None|Peak R2E theatre queue|full -->29.9 ± 4.4<!-- /GEN --> with no events, <!-- GEN cell:casualty_surge_size|60|Peak R2E theatre queue|full -->104.8 ± 11.9<!-- /GEN --> at 60 casualties per event, <!-- GEN cell:casualty_surge_size|90|Peak R2E theatre queue|full -->249.7 ± 28.5<!-- /GEN --> at 90 and <!-- GEN cell:casualty_surge_size|180|Peak R2E theatre queue|full -->2114.4 ± 197.9<!-- /GEN --> at 180. The event casualty died-of-wounds rate was <!-- GEN cell:casualty_surge_size|60|Died of wounds, event casualties|full -->3.73% [3.63%, 3.83%]<!-- /GEN --> at 60 casualties and <!-- GEN cell:casualty_surge_size|180|Died of wounds, event casualties|full -->21.34% [21.21%, 21.47%]<!-- /GEN --> at 180, and the rate among ordinary casualties was <!-- GEN cell:casualty_surge_size|None|Died of wounds, ordinary casualties|full -->0.39% [0.36%, 0.42%]<!-- /GEN --> with no events and <!-- GEN cell:casualty_surge_size|180|Died of wounds, ordinary casualties|full -->11.47% [11.31%, 11.64%]<!-- /GEN --> at 180.
 
 **High-intensity profile.** The same sweep under `high_intensity` `[high_intensity, every event fixed at one size · 0.2 events per day · 360 d · 30 replications per size · independent seeds]`:
 
 <!-- GEN casualty_surge_size_high -->
-| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E intensive care queue | Peak R2E holding queue |
-|---|---|---|---|---|---|---|---|
-| None | 0.0 | not applicable | 2.24% [2.19%, 2.29%] | 152.3 ± 12.5 | 619.1 ± 57.8 | 1665.7 ± 15.0 | 641.4 ± 29.4 |
-| 10 | 72.5 | 2.47% [2.26%, 2.68%] | 2.29% [2.24%, 2.34%] | 156.7 ± 14.8 | 791.6 ± 46.0 | 1674.8 ± 16.0 | 677.7 ± 22.4 |
-| 20 | 72.5 | 2.70% [2.55%, 2.86%] | 2.28% [2.23%, 2.32%] | 180.3 ± 15.1 | 1063.1 ± 70.8 | 1697.5 ± 18.1 | 736.1 ± 27.3 |
-| 40 | 72.5 | 2.72% [2.62%, 2.83%] | 2.27% [2.22%, 2.32%] | 191.5 ± 17.5 | 1511.1 ± 75.6 | 1700.8 ± 16.8 | 831.9 ± 32.8 |
-| 60 | 72.5 | 2.87% [2.78%, 2.96%] | 2.30% [2.25%, 2.35%] | 201.1 ± 18.5 | 1939.3 ± 86.1 | 1735.1 ± 19.3 | 884.6 ± 32.4 |
-| 90 | 72.5 | 2.98% [2.91%, 3.06%] | 2.37% [2.32%, 2.42%] | 244.5 ± 21.1 | 2667.5 ± 96.6 | 1745.6 ± 19.0 | 1005.1 ± 40.0 |
-| 120 | 72.5 | 3.04% [2.97%, 3.10%] | 2.34% [2.29%, 2.39%] | 267.6 ± 21.6 | 3386.0 ± 127.4 | 1746.2 ± 16.6 | 1138.6 ± 32.8 |
-| 180 | 72.5 | 2.96% [2.91%, 3.02%] | 2.43% [2.38%, 2.48%] | 334.7 ± 32.0 | 4802.4 ± 180.2 | 1751.3 ± 16.7 | 1320.2 ± 49.8 |
+| Event size | Events/run | Died of wounds, event casualties | Died of wounds, ordinary casualties | Peak R2B holding queue | Peak R2E theatre queue | Peak R2E post-operative overflow census | Peak R2E holding queue | Peak R2E staging overflow census |
+|---|---|---|---|---|---|---|---|---|
+| None | 0.0 | not applicable | 4.12% [4.06%, 4.19%] | 3.7 ± 0.4 | 163.0 ± 21.3 | 32.0 ± 0.5 | 89.6 ± 2.5 | 2897.3 ± 28.2 |
+| 10 | 75.2 | 7.76% [7.42%, 8.12%] | 6.98% [6.90%, 7.06%] | 3.7 ± 0.6 | 290.6 ± 36.3 | 32.0 ± 0.6 | 88.3 ± 3.5 | 2845.7 ± 64.4 |
+| 20 | 75.2 | 11.83% [11.53%, 12.13%] | 10.51% [10.42%, 10.61%] | 3.6 ± 0.5 | 587.2 ± 76.8 | 31.0 ± 0.5 | 90.1 ± 3.6 | 2492.1 ± 96.1 |
+| 40 | 75.2 | 16.75% [16.51%, 16.99%] | 14.58% [14.46%, 14.69%] | 4.3 ± 0.5 | 1210.0 ± 96.6 | 31.3 ± 0.5 | 87.2 ± 2.7 | 1964.5 ± 73.2 |
+| 60 | 75.2 | 18.94% [18.73%, 19.15%] | 15.96% [15.84%, 16.08%] | 4.9 ± 0.6 | 1899.8 ± 114.7 | 31.2 ± 0.6 | 87.1 ± 4.5 | 1666.4 ± 69.5 |
+| 90 | 75.2 | 20.38% [20.20%, 20.55%] | 17.10% [16.98%, 17.23%] | 6.1 ± 0.8 | 2908.8 ± 143.4 | 31.4 ± 0.7 | 88.9 ± 3.8 | 1375.6 ± 53.6 |
+| 120 | 75.2 | 20.55% [20.40%, 20.71%] | 17.46% [17.33%, 17.59%] | 6.5 ± 0.5 | 3898.2 ± 181.1 | 31.6 ± 0.5 | 90.9 ± 3.0 | 1225.4 ± 46.7 |
+| 180 | 75.2 | 22.06% [21.93%, 22.19%] | 18.37% [18.24%, 18.51%] | 8.8 ± 1.1 | 5271.0 ± 162.8 | 31.8 ± 0.7 | 100.5 ± 4.7 | 1120.8 ± 34.8 |
 <!-- /GEN -->
 
-At 20 casualties per event the peak R2E post-operative overflow census was <!-- GEN cell:casualty_surge_size_high|20|Peak R2E post-operative overflow census|full -->1697.5 ± 18.1<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size_high|None|Peak R2E post-operative overflow census|full -->1665.7 ± 15.0<!-- /GEN --> with no events injected.
+At 20 casualties per event the peak R2E post-operative overflow census was <!-- GEN cell:casualty_surge_size_high|20|Peak R2E post-operative overflow census|full -->31.0 ± 0.5<!-- /GEN -->, against <!-- GEN cell:casualty_surge_size_high|None|Peak R2E post-operative overflow census|full -->32.0 ± 0.5<!-- /GEN --> with no events injected.
 
 ---
 
@@ -1313,26 +1336,26 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 <!-- GEN resolution -->
 | Comparison | Paired difference | Half-width sought | Replications needed |
 |---|---|---|---|
-| Hold window, R2E first surgeries | −10.90 [−72.35, +50.55] | 2.0 | 26,008 |
-| Hold window, R2E theatre entry deferred | −2.90 [−20.63, +14.83] | 1.0 | 8,665 |
-| Hold window, diverted for a busy theatre | +13.93 [−4.25, +32.11] | 2.0 | 2,277 |
-| Hold window, died of wounds | −0.07 [−2.25, +2.11] | 0.5 | 524 |
-| Intensive care gate, died of wounds | +0.10 [−1.71, +1.91] | 0.5 | 362 |
-| Policy 15 days against 21, died of wounds | −0.80 [−2.54, +0.94] | 1.0 | 84 |
-| Policy 45 days against 21, died of wounds | +1.17 [−0.81, +3.14] | 1.0 | 108 |
-| Saturation release at 8, died of wounds | −0.07 [−1.72, +1.58] | 1.0 | 75 |
-| Saturation release at 8, returns to duty | +2.37 [−35.97, +40.70] | 10.0 | 405 |
+| Hold window, R2E first surgeries | −41.00 [−105.33, +23.33] | 2.0 | 28,507 |
+| Hold window, R2E theatre entry deferred | −15.50 [−34.50, +3.50] | 1.0 | 9,947 |
+| Hold window, diverted for a busy theatre | +11.10 [−8.72, +30.92] | 2.0 | 2,705 |
+| Hold window, died of wounds | −2.47 [−6.47, +1.53] | 0.5 | 1,763 |
+| Intensive care gate, died of wounds | +0.60 [−2.67, +3.87] | 0.5 | 1,178 |
+| Policy 15 days against 21, died of wounds | +1.27 [−3.17, +5.70] | 1.0 | 542 |
+| Policy 45 days against 21, died of wounds | −0.80 [−4.45, +2.85] | 1.0 | 367 |
+| Policy 60 days against 21, died of wounds | −1.03 [−5.46, +3.39] | 1.0 | 540 |
+| Saturation release at 2, died of wounds | −1.17 [−5.77, +3.44] | 1.0 | 585 |
+| Saturation release at 2, returns to duty | +12.27 [−32.16, +56.69] | 10.0 | 544 |
 <!-- /GEN -->
 
-A comparison whose 95% interval excludes zero is listed in the second table rather than the first, the split being taken from the evidence each time the document is generated.
+A comparison whose 95% interval excludes zero is listed in the second table rather than the first, the split being taken from the evidence each time the document is generated; the second table is empty where no interval excludes zero.
 
 <!-- GEN resolved -->
 | Comparison | Paired difference |
 |---|---|
-| Policy 60 days against 21, died of wounds | +2.77 [+0.66, +4.87] |
 <!-- /GEN -->
 
-The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ is the standard deviation of the within-replication differences observed at 30 replications and $h$ the half-width sought, chosen in the response's own units by the script that ran the experiment. The hold window's R2E first-surgery difference was <!-- GEN cell:resolution|Hold window, R2E first surgeries|Paired difference|full -->−10.90 [−72.35, +50.55]<!-- /GEN --> against a half-width sought of <!-- GEN cell:resolution|Hold window, R2E first surgeries|Half-width sought|full -->2.0<!-- /GEN --> operations, which needs <!-- GEN cell:resolution|Hold window, R2E first surgeries|Replications needed|full -->26,008<!-- /GEN --> replications. The intensive care gate's died-of-wounds difference was <!-- GEN cell:resolution|Intensive care gate, died of wounds|Paired difference|full -->+0.10 [−1.71, +1.91]<!-- /GEN --> and needs <!-- GEN cell:resolution|Intensive care gate, died of wounds|Replications needed|full -->362<!-- /GEN -->. Against a half-width sought of <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Half-width sought|full -->1.0<!-- /GEN --> death per campaign, the 15-day and 45-day policy comparisons against the shipped 21 days need <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Replications needed|full -->84<!-- /GEN --> and <!-- GEN cell:resolution|Policy 45 days against 21, died of wounds|Replications needed|full -->108<!-- /GEN --> replications. The 60-day policy's died-of-wounds difference against 21 days was <!-- GEN cell:resolved|Policy 60 days against 21, died of wounds|Paired difference|full -->+2.77 [+0.66, +4.87]<!-- /GEN -->, an interval that excludes zero. The saturation release's died-of-wounds difference at the shipped threshold of eight needs <!-- GEN cell:resolution|Saturation release at 8, died of wounds|Replications needed|full -->75<!-- /GEN -->.
+The count for each row is $\lceil (z_{0.975}\, s_d / h)^2 \rceil$, where $s_d$ is the standard deviation of the within-replication differences observed at 30 replications and $h$ the half-width sought, chosen in the response's own units by the script that ran the experiment. The hold window's R2E first-surgery difference was <!-- GEN cell:resolution|Hold window, R2E first surgeries|Paired difference|full -->−41.00 [−105.33, +23.33]<!-- /GEN --> against a half-width sought of <!-- GEN cell:resolution|Hold window, R2E first surgeries|Half-width sought|full -->2.0<!-- /GEN --> operations, which needs <!-- GEN cell:resolution|Hold window, R2E first surgeries|Replications needed|full -->28,507<!-- /GEN --> replications. The intensive care gate's died-of-wounds difference was <!-- GEN cell:resolution|Intensive care gate, died of wounds|Paired difference|full -->+0.60 [−2.67, +3.87]<!-- /GEN --> and needs <!-- GEN cell:resolution|Intensive care gate, died of wounds|Replications needed|full -->1,178<!-- /GEN -->. Against a half-width sought of <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Half-width sought|full -->1.0<!-- /GEN --> death per campaign, the 15-day and 45-day policy comparisons against the shipped 21 days need <!-- GEN cell:resolution|Policy 15 days against 21, died of wounds|Replications needed|full -->542<!-- /GEN --> and <!-- GEN cell:resolution|Policy 45 days against 21, died of wounds|Replications needed|full -->367<!-- /GEN --> replications. The 60-day policy's died-of-wounds difference against 21 days was <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Paired difference|full -->−1.03 [−5.46, +3.39]<!-- /GEN --> and needs <!-- GEN cell:resolution|Policy 60 days against 21, died of wounds|Replications needed|full -->540<!-- /GEN -->. The saturation release's died-of-wounds difference at the shipped threshold of two needs <!-- GEN cell:resolution|Saturation release at 2, died of wounds|Replications needed|full -->585<!-- /GEN -->.
 
 ---
 
@@ -1481,5 +1504,7 @@ The conservation of a casualty's intensive care requirement across the three pos
 [1] Blood, C. G., Zouris, J. M., & Rotblatt, D. (1997). *Using the Ground Forces Casualty Forecasting System (FORECAS) to Project Casualty Sustainment* (NHRC Report No. 97-39). Naval Health Research Center. Retrieved 21 Oct 26, from https://archive.org/details/DTIC_ADA339487
 
 [2] Westphalen, N. (2018). Surgeon Captain Richard Tadeusz 'Rick' Jolly OBE RN Rtd. *Journal of Military and Veterans' Health*, *26*(1). Retrieved 26 Jul 26, from https://jmvh.org/article/surgeon-captain-richard-tadeusz-rick-jolly-obe-rn-rtd/
+
+[3] Marble, S. (2025). Both joint and not: Medical support at Okinawa, 1945. *Joint Force Quarterly*, *117*, 73–80. National Defense University Press. Retrieved 30 Oct 26, from https://digitalcommons.ndu.edu/joint-force-quarterly/vol117/iss2/11/
 
 <!-- REFERENCES END -->

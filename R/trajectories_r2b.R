@@ -939,54 +939,75 @@ r2b_dow_check <- function(trj, team_id) {
     )
 }
 
-#' Name of the signal an R2B team sends when one of its resuscitation beds frees
+#' Queue priority of a casualty waiting for an R2B resuscitation bed
 #'
-#' @details One signal per team, formatted with the team index, so a casualty
-#'   waiting at one unit's reception is woken by that unit's beds alone.
-R2B_RESUS_FREE_SIGNAL_FMT <- "r2b_resus_free_%d"
+#' @return 3 for a Priority 1 casualty, 2 for Priority 2 and 1 otherwise, so a
+#'   simmer queue, which serves the highest priority first, serves by triage
+#'   priority.
+reception_queue_priority <- function() {
+  prio <- get_attribute(env, "priority")
+  if (is.na(prio) || prio >= 3) 1 else 4 - prio
+}
+
+#' Whether a pool admits a casualty at this instant, without a queue ahead
+#'
+#' @param pool Resource name of the pool.
+#' @return TRUE when the pool has a free token and nobody waiting for one.
+pool_admits_now <- function(pool) {
+  get_server_count(env, pool) < get_capacity(env, pool) && get_queue_count(env, pool) == 0
+}
 
 #' Builds reception at R2B for a casualty needing resuscitation
 #'
 #' @param resus_beds This R2B team's resuscitation beds
 #' @param hold_beds  This R2B team's holding beds
 #' @param overflow   This R2B team's reception overflow resource
-#' @param signal     The signal this team sends when a resuscitation bed frees
+#' @param pool       This R2B team's resuscitation pool, one token per bed
 #' @return Simmer trajectory ending with the casualty in a resuscitation bed,
-#'   selected into id 2.
+#'   selected into id 2, and holding a token of the pool.
 #'
 #' @details A casualty arriving to a free resuscitation bed is taken straight to
 #'   it. One arriving while every resuscitation bed is in use waits in a holding
 #'   bed if one is free and in overflow if not, and takes the first of the
 #'   unit's resuscitation beds to free rather than one chosen in advance: it
-#'   waits for the unit's signal (sent by r2b_resuscitation() on release) and,
-#'   woken, takes a bed if one is free and waits again if another casualty took
-#'   it first. The placement is recorded in r2b_reception_bed (1 resuscitation,
-#'   2 holding, 3 overflow) and the wait in r2b_reception_wait, in minutes. No
-#'   care-state multiplier attaches to the wait, the casualty not yet having
-#'   been resuscitated; it is priced by elapsed time.
-r2b_reception <- function(resus_beds, hold_beds, overflow, signal) {
-  force(signal)
-  # Waits for the signal until a resuscitation bed is free. Entered only when
-  # none is, and woken whenever one frees; rollback re-arms the wait when
-  # another casualty has taken the bed first.
-  await_bed <- trajectory("Await First Resuscitation Bed") %>%
-    trap(signal) %>%
-    wait() %>%
-    untrap(signal) %>%
-    rollback(target = 3, check = function() !beds_free(resus_beds))
-
+#'   queues on the unit's pool, which holds one token per bed and is released
+#'   with the bed (r2b_resuscitation()), so the token admits it to whichever
+#'   bed freed. The pool serves by triage priority and, within a priority, in
+#'   order of arrival (reception_queue_priority()), a rule that draws no random
+#'   number and depends on nothing but the casualties' own attributes. The
+#'   placement is recorded in r2b_reception_bed (1 resuscitation, 2 holding, 3
+#'   overflow) and the wait in r2b_reception_wait, in minutes. No care-state
+#'   multiplier attaches to the wait, the casualty not yet having been
+#'   resuscitated; it is priced by elapsed time.
+r2b_reception <- function(resus_beds, hold_beds, overflow, pool) {
+  force(pool)
+  # The priority is set for the pool's queue alone and restored at once, so no
+  # other resource sees it. A wake by signal is avoided: simmer orders a
+  # signal's subscribers by memory address, so which waiting casualty took a
+  # freed bed varied between runs of one seed.
   take_bed <- trajectory("Take a Resuscitation Bed") %>%
+    set_prioritization(function() {
+      p <- reception_queue_priority()
+      c(p, p, 0)
+    }) %>%
+    seize(pool, 1) %>%
+    set_prioritization(c(0, 0, 0)) %>%
     simmer::select(resus_beds, policy = "first-available", id = 2) %>%
     seize_selected(id = 2)
 
-  # Branches on the best placement free at this instant (placement_now()):
-  # - 1 a resuscitation bed is free -> straight to it
-  # - 2 none, but a holding bed is free -> wait in it for the first to free
-  # - 3 neither -> wait in overflow for the first to free
+  # Branches on the best placement free at this instant:
+  # - 1 the pool admits at once (a resuscitation bed is free and nobody is
+  #   waiting for one) -> straight to it
+  # - 2 it does not, but a holding bed is free -> wait in it for the pool
+  # - 3 neither -> wait in overflow for the pool
   trajectory("R2B Reception") %>%
     set_attribute("r2b_reception_wait", 0) %>%
     branch(
-      option = function() placement_now(resus_beds, hold_beds),
+      option = function() {
+        if (pool_admits_now(pool)) return(1)
+        if (beds_free(hold_beds)) return(2)
+        3
+      },
       continue = TRUE,
       trajectory("Reception, Straight to Resuscitation") %>%
         set_attribute("r2b_reception_bed", 1) %>%
@@ -995,14 +1016,12 @@ r2b_reception <- function(resus_beds, hold_beds, overflow, signal) {
         set_attribute("r2b_reception_bed", 2) %>%
         simmer::select(hold_beds, policy = "first-available", id = 1) %>%
         seize_selected(id = 1) %>%
-        join(await_bed) %>%
         join(take_bed) %>%
         release_selected(id = 1),
       trajectory("Reception, Waiting in Overflow") %>%
         set_attribute("r2b_reception_bed", 3) %>%
         simmer::select(overflow, id = 1) %>%
         seize_selected(id = 1) %>%
-        join(await_bed) %>%
         join(take_bed) %>%
         release_selected(id = 1)
     ) %>%
@@ -1015,16 +1034,16 @@ r2b_reception <- function(resus_beds, hold_beds, overflow, signal) {
 #'
 #' @param trj            Trajectory to append the resuscitation to
 #' @param emergency_team This R2B team's emergency section
-#' @param signal         The signal this team sends when a resuscitation bed
-#'   frees
+#' @param pool           This R2B team's resuscitation pool
 #' @return The trajectory, with the resuscitation itself, its effect on the
 #'   died-of-wounds risk and the release of the resuscitation bed appended.
 #'
 #' @details The casualty arrives here holding the resuscitation bed reception
-#'   gave them (r2b_reception(), id 2). Releasing it sends the unit's signal, so
-#'   a casualty waiting at reception takes it in the same instant.
-r2b_resuscitation <- function(trj, emergency_team, signal) {
-  force(signal)
+#'   gave them (r2b_reception(), id 2), and a token of the unit's pool. The bed
+#'   is released before the token, so the casualty the token passes to finds
+#'   the bed free in the same instant.
+r2b_resuscitation <- function(trj, emergency_team, pool) {
+  force(pool)
   trj %>%
     # Step 3: Emergency resuscitation
     seize_resources(emergency_team) %>%
@@ -1039,7 +1058,7 @@ r2b_resuscitation <- function(trj, emergency_team, signal) {
     set_attribute("r2b_resus", 1) %>%
     release_resources(emergency_team) %>%
     release_selected(id = 2) %>%
-    send(signal) %>%
+    release(pool, 1) %>%
     dow_treat(function() dow_multipliers()$resuscitation,
               function() LEGACY_DOW_EFFICACY$r2b_resus_factor, resuscitation = TRUE)
 }
@@ -1116,7 +1135,7 @@ r2b_treat_wia <- function(team_id) {
   surg_teams      <- env_data$elms$r2b[[team_id]][["surg"]]
 
   overflow       <- overflow_resource("r2b", "reception", team_id)
-  resus_signal   <- sprintf(R2B_RESUS_FREE_SIGNAL_FMT, team_id)
+  resus_pool     <- section_pool("r2b", "resus", team_id)
 
   post_op        <- r2b_post_op_stabilisation(icu_beds, hold_beds)
   ot_check       <- r2b_ot_check_path(team_id, ot_beds, surg_teams, post_op)
@@ -1141,8 +1160,8 @@ r2b_treat_wia <- function(team_id) {
       option = function() if (needs_resuscitation()) 1 else 2,
       continue = TRUE,
       trajectory("R2B Resuscitation") %>%
-        join(r2b_reception(resus_beds, hold_beds, overflow, resus_signal)) %>%
-        r2b_resuscitation(emergency_team, resus_signal),
+        join(r2b_reception(resus_beds, hold_beds, overflow, resus_pool)) %>%
+        r2b_resuscitation(emergency_team, resus_pool),
       trajectory("R2B No Resuscitation")
     ) %>%
 

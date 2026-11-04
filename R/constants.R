@@ -102,13 +102,13 @@ overflow_resource <- function(echelon, point, team_id) {
 #'
 #' @details The echelon is the configuration's element name (r2b or r2eheavy)
 #'   and the type the sub-element whose sections the pool admits to (surg,
-#'   emerg, evac) or ot for the theatres.
+#'   emerg, evac), ot for the theatres or resus for the R2B resuscitation beds.
 SECTION_POOL_FMT <- "pool_%s_%s_%d"
 
 #' Name of the pool admitting a casualty to one team's sections or theatres
 #'
 #' @param elm_type "r2b" or "r2eheavy".
-#' @param type "surg", "emerg", "evac" or "ot".
+#' @param type "surg", "emerg", "evac", "ot" or "resus".
 #' @param team_id Integer index of the team.
 #' @return The resource name.
 section_pool <- function(elm_type, type, team_id) {

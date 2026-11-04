@@ -1121,18 +1121,18 @@ The model gives the national support base no capacity, queue or shortfall, so ev
 <!-- GEN role4_census_ward -->
 | Census by ward phase | Moderate intensity | High intensity |
 |---|---|---|
-| Total, mean beds | 138.84 [135.44, 142.25] | 210.72 [209.81, 211.64] |
-| Total, peak beds | 211.43 [207.67, 215.20] | 281.17 [279.01, 283.33] |
-| Total, closing 90-day mean beds | 144.43 [138.39, 150.48] | 221.51 [220.06, 222.95] |
-| Intensive care phase, mean beds | 33.53 [32.60, 34.46] | 42.76 [42.54, 42.97] |
-| Intensive care phase, peak beds | 63.97 [63.22, 64.71] | 67.20 [66.51, 67.89] |
-| Intensive care phase, closing 90-day mean beds | 33.88 [32.32, 35.43] | 43.93 [43.55, 44.32] |
-| Step-down ward phase, mean beds | 105.31 [102.80, 107.82] | 167.97 [167.08, 168.85] |
-| Step-down ward phase, peak beds | 155.60 [152.25, 158.95] | 224.30 [221.93, 226.67] |
+| Total, mean beds | 138.85 [135.44, 142.26] | 210.72 [209.81, 211.64] |
+| Total, peak beds | 211.17 [207.59, 214.75] | 281.17 [279.01, 283.33] |
+| Total, closing 90-day mean beds | 144.43 [138.39, 150.47] | 221.51 [220.06, 222.95] |
+| Intensive care phase, mean beds | 33.52 [32.60, 34.45] | 42.76 [42.54, 42.97] |
+| Intensive care phase, peak beds | 64.00 [63.26, 64.74] | 67.20 [66.51, 67.89] |
+| Intensive care phase, closing 90-day mean beds | 33.87 [32.32, 35.43] | 43.93 [43.55, 44.32] |
+| Step-down ward phase, mean beds | 105.33 [102.80, 107.85] | 167.97 [167.08, 168.85] |
+| Step-down ward phase, peak beds | 155.40 [152.15, 158.65] | 224.30 [221.93, 226.67] |
 | Step-down ward phase, closing 90-day mean beds | 110.56 [105.97, 115.15] | 177.57 [176.06, 179.09] |
 <!-- /GEN -->
 
-At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->138.84 [135.44, 142.25]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->211.43 [207.67, 215.20]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->144.43 [138.39, 150.48]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.72 [209.81, 211.64]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.17 [279.01, 283.33]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->221.51 [220.06, 222.95]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->105.31<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->138.84<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->167.97<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.72<!-- /GEN --> at high, and the intensive care phase the remainder.
+At moderate intensity the census averaged <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|full -->138.85 [135.44, 142.26]<!-- /GEN --> beds over the campaign, peaked at <!-- GEN cell:role4_census_ward|Total, peak beds|Moderate intensity|full -->211.17 [207.59, 214.75]<!-- /GEN --> and averaged <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|Moderate intensity|full -->144.43 [138.39, 150.47]<!-- /GEN --> over the closing 90 days. At high intensity the three figures were <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|full -->210.72 [209.81, 211.64]<!-- /GEN -->, <!-- GEN cell:role4_census_ward|Total, peak beds|High intensity|full -->281.17 [279.01, 283.33]<!-- /GEN --> and <!-- GEN cell:role4_census_ward|Total, closing 90-day mean beds|High intensity|full -->221.51 [220.06, 222.95]<!-- /GEN -->. The closing mean exceeded the campaign mean at both intensities. The step-down ward phase carried <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|Moderate intensity|mean -->105.33<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|Moderate intensity|mean -->138.85<!-- /GEN --> mean beds at moderate intensity and <!-- GEN cell:role4_census_ward|Step-down ward phase, mean beds|High intensity|mean -->167.97<!-- /GEN --> of the <!-- GEN cell:role4_census_ward|Total, mean beds|High intensity|mean -->210.72<!-- /GEN --> at high, and the intensive care phase the remainder.
 
 ![Daily Role 4 census over a 360-day campaign at each casualty intensity, divided by ward phase and by origin](../images/role4_demand_census.png)
 
@@ -1141,37 +1141,37 @@ The mean daily census across replications with its 95% interval, at each casualt
 <!-- GEN role4_census_origin -->
 | Census by origin | Moderate intensity | High intensity |
 |---|---|---|
-| Total, mean beds | 138.84 [135.44, 142.25] | 210.72 [209.81, 211.64] |
-| Total, peak beds | 211.43 [207.67, 215.20] | 281.17 [279.01, 283.33] |
-| Total, closing 90-day mean beds | 144.43 [138.39, 150.48] | 221.51 [220.06, 222.95] |
-| Battle injury, mean beds | 97.29 [94.46, 100.12] | 173.67 [172.62, 174.71] |
-| Battle injury, peak beds | 157.90 [153.69, 162.11] | 237.53 [235.17, 239.90] |
-| Battle injury, closing 90-day mean beds | 100.64 [95.48, 105.81] | 182.93 [180.97, 184.89] |
+| Total, mean beds | 138.85 [135.44, 142.26] | 210.72 [209.81, 211.64] |
+| Total, peak beds | 211.17 [207.59, 214.75] | 281.17 [279.01, 283.33] |
+| Total, closing 90-day mean beds | 144.43 [138.39, 150.47] | 221.51 [220.06, 222.95] |
+| Battle injury, mean beds | 97.30 [94.46, 100.14] | 173.67 [172.62, 174.71] |
+| Battle injury, peak beds | 157.63 [153.59, 161.68] | 237.53 [235.17, 239.90] |
+| Battle injury, closing 90-day mean beds | 100.64 [95.48, 105.80] | 182.93 [180.97, 184.89] |
 | Disease and non-battle injury, mean beds | 18.80 [18.31, 19.30] | 10.76 [10.45, 11.06] |
 | Disease and non-battle injury, peak beds | 36.27 [35.00, 37.53] | 23.40 [22.62, 24.18] |
 | Disease and non-battle injury, closing 90-day mean beds | 19.49 [18.61, 20.37] | 11.16 [10.42, 11.90] |
-| Reconstruction cohort, mean beds | 22.75 [22.14, 23.36] | 26.30 [25.92, 26.68] |
+| Reconstruction cohort, mean beds | 22.75 [22.14, 23.35] | 26.30 [25.92, 26.68] |
 | Reconstruction cohort, peak beds | 38.57 [37.22, 39.91] | 41.27 [40.22, 42.31] |
 | Reconstruction cohort, closing 90-day mean beds | 24.31 [22.99, 25.62] | 27.42 [26.37, 28.46] |
 <!-- /GEN -->
 
-Battle injury accounted for <!-- GEN cell:role4_census_origin|Battle injury, mean beds|Moderate intensity|mean -->97.29<!-- /GEN --> of the mean beds at moderate intensity and <!-- GEN cell:role4_census_origin|Battle injury, mean beds|High intensity|mean -->173.67<!-- /GEN --> at high. Disease and non-battle injury accounted for <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|Moderate intensity|mean -->18.80<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|High intensity|mean -->10.76<!-- /GEN -->, and the reconstruction cohort for <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|Moderate intensity|mean -->22.75<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|High intensity|mean -->26.30<!-- /GEN -->.
+Battle injury accounted for <!-- GEN cell:role4_census_origin|Battle injury, mean beds|Moderate intensity|mean -->97.30<!-- /GEN --> of the mean beds at moderate intensity and <!-- GEN cell:role4_census_origin|Battle injury, mean beds|High intensity|mean -->173.67<!-- /GEN --> at high. Disease and non-battle injury accounted for <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|Moderate intensity|mean -->18.80<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Disease and non-battle injury, mean beds|High intensity|mean -->10.76<!-- /GEN -->, and the reconstruction cohort for <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|Moderate intensity|mean -->22.75<!-- /GEN --> and <!-- GEN cell:role4_census_origin|Reconstruction cohort, mean beds|High intensity|mean -->26.30<!-- /GEN -->.
 
 <!-- GEN role4_operations -->
 | Demand owed alongside the census | Moderate intensity | High intensity |
 |---|---|---|
-| Operations owed within the 360 days | 1,187 [1,142, 1,231] | 1,998 [1,971, 2,025] |
+| Operations owed within the 360 days | 1,188 [1,142, 1,233] | 1,998 [1,971, 2,025] |
 | Definitive repairs owed within the 360 days | 126 [110, 141] | 732 [719, 746] |
-| Debridements owed within the 360 days | 766 [740, 792] | 924 [905, 943] |
+| Debridements owed within the 360 days | 767 [740, 793] | 924 [905, 943] |
 | Reconstructions owed within the 360 days | 295 [287, 303] | 342 [337, 346] |
 | Operations owed after day 360 | 20 [17, 22] | 26 [22, 29] |
-| Operations owed by casualties admitted during the campaign | 1,207 [1,162, 1,252] | 2,024 [1,995, 2,053] |
-| Operations owed on the busiest day | 20.90 [19.57, 22.23] | 27.20 [26.44, 27.96] |
+| Operations owed by casualties admitted during the campaign | 1,207 [1,162, 1,253] | 2,024 [1,995, 2,053] |
+| Operations owed on the busiest day | 20.97 [19.63, 22.30] | 27.20 [26.44, 27.96] |
 | Closing 90-day mean operations owed per day | 3.40 [3.19, 3.60] | 5.82 [5.67, 5.97] |
 | Theatre minutes owed for definitive repairs | 15,546 [13,682, 17,409] | 90,775 [89,116, 92,433] |
 <!-- /GEN -->
 
-The operations owed alongside the census were counted three ways. <!-- GEN cell:role4_operations|Operations owed within the 360 days|Moderate intensity|mean -->1,187<!-- /GEN --> fell inside the campaign at moderate intensity and <!-- GEN cell:role4_operations|Operations owed within the 360 days|High intensity|mean -->1,998<!-- /GEN --> at high, a further <!-- GEN cell:role4_operations|Operations owed after day 360|Moderate intensity|mean -->20<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed after day 360|High intensity|mean -->26<!-- /GEN --> fell after the campaign ended, in the reconstruction sequences of casualties admitted late, and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|Moderate intensity|mean -->1,207<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|High intensity|mean -->2,024<!-- /GEN --> were owed in all, the figure the other sections report as operations owed. By source, the operations inside the campaign were <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|Moderate intensity|mean -->126<!-- /GEN --> definitive repairs, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|Moderate intensity|mean -->766<!-- /GEN --> debridements and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|Moderate intensity|mean -->295<!-- /GEN --> reconstructions at moderate intensity, and <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|High intensity|mean -->732<!-- /GEN -->, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|High intensity|mean -->924<!-- /GEN --> and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|High intensity|mean -->342<!-- /GEN --> at high. The busiest day owed <!-- GEN cell:role4_operations|Operations owed on the busiest day|Moderate intensity|mean -->20.90<!-- /GEN --> operations at moderate intensity and <!-- GEN cell:role4_operations|Operations owed on the busiest day|High intensity|mean -->27.20<!-- /GEN --> at high. The theatre minutes cover the definitive repairs only, no source reporting the time a debridement or a flap takes.
+The operations owed alongside the census were counted three ways. <!-- GEN cell:role4_operations|Operations owed within the 360 days|Moderate intensity|mean -->1,188<!-- /GEN --> fell inside the campaign at moderate intensity and <!-- GEN cell:role4_operations|Operations owed within the 360 days|High intensity|mean -->1,998<!-- /GEN --> at high, a further <!-- GEN cell:role4_operations|Operations owed after day 360|Moderate intensity|mean -->20<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed after day 360|High intensity|mean -->26<!-- /GEN --> fell after the campaign ended, in the reconstruction sequences of casualties admitted late, and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|Moderate intensity|mean -->1,207<!-- /GEN --> and <!-- GEN cell:role4_operations|Operations owed by casualties admitted during the campaign|High intensity|mean -->2,024<!-- /GEN --> were owed in all, the figure the other sections report as operations owed. By source, the operations inside the campaign were <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|Moderate intensity|mean -->126<!-- /GEN --> definitive repairs, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|Moderate intensity|mean -->767<!-- /GEN --> debridements and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|Moderate intensity|mean -->295<!-- /GEN --> reconstructions at moderate intensity, and <!-- GEN cell:role4_operations|Definitive repairs owed within the 360 days|High intensity|mean -->732<!-- /GEN -->, <!-- GEN cell:role4_operations|Debridements owed within the 360 days|High intensity|mean -->924<!-- /GEN --> and <!-- GEN cell:role4_operations|Reconstructions owed within the 360 days|High intensity|mean -->342<!-- /GEN --> at high. The busiest day owed <!-- GEN cell:role4_operations|Operations owed on the busiest day|Moderate intensity|mean -->20.97<!-- /GEN --> operations at moderate intensity and <!-- GEN cell:role4_operations|Operations owed on the busiest day|High intensity|mean -->27.20<!-- /GEN --> at high. The theatre minutes cover the definitive repairs only, no source reporting the time a debridement or a flap takes.
 
 ![Mean operations owed per day at Role 4 over each week of a 360-day campaign at each casualty intensity, by source and in all](../images/role4_demand_operations.png)
 
@@ -1181,23 +1181,23 @@ The mean operations owed per day over each week of the campaign, with the 95% in
 | Census | Moderate intensity classification | Moderate intensity settles by block | Moderate intensity late mean beds | High intensity classification | High intensity settles by block | High intensity late mean beds |
 |---|---|---|---|---|---|---|
 | Total | converged | 2 | 146.31 | converged | 4 | 220.71 |
-| Intensive care phase | converged | 6 | 34.37 | converged | 2 | 43.89 |
-| Step-down ward phase | converged | 3 | 111.94 | converged | 5 | 176.82 |
-| Battle injury | drifting | none | 102.43 | converged | 4 | 182.20 |
+| Intensive care phase | converged | 6 | 34.35 | converged | 2 | 43.89 |
+| Step-down ward phase | converged | 3 | 111.96 | converged | 5 | 176.82 |
+| Battle injury | drifting | none | 102.44 | converged | 4 | 182.20 |
 | Disease and non-battle injury | converged | 3 | 19.70 | converged | 5 | 11.13 |
-| Reconstruction cohort | converged | 2 | 24.18 | converged | 2 | 27.38 |
+| Reconstruction cohort | converged | 2 | 24.17 | converged | 2 | 27.38 |
 <!-- /GEN -->
 
 <!-- GEN role4_cma -->
 | Cumulative moving average of the mean total census (beds) | Moderate intensity | High intensity |
 |---|---|---|
-| Day 30 | 56.18 | 103.33 |
-| Day 90 | 115.29 | 179.51 |
-| Day 180 | 132.21 | 200.73 |
-| Day 360 | 138.84 | 210.72 |
+| Day 30 | 56.19 | 103.33 |
+| Day 90 | 115.33 | 179.51 |
+| Day 180 | 132.23 | 200.73 |
+| Day 360 | 138.85 | 210.72 |
 <!-- /GEN -->
 
-The 30-day block means of the total census were classified <!-- GEN cell:role4_stability|Total|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity, settling by block <!-- GEN cell:role4_stability|Total|Moderate intensity settles by block|full -->2<!-- /GEN -->, and <!-- GEN cell:role4_stability|Total|High intensity classification|full -->converged<!-- /GEN --> at high, settling by block <!-- GEN cell:role4_stability|Total|High intensity settles by block|full -->4<!-- /GEN -->. The reconstruction cohort was classified <!-- GEN cell:role4_stability|Reconstruction cohort|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity and <!-- GEN cell:role4_stability|Reconstruction cohort|High intensity classification|full -->converged<!-- /GEN --> at high. The cumulative moving average of the mean total census was <!-- GEN cell:role4_cma|Day 90|Moderate intensity|full -->115.29<!-- /GEN --> beds at day 90 and <!-- GEN cell:role4_cma|Day 360|Moderate intensity|full -->138.84<!-- /GEN --> at day 360 at moderate intensity, and <!-- GEN cell:role4_cma|Day 90|High intensity|full -->179.51<!-- /GEN --> and <!-- GEN cell:role4_cma|Day 360|High intensity|full -->210.72<!-- /GEN --> at high.
+The 30-day block means of the total census were classified <!-- GEN cell:role4_stability|Total|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity, settling by block <!-- GEN cell:role4_stability|Total|Moderate intensity settles by block|full -->2<!-- /GEN -->, and <!-- GEN cell:role4_stability|Total|High intensity classification|full -->converged<!-- /GEN --> at high, settling by block <!-- GEN cell:role4_stability|Total|High intensity settles by block|full -->4<!-- /GEN -->. The reconstruction cohort was classified <!-- GEN cell:role4_stability|Reconstruction cohort|Moderate intensity classification|full -->converged<!-- /GEN --> at moderate intensity and <!-- GEN cell:role4_stability|Reconstruction cohort|High intensity classification|full -->converged<!-- /GEN --> at high. The cumulative moving average of the mean total census was <!-- GEN cell:role4_cma|Day 90|Moderate intensity|full -->115.33<!-- /GEN --> beds at day 90 and <!-- GEN cell:role4_cma|Day 360|Moderate intensity|full -->138.85<!-- /GEN --> at day 360 at moderate intensity, and <!-- GEN cell:role4_cma|Day 90|High intensity|full -->179.51<!-- /GEN --> and <!-- GEN cell:role4_cma|Day 360|High intensity|full -->210.72<!-- /GEN --> at high.
 
 **Response to the forward levers.** The three sweeps below carry the Role 4 peak, the closing 90-day mean and the operations owed by the casualties admitted in their own evidence sets, and are read from them without a further run; the sortie cancellation sweep was measured for this section, the strategic airlift evidence set carrying the peak alone. Each table's shipped column is the configuration of the census tables above at moderate intensity.
 
@@ -1234,12 +1234,12 @@ The closing mean was <!-- GEN cell:role4_levers_saturation|Role 4 closing 90-day
 <!-- GEN role4_levers_cancellation -->
 | Response | 0% (shipped) | 5% | 10% | 15% | 25% | 40% |
 |---|---|---|---|---|---|---|
-| Role 4 peak beds | 211.2 [207.6, 214.7] | 211.5 [207.5, 215.4] | 210.9 [207.1, 214.7] | 212.8 [207.8, 217.8] | 211.0 [206.2, 215.7] | 201.1 [196.0, 206.2] |
-| Role 4 closing 90-day mean beds | 144.4 [138.4, 150.5] | 147.1 [140.6, 153.6] | 144.6 [138.7, 150.5] | 144.1 [138.6, 149.5] | 135.1 [129.1, 141.1] | 115.0 [108.2, 121.9] |
-| Role 4 operations owed | 1207 [1162, 1253] | 1202 [1159, 1244] | 1185 [1140, 1229] | 1176 [1139, 1212] | 1094 [1052, 1136] | 830 [784, 875] |
+| Role 4 peak beds | 211.2 [207.6, 214.7] | 212.0 [208.1, 215.9] | 210.8 [207.0, 214.6] | 212.8 [207.8, 217.8] | 211.2 [206.3, 216.1] | 200.5 [195.5, 205.6] |
+| Role 4 closing 90-day mean beds | 144.4 [138.4, 150.5] | 146.9 [140.4, 153.4] | 144.7 [138.7, 150.6] | 143.3 [137.6, 149.0] | 135.0 [129.0, 140.9] | 115.1 [108.2, 122.0] |
+| Role 4 operations owed | 1207 [1162, 1253] | 1200 [1158, 1242] | 1185 [1141, 1230] | 1172 [1136, 1208] | 1100 [1059, 1141] | 836 [790, 881] |
 <!-- /GEN -->
 
-The closing mean was <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|0% (shipped)|mean -->144.4<!-- /GEN --> beds with no sortie cancelled and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|10%|mean -->144.6<!-- /GEN -->, <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|25%|mean -->135.1<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|40%|mean -->115.0<!-- /GEN --> at cancellation probabilities of 10%, 25% and 40%. The peak was <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|0% (shipped)|mean -->211.2<!-- /GEN --> with no cancellation and <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|40%|mean -->201.1<!-- /GEN --> at 40%, and the operations owed were <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|0% (shipped)|mean -->1207<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|40%|mean -->830<!-- /GEN -->.
+The closing mean was <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|0% (shipped)|mean -->144.4<!-- /GEN --> beds with no sortie cancelled and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|10%|mean -->144.7<!-- /GEN -->, <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|25%|mean -->135.0<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 closing 90-day mean beds|40%|mean -->115.1<!-- /GEN --> at cancellation probabilities of 10%, 25% and 40%. The peak was <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|0% (shipped)|mean -->211.2<!-- /GEN --> with no cancellation and <!-- GEN cell:role4_levers_cancellation|Role 4 peak beds|40%|mean -->200.5<!-- /GEN --> at 40%, and the operations owed were <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|0% (shipped)|mean -->1207<!-- /GEN --> and <!-- GEN cell:role4_levers_cancellation|Role 4 operations owed|40%|mean -->836<!-- /GEN -->.
 
 ![Role 4 peak beds, closing 90-day mean beds and operations owed against the evacuation policy, R2E holding establishment, saturation release threshold and sortie cancellation probability](../images/role4_demand_levers.png)
 

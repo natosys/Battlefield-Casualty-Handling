@@ -1,9 +1,9 @@
 "scenario","scenario_label","metric","n_reps","mean","p10","p90","ci_lower","ci_upper"
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","total_casualties",30,5350.93333333333,5177.2,5549.5,5287.07264429416,5414.7940223725
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","wia_count",30,2283.83333333333,2095.7,2474,2227.46541682701,2340.20124983965
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","dow_count",30,20.1666666666667,13.7,26.3,17.7228288125619,22.6105045207714
-"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","dow_rate",30,0.00876605891218726,0.00605757323534786,0.0116917010385458,0.00782139008774893,0.00971072773662558
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","total_casualties",30,12356.8666666667,11980.1,12695.8,12252.4017973113,12461.331536022
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","wia_count",30,8291.43333333333,8014.7,8601.6,8202.87670681608,8379.98995985058
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_count",30,509.333333333333,392.2,635.9,464.707991303679,553.958675362987
-"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_rate",30,0.0611576799608095,0.0476897082417939,0.0735737759590352,0.0563517891310532,0.0659635707905658
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","total_casualties",30,5386.93333333333,5157.3,5622.2,5321.51442631776,5452.35224034891
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","wia_count",30,2304.03333333333,2058.8,2473.9,2246.6166900666,2361.44997660006
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","dow_count",30,21.1666666666667,12.9,30.3,17.5475774492883,24.785755884045
+"moderate_intensity","Moderate Intensity — Falklands 1982 (Operation CORPORATE, British Task Force, South Atlantic)","dow_rate",30,0.00908315221526723,0.00603805192649197,0.0127305719684473,0.00767318561418676,0.0104931188163477
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","total_casualties",30,12379.7,11964.1,12894.3,12227.8811234794,12531.5188765206
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","wia_count",30,8315.53333333333,7883.3,8771.4,8175.58471036723,8455.48195629943
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_count",30,568.6,349.6,772.7,500.549261356263,636.650738643737
+"high_intensity","High Intensity — Okinawa (peer-conflict, mass casualty production)","dow_rate",30,0.0676934554642952,0.0454918881928601,0.0898179609233404,0.0605836072202895,0.0748033037083009

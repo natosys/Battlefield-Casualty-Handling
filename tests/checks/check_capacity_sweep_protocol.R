@@ -451,7 +451,8 @@ if (!is.null(forward_hold)) {
            "the forward holding table prints one row per arm (%d of %d)",
            length(data_rows), nrow(forward_hold))
     if (length(data_rows) == nrow(forward_hold)) {
-      columns <- list(list(1, "mean_r2e_icu_q", 1, 3), list(2, "mean_r2b_icu_util", 100, 1),
+      columns <- list(list(1, "mean_overflow_r2e_post_op", 1, 2),
+                      list(2, "mean_r2b_icu_util", 100, 1),
                       list(3, "mean_r2e_icu_util", 100, 1), list(4, "mean_pd_icu_share", 100, 1),
                       list(5, "mean_dow", 1, 2))
       for (i in seq_len(nrow(forward_hold))) {
@@ -499,8 +500,9 @@ if (!is.null(hold_threshold)) {
     list(
       list(1, column_reader(hold_threshold, mask_of, "mean_r2b_hold_q"), 1, 2),
       list(2, column_reader(hold_threshold, mask_of, "mean_r2b_hold_util"), 100, 1),
-      list(3, column_reader(hold_threshold, mask_of, "mean_r2e_hold_q"), 1, 3),
-      list(4, column_reader(hold_threshold, mask_of, "mean_r2e_icu_q"), 1, 3)
+      list(3, column_reader(hold_threshold, mask_of, "mean_overflow_r2b_reception"), 1, 3),
+      list(4, column_reader(hold_threshold, mask_of, "mean_r2e_hold_q"), 1, 3),
+      list(5, column_reader(hold_threshold, mask_of, "mean_overflow_r2e_post_op"), 1, 2)
     )
   }
 

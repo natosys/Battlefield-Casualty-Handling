@@ -2520,6 +2520,20 @@ build_adequacy_sizing <- function(data_dir) {
     #' @param txt The cell text.
     #' @return The verdict.
     verdict <- function(txt) sub("^\\*\\*([^*]+)\\*\\*.*$", "\\1", txt)
+    fleets <- c("PMV Ambulance fleet", "HX2 40M fleet")
+    if (verdict(adequacy_holder_cell(data_dir, fleets, int)) == "Inadequate") {
+      ts <- res_read(paste0("sweeps/", res_file("transport_capacity_by_fleet_size", sfx)),
+                     data_dir)
+      amb <- ts[ts$vehicle == "PMVAmb", ]
+      amb <- amb[order(amb$qty), ]
+      enough <- amb$qty[amb$mean_q < ADEQUACY_QUEUE_INADEQUATE]
+      at <- function(q) res_num(amb$mean_q[amb$qty == q], 2L)
+      rows[[length(rows) + 1L]] <- c(
+        case("Shared transport fleets"), "not a growing backlog", "not applicable",
+        if (length(enough)) sprintf("%d ambulances", min(enough)) else "beyond the fleets swept",
+        sprintf("Measured: ambulance queue %s at three vehicles and %s at four", at(3), at(4))
+      )
+    }
     if (verdict(adequacy_r2b_surgery_cell(data_dir, int)) == "Inadequate") {
       exported <- mean(hw$diverted_offshift + hw$diverted_busy) / ADEQUACY_CAMPAIGN_DAYS
       delivered <- mean(hw$r2b_surgeries) / ADEQUACY_CAMPAIGN_DAYS

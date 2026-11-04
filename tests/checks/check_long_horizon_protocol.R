@@ -407,8 +407,8 @@ if (!all(file.exists(stability_path, blocks_path))) {
   }
   report(identical(round(c(arrivals("moderate_intensity", 1), arrivals("moderate_intensity", 12),
                            arrivals("high_intensity", 1), arrivals("high_intensity", 12)), 1),
-                   c(14.8, 15.2, 34.7, 34.9)),
-         paste("arrivals per day read 14.8 and 15.2 (moderate) and 34.7 and 34.9 (high)",
+                   c(15.2, 15.1, 33.8, 34.8)),
+         paste("arrivals per day read 15.2 and 15.1 (moderate) and 33.8 and 34.8 (high)",
                "in blocks one and twelve"))
 
   occ1 <- blocks$mean[blocks$series == "occupancy" & blocks$scenario == "high_intensity" &
@@ -416,10 +416,10 @@ if (!all(file.exists(stability_path, blocks_path))) {
   occ_settle <- stability$settles_by_block[stability$series == "occupancy" &
                                              stability$scenario == "high_intensity" &
                                              grepl("^R2E", stability$subject)]
-  report(identical(round(range(occ1), 2), c(0.94, 0.98)) &&
-           identical(as.numeric(sort(occ_settle)), c(6, 6, 7)),
-         paste("high-intensity R2E occupancy reads 0.94 to 0.98 in block one and",
-               "settles by blocks 6 and 7"))
+  report(identical(round(range(occ1), 2), c(0.69, 0.96)) &&
+           identical(as.numeric(sort(occ_settle)), c(2, 3, 4)),
+         paste("high-intensity R2E occupancy reads 0.69 to 0.96 in block one and",
+               "settles by blocks 2 to 4"))
 
   #' Mean high-intensity R2E theatre queue in one block
   #'
@@ -429,8 +429,8 @@ if (!all(file.exists(stability_path, blocks_path))) {
     blocks$mean[blocks$series == "mean_queue" & blocks$subject == "R2E operating theatres" &
                   blocks$scenario == "high_intensity" & blocks$block == b]
   }
-  report(identical(round(c(theatre(1), theatre(12)), 1), c(36.9, 573.6)),
-         "the high-intensity R2E theatre queue reads 36.9 in block one and 573.6 in block twelve")
+  report(identical(round(c(theatre(1), theatre(12)), 1), c(17.2, 60.7)),
+         "the high-intensity R2E theatre queue reads 17.2 in block one and 60.7 in block twelve")
 }
 
 # ── Result ──────────────────────────────────────────────────────────────────

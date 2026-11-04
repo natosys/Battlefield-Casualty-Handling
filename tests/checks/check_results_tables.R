@@ -220,7 +220,8 @@ report(isTRUE(all.equal(res_closing_means(toy_series, closing_days = 2), c(3.5, 
 dir.create(file.path(toy_dir, "long_horizon"), showWarnings = FALSE)
 dir.create(file.path(toy_dir, "scenarios"), showWarnings = FALSE)
 pools <- list(c("mean_queue", "R2E operating theatres"), c("mean_queue", "R2E holding beds"),
-              c("mean_queue", "R2E intensive care"), c("evac_backlog", "system"))
+              c("mean_queue", "R2E post-operative overflow"),
+              c("mean_queue", "R2E staging overflow"), c("evac_backlog", "system"))
 write.csv(do.call(rbind, lapply(SCENARIO_PROFILES, function(p) {
   do.call(rbind, lapply(pools, function(q) {
     data.frame(series = q[1], subject = q[2], slope = 60, ci_lower = 30, ci_upper = 90,
@@ -243,9 +244,14 @@ report(identical(cells[2], "2.000 [1.000, 3.000]"),
        "the shortfall cell prints the slope per day and its interval: %s", cells[2])
 report(startsWith(cells[3], "60.0% ["),
        "utilisation is the mean of the per-replication closing means: %s", cells[3])
-report(identical(res_cells(shortfall[6])[3], "not applicable"),
-       "the evacuation backlog carries no utilisation")
-report(length(shortfall) == 6L, "the shortfall table has the four pools (%d lines)",
+report(identical(res_cells(shortfall[5])[2], "no queue forms") &&
+         startsWith(res_cells(shortfall[5])[3], "60.0% ["),
+       "the intensive care beds carry a utilisation and no shortfall: %s",
+       paste(res_cells(shortfall[5]), collapse = " / "))
+report(identical(res_cells(shortfall[6])[3], "not applicable") &&
+         identical(res_cells(shortfall[8])[3], "not applicable"),
+       "the overflow censuses and the evacuation backlog carry no utilisation")
+report(length(shortfall) == 8L, "the shortfall table has the six rows (%d lines)",
        length(shortfall))
 
 write.csv(data.frame(scenario = rep(SCENARIO_PROFILES, each = 1), metric = "wia_count",
@@ -281,6 +287,7 @@ report(identical(res_cells(demand[5])[4], "2.00\u00d7") &&
 # contains zero; that sentence is typed, so it is asserted against the table.
 real_short <- build_load_shortfall(RESULTS_DATA_DIR)
 moderate_cells <- vapply(real_short[-(1:2)], function(l) res_cells(l)[2], character(1))
+moderate_cells <- moderate_cells[moderate_cells != "no queue forms"]
 spans_zero <- vapply(moderate_cells, function(cell) {
   b <- as.numeric(gsub("\u2212", "-", regmatches(cell, gregexpr("-?\u2212?[0-9.]+", cell))[[1]]))
   length(b) == 3L && b[2] <= 0 && b[3] >= 0

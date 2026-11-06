@@ -115,6 +115,27 @@ res_table <- function(header, rows, rule = "short") {
     vapply(rows, function(r) paste0("| ", paste(r, collapse = " | "), " |"), character(1)))
 }
 
+#' A stability classification in the stability table's words
+#'
+#' @param r One row of a stability file, carrying `stability`, `late_mean`,
+#'   `drift_per_block`, `first` and `last`.
+#' @return "converged at" the late level, or the drift per block and the first
+#'   and last block means in bold where the response drifts.
+#'
+#' @details One formatter for every table that prints a classification, so the
+#'   sustained-operations table and the sweeps cannot word one verdict two ways.
+res_stability_cell <- function(r) {
+  if (r$stability == "drifting") {
+    sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
+            formatC(r$first, format = "f", digits = 1, big.mark = ","),
+            formatC(r$last, format = "f", digits = 1, big.mark = ","))
+  } else {
+    sprintf("converged at %s", formatC(r$late_mean, format = "f",
+                                       digits = if (abs(r$late_mean) < 10) 2 else 1,
+                                       big.mark = ","))
+  }
+}
+
 #' Build a table whose columns are the arms of one sweep
 #'
 #' @param d A long-format summary with `response`, `mean`, `ci_lower` and `ci_upper`.
@@ -217,27 +238,7 @@ build_scenario_queue <- function(data_dir) {
 #' @return The table lines.
 build_long_horizon_stability <- function(data_dir) {
   d <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
-  #' Format a level with two decimals below ten and one above
-  #'
-  #' @param x A value or row.
-  #' @return The formatted level.
-  level <- function(x) {
-    if (abs(x) < 10) formatC(x, format = "f", digits = 2) else
-      formatC(x, format = "f", digits = 1, big.mark = ",")
-  }
-  #' One cell of the stability table
-  #'
-  #' @param r A response key.
-  #' @return The cell text.
-  cell <- function(r) {
-    if (r$stability == "drifting") {
-      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
-              formatC(r$first, format = "f", digits = 1, big.mark = ","),
-              formatC(r$last, format = "f", digits = 1, big.mark = ","))
-    } else {
-      sprintf("converged at %s", level(r$late_mean))
-    }
-  }
+  cell <- res_stability_cell
   spec <- list(
     list("R2E operating theatre queue", "mean_queue", "R2E operating theatres"),
     list("R2E holding bed queue", "mean_queue", "R2E holding beds"),
@@ -466,15 +467,7 @@ build_surgical_team <- function(data_dir, suffix = "") {
     r <- st[st$arm == a, ]
     if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', found %d", a,
                                     nrow(r)), call. = FALSE)
-    if (r$stability == "drifting") {
-      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
-              formatC(r$first, format = "f", digits = 1, big.mark = ","),
-              formatC(r$last, format = "f", digits = 1, big.mark = ","))
-    } else {
-      sprintf("converged at %s", formatC(r$late_mean, format = "f",
-                                         digits = if (abs(r$late_mean) < 10) 2 else 1,
-                                         big.mark = ","))
-    }
+    res_stability_cell(r)
   }
   #' The queue's shortfall per day for one arm, with its interval
   #'
@@ -593,18 +586,7 @@ build_icu_bed <- function(data_dir, suffix = "") {
   #'
   #' @param pool Pool name.
   #' @return A function of the arm label returning the cell text.
-  verdict <- function(pool) function(a) {
-    r <- stab(a, pool)
-    if (r$stability == "drifting") {
-      sprintf("**drifting, %+.1f%%/block**, %s to %s", 100 * r$drift_per_block,
-              formatC(r$first, format = "f", digits = 1, big.mark = ","),
-              formatC(r$last, format = "f", digits = 1, big.mark = ","))
-    } else {
-      sprintf("converged at %s", formatC(r$late_mean, format = "f",
-                                         digits = if (abs(r$late_mean) < 10) 2 else 1,
-                                         big.mark = ","))
-    }
-  }
+  verdict <- function(pool) function(a) res_stability_cell(stab(a, pool))
   #' A pool's shortfall per day for one arm, with its interval
   #'
   #' @param pool Pool name.
@@ -656,6 +638,144 @@ build_icu_bed_paired <- function(data_dir, suffix = "") {
     }, character(1)))
   })
   res_table(c("Paired difference against the shipped establishment", arms), rows)
+}
+
+#' Rows of the triage share sweep tables: label, response key, decimal places, scale
+TRIAGE_ROWS <- list(
+  list("Wounded in action", "wounded", 1L, 1),
+  list("Died of wounds", "total_dow", 2L, 1),
+  list("Died of wounds per wounded in action (%)", "dow_per_wounded", 2L, 100),
+  list("R2B surgeries", "r2b_surgeries", 1L, 1),
+  list("Diverted from R2B, team off shift", "diverted_offshift", 1L, 1),
+  list("Diverted from R2B, theatre busy", "diverted_busy", 1L, 1),
+  list("R2E first surgeries", "r2e_first_surgeries", 1L, 1),
+  list("Time to first incision (hours)", "first_incision_hours", 2L, 1),
+  list("Casualties requiring surgery operated on (%)", "surgical_delivery_share", 1L, 100),
+  list("R2E theatre mean queue", "theatre_mean_queue", 2L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+  list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
+  list("R2E staging overflow census", "overflow_r2e_staging", 2L, 1),
+  list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
+  list("Returns to duty", "total_rtd", 1L, 1),
+  list("Strategic evacuation decisions", "evac_decisions", 1L, 1),
+  list("Critical airlift backlog at the close", "critical_backlog", 1L, 1),
+  list("Role 4 peak ICU census", "role4_peak_icu", 1L, 1)
+)
+
+#' Pools the triage share table classifies, with their row labels
+TRIAGE_STABILITY_ROWS <- c(
+  "R2E theatre queue, late-half classification" = "R2E operating theatres",
+  "R2E post-operative overflow, late-half classification" = "R2E post-operative overflow",
+  "R2E holding queue, late-half classification" = "R2E holding beds",
+  "R2E staging overflow, late-half classification" = "R2E staging overflow"
+)
+
+#' Triage share sweep table: each response and each pool's classification, by arm
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files, `""` for the shipped
+#'   configuration or `"_high_intensity"` for the high-intensity set.
+#' @return The table lines, one column per Priority 1 share, shipped last.
+#'
+#' @details The split row restates each arm's priority shares, the remainder
+#'   divided 20:15 between Priority 2 and Priority 3. The treated-cohort rate is
+#'   pooled over the arm's replications with its exact binomial interval, and
+#'   the post-operative share is that of the arm's expected deaths, both read
+#'   from the treated cohort file; the classifications are read from the
+#'   stability file the sweep wrote from its own daily series.
+build_triage_split <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("triage_split/triage_sweep_summary", suffix), data_dir)
+  st <- res_read(res_file("triage_split/triage_sweep_stability", suffix), data_dir)
+  tc <- res_read(res_file("triage_split/triage_sweep_treated_cohort", suffix), data_dir)
+  arms <- unique(d$arm)
+  p1 <- as.numeric(sub("^P1 ([0-9]+)%$", "\\1", arms)) / 100
+  arms <- arms[order(p1)]
+  p1 <- sort(p1)
+  #' One response's row across the arms
+  #'
+  #' @param r A row specification of TRIAGE_ROWS.
+  #' @return The row's cells.
+  one <- function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$arm == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' row for arm '%s', found %d", r[[2]],
+                                      a, nrow(x)), call. = FALSE)
+      res_ci(x$mean, x$ci_lower, x$ci_upper, dp = r[[3]], scale = r[[4]], floor0 = TRUE)
+    }, character(1)))
+  }
+  #' One arm's row of the treated cohort file
+  #'
+  #' @param a Arm label.
+  #' @return The row.
+  treated <- function(a) {
+    x <- tc[tc$arm == a, ]
+    if (nrow(x) != 1L) stop(sprintf("expected one treated cohort row for arm '%s', found %d",
+                                    a, nrow(x)), call. = FALSE)
+    x
+  }
+  #' One pool's classification row across the arms
+  #'
+  #' @param label Row label.
+  #' @param pool Pool name.
+  #' @return The row's cells.
+  verdicts <- function(label, pool) {
+    c(label, vapply(arms, function(a) {
+      r <- st[st$arm == a & st$pool == pool, ]
+      if (nrow(r) != 1L) stop(sprintf("expected one stability row for arm '%s', pool '%s'",
+                                      a, pool), call. = FALSE)
+      res_stability_cell(r)
+    }, character(1)))
+  }
+  split_cells <- vapply(p1, function(p) {
+    rest <- 1 - p
+    sprintf("%d / %d / %d", round(100 * p), round(100 * rest * 20 / 35),
+            round(100 * rest * 15 / 35))
+  }, character(1))
+  rows <- c(
+    list(c("Priority split (%, P1 / P2 / P3)", split_cells)),
+    lapply(TRIAGE_ROWS[1:3], one),
+    list(c("Treated-cohort died-of-wounds rate (pooled, exact interval)",
+           vapply(arms, function(a) {
+             x <- treated(a)
+             sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower,
+                     100 * x$ci_upper)
+           }, character(1))),
+         c("Expected deaths accrued after surgery (%)",
+           vapply(arms, function(a) sprintf("%.0f%%", 100 * treated(a)$post_op_share),
+                  character(1)))),
+    lapply(TRIAGE_ROWS[4:9], one),
+    lapply(seq_along(TRIAGE_STABILITY_ROWS), function(i) {
+      verdicts(names(TRIAGE_STABILITY_ROWS)[i], TRIAGE_STABILITY_ROWS[[i]])
+    }),
+    lapply(TRIAGE_ROWS[-(1:9)], one)
+  )
+  shipped <- arms[which.max(p1)]
+  header <- c("Response", ifelse(arms == shipped, paste(arms, "(shipped)"), arms))
+  res_table(header, rows)
+}
+
+#' Triage share sweep table of paired differences against the shipped split
+#'
+#' @param data_dir The data directory.
+#' @param suffix Scenario suffix of the evidence files.
+#' @return The table lines, one column per share other than the shipped one, in
+#'   ascending order.
+build_triage_split_paired <- function(data_dir, suffix = "") {
+  d <- res_read(res_file("triage_split/triage_sweep_paired", suffix), data_dir)
+  arms <- unique(d$to)
+  arms <- arms[order(as.numeric(sub("^P1 ([0-9]+)%$", "\\1", arms)))]
+  keep <- TRIAGE_ROWS[vapply(TRIAGE_ROWS, function(r) r[[2]] %in% d$response, logical(1))]
+  rows <- lapply(keep, function(r) {
+    c(r[[1]], vapply(arms, function(a) {
+      x <- d[d$to == a & d$response == r[[2]], ]
+      if (nrow(x) != 1L) stop(sprintf("expected one '%s' paired row for arm '%s', found %d",
+                                      r[[2]], a, nrow(x)), call. = FALSE)
+      sprintf("%s [%s, %s]", res_num(x$difference * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_lower * r[[4]], r[[3]], plus = TRUE),
+              res_num(x$ci_upper * r[[4]], r[[3]], plus = TRUE))
+    }, character(1)))
+  })
+  res_table(c("Paired difference against the shipped split", arms), rows)
 }
 
 #' The two R2B holding sweep tables
@@ -2899,6 +3019,10 @@ RESULTS_TABLES <- list(
   icu_bed_high = function(dd) build_icu_bed(dd, "_high_intensity"),
   icu_bed_paired = build_icu_bed_paired,
   icu_bed_paired_high = function(dd) build_icu_bed_paired(dd, "_high_intensity"),
+  triage_split = build_triage_split,
+  triage_split_high = function(dd) build_triage_split(dd, "_high_intensity"),
+  triage_split_paired = build_triage_split_paired,
+  triage_split_paired_high = function(dd) build_triage_split_paired(dd, "_high_intensity"),
   policy_establishment_high = build_policy_establishment_high,
   policy_establishment_high_stability = build_policy_establishment_high_stability,
   policy_establishment_high_paired = build_policy_establishment_high_paired,

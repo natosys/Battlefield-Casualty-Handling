@@ -420,6 +420,7 @@ seconds.
 | `check_surgical_sweep_protocol.R` | fast | 10 s | the surgical team sweep's parameters, its responses and its published section agree |
 | `check_testthat.R` | fast | 96 s | the Shiny console's unit and testServer suites |
 | `check_time_series_figures.R` | fast | 6 s | the campaign time series, and the claims the paper makes from them, agree with the tracked measurement |
+| `check_triage_sweep_protocol.R` | fast | 12 s | the triage share sweep's parameters, its responses and its published section agree |
 <!-- CHECK TABLE END -->
 
 ## Adding a check

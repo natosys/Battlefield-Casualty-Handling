@@ -1,105 +1,105 @@
 "scenario","series","subject","response","n_reps","mean","ci_lower","ci_upper"
-"high_intensity","census","Battle injury","mean",30,173.66712962963,172.624108128453,174.710151130806
-"high_intensity","census","Battle injury","peak",30,237.533333333333,235.16614735014,239.900519316527
-"high_intensity","census","Battle injury","closing_mean",30,182.927777777778,180.970167389157,184.885388166398
-"high_intensity","census","Battle injury","total",30,62520.1666666667,62144.6789262431,62895.6544070902
-"high_intensity","census","Disease and non-battle injury","mean",30,10.7587037037037,10.4539586244321,11.0634487829753
-"high_intensity","census","Disease and non-battle injury","peak",30,23.4,22.6241377588579,24.1758622411421
-"high_intensity","census","Disease and non-battle injury","closing_mean",30,11.1596296296296,10.4188437628455,11.9004154964137
-"high_intensity","census","Disease and non-battle injury","total",30,3873.13333333333,3763.42510479555,3982.84156187112
-"high_intensity","census","hold","mean",30,167.967777777778,167.08251522577,168.853040329785
-"high_intensity","census","hold","peak",30,224.3,221.931967873993,226.668032126007
-"high_intensity","census","hold","closing_mean",30,177.574444444444,176.058422839213,179.090466049676
-"high_intensity","census","hold","total",30,60468.4,60149.7054812774,60787.0945187226
-"high_intensity","census","icu","mean",30,42.7562962962963,42.5428864850062,42.9697061075864
-"high_intensity","census","icu","peak",30,67.2,66.5107751549173,67.8892248450827
-"high_intensity","census","icu","closing_mean",30,43.9318518518519,43.5474905007278,44.3162132029759
-"high_intensity","census","icu","total",30,15392.2666666667,15315.4391346022,15469.0941987311
-"high_intensity","census","Reconstruction cohort","mean",30,26.2982407407407,25.9165973930486,26.6798840884328
-"high_intensity","census","Reconstruction cohort","peak",30,41.2666666666667,40.2199651539587,42.3133681793746
-"high_intensity","census","Reconstruction cohort","closing_mean",30,27.4188888888889,26.3737513777912,28.4640263999866
-"high_intensity","census","Reconstruction cohort","total",30,9467.36666666667,9329.97506149751,9604.75827183582
-"high_intensity","census","Total","mean",30,210.724074074074,209.809917005685,211.638231142463
-"high_intensity","census","Total","peak",30,281.166666666667,279.006906004878,283.326427328455
-"high_intensity","census","Total","closing_mean",30,221.506296296296,220.059248028052,222.953344564541
-"high_intensity","census","Total","total",30,75860.6666666667,75531.5701220467,76189.7632112867
-"high_intensity","operations","Debridement","mean",30,2.56731481481481,2.51407782866677,2.62055180096286
-"high_intensity","operations","Debridement","peak",30,13.5333333333333,13.0263145990429,14.0403520676237
-"high_intensity","operations","Debridement","closing_mean",30,2.66037037037037,2.54343725849055,2.77730348225019
-"high_intensity","operations","Debridement","total",30,924.233333333333,905.068018320039,943.398648346628
-"high_intensity","operations","Definitive repair","mean",30,2.03453703703704,1.99800731674008,2.07106675733399
-"high_intensity","operations","Definitive repair","peak",30,22.0333333333333,21.4744415248266,22.59222514184
-"high_intensity","operations","Definitive repair","closing_mean",30,2.19259259259259,2.13242572648082,2.25275945870437
-"high_intensity","operations","Definitive repair","total",30,732.433333333333,719.28263402643,745.584032640237
-"high_intensity","operations","Reconstruction","mean",30,0.948796296296296,0.935682694312606,0.961909898279986
-"high_intensity","operations","Reconstruction","peak",30,4.83333333333333,4.55453338169377,5.1121332849729
-"high_intensity","operations","Reconstruction","closing_mean",30,0.965185185185185,0.928807049836883,1.00156332053349
-"high_intensity","operations","Reconstruction","total",30,341.566666666667,336.845769952538,346.287563380795
-"high_intensity","operations","Total","mean",30,5.55064814814815,5.47534425044041,5.62595204585589
-"high_intensity","operations","Total","peak",30,27.2,26.4442282185221,27.9557717814779
-"high_intensity","operations","Total","closing_mean",30,5.81814814814815,5.66767909888153,5.96861719741477
-"high_intensity","operations","Total","total",30,1998.23333333333,1971.12393015855,2025.34273650812
-"high_intensity","operations_admitted","Total","mean",30,2024,1995.11168001248,2052.88831998752
-"high_intensity","operations_admitted","Total","peak",30,2024,1995.11168001248,2052.88831998752
-"high_intensity","operations_admitted","Total","closing_mean",30,2024,1995.11168001248,2052.88831998752
-"high_intensity","operations_admitted","Total","total",30,2024,1995.11168001248,2052.88831998752
-"high_intensity","operations_after_horizon","Total","mean",30,25.7666666666667,22.2030022667625,29.3303310665708
-"high_intensity","operations_after_horizon","Total","peak",30,25.7666666666667,22.2030022667625,29.3303310665708
-"high_intensity","operations_after_horizon","Total","closing_mean",30,25.7666666666667,22.2030022667625,29.3303310665708
-"high_intensity","operations_after_horizon","Total","total",30,25.7666666666667,22.2030022667625,29.3303310665708
-"high_intensity","theatre_minutes","Total","mean",30,252.151497696094,247.544934813366,256.758060578821
-"high_intensity","theatre_minutes","Total","peak",30,2851.62598484435,2757.00932287051,2946.24264681819
-"high_intensity","theatre_minutes","Total","closing_mean",30,271.297916876913,263.280332903584,279.315500850241
-"high_intensity","theatre_minutes","Total","total",30,90774.5391705937,89116.1765328118,92432.9018083757
-"moderate_intensity","census","Battle injury","mean",30,97.3005555555555,94.4637075168274,100.137403594284
-"moderate_intensity","census","Battle injury","peak",30,157.633333333333,153.586024038318,161.680642628348
-"moderate_intensity","census","Battle injury","closing_mean",30,100.64,95.4762840325214,105.803715967479
-"moderate_intensity","census","Battle injury","total",30,35028.2,34006.9347060579,36049.4652939421
-"moderate_intensity","census","Disease and non-battle injury","mean",30,18.8025,18.3087619842957,19.2962380157043
-"moderate_intensity","census","Disease and non-battle injury","peak",30,36.2666666666667,35.0034894940499,37.5298438392834
-"moderate_intensity","census","Disease and non-battle injury","closing_mean",30,19.4877777777778,18.6073952664298,20.3681602891258
-"moderate_intensity","census","Disease and non-battle injury","total",30,6768.9,6591.15431434646,6946.64568565354
-"moderate_intensity","census","hold","mean",30,105.325,102.799533502036,107.850466497964
-"moderate_intensity","census","hold","peak",30,155.4,152.146789208826,158.653210791174
-"moderate_intensity","census","hold","closing_mean",30,110.558148148148,105.965881174205,115.150415122091
-"moderate_intensity","census","hold","total",30,37917,37007.8320607328,38826.1679392672
-"moderate_intensity","census","icu","mean",30,33.5237037037037,32.6019462239272,34.4454611834802
-"moderate_intensity","census","icu","peak",30,64,63.2596537553181,64.7403462446819
-"moderate_intensity","census","icu","closing_mean",30,33.8748148148148,32.3207235385086,35.428906091121
-"moderate_intensity","census","icu","total",30,12068.5333333333,11736.7006406138,12400.3660260529
-"moderate_intensity","census","Reconstruction cohort","mean",30,22.7456481481481,22.1384495105235,23.3528467857728
-"moderate_intensity","census","Reconstruction cohort","peak",30,38.5666666666667,37.2196771367397,39.9136561965936
-"moderate_intensity","census","Reconstruction cohort","closing_mean",30,24.3051851851852,22.9929305707667,25.6174397996037
-"moderate_intensity","census","Reconstruction cohort","total",30,8188.43333333333,7969.84182378848,8407.02484287819
-"moderate_intensity","census","Total","mean",30,138.848703703704,135.440006040454,142.257401366954
-"moderate_intensity","census","Total","peak",30,211.166666666667,207.587654726543,214.74567860679
-"moderate_intensity","census","Total","closing_mean",30,144.432962962963,138.39165429026,150.474271635666
-"moderate_intensity","census","Total","total",30,49985.5333333333,48758.4021745634,51212.6644921033
-"moderate_intensity","operations","Debridement","mean",30,2.12972222222222,2.05550384665704,2.20394059778741
-"moderate_intensity","operations","Debridement","peak",30,12.2333333333333,11.6002240660445,12.8664426006222
-"moderate_intensity","operations","Debridement","closing_mean",30,2.22333333333333,2.11299942335,2.33366724331667
-"moderate_intensity","operations","Debridement","total",30,766.7,739.981384796534,793.418615203466
-"moderate_intensity","operations","Definitive repair","mean",30,0.349351851851852,0.306669884378692,0.392033819325012
-"moderate_intensity","operations","Definitive repair","peak",30,16.9,15.6699271763607,18.1300728236393
-"moderate_intensity","operations","Definitive repair","closing_mean",30,0.314074074074074,0.234565854577663,0.393582293570485
-"moderate_intensity","operations","Definitive repair","total",30,125.766666666667,110.401158376329,141.132174957004
-"moderate_intensity","operations","Reconstruction","mean",30,0.819722222222222,0.79774376935661,0.841700675087835
-"moderate_intensity","operations","Reconstruction","peak",30,4.6,4.3124279485152,4.8875720514848
-"moderate_intensity","operations","Reconstruction","closing_mean",30,0.86037037037037,0.81623697673956,0.904503764001181
-"moderate_intensity","operations","Reconstruction","total",30,295.1,287.18775696838,303.01224303162
-"moderate_intensity","operations","Total","mean",30,3.2987962962963,3.17310479472453,3.42448779786806
-"moderate_intensity","operations","Total","peak",30,20.9666666666667,19.6347531738597,22.2985801594736
-"moderate_intensity","operations","Total","closing_mean",30,3.39777777777778,3.19416991492305,3.60138564063251
-"moderate_intensity","operations","Total","total",30,1187.56666666667,1142.31772610083,1232.8156072325
-"moderate_intensity","operations_admitted","Total","mean",30,1207.43333333333,1161.97364514773,1252.89302151893
-"moderate_intensity","operations_admitted","Total","peak",30,1207.43333333333,1161.97364514773,1252.89302151893
-"moderate_intensity","operations_admitted","Total","closing_mean",30,1207.43333333333,1161.97364514773,1252.89302151893
-"moderate_intensity","operations_admitted","Total","total",30,1207.43333333333,1161.97364514773,1252.89302151893
-"moderate_intensity","operations_after_horizon","Total","mean",30,19.8666666666667,17.4432769425188,22.2900563908145
-"moderate_intensity","operations_after_horizon","Total","peak",30,19.8666666666667,17.4432769425188,22.2900563908145
-"moderate_intensity","operations_after_horizon","Total","closing_mean",30,19.8666666666667,17.4432769425188,22.2900563908145
-"moderate_intensity","operations_after_horizon","Total","total",30,19.8666666666667,17.4432769425188,22.2900563908145
-"moderate_intensity","theatre_minutes","Total","mean",30,43.1823620145859,38.0062336441945,48.3584903849773
-"moderate_intensity","theatre_minutes","Total","peak",30,2131.48182272162,1964.95805329942,2298.00559214383
-"moderate_intensity","theatre_minutes","Total","closing_mean",30,39.4349116579179,29.496783613909,49.3730397019269
-"moderate_intensity","theatre_minutes","Total","total",30,15545.6503252509,13682.24411191,17409.0565385918
+"high_intensity","census","Battle injury","mean",30,173.069537037037,171.829389812356,174.309684261718
+"high_intensity","census","Battle injury","peak",30,238.7,236.08128706583,241.31871293417
+"high_intensity","census","Battle injury","closing_mean",30,180.964074074074,178.285274055765,183.642874092383
+"high_intensity","census","Battle injury","total",30,62305.0333333333,61858.5803324481,62751.4863342186
+"high_intensity","census","Disease and non-battle injury","mean",30,10.5825,10.2453691040517,10.9196308959483
+"high_intensity","census","Disease and non-battle injury","peak",30,22.1333333333333,21.0967867424783,23.1698799241884
+"high_intensity","census","Disease and non-battle injury","closing_mean",30,11.0281481481481,10.4550006860233,11.601295610273
+"high_intensity","census","Disease and non-battle injury","total",30,3809.7,3688.3328774586,3931.0671225414
+"high_intensity","census","hold","mean",30,167.457685185185,166.448761703521,168.46660866685
+"high_intensity","census","hold","peak",30,223.533333333333,220.982358146104,226.084308520563
+"high_intensity","census","hold","closing_mean",30,176.135555555556,173.717160026889,178.553951084223
+"high_intensity","census","hold","total",30,60284.7666666667,59921.5542132675,60647.9791200658
+"high_intensity","census","icu","mean",30,42.7713888888889,42.5687168515258,42.9740609262519
+"high_intensity","census","icu","peak",30,67.5666666666667,66.8685467392429,68.2647865940904
+"high_intensity","census","icu","closing_mean",30,43.7237037037037,43.3181192539007,44.1292881535067
+"high_intensity","census","icu","total",30,15397.7,15324.7380665493,15470.6619334507
+"high_intensity","census","Reconstruction cohort","mean",30,26.577037037037,26.0785955360339,27.0754785380402
+"high_intensity","census","Reconstruction cohort","peak",30,41.2333333333333,39.9787495189808,42.4879171476858
+"high_intensity","census","Reconstruction cohort","closing_mean",30,27.867037037037,26.8251866613613,28.9088874127128
+"high_intensity","census","Reconstruction cohort","total",30,9567.73333333333,9388.29439297221,9747.17227369446
+"high_intensity","census","Total","mean",30,210.229074074074,209.229480087335,211.228668060813
+"high_intensity","census","Total","peak",30,281.3,278.983283378722,283.616716621278
+"high_intensity","census","Total","closing_mean",30,219.859259259259,217.41001186253,222.308506655989
+"high_intensity","census","Total","total",30,75682.4666666667,75322.6128314406,76042.3205018928
+"high_intensity","operations","Debridement","mean",30,2.62351851851852,2.57458428119059,2.67245275584644
+"high_intensity","operations","Debridement","peak",30,13.6666666666667,13.2467934547345,14.0865398785988
+"high_intensity","operations","Debridement","closing_mean",30,2.69333333333333,2.56155126396505,2.82511540270162
+"high_intensity","operations","Debridement","total",30,944.466666666667,926.850341228614,962.08299210472
+"high_intensity","operations","Definitive repair","mean",30,2.04314814814815,1.98661263076401,2.09968366553229
+"high_intensity","operations","Definitive repair","peak",30,22.3333333333333,21.7105607175127,22.956105949154
+"high_intensity","operations","Definitive repair","closing_mean",30,2.16703703703704,2.09801916558509,2.23605490848898
+"high_intensity","operations","Definitive repair","total",30,735.533333333333,715.180547075043,755.886119591624
+"high_intensity","operations","Reconstruction","mean",30,0.957407407407407,0.939307485661938,0.975507329152876
+"high_intensity","operations","Reconstruction","peak",30,5.03333333333333,4.76508008150163,5.30158658516503
+"high_intensity","operations","Reconstruction","closing_mean",30,0.999259259259259,0.959884723699058,1.03863379481946
+"high_intensity","operations","Reconstruction","total",30,344.666666666667,338.150694838298,351.182638495036
+"high_intensity","operations","Total","mean",30,5.62407407407407,5.54605596452147,5.70209218362668
+"high_intensity","operations","Total","peak",30,27.9333333333333,27.137082378276,28.7295842883906
+"high_intensity","operations","Total","closing_mean",30,5.85962962962963,5.68626996733386,6.0329892919254
+"high_intensity","operations","Total","total",30,2024.66666666667,1996.58014722773,2052.7531861056
+"high_intensity","operations_admitted","Total","mean",30,2049.86666666667,2020.55804000973,2079.17529332361
+"high_intensity","operations_admitted","Total","peak",30,2049.86666666667,2020.55804000973,2079.17529332361
+"high_intensity","operations_admitted","Total","closing_mean",30,2049.86666666667,2020.55804000973,2079.17529332361
+"high_intensity","operations_admitted","Total","total",30,2049.86666666667,2020.55804000973,2079.17529332361
+"high_intensity","operations_after_horizon","Total","mean",30,25.2,22.2379656659356,28.1620343340644
+"high_intensity","operations_after_horizon","Total","peak",30,25.2,22.2379656659356,28.1620343340644
+"high_intensity","operations_after_horizon","Total","closing_mean",30,25.2,22.2379656659356,28.1620343340644
+"high_intensity","operations_after_horizon","Total","total",30,25.2,22.2379656659356,28.1620343340644
+"high_intensity","theatre_minutes","Total","mean",30,252.817568287833,245.569626848267,260.065509727399
+"high_intensity","theatre_minutes","Total","peak",30,2883.019869314,2810.49557791217,2955.54416071582
+"high_intensity","theatre_minutes","Total","closing_mean",30,265.865123219909,256.972430684786,274.757815755031
+"high_intensity","theatre_minutes","Total","total",30,91014.3245836199,88405.065665376,93623.5835018638
+"moderate_intensity","census","Battle injury","mean",30,97.7689814814815,95.2594255012604,100.278537461703
+"moderate_intensity","census","Battle injury","peak",30,158.666666666667,154.502429507951,162.830903825382
+"moderate_intensity","census","Battle injury","closing_mean",30,106.807407407407,102.68950167704,110.925313137775
+"moderate_intensity","census","Battle injury","total",30,35196.8333333333,34293.3931804537,36100.2734862129
+"moderate_intensity","census","Disease and non-battle injury","mean",30,18.6889814814815,18.2765764109148,19.1013865520482
+"moderate_intensity","census","Disease and non-battle injury","peak",30,36.0666666666667,34.0909493448321,38.0423839885012
+"moderate_intensity","census","Disease and non-battle injury","closing_mean",30,19.3125925925926,18.3725442918124,20.2526408933727
+"moderate_intensity","census","Disease and non-battle injury","total",30,6728.03333333333,6579.56750792932,6876.49915873735
+"moderate_intensity","census","hold","mean",30,105.425833333333,103.262351995132,107.589314671535
+"moderate_intensity","census","hold","peak",30,154.166666666667,150.142469611572,158.190863721761
+"moderate_intensity","census","hold","closing_mean",30,114.637407407407,110.875642610889,118.399172203926
+"moderate_intensity","census","hold","total",30,37953.3,37174.4467182476,38732.1532817524
+"moderate_intensity","census","icu","mean",30,33.5916666666667,32.8494678153938,34.3338655179395
+"moderate_intensity","census","icu","peak",30,63.8,62.7696566162034,64.8303433837966
+"moderate_intensity","census","icu","closing_mean",30,35.7440740740741,34.4279271081548,37.0602210399933
+"moderate_intensity","census","icu","total",30,12093,11825.8084135418,12360.1915864582
+"moderate_intensity","census","Reconstruction cohort","mean",30,22.559537037037,22.0453611110203,23.0737129630537
+"moderate_intensity","census","Reconstruction cohort","peak",30,38.6333333333333,36.9648985615753,40.3017681050913
+"moderate_intensity","census","Reconstruction cohort","closing_mean",30,24.2614814814815,22.9866512917887,25.5363116711743
+"moderate_intensity","census","Reconstruction cohort","total",30,8121.43333333333,7936.32999996732,8306.53666669934
+"moderate_intensity","census","Total","mean",30,139.0175,136.181772467551,141.853227532449
+"moderate_intensity","census","Total","peak",30,209.233333333333,205.237191780847,213.22947488582
+"moderate_intensity","census","Total","closing_mean",30,150.381481481481,145.471163981957,155.291798981006
+"moderate_intensity","census","Total","total",30,50046.3,49025.4380883185,51067.1619116815
+"moderate_intensity","operations","Debridement","mean",30,2.14333333333333,2.07423602562478,2.21243064104189
+"moderate_intensity","operations","Debridement","peak",30,12.8,12.2418255474667,13.3581744525333
+"moderate_intensity","operations","Debridement","closing_mean",30,2.31037037037037,2.16563003883954,2.4551107019012
+"moderate_intensity","operations","Debridement","total",30,771.6,746.72496922492,796.47503077508
+"moderate_intensity","operations","Definitive repair","mean",30,0.357314814814815,0.31696534451178,0.397664285117849
+"moderate_intensity","operations","Definitive repair","peak",30,16.7,15.4436290283108,17.9563709716892
+"moderate_intensity","operations","Definitive repair","closing_mean",30,0.410740740740741,0.318773823728707,0.502707657752774
+"moderate_intensity","operations","Definitive repair","total",30,128.633333333333,114.107524024241,143.159142642426
+"moderate_intensity","operations","Reconstruction","mean",30,0.819814814814815,0.801109304174418,0.838520325455211
+"moderate_intensity","operations","Reconstruction","peak",30,4.63333333333333,4.33135348824746,4.93531317841921
+"moderate_intensity","operations","Reconstruction","closing_mean",30,0.867407407407407,0.819220177119746,0.915594637695069
+"moderate_intensity","operations","Reconstruction","total",30,295.133333333333,288.399349502791,301.867317163876
+"moderate_intensity","operations","Total","mean",30,3.32046296296296,3.21187180797823,3.4290541179477
+"moderate_intensity","operations","Total","peak",30,20.7333333333333,19.2990442959718,22.1676223706949
+"moderate_intensity","operations","Total","closing_mean",30,3.58851851851852,3.33151985005536,3.84551718698167
+"moderate_intensity","operations","Total","total",30,1195.36666666667,1156.27385087216,1234.45948246117
+"moderate_intensity","operations_admitted","Total","mean",30,1216.26666666667,1176.69935303264,1255.8339803007
+"moderate_intensity","operations_admitted","Total","peak",30,1216.26666666667,1176.69935303264,1255.8339803007
+"moderate_intensity","operations_admitted","Total","closing_mean",30,1216.26666666667,1176.69935303264,1255.8339803007
+"moderate_intensity","operations_admitted","Total","total",30,1216.26666666667,1176.69935303264,1255.8339803007
+"moderate_intensity","operations_after_horizon","Total","mean",30,20.9,17.5409904481948,24.2590095518052
+"moderate_intensity","operations_after_horizon","Total","peak",30,20.9,17.5409904481948,24.2590095518052
+"moderate_intensity","operations_after_horizon","Total","closing_mean",30,20.9,17.5409904481948,24.2590095518052
+"moderate_intensity","operations_after_horizon","Total","total",30,20.9,17.5409904481948,24.2590095518052
+"moderate_intensity","theatre_minutes","Total","mean",30,44.0126007457483,38.9972274378973,49.0279740535994
+"moderate_intensity","theatre_minutes","Total","peak",30,2085.77859759954,1891.75010461846,2279.80709058061
+"moderate_intensity","theatre_minutes","Total","closing_mean",30,50.8919258330456,39.6059421409275,62.1779095251637
+"moderate_intensity","theatre_minutes","Total","total",30,15844.5362684694,14039.001877643,17650.0706592958

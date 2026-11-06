@@ -1,781 +1,781 @@
 "scenario","replication","series","subject","mean","peak","closing_mean","total"
-"high_intensity",1,"census","Battle injury",170.133333333333,231,177.888888888889,61248
-"high_intensity",2,"census","Battle injury",177.294444444444,245,183.766666666667,63826
-"high_intensity",3,"census","Battle injury",175.116666666667,232,178.477777777778,63042
-"high_intensity",4,"census","Battle injury",174.205555555556,227,178.766666666667,62714
-"high_intensity",5,"census","Battle injury",172.136111111111,227,180.366666666667,61969
-"high_intensity",6,"census","Battle injury",170.2,247,182.355555555556,61272
-"high_intensity",7,"census","Battle injury",173.308333333333,242,181.822222222222,62391
-"high_intensity",8,"census","Battle injury",175.672222222222,245,191.777777777778,63242
-"high_intensity",9,"census","Battle injury",170.144444444444,228,175.311111111111,61252
-"high_intensity",10,"census","Battle injury",172.708333333333,229,178.333333333333,62175
-"high_intensity",11,"census","Battle injury",175.422222222222,233,180.955555555556,63152
-"high_intensity",12,"census","Battle injury",177.972222222222,246,189.233333333333,64070
-"high_intensity",13,"census","Battle injury",178.586111111111,240,189.522222222222,64291
-"high_intensity",14,"census","Battle injury",171.711111111111,242,183.577777777778,61816
-"high_intensity",15,"census","Battle injury",175.652777777778,239,182.655555555556,63235
-"high_intensity",16,"census","Battle injury",171.952777777778,233,183.833333333333,61903
-"high_intensity",17,"census","Battle injury",173.163888888889,237,180.6,62339
-"high_intensity",18,"census","Battle injury",181.086111111111,245,186.255555555556,65191
-"high_intensity",19,"census","Battle injury",172.844444444444,239,181.522222222222,62224
-"high_intensity",20,"census","Battle injury",171.694444444444,239,191.733333333333,61810
-"high_intensity",21,"census","Battle injury",175.075,245,182.111111111111,63027
-"high_intensity",22,"census","Battle injury",173.686111111111,238,185.122222222222,62527
-"high_intensity",23,"census","Battle injury",171.511111111111,230,171.644444444444,61744
-"high_intensity",24,"census","Battle injury",174.936111111111,232,187.066666666667,62977
-"high_intensity",25,"census","Battle injury",173.55,245,192.577777777778,62478
-"high_intensity",26,"census","Battle injury",171.652777777778,245,188.277777777778,61795
-"high_intensity",27,"census","Battle injury",167.541666666667,235,173.411111111111,60315
-"high_intensity",28,"census","Battle injury",173.580555555556,239,180.555555555556,62489
-"high_intensity",29,"census","Battle injury",173.458333333333,233,186.7,62445
-"high_intensity",30,"census","Battle injury",174.016666666667,238,181.611111111111,62646
-"high_intensity",1,"census","Disease and non-battle injury",9.41944444444444,23,8.38888888888889,3391
-"high_intensity",2,"census","Disease and non-battle injury",9.225,20,10.0555555555556,3321
-"high_intensity",3,"census","Disease and non-battle injury",10.2638888888889,21,10.7888888888889,3695
-"high_intensity",4,"census","Disease and non-battle injury",10.4972222222222,29,10.3111111111111,3779
-"high_intensity",5,"census","Disease and non-battle injury",11.3944444444444,22,11.1444444444444,4102
-"high_intensity",6,"census","Disease and non-battle injury",11.8722222222222,24,12.9555555555556,4274
-"high_intensity",7,"census","Disease and non-battle injury",9.575,26,10.5,3447
-"high_intensity",8,"census","Disease and non-battle injury",12.5444444444444,25,13.3555555555556,4516
-"high_intensity",9,"census","Disease and non-battle injury",11.1916666666667,23,11.8,4029
-"high_intensity",10,"census","Disease and non-battle injury",11.0861111111111,23,13.2777777777778,3991
-"high_intensity",11,"census","Disease and non-battle injury",9.43888888888889,20,8.32222222222222,3398
-"high_intensity",12,"census","Disease and non-battle injury",10.3861111111111,23,9.21111111111111,3739
-"high_intensity",13,"census","Disease and non-battle injury",10.3111111111111,22,11.1,3712
-"high_intensity",14,"census","Disease and non-battle injury",10.5138888888889,22,8.74444444444444,3785
-"high_intensity",15,"census","Disease and non-battle injury",9.94444444444444,21,8.9,3580
-"high_intensity",16,"census","Disease and non-battle injury",11.5194444444444,25,12.8222222222222,4147
-"high_intensity",17,"census","Disease and non-battle injury",11.4416666666667,25,16.4888888888889,4119
-"high_intensity",18,"census","Disease and non-battle injury",10.7888888888889,22,12.6888888888889,3884
-"high_intensity",19,"census","Disease and non-battle injury",10.6,21,13.1555555555556,3816
-"high_intensity",20,"census","Disease and non-battle injury",10.7722222222222,24,9.65555555555556,3878
-"high_intensity",21,"census","Disease and non-battle injury",10.3166666666667,24,11.2222222222222,3714
-"high_intensity",22,"census","Disease and non-battle injury",10.3083333333333,22,11.4222222222222,3711
-"high_intensity",23,"census","Disease and non-battle injury",11.0888888888889,25,13.4666666666667,3992
-"high_intensity",24,"census","Disease and non-battle injury",11.8222222222222,25,9.32222222222222,4256
-"high_intensity",25,"census","Disease and non-battle injury",10.3666666666667,24,9.46666666666667,3732
-"high_intensity",26,"census","Disease and non-battle injury",10.8,23,9.14444444444444,3888
-"high_intensity",27,"census","Disease and non-battle injury",11.2305555555556,24,10.2555555555556,4043
-"high_intensity",28,"census","Disease and non-battle injury",12.225,28,14.4111111111111,4401
-"high_intensity",29,"census","Disease and non-battle injury",11.2555555555556,23,10.3777777777778,4052
-"high_intensity",30,"census","Disease and non-battle injury",10.5611111111111,23,12.0333333333333,3802
-"high_intensity",1,"census","hold",164.508333333333,212,174.466666666667,59223
-"high_intensity",2,"census","hold",168.680555555556,226,175.344444444444,60725
-"high_intensity",3,"census","hold",169.530555555556,220,174.055555555556,61031
-"high_intensity",4,"census","hold",167.894444444444,219,173.5,60442
-"high_intensity",5,"census","hold",167.158333333333,216,175.977777777778,60177
-"high_intensity",6,"census","hold",164.905555555556,239,178.222222222222,59366
-"high_intensity",7,"census","hold",164.416666666667,224,172.044444444444,59190
-"high_intensity",8,"census","hold",171.975,236,187.488888888889,61911
-"high_intensity",9,"census","hold",166.338888888889,218,172.277777777778,59882
-"high_intensity",10,"census","hold",168.280555555556,215,177.988888888889,60581
-"high_intensity",11,"census","hold",168.091666666667,223,176.944444444444,60513
-"high_intensity",12,"census","hold",170.497222222222,222,178.866666666667,61379
-"high_intensity",13,"census","hold",173.119444444444,227,180.511111111111,62323
-"high_intensity",14,"census","hold",166.669444444444,232,179.133333333333,60001
-"high_intensity",15,"census","hold",169.252777777778,229,175.7,60931
-"high_intensity",16,"census","hold",167.980555555556,218,181.944444444444,60473
-"high_intensity",17,"census","hold",167.933333333333,232,179.355555555556,60456
-"high_intensity",18,"census","hold",172.552777777778,223,177.377777777778,62119
-"high_intensity",19,"census","hold",165.647222222222,226,175.488888888889,59633
-"high_intensity",20,"census","hold",166.563888888889,227,180.4,59963
-"high_intensity",21,"census","hold",168.502777777778,232,175.977777777778,60661
-"high_intensity",22,"census","hold",167.458333333333,224,181.866666666667,60285
-"high_intensity",23,"census","hold",168.030555555556,217,174.477777777778,60491
-"high_intensity",24,"census","hold",168.525,223,175.266666666667,60669
-"high_intensity",25,"census","hold",166.502777777778,226,183.466666666667,59941
-"high_intensity",26,"census","hold",166.536111111111,221,180.3,59953
-"high_intensity",27,"census","hold",162.625,219,169.133333333333,58545
-"high_intensity",28,"census","hold",169.958333333333,230,176.888888888889,61185
-"high_intensity",29,"census","hold",169.486111111111,229,186.088888888889,61015
-"high_intensity",30,"census","hold",169.411111111111,224,176.677777777778,60988
-"high_intensity",1,"census","icu",43.5222222222222,68,42.7222222222222,15668
-"high_intensity",2,"census","icu",42.925,67,44.4888888888889,15453
-"high_intensity",3,"census","icu",42.5416666666667,68,43.5111111111111,15315
-"high_intensity",4,"census","icu",42.9722222222222,70,44.9333333333333,15470
-"high_intensity",5,"census","icu",42.9138888888889,65,43.1111111111111,15449
-"high_intensity",6,"census","icu",42.6722222222222,67,44.0222222222222,15362
-"high_intensity",7,"census","icu",44.1138888888889,71,45.4555555555556,15881
-"high_intensity",8,"census","icu",42.7444444444444,70,43.3,15388
-"high_intensity",9,"census","icu",41.5388888888889,65,43.1444444444444,14954
-"high_intensity",10,"census","icu",43.3833333333333,70,43.6444444444444,15618
-"high_intensity",11,"census","icu",42.6305555555556,67,43.7888888888889,15347
-"high_intensity",12,"census","icu",42.4888888888889,67,43.4888888888889,15296
-"high_intensity",13,"census","icu",42.3277777777778,66,43.2888888888889,15238
-"high_intensity",14,"census","icu",42.5,66,43.1333333333333,15300
-"high_intensity",15,"census","icu",43.0916666666667,67,46.7444444444444,15513
-"high_intensity",16,"census","icu",42.3,67,42.3444444444444,15228
-"high_intensity",17,"census","icu",42.7416666666667,68,43.9777777777778,15387
-"high_intensity",18,"census","icu",43.8527777777778,66,44.3555555555556,15787
-"high_intensity",19,"census","icu",42.7416666666667,70,44.9555555555556,15387
-"high_intensity",20,"census","icu",42.9916666666667,68,45.8222222222222,15477
-"high_intensity",21,"census","icu",42.6666666666667,66,43.3555555555556,15360
-"high_intensity",22,"census","icu",42.2916666666667,65,42.9222222222222,15225
-"high_intensity",23,"census","icu",42.3805555555556,66,43.3111111111111,15257
-"high_intensity",24,"census","icu",42.7194444444444,66,44.7111111111111,15379
-"high_intensity",25,"census","icu",42.9805555555556,67,43.3888888888889,15473
-"high_intensity",26,"census","icu",42.3,69,44,15228
-"high_intensity",27,"census","icu",42.2472222222222,64,44.9333333333333,15209
-"high_intensity",28,"census","icu",43.8111111111111,69,44.9111111111111,15772
-"high_intensity",29,"census","icu",42.575,67,43.8555555555556,15327
-"high_intensity",30,"census","icu",41.7222222222222,64,42.3333333333333,15020
-"high_intensity",1,"census","Reconstruction cohort",28.4777777777778,44,30.9111111111111,10252
-"high_intensity",2,"census","Reconstruction cohort",25.0861111111111,41,26.0111111111111,9031
-"high_intensity",3,"census","Reconstruction cohort",26.6916666666667,41,28.3,9609
-"high_intensity",4,"census","Reconstruction cohort",26.1638888888889,39,29.3555555555556,9419
-"high_intensity",5,"census","Reconstruction cohort",26.5416666666667,44,27.5777777777778,9555
-"high_intensity",6,"census","Reconstruction cohort",25.5055555555556,40,26.9333333333333,9182
-"high_intensity",7,"census","Reconstruction cohort",25.6472222222222,42,25.1777777777778,9233
-"high_intensity",8,"census","Reconstruction cohort",26.5027777777778,45,25.6555555555556,9541
-"high_intensity",9,"census","Reconstruction cohort",26.5416666666667,43,28.3111111111111,9555
-"high_intensity",10,"census","Reconstruction cohort",27.8694444444444,50,30.0222222222222,10033
-"high_intensity",11,"census","Reconstruction cohort",25.8611111111111,40,31.4555555555556,9310
-"high_intensity",12,"census","Reconstruction cohort",24.6277777777778,42,23.9111111111111,8866
-"high_intensity",13,"census","Reconstruction cohort",26.55,42,23.1777777777778,9558
-"high_intensity",14,"census","Reconstruction cohort",26.9444444444444,41,29.9444444444444,9700
-"high_intensity",15,"census","Reconstruction cohort",26.7472222222222,40,30.8888888888889,9629
-"high_intensity",16,"census","Reconstruction cohort",26.8083333333333,40,27.6333333333333,9651
-"high_intensity",17,"census","Reconstruction cohort",26.0694444444444,40,26.2444444444444,9385
-"high_intensity",18,"census","Reconstruction cohort",24.5305555555556,40,22.7888888888889,8831
-"high_intensity",19,"census","Reconstruction cohort",24.9444444444444,37,25.7666666666667,8980
-"high_intensity",20,"census","Reconstruction cohort",27.0888888888889,45,24.8333333333333,9752
-"high_intensity",21,"census","Reconstruction cohort",25.7777777777778,41,26,9280
-"high_intensity",22,"census","Reconstruction cohort",25.7555555555556,37,28.2444444444444,9272
-"high_intensity",23,"census","Reconstruction cohort",27.8111111111111,43,32.6777777777778,10012
-"high_intensity",24,"census","Reconstruction cohort",24.4861111111111,37,23.5888888888889,8815
-"high_intensity",25,"census","Reconstruction cohort",25.5666666666667,41,24.8111111111111,9204
-"high_intensity",26,"census","Reconstruction cohort",26.3833333333333,38,26.8777777777778,9498
-"high_intensity",27,"census","Reconstruction cohort",26.1,40,30.4,9396
-"high_intensity",28,"census","Reconstruction cohort",27.9638888888889,41,26.8333333333333,10067
-"high_intensity",29,"census","Reconstruction cohort",27.3472222222222,45,32.8666666666667,9845
-"high_intensity",30,"census","Reconstruction cohort",26.5555555555556,39,25.3666666666667,9560
-"high_intensity",1,"census","Total",208.030555555556,273,217.188888888889,74891
-"high_intensity",2,"census","Total",211.605555555556,287,219.833333333333,76178
-"high_intensity",3,"census","Total",212.072222222222,274,217.566666666667,76346
-"high_intensity",4,"census","Total",210.866666666667,275,218.433333333333,75912
-"high_intensity",5,"census","Total",210.072222222222,275,219.088888888889,75626
-"high_intensity",6,"census","Total",207.577777777778,295,222.244444444444,74728
-"high_intensity",7,"census","Total",208.530555555556,282,217.5,75071
-"high_intensity",8,"census","Total",214.719444444444,292,230.788888888889,77299
-"high_intensity",9,"census","Total",207.877777777778,276,215.422222222222,74836
-"high_intensity",10,"census","Total",211.663888888889,274,221.633333333333,76199
-"high_intensity",11,"census","Total",210.722222222222,279,220.733333333333,75860
-"high_intensity",12,"census","Total",212.986111111111,277,222.355555555556,76675
-"high_intensity",13,"census","Total",215.447222222222,283,223.8,77561
-"high_intensity",14,"census","Total",209.169444444444,286,222.266666666667,75301
-"high_intensity",15,"census","Total",212.344444444444,286,222.444444444444,76444
-"high_intensity",16,"census","Total",210.280555555556,277,224.288888888889,75701
-"high_intensity",17,"census","Total",210.675,286,223.333333333333,75843
-"high_intensity",18,"census","Total",216.405555555556,283,221.733333333333,77906
-"high_intensity",19,"census","Total",208.388888888889,283,220.444444444444,75020
-"high_intensity",20,"census","Total",209.555555555556,284,226.222222222222,75440
-"high_intensity",21,"census","Total",211.169444444444,288,219.333333333333,76021
-"high_intensity",22,"census","Total",209.75,278,224.788888888889,75510
-"high_intensity",23,"census","Total",210.411111111111,273,217.788888888889,75748
-"high_intensity",24,"census","Total",211.244444444444,278,219.977777777778,76048
-"high_intensity",25,"census","Total",209.483333333333,285,226.855555555556,75414
-"high_intensity",26,"census","Total",208.836111111111,280,224.3,75181
-"high_intensity",27,"census","Total",204.872222222222,274,214.066666666667,73754
-"high_intensity",28,"census","Total",213.769444444444,285,221.8,76957
-"high_intensity",29,"census","Total",212.061111111111,284,229.944444444444,76342
-"high_intensity",30,"census","Total",211.133333333333,283,219.011111111111,76008
-"high_intensity",1,"operations","Debridement",2.86111111111111,13,2.77777777777778,1030
-"high_intensity",2,"operations","Debridement",2.51944444444444,12,2.38888888888889,907
-"high_intensity",3,"operations","Debridement",2.77777777777778,13,3.12222222222222,1000
-"high_intensity",4,"operations","Debridement",2.53333333333333,11,2.98888888888889,912
-"high_intensity",5,"operations","Debridement",2.62222222222222,16,2.61111111111111,944
-"high_intensity",6,"operations","Debridement",2.42777777777778,12,2.58888888888889,874
-"high_intensity",7,"operations","Debridement",2.59166666666667,14,2.46666666666667,933
-"high_intensity",8,"operations","Debridement",2.53888888888889,14,2.41111111111111,914
-"high_intensity",9,"operations","Debridement",2.38333333333333,15,2.3,858
-"high_intensity",10,"operations","Debridement",2.85555555555556,16,3.01111111111111,1028
-"high_intensity",11,"operations","Debridement",2.44166666666667,12,3.02222222222222,879
-"high_intensity",12,"operations","Debridement",2.36111111111111,14,2.28888888888889,850
-"high_intensity",13,"operations","Debridement",2.40555555555556,13,2.12222222222222,866
-"high_intensity",14,"operations","Debridement",2.61944444444444,14,2.91111111111111,943
-"high_intensity",15,"operations","Debridement",2.65833333333333,15,3.35555555555556,957
-"high_intensity",16,"operations","Debridement",2.68888888888889,14,2.62222222222222,968
-"high_intensity",17,"operations","Debridement",2.425,13,2.37777777777778,873
-"high_intensity",18,"operations","Debridement",2.475,14,2.45555555555556,891
-"high_intensity",19,"operations","Debridement",2.46111111111111,12,2.5,886
-"high_intensity",20,"operations","Debridement",2.63611111111111,15,2.85555555555556,949
-"high_intensity",21,"operations","Debridement",2.57222222222222,15,2.56666666666667,926
-"high_intensity",22,"operations","Debridement",2.60277777777778,12,2.64444444444444,937
-"high_intensity",23,"operations","Debridement",2.675,14,2.83333333333333,963
-"high_intensity",24,"operations","Debridement",2.32777777777778,12,2.41111111111111,838
-"high_intensity",25,"operations","Debridement",2.48055555555556,15,2.08888888888889,893
-"high_intensity",26,"operations","Debridement",2.56388888888889,12,2.68888888888889,923
-"high_intensity",27,"operations","Debridement",2.64444444444444,13,3,952
-"high_intensity",28,"operations","Debridement",2.83333333333333,14,2.66666666666667,1020
-"high_intensity",29,"operations","Debridement",2.50833333333333,15,3.14444444444444,903
-"high_intensity",30,"operations","Debridement",2.52777777777778,12,2.58888888888889,910
-"high_intensity",1,"operations","Definitive repair",2.05,21,2.1,738
-"high_intensity",2,"operations","Definitive repair",2.19722222222222,23,2.25555555555556,791
-"high_intensity",3,"operations","Definitive repair",2.10555555555556,24,2.32222222222222,758
-"high_intensity",4,"operations","Definitive repair",2.05555555555556,25,2.17777777777778,740
-"high_intensity",5,"operations","Definitive repair",2.04166666666667,24,2.32222222222222,735
-"high_intensity",6,"operations","Definitive repair",1.925,23,2.35555555555556,693
-"high_intensity",7,"operations","Definitive repair",2.13333333333333,21,2.27777777777778,768
-"high_intensity",8,"operations","Definitive repair",2.12777777777778,21,2.11111111111111,766
-"high_intensity",9,"operations","Definitive repair",1.98055555555556,20,2.37777777777778,713
-"high_intensity",10,"operations","Definitive repair",2.11944444444444,21,2.24444444444444,763
-"high_intensity",11,"operations","Definitive repair",1.93055555555556,22,2.28888888888889,695
-"high_intensity",12,"operations","Definitive repair",2.09444444444444,21,2.16666666666667,754
-"high_intensity",13,"operations","Definitive repair",2.20555555555556,24,2.42222222222222,794
-"high_intensity",14,"operations","Definitive repair",1.91111111111111,19,1.93333333333333,688
-"high_intensity",15,"operations","Definitive repair",1.96666666666667,20,1.82222222222222,708
-"high_intensity",16,"operations","Definitive repair",2.04166666666667,22,1.91111111111111,735
-"high_intensity",17,"operations","Definitive repair",1.98055555555556,22,1.85555555555556,713
-"high_intensity",18,"operations","Definitive repair",2.11666666666667,22,2.35555555555556,762
-"high_intensity",19,"operations","Definitive repair",2.075,25,2.18888888888889,747
-"high_intensity",20,"operations","Definitive repair",1.90555555555556,21,2.32222222222222,686
-"high_intensity",21,"operations","Definitive repair",2.21111111111111,24,2.18888888888889,796
-"high_intensity",22,"operations","Definitive repair",2.00277777777778,21,2.23333333333333,721
-"high_intensity",23,"operations","Definitive repair",1.98611111111111,23,2.26666666666667,715
-"high_intensity",24,"operations","Definitive repair",1.85277777777778,21,2.17777777777778,667
-"high_intensity",25,"operations","Definitive repair",2.03611111111111,22,1.97777777777778,733
-"high_intensity",26,"operations","Definitive repair",2.08333333333333,23,2.26666666666667,750
-"high_intensity",27,"operations","Definitive repair",1.88333333333333,21,2.4,678
-"high_intensity",28,"operations","Definitive repair",2.07222222222222,21,2.17777777777778,746
-"high_intensity",29,"operations","Definitive repair",1.89722222222222,22,2.04444444444444,683
-"high_intensity",30,"operations","Definitive repair",2.04722222222222,22,2.23333333333333,737
-"high_intensity",1,"operations","Reconstruction",1.03055555555556,5,1.12222222222222,371
-"high_intensity",2,"operations","Reconstruction",0.916666666666667,5,0.9,330
-"high_intensity",3,"operations","Reconstruction",0.961111111111111,4,1.04444444444444,346
-"high_intensity",4,"operations","Reconstruction",0.947222222222222,7,1.05555555555556,341
-"high_intensity",5,"operations","Reconstruction",0.936111111111111,6,0.922222222222222,337
-"high_intensity",6,"operations","Reconstruction",0.916666666666667,5,0.933333333333333,330
-"high_intensity",7,"operations","Reconstruction",0.930555555555556,5,0.855555555555556,335
-"high_intensity",8,"operations","Reconstruction",0.941666666666667,5,0.888888888888889,339
-"high_intensity",9,"operations","Reconstruction",0.966666666666667,5,1.01111111111111,348
-"high_intensity",10,"operations","Reconstruction",1.00555555555556,5,1.01111111111111,362
-"high_intensity",11,"operations","Reconstruction",0.952777777777778,5,1.13333333333333,343
-"high_intensity",12,"operations","Reconstruction",0.869444444444444,5,0.866666666666667,313
-"high_intensity",13,"operations","Reconstruction",0.963888888888889,4,0.811111111111111,347
-"high_intensity",14,"operations","Reconstruction",0.966666666666667,5,1.04444444444444,348
-"high_intensity",15,"operations","Reconstruction",0.955555555555556,5,1.04444444444444,344
-"high_intensity",16,"operations","Reconstruction",0.969444444444444,6,0.988888888888889,349
-"high_intensity",17,"operations","Reconstruction",0.947222222222222,5,0.888888888888889,341
-"high_intensity",18,"operations","Reconstruction",0.877777777777778,4,0.855555555555556,316
-"high_intensity",19,"operations","Reconstruction",0.919444444444444,4,0.911111111111111,331
-"high_intensity",20,"operations","Reconstruction",1.00277777777778,5,0.933333333333333,361
-"high_intensity",21,"operations","Reconstruction",0.941666666666667,4,0.888888888888889,339
-"high_intensity",22,"operations","Reconstruction",0.936111111111111,4,0.944444444444444,337
-"high_intensity",23,"operations","Reconstruction",0.997222222222222,4,1.16666666666667,359
-"high_intensity",24,"operations","Reconstruction",0.9,5,0.855555555555556,324
-"high_intensity",25,"operations","Reconstruction",0.933333333333333,4,0.9,336
-"high_intensity",26,"operations","Reconstruction",0.938888888888889,4,0.944444444444444,338
-"high_intensity",27,"operations","Reconstruction",0.938888888888889,5,1.07777777777778,338
-"high_intensity",28,"operations","Reconstruction",0.975,6,0.911111111111111,351
-"high_intensity",29,"operations","Reconstruction",0.972222222222222,5,1.13333333333333,350
-"high_intensity",30,"operations","Reconstruction",0.952777777777778,4,0.911111111111111,343
-"high_intensity",1,"operations","Total",5.94166666666667,25,6,2139
-"high_intensity",2,"operations","Total",5.63333333333333,27,5.54444444444444,2028
-"high_intensity",3,"operations","Total",5.84444444444444,31,6.48888888888889,2104
-"high_intensity",4,"operations","Total",5.53611111111111,31,6.22222222222222,1993
-"high_intensity",5,"operations","Total",5.6,30,5.85555555555556,2016
-"high_intensity",6,"operations","Total",5.26944444444444,27,5.87777777777778,1897
-"high_intensity",7,"operations","Total",5.65555555555556,26,5.6,2036
-"high_intensity",8,"operations","Total",5.60833333333333,25,5.41111111111111,2019
-"high_intensity",9,"operations","Total",5.33055555555556,26,5.68888888888889,1919
-"high_intensity",10,"operations","Total",5.98055555555556,26,6.26666666666667,2153
-"high_intensity",11,"operations","Total",5.325,25,6.44444444444444,1917
-"high_intensity",12,"operations","Total",5.325,25,5.32222222222222,1917
-"high_intensity",13,"operations","Total",5.575,28,5.35555555555556,2007
-"high_intensity",14,"operations","Total",5.49722222222222,26,5.88888888888889,1979
-"high_intensity",15,"operations","Total",5.58055555555556,25,6.22222222222222,2009
-"high_intensity",16,"operations","Total",5.7,27,5.52222222222222,2052
-"high_intensity",17,"operations","Total",5.35277777777778,28,5.12222222222222,1927
-"high_intensity",18,"operations","Total",5.46944444444444,26,5.66666666666667,1969
-"high_intensity",19,"operations","Total",5.45555555555556,32,5.6,1964
-"high_intensity",20,"operations","Total",5.54444444444444,28,6.11111111111111,1996
-"high_intensity",21,"operations","Total",5.725,29,5.64444444444444,2061
-"high_intensity",22,"operations","Total",5.54166666666667,26,5.82222222222222,1995
-"high_intensity",23,"operations","Total",5.65833333333333,28,6.26666666666667,2037
-"high_intensity",24,"operations","Total",5.08055555555556,27,5.44444444444444,1829
-"high_intensity",25,"operations","Total",5.45,26,4.96666666666667,1962
-"high_intensity",26,"operations","Total",5.58611111111111,31,5.9,2011
-"high_intensity",27,"operations","Total",5.46666666666667,27,6.47777777777778,1968
-"high_intensity",28,"operations","Total",5.88055555555556,26,5.75555555555556,2117
-"high_intensity",29,"operations","Total",5.37777777777778,26,6.32222222222222,1936
-"high_intensity",30,"operations","Total",5.52777777777778,26,5.73333333333333,1990
-"high_intensity",1,"operations_admitted","Total",2163,2163,2163,2163
-"high_intensity",2,"operations_admitted","Total",2067,2067,2067,2067
-"high_intensity",3,"operations_admitted","Total",2151,2151,2151,2151
-"high_intensity",4,"operations_admitted","Total",2019,2019,2019,2019
-"high_intensity",5,"operations_admitted","Total",2045,2045,2045,2045
-"high_intensity",6,"operations_admitted","Total",1914,1914,1914,1914
-"high_intensity",7,"operations_admitted","Total",2063,2063,2063,2063
-"high_intensity",8,"operations_admitted","Total",2052,2052,2052,2052
-"high_intensity",9,"operations_admitted","Total",1936,1936,1936,1936
-"high_intensity",10,"operations_admitted","Total",2183,2183,2183,2183
-"high_intensity",11,"operations_admitted","Total",1927,1927,1927,1927
-"high_intensity",12,"operations_admitted","Total",1941,1941,1941,1941
-"high_intensity",13,"operations_admitted","Total",2037,2037,2037,2037
-"high_intensity",14,"operations_admitted","Total",2004,2004,2004,2004
-"high_intensity",15,"operations_admitted","Total",2048,2048,2048,2048
-"high_intensity",16,"operations_admitted","Total",2073,2073,2073,2073
-"high_intensity",17,"operations_admitted","Total",1947,1947,1947,1947
-"high_intensity",18,"operations_admitted","Total",2011,2011,2011,2011
-"high_intensity",19,"operations_admitted","Total",1987,1987,1987,1987
-"high_intensity",20,"operations_admitted","Total",2024,2024,2024,2024
-"high_intensity",21,"operations_admitted","Total",2080,2080,2080,2080
-"high_intensity",22,"operations_admitted","Total",2034,2034,2034,2034
-"high_intensity",23,"operations_admitted","Total",2059,2059,2059,2059
-"high_intensity",24,"operations_admitted","Total",1839,1839,1839,1839
-"high_intensity",25,"operations_admitted","Total",1972,1972,1972,1972
-"high_intensity",26,"operations_admitted","Total",2033,2033,2033,2033
-"high_intensity",27,"operations_admitted","Total",1988,1988,1988,1988
-"high_intensity",28,"operations_admitted","Total",2147,2147,2147,2147
-"high_intensity",29,"operations_admitted","Total",1971,1971,1971,1971
-"high_intensity",30,"operations_admitted","Total",2005,2005,2005,2005
-"high_intensity",1,"operations_after_horizon","Total",24,24,24,24
-"high_intensity",2,"operations_after_horizon","Total",39,39,39,39
-"high_intensity",3,"operations_after_horizon","Total",47,47,47,47
-"high_intensity",4,"operations_after_horizon","Total",26,26,26,26
-"high_intensity",5,"operations_after_horizon","Total",29,29,29,29
-"high_intensity",6,"operations_after_horizon","Total",17,17,17,17
-"high_intensity",7,"operations_after_horizon","Total",27,27,27,27
-"high_intensity",8,"operations_after_horizon","Total",33,33,33,33
-"high_intensity",9,"operations_after_horizon","Total",17,17,17,17
-"high_intensity",10,"operations_after_horizon","Total",30,30,30,30
-"high_intensity",11,"operations_after_horizon","Total",10,10,10,10
-"high_intensity",12,"operations_after_horizon","Total",24,24,24,24
-"high_intensity",13,"operations_after_horizon","Total",30,30,30,30
-"high_intensity",14,"operations_after_horizon","Total",25,25,25,25
-"high_intensity",15,"operations_after_horizon","Total",39,39,39,39
-"high_intensity",16,"operations_after_horizon","Total",21,21,21,21
-"high_intensity",17,"operations_after_horizon","Total",20,20,20,20
-"high_intensity",18,"operations_after_horizon","Total",42,42,42,42
-"high_intensity",19,"operations_after_horizon","Total",23,23,23,23
-"high_intensity",20,"operations_after_horizon","Total",28,28,28,28
-"high_intensity",21,"operations_after_horizon","Total",19,19,19,19
-"high_intensity",22,"operations_after_horizon","Total",39,39,39,39
-"high_intensity",23,"operations_after_horizon","Total",22,22,22,22
-"high_intensity",24,"operations_after_horizon","Total",10,10,10,10
-"high_intensity",25,"operations_after_horizon","Total",10,10,10,10
-"high_intensity",26,"operations_after_horizon","Total",22,22,22,22
-"high_intensity",27,"operations_after_horizon","Total",20,20,20,20
-"high_intensity",28,"operations_after_horizon","Total",30,30,30,30
-"high_intensity",29,"operations_after_horizon","Total",35,35,35,35
-"high_intensity",30,"operations_after_horizon","Total",15,15,15,15
-"high_intensity",1,"theatre_minutes","Total",256.009246812147,2916.92881332095,262.327077572549,92163.3288523728
-"high_intensity",2,"theatre_minutes","Total",266.904935404707,2794.50268931461,266.620379331634,96085.7767456946
-"high_intensity",3,"theatre_minutes","Total",261.694150542354,2708.88427957528,282.268777741492,94209.8941952473
-"high_intensity",4,"theatre_minutes","Total",255.398343358194,3453.7722750687,268.706757082958,91943.4036089498
-"high_intensity",5,"theatre_minutes","Total",253.566286903788,3119.31988621524,287.925079281086,91283.8632853638
-"high_intensity",6,"theatre_minutes","Total",241.777973162549,2884.62759119777,306.768409135336,87040.0703385175
-"high_intensity",7,"theatre_minutes","Total",270.697515987614,2768.5237783556,286.508658892844,97451.1057555412
-"high_intensity",8,"theatre_minutes","Total",263.662549361621,2584.94874702667,258.430628546872,94918.5177701834
-"high_intensity",9,"theatre_minutes","Total",245.888315306264,2487.71423984238,292.468970002329,88519.7935102552
-"high_intensity",10,"theatre_minutes","Total",263.904002318422,2817.82317131152,286.976723464763,95005.4408346319
-"high_intensity",11,"theatre_minutes","Total",237.256059806707,2597.30944228034,283.590397753983,85412.1815304144
-"high_intensity",12,"theatre_minutes","Total",268.736088287337,2786.39864075487,267.584925061041,96744.9917834414
-"high_intensity",13,"theatre_minutes","Total",268.957310593978,2926.80935358842,304.191950474753,96824.6318138321
-"high_intensity",14,"theatre_minutes","Total",237.476823153208,2550.25480442532,240.282120462921,85491.656335155
-"high_intensity",15,"theatre_minutes","Total",243.493969036993,2413.13021362621,221.068394670373,87657.8288533176
-"high_intensity",16,"theatre_minutes","Total",248.93558335701,2846.32243904339,236.312049289083,89616.8100085237
-"high_intensity",17,"theatre_minutes","Total",244.52172242101,2808.93553338959,230.459812867951,88027.8200715636
-"high_intensity",18,"theatre_minutes","Total",263.928873778687,2869.07445041034,286.184631744296,95014.3945603272
-"high_intensity",19,"theatre_minutes","Total",256.209775852913,3438.05109498968,265.570624067708,92235.5193070488
-"high_intensity",20,"theatre_minutes","Total",240.477881574896,2710.26226014627,288.764924288563,86572.0373669625
-"high_intensity",21,"theatre_minutes","Total",265.787767106328,2908.3355671579,270.631582558371,95683.596158278
-"high_intensity",22,"theatre_minutes","Total",244.085093199324,2681.96288708228,274.504683197531,87870.6335517566
-"high_intensity",23,"theatre_minutes","Total",238.880011702638,3060.88199428727,270.321285318819,85996.8042129497
-"high_intensity",24,"theatre_minutes","Total",230.080000343651,2818.55665144445,282.531026092728,82828.8001237144
-"high_intensity",25,"theatre_minutes","Total",245.794079215126,3206.88642559328,232.025725658825,88485.8685174454
-"high_intensity",26,"theatre_minutes","Total",258.957300744054,3148.83989020442,279.132837415266,93224.6282678594
-"high_intensity",27,"theatre_minutes","Total",229.511863165822,2641.93183867113,290.090606138543,82624.270739696
-"high_intensity",28,"theatre_minutes","Total",262.646082776546,2681.47256762469,279.221758606109,94552.5897995565
-"high_intensity",29,"theatre_minutes","Total",238.469702303569,3153.55453833949,259.764916723786,85849.092829285
-"high_intensity",30,"theatre_minutes","Total",260.835623305354,2762.76348104241,277.701792864874,93900.8243899273
-"moderate_intensity",1,"census","Battle injury",98.6527777777778,160,108.622222222222,35515
-"moderate_intensity",2,"census","Battle injury",89.9194444444445,143,102.133333333333,32371
-"moderate_intensity",3,"census","Battle injury",106.588888888889,165,108.766666666667,38372
-"moderate_intensity",4,"census","Battle injury",92.8694444444444,158,87.5555555555556,33433
-"moderate_intensity",5,"census","Battle injury",100.688888888889,162,118.177777777778,36248
-"moderate_intensity",6,"census","Battle injury",90.5916666666667,145,72.3888888888889,32613
-"moderate_intensity",7,"census","Battle injury",108.652777777778,171,90.3111111111111,39115
-"moderate_intensity",8,"census","Battle injury",93.4166666666667,147,96.0888888888889,33630
-"moderate_intensity",9,"census","Battle injury",97.7416666666667,175,82.8888888888889,35187
-"moderate_intensity",10,"census","Battle injury",94.1888888888889,154,115.122222222222,33908
-"moderate_intensity",11,"census","Battle injury",95.5527777777778,142,101.688888888889,34399
-"moderate_intensity",12,"census","Battle injury",105.25,178,84.0555555555556,37890
-"moderate_intensity",13,"census","Battle injury",91.4944444444444,149,100.644444444444,32938
-"moderate_intensity",14,"census","Battle injury",93.4944444444444,138,98.4666666666667,33658
-"moderate_intensity",15,"census","Battle injury",87.375,152,91.9777777777778,31455
-"moderate_intensity",16,"census","Battle injury",97.2166666666667,155,100.266666666667,34998
-"moderate_intensity",17,"census","Battle injury",91.4722222222222,157,79.8222222222222,32930
-"moderate_intensity",18,"census","Battle injury",92.6555555555556,142,93.2222222222222,33356
-"moderate_intensity",19,"census","Battle injury",90.8916666666667,154,97.4222222222222,32721
-"moderate_intensity",20,"census","Battle injury",101.652777777778,158,93.2,36595
-"moderate_intensity",21,"census","Battle injury",97.1444444444444,157,88.6888888888889,34972
-"moderate_intensity",22,"census","Battle injury",108.147222222222,169,111.488888888889,38933
-"moderate_intensity",23,"census","Battle injury",91.9416666666667,163,117.066666666667,33099
-"moderate_intensity",24,"census","Battle injury",99.4694444444444,156,86.9777777777778,35809
-"moderate_intensity",25,"census","Battle injury",106.116666666667,161,122.933333333333,38202
-"moderate_intensity",26,"census","Battle injury",100.969444444444,156,128.011111111111,36349
-"moderate_intensity",27,"census","Battle injury",105.097222222222,173,108.188888888889,37835
-"moderate_intensity",28,"census","Battle injury",89.8916666666667,172,114.711111111111,32361
-"moderate_intensity",29,"census","Battle injury",82.6027777777778,146,98.8777777777778,29737
-"moderate_intensity",30,"census","Battle injury",117.269444444444,171,119.433333333333,42217
-"moderate_intensity",1,"census","Disease and non-battle injury",18.575,35,22.0444444444444,6687
-"moderate_intensity",2,"census","Disease and non-battle injury",18.575,36,18.9,6687
-"moderate_intensity",3,"census","Disease and non-battle injury",18.325,35,17.6333333333333,6597
-"moderate_intensity",4,"census","Disease and non-battle injury",19.6722222222222,37,18.8777777777778,7082
-"moderate_intensity",5,"census","Disease and non-battle injury",18.5972222222222,34,18.0444444444444,6695
-"moderate_intensity",6,"census","Disease and non-battle injury",20.5416666666667,39,20.6111111111111,7395
-"moderate_intensity",7,"census","Disease and non-battle injury",19.1111111111111,34,19,6880
-"moderate_intensity",8,"census","Disease and non-battle injury",16.8944444444444,32,16.6666666666667,6082
-"moderate_intensity",9,"census","Disease and non-battle injury",17.5805555555556,33,21.0444444444444,6329
-"moderate_intensity",10,"census","Disease and non-battle injury",20.2527777777778,37,20.3333333333333,7291
-"moderate_intensity",11,"census","Disease and non-battle injury",18.1027777777778,36,19.1111111111111,6517
-"moderate_intensity",12,"census","Disease and non-battle injury",17.5833333333333,37,17.5777777777778,6330
-"moderate_intensity",13,"census","Disease and non-battle injury",17.4722222222222,35,17.4222222222222,6290
-"moderate_intensity",14,"census","Disease and non-battle injury",19.0916666666667,33,19.6666666666667,6873
-"moderate_intensity",15,"census","Disease and non-battle injury",21.2,41,22.1555555555556,7632
-"moderate_intensity",16,"census","Disease and non-battle injury",19.7972222222222,42,23.8555555555556,7127
-"moderate_intensity",17,"census","Disease and non-battle injury",19.0083333333333,37,20.7111111111111,6843
-"moderate_intensity",18,"census","Disease and non-battle injury",20.5777777777778,39,21.2666666666667,7408
-"moderate_intensity",19,"census","Disease and non-battle injury",19.775,42,19.8444444444444,7119
-"moderate_intensity",20,"census","Disease and non-battle injury",16.2666666666667,35,15.4666666666667,5856
-"moderate_intensity",21,"census","Disease and non-battle injury",18.7444444444444,34,19.4555555555556,6748
-"moderate_intensity",22,"census","Disease and non-battle injury",20.3305555555556,39,24.6,7319
-"moderate_intensity",23,"census","Disease and non-battle injury",18.8083333333333,35,22.3777777777778,6771
-"moderate_intensity",24,"census","Disease and non-battle injury",18.1416666666667,40,20.7777777777778,6531
-"moderate_intensity",25,"census","Disease and non-battle injury",20.3583333333333,36,18.9111111111111,7329
-"moderate_intensity",26,"census","Disease and non-battle injury",18.3333333333333,36,18.3555555555556,6600
-"moderate_intensity",27,"census","Disease and non-battle injury",19.7027777777778,43,21.6333333333333,7093
-"moderate_intensity",28,"census","Disease and non-battle injury",15.5305555555556,28,15.4,5591
-"moderate_intensity",29,"census","Disease and non-battle injury",17.8444444444444,31,15.2222222222222,6424
-"moderate_intensity",30,"census","Disease and non-battle injury",19.2805555555556,37,17.6666666666667,6941
-"moderate_intensity",1,"census","hold",105.552777777778,158,119.766666666667,37999
-"moderate_intensity",2,"census","hold",97.4611111111111,138,111.211111111111,35086
-"moderate_intensity",3,"census","hold",113.675,156,118.222222222222,40923
-"moderate_intensity",4,"census","hold",101.091666666667,157,95.6,36393
-"moderate_intensity",5,"census","hold",107.102777777778,158,123.411111111111,38557
-"moderate_intensity",6,"census","hold",101.480555555556,154,86.0444444444445,36533
-"moderate_intensity",7,"census","hold",116.444444444444,173,102.555555555556,41920
-"moderate_intensity",8,"census","hold",100.880555555556,147,103.311111111111,36317
-"moderate_intensity",9,"census","hold",105.725,163,101.966666666667,38061
-"moderate_intensity",10,"census","hold",104.113888888889,148,125.888888888889,37481
-"moderate_intensity",11,"census","hold",105.136111111111,144,110.9,37849
-"moderate_intensity",12,"census","hold",112.055555555556,159,98.8222222222222,40340
-"moderate_intensity",13,"census","hold",100.180555555556,165,109.588888888889,36065
-"moderate_intensity",14,"census","hold",102.208333333333,139,104.2,36795
-"moderate_intensity",15,"census","hold",96.9166666666667,154,100.822222222222,34890
-"moderate_intensity",16,"census","hold",105.791666666667,151,112.077777777778,38085
-"moderate_intensity",17,"census","hold",100.705555555556,161,96.4333333333333,36254
-"moderate_intensity",18,"census","hold",102.641666666667,137,105.644444444444,36951
-"moderate_intensity",19,"census","hold",102.111111111111,150,112.366666666667,36760
-"moderate_intensity",20,"census","hold",106.413888888889,157,98.6444444444444,38309
-"moderate_intensity",21,"census","hold",104.694444444444,153,95.1888888888889,37690
-"moderate_intensity",22,"census","hold",116.925,163,122.822222222222,42093
-"moderate_intensity",23,"census","hold",100.130555555556,156,129.388888888889,36047
-"moderate_intensity",24,"census","hold",106.5,149,99.4888888888889,38340
-"moderate_intensity",25,"census","hold",113.25,162,130.1,40770
-"moderate_intensity",26,"census","hold",106.908333333333,157,129.977777777778,38487
-"moderate_intensity",27,"census","hold",111.969444444444,168,119.355555555556,40309
-"moderate_intensity",28,"census","hold",95.5722222222222,164,122.388888888889,34406
-"moderate_intensity",29,"census","hold",93.2444444444444,157,103.088888888889,33568
-"moderate_intensity",30,"census","hold",122.866666666667,164,127.466666666667,44232
-"moderate_intensity",1,"census","icu",34.2833333333333,65,37.5,12342
-"moderate_intensity",2,"census","icu",30.9888888888889,61,33.2222222222222,11156
-"moderate_intensity",3,"census","icu",36.3138888888889,63,33.4444444444444,13073
-"moderate_intensity",4,"census","icu",33.4916666666667,68,32.5444444444444,12057
-"moderate_intensity",5,"census","icu",34.0416666666667,62,36.6444444444444,12255
-"moderate_intensity",6,"census","icu",32.4111111111111,64,25.9888888888889,11668
-"moderate_intensity",7,"census","icu",36.9138888888889,64,31.3888888888889,13289
-"moderate_intensity",8,"census","icu",31.6861111111111,64,32.5333333333333,11407
-"moderate_intensity",9,"census","icu",33.1277777777778,70,27.5555555555556,11926
-"moderate_intensity",10,"census","icu",32.925,62,38.5777777777778,11853
-"moderate_intensity",11,"census","icu",33.2138888888889,63,34.4555555555556,11957
-"moderate_intensity",12,"census","icu",35.4583333333333,64,28.3555555555556,12765
-"moderate_intensity",13,"census","icu",30.1583333333333,61,31.6444444444444,10857
-"moderate_intensity",14,"census","icu",31.7027777777778,63,32.6,11413
-"moderate_intensity",15,"census","icu",31.3805555555556,65,31.3,11297
-"moderate_intensity",16,"census","icu",35.05,66,36.4222222222222,12618
-"moderate_intensity",17,"census","icu",30.9138888888889,61,27.2555555555556,11129
-"moderate_intensity",18,"census","icu",32.5222222222222,63,33.4222222222222,11708
-"moderate_intensity",19,"census","icu",32.2138888888889,65,31.5444444444444,11597
-"moderate_intensity",20,"census","icu",34.4083333333333,66,30.9666666666667,12387
-"moderate_intensity",21,"census","icu",34.2138888888889,66,31.3777777777778,12317
-"moderate_intensity",22,"census","icu",35.3638888888889,64,35.7444444444444,12731
-"moderate_intensity",23,"census","icu",32.0361111111111,65,40.7888888888889,11533
-"moderate_intensity",24,"census","icu",34.2222222222222,64,32.5777777777778,12320
-"moderate_intensity",25,"census","icu",36.3777777777778,62,39.4888888888889,13096
-"moderate_intensity",26,"census","icu",34.7944444444444,63,41.8222222222222,12526
-"moderate_intensity",27,"census","icu",36.1194444444444,64,37.6444444444444,13003
-"moderate_intensity",28,"census","icu",30.7666666666667,63,37.7333333333333,11076
-"moderate_intensity",29,"census","icu",28.0833333333333,65,30.9666666666667,10110
-"moderate_intensity",30,"census","icu",40.5277777777778,64,40.7333333333333,14590
-"moderate_intensity",1,"census","Reconstruction cohort",22.6083333333333,38,26.6,8139
-"moderate_intensity",2,"census","Reconstruction cohort",19.9555555555556,34,23.4,7184
-"moderate_intensity",3,"census","Reconstruction cohort",25.075,42,25.2666666666667,9027
-"moderate_intensity",4,"census","Reconstruction cohort",22.0416666666667,39,21.7111111111111,7935
-"moderate_intensity",5,"census","Reconstruction cohort",21.8583333333333,38,23.8333333333333,7869
-"moderate_intensity",6,"census","Reconstruction cohort",22.7583333333333,47,19.0333333333333,8193
-"moderate_intensity",7,"census","Reconstruction cohort",25.5944444444444,46,24.6333333333333,9214
-"moderate_intensity",8,"census","Reconstruction cohort",22.2555555555556,35,23.0888888888889,8012
-"moderate_intensity",9,"census","Reconstruction cohort",23.5305555555556,37,25.5888888888889,8471
-"moderate_intensity",10,"census","Reconstruction cohort",22.5972222222222,39,29.0111111111111,8135
-"moderate_intensity",11,"census","Reconstruction cohort",24.6944444444444,38,24.5555555555556,8890
-"moderate_intensity",12,"census","Reconstruction cohort",24.6805555555556,43,25.5444444444444,8885
-"moderate_intensity",13,"census","Reconstruction cohort",21.3722222222222,35,23.1666666666667,7694
-"moderate_intensity",14,"census","Reconstruction cohort",21.325,37,18.6666666666667,7677
-"moderate_intensity",15,"census","Reconstruction cohort",19.7222222222222,38,17.9888888888889,7100
-"moderate_intensity",16,"census","Reconstruction cohort",23.8277777777778,38,24.3777777777778,8578
-"moderate_intensity",17,"census","Reconstruction cohort",21.1388888888889,31,23.1555555555556,7610
-"moderate_intensity",18,"census","Reconstruction cohort",21.9305555555556,34,24.5777777777778,7895
-"moderate_intensity",19,"census","Reconstruction cohort",23.6583333333333,39,26.6444444444444,8517
-"moderate_intensity",20,"census","Reconstruction cohort",22.9027777777778,43,20.9444444444444,8245
-"moderate_intensity",21,"census","Reconstruction cohort",23.0194444444444,37,18.4222222222222,8287
-"moderate_intensity",22,"census","Reconstruction cohort",23.8111111111111,40,22.4777777777778,8572
-"moderate_intensity",23,"census","Reconstruction cohort",21.4166666666667,37,30.7333333333333,7710
-"moderate_intensity",24,"census","Reconstruction cohort",23.1111111111111,40,24.3111111111111,8320
-"moderate_intensity",25,"census","Reconstruction cohort",23.1527777777778,36,27.7444444444444,8335
-"moderate_intensity",26,"census","Reconstruction cohort",22.4,35,25.4333333333333,8064
-"moderate_intensity",27,"census","Reconstruction cohort",23.2888888888889,36,27.1777777777778,8384
-"moderate_intensity",28,"census","Reconstruction cohort",20.9166666666667,43,30.0111111111111,7530
-"moderate_intensity",29,"census","Reconstruction cohort",20.8805555555556,40,19.9555555555556,7517
-"moderate_intensity",30,"census","Reconstruction cohort",26.8444444444444,42,31.1,9664
-"moderate_intensity",1,"census","Total",139.836111111111,216,157.266666666667,50341
-"moderate_intensity",2,"census","Total",128.45,188,144.433333333333,46242
-"moderate_intensity",3,"census","Total",149.988888888889,214,151.666666666667,53996
-"moderate_intensity",4,"census","Total",134.583333333333,212,128.144444444444,48450
-"moderate_intensity",5,"census","Total",141.144444444444,210,160.055555555556,50812
-"moderate_intensity",6,"census","Total",133.891666666667,204,112.033333333333,48201
-"moderate_intensity",7,"census","Total",153.358333333333,225,133.944444444444,55209
-"moderate_intensity",8,"census","Total",132.566666666667,204,135.844444444444,47724
-"moderate_intensity",9,"census","Total",138.852777777778,224,129.522222222222,49987
-"moderate_intensity",10,"census","Total",137.038888888889,203,164.466666666667,49334
-"moderate_intensity",11,"census","Total",138.35,201,145.355555555556,49806
-"moderate_intensity",12,"census","Total",147.513888888889,218,127.177777777778,53105
-"moderate_intensity",13,"census","Total",130.338888888889,203,141.233333333333,46922
-"moderate_intensity",14,"census","Total",133.911111111111,194,136.8,48208
-"moderate_intensity",15,"census","Total",128.297222222222,211,132.122222222222,46187
-"moderate_intensity",16,"census","Total",140.841666666667,209,148.5,50703
-"moderate_intensity",17,"census","Total",131.619444444444,221,123.688888888889,47383
-"moderate_intensity",18,"census","Total",135.163888888889,194,139.066666666667,48659
-"moderate_intensity",19,"census","Total",134.325,210,143.911111111111,48357
-"moderate_intensity",20,"census","Total",140.822222222222,210,129.611111111111,50696
-"moderate_intensity",21,"census","Total",138.908333333333,213,126.566666666667,50007
-"moderate_intensity",22,"census","Total",152.288888888889,219,158.566666666667,54824
-"moderate_intensity",23,"census","Total",132.166666666667,216,170.177777777778,47580
-"moderate_intensity",24,"census","Total",140.722222222222,209,132.066666666667,50660
-"moderate_intensity",25,"census","Total",149.627777777778,215,169.588888888889,53866
-"moderate_intensity",26,"census","Total",141.702777777778,214,171.8,51013
-"moderate_intensity",27,"census","Total",148.088888888889,229,157,53312
-"moderate_intensity",28,"census","Total",126.338888888889,216,160.122222222222,45482
-"moderate_intensity",29,"census","Total",121.327777777778,208,134.055555555556,43678
-"moderate_intensity",30,"census","Total",163.394444444444,225,168.2,58822
-"moderate_intensity",1,"operations","Debridement",2.03611111111111,11,2.37777777777778,733
-"moderate_intensity",2,"operations","Debridement",1.85833333333333,10,1.97777777777778,669
-"moderate_intensity",3,"operations","Debridement",2.40833333333333,12,2.37777777777778,867
-"moderate_intensity",4,"operations","Debridement",2.18888888888889,11,2.25555555555556,788
-"moderate_intensity",5,"operations","Debridement",2.00833333333333,14,2.28888888888889,723
-"moderate_intensity",6,"operations","Debridement",2.15833333333333,12,1.84444444444444,777
-"moderate_intensity",7,"operations","Debridement",2.28055555555556,13,2.18888888888889,821
-"moderate_intensity",8,"operations","Debridement",2.01388888888889,10,2.18888888888889,725
-"moderate_intensity",9,"operations","Debridement",2.41666666666667,14,2.25555555555556,870
-"moderate_intensity",10,"operations","Debridement",2.15277777777778,15,2.78888888888889,775
-"moderate_intensity",11,"operations","Debridement",2.51388888888889,15,2.67777777777778,905
-"moderate_intensity",12,"operations","Debridement",2.22222222222222,14,2.13333333333333,800
-"moderate_intensity",13,"operations","Debridement",1.9,10,2,684
-"moderate_intensity",14,"operations","Debridement",1.88611111111111,15,1.58888888888889,679
-"moderate_intensity",15,"operations","Debridement",1.90555555555556,10,1.71111111111111,686
-"moderate_intensity",16,"operations","Debridement",2.30833333333333,14,2.2,831
-"moderate_intensity",17,"operations","Debridement",1.97222222222222,11,2.06666666666667,710
-"moderate_intensity",18,"operations","Debridement",1.96944444444444,11,2.11111111111111,709
-"moderate_intensity",19,"operations","Debridement",2.31944444444444,13,2.3,835
-"moderate_intensity",20,"operations","Debridement",2.29722222222222,15,2.17777777777778,827
-"moderate_intensity",21,"operations","Debridement",2.15833333333333,12,1.64444444444444,777
-"moderate_intensity",22,"operations","Debridement",2.25,13,2.33333333333333,810
-"moderate_intensity",23,"operations","Debridement",1.90555555555556,11,2.68888888888889,686
-"moderate_intensity",24,"operations","Debridement",2.14722222222222,13,2.36666666666667,773
-"moderate_intensity",25,"operations","Debridement",2.09722222222222,10,2.43333333333333,755
-"moderate_intensity",26,"operations","Debridement",2.14722222222222,12,2.47777777777778,773
-"moderate_intensity",27,"operations","Debridement",2.06388888888889,12,2.33333333333333,743
-"moderate_intensity",28,"operations","Debridement",1.83333333333333,10,2.44444444444444,660
-"moderate_intensity",29,"operations","Debridement",1.91944444444444,12,1.9,691
-"moderate_intensity",30,"operations","Debridement",2.55277777777778,12,2.56666666666667,919
-"moderate_intensity",1,"operations","Definitive repair",0.308333333333333,15,0.522222222222222,111
-"moderate_intensity",2,"operations","Definitive repair",0.225,13,0.144444444444444,81
-"moderate_intensity",3,"operations","Definitive repair",0.461111111111111,20,0.366666666666667,166
-"moderate_intensity",4,"operations","Definitive repair",0.347222222222222,18,0.311111111111111,125
-"moderate_intensity",5,"operations","Definitive repair",0.358333333333333,18,0.5,129
-"moderate_intensity",6,"operations","Definitive repair",0.297222222222222,16,0.0333333333333333,107
-"moderate_intensity",7,"operations","Definitive repair",0.644444444444444,20,0.122222222222222,232
-"moderate_intensity",8,"operations","Definitive repair",0.255555555555556,16,0.322222222222222,92
-"moderate_intensity",9,"operations","Definitive repair",0.408333333333333,15,0.133333333333333,147
-"moderate_intensity",10,"operations","Definitive repair",0.413888888888889,18,0.877777777777778,149
-"moderate_intensity",11,"operations","Definitive repair",0.294444444444444,17,0.288888888888889,106
-"moderate_intensity",12,"operations","Definitive repair",0.477777777777778,22,0.0666666666666667,172
-"moderate_intensity",13,"operations","Definitive repair",0.191666666666667,15,0.122222222222222,69
-"moderate_intensity",14,"operations","Definitive repair",0.280555555555556,15,0.433333333333333,101
-"moderate_intensity",15,"operations","Definitive repair",0.275,13,0.377777777777778,99
-"moderate_intensity",16,"operations","Definitive repair",0.386111111111111,22,0.477777777777778,139
-"moderate_intensity",17,"operations","Definitive repair",0.302777777777778,22,0.122222222222222,109
-"moderate_intensity",18,"operations","Definitive repair",0.269444444444444,20,0.155555555555556,97
-"moderate_intensity",19,"operations","Definitive repair",0.175,13,0.0777777777777778,63
-"moderate_intensity",20,"operations","Definitive repair",0.466666666666667,19,0.188888888888889,168
-"moderate_intensity",21,"operations","Definitive repair",0.3,16,0.233333333333333,108
-"moderate_intensity",22,"operations","Definitive repair",0.413888888888889,14,0.222222222222222,149
-"moderate_intensity",23,"operations","Definitive repair",0.269444444444444,13,0.522222222222222,97
-"moderate_intensity",24,"operations","Definitive repair",0.369444444444444,23,0.0777777777777778,133
-"moderate_intensity",25,"operations","Definitive repair",0.344444444444444,11,0.566666666666667,124
-"moderate_intensity",26,"operations","Definitive repair",0.466666666666667,20,0.555555555555556,168
-"moderate_intensity",27,"operations","Definitive repair",0.380555555555556,19,0.3,137
-"moderate_intensity",28,"operations","Definitive repair",0.313888888888889,15,0.655555555555556,113
-"moderate_intensity",29,"operations","Definitive repair",0.166666666666667,12,0.0888888888888889,60
-"moderate_intensity",30,"operations","Definitive repair",0.616666666666667,17,0.555555555555556,222
-"moderate_intensity",1,"operations","Reconstruction",0.833333333333333,5,0.988888888888889,300
-"moderate_intensity",2,"operations","Reconstruction",0.738888888888889,4,0.822222222222222,266
-"moderate_intensity",3,"operations","Reconstruction",0.925,5,0.922222222222222,333
-"moderate_intensity",4,"operations","Reconstruction",0.808333333333333,6,0.822222222222222,291
-"moderate_intensity",5,"operations","Reconstruction",0.769444444444444,5,0.811111111111111,277
-"moderate_intensity",6,"operations","Reconstruction",0.825,4,0.722222222222222,297
-"moderate_intensity",7,"operations","Reconstruction",0.913888888888889,5,0.844444444444444,329
-"moderate_intensity",8,"operations","Reconstruction",0.772222222222222,4,0.766666666666667,278
-"moderate_intensity",9,"operations","Reconstruction",0.827777777777778,4,0.811111111111111,298
-"moderate_intensity",10,"operations","Reconstruction",0.8,4,1,288
-"moderate_intensity",11,"operations","Reconstruction",0.897222222222222,4,0.877777777777778,323
-"moderate_intensity",12,"operations","Reconstruction",0.883333333333333,4,0.922222222222222,318
-"moderate_intensity",13,"operations","Reconstruction",0.758333333333333,4,0.788888888888889,273
-"moderate_intensity",14,"operations","Reconstruction",0.772222222222222,4,0.7,278
-"moderate_intensity",15,"operations","Reconstruction",0.716666666666667,5,0.655555555555556,258
-"moderate_intensity",16,"operations","Reconstruction",0.844444444444444,5,0.866666666666667,304
-"moderate_intensity",17,"operations","Reconstruction",0.775,3,0.811111111111111,279
-"moderate_intensity",18,"operations","Reconstruction",0.802777777777778,5,0.866666666666667,289
-"moderate_intensity",19,"operations","Reconstruction",0.863888888888889,4,0.955555555555556,311
-"moderate_intensity",20,"operations","Reconstruction",0.805555555555556,5,0.711111111111111,290
-"moderate_intensity",21,"operations","Reconstruction",0.819444444444444,6,0.644444444444444,295
-"moderate_intensity",22,"operations","Reconstruction",0.866666666666667,5,0.844444444444444,312
-"moderate_intensity",23,"operations","Reconstruction",0.777777777777778,6,1.06666666666667,280
-"moderate_intensity",24,"operations","Reconstruction",0.833333333333333,4,0.877777777777778,300
-"moderate_intensity",25,"operations","Reconstruction",0.825,6,0.977777777777778,297
-"moderate_intensity",26,"operations","Reconstruction",0.844444444444444,4,1,304
-"moderate_intensity",27,"operations","Reconstruction",0.841666666666667,5,0.933333333333333,303
-"moderate_intensity",28,"operations","Reconstruction",0.75,4,1.03333333333333,270
-"moderate_intensity",29,"operations","Reconstruction",0.738888888888889,4,0.711111111111111,266
-"moderate_intensity",30,"operations","Reconstruction",0.961111111111111,5,1.05555555555556,346
-"moderate_intensity",1,"operations","Total",3.17777777777778,20,3.88888888888889,1144
-"moderate_intensity",2,"operations","Total",2.82222222222222,16,2.94444444444444,1016
-"moderate_intensity",3,"operations","Total",3.79444444444444,25,3.66666666666667,1366
-"moderate_intensity",4,"operations","Total",3.34444444444444,23,3.38888888888889,1204
-"moderate_intensity",5,"operations","Total",3.13611111111111,19,3.6,1129
-"moderate_intensity",6,"operations","Total",3.28055555555556,20,2.6,1181
-"moderate_intensity",7,"operations","Total",3.83888888888889,24,3.15555555555556,1382
-"moderate_intensity",8,"operations","Total",3.04166666666667,23,3.27777777777778,1095
-"moderate_intensity",9,"operations","Total",3.65277777777778,21,3.2,1315
-"moderate_intensity",10,"operations","Total",3.36666666666667,21,4.66666666666667,1212
-"moderate_intensity",11,"operations","Total",3.70555555555556,21,3.84444444444444,1334
-"moderate_intensity",12,"operations","Total",3.58333333333333,25,3.12222222222222,1290
-"moderate_intensity",13,"operations","Total",2.85,17,2.91111111111111,1026
-"moderate_intensity",14,"operations","Total",2.93888888888889,18,2.72222222222222,1058
-"moderate_intensity",15,"operations","Total",2.89722222222222,15,2.74444444444444,1043
-"moderate_intensity",16,"operations","Total",3.53888888888889,24,3.54444444444444,1274
-"moderate_intensity",17,"operations","Total",3.05,30,3,1098
-"moderate_intensity",18,"operations","Total",3.04166666666667,24,3.13333333333333,1095
-"moderate_intensity",19,"operations","Total",3.35833333333333,16,3.33333333333333,1209
-"moderate_intensity",20,"operations","Total",3.56944444444444,22,3.07777777777778,1285
-"moderate_intensity",21,"operations","Total",3.27777777777778,18,2.52222222222222,1180
-"moderate_intensity",22,"operations","Total",3.53055555555556,19,3.4,1271
-"moderate_intensity",23,"operations","Total",2.95277777777778,20,4.27777777777778,1063
-"moderate_intensity",24,"operations","Total",3.35,27,3.32222222222222,1206
-"moderate_intensity",25,"operations","Total",3.26666666666667,17,3.97777777777778,1176
-"moderate_intensity",26,"operations","Total",3.45833333333333,25,4.03333333333333,1245
-"moderate_intensity",27,"operations","Total",3.28611111111111,21,3.56666666666667,1183
-"moderate_intensity",28,"operations","Total",2.89722222222222,19,4.13333333333333,1043
-"moderate_intensity",29,"operations","Total",2.825,17,2.7,1017
-"moderate_intensity",30,"operations","Total",4.13055555555556,22,4.17777777777778,1487
-"moderate_intensity",1,"operations_admitted","Total",1166,1166,1166,1166
-"moderate_intensity",2,"operations_admitted","Total",1023,1023,1023,1023
-"moderate_intensity",3,"operations_admitted","Total",1390,1390,1390,1390
-"moderate_intensity",4,"operations_admitted","Total",1214,1214,1214,1214
-"moderate_intensity",5,"operations_admitted","Total",1161,1161,1161,1161
-"moderate_intensity",6,"operations_admitted","Total",1208,1208,1208,1208
-"moderate_intensity",7,"operations_admitted","Total",1409,1409,1409,1409
-"moderate_intensity",8,"operations_admitted","Total",1119,1119,1119,1119
-"moderate_intensity",9,"operations_admitted","Total",1334,1334,1334,1334
-"moderate_intensity",10,"operations_admitted","Total",1233,1233,1233,1233
-"moderate_intensity",11,"operations_admitted","Total",1354,1354,1354,1354
-"moderate_intensity",12,"operations_admitted","Total",1310,1310,1310,1310
-"moderate_intensity",13,"operations_admitted","Total",1045,1045,1045,1045
-"moderate_intensity",14,"operations_admitted","Total",1086,1086,1086,1086
-"moderate_intensity",15,"operations_admitted","Total",1070,1070,1070,1070
-"moderate_intensity",16,"operations_admitted","Total",1295,1295,1295,1295
-"moderate_intensity",17,"operations_admitted","Total",1118,1118,1118,1118
-"moderate_intensity",18,"operations_admitted","Total",1110,1110,1110,1110
-"moderate_intensity",19,"operations_admitted","Total",1234,1234,1234,1234
-"moderate_intensity",20,"operations_admitted","Total",1303,1303,1303,1303
-"moderate_intensity",21,"operations_admitted","Total",1188,1188,1188,1188
-"moderate_intensity",22,"operations_admitted","Total",1287,1287,1287,1287
-"moderate_intensity",23,"operations_admitted","Total",1086,1086,1086,1086
-"moderate_intensity",24,"operations_admitted","Total",1222,1222,1222,1222
-"moderate_intensity",25,"operations_admitted","Total",1206,1206,1206,1206
-"moderate_intensity",26,"operations_admitted","Total",1254,1254,1254,1254
-"moderate_intensity",27,"operations_admitted","Total",1199,1199,1199,1199
-"moderate_intensity",28,"operations_admitted","Total",1064,1064,1064,1064
-"moderate_intensity",29,"operations_admitted","Total",1028,1028,1028,1028
-"moderate_intensity",30,"operations_admitted","Total",1507,1507,1507,1507
-"moderate_intensity",1,"operations_after_horizon","Total",22,22,22,22
-"moderate_intensity",2,"operations_after_horizon","Total",7,7,7,7
-"moderate_intensity",3,"operations_after_horizon","Total",24,24,24,24
-"moderate_intensity",4,"operations_after_horizon","Total",10,10,10,10
-"moderate_intensity",5,"operations_after_horizon","Total",32,32,32,32
-"moderate_intensity",6,"operations_after_horizon","Total",27,27,27,27
-"moderate_intensity",7,"operations_after_horizon","Total",27,27,27,27
-"moderate_intensity",8,"operations_after_horizon","Total",24,24,24,24
-"moderate_intensity",9,"operations_after_horizon","Total",19,19,19,19
-"moderate_intensity",10,"operations_after_horizon","Total",21,21,21,21
-"moderate_intensity",11,"operations_after_horizon","Total",20,20,20,20
-"moderate_intensity",12,"operations_after_horizon","Total",20,20,20,20
-"moderate_intensity",13,"operations_after_horizon","Total",19,19,19,19
-"moderate_intensity",14,"operations_after_horizon","Total",28,28,28,28
-"moderate_intensity",15,"operations_after_horizon","Total",27,27,27,27
-"moderate_intensity",16,"operations_after_horizon","Total",21,21,21,21
-"moderate_intensity",17,"operations_after_horizon","Total",20,20,20,20
+"high_intensity",1,"census","Battle injury",174.688888888889,244,183.944444444444,62888
+"high_intensity",2,"census","Battle injury",172.1,238,179.322222222222,61956
+"high_intensity",3,"census","Battle injury",177.655555555556,249,180.422222222222,63956
+"high_intensity",4,"census","Battle injury",173.605555555556,248,188.988888888889,62498
+"high_intensity",5,"census","Battle injury",169.766666666667,241,179.8,61116
+"high_intensity",6,"census","Battle injury",174.611111111111,242,176.5,62860
+"high_intensity",7,"census","Battle injury",172.886111111111,232,185.033333333333,62239
+"high_intensity",8,"census","Battle injury",177.094444444444,242,185.211111111111,63754
+"high_intensity",9,"census","Battle injury",171.569444444444,232,179.022222222222,61765
+"high_intensity",10,"census","Battle injury",173.408333333333,242,191.322222222222,62427
+"high_intensity",11,"census","Battle injury",170.083333333333,256,166.977777777778,61230
+"high_intensity",12,"census","Battle injury",169.644444444444,237,177.011111111111,61072
+"high_intensity",13,"census","Battle injury",177.944444444444,231,191.188888888889,64060
+"high_intensity",14,"census","Battle injury",176.816666666667,238,184.433333333333,63654
+"high_intensity",15,"census","Battle injury",170.372222222222,235,173.255555555556,61334
+"high_intensity",16,"census","Battle injury",172.530555555556,231,183.588888888889,62111
+"high_intensity",17,"census","Battle injury",177.625,246,185.688888888889,63945
+"high_intensity",18,"census","Battle injury",177.8,237,189.222222222222,64008
+"high_intensity",19,"census","Battle injury",173.25,238,184.133333333333,62370
+"high_intensity",20,"census","Battle injury",175.713888888889,233,180.966666666667,63257
+"high_intensity",21,"census","Battle injury",170.686111111111,232,174.144444444444,61447
+"high_intensity",22,"census","Battle injury",168,236,181.588888888889,60480
+"high_intensity",23,"census","Battle injury",173.566666666667,231,176.088888888889,62484
+"high_intensity",24,"census","Battle injury",173.597222222222,254,193.133333333333,62495
+"high_intensity",25,"census","Battle injury",172.677777777778,237,188.577777777778,62164
+"high_intensity",26,"census","Battle injury",173.688888888889,243,178.633333333333,62528
+"high_intensity",27,"census","Battle injury",162.775,228,160.666666666667,58599
+"high_intensity",28,"census","Battle injury",170.375,231,176.122222222222,61335
+"high_intensity",29,"census","Battle injury",174.133333333333,236,178.555555555556,62688
+"high_intensity",30,"census","Battle injury",173.419444444444,241,175.377777777778,62431
+"high_intensity",1,"census","Disease and non-battle injury",10.3166666666667,18,12.4111111111111,3714
+"high_intensity",2,"census","Disease and non-battle injury",10.4055555555556,24,10.3777777777778,3746
+"high_intensity",3,"census","Disease and non-battle injury",9.23055555555556,21,10.4,3323
+"high_intensity",4,"census","Disease and non-battle injury",10.3888888888889,20,8.68888888888889,3740
+"high_intensity",5,"census","Disease and non-battle injury",11.825,26,13.6111111111111,4257
+"high_intensity",6,"census","Disease and non-battle injury",11.0472222222222,23,12.7888888888889,3977
+"high_intensity",7,"census","Disease and non-battle injury",9.475,20,10.3444444444444,3411
+"high_intensity",8,"census","Disease and non-battle injury",10.3972222222222,22,11.4333333333333,3743
+"high_intensity",9,"census","Disease and non-battle injury",12.0305555555556,30,10.9777777777778,4331
+"high_intensity",10,"census","Disease and non-battle injury",10.7277777777778,24,12.8777777777778,3862
+"high_intensity",11,"census","Disease and non-battle injury",10.1305555555556,20,10.3222222222222,3647
+"high_intensity",12,"census","Disease and non-battle injury",11.1583333333333,22,11.7777777777778,4017
+"high_intensity",13,"census","Disease and non-battle injury",10.5305555555556,22,10.0888888888889,3791
+"high_intensity",14,"census","Disease and non-battle injury",9.775,21,11.7222222222222,3519
+"high_intensity",15,"census","Disease and non-battle injury",9.20555555555556,23,9.21111111111111,3314
+"high_intensity",16,"census","Disease and non-battle injury",11.5222222222222,22,12.6777777777778,4148
+"high_intensity",17,"census","Disease and non-battle injury",8.70833333333333,19,7.82222222222222,3135
+"high_intensity",18,"census","Disease and non-battle injury",10.2888888888889,18,9.05555555555556,3704
+"high_intensity",19,"census","Disease and non-battle injury",9.30555555555556,18,9.31111111111111,3350
+"high_intensity",20,"census","Disease and non-battle injury",10.9666666666667,26,12.7666666666667,3948
+"high_intensity",21,"census","Disease and non-battle injury",10.7472222222222,24,12.8444444444444,3869
+"high_intensity",22,"census","Disease and non-battle injury",10.3972222222222,23,9.36666666666667,3743
+"high_intensity",23,"census","Disease and non-battle injury",9.34722222222222,19,9.36666666666667,3365
+"high_intensity",24,"census","Disease and non-battle injury",10.95,21,10.8888888888889,3942
+"high_intensity",25,"census","Disease and non-battle injury",11.55,21,12.4222222222222,4158
+"high_intensity",26,"census","Disease and non-battle injury",10.8277777777778,24,9.82222222222222,3898
+"high_intensity",27,"census","Disease and non-battle injury",11.9611111111111,23,10.6333333333333,4306
+"high_intensity",28,"census","Disease and non-battle injury",10.8666666666667,22,11.6333333333333,3912
+"high_intensity",29,"census","Disease and non-battle injury",11.6333333333333,21,12.5444444444444,4188
+"high_intensity",30,"census","Disease and non-battle injury",11.7583333333333,27,12.6555555555556,4233
+"high_intensity",1,"census","hold",167.241666666667,233,178.755555555556,60207
+"high_intensity",2,"census","hold",165.855555555556,223,173.788888888889,59708
+"high_intensity",3,"census","hold",168.216666666667,223,174.011111111111,60558
+"high_intensity",4,"census","hold",165.627777777778,221,177.611111111111,59626
+"high_intensity",5,"census","hold",165.277777777778,229,178.8,59500
+"high_intensity",6,"census","hold",169.816666666667,229,173.888888888889,61134
+"high_intensity",7,"census","hold",164.175,218,175.777777777778,59103
+"high_intensity",8,"census","hold",171.163888888889,223,178.344444444444,61619
+"high_intensity",9,"census","hold",168.555555555556,229,176.444444444444,60680
+"high_intensity",10,"census","hold",167.316666666667,224,187.222222222222,60234
+"high_intensity",11,"census","hold",161.683333333333,241,160.6,58206
+"high_intensity",12,"census","hold",165.427777777778,215,176.544444444444,59554
+"high_intensity",13,"census","hold",170.775,218,183.766666666667,61479
+"high_intensity",14,"census","hold",169.969444444444,218,177.655555555556,61189
+"high_intensity",15,"census","hold",165.952777777778,225,169.6,59743
+"high_intensity",16,"census","hold",168.938888888889,217,185.133333333333,60818
+"high_intensity",17,"census","hold",170.35,221,176.8,61326
+"high_intensity",18,"census","hold",170.791666666667,219,180.611111111111,61485
+"high_intensity",19,"census","hold",167.963888888889,222,177.322222222222,60467
+"high_intensity",20,"census","hold",169.688888888889,221,173.544444444444,61088
+"high_intensity",21,"census","hold",165.683333333333,216,173.433333333333,59646
+"high_intensity",22,"census","hold",165.344444444444,220,177.555555555556,59524
+"high_intensity",23,"census","hold",168.044444444444,218,173.077777777778,60496
+"high_intensity",24,"census","hold",167.625,240,187.344444444444,60345
+"high_intensity",25,"census","hold",167,215,180.455555555556,60120
+"high_intensity",26,"census","hold",167.625,232,173.688888888889,60345
+"high_intensity",27,"census","hold",160.280555555556,223,155.766666666667,57701
+"high_intensity",28,"census","hold",166.025,217,174.222222222222,59769
+"high_intensity",29,"census","hold",169.45,225,178.922222222222,61002
+"high_intensity",30,"census","hold",171.863888888889,231,173.377777777778,61871
+"high_intensity",1,"census","icu",43.3138888888889,68,44.8333333333333,15593
+"high_intensity",2,"census","icu",42.5666666666667,67,43.5555555555556,15324
+"high_intensity",3,"census","icu",42.6666666666667,68,43.5444444444444,15360
+"high_intensity",4,"census","icu",42.9305555555556,65,43.7333333333333,15455
+"high_intensity",5,"census","icu",43.1472222222222,71,42.9,15533
+"high_intensity",6,"census","icu",42.7333333333333,67,45.0222222222222,15384
+"high_intensity",7,"census","icu",43.6194444444444,67,44.8888888888889,15703
+"high_intensity",8,"census","icu",42.6694444444444,66,44.0222222222222,15361
+"high_intensity",9,"census","icu",41.4472222222222,65,43.8888888888889,14921
+"high_intensity",10,"census","icu",43.125,67,43.9888888888889,15525
+"high_intensity",11,"census","icu",43.0027777777778,68,41.1888888888889,15481
+"high_intensity",12,"census","icu",42.8,66,43.8,15408
+"high_intensity",13,"census","icu",42.4944444444444,68,42.6777777777778,15298
+"high_intensity",14,"census","icu",43.1861111111111,70,42.9666666666667,15547
+"high_intensity",15,"census","icu",42.6638888888889,69,45.6555555555556,15359
+"high_intensity",16,"census","icu",42.1805555555556,70,41.9666666666667,15185
+"high_intensity",17,"census","icu",42.6222222222222,68,43.4666666666667,15344
+"high_intensity",18,"census","icu",44.0083333333333,68,46.3555555555556,15843
+"high_intensity",19,"census","icu",42.3555555555556,67,43.8555555555556,15248
+"high_intensity",20,"census","icu",42.9888888888889,71,43.1333333333333,15476
+"high_intensity",21,"census","icu",42.8277777777778,68,43.5222222222222,15418
+"high_intensity",22,"census","icu",42.3305555555556,68,42.6666666666667,15239
+"high_intensity",23,"census","icu",42.8694444444444,67,43.6555555555556,15433
+"high_intensity",24,"census","icu",42.6972222222222,70,43.9,15371
+"high_intensity",25,"census","icu",43.1861111111111,68,42.9777777777778,15547
+"high_intensity",26,"census","icu",41.9138888888889,67,42.4777777777778,15089
+"high_intensity",27,"census","icu",42.4777777777778,64,44.8777777777778,15292
+"high_intensity",28,"census","icu",43.5222222222222,69,44.2888888888889,15668
+"high_intensity",29,"census","icu",43.0805555555556,67,44.8666666666667,15509
+"high_intensity",30,"census","icu",41.7138888888889,63,43.0333333333333,15017
+"high_intensity",1,"census","Reconstruction cohort",25.55,36,27.2333333333333,9198
+"high_intensity",2,"census","Reconstruction cohort",25.9166666666667,41,27.6444444444444,9330
+"high_intensity",3,"census","Reconstruction cohort",23.9972222222222,40,26.7333333333333,8639
+"high_intensity",4,"census","Reconstruction cohort",24.5638888888889,38,23.6666666666667,8843
+"high_intensity",5,"census","Reconstruction cohort",26.8333333333333,46,28.2888888888889,9660
+"high_intensity",6,"census","Reconstruction cohort",26.8916666666667,39,29.6222222222222,9681
+"high_intensity",7,"census","Reconstruction cohort",25.4333333333333,40,25.2888888888889,9156
+"high_intensity",8,"census","Reconstruction cohort",26.3416666666667,38,25.7222222222222,9483
+"high_intensity",9,"census","Reconstruction cohort",26.4027777777778,40,30.3333333333333,9505
+"high_intensity",10,"census","Reconstruction cohort",26.3055555555556,41,27.0111111111111,9470
+"high_intensity",11,"census","Reconstruction cohort",24.4722222222222,40,24.4888888888889,8810
+"high_intensity",12,"census","Reconstruction cohort",27.425,43,31.5555555555556,9873
+"high_intensity",13,"census","Reconstruction cohort",24.7944444444444,36,25.1666666666667,8926
+"high_intensity",14,"census","Reconstruction cohort",26.5638888888889,41,24.4666666666667,9563
+"high_intensity",15,"census","Reconstruction cohort",29.0388888888889,49,32.7888888888889,10454
+"high_intensity",16,"census","Reconstruction cohort",27.0666666666667,43,30.8333333333333,9744
+"high_intensity",17,"census","Reconstruction cohort",26.6388888888889,38,26.7555555555556,9590
+"high_intensity",18,"census","Reconstruction cohort",26.7111111111111,39,28.6888888888889,9616
+"high_intensity",19,"census","Reconstruction cohort",27.7638888888889,42,27.7333333333333,9995
+"high_intensity",20,"census","Reconstruction cohort",25.9972222222222,44,22.9444444444444,9359
+"high_intensity",21,"census","Reconstruction cohort",27.0777777777778,40,29.9666666666667,9748
+"high_intensity",22,"census","Reconstruction cohort",29.2777777777778,41,29.2666666666667,10540
+"high_intensity",23,"census","Reconstruction cohort",28,40,31.2777777777778,10080
+"high_intensity",24,"census","Reconstruction cohort",25.775,41,27.2222222222222,9279
+"high_intensity",25,"census","Reconstruction cohort",25.9583333333333,45,22.4333333333333,9345
+"high_intensity",26,"census","Reconstruction cohort",25.0222222222222,37,27.7111111111111,9008
+"high_intensity",27,"census","Reconstruction cohort",28.0222222222222,42,29.3444444444444,10088
+"high_intensity",28,"census","Reconstruction cohort",28.3055555555556,42,30.7555555555556,10190
+"high_intensity",29,"census","Reconstruction cohort",26.7638888888889,50,32.6888888888889,9635
+"high_intensity",30,"census","Reconstruction cohort",28.4,45,28.3777777777778,10224
+"high_intensity",1,"census","Total",210.555555555556,290,223.588888888889,75800
+"high_intensity",2,"census","Total",208.422222222222,283,217.344444444444,75032
+"high_intensity",3,"census","Total",210.883333333333,282,217.555555555556,75918
+"high_intensity",4,"census","Total",208.558333333333,282,221.344444444444,75081
+"high_intensity",5,"census","Total",208.425,286,221.7,75033
+"high_intensity",6,"census","Total",212.55,286,218.911111111111,76518
+"high_intensity",7,"census","Total",207.794444444444,275,220.666666666667,74806
+"high_intensity",8,"census","Total",213.833333333333,285,222.366666666667,76980
+"high_intensity",9,"census","Total",210.002777777778,286,220.333333333333,75601
+"high_intensity",10,"census","Total",210.441666666667,281,231.211111111111,75759
+"high_intensity",11,"census","Total",204.686111111111,298,201.788888888889,73687
+"high_intensity",12,"census","Total",208.227777777778,276,220.344444444444,74962
+"high_intensity",13,"census","Total",213.269444444444,274,226.444444444444,76777
+"high_intensity",14,"census","Total",213.155555555556,275,220.622222222222,76736
+"high_intensity",15,"census","Total",208.616666666667,279,215.255555555556,75102
+"high_intensity",16,"census","Total",211.119444444444,271,227.1,76003
+"high_intensity",17,"census","Total",212.972222222222,286,220.266666666667,76670
+"high_intensity",18,"census","Total",214.8,277,226.966666666667,77328
+"high_intensity",19,"census","Total",210.319444444444,281,221.177777777778,75715
+"high_intensity",20,"census","Total",212.677777777778,278,216.677777777778,76564
+"high_intensity",21,"census","Total",208.511111111111,277,216.955555555556,75064
+"high_intensity",22,"census","Total",207.675,280,220.222222222222,74763
+"high_intensity",23,"census","Total",210.913888888889,277,216.733333333333,75929
+"high_intensity",24,"census","Total",210.322222222222,293,231.244444444444,75716
+"high_intensity",25,"census","Total",210.186111111111,277,223.433333333333,75667
+"high_intensity",26,"census","Total",209.538888888889,284,216.166666666667,75434
+"high_intensity",27,"census","Total",202.758333333333,280,200.644444444444,72993
+"high_intensity",28,"census","Total",209.547222222222,272,218.511111111111,75437
+"high_intensity",29,"census","Total",212.530555555556,279,223.788888888889,76511
+"high_intensity",30,"census","Total",213.577777777778,289,216.411111111111,76888
+"high_intensity",1,"operations","Debridement",2.725,15,2.75555555555556,981
+"high_intensity",2,"operations","Debridement",2.50277777777778,14,2.41111111111111,901
+"high_intensity",3,"operations","Debridement",2.45,14,2.5,882
+"high_intensity",4,"operations","Debridement",2.475,13,2.23333333333333,891
+"high_intensity",5,"operations","Debridement",2.70277777777778,16,2.8,973
+"high_intensity",6,"operations","Debridement",2.60277777777778,13,2.77777777777778,937
+"high_intensity",7,"operations","Debridement",2.51944444444444,13,2.51111111111111,907
+"high_intensity",8,"operations","Debridement",2.74166666666667,13,2.64444444444444,987
+"high_intensity",9,"operations","Debridement",2.50833333333333,14,2.96666666666667,903
+"high_intensity",10,"operations","Debridement",2.68611111111111,12,2.71111111111111,967
+"high_intensity",11,"operations","Debridement",2.46111111111111,11,2.34444444444444,886
+"high_intensity",12,"operations","Debridement",2.71388888888889,13,2.84444444444444,977
+"high_intensity",13,"operations","Debridement",2.46388888888889,14,2.63333333333333,887
+"high_intensity",14,"operations","Debridement",2.53888888888889,12,2.07777777777778,914
+"high_intensity",15,"operations","Debridement",2.93333333333333,14,3.58888888888889,1056
+"high_intensity",16,"operations","Debridement",2.7,16,3.08888888888889,972
+"high_intensity",17,"operations","Debridement",2.56111111111111,14,2.34444444444444,922
+"high_intensity",18,"operations","Debridement",2.71388888888889,13,3.03333333333333,977
+"high_intensity",19,"operations","Debridement",2.63333333333333,13,2.82222222222222,948
+"high_intensity",20,"operations","Debridement",2.56111111111111,14,2.14444444444444,922
+"high_intensity",21,"operations","Debridement",2.77222222222222,13,2.7,998
+"high_intensity",22,"operations","Debridement",2.80833333333333,14,2.67777777777778,1011
+"high_intensity",23,"operations","Debridement",2.68888888888889,14,2.53333333333333,968
+"high_intensity",24,"operations","Debridement",2.58611111111111,14,2.65555555555556,931
+"high_intensity",25,"operations","Debridement",2.44444444444444,14,2.01111111111111,880
+"high_intensity",26,"operations","Debridement",2.43333333333333,12,2.87777777777778,876
+"high_intensity",27,"operations","Debridement",2.83055555555556,15,2.94444444444444,1019
+"high_intensity",28,"operations","Debridement",2.72222222222222,15,3.34444444444444,980
+"high_intensity",29,"operations","Debridement",2.56666666666667,14,2.88888888888889,924
+"high_intensity",30,"operations","Debridement",2.65833333333333,14,2.93333333333333,957
+"high_intensity",1,"operations","Definitive repair",2.22777777777778,24,2.28888888888889,802
+"high_intensity",2,"operations","Definitive repair",1.88888888888889,21,2.14444444444444,680
+"high_intensity",3,"operations","Definitive repair",2.075,22,2.24444444444444,747
+"high_intensity",4,"operations","Definitive repair",1.95833333333333,22,2.17777777777778,705
+"high_intensity",5,"operations","Definitive repair",1.91666666666667,21,2.06666666666667,690
+"high_intensity",6,"operations","Definitive repair",2.06944444444444,23,2.25555555555556,745
+"high_intensity",7,"operations","Definitive repair",1.79722222222222,23,2.01111111111111,647
+"high_intensity",8,"operations","Definitive repair",2.11944444444444,24,2.31111111111111,763
+"high_intensity",9,"operations","Definitive repair",2.22222222222222,23,2.38888888888889,800
+"high_intensity",10,"operations","Definitive repair",2.01111111111111,22,2.27777777777778,724
+"high_intensity",11,"operations","Definitive repair",1.96666666666667,24,1.92222222222222,708
+"high_intensity",12,"operations","Definitive repair",2.03333333333333,23,2.22222222222222,732
+"high_intensity",13,"operations","Definitive repair",2.34444444444444,28,2.38888888888889,844
+"high_intensity",14,"operations","Definitive repair",2.25277777777778,23,2.25555555555556,811
+"high_intensity",15,"operations","Definitive repair",1.91388888888889,21,2.33333333333333,689
+"high_intensity",16,"operations","Definitive repair",2.07777777777778,21,1.67777777777778,748
+"high_intensity",17,"operations","Definitive repair",2.25833333333333,24,2.21111111111111,813
+"high_intensity",18,"operations","Definitive repair",2.15,23,2.2,774
+"high_intensity",19,"operations","Definitive repair",1.87222222222222,25,2.1,674
+"high_intensity",20,"operations","Definitive repair",2.17222222222222,21,2.28888888888889,782
+"high_intensity",21,"operations","Definitive repair",2.175,20,2.27777777777778,783
+"high_intensity",22,"operations","Definitive repair",1.98055555555556,22,2.23333333333333,713
+"high_intensity",23,"operations","Definitive repair",2.16111111111111,21,2.44444444444444,778
+"high_intensity",24,"operations","Definitive repair",1.79444444444444,20,1.65555555555556,646
+"high_intensity",25,"operations","Definitive repair",2.16944444444444,22,2.2,781
+"high_intensity",26,"operations","Definitive repair",1.89444444444444,22,2.06666666666667,682
+"high_intensity",27,"operations","Definitive repair",1.83611111111111,21,2.11111111111111,661
+"high_intensity",28,"operations","Definitive repair",1.83888888888889,21,2.03333333333333,662
+"high_intensity",29,"operations","Definitive repair",2.04722222222222,21,2.25555555555556,737
+"high_intensity",30,"operations","Definitive repair",2.06944444444444,22,1.96666666666667,745
+"high_intensity",1,"operations","Reconstruction",0.919444444444444,5,0.933333333333333,331
+"high_intensity",2,"operations","Reconstruction",0.95,5,0.966666666666667,342
+"high_intensity",3,"operations","Reconstruction",0.869444444444444,4,0.988888888888889,313
+"high_intensity",4,"operations","Reconstruction",0.866666666666667,4,0.788888888888889,312
+"high_intensity",5,"operations","Reconstruction",0.952777777777778,5,1.02222222222222,343
+"high_intensity",6,"operations","Reconstruction",0.961111111111111,5,1.07777777777778,346
+"high_intensity",7,"operations","Reconstruction",0.913888888888889,6,0.922222222222222,329
+"high_intensity",8,"operations","Reconstruction",0.944444444444444,6,0.911111111111111,340
+"high_intensity",9,"operations","Reconstruction",0.955555555555556,5,1.04444444444444,344
+"high_intensity",10,"operations","Reconstruction",0.930555555555556,4,0.988888888888889,335
+"high_intensity",11,"operations","Reconstruction",0.905555555555556,4,0.933333333333333,326
+"high_intensity",12,"operations","Reconstruction",1.00555555555556,5,1.17777777777778,362
+"high_intensity",13,"operations","Reconstruction",0.888888888888889,5,0.922222222222222,320
+"high_intensity",14,"operations","Reconstruction",0.961111111111111,4,0.877777777777778,346
+"high_intensity",15,"operations","Reconstruction",1.06944444444444,5,1.25555555555556,385
+"high_intensity",16,"operations","Reconstruction",0.983333333333333,6,1.11111111111111,354
+"high_intensity",17,"operations","Reconstruction",0.963888888888889,5,0.966666666666667,347
+"high_intensity",18,"operations","Reconstruction",0.955555555555556,6,1.03333333333333,344
+"high_intensity",19,"operations","Reconstruction",0.986111111111111,5,0.944444444444444,355
+"high_intensity",20,"operations","Reconstruction",0.944444444444444,4,0.855555555555556,340
+"high_intensity",21,"operations","Reconstruction",0.975,5,1.07777777777778,351
+"high_intensity",22,"operations","Reconstruction",1.05277777777778,6,0.977777777777778,379
+"high_intensity",23,"operations","Reconstruction",1.01111111111111,5,1.08888888888889,364
+"high_intensity",24,"operations","Reconstruction",0.927777777777778,6,0.966666666666667,334
+"high_intensity",25,"operations","Reconstruction",0.925,5,0.811111111111111,333
+"high_intensity",26,"operations","Reconstruction",0.916666666666667,5,1.05555555555556,330
+"high_intensity",27,"operations","Reconstruction",1.01111111111111,6,1.03333333333333,364
+"high_intensity",28,"operations","Reconstruction",1.01666666666667,5,1.11111111111111,366
+"high_intensity",29,"operations","Reconstruction",0.961111111111111,6,1.14444444444444,346
+"high_intensity",30,"operations","Reconstruction",0.997222222222222,4,0.988888888888889,359
+"high_intensity",1,"operations","Total",5.87222222222222,31,5.97777777777778,2114
+"high_intensity",2,"operations","Total",5.34166666666667,26,5.52222222222222,1923
+"high_intensity",3,"operations","Total",5.39444444444444,28,5.73333333333333,1942
+"high_intensity",4,"operations","Total",5.3,27,5.2,1908
+"high_intensity",5,"operations","Total",5.57222222222222,27,5.88888888888889,2006
+"high_intensity",6,"operations","Total",5.63333333333333,27,6.11111111111111,2028
+"high_intensity",7,"operations","Total",5.23055555555556,27,5.44444444444444,1883
+"high_intensity",8,"operations","Total",5.80555555555556,27,5.86666666666667,2090
+"high_intensity",9,"operations","Total",5.68611111111111,34,6.4,2047
+"high_intensity",10,"operations","Total",5.62777777777778,27,5.97777777777778,2026
+"high_intensity",11,"operations","Total",5.33333333333333,26,5.2,1920
+"high_intensity",12,"operations","Total",5.75277777777778,29,6.24444444444444,2071
+"high_intensity",13,"operations","Total",5.69722222222222,32,5.94444444444444,2051
+"high_intensity",14,"operations","Total",5.75277777777778,25,5.21111111111111,2071
+"high_intensity",15,"operations","Total",5.91666666666667,28,7.17777777777778,2130
+"high_intensity",16,"operations","Total",5.76111111111111,26,5.87777777777778,2074
+"high_intensity",17,"operations","Total",5.78333333333333,31,5.52222222222222,2082
+"high_intensity",18,"operations","Total",5.81944444444444,31,6.26666666666667,2095
+"high_intensity",19,"operations","Total",5.49166666666667,30,5.86666666666667,1977
+"high_intensity",20,"operations","Total",5.67777777777778,26,5.28888888888889,2044
+"high_intensity",21,"operations","Total",5.92222222222222,28,6.05555555555556,2132
+"high_intensity",22,"operations","Total",5.84166666666667,27,5.88888888888889,2103
+"high_intensity",23,"operations","Total",5.86111111111111,26,6.06666666666667,2110
+"high_intensity",24,"operations","Total",5.30833333333333,25,5.27777777777778,1911
+"high_intensity",25,"operations","Total",5.53888888888889,27,5.02222222222222,1994
+"high_intensity",26,"operations","Total",5.24444444444444,27,6,1888
+"high_intensity",27,"operations","Total",5.67777777777778,29,6.08888888888889,2044
+"high_intensity",28,"operations","Total",5.57777777777778,28,6.48888888888889,2008
+"high_intensity",29,"operations","Total",5.575,28,6.28888888888889,2007
+"high_intensity",30,"operations","Total",5.725,28,5.88888888888889,2061
+"high_intensity",1,"operations_admitted","Total",2141,2141,2141,2141
+"high_intensity",2,"operations_admitted","Total",1951,1951,1951,1951
+"high_intensity",3,"operations_admitted","Total",1964,1964,1964,1964
+"high_intensity",4,"operations_admitted","Total",1929,1929,1929,1929
+"high_intensity",5,"operations_admitted","Total",2021,2021,2021,2021
+"high_intensity",6,"operations_admitted","Total",2049,2049,2049,2049
+"high_intensity",7,"operations_admitted","Total",1901,1901,1901,1901
+"high_intensity",8,"operations_admitted","Total",2122,2122,2122,2122
+"high_intensity",9,"operations_admitted","Total",2068,2068,2068,2068
+"high_intensity",10,"operations_admitted","Total",2063,2063,2063,2063
+"high_intensity",11,"operations_admitted","Total",1934,1934,1934,1934
+"high_intensity",12,"operations_admitted","Total",2088,2088,2088,2088
+"high_intensity",13,"operations_admitted","Total",2080,2080,2080,2080
+"high_intensity",14,"operations_admitted","Total",2100,2100,2100,2100
+"high_intensity",15,"operations_admitted","Total",2154,2154,2154,2154
+"high_intensity",16,"operations_admitted","Total",2108,2108,2108,2108
+"high_intensity",17,"operations_admitted","Total",2097,2097,2097,2097
+"high_intensity",18,"operations_admitted","Total",2133,2133,2133,2133
+"high_intensity",19,"operations_admitted","Total",1995,1995,1995,1995
+"high_intensity",20,"operations_admitted","Total",2077,2077,2077,2077
+"high_intensity",21,"operations_admitted","Total",2155,2155,2155,2155
+"high_intensity",22,"operations_admitted","Total",2130,2130,2130,2130
+"high_intensity",23,"operations_admitted","Total",2128,2128,2128,2128
+"high_intensity",24,"operations_admitted","Total",1926,1926,1926,1926
+"high_intensity",25,"operations_admitted","Total",2028,2028,2028,2028
+"high_intensity",26,"operations_admitted","Total",1904,1904,1904,1904
+"high_intensity",27,"operations_admitted","Total",2078,2078,2078,2078
+"high_intensity",28,"operations_admitted","Total",2044,2044,2044,2044
+"high_intensity",29,"operations_admitted","Total",2028,2028,2028,2028
+"high_intensity",30,"operations_admitted","Total",2100,2100,2100,2100
+"high_intensity",1,"operations_after_horizon","Total",27,27,27,27
+"high_intensity",2,"operations_after_horizon","Total",28,28,28,28
+"high_intensity",3,"operations_after_horizon","Total",22,22,22,22
+"high_intensity",4,"operations_after_horizon","Total",21,21,21,21
+"high_intensity",5,"operations_after_horizon","Total",15,15,15,15
+"high_intensity",6,"operations_after_horizon","Total",21,21,21,21
+"high_intensity",7,"operations_after_horizon","Total",18,18,18,18
+"high_intensity",8,"operations_after_horizon","Total",32,32,32,32
+"high_intensity",9,"operations_after_horizon","Total",21,21,21,21
+"high_intensity",10,"operations_after_horizon","Total",37,37,37,37
+"high_intensity",11,"operations_after_horizon","Total",14,14,14,14
+"high_intensity",12,"operations_after_horizon","Total",17,17,17,17
+"high_intensity",13,"operations_after_horizon","Total",29,29,29,29
+"high_intensity",14,"operations_after_horizon","Total",29,29,29,29
+"high_intensity",15,"operations_after_horizon","Total",24,24,24,24
+"high_intensity",16,"operations_after_horizon","Total",34,34,34,34
+"high_intensity",17,"operations_after_horizon","Total",15,15,15,15
+"high_intensity",18,"operations_after_horizon","Total",38,38,38,38
+"high_intensity",19,"operations_after_horizon","Total",18,18,18,18
+"high_intensity",20,"operations_after_horizon","Total",33,33,33,33
+"high_intensity",21,"operations_after_horizon","Total",23,23,23,23
+"high_intensity",22,"operations_after_horizon","Total",27,27,27,27
+"high_intensity",23,"operations_after_horizon","Total",18,18,18,18
+"high_intensity",24,"operations_after_horizon","Total",15,15,15,15
+"high_intensity",25,"operations_after_horizon","Total",34,34,34,34
+"high_intensity",26,"operations_after_horizon","Total",16,16,16,16
+"high_intensity",27,"operations_after_horizon","Total",34,34,34,34
+"high_intensity",28,"operations_after_horizon","Total",36,36,36,36
+"high_intensity",29,"operations_after_horizon","Total",21,21,21,21
+"high_intensity",30,"operations_after_horizon","Total",39,39,39,39
+"high_intensity",1,"theatre_minutes","Total",276.520469647141,3078.3922786975,273.115917278799,99547.3690729708
+"high_intensity",2,"theatre_minutes","Total",233.670883048821,2873.75612246018,258.428624235078,84121.5178975756
+"high_intensity",3,"theatre_minutes","Total",265.296445750929,2763.09179488509,275.277591347018,95506.7204703343
+"high_intensity",4,"theatre_minutes","Total",245.65712094653,2770.88161833164,277.669473366177,88436.5635407509
+"high_intensity",5,"theatre_minutes","Total",238.085369833782,2676.97504177267,262.175699385763,85710.7331401616
+"high_intensity",6,"theatre_minutes","Total",258.964652305957,2943.87208410352,280.441062241442,93227.2748301445
+"high_intensity",7,"theatre_minutes","Total",220.976717392696,3105.01608661592,243.05179996014,79551.6182613706
+"high_intensity",8,"theatre_minutes","Total",258.931972096543,2777.86990568165,294.070742545992,93215.5099547556
+"high_intensity",9,"theatre_minutes","Total",278.085404414281,2972.08256987126,295.011526264418,100110.745589141
+"high_intensity",10,"theatre_minutes","Total",249.167475505469,2661.54919581414,275.861636946208,89700.2911819689
+"high_intensity",11,"theatre_minutes","Total",243.089222239895,3131.97759166643,235.479590467222,87512.1200063622
+"high_intensity",12,"theatre_minutes","Total",253.930236235655,2907.61356910392,285.120580584424,91414.8850448358
+"high_intensity",13,"theatre_minutes","Total",296.741505409117,3414.91181139605,299.440003064226,106826.941947282
+"high_intensity",14,"theatre_minutes","Total",276.110923811868,2964.11034436974,272.65128971204,99399.9325722726
+"high_intensity",15,"theatre_minutes","Total",235.531866234129,3073.51384924831,289.235471960952,84791.4718442865
+"high_intensity",16,"theatre_minutes","Total",256.400709157942,2816.80205025162,194.128070973022,92304.2552968593
+"high_intensity",17,"theatre_minutes","Total",282.324250790904,3228.88643695925,274.040211243414,101636.730284726
+"high_intensity",18,"theatre_minutes","Total",267.347228157175,2912.05039281669,257.468306487787,96245.0021365829
+"high_intensity",19,"theatre_minutes","Total",224.601331567651,2628.37143952144,247.43371551629,80856.4793643543
+"high_intensity",20,"theatre_minutes","Total",264.325108084586,2718.24759033907,271.829679260714,95157.038910451
+"high_intensity",21,"theatre_minutes","Total",264.934198099085,2683.12719821137,279.063307854638,95376.3113156705
+"high_intensity",22,"theatre_minutes","Total",245.482491275802,2785.97415881873,274.502251586955,88373.6968592887
+"high_intensity",23,"theatre_minutes","Total",262.232163469453,2638.4708322405,287.412088977624,94403.578849003
+"high_intensity",24,"theatre_minutes","Total",222.953717121034,2675.37325916174,209.03780666787,80263.3381635723
+"high_intensity",25,"theatre_minutes","Total",264.234170119005,3033.00946419455,273.253260150631,95124.3012428418
+"high_intensity",26,"theatre_minutes","Total",237.579567282995,2827.83185768757,251.992240722698,85528.6442218782
+"high_intensity",27,"theatre_minutes","Total",224.226628680458,2666.20367098586,249.170879601102,80721.5863249648
+"high_intensity",28,"theatre_minutes","Total",229.038230669496,2908.84407715394,262.560635976269,82453.7630410186
+"high_intensity",29,"theatre_minutes","Total",251.440931433609,2801.64926884683,278.643523192761,90518.7353160993
+"high_intensity",30,"theatre_minutes","Total",256.64605785298,3050.14051821267,248.386709025581,92392.5808270727
+"moderate_intensity",1,"census","Battle injury",97.7694444444444,160,124.666666666667,35197
+"moderate_intensity",2,"census","Battle injury",83.8611111111111,148,88.2555555555556,30190
+"moderate_intensity",3,"census","Battle injury",95.7388888888889,152,115.455555555556,34466
+"moderate_intensity",4,"census","Battle injury",94.8027777777778,159,100.433333333333,34129
+"moderate_intensity",5,"census","Battle injury",97.9555555555555,159,106.766666666667,35264
+"moderate_intensity",6,"census","Battle injury",98.1055555555556,139,116.544444444444,35318
+"moderate_intensity",7,"census","Battle injury",85.7111111111111,138,104.855555555556,30856
+"moderate_intensity",8,"census","Battle injury",97.3666666666667,151,94.9444444444444,35052
+"moderate_intensity",9,"census","Battle injury",90.5805555555555,156,83.8333333333333,32609
+"moderate_intensity",10,"census","Battle injury",104.747222222222,164,97.4111111111111,37709
+"moderate_intensity",11,"census","Battle injury",88.0083333333333,137,95.6777777777778,31683
+"moderate_intensity",12,"census","Battle injury",98.3972222222222,163,103.333333333333,35423
+"moderate_intensity",13,"census","Battle injury",95.9083333333333,158,114.855555555556,34527
+"moderate_intensity",14,"census","Battle injury",109.783333333333,177,129.866666666667,39522
+"moderate_intensity",15,"census","Battle injury",94.2444444444444,156,113.477777777778,33928
+"moderate_intensity",16,"census","Battle injury",107.361111111111,159,104.422222222222,38650
+"moderate_intensity",17,"census","Battle injury",105.763888888889,176,111.266666666667,38075
+"moderate_intensity",18,"census","Battle injury",98.7194444444444,160,103.122222222222,35539
+"moderate_intensity",19,"census","Battle injury",86.9555555555555,157,103.111111111111,31304
+"moderate_intensity",20,"census","Battle injury",107.35,168,124.077777777778,38646
+"moderate_intensity",21,"census","Battle injury",101.455555555556,168,113.077777777778,36524
+"moderate_intensity",22,"census","Battle injury",98.3888888888889,154,107.511111111111,35420
+"moderate_intensity",23,"census","Battle injury",101.252777777778,186,110.355555555556,36451
+"moderate_intensity",24,"census","Battle injury",104.730555555556,170,99.9,37703
+"moderate_intensity",25,"census","Battle injury",95.6444444444444,170,115.344444444444,34432
+"moderate_intensity",26,"census","Battle injury",104.194444444444,164,122.422222222222,37510
+"moderate_intensity",27,"census","Battle injury",99.2527777777778,156,100.577777777778,35731
+"moderate_intensity",28,"census","Battle injury",87.9833333333333,149,89.5111111111111,31674
+"moderate_intensity",29,"census","Battle injury",99.3888888888889,151,104.388888888889,35780
+"moderate_intensity",30,"census","Battle injury",101.647222222222,155,104.755555555556,36593
+"moderate_intensity",1,"census","Disease and non-battle injury",18.3166666666667,33,18.1111111111111,6594
+"moderate_intensity",2,"census","Disease and non-battle injury",17.6555555555556,31,17.0333333333333,6356
+"moderate_intensity",3,"census","Disease and non-battle injury",17.9444444444444,41,19.4222222222222,6460
+"moderate_intensity",4,"census","Disease and non-battle injury",17.8027777777778,45,21.3111111111111,6409
+"moderate_intensity",5,"census","Disease and non-battle injury",17.1388888888889,33,16.7,6170
+"moderate_intensity",6,"census","Disease and non-battle injury",20.6305555555556,39,25.8111111111111,7427
+"moderate_intensity",7,"census","Disease and non-battle injury",21.6527777777778,45,22.4444444444444,7795
+"moderate_intensity",8,"census","Disease and non-battle injury",18.3944444444444,32,20.8111111111111,6622
+"moderate_intensity",9,"census","Disease and non-battle injury",18.2305555555556,34,20.5777777777778,6563
+"moderate_intensity",10,"census","Disease and non-battle injury",18.45,31,20.6555555555556,6642
+"moderate_intensity",11,"census","Disease and non-battle injury",18.3916666666667,29,19.2222222222222,6621
+"moderate_intensity",12,"census","Disease and non-battle injury",19.4027777777778,37,19.3444444444444,6985
+"moderate_intensity",13,"census","Disease and non-battle injury",16.6333333333333,28,15.8555555555556,5988
+"moderate_intensity",14,"census","Disease and non-battle injury",18.8972222222222,33,23.1666666666667,6803
+"moderate_intensity",15,"census","Disease and non-battle injury",18.6666666666667,33,17.2444444444444,6720
+"moderate_intensity",16,"census","Disease and non-battle injury",18.2416666666667,36,19.3222222222222,6567
+"moderate_intensity",17,"census","Disease and non-battle injury",19.1138888888889,34,21.2222222222222,6881
+"moderate_intensity",18,"census","Disease and non-battle injury",19.2861111111111,35,20.5666666666667,6943
+"moderate_intensity",19,"census","Disease and non-battle injury",17.6638888888889,44,15.5444444444444,6359
+"moderate_intensity",20,"census","Disease and non-battle injury",20.225,34,19.9333333333333,7281
+"moderate_intensity",21,"census","Disease and non-battle injury",18.525,32,18.5666666666667,6669
+"moderate_intensity",22,"census","Disease and non-battle injury",18.6222222222222,34,19.0444444444444,6704
+"moderate_intensity",23,"census","Disease and non-battle injury",18.3027777777778,42,19.8444444444444,6589
+"moderate_intensity",24,"census","Disease and non-battle injury",17.6861111111111,31,17.9,6367
+"moderate_intensity",25,"census","Disease and non-battle injury",19.3916666666667,46,13.9444444444444,6981
+"moderate_intensity",26,"census","Disease and non-battle injury",18.175,36,20.6888888888889,6543
+"moderate_intensity",27,"census","Disease and non-battle injury",17.5277777777778,36,16.1,6310
+"moderate_intensity",28,"census","Disease and non-battle injury",19.8472222222222,42,22.5444444444444,7145
+"moderate_intensity",29,"census","Disease and non-battle injury",20.5611111111111,45,18.9222222222222,7402
+"moderate_intensity",30,"census","Disease and non-battle injury",19.2916666666667,31,17.5222222222222,6945
+"moderate_intensity",1,"census","hold",102.552777777778,148,125,36919
+"moderate_intensity",2,"census","hold",93.4944444444444,142,98.4555555555555,33658
+"moderate_intensity",3,"census","hold",102.455555555556,141,120.155555555556,36884
+"moderate_intensity",4,"census","hold",102.202777777778,151,108.955555555556,36793
+"moderate_intensity",5,"census","hold",104.402777777778,164,116.033333333333,37585
+"moderate_intensity",6,"census","hold",106.097222222222,147,129.277777777778,38195
+"moderate_intensity",7,"census","hold",98.375,144,117.466666666667,35415
+"moderate_intensity",8,"census","hold",106.261111111111,144,108.422222222222,38254
+"moderate_intensity",9,"census","hold",98.425,147,96,35433
+"moderate_intensity",10,"census","hold",111.827777777778,164,103.977777777778,40258
+"moderate_intensity",11,"census","hold",97.7194444444444,141,106.255555555556,35179
+"moderate_intensity",12,"census","hold",106.955555555556,157,108.511111111111,38504
+"moderate_intensity",13,"census","hold",103.261111111111,149,119.722222222222,37174
+"moderate_intensity",14,"census","hold",116.030555555556,177,134.322222222222,41771
+"moderate_intensity",15,"census","hold",102.091666666667,150,116.755555555556,36753
+"moderate_intensity",16,"census","hold",114.230555555556,154,115.611111111111,41123
+"moderate_intensity",17,"census","hold",113.616666666667,176,122.922222222222,40902
+"moderate_intensity",18,"census","hold",106.258333333333,152,112.788888888889,38253
+"moderate_intensity",19,"census","hold",95.75,141,109.077777777778,34470
+"moderate_intensity",20,"census","hold",115.933333333333,164,131.222222222222,41736
+"moderate_intensity",21,"census","hold",108.519444444444,162,119.444444444444,39067
+"moderate_intensity",22,"census","hold",107.652777777778,155,116.888888888889,38755
+"moderate_intensity",23,"census","hold",108.375,179,126.422222222222,39015
+"moderate_intensity",24,"census","hold",108.763888888889,164,102.444444444444,39155
+"moderate_intensity",25,"census","hold",103.944444444444,156,115.644444444444,37420
+"moderate_intensity",26,"census","hold",109.922222222222,161,130.577777777778,39572
+"moderate_intensity",27,"census","hold",105.036111111111,152,106.288888888889,37813
+"moderate_intensity",28,"census","hold",97.8861111111111,152,100.555555555556,35239
+"moderate_intensity",29,"census","hold",106.611111111111,148,110.244444444444,38380
+"moderate_intensity",30,"census","hold",108.122222222222,143,109.677777777778,38924
+"moderate_intensity",1,"census","icu",33.7972222222222,61,41.8666666666667,12167
+"moderate_intensity",2,"census","icu",30.5861111111111,63,30.6444444444444,11011
+"moderate_intensity",3,"census","icu",32.7138888888889,66,40.0666666666667,11777
+"moderate_intensity",4,"census","icu",34.425,66,39.0777777777778,12393
+"moderate_intensity",5,"census","icu",33.4416666666667,69,35.6222222222222,12039
+"moderate_intensity",6,"census","icu",34.4722222222222,60,39.1777777777778,12410
+"moderate_intensity",7,"census","icu",30.0944444444444,59,35.4,10834
+"moderate_intensity",8,"census","icu",32.8583333333333,64,32.9444444444444,11829
+"moderate_intensity",9,"census","icu",31.8861111111111,66,28.7,11479
+"moderate_intensity",10,"census","icu",34.4833333333333,64,33.3666666666667,12414
+"moderate_intensity",11,"census","icu",31.6166666666667,64,33.3777777777778,11382
+"moderate_intensity",12,"census","icu",33.7916666666667,70,35.9444444444444,12165
+"moderate_intensity",13,"census","icu",31.3055555555556,59,34.4222222222222,11270
+"moderate_intensity",14,"census","icu",36.1055555555556,63,42.2444444444444,12998
+"moderate_intensity",15,"census","icu",32.6805555555556,65,36.7777777777778,11765
+"moderate_intensity",16,"census","icu",37.6555555555556,67,33.7444444444444,13556
+"moderate_intensity",17,"census","icu",35.9638888888889,66,37.1555555555556,12947
+"moderate_intensity",18,"census","icu",34.8583333333333,63,38.4666666666667,12549
+"moderate_intensity",19,"census","icu",29.8166666666667,62,31.9777777777778,10734
+"moderate_intensity",20,"census","icu",35.5333333333333,66,40.1444444444444,12792
+"moderate_intensity",21,"census","icu",35.65,62,37.8666666666667,12834
+"moderate_intensity",22,"census","icu",32.4,62,33.4555555555556,11664
+"moderate_intensity",23,"census","icu",34.5277777777778,64,39.4555555555556,12430
+"moderate_intensity",24,"census","icu",35.6388888888889,65,34.9666666666667,12830
+"moderate_intensity",25,"census","icu",32.7861111111111,63,36.6,11803
+"moderate_intensity",26,"census","icu",35.6805555555556,67,39.2444444444444,12845
+"moderate_intensity",27,"census","icu",33.9194444444444,65,30.5888888888889,12211
+"moderate_intensity",28,"census","icu",30.525,61,30.9444444444444,10989
+"moderate_intensity",29,"census","icu",33.1472222222222,60,33.1,11933
+"moderate_intensity",30,"census","icu",35.3888888888889,62,34.9777777777778,12740
+"moderate_intensity",1,"census","Reconstruction cohort",20.2638888888889,33,24.0888888888889,7295
+"moderate_intensity",2,"census","Reconstruction cohort",22.5638888888889,41,23.8111111111111,8123
+"moderate_intensity",3,"census","Reconstruction cohort",21.4861111111111,32,25.3444444444444,7735
+"moderate_intensity",4,"census","Reconstruction cohort",24.0222222222222,42,26.2888888888889,8648
+"moderate_intensity",5,"census","Reconstruction cohort",22.75,43,28.1888888888889,8190
+"moderate_intensity",6,"census","Reconstruction cohort",21.8333333333333,36,26.1,7860
+"moderate_intensity",7,"census","Reconstruction cohort",21.1055555555556,36,25.5666666666667,7598
+"moderate_intensity",8,"census","Reconstruction cohort",23.3583333333333,38,25.6111111111111,8409
+"moderate_intensity",9,"census","Reconstruction cohort",21.5,38,20.2888888888889,7740
+"moderate_intensity",10,"census","Reconstruction cohort",23.1138888888889,45,19.2777777777778,8321
+"moderate_intensity",11,"census","Reconstruction cohort",22.9361111111111,39,24.7333333333333,8257
+"moderate_intensity",12,"census","Reconstruction cohort",22.9472222222222,43,21.7777777777778,8261
+"moderate_intensity",13,"census","Reconstruction cohort",22.025,33,23.4333333333333,7929
+"moderate_intensity",14,"census","Reconstruction cohort",23.4555555555556,47,23.5333333333333,8444
+"moderate_intensity",15,"census","Reconstruction cohort",21.8611111111111,36,22.8111111111111,7870
+"moderate_intensity",16,"census","Reconstruction cohort",26.2833333333333,42,25.6111111111111,9462
+"moderate_intensity",17,"census","Reconstruction cohort",24.7027777777778,37,27.5888888888889,8893
+"moderate_intensity",18,"census","Reconstruction cohort",23.1111111111111,37,27.5666666666667,8320
+"moderate_intensity",19,"census","Reconstruction cohort",20.9472222222222,33,22.4,7541
+"moderate_intensity",20,"census","Reconstruction cohort",23.8916666666667,38,27.3555555555556,8601
+"moderate_intensity",21,"census","Reconstruction cohort",24.1888888888889,40,25.6666666666667,8708
+"moderate_intensity",22,"census","Reconstruction cohort",23.0416666666667,43,23.7888888888889,8295
+"moderate_intensity",23,"census","Reconstruction cohort",23.3472222222222,48,35.6777777777778,8405
+"moderate_intensity",24,"census","Reconstruction cohort",21.9861111111111,36,19.6111111111111,7915
+"moderate_intensity",25,"census","Reconstruction cohort",21.6944444444444,42,22.9555555555556,7810
+"moderate_intensity",26,"census","Reconstruction cohort",23.2333333333333,42,26.7111111111111,8364
+"moderate_intensity",27,"census","Reconstruction cohort",22.175,36,20.2,7983
+"moderate_intensity",28,"census","Reconstruction cohort",20.5805555555556,33,19.4444444444444,7409
+"moderate_intensity",29,"census","Reconstruction cohort",19.8083333333333,31,20.0333333333333,7131
+"moderate_intensity",30,"census","Reconstruction cohort",22.5722222222222,39,22.3777777777778,8126
+"moderate_intensity",1,"census","Total",136.35,207,166.866666666667,49086
+"moderate_intensity",2,"census","Total",124.080555555556,197,129.1,44669
+"moderate_intensity",3,"census","Total",135.169444444444,199,160.222222222222,48661
+"moderate_intensity",4,"census","Total",136.627777777778,205,148.033333333333,49186
+"moderate_intensity",5,"census","Total",137.844444444444,208,151.655555555556,49624
+"moderate_intensity",6,"census","Total",140.569444444444,200,168.455555555556,50605
+"moderate_intensity",7,"census","Total",128.469444444444,196,152.866666666667,46249
+"moderate_intensity",8,"census","Total",139.119444444444,198,141.366666666667,50083
+"moderate_intensity",9,"census","Total",130.311111111111,207,124.7,46912
+"moderate_intensity",10,"census","Total",146.311111111111,215,137.344444444444,52672
+"moderate_intensity",11,"census","Total",129.336111111111,195,139.633333333333,46561
+"moderate_intensity",12,"census","Total",140.747222222222,214,144.455555555556,50669
+"moderate_intensity",13,"census","Total",134.566666666667,203,154.144444444444,48444
+"moderate_intensity",14,"census","Total",152.136111111111,225,176.566666666667,54769
+"moderate_intensity",15,"census","Total",134.772222222222,207,153.533333333333,48518
+"moderate_intensity",16,"census","Total",151.886111111111,211,149.355555555556,54679
+"moderate_intensity",17,"census","Total",149.580555555556,231,160.077777777778,53849
+"moderate_intensity",18,"census","Total",141.116666666667,210,151.255555555556,50802
+"moderate_intensity",19,"census","Total",125.566666666667,201,141.055555555556,45204
+"moderate_intensity",20,"census","Total",151.466666666667,219,171.366666666667,54528
+"moderate_intensity",21,"census","Total",144.169444444444,220,157.311111111111,51901
+"moderate_intensity",22,"census","Total",140.052777777778,209,150.344444444444,50419
+"moderate_intensity",23,"census","Total",142.902777777778,240,165.877777777778,51445
+"moderate_intensity",24,"census","Total",144.402777777778,220,137.411111111111,51985
+"moderate_intensity",25,"census","Total",136.730555555556,209,152.244444444444,49223
+"moderate_intensity",26,"census","Total",145.602777777778,217,169.822222222222,52417
+"moderate_intensity",27,"census","Total",138.955555555556,211,136.877777777778,50024
+"moderate_intensity",28,"census","Total",128.411111111111,204,131.5,46228
+"moderate_intensity",29,"census","Total",139.758333333333,200,143.344444444444,50313
+"moderate_intensity",30,"census","Total",143.511111111111,199,144.655555555556,51664
+"moderate_intensity",1,"operations","Debridement",1.95277777777778,10,2.57777777777778,703
+"moderate_intensity",2,"operations","Debridement",2.00833333333333,14,2.18888888888889,723
+"moderate_intensity",3,"operations","Debridement",2.06666666666667,12,2.67777777777778,744
+"moderate_intensity",4,"operations","Debridement",2.29444444444444,13,2.62222222222222,826
+"moderate_intensity",5,"operations","Debridement",2.31388888888889,15,2.81111111111111,833
+"moderate_intensity",6,"operations","Debridement",2.16666666666667,11,2.55555555555556,780
+"moderate_intensity",7,"operations","Debridement",1.86111111111111,13,2.23333333333333,670
+"moderate_intensity",8,"operations","Debridement",2.21388888888889,12,2.14444444444444,797
+"moderate_intensity",9,"operations","Debridement",1.83333333333333,12,1.46666666666667,660
+"moderate_intensity",10,"operations","Debridement",2.13333333333333,15,2.17777777777778,768
+"moderate_intensity",11,"operations","Debridement",2.16111111111111,13,2.32222222222222,778
+"moderate_intensity",12,"operations","Debridement",2.14166666666667,12,2.05555555555556,771
+"moderate_intensity",13,"operations","Debridement",2.09444444444444,12,2.14444444444444,754
+"moderate_intensity",14,"operations","Debridement",2.13055555555556,12,2.18888888888889,767
+"moderate_intensity",15,"operations","Debridement",2.09444444444444,12,2.45555555555556,754
+"moderate_intensity",16,"operations","Debridement",2.72777777777778,17,2.07777777777778,982
+"moderate_intensity",17,"operations","Debridement",2.48333333333333,14,2.65555555555556,894
+"moderate_intensity",18,"operations","Debridement",2.175,13,2.78888888888889,783
+"moderate_intensity",19,"operations","Debridement",2.04444444444444,11,2.01111111111111,736
+"moderate_intensity",20,"operations","Debridement",2.18055555555556,13,2.43333333333333,785
+"moderate_intensity",21,"operations","Debridement",2.29722222222222,13,2.7,827
+"moderate_intensity",22,"operations","Debridement",2.14444444444444,13,2.37777777777778,772
+"moderate_intensity",23,"operations","Debridement",2.16944444444444,16,3.32222222222222,781
+"moderate_intensity",24,"operations","Debridement",2.08611111111111,13,1.83333333333333,751
+"moderate_intensity",25,"operations","Debridement",2.01666666666667,13,2.34444444444444,726
+"moderate_intensity",26,"operations","Debridement",2.33055555555556,12,2.62222222222222,839
+"moderate_intensity",27,"operations","Debridement",2.27222222222222,12,1.92222222222222,818
+"moderate_intensity",28,"operations","Debridement",1.98888888888889,12,1.73333333333333,716
+"moderate_intensity",29,"operations","Debridement",1.82222222222222,11,1.76666666666667,656
+"moderate_intensity",30,"operations","Debridement",2.09444444444444,13,2.1,754
+"moderate_intensity",1,"operations","Definitive repair",0.375,23,0.755555555555556,135
+"moderate_intensity",2,"operations","Definitive repair",0.208333333333333,10,0.144444444444444,75
+"moderate_intensity",3,"operations","Definitive repair",0.377777777777778,17,0.877777777777778,136
+"moderate_intensity",4,"operations","Definitive repair",0.361111111111111,20,0.455555555555556,130
+"moderate_intensity",5,"operations","Definitive repair",0.327777777777778,18,0.511111111111111,118
+"moderate_intensity",6,"operations","Definitive repair",0.397222222222222,19,0.544444444444444,143
+"moderate_intensity",7,"operations","Definitive repair",0.252777777777778,14,0.266666666666667,91
+"moderate_intensity",8,"operations","Definitive repair",0.233333333333333,13,0.222222222222222,84
+"moderate_intensity",9,"operations","Definitive repair",0.258333333333333,15,0.0444444444444444,93
+"moderate_intensity",10,"operations","Definitive repair",0.394444444444444,15,0.355555555555556,142
+"moderate_intensity",11,"operations","Definitive repair",0.222222222222222,13,0.188888888888889,80
+"moderate_intensity",12,"operations","Definitive repair",0.363888888888889,19,0.466666666666667,131
+"moderate_intensity",13,"operations","Definitive repair",0.236111111111111,14,0.488888888888889,85
+"moderate_intensity",14,"operations","Definitive repair",0.533333333333333,20,0.477777777777778,192
+"moderate_intensity",15,"operations","Definitive repair",0.286111111111111,15,0.588888888888889,103
+"moderate_intensity",16,"operations","Definitive repair",0.422222222222222,18,0.333333333333333,152
+"moderate_intensity",17,"operations","Definitive repair",0.530555555555556,20,0.233333333333333,191
+"moderate_intensity",18,"operations","Definitive repair",0.486111111111111,20,0.9,175
+"moderate_intensity",19,"operations","Definitive repair",0.213888888888889,17,0.0777777777777778,77
+"moderate_intensity",20,"operations","Definitive repair",0.363888888888889,18,0.644444444444444,131
+"moderate_intensity",21,"operations","Definitive repair",0.383333333333333,23,0.244444444444444,138
+"moderate_intensity",22,"operations","Definitive repair",0.225,13,0.144444444444444,81
+"moderate_intensity",23,"operations","Definitive repair",0.519444444444444,19,0.7,187
+"moderate_intensity",24,"operations","Definitive repair",0.427777777777778,18,0.177777777777778,154
+"moderate_intensity",25,"operations","Definitive repair",0.35,16,0.4,126
+"moderate_intensity",26,"operations","Definitive repair",0.6,19,0.9,216
+"moderate_intensity",27,"operations","Definitive repair",0.308333333333333,14,0.233333333333333,111
+"moderate_intensity",28,"operations","Definitive repair",0.230555555555556,9,0.122222222222222,83
+"moderate_intensity",29,"operations","Definitive repair",0.444444444444444,16,0.411111111111111,160
+"moderate_intensity",30,"operations","Definitive repair",0.386111111111111,16,0.411111111111111,139
+"moderate_intensity",1,"operations","Reconstruction",0.744444444444444,4,0.9,268
+"moderate_intensity",2,"operations","Reconstruction",0.822222222222222,4,0.788888888888889,296
+"moderate_intensity",3,"operations","Reconstruction",0.780555555555556,4,0.933333333333333,281
+"moderate_intensity",4,"operations","Reconstruction",0.858333333333333,6,0.888888888888889,309
+"moderate_intensity",5,"operations","Reconstruction",0.844444444444444,6,1.06666666666667,304
+"moderate_intensity",6,"operations","Reconstruction",0.794444444444444,4,0.966666666666667,286
+"moderate_intensity",7,"operations","Reconstruction",0.772222222222222,4,0.911111111111111,278
+"moderate_intensity",8,"operations","Reconstruction",0.841666666666667,5,0.888888888888889,303
+"moderate_intensity",9,"operations","Reconstruction",0.775,4,0.711111111111111,279
+"moderate_intensity",10,"operations","Reconstruction",0.813888888888889,6,0.666666666666667,293
+"moderate_intensity",11,"operations","Reconstruction",0.844444444444444,4,0.855555555555556,304
+"moderate_intensity",12,"operations","Reconstruction",0.827777777777778,5,0.8,298
+"moderate_intensity",13,"operations","Reconstruction",0.788888888888889,4,0.866666666666667,284
+"moderate_intensity",14,"operations","Reconstruction",0.841666666666667,4,0.833333333333333,303
+"moderate_intensity",15,"operations","Reconstruction",0.794444444444444,4,0.855555555555556,286
+"moderate_intensity",16,"operations","Reconstruction",0.955555555555556,5,0.9,344
+"moderate_intensity",17,"operations","Reconstruction",0.897222222222222,5,0.944444444444444,323
+"moderate_intensity",18,"operations","Reconstruction",0.863888888888889,5,1.01111111111111,311
+"moderate_intensity",19,"operations","Reconstruction",0.758333333333333,5,0.811111111111111,273
+"moderate_intensity",20,"operations","Reconstruction",0.858333333333333,4,1.03333333333333,309
+"moderate_intensity",21,"operations","Reconstruction",0.875,4,0.944444444444444,315
+"moderate_intensity",22,"operations","Reconstruction",0.822222222222222,5,0.822222222222222,296
+"moderate_intensity",23,"operations","Reconstruction",0.861111111111111,5,1.25555555555556,310
+"moderate_intensity",24,"operations","Reconstruction",0.8,4,0.711111111111111,288
+"moderate_intensity",25,"operations","Reconstruction",0.777777777777778,7,0.8,280
+"moderate_intensity",26,"operations","Reconstruction",0.880555555555556,5,0.977777777777778,317
+"moderate_intensity",27,"operations","Reconstruction",0.808333333333333,4,0.7,291
+"moderate_intensity",28,"operations","Reconstruction",0.75,4,0.688888888888889,270
+"moderate_intensity",29,"operations","Reconstruction",0.730555555555556,5,0.744444444444444,263
+"moderate_intensity",30,"operations","Reconstruction",0.811111111111111,4,0.744444444444444,292
+"moderate_intensity",1,"operations","Total",3.07222222222222,27,4.23333333333333,1106
+"moderate_intensity",2,"operations","Total",3.03888888888889,16,3.12222222222222,1094
+"moderate_intensity",3,"operations","Total",3.225,21,4.48888888888889,1161
+"moderate_intensity",4,"operations","Total",3.51388888888889,24,3.96666666666667,1265
+"moderate_intensity",5,"operations","Total",3.48611111111111,22,4.38888888888889,1255
+"moderate_intensity",6,"operations","Total",3.35833333333333,22,4.06666666666667,1209
+"moderate_intensity",7,"operations","Total",2.88611111111111,15,3.41111111111111,1039
+"moderate_intensity",8,"operations","Total",3.28888888888889,16,3.25555555555556,1184
+"moderate_intensity",9,"operations","Total",2.86666666666667,22,2.22222222222222,1032
+"moderate_intensity",10,"operations","Total",3.34166666666667,18,3.2,1203
+"moderate_intensity",11,"operations","Total",3.22777777777778,17,3.36666666666667,1162
+"moderate_intensity",12,"operations","Total",3.33333333333333,22,3.32222222222222,1200
+"moderate_intensity",13,"operations","Total",3.11944444444444,14,3.5,1123
+"moderate_intensity",14,"operations","Total",3.50555555555556,22,3.5,1262
+"moderate_intensity",15,"operations","Total",3.175,19,3.9,1143
+"moderate_intensity",16,"operations","Total",4.10555555555556,21,3.31111111111111,1478
+"moderate_intensity",17,"operations","Total",3.91111111111111,27,3.83333333333333,1408
+"moderate_intensity",18,"operations","Total",3.525,23,4.7,1269
+"moderate_intensity",19,"operations","Total",3.01666666666667,20,2.9,1086
+"moderate_intensity",20,"operations","Total",3.40277777777778,21,4.11111111111111,1225
+"moderate_intensity",21,"operations","Total",3.55555555555556,28,3.88888888888889,1280
+"moderate_intensity",22,"operations","Total",3.19166666666667,18,3.34444444444444,1149
+"moderate_intensity",23,"operations","Total",3.55,25,5.27777777777778,1278
+"moderate_intensity",24,"operations","Total",3.31388888888889,22,2.72222222222222,1193
+"moderate_intensity",25,"operations","Total",3.14444444444444,20,3.54444444444444,1132
+"moderate_intensity",26,"operations","Total",3.81111111111111,25,4.5,1372
+"moderate_intensity",27,"operations","Total",3.38888888888889,20,2.85555555555556,1220
+"moderate_intensity",28,"operations","Total",2.96944444444444,13,2.54444444444444,1069
+"moderate_intensity",29,"operations","Total",2.99722222222222,24,2.92222222222222,1079
+"moderate_intensity",30,"operations","Total",3.29166666666667,18,3.25555555555556,1185
+"moderate_intensity",1,"operations_admitted","Total",1138,1138,1138,1138
+"moderate_intensity",2,"operations_admitted","Total",1121,1121,1121,1121
+"moderate_intensity",3,"operations_admitted","Total",1181,1181,1181,1181
+"moderate_intensity",4,"operations_admitted","Total",1292,1292,1292,1292
+"moderate_intensity",5,"operations_admitted","Total",1277,1277,1277,1277
+"moderate_intensity",6,"operations_admitted","Total",1220,1220,1220,1220
+"moderate_intensity",7,"operations_admitted","Total",1050,1050,1050,1050
+"moderate_intensity",8,"operations_admitted","Total",1204,1204,1204,1204
+"moderate_intensity",9,"operations_admitted","Total",1049,1049,1049,1049
+"moderate_intensity",10,"operations_admitted","Total",1241,1241,1241,1241
+"moderate_intensity",11,"operations_admitted","Total",1177,1177,1177,1177
+"moderate_intensity",12,"operations_admitted","Total",1225,1225,1225,1225
+"moderate_intensity",13,"operations_admitted","Total",1132,1132,1132,1132
+"moderate_intensity",14,"operations_admitted","Total",1291,1291,1291,1291
+"moderate_intensity",15,"operations_admitted","Total",1166,1166,1166,1166
+"moderate_intensity",16,"operations_admitted","Total",1492,1492,1492,1492
+"moderate_intensity",17,"operations_admitted","Total",1437,1437,1437,1437
+"moderate_intensity",18,"operations_admitted","Total",1284,1284,1284,1284
+"moderate_intensity",19,"operations_admitted","Total",1099,1099,1099,1099
+"moderate_intensity",20,"operations_admitted","Total",1239,1239,1239,1239
+"moderate_intensity",21,"operations_admitted","Total",1297,1297,1297,1297
+"moderate_intensity",22,"operations_admitted","Total",1158,1158,1158,1158
+"moderate_intensity",23,"operations_admitted","Total",1312,1312,1312,1312
+"moderate_intensity",24,"operations_admitted","Total",1235,1235,1235,1235
+"moderate_intensity",25,"operations_admitted","Total",1156,1156,1156,1156
+"moderate_intensity",26,"operations_admitted","Total",1387,1387,1387,1387
+"moderate_intensity",27,"operations_admitted","Total",1235,1235,1235,1235
+"moderate_intensity",28,"operations_admitted","Total",1078,1078,1078,1078
+"moderate_intensity",29,"operations_admitted","Total",1111,1111,1111,1111
+"moderate_intensity",30,"operations_admitted","Total",1204,1204,1204,1204
+"moderate_intensity",1,"operations_after_horizon","Total",32,32,32,32
+"moderate_intensity",2,"operations_after_horizon","Total",27,27,27,27
+"moderate_intensity",3,"operations_after_horizon","Total",20,20,20,20
+"moderate_intensity",4,"operations_after_horizon","Total",27,27,27,27
+"moderate_intensity",5,"operations_after_horizon","Total",22,22,22,22
+"moderate_intensity",6,"operations_after_horizon","Total",11,11,11,11
+"moderate_intensity",7,"operations_after_horizon","Total",11,11,11,11
+"moderate_intensity",8,"operations_after_horizon","Total",20,20,20,20
+"moderate_intensity",9,"operations_after_horizon","Total",17,17,17,17
+"moderate_intensity",10,"operations_after_horizon","Total",38,38,38,38
+"moderate_intensity",11,"operations_after_horizon","Total",15,15,15,15
+"moderate_intensity",12,"operations_after_horizon","Total",25,25,25,25
+"moderate_intensity",13,"operations_after_horizon","Total",9,9,9,9
+"moderate_intensity",14,"operations_after_horizon","Total",29,29,29,29
+"moderate_intensity",15,"operations_after_horizon","Total",23,23,23,23
+"moderate_intensity",16,"operations_after_horizon","Total",14,14,14,14
+"moderate_intensity",17,"operations_after_horizon","Total",29,29,29,29
 "moderate_intensity",18,"operations_after_horizon","Total",15,15,15,15
-"moderate_intensity",19,"operations_after_horizon","Total",25,25,25,25
-"moderate_intensity",20,"operations_after_horizon","Total",18,18,18,18
-"moderate_intensity",21,"operations_after_horizon","Total",8,8,8,8
-"moderate_intensity",22,"operations_after_horizon","Total",16,16,16,16
-"moderate_intensity",23,"operations_after_horizon","Total",23,23,23,23
-"moderate_intensity",24,"operations_after_horizon","Total",16,16,16,16
-"moderate_intensity",25,"operations_after_horizon","Total",30,30,30,30
-"moderate_intensity",26,"operations_after_horizon","Total",9,9,9,9
-"moderate_intensity",27,"operations_after_horizon","Total",16,16,16,16
-"moderate_intensity",28,"operations_after_horizon","Total",21,21,21,21
-"moderate_intensity",29,"operations_after_horizon","Total",11,11,11,11
-"moderate_intensity",30,"operations_after_horizon","Total",20,20,20,20
-"moderate_intensity",1,"theatre_minutes","Total",38.4576452795411,2061.68391384235,61.3967474270808,13844.7523006348
-"moderate_intensity",2,"theatre_minutes","Total",30.1711806236443,1834.19180490961,19.7562609821459,10861.6250245119
-"moderate_intensity",3,"theatre_minutes","Total",56.9334813454636,2511.69080316162,50.4581549556463,20496.0532843669
-"moderate_intensity",4,"theatre_minutes","Total",42.8808358861333,2262.69464187978,41.4979919358155,15437.100919008
-"moderate_intensity",5,"theatre_minutes","Total",45.2056771579592,2507.76030530929,58.816853447818,16274.0437768653
-"moderate_intensity",6,"theatre_minutes","Total",36.3305261648515,2280.96153704261,4.93616807472378,13078.9894193466
-"moderate_intensity",7,"theatre_minutes","Total",76.3658925845651,2373.22725919673,14.1377802727979,27491.7213304434
-"moderate_intensity",8,"theatre_minutes","Total",34.6513595978632,2159.99624886397,40.8554175420239,12474.4894552308
-"moderate_intensity",9,"theatre_minutes","Total",50.7821044725483,2020.26191048701,16.8248286412233,18281.5576101174
-"moderate_intensity",10,"theatre_minutes","Total",52.136837690892,2323.85952063464,112.392746921585,18769.2615687211
-"moderate_intensity",11,"theatre_minutes","Total",36.8131982459601,2174.12322784544,36.5014019334496,13252.7513685456
-"moderate_intensity",12,"theatre_minutes","Total",55.8887678429097,2378.95694518578,8.54583679909544,20119.9564234475
-"moderate_intensity",13,"theatre_minutes","Total",22.8704179479909,1638.14729023249,15.7359295081086,8233.35046127671
-"moderate_intensity",14,"theatre_minutes","Total",33.1846896713544,1932.45267906345,48.8281926395376,11946.4882816876
-"moderate_intensity",15,"theatre_minutes","Total",34.044841172317,1652.82270163924,44.5743856517048,12256.1428220341
-"moderate_intensity",16,"theatre_minutes","Total",47.6268955714297,2513.0742581064,61.2794085844345,17145.6824057147
-"moderate_intensity",17,"theatre_minutes","Total",36.4202305960632,2842.5491429566,13.783623831587,13111.2830145827
-"moderate_intensity",18,"theatre_minutes","Total",32.380492004881,2689.74094428757,20.629265033556,11656.9771217572
-"moderate_intensity",19,"theatre_minutes","Total",19.9779096351838,1590.88432421087,10.6411394323719,7192.04746866616
-"moderate_intensity",20,"theatre_minutes","Total",58.046463753987,2356.30163158286,25.0670076541868,20896.7269514353
-"moderate_intensity",21,"theatre_minutes","Total",37.8407375222568,1808.46067062005,33.4474292754514,13622.6655080125
-"moderate_intensity",22,"theatre_minutes","Total",49.9540868060676,1770.6194301483,26.6697834628435,17983.4712501843
-"moderate_intensity",23,"theatre_minutes","Total",33.7933225473478,1810.96886604701,69.4093219880593,12165.5961170452
-"moderate_intensity",24,"theatre_minutes","Total",47.452404404817,3192.6637167802,10.0879547619802,17082.8655857341
-"moderate_intensity",25,"theatre_minutes","Total",42.7728366947478,1274.42163817793,69.8651331839422,15398.2212101092
-"moderate_intensity",26,"theatre_minutes","Total",61.8013255384262,2646.32048726899,71.6372179441525,22248.4771938334
-"moderate_intensity",27,"theatre_minutes","Total",48.8200216972605,2347.58752069844,34.2058952431181,17575.2078110138
-"moderate_intensity",28,"theatre_minutes","Total",38.2902146628134,1720.16658338273,83.119607991414,13784.4772786128
-"moderate_intensity",29,"theatre_minutes","Total",19.5870128116895,1329.74200385822,11.7341870666725,7051.32461220823
-"moderate_intensity",30,"theatre_minutes","Total",73.989450506612,1938.12267422847,66.2116775510115,26636.2021823803
+"moderate_intensity",19,"operations_after_horizon","Total",13,13,13,13
+"moderate_intensity",20,"operations_after_horizon","Total",14,14,14,14
+"moderate_intensity",21,"operations_after_horizon","Total",17,17,17,17
+"moderate_intensity",22,"operations_after_horizon","Total",9,9,9,9
+"moderate_intensity",23,"operations_after_horizon","Total",34,34,34,34
+"moderate_intensity",24,"operations_after_horizon","Total",42,42,42,42
+"moderate_intensity",25,"operations_after_horizon","Total",24,24,24,24
+"moderate_intensity",26,"operations_after_horizon","Total",15,15,15,15
+"moderate_intensity",27,"operations_after_horizon","Total",15,15,15,15
+"moderate_intensity",28,"operations_after_horizon","Total",9,9,9,9
+"moderate_intensity",29,"operations_after_horizon","Total",32,32,32,32
+"moderate_intensity",30,"operations_after_horizon","Total",19,19,19,19
+"moderate_intensity",1,"theatre_minutes","Total",46.4582795963394,3137.79461899214,96.9882540160621,16724.9806546822
+"moderate_intensity",2,"theatre_minutes","Total",25.8631718526801,1002.54952892507,15.5025971396863,9310.74186696485
+"moderate_intensity",3,"theatre_minutes","Total",43.6259737342926,2134.9965465962,99.1949693725684,15705.3505443454
+"moderate_intensity",4,"theatre_minutes","Total",44.617033680016,2496.84047815691,54.5667605892583,16062.1321248058
+"moderate_intensity",5,"theatre_minutes","Total",40.1962762711171,2378.3155631416,68.0479419590411,14470.6594576022
+"moderate_intensity",6,"theatre_minutes","Total",48.3585414001865,2248.07652092659,67.0072219504129,17409.0749040671
+"moderate_intensity",7,"theatre_minutes","Total",31.0587045475771,1872.67668520158,31.3845475953572,11181.1336371278
+"moderate_intensity",8,"theatre_minutes","Total",29.3598097389041,1651.47732237143,28.1958457185932,10569.5315060055
+"moderate_intensity",9,"theatre_minutes","Total",33.1171397787739,2020.5793423132,5.87088498253752,11922.1703203586
+"moderate_intensity",10,"theatre_minutes","Total",50.0865959905146,1954.10229376127,49.2374038324169,18031.1745565853
+"moderate_intensity",11,"theatre_minutes","Total",27.5297545812459,1309.72128748634,28.4875310344996,9910.71164924852
+"moderate_intensity",12,"theatre_minutes","Total",44.7462931020549,2327.50600294594,55.9059403359524,16108.6655167398
+"moderate_intensity",13,"theatre_minutes","Total",28.3397718297849,1749.33980199338,59.6481777323034,10202.3178587226
+"moderate_intensity",14,"theatre_minutes","Total",65.8053331004786,2604.45453419245,59.7779223468496,23689.9199161723
+"moderate_intensity",15,"theatre_minutes","Total",36.1402334697978,1709.09449546917,73.8859967079774,13010.4840491272
+"moderate_intensity",16,"theatre_minutes","Total",52.4463576822516,2391.01675383941,40.7571818199974,18880.6887656106
+"moderate_intensity",17,"theatre_minutes","Total",65.1123807773,2402.16745759531,28.8191139170148,23440.457079828
+"moderate_intensity",18,"theatre_minutes","Total",59.6615759491087,2609.34067535175,114.598598589724,21478.1673416791
+"moderate_intensity",19,"theatre_minutes","Total",24.3173709608573,2164.71898624269,9.75375310954557,8754.25354590864
+"moderate_intensity",20,"theatre_minutes","Total",45.7765032446025,2221.7395126143,81.409320914184,16479.5411680569
+"moderate_intensity",21,"theatre_minutes","Total",48.2797935787099,3108.91092181636,30.7840819946239,17380.7256883356
+"moderate_intensity",22,"theatre_minutes","Total",27.0646138151035,1431.23483488519,20.1628529108947,9743.26097343726
+"moderate_intensity",23,"theatre_minutes","Total",62.5468820447694,2504.05358062861,76.7360574014431,22516.877536117
+"moderate_intensity",24,"theatre_minutes","Total",53.035676362463,2305.04080970197,22.3779005582191,19092.8434904867
+"moderate_intensity",25,"theatre_minutes","Total",43.6976184207847,1989.127389153,49.3760688283173,15731.1426314825
+"moderate_intensity",26,"theatre_minutes","Total",75.7164729306308,2527.49461435099,116.065251219283,27257.9302550271
+"moderate_intensity",27,"theatre_minutes","Total",37.9671974291764,1765.54868878293,25.9652406886677,13668.1910745035
+"moderate_intensity",28,"theatre_minutes","Total",28.6422146113036,1040.76881001704,18.4135675497953,10311.1972600693
+"moderate_intensity",29,"theatre_minutes","Total",54.0857919837565,1859.94627251728,44.3528057638433,19470.8851141523
+"moderate_intensity",30,"theatre_minutes","Total",46.7246599078674,1654.72359801595,53.4839844122988,16820.8775668322

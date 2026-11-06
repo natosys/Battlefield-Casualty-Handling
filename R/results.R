@@ -2527,6 +2527,10 @@ build_adequacy_sizing <- function(data_dir) {
       amb <- ts[ts$vehicle == "PMVAmb", ]
       amb <- amb[order(amb$qty), ]
       enough <- amb$qty[amb$mean_q < ADEQUACY_QUEUE_INADEQUATE]
+      #' The ambulance fleet's mean queue at one fleet size
+      #'
+      #' @param q Fleet size.
+      #' @return The formatted mean queue.
       at <- function(q) res_num(amb$mean_q[amb$qty == q], 2L)
       rows[[length(rows) + 1L]] <- c(
         case("Shared transport fleets"), "not a growing backlog", "not applicable",

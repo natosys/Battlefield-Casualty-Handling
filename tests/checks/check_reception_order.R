@@ -101,15 +101,15 @@ report(length(files) > 0 && length(offending) == 0,
 
 # ── 2 to 4. The constructed reception ───────────────────────────────────────
 
-#' Run the constructed reception once
+#' Build the constructed reception
 #'
-#' @return Data frame of name, placement and the minute each casualty took the
-#'   resuscitation bed, in the order they took it.
+#' @return A simmer environment, not yet run.
 #'
 #' @details One resuscitation bed, one holding bed and overflow, with the unit's
-#'   pool of one token, all named for this construction alone. Assigns the
-#'   `env` global, which the reception's placement helpers read.
-run_construction <- function() {
+#'   pool of one token, all named for this construction alone. The caller
+#'   assigns it to the `env` global, which the reception's placement helpers
+#'   read, before running it.
+build_construction <- function() {
   bed <- "check_resus_bed"
   pool <- "check_resus_pool"
   trj <- trajectory("Constructed Reception") %>%
@@ -121,7 +121,7 @@ run_construction <- function() {
     release_selected(id = 2) %>%
     release(pool, 1)
 
-  env <<- simmer("reception order") %>%
+  simmer("reception order") %>%
     add_resource(bed, 1) %>%
     add_resource("check_hold_bed", 1) %>%
     add_resource("check_overflow", Inf) %>%
@@ -130,9 +130,15 @@ run_construction <- function() {
     # triage priority travels as "triage" and is copied in by the trajectory.
     add_dataframe("cas_", trj, data.frame(time = ARRIVALS$time, triage = ARRIVALS$priority),
                   mon = 2, time = "absolute", col_attributes = "triage")
-  env %>% run()
+}
 
-  att <- get_mon_attributes(env)
+#' The order in which a finished construction's casualties took the bed
+#'
+#' @param sim The construction after its run.
+#' @return Data frame of name, placement and the minute each casualty took the
+#'   resuscitation bed, in the order they took it.
+bed_order <- function(sim) {
+  att <- get_mon_attributes(sim)
   #' Last value of one attribute for every casualty that set it
   #'
   #' @param key Attribute key.
@@ -151,7 +157,9 @@ run_construction <- function() {
 
 cat("\n-- a freed bed goes by triage priority, then arrival --\n")
 
-first <- run_construction()
+env <- build_construction()
+env %>% run()
+first <- bed_order(env)
 report(identical(first$name, EXPECTED_ORDER),
        "the bed is taken in the order %s (found %s)",
        paste(EXPECTED_ORDER, collapse = ", "), paste(first$name, collapse = ", "))
@@ -165,7 +173,9 @@ report(placement[["a"]] == 1 && placement[["b"]] == 2 &&
 
 cat("\n-- the order is the same on a second run --\n")
 
-second <- run_construction()
+env <- build_construction()
+env %>% run()
+second <- bed_order(env)
 report(identical(first, second), "a second run gives the same order and times")
 
 if (length(state$failures) > 0) {

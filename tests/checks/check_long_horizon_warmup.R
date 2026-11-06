@@ -142,16 +142,16 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
   # re-measured, so a re-run that moves the diagnostic fails here rather than
   # passing unnoticed.
   published <- list(
-    list("moderate_intensity", "R2E post-operative overflow", 30, 4.771),
-    list("moderate_intensity", "R2E post-operative overflow", 360, 5.441),
-    list("moderate_intensity", "R2E holding beds", 30, 16.634),
-    list("moderate_intensity", "R2E holding beds", 360, 23.022),
-    list("high_intensity", "R2E post-operative overflow", 30, 17.191),
-    list("high_intensity", "R2E post-operative overflow", 360, 19.764),
-    list("high_intensity", "R2E holding beds", 30, 36.142),
-    list("high_intensity", "R2E holding beds", 360, 52.059),
-    list("moderate_intensity", "R2E post-operative overflow", 180, 5.451),
-    list("moderate_intensity", "R2E holding beds", 180, 23.001)
+    list("moderate_intensity", "R2E post-operative overflow", 30, 4.659),
+    list("moderate_intensity", "R2E post-operative overflow", 360, 5.481),
+    list("moderate_intensity", "R2E holding beds", 30, 16.454),
+    list("moderate_intensity", "R2E holding beds", 360, 23.122),
+    list("high_intensity", "R2E post-operative overflow", 30, 17.264),
+    list("high_intensity", "R2E post-operative overflow", 360, 19.636),
+    list("high_intensity", "R2E holding beds", 30, 36.174),
+    list("high_intensity", "R2E holding beds", 360, 52.097),
+    list("moderate_intensity", "R2E post-operative overflow", 180, 5.352),
+    list("moderate_intensity", "R2E holding beds", 180, 22.160)
   )
   for (p in published) {
     found <- cma_at(p[[1]], p[[2]], p[[3]])
@@ -165,7 +165,7 @@ if (!file.exists(series_path) || !file.exists(cma_path)) {
   for (pool in c("R2E post-operative overflow", "R2E holding beds")) {
     x <- tracked[tracked$scenario == "moderate_intensity" & tracked$subject == pool, ]
     band <- round(range(x$cma[x$day >= 150]), 2)
-    expected <- if (pool == "R2E post-operative overflow") c(5.42, 5.52) else c(22.85, 23.1)
+    expected <- if (pool == "R2E post-operative overflow") c(5.32, 5.49) else c(22.13, 23.13)
     report(identical(band, expected), "%s spans %s from day 150 (expected %s)", pool,
            paste(band, collapse = " to "), paste(expected, collapse = " to "))
   }

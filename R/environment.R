@@ -1425,10 +1425,11 @@ build_env <- function(env, env_data, ot_hours = NULL) {
 
   # Section and theatre pools, so a casualty queues for the first section or
   # theatre to free rather than for one chosen in advance
-  # (seize_first_free_section(), R/trajectories_common.R). A section pool
-  # admits as many casualties as the team has sections on shift and free, all
-  # of them free at the start and the day shift's on shift; the theatre pool
-  # holds one token per theatre.
+  # (seize_first_free_section(), R/trajectories_common.R), and an R2B pool of
+  # resuscitation beds for the same reason. A section pool admits as many
+  # casualties as the team has sections on shift and free, all of them free at
+  # the start and the day shift's on shift; the theatre and resuscitation pools
+  # hold one token per theatre or bed.
   for (elm_type in c("r2b", "r2eheavy")) {
     for (team_id in seq_along(env_data$elms[[elm_type]])) {
       team <- env_data$elms[[elm_type]][[team_id]]
@@ -1437,6 +1438,12 @@ build_env <- function(env, env_data, ot_hours = NULL) {
       env <- env %>%
         add_resource(section_pool(elm_type, "surg", team_id), on_at_start) %>%
         add_resource(section_pool(elm_type, "ot", team_id), length(team[["ot_bed"]]))
+      if (elm_type == "r2b") {
+        # One token per resuscitation bed, queued by triage priority
+        # (r2b_reception(), R/trajectories_r2b.R).
+        env <- env %>%
+          add_resource(section_pool(elm_type, "resus", team_id), length(team[["resus_bed"]]))
+      }
       if (elm_type == "r2eheavy") {
         env <- env %>%
           add_resource(section_pool(elm_type, "emerg", team_id), length(team[["emerg"]])) %>%

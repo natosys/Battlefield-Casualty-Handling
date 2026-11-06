@@ -12,7 +12,7 @@
 #
 # Artifact policy. Every run writes under --output-dir and --images-dir, both
 # of which default inside outputs/, so an exploratory run cannot overwrite a
-# tracked file. images/welch_plot_icu_queue.png is tracked, and
+# tracked file. images/welch_plot_post_op_overflow.png is tracked, and
 # --refresh-baseline is the only way to write it, matching run.R's policy.
 #
 # The measurement is a function of --seed alone: run_replications() draws each
@@ -39,7 +39,7 @@ option_list <- list(
                            "--refresh-baseline unless it is the shipped file",
                            "[default: env_data.json]")),
   make_option("--refresh-baseline", action = "store_true", default = FALSE,
-              help = paste("Write the tracked images/welch_plot_icu_queue.png.",
+              help = paste("Write the tracked images/welch_plot_post_op_overflow.png.",
                            "Without it, no tracked file is written",
                            "[default: %default]"))
 )
@@ -82,7 +82,7 @@ if (!refresh_requested) write_run_manifest(opt[["output-dir"]], config_path, opt
 message(sprintf("Welch configuration: reps=%d, days=%d, seed=%d",
                 opt$reps, opt$days, opt$seed))
 if (opt[["refresh-baseline"]]) {
-  message("Baseline refresh: writing tracked images/welch_plot_icu_queue.png")
+  message("Baseline refresh: writing tracked images/welch_plot_post_op_overflow.png")
 }
 
 set.seed(opt$seed)

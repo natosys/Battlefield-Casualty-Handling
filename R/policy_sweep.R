@@ -334,6 +334,47 @@ policy_route_queued <- function(decided, route) {
         is.na(decided$ame_departure_time))
 }
 
+#' R2E pools whose late-campaign trend each replication reports, by the
+#' column stem the verdict is written under
+#'
+#' @details The holding queue counts convalescents awaiting a bed, and the two
+#'   overflow censuses the casualties cared for without one after surgery and
+#'   while awaiting a flight. Each is a level that a campaign can hold high and
+#'   steady or let climb, so whether it holds is read from its trend rather
+#'   than from its level (see policy_pool_trends()).
+POLICY_TREND_POOLS <- c(hold = "R2E holding beds",
+                        post_op = "R2E post-operative overflow",
+                        staging = "R2E staging overflow")
+
+#' Whether each R2E pool is still growing over the second half of one campaign
+#'
+#' @param resources Resource-monitor rows for one replication.
+#' @param n_days Campaign length in days.
+#' @param elms The built configuration's `elms`.
+#' @return A one-row data frame carrying, for each pool of POLICY_TREND_POOLS,
+#'   `growing_<stem>` (TRUE where the pool is still rising) and
+#'   `slope_<stem>` (its late-half slope in casualties per day).
+#'
+#' @details The pool's daily mean queue or census (reduce_pool_series(),
+#'   R/long_horizon.R) is taken in 30-day blocks and classified by
+#'   classify_stability(), the rule the sustained-operations protocol applies
+#'   to every pool; a drifting series with a positive slope is growing. The
+#'   verdict is made inside the replication, so the evidence set carries it per
+#'   campaign without carrying the daily series.
+policy_pool_trends <- function(resources, n_days, elms) {
+  pools <- reduce_pool_series(resources, n_days, elms)
+  out <- list()
+  for (stem in names(POLICY_TREND_POOLS)) {
+    rows <- pools[pools$pool == POLICY_TREND_POOLS[[stem]], ]
+    series <- data.frame(replication = 1L, day = rows$day, series = "mean_queue",
+                         subject = POLICY_TREND_POOLS[[stem]], value = rows$mean_queue)
+    st <- classify_stability(block_means(series))
+    out[[paste0("growing_", stem)]] <- st$stability == "drifting" && st$slope > 0
+    out[[paste0("slope_", stem)]] <- st$slope / LONG_HORIZON_BLOCK_DAYS
+  }
+  as.data.frame(out)
+}
+
 #' Measure the policy response set across replications at one policy
 #'
 #' @param policy_days Evacuation policy in force, in days.
@@ -342,7 +383,8 @@ policy_route_queued <- function(decided, route) {
 #' @param window_days Closing window the stability responses are measured over.
 #' @param max_cores Cap on concurrent forks, or NULL for the machine's cores.
 #' @return Data frame with one row per replication, carrying the replication
-#'   index and the responses reduce_policy_replication() reports.
+#'   index, the responses reduce_policy_replication() reports and each R2E
+#'   pool's late-campaign trend (policy_pool_trends()).
 #'
 #' @details The seeds are drawn as `run_replications()` draws them, from the
 #'   caller's control seed under the caller's generator kind, and the caller's
@@ -374,6 +416,8 @@ run_policy_measurement <- function(policy_days, n_iterations = POLICY_REPLICATIO
     env <- run_once(n_days, seed = rep_seeds[i], write_files = FALSE)
     row <- reduce_policy_replication(env, n_days, policy_days,
                                      seed = rep_seeds[i], window_days = window_days)
+    row <- cbind(row, policy_pool_trends(simmer::get_mon_resources(env), n_days,
+                                         env_data$elms))
     row$replication <- i
     row
   }

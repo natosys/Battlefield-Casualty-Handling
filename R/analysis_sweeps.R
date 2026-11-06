@@ -508,13 +508,14 @@ plot_transport_capacity_margin_by_fleet_size <- function(fleet_sizes = list(PMVA
 #'   x axis is categorical rather than a numeric scale the capacity arms
 #'   would have no place on.
 render_forward_hold_sweep_plot <- function(sweep_df, baseline_arm = NULL, n_rep = NULL) {
-  metrics <- c("R2E ICU Pool Queue", "R2B ICU Occupancy",
+  metrics <- c("R2E Post-Operative Overflow", "R2B ICU Occupancy",
                "R2E ICU Occupancy", "Post-Definitive Care in ICU", "DOW Count")
   sweep_df$arm <- factor(sweep_df$arm, levels = unique(sweep_df$arm))
 
   plot_df <- bind_rows(
     sweep_df %>% transmute(arm, metric = metrics[1],
-                           mean = mean_r2e_icu_q, ci_lower = ci_lower_r2e_icu_q, ci_upper = ci_upper_r2e_icu_q),
+                           mean = mean_overflow_r2e_post_op, ci_lower = ci_lower_overflow_r2e_post_op,
+                           ci_upper = ci_upper_overflow_r2e_post_op),
     sweep_df %>% transmute(arm, metric = metrics[2],
                            mean = mean_r2b_icu_util, ci_lower = ci_lower_r2b_icu_util, ci_upper = ci_upper_r2b_icu_util),
     sweep_df %>% transmute(arm, metric = metrics[3],
@@ -864,7 +865,7 @@ set_r2b_hold_beds <- function(json_data, hold_beds) {
 render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_rep = NULL) {
   metrics <- c("R2B Hold Pool Queue", "R2B Hold Occupancy",
                "R2E Hold Pool Queue", "R2E Hold Occupancy",
-               "R2E ICU Pool Queue", "R2E ICU Occupancy",
+               "R2E Post-Operative Overflow", "R2E ICU Occupancy",
                "Returns to Duty", "Died of Wounds")
 
   #' One response's columns, renamed to the plot's shared mean/ci_lower/
@@ -887,7 +888,7 @@ render_hold_threshold_sweep_plot <- function(sweep_df, baseline_beds = NULL, n_r
     one_metric("r2b_hold_util", metrics[2]),
     one_metric("r2e_hold_q",    metrics[3]),
     one_metric("r2e_hold_util", metrics[4]),
-    one_metric("r2e_icu_q",     metrics[5]),
+    one_metric("overflow_r2e_post_op", metrics[5]),
     one_metric("r2e_icu_util",  metrics[6]),
     one_metric("rtd",           metrics[7]),
     one_metric("dow",           metrics[8])

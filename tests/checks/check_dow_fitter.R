@@ -276,14 +276,20 @@ overriding <- names(Filter(overrides_dow, config$scenarios))
 report(length(overriding) == 0,
        "no scenario overrides the died-of-wounds model%s",
        if (length(overriding)) paste0("; overriding: ", paste(overriding, collapse = ", ")) else "")
-report(setequal(names(DOW_TARGETS), c("default", "moderate_intensity")),
-       "the anchors are the default's and its alias's alone (%s)",
-       paste(names(DOW_TARGETS), collapse = ", "))
+report(setequal(names(DOW_TARGETS), c("default", "moderate_intensity", "high_intensity")) &&
+         all(vapply(DOW_TARGETS[c("default", "moderate_intensity")],
+                    function(t) t$kind == "point", logical(1))) &&
+         DOW_TARGETS$high_intensity$kind == "bound",
+       paste("the default and its alias are fitted to their anchor and high_intensity is",
+             "only bounded (%s)"), paste(names(DOW_TARGETS), collapse = ", "))
 #' Whether one anchor is a proportion of a recognised kind
 #'
 #' @param t An entry of `DOW_TARGETS`.
-#' @return TRUE when its rate lies in (0, 1) and its kind is "bound" or "point".
-anchor_ok <- function(t) t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point")
+#' @return TRUE when its rate lies in (0, 1), its kind is "bound" or "point" and
+#'   its horizon is a positive number of days.
+anchor_ok <- function(t) {
+  t$rate > 0 && t$rate < 1 && t$kind %in% c("bound", "point") && isTRUE(t$days > 0)
+}
 report(all(vapply(DOW_TARGETS, anchor_ok, logical(1))),
        "every anchor is a proportion of a recognised kind")
 

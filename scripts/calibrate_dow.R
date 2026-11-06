@@ -215,11 +215,14 @@ target <- if (!is.null(opt$target)) {
 } else if (isTRUE(opt$`hold-legacy-rate`)) {
   cat("\nMeasuring the legacy mechanism's rate\n")
   evaluate(shipped$p1_rate, resolved$multipliers$post_op, care_state = 0)[["rate"]]
-} else {
+} else if (!is.null(anchor) && anchor$kind == "point") {
   anchor$rate
+} else {
+  NULL
 }
+# A bound is what a configuration is checked against, not what it is fitted to.
 if (is.null(target)) {
-  stop(sprintf("no historical anchor is defined for scenario '%s'; give --target", opt$scenario),
+  stop(sprintf("no anchor scenario '%s' is fitted to is defined; give --target", opt$scenario),
        call. = FALSE)
 }
 if (target <= 0 || target >= 1) stop("the rate target must lie in (0, 1), found ", target,
@@ -228,8 +231,7 @@ cat(sprintf("  rate target: treated-cohort rate %.3f%%%s\n", 100 * target,
             if (isTRUE(opt$`hold-legacy-rate`) && is.null(opt$target)) {
               " (the legacy mechanism's)"
             } else if (!is.null(anchor) && is.null(opt$target)) {
-              sprintf(" (%s%s)", anchor$label,
-                      if (anchor$kind == "bound") ", an upper bound" else "")
+              sprintf(" (%s)", anchor$label)
             } else ""))
 cat(sprintf("  bracket on p1_rate: [%.5f, %.5f]; Priority 2 and 3 rates held at their ratios to it\n",
             lower, upper))

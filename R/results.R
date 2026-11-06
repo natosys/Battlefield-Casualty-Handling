@@ -192,8 +192,11 @@ build_scenario_totals <- function(data_dir) {
 build_scenario_queue <- function(data_dir) {
   d <- res_read("scenarios/scenario_queue_groups.csv", data_dir)
   groups <- list(c("R2B operating theatre", "R2B OT"), c("R2B holding beds", "R2B Hold"),
-                 c("R2E operating theatre", "R2E OT"), c("R2E intensive care", "R2E ICU"),
-                 c("R2E holding beds", "R2E Hold"), c("Ambulance and truck fleets", "Transport"))
+                 c("R2B reception overflow census", "R2B reception overflow"),
+                 c("R2E operating theatre", "R2E OT"), c("R2E holding beds", "R2E Hold"),
+                 c("R2E post-operative overflow census", "R2E post-operative overflow"),
+                 c("R2E staging overflow census", "R2E staging overflow"),
+                 c("Ambulance and truck fleets", "Transport"))
   rows <- lapply(groups, function(g) {
     x <- lapply(SCENARIO_PROFILES, function(p) d[d$group == g[2] & d$scenario == p, ])
     cells <- vapply(x, function(r) {
@@ -238,8 +241,10 @@ build_long_horizon_stability <- function(data_dir) {
   spec <- list(
     list("R2E operating theatre queue", "mean_queue", "R2E operating theatres"),
     list("R2E holding bed queue", "mean_queue", "R2E holding beds"),
-    list("R2E intensive care queue", "mean_queue", "R2E intensive care"),
+    list("R2E post-operative overflow census", "mean_queue", "R2E post-operative overflow"),
+    list("R2E staging overflow census", "mean_queue", "R2E staging overflow"),
     list("Strategic evacuation backlog", "evac_backlog", "system"),
+    list("R2B reception overflow census", "mean_queue", "R2B reception overflow"),
     list("R2B holding bed queue", "mean_queue", "R2B holding beds"),
     list("Casualty arrivals per day", "arrivals", "system"),
     list("Deaths of wounds per day", "dow", "system")
@@ -313,27 +318,34 @@ res_closing_means <- function(series, closing_days = LOAD_CLOSING_DAYS) {
 #'   that the stability classification fits, divided by the block length, with the
 #'   slope's own 95% interval. Utilisation is the occupancy averaged over the
 #'   closing 90 days within each replication, summarised by a Student t interval
-#'   across replications. The strategic evacuation backlog is a count of
-#'   casualties awaiting a sortie and has no bed establishment, so it carries no
-#'   utilisation.
+#'   across replications. The strategic evacuation backlog and the overflow
+#'   censuses count casualties without a bed and have no establishment, so they
+#'   carry no utilisation; the intensive care beds carry a utilisation and no
+#'   shortfall, a casualty finding none free being placed in overflow rather
+#'   than queued.
 build_load_shortfall <- function(data_dir) {
   st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
   series <- res_read("long_horizon/long_horizon_series.csv.gz", data_dir)
   spec <- list(
     list("R2E operating theatres", "mean_queue", "R2E operating theatres", TRUE),
     list("R2E holding beds", "mean_queue", "R2E holding beds", TRUE),
-    list("R2E intensive care", "mean_queue", "R2E intensive care", TRUE),
+    list("R2E intensive care", NA, "R2E intensive care", TRUE),
+    list("R2E post-operative overflow", "mean_queue", "R2E post-operative overflow", FALSE),
+    list("R2E staging overflow", "mean_queue", "R2E staging overflow", FALSE),
     list("Strategic evacuation backlog", "evac_backlog", "system", FALSE)
   )
   rows <- lapply(spec, function(s) {
     cells <- unlist(lapply(SCENARIO_PROFILES, function(p) {
-      r <- st[st$scenario == p & st$series == s[[2]] & st$subject == s[[3]], ]
-      if (nrow(r) != 1L) {
-        stop(sprintf("expected one stability row for %s %s under %s, found %d", s[[2]], s[[3]],
-                     p, nrow(r)), call. = FALSE)
+      short <- if (is.na(s[[2]])) "no queue forms" else {
+        r <- st[st$scenario == p & st$series == s[[2]] & st$subject == s[[3]], ]
+        if (nrow(r) != 1L) {
+          stop(sprintf("expected one stability row for %s %s under %s, found %d", s[[2]], s[[3]],
+                       p, nrow(r)), call. = FALSE)
+        }
+        f <- res_shortfall_per_day(r$slope, r$ci_lower, r$ci_upper)
+        f[abs(f) < 0.0005] <- 0
+        res_ci(f[["mean"]], f[["lower"]], f[["upper"]], dp = 3L)
       }
-      f <- res_shortfall_per_day(r$slope, r$ci_lower, r$ci_upper)
-      f[abs(f) < 0.0005] <- 0
       use <- if (s[[4]]) {
         o <- series[series$scenario == p & series$series == "occupancy" &
                       series$subject == s[[3]], ]
@@ -342,7 +354,7 @@ build_load_shortfall <- function(data_dir) {
         u <- res_t_interval(res_closing_means(o))
         res_ci(u[["mean"]], u[["lower"]], min(u[["upper"]], 1), dp = 1L, scale = 100, unit = "%")
       } else "not applicable"
-      c(res_ci(f[["mean"]], f[["lower"]], f[["upper"]], dp = 3L), use)
+      c(short, use)
     }))
     c(s[[1]], cells)
   })
@@ -523,7 +535,7 @@ ICU_BED_NURSES_TOTAL <- 12
 #'   table, so a reader finds a response in the same row of both. The scale of
 #'   100 turns a share into percentage points.
 ICU_BED_ROWS <- list(
-  list("R2E ICU mean queue", "icu_mean_queue", 2L, 1),
+  list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
   list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
   list("R2E holding mean queue", "hold_mean_queue", 2L, 1),
   list("Post-operative care in a holding bed (%)", "postop_degraded_share", 1L, 100),
@@ -603,33 +615,22 @@ build_icu_bed <- function(data_dir, suffix = "") {
     f[abs(f) < 0.0005] <- 0
     res_ci(f[1], f[2], f[3], dp = 3L)
   }
-  reps <- res_read(res_file("icu_beds/icu_bed_sweep_replications", suffix), data_dir)
-  #' Replications in which either R2E pool's closing queue reached the threshold
-  #'
-  #' @param a Arm label.
-  #' @return The count as "k of n".
-  collapsed <- function(a) {
-    x <- reps[reps$arm == a, ]
-    sprintf("%d of %d", sum(x$icu_mean_queue >= RESULTS_QUEUE_THRESHOLD |
-                              x$hold_mean_queue >= RESULTS_QUEUE_THRESHOLD, na.rm = TRUE),
-            nrow(x))
-  }
   beds <- as.numeric(sub(" beds$", "", arms))
   rows <- c(
     list(c("Nurses per ICU bed at three sections", sprintf("%.2f", ICU_BED_NURSES_TOTAL / beds)),
          one(ICU_BED_ROWS[[1]][[1]], ICU_BED_ROWS[[1]][[2]], ICU_BED_ROWS[[1]][[3]],
              ICU_BED_ROWS[[1]][[4]]),
-         c("R2E ICU queue, late-half classification",
-           vapply(arms, verdict("R2E intensive care"), character(1))),
-         c("R2E ICU queue shortfall per day",
-           vapply(arms, shortfall("R2E intensive care"), character(1)))),
+         c("R2E post-operative overflow, late-half classification",
+           vapply(arms, verdict("R2E post-operative overflow"), character(1))),
+         c("R2E post-operative overflow growth per day",
+           vapply(arms, shortfall("R2E post-operative overflow"), character(1)))),
     lapply(ICU_BED_ROWS[2:3], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]])),
     list(c("R2E holding queue, late-half classification",
            vapply(arms, verdict("R2E holding beds"), character(1))),
          c("R2E holding queue shortfall per day",
            vapply(arms, shortfall("R2E holding beds"), character(1))),
-         c("Replications with an R2E pool queue of 20 or more",
-           vapply(arms, collapsed, character(1)))),
+         c("R2E staging overflow, late-half classification",
+           vapply(arms, verdict("R2E staging overflow"), character(1)))),
     lapply(ICU_BED_ROWS[-(1:3)], function(r) one(r[[1]], r[[2]], r[[3]], r[[4]]))
   )
   header <- c("Response", ifelse(arms == ICU_BED_BASELINE, paste(arms, "(shipped)"), arms))
@@ -681,13 +682,17 @@ build_hold_threshold <- function(data_dir, axis, suffix = "") {
                     floor0 = TRUE),
       sprintf("%.1f%% [%.1f, %.1f]", 100 * x$mean_r2b_hold_util, 100 * x$ci_lower_r2b_hold_util,
               100 * x$ci_upper_r2b_hold_util),
+      res_ci(x$mean_overflow_r2b_reception, x$ci_lower_overflow_r2b_reception,
+             x$ci_upper_overflow_r2b_reception, 3L, floor0 = TRUE),
       res_ci(x$mean_r2e_hold_q, x$ci_lower_r2e_hold_q, x$ci_upper_r2e_hold_q, 3L, floor0 = TRUE),
-      res_ci(x$mean_r2e_icu_q, x$ci_lower_r2e_icu_q, x$ci_upper_r2e_icu_q, 3L, floor0 = TRUE),
+      res_ci(x$mean_overflow_r2e_post_op, x$ci_lower_overflow_r2e_post_op,
+             x$ci_upper_overflow_r2e_post_op, 2L, floor0 = TRUE),
       res_ci(x$mean_rtd, x$ci_lower_rtd, x$ci_upper_rtd, 0L, floor0 = TRUE),
       res_ci(x$mean_dow, x$ci_lower_dow, x$ci_upper_dow, 1L, floor0 = TRUE))
   }
-  tail_header <- c("R2B hold mean queue", "R2B hold utilisation", "R2E hold mean queue",
-                   "R2E ICU mean queue", "Returns to duty", "Deaths of wounds")
+  tail_header <- c("R2B hold mean queue", "R2B hold utilisation",
+                   "R2B reception overflow census", "R2E hold mean queue",
+                   "R2E post-operative overflow census", "Returns to duty", "Deaths of wounds")
   if (axis == "beds") {
     rows <- lapply(c(5, 7, 10), function(b) {
       row(if (b == 5) "5 (shipped)" else as.character(b), pick(b, 0))
@@ -797,13 +802,14 @@ build_forward_hold <- function(data_dir, suffix = "") {
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
     c(x$arm,
-      res_ci(x$mean_r2e_icu_q, x$ci_lower_r2e_icu_q, x$ci_upper_r2e_icu_q, 3L, floor0 = TRUE),
+      res_ci(x$mean_overflow_r2e_post_op, x$ci_lower_overflow_r2e_post_op,
+             x$ci_upper_overflow_r2e_post_op, 2L, floor0 = TRUE),
       sprintf("%.1f%%", 100 * x$mean_r2b_icu_util), sprintf("%.1f%%", 100 * x$mean_r2e_icu_util),
       sprintf("%.1f [%.1f, %.1f]", 100 * x$mean_pd_icu_share, 100 * x$ci_lower_pd_icu_share,
               100 * x$ci_upper_pd_icu_share),
       res_ci(x$mean_dow, x$ci_lower_dow, x$ci_upper_dow, 2L))
   })
-  res_table(c("Forward holding rule", "R2E ICU mean queue", "R2B ICU utilisation",
+  res_table(c("Forward holding rule", "R2E post-operative overflow census", "R2B ICU utilisation",
               "R2E ICU utilisation", "Post-definitive care in ICU", "Died of wounds per run"), rows)
 }
 
@@ -818,7 +824,8 @@ build_policy <- function(data_dir) {
     list("R2E hold occupancy (%)", "hold_occupancy", 1L, 100),
     list("R2E hold mean queue", "hold_mean_queue", 2L, 1),
     list("R2E ICU occupancy (%)", "icu_occupancy", 1L, 100),
-    list("R2E ICU mean queue", "icu_mean_queue", 2L, 1),
+    list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+    list("R2E staging overflow census", "overflow_r2e_staging", 1L, 1),
     list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
     list("In-theatre share (%)", "in_theatre_share", 1L, 100),
     list("Returns to duty", "total_rtd", 1L, 1),
@@ -840,7 +847,8 @@ build_establishment <- function(data_dir) {
   rows <- list(
     list("R2E hold occupancy (%)", "hold_occupancy", 1L, 100),
     list("R2E hold mean queue", "hold_mean_queue", 2L, 1),
-    list("R2E ICU mean queue", "icu_mean_queue", 2L, 1),
+    list("R2E post-operative overflow census", "overflow_r2e_post_op", 2L, 1),
+    list("R2E staging overflow census", "overflow_r2e_staging", 1L, 1),
     list("Post-definitive ICU access (%)", "post_definitive_icu_share", 1L, 100),
     list("In-theatre share (%)", "in_theatre_share", 1L, 100),
     list("Returns to duty", "total_rtd", 1L, 1),
@@ -852,13 +860,53 @@ build_establishment <- function(data_dir) {
   res_sweep_table(d, header, arms, rows)
 }
 
-#' Closing-window queue below which a pool is counted as not collapsed
+#' Smallest late drift per block, as a share of a pool's level, read as growth
 #'
-#' @details The same twenty casualties the strategic airlift collapse experiment
-#'   classifies against (`AIRLIFT_COLLAPSE_THRESHOLD` in `R/airlift.R`), restated
-#'   here because this module is independent of every other. A replication whose
-#'   closing 90-day mean queue is below it is counted as holding the pool.
-RESULTS_QUEUE_THRESHOLD <- 20
+#' @details The one percent per 30-day block `STABILITY_DRIFT_THRESHOLD`
+#'   (R/long_horizon.R) holds, restated because this module is independent of
+#'   every other.
+RES_DRIFT_THRESHOLD <- 0.01
+
+#' Level columns of the three R2E pools whose trend a policy replication records
+RES_TREND_LEVELS <- c(hold = "hold_mean_queue", post_op = "overflow_r2e_post_op",
+                      staging = "overflow_r2e_staging")
+
+#' Whether one R2E pool is still growing across the replications of one cell
+#'
+#' @param x Per-replication policy responses of one cell, carrying
+#'   `slope_<stem>` (policy_pool_trends(), R/policy_sweep.R) and the pool's
+#'   closing level.
+#' @param stem One of the names of `RES_TREND_LEVELS`.
+#' @return TRUE where the cell's mean late-half slope is positive with a 95%
+#'   interval excluding zero and a drift of at least `RES_DRIFT_THRESHOLD` of
+#'   the pool's closing level per 30-day block.
+#'
+#' @details The rule classify_stability() applies to a pool's block means
+#'   across replications, read from the per-replication slopes: the mean of
+#'   those slopes is the slope of the mean series, the replications sharing one
+#'   design. A cell is judged as a whole rather than by requiring every
+#'   replication to pass, a single campaign's late-half fit flagging growth by
+#'   chance in a few replications of thirty even where the pool holds.
+res_pool_growing <- function(x, stem) {
+  slope <- x[[paste0("slope_", stem)]]
+  ci <- res_t_interval(slope)
+  level <- max(abs(mean(x[[RES_TREND_LEVELS[[stem]]]])), .Machine$double.eps)
+  ci[["lower"]] > 0 && ci[["mean"]] * LOAD_BLOCK_DAYS / level >= RES_DRIFT_THRESHOLD
+}
+
+#' Whether a cell held the R2E pools
+#'
+#' @param x Per-replication policy responses of one cell.
+#' @return TRUE where none of the holding queue, the post-operative overflow
+#'   census and the staging overflow census is still growing across the cell
+#'   (res_pool_growing()).
+#'
+#' @details A pool holds when its late-half trend is not rising, the rule the
+#'   sustained-operations protocol applies to every pool; a level threshold has
+#'   no gap behind it in these measures, which are spread continuously.
+res_cell_holds <- function(x) {
+  !any(vapply(names(RES_TREND_LEVELS), function(stem) res_pool_growing(x, stem), logical(1)))
+}
 
 #' Evacuation policy by R2E holding establishment grid
 #'
@@ -869,7 +917,7 @@ build_policy_grid <- function(data_dir, stem) {
   d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
   keys <- unique(d[, c("policy_days", "hold_beds")])
   keys <- keys[order(keys$policy_days, keys$hold_beds), ]
-  cols <- list(list("hold_mean_queue", 1L), list("icu_mean_queue", 1L),
+  cols <- list(list("hold_mean_queue", 1L), list("overflow_r2e_post_op", 1L),
                list("total_rtd", 1L), list("total_dow", 1L),
                list("never_evacuated", 1L), list("role4_peak", 1L))
   rows <- lapply(seq_len(nrow(keys)), function(i) {
@@ -879,7 +927,8 @@ build_policy_grid <- function(data_dir, stem) {
     }, character(1))
     c(sprintf("%d d, %d beds", keys$policy_days[i], keys$hold_beds[i]), cells)
   })
-  res_table(c("Policy and holding beds", "R2E hold mean queue", "R2E ICU mean queue",
+  res_table(c("Policy and holding beds", "R2E hold mean queue",
+              "R2E post-operative overflow census",
               "Returns to duty", "Died of wounds", "Never evacuated by horizon",
               "Role 4 peak beds"), rows)
 }
@@ -889,22 +938,27 @@ build_policy_grid <- function(data_dir, stem) {
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each policy and establishment, the replications of
-#'   the campaign's thirty whose closing-window mean queue was below
-#'   `RESULTS_QUEUE_THRESHOLD` in the holding pool, the intensive care pool and both.
+#'   the campaign's thirty in which the holding queue, the post-operative
+#'   overflow census, both, and the staging overflow census were not still
+#'   growing over the second half of the campaign, and whether the cell as a
+#'   whole holds the R2E pools (res_cell_holds()).
 build_policy_grid_stability <- function(data_dir, stem) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   keys <- unique(r[, c("policy_days", "hold_beds")])
   keys <- keys[order(keys$policy_days, keys$hold_beds), ]
   rows <- lapply(seq_len(nrow(keys)), function(i) {
     x <- r[r$policy_days == keys$policy_days[i] & r$hold_beds == keys$hold_beds[i], ]
-    hold <- x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD
-    icu <- x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
+    hold <- !x$growing_hold
+    post_op <- !x$growing_post_op
+    staging <- !x$growing_staging
     c(sprintf("%d d, %d beds", keys$policy_days[i], keys$hold_beds[i]),
-      sprintf("%d of %d", sum(hold), nrow(x)), sprintf("%d of %d", sum(icu), nrow(x)),
-      sprintf("%d of %d", sum(hold & icu), nrow(x)))
+      sprintf("%d of %d", sum(hold), nrow(x)), sprintf("%d of %d", sum(post_op), nrow(x)),
+      sprintf("%d of %d", sum(hold & post_op), nrow(x)), sprintf("%d of %d", sum(staging), nrow(x)),
+      if (res_cell_holds(x)) "all hold" else "at least one growing")
   })
-  res_table(c("Policy and holding beds", "Holding queue below threshold",
-              "ICU queue below threshold", "Both below threshold"), rows)
+  res_table(c("Policy and holding beds", "Holding queue not growing",
+              "Post-operative overflow not growing", "Both not growing",
+              "Staging overflow not growing", "R2E pools across the cell"), rows)
 }
 
 #' Paired differences against the shipped policy and establishment, by grid cell
@@ -951,8 +1005,8 @@ build_saturation <- function(data_dir, suffix = "") {
     list("Died of wounds", "total_dow", 1L, 1),
     list("Returns to duty", "total_rtd", 1L, 1)
   )
-  header <- c("Response", "0 (disabled)", as.character(thresholds[2:5]), "8 (shipped)",
-              as.character(thresholds[7:9]))
+  header <- c("Response", "0 (disabled)", "1", "2 (shipped)",
+              as.character(thresholds[4:9]))
   res_sweep_table(d, header, arms, rows)
 }
 
@@ -991,6 +1045,16 @@ build_casualty_surge <- function(data_dir, suffix = "") {
   res_table(c("Metric", "No events injected", "Events injected"), rows)
 }
 
+#' Peak responses of the casualty surge event size table, by column label
+#'
+#' @details Each is the index of its pool in `TIME_SERIES_POOLS`
+#'   (R/analysis_time_series.R), the order `peak_queue_<n>` is written in by
+#'   reduce_casualty_surge_size_replication(); an overflow point's peak is its
+#'   census.
+SURGE_SIZE_PEAKS <- c("Peak R2B holding queue" = 2L, "Peak R2E theatre queue" = 3L,
+                      "Peak R2E post-operative overflow census" = 4L,
+                      "Peak R2E holding queue" = 5L, "Peak R2E staging overflow census" = 6L)
+
 #' Casualty surge event size sweep table
 #'
 #' @param data_dir The data directory.
@@ -1026,12 +1090,10 @@ build_casualty_surge_size <- function(data_dir, suffix = "") {
       res_num(d$mean_events[k], 1L),
       pct(d$dow_event_rate[k], d$dow_event_lower[k], d$dow_event_upper[k]),
       pct(d$dow_ordinary_rate[k], d$dow_ordinary_lower[k], d$dow_ordinary_upper[k]),
-      peak(1L, k), peak(2L, k), peak(3L, k), peak(4L, k))
+      vapply(names(SURGE_SIZE_PEAKS), function(p) peak(SURGE_SIZE_PEAKS[[p]], k), character(1)))
   })
   res_table(c("Event size", "Events/run", "Died of wounds, event casualties",
-              "Died of wounds, ordinary casualties", "Peak R2B holding queue",
-              "Peak R2E theatre queue", "Peak R2E intensive care queue",
-              "Peak R2E holding queue"), rows)
+              "Died of wounds, ordinary casualties", names(SURGE_SIZE_PEAKS)), rows)
 }
 
 #' Defaults for one cell of a strategic evacuation table
@@ -1132,7 +1194,8 @@ build_airlift <- function(data_dir, which, suffix = "") {
 #' @return The table lines.
 build_queue_clearance <- function(data_dir) {
   d <- res_read("time_series/queue_clearance.csv", data_dir)
-  pools <- c("R2B holding beds", "R2E operating theatres", "R2E intensive care", "R2E holding beds")
+  pools <- c("R2B reception overflow", "R2B holding beds", "R2E operating theatres",
+             "R2E post-operative overflow", "R2E holding beds", "R2E staging overflow")
   #' One stage and intensity row of the degraded care table
   #'
   #' @param pool The resource pool.
@@ -1223,14 +1286,18 @@ build_icu_gate <- function(data_dir, suffix = "") {
 #' @return The table lines.
 build_airlift_collapse <- function(data_dir, suffix = "") {
   d <- res_read(res_file("airlift/airlift_collapse", suffix), data_dir)
+  d <- d[order(d$route, d$probability), ]
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
-    c(sprintf("%.0f%%", 100 * x$probability), sprintf("%d of %d", x$n_collapsed, x$n_reps),
+    c(sprintf("%s, %.0f%%", sub(" airlift$", "", x$route), 100 * x$probability),
+      sprintf("%d of %d", x$n_collapsed, x$n_reps),
       sprintf("%.1f%% [%.1f%%, %.1f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
-      res_num(x$median_queue, 2L, TRUE), res_num(x$worst_queue, 2L, TRUE))
+      sprintf("%.2f", x$mean_utilisation), sprintf("%d of %d", x$n_over_capacity, x$n_reps),
+      res_num(x$median_backlog, 1L, TRUE), res_num(x$worst_backlog, 1L, TRUE))
   })
-  res_table(c("Sortie cancellation", "Collapsed", "Collapse rate (exact 95% interval)",
-              "Median closing-window queue", "Worst closing-window queue"), rows)
+  res_table(c("Route and sortie cancellation", "Collapsed", "Collapse rate (exact 95% interval)",
+              "Mean utilisation", "Demand at or above places flown",
+              "Median closing backlog", "Worst closing backlog"), rows)
 }
 
 #' Died-of-wounds rate by post-operative recovery pathway under the rationing rule
@@ -1285,10 +1352,10 @@ RESOLUTION_ROWS <- list(
        "Policy 45 days against 21, died of wounds"),
   list("policy/policy_sweep_paired.csv", "total_dow", "policy_days", 21, 60, 1,
        "Policy 60 days against 21, died of wounds"),
-  list("policy/saturation_sweep_paired.csv", "total_dow", NA, 0, 8, 1,
-       "Saturation release at 8, died of wounds"),
-  list("policy/saturation_sweep_paired.csv", "total_rtd", NA, 0, 8, 10,
-       "Saturation release at 8, returns to duty")
+  list("policy/saturation_sweep_paired.csv", "total_dow", NA, 0, 2, 1,
+       "Saturation release at 2, died of wounds"),
+  list("policy/saturation_sweep_paired.csv", "total_rtd", NA, 0, 2, 10,
+       "Saturation release at 2, returns to duty")
 )
 
 #' Every paired comparison the resolution tables draw on, read from its evidence
@@ -1721,11 +1788,13 @@ seed42_verification_rows <- function(mon, cfg, days) {
 #' @return The table lines.
 build_dow_calibration <- function(data_dir) {
   d <- res_read("calibration/dow_calibration.csv", data_dir)
-  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity")
+  labels <- c(default = "Shipped default", moderate_intensity = "Moderate intensity",
+              high_intensity = "High intensity")
   rows <- lapply(seq_len(nrow(d)), function(i) {
     x <- d[i, ]
-    kind <- if (x$kind == "bound") "at or below" else "reported"
-    c(labels[[x$scenario]], sprintf("%s, %.2f%% (%s)", kind, 100 * x$target, x$anchor),
+    kind <- if (x$kind == "bound") "at or below" else "fitted to"
+    c(labels[[x$scenario]], sprintf("%s %.2f%% (%s, %d days)", kind, 100 * x$target, x$anchor,
+                                    as.integer(x$anchor_days)),
       sprintf("%.3f%% [%.3f%%, %.3f%%]", 100 * x$rate, 100 * x$ci_lower, 100 * x$ci_upper),
       sprintf("%.0f%%", 100 * x$hazard_share), as.character(x$replications))
   })
@@ -2054,7 +2123,7 @@ build_role4_levers <- function(data_dir, which) {
                                     "90 beds"),
                          values = c(30, 45, 60, 90)),
     saturation = list(file = "policy/saturation_sweep.csv", key = "saturation_threshold",
-                      header = c("Response", "0 (disabled)", "1", "2", "3", "5", "8 (shipped)",
+                      header = c("Response", "0 (disabled)", "1", "2 (shipped)", "3", "5", "8",
                                  "12", "16", "24"),
                       values = c(0, 1, 2, 3, 5, 8, 12, 16, 24))
   )
@@ -2218,10 +2287,14 @@ adequacy_pct <- function(x) sprintf("%.1f%%", 100 * x)
 #' @param data_dir The data directory.
 #' @param pool Pool name as the long-horizon series and queue clearance files print it.
 #' @param int One entry of `ADEQUACY_INTENSITIES`.
+#' @param queue Subject whose trend and empty share decide the verdict (default
+#'   `pool`); the intensive care pool is judged on the post-operative overflow
+#'   census, a casualty finding no intensive care bed being placed there rather
+#'   than queued.
 #' @return The matrix cell.
-adequacy_pool_cell <- function(data_dir, pool, int) {
+adequacy_pool_cell <- function(data_dir, pool, int, queue = pool) {
   st <- res_read("long_horizon/long_horizon_stability.csv", data_dir)
-  r <- st[st$scenario == int$profile & st$series == "mean_queue" & st$subject == pool, ]
+  r <- st[st$scenario == int$profile & st$series == "mean_queue" & st$subject == queue, ]
   if (nrow(r) != 1L) {
     stop(sprintf("expected one stability row for %s under %s, found %d", pool, int$profile,
                  nrow(r)), call. = FALSE)
@@ -2231,11 +2304,12 @@ adequacy_pool_cell <- function(data_dir, pool, int) {
                 series$subject == pool, ]
   util <- mean(res_closing_means(o))
   qc <- res_read("time_series/queue_clearance.csv", data_dir)
-  empty <- mean(qc$zero_share[qc$pool == pool & qc$intensity == int$label])
+  empty <- mean(qc$zero_share[qc$pool == queue & qc$intensity == int$label])
   drifting <- identical(r$stability, "drifting") && r$drift_per_block > 0
   trend <- if (drifting) sprintf("drifting, %+.1f%%/block", 100 * r$drift_per_block) else "settled"
+  noun <- if (queue == pool) "queue" else "overflow"
   adequacy_cell(adequacy_pool_verdict(drifting, util, empty),
-                sprintf("queue %s, used %s, queue empty %s", trend, adequacy_pct(util),
+                sprintf("%s %s, used %s, %s empty %s", noun, trend, adequacy_pct(util), noun,
                         adequacy_pct(empty)))
 }
 
@@ -2359,7 +2433,9 @@ build_adequacy_matrix <- function(data_dir) {
     c("R2B surgery", cells(function(i) adequacy_r2b_surgery_cell(data_dir, i))),
     c("R2B holding", pool("R2B holding beds")),
     c("R2E theatres and surgical teams", pool("R2E operating theatres")),
-    c("R2E intensive care", pool("R2E intensive care")),
+    c("R2E intensive care",
+      cells(function(i) adequacy_pool_cell(data_dir, "R2E intensive care", i,
+                                           queue = "R2E post-operative overflow"))),
     c("R2E holding", pool("R2E holding beds")),
     c("Strategic airlift", cells(function(i) adequacy_airlift_cell(data_dir, i))),
     c("Role 4", cells(function(i) adequacy_role4_cell(data_dir, i)))
@@ -2444,6 +2520,24 @@ build_adequacy_sizing <- function(data_dir) {
     #' @param txt The cell text.
     #' @return The verdict.
     verdict <- function(txt) sub("^\\*\\*([^*]+)\\*\\*.*$", "\\1", txt)
+    fleets <- c("PMV Ambulance fleet", "HX2 40M fleet")
+    if (verdict(adequacy_holder_cell(data_dir, fleets, int)) == "Inadequate") {
+      ts <- res_read(paste0("sweeps/", res_file("transport_capacity_by_fleet_size", sfx)),
+                     data_dir)
+      amb <- ts[ts$vehicle == "PMVAmb", ]
+      amb <- amb[order(amb$qty), ]
+      enough <- amb$qty[amb$mean_q < ADEQUACY_QUEUE_INADEQUATE]
+      #' The ambulance fleet's mean queue at one fleet size
+      #'
+      #' @param q Fleet size.
+      #' @return The formatted mean queue.
+      at <- function(q) res_num(amb$mean_q[amb$qty == q], 2L)
+      rows[[length(rows) + 1L]] <- c(
+        case("Shared transport fleets"), "not a growing backlog", "not applicable",
+        if (length(enough)) sprintf("%d ambulances", min(enough)) else "beyond the fleets swept",
+        sprintf("Measured: ambulance queue %s at three vehicles and %s at four", at(3), at(4))
+      )
+    }
     if (verdict(adequacy_r2b_surgery_cell(data_dir, int)) == "Inadequate") {
       exported <- mean(hw$diverted_offshift + hw$diverted_busy) / ADEQUACY_CAMPAIGN_DAYS
       delivered <- mean(hw$r2b_surgeries) / ADEQUACY_CAMPAIGN_DAYS
@@ -2473,10 +2567,11 @@ build_adequacy_sizing <- function(data_dir) {
         adequacy_sweep_text(arms, units, "sections")
       )
     }
-    if (verdict(adequacy_pool_cell(data_dir, "R2E intensive care", int)) == "Inadequate") {
-      short <- adequacy_shortfall(data_dir, "mean_queue", "R2E intensive care", int)
+    if (verdict(adequacy_pool_cell(data_dir, "R2E intensive care", int,
+                                   queue = "R2E post-operative overflow")) == "Inadequate") {
+      short <- adequacy_shortfall(data_dir, "mean_queue", "R2E post-operative overflow", int)
       ib <- res_read(res_file("icu_beds/icu_bed_sweep_stability", sfx), data_dir)
-      ib <- ib[ib$pool == "R2E intensive care", ]
+      ib <- ib[ib$pool == "R2E post-operative overflow", ]
       units <- as.numeric(sub("^([0-9]+) beds$", "\\1", ib$arm))
       rows[[length(rows) + 1L]] <- c(
         case("R2E intensive care"), res_num(short, 2L),
@@ -2515,20 +2610,15 @@ build_adequacy_sizing <- function(data_dir) {
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @param label Name of the grid in the text.
-#' @return The text: the grid's best cell by replications holding both R2E pools
-#'   below `RESULTS_QUEUE_THRESHOLD`, and the count of cells.
+#' @return The text: how many of the grid's cells hold the R2E pools
+#'   (res_cell_holds()).
 adequacy_grid_text <- function(data_dir, stem, label) {
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
   cols <- intersect(c("sortie_interval", "policy_days", "hold_beds"), names(r))
   cell <- do.call(paste, c(r[cols], sep = "/"))
-  both <- r$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & r$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
-  held <- tapply(both, cell, sum)
-  size <- tapply(both, cell, length)
-  best <- which.max(held)
-  verdict <- if (held[[best]] == size[[best]]) "a cell holds" else "no cell holds"
-  sprintf(paste("Measured: in the %s %s both pools in every replication;",
-                "the best of %d cells does so in %d of %d"),
-          label, verdict, length(held), held[[best]], size[[best]])
+  holds <- vapply(split(r, cell), res_cell_holds, logical(1))
+  sprintf("Measured: in the %s %d of %d cells hold the R2E pools", label, sum(holds),
+          length(holds))
 }
 
 #' Evacuation policy trade: the outcome, stability and cost rows of the policy sweep
@@ -2576,18 +2666,18 @@ build_policy_establishment_high_paired <- function(data_dir) {
 #' Stem of the moderate-intensity grid's evidence files
 POLICY_GRID_MODERATE_STEM <- "establishment_sweep_moderate_grid"
 
-#' Largest policy that holds both R2E pools in every replication, by establishment
+#' Largest policy that holds the R2E pools, by establishment
 #'
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
 #' @return The table lines: for each establishment, the largest swept policy at
-#'   which the closing-window queue of both R2E pools was below
-#'   `RESULTS_QUEUE_THRESHOLD` in every replication, the returns to duty at that
+#'   which no R2E pool was still growing across the cell
+#'   (res_cell_holds()), the returns to duty at that
 #'   policy, the paired gain over the shipped policy and establishment and the gain
 #'   per bed added beyond the shipped establishment.
 #'
-#' @details A policy is stable at an establishment when no replication of the
-#'   cell exceeds the threshold in either pool; the largest stable policy is the
+#' @details A policy is stable at an establishment when no R2E pool is still
+#'   growing across the cell's replications; the largest stable policy is the
 #'   greatest swept value for which that holds, so a stable value beyond an
 #'   unstable one is not skipped to.
 build_policy_grid_largest_stable <- function(data_dir, stem) {
@@ -2598,8 +2688,7 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
   rows <- lapply(sort(unique(r$hold_beds)), function(b) {
     cell <- r[r$hold_beds == b, ]
     stable <- vapply(sort(unique(cell$policy_days)), function(d) {
-      x <- cell[cell$policy_days == d, ]
-      all(x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD)
+      res_cell_holds(cell[cell$policy_days == d, ])
     }, logical(1))
     days <- sort(unique(cell$policy_days))
     if (!any(stable)) return(c(as.character(b), "none in the grid", "not applicable",
@@ -2622,7 +2711,7 @@ build_policy_grid_largest_stable <- function(data_dir, stem) {
     c(as.character(b), sprintf("%d d", best),
       res_ci(rtd$mean, rtd$ci_lower, rtd$ci_upper, dp = 1L, big = TRUE), gain, per_bed)
   })
-  res_table(c("Holding beds", "Largest policy holding both pools in every replication",
+  res_table(c("Holding beds", "Largest policy holding the R2E pools",
               "Returns to duty there", "Paired gain over 21 d and 30 beds",
               "Gain per added bed"), rows)
 }
@@ -2653,9 +2742,9 @@ interval_grid_keys <- function(d) {
 #'
 #' @param data_dir The data directory.
 #' @param stem Stem of the grid's evidence files under `data/policy/`.
-#' @return The table lines: for each cell the closing-window R2E holding and
-#'   intensive care queues, and the replications of the campaign's thirty in
-#'   which both stayed below `RESULTS_QUEUE_THRESHOLD`.
+#' @return The table lines: for each cell the closing-window R2E holding queue
+#'   and post-operative overflow census, and whether the cell holds the R2E
+#'   pools (res_cell_holds()).
 build_interval_grid <- function(data_dir, stem) {
   d <- res_read(paste0("policy/", stem, ".csv"), data_dir)
   r <- res_read(paste0("policy/", stem, "_replications.csv"), data_dir)
@@ -2673,12 +2762,12 @@ build_interval_grid <- function(data_dir, stem) {
     }
     x <- r[r$sortie_interval == k$sortie_interval & r$policy_days == k$policy_days &
              r$hold_beds == k$hold_beds, ]
-    both <- x$hold_mean_queue < RESULTS_QUEUE_THRESHOLD & x$icu_mean_queue < RESULTS_QUEUE_THRESHOLD
     c(interval_grid_label(k$sortie_interval, k$policy_days, k$hold_beds),
-      cell("hold_mean_queue"), cell("icu_mean_queue"), sprintf("%d of %d", sum(both), nrow(x)))
+      cell("hold_mean_queue"), cell("overflow_r2e_post_op"),
+      if (res_cell_holds(x)) "all hold" else "at least one growing")
   })
-  res_table(c("Interval, policy and holding beds", "R2E hold mean queue", "R2E ICU mean queue",
-              "Both pools below threshold"), rows)
+  res_table(c("Interval, policy and holding beds", "R2E hold mean queue",
+              "R2E post-operative overflow census", "Pools"), rows)
 }
 
 #' Evacuation wait by airlift channel across the sortie interval grid

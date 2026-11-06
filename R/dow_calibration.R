@@ -45,17 +45,22 @@
 
 #' Historical anchor each calibrated configuration is checked against
 #'
-#' @details A list keyed by scenario name. `kind` is "bound" where the anchor is
-#'   an upper bound on the treated-cohort rate (Ajax Bay, whose denominator is
-#'   given as "over 650"), so only an overshoot fails, and "point" where it is a
-#'   reported rate against a stated denominator, so the model must reach it.
-#'   `rate` is the treated-cohort proportion. `high_intensity` carries no
-#'   anchor: it shares the default's mortality model and differs from it in
-#'   casualty generation alone, so its mortality is a model output rather than
-#'   a calibration target.
+#' @details A list keyed by scenario name. `rate` is the treated-cohort
+#'   proportion and `days` the length of the campaign it describes, the horizon
+#'   the check measures at. `kind` is "point" where the configuration is fitted
+#'   to the anchor, so the pooled interval must contain it, and "bound" where
+#'   the anchor is an upper limit the configuration is not fitted to, so only
+#'   an overshoot fails. The default and its alias are fitted to Ajax Bay's
+#'   three deaths among "over 650" treated, the one treated-cohort figure from
+#'   the campaign and era of care the default models. `high_intensity` shares
+#'   their mortality model and differs in casualty generation alone, so its
+#'   rate is a model output; Okinawa's 3.4% bounds it from above, a 1945 rate
+#'   that 1982-era care is taken not to exceed, over the 82 days of that
+#'   campaign.
 DOW_TARGETS <- list(
-  default            = list(rate = 0.0046, kind = "bound", label = "Ajax Bay"),
-  moderate_intensity = list(rate = 0.0046, kind = "bound", label = "Ajax Bay")
+  default            = list(rate = 0.0046, kind = "point", label = "Ajax Bay", days = 30L),
+  moderate_intensity = list(rate = 0.0046, kind = "point", label = "Ajax Bay", days = 30L),
+  high_intensity     = list(rate = 0.034, kind = "bound", label = "Okinawa", days = 82L)
 )
 
 #' Share of the treated cohort's expected deaths that accrue after surgery
@@ -72,9 +77,6 @@ DOW_LATE_SHARE_TARGET <- 0.20
 
 #' Tolerance of the post-operative share, as an absolute difference
 DOW_LATE_SHARE_TOLERANCE <- 0.03
-
-#' Tolerance of a point anchor, as an absolute difference in the rate
-DOW_TOLERANCE <- 0.02
 
 #' Control seeds the pooled measurements are drawn under
 #'

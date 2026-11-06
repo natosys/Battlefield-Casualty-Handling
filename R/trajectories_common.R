@@ -1101,7 +1101,7 @@ beds_free <- function(beds) {
 #' The best placement free at this instant
 #'
 #' @param care_beds The beds the care calls for, intensive care after an
-#'   operation or resuscitation at R2B reception.
+#'   operation.
 #' @param hold_beds The unit's holding beds.
 #' @return 1 for a bed of the kind the care calls for, 2 for a holding bed, 3
 #'   for overflow.

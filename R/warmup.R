@@ -7,6 +7,7 @@ library(dplyr)
 library(ggplot2)
 
 source("R/constants.R")
+source("R/queue_series.R")
 
 #' Days excluded from the head of a run as warm-up
 #'
@@ -26,41 +27,45 @@ source("R/constants.R")
 #'   see docs/Methods.md's Warm-up Classification section.
 WARM_UP_DAYS <- 0L
 
-#' Bin total ICU queue into regular time intervals using step interpolation
+#' File name of the 90-day Welch plot, written under the images directory
+WELCH_IMAGE <- "welch_plot_post_op_overflow.png"
+
+#' Bin the R2E post-operative overflow census into regular time intervals
 #'
 #' @param resources Resource monitor data frame from run_replications()
 #' @param bin_size_min Width of each time bin in minutes (default 60)
-#' @return Data frame with columns: replication, bin_min, total_queue
-bin_icu_queue <- function(resources, bin_size_min = 60) {
-  icu_data <- resources %>%
-    filter(grepl("^b_r2eheavy_icu_", resource)) %>%
-    group_by(replication, time) %>%
-    summarise(total_queue = sum(queue), .groups = "drop") %>%
-    arrange(replication, time)
-
-  max_time <- max(icu_data$time, na.rm = TRUE)
-  bins     <- seq(0, max_time, by = bin_size_min)
-
-  icu_data %>%
-    group_by(replication) %>%
-    group_modify(function(df, key) {
-      q_at_bin <- approx(df$time, df$total_queue,
-                         xout = bins, method = "constant", rule = 2)$y
-      data.frame(bin_min = bins, total_queue = q_at_bin)
-    }) %>%
-    ungroup()
+#' @return Data frame with columns: replication, bin_min, census
+#'
+#' @details Nobody queues for an R2E intensive care bed: a casualty leaving
+#'   theatre takes the best bed free or, with none free, overflow, so post-operative
+#'   saturation shows as the number of casualties in overflow, read here at the
+#'   start of each bin from the step function of the point's occupants.
+bin_post_op_overflow <- function(resources, bin_size_min = 60) {
+  rows <- resources[grepl(OVERFLOW_POOLS[["R2E post-operative overflow"]], resources$resource), ]
+  bins <- seq(0, max(resources$time, na.rm = TRUE), by = bin_size_min)
+  do.call(rbind, lapply(sort(unique(resources$replication)), function(rep_id) {
+    r <- rows[rows$replication == rep_id, ]
+    census <- if (nrow(r) == 0) {
+      rep(0, length(bins))
+    } else {
+      steps <- pool_queue_steps(r$resource, r$time, r$server)
+      i <- findInterval(bins, steps$time)
+      ifelse(i < 1, 0, steps$total[pmax(i, 1)])
+    }
+    data.frame(replication = rep_id, bin_min = bins, census = census)
+  }))
 }
 
 #' Compute cross-replication cumulative moving average for Welch plot
 #'
-#' @param binned Data frame as returned by bin_icu_queue()
-#' @return Data frame with columns: bin_min, mean_queue, cma
+#' @param binned Data frame as returned by bin_post_op_overflow()
+#' @return Data frame with columns: bin_min, mean_census, cma
 compute_welch_cma <- function(binned) {
   binned %>%
     group_by(bin_min) %>%
-    summarise(mean_queue = mean(total_queue, na.rm = TRUE), .groups = "drop") %>%
+    summarise(mean_census = mean(census, na.rm = TRUE), .groups = "drop") %>%
     arrange(bin_min) %>%
-    mutate(cma = cumsum(mean_queue) / seq_along(mean_queue))
+    mutate(cma = cumsum(mean_census) / seq_along(mean_census))
 }
 
 #' Generate and save the Welch plot
@@ -97,21 +102,21 @@ plot_welch <- function(cma_df, warm_up_days, n_reps, n_days,
 
   p <- p +
     labs(
-      title    = "Welch Plot — R2E ICU Queue (Cumulative Moving Average)",
+      title    = "Welch Plot — R2E Post-Operative Overflow (Cumulative Moving Average)",
       subtitle = sprintf("%d replications × %d days; bin = 60 min", n_reps, n_days),
       x        = "Simulation Day",
-      y        = "CMA of Total ICU Queue Length"
+      y        = "CMA of Casualties in Post-Operative Overflow"
     ) +
     scale_x_continuous(breaks = seq(0, max_day, by = 5), limits = c(0, max_day)) +
     theme_minimal(base_size = 13)
 
-  out_path <- file.path(images_dir, "welch_plot_icu_queue.png")
+  out_path <- file.path(images_dir, WELCH_IMAGE)
   ggsave(out_path, p, width = 10, height = 5, dpi = 150)
   message(sprintf("Welch plot saved to %s", out_path))
   invisible(p)
 }
 
-#' Run Welch warm-up analysis: replicate, bin ICU queue, plot CMA
+#' Run Welch warm-up analysis: replicate, bin post-operative overflow, plot CMA
 #'
 #' @param n_reps     Number of replications (default 10)
 #' @param n_days     Simulation duration in days (default 90)
@@ -125,7 +130,7 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   mon    <- run_replications(n_reps, n_days)
-  binned <- bin_icu_queue(mon$resources)
+  binned <- bin_post_op_overflow(mon$resources)
   cma_df <- compute_welch_cma(binned)
 
   write.csv(cma_df, file.path(output_dir, "welch_cma.csv"), row.names = FALSE)
@@ -146,13 +151,12 @@ run_welch_analysis <- function(n_reps = 10, n_days = 90,
 
 #' Bed pools the sustained-horizon Welch diagnostic is computed for
 #'
-#' @details The two pools `R/long_horizon.R`'s per-block classification finds
-#'   slowest to settle at `moderate_intensity` (`R2E intensive care`, the
-#'   pool the 90-day diagnostic above already tracks, and `R2E holding
-#'   beds`), so the sustained-horizon reading is taken on the responses the
-#'   classification itself flags as closest to the boundary rather than on an
-#'   arbitrary pair.
-LONG_HORIZON_CMA_SUBJECTS <- c("R2E intensive care", "R2E holding beds")
+#' @details The R2E post-operative overflow census, the response the 90-day
+#'   diagnostic above tracks, and the R2E holding queue, the two R2E responses
+#'   that carry post-operative and convalescent load, so the sustained-horizon
+#'   reading is taken on the responses the per-block classification in
+#'   `R/long_horizon.R` reads for those loads rather than on an arbitrary pair.
+LONG_HORIZON_CMA_SUBJECTS <- c("R2E post-operative overflow", "R2E holding beds")
 
 #' Cross-replication cumulative moving average from a long-horizon series
 #'
@@ -219,8 +223,8 @@ plot_long_horizon_welch <- function(cma_df, n_reps, n_days,
       title    = "Welch Plot at the Sustained-Operations Horizon",
       subtitle = sprintf("%d replications x %d days; daily resolution", n_reps, n_days),
       x        = "Simulation Day",
-      y        = "CMA of Mean Pool Queue Length",
-      colour   = "Bed pool"
+      y        = "CMA of Mean Queue, or Overflow Census",
+      colour   = "Pool or overflow point"
     ) +
     theme_minimal(base_size = 13) +
     theme(legend.position = "bottom")

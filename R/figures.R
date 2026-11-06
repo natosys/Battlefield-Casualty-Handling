@@ -33,10 +33,10 @@ FIGURE_SHIPPED_COLOUR <- "firebrick"
 #'   percentages, as the tables of docs/Results.md print them.
 POLICY_PANELS <- data.frame(
   response = c("total_rtd", "total_dow", "in_theatre_share", "hold_mean_queue",
-               "icu_mean_queue", "role4_peak", "hold_occupancy", "icu_occupancy",
+               "overflow_r2e_post_op", "role4_peak", "hold_occupancy", "icu_occupancy",
                "post_definitive_icu_share", "mean_evac_wait_days"),
   label    = c("Returns to duty", "Died of wounds", "In-theatre share (%)",
-               "R2E hold mean queue", "R2E ICU mean queue", "Role 4 peak beds",
+               "R2E hold mean queue", "R2E post-operative overflow", "Role 4 peak beds",
                "R2E hold occupancy (%)", "R2E ICU occupancy (%)",
                "Post-definitive ICU access (%)", "Mean evacuation wait (d)"),
   scale    = c(1, 1, 100, 1, 1, 1, 100, 100, 100, 1),
@@ -212,10 +212,10 @@ plot_surgical_team_sweep <- function(moderate_df, high_df, shipped) {
 #'
 #' @details `scale` turns a share into percentage points.
 ICU_BED_PANELS <- data.frame(
-  response = c("icu_mean_queue", "icu_occupancy", "hold_mean_queue",
+  response = c("overflow_r2e_post_op", "icu_occupancy", "hold_mean_queue",
                "postop_degraded_share", "post_definitive_icu_share", "total_dow",
                "total_rtd", "mean_evac_wait_critical"),
-  label    = c("R2E ICU mean queue", "R2E ICU occupancy (%)", "R2E holding mean queue",
+  label    = c("R2E post-operative overflow", "R2E ICU occupancy (%)", "R2E holding mean queue",
                "Post-operative care in a holding bed (%)",
                "Post-definitive ICU access (%)", "Died of wounds", "Returns to duty",
                "Critical-route evacuation wait (days)"),
@@ -352,21 +352,23 @@ plot_airlift_sweeps <- function(summary_df, shipped, profile = "") {
 #' Strategic airlift collapse figure
 #'
 #' @param collapse_df Tracked `data/airlift/airlift_collapse.csv`.
-#' @return ggplot object of the share of campaigns collapsing against the
-#'   sortie cancellation probability, with exact binomial 95% intervals.
+#' @return ggplot object of the share of campaigns in which each airlift route
+#'   collapsed against the sortie cancellation probability, one line per route,
+#'   with exact binomial 95% intervals.
 plot_airlift_collapse <- function(collapse_df) {
-  ggplot(collapse_df, aes(x = probability, y = rate * 100)) +
-    geom_ribbon(aes(ymin = ci_lower * 100, ymax = ci_upper * 100),
-                fill = FIGURE_INTERVAL_FILL, alpha = 0.3) +
-    geom_line(color = FIGURE_MEAN_COLOUR, linewidth = 1) +
-    geom_point(color = FIGURE_MEAN_COLOUR, size = 2) +
-    labs(title = "Campaigns Collapsing under Sortie Cancellation",
-         subtitle = sprintf(paste("A campaign collapses where its closing R2E holding queue",
-                                  "averages 20 or more; %d replications per point;",
-                                  "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
-         x = "Sortie cancellation probability", y = "Campaigns collapsing (%)") +
+  ggplot(collapse_df, aes(x = probability, y = rate * 100, colour = route, fill = route)) +
+    geom_ribbon(aes(ymin = ci_lower * 100, ymax = ci_upper * 100), alpha = 0.15,
+                colour = NA) +
+    geom_line(linewidth = 1) +
+    geom_point(size = 2) +
+    labs(title = "Airlift Routes Collapsing under Sortie Cancellation",
+         subtitle = sprintf(paste0("A route collapses where its backlog is still rising over the ",
+                                   "second half of the campaign\n%d replications per point; ",
+                                   "exact binomial 95%% intervals"), unique(collapse_df$n_reps)),
+         x = "Sortie cancellation probability", y = "Campaigns collapsing (%)",
+         colour = NULL, fill = NULL) +
     theme_minimal(base_size = 13) +
-    theme(panel.grid.minor = element_blank())
+    theme(panel.grid.minor = element_blank(), legend.position = "bottom")
 }
 
 #' Sustained operations block means figure

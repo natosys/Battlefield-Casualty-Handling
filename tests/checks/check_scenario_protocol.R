@@ -438,9 +438,11 @@ if (!is.null(queue_rows) && !is.null(groups)) {
   labels <- list(
     list("R2B operating theatre", "R2B OT"),
     list("R2B holding beds", "R2B Hold"),
+    list("R2B reception overflow census", "R2B reception overflow"),
     list("R2E operating theatre", "R2E OT"),
-    list("R2E intensive care", "R2E ICU"),
     list("R2E holding beds", "R2E Hold"),
+    list("R2E post-operative overflow census", "R2E post-operative overflow"),
+    list("R2E staging overflow census", "R2E staging overflow"),
     list("Ambulance and truck fleets", "Transport")
   )
   for (spec in labels) {

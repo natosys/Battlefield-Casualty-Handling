@@ -73,7 +73,9 @@ HIGH_REPLICATIONS <- 30L
 #' The replicated experiments: label, per-replication file stem, arm column, arms
 #'
 #' @details Each entry names the file stem without the suffix, the column that
-#'   identifies an arm and the arm values the design documents.
+#'   identifies an arm and the arm values the design documents, and `per`, the
+#'   rows each replication carries where it is more than one (the airlift
+#'   collapse experiment classifies each of the two routes).
 HIGH_EXPERIMENTS <- list(
   list(label = "hold window", stem = "data/hold_window/hold_window_replications",
        arm = "window_min", arms = c(0, 60)),
@@ -86,7 +88,7 @@ HIGH_EXPERIMENTS <- list(
   list(label = "surge event size", stem = "data/casualty_surge/casualty_surge_size_replications",
        arm = "size", arms = c(0, 10, 20, 40, 60, 90, 120, 180)),
   list(label = "airlift collapse", stem = "data/airlift/airlift_collapse_replications",
-       arm = "probability", arms = c(0, 0.05, 0.10, 0.15, 0.20, 0.25))
+       arm = "probability", arms = c(0, 0.05, 0.10, 0.15, 0.20, 0.25), per = 2L)
 )
 
 #' The airlift sweep arms: arm name, swept field values the high-intensity file carries
@@ -140,13 +142,15 @@ for (e in HIGH_EXPERIMENTS) {
     report(FALSE, "%s: the high-intensity replications are tracked", e$label)
     next
   }
+  per <- if (is.null(e$per)) 1L else e$per
   counts <- vapply(e$arms, function(a) sum(abs(d[[e$arm]] - a) < 1e-9), numeric(1))
-  report(all(counts == HIGH_REPLICATIONS) && nrow(d) == length(e$arms) * HIGH_REPLICATIONS,
+  report(all(counts == per * HIGH_REPLICATIONS) &&
+           nrow(d) == length(e$arms) * per * HIGH_REPLICATIONS,
          "%s: %d arms of %d replications each (found %s rows)", e$label,
          length(e$arms), HIGH_REPLICATIONS, format(nrow(d)))
   numbered <- vapply(e$arms, function(a) {
     r <- d$replication[abs(d[[e$arm]] - a) < 1e-9]
-    identical(sort(as.integer(r)), seq_len(HIGH_REPLICATIONS))
+    identical(sort(as.integer(r)), rep(seq_len(HIGH_REPLICATIONS), each = per))
   }, logical(1))
   report(all(numbered), "%s: replications are numbered 1 to %d within every arm",
          e$label, HIGH_REPLICATIONS)

@@ -43,7 +43,7 @@
 # setting's output under the present casualty routing: a change that alters the
 # model outside the died-of-wounds mechanism changes that output too, and is the
 # one occasion for revising them, as the evacuation of every casualty from R1
-# did.
+# and the triage-ordered wait for an R2B resuscitation bed did.
 
 suppressPackageStartupMessages({
   library(simmer)
@@ -76,16 +76,16 @@ LEGACY_DAYS <- 360L
 
 #' SHA-256 of each file of the legacy setting's seed-42 output
 LEGACY_DIGESTS <- c(
-  "logs.txt"                         = "ffcfddff297bf34884356f0931e9c19edc96300d4a6b922478cc9b0eb100029d",
+  "logs.txt"                         = "0b094861689f996eb0ba89ca4a2c0e4e74daeb1e47a6599bc0cf02358f1e002b",
   "data/arrivals_casualty_surge.txt" = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "data/arrivals_dnbi_cbt.txt"       = "caf7115def77b79f8064a57c31cb46e0a807cc218c48b04f288c55e00df57d5d",
-  "data/arrivals_dnbi_spt.txt"       = "f9583b8d6377c966abf61965461661c44b3341f7a846db2b951e2257a1f98e77",
-  "data/arrivals_kia_cbt.txt"        = "d2e2f277f3661d95bcc8afda7e07e1636b47ea8c0f9ba3118b08b3dd6c6c8ff0",
-  "data/arrivals_kia_spt.txt"        = "0998e23ed57e900f0684e2f900fdca19b9ef6a5e8643230e79e6887c75be5ebe",
-  "data/arrivals_wia_cbt.txt"        = "b4b707d2b4fd9f26e0f43e3d508592dca9669ddf49a168d48354917204095052",
-  "data/arrivals_wia_spt.txt"        = "fdbb91aa5dcdb1dba63d1669f1c943b916fdf6429a8b958d0d64259790c5cb24",
+  "data/arrivals_dnbi_cbt.txt"       = "9805d55649a2f6008bf83cf7db947bbba968b62701735d308d3214ec8d3756c4",
+  "data/arrivals_dnbi_spt.txt"       = "1d5ea391f3591dbc4e9d6c2a3eb3fc6add34099514dd949ade93474dca44ee16",
+  "data/arrivals_kia_cbt.txt"        = "8bb8567c7c5395dded9f0d0e64a2ccc9e455d382d45046885270d3892fa0683a",
+  "data/arrivals_kia_spt.txt"        = "2596f73f6bedaed06e36758ce1fc69d614a2524f936ff9ad5cd18137e9942ae3",
+  "data/arrivals_wia_cbt.txt"        = "3651b5d45461c2bb5705df68191b88b9ac7db87d0bc2bb913ddd786d3f7c95b8",
+  "data/arrivals_wia_spt.txt"        = "4cb370c5154d11ffe20f4b5de8a5e067fe7bb5312f0b1423c977ba546f7548e4",
   "data/casualty_surge_events.csv"   = "92a3d3f38f6545948482b81f01d1006ec92be1affb48d5c55849e7a8d084db70",
-  "data/seed42_verification.csv"     = "e36424a392d57faca2d5d3c62e407971007e69197b0b8f9e3e4344879c0a8b15"
+  "data/seed42_verification.csv"     = "a02ade99aadc5dcd659c3c66f6c2000348af6977c31a52f097ee6db1340f8bc1"
 )
 
 state <- new.env(parent = emptyenv())

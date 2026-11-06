@@ -283,18 +283,34 @@ report(identical(res_cells(demand[5])[4], "2.00\u00d7") &&
        "the dispositions are those of the shipped policy and establishment only: %s",
        paste(res_cells(demand[5]), collapse = " / "))
 
-# The prose beside the shortfall table says every moderate-intensity shortfall interval
-# contains zero; that sentence is typed, so it is asserted against the table.
+# The prose beside the shortfall table says which intervals contain zero; that sentence
+# is typed, so it is asserted against the table.
 real_short <- build_load_shortfall(RESULTS_DATA_DIR)
-moderate_cells <- vapply(real_short[-(1:2)], function(l) res_cells(l)[2], character(1))
-moderate_cells <- moderate_cells[moderate_cells != "no queue forms"]
-spans_zero <- vapply(moderate_cells, function(cell) {
+
+#' Whether a shortfall cell's interval contains zero
+#'
+#' @param pool The pool's row label.
+#' @param col Column of the cell: 2 for moderate intensity, 4 for high.
+#' @return TRUE when the cell's interval contains zero.
+contains_zero <- function(pool, col) {
+  row <- real_short[vapply(real_short, function(l) identical(res_cells(l)[1], pool), logical(1))]
+  if (length(row) != 1L) return(NA)
+  cell <- res_cells(row)[col]
   b <- as.numeric(gsub("\u2212", "-", regmatches(cell, gregexpr("-?\u2212?[0-9.]+", cell))[[1]]))
   length(b) == 3L && b[2] <= 0 && b[3] >= 0
-}, logical(1))
-report(all(spans_zero),
-       "every moderate-intensity shortfall interval contains zero, as the prose states: %s",
-       paste(moderate_cells, collapse = " / "))
+}
+zero_moderate <- c("R2E operating theatres", "R2E holding beds")
+growing_moderate <- c("R2E staging overflow", "Strategic evacuation backlog")
+zero_high <- c("R2E operating theatres", "R2E holding beds", "R2E post-operative overflow")
+growing_high <- c("R2E staging overflow", "Strategic evacuation backlog")
+report(all(vapply(zero_moderate, contains_zero, logical(1), col = 2L)) &&
+         !any(vapply(growing_moderate, contains_zero, logical(1), col = 2L)),
+       paste("at moderate intensity the theatre and holding intervals contain zero and the",
+             "staging and airlift intervals do not, as the prose states"))
+report(all(vapply(zero_high, contains_zero, logical(1), col = 4L)) &&
+         !any(vapply(growing_high, contains_zero, logical(1), col = 4L)),
+       paste("at high intensity the theatre, holding and post-operative intervals contain zero",
+             "and the staging and airlift intervals do not, as the prose states"))
 
 # ── 4. Nothing outside a span states a figure or an interpretation ──────────
 

@@ -52,6 +52,7 @@ This document is the design record for the replicated experiments reported in th
   - [Forward Surgical Saturation Release Sweep](#forward-surgical-saturation-release-sweep)
   - [Surgical Team Establishment Sweep](#surgical-team-establishment-sweep)
   - [R2E Intensive Care Bed Establishment Sweep](#r2e-intensive-care-bed-establishment-sweep)
+  - [Priority 1 Triage Share Sweep](#priority-1-triage-share-sweep)
   - [Adequacy Verdict Criteria](#adequacy-verdict-criteria)
   - [Casualty Surge Event Stress Test](#casualty-surge-event-stress-test)
     - [Event Size Sweep](#event-size-sweep)
@@ -328,6 +329,7 @@ The matrix sets every experiment beside the others on the six properties a compa
 | Forward surgical saturation release sweep | default; `high_intensity` | 360 d | 30 per arm | 9 thresholds | one seed vector | closing-window state and totals; Student $t$, paired $t$ |
 | Surgical team establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queue and campaign counts, daily queue classified; Student $t$, paired $t$ |
 | R2E intensive care bed establishment sweep | default; `high_intensity` | 360 d | 30 per arm | 5 arms | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$ |
+| Priority 1 triage share sweep | default; `high_intensity` | 360 d | 30 per arm | 4 shares | one control seed, not one casualty stream | closing-window queues and campaign counts, daily queue classification; Student $t$, paired $t$; pooled treated-cohort rate, exact binomial |
 | Treated-cohort mortality at the sustained horizon | default and both profiles | 360 d | 3 measurements of 10 | 3 profiles | one control seed per measurement | pooled per-replication rate; Student $t$ |
 | Casualty surge event stress test | default and `high_intensity`, injection on or off | 360 d | 30 per arm | 2 arms | independent seeds per arm | campaign counts; Student $t$; pooled rate, exact binomial |
 | Force regeneration under reinforcement | the same two profiles | 30 d | 15 and 12 | 2 per profile | independent | daily volume, least-squares trend |
@@ -703,6 +705,25 @@ Rscript scripts/run_icu_bed_sweep.R --scenario high_intensity --refresh-baseline
 An intensive care stay at R2E seizes the bed alone. The R2E intensive care sections (an intensivist and four nurses each, three of them) are built as resources, but the stabilisation, post-operative and pre-flight stays take no member of a section, so staff do not constrain the pool and sweeping beds alone measures what the model represents. That is a property the design depends on and `tests/checks/check_icu_bed_sweep_protocol.R` asserts it as an absence, so a later change that makes a stay seize staff fails the check and sends the design back for revision. The ratio of nurses to beds each arm would imply at the shipped three sections is reported beside the results as a cost the model does not charge.
 
 Each replication is reduced inside the forked worker to one row of responses and a daily series of the R2E intensive care and holding queues and occupancy. The scalar responses are those of the policy sweep (`reduce_policy_replication()`), so the occupancies, queues, returns to duty, deaths of wounds, post-definitive intensive care access and Role 4 census are the quantities that sweep reports; the share of post-operative care taken in a holding bed, the deferrals at the theatre gate and the mean strategic evacuation wait of the critical route are added. The daily series is averaged into 30-day blocks and classified by the late-half fit of [Classifying Stability](#classifying-stability), so each pool is reported as converged or drifting and, where it drifts, by the shortfall per day that remains. The arms are paired on one control seed each, as the other establishment sweeps are, and changing the establishment alters the draws a replication takes, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each arm is checkpointed as it completes, and each finished replication is saved as it completes under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight; the seeds are fixed by the control seed, so the resumed result equals an uninterrupted one. The tracked evidence set is `data/icu_beds/`.
+
+### Priority 1 Triage Share Sweep
+
+<!-- TRIAGE replications=30 -->
+<!-- TRIAGE days=360 -->
+<!-- TRIAGE seed=42 -->
+<!-- TRIAGE window_days=90 -->
+<!-- TRIAGE baseline=P1 65% -->
+<!-- TRIAGE p1_shares=0.15;0.30;0.45;0.65 -->
+Thirty replications of 360 simulated days at each of four Priority 1 shares of the background triage split, at control seed 42, under the shipped default configuration and again under the `high_intensity` profile. The arms are 0.15, 0.30, 0.45 and 0.65 (shipped), and the remainder is divided between Priority 2 and Priority 3 in the shipped ratio of 20 to 15, so the arms vary acuity without also reshaping the rest of the split; the lowest arm lies inside the comparator ranges the system reference cites for the split ([Casualty Priorities](../README.md#casualty-priorities)). The split enters through `vars.r1.priority` and is set on the described configuration by `set_priority_split()`, which fails where the split cannot be found or does not sum to one rather than returning the configuration unchanged; the shipped arm's split is the shipped one exactly, so that arm reproduces the shipped configuration draw for draw. Invoked as:
+
+```
+Rscript scripts/run_triage_sweep.R --refresh-baseline
+Rscript scripts/run_triage_sweep.R --scenario high_intensity --refresh-baseline
+```
+
+The split governs wounded and non-battle injured casualties only, disease and battle fatigue taking their own priority rule, and the casualty surge split ships disabled and is not swept. Everything else is held at its shipped value, the died-of-wounds base rates and care multipliers, the surgical need rates and the damage control rates by priority included, so the sweep measures the triage mix alone. Because the base rates and the post-operative multiplier were fitted at the shipped mix ([Calibration](../README.md#calibration)), each arm also reports its treated-cohort died-of-wounds rate, pooled over the arm's replications with an exact binomial interval, and the share of its expected deaths accrued after surgery. These are a diagnostic of how far the calibration moves with the mix; no arm is refitted.
+
+Each replication is reduced inside the forked worker to one row of responses and a daily series of the R2E theatre, intensive care and holding queues and the post-operative and staging overflow behind them. The responses extend the intensive care bed sweep's set with the R2B diversions and operations of the hold window reduction, the R2E theatre queue, deaths of wounds per wounded casualty, the mean time from arrival to first incision over the casualties operated on, the share of casualties requiring surgery who were operated on, the critical airlift backlog at the close and the peak Role 4 intensive care census. Each pool's daily series is classified by the late-half fit of [Classifying Stability](#classifying-stability). The arms are paired on one control seed each, and a changed priority alters downstream branching and so the draws a replication takes, so the arms do not share a casualty stream and the pairing removes only the variance the shared parent seed carries. Each finished replication is saved under `outputs/checkpoints/` (untracked), so an interrupted run resumes at the replication in flight. `tests/checks/check_triage_sweep_protocol.R` asserts the protocol against these markers, that every arm keeps the shipped ratio, and that the shipped arm equals the intensive care bed sweep's shipped arm replication by replication. The tracked evidence set is `data/triage_split/`.
 
 ### Adequacy Verdict Criteria
 

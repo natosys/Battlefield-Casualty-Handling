@@ -1444,7 +1444,7 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 
 <small>[Return to Top](#contents)</small>
 
-**Question.** Which of the paired differences the experiments above sized for resolution excluded zero at 30 replications, and how many replications would each of the others need before its interval narrowed to a stated half-width? `[as each experiment above · 360 d · 30 replications · paired, normal approximation to the interval half-width]`
+**Question.** Which of the paired differences the experiments above sized for resolution were resolved at 30 replications, their interval excluding zero and their difference surviving Holm's adjustment within the experiment, and how many replications would each of the others need before its interval narrowed to a stated half-width? `[as each experiment above · 360 d · 30 replications · paired, Holm-adjusted, normal approximation to the interval half-width]`
 
 <!-- GEN resolution -->
 | Comparison | Paired difference | Half-width sought | Replications needed |
@@ -1460,7 +1460,7 @@ At 20 casualties per event the peak R2E post-operative overflow census was <!-- 
 | Saturation release at 2, returns to duty | +13.67 [−34.40, +61.74] | 10.0 | 637 |
 <!-- /GEN -->
 
-A comparison whose 95% interval excludes zero is listed in the second table rather than the first, the split being taken from the evidence each time the document is generated; the second table is empty where no interval excludes zero.
+A comparison whose 95% interval excludes zero and whose Holm-adjusted $p$-value is within the family-wise level is listed in the second table rather than the first, the split being taken from the evidence each time the document is generated; the second table is empty where no comparison is resolved.
 
 <!-- GEN resolved -->
 | Comparison | Paired difference |

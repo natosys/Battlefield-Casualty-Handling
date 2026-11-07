@@ -139,8 +139,13 @@ toy <- data.frame(
 out <- summarise_casualty_surge_size(toy)
 report(out$mean_events == 3 && out$max_event_size == 40,
        "mean events is 3 and the largest event is 40")
-report(abs(out$dow_event_rate - 4 / 240) < TOL, "event died-of-wounds rate pools 4 of 240")
-report(abs(out$dow_ordinary_rate - 6 / 2000) < TOL, "ordinary rate pools 6 of 2000")
+# Per-replication event rates 1/80 and 3/160, so the mean is 0.015625 rather
+# than the pooled 4/240; the ordinary rates 2/1000 and 4/1000 average 0.003.
+event_half <- qt(0.975, 1) * sd(c(1 / 80, 3 / 160)) / sqrt(2)
+report(abs(out$dow_event_rate - 0.015625) < TOL &&
+         abs(out$dow_event_upper - (0.015625 + event_half)) < TOL,
+       "event died-of-wounds rate is the mean per-replication rate with its Student t interval")
+report(abs(out$dow_ordinary_rate - 0.003) < TOL, "ordinary rate is the mean of 2 and 4 per 1000")
 report(abs(out$peak_queue_1 - 3) < TOL &&
          abs(out$peak_queue_1_ci - qt(0.975, 1) * sd(c(2, 4)) / sqrt(2)) < TOL,
        "peak queue is the mean 3 with its Student t half-width")
